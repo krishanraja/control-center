@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-command-border;
+  }
+  
+  body {
+    @apply font-sans antialiased;
+  }
+}
+
+@layer components {
+  .pulse-dot {
+    @apply w-2 h-2 rounded-full animate-pulse;
+  }
+  
+  .status-running {
+    @apply bg-command-success pulse-dot;
+  }
+  
+  .status-waiting {
+    @apply bg-command-info pulse-dot;
+  }
+  
+  .status-blocked {
+    @apply bg-command-error pulse-dot;
+  }
+  
+  .status-error {
+    @apply bg-command-error pulse-dot;
+  }
+  
+  .status-success {
+    @apply bg-command-success pulse-dot;
+  }
+}
