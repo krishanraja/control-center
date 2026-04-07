@@ -5,35 +5,79 @@
 @layer base {
   * {
     @apply border-command-border;
+    -webkit-tap-highlight-color: transparent;
   }
-  
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply font-sans antialiased;
+    background: #08080e;
+    overflow-x: hidden;
+    /* Prevent pull-to-refresh interfering with swipe gestures */
+    overscroll-behavior-y: contain;
+  }
+
+  /* Safe area support for iOS notch / Android gesture bar */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  /* Smooth momentum scrolling on iOS */
+  .overflow-y-auto,
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide scrollbar on mobile pill strips */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
 
 @layer components {
+  .glass-card {
+    @apply bg-white/[0.03] border border-white/[0.07] rounded-2xl backdrop-blur-sm;
+  }
+
+  .mobile-section {
+    @apply px-4 space-y-4;
+  }
+
+  /* Active press feedback for all interactive elements */
+  .press-effect {
+    @apply active:scale-95 transition-transform duration-100;
+  }
+
+  /* Status dots */
   .pulse-dot {
     @apply w-2 h-2 rounded-full animate-pulse;
   }
-  
-  .status-running {
-    @apply bg-command-success pulse-dot;
-  }
-  
-  .status-waiting {
-    @apply bg-command-info pulse-dot;
-  }
-  
-  .status-blocked {
-    @apply bg-command-error pulse-dot;
-  }
-  
-  .status-error {
-    @apply bg-command-error pulse-dot;
-  }
-  
-  .status-success {
-    @apply bg-command-success pulse-dot;
-  }
+  .status-running  { @apply bg-emerald-400 pulse-dot; }
+  .status-waiting  { @apply bg-blue-400 pulse-dot; }
+  .status-blocked  { @apply bg-red-400 pulse-dot; }
+  .status-error    { @apply bg-red-400 pulse-dot; }
+  .status-success  { @apply bg-emerald-400 pulse-dot; }
+}
+
+/* Slide-in animation for mobile tab transitions */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tab-content {
+  animation: slideUp 0.22s ease-out;
+}
+
+/* Glow effects */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1; }
 }
