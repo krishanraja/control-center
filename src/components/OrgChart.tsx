@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Agent } from '../types'
 import { AgentDetailModal } from './AgentDetailModal'
-import { Crown, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { Crown, Bell, Heart } from 'lucide-react'
 
 interface Props {
   agents: Agent[]
@@ -85,12 +85,28 @@ export function OrgChart({ agents, currentTime }: Props) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-white">Organisation Chart</h2>
-        <p className="text-sm text-command-text/50">Click any agent to see full profile</p>
+        <p className="text-sm text-command-text/50">Click any agent for full profile</p>
       </div>
 
       <div className="bg-command-card border border-command-border rounded-xl p-6">
-        {/* Tier 1: Krish */}
-        <div className="flex justify-center mb-0">
+
+        {/* Tier 1: Krish + Finno side by side */}
+        <div className="flex justify-center items-start gap-8 mb-0">
+
+          {/* Finno — personal system, dotted connection to Krish */}
+          <div className="flex flex-col items-center gap-1 pt-2">
+            <div className="flex flex-col items-center gap-1 px-4 py-3 rounded-xl border border-pink-400/25 bg-pink-400/5 min-w-[130px] text-center">
+              <div className="flex items-center gap-1.5">
+                <Heart className="w-3 h-3 text-pink-400" />
+                <span className="text-[10px] text-pink-400/60 font-semibold tracking-widest uppercase">Personal</span>
+              </div>
+              <p className="text-base font-bold text-pink-300">Finno</p>
+              <p className="text-[10px] text-pink-400/50 leading-tight">Mind, money<br/>& relationships</p>
+            </div>
+            <div className="text-[9px] text-pink-400/40 mt-1 italic">personal layer</div>
+          </div>
+
+          {/* Krish */}
           <div className="flex flex-col items-center gap-1 px-6 py-3 rounded-xl border border-amber-400/30 bg-amber-400/5 min-w-[140px] text-center">
             <div className="flex items-center gap-2">
               <Crown className="w-3.5 h-3.5 text-amber-400" />
@@ -99,6 +115,9 @@ export function OrgChart({ agents, currentTime }: Props) {
             <p className="text-lg font-bold text-amber-400">Krish</p>
             <p className="text-[11px] text-amber-400/60">CEO & Founder</p>
           </div>
+
+          {/* Spacer to balance layout */}
+          <div className="min-w-[130px]" />
         </div>
 
         <ConnectorV />
@@ -121,7 +140,21 @@ export function OrgChart({ agents, currentTime }: Props) {
 
         <ConnectorV />
 
-        {/* Pod connectors row */}
+        {/* Tier 2.5: Iris — Agatha's 2IC */}
+        <div className="flex justify-center mb-0">
+          <div className="flex flex-col items-center gap-1 px-4 py-2.5 rounded-xl border border-sky-400/30 bg-sky-400/5 min-w-[160px] text-center">
+            <div className="flex items-center gap-1.5">
+              <Bell className="w-3 h-3 text-sky-400" />
+              <span className="text-[10px] text-sky-400/60 font-semibold tracking-widest uppercase">2IC · Comms</span>
+            </div>
+            <p className="text-base font-bold text-sky-300">Iris</p>
+            <p className="text-[10px] text-sky-400/50">Every notification, alert<br/>& escalation routes through me</p>
+          </div>
+        </div>
+
+        <ConnectorV />
+
+        {/* Tier 3: Pods */}
         <div className="flex items-start gap-4 justify-center">
           {PODS.map((pod, podIdx) => {
             const podAgents = pod.agents
@@ -130,12 +163,8 @@ export function OrgChart({ agents, currentTime }: Props) {
 
             return (
               <React.Fragment key={pod.id}>
-                {/* Pod */}
                 <div className="flex flex-col items-center flex-1 max-w-xs">
-                  {/* Pod connector down */}
                   <ConnectorV />
-
-                  {/* Pod container */}
                   <div className={`border rounded-xl p-3 w-full ${pod.color}`}>
                     <p className={`text-[10px] font-bold uppercase tracking-widest mb-3 text-center ${pod.headerColor}`}>
                       {pod.label}
@@ -151,8 +180,6 @@ export function OrgChart({ agents, currentTime }: Props) {
                     </div>
                   </div>
                 </div>
-
-                {/* Vertical divider between pods */}
                 {podIdx < PODS.length - 1 && (
                   <div className="w-px bg-command-border/20 self-stretch mt-6" />
                 )}
