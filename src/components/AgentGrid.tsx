@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Agent } from '../types'
 import { AgentCard } from './AgentCard'
+import { AgentDetailModal } from './AgentDetailModal'
 import { Filter, Users } from 'lucide-react'
 
 interface Props {
@@ -12,6 +13,7 @@ type StatusFilter = 'all' | 'running' | 'waiting' | 'blocked' | 'error' | 'succe
 
 export function AgentGrid({ agents, currentTime }: Props) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
 
   const filteredAgents = agents.filter(agent => {
     if (statusFilter === 'all') return true
@@ -25,6 +27,14 @@ export function AgentGrid({ agents, currentTime }: Props) {
     blocked: agents.filter(a => a.status === 'blocked').length,
     error: agents.filter(a => a.status === 'error').length,
     success: agents.filter(a => a.status === 'success').length,
+  }
+
+  const handleAgentClick = (agent: Agent) => {
+    setSelectedAgent(agent)
+  }
+
+  const handleCloseModal = () => {
+    setSelectedAgent(null)
   }
 
   return (
@@ -55,9 +65,22 @@ export function AgentGrid({ agents, currentTime }: Props) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredAgents.map(agent => (
-          <AgentCard key={agent.id} agent={agent} currentTime={currentTime} />
+          <AgentCard 
+            key={agent.id} 
+            agent={agent} 
+            currentTime={currentTime}
+            onClick={() => handleAgentClick(agent)}
+          />
         ))}
       </div>
+
+      {selectedAgent && (
+        <AgentDetailModal
+          agent={selectedAgent}
+          isOpen={true}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   )
 }

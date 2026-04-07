@@ -1,5 +1,5 @@
-import React from 'react'
-import { UserCheck, Clock, AlertTriangle, ArrowRight } from 'lucide-react'
+import React, { useState } from 'react'
+import { UserCheck, Clock, ArrowRight, MessageCircle, CheckCircle, Send } from 'lucide-react'
 
 interface BlockItem {
   id: string
@@ -12,6 +12,13 @@ interface BlockItem {
   age: string
 }
 
+interface FeedbackState {
+  [taskId: string]: {
+    text: string
+    isExpanded: boolean
+  }
+}
+
 const BLOCKED_ITEMS: BlockItem[] = [
   {
     id: 'b1',
@@ -20,7 +27,7 @@ const BLOCKED_ITEMS: BlockItem[] = [
     blockedBy: 'krish',
     type: 'input',
     urgency: 'medium',
-    agent: 'Tools Agent',
+    agent: 'Arlo',
     age: '2h'
   },
   {
@@ -30,7 +37,7 @@ const BLOCKED_ITEMS: BlockItem[] = [
     blockedBy: 'krish',
     type: 'input',
     urgency: 'low',
-    agent: 'BD Agent',
+    agent: 'Zara',
     age: '1h'
   },
   {
@@ -40,7 +47,7 @@ const BLOCKED_ITEMS: BlockItem[] = [
     blockedBy: 'krish',
     type: 'input',
     urgency: 'medium',
-    agent: 'Marketing Agent',
+    agent: 'Maya',
     age: 'new'
   },
   {
@@ -70,7 +77,7 @@ const BLOCKED_ITEMS: BlockItem[] = [
     blockedBy: 'agatha',
     type: 'approval',
     urgency: 'high',
-    agent: 'Revenue Finance',
+    agent: 'Leo',
     age: '4h'
   }
 ]
@@ -89,40 +96,156 @@ const typeLabel = {
 }
 
 export function BlockedOnYou() {
+  const [feedback, setFeedback] = useState<FeedbackState>({})
+  const [submitting, setSubmitting] = useState<{ [taskId: string]: boolean }>({})
+
   const onKrish = BLOCKED_ITEMS.filter(i => i.blockedBy === 'krish')
   const onAgatha = BLOCKED_ITEMS.filter(i => i.blockedBy === 'agatha')
 
-  const renderItem = (item: BlockItem) => (
-    <div
-      key={item.id}
-      className="flex items-start space-x-3 p-3 rounded-lg bg-[#1a1a1d] border border-[#3a3a3d] hover:border-[#4a4a4d] transition-colors"
-    >
-      <div className="flex-shrink-0 mt-0.5">
-        {item.blockedBy === 'krish'
-          ? <UserCheck className="w-4 h-4 text-amber-400" />
-          : <Clock className="w-4 h-4 text-blue-400" />
-        }
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <span className="font-medium text-white text-sm">{item.title}</span>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className={`text-xs px-2 py-0.5 rounded border ${urgencyStyle[item.urgency]}`}>
-              {item.urgency}
-            </span>
-            <span className="text-xs text-[#6b7280]">{item.age}</span>
+  const updateFeedback = (taskId: string, text: string) => {
+    setFeedback(prev => ({
+      ...prev,
+      [taskId]: { ...prev[taskId], text }
+    }))
+  }
+
+  const toggleFeedback = (taskId: string) => {
+    setFeedback(prev => ({
+      ...prev,
+      [taskId]: { 
+        text: prev[taskId]?.text || '',
+        isExpanded: !prev[taskId]?.isExpanded 
+      }
+    }))
+  }
+
+  const submitFeedback = async (taskId: string, status: 'done' | 'feedback') => {
+    setSubmitting(prev => ({ ...prev, [taskId]: true }))
+    
+    try {
+      // Submit to N8N webhook that Agatha will pick up
+      const response = await fetch('/api/task-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId,
+          feedback: feedback[taskId]?.text || '',
+          status,
+          timestamp: new Date().toISOString(),
+          submittedBy: 'krish'
+        })
+      })
+      
+      if (response.ok) {
+        // Clear feedback and show success
+        setFeedback(prev => {
+          const newState = { ...prev }
+          delete newState[taskId]
+          return newState
+        })
+        alert(`Task ${status === 'done' ? 'marked as done' : 'feedback submitted'}! Agatha will process this.`)
+      }
+    } catch (error) {
+      console.error('Failed to submit feedback:', error)
+      alert('Failed to submit. Please try again.')
+    } finally {
+      setSubmitting(prev => ({ ...prev, [taskId]: false }))
+    }
+  }
+
+  const renderItem = (item: BlockItem) => {
+    const itemFeedback = feedback[item.id]
+    const isExpanded = itemFeedback?.isExpanded || false
+    const isSubmitting = submitting[item.id] || false
+
+    return (
+      <div
+        key={item.id}
+        className="p-4 rounded-lg bg-command-card border border-command-border hover:border-command-accent/30 transition-colors"
+      >
+        <div className="flex items-start space-x-3">
+          <div className="flex-shrink-0 mt-0.5">
+            {item.blockedBy === 'krish'
+              ? <UserCheck className="w-4 h-4 text-amber-400" />
+              : <Clock className="w-4 h-4 text-blue-400" />
+            }
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="font-medium text-white text-sm">{item.title}</span>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className={`text-xs px-2 py-0.5 rounded border ${urgencyStyle[item.urgency]}`}>
+                  {item.urgency}
+                </span>
+                <span className="text-xs text-command-text/70">{item.age}</span>
+              </div>
+            </div>
+            <p className="text-sm text-command-text/80 mb-2">{item.description}</p>
+            <div className="flex items-center space-x-1 mb-3">
+              <span className="text-xs text-command-text/70">from</span>
+              <span className="text-xs text-command-text font-medium">{item.agent}</span>
+              <ArrowRight className="w-3 h-3 text-command-text/70" />
+              <span className="text-xs font-medium text-amber-400">{typeLabel[item.type]}</span>
+            </div>
+
+            {/* Action Buttons */}
+            {item.blockedBy === 'krish' && (
+              <div className="flex items-center space-x-2 mb-2">
+                <button
+                  onClick={() => toggleFeedback(item.id)}
+                  className="flex items-center space-x-1 px-3 py-1 text-xs bg-command-bg/50 border border-command-border 
+                    rounded hover:bg-command-bg text-command-text transition-colors"
+                >
+                  <MessageCircle className="w-3 h-3" />
+                  <span>Add Feedback</span>
+                </button>
+                <button
+                  onClick={() => submitFeedback(item.id, 'done')}
+                  disabled={isSubmitting}
+                  className="flex items-center space-x-1 px-3 py-1 text-xs bg-command-success/20 border border-command-success/30 
+                    rounded hover:bg-command-success/30 text-command-success transition-colors disabled:opacity-50"
+                >
+                  <CheckCircle className="w-3 h-3" />
+                  <span>{isSubmitting ? 'Submitting...' : 'Mark Done'}</span>
+                </button>
+              </div>
+            )}
+
+            {/* Feedback Input */}
+            {isExpanded && (
+              <div className="mt-2 space-y-2 p-3 bg-command-bg/30 border border-command-border/50 rounded">
+                <textarea
+                  value={itemFeedback?.text || ''}
+                  onChange={(e) => updateFeedback(item.id, e.target.value)}
+                  placeholder="Add your feedback, questions, or updates..."
+                  className="w-full px-3 py-2 text-sm bg-command-bg border border-command-border rounded 
+                    text-command-text placeholder-command-text/50 resize-none"
+                  rows={2}
+                />
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => submitFeedback(item.id, 'feedback')}
+                    disabled={!itemFeedback?.text?.trim() || isSubmitting}
+                    className="flex items-center space-x-1 px-3 py-1 text-xs bg-command-accent/20 border border-command-accent/30 
+                      rounded hover:bg-command-accent/30 text-command-accent transition-colors disabled:opacity-50"
+                  >
+                    <Send className="w-3 h-3" />
+                    <span>{isSubmitting ? 'Sending...' : 'Send Feedback'}</span>
+                  </button>
+                  <button
+                    onClick={() => toggleFeedback(item.id)}
+                    className="px-3 py-1 text-xs text-command-text/70 hover:text-command-text transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-        <p className="text-sm text-[#9ca3af]">{item.description}</p>
-        <div className="flex items-center space-x-1 mt-1.5">
-          <span className="text-xs text-[#6b7280]">from</span>
-          <span className="text-xs text-[#9ca3af] font-medium">{item.agent}</span>
-          <ArrowRight className="w-3 h-3 text-[#6b7280]" />
-          <span className="text-xs font-medium text-amber-400">{typeLabel[item.type]}</span>
-        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -131,11 +254,13 @@ export function BlockedOnYou() {
         <div className="flex items-center space-x-2 mb-4">
           <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
           <h2 className="text-lg font-semibold text-white">Blocked on You</h2>
-          <span className="text-[#6b7280] text-sm">({onKrish.length})</span>
+          <span className="text-command-text/70 text-sm">({onKrish.length})</span>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {onKrish.length === 0
-            ? <p className="text-[#6b7280] text-sm italic p-3">Nothing waiting on you right now.</p>
+            ? <p className="text-command-text/70 text-sm italic p-4 bg-command-card border border-command-border rounded">
+                Nothing waiting on you right now.
+              </p>
             : onKrish.map(renderItem)
           }
         </div>
@@ -146,11 +271,13 @@ export function BlockedOnYou() {
         <div className="flex items-center space-x-2 mb-4">
           <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
           <h2 className="text-lg font-semibold text-white">Blocked on Agatha</h2>
-          <span className="text-[#6b7280] text-sm">({onAgatha.length})</span>
+          <span className="text-command-text/70 text-sm">({onAgatha.length})</span>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {onAgatha.length === 0
-            ? <p className="text-[#6b7280] text-sm italic p-3">Nothing in Agatha's queue right now.</p>
+            ? <p className="text-command-text/70 text-sm italic p-4 bg-command-card border border-command-border rounded">
+                Nothing in Agatha's queue right now.
+              </p>
             : onAgatha.map(renderItem)
           }
         </div>

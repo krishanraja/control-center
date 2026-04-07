@@ -1,13 +1,19 @@
 export interface Agent {
   id: string
   name: string
+  humanName: string
   role: string
   model: "haiku" | "sonnet" | "opus"
   schedule: string
   nextRun: Date
   lastRun?: Date
   status: "running" | "waiting" | "blocked" | "error" | "success"
-  description: string
+  description?: string // Legacy field, now using mission
+  personality: string
+  mission: string
+  currentWork: string[]
+  collaborations: string[]
+  nextActions: string[]
   workSummary?: string
   blockers?: string[]
   dependencies?: string[]
@@ -34,4 +40,13 @@ export interface WorkflowStatus {
     finishedAt?: Date
   }
   consecutiveErrors: number
+}
+
+export interface TaskFeedback {
+  taskId: string
+  agentId: string
+  feedback: string
+  status: "pending" | "done" | "needs_revision"
+  timestamp: Date
+  submittedBy: "krish" | "agatha"
 }

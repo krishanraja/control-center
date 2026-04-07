@@ -24,8 +24,8 @@ function App() {
         <div className="max-w-7xl mx-auto space-y-6">
           <header className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-white">Mission Control</h1>
-              <p className="text-command-text/70 text-sm">Autonomous Organisation OS</p>
+              <h1 className="text-2xl font-bold text-white">MindMaker OS</h1>
+              <p className="text-command-text/70 text-sm">Autonomous Organisation Operating System</p>
             </div>
             <div className="text-right text-sm text-command-text/70">
               <div>{currentTime.toLocaleDateString()}</div>
@@ -36,7 +36,7 @@ function App() {
           <SystemHealth health={SYSTEM_HEALTH} />
 
           {/* Hero section — blocked items front and center */}
-          <div className="rounded-xl border border-[#3a3a3d] bg-[#111113] p-6">
+          <div className="rounded-xl border border-command-border bg-command-card p-6">
             <BlockedOnYou />
           </div>
 

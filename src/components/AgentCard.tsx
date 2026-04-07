@@ -1,14 +1,15 @@
 import React from 'react'
 import { Agent } from '../types'
 import { formatRelativeTime, formatNextRun } from '../utils/time'
-import { Clock, AlertCircle, CheckCircle, Loader2, XCircle, Pause } from 'lucide-react'
+import { Clock, AlertCircle, CheckCircle, Loader2, XCircle, ChevronRight } from 'lucide-react'
 
 interface Props {
   agent: Agent
   currentTime: Date
+  onClick: () => void
 }
 
-export function AgentCard({ agent, currentTime }: Props) {
+export function AgentCard({ agent, currentTime, onClick }: Props) {
   const getStatusIcon = () => {
     switch (agent.status) {
       case 'running': return <Loader2 className="w-4 h-4 text-command-success animate-spin" />
@@ -39,28 +40,43 @@ export function AgentCard({ agent, currentTime }: Props) {
   }
 
   return (
-    <div className={`border border-command-border rounded-lg p-4 bg-command-card ${getStatusColor()}`}>
+    <div 
+      className={`border border-command-border rounded-lg p-4 bg-command-card ${getStatusColor()} 
+        cursor-pointer hover:border-command-accent/50 transition-all duration-200 hover:shadow-lg hover:shadow-command-accent/10
+        group`}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center space-x-2">
           {getStatusIcon()}
           <div>
-            <h3 className="font-semibold text-white">{agent.name}</h3>
+            <h3 className="font-semibold text-white group-hover:text-command-accent transition-colors">
+              {agent.humanName}
+            </h3>
             <p className="text-xs text-command-text/70">{agent.role}</p>
           </div>
         </div>
-        <div className={getModelBadge()}>{agent.model}</div>
+        <div className="flex items-center space-x-2">
+          <div className={getModelBadge()}>{agent.model}</div>
+          <ChevronRight className="w-4 h-4 text-command-text/40 group-hover:text-command-accent transition-colors" />
+        </div>
       </div>
 
-      <p className="text-sm text-command-text/80 mb-3 leading-relaxed">
-        {agent.description}
-      </p>
+      {/* Mission Statement */}
+      <div className="mb-4 p-3 bg-command-bg/30 rounded-lg border border-command-border/30">
+        <p className="text-sm text-command-text/90 italic leading-relaxed">
+          "{agent.mission}"
+        </p>
+      </div>
 
+      {/* Current Work Summary */}
       {agent.workSummary && (
         <div className="mb-3 p-2 bg-command-bg/50 rounded border border-command-border/50">
           <p className="text-sm text-command-text">{agent.workSummary}</p>
         </div>
       )}
 
+      {/* Blockers */}
       {agent.blockers && agent.blockers.length > 0 && (
         <div className="mb-3">
           <div className="flex items-center space-x-1 mb-1">
@@ -73,6 +89,12 @@ export function AgentCard({ agent, currentTime }: Props) {
         </div>
       )}
 
+      {/* Personality Hint */}
+      <div className="mb-3 text-xs text-command-text/60 bg-command-bg/20 p-2 rounded">
+        <span className="font-medium">Personality:</span> {agent.personality}
+      </div>
+
+      {/* Timing */}
       <div className="flex justify-between text-xs text-command-text/70 border-t border-command-border/50 pt-3">
         <div>
           {agent.lastRun ? (
