@@ -13,7 +13,6 @@ const engines = [
   { id: 'felix', name: 'Felix', domain: 'Enterprise BD', cron: 'Mon-Fri 11AM', n8n_workflow: 'opportunity-update', state: 'Running', next_run: 'Wed 11:00 EST' },
   { id: 'zara', name: 'Zara', domain: 'BD Signals', cron: 'Mon-Fri 10AM', n8n_workflow: 'Uz8qzh6kuXkN2bc8', state: 'Sleeping', next_run: 'Wed 10:00 EST' },
   { id: 'nova', name: 'Nova', domain: 'Visibility / Podcasts', cron: 'Tue/Fri 9AM', n8n_workflow: 'None', state: 'Sleeping', next_run: 'Fri 09:00 EST' }
-  , { id: 'hunter', name: 'Hunter', domain: 'Job Sourcing', cron: 'Mon,Thu 8AM', n8n_workflow: 'None', state: 'Sleeping', next_run: 'Thu 08:00 UTC' }
 ];
 
 const mapped = engines.map(e => ({

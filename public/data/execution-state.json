@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-07T18:33:49.582Z",
+  "updated_at": "2026-04-07T18:51:34.575Z",
   "engines": [
     {
       "id": "agatha",
@@ -117,19 +117,6 @@
       "infra_note": "Cron OK",
       "qa_status": "green",
       "qa_note": "Voice compliance OK"
-    },
-    {
-      "id": "hunter",
-      "name": "Hunter",
-      "domain": "Job Sourcing",
-      "cron": "Mon,Thu 8AM",
-      "n8n_workflow": "None",
-      "state": "Sleeping",
-      "next_run": "Thu 08:00 UTC",
-      "infra_status": "green",
-      "infra_note": "Cron + Sourcing OK",
-      "qa_status": "green",
-      "qa_note": "Rubric compliance OK"
     }
   ]
 }

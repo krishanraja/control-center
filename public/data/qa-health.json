@@ -34,9 +34,5 @@
   "nova": {
     "status": "green",
     "note": "Voice compliance OK"
-  },
-  "hunter": {
-    "status": "green",
-    "note": "Rubric compliance OK"
   }
 }

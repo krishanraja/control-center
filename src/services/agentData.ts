@@ -302,27 +302,7 @@ export const AGENTS: Agent[] = [
     reportsTo: "agatha",
     planDocUrl: "https://docs.google.com/document/d/16IaX5tmaJS3Tby4GLjWEcznHP_-gwk1Si7rvvE7z4yw/edit"
   },
-  {
-    id: "hunter",
-    name: "Hunter",
-    humanName: "Hunter",
-    role: "Job Sourcing",
-    model: "sonnet",
-    schedule: "Mon/Thu 8AM EST",
-    status: "waiting",
-    pod: "growth",
-    personality: "Relentless, discerning, highly specific. Speaks in facts, scores, and rationale. Does not get excited by noise.",
-    mission: "I find the right roles, match them against Krish's specific standards, and execute approved applications flawlessly. Only 9-10/10 opportunities make it to Krish.",
-    kpi: { label: "April target", target: "Scan boards bi-weekly, surface only 9-10/10 roles", current: "0 roles sourced" },
-    currentWork: ["Daily job sourcing schedule", "Qualifying leads against standards.md"],
-    collaborations: ["Reports to Agatha"],
-    nextActions: ["Run bi-weekly board scan", "Update Application History tracking sheet", "Alert Krish to 9-10/10 roles"],
-    nextRun: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    lastRun: undefined,
-    workSummary: "Daily job sourcing schedule",
-    reportsTo: "agatha",
-    planDocUrl: ""
-  },
+    
 ]
 
 export const SYSTEM_HEALTH: SystemHealth = {

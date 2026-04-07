@@ -34,9 +34,5 @@
   "nova": {
     "status": "green",
     "note": "Cron OK"
-  },
-  "hunter": {
-    "status": "green",
-    "note": "Cron + Sourcing OK"
   }
 }
