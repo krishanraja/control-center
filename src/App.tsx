@@ -4,6 +4,7 @@ import { SystemHealth } from './components/SystemHealth'
 import { AgentGrid } from './components/AgentGrid'
 import { Sidebar } from './components/Sidebar'
 import { BlockedOnYou } from './components/BlockedOnYou'
+import { OrgChart } from './components/OrgChart'
 
 function App() {
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -34,6 +35,9 @@ function App() {
           </header>
 
           <SystemHealth health={SYSTEM_HEALTH} />
+
+          {/* Org Chart — accountability structure */}
+          <OrgChart agents={AGENTS} currentTime={currentTime} />
 
           {/* Hero section — blocked items front and center */}
           <div className="rounded-xl border border-command-border bg-command-card p-6">
