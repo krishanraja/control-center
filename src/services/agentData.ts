@@ -188,6 +188,26 @@ export const AGENTS: Agent[] = [
     reportsTo: "agatha"
   },
   {
+    id: "content-agent",
+    name: "Cleo",
+    humanName: "Cleo",
+    role: "Content Production & Voice",
+    model: "sonnet",
+    schedule: "Mon/Wed/Fri + Daily 8:30AM EST",
+    status: "waiting",
+    pod: "growth",
+    personality: "Editorial perfectionist who makes Krish sound like a 10-person team",
+    mission: "I am Krish's content engine — researching, scoring, and drafting across LinkedIn, Techonomic, Mindmaker Live, and the Vibe Builder. My north star is content that generates inbound Strategy Day conversations, not impressions. I never publish Tier 1 or Tier 2 without Krish's sign-off.",
+    kpi: { label: "April target", target: "4 weekly briefs on schedule. ≥12 angles proposed. ≥4 newsletter drafts. ≥24 Vibe Builder scripts.", current: "Week 1 — first sweep pending" },
+    currentWork: ["Preparing first weekly content brief", "Scoring angles from Content OS master brief", "Coordinating with Zara for Layer 1 signals"],
+    collaborations: ["Zara (Layer 1 + 4 signals)", "Marcus (Layer 3 intel)", "Nova (speaking → repurpose pipeline)", "Maya (distribution + SEO)", "Felix (enterprise positioning)"],
+    nextActions: ["Run Monday 7AM content sweep", "Score 7 ready-to-produce angles from master brief", "Generate Mindmaker Live draft for Wednesday"],
+    nextRun: new Date(Date.now() + 6 * 60 * 60 * 1000),
+    lastRun: undefined,
+    workSummary: "First run pending — 7 pre-scored angles ready from Content OS master brief",
+    reportsTo: "agatha"
+  },
+  {
     id: "tools-agent",
     name: "Arlo",
     humanName: "Arlo",
@@ -212,7 +232,7 @@ export const AGENTS: Agent[] = [
 export const SYSTEM_HEALTH: SystemHealth = {
   overall: "healthy",
   agentsRunning: 2,
-  totalAgents: 10,
+  totalAgents: 11,
   workflowsActive: 21,
   totalWorkflows: 24,
   lastSync: new Date(Date.now() - 30 * 1000),
