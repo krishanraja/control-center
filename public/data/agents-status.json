@@ -1,0 +1,20 @@
+{
+  "updated_at": "2026-04-07T00:00:00Z",
+  "updated_by": "radar-daily-cron",
+  "agents": {
+    "agatha":           { "status": "running",  "lastRun": "2026-04-07T00:00:00Z", "kpi_current": "Week 1 of April", "note": "Managing Phase 2 agent rollout" },
+    "vera-daily":       { "status": "waiting",  "lastRun": "2026-04-07T02:00:00Z", "kpi_current": "0/4 audits complete", "note": "Next: daily audit 2AM" },
+    "weekly-synthesis": { "status": "waiting",  "lastRun": null, "kpi_current": "0/4 delivered", "note": "First Monday run pending" },
+    "product-agent":    { "status": "waiting",  "lastRun": null, "kpi_current": "0 briefs this month", "note": "First Monday run pending" },
+    "revenue-agent":    { "status": "blocked",  "lastRun": null, "kpi_current": "Blocked — Stripe key needed", "note": "Cannot run until Fractionl Stripe key provided" },
+    "bd-agent":         { "status": "waiting",  "lastRun": "2026-04-07T10:00:00Z", "kpi_current": "0 signals this week", "note": "Monitoring 23 companies hiring AI officers" },
+    "enterprise-gigs":  { "status": "running",  "lastRun": "2026-04-07T11:00:00Z", "kpi_current": "Skyview: $120K — in proposal", "note": "Processing Skyview engagement" },
+    "visibility-agent": { "status": "waiting",  "lastRun": "2026-04-05T09:00:00Z", "kpi_current": "12 pitches sent, 3 pending", "note": "Tue/Fri pitch schedule" },
+    "marketing-agent":  { "status": "success",  "lastRun": "2026-04-07T09:00:00Z", "kpi_current": "47 briefs generated", "note": "DataForSEO analysis complete" },
+    "content-agent":    { "status": "waiting",  "lastRun": null, "kpi_current": "Week 1 — first sweep pending", "note": "Monday 7AM content sweep" },
+    "podcast-guest-agent": { "status": "blocked", "lastRun": null, "kpi_current": "Pipeline not started", "note": "Blocked — Krish recording availability needed" },
+    "stage-agent":      { "status": "waiting",  "lastRun": null, "kpi_current": "First run pending", "note": "Building opportunity pipeline" },
+    "efficiency-agent": { "status": "waiting",  "lastRun": null, "kpi_current": "Workspace: 14GB", "note": "First Sunday run Apr 13" },
+    "tools-agent":      { "status": "success",  "lastRun": "2026-04-07T03:00:00Z", "kpi_current": "All systems nominal", "note": "N8N workflows monitored" }
+  }
+}
