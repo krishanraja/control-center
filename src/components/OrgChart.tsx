@@ -122,8 +122,10 @@ export function OrgChart({ agents, currentTime }: Props) {
 
         <ConnectorV />
 
-        {/* Tier 2: Agatha */}
-        <div className="flex justify-center mb-0">
+        {/* Tier 2: Agatha + Iris side by side */}
+        <div className="flex justify-center items-center gap-6 mb-0">
+
+          {/* Agatha */}
           <button
             onClick={() => setSelectedAgent(agatha)}
             className="flex flex-col items-center gap-1 px-6 py-3 rounded-xl border border-command-success/40 bg-command-success/5
@@ -136,19 +138,18 @@ export function OrgChart({ agents, currentTime }: Props) {
             <p className="text-lg font-bold text-white group-hover:text-command-accent transition-colors">Agatha</p>
             <p className="text-[11px] text-command-text/50">Chief Operating Officer</p>
           </button>
-        </div>
 
-        <ConnectorV />
+          {/* Horizontal connector */}
+          <div className="h-px w-8 bg-sky-400/30" />
 
-        {/* Tier 2.5: Iris — Agatha's 2IC */}
-        <div className="flex justify-center mb-0">
-          <div className="flex flex-col items-center gap-1 px-4 py-2.5 rounded-xl border border-sky-400/30 bg-sky-400/5 min-w-[160px] text-center">
+          {/* Iris — beside Agatha, not in the reporting chain */}
+          <div className="flex flex-col items-center gap-1 px-4 py-2.5 rounded-xl border border-sky-400/30 bg-sky-400/5 min-w-[150px] text-center">
             <div className="flex items-center gap-1.5">
               <Bell className="w-3 h-3 text-sky-400" />
-              <span className="text-[10px] text-sky-400/60 font-semibold tracking-widest uppercase">2IC · Comms</span>
+              <span className="text-[10px] text-sky-400/60 font-semibold tracking-widest uppercase">Comms · Ops-bot</span>
             </div>
             <p className="text-base font-bold text-sky-300">Iris</p>
-            <p className="text-[10px] text-sky-400/50">Every notification, alert<br/>& escalation routes through me</p>
+            <p className="text-[10px] text-sky-400/50 leading-tight">All notifications &<br/>escalations route via me</p>
           </div>
         </div>
 
