@@ -25,6 +25,7 @@ export interface Agent {
     unit?: string
   }
   pod?: 'ops' | 'revenue' | 'growth'
+  planDocUrl?: string
 }
 
 export interface SystemHealth {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { UserCheck, Clock, ArrowRight, MessageCircle, CheckCircle, Send, Hourglass } from 'lucide-react'
+import { AGENTS } from '../services/agentData'
 
 interface BlockItem {
   id: string

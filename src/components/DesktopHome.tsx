@@ -237,7 +237,7 @@ function Pulse() {
     running: AGENTS.filter(a => a.status === 'running').length,
     blocked: AGENTS.filter(a => a.status === 'blocked').length,
     waiting: AGENTS.filter(a => a.status === 'waiting').length,
-    done:    AGENTS.filter(a => a.status === 'done').length,
+    done:    AGENTS.filter(a => a.status === 'success').length,
   }
 
   // Agents with blockers that need Krish

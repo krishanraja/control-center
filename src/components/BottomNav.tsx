@@ -1,5 +1,5 @@
 import React from 'react'
-import { Home, Users, Zap, CalendarCheck, GitBranch, Clock } from 'lucide-react'
+import { Home, Users, Zap, CalendarCheck, GitBranch, Clock, ClipboardList } from 'lucide-react'
 import { useHaptics } from '../hooks/useHaptics'
 
 interface Props {
@@ -11,9 +11,9 @@ const TABS = [
   { id: 'home',   label: 'Home',   icon: Home },
   { id: 'today',  label: 'Today',  icon: Clock },
   { id: 'team',   label: 'Team',   icon: Users },
+  { id: 'plans',  label: 'Briefs', icon: ClipboardList },
   { id: 'org',    label: 'Org',    icon: GitBranch },
   { id: 'ops',    label: 'Ops',    icon: Zap },
-  { id: 'comms',  label: 'Comms',  icon: CalendarCheck },
 ]
 
 export function BottomNav({ active, onChange }: Props) {

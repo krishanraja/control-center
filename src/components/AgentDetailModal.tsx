@@ -1,6 +1,6 @@
 import React from 'react'
 import { Agent } from '../types'
-import { X, Clock, Users, CheckSquare, User, Brain, Target, MessageCircle, CheckCircle, XCircle } from 'lucide-react'
+import { X, Clock, Users, CheckSquare, User, Brain, Target, MessageCircle, CheckCircle, XCircle, ExternalLink, FileText } from 'lucide-react'
 import { formatRelativeTime, formatNextRun } from '../utils/time'
 
 interface Props {
@@ -55,6 +55,28 @@ export function AgentDetailModal({ agent, isOpen, onClose }: Props) {
         </div>
 
         <div className="p-6 space-y-6">
+
+          {/* Agent Brief link — single source of truth */}
+          {agent.planDocUrl && (
+            <a
+              href={agent.planDocUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-violet-500/10 border border-violet-500/30 hover:bg-violet-500/20 transition-colors group"
+            >
+              <FileText className="w-5 h-5 text-violet-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-violet-300 group-hover:text-violet-200 transition-colors">
+                  Open Agent Brief →
+                </p>
+                <p className="text-[11px] text-white/40 truncate">
+                  KPIs · Mission · Feedback from Krish · Run Log
+                </p>
+              </div>
+              <ExternalLink className="w-4 h-4 text-violet-400/60 flex-shrink-0 group-hover:text-violet-300 transition-colors" />
+            </a>
+          )}
+
           {/* Personality & Mission */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2 mb-3">

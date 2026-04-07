@@ -26,7 +26,8 @@ export const AGENTS: Agent[] = [
     nextActions: ["Review Vera's audit findings", "Coordinate BD-Marketing handoff on content angles", "Schedule weekly synthesis session"],
     nextRun: new Date(),
     lastRun: new Date(Date.now() - 15 * 60 * 1000),
-    workSummary: "Managing Phase 2 rollout and agent coordination"
+    workSummary: "Managing Phase 2 rollout and agent coordination",
+    planDocUrl: "https://docs.google.com/document/d/1rXkGAUf6qqRibFz5g5rtPgiKh5Oe9cRj5bwuVEHvfu8/edit"
   },
   {
     id: "vera-daily",
@@ -46,7 +47,8 @@ export const AGENTS: Agent[] = [
     nextRun: new Date(Date.now() + 2 * 60 * 60 * 1000),
     lastRun: new Date(Date.now() - 22 * 60 * 60 * 1000),
     workSummary: "Next: audit all agent outputs from today",
-    reportsTo: "agatha"
+    reportsTo: "agatha",
+    planDocUrl: "https://docs.google.com/document/d/15g3jcubFnBEm0c9B3jGmL-wM1DXT85zUvBi33PW96l8/edit"
   },
   {
     id: "weekly-synthesis",
@@ -64,7 +66,8 @@ export const AGENTS: Agent[] = [
     collaborations: ["Reads reports from all agents", "Reports to Agatha"],
     nextActions: ["Collect all agent reports from this week", "Identify cross-domain patterns", "Generate strategic recommendations for Krish"],
     nextRun: new Date(Date.now() + 13 * 60 * 60 * 1000),
-    workSummary: "Next Monday: synthesize all agent reports from this week"
+    workSummary: "Next Monday: synthesize all agent reports from this week",
+    planDocUrl: "https://docs.google.com/document/d/1WnmjrEetaCKSvwgOfq8wbw2nCEcQ8rCQv4WdfmCwSxE/edit"
   },
   {
     id: "product-agent",
@@ -84,7 +87,8 @@ export const AGENTS: Agent[] = [
     nextRun: new Date(Date.now() + 14 * 60 * 60 * 1000),
     lastRun: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
     workSummary: "Analyzing user feedback for OnAlert dashboard improvements",
-    reportsTo: "agatha"
+    reportsTo: "agatha",
+    planDocUrl: "https://docs.google.com/document/d/19ZZKY8FVQRcsgHr5WtHG3vLya1v9e6R2AISeq8jOutY/edit"
   },
   {
     id: "revenue-agent",
@@ -105,7 +109,8 @@ export const AGENTS: Agent[] = [
     lastRun: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
     workSummary: "Revenue tracking paused — fixing Fractionl Stripe integration",
     blockers: ["Weekly Revenue Report errored on first run — N8N fix needed"],
-    reportsTo: "agatha"
+    reportsTo: "agatha",
+    planDocUrl: "https://docs.google.com/document/d/1mtliZiV2VpyoxRfD39SlN0aWbOZ83-UEoQXwB3JEk0k/edit"
   },
   {
     id: "bd-agent",
@@ -125,7 +130,8 @@ export const AGENTS: Agent[] = [
     nextRun: new Date(Date.now() + 16 * 60 * 60 * 1000),
     lastRun: new Date(Date.now() - 6 * 60 * 60 * 1000),
     workSummary: "Monitoring 23 companies hiring AI officers, 4 warm paths identified",
-    reportsTo: "agatha"
+    reportsTo: "agatha",
+    planDocUrl: "https://docs.google.com/document/d/1GyM5qG1gq2DNL8AvksJu24AxGoWtkrIebL_pqAdvJ3o/edit"
   },
   {
     id: "enterprise-gigs",
@@ -145,7 +151,8 @@ export const AGENTS: Agent[] = [
     nextRun: new Date(Date.now() + 17 * 60 * 60 * 1000),
     lastRun: new Date(Date.now() - 30 * 60 * 1000),
     workSummary: "Processing Skyview engagement proposal, $120K potential",
-    reportsTo: "agatha"
+    reportsTo: "agatha",
+    planDocUrl: "https://docs.google.com/document/d/1o_Gcn9AZM2RxYV4MCSidWcIdmz--IyoeZDyqzHcIQy4/edit"
   },
   {
     id: "visibility-agent",
@@ -165,7 +172,8 @@ export const AGENTS: Agent[] = [
     nextRun: new Date(Date.now() + 8 * 60 * 60 * 1000),
     lastRun: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
     workSummary: "12 podcast pitches sent this week, 3 confirmations pending",
-    reportsTo: "agatha"
+    reportsTo: "agatha",
+    planDocUrl: "https://docs.google.com/document/d/10qX-QgMQEXoAY4as7lev_dsKmwuERLhwexq3b_CYhkc/edit"
   },
   {
     id: "marketing-agent",
@@ -185,7 +193,8 @@ export const AGENTS: Agent[] = [
     nextRun: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
     lastRun: new Date(Date.now() - 18 * 60 * 60 * 1000),
     workSummary: "DataForSEO analysis complete — 47 content briefs generated",
-    reportsTo: "agatha"
+    reportsTo: "agatha",
+    planDocUrl: "https://docs.google.com/document/d/1tV3EKTEz7PfEL5mN371F5czmsUxkwjFzYZzcryh1YJU/edit"
   },
   {
     id: "content-agent",
@@ -205,7 +214,8 @@ export const AGENTS: Agent[] = [
     nextRun: new Date(Date.now() + 6 * 60 * 60 * 1000),
     lastRun: undefined,
     workSummary: "First run pending — 7 pre-scored angles ready from Content OS master brief",
-    reportsTo: "agatha"
+    reportsTo: "agatha",
+    planDocUrl: "https://docs.google.com/document/d/10-kH5pAbMe0QOUZQdWbaeXP4CRfoPX4sL9XtiUekoQg/edit"
   },
   {
     id: "podcast-guest-agent",
@@ -226,7 +236,8 @@ export const AGENTS: Agent[] = [
     lastRun: undefined,
     workSummary: "Blocked — cannot commit dates in pitches without Krish's recording availability",
     blockers: ["Krish recording availability for April not yet confirmed — pitches go out open-ended until this is provided"],
-    reportsTo: "agatha"
+    reportsTo: "agatha",
+    planDocUrl: "https://docs.google.com/document/d/1BVa-yUeGgx5e3tB1axFdLtFJussbC-smLqxJdvjCvek/edit"
   },
   {
     id: "stage-agent",
@@ -246,7 +257,8 @@ export const AGENTS: Agent[] = [
     nextRun: new Date(Date.now() + 8 * 60 * 60 * 1000),
     lastRun: undefined,
     workSummary: "First run pending — building opportunity pipeline",
-    reportsTo: "agatha"
+    reportsTo: "agatha",
+    planDocUrl: "https://docs.google.com/document/d/1V-rWa5-UEzO23xMADC9MgjB0YfC2eL8nLFxOB0EShg4/edit"
   },
   {
     id: "efficiency-agent",
@@ -266,7 +278,8 @@ export const AGENTS: Agent[] = [
     nextRun: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
     lastRun: undefined,
     workSummary: "First run Sunday 2AM — auditing workspace, Drive, and cost burn",
-    reportsTo: "agatha"
+    reportsTo: "agatha",
+    planDocUrl: "https://docs.google.com/document/d/1jtpymRjN0JYeTMw2J3J0Jx3rtYNa6_SgaTOWbv402ns/edit"
   },
   {
     id: "tools-agent",
@@ -286,7 +299,8 @@ export const AGENTS: Agent[] = [
     nextRun: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
     lastRun: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
     workSummary: "All 24 N8N workflows healthy, 0 consecutive errors detected",
-    reportsTo: "agatha"
+    reportsTo: "agatha",
+    planDocUrl: "https://docs.google.com/document/d/16IaX5tmaJS3Tby4GLjWEcznHP_-gwk1Si7rvvE7z4yw/edit"
   }
 ]
 

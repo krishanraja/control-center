@@ -1,6 +1,6 @@
 import React from 'react'
 import { Agent } from '../types'
-import { BarChart3, Circle, GitBranch } from 'lucide-react'
+import { BarChart3, Circle, GitBranch, ExternalLink } from 'lucide-react'
 
 interface Props {
   agents: Agent[]
@@ -47,12 +47,24 @@ export function Sidebar({ agents, currentTime }: Props) {
           {/* Other agents */}
           <div className="space-y-1">
             {otherAgents.map(agent => (
-              <div key={agent.id} className="flex items-center space-x-2 p-2 hover:bg-command-card/50 rounded text-sm">
+              <div key={agent.id} className="flex items-center space-x-2 p-2 hover:bg-command-card/50 rounded text-sm group">
                 {getStatusDot(agent.status)}
                 <div className="flex-1 min-w-0">
                   <div className="text-command-text truncate">{agent.name}</div>
                   <div className="text-xs text-command-text/50 truncate">{agent.role}</div>
                 </div>
+                {agent.planDocUrl && (
+                  <a
+                    href={agent.planDocUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open Agent Brief"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-command-text/30 hover:text-violet-400 flex-shrink-0"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
               </div>
             ))}
           </div>

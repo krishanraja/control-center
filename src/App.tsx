@@ -57,12 +57,13 @@ function App() {
         <MobileHeader currentTime={currentTime} />
 
         <div className="px-4 space-y-4 pt-2">
-          {activeTab === 'home' && <HomeTab currentTime={currentTime} />}
+          {activeTab === 'home'  && <HomeTab />}
           {activeTab === 'today' && <TodayTab />}
-          {activeTab === 'team' && <TeamTab currentTime={currentTime} />}
-          {activeTab === 'org'  && <OrgTab  currentTime={currentTime} />}
-          {activeTab === 'ops'  && <OpsTab />}
-          {activeTab === 'comms'&& <CommsTab />}
+          {activeTab === 'team'  && <TeamTab currentTime={currentTime} />}
+          {activeTab === 'org'   && <OrgTab  currentTime={currentTime} />}
+          {activeTab === 'ops'   && <OpsTab />}
+          {activeTab === 'plans' && <PlansTab />}
+          {activeTab === 'comms' && <CommsTab />}
         </div>
       </div>
 
@@ -152,6 +153,59 @@ function OpsTab() {
     <div className="space-y-4">
       <SectionHeader icon="⚡" title="Automations" subtitle="N8N workflows & cron jobs" />
       <AutomationsPanel />
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────
+   Mobile Tab: Plans (Agent Briefs)
+───────────────────────────────────────── */
+function PlansTab() {
+  const pods = [
+    { label: 'Revenue Pod', color: 'text-emerald-400', border: 'border-emerald-500/20', agents: AGENTS.filter(a => a.pod === 'revenue') },
+    { label: 'Growth Pod',  color: 'text-violet-400',  border: 'border-violet-500/20',  agents: AGENTS.filter(a => a.pod === 'growth') },
+    { label: 'Ops Pod',     color: 'text-slate-400',   border: 'border-slate-500/20',   agents: AGENTS.filter(a => a.pod === 'ops') },
+  ]
+  return (
+    <div className="space-y-4">
+      <SectionHeader icon="📋" title="Agent Briefs" subtitle="KPIs · Mission · Your feedback" />
+      <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3">
+        <p className="text-[11px] text-amber-300/80 leading-relaxed">
+          Click any agent to open their Google Doc brief. Write your feedback in the top section — agents read it every session.
+        </p>
+      </div>
+      {pods.map(pod => (
+        <div key={pod.label} className={`bg-white/[0.02] border ${pod.border} rounded-2xl overflow-hidden`}>
+          <div className="px-4 py-3 border-b border-white/[0.05]">
+            <p className={`text-[11px] font-bold uppercase tracking-widest ${pod.color}`}>{pod.label}</p>
+          </div>
+          <div className="divide-y divide-white/[0.04]">
+            {pod.agents.map(agent => (
+              <div key={agent.id} className="px-4 py-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-white">{agent.humanName}</p>
+                  <p className="text-[11px] text-white/40 truncate">{agent.role}</p>
+                  {agent.kpi && (
+                    <p className="text-[10px] text-white/25 truncate mt-0.5">Target: {agent.kpi.target}</p>
+                  )}
+                </div>
+                {agent.planDocUrl ? (
+                  <a
+                    href={agent.planDocUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/25 text-violet-400 text-[11px] font-medium hover:bg-violet-500/20 transition-colors flex-shrink-0"
+                  >
+                    Brief ↗
+                  </a>
+                ) : (
+                  <span className="text-[11px] text-white/20 flex-shrink-0">No doc</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
