@@ -11,6 +11,7 @@ import { AllHandsPanel } from './components/AllHandsPanel'
 import { BottomNav } from './components/BottomNav'
 import { MobileOrgChart } from './components/MobileOrgChart'
 import { AgentPlansPanel } from './components/AgentPlansPanel'
+import { WeeklyGoals } from './components/WeeklyGoals'
 import { useHaptics } from './hooks/useHaptics'
 import { Cpu, Sparkles } from 'lucide-react'
 
@@ -106,6 +107,9 @@ function HomeTab({ currentTime }: { currentTime: Date }) {
           ))}
         </div>
       </div>
+
+      {/* Weekly Goals — anchors everything */}
+      <WeeklyGoals />
 
       {/* System health */}
       <MobileHealthCard />
