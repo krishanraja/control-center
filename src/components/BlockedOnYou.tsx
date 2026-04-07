@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { UserCheck, Clock, ArrowRight, MessageCircle, CheckCircle, Send, Hourglass } from 'lucide-react'
+import { AGENTS } from '../services/agentData'
 
 interface BlockItem {
   id: string
@@ -51,11 +52,24 @@ export function BlockedOnYou() {
     try {
       const res = await fetch('/api/data', { cache: 'no-cache' })
       const data = await res.json()
-      // Show: tasks with blockedBy field OR status=feedback
-      const relevant = (data.tasks || []).filter(
-        (t: any) => t.blockedBy || t.status === 'feedback'
+      // Tasks blocked on Krish or needing feedback
+      const taskItems: BlockItem[] = (data.tasks || []).filter(
+        (t: any) => t.blockedBy === 'krish' || t.status === 'feedback'
       )
-      setItems(relevant)
+      // Agent blockers from agentData (status=blocked + has blockers array)
+      const agentBlockerItems: BlockItem[] = AGENTS
+        .filter(a => a.blockers && a.blockers.length > 0)
+        .flatMap(a => a.blockers!.map((b, i) => ({
+          id: `agent-blocker-${a.id}-${i}`,
+          title: `${a.humanName}: ${b}`,
+          description: b,
+          agent: a.humanName,
+          status: 'blocked',
+          urgency: 'high' as const,
+          blockedBy: 'krish' as const,
+          nextStep: `Unblock ${a.humanName} to resume their work`,
+        })))
+      setItems([...taskItems, ...agentBlockerItems])
     } catch (e) {
       console.error('BlockedOnYou fetch error:', e)
     } finally {

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Target, ChevronRight, Loader2 } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Target, ChevronRight, Loader2, Pencil, Check } from 'lucide-react'
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
@@ -28,6 +28,7 @@ interface KrishCommitment {
 interface GoalsData {
   week_of: string
   north_star: string
+  team_focus?: string
   goals: Goal[]
   krish_commitments: KrishCommitment[]
 }
@@ -55,6 +56,19 @@ export function WeeklyGoals() {
   const [data, setData] = useState<GoalsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [editingFocus, setEditingFocus] = useState(false)
+  const [focusText, setFocusText] = useState('')
+  const focusRef = useRef<HTMLTextAreaElement>(null)
+
+  const saveFocus = async () => {
+    await fetch(`${API}/api/goals`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team_focus: focusText })
+    })
+    setEditingFocus(false)
+    fetch(`${API}/api/goals`).then(r => r.json()).then(d => setData(d))
+  }
 
   useEffect(() => {
     fetch(`${API}/api/goals`)
@@ -95,6 +109,38 @@ export function WeeklyGoals() {
         {data.north_star && (
           <p className="text-[11px] text-white/40 mt-1.5 font-mono">{data.north_star}</p>
         )}
+
+        {/* Team focus directive — editable */}
+        <div className="mt-2 flex items-start gap-1.5">
+          {editingFocus ? (
+            <div className="flex-1 flex gap-1.5">
+              <textarea
+                ref={focusRef}
+                value={focusText}
+                onChange={e => setFocusText(e.target.value)}
+                className="flex-1 bg-white/[0.06] border border-violet-500/40 rounded-lg px-2.5 py-1.5 text-[11px] text-white resize-none focus:outline-none"
+                rows={2}
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter' && e.metaKey) saveFocus() }}
+              />
+              <button onClick={saveFocus} className="text-violet-400 hover:text-violet-300 mt-1">
+                <Check className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-start gap-1.5 group">
+              <p className="text-[11px] text-violet-300/70 flex-1 leading-relaxed">
+                {data.team_focus ?? 'Set team focus for this week…'}
+              </p>
+              <button
+                onClick={() => { setFocusText(data.team_focus ?? ''); setEditingFocus(true) }}
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-white/25 hover:text-white/60 flex-shrink-0 mt-0.5"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Goals list */}

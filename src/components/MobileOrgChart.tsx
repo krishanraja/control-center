@@ -19,7 +19,7 @@ const POD_STYLE: Record<string, {border:string; glow:string; label:string; accen
     glow:   'from-slate-500/8 to-transparent',
     label:  'Ops Pod',
     accent: 'text-slate-300',
-    ids:    ['vera-daily','weekly-synthesis','tools-agent'],
+    ids:    ['vera-daily','weekly-synthesis','tools-agent','efficiency-agent'],
   },
   revenue: {
     border: 'border-emerald-500/25',
@@ -33,7 +33,7 @@ const POD_STYLE: Record<string, {border:string; glow:string; label:string; accen
     glow:   'from-violet-500/8 to-transparent',
     label:  'Growth Pod',
     accent: 'text-violet-300',
-    ids:    ['content-agent','bd-agent','enterprise-gigs','visibility-agent','marketing-agent'],
+    ids:    ['content-agent','bd-agent','enterprise-gigs','visibility-agent','marketing-agent','podcast-guest-agent','stage-agent'],
   },
 }
 
