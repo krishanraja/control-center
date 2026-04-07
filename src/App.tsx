@@ -6,6 +6,7 @@ import { Sidebar } from './components/Sidebar'
 import { BlockedOnYou } from './components/BlockedOnYou'
 import { OrgChart } from './components/OrgChart'
 import { AutomationsPanel } from './components/AutomationsPanel'
+import { AllHandsPanel } from './components/AllHandsPanel'
 
 function App() {
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -60,6 +61,9 @@ function App() {
 
           {/* Agent Grid */}
           <AgentGrid agents={AGENTS} currentTime={currentTime} />
+
+          {/* Monthly All Hands */}
+          <AllHandsPanel />
 
           {/* Automations */}
           <AutomationsPanel />
