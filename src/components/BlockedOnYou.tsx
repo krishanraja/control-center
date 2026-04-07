@@ -123,8 +123,8 @@ export function BlockedOnYou() {
     setSubmitting(prev => ({ ...prev, [taskId]: true }))
     
     try {
-      // Submit to N8N webhook that Agatha will pick up
-      const response = await fetch('/api/task-feedback', {
+      // Submit to N8N webhook — Agatha picks up and distributes
+      const response = await fetch('https://krishraja10101.app.n8n.cloud/webhook/krish-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -132,7 +132,8 @@ export function BlockedOnYou() {
           feedback: feedback[taskId]?.text || '',
           status,
           timestamp: new Date().toISOString(),
-          submittedBy: 'krish'
+          submittedBy: 'krish',
+          agent: BLOCKED_ITEMS.find(i => i.id === taskId)?.agent || 'unknown'
         })
       })
       
