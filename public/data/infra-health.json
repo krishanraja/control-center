@@ -1,11 +1,42 @@
 {
-  "agatha": {"status": "green", "note": "Telegram OK"},
-  "vera": {"status": "green", "note": "Cron OK"},
-  "arlo": {"status": "green", "note": "N8N OK"},
-  "maya": {"status": "green", "note": "GSC + DataForSEO OK"},
-  "cleo": {"status": "green", "note": "Webhook OK"},
-  "leo": {"status": "amber", "note": "Stripe key pending / errored run"},
-  "felix": {"status": "green", "note": "Opportunity webhook OK"},
-  "zara": {"status": "green", "note": "Apify actors OK"},
-  "nova": {"status": "green", "note": "Cron OK"}
+  "agatha": {
+    "status": "green",
+    "note": "Telegram OK"
+  },
+  "vera": {
+    "status": "green",
+    "note": "Cron OK"
+  },
+  "arlo": {
+    "status": "green",
+    "note": "N8N OK"
+  },
+  "maya": {
+    "status": "green",
+    "note": "GSC + DataForSEO OK"
+  },
+  "cleo": {
+    "status": "green",
+    "note": "Webhook OK"
+  },
+  "leo": {
+    "status": "amber",
+    "note": "Stripe key pending / errored run"
+  },
+  "felix": {
+    "status": "green",
+    "note": "Opportunity webhook OK"
+  },
+  "zara": {
+    "status": "green",
+    "note": "Apify actors OK"
+  },
+  "nova": {
+    "status": "green",
+    "note": "Cron OK"
+  },
+  "hunter": {
+    "status": "green",
+    "note": "Cron + Sourcing OK"
+  }
 }

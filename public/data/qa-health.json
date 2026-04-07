@@ -1,11 +1,42 @@
 {
-  "agatha": {"status": "green", "note": "Alignment OK"},
-  "vera": {"status": "green", "note": "Audit executed"},
-  "arlo": {"status": "green", "note": "N/A"},
-  "maya": {"status": "green", "note": "Voice compliance OK"},
-  "cleo": {"status": "amber", "note": "Voice rules patched 04-07"},
-  "leo": {"status": "green", "note": "Format compliance OK"},
-  "felix": {"status": "green", "note": "Format compliance OK"},
-  "zara": {"status": "green", "note": "Format compliance OK"},
-  "nova": {"status": "green", "note": "Voice compliance OK"}
+  "agatha": {
+    "status": "green",
+    "note": "Alignment OK"
+  },
+  "vera": {
+    "status": "green",
+    "note": "Audit executed"
+  },
+  "arlo": {
+    "status": "green",
+    "note": "N/A"
+  },
+  "maya": {
+    "status": "green",
+    "note": "Voice compliance OK"
+  },
+  "cleo": {
+    "status": "amber",
+    "note": "Voice rules patched 04-07"
+  },
+  "leo": {
+    "status": "green",
+    "note": "Format compliance OK"
+  },
+  "felix": {
+    "status": "green",
+    "note": "Format compliance OK"
+  },
+  "zara": {
+    "status": "green",
+    "note": "Format compliance OK"
+  },
+  "nova": {
+    "status": "green",
+    "note": "Voice compliance OK"
+  },
+  "hunter": {
+    "status": "green",
+    "note": "Rubric compliance OK"
+  }
 }
