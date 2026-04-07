@@ -4,6 +4,7 @@ import { SystemHealth } from './components/SystemHealth'
 import { AgentGrid } from './components/AgentGrid'
 import { Sidebar } from './components/Sidebar'
 import { BlockedOnYou } from './components/BlockedOnYou'
+import { TodayPanel } from './components/TodayPanel'
 import { OrgChart } from './components/OrgChart'
 import { AutomationsPanel } from './components/AutomationsPanel'
 import { AllHandsPanel } from './components/AllHandsPanel'
@@ -46,6 +47,7 @@ function App() {
 
         <div className="px-4 space-y-4 pt-2">
           {activeTab === 'home' && <HomeTab currentTime={currentTime} />}
+          {activeTab === 'today' && <TodayTab />}
           {activeTab === 'team' && <TeamTab currentTime={currentTime} />}
           {activeTab === 'org'  && <OrgTab  currentTime={currentTime} />}
           {activeTab === 'ops'  && <OpsTab />}
@@ -131,6 +133,18 @@ function TeamTab({ currentTime }: { currentTime: Date }) {
     <div className="space-y-4">
       <SectionHeader icon="👥" title="Agents" subtitle="Your AI team" />
       <AgentGrid agents={AGENTS} currentTime={currentTime} />
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────
+   Mobile Tab: Today
+───────────────────────────────────────── */
+function TodayTab() {
+  return (
+    <div className="space-y-4">
+      <SectionHeader icon="📅" title="Today" subtitle="Unified queue" />
+      <TodayPanel />
     </div>
   )
 }
