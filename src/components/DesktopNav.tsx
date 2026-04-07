@@ -1,13 +1,12 @@
 import React from 'react'
-import { Home, Clock, Users, ClipboardList, GitBranch, Zap } from 'lucide-react'
+import { Home, Clock, ClipboardList, GitBranch, Activity } from 'lucide-react'
 
 const TABS = [
-  { id: 'home',   label: 'Home',   icon: Home },
-  { id: 'today',  label: 'Today',  icon: Clock },
-  { id: 'team',   label: 'Team',   icon: Users },
-  { id: 'plans',  label: 'Briefs', icon: ClipboardList },
-  { id: 'org',    label: 'Org',    icon: GitBranch },
-  { id: 'ops',    label: 'Ops',    icon: Zap },
+  { id: 'home',      label: 'Home',      icon: Home },
+  { id: 'today',     label: 'Today',     icon: Clock },
+  { id: 'plans',     label: 'Briefs',    icon: ClipboardList },
+  { id: 'org',       label: 'Org',       icon: GitBranch },
+  { id: 'execution', label: 'Execution', icon: Activity },
 ]
 
 interface Props {

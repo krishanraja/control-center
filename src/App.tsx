@@ -6,6 +6,7 @@ import { NorthStar } from './components/NorthStar'
 import { AgentReportCards } from './components/AgentReportCards'
 import { TodayTabContent } from './components/TodayTabContent'
 import { AgentGrid } from './components/AgentGrid'
+import { ExecutionTabContent } from './components/ExecutionTabContent'
 import { OrgChart } from './components/OrgChart'
 import { MobileOrgChart } from './components/MobileOrgChart'
 import { AutomationsPanel } from './components/AutomationsPanel'
@@ -14,7 +15,7 @@ import { WeeklyGoals } from './components/WeeklyGoals'
 import { useHaptics } from './hooks/useHaptics'
 
 // ─── Tab IDs shared across desktop + mobile ───────────────────────────────────
-type TabId = 'home' | 'today' | 'team' | 'plans' | 'org' | 'ops'
+type TabId = 'home' | 'today' | 'plans' | 'org' | 'execution'
 
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
@@ -47,10 +48,10 @@ export default function App() {
           <div className="max-w-[1600px] mx-auto px-6 py-6">
             {tab === 'home'  && <DesktopHome currentTime={currentTime} />}
             {tab === 'today' && <DesktopToday />}
-            {tab === 'team'  && <DesktopTeam currentTime={currentTime} />}
+            
             {tab === 'plans' && <DesktopPlans />}
             {tab === 'org'   && <DesktopOrg currentTime={currentTime} />}
-            {tab === 'ops'   && <DesktopOps />}
+            {tab === 'execution' && <ExecutionTabContent />}
           </div>
         </div>
 
@@ -63,10 +64,10 @@ export default function App() {
           <div className="px-4 pt-2 space-y-4">
             {tab === 'home'  && <MobileHome currentTime={currentTime} />}
             {tab === 'today' && <MobileToday />}
-            {tab === 'team'  && <MobileTeam currentTime={currentTime} />}
+            
             {tab === 'plans' && <MobilePlans />}
             {tab === 'org'   && <MobileOrg currentTime={currentTime} />}
-            {tab === 'ops'   && <MobileOps />}
+            {tab === 'execution' && <ExecutionTabContent />}
           </div>
         </div>
       </main>
