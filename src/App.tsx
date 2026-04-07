@@ -14,6 +14,7 @@ import { AgentPlansPanel } from './components/AgentPlansPanel'
 import { WeeklyGoals } from './components/WeeklyGoals'
 import { ApprovalPanel } from './components/ApprovalPanel'
 import { DesktopHome } from './components/DesktopHome'
+import { MobileHome } from './components/MobileHome'
 import { useHaptics } from './hooks/useHaptics'
 import { Cpu } from 'lucide-react'
 
@@ -103,42 +104,8 @@ function MobileHeader({ currentTime }: { currentTime: Date }) {
 /* ─────────────────────────────────────────
    Mobile Tab: Home
 ───────────────────────────────────────── */
-function HomeTab({ currentTime }: { currentTime: Date }) {
-  return (
-    <div className="space-y-4">
-      {/* Values pill strip */}
-      <div className="overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">
-        <div className="flex gap-2 w-max">
-          {COMPANY_VALUES.map((v, i) => (
-            <div key={i} className="flex-shrink-0 bg-white/[0.04] border border-white/[0.08] rounded-full px-3 py-1.5">
-              <span className="text-[11px] font-semibold text-violet-300">{v.title}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Pending approvals — agent plans waiting for Krish */}
-      <ApprovalPanel />
-
-      {/* Weekly Goals — anchors everything */}
-      <WeeklyGoals />
-
-      {/* System health */}
-      <MobileHealthCard />
-
-      {/* Blocked on you */}
-      <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4 backdrop-blur-sm">
-        <BlockedOnYou />
-      </div>
-
-      {/* Agent Plans */}
-      <AgentPlansPanel />
-    </div>
-  )
-}
-
-function MobileHealthCard() {
-  return <SystemHealth />
+function HomeTab() {
+  return <MobileHome />
 }
 
 /* ─────────────────────────────────────────
