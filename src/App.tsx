@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { AGENTS, SYSTEM_HEALTH, COMPANY_VALUES } from './services/agentData'
+import { AGENTS, COMPANY_VALUES } from './services/agentData'
 import { SystemHealth } from './components/SystemHealth'
 import { AgentGrid } from './components/AgentGrid'
 import { Sidebar } from './components/Sidebar'
@@ -120,32 +120,7 @@ function HomeTab({ currentTime }: { currentTime: Date }) {
 }
 
 function MobileHealthCard() {
-  const h = SYSTEM_HEALTH
-  const stats = [
-    { label: 'Agents', value: `${h.agentsRunning}/${h.totalAgents}`, color: 'text-emerald-400' },
-    { label: 'Workflows', value: `${h.workflowsActive}/${h.totalWorkflows}`, color: 'text-blue-400' },
-    { label: 'Uptime', value: h.uptime, color: 'text-violet-400' },
-    { label: 'Status', value: 'Healthy', color: 'text-emerald-400' },
-  ]
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-violet-950/40 to-indigo-950/40 p-4">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
-      <div className="relative">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/60 animate-pulse" />
-          <span className="text-[11px] font-semibold text-white/50 uppercase tracking-widest">System Status</span>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          {stats.map((s) => (
-            <div key={s.label} className="bg-white/[0.04] rounded-xl p-3">
-              <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
-              <div className="text-[11px] text-white/40 mt-0.5">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
+  return <SystemHealth />
 }
 
 /* ─────────────────────────────────────────
@@ -259,7 +234,7 @@ function DesktopContent({ currentTime }: { currentTime: Date }) {
         </div>
       </div>
 
-      <SystemHealth health={SYSTEM_HEALTH} />
+      <SystemHealth />
       <div className="rounded-xl border border-white/[0.07] bg-[#111118] p-6"><BlockedOnYou /></div>
       <OrgChart agents={AGENTS} currentTime={currentTime} />
       <AgentGrid agents={AGENTS} currentTime={currentTime} />
