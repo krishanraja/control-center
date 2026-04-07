@@ -13,8 +13,9 @@ import { MobileOrgChart } from './components/MobileOrgChart'
 import { AgentPlansPanel } from './components/AgentPlansPanel'
 import { WeeklyGoals } from './components/WeeklyGoals'
 import { ApprovalPanel } from './components/ApprovalPanel'
+import { DesktopHome } from './components/DesktopHome'
 import { useHaptics } from './hooks/useHaptics'
-import { Cpu, Sparkles } from 'lucide-react'
+import { Cpu } from 'lucide-react'
 
 function App() {
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -39,7 +40,14 @@ function App() {
       <div className="hidden md:flex min-h-screen">
         <Sidebar agents={AGENTS} currentTime={currentTime} />
         <main className="flex-1 p-6 overflow-x-hidden">
-          <DesktopContent currentTime={currentTime} />
+          <DesktopHome currentTime={currentTime} />
+          {/* Full detail below the fold */}
+          <div className="max-w-[1400px] mx-auto mt-10 space-y-8">
+            <OrgChart agents={AGENTS} currentTime={currentTime} />
+            <AgentGrid agents={AGENTS} currentTime={currentTime} />
+            <AutomationsPanel />
+            <AllHandsPanel />
+          </div>
         </main>
       </div>
 
@@ -227,43 +235,6 @@ function SectionHeader({ icon, title, subtitle }: { icon: string; title: string;
   )
 }
 
-/* ─────────────────────────────────────────
-   Desktop Content (unchanged layout)
-───────────────────────────────────────── */
-function DesktopContent({ currentTime }: { currentTime: Date }) {
-  return (
-    <div className="max-w-7xl mx-auto space-y-8">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">MindMaker OS</h1>
-          <p className="text-white/40 text-sm mt-1">Autonomous Organisation Operating System · v2.0</p>
-        </div>
-        <div className="text-right text-sm text-white/60">
-          <div className="font-medium text-white/80">{currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
-          <div className="font-mono text-lg text-white">{currentTime.toLocaleTimeString()}</div>
-        </div>
-      </header>
 
-      <div className="bg-[#111118] border border-white/[0.07] rounded-xl p-5">
-        <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-4">Company Values</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {COMPANY_VALUES.map((v, i) => (
-            <div key={i} className="p-3 bg-white/[0.03] border border-white/[0.06] rounded-lg">
-              <p className="text-xs font-bold text-violet-400 mb-1">{i + 1}. {v.title}</p>
-              <p className="text-xs text-white/50 leading-relaxed">{v.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <SystemHealth />
-      <div className="rounded-xl border border-white/[0.07] bg-[#111118] p-6"><BlockedOnYou /></div>
-      <OrgChart agents={AGENTS} currentTime={currentTime} />
-      <AgentGrid agents={AGENTS} currentTime={currentTime} />
-      <AllHandsPanel />
-      <AutomationsPanel />
-    </div>
-  )
-}
 
 export default App
