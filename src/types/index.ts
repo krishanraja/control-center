@@ -18,6 +18,13 @@ export interface Agent {
   blockers?: string[]
   dependencies?: string[]
   reportsTo?: string
+  kpi?: {
+    label: string
+    target: string
+    current?: string
+    unit?: string
+  }
+  pod?: 'ops' | 'revenue' | 'growth'
 }
 
 export interface SystemHealth {

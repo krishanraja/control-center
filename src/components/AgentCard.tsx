@@ -89,10 +89,18 @@ export function AgentCard({ agent, currentTime, onClick }: Props) {
         </div>
       )}
 
-      {/* Personality Hint */}
-      <div className="mb-3 text-xs text-command-text/60 bg-command-bg/20 p-2 rounded">
-        <span className="font-medium">Personality:</span> {agent.personality}
-      </div>
+      {/* April KPI */}
+      {agent.kpi && (
+        <div className="mb-3 p-2 bg-command-accent/5 border border-command-accent/20 rounded">
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-[10px] font-bold text-command-accent uppercase tracking-wider">April KPI</span>
+          </div>
+          <p className="text-xs text-command-text/80 font-medium">{agent.kpi.target}</p>
+          {agent.kpi.current && (
+            <p className="text-[10px] text-command-text/50 mt-0.5">Now: {agent.kpi.current}</p>
+          )}
+        </div>
+      )}
 
       {/* Timing */}
       <div className="flex justify-between text-xs text-command-text/70 border-t border-command-border/50 pt-3">

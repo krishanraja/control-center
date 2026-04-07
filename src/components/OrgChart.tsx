@@ -1,207 +1,179 @@
 import React, { useState } from 'react'
 import { Agent } from '../types'
 import { AgentDetailModal } from './AgentDetailModal'
-import { Crown, Loader2, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { Crown, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 
 interface Props {
   agents: Agent[]
   currentTime: Date
 }
 
+const PODS = [
+  {
+    id: 'ops',
+    label: 'Ops Pod',
+    color: 'border-slate-500/40 bg-slate-500/5',
+    headerColor: 'text-slate-400',
+    agents: ['vera-daily', 'tools-agent', 'weekly-synthesis'],
+  },
+  {
+    id: 'revenue',
+    label: 'Revenue Pod',
+    color: 'border-emerald-500/40 bg-emerald-500/5',
+    headerColor: 'text-emerald-400',
+    agents: ['revenue-agent', 'product-agent'],
+  },
+  {
+    id: 'growth',
+    label: 'Growth Pod',
+    color: 'border-violet-500/40 bg-violet-500/5',
+    headerColor: 'text-violet-400',
+    agents: ['bd-agent', 'enterprise-gigs', 'visibility-agent', 'marketing-agent'],
+  },
+]
+
 function StatusDot({ status }: { status: Agent['status'] }) {
   switch (status) {
-    case 'running':
-      return <span className="w-2.5 h-2.5 rounded-full bg-command-success animate-pulse block" />
-    case 'waiting':
-      return <span className="w-2.5 h-2.5 rounded-full bg-command-info block" />
-    case 'success':
-      return <span className="w-2.5 h-2.5 rounded-full bg-command-success block" />
-    case 'blocked':
-      return <span className="w-2.5 h-2.5 rounded-full bg-command-error animate-pulse block" />
-    case 'error':
-      return <span className="w-2.5 h-2.5 rounded-full bg-command-error block" />
+    case 'running': return <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse inline-block" />
+    case 'waiting': return <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
+    case 'success': return <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
+    case 'blocked': return <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse inline-block" />
+    case 'error': return <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />
   }
 }
 
-function AgentNode({ agent, onClick, isRoot }: { agent: Agent; onClick: () => void; isRoot?: boolean }) {
-  const borderColor = {
-    running: 'border-command-success/60',
-    waiting: 'border-command-info/40',
-    success: 'border-command-success/40',
-    blocked: 'border-command-error/60',
-    error: 'border-command-error/60',
-  }[agent.status]
-
-  const bgColor = {
-    running: 'bg-command-success/10',
-    waiting: 'bg-command-info/5',
-    success: 'bg-command-success/5',
-    blocked: 'bg-command-error/10',
-    error: 'bg-command-error/10',
-  }[agent.status]
-
+function AgentPill({ agent, onClick }: { agent: Agent; onClick: () => void }) {
+  const isBlocked = agent.status === 'blocked' || agent.status === 'error'
   return (
     <button
       onClick={onClick}
-      className={`
-        group relative flex flex-col items-center p-3 rounded-xl border ${borderColor} ${bgColor}
-        ${isRoot ? 'min-w-[160px] px-5 py-4' : 'min-w-[130px]'}
-        hover:border-command-accent/70 hover:shadow-lg hover:shadow-command-accent/10
-        transition-all duration-200 cursor-pointer text-left
-      `}
+      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left w-full
+        transition-all duration-200 hover:scale-[1.02] group
+        ${isBlocked
+          ? 'border-red-500/40 bg-red-500/10 hover:border-red-400/60'
+          : 'border-command-border bg-command-bg/40 hover:border-command-accent/50 hover:bg-command-accent/5'
+        }`}
     >
-      {isRoot && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-command-accent/20 border border-command-accent/40 
-          rounded-full px-2 py-0.5 text-[10px] text-command-accent font-semibold tracking-wide">
-          COO
-        </div>
-      )}
-      <div className="flex items-center justify-between w-full mb-1.5">
-        <StatusDot status={agent.status} />
-        <span className="text-[10px] font-mono text-command-text/50 bg-command-bg/40 px-1.5 py-0.5 rounded">
-          {agent.model}
-        </span>
-      </div>
-      <div className="text-center w-full">
-        <p className={`font-bold text-white group-hover:text-command-accent transition-colors
-          ${isRoot ? 'text-base' : 'text-sm'}`}>
+      <StatusDot status={agent.status} />
+      <div className="min-w-0">
+        <p className={`text-sm font-semibold truncate group-hover:text-command-accent transition-colors
+          ${isBlocked ? 'text-red-300' : 'text-white'}`}>
           {agent.humanName}
         </p>
-        <p className="text-[11px] text-command-text/60 leading-tight mt-0.5">{agent.role}</p>
+        <p className="text-[10px] text-command-text/50 truncate">{agent.role}</p>
       </div>
-      {agent.status === 'blocked' && (
-        <div className="mt-1.5 text-[10px] text-command-error/80 text-center">
-          ⚠ Blocked
-        </div>
-      )}
+      {isBlocked && <span className="text-[10px] text-red-400 ml-auto flex-shrink-0">⚠</span>}
     </button>
   )
 }
 
-// SVG connector line between parent and child
-function Connector({ x1, y1, x2, y2, color = '#3a3a3d' }: {
-  x1: number; y1: number; x2: number; y2: number; color?: string
-}) {
-  const midY = (y1 + y2) / 2
-  const d = `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`
-  return <path d={d} stroke={color} strokeWidth="1.5" fill="none" strokeDasharray="none" opacity="0.5" />
+function ConnectorV({ className = '' }: { className?: string }) {
+  return <div className={`w-px bg-command-border/40 mx-auto ${className}`} style={{ height: 24 }} />
+}
+
+function ConnectorH({ pods }: { pods: number }) {
+  if (pods <= 1) return null
+  return <div className="h-px bg-command-border/40 w-full" />
 }
 
 export function OrgChart({ agents, currentTime }: Props) {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
 
   const agatha = agents.find(a => a.id === 'agatha')!
-  const reports = agents.filter(a => a.reportsTo === 'agatha')
-
-  // Krish (CEO) node — not a real agent, just visual
-  const krishNode = (
-    <div className="flex flex-col items-center">
-      <div className="flex flex-col items-center p-3 px-5 rounded-xl border border-amber-400/40 bg-amber-400/5 min-w-[140px]">
-        <div className="flex items-center justify-between w-full mb-1">
-          <Crown className="w-3 h-3 text-amber-400" />
-          <span className="text-[10px] text-amber-400/60 font-semibold">FOUNDER</span>
-        </div>
-        <p className="font-bold text-amber-400 text-base">Krish</p>
-        <p className="text-[11px] text-amber-400/60">CEO & Founder</p>
-      </div>
-    </div>
-  )
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-white">Organisation Chart</h2>
-        <p className="text-sm text-command-text/60">Click any agent to see full profile</p>
+        <p className="text-sm text-command-text/50">Click any agent to see full profile</p>
       </div>
 
-      <div className="bg-command-card border border-command-border rounded-xl p-8 overflow-x-auto">
-        <div className="flex flex-col items-center space-y-0 min-w-[900px]">
-
-          {/* Tier 1: Krish */}
-          <div className="flex justify-center">
-            {krishNode}
+      <div className="bg-command-card border border-command-border rounded-xl p-6">
+        {/* Tier 1: Krish */}
+        <div className="flex justify-center mb-0">
+          <div className="flex flex-col items-center gap-1 px-6 py-3 rounded-xl border border-amber-400/30 bg-amber-400/5 min-w-[140px] text-center">
+            <div className="flex items-center gap-2">
+              <Crown className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[10px] text-amber-400/70 font-semibold tracking-widest uppercase">Founder</span>
+            </div>
+            <p className="text-lg font-bold text-amber-400">Krish</p>
+            <p className="text-[11px] text-amber-400/60">CEO & Founder</p>
           </div>
+        </div>
 
-          {/* Connector: Krish → Agatha */}
-          <div className="flex justify-center">
-            <div className="w-px h-8 bg-command-border/50" />
-          </div>
+        <ConnectorV />
 
-          {/* Tier 2: Agatha */}
-          <div className="flex justify-center">
-            {agatha && (
-              <AgentNode
-                agent={agatha}
-                isRoot={true}
-                onClick={() => setSelectedAgent(agatha)}
-              />
-            )}
-          </div>
-
-          {/* Connector: Agatha → Reports */}
-          <div className="relative flex justify-center w-full">
-            <div className="w-px h-8 bg-command-border/50" />
-          </div>
-
-          {/* Horizontal rule spanning all children */}
-          <div className="relative w-full flex justify-center">
-            <div
-              className="h-px bg-command-border/50"
-              style={{
-                width: `${Math.min(reports.length * 160, 900)}px`,
-              }}
-            />
-          </div>
-
-          {/* Tier 3: All reports — vertical connectors */}
-          <div className="flex justify-center gap-0" style={{ width: `${Math.min(reports.length * 160, 900)}px` }}>
-            {reports.map((_, i) => {
-              const count = reports.length
-              return (
-                <div
-                  key={i}
-                  className="flex justify-center"
-                  style={{ width: `${100 / count}%` }}
-                >
-                  <div className="w-px h-6 bg-command-border/50" />
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Tier 3: Agent nodes */}
-          <div
-            className="flex justify-center gap-4"
-            style={{ width: `${Math.min(reports.length * 160, 900)}px` }}
+        {/* Tier 2: Agatha */}
+        <div className="flex justify-center mb-0">
+          <button
+            onClick={() => setSelectedAgent(agatha)}
+            className="flex flex-col items-center gap-1 px-6 py-3 rounded-xl border border-command-success/40 bg-command-success/5
+              hover:border-command-accent/60 hover:bg-command-accent/5 transition-all duration-200 min-w-[140px] text-center group"
           >
-            {reports.map(agent => (
-              <div key={agent.id} className="flex-1 flex justify-center" style={{ minWidth: 0 }}>
-                <AgentNode
-                  agent={agent}
-                  onClick={() => setSelectedAgent(agent)}
-                />
-              </div>
-            ))}
-          </div>
+            <div className="flex items-center gap-2">
+              <StatusDot status={agatha.status} />
+              <span className="text-[10px] text-command-text/50 font-semibold tracking-widest uppercase">COO</span>
+            </div>
+            <p className="text-lg font-bold text-white group-hover:text-command-accent transition-colors">Agatha</p>
+            <p className="text-[11px] text-command-text/50">Chief Operating Officer</p>
+          </button>
+        </div>
 
-          {/* Legend */}
-          <div className="mt-8 flex items-center justify-center gap-6 text-xs text-command-text/60">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-command-success animate-pulse block" />
-              Running
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-command-info block" />
-              Waiting
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-command-success block" />
-              Success
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-command-error animate-pulse block" />
-              Blocked
-            </div>
+        <ConnectorV />
+
+        {/* Pod connectors row */}
+        <div className="flex items-start gap-4 justify-center">
+          {PODS.map((pod, podIdx) => {
+            const podAgents = pod.agents
+              .map(id => agents.find(a => a.id === id))
+              .filter(Boolean) as Agent[]
+
+            return (
+              <React.Fragment key={pod.id}>
+                {/* Pod */}
+                <div className="flex flex-col items-center flex-1 max-w-xs">
+                  {/* Pod connector down */}
+                  <ConnectorV />
+
+                  {/* Pod container */}
+                  <div className={`border rounded-xl p-3 w-full ${pod.color}`}>
+                    <p className={`text-[10px] font-bold uppercase tracking-widest mb-3 text-center ${pod.headerColor}`}>
+                      {pod.label}
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {podAgents.map(agent => (
+                        <AgentPill
+                          key={agent.id}
+                          agent={agent}
+                          onClick={() => setSelectedAgent(agent)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vertical divider between pods */}
+                {podIdx < PODS.length - 1 && (
+                  <div className="w-px bg-command-border/20 self-stretch mt-6" />
+                )}
+              </React.Fragment>
+            )
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-6 mt-5 pt-4 border-t border-command-border/30">
+          <div className="flex items-center gap-2 text-xs text-command-text/50">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse inline-block" /> Running
+          </div>
+          <div className="flex items-center gap-2 text-xs text-command-text/50">
+            <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" /> Waiting
+          </div>
+          <div className="flex items-center gap-2 text-xs text-command-text/50">
+            <span className="w-2 h-2 rounded-full bg-green-400 inline-block" /> Success
+          </div>
+          <div className="flex items-center gap-2 text-xs text-command-text/50">
+            <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse inline-block" /> Blocked
           </div>
         </div>
       </div>
