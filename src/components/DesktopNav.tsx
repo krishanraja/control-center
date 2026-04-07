@@ -24,9 +24,7 @@ export function DesktopNav({ active, onChange, currentTime }: Props) {
     <header className="hidden md:flex items-center border-b border-white/[0.07] bg-[#0a0a0b]/95 backdrop-blur-xl sticky top-0 z-40 px-6 h-14 flex-shrink-0">
       {/* Brand */}
       <div className="flex items-center gap-2.5 mr-8 flex-shrink-0">
-        <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center">
-          <span className="text-[10px] font-black text-white">OS</span>
-        </div>
+        <img src="/favicon.jpg" alt="Mindmaker OS" className="w-6 h-6 rounded-md object-cover" />
         <span className="text-[13px] font-semibold text-white/80 tracking-tight">Mindmaker OS</span>
       </div>
 

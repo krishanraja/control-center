@@ -56,7 +56,11 @@ export default function App() {
 
         {/* ── MOBILE (< md) ─────────────────────────────────── */}
         <div className="md:hidden pb-24">
-          <div className="px-4 pt-4 space-y-4">
+          <div className="flex items-center gap-2.5 px-4 pt-4 pb-2">
+            <img src="/favicon.jpg" alt="Mindmaker OS" className="w-6 h-6 rounded-md object-cover" />
+            <span className="text-[13px] font-semibold text-white/80 tracking-tight">Mindmaker OS</span>
+          </div>
+          <div className="px-4 pt-2 space-y-4">
             {tab === 'home'  && <MobileHome currentTime={currentTime} />}
             {tab === 'today' && <MobileToday />}
             {tab === 'team'  && <MobileTeam currentTime={currentTime} />}
