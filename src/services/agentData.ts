@@ -209,8 +209,8 @@ export const AGENTS: Agent[] = [
   },
   {
     id: "podcast-guest-agent",
-    name: "Scout",
-    humanName: "Scout",
+    name: "Nell",
+    humanName: "Nell",
     role: "Podcast Guest Booking",
     model: "sonnet",
     schedule: "Mon 11AM, Wed + Fri 9AM EST",

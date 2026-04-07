@@ -1,0 +1,20 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node'
+
+const GOALS = {
+  week_of: 'Apr 7, 2026',
+  north_star: 'First paying client signed. Content flywheel live. Team running independently.',
+  team_focus: 'Close Skyview. Get content flywheel started. Nell builds first guest pipeline.',
+  goals: [
+    { id: 'g1', title: 'Close Skyview engagement', target: '$120K proposal signed', current: 'In proposal stage', owner: 'Felix', progress: 40 },
+    { id: 'g2', title: 'Launch content flywheel', target: '4 briefs + 2 drafts published', current: 'Week 1 sweep pending', owner: 'Cleo', progress: 10 },
+    { id: 'g3', title: 'Revenue tracking live', target: 'Leo reporting weekly by Apr 14', current: 'Blocked on Stripe key', owner: 'Leo', progress: 0 },
+    { id: 'g4', title: 'Podcast guest pipeline', target: '6 pitches sent by Apr 14', current: 'Blocked on recording availability', owner: 'Nell', progress: 0 },
+    { id: 'g5', title: 'Agent OS stable', target: '0 missed cron runs this week', current: '0 missed so far', owner: 'Vera', progress: 90 }
+  ]
+}
+
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Cache-Control', 'no-store')
+  res.json(GOALS)
+}
