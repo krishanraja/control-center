@@ -8,6 +8,8 @@ import { OrgChart } from './components/OrgChart'
 import { AutomationsPanel } from './components/AutomationsPanel'
 import { AllHandsPanel } from './components/AllHandsPanel'
 import { BottomNav } from './components/BottomNav'
+import { MobileOrgChart } from './components/MobileOrgChart'
+import { AgentPlansPanel } from './components/AgentPlansPanel'
 import { useHaptics } from './hooks/useHaptics'
 import { Cpu, Sparkles } from 'lucide-react'
 
@@ -93,7 +95,7 @@ function HomeTab({ currentTime }: { currentTime: Date }) {
   return (
     <div className="space-y-4">
       {/* Values pill strip */}
-      <div className="overflow-x-auto -mx-4 px-4 pb-1">
+      <div className="overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">
         <div className="flex gap-2 w-max">
           {COMPANY_VALUES.map((v, i) => (
             <div key={i} className="flex-shrink-0 bg-white/[0.04] border border-white/[0.08] rounded-full px-3 py-1.5">
@@ -110,6 +112,9 @@ function HomeTab({ currentTime }: { currentTime: Date }) {
       <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4 backdrop-blur-sm">
         <BlockedOnYou />
       </div>
+
+      {/* Agent Plans */}
+      <AgentPlansPanel />
     </div>
   )
 }
@@ -162,11 +167,7 @@ function OrgTab({ currentTime }: { currentTime: Date }) {
   return (
     <div className="space-y-4">
       <SectionHeader icon="🏛️" title="Org Structure" subtitle="Reporting chain & pods" />
-      <div className="overflow-x-auto -mx-4">
-        <div className="min-w-[380px] px-4">
-          <OrgChart agents={AGENTS} currentTime={currentTime} />
-        </div>
-      </div>
+      <MobileOrgChart agents={AGENTS} />
     </div>
   )
 }
