@@ -12,6 +12,7 @@ import { BottomNav } from './components/BottomNav'
 import { MobileOrgChart } from './components/MobileOrgChart'
 import { AgentPlansPanel } from './components/AgentPlansPanel'
 import { WeeklyGoals } from './components/WeeklyGoals'
+import { ApprovalPanel } from './components/ApprovalPanel'
 import { useHaptics } from './hooks/useHaptics'
 import { Cpu, Sparkles } from 'lucide-react'
 
@@ -107,6 +108,9 @@ function HomeTab({ currentTime }: { currentTime: Date }) {
           ))}
         </div>
       </div>
+
+      {/* Pending approvals — agent plans waiting for Krish */}
+      <ApprovalPanel />
 
       {/* Weekly Goals — anchors everything */}
       <WeeklyGoals />
