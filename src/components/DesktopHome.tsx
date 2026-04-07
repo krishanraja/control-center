@@ -24,14 +24,20 @@ function NeedsYou() {
   const [blocked, setBlocked]     = useState<BlockedTask[]>([])
   const [approvals, setApprovals] = useState<Approval[]>([])
 
-  useEffect(() => {
-    fetch('/api/data').then(r => r.json()).then(d =>
+  const refreshData = () => {
+    fetch('/api/data', { cache: 'no-cache' }).then(r => r.json()).then(d =>
       setBlocked((d.tasks || []).filter((t: any) => t.blockedBy === 'krish'))
     ).catch(() => {})
 
-    fetch('/api/approvals').then(r => r.json()).then(d =>
+    fetch('/api/approvals', { cache: 'no-cache' }).then(r => r.json()).then(d =>
       setApprovals((d.items || []).filter((a: any) => a.status === 'pending'))
     ).catch(() => {})
+  }
+
+  useEffect(() => {
+    refreshData()
+    const iv = setInterval(refreshData, 30000)
+    return () => clearInterval(iv)
   }, [])
 
   const highBlocked  = blocked.filter(t => t.urgency === 'high')
@@ -127,8 +133,13 @@ function ThisWeek() {
   const [today, setToday]   = useState<TodayItem[]>([])
 
   useEffect(() => {
-    fetch('/api/goals').then(r => r.json()).then(setGoals).catch(() => {})
-    fetch('/api/today').then(r => r.json()).then(d => setToday(d.items || [])).catch(() => {})
+    const refresh = () => {
+      fetch('/api/goals', { cache: 'no-cache' }).then(r => r.json()).then(setGoals).catch(() => {})
+      fetch('/api/today', { cache: 'no-cache' }).then(r => r.json()).then(d => setToday(d.items || [])).catch(() => {})
+    }
+    refresh()
+    const iv = setInterval(refresh, 30000)
+    return () => clearInterval(iv)
   }, [])
 
   const krishItems = today.filter(i => i.owner === 'krish').slice(0, 5)
@@ -216,7 +227,10 @@ function Pulse() {
   const [n8nStatus, setN8nStatus] = useState<any>(null)
 
   useEffect(() => {
-    fetch('/api/status').then(r => r.json()).then(setN8nStatus).catch(() => {})
+    const refresh = () => fetch('/api/status', { cache: 'no-cache' }).then(r => r.json()).then(setN8nStatus).catch(() => {})
+    refresh()
+    const iv = setInterval(refresh, 60000)
+    return () => clearInterval(iv)
   }, [])
 
   const byStatus = {

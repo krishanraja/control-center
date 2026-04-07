@@ -21,22 +21,28 @@ export function MobileHome() {
   const [today,     setToday]     = useState<TodayItem[]>([])
   const [n8n,       setN8n]       = useState<any>(null)
 
-  useEffect(() => {
-    fetch('/api/data').then(r => r.json())
+  const refreshAll = () => {
+    fetch('/api/data', { cache: 'no-cache' }).then(r => r.json())
       .then(d => setBlocked((d.tasks || []).filter((t: any) => t.blockedBy === 'krish')))
       .catch(() => {})
 
-    fetch('/api/approvals').then(r => r.json())
+    fetch('/api/approvals', { cache: 'no-cache' }).then(r => r.json())
       .then(d => setApprovals((d.items || []).filter((a: any) => a.status === 'pending')))
       .catch(() => {})
 
-    fetch('/api/goals').then(r => r.json()).then(setGoals).catch(() => {})
+    fetch('/api/goals', { cache: 'no-cache' }).then(r => r.json()).then(setGoals).catch(() => {})
 
-    fetch('/api/today').then(r => r.json())
+    fetch('/api/today', { cache: 'no-cache' }).then(r => r.json())
       .then(d => setToday((d.items || []).filter((i: any) => i.owner === 'krish')))
       .catch(() => {})
 
-    fetch('/api/status').then(r => r.json()).then(setN8n).catch(() => {})
+    fetch('/api/status', { cache: 'no-cache' }).then(r => r.json()).then(setN8n).catch(() => {})
+  }
+
+  useEffect(() => {
+    refreshAll()
+    const iv = setInterval(refreshAll, 30000)
+    return () => clearInterval(iv)
   }, [])
 
   const highBlocked  = blocked.filter(t => t.urgency === 'high')

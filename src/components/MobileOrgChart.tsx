@@ -26,14 +26,14 @@ const POD_STYLE: Record<string, {border:string; glow:string; label:string; accen
     glow:   'from-emerald-500/8 to-transparent',
     label:  'Revenue Pod',
     accent: 'text-emerald-300',
-    ids:    ['revenue-agent','product-agent'],
+    ids:    ['revenue-agent','product-agent','enterprise-gigs','bd-agent'],
   },
   growth: {
     border: 'border-violet-500/25',
     glow:   'from-violet-500/8 to-transparent',
     label:  'Growth Pod',
     accent: 'text-violet-300',
-    ids:    ['content-agent','bd-agent','enterprise-gigs','visibility-agent','marketing-agent','podcast-guest-agent','stage-agent'],
+    ids:    ['content-agent','visibility-agent','marketing-agent','podcast-guest-agent','stage-agent'],
   },
 }
 
