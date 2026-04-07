@@ -43,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Fetch all workflows + recent executions in parallel
     const [workflows, executions] = await Promise.all([
       fetchN8N('/workflows?limit=50'),
-      fetchN8N('/executions?limit=100&status=success,error,running'),
+      fetchN8N('/executions?limit=100'),  // N8N API doesn't support comma-separated status — filter client-side
     ])
 
     const wfList = workflows.data || []
