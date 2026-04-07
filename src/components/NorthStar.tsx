@@ -38,7 +38,7 @@ function daysUntil(dateStr: string): number {
   return Math.max(0, Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000))
 }
 
-function fmt(n: number, prefix = '£'): string {
+function fmt(n: number, prefix = '$'): string {
   if (n >= 1000) return `${prefix}${(n / 1000).toFixed(0)}K`
   return `${prefix}${n}`
 }
@@ -99,7 +99,7 @@ export function NorthStar() {
           <div className="flex items-start justify-between mb-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/70 mb-1">North Star</p>
-              <p className="text-[15px] font-semibold text-white">£0 → £20,000/month</p>
+              <p className="text-[15px] font-semibold text-white">$0 → $20,000/month</p>
               <p className="text-[12px] text-white/40 mt-0.5">by {new Date(ns.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
             <div className="text-right">
@@ -115,7 +115,7 @@ export function NorthStar() {
           </div>
           <div className="flex items-center justify-between">
             <p className="text-[12px] text-white/50 font-mono">
-              £{ns.current_mrr.toLocaleString()} MRR
+              ${ns.current_mrr.toLocaleString()} MRR
             </p>
             <p className="text-[12px] text-white/30">{mrrPct}% of goal</p>
           </div>
@@ -129,7 +129,7 @@ export function NorthStar() {
       {data.skyview && (
         <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl px-4 py-3 flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Skyview — £{(data.skyview.value / 1000).toFixed(0)}K</p>
+            <p className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Skyview — ${(data.skyview.value / 1000).toFixed(0)}K</p>
             <p className="text-[12px] text-white/60 mt-0.5">{data.skyview.next_step}</p>
           </div>
           <span className="text-[11px] text-amber-400/70 bg-amber-400/10 border border-amber-400/20 px-2 py-1 rounded-lg flex-shrink-0 ml-4">

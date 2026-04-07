@@ -1,0 +1,71 @@
+{
+  "updated_at": "2026-04-07T17:00:00Z",
+  "tracker_url": "https://docs.google.com/spreadsheets/d/1gJHU37h8nSw8K2XA6fphpC1UiAukR_BTJ9e39os5oh8/edit",
+  "active_applications": [
+    {
+      "id": "j1",
+      "company": "ElevenLabs",
+      "role": "Product & Platform Partnerships",
+      "score": 9,
+      "status": "To Apply",
+      "comp_est": "$250K–$400K",
+      "location": "New York / San Francisco (Remote)",
+      "url": "https://jobs.ashbyhq.com/elevenlabs/9a42616f-4ca4-4739-b991-9df4ca5bc158",
+      "cv_doc": "https://docs.google.com/document/d/1GS_nsinyz9aPslSB-hqY-c7KwACyO9_aj2evBb_bTIU/edit",
+      "cover_doc": "https://docs.google.com/document/d/14MBHKq5nvjPQJYT9BE4v2oRo8hFyrI4jZztEhlDthEc/edit",
+      "why": "Product & Platform Partnerships exact match. CCaaS ecosystem at Singtel + Rinoa creator tools. #1 AI voice platform."
+    },
+    {
+      "id": "j2",
+      "company": "Bland AI",
+      "role": "Head of Partnerships",
+      "score": 8,
+      "status": "To Apply",
+      "comp_est": "$250K–$350K",
+      "location": "San Francisco, CA",
+      "url": "https://www.linkedin.com/jobs/view/head-of-partnerships-at-bland-4393294797",
+      "cv_doc": "https://docs.google.com/document/d/140CsY86oYmFu-2IU2SCzwIP0XZCaEpZdU8tQOVwSEYs/edit",
+      "cover_doc": "https://docs.google.com/document/d/1EpHUe3Ad_YzUgMN91G1TzP7k-7BI_rrgyfvc1nI2Tcc/edit",
+      "why": "CCaaS + AI voice exact match. Captify partner ecosystem 0-to-1. Singtel CCaaS background."
+    },
+    {
+      "id": "j3",
+      "company": "Genesys",
+      "role": "VP Sales, US Enterprise West",
+      "score": 8,
+      "status": "To Apply",
+      "comp_est": "$300K–$450K",
+      "location": "Remote (West US)",
+      "url": "https://www.linkedin.com/jobs/view/vp-sales-us-enterprise-west-at-genesys-4393044551",
+      "cv_doc": "https://docs.google.com/document/d/14TKFAVt6jZQaAHTWscC2raJzLCwzfQ4iKVefl-8pO9c/edit",
+      "cover_doc": "https://docs.google.com/document/d/1dxrINlNosIHPAa99IpkO3Q9YVzGswyzV1ixQ6Yincy0/edit",
+      "why": "World's #1 CCaaS. Singtel CCaaS directly relevant. $12M ARR enterprise track record."
+    },
+    {
+      "id": "j4",
+      "company": "SymphonyAI",
+      "role": "VP Sales, AI Enterprise IT Operations",
+      "score": 7,
+      "status": "To Apply",
+      "comp_est": "$250K–$400K",
+      "location": "Remote",
+      "url": "https://www.linkedin.com/jobs/view/vp-sales-ai-powered-enterprise-it-operations-remote-at-symphonyai-4393221902",
+      "cv_doc": "https://docs.google.com/document/d/1jNVvylhMWUM9XGtErLgTAKBJJnmqBDXYd4qRe6E5jQA/edit",
+      "cover_doc": "https://docs.google.com/document/d/1w0tUl35fL5sm3iPMm8owjGq5u1ZwJ9C9OOvyOT5NZO4/edit",
+      "why": "Enterprise AI SaaS. Digital transformation mandate matches Nine Ent + Singtel. Remote."
+    },
+    {
+      "id": "j5",
+      "company": "Archetype AI",
+      "role": "Head of Partnerships",
+      "score": 7,
+      "status": "To Apply",
+      "comp_est": "$200K–$300K",
+      "location": "San Mateo, CA",
+      "url": "https://www.linkedin.com/jobs/view/head-of-partnerships-at-archetype-ai-4393039860",
+      "cv_doc": "https://docs.google.com/document/d/16WEGBeFNLuXEQiq1jupFBT_FcgCJn593Vo1T5oIIvGg/edit",
+      "cover_doc": "https://docs.google.com/document/d/14sp0KDXx0SZrxYnqzNpmoz6Z4F4FcaUrlSVhzUMqQ-s/edit",
+      "why": "AI startup from scratch. 3 partner ecosystems built from zero. First partnerships hire. Google X spinout."
+    }
+  ]
+}
