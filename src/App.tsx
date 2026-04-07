@@ -1,166 +1,237 @@
 import React, { useState, useEffect } from 'react'
 import { AGENTS, COMPANY_VALUES } from './services/agentData'
-import { SystemHealth } from './components/SystemHealth'
+import { DesktopNav } from './components/DesktopNav'
+import { BottomNav } from './components/BottomNav'
+import { NorthStar } from './components/NorthStar'
+import { AgentReportCards } from './components/AgentReportCards'
+import { TodayTabContent } from './components/TodayTabContent'
 import { AgentGrid } from './components/AgentGrid'
-import { Sidebar } from './components/Sidebar'
-import { BlockedOnYou } from './components/BlockedOnYou'
-import { TodayPanel } from './components/TodayPanel'
 import { OrgChart } from './components/OrgChart'
+import { MobileOrgChart } from './components/MobileOrgChart'
 import { AutomationsPanel } from './components/AutomationsPanel'
 import { AllHandsPanel } from './components/AllHandsPanel'
-import { BottomNav } from './components/BottomNav'
-import { MobileOrgChart } from './components/MobileOrgChart'
-import { AgentPlansPanel } from './components/AgentPlansPanel'
 import { WeeklyGoals } from './components/WeeklyGoals'
-import { ApprovalPanel } from './components/ApprovalPanel'
-import { DesktopHome } from './components/DesktopHome'
-import { MobileHome } from './components/MobileHome'
 import { useHaptics } from './hooks/useHaptics'
-import { Cpu } from 'lucide-react'
 
-function App() {
+// ─── Tab IDs shared across desktop + mobile ───────────────────────────────────
+type TabId = 'home' | 'today' | 'team' | 'plans' | 'org' | 'ops'
+
+// ─── Root App ─────────────────────────────────────────────────────────────────
+export default function App() {
+  const [tab, setTab] = useState<TabId>('home')
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [activeTab, setActiveTab] = useState('home')
   const h = useHaptics()
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
-    return () => clearInterval(timer)
+    const t = setInterval(() => setCurrentTime(new Date()), 1000)
+    return () => clearInterval(t)
   }, [])
 
-  const handleTabChange = (tab: string) => {
+  const handleTab = (id: string) => {
     h.select()
-    setActiveTab(tab)
+    setTab(id as TabId)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
-    <div className="min-h-screen bg-[#08080e] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-col">
 
-      {/* ── Desktop layout ── */}
-      <div className="hidden md:flex min-h-screen">
-        <Sidebar agents={AGENTS} currentTime={currentTime} />
-        <main className="flex-1 p-6 overflow-x-hidden">
-          <DesktopHome currentTime={currentTime} />
-          {/* Full detail below the fold */}
-          <div className="max-w-[1400px] mx-auto mt-10 space-y-8">
-            <OrgChart agents={AGENTS} currentTime={currentTime} />
-            <AgentGrid agents={AGENTS} currentTime={currentTime} />
-            <AutomationsPanel />
-            <AllHandsPanel />
+      {/* Desktop nav — hidden on mobile */}
+      <DesktopNav active={tab} onChange={handleTab} currentTime={currentTime} />
+
+      {/* Content area */}
+      <main className="flex-1 overflow-y-auto">
+
+        {/* ── DESKTOP (md+) ─────────────────────────────────── */}
+        <div className="hidden md:block">
+          <div className="max-w-[1600px] mx-auto px-6 py-6">
+            {tab === 'home'  && <DesktopHome currentTime={currentTime} />}
+            {tab === 'today' && <DesktopToday />}
+            {tab === 'team'  && <DesktopTeam currentTime={currentTime} />}
+            {tab === 'plans' && <DesktopPlans />}
+            {tab === 'org'   && <DesktopOrg currentTime={currentTime} />}
+            {tab === 'ops'   && <DesktopOps />}
           </div>
-        </main>
-      </div>
-
-      {/* ── Mobile layout ── */}
-      <div className="md:hidden min-h-screen pb-24">
-        <MobileHeader currentTime={currentTime} />
-
-        <div className="px-4 space-y-4 pt-2">
-          {activeTab === 'home'  && <HomeTab />}
-          {activeTab === 'today' && <TodayTab />}
-          {activeTab === 'team'  && <TeamTab currentTime={currentTime} />}
-          {activeTab === 'org'   && <OrgTab  currentTime={currentTime} />}
-          {activeTab === 'ops'   && <OpsTab />}
-          {activeTab === 'plans' && <PlansTab />}
-          {activeTab === 'comms' && <CommsTab />}
         </div>
-      </div>
 
-      <BottomNav active={activeTab} onChange={handleTabChange} />
+        {/* ── MOBILE (< md) ─────────────────────────────────── */}
+        <div className="md:hidden pb-24">
+          <div className="px-4 pt-4 space-y-4">
+            {tab === 'home'  && <MobileHome currentTime={currentTime} />}
+            {tab === 'today' && <MobileToday />}
+            {tab === 'team'  && <MobileTeam currentTime={currentTime} />}
+            {tab === 'plans' && <MobilePlans />}
+            {tab === 'org'   && <MobileOrg currentTime={currentTime} />}
+            {tab === 'ops'   && <MobileOps />}
+          </div>
+        </div>
+      </main>
+
+      {/* Mobile bottom nav */}
+      <BottomNav active={tab} onChange={handleTab} />
     </div>
   )
 }
 
-/* ─────────────────────────────────────────
-   Mobile Header
-───────────────────────────────────────── */
-function MobileHeader({ currentTime }: { currentTime: Date }) {
+// ─── Section wrapper ──────────────────────────────────────────────────────────
+function Section({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <header className="sticky top-0 z-40 px-5 py-4">
-      <div className="absolute inset-0 bg-[#08080e]/90 backdrop-blur-2xl border-b border-white/[0.06]" />
-      <div className="relative flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
-            <Cpu className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <h1 className="text-[15px] font-bold text-white leading-none tracking-tight">MindMaker OS</h1>
-            <p className="text-[10px] text-white/40 mt-0.5">v2.0 · Autonomous Org</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="font-mono text-[13px] font-semibold text-white/80">
-            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </div>
-          <div className="text-[10px] text-white/40">
-            {currentTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-          </div>
-        </div>
-      </div>
-    </header>
+    <div className="space-y-4">
+      {title && (
+        <h1 className="text-[11px] font-bold uppercase tracking-widest text-white/30">{title}</h1>
+      )}
+      {children}
+    </div>
   )
 }
 
-/* ─────────────────────────────────────────
-   Mobile Tab: Home
-───────────────────────────────────────── */
-function HomeTab() {
-  return <MobileHome />
+// ══════════════════════════════════════════════════════════════════════════════
+// DESKTOP TABS
+// ══════════════════════════════════════════════════════════════════════════════
+
+function DesktopHome({ currentTime }: { currentTime: Date }) {
+  return (
+    <div className="space-y-8">
+      <NorthStar />
+      <AgentReportCards />
+    </div>
+  )
 }
 
-/* ─────────────────────────────────────────
-   Mobile Tab: Team
-───────────────────────────────────────── */
-function TeamTab({ currentTime }: { currentTime: Date }) {
+function DesktopToday() {
   return (
     <div className="space-y-4">
-      <SectionHeader icon="👥" title="Agents" subtitle="Your AI team" />
+      <div className="flex items-baseline gap-3">
+        <h1 className="text-[22px] font-bold text-white">Today</h1>
+        <p className="text-[13px] text-white/30">Everything that needs you</p>
+      </div>
+      <TodayTabContent />
+    </div>
+  )
+}
+
+function DesktopTeam({ currentTime }: { currentTime: Date }) {
+  return (
+    <div className="space-y-4">
+      <h1 className="text-[22px] font-bold text-white">Team</h1>
       <AgentGrid agents={AGENTS} currentTime={currentTime} />
     </div>
   )
 }
 
-/* ─────────────────────────────────────────
-   Mobile Tab: Today
-───────────────────────────────────────── */
-function TodayTab() {
+function DesktopPlans() {
+  const pods = [
+    { label: 'Revenue Pod', color: 'text-emerald-400', border: 'border-emerald-500/20', agents: AGENTS.filter(a => a.pod === 'revenue') },
+    { label: 'Growth Pod',  color: 'text-violet-400',  border: 'border-violet-500/20',  agents: AGENTS.filter(a => a.pod === 'growth') },
+    { label: 'Ops Pod',     color: 'text-slate-400',   border: 'border-slate-500/20',   agents: AGENTS.filter(a => a.pod === 'ops') },
+  ]
   return (
-    <div className="space-y-4">
-      <SectionHeader icon="📅" title="Today" subtitle="Unified queue" />
-      <TodayPanel />
+    <div className="space-y-6">
+      <div className="flex items-baseline gap-3">
+        <h1 className="text-[22px] font-bold text-white">Agent Briefs</h1>
+        <p className="text-[13px] text-white/30">KPIs · Mission · Feedback from Krish · Run Log</p>
+      </div>
+      <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl px-4 py-3">
+        <p className="text-[12px] text-amber-300/70 leading-relaxed">
+          Write your feedback in the <strong className="text-amber-300">📋 FEEDBACK FROM KRISH</strong> section at the top of each doc — agents read it first every session.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {pods.map(pod => (
+          <div key={pod.label} className={`bg-white/[0.02] border ${pod.border} rounded-2xl overflow-hidden`}>
+            <div className="px-4 py-3 border-b border-white/[0.05]">
+              <p className={`text-[11px] font-bold uppercase tracking-widest ${pod.color}`}>{pod.label}</p>
+            </div>
+            <div className="divide-y divide-white/[0.04]">
+              {pod.agents.map(agent => (
+                <div key={agent.id} className="px-4 py-3 flex items-center gap-3 group hover:bg-white/[0.02] transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold text-white">{agent.humanName}</p>
+                    <p className="text-[11px] text-white/35 truncate">{agent.role}</p>
+                    {agent.kpi && (
+                      <p className="text-[10px] text-white/20 truncate mt-0.5">Target: {agent.kpi.target}</p>
+                    )}
+                  </div>
+                  {agent.planDocUrl ? (
+                    <a
+                      href={agent.planDocUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[11px] font-medium hover:bg-violet-500/20 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                    >
+                      Open Brief ↗
+                    </a>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
-/* ─────────────────────────────────────────
-   Mobile Tab: Org
-───────────────────────────────────────── */
-function OrgTab({ currentTime }: { currentTime: Date }) {
+function DesktopOrg({ currentTime }: { currentTime: Date }) {
   return (
     <div className="space-y-4">
-      <SectionHeader icon="🏛️" title="Org Structure" subtitle="Reporting chain & pods" />
-      <MobileOrgChart agents={AGENTS} />
+      <h1 className="text-[22px] font-bold text-white">Organisation</h1>
+      <OrgChart agents={AGENTS} currentTime={currentTime} />
     </div>
   )
 }
 
-/* ─────────────────────────────────────────
-   Mobile Tab: Ops
-───────────────────────────────────────── */
-function OpsTab() {
+function DesktopOps() {
   return (
     <div className="space-y-4">
-      <SectionHeader icon="⚡" title="Automations" subtitle="N8N workflows & cron jobs" />
+      <h1 className="text-[22px] font-bold text-white">Automations</h1>
       <AutomationsPanel />
     </div>
   )
 }
 
-/* ─────────────────────────────────────────
-   Mobile Tab: Plans (Agent Briefs)
-───────────────────────────────────────── */
-function PlansTab() {
+// ══════════════════════════════════════════════════════════════════════════════
+// MOBILE TABS
+// ══════════════════════════════════════════════════════════════════════════════
+
+function MobileHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="pb-1">
+      <h1 className="text-[20px] font-bold text-white leading-tight">{title}</h1>
+      {subtitle && <p className="text-[12px] text-white/35 mt-0.5">{subtitle}</p>}
+    </div>
+  )
+}
+
+function MobileHome({ currentTime }: { currentTime: Date }) {
+  return (
+    <div className="space-y-5">
+      <MobileHeader title="Mission Control" subtitle="April 2026" />
+      <NorthStar />
+      <AgentReportCards />
+    </div>
+  )
+}
+
+function MobileToday() {
+  return (
+    <div className="space-y-4">
+      <MobileHeader title="Today" subtitle="Everything that needs you" />
+      <TodayTabContent />
+    </div>
+  )
+}
+
+function MobileTeam({ currentTime }: { currentTime: Date }) {
+  return (
+    <div className="space-y-4">
+      <MobileHeader title="Team" subtitle="Your AI agents" />
+      <AgentGrid agents={AGENTS} currentTime={currentTime} />
+    </div>
+  )
+}
+
+function MobilePlans() {
   const pods = [
     { label: 'Revenue Pod', color: 'text-emerald-400', border: 'border-emerald-500/20', agents: AGENTS.filter(a => a.pod === 'revenue') },
     { label: 'Growth Pod',  color: 'text-violet-400',  border: 'border-violet-500/20',  agents: AGENTS.filter(a => a.pod === 'growth') },
@@ -168,10 +239,10 @@ function PlansTab() {
   ]
   return (
     <div className="space-y-4">
-      <SectionHeader icon="📋" title="Agent Briefs" subtitle="KPIs · Mission · Your feedback" />
+      <MobileHeader title="Agent Briefs" subtitle="KPIs · Mission · Your feedback" />
       <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3">
-        <p className="text-[11px] text-amber-300/80 leading-relaxed">
-          Click any agent to open their Google Doc brief. Write your feedback in the top section — agents read it every session.
+        <p className="text-[11px] text-amber-300/70 leading-relaxed">
+          Write your feedback in the 📋 FEEDBACK FROM KRISH section at the top of each doc.
         </p>
       </div>
       {pods.map(pod => (
@@ -184,22 +255,15 @@ function PlansTab() {
               <div key={agent.id} className="px-4 py-3 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-semibold text-white">{agent.humanName}</p>
-                  <p className="text-[11px] text-white/40 truncate">{agent.role}</p>
-                  {agent.kpi && (
-                    <p className="text-[10px] text-white/25 truncate mt-0.5">Target: {agent.kpi.target}</p>
-                  )}
+                  <p className="text-[11px] text-white/35 truncate">{agent.role}</p>
                 </div>
-                {agent.planDocUrl ? (
+                {agent.planDocUrl && (
                   <a
                     href={agent.planDocUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/25 text-violet-400 text-[11px] font-medium hover:bg-violet-500/20 transition-colors flex-shrink-0"
-                  >
-                    Brief ↗
-                  </a>
-                ) : (
-                  <span className="text-[11px] text-white/20 flex-shrink-0">No doc</span>
+                    className="px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[11px] font-medium flex-shrink-0"
+                  >Brief ↗</a>
                 )}
               </div>
             ))}
@@ -210,52 +274,20 @@ function PlansTab() {
   )
 }
 
-/* ─────────────────────────────────────────
-   Mobile Tab: Comms
-───────────────────────────────────────── */
-function CommsTab() {
+function MobileOrg({ currentTime }: { currentTime: Date }) {
   return (
     <div className="space-y-4">
-      <SectionHeader icon="📅" title="All Hands" subtitle="Monthly cadence & values" />
-      <AllHandsPanel />
-      {/* Values (full) */}
-      <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4">
-        <p className="text-[11px] font-semibold text-white/40 uppercase tracking-widest mb-3">Company Values</p>
-        <div className="space-y-3">
-          {COMPANY_VALUES.map((v, i) => (
-            <div key={i} className="flex gap-3">
-              <div className="w-6 h-6 rounded-lg bg-violet-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-[10px] font-bold text-violet-400">{i + 1}</span>
-              </div>
-              <div>
-                <p className="text-[13px] font-semibold text-white">{v.title}</p>
-                <p className="text-[11px] text-white/50 leading-relaxed mt-0.5">{v.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <MobileHeader title="Org Chart" subtitle="Reporting chain & pods" />
+      <MobileOrgChart agents={AGENTS} />
     </div>
   )
 }
 
-/* ─────────────────────────────────────────
-   Shared: Section Header
-───────────────────────────────────────── */
-function SectionHeader({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
+function MobileOps() {
   return (
-    <div className="flex items-center gap-3 pt-1">
-      <div className="w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center text-lg">
-        {icon}
-      </div>
-      <div>
-        <h2 className="text-[17px] font-bold text-white leading-none">{title}</h2>
-        <p className="text-[12px] text-white/40 mt-0.5">{subtitle}</p>
-      </div>
+    <div className="space-y-4">
+      <MobileHeader title="Automations" subtitle="N8N workflows" />
+      <AutomationsPanel />
     </div>
   )
 }
-
-
-
-export default App
