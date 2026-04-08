@@ -7,81 +7,308 @@
       "id": "core",
       "label": "Core Infrastructure",
       "services": [
-        { "id": "n8n", "name": "N8N", "url": "https://krishraja10101.app.n8n.cloud", "status": "green", "note": "37 workflows active", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "supabase-mindmaker", "name": "Supabase: Mindmaker", "status": "green", "note": "bkyuxvschuwngtcdhsyg", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "supabase-onalert", "name": "Supabase: OnAlert", "status": "green", "note": "zcreubinittdqyoxxwtp", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "supabase-gutted", "name": "Supabase: Gutted", "status": "green", "note": "hzadscrqmyilbisexvyz", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "supabase-merciless", "name": "Supabase: Merciless", "status": "green", "note": "cgkcplcamsijghalintq", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "supabase-circle", "name": "Supabase: Circle", "status": "green", "note": "ksyuwacuigshvcyptlhe", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "supabase-pulse", "name": "Supabase: Pulse", "status": "green", "note": "dtlcprcpvdomrehbejhw", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "github", "name": "GitHub", "status": "green", "note": "krishanraja: all repos", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "railway", "name": "Railway", "status": "unknown", "note": "Not yet checked by Arlo", "last_checked": null },
-        { "id": "vercel", "name": "Vercel", "status": "green", "note": "Deploy via GitHub push only", "last_checked": "2026-04-08T15:09:00Z" }
+        {
+          "id": "n8n",
+          "name": "N8N",
+          "url": "https://krishraja10101.app.n8n.cloud",
+          "status": "green",
+          "note": "37 workflows active",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "supabase-mindmaker",
+          "name": "Supabase: Mindmaker",
+          "status": "green",
+          "note": "bkyuxvschuwngtcdhsyg",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "supabase-onalert",
+          "name": "Supabase: OnAlert",
+          "status": "green",
+          "note": "zcreubinittdqyoxxwtp",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "supabase-gutted",
+          "name": "Supabase: Gutted",
+          "status": "green",
+          "note": "hzadscrqmyilbisexvyz",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "supabase-merciless",
+          "name": "Supabase: Merciless",
+          "status": "green",
+          "note": "cgkcplcamsijghalintq",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "supabase-circle",
+          "name": "Supabase: Circle",
+          "status": "green",
+          "note": "ksyuwacuigshvcyptlhe",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "supabase-pulse",
+          "name": "Supabase: Pulse",
+          "status": "green",
+          "note": "dtlcprcpvdomrehbejhw",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "github",
+          "name": "GitHub",
+          "status": "green",
+          "note": "krishanraja: all repos",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "railway",
+          "name": "Railway",
+          "status": "unknown",
+          "note": "Not yet checked by Arlo",
+          "last_checked": null
+        },
+        {
+          "id": "vercel",
+          "name": "Vercel",
+          "status": "green",
+          "note": "Deploy via GitHub push only",
+          "last_checked": "2026-04-08T15:09:00Z"
+        }
       ]
     },
     {
       "id": "payments",
       "label": "Payments & Billing",
       "services": [
-        { "id": "stripe-mindmaker", "name": "Stripe: Mindmaker", "status": "green", "note": "War Room / CAIO / Strategy Day payment links live", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "stripe-onalert", "name": "Stripe: OnAlert", "status": "amber", "note": "Webhook secret placeholder: needs update after deploy", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "stripe-gutted", "name": "Stripe: Gutted", "status": "amber", "note": "Webhook secret placeholder: needs update after deploy", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "stripe-merciless", "name": "Stripe: Merciless", "status": "amber", "note": "Webhook secret placeholder: needs update after deploy", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "stripe-fractionl", "name": "Stripe: Fractionl", "status": "green", "note": "Webhooks confirmed 2026-04-06", "last_checked": "2026-04-06T00:00:00Z" }
+        {
+          "id": "stripe-mindmaker",
+          "name": "Stripe: Mindmaker",
+          "status": "green",
+          "note": "War Room / CAIO / Strategy Day payment links live",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "stripe-onalert",
+          "name": "Stripe: OnAlert",
+          "status": "amber",
+          "note": "Webhook secret placeholder: needs update after deploy",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "stripe-gutted",
+          "name": "Stripe: Gutted",
+          "status": "amber",
+          "note": "Webhook secret placeholder: needs update after deploy",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "stripe-merciless",
+          "name": "Stripe: Merciless",
+          "status": "amber",
+          "note": "Webhook secret placeholder: needs update after deploy",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "stripe-fractionl",
+          "name": "Stripe: Fractionl",
+          "status": "green",
+          "note": "Webhooks confirmed 2026-04-06",
+          "last_checked": "2026-04-06T00:00:00Z"
+        }
       ]
     },
     {
       "id": "ai-apis",
       "label": "AI APIs",
       "services": [
-        { "id": "anthropic", "name": "Anthropic", "status": "green", "note": "Multiple keys across products", "credits": null, "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "openai", "name": "OpenAI", "status": "unknown", "note": "Not yet health-checked by Arlo", "credits": null, "last_checked": null },
-        { "id": "gemini", "name": "Gemini", "status": "unknown", "note": "Not yet health-checked by Arlo", "credits": null, "last_checked": null },
-        { "id": "agentops", "name": "Agentops (Cost Monitor)", "status": "unknown", "note": "Key configured: Arlo to wire up", "last_checked": null }
+        {
+          "id": "anthropic",
+          "name": "Anthropic",
+          "status": "green",
+          "note": "Multiple keys across products",
+          "credits": null,
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "openai",
+          "name": "OpenAI",
+          "status": "unknown",
+          "note": "Not yet health-checked by Arlo",
+          "credits": null,
+          "last_checked": null
+        },
+        {
+          "id": "gemini",
+          "name": "Gemini",
+          "status": "unknown",
+          "note": "Not yet health-checked by Arlo",
+          "credits": null,
+          "last_checked": null
+        },
+        {
+          "id": "agentops",
+          "name": "Agentops (Cost Monitor)",
+          "status": "unknown",
+          "note": "Key configured: Arlo to wire up",
+          "last_checked": null
+        }
       ]
     },
     {
       "id": "outreach",
       "label": "Outreach & BD",
       "services": [
-        { "id": "instantly", "name": "Instantly", "status": "red", "note": "API returning 403: permissions check needed (b2)", "last_checked": "2026-04-07T10:49:00Z" },
-        { "id": "apollo", "name": "Apollo", "status": "unknown", "note": "Not yet health-checked by Arlo", "credits": null, "last_checked": null },
-        { "id": "apify", "name": "Apify", "status": "green", "note": "STARTER $29/mo: LinkedIn, Workday, Career Site actors", "credits": null, "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "phantombuster", "name": "PhantomBuster", "status": "unknown", "note": "Not yet health-checked by Arlo", "last_checked": null }
+        {
+          "id": "instantly",
+          "name": "Instantly",
+          "status": "amber",
+          "note": "v2 API confirmed. Key rotated - needs refresh from Instantly dashboard.",
+          "last_checked": "2026-04-07T10:49:00Z"
+        },
+        {
+          "id": "apollo",
+          "name": "Apollo",
+          "status": "unknown",
+          "note": "Not yet health-checked by Arlo",
+          "credits": null,
+          "last_checked": null
+        },
+        {
+          "id": "apify",
+          "name": "Apify",
+          "status": "green",
+          "note": "STARTER $29/mo: LinkedIn, Workday, Career Site actors",
+          "credits": null,
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "phantombuster",
+          "name": "PhantomBuster",
+          "status": "unknown",
+          "note": "Not yet health-checked by Arlo",
+          "last_checked": null
+        }
       ]
     },
     {
       "id": "comms",
       "label": "Communications",
       "services": [
-        { "id": "resend-mindmaker", "name": "Resend: Mindmaker", "status": "green", "note": "themindmaker.ai verified", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "resend-onalert", "name": "Resend: OnAlert", "status": "amber", "note": "onalert.app domain not yet verified in Resend", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "resend-gutted", "name": "Resend: Gutted", "status": "unknown", "note": "Not yet health-checked", "last_checked": null },
-        { "id": "twilio", "name": "Twilio", "status": "unknown", "note": "+18444824345: Not yet health-checked by Arlo", "last_checked": null },
-        { "id": "beehiiv", "name": "Beehiiv", "status": "unknown", "note": "Mindmaker + Techonomic pubs: Not yet health-checked", "last_checked": null },
-        { "id": "telegram-opsbot", "name": "Telegram: Ops Bot", "status": "green", "note": "Delivery confirmed", "last_checked": "2026-04-08T15:09:00Z" }
+        {
+          "id": "resend-mindmaker",
+          "name": "Resend: Mindmaker",
+          "status": "green",
+          "note": "themindmaker.ai verified",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "resend-onalert",
+          "name": "Resend: OnAlert",
+          "status": "amber",
+          "note": "onalert.app domain not yet verified in Resend",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "resend-gutted",
+          "name": "Resend: Gutted",
+          "status": "unknown",
+          "note": "Not yet health-checked",
+          "last_checked": null
+        },
+        {
+          "id": "twilio",
+          "name": "Twilio",
+          "status": "unknown",
+          "note": "+18444824345: Not yet health-checked by Arlo",
+          "last_checked": null
+        },
+        {
+          "id": "beehiiv",
+          "name": "Beehiiv",
+          "status": "unknown",
+          "note": "Mindmaker + Techonomic pubs: Not yet health-checked",
+          "last_checked": null
+        },
+        {
+          "id": "telegram-opsbot",
+          "name": "Telegram: Ops Bot",
+          "status": "green",
+          "note": "Delivery confirmed",
+          "last_checked": "2026-04-08T15:09:00Z"
+        }
       ]
     },
     {
       "id": "analytics",
       "label": "Analytics & Intelligence",
       "services": [
-        { "id": "dataforseo", "name": "DataForSEO", "status": "green", "note": "Live and tested 2026-04-06", "last_checked": "2026-04-06T00:00:00Z" },
-        { "id": "gsc", "name": "Google Search Console", "status": "green", "note": "6 products indexed: Circle, Pulse, CTRL, Gutted, OnAlert, Merciless", "last_checked": "2026-04-06T00:00:00Z" },
-        { "id": "brandfetch", "name": "Brandfetch", "status": "unknown", "note": "Not yet health-checked by Arlo", "last_checked": null },
-        { "id": "godaddy", "name": "GoDaddy", "status": "green", "note": "Account mgmt only: domain availability restricted to OTE", "last_checked": "2026-04-08T15:09:00Z" },
-        { "id": "builtwith", "name": "BuiltWith", "status": "unknown", "note": "Not yet health-checked by Arlo", "last_checked": null }
+        {
+          "id": "dataforseo",
+          "name": "DataForSEO",
+          "status": "green",
+          "note": "Live and tested 2026-04-06",
+          "last_checked": "2026-04-06T00:00:00Z"
+        },
+        {
+          "id": "gsc",
+          "name": "Google Search Console",
+          "status": "green",
+          "note": "6 products indexed: Circle, Pulse, CTRL, Gutted, OnAlert, Merciless",
+          "last_checked": "2026-04-06T00:00:00Z"
+        },
+        {
+          "id": "brandfetch",
+          "name": "Brandfetch",
+          "status": "unknown",
+          "note": "Not yet health-checked by Arlo",
+          "last_checked": null
+        },
+        {
+          "id": "godaddy",
+          "name": "GoDaddy",
+          "status": "green",
+          "note": "Account mgmt only: domain availability restricted to OTE",
+          "last_checked": "2026-04-08T15:09:00Z"
+        },
+        {
+          "id": "builtwith",
+          "name": "BuiltWith",
+          "status": "unknown",
+          "note": "Not yet health-checked by Arlo",
+          "last_checked": null
+        }
       ]
     },
     {
       "id": "google",
       "label": "Google Workspace",
       "services": [
-        { "id": "google-drive", "name": "Google Drive", "status": "green", "note": "OAuth active: krish@themindmaker.ai", "last_checked": "2026-04-08T15:40:00Z" },
-        { "id": "google-docs", "name": "Google Docs", "status": "green", "note": "OAuth active: krish@themindmaker.ai", "last_checked": "2026-04-08T15:40:00Z" },
-        { "id": "gmail", "name": "Gmail", "status": "green", "note": "OAuth active: krish@themindmaker.ai", "last_checked": "2026-04-08T15:40:00Z" }
+        {
+          "id": "google-drive",
+          "name": "Google Drive",
+          "status": "green",
+          "note": "OAuth active: krish@themindmaker.ai",
+          "last_checked": "2026-04-08T15:40:00Z"
+        },
+        {
+          "id": "google-docs",
+          "name": "Google Docs",
+          "status": "green",
+          "note": "OAuth active: krish@themindmaker.ai",
+          "last_checked": "2026-04-08T15:40:00Z"
+        },
+        {
+          "id": "gmail",
+          "name": "Gmail",
+          "status": "green",
+          "note": "OAuth active: krish@themindmaker.ai",
+          "last_checked": "2026-04-08T15:40:00Z"
+        }
       ]
     }
   ]
 }
-
