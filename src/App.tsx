@@ -11,11 +11,12 @@ import { OrgChart } from './components/OrgChart'
 import { MobileOrgChart } from './components/MobileOrgChart'
 import { AutomationsPanel } from './components/AutomationsPanel'
 import { AllHandsPanel } from './components/AllHandsPanel'
+import { SystemsPanel } from './components/SystemsPanel'
 import { WeeklyGoals } from './components/WeeklyGoals'
 import { useHaptics } from './hooks/useHaptics'
 
 // ─── Tab IDs shared across desktop + mobile ───────────────────────────────────
-type TabId = 'home' | 'today' | 'plans' | 'org' | 'execution'
+type TabId = 'home' | 'today' | 'plans' | 'org' | 'execution' | 'systems'
 
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
@@ -52,6 +53,7 @@ export default function App() {
             {tab === 'plans' && <DesktopPlans />}
             {tab === 'org'   && <DesktopOrg currentTime={currentTime} />}
             {tab === 'execution' && <ExecutionTabContent />}
+            {tab === 'systems'   && <DesktopSystems />}
           </div>
         </div>
 
@@ -68,6 +70,7 @@ export default function App() {
             {tab === 'plans' && <MobilePlans />}
             {tab === 'org'   && <MobileOrg currentTime={currentTime} />}
             {tab === 'execution' && <ExecutionTabContent />}
+            {tab === 'systems'   && <DesktopSystems />}
           </div>
         </div>
       </main>
@@ -293,6 +296,23 @@ function MobileOps() {
     <div className="space-y-4">
       <MobileHeader title="Automations" subtitle="N8N workflows" />
       <AutomationsPanel />
+    </div>
+  )
+}
+
+function DesktopSystems() {
+  return (
+    <div className="space-y-4">
+      <SystemsPanel />
+    </div>
+  )
+}
+
+function MobileSystems() {
+  return (
+    <div className="space-y-4">
+      <MobileHeader title="Systems" subtitle="Connected services · Monitored by Arlo" />
+      <SystemsPanel />
     </div>
   )
 }
