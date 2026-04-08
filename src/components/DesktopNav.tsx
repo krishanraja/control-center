@@ -1,5 +1,5 @@
 import React from 'react'
-import { Home, Clock, ClipboardList, GitBranch, Activity } from 'lucide-react'
+import { Home, Clock, ClipboardList, GitBranch, Activity, Server } from 'lucide-react'
 
 const TABS = [
   { id: 'home',      label: 'Home',      icon: Home },
@@ -7,6 +7,7 @@ const TABS = [
   { id: 'plans',     label: 'Briefs',    icon: ClipboardList },
   { id: 'org',       label: 'Org',       icon: GitBranch },
   { id: 'execution', label: 'Execution', icon: Activity },
+  { id: 'systems',   label: 'Systems',   icon: Server },
 ]
 
 interface Props {
