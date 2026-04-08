@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Agent } from '../types'
 import { Crown, Bell, Heart, ChevronDown, ChevronUp } from 'lucide-react'
 import { useHaptics } from '../hooks/useHaptics'
+import { AgentDetailModal } from './AgentDetailModal'
 
 interface Props { agents: Agent[] }
 
@@ -19,7 +20,7 @@ const POD_STYLE: Record<string, {border:string; glow:string; label:string; accen
     glow:   'from-slate-500/8 to-transparent',
     label:  'Ops Pod',
     accent: 'text-slate-300',
-    ids:    ['vera-daily','weekly-synthesis','tools-agent','efficiency-agent'],
+    ids:    ['vera-daily','tools-agent','kai','weekly-synthesis','efficiency-agent'],
   },
   revenue: {
     border: 'border-emerald-500/25',
@@ -40,9 +41,15 @@ const POD_STYLE: Record<string, {border:string; glow:string; label:string; accen
 export function MobileOrgChart({ agents }: Props) {
   const h = useHaptics()
   const [openPods, setOpenPods] = useState<Set<string>>(new Set(['ops','revenue','growth']))
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
 
   const toggle = (id: string) => { h.select(); setOpenPods(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n }) }
   const byId = (id: string) => agents.find(a => a.id === id)
+
+  const handleAgentTap = (agent: Agent) => {
+    h.impact()
+    setSelectedAgent(agent)
+  }
 
   return (
     <div className="space-y-3">
@@ -154,26 +161,41 @@ export function MobileOrgChart({ agents }: Props) {
             {isOpen && (
               <div className="divide-y divide-white/[0.05] border-t border-white/[0.05]">
                 {podAgents.map(agent => (
-                  <div key={agent.id} className="flex items-center gap-3 px-4 py-3">
+                  <button
+                    key={agent.id}
+                    onClick={() => handleAgentTap(agent)}
+                    className="w-full flex items-center gap-3 px-4 py-3 active:bg-white/[0.04] transition-colors text-left"
+                  >
                     <div className={`w-2 h-2 rounded-full shadow-sm flex-shrink-0 ${STATUS_DOT[agent.status] ?? 'bg-white/40'}`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-white">{agent.humanName}</p>
                       <p className="text-[11px] text-white/40 truncate">{agent.role}</p>
                     </div>
-                    <div className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                      agent.status === 'running' || agent.status === 'success' ? 'bg-emerald-500/10 text-emerald-400'
-                      : agent.status === 'blocked' || agent.status === 'error' ? 'bg-red-500/10 text-red-400'
-                      : 'bg-blue-500/10 text-blue-400'
-                    }`}>
-                      {agent.schedule?.split(' ')[0] ?? agent.status}
+                    <div className="flex items-center gap-2">
+                      <div className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        agent.status === 'running' || agent.status === 'success' ? 'bg-emerald-500/10 text-emerald-400'
+                        : agent.status === 'blocked' || agent.status === 'error' ? 'bg-red-500/10 text-red-400'
+                        : 'bg-blue-500/10 text-blue-400'
+                      }`}>
+                        {agent.schedule?.split(' ')[0] ?? agent.status}
+                      </div>
+                      <ChevronDown className="w-3 h-3 text-white/20 flex-shrink-0" />
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
           </div>
         )
       })}
+
+      {selectedAgent && (
+        <AgentDetailModal
+          agent={selectedAgent}
+          isOpen={true}
+          onClose={() => setSelectedAgent(null)}
+        />
+      )}
     </div>
   )
 }

@@ -91,6 +91,12 @@
       "lastRun": null,
       "kpi_current": "0 roles sourced",
       "note": "Daily job sourcing schedule"
+    },
+    "kai": {
+      "status": "waiting",
+      "lastRun": null,
+      "kpi_current": "Initial audit pending",
+      "note": "Tools & Integration Specialist — Tuesday 9AM + On-Demand"
     }
   }
 }

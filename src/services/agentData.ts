@@ -282,6 +282,27 @@ export const AGENTS: Agent[] = [
     planDocUrl: "https://docs.google.com/document/d/1jtpymRjN0JYeTMw2J3J0Jx3rtYNa6_SgaTOWbv402ns/edit"
   },
   {
+    id: "kai",
+    name: "Kai",
+    humanName: "Kai",
+    role: "Tools & Integration Specialist",
+    model: "sonnet",
+    schedule: "Tue 9AM EST + On-Demand",
+    status: "waiting",
+    pod: "ops",
+    personality: "Integration detective who knows exactly how every API actually works — not just how the docs say they work",
+    mission: "I own the integration layer between the organisation and its tools. Every API, every webhook, every auth flow — I know what works, what breaks, and how to fix it. Other agents call me when tools misbehave. I'm the reason Vercel stops breaking.",
+    kpi: { label: "Weekly target", target: "0 tool failures block agent work, <2hr response on integration issues, all N8N workflows documented", current: "Initial audit pending" },
+    currentWork: ["Building full API health inventory", "Mapping N8N workflow API dependencies"],
+    collaborations: ["Reports to Agatha", "On-demand support for all agents", "Coordinates with Arlo on infrastructure failures"],
+    nextActions: ["Audit all Stripe restricted key permissions across products", "Map every N8N workflow to its API dependencies", "Test Instantly, Apollo, and Apify auth flows"],
+    nextRun: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+    lastRun: undefined,
+    workSummary: "First run Tuesday 9AM — building full API/integration health inventory",
+    reportsTo: "agatha",
+    planDocUrl: "https://docs.google.com/document/d/1qy20V_KO3UY3NzecrigIs0nnOmxlHcvp4XGIB9zL7Jg/edit"
+  },
+  {
     id: "tools-agent",
     name: "Arlo",
     humanName: "Arlo",
