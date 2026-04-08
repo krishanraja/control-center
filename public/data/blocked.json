@@ -1,83 +1,144 @@
 {
-  "updated_at": "2026-04-07T00:00:00Z",
+  "updated_at": "2026-04-08T14:23:57Z",
   "tasks": [
+    {
+      "id": "ops-agent-brief-refresh-all",
+      "venture": "ops",
+      "title": "All agents to publish refreshed KPI-plan briefs to Control Centre",
+      "status": "waiting",
+      "priority": "pri-0",
+      "agent": "agatha",
+      "nextStep": "On each agent next run, require refreshed brief with KPI, plan, schedule, expected outputs, and decision triggers; route to Control Centre attention queue."
+    },
+    {
+      "id": "ops-mm-os-v1-blueprint",
+      "venture": "ops",
+      "title": "Review and approve MindMaker OS v1 operating blueprint",
+      "status": "waiting",
+      "priority": "pri-0",
+      "agent": "agatha",
+      "nextStep": "Review the Google Doc and approve or mark required changes before implementation."
+    },
+    {
+      "id": "adfixus-navigator-roi",
+      "venture": "adfixus",
+      "title": "Navigator NYC 2026 ROI Document for Marko",
+      "status": "waiting",
+      "priority": "pri-0",
+      "agent": "agatha",
+      "nextStep": "Review the ROI document and send to Marko to secure the Beeler.tech VIP ticket."
+    },
     {
       "id": "b1",
       "venture": "ops",
       "title": "Drive Sync \u2014 Activate in N8N",
-      "description": "Open workflow PPfv8kHNBzSq7fm0, confirm Google Docs credential, click Activate.",
       "status": "waiting",
-      "blockedBy": "krish",
-      "urgency": "medium",
       "priority": "pri-1",
       "agent": "Arlo",
-      "daysOld": 2,
-      "nextStep": "Open N8N \u2192 workflow PPfv8kHNBzSq7fm0 \u2192 activate"
+      "nextStep": "Review in Control Centre",
+      "description": "Open workflow PPfv8kHNBzSq7fm0, confirm Google Docs credential, click Activate.",
+      "blockedBy": "krish"
     },
     {
       "id": "b2",
       "venture": "ops",
       "title": "Instantly API \u2014 Check Account Permissions",
-      "description": "API returning 403. Check Settings \u2192 API in Instantly dashboard to confirm access is enabled.",
-      "status": "waiting",
-      "blockedBy": "krish",
-      "urgency": "low",
+      "status": "active",
       "priority": "pri-1",
       "agent": "Zara",
-      "daysOld": 2,
-      "nextStep": "Instantly Settings \u2192 API \u2192 confirm API access is enabled"
+      "nextStep": "Review in Control Centre",
+      "description": "API returning 403. Check Settings \u2192 API in Instantly dashboard to confirm access is enabled.",
+      "blockedBy": "krish"
     },
     {
-      "id": "b4",
-      "venture": "growth",
-      "title": "Nell \u2014 Confirm April Recording Availability",
-      "description": "Nell cannot send podcast guest pitches with dates until you confirm which weeks you are available to record in April.",
-      "status": "waiting",
-      "blockedBy": "krish",
-      "urgency": "high",
-      "priority": "pri-0",
-      "agent": "Nell",
-      "daysOld": 0,
-      "nextStep": "Reply with your available recording weeks in April"
+      "id": "bd-signal-2026-04-07-faye-caio",
+      "venture": "mindmaker",
+      "title": "BD Signal: Faye \u2014 Fractional CAIO Launch (market validation)",
+      "status": "pending-agatha-review",
+      "priority": "HIGH",
+      "agent": "bd-agent",
+      "nextStep": "Review in Control Centre"
     },
     {
-      "id": "b5",
-      "venture": "revenue",
-      "title": "Leo \u2014 Fractionl Stripe API Key",
-      "description": "Weekly Revenue Report errored on first run. Fractionl Stripe integration needs a valid API key.",
-      "status": "waiting",
-      "blockedBy": "krish",
-      "urgency": "high",
-      "priority": "pri-0",
-      "agent": "Leo",
-      "daysOld": 0,
-      "nextStep": "Provide Fractionl Stripe restricted API key to Agatha"
+      "id": "bd-signal-2026-04-07-bpo-rfp-ai",
+      "venture": "mindmaker",
+      "title": "BD Signal: Enterprise BPO Sector \u2014 AI criteria now 30-40% of RFP evaluation",
+      "status": "pending-agatha-review",
+      "priority": "HIGH",
+      "agent": "bd-agent",
+      "nextStep": "Review in Control Centre"
     },
     {
-      "id": "b6",
-      "venture": "revenue",
-      "title": "Felix \u2014 Pricing Authority Per Venture",
-      "description": "Felix needs to know what he can quote for Meliora, Mindmaker, and AdFixus engagements without requiring your sign-off on every number.",
-      "status": "waiting",
-      "blockedBy": "krish",
-      "urgency": "high",
-      "priority": "pri-0",
-      "agent": "Felix",
-      "daysOld": 0,
-      "nextStep": "Set ceiling amounts per venture (e.g. Meliora up to $X without sign-off)"
+      "id": "bd-signal-2026-04-07-caio-summits",
+      "venture": "mindmaker",
+      "title": "BD Signal: CAIO NY + CAIO London 2026 Summits \u2014 right rooms for Krish",
+      "status": "pending-agatha-review",
+      "priority": "MEDIUM",
+      "agent": "bd-agent",
+      "nextStep": "Review in Control Centre"
     },
     {
-      "id": "b7",
-      "venture": "growth",
-      "title": "Nova + Remi \u2014 Availability Calendar",
-      "description": "Nova and Remi cannot confirm speaking and podcast dates without your availability. Pitches are being held.",
-      "status": "waiting",
-      "blockedBy": "krish",
-      "urgency": "medium",
-      "priority": "pri-1",
-      "agent": "Nova",
-      "daysOld": 0,
-      "nextStep": "Share your April/May availability (even rough \u2014 'not week of Apr 21' is enough)"
+      "id": "bd-signal-2026-04-07-jubilee-fractionl",
+      "venture": "fractionl",
+      "title": "BD Signal: Jubilee + fractional ownership startups \u2014 mainstream Business Insider coverage",
+      "status": "pending-agatha-review",
+      "priority": "MEDIUM",
+      "agent": "bd-agent",
+      "nextStep": "Review in Control Centre"
+    },
+    {
+      "id": "bd-signal-2026-04-08-anthropic-partner-network",
+      "venture": "mindmaker",
+      "title": "BD Signal: Anthropic Claude Partner Network \u2014 apply for consulting partner status",
+      "status": "pending-agatha-review",
+      "priority": "HIGH",
+      "agent": "bd-agent",
+      "nextStep": "Review in Control Centre"
+    },
+    {
+      "id": "bd-signal-2026-04-08-anyreach-bpo-ai-rfp",
+      "venture": "mindmaker",
+      "title": "BD Signal: Anyreach.ai \u2014 AI strategy primary in enterprise CX RFPs",
+      "status": "pending-agatha-review",
+      "priority": "HIGH",
+      "agent": "bd-agent",
+      "nextStep": "Review in Control Centre"
+    },
+    {
+      "id": "bd-signal-2026-04-08-aws-box-consulting-partner",
+      "venture": "mindmaker",
+      "title": "BD Signal: AWS BOX Program \u2014 expanded to consulting/advisory partners",
+      "status": "pending-agatha-review",
+      "priority": "MEDIUM",
+      "agent": "bd-agent",
+      "nextStep": "Review in Control Centre"
+    },
+    {
+      "id": "bd-signal-2026-04-08-adfixus-agentic-data-era",
+      "venture": "adfixus",
+      "title": "BD Signal: AdExchanger \u2014 First-party data will define the agentic advertising era",
+      "status": "pending-agatha-review",
+      "priority": "MEDIUM",
+      "agent": "bd-agent",
+      "nextStep": "Review in Control Centre"
+    },
+    {
+      "id": "bd-signal-2026-04-08-fractionl-addy-collapse",
+      "venture": "fractionl",
+      "title": "BD Signal: Addy (fractional real estate) collapsed \u2014 platform trust concern active",
+      "status": "pending-agatha-review",
+      "priority": "MEDIUM",
+      "agent": "bd-agent",
+      "nextStep": "Review in Control Centre"
+    },
+    {
+      "id": "bd-signal-2026-04-08-family-office-ai-incubation",
+      "venture": "mindmaker",
+      "title": "BD Signal: Family offices incubating AI companies \u2014 new Mindmaker ICP segment",
+      "status": "pending-agatha-review",
+      "priority": "MEDIUM",
+      "agent": "bd-agent",
+      "nextStep": "Review in Control Centre"
     }
   ]
 }
