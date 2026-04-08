@@ -49,25 +49,6 @@ interface TodayItem {
   est?: string
 }
 
-interface JobApplication {
-  id: string
-  company: string
-  role: string
-  score: number
-  status: string
-  comp_est: string
-  location: string
-  url: string
-  cv_doc: string
-  cover_doc: string
-  why: string
-}
-
-interface JobsData {
-  tracker_url: string
-  active_applications: JobApplication[]
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const urgencyStyle: Record<string, string> = {
@@ -174,7 +155,7 @@ function BlockedItem({ item, onRefresh }: { item: BlockItem; onRefresh: () => vo
           <textarea
             className="w-full bg-white/[0.04] border border-white/[0.10] rounded-lg p-2.5 text-[12px] text-white placeholder-white/20 resize-none focus:outline-none focus:border-amber-500/40"
             rows={3}
-            placeholder="Your decision or feedback — Radar picks this up hourly and routes to the right agent…"
+            placeholder="Your decision or feedback — Arlo picks this up and routes to the right agent…"
             value={feedbackText}
             onChange={e => setFeedbackText(e.target.value)}
           />
@@ -287,7 +268,6 @@ export function TodayTabContent() {
   const [goals, setGoals] = useState<GoalsData | null>(null)
   const [todayItems, setTodayItems] = useState<TodayItem[]>([])
   const [doneItems, setDoneItems] = useState<TodayItem[]>([])
-  const [jobs, setJobs] = useState<JobsData | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Team focus editing
@@ -295,11 +275,10 @@ export function TodayTabContent() {
   const [focusText, setFocusText] = useState('')
 
   const fetchAll = async () => {
-    const [blockedRes, goalsRes, todayRes, jobsRes] = await Promise.allSettled([
+    const [blockedRes, goalsRes, todayRes] = await Promise.allSettled([
       fetch('/api/data', { cache: 'no-cache' }).then(r => r.json()),
       fetch('/api/goals', { cache: 'no-cache' }).then(r => r.json()),
       fetch('/api/today', { cache: 'no-cache' }).then(r => r.json()),
-      fetch('/api/jobs', { cache: 'no-cache' }).then(r => r.json()),
     ])
 
     if (blockedRes.status === 'fulfilled') {
@@ -312,7 +291,6 @@ export function TodayTabContent() {
       setTodayItems(items.filter(i => i.status !== 'done'))
       setDoneItems(items.filter(i => i.status === 'done'))
     }
-    if (jobsRes.status === 'fulfilled') setJobs(jobsRes.value)
     setLoading(false)
   }
 
@@ -388,69 +366,6 @@ export function TodayTabContent() {
                 </div>
               ))}
             </div>
-          )}
-        </section>
-
-        {/* Job Applications */}
-        <section>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 rounded-full bg-slate-400" />
-            <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
-              Job Applications {jobs?.active_applications.length ? `(${jobs.active_applications.length} ready)` : ''}
-            </h2>
-            {jobs?.tracker_url && (
-              <a href={jobs.tracker_url} target="_blank" rel="noopener noreferrer"
-                className="ml-auto text-[10px] text-white/25 hover:text-white/50 flex items-center gap-0.5 transition-colors">
-                Full tracker <ExternalLink className="w-2.5 h-2.5" />
-              </a>
-            )}
-          </div>
-          {jobs?.active_applications.length ? (
-            <div className="space-y-2">
-              {jobs.active_applications.map(job => (
-                <div key={job.id} className="bg-white/[0.02] border border-white/[0.07] rounded-xl p-3 hover:border-white/[0.12] transition-colors">
-                  <div className="flex items-start gap-2 mb-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-[13px] font-semibold text-white">{job.company}</p>
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold border
-                          ${job.score >= 9 ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' :
-                            job.score >= 8 ? 'text-amber-400 bg-amber-400/10 border-amber-400/20' :
-                            'text-slate-400 bg-slate-400/10 border-slate-400/20'}`}>
-                          {job.score}/10
-                        </span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded border text-blue-400 bg-blue-400/10 border-blue-400/20">
-                          {job.status}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-white/50 mt-0.5">{job.role}</p>
-                      <p className="text-[10px] text-white/25 mt-0.5">{job.location} · {job.comp_est}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <a href={job.url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-medium bg-white/[0.04] border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/[0.15] transition-colors">
-                      Apply ↗
-                    </a>
-                    <a href={job.cv_doc} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-medium bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 transition-colors">
-                      CV ↗
-                    </a>
-                    <a href={job.cover_doc} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-medium bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 transition-colors">
-                      Cover ↗
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <a href="https://docs.google.com/spreadsheets/d/1gJHU37h8nSw8K2XA6fphpC1UiAukR_BTJ9e39os5oh8/edit"
-              target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/[0.07] rounded-xl hover:border-violet-500/25 hover:bg-violet-500/5 transition-all group">
-              <p className="text-[13px] font-medium text-white group-hover:text-violet-300 transition-colors">Open Job Tracker →</p>
-              <ExternalLink className="w-4 h-4 text-white/25 group-hover:text-violet-400 transition-colors" />
-            </a>
           )}
         </section>
       </div>
