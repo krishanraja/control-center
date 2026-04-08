@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-08T15:45:00Z",
+  "updated_at": "2026-04-08T16:40:00Z",
   "updated_by": "agatha",
   "next_check": "Arlo: Sunday 3AM UTC",
   "categories": [
@@ -165,9 +165,9 @@
         {
           "id": "instantly",
           "name": "Instantly",
-          "status": "amber",
-          "note": "v2 API confirmed. Key rotated - needs refresh from Instantly dashboard.",
-          "last_checked": "2026-04-07T10:49:00Z"
+          "status": "green",
+          "note": "v2 API verified. Bearer: raw base64 key.",
+          "last_checked": "2026-04-08T16:40:00Z"
         },
         {
           "id": "apollo",
