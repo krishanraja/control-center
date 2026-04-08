@@ -262,8 +262,8 @@ export const AGENTS: Agent[] = [
   },
   {
     id: "efficiency-agent",
-    name: "Finn",
-    humanName: "Finn",
+    name: "Axel",
+    humanName: "Axel",
     role: "System Efficiency",
     model: "sonnet",
     schedule: "Sunday 2AM EST",
