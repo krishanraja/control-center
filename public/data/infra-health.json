@@ -20,8 +20,8 @@
     "note": "Webhook OK"
   },
   "leo": {
-    "status": "amber",
-    "note": "Stripe key pending / errored run"
+    "status": "green",
+    "note": "Stripe configured. User testing pending."
   },
   "felix": {
     "status": "green",
