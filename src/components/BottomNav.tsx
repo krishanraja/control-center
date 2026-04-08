@@ -1,5 +1,5 @@
 import React from 'react'
-import { Home, Users, Zap, CalendarCheck, GitBranch, Clock, ClipboardList, Activity } from 'lucide-react'
+import { Home, GitBranch, Clock, ClipboardList, Activity, Server } from 'lucide-react'
 import { useHaptics } from '../hooks/useHaptics'
 
 interface Props {
@@ -12,7 +12,8 @@ const TABS = [
   { id: 'today',     label: 'Today',     icon: Clock },
   { id: 'plans',     label: 'Briefs',    icon: ClipboardList },
   { id: 'org',       label: 'Org',       icon: GitBranch },
-  { id: 'execution', label: 'Execution', icon: Activity },
+  { id: 'execution', label: 'Exec',      icon: Activity },
+  { id: 'systems',   label: 'Systems',   icon: Server },
 ]
 
 export function BottomNav({ active, onChange }: Props) {
@@ -37,9 +38,9 @@ export function BottomNav({ active, onChange }: Props) {
                 {isActive && (
                   <div className="absolute inset-0 rounded-full bg-violet-500/20 blur-sm scale-150" />
                 )}
-                <Icon className={`relative w-[22px] h-[22px] transition-all duration-200 ${isActive ? 'stroke-violet-400' : ''}`} strokeWidth={isActive ? 2.2 : 1.8} />
+                <Icon className={`relative w-[20px] h-[20px] transition-all duration-200 ${isActive ? 'stroke-violet-400' : ''}`} strokeWidth={isActive ? 2.2 : 1.8} />
               </div>
-              <span className={`text-[10px] font-semibold tracking-wide transition-all duration-200 ${isActive ? 'text-violet-300' : ''}`}>
+              <span className={`text-[9px] font-semibold tracking-wide transition-all duration-200 ${isActive ? 'text-violet-300' : ''}`}>
                 {label}
               </span>
               {isActive && (
