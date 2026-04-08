@@ -1,7 +1,41 @@
 {
-  "updated_at": "2026-04-08T15:09:29Z",
-  "updated_by": "agatha-agent-plans",
+  "updated_at": "2026-04-08T15:40:00Z",
+  "updated_by": "agatha",
   "tasks": [
+    {
+      "id": "arlo-systems-monitor",
+      "venture": "ops",
+      "title": "Build Systems Monitor + Control Center Systems Tab",
+      "description": "Full service inventory + hourly health checks + credit monitoring + Notion Systems tab + ops-bot alerts + weekly Agentops cost report to Vera.",
+      "status": "waiting",
+      "blockedBy": "krish",
+      "urgency": "high",
+      "priority": "pri-0",
+      "priority_rank": 1,
+      "agent": "Arlo",
+      "daysOld": 0,
+      "nextStep": "Approve spec then Arlo builds N8N workflow + Systems tab in Control Center",
+      "plan_doc_url": "https://docs.google.com/document/d/16IaX5tmaJS3Tby4GLjWEcznHP_-gwk1Si7rvvE7z4yw/edit",
+      "scheduled_for": null,
+      "execution_ready": false
+    },
+    {
+      "id": "model-tier-enforcement",
+      "venture": "ops",
+      "title": "Enforce model tier rules across all N8N workflows",
+      "description": "Audit every N8N AI node. Enforce: Haiku for Zara/Felix/Arlo/heartbeats. Sonnet for Vera/Marcus/Priya/Leo/Nova/Maya. Remove Opus from all N8N nodes. Add max_tokens caps.",
+      "status": "waiting",
+      "blockedBy": "krish",
+      "urgency": "high",
+      "priority": "pri-0",
+      "priority_rank": 2,
+      "agent": "Arlo",
+      "daysOld": 0,
+      "nextStep": "Approve model tier rules (patterns.md MT-001 to MT-006) then Arlo audits + enforces",
+      "plan_doc_url": "https://docs.google.com/document/d/16IaX5tmaJS3Tby4GLjWEcznHP_-gwk1Si7rvvE7z4yw/edit",
+      "scheduled_for": null,
+      "execution_ready": false
+    },
     {
       "id": "agent-plan-review-nell",
       "venture": "ops",
