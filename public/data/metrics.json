@@ -1,11 +1,12 @@
 {
-  "updated_at": "2026-04-07T00:00:00Z",
+  "updated_at": "2026-04-08T14:34:34Z",
+  "updated_by": "agatha",
   "north_star": {
     "goal": 20000,
     "unit": "$/mo",
     "deadline": "2026-06-05",
     "current_mrr": 0,
-    "note": "60-day sprint. April: flywheel + Skyview. May: compounding. June: $20K hit."
+    "note": "April target: $5K+ to establish baseline. Skyview close this week is the primary lever."
   },
   "monthly": {
     "label": "April 2026",
@@ -13,18 +14,22 @@
     "revenue_target": 5000,
     "content_pieces_live": 0,
     "content_target": 8,
-    "pipeline_value": 120000,
+    "pipeline_value": 240000,
     "pipeline_target": 150000,
     "guest_confirmations": 0,
     "guest_target": 2,
     "deals_in_proposal": 1,
-    "clean_vera_audits": 0,
+    "clean_vera_audits": 1,
     "vera_audit_target": 4
   },
   "skyview": {
     "status": "In proposal",
-    "value": 120000,
-    "next_step": "Andrew + Sarah meeting this week. April 14 in-person.",
+    "value": 240000,
+    "next_step": "Andrew + Sarah meeting this week. Option C ($25K May intensive) recommended close path.",
     "owner": "Felix"
-  }
+  },
+  "week_of": "2026-04-07",
+  "agents_compliant": 33,
+  "agents_total": 33,
+  "governance_enforcement": "live"
 }

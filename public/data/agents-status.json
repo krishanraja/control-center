@@ -1,102 +1,78 @@
 {
-  "updated_at": "2026-04-07T00:00:00Z",
-  "updated_by": "radar-daily-cron",
+  "updated_at": "2026-04-08T14:34:26Z",
+  "updated_by": "agatha",
   "agents": {
     "agatha": {
       "status": "running",
-      "lastRun": "2026-04-07T00:00:00Z",
-      "kpi_current": "Week 1 of April",
-      "note": "Managing Phase 2 agent rollout"
+      "lastRun": "2026-04-08T14:34:11Z",
+      "kpi_current": "Active",
+      "note": "COO \u2014 conversation mode"
     },
     "vera-daily": {
-      "status": "waiting",
-      "lastRun": "2026-04-07T02:00:00Z",
-      "kpi_current": "0/4 audits complete",
-      "note": "Next: daily audit 2AM"
+      "status": "success",
+      "lastRun": "2026-04-08T06:00:00Z",
+      "kpi_current": "\u2014",
+      "note": "consecutiveErrors=0"
     },
     "weekly-synthesis": {
       "status": "waiting",
       "lastRun": null,
-      "kpi_current": "0/4 delivered",
-      "note": "First Monday run pending"
+      "kpi_current": "Intel brief: 0/4 \u2014 first run Mon Apr 13",
+      "note": "Marcus \u2014 first run Mon Apr 13"
     },
     "product-agent": {
-      "status": "waiting",
-      "lastRun": null,
-      "kpi_current": "0 briefs this month",
-      "note": "First Monday run pending"
+      "status": "success",
+      "lastRun": "2026-04-07T18:26:52Z",
+      "kpi_current": "3 improvement briefs submitted",
+      "note": "consecutiveErrors=0"
     },
     "revenue-agent": {
       "status": "blocked",
-      "lastRun": null,
-      "kpi_current": "Blocked — Stripe key needed",
-      "note": "Cannot run until Fractionl Stripe key provided"
+      "lastRun": "2026-04-07T18:46:52Z",
+      "kpi_current": "Revenue MTD: $0 / $20K target",
+      "note": "Leo ran Apr 7 \u2014 revenue webhook integration underway"
     },
     "bd-agent": {
-      "status": "waiting",
-      "lastRun": "2026-04-07T10:00:00Z",
-      "kpi_current": "0 signals this week",
-      "note": "Monitoring 23 companies hiring AI officers"
+      "status": "success",
+      "lastRun": "2026-04-08T14:08:26Z",
+      "kpi_current": "4 signals found this week",
+      "note": "consecutiveErrors=0"
     },
     "enterprise-gigs": {
-      "status": "running",
-      "lastRun": "2026-04-07T11:00:00Z",
-      "kpi_current": "Skyview: $120K — in proposal",
-      "note": "Processing Skyview engagement"
+      "status": "success",
+      "lastRun": "2026-04-07T18:42:18Z",
+      "kpi_current": "Pipeline: $240K \u2014 Skyview in proposal",
+      "note": "consecutiveErrors=0"
     },
     "visibility-agent": {
-      "status": "waiting",
-      "lastRun": "2026-04-05T09:00:00Z",
-      "kpi_current": "12 pitches sent, 3 pending",
-      "note": "Tue/Fri pitch schedule"
+      "status": "success",
+      "lastRun": "2026-04-07T18:17:38Z",
+      "kpi_current": "Pitches sent: 0/8 this month",
+      "note": "consecutiveErrors=0"
     },
     "marketing-agent": {
       "status": "success",
-      "lastRun": "2026-04-07T09:00:00Z",
-      "kpi_current": "47 briefs generated",
-      "note": "DataForSEO analysis complete"
+      "lastRun": "2026-04-08T13:03:59Z",
+      "kpi_current": "SEO briefs: 0/12 April",
+      "note": "consecutiveErrors=0"
     },
     "content-agent": {
-      "status": "waiting",
-      "lastRun": null,
-      "kpi_current": "Week 1 — first sweep pending",
-      "note": "Monday 7AM content sweep"
-    },
-    "podcast-guest-agent": {
-      "status": "blocked",
-      "lastRun": null,
-      "kpi_current": "Pipeline not started",
-      "note": "Blocked — Krish recording availability needed"
-    },
-    "stage-agent": {
-      "status": "waiting",
-      "lastRun": null,
-      "kpi_current": "First run pending",
-      "note": "Building opportunity pipeline"
+      "status": "success",
+      "lastRun": "2026-04-06T11:00:00Z",
+      "kpi_current": "Angles proposed: 0/12",
+      "note": "Cleo \u2014 last ran Apr 6"
     },
     "efficiency-agent": {
-      "status": "waiting",
-      "lastRun": null,
-      "kpi_current": "Workspace: 14GB",
-      "note": "First Sunday run Apr 13"
+      "status": "success",
+      "lastRun": "2026-04-07T18:58:13Z",
+      "kpi_current": "\u2014",
+      "note": "consecutiveErrors=0"
     },
     "tools-agent": {
       "status": "success",
-      "lastRun": "2026-04-07T03:00:00Z",
-      "kpi_current": "All systems nominal",
-      "note": "N8N workflows monitored"
-    },
-    "hunter": {
-      "status": "waiting",
-      "lastRun": null,
-      "kpi_current": "0 roles sourced",
-      "note": "Daily job sourcing schedule"
-    },
-    "kai": {
-      "status": "waiting",
-      "lastRun": null,
-      "kpi_current": "Initial audit pending",
-      "note": "Tools & Integration Specialist — Tuesday 9AM + On-Demand"
+      "lastRun": "2026-04-07T18:58:13Z",
+      "kpi_current": "\u2014",
+      "note": "consecutiveErrors=0"
     }
   }
 }
