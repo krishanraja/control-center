@@ -1,24 +1,24 @@
 {
-  "updated_at": "2026-04-08T14:34:26Z",
-  "updated_by": "agatha",
+  "updated_at": "2026-04-08T18:17:00Z",
+  "updated_by": "radar",
   "agents": {
     "agatha": {
       "status": "running",
       "lastRun": "2026-04-08T14:34:11Z",
       "kpi_current": "Active",
-      "note": "COO \u2014 conversation mode"
+      "note": "COO — conversation mode"
     },
     "vera-daily": {
       "status": "success",
-      "lastRun": "2026-04-08T06:00:00Z",
-      "kpi_current": "\u2014",
-      "note": "consecutiveErrors=0"
+      "lastRun": "2026-04-08T18:00:52Z",
+      "kpi_current": "Issues found: 5 agents behind schedule",
+      "note": "Ran 18:00 UTC — cron errors flagged, agent report gaps identified"
     },
     "weekly-synthesis": {
       "status": "waiting",
       "lastRun": null,
-      "kpi_current": "Intel brief: 0/4 \u2014 first run Mon Apr 13",
-      "note": "Marcus \u2014 first run Mon Apr 13"
+      "kpi_current": "Intel brief: 0/4 — first run Mon Apr 13",
+      "note": "Marcus — first run Mon Apr 13"
     },
     "product-agent": {
       "status": "success",
@@ -28,50 +28,50 @@
     },
     "revenue-agent": {
       "status": "blocked",
-      "lastRun": "2026-04-07T18:46:52Z",
+      "lastRun": "2026-04-07T19:25:14Z",
       "kpi_current": "Revenue MTD: $0 / $20K target",
-      "note": "Leo ran Apr 7 \u2014 revenue webhook integration underway"
+      "note": "Leo — pyr9wurcs1M9utW3 errored Apr 7; revenue webhook integration underway"
     },
     "bd-agent": {
       "status": "success",
       "lastRun": "2026-04-08T14:08:26Z",
-      "kpi_current": "4 signals found this week",
+      "kpi_current": "6 signals found this week",
       "note": "consecutiveErrors=0"
     },
     "enterprise-gigs": {
       "status": "success",
-      "lastRun": "2026-04-07T18:42:18Z",
-      "kpi_current": "Pipeline: $240K \u2014 Skyview in proposal",
-      "note": "consecutiveErrors=0"
+      "lastRun": "2026-04-08T15:07:10Z",
+      "kpi_current": "Pipeline: $240K — Skyview in proposal",
+      "note": "consecutiveErrors=0 — meeting not yet confirmed, Apr 14 in-person at risk"
     },
     "visibility-agent": {
       "status": "success",
       "lastRun": "2026-04-07T18:17:38Z",
       "kpi_current": "Pitches sent: 0/8 this month",
-      "note": "consecutiveErrors=0"
+      "note": "consecutiveErrors=0 — 4 pitches drafted, none sent yet"
     },
     "marketing-agent": {
       "status": "success",
       "lastRun": "2026-04-08T13:03:59Z",
-      "kpi_current": "SEO briefs: 0/12 April",
-      "note": "consecutiveErrors=0"
+      "kpi_current": "SEO briefs: 18 generated Apr 8",
+      "note": "consecutiveErrors=0 — ran Wed 9AM EST as scheduled"
     },
     "content-agent": {
       "status": "success",
       "lastRun": "2026-04-06T11:00:00Z",
       "kpi_current": "Angles proposed: 0/12",
-      "note": "Cleo \u2014 last ran Apr 6"
+      "note": "Cleo — last ran Apr 6; expected Mon 7AM EST run missing"
     },
     "efficiency-agent": {
       "status": "success",
-      "lastRun": "2026-04-07T18:58:13Z",
-      "kpi_current": "\u2014",
+      "lastRun": "2026-04-08T18:00:56Z",
+      "kpi_current": "—",
       "note": "consecutiveErrors=0"
     },
     "tools-agent": {
       "status": "success",
-      "lastRun": "2026-04-07T18:58:13Z",
-      "kpi_current": "\u2014",
+      "lastRun": "2026-04-08T18:00:56Z",
+      "kpi_current": "—",
       "note": "consecutiveErrors=0"
     }
   }

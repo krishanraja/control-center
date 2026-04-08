@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-08T14:34:42.458Z",
+  "updated_at": "2026-04-08T18:22:14.423Z",
   "engines": [
     {
       "id": "agatha",
@@ -74,8 +74,8 @@
       "n8n_workflow": "pyr9wurcs1M9utW3",
       "state": "Errored",
       "next_run": "Pending trigger",
-      "infra_status": "amber",
-      "infra_note": "Stripe key pending / errored run",
+      "infra_status": "green",
+      "infra_note": "Stripe configured. User testing pending.",
       "qa_status": "green",
       "qa_note": "Format compliance OK"
     },
