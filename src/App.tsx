@@ -38,7 +38,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-col">
 
-      {/* Desktop nav — hidden on mobile */}
+      {/* Desktop nav - hidden on mobile */}
       <DesktopNav active={tab} onChange={handleTab} currentTime={currentTime} />
 
       {/* Content area */}
@@ -141,7 +141,7 @@ function DesktopPlans() {
       </div>
       <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl px-4 py-3">
         <p className="text-[12px] text-amber-300/70 leading-relaxed">
-          Write your feedback in the <strong className="text-amber-300">📋 FEEDBACK FROM KRISH</strong> section at the top of each doc — agents read it first every session.
+          Write your feedback in the <strong className="text-amber-300">📋 FEEDBACK FROM KRISH</strong> section at the top of each doc - agents read it first every session.
         </p>
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -316,5 +316,6 @@ function MobileSystems() {
     </div>
   )
 }
+
 
 
