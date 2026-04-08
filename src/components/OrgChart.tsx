@@ -28,7 +28,7 @@ const PODS = [
     label: 'Growth Pod',
     color: 'border-violet-500/40 bg-violet-500/5',
     headerColor: 'text-violet-400',
-    agents: ['content-agent', 'visibility-agent', 'marketing-agent', 'podcast-guest-agent', 'stage-agent'],
+    agents: ['content-agent', 'visibility-agent', 'marketing-agent', 'podcast-guest-agent'],
   },
 ]
 
