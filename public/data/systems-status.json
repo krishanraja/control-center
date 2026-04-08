@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-08T16:40:00Z",
+  "updated_at": "2026-04-08T16:44:00Z",
   "updated_by": "agatha",
   "next_check": "Arlo: Sunday 3AM UTC",
   "categories": [
@@ -94,23 +94,23 @@
         {
           "id": "stripe-onalert",
           "name": "Stripe: OnAlert",
-          "status": "amber",
-          "note": "Webhook secret placeholder: needs update after deploy",
-          "last_checked": "2026-04-08T15:09:00Z"
+          "status": "green",
+          "note": "Configured. User testing pending confirmation.",
+          "last_checked": "2026-04-08T16:44:00Z"
         },
         {
           "id": "stripe-gutted",
           "name": "Stripe: Gutted",
-          "status": "amber",
-          "note": "Webhook secret placeholder: needs update after deploy",
-          "last_checked": "2026-04-08T15:09:00Z"
+          "status": "green",
+          "note": "Configured. User testing pending confirmation.",
+          "last_checked": "2026-04-08T16:44:00Z"
         },
         {
           "id": "stripe-merciless",
           "name": "Stripe: Merciless",
-          "status": "amber",
-          "note": "Webhook secret placeholder: needs update after deploy",
-          "last_checked": "2026-04-08T15:09:00Z"
+          "status": "green",
+          "note": "Configured. User testing pending confirmation.",
+          "last_checked": "2026-04-08T16:44:00Z"
         },
         {
           "id": "stripe-fractionl",
