@@ -14,7 +14,7 @@ const PODS = [
     label: 'Ops Pod',
     color: 'border-slate-500/40 bg-slate-500/5',
     headerColor: 'text-slate-400',
-    agents: ['vera-daily', 'tools-agent', 'kai', 'weekly-synthesis', 'efficiency-agent'],
+    agents: ['vera-daily', 'tools-agent', 'weekly-synthesis'],
   },
   {
     id: 'revenue',

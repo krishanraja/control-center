@@ -20,7 +20,7 @@ const POD_STYLE: Record<string, {border:string; glow:string; label:string; accen
     glow:   'from-slate-500/8 to-transparent',
     label:  'Ops Pod',
     accent: 'text-slate-300',
-    ids:    ['vera-daily','tools-agent','kai','weekly-synthesis','efficiency-agent'],
+    ids:    ['vera-daily','tools-agent','weekly-synthesis'],
   },
   revenue: {
     border: 'border-emerald-500/25',
