@@ -70,7 +70,7 @@ export default function App() {
             {tab === 'plans' && <MobilePlans />}
             {tab === 'org'   && <MobileOrg currentTime={currentTime} />}
             {tab === 'execution' && <ExecutionTabContent />}
-            {tab === 'systems'   && <DesktopSystems />}
+            {tab === 'systems'   && <MobileSystems />}
           </div>
         </div>
       </main>
@@ -316,4 +316,5 @@ function MobileSystems() {
     </div>
   )
 }
+
 
