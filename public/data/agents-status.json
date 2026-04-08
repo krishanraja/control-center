@@ -62,24 +62,12 @@
       "kpi_current": "Angles proposed: 0/12",
       "note": "Cleo \u2014 last ran Apr 6; expected Mon 7AM EST run missing"
     },
-    "efficiency-agent": {
-      "status": "success",
-      "lastRun": "2026-04-08T18:00:56Z",
-      "kpi_current": "\u2014",
-      "note": "consecutiveErrors=0"
-    },
     "tools-agent": {
-      "status": "success",
       "lastRun": "2026-04-08T18:00:56Z",
-      "kpi_current": "\u2014",
-      "note": "consecutiveErrors=0"
+      "status": "success",
+      "kpi_current": "Workspace: 14GB | Cost: <$150 | Uptime: 100%",
+      "note": "Health check successful. Ops consolidated.",
+      "updated_at": "2026-04-08T18:00:56Z"
     }
-  },
-  "tools-agent": {
-    "lastRun": "2026-04-08T18:00:56Z",
-    "status": "success",
-    "kpi_current": "Workspace: 14GB | Cost: <$150 | Uptime: 100%",
-    "note": "Health check successful. Ops consolidated.",
-    "updated_at": "2026-04-08T18:00:56Z"
   }
 }
