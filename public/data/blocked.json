@@ -1,7 +1,24 @@
 {
-  "updated_at": "2026-04-08T15:40:00Z",
+  "updated_at": "2026-04-08T16:51:00Z",
   "updated_by": "agatha",
   "tasks": [
+    {
+      "id": "cc-live-architecture",
+      "venture": "ops",
+      "title": "Control Center Live Architecture - 3 phases",
+      "description": "Phase 1: Extend Status Board API to serve all CC data. Phase 2: React app reads live (no more static JSON or GitHub pushes for data). Phase 3: Every agent workflow posts status after each run. Approved by Krish.",
+      "status": "waiting",
+      "blockedBy": "arlo",
+      "urgency": "high",
+      "priority": "pri-0",
+      "priority_rank": 0,
+      "agent": "Arlo",
+      "daysOld": 0,
+      "nextStep": "Arlo to build in order: Phase 1 then 2 then 3. Full spec in plan doc.",
+      "plan_doc_url": "https://docs.google.com/document/d/16IaX5tmaJS3Tby4GLjWEcznHP_-gwk1Si7rvvE7z4yw/edit",
+      "scheduled_for": null,
+      "execution_ready": false
+    },
     {
       "id": "arlo-systems-monitor",
       "venture": "ops",
