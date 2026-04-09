@@ -18,11 +18,8 @@ interface ExternalSignal {
   recommended_action: string | null
 }
 
-interface HomeIntelligence {
-  schema_version: string
+interface HomeIntelligenceData {
   generated_at: string
-  generated_by: string
-  next_run: string
   strategic_assessment: {
     headline: string
     body: string
@@ -33,7 +30,6 @@ interface HomeIntelligence {
   data_freshness: {
     vera_last_run: string
     sequences_last_updated: string
-    tasks_last_updated: string
     zara_last_signal: string
   }
 }
@@ -47,22 +43,20 @@ const statusBar: Record<string, string> = {
 }
 
 const statusDot: Record<string, string> = {
-  blocked:     'bg-red-400',
-  at_risk:     'bg-amber-400',
-  on_track:    'bg-white/20',
-  in_progress: 'bg-blue-400',
-  ahead:       'bg-emerald-400',
+  blocked:     'text-red-400',
+  at_risk:     'text-amber-400',
+  on_track:    'text-white/30',
+  in_progress: 'text-blue-400',
+  ahead:       'text-emerald-400',
 }
 
-function timeAgo(isoString: string) {
-  const diff = Date.now() - new Date(isoString).getTime()
-  const h = Math.floor(diff / 3_600_000)
+function timeAgo(iso: string) {
+  const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000)
   if (h < 1) return 'just now'
   if (h < 24) return `${h}h ago`
   return `${Math.floor(h / 24)}d ago`
 }
 
-// Truncate to N words
 function truncate(text: string, words: number) {
   const parts = text.split(/\s+/)
   if (parts.length <= words) return { text, truncated: false }
@@ -70,7 +64,7 @@ function truncate(text: string, words: number) {
 }
 
 export function HomeIntelligence() {
-  const [data, setData] = useState<HomeIntelligence | null>(null)
+  const [data, setData] = useState<HomeIntelligenceData | null>(null)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
 
@@ -85,97 +79,105 @@ export function HomeIntelligence() {
     return () => clearInterval(iv)
   }, [])
 
-  if (loading) return (
-    <div className="py-16 text-center text-[13px] text-white/30">Loading…</div>
-  )
-  if (!data) return (
-    <div className="py-16 text-center text-[13px] text-white/30">No intelligence yet</div>
-  )
+  if (loading) return <div className="py-16 text-center text-[13px] text-white/30">Loading…</div>
+  if (!data) return <div className="py-16 text-center text-[13px] text-white/30">No intelligence yet</div>
 
   const { strategic_assessment: sa, metrics, external_signals, generated_at } = data
   const bodyResult = truncate(sa.body.replace(/\n\n/g, ' '), 55)
 
   return (
-    <div className="space-y-5 max-w-2xl mx-auto md:max-w-none">
+    <div className="space-y-5">
 
-      {/* ── Assessment ── */}
+      {/* ── 1. Metrics Strip ── */}
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="flex gap-3 min-w-max md:min-w-0 md:grid md:grid-cols-5">
+          {metrics.map(m => {
+            const dot = statusDot[m.status] ?? 'text-white/20'
+            const bar = statusBar[m.status] ?? 'bg-white/20'
+            return (
+              <div key={m.id} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 w-36 md:w-auto flex-shrink-0">
+                <p className={`text-[9px] font-bold uppercase tracking-widest mb-1.5 ${dot}`}>{m.label}</p>
+                <div className="flex items-baseline gap-1 mb-1.5">
+                  <span className="text-[17px] font-bold text-white leading-none">{m.value}</span>
+                  <span className="text-[11px] text-white/30">/ {m.target}</span>
+                </div>
+                <div className="h-0.5 bg-white/[0.07] rounded-full overflow-hidden">
+                  <div className={`h-full ${bar} rounded-full`} style={{ width: `${Math.min(m.progress_pct, 100)}%` }} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── 2. Intelligence ── */}
       <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5">
-
-        {/* Label */}
-        <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3">
-          Marcus · {timeAgo(generated_at)}
+        <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest mb-3">
+          Intelligence · Marcus · {timeAgo(generated_at)}
         </p>
 
-        {/* Headline */}
         <p className="text-[15px] font-semibold text-white leading-snug mb-3">
           {sa.headline}
         </p>
 
-        {/* Body — truncated by default */}
-        <p className="text-[13px] text-white/55 leading-relaxed">
+        <p className="text-[13px] text-white/50 leading-relaxed">
           {expanded ? sa.body.replace(/\n\n/g, ' ') : bodyResult.text}
         </p>
 
         {bodyResult.truncated && (
           <button
             onClick={() => setExpanded(e => !e)}
-            className="flex items-center gap-1 mt-2 text-[12px] text-white/30 hover:text-white/60 transition-colors"
+            className="flex items-center gap-1 mt-2 text-[12px] text-white/25 hover:text-white/50 transition-colors"
           >
-            {expanded ? <><ChevronUp className="w-3 h-3" /> Less</> : <><ChevronDown className="w-3 h-3" /> Read more</>}
+            {expanded ? <><ChevronUp className="w-3 h-3" />Less</> : <><ChevronDown className="w-3 h-3" />Read more</>}
           </button>
         )}
 
-        {/* Focus */}
-        <div className="mt-4 pt-4 border-t border-white/[0.06]">
-          <p className="text-[10px] font-bold text-amber-400/70 uppercase tracking-widest mb-1.5">Focus this week</p>
-          <p className="text-[13px] text-amber-200/80 leading-relaxed">{sa.recommended_focus}</p>
+        <div className="mt-4 pt-4 border-t border-white/[0.05]">
+          <p className="text-[10px] font-bold text-amber-400/60 uppercase tracking-widest mb-1.5">Focus this week</p>
+          <p className="text-[13px] text-amber-200/70 leading-relaxed">{sa.recommended_focus}</p>
         </div>
       </div>
 
-      {/* ── Metrics ── */}
-      <div className="grid grid-cols-2 gap-3">
-        {metrics.map(m => {
-          const bar = statusBar[m.status] ?? 'bg-white/20'
-          const dot = statusDot[m.status] ?? 'bg-white/20'
-          const interp = truncate(m.interpretation, 22)
-
-          return (
-            <div key={m.id} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
-              <div className="flex items-center gap-1.5 mb-2">
-                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />
-                <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wide truncate">{m.label}</p>
+      {/* ── 3. Metrics (with interpretation) ── */}
+      <div>
+        <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest mb-3 px-1">Metrics</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {metrics.map(m => {
+            const dot = statusDot[m.status] ?? 'text-white/20'
+            const bar = statusBar[m.status] ?? 'bg-white/20'
+            const interp = truncate(m.interpretation, 25)
+            return (
+              <div key={`detail-${m.id}`} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-[9px] font-bold uppercase tracking-widest ${dot}`}>{m.label}</span>
+                </div>
+                <div className="flex items-baseline gap-1.5 mb-2">
+                  <span className="text-[20px] font-bold text-white">{m.value}</span>
+                  <span className="text-[12px] text-white/30">/ {m.target}</span>
+                </div>
+                <div className="h-0.5 bg-white/[0.07] rounded-full overflow-hidden mb-3">
+                  <div className={`h-full ${bar} rounded-full`} style={{ width: `${Math.min(m.progress_pct, 100)}%` }} />
+                </div>
+                <p className="text-[12px] text-white/40 leading-relaxed italic">{interp.text}</p>
               </div>
-
-              <div className="flex items-baseline gap-1.5 mb-2">
-                <span className="text-[18px] font-bold text-white">{m.value}</span>
-                <span className="text-[12px] text-white/30">/ {m.target}</span>
-              </div>
-
-              <div className="h-0.5 bg-white/[0.07] rounded-full overflow-hidden mb-3">
-                <div
-                  className={`h-full ${bar} rounded-full`}
-                  style={{ width: `${Math.min(m.progress_pct, 100)}%` }}
-                />
-              </div>
-
-              <p className="text-[11px] text-white/40 leading-relaxed italic">{interp.text}</p>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
 
-      {/* ── Signals ── */}
+      {/* ── 4. Signals ── */}
       {external_signals.length > 0 && (
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5">
-          <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3">External Signals · Zara</p>
-          <div className="space-y-3">
+          <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest mb-3">Signals · Zara</p>
+          <div className="space-y-4">
             {external_signals.map((sig, i) => (
               <div key={i} className="flex gap-3">
-                <div className="w-1 h-1 rounded-full bg-white/20 flex-shrink-0 mt-2" />
+                <div className="w-1 h-1 rounded-full bg-white/20 flex-shrink-0 mt-[6px]" />
                 <div>
-                  <p className="text-[13px] text-white/70 leading-snug">{sig.signal}</p>
+                  <p className="text-[13px] text-white/65 leading-snug">{sig.signal}</p>
                   {sig.recommended_action && (
-                    <p className="text-[12px] text-amber-300/60 mt-0.5 italic">{sig.recommended_action}</p>
+                    <p className="text-[12px] text-amber-300/55 mt-1 italic">{sig.recommended_action}</p>
                   )}
                 </div>
               </div>

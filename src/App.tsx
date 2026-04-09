@@ -215,7 +215,7 @@ function MobileHeader({ title, subtitle }: { title: string; subtitle?: string })
 function MobileHome({ currentTime }: { currentTime: Date }) {
   return (
     <div className="space-y-5">
-      <MobileHeader title="Mission Control" subtitle="April 2026" />
+      <MobileHeader title="Exec Summary" subtitle="April 2026" />
       <HomeIntelligence />
     </div>
   )
