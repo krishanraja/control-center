@@ -14,9 +14,10 @@ import { AllHandsPanel } from './components/AllHandsPanel'
 import { SystemsPanel } from './components/SystemsPanel'
 import { WeeklyGoals } from './components/WeeklyGoals'
 import { useHaptics } from './hooks/useHaptics'
+import { PlaybooksPanel } from './components/PlaybooksPanel'
 
 // ─── Tab IDs shared across desktop + mobile ───────────────────────────────────
-type TabId = 'home' | 'today' | 'plans' | 'org' | 'execution' | 'systems'
+type TabId = 'home' | 'today' | 'playbooks' | 'plans' | 'org' | 'execution' | 'systems'
 
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
@@ -50,6 +51,7 @@ export default function App() {
             {tab === 'home'  && <DesktopHome currentTime={currentTime} />}
             {tab === 'today' && <DesktopToday />}
             
+            {tab === 'playbooks' && <PlaybooksPanel />}
             {tab === 'plans' && <DesktopPlans />}
             {tab === 'org'   && <DesktopOrg currentTime={currentTime} />}
             {tab === 'execution' && <ExecutionTabContent />}
@@ -67,6 +69,7 @@ export default function App() {
             {tab === 'home'  && <MobileHome currentTime={currentTime} />}
             {tab === 'today' && <MobileToday />}
             
+            {tab === 'playbooks' && <PlaybooksPanel />}
             {tab === 'plans' && <MobilePlans />}
             {tab === 'org'   && <MobileOrg currentTime={currentTime} />}
             {tab === 'execution' && <ExecutionTabContent />}
