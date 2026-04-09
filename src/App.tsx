@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { AGENTS, COMPANY_VALUES } from './services/agentData'
 import { DesktopNav } from './components/DesktopNav'
 import { BottomNav } from './components/BottomNav'
-import { NorthStar } from './components/NorthStar'
-import { AgentReportCards } from './components/AgentReportCards'
+import { HomeIntelligence } from './components/HomeIntelligence'
 import { TodayTabContent } from './components/TodayTabContent'
 import { AgentGrid } from './components/AgentGrid'
 import { ExecutionTabContent } from './components/ExecutionTabContent'
@@ -103,8 +102,7 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
 function DesktopHome({ currentTime }: { currentTime: Date }) {
   return (
     <div className="space-y-8">
-      <NorthStar />
-      <AgentReportCards />
+      <HomeIntelligence />
     </div>
   )
 }
@@ -218,8 +216,7 @@ function MobileHome({ currentTime }: { currentTime: Date }) {
   return (
     <div className="space-y-5">
       <MobileHeader title="Mission Control" subtitle="April 2026" />
-      <NorthStar />
-      <AgentReportCards />
+      <HomeIntelligence />
     </div>
   )
 }
