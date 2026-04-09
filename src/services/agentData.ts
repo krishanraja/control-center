@@ -48,7 +48,7 @@ export const AGENTS: Agent[] = [
     lastRun: new Date(Date.now() - 22 * 60 * 60 * 1000),
     workSummary: "Next: audit all agent outputs from today",
     reportsTo: "agatha",
-    planDocUrl: "https://docs.google.com/document/d/15g3jcubFnBEm0c9B3jGmL-wM1DXT85zUvBi33PW96l8/edit"
+    planDocUrl: "https://docs.google.com/document/d/1PzUWv195Wz7q2zJBHwvUo8CvvHIPORea1WgDr_dVizw/edit?usp=drivesdk"
   },
   {
     id: "weekly-synthesis",
@@ -237,7 +237,7 @@ export const AGENTS: Agent[] = [
     workSummary: "Blocked — cannot commit dates in pitches without Krish's recording availability",
     blockers: ["Krish recording availability for April not yet confirmed — pitches go out open-ended until this is provided"],
     reportsTo: "agatha",
-    planDocUrl: "https://docs.google.com/document/d/1BVa-yUeGgx5e3tB1axFdLtFJussbC-smLqxJdvjCvek/edit"
+    planDocUrl: "https://docs.google.com/document/d/19ozeESQEhHupihnFtCtxkeukY6Fzj0D12ycSdlcMNdI/edit?usp=drivesdk"
   },
   {
     id: "tools-agent",
