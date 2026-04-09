@@ -1,29 +1,54 @@
 {
-  "updated_at": "2026-04-09T19:50:00Z",
+  "updated_at": "2026-04-09T21:35:00Z",
   "updated_by": "agatha",
+  "note": "Single source of truth — 5 metrics only. No other metrics should appear anywhere in the org.",
   "north_star": {
     "goal": 20000,
     "unit": "$/mo",
-    "deadline": "2026-06-05",
-    "current_mrr": 0,
-    "note": "April target: first paying Mindmaker client. Leo funnel audit complete, top 3 fixes queued. Nell POSSIBLE outreach live."
+    "deadline": "2026-06-04",
+    "current_mrr": 0
   },
-  "monthly": {
-    "label": "April 2026",
-    "revenue_mtd": 0,
-    "revenue_target": 5000,
-    "content_pieces_live": 0,
-    "content_target": 8,
-    "pipeline_value": 0,
-    "pipeline_target": 50000,
-    "guest_confirmations": 0,
-    "guest_target": 5,
-    "deals_in_proposal": 0,
-    "clean_vera_audits": 1,
-    "vera_audit_target": 4
-  },
-  "week_of": "2026-04-09",
-  "agents_compliant": 33,
-  "agents_total": 33,
-  "governance_enforcement": "live"
+  "metrics": [
+    {
+      "id": "mrr",
+      "label": "MRR",
+      "description": "All revenue combined — consulting fees, CTRL subscriptions, app revenue",
+      "value": 0,
+      "target": 20000,
+      "unit": "$",
+      "deadline": "2026-06-04"
+    },
+    {
+      "id": "pipeline",
+      "label": "Active Pipeline",
+      "description": "Consulting conversations, sprint bookings, product trials with intent — in motion right now",
+      "value": 0,
+      "target": 50000,
+      "unit": "$"
+    },
+    {
+      "id": "content_reach",
+      "label": "Content Reach",
+      "description": "Weekly impressions across LinkedIn, Signal & Noise episode downloads, Techonomic subscribers",
+      "value": 0,
+      "target": 10000,
+      "unit": "impressions/wk"
+    },
+    {
+      "id": "product_traction",
+      "label": "Product Traction",
+      "description": "Total active users across all apps — CTRL, Gutted, Merciless, OnAlert, Fractionl",
+      "value": 0,
+      "target": 100,
+      "unit": "users"
+    },
+    {
+      "id": "funnel_conversion",
+      "label": "Funnel Health",
+      "description": "Funnel fixes shipped out of 13 identified by Leo. Evolves to outreach-to-conversation rate once funnel is working.",
+      "value": 0,
+      "target": 13,
+      "unit": "fixes"
+    }
+  ]
 }

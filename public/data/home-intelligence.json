@@ -1,87 +1,78 @@
 {
-  "schema_version": "1.0",
-  "generated_at": "2026-04-09T21:06:00Z",
-  "generated_by": "marcus",
-  "next_run": "2026-04-11T21:06:00Z",
-
+  "schema_version": "1.1",
+  "generated_at": "2026-04-09T21:35:00Z",
+  "generated_by": "agatha",
+  "next_run": "2026-04-11T07:00:00Z",
   "strategic_assessment": {
     "headline": "The funnel has 13 breaks and content hasn't started — more outreach volume right now is pouring water into a leaking bucket.",
-    "body": "The org is running at split-personality mode. Nell is drafting POSSIBLE conference emails, Nova has 56 podcast shows in her pipeline, Zara is surfacing high-priority signals daily — the outbound engine looks busy. But Leo found 13 breaks between first touchpoint and closed deal: sprint pages with no prices, Google indexing dead products at wrong prices, cold email links that land on a homepage chatbot instead of a product. You are actively driving traffic into a broken funnel. The single highest-leverage move this week is not more outreach — it is approving Leo's top 3 fixes so Arlo can ship them in one afternoon.\n\nContent is the second gap that's making everything harder. Cleo's two-week plan is built, structured, and ready to execute — but zero pieces are live. The POSSIBLE conference is 18 days away and Nell's outreach is landing cold because there is no credibility trail behind it. Every LinkedIn post that goes up this week makes the next podcast pitch, the next conference DM, and the next warm email land materially harder. Content is not a nice-to-have — it is the conversion multiplier for everything else currently in flight. Running outreach before content is backwards, and it costs you on every touch.\n\nThe org itself ran at roughly 60% capacity in Phase 2 week 1. Four agents — Cleo, Maya, Marcus, Scout — did not fire at all. This is a cron activation problem, not a capability problem, and it is solvable in under an hour. The agents that did run (Zara, Leo, Nova, Priya, Felix) produced high-quality, pass-rated work. The infrastructure is working where it is switched on. The priority right now is flipping the switches that are still off — starting with content and funnel, because those are the two outputs that unblock everything else.",
-    "recommended_focus": "This week: approve Leo's top 3 funnel fixes (15 min read, Arlo ships same afternoon), check the Bob Pittman Gmail draft and greenlight Nell's batch, then approve Cleo's content plan so the first LinkedIn post goes live Thursday. Those three decisions, all under 40 minutes total, unlock conversion, conference outreach, and the content flywheel in one move."
+    "body": "Three things are true this week that pull in different directions. Your content flywheel hasn't started but your outreach is live. That's backwards, because social proof before POSSIBLE would have made every Nell email land harder. The funnel has 13 breaks and zero paying clients, which means more outreach volume isn't the lever right now, fixing conversion is.\n\nLeo identified the problem: no prices on Sprint pages, dead schema.org markup indexing wrong products at wrong prices, CTAs going nowhere. These aren't edge cases — they're the entire funnel. Nobody can buy even if they want to.\n\nThe correct sequencing: fix the three funnel breaks this week, then open the floodgates. Three decisions from Krish unlock everything: approve Leo's top 3 fixes (15 min), greenlight the Bob Pittman draft (5 min), approve Cleo's content plan (10 min). Thirty minutes of decisions unblocks the entire org.",
+    "recommended_focus": "Approve Leo's top 3 funnel fixes, greenlight the Bob Pittman draft, approve Cleo's 2-week content plan. Three decisions, 30 minutes, unblocks conversion, outreach, and content simultaneously."
   },
-
   "metrics": [
     {
-      "id": "revenue",
-      "label": "Revenue MTD",
+      "id": "mrr",
+      "label": "MRR",
       "value": "$0",
-      "target": "$20,000",
+      "target": "$20K",
       "progress_pct": 0,
-      "interpretation": "Zero revenue on Day 9 is not a demand problem — it is a conversion problem. Leo's audit found 13 funnel breaks, and the top two live on your highest-traffic pages: Sprint pages with no prices send self-qualifying buyers to a competitor.",
+      "interpretation": "Not a demand problem. Nobody can convert yet — Stripe is off, CTAs broken, Sprint pages show no price. Fix the funnel first.",
       "status": "blocked"
     },
     {
-      "id": "funnel_breaks",
-      "label": "Funnel Fixes Shipped",
-      "value": "0",
-      "target": "13",
+      "id": "pipeline",
+      "label": "Active Pipeline",
+      "value": "$0",
+      "target": "$50K",
       "progress_pct": 0,
-      "interpretation": "Leo identified all 13 breaks and ranked the top 3 fixes that Arlo can ship in one afternoon — they are waiting on a single 15-minute Krish review. Every day they sit unactioned is another day of active trust damage in Google search results.",
+      "interpretation": "No active pipeline. Skyview closed. Nell has 15 Tier 1 drafts ready — pipeline starts moving the moment outreach goes live.",
       "status": "blocked"
     },
     {
-      "id": "content",
-      "label": "Content Pieces Live",
+      "id": "content_reach",
+      "label": "Content Reach",
       "value": "0",
-      "target": "8",
+      "target": "10K/wk",
       "progress_pct": 0,
-      "interpretation": "Cleo's two-week plan is fully built and structurally approved, but zero pieces are live — the flywheel is designed but not spinning, and POSSIBLE Conference is 18 days away making every day without content a missed credibility rep.",
+      "interpretation": "Flywheel designed, not spinning. Cleo's 2-week plan approved in principle, blocked on final sign-off. POSSIBLE is 18 days away.",
       "status": "at_risk"
     },
     {
-      "id": "possible_outreach",
-      "label": "POSSIBLE Guest Confirmations",
+      "id": "product_traction",
+      "label": "Product Traction",
       "value": "0",
-      "target": "5",
+      "target": "100 users",
       "progress_pct": 0,
-      "interpretation": "Bob Pittman's test draft is sitting in Gmail drafts right now — one 5-minute read either unlocks the full Tier 1 batch or gives Nell exactly what she needs to revise. The conference window closes April 27.",
+      "interpretation": "Maya has a 7-day beta sprint plan for all 5 apps. 20 conversations per app by Apr 16 is the goal. Web-only, validation-first.",
       "status": "in_progress"
     },
     {
-      "id": "agent_coverage",
-      "label": "Agent Coverage",
-      "value": "5 / 10",
-      "target": "10",
-      "progress_pct": 50,
-      "interpretation": "Half the roster ran successfully in week 1; Cleo, Maya, Marcus, Scout, and the efficiency agent never fired — 50% capacity means the org is producing half its designed intelligence and execution output, not because agents fail, but because their crons were never activated.",
-      "status": "at_risk"
+      "id": "funnel_conversion",
+      "label": "Funnel Health",
+      "value": "0/13",
+      "target": "13 fixes",
+      "progress_pct": 0,
+      "interpretation": "Leo found 13 breaks across 6 pages. Top 3 fixes queued for Arlo — waiting 15 minutes of Krish review to ship.",
+      "status": "blocked"
     }
   ],
-
   "external_signals": [
     {
-      "signal": "Enterprise AI consolidation window is live now: Redpoint survey of 141 CIOs (SaaStr, April 2026) shows companies that ran 5 pilots in 2025 are making irreversible platform bets this quarter — customer service, finance ops, and PM are the top displacement categories.",
-      "source": "Zara (BD Agent) — April 9, 2026",
-      "relevance": "This is Mindmaker's warmest buyer window in its history — mid-market CEOs and CDOs are actively searching for a strategy partner, not another vendor demo, and the consolidation decisions being made right now will lock in relationships for 18–24 months.",
-      "recommended_action": "Use the consolidation framing as Krish's LinkedIn angle this week (feed to Cleo as a hot topic override) and incorporate into every Nova pitch deck and speaking abstract currently in flight."
+      "signal": "Enterprise AI consolidation: 141 CIOs actively making platform bets this quarter — window is live now",
+      "source": "Zara",
+      "relevance": "Mindmaker's War Room and Strategy Day are exactly what CIOs need before committing to a platform. This is the pitch moment.",
+      "recommended_action": "Nova should use this in podcast pitch outreach. Felix should reference it in enterprise BD emails."
     },
     {
-      "signal": "The American Prospect removed all programmatic advertising from their website effective April 6, calling themselves 'an accomplice in a broken system' — the first major publisher to announce a full programmatic exit.",
-      "source": "Zara (BD Agent) — April 9, 2026",
-      "relevance": "Publisher frustration with programmatic is reaching editorial opinion level, which creates a live, credibility-rich moment for AdFixus to position server-side first-party identity as the infrastructure that makes the exit viable rather than suicidal.",
-      "recommended_action": "Time-sensitive content piece: 'Why publishers are exiting programmatic and what comes next for ad monetisation' — route to Cleo as a reactive content brief, target AdExchanger and trade press for placement."
+      "signal": "The American Prospect exits all programmatic advertising — joins a growing list of publishers pulling out",
+      "source": "Zara",
+      "relevance": "Time-sensitive AdFixus content moment. Publisher exodus from programmatic is accelerating.",
+      "recommended_action": "Cleo should queue a Techonomic piece on this within the next 7 days while the news cycle is active."
     }
   ],
-
   "data_freshness": {
-    "vera_last_run": "2026-04-07T18:51:00Z",
-    "sequences_last_updated": "2026-04-09T19:16:00Z",
-    "tasks_last_updated": "2026-04-09T20:55:00Z",
-    "priorities_last_updated": "2026-04-09T19:45:00Z",
-    "leo_audit_last_updated": "2026-04-09T00:00:00Z",
-    "maya_plan_last_updated": "2026-04-09T00:00:00Z",
-    "cleo_plan_last_updated": "2026-04-09T00:00:00Z",
-    "zara_last_signal": "2026-04-09T14:00:00Z",
-    "note": "No Zara signals JSON file found in warm/zara-signals/ — signals sourced from bd-agent-2026-04-09.json (same agent, same data)"
+    "vera_last_run": "2026-04-09T02:00:00Z",
+    "sequences_last_updated": "2026-04-09T19:45:00Z",
+    "tasks_last_updated": "2026-04-09T21:35:00Z",
+    "zara_last_signal": "2026-04-09T10:00:00Z"
   }
 }
