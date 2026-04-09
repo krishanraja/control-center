@@ -1,0 +1,453 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-04-09T18:30:00Z",
+  "description": "Action sequences extracted from agent plan docs. Each step is owner-tagged. Krish steps include an owner_note (what exactly to do) and estimated_mins. Agent steps auto-advance as work is completed. Vera flags any Krish-blocking step at 2AM EST if all prior steps are done.",
+  "sequences": [
+
+    {
+      "id": "leo-revenue-engine",
+      "agent": "Leo",
+      "title": "Revenue Engine: 5 Qualified Conversations in April",
+      "status": "blocked_on_krish",
+      "priority": 1,
+      "source_doc": "https://docs.google.com/document/d/19neG3n9bWEqq-D6_zZD_j5kNxNUW8_DSfajuV1rgh4E/edit",
+      "steps": [
+        {
+          "id": "leo-1",
+          "order": 1,
+          "description": "Confirm pricing: Decision Clarity Day $2.5K, 4-Week Sprint $15K flat, 90-Day Sprint $42K, Extended Sprint $8.5K/month",
+          "owner": "krish",
+          "owner_note": "Leo's recommendation. Yes/no on each price point. Takes 5 mins. This unblocks everything else in this sequence.",
+          "estimated_mins": 5,
+          "status": "pending",
+          "blocked_by": null
+        },
+        {
+          "id": "leo-2",
+          "order": 2,
+          "description": "Unpause Stripe on themindmaker.ai and publish prices on the website",
+          "owner": "krish",
+          "owner_note": "Either update the site yourself via Lovable (10 mins) or confirm for coding agent to do it. Stripe unpause requires login to Stripe dashboard.",
+          "estimated_mins": 15,
+          "status": "pending",
+          "blocked_by": "leo-1"
+        },
+        {
+          "id": "leo-3",
+          "order": 3,
+          "description": "Add booking CTA to CTRL diagnostic completion screen linking to Calendly",
+          "owner": "agent:arlo",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "leo-2"
+        },
+        {
+          "id": "leo-4",
+          "order": 4,
+          "description": "Rewrite Mindmaker Partners Instantly campaign: shift VC pitch from individual CTRL to Portfolio Assessment ($5-25K across portfolio companies)",
+          "owner": "agent:leo",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "leo-1"
+        },
+        {
+          "id": "leo-5",
+          "order": 5,
+          "description": "Review and approve revised VC Instantly campaign copy before activation",
+          "owner": "krish",
+          "owner_note": "Leo will draft the new sequence. You review copy and hit approve. No sending until you confirm.",
+          "estimated_mins": 10,
+          "status": "pending",
+          "blocked_by": "leo-4"
+        },
+        {
+          "id": "leo-6",
+          "order": 6,
+          "description": "Draft 3 Pavilion community posts for Krish to post personally",
+          "owner": "agent:leo",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "leo-1"
+        },
+        {
+          "id": "leo-7",
+          "order": 7,
+          "description": "Review and post approved Pavilion content (Leo drafts, you post)",
+          "owner": "krish",
+          "owner_note": "3 posts ready for you to copy-paste and post in Pavilion Slack. Takes 10 mins. Leo cannot post on your behalf.",
+          "estimated_mins": 10,
+          "status": "pending",
+          "blocked_by": "leo-6"
+        },
+        {
+          "id": "leo-8",
+          "order": 8,
+          "description": "Draft referral asks for Krish to send to past sprint clients personally",
+          "owner": "agent:leo",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "leo-1"
+        },
+        {
+          "id": "leo-9",
+          "order": 9,
+          "description": "Send referral asks to past clients (Leo drafts, Krish sends from personal email)",
+          "owner": "krish",
+          "owner_note": "Leo will prep personalised drafts for 5-10 past clients. You review and send from your own email. Cannot be automated — must come from you personally.",
+          "estimated_mins": 20,
+          "status": "pending",
+          "blocked_by": "leo-8"
+        }
+      ]
+    },
+
+    {
+      "id": "nova-first-appearances",
+      "agent": "Nova",
+      "title": "First 3 Podcast Bookings + April CFPs",
+      "status": "blocked_on_krish",
+      "priority": 1,
+      "source_doc": "https://docs.google.com/spreadsheets/d/1QNw76xfjNAq6J9mtoDVijwIWlO84y0xLx7MJzwSapxw/edit",
+      "steps": [
+        {
+          "id": "nova-1",
+          "order": 1,
+          "description": "Review 5 speaker card amendments and send back final PDF",
+          "owner": "krish",
+          "owner_note": "5 suggested changes in Agatha's review: front-load credentials in bio, fix Topic 3 em dashes, source the 63% stat, add S&N to bio, confirm hyperlinks. Update PDF and send to Agatha.",
+          "estimated_mins": 20,
+          "status": "pending",
+          "blocked_by": null
+        },
+        {
+          "id": "nova-2",
+          "order": 2,
+          "description": "Apply to AdExchanger Programmatic AI CFP — open now, deadline approaching",
+          "owner": "krish",
+          "owner_note": "CFP is live now at adexchanger.com. Best fit: Topic 4 (The $40 Billion Attribution Lie). Fill in the form yourself — Nova cannot submit on your behalf. Estimated 30 mins.",
+          "estimated_mins": 30,
+          "status": "pending",
+          "blocked_by": "nova-1"
+        },
+        {
+          "id": "nova-3",
+          "order": 3,
+          "description": "Send first batch of 10 podcast pitches using approved speaker card and bio",
+          "owner": "agent:nova",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "nova-1"
+        },
+        {
+          "id": "nova-4",
+          "order": 4,
+          "description": "Submit Possible Conference speaking inquiry (Krish already attending April 27-29)",
+          "owner": "agent:nova",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "nova-1"
+        },
+        {
+          "id": "nova-5",
+          "order": 5,
+          "description": "Log pitch activity in sheet and draft follow-up sequences for non-responses",
+          "owner": "agent:nova",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "nova-3"
+        },
+        {
+          "id": "nova-6",
+          "order": 6,
+          "description": "Review and send warm follow-ups to any pitch replies",
+          "owner": "krish",
+          "owner_note": "Nova will draft follow-ups for any responses. You review and send — warm replies need to come from you, not an agent. Nova flags these to you in Telegram.",
+          "estimated_mins": 15,
+          "status": "pending",
+          "blocked_by": "nova-5"
+        }
+      ]
+    },
+
+    {
+      "id": "cleo-content-execution",
+      "agent": "Cleo",
+      "title": "Ship 2-Week Content Plan (Apr 10-23)",
+      "status": "blocked_on_krish",
+      "priority": 1,
+      "source_doc": "https://docs.google.com/document/d/1D0RXeF-17IcxuZfPzMVlNu9FMWmxtTScnSntYM_qACE/edit",
+      "steps": [
+        {
+          "id": "cleo-1",
+          "order": 1,
+          "description": "Review and approve the two-week content plan",
+          "owner": "krish",
+          "owner_note": "The plan is in the Plans: 9 Apr 2026 folder in Drive. Cleo needs your green light before writing anything. Estimated 15 mins to read.",
+          "estimated_mins": 15,
+          "status": "pending",
+          "blocked_by": null
+        },
+        {
+          "id": "cleo-2",
+          "order": 2,
+          "description": "Write LinkedIn Post 1: The org chart / Control Centre screen grab — the post most likely to generate inbound DMs",
+          "owner": "agent:cleo",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "cleo-1"
+        },
+        {
+          "id": "cleo-3",
+          "order": 3,
+          "description": "Review, approve, and post LinkedIn Post 1",
+          "owner": "krish",
+          "owner_note": "Cleo drafts, you post. LinkedIn posting cannot be automated — must come from your personal account. Screen grab of the org-os-dashboard is the visual hook.",
+          "estimated_mins": 10,
+          "status": "pending",
+          "blocked_by": "cleo-2"
+        },
+        {
+          "id": "cleo-4",
+          "order": 4,
+          "description": "Write LinkedIn Post 2: Outsourcing AI vision to IT/RevOps is the single biggest mistake senior leaders make",
+          "owner": "agent:cleo",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "cleo-1"
+        },
+        {
+          "id": "cleo-5",
+          "order": 5,
+          "description": "Review, approve, and post LinkedIn Post 2",
+          "owner": "krish",
+          "owner_note": "Cleo drafts, you post. This is the most technically sharp post — the observation about future agentic SaaS being designed for AI agents, not humans.",
+          "estimated_mins": 10,
+          "status": "pending",
+          "blocked_by": "cleo-4"
+        },
+        {
+          "id": "cleo-6",
+          "order": 6,
+          "description": "Prepare Techonomic Edition 1 brief: structure, key argument, section prompts for Krish to fill in",
+          "owner": "agent:cleo",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "cleo-1"
+        },
+        {
+          "id": "cleo-7",
+          "order": 7,
+          "description": "Write Techonomic Edition 1 using Cleo's brief (human-only writing — no AI prose in final piece)",
+          "owner": "krish",
+          "owner_note": "Cleo gives you the skeleton: argument, section headers, 3-4 prompts per section. You write the actual words. The premium human POV is the product. Target: 600-800 words, 45 mins.",
+          "estimated_mins": 45,
+          "status": "pending",
+          "blocked_by": "cleo-6"
+        },
+        {
+          "id": "cleo-8",
+          "order": 8,
+          "description": "Read Maven documents in Drive, draft Mindmaker Live Episode 1 (the 11-agent org story)",
+          "owner": "agent:cleo",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "cleo-1"
+        },
+        {
+          "id": "cleo-9",
+          "order": 9,
+          "description": "Review and approve Mindmaker Live Episode 1, then publish to live.themindmaker.ai",
+          "owner": "krish",
+          "owner_note": "Cleo drafts the episode. You review and hit publish. The Mindmaker Live CMS needs to accept the post — confirm the publishing flow when you review.",
+          "estimated_mins": 20,
+          "status": "pending",
+          "blocked_by": "cleo-8"
+        }
+      ]
+    },
+
+    {
+      "id": "nell-possible-outreach",
+      "agent": "Nell",
+      "title": "POSSIBLE Conference: Book 5 S&N Guests",
+      "status": "in_progress",
+      "priority": 2,
+      "source_doc": "https://docs.google.com/spreadsheets/d/1DyAy1H3fnoI2_58nS3u2yIbbswJq1BddWmBUKyW8Yf8/edit",
+      "steps": [
+        {
+          "id": "nell-1",
+          "order": 1,
+          "description": "Complete missing email, subject, and draft email for 47 rows in Speakers tab",
+          "owner": "agent:nell",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "in_progress",
+          "blocked_by": null
+        },
+        {
+          "id": "nell-2",
+          "order": 2,
+          "description": "Review Speakers tab and confirm Tier 1 priority outreach order for POSSIBLE attendees",
+          "owner": "krish",
+          "owner_note": "Nell will flag the top 10 Tier 1 targets confirmed attending POSSIBLE. You confirm the order and green-light outreach. Takes 10 mins to scan the list.",
+          "estimated_mins": 10,
+          "status": "pending",
+          "blocked_by": "nell-1"
+        },
+        {
+          "id": "nell-3",
+          "order": 3,
+          "description": "Set final outreach sequence order and confirm email drafts are ready for first 5",
+          "owner": "agent:nell",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "nell-2"
+        },
+        {
+          "id": "nell-4",
+          "order": 4,
+          "description": "Send first 5 S&N outreach emails from Nell's approved drafts",
+          "owner": "krish",
+          "owner_note": "Nell prepares the drafts; you send from your Gmail. Nell cannot send email — must come from you. Nell will flag exactly which 5 to send and in what order. Takes 15 mins.",
+          "estimated_mins": 15,
+          "status": "pending",
+          "blocked_by": "nell-3"
+        },
+        {
+          "id": "nell-5",
+          "order": 5,
+          "description": "Follow up on 6 warm open threads: Alan Chapell (confirmed), Brooke Stegeman, Shailley Singh, John Eckhardt, Abraham Snyder, Alanna Laforet",
+          "owner": "krish",
+          "owner_note": "Nell has drafted follow-ups for all 6 warm threads in the S&N Open Threads tab. Alan is already confirmed — needs scheduling. The other 5 need a specific thought-starter. Copy from sheet and send. Takes 20 mins.",
+          "estimated_mins": 20,
+          "status": "pending",
+          "blocked_by": null
+        },
+        {
+          "id": "nell-6",
+          "order": 6,
+          "description": "Monitor responses, log outcomes in sheet, prepare next 10 email drafts",
+          "owner": "agent:nell",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "nell-4"
+        },
+        {
+          "id": "nell-7",
+          "order": 7,
+          "description": "Send next 10 outreach emails (batch 2)",
+          "owner": "krish",
+          "owner_note": "Second batch ready when Nell flags it. Same process: Nell drafts, you send. Nell will not flag this until she has monitored initial responses.",
+          "estimated_mins": 20,
+          "status": "pending",
+          "blocked_by": "nell-6"
+        }
+      ]
+    },
+
+    {
+      "id": "maya-acquisition-launch",
+      "agent": "Maya",
+      "title": "Autonomous Acquisition Engine: 7 Products in 30 Days",
+      "status": "blocked_on_krish",
+      "priority": 2,
+      "source_doc": "https://docs.google.com/document/d/10LMS_7rdw8K6RDfxdRa4a4P1jykmGHqA69_YksDOeRI/edit",
+      "steps": [
+        {
+          "id": "maya-1",
+          "order": 1,
+          "description": "Make 3 decisions: (a) confirm gutted. domain, (b) approve $58/mo tooling spend (Rewardful $29 + Ahrefs $29), (c) grant Pro access to 10 Merciless micro-influencer accounts",
+          "owner": "krish",
+          "owner_note": "These are the only 3 things Maya needs from you. (a) What is the live domain for gutted? (b) Approve $58/mo in new tooling. (c) Confirm you're OK granting free Pro to 10 astrology influencers for affiliate seeding. Takes 5 mins.",
+          "estimated_mins": 5,
+          "status": "pending",
+          "blocked_by": null
+        },
+        {
+          "id": "maya-2",
+          "order": 2,
+          "description": "Set up N8N Reddit monitoring for OnAlert: watch r/GlobalEntry for keyword triggers, auto-draft response for Krish to approve before posting",
+          "owner": "agent:arlo",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "maya-1"
+        },
+        {
+          "id": "maya-3",
+          "order": 3,
+          "description": "Prepare full Merciless Product Hunt submission for April 22 launch (Taurus season timing)",
+          "owner": "agent:maya",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "maya-1"
+        },
+        {
+          "id": "maya-4",
+          "order": 4,
+          "description": "Set up Oracle voice response automation for Merciless Product Hunt comments via PH API",
+          "owner": "agent:arlo",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "maya-3"
+        },
+        {
+          "id": "maya-5",
+          "order": 5,
+          "description": "Identify and DM first 10 astrology micro-influencers for Merciless affiliate seeding (Apify identifies, Maya drafts DMs, Arlo automates send)",
+          "owner": "agent:maya",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "maya-1"
+        },
+        {
+          "id": "maya-6",
+          "order": 6,
+          "description": "Set up gutted. TikTok brand account and Buffer queue with first 14 videos (document upload demo format)",
+          "owner": "agent:maya",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "maya-1"
+        },
+        {
+          "id": "maya-7",
+          "order": 7,
+          "description": "Submit Fractionl Pulse to MCP tool registries (Anthropic tool registry, LangChain Hub)",
+          "owner": "agent:maya",
+          "owner_note": null,
+          "estimated_mins": null,
+          "status": "pending",
+          "blocked_by": "maya-1"
+        },
+        {
+          "id": "maya-8",
+          "order": 8,
+          "description": "Review Maya's first week of activity: influencer responses, PH prep, Reddit monitoring",
+          "owner": "krish",
+          "owner_note": "Maya sends a weekly digest. You review and either approve continuation or redirect. Takes 10 mins.",
+          "estimated_mins": 10,
+          "status": "pending",
+          "blocked_by": "maya-5"
+        }
+      ]
+    }
+
+  ]
+}
