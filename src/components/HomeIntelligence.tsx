@@ -139,34 +139,7 @@ export function HomeIntelligence() {
         </div>
       </div>
 
-      {/* ── 3. Metrics (with interpretation) ── */}
-      <div>
-        <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest mb-3 px-1">Metrics</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {metrics.map(m => {
-            const dot = statusDot[m.status] ?? 'text-white/20'
-            const bar = statusBar[m.status] ?? 'bg-white/20'
-            const interp = truncate(m.interpretation, 25)
-            return (
-              <div key={`detail-${m.id}`} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-[9px] font-bold uppercase tracking-widest ${dot}`}>{m.label}</span>
-                </div>
-                <div className="flex items-baseline gap-1.5 mb-2">
-                  <span className="text-[20px] font-bold text-white">{m.value}</span>
-                  <span className="text-[12px] text-white/30">/ {m.target}</span>
-                </div>
-                <div className="h-0.5 bg-white/[0.07] rounded-full overflow-hidden mb-3">
-                  <div className={`h-full ${bar} rounded-full`} style={{ width: `${Math.min(m.progress_pct, 100)}%` }} />
-                </div>
-                <p className="text-[12px] text-white/40 leading-relaxed italic">{interp.text}</p>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* ── 4. Signals ── */}
+      {/* ── 3. Signals ── */}
       {external_signals.length > 0 && (
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5">
           <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest mb-3">Signals · Zara</p>
