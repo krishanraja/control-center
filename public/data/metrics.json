@@ -1,12 +1,12 @@
 {
-  "updated_at": "2026-04-09T02:01:00Z",
-  "updated_by": "radar",
+  "updated_at": "2026-04-09T19:50:00Z",
+  "updated_by": "agatha",
   "north_star": {
     "goal": 20000,
     "unit": "$/mo",
     "deadline": "2026-06-05",
     "current_mrr": 0,
-    "note": "April target: $5K+ to establish baseline. Skyview close this week is the primary lever."
+    "note": "April target: first paying Mindmaker client. Leo funnel audit complete, top 3 fixes queued. Nell POSSIBLE outreach live."
   },
   "monthly": {
     "label": "April 2026",
@@ -14,21 +14,15 @@
     "revenue_target": 5000,
     "content_pieces_live": 0,
     "content_target": 8,
-    "pipeline_value": 240000,
-    "pipeline_target": 150000,
+    "pipeline_value": 0,
+    "pipeline_target": 50000,
     "guest_confirmations": 0,
-    "guest_target": 2,
-    "deals_in_proposal": 1,
+    "guest_target": 5,
+    "deals_in_proposal": 0,
     "clean_vera_audits": 1,
     "vera_audit_target": 4
   },
-  "skyview": {
-    "status": "In proposal",
-    "value": 240000,
-    "next_step": "Andrew + Sarah meeting this week — NOT YET CONFIRMED as of Apr 9 2AM. Apr 14 in-person at risk.",
-    "owner": "Felix"
-  },
-  "week_of": "2026-04-07",
+  "week_of": "2026-04-09",
   "agents_compliant": 33,
   "agents_total": 33,
   "governance_enforcement": "live"
