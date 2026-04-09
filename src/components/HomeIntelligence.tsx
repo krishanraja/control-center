@@ -8,7 +8,7 @@ interface Metric {
   target: string
   progress_pct: number
   interpretation: string
-  status: 'blocked' | 'on_track' | 'at_risk' | 'ahead'
+  status: string
 }
 
 interface ExternalSignal {
@@ -38,15 +38,17 @@ interface HomeIntelligence {
   }
 }
 
-const statusConfig = {
-  blocked:   { icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
-  at_risk:   { icon: TrendingDown, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-  on_track:  { icon: Minus, color: 'text-white/40', bg: 'bg-white/[0.03]', border: 'border-white/[0.07]' },
-  ahead:     { icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+const statusConfig: Record<string, { icon: React.ElementType; color: string; bg: string; border: string }> = {
+  blocked:     { icon: AlertCircle,  color: 'text-red-400',     bg: 'bg-red-500/10',     border: 'border-red-500/20' },
+  at_risk:     { icon: TrendingDown, color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20' },
+  on_track:    { icon: Minus,        color: 'text-white/40',    bg: 'bg-white/[0.03]',   border: 'border-white/[0.07]' },
+  ahead:       { icon: TrendingUp,   color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  in_progress: { icon: Minus,        color: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20' },
 }
+const defaultStatus = { icon: Minus, color: 'text-white/40', bg: 'bg-white/[0.03]', border: 'border-white/[0.07]' }
 
 function MetricCard({ metric }: { metric: Metric }) {
-  const cfg = statusConfig[metric.status]
+  const cfg = statusConfig[metric.status] ?? defaultStatus
   const Icon = cfg.icon
 
   return (
@@ -64,7 +66,7 @@ function MetricCard({ metric }: { metric: Metric }) {
       {/* Progress bar */}
       <div className="h-1 bg-white/[0.07] rounded-full overflow-hidden mb-3">
         <div
-          className={`h-full ${metric.status === 'ahead' ? 'bg-emerald-400' : metric.status === 'on_track' ? 'bg-violet-400' : metric.status === 'at_risk' ? 'bg-amber-400' : 'bg-red-400'} rounded-full transition-all duration-500`}
+          className={`h-full ${metric.status === 'ahead' ? 'bg-emerald-400' : metric.status === 'on_track' || metric.status === 'in_progress' ? 'bg-violet-400' : metric.status === 'at_risk' ? 'bg-amber-400' : 'bg-red-400'} rounded-full transition-all duration-500`}
           style={{ width: `${Math.min(metric.progress_pct, 100)}%` }}
         />
       </div>
