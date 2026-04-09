@@ -1,13 +1,52 @@
 {
-  "updated_at": "2026-04-07T00:00:00Z",
-  "week_of": "Apr 7, 2026",
-  "north_star": "First paying client signed. Content flywheel live. Team running independently.",
-  "team_focus": "Close Skyview. Get content flywheel started. Nell builds first guest pipeline.",
+  "week_of": "Apr 9, 2026",
+  "north_star": "First paying Mindmaker client + 20 beta users per app",
+  "team_focus": "Full funnel live. Nell emails Tier 1s. 20 beta users per app by Apr 16.",
   "goals": [
-    { "id": "g1", "title": "Close Skyview engagement", "target": "$120K proposal signed", "current": "In proposal stage", "owner": "Felix", "progress": 40, "notes": "" },
-    { "id": "g2", "title": "Launch content flywheel", "target": "4 briefs + 2 drafts published", "current": "Week 1 sweep pending", "owner": "Cleo", "progress": 10, "notes": "" },
-    { "id": "g3", "title": "Revenue tracking live", "target": "Leo reporting weekly by Apr 14", "current": "Blocked on Stripe key", "owner": "Leo", "progress": 0, "notes": "" },
-    { "id": "g4", "title": "Podcast guest pipeline", "target": "6 pitches sent by Apr 14", "current": "Blocked on recording availability", "owner": "Nell", "progress": 0, "notes": "" },
-    { "id": "g5", "title": "Agent OS stable", "target": "0 missed cron runs this week", "current": "0 missed so far", "owner": "Vera", "progress": 90, "notes": "" }
+    {
+      "id": "g1",
+      "title": "Mindmaker funnel live",
+      "target": "All 5 product pages priced, CTAs wired, Stripe active",
+      "current": "13 breaks identified — top 3 fixes queued for Arlo",
+      "owner": "Leo + Arlo",
+      "progress": 20,
+      "notes": "Leo funnel audit done. Krish approves fixes, Arlo implements."
+    },
+    {
+      "id": "g2",
+      "title": "POSSIBLE guest outreach",
+      "target": "All Tier 1 emails sent, 5 positive responses",
+      "current": "Bob Pittman draft in Gmail — Krish reviewing voice",
+      "owner": "Nell",
+      "progress": 15,
+      "notes": "Test draft ready. Approve voice, then batch send."
+    },
+    {
+      "id": "g3",
+      "title": "20 beta users per app",
+      "target": "20 real users testing Gutted, Merciless, OnAlert, Fractionl by Apr 16",
+      "current": "Plan live — blocked on Krish maya-1 approvals",
+      "owner": "Maya",
+      "progress": 5,
+      "notes": "Web apps only. SEO → Reddit → Betalist → PH → influencers."
+    },
+    {
+      "id": "g4",
+      "title": "Content flywheel started",
+      "target": "2 LinkedIn posts live, Techonomic Ed 1 published",
+      "current": "Plan approved — Cleo drafting Post 1",
+      "owner": "Cleo",
+      "progress": 10,
+      "notes": "Cleo needs plan approval from Krish to start drafting."
+    },
+    {
+      "id": "g5",
+      "title": "Nova first podcast booking",
+      "target": "1 confirmed S&N guest, AdExchanger CFP submitted",
+      "current": "Blocked on speaker card final PDF from Krish",
+      "owner": "Nova",
+      "progress": 20,
+      "notes": "Bio doc created. Speaker card amendments needed. CFP deadline approaching."
+    }
   ]
 }
