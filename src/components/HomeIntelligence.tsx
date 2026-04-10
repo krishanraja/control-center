@@ -13,9 +13,11 @@ interface Metric {
 
 interface ExternalSignal {
   signal: string
+  category?: string
   source: string
   relevance: string
   recommended_action: string | null
+  window?: string
 }
 
 interface HomeIntelligenceData {
@@ -148,7 +150,12 @@ export function HomeIntelligence() {
               <div key={i} className="flex gap-3">
                 <div className="w-1 h-1 rounded-full bg-white/20 flex-shrink-0 mt-[6px]" />
                 <div>
-                  <p className="text-[13px] text-white/65 leading-snug">{sig.signal}</p>
+                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                    <p className="text-[13px] text-white/65 leading-snug">{sig.signal}</p>
+                    {sig.window && sig.window !== 'ongoing' && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400/70 bg-amber-400/10 px-1.5 py-0.5 rounded">{sig.window}</span>
+                    )}
+                  </div>
                   {sig.recommended_action && (
                     <p className="text-[12px] text-amber-300/55 mt-1 italic">{sig.recommended_action}</p>
                   )}

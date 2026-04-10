@@ -58,15 +58,19 @@
   "external_signals": [
     {
       "signal": "Enterprise AI consolidation: 141 CIOs actively making platform bets this quarter — window is live now",
+      "category": "buyer_confusion",
       "source": "Zara",
-      "relevance": "Mindmaker's War Room and Strategy Day are exactly what CIOs need before committing to a platform. This is the pitch moment.",
-      "recommended_action": "Nova should use this in podcast pitch outreach. Felix should reference it in enterprise BD emails."
+      "relevance": "CIOs making platform bets without a clear AI strategy are exactly who Mindmaker's War Room and Strategy Day serve.",
+      "recommended_action": "Felix should reference this in enterprise BD emails. Nova should use it in podcast pitch outreach.",
+      "window": "ongoing"
     },
     {
       "signal": "The American Prospect exits all programmatic advertising — joins a growing list of publishers pulling out",
+      "category": "adfixus",
       "source": "Zara",
-      "relevance": "Time-sensitive AdFixus content moment. Publisher exodus from programmatic is accelerating.",
-      "recommended_action": "Cleo should queue a Techonomic piece on this within the next 7 days while the news cycle is active."
+      "relevance": "Publisher exodus from programmatic is accelerating — validates AdFixus positioning and is a live Techonomic content moment.",
+      "recommended_action": "Cleo should queue a Techonomic piece within 7 days while the news cycle is active.",
+      "window": "7 days"
     }
   ],
   "data_freshness": {
