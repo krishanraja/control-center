@@ -1,2 +1,2 @@
-# org-os-dashboard
+# control-center
 Autonomous Organisation OS — Mission Control Dashboard

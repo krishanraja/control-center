@@ -226,7 +226,7 @@
         {
           "id": "cleo-2",
           "order": 2,
-          "description": "Write LinkedIn Post 1: org chart / Control Centre screen grab — highest DM potential",
+          "description": "Write LinkedIn Post 1: org chart / Control Center screen grab — highest DM potential",
           "owner": "agent:cleo",
           "owner_note": null,
           "estimated_mins": null,
@@ -239,7 +239,7 @@
           "order": 3,
           "description": "Review, approve, and post LinkedIn Post 1 from your personal account",
           "owner": "krish",
-          "owner_note": "Cleo drafts, you post. Screen grab of the control centre dashboard is the visual hook. Cannot be automated.",
+          "owner_note": "Cleo drafts, you post. Screen grab of the Control Center dashboard is the visual hook. Cannot be automated.",
           "estimated_mins": 10,
           "status": "pending",
           "blocked_by": "cleo-2",
