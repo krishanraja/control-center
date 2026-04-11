@@ -1,1 +1,73 @@
-{"updated_at": "2026-04-10T02:01:00Z", "updated_by": "arlo", "agents": {"agatha": {"status": "running", "lastRun": "2026-04-08T14:34:11Z", "kpi_current": "Active", "note": "COO \u2014 conversation mode"}, "vera-daily": {"status": "warning", "lastRun": "2026-04-10T02:00:52Z", "kpi_current": "Daily brief ran 02:00 UTC \u2014 Feedback Distributor errored", "note": "Daily Morning Brief success at 02:00 UTC (exec #446). Feedback Distributor (rtl6Xmx7tZXN8fS3) errored again 02:00 UTC (exec #445). Status Board Writer errored Apr 9 15:04 (exec #391). Three consecutive Feedback Distributor failures."}, "weekly-synthesis": {"status": "waiting", "lastRun": null, "kpi_current": "Intel brief: 0/4 \u2014 first run Mon Apr 13", "note": "Marcus \u2014 first run Mon Apr 13"}, "product-agent": {"status": "success", "lastRun": "2026-04-07T18:26:52Z", "kpi_current": "3 improvement briefs submitted", "note": "consecutiveErrors=0. Feedback workflows event-triggered; no new product events in past 24h."}, "revenue-agent": {"status": "blocked", "lastRun": "2026-04-07T19:25:14Z", "kpi_current": "Full funnel audit complete. 13 breaks identified. Top 3 fixes pending Krish approval.", "note": "Leo \u2014 funnel audit done, 13 fixes documented, awaiting Krish approval before Arlo implements. pyr9wurcs1M9utW3 errored Apr 7 (exec #159); no new N8N execution Apr 8\u201310. Stripe webhook still pending."}, "bd-agent": {"status": "success", "lastRun": "2026-04-08T14:08:26Z", "kpi_current": "6 signals found this week", "note": "consecutiveErrors=0. N8N Outreach Monitor (8DlMfyTYsbnQGYR2) last confirmed execution Apr 6; Apr 8 run may have been webhook-triggered."}, "enterprise-gigs": {"status": "success", "lastRun": "2026-04-09T15:03:08Z", "kpi_current": "6 signals found this week. Podcast pipeline: 56 shows across 8 categories.", "note": "Felix \u2014 pipeline reset. Skyview closed. Nova owns podcast + stage visibility now. Pipeline Tracker (gnwpyTFbusBrZG7P) ran Apr 9 15:03 (exec #390) \u2014 success."}, "visibility-agent": {"status": "success", "lastRun": "2026-04-07T18:17:38Z", "kpi_current": "Pitches sent: 0/8 this month", "note": "consecutiveErrors=0 \u2014 4 pitches drafted, none sent yet"}, "marketing-agent": {"status": "success", "lastRun": "2026-04-09T19:00:57Z", "kpi_current": "SEO briefs: 18 generated Apr 8", "note": "consecutiveErrors=0 \u2014 Apollo Enrichment Health Check (JeV17iOnEDhxNeHT) ran Apr 9 19:00 (exec #412), success."}, "content-agent": {"status": "warning", "lastRun": "2026-04-06T20:20:16Z", "kpi_current": "Angles proposed: 0/12", "note": "Cleo \u2014 Content Distribution (O6AUi9W6UxBxhH94) last ran Apr 6 20:20. Content Engine Weekly Sweep (oNZc5BRIBRXSNtu3) still has zero executions. LinkedIn auto-publish blocked: Tier 1 posts require Krish to manually paste."}, "tools-agent": {"lastRun": "2026-04-10T02:00:56Z", "status": "success", "kpi_current": "Workspace: 14GB | Cost: <$150 | Uptime: 100%", "note": "Health Check (AzalV2S1SngVdVMp) ran Apr 10 02:00:56 (exec #447) \u2014 success.", "updated_at": "2026-04-10T02:00:56Z"}}}
+{
+  "updated_at": "2026-04-11T19:22:00Z",
+  "updated_by": "arlo",
+  "agents": {
+    "agatha": {
+      "status": "running",
+      "lastRun": "2026-04-08T14:34:11Z",
+      "kpi_current": "Active",
+      "note": "COO — conversation mode"
+    },
+    "vera-daily": {
+      "status": "warning",
+      "lastRun": "2026-04-10T02:00:52Z",
+      "kpi_current": "Daily brief ran 02:00 UTC — Feedback Distributor errored",
+      "note": "Daily Morning Brief success at 02:00 UTC (exec #446). Feedback Distributor (rtl6Xmx7tZXN8fS3) errored again 02:00 UTC (exec #445). Status Board Writer errored Apr 9 15:04 (exec #391). Three consecutive Feedback Distributor failures."
+    },
+    "weekly-synthesis": {
+      "status": "waiting",
+      "lastRun": null,
+      "kpi_current": "Intel brief: 0/4 — first run Mon Apr 13",
+      "note": "Marcus — first run Mon Apr 13"
+    },
+    "product-agent": {
+      "status": "success",
+      "lastRun": "2026-04-07T18:26:52Z",
+      "kpi_current": "3 improvement briefs submitted",
+      "note": "consecutiveErrors=0. Feedback workflows event-triggered; no new product events in past 24h."
+    },
+    "revenue-agent": {
+      "status": "blocked",
+      "lastRun": "2026-04-07T19:25:14Z",
+      "kpi_current": "Full funnel audit complete. 13 breaks identified. Top 3 fixes pending Krish approval.",
+      "note": "Leo — funnel audit done, 13 fixes documented, awaiting Krish approval before Arlo implements. pyr9wurcs1M9utW3 errored Apr 7 (exec #159); no new N8N execution Apr 8–10. Stripe webhook still pending."
+    },
+    "bd-agent": {
+      "status": "success",
+      "lastRun": "2026-04-08T14:08:26Z",
+      "kpi_current": "6 signals found this week",
+      "note": "consecutiveErrors=0. N8N Outreach Monitor (8DlMfyTYsbnQGYR2) last confirmed execution Apr 6; Apr 8 run may have been webhook-triggered."
+    },
+    "enterprise-gigs": {
+      "status": "success",
+      "lastRun": "2026-04-09T15:03:08Z",
+      "kpi_current": "6 signals found this week. Podcast pipeline: 56 shows across 8 categories.",
+      "note": "Felix — pipeline reset. Skyview closed. Nova owns podcast + stage visibility now. Pipeline Tracker (gnwpyTFbusBrZG7P) ran Apr 9 15:03 (exec #390) — success."
+    },
+    "visibility-agent": {
+      "status": "success",
+      "lastRun": "2026-04-07T18:17:38Z",
+      "kpi_current": "Pitches sent: 0/8 this month",
+      "note": "consecutiveErrors=0 — 4 pitches drafted, none sent yet"
+    },
+    "marketing-agent": {
+      "status": "success",
+      "lastRun": "2026-04-09T19:00:57Z",
+      "kpi_current": "SEO briefs: 18 generated Apr 8",
+      "note": "consecutiveErrors=0 — Apollo Enrichment Health Check (JeV17iOnEDhxNeHT) ran Apr 9 19:00 (exec #412), success."
+    },
+    "content-agent": {
+      "status": "warning",
+      "lastRun": "2026-04-06T20:20:16Z",
+      "kpi_current": "Angles proposed: 0/12",
+      "note": "Cleo — Content Distribution (O6AUi9W6UxBxhH94) last ran Apr 6 20:20. Content Engine Weekly Sweep (oNZc5BRIBRXSNtu3) still has zero executions. LinkedIn auto-publish blocked: Tier 1 posts require Krish to manually paste."
+    },
+    "tools-agent": {
+      "lastRun": "2026-04-10T02:00:56Z",
+      "status": "success",
+      "kpi_current": "Workspace: 14GB | Cost: <$150 | Uptime: 100%",
+      "note": "Health Check (AzalV2S1SngVdVMp) ran Apr 10 02:00:56 (exec #447) — success.",
+      "updated_at": "2026-04-10T02:00:56Z"
+    }
+  }
+}
