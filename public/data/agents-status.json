@@ -24,7 +24,8 @@
       "status": "success",
       "lastRun": "2026-04-07T18:26:52Z",
       "kpi_current": "3 improvement briefs submitted",
-      "note": "consecutiveErrors=0. Feedback workflows event-triggered; no new product events in past 24h."
+      "note": "consecutiveErrors=0. Feedback workflows event-triggered; no new product events in past 24h.",
+      "sub_agents": true
     },
     "revenue-agent": {
       "status": "running",
@@ -54,7 +55,8 @@
       "status": "success",
       "lastRun": "2026-04-09T19:00:57.051Z",
       "kpi_current": "SEO briefs: 18 generated Apr 8",
-      "note": "consecutiveErrors=0 — Apollo Enrichment Health Check (JeV17iOnEDhxNeHT) ran Apr 9 19:00 (exec #412), success."
+      "note": "consecutiveErrors=0 — Apollo Enrichment Health Check (JeV17iOnEDhxNeHT) ran Apr 9 19:00 (exec #412), success.",
+      "sub_agents": true
     },
     "content-agent": {
       "status": "running",
@@ -63,11 +65,19 @@
       "note": "Cleo — Content Engine Weekly Sweep (oNZc5BRIBRXSNtu3) errored Apr 11 03:00 (exec #543). No node-level detail available via API — needs N8N UI investigation. LinkedIn auto-publish blocked: Tier 1 posts require Krish to manually paste."
     },
     "tools-agent": {
-      "lastRun": "2026-04-12T18:00:56.067Z",
-      "status": "success",
-      "kpi_current": "Daily",
-      "note": "Weekly sweep Apr 12. N8N cloud healthy (200). Revenue Report (pyr9wurcs1M9utW3) still unresolved — needs N8N UI. Content Sweep errored Apr 11 — investigate. check_infra.py and check_apis.py scripts missing — must be created.",
-      "updated_at": "2026-04-12T07:01:00Z"
+      "sub_agents": true
+    },
+    "marcus": {
+      "sub_agents": true
+    },
+    "priya": {
+      "sub_agents": true
+    },
+    "nell": {
+      "sub_agents": true
+    },
+    "maya": {
+      "sub_agents": true
     }
   }
 }
