@@ -12,7 +12,6 @@ import { AutomationsPanel } from './components/AutomationsPanel'
 import { AllHandsPanel } from './components/AllHandsPanel'
 import { SystemsPanel } from './components/SystemsPanel'
 import { WeeklyGoals } from './components/WeeklyGoals'
-import { useHaptics } from './hooks/useHaptics'
 import { PlaybooksPanel } from './components/PlaybooksPanel'
 
 // ─── Tab IDs shared across desktop + mobile ───────────────────────────────────
@@ -22,17 +21,33 @@ type TabId = 'home' | 'today' | 'playbooks' | 'plans' | 'org' | 'execution' | 's
 export default function App() {
   const [tab, setTab] = useState<TabId>('home')
   const [currentTime, setCurrentTime] = useState(new Date())
-  const h = useHaptics()
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(t)
   }, [])
 
+  useEffect(() => {
+    window.addEventListener('error', (e) => setError(e.message))
+    return () => window.removeEventListener('error', (e) => setError(e.message))
+  }, [])
+
   const handleTab = (id: string) => {
-    h.select()
     setTab(id as TabId)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0b] text-white flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Error</h1>
+          <p className="text-red-400">{error}</p>
+          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-white/10 rounded">Reload</button>
+        </div>
+      </div>
+    )
   }
 
   return (
