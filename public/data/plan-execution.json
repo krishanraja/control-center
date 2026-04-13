@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-13T22:05:01.912816Z",
+  "generated_at": "2026-04-13T22:10:01.873020Z",
   "total_agents": 6,
   "total_tasks": 33,
   "plans": [
@@ -69,8 +69,8 @@
         "done": 1
       },
       "next_milestone": "Complete Zero undetected workflow failures, 100% uptime tracking",
-      "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T22:05:01.912057Z"
+      "brief_source": "https://docs.google.com/document/d/16IaX5tmaJS3Tby4GLjWEcznHP_-gwk1Si7rvvE7z4yw/edit",
+      "last_updated": "2026-04-13T22:10:01.872229Z"
     },
     {
       "agent": "Cleo",
@@ -87,8 +87,8 @@
         "done": 0
       },
       "next_milestone": "Start execution",
-      "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T22:05:01.912138Z"
+      "brief_source": "https://docs.google.com/document/d/10-kH5pAbMe0QOUZQdWbaeXP4CRfoPX4sL9XtiUekoQg/edit",
+      "last_updated": "2026-04-13T22:10:01.872316Z"
     },
     {
       "agent": "Felix",
@@ -145,8 +145,8 @@
         "done": 0
       },
       "next_milestone": "Complete \u22651 active engagement in proposal stage",
-      "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T22:05:01.912480Z"
+      "brief_source": "https://docs.google.com/document/d/1o_Gcn9AZM2RxYV4MCSidWcIdmz--IyoeZDyqzHcIQy4/edit",
+      "last_updated": "2026-04-13T22:10:01.872636Z"
     },
     {
       "agent": "Leo",
@@ -163,8 +163,8 @@
         "done": 0
       },
       "next_milestone": "Start execution",
-      "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T22:05:01.912543Z"
+      "brief_source": "https://docs.google.com/document/d/1mtliZiV2VpyoxRfD39SlN0aWbOZ83-UEoQXwB3JEk0k/edit",
+      "last_updated": "2026-04-13T22:10:01.872700Z"
     },
     {
       "agent": "Maya",
@@ -181,8 +181,8 @@
         "done": 0
       },
       "next_milestone": "Start execution",
-      "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T22:05:01.912624Z"
+      "brief_source": "https://docs.google.com/document/d/1tV3EKTEz7PfEL5mN371F5czmsUxkwjFzYZzcryh1YJU/edit",
+      "last_updated": "2026-04-13T22:10:01.872825Z"
     },
     {
       "agent": "Nell",
@@ -199,14 +199,14 @@
         "done": 0
       },
       "next_milestone": "Start execution",
-      "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T22:05:01.912676Z"
+      "brief_source": "https://docs.google.com/document/d/1BVa-yUeGgx5e3tB1axFdLtFJussbC-smLqxJdvjCvek/edit",
+      "last_updated": "2026-04-13T22:10:01.872909Z"
     }
   ],
   "system_health": {
     "all_plans_updated": true,
     "contradictions_detected": 0,
     "sync_source": "agent briefs + tasks.json",
-    "next_sync": "2026-04-13T22:10:01.912820Z"
+    "next_sync": "2026-04-13T22:15:01.873023Z"
   }
 }
