@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-13T21:55:01.203804Z",
+  "generated_at": "2026-04-13T22:00:01.274234Z",
   "total_agents": 6,
   "total_tasks": 33,
   "plans": [
@@ -15,32 +15,45 @@
           "status": "pending",
           "planned_start": null,
           "planned_end": null,
-          "tasks_assigned": [],
-          "task_count": 0,
+          "tasks_assigned": [
+            "arlo-apollo-sheet-pull",
+            "b1"
+          ],
+          "task_count": 2,
           "completed_count": 0,
           "progress_pct": 0,
-          "blockers": []
+          "blockers": [
+            "Drive Sync \u2014 Activate in N8N"
+          ]
         },
         {
           "name": "Stripe webhooks live for all four products",
           "status": "pending",
           "planned_start": null,
           "planned_end": null,
-          "tasks_assigned": [],
-          "task_count": 0,
+          "tasks_assigned": [
+            "arlo-systems-monitor",
+            "arlo-phase-1-live"
+          ],
+          "task_count": 2,
           "completed_count": 0,
           "progress_pct": 0,
-          "blockers": []
+          "blockers": [
+            "Arlo \u2014 Build Systems Monitor + Control Center Systems Tab"
+          ]
         },
         {
           "name": "New agent (Cleo) infrastructure verified",
-          "status": "pending",
+          "status": "in_progress",
           "planned_start": null,
           "planned_end": null,
-          "tasks_assigned": [],
-          "task_count": 0,
-          "completed_count": 0,
-          "progress_pct": 0,
+          "tasks_assigned": [
+            "phase-1-agent-restructure",
+            "model-tier-enforcement"
+          ],
+          "task_count": 2,
+          "completed_count": 1,
+          "progress_pct": 50,
           "blockers": []
         }
       ],
@@ -57,7 +70,7 @@
       },
       "next_milestone": "Complete Zero undetected workflow failures, 100% uptime tracking",
       "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T21:55:01.203142Z"
+      "last_updated": "2026-04-13T22:00:01.273464Z"
     },
     {
       "agent": "Cleo",
@@ -75,7 +88,7 @@
       },
       "next_milestone": "Start execution",
       "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T21:55:01.203219Z"
+      "last_updated": "2026-04-13T22:00:01.273549Z"
     },
     {
       "agent": "Felix",
@@ -110,11 +123,15 @@
           "status": "pending",
           "planned_start": null,
           "planned_end": null,
-          "tasks_assigned": [],
-          "task_count": 0,
+          "tasks_assigned": [
+            "apollo-1894-outreach-campaign"
+          ],
+          "task_count": 1,
           "completed_count": 0,
           "progress_pct": 0,
-          "blockers": []
+          "blockers": [
+            "Apollo 1,894 Contact Outreach Campaign - Ready to Deploy"
+          ]
         }
       ],
       "critical_blockers": [
@@ -129,7 +146,7 @@
       },
       "next_milestone": "Complete \u22651 active engagement in proposal stage",
       "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T21:55:01.203523Z"
+      "last_updated": "2026-04-13T22:00:01.273874Z"
     },
     {
       "agent": "Leo",
@@ -147,7 +164,7 @@
       },
       "next_milestone": "Start execution",
       "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T21:55:01.203583Z"
+      "last_updated": "2026-04-13T22:00:01.273937Z"
     },
     {
       "agent": "Maya",
@@ -165,7 +182,7 @@
       },
       "next_milestone": "Start execution",
       "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T21:55:01.203664Z"
+      "last_updated": "2026-04-13T22:00:01.274020Z"
     },
     {
       "agent": "Nell",
@@ -183,13 +200,13 @@
       },
       "next_milestone": "Start execution",
       "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T21:55:01.203705Z"
+      "last_updated": "2026-04-13T22:00:01.274062Z"
     }
   ],
   "system_health": {
     "all_plans_updated": true,
     "contradictions_detected": 0,
     "sync_source": "agent briefs + tasks.json",
-    "next_sync": "2026-04-13T22:00:01.203806Z"
+    "next_sync": "2026-04-13T22:05:01.274239Z"
   }
 }
