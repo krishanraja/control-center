@@ -1,0 +1,195 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-04-13T21:15:01.277692Z",
+  "total_agents": 6,
+  "total_tasks": 33,
+  "plans": [
+    {
+      "agent": "Arlo",
+      "plan_name": "Arlo",
+      "overall_progress_pct": 0,
+      "timeline_status": "ON_TRACK",
+      "phases": [
+        {
+          "name": "Zero undetected workflow failures, 100% uptime tracking",
+          "status": "pending",
+          "planned_start": null,
+          "planned_end": null,
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": []
+        },
+        {
+          "name": "Stripe webhooks live for all four products",
+          "status": "pending",
+          "planned_start": null,
+          "planned_end": null,
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": []
+        },
+        {
+          "name": "New agent (Cleo) infrastructure verified",
+          "status": "pending",
+          "planned_start": null,
+          "planned_end": null,
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": []
+        }
+      ],
+      "critical_blockers": [
+        "Arlo \u2014 Build Systems Monitor + Control Center Systems Tab (waiting)",
+        "Drive Sync \u2014 Activate in N8N (waiting)"
+      ],
+      "task_count": 6,
+      "task_summary": {
+        "in_progress": 3,
+        "waiting": 2,
+        "blocked": 0,
+        "done": 1
+      },
+      "next_milestone": "Complete Zero undetected workflow failures, 100% uptime tracking",
+      "brief_source": "https://docs.google.com/document/d/...",
+      "last_updated": "2026-04-13T21:15:01.276599Z"
+    },
+    {
+      "agent": "Cleo",
+      "plan_name": "Cleo",
+      "overall_progress_pct": 0,
+      "timeline_status": "UNKNOWN",
+      "phases": [],
+      "critical_blockers": [],
+      "task_count": 1,
+      "task_summary": {
+        "in_progress": 0,
+        "waiting": 0,
+        "blocked": 0,
+        "done": 0
+      },
+      "next_milestone": "Start execution",
+      "brief_source": "https://docs.google.com/document/d/...",
+      "last_updated": "2026-04-13T21:15:01.276716Z"
+    },
+    {
+      "agent": "Felix",
+      "plan_name": "Felix",
+      "overall_progress_pct": 0,
+      "timeline_status": "ON_TRACK",
+      "phases": [
+        {
+          "name": "\u22651 active engagement in proposal stage",
+          "status": "pending",
+          "planned_start": null,
+          "planned_end": null,
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": []
+        },
+        {
+          "name": "Pipeline \u2265$100K tracked across all active opportunities",
+          "status": "pending",
+          "planned_start": null,
+          "planned_end": null,
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": []
+        },
+        {
+          "name": "Zero cold outreach \u2014 all engagement warm path only",
+          "status": "pending",
+          "planned_start": null,
+          "planned_end": null,
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": []
+        }
+      ],
+      "critical_blockers": [
+        "Apollo 1,894 Contact Outreach Campaign - Ready to Deploy (waiting)"
+      ],
+      "task_count": 1,
+      "task_summary": {
+        "in_progress": 0,
+        "waiting": 1,
+        "blocked": 0,
+        "done": 0
+      },
+      "next_milestone": "Complete \u22651 active engagement in proposal stage",
+      "brief_source": "https://docs.google.com/document/d/...",
+      "last_updated": "2026-04-13T21:15:01.277127Z"
+    },
+    {
+      "agent": "Leo",
+      "plan_name": "Leo",
+      "overall_progress_pct": 0,
+      "timeline_status": "UNKNOWN",
+      "phases": [],
+      "critical_blockers": [],
+      "task_count": 1,
+      "task_summary": {
+        "in_progress": 0,
+        "waiting": 0,
+        "blocked": 0,
+        "done": 0
+      },
+      "next_milestone": "Start execution",
+      "brief_source": "https://docs.google.com/document/d/...",
+      "last_updated": "2026-04-13T21:15:01.277221Z"
+    },
+    {
+      "agent": "Maya",
+      "plan_name": "Maya",
+      "overall_progress_pct": 0,
+      "timeline_status": "UNKNOWN",
+      "phases": [],
+      "critical_blockers": [],
+      "task_count": 3,
+      "task_summary": {
+        "in_progress": 0,
+        "waiting": 0,
+        "blocked": 0,
+        "done": 0
+      },
+      "next_milestone": "Start execution",
+      "brief_source": "https://docs.google.com/document/d/...",
+      "last_updated": "2026-04-13T21:15:01.277350Z"
+    },
+    {
+      "agent": "Nell",
+      "plan_name": "Nell - Outbound Sequencing Agent",
+      "overall_progress_pct": 0,
+      "timeline_status": "UNKNOWN",
+      "phases": [],
+      "critical_blockers": [],
+      "task_count": 2,
+      "task_summary": {
+        "in_progress": 0,
+        "waiting": 0,
+        "blocked": 0,
+        "done": 0
+      },
+      "next_milestone": "Start execution",
+      "brief_source": "https://docs.google.com/document/d/...",
+      "last_updated": "2026-04-13T21:15:01.277497Z"
+    }
+  ],
+  "system_health": {
+    "all_plans_updated": true,
+    "contradictions_detected": 0,
+    "sync_source": "agent briefs + tasks.json",
+    "next_sync": "2026-04-13T21:20:01.277697Z"
+  }
+}

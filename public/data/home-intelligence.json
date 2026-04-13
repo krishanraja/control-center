@@ -1,81 +1,66 @@
 {
-  "generated_at": "2026-04-13T20:33:20.564Z",
+  "generated_at": "2026-04-13T21:15:01.241080Z",
   "schema_version": "1.0",
   "strategic_assessment": {
-    "headline": "3 active workstreams, 4 waiting on Krish approval",
-    "body": "OS v3 infrastructure complete. 3 agents executing in parallel. 4 critical items blocked on Krish decisions: Arlo — Build Systems Monitor + Control Center Systems Tab, Drive Sync — Activate in N8N, GSC API Credentials. Control Center syncing every 5 minutes. Zero contradictions detected.",
-    "recommended_focus": "Approve top 3 blockers (Leo funnel fixes, Cleo content plan, Maya tooling) to unblock 8 downstream tasks"
+    "headline": "3 active, 4 waiting on Krish approval",
+    "body": "OS v3 live. 3 agents executing in parallel. 4 critical items blocked: Arlo \u2014 Build Systems Monitor + Control C, Drive Sync \u2014 Activate in N8N, GSC API Credentials. Control Center syncs every 5 min. Zero contradictions.",
+    "recommended_focus": "Approve top blockers to unblock downstream tasks"
   },
   "metrics": [
     {
-      "id": "mrr",
-      "label": "MRR",
-      "value": "$0",
-      "target": "$20K",
-      "progress_pct": 0,
-      "interpretation": "No active revenue yet - Phase 2 agents in planning",
-      "status": "on_track"
-    },
-    {
-      "id": "active-pipeline",
-      "label": "Active Pipeline",
-      "value": "$0",
-      "target": "$850K",
-      "progress_pct": 0,
-      "interpretation": "Pipeline generation awaiting Leo + Cleo + Maya approval",
-      "status": "at_risk"
-    },
-    {
-      "id": "content-shipped",
-      "label": "Content Shipped",
-      "value": "0",
-      "target": "10/wk",
-      "progress_pct": 0,
-      "interpretation": "Content engine blocked on Krish approval",
-      "status": "blocked"
-    },
-    {
-      "id": "agent-health",
-      "label": "Agent Health",
-      "value": "11/11",
-      "target": "14/14",
-      "progress_pct": 79,
-      "interpretation": "11 agents briefed and executing. 3 new agents in planning.",
+      "id": "active-work",
+      "label": "Active Workstreams",
+      "value": "3",
+      "target": "15",
+      "progress_pct": 20,
+      "interpretation": "Agents executing",
       "status": "in_progress"
     },
     {
-      "id": "system-health",
+      "id": "blockers",
+      "label": "Items Blocked on Krish",
+      "value": "4",
+      "target": "0",
+      "progress_pct": 60,
+      "interpretation": "Awaiting approval",
+      "status": "blocked"
+    },
+    {
+      "id": "completion",
+      "label": "Tasks Completed (This Session)",
+      "value": "6",
+      "target": "50",
+      "progress_pct": 12,
+      "interpretation": "Progress",
+      "status": "on_track"
+    },
+    {
+      "id": "system",
       "label": "System Health",
       "value": "Green",
-      "target": "Zero Contradictions",
+      "target": "Green",
       "progress_pct": 100,
-      "interpretation": "Single source of truth live. Control Center in sync.",
+      "interpretation": "Synced + live",
       "status": "ahead"
     }
   ],
   "external_signals": [
     {
-      "signal": "Vercel deployment now stable",
-      "source": "Control Center",
-      "relevance": "Critical",
-      "recommended_action": "Monitor sync health weekly"
-    },
-    {
-      "signal": "Apollo campaign ready for deployment",
-      "source": "Felix (Enterprise Sales)",
+      "signal": "3 agents executing in parallel",
+      "source": "Arlo",
       "relevance": "High",
-      "recommended_action": "Approve campaign plan and deploy to 1,894 contacts"
+      "recommended_action": "Monitor execution"
     },
     {
-      "signal": "Leo identified 13 funnel fixes",
-      "source": "Leo (CRO)",
+      "signal": "4 critical approvals pending",
+      "source": "System",
       "relevance": "Critical",
-      "recommended_action": "Review and approve top 3 fixes"
+      "recommended_action": "Review and approve"
     }
   ],
   "data_freshness": {
-    "vera_last_run": "2026-04-13T20:33:20.564Z",
-    "sequences_last_updated": "2026-04-13T20:33:20.564Z",
-    "zara_last_signal": "2026-04-13T20:33:20.564Z"
+    "vera_last_run": "2026-04-13T21:15:01.241080Z",
+    "sequences_last_updated": "2026-04-13T21:15:01.241080Z",
+    "zara_last_signal": "2026-04-13T21:15:01.241080Z"
   }
 }

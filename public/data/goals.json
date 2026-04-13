@@ -1,52 +1,61 @@
 {
-  "week_of": "Apr 9, 2026",
-  "north_star": "First paying Mindmaker client + 20 beta users per app",
-  "team_focus": "Full funnel live. Nell emails Tier 1s. 20 beta users per app by Apr 16.",
-  "goals": [
+  "updated_at": "2026-04-13T21:15:01.241080Z",
+  "north_star": "OS v3 operational: single source of truth, bulletproof communication, zero contradictions",
+  "top_priorities": [
     {
-      "id": "g1",
-      "title": "Mindmaker funnel live",
-      "target": "All 5 product pages priced, CTAs wired, Stripe active",
-      "current": "13 breaks identified — top 3 fixes queued for Arlo",
-      "owner": "Leo + Arlo",
-      "progress": 20,
-      "notes": "Leo funnel audit done. Krish approves fixes, Arlo implements."
+      "id": "arlo-apollo-sheet-pull",
+      "title": "Apollo Raw Data Pull - Creative Macros (Google Sheet Only)",
+      "owner": "Arlo",
+      "status": "in_progress"
     },
     {
-      "id": "g2",
-      "title": "POSSIBLE guest outreach",
-      "target": "All Tier 1 emails sent, 5 positive responses",
-      "current": "Bob Pittman draft in Gmail — Krish reviewing voice",
-      "owner": "Nell",
-      "progress": 15,
-      "notes": "Test draft ready. Approve voice, then batch send."
+      "id": "agatha-apollo-deployment-plan",
+      "title": "Apollo Credit Deployment Plan - April 2026",
+      "owner": "Agatha",
+      "status": "waiting"
     },
     {
-      "id": "g3",
-      "title": "20 beta users per app",
-      "target": "20 real users testing Gutted, Merciless, OnAlert, Fractionl by Apr 16",
-      "current": "Plan live — blocked on Krish maya-1 approvals",
-      "owner": "Maya",
-      "progress": 5,
-      "notes": "Web apps only. SEO → Reddit → Betalist → PH → influencers."
+      "id": "arlo-systems-monitor",
+      "title": "Arlo \u2014 Build Systems Monitor + Control Center Systems Tab",
+      "owner": "Arlo",
+      "status": "waiting"
     },
     {
-      "id": "g4",
-      "title": "Content flywheel started",
-      "target": "2 LinkedIn posts live, Techonomic Ed 1 published",
-      "current": "Plan approved — Cleo drafting Post 1",
-      "owner": "Cleo",
-      "progress": 10,
-      "notes": "Cleo needs plan approval from Krish to start drafting."
+      "id": "model-tier-enforcement",
+      "title": "Enforce model tier rules across all agent N8N workflows",
+      "owner": "Arlo",
+      "status": "done"
     },
     {
-      "id": "g5",
-      "title": "Nova first podcast booking",
-      "target": "1 confirmed S&N guest, AdExchanger CFP submitted",
-      "current": "Blocked on speaker card final PDF from Krish",
-      "owner": "Nova",
-      "progress": 20,
-      "notes": "Bio doc created. Speaker card amendments needed. CFP deadline approaching."
+      "id": "ops-agent-brief-refresh-all",
+      "title": "All agents to publish refreshed KPI-plan briefs to Control Center",
+      "owner": "agatha",
+      "status": "done"
+    }
+  ],
+  "pri_0_count": 15,
+  "pri_1_count": 6,
+  "phase_status": {
+    "phase_1_infrastructure": "LIVE - Control Center API + N8N sync operational",
+    "phase_2_agent_briefs": "ACTIVE - Cleo, Maya, Leo coordinators executing",
+    "phase_3_oversight": "READY - Vera weekly audit cycle"
+  },
+  "blockers_on_krish": [
+    {
+      "id": "arlo-systems-monitor",
+      "title": "Arlo \u2014 Build Systems Monitor + Control Center Systems Tab"
+    },
+    {
+      "id": "b1",
+      "title": "Drive Sync \u2014 Activate in N8N"
+    },
+    {
+      "id": "b3",
+      "title": "GSC API Credentials"
+    },
+    {
+      "id": "apollo-1894-outreach-campaign",
+      "title": "Apollo 1,894 Contact Outreach Campaign - Ready to Deploy"
     }
   ]
 }

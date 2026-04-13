@@ -10,7 +10,7 @@ interface Props {
 const TABS = [
   { id: 'home',      label: 'Home',      icon: Home },
   { id: 'today',     label: 'Today',     icon: Clock },
-  { id: 'playbooks', label: 'Plays',     icon: ListChecks },
+  { id: 'plans',     label: 'Plans',     icon: ListChecks },
   { id: 'org',       label: 'Org',       icon: GitBranch },
   { id: 'execution', label: 'Exec',      icon: Activity },
   { id: 'systems',   label: 'Systems',   icon: Server },
