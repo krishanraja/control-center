@@ -1,336 +1,77 @@
 import React, { useState, useEffect } from 'react'
-import { AGENTS, COMPANY_VALUES } from './services/agentData'
-import { DesktopNav } from './components/DesktopNav'
-import { BottomNav } from './components/BottomNav'
-import { HomeIntelligence } from './components/HomeIntelligence'
-import { TodayTabContent } from './components/TodayTabContent'
-import { AgentGrid } from './components/AgentGrid'
-import { ExecutionTabContent } from './components/ExecutionTabContent'
-import { OrgChart } from './components/OrgChart'
-import { MobileOrgChart } from './components/MobileOrgChart'
-import { AutomationsPanel } from './components/AutomationsPanel'
-import { AllHandsPanel } from './components/AllHandsPanel'
-import { SystemsPanel } from './components/SystemsPanel'
-import { WeeklyGoals } from './components/WeeklyGoals'
-import { PlaybooksPanel } from './components/PlaybooksPanel'
 
-// ─── Tab IDs shared across desktop + mobile ───────────────────────────────────
-type TabId = 'home' | 'today' | 'playbooks' | 'plans' | 'org' | 'execution' | 'systems'
-
-// ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [tab, setTab] = useState<TabId>('home')
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [error, setError] = useState<string | null>(null)
+  const [systemStatus, setSystemStatus] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const t = setInterval(() => setCurrentTime(new Date()), 1000)
-    return () => clearInterval(t)
+    fetch('/api/health')
+      .then(r => r.json())
+      .then(data => {
+        setSystemStatus(data)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Failed to load health:', err)
+        setLoading(false)
+      })
   }, [])
 
-  useEffect(() => {
-    window.addEventListener('error', (e) => setError(e.message))
-    return () => window.removeEventListener('error', (e) => setError(e.message))
-  }, [])
-
-  const handleTab = (id: string) => {
-    setTab(id as TabId)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0b] text-white flex items-center justify-center p-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Error</h1>
-          <p className="text-red-400">{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-white/10 rounded">Reload</button>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-col">
+    <div className="min-h-screen bg-[#0a0a0b] text-white">
+      {/* Header */}
+      <header className="border-b border-white/10 px-6 py-4">
+        <h1 className="text-3xl font-bold">Mission Control</h1>
+        <p className="text-white/60 text-sm">Autonomous OS v3</p>
+      </header>
 
-      {/* Desktop nav - hidden on mobile */}
-      <DesktopNav active={tab} onChange={handleTab} currentTime={currentTime} />
-
-      {/* Content area */}
-      <main className="flex-1 overflow-y-auto">
-
-        {/* ── DESKTOP (md+) ─────────────────────────────────── */}
-        <div className="hidden md:block">
-          <div className="max-w-[1600px] mx-auto px-6 py-6">
-            {tab === 'home'  && <DesktopHome currentTime={currentTime} />}
-            {tab === 'today' && <DesktopToday />}
-            
-            {tab === 'playbooks' && <PlaybooksPanel />}
-            {tab === 'plans' && <DesktopPlans />}
-            {tab === 'org'   && <DesktopOrg currentTime={currentTime} />}
-            {tab === 'execution' && <ExecutionTabContent />}
-            {tab === 'systems'   && <DesktopSystems />}
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-6 py-8">
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="text-white/60">Loading system status...</div>
           </div>
-        </div>
-
-        {/* ── MOBILE (< md) ─────────────────────────────────── */}
-        <div className="md:hidden pb-24">
-          <div className="flex items-center gap-2.5 px-4 pt-4 pb-2">
-            <img src="/favicon.png" alt="Mindmaker OS" className="w-6 h-6 rounded-md object-cover" />
-            <span className="text-[13px] font-semibold text-white/80 tracking-tight">Mindmaker OS</span>
-          </div>
-          <div className="px-4 pt-2 space-y-4">
-            {tab === 'home'  && <MobileHome currentTime={currentTime} />}
-            {tab === 'today' && <MobileToday />}
-            
-            {tab === 'playbooks' && <PlaybooksPanel />}
-            {tab === 'plans' && <MobilePlans />}
-            {tab === 'org'   && <MobileOrg currentTime={currentTime} />}
-            {tab === 'execution' && <ExecutionTabContent />}
-            {tab === 'systems'   && <MobileSystems />}
-          </div>
-        </div>
-      </main>
-
-      {/* Mobile bottom nav */}
-      <BottomNav active={tab} onChange={handleTab} />
-    </div>
-  )
-}
-
-// ─── Section wrapper ──────────────────────────────────────────────────────────
-function Section({ title, children }: { title?: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-4">
-      {title && (
-        <h1 className="text-[11px] font-bold uppercase tracking-widest text-white/30">{title}</h1>
-      )}
-      {children}
-    </div>
-  )
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// DESKTOP TABS
-// ══════════════════════════════════════════════════════════════════════════════
-
-function DesktopHome({ currentTime }: { currentTime: Date }) {
-  return (
-    <div className="space-y-8">
-      <HomeIntelligence />
-    </div>
-  )
-}
-
-function DesktopToday() {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-baseline gap-3">
-        <h1 className="text-[22px] font-bold text-white">Today</h1>
-        <p className="text-[13px] text-white/30">Everything that needs you</p>
-      </div>
-      <TodayTabContent />
-    </div>
-  )
-}
-
-function DesktopTeam({ currentTime }: { currentTime: Date }) {
-  return (
-    <div className="space-y-4">
-      <h1 className="text-[22px] font-bold text-white">Team</h1>
-      <AgentGrid agents={AGENTS} currentTime={currentTime} />
-    </div>
-  )
-}
-
-function DesktopPlans() {
-  const pods = [
-    { label: 'Revenue Pod', color: 'text-emerald-400', border: 'border-emerald-500/20', agents: AGENTS.filter(a => a.pod === 'revenue') },
-    { label: 'Growth Pod',  color: 'text-violet-400',  border: 'border-violet-500/20',  agents: AGENTS.filter(a => a.pod === 'growth') },
-    { label: 'Ops Pod',     color: 'text-slate-400',   border: 'border-slate-500/20',   agents: AGENTS.filter(a => a.pod === 'ops') },
-  ]
-  return (
-    <div className="space-y-6">
-      <div className="flex items-baseline gap-3">
-        <h1 className="text-[22px] font-bold text-white">Agent Briefs</h1>
-        <p className="text-[13px] text-white/30">KPIs · Mission · Feedback from Krish · Run Log</p>
-      </div>
-      <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl px-4 py-3">
-        <p className="text-[12px] text-amber-300/70 leading-relaxed">
-          Write your feedback in the <strong className="text-amber-300">📋 FEEDBACK FROM KRISH</strong> section at the top of each doc - agents read it first every session.
-        </p>
-      </div>
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {pods.map(pod => (
-          <div key={pod.label} className={`bg-white/[0.02] border ${pod.border} rounded-2xl overflow-hidden`}>
-            <div className="px-4 py-3 border-b border-white/[0.05]">
-              <p className={`text-[11px] font-bold uppercase tracking-widest ${pod.color}`}>{pod.label}</p>
+        ) : systemStatus ? (
+          <div className="space-y-6">
+            {/* System Status */}
+            <div className="bg-white/5 border border-white/10 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`w-3 h-3 rounded-full ${systemStatus.status === 'healthy' ? 'bg-green-500' : systemStatus.status === 'degraded' ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                <h2 className="text-xl font-semibold">System Status: {systemStatus.status.toUpperCase()}</h2>
+              </div>
+              <p className="text-white/60 text-sm">Last update: {new Date(systemStatus.timestamp).toLocaleString()}</p>
             </div>
-            <div className="divide-y divide-white/[0.04]">
-              {pod.agents.map(agent => (
-                <div key={agent.id} className="px-4 py-3 flex items-center gap-3 group hover:bg-white/[0.02] transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-white">{agent.humanName}</p>
-                    <p className="text-[11px] text-white/35 truncate">{agent.role}</p>
-                    {agent.kpi && (
-                      <p className="text-[10px] text-white/20 truncate mt-0.5">Target: {agent.kpi.target}</p>
-                    )}
+
+            {/* Components Health */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(systemStatus.components || {}).map(([name, data]: any) => (
+                <div key={name} className="bg-white/5 border border-white/10 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold capitalize">{name.replace(/-/g, ' ')}</h3>
+                    <div className={`w-2 h-2 rounded-full ${data.status === 'healthy' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
                   </div>
-                  {agent.planDocUrl ? (
-                    <a
-                      href={agent.planDocUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[11px] font-medium hover:bg-violet-500/20 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
-                    >
-                      Open Brief ↗
-                    </a>
-                  ) : null}
+                  <p className="text-white/60 text-xs">{data.message || data.status}</p>
+                  <p className="text-white/40 text-xs mt-1">Last: {new Date(data.last_check).toLocaleTimeString()}</p>
                 </div>
               ))}
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 
-function DesktopOrg({ currentTime }: { currentTime: Date }) {
-  return (
-    <div className="space-y-4">
-      <h1 className="text-[22px] font-bold text-white">Organisation</h1>
-      <OrgChart agents={AGENTS} currentTime={currentTime} />
-    </div>
-  )
-}
-
-function DesktopOps() {
-  return (
-    <div className="space-y-4">
-      <h1 className="text-[22px] font-bold text-white">Automations</h1>
-      <AutomationsPanel />
-    </div>
-  )
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// MOBILE TABS
-// ══════════════════════════════════════════════════════════════════════════════
-
-function MobileHeader({ title, subtitle }: { title: string; subtitle?: string }) {
-  return (
-    <div className="pb-1">
-      <h1 className="text-[20px] font-bold text-white leading-tight">{title}</h1>
-      {subtitle && <p className="text-[12px] text-white/35 mt-0.5">{subtitle}</p>}
-    </div>
-  )
-}
-
-function MobileHome({ currentTime }: { currentTime: Date }) {
-  return (
-    <div className="space-y-5">
-      <MobileHeader title="Exec Summary" subtitle="April 2026" />
-      <HomeIntelligence />
-    </div>
-  )
-}
-
-function MobileToday() {
-  return (
-    <div className="space-y-4">
-      <MobileHeader title="Today" subtitle="Everything that needs you" />
-      <TodayTabContent />
-    </div>
-  )
-}
-
-function MobileTeam({ currentTime }: { currentTime: Date }) {
-  return (
-    <div className="space-y-4">
-      <MobileHeader title="Team" subtitle="Your AI agents" />
-      <AgentGrid agents={AGENTS} currentTime={currentTime} />
-    </div>
-  )
-}
-
-function MobilePlans() {
-  const pods = [
-    { label: 'Revenue Pod', color: 'text-emerald-400', border: 'border-emerald-500/20', agents: AGENTS.filter(a => a.pod === 'revenue') },
-    { label: 'Growth Pod',  color: 'text-violet-400',  border: 'border-violet-500/20',  agents: AGENTS.filter(a => a.pod === 'growth') },
-    { label: 'Ops Pod',     color: 'text-slate-400',   border: 'border-slate-500/20',   agents: AGENTS.filter(a => a.pod === 'ops') },
-  ]
-  return (
-    <div className="space-y-4">
-      <MobileHeader title="Agent Briefs" subtitle="KPIs · Mission · Your feedback" />
-      <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3">
-        <p className="text-[11px] text-amber-300/70 leading-relaxed">
-          Write your feedback in the 📋 FEEDBACK FROM KRISH section at the top of each doc.
-        </p>
-      </div>
-      {pods.map(pod => (
-        <div key={pod.label} className={`bg-white/[0.02] border ${pod.border} rounded-2xl overflow-hidden`}>
-          <div className="px-4 py-3 border-b border-white/[0.05]">
-            <p className={`text-[11px] font-bold uppercase tracking-widest ${pod.color}`}>{pod.label}</p>
-          </div>
-          <div className="divide-y divide-white/[0.04]">
-            {pod.agents.map(agent => (
-              <div key={agent.id} className="px-4 py-3 flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-white">{agent.humanName}</p>
-                  <p className="text-[11px] text-white/35 truncate">{agent.role}</p>
-                </div>
-                {agent.planDocUrl && (
-                  <a
-                    href={agent.planDocUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[11px] font-medium flex-shrink-0"
-                  >Brief ↗</a>
-                )}
+            {/* Alerts */}
+            {systemStatus.alerts && systemStatus.alerts.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-semibold">Alerts</h3>
+                {systemStatus.alerts.map((alert: any, i: number) => (
+                  <div key={i} className={`p-3 rounded border ${alert.severity === 'critical' ? 'bg-red-500/10 border-red-500/30' : alert.severity === 'warning' ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-blue-500/10 border-blue-500/30'}`}>
+                    <p className="text-sm">{alert.message}</p>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        </div>
-      ))}
+        ) : (
+          <div className="text-center text-red-400">Failed to load system status</div>
+        )}
+      </main>
     </div>
   )
 }
-
-function MobileOrg({ currentTime }: { currentTime: Date }) {
-  return (
-    <div className="space-y-4">
-      <MobileHeader title="Org Chart" subtitle="Reporting chain & pods" />
-      <MobileOrgChart agents={AGENTS} />
-    </div>
-  )
-}
-
-function MobileOps() {
-  return (
-    <div className="space-y-4">
-      <MobileHeader title="Automations" subtitle="N8N workflows" />
-      <AutomationsPanel />
-    </div>
-  )
-}
-
-function DesktopSystems() {
-  return (
-    <div className="space-y-4">
-      <SystemsPanel />
-    </div>
-  )
-}
-
-function MobileSystems() {
-  return (
-    <div className="space-y-4">
-      <MobileHeader title="Systems" subtitle="Connected services · Monitored by Arlo" />
-      <SystemsPanel />
-    </div>
-  )
-}
-
-
-
