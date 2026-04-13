@@ -1,83 +1,83 @@
 {
-  "updated_at": "2026-04-13T01:18:33.310Z",
-  "updated_by": "agatha",
-  "agents": [
-    {
-      "name": "Arlo",
-      "brief": "arlo-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "in_progress",
-      "execution_status": "active"
+  "updated_at": "2026-04-12T18:08:34.677Z",
+  "updated_by": "arlo",
+  "agents": {
+    "agatha": {
+      "status": "running",
+      "lastRun": "2026-04-08T14:34:11Z",
+      "kpi_current": "Active",
+      "note": "COO — conversation mode"
     },
-    {
-      "name": "Cleo",
-      "brief": "cleo-coordinator-phase2.md",
-      "mcf_status": "complete",
-      "last_task_status": "active",
-      "execution_status": "active"
+    "vera-daily": {
+      "status": "running",
+      "lastRun": "2026-04-10T15:10:18.545Z",
+      "kpi_current": "Critical error detected",
+      "note": "Feedback Distributor (rtl6Xmx7tZXN8fS3) disabled Apr 10 — SHEET_ID_PLACEHOLDER never configured. 17 errors Apr 10 before fix. Now inactive and resolved. Status Board Writer had 2 errors Apr 10 — monitoring."
     },
-    {
-      "name": "Felix",
-      "brief": "felix-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "waiting",
-      "execution_status": "active"
+    "weekly-synthesis": {
+      "status": "waiting",
+      "lastRun": null,
+      "kpi_current": "Intel brief: 0/4 — first run Mon Apr 13",
+      "note": "Marcus — first run Mon Apr 13"
     },
-    {
-      "name": "Leo",
-      "brief": "leo-cro-phase2.md",
-      "mcf_status": "complete",
-      "last_task_status": "active",
-      "execution_status": "active"
+    "product-agent": {
+      "status": "success",
+      "lastRun": "2026-04-07T18:26:52Z",
+      "kpi_current": "3 improvement briefs submitted",
+      "note": "consecutiveErrors=0. Feedback workflows event-triggered; no new product events in past 24h.",
+      "sub_agents": true
     },
-    {
-      "name": "Marcus",
-      "brief": "marcus-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "none",
-      "execution_status": "idle"
+    "revenue-agent": {
+      "status": "running",
+      "lastRun": "2026-04-07T19:25:14.922Z",
+      "kpi_current": "Real-time",
+      "note": "Leo — funnel audit done, 13 fixes documented, awaiting Krish approval before Arlo implements. pyr9wurcs1M9utW3 errored Apr 7 (exec #159); no new N8N execution Apr 8–10. Stripe webhook still pending."
     },
-    {
-      "name": "Maya",
-      "brief": "maya-coordinator-phase2.md",
-      "mcf_status": "complete",
-      "last_task_status": "completed",
-      "execution_status": "active"
+    "bd-agent": {
+      "status": "success",
+      "lastRun": "2026-04-06T18:00:23.089Z",
+      "kpi_current": "6 signals found this week",
+      "note": "consecutiveErrors=0. N8N Outreach Monitor (8DlMfyTYsbnQGYR2) last confirmed execution Apr 6; Apr 8 run may have been webhook-triggered."
     },
-    {
-      "name": "Nell",
-      "brief": "nell-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "active",
-      "execution_status": "active"
+    "enterprise-gigs": {
+      "status": "success",
+      "lastRun": "2026-04-10T15:08:59.117Z",
+      "kpi_current": "Table: Improvement | Why I Need It | Priority | Impact",
+      "note": "Felix — pipeline reset. Skyview closed. Nova owns podcast + stage visibility now. Pipeline Tracker (gnwpyTFbusBrZG7P) ran Apr 9 15:03 (exec #390) — success."
     },
-    {
-      "name": "Nova",
-      "brief": "nova-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "none",
-      "execution_status": "idle"
+    "visibility-agent": {
+      "status": "success",
+      "lastRun": "2026-04-07T18:17:38Z",
+      "kpi_current": "Pitches sent: 0/8 this month",
+      "note": "consecutiveErrors=0 — 4 pitches drafted, none sent yet"
     },
-    {
-      "name": "Priya",
-      "brief": "priya-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "none",
-      "execution_status": "idle"
+    "marketing-agent": {
+      "status": "success",
+      "lastRun": "2026-04-09T19:00:57.051Z",
+      "kpi_current": "SEO briefs: 18 generated Apr 8",
+      "note": "consecutiveErrors=0 — Apollo Enrichment Health Check (JeV17iOnEDhxNeHT) ran Apr 9 19:00 (exec #412), success.",
+      "sub_agents": true
     },
-    {
-      "name": "Vera",
-      "brief": "vera-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "none",
-      "execution_status": "idle"
+    "content-agent": {
+      "status": "running",
+      "lastRun": "2026-04-11T03:00:25.111Z",
+      "kpi_current": "Table: Improvement | Why I Need It | Priority | Impact",
+      "note": "Cleo — Content Engine Weekly Sweep (oNZc5BRIBRXSNtu3) errored Apr 11 03:00 (exec #543). No node-level detail available via API — needs N8N UI investigation. LinkedIn auto-publish blocked: Tier 1 posts require Krish to manually paste."
     },
-    {
-      "name": "Zara",
-      "brief": "zara-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "none",
-      "execution_status": "idle"
+    "tools-agent": {
+      "sub_agents": true
+    },
+    "marcus": {
+      "sub_agents": true
+    },
+    "priya": {
+      "sub_agents": true
+    },
+    "nell": {
+      "sub_agents": true
+    },
+    "maya": {
+      "sub_agents": true
     }
-  ]
+  }
 }

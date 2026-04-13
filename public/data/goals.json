@@ -1,111 +1,52 @@
 {
-  "updated_at": "2026-04-13T01:18:21.446Z",
-  "week_of": "Apr 13, 2026",
-  "north_star": "OS v3 fully operational: single source of truth, bulletproof communication, zero contradictions",
-  "top_priorities": [
+  "week_of": "Apr 9, 2026",
+  "north_star": "First paying Mindmaker client + 20 beta users per app",
+  "team_focus": "Full funnel live. Nell emails Tier 1s. 20 beta users per app by Apr 16.",
+  "goals": [
     {
-      "id": "arlo-apollo-sheet-pull",
-      "title": "Apollo Raw Data Pull - Creative Macros (Google Sheet Only)",
-      "owner": "Arlo",
-      "status": "in_progress",
-      "urgency": "CRITICAL"
+      "id": "g1",
+      "title": "Mindmaker funnel live",
+      "target": "All 5 product pages priced, CTAs wired, Stripe active",
+      "current": "13 breaks identified — top 3 fixes queued for Arlo",
+      "owner": "Leo + Arlo",
+      "progress": 20,
+      "notes": "Leo funnel audit done. Krish approves fixes, Arlo implements."
     },
     {
-      "id": "agatha-apollo-deployment-plan",
-      "title": "Apollo Credit Deployment Plan - April 2026",
-      "owner": "Agatha",
-      "status": "waiting",
-      "urgency": "high"
-    },
-    {
-      "id": "arlo-systems-monitor",
-      "title": "Arlo — Build Systems Monitor + Control Center Systems Tab",
-      "owner": "Arlo",
-      "status": "waiting",
-      "urgency": "high"
-    },
-    {
-      "id": "model-tier-enforcement",
-      "title": "Enforce model tier rules across all agent N8N workflows",
-      "owner": "Arlo",
-      "status": "done",
-      "urgency": "high"
-    },
-    {
-      "id": "ops-agent-brief-refresh-all",
-      "title": "All agents to publish refreshed KPI-plan briefs to Control Center",
-      "owner": "agatha",
-      "status": "done"
-    },
-    {
-      "id": "ops-48h-remediation-plan",
-      "title": "Approve 48-hour remediation sprint plan",
-      "owner": "agatha",
-      "status": "done"
-    },
-    {
-      "id": "ops-mm-os-v1-blueprint",
-      "title": "Review and approve MindMaker OS v1 operating blueprint",
-      "owner": "agatha",
-      "status": "waiting"
-    },
-    {
-      "id": "adfixus-navigator-roi",
-      "title": "Navigator NYC 2026 ROI Document for Marko",
-      "owner": "agatha",
-      "status": "waiting"
-    },
-    {
-      "id": "nell-possible-outreach",
-      "title": "Nell — POSSIBLE Outreach: Book 5 S&N Guests",
+      "id": "g2",
+      "title": "POSSIBLE guest outreach",
+      "target": "All Tier 1 emails sent, 5 positive responses",
+      "current": "Bob Pittman draft in Gmail — Krish reviewing voice",
       "owner": "Nell",
-      "status": "active"
+      "progress": 15,
+      "notes": "Test draft ready. Approve voice, then batch send."
     },
     {
-      "id": "marcus-home-intelligence",
-      "title": "Marcus Home Intelligence — Strategic Assessment Tab",
-      "owner": "Marcus + Arlo",
-      "status": "waiting"
+      "id": "g3",
+      "title": "20 beta users per app",
+      "target": "20 real users testing Gutted, Merciless, OnAlert, Fractionl by Apr 16",
+      "current": "Plan live — blocked on Krish maya-1 approvals",
+      "owner": "Maya",
+      "progress": 5,
+      "notes": "Web apps only. SEO → Reddit → Betalist → PH → influencers."
     },
     {
-      "id": "apollo-1894-outreach-campaign",
-      "title": "Apollo 1,894 Contact Outreach Campaign - Ready to Deploy",
-      "owner": "Felix",
-      "status": "waiting",
-      "urgency": "high"
+      "id": "g4",
+      "title": "Content flywheel started",
+      "target": "2 LinkedIn posts live, Techonomic Ed 1 published",
+      "current": "Plan approved — Cleo drafting Post 1",
+      "owner": "Cleo",
+      "progress": 10,
+      "notes": "Cleo needs plan approval from Krish to start drafting."
     },
     {
-      "id": "arlo-phase-1-live",
-      "title": "PHASE 1: Control Center Live API + Event-Driven Sync (Execute NOW)",
-      "owner": "Arlo",
-      "status": "in_progress",
-      "urgency": "critical"
-    },
-    {
-      "id": "phase-1-agent-restructure",
-      "title": "PHASE 1: Sub-Agent Restructuring Mandate",
-      "owner": "Arlo",
-      "status": "in_progress",
-      "urgency": "CRITICAL"
-    },
-    {
-      "id": "phase-2-agent-briefs",
-      "title": "PHASE 2: Agent Restructuring - Cleo, Maya, Leo Execution",
-      "owner": "agatha",
-      "status": "done"
-    },
-    {
-      "id": "leo-phase2-active",
-      "title": "Leo — Chief Revenue Officer (CRO)",
-      "owner": "Leo",
-      "status": "active"
+      "id": "g5",
+      "title": "Nova first podcast booking",
+      "target": "1 confirmed S&N guest, AdExchanger CFP submitted",
+      "current": "Blocked on speaker card final PDF from Krish",
+      "owner": "Nova",
+      "progress": 20,
+      "notes": "Bio doc created. Speaker card amendments needed. CFP deadline approaching."
     }
-  ],
-  "blocked_count": 0,
-  "in_progress_count": 3,
-  "phase_status": {
-    "phase_1": "LIVE - Control Center API + N8N sync operational",
-    "phase_2": "ACTIVE - Cleo, Maya, Leo coordinators executing",
-    "phase_3": "READY - Vera audit cycle activated"
-  }
+  ]
 }

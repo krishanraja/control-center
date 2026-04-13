@@ -1,14 +1,38 @@
 {
-  "updated_at": "2026-04-13T01:18:33.310Z",
-  "audit_date": "2026-04-13T01:18:33.310Z",
-  "sections": {
-    "single-source-of-truth": "verified",
-    "mandate-clarity-framework": "all 11 agents have MCF",
-    "workspace-cleanliness": "verified",
-    "contradiction-detection": "zero contradictions",
-    "control-center-sync": "live and current",
-    "communication-protocol": "bulletproof"
+  "agatha": {
+    "status": "green",
+    "note": "Alignment OK"
   },
-  "pass_rate": "100%",
-  "status": "pass"
+  "vera": {
+    "status": "green",
+    "note": "Audit executed"
+  },
+  "arlo": {
+    "status": "green",
+    "note": "N/A"
+  },
+  "maya": {
+    "status": "green",
+    "note": "Voice compliance OK"
+  },
+  "cleo": {
+    "status": "amber",
+    "note": "Voice rules patched 04-07"
+  },
+  "leo": {
+    "status": "green",
+    "note": "Format compliance OK"
+  },
+  "felix": {
+    "status": "green",
+    "note": "Format compliance OK"
+  },
+  "zara": {
+    "status": "green",
+    "note": "Format compliance OK"
+  },
+  "nova": {
+    "status": "green",
+    "note": "Voice compliance OK"
+  }
 }

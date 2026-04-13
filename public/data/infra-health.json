@@ -1,31 +1,38 @@
 {
-  "updated_at": "2026-04-13T01:18:21.446Z",
-  "components": {
-    "control-center-api": {
-      "status": "healthy",
-      "last_check": "2026-04-13T01:18:21.446Z",
-      "endpoint": "/api/sync"
-    },
-    "n8n-workflows": {
-      "status": "healthy",
-      "last_check": "2026-04-13T01:18:21.446Z",
-      "active_workflows": 8
-    },
-    "github-sync": {
-      "status": "healthy",
-      "last_check": "2026-04-13T01:18:21.446Z",
-      "last_commit": "02b39b3"
-    },
-    "task-sync": {
-      "status": "healthy",
-      "last_check": "2026-04-13T01:18:21.446Z",
-      "synced_tasks": 33
-    },
-    "contradiction-detection": {
-      "status": "active",
-      "last_check": "2026-04-13T01:18:21.446Z",
-      "issues_found": 0
-    }
+  "agatha": {
+    "status": "green",
+    "note": "Telegram OK"
   },
-  "overall_status": "healthy"
+  "vera": {
+    "status": "green",
+    "note": "Cron OK"
+  },
+  "arlo": {
+    "status": "green",
+    "note": "N8N OK"
+  },
+  "maya": {
+    "status": "green",
+    "note": "GSC + DataForSEO OK"
+  },
+  "cleo": {
+    "status": "green",
+    "note": "Webhook OK"
+  },
+  "leo": {
+    "status": "green",
+    "note": "Stripe configured. User testing pending."
+  },
+  "felix": {
+    "status": "green",
+    "note": "Opportunity webhook OK"
+  },
+  "zara": {
+    "status": "green",
+    "note": "Apify actors OK"
+  },
+  "nova": {
+    "status": "green",
+    "note": "Cron OK"
+  }
 }
