@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Clock, AlertTriangle } from 'lucide-react'
+import { ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Clock, AlertTriangle, Info } from 'lucide-react'
 import type { PlanExecutionData } from '../types/plan-execution'
 
 interface Plan {
@@ -181,9 +181,21 @@ function PlanCard({ plan }: { plan: Plan }) {
       )}
 
       {/* Footer */}
-      <div className="px-4 py-3 bg-white/[0.01] border-t border-white/[0.07] flex items-center justify-between">
-        <p className="text-[11px] text-white/40">Next: {plan.next_milestone}</p>
-        <p className="text-[10px] text-white/30">{new Date(plan.last_updated).toLocaleTimeString()}</p>
+      <div className="px-4 py-3 bg-white/[0.01] border-t border-white/[0.07] flex items-center justify-between gap-3">
+        <p className="text-[11px] text-white/40 flex-1 truncate">Next: {plan.next_milestone}</p>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {plan.brief_source && plan.brief_source !== 'https://docs.google.com/document/d/...' && (
+            <a
+              href={plan.brief_source}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-violet-400 hover:text-violet-300 transition-colors font-medium"
+            >
+              View Brief →
+            </a>
+          )}
+          <p className="text-[10px] text-white/30">{new Date(plan.last_updated).toLocaleTimeString()}</p>
+        </div>
       </div>
     </div>
   )
@@ -193,6 +205,8 @@ export function PlanExecutionDashboard() {
   const [data, setData] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<string>('')
+  const [dataNoteVisible, setDataNoteVisible] = useState(true)
+  const [dataNote, setDataNote] = useState<string>('')
 
   useEffect(() => {
     const load = () =>
@@ -201,6 +215,7 @@ export function PlanExecutionDashboard() {
         .then(d => {
           setData(d.plans || [])
           setLastUpdated(d.generated_at)
+          if (d.data_note) setDataNote(d.data_note)
           setLoading(false)
         })
         .catch(() => setLoading(false))
@@ -225,6 +240,15 @@ export function PlanExecutionDashboard() {
         <h1 className="text-[22px] font-bold text-white tracking-tight">Plan Execution</h1>
         <p className="text-[13px] text-white/40 mt-0.5">Real-time progress on all agent workstreams</p>
       </div>
+
+      {/* Data note banner */}
+      {dataNote && dataNoteVisible && (
+        <div className="flex items-start gap-2.5 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+          <Info className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5" />
+          <p className="text-[11px] text-blue-300/70 flex-1">{dataNote}</p>
+          <button onClick={() => setDataNoteVisible(false)} className="text-white/20 hover:text-white/50 text-[10px] flex-shrink-0">✕</button>
+        </div>
+      )}
 
       {/* Status summary */}
       <div className="grid grid-cols-3 gap-3">

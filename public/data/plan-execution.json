@@ -1,52 +1,53 @@
 {
-  "schema_version": "1.0",
-  "generated_at": "2026-04-13T21:25:01.535954Z",
+  "schema_version": "1.1",
+  "generated_at": "2026-04-13T21:35:01.769976Z",
+  "data_note": "Phase data is manually maintained. Task-to-phase automation pending N8N workflow (arlo-phase-1-live).",
   "total_agents": 6,
   "total_tasks": 33,
   "plans": [
     {
       "agent": "Arlo",
-      "plan_name": "Arlo",
-      "overall_progress_pct": 0,
-      "timeline_status": "ON_TRACK",
+      "plan_name": "Arlo — Technical Operations",
+      "overall_progress_pct": 17,
+      "timeline_status": "AT_RISK",
       "phases": [
         {
           "name": "Zero undetected workflow failures, 100% uptime tracking",
-          "status": "pending",
-          "planned_start": null,
-          "planned_end": null,
-          "tasks_assigned": [],
-          "task_count": 0,
+          "status": "in_progress",
+          "planned_start": "2026-04-07",
+          "planned_end": "2026-04-20",
+          "tasks_assigned": ["arlo-systems-monitor"],
+          "task_count": 1,
           "completed_count": 0,
           "progress_pct": 0,
-          "blockers": []
+          "blockers": ["arlo-systems-monitor waiting on Krish approval"]
         },
         {
           "name": "Stripe webhooks live for all four products",
-          "status": "pending",
-          "planned_start": null,
-          "planned_end": null,
-          "tasks_assigned": [],
-          "task_count": 0,
-          "completed_count": 0,
-          "progress_pct": 0,
+          "status": "complete",
+          "planned_start": "2026-04-07",
+          "planned_end": "2026-04-10",
+          "tasks_assigned": ["b2"],
+          "task_count": 1,
+          "completed_count": 1,
+          "progress_pct": 100,
           "blockers": []
         },
         {
-          "name": "New agent (Cleo) infrastructure verified",
+          "name": "Drive Sync workflow activated in N8N",
           "status": "pending",
-          "planned_start": null,
-          "planned_end": null,
-          "tasks_assigned": [],
-          "task_count": 0,
+          "planned_start": "2026-04-10",
+          "planned_end": "2026-04-20",
+          "tasks_assigned": ["b1"],
+          "task_count": 1,
           "completed_count": 0,
           "progress_pct": 0,
-          "blockers": []
+          "blockers": ["b1 — Krish must activate in N8N UI (PPfv8kHNBzSq7fm0)"]
         }
       ],
       "critical_blockers": [
-        "Arlo \u2014 Build Systems Monitor + Control Center Systems Tab (waiting)",
-        "Drive Sync \u2014 Activate in N8N (waiting)"
+        "arlo-systems-monitor — waiting Krish approval",
+        "b1 — Drive Sync not yet activated in N8N"
       ],
       "task_count": 6,
       "task_summary": {
@@ -55,16 +56,72 @@
         "blocked": 0,
         "done": 1
       },
-      "next_milestone": "Complete Zero undetected workflow failures, 100% uptime tracking",
-      "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T21:25:01.534798Z"
+      "next_milestone": "Krish approves arlo-systems-monitor spec",
+      "brief_source": "https://docs.google.com/document/d/16IaX5tmaJS3Tby4GLjWEcznHP_-gwk1Si7rvvE7z4yw/edit",
+      "last_updated": "2026-04-13T21:35:01.769262Z"
     },
     {
       "agent": "Cleo",
-      "plan_name": "Cleo",
+      "plan_name": "Cleo — Content Production Coordinator (5 Streams)",
       "overall_progress_pct": 0,
-      "timeline_status": "UNKNOWN",
-      "phases": [],
+      "timeline_status": "AT_RISK",
+      "phases": [
+        {
+          "name": "Stream 1: Builder Economy Podcast — first episode outlined",
+          "status": "pending",
+          "planned_start": "2026-04-14",
+          "planned_end": "2026-04-30",
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": []
+        },
+        {
+          "name": "Stream 2: Signal & Noise Podcast — guest prep delivered 48h pre-recording",
+          "status": "pending",
+          "planned_start": "2026-04-14",
+          "planned_end": "2026-04-30",
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": ["Nell must confirm recording dates first"]
+        },
+        {
+          "name": "Stream 3: Techonomic Newsletter — bi-weekly, 80% open rate maintained",
+          "status": "pending",
+          "planned_start": "2026-04-14",
+          "planned_end": "2026-04-30",
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": []
+        },
+        {
+          "name": "Stream 4: Builder Economy Instagram — autonomous daily content loop live",
+          "status": "pending",
+          "planned_start": "2026-04-14",
+          "planned_end": "2026-04-30",
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": []
+        },
+        {
+          "name": "Stream 5: Mindmaker Live — building-in-public content → Strategy Day attribution",
+          "status": "pending",
+          "planned_start": "2026-04-14",
+          "planned_end": "2026-04-30",
+          "tasks_assigned": ["cleo-breaking-news-radar"],
+          "task_count": 1,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": ["Arlo must build RSS alert pipeline first"]
+        }
+      ],
       "critical_blockers": [],
       "task_count": 1,
       "task_summary": {
@@ -73,43 +130,43 @@
         "blocked": 0,
         "done": 0
       },
-      "next_milestone": "Start execution",
-      "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T21:25:01.534918Z"
+      "next_milestone": "First Monday coordination cycle — Apr 14",
+      "brief_source": "https://docs.google.com/document/d/10-kH5pAbMe0QOUZQdWbaeXP4CRfoPX4sL9XtiUekoQg/edit",
+      "last_updated": "2026-04-13T21:35:01.769350Z"
     },
     {
       "agent": "Felix",
-      "plan_name": "Felix",
-      "overall_progress_pct": 0,
+      "plan_name": "Felix — Enterprise Pipeline",
+      "overall_progress_pct": 25,
       "timeline_status": "ON_TRACK",
       "phases": [
         {
-          "name": "\u22651 active engagement in proposal stage",
-          "status": "pending",
-          "planned_start": null,
-          "planned_end": null,
-          "tasks_assigned": [],
-          "task_count": 0,
+          "name": "1 active engagement in proposal stage",
+          "status": "in_progress",
+          "planned_start": "2026-04-07",
+          "planned_end": "2026-04-30",
+          "tasks_assigned": ["arlo-phase-1-live"],
+          "task_count": 1,
           "completed_count": 0,
-          "progress_pct": 0,
+          "progress_pct": 60,
           "blockers": []
         },
         {
-          "name": "Pipeline \u2265$100K tracked across all active opportunities",
-          "status": "pending",
-          "planned_start": null,
-          "planned_end": null,
-          "tasks_assigned": [],
-          "task_count": 0,
+          "name": "Pipeline tracked at $100K+",
+          "status": "in_progress",
+          "planned_start": "2026-04-07",
+          "planned_end": "2026-04-30",
+          "tasks_assigned": ["apollo-1894-outreach-campaign"],
+          "task_count": 1,
           "completed_count": 0,
           "progress_pct": 0,
-          "blockers": []
+          "blockers": ["apollo-1894-outreach-campaign waiting on Krish approval"]
         },
         {
-          "name": "Zero cold outreach \u2014 all engagement warm path only",
+          "name": "Zero cold outreach — all warm path",
           "status": "pending",
-          "planned_start": null,
-          "planned_end": null,
+          "planned_start": "2026-04-07",
+          "planned_end": "2026-04-30",
           "tasks_assigned": [],
           "task_count": 0,
           "completed_count": 0,
@@ -118,7 +175,7 @@
         }
       ],
       "critical_blockers": [
-        "Apollo 1,894 Contact Outreach Campaign - Ready to Deploy (waiting)"
+        "apollo-1894-outreach-campaign — waiting Krish approval"
       ],
       "task_count": 1,
       "task_summary": {
@@ -127,17 +184,54 @@
         "blocked": 0,
         "done": 0
       },
-      "next_milestone": "Complete \u22651 active engagement in proposal stage",
-      "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T21:25:01.535367Z"
+      "next_milestone": "Krish approves 1,894-contact campaign deployment",
+      "brief_source": "https://docs.google.com/document/d/1o_Gcn9AZM2RxYV4MCSidWcIdmz--IyoeZDyqzHcIQy4/edit",
+      "last_updated": "2026-04-13T21:35:01.769679Z"
     },
     {
       "agent": "Leo",
-      "plan_name": "Leo",
+      "plan_name": "Leo — Chief Revenue Officer",
       "overall_progress_pct": 0,
-      "timeline_status": "UNKNOWN",
-      "phases": [],
-      "critical_blockers": [],
+      "timeline_status": "BLOCKED",
+      "phases": [
+        {
+          "name": "Analytics access wired (GA + Stripe + Calendly + CRM)",
+          "status": "pending",
+          "planned_start": "2026-04-13",
+          "planned_end": "2026-04-20",
+          "tasks_assigned": ["leo-phase2-active"],
+          "task_count": 1,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": ["Arlo must wire GA, Stripe, Calendly, CRM connections first"]
+        },
+        {
+          "name": "Full funnel map + drop-off analysis (Mindmaker, Fractionl, AdFixus)",
+          "status": "pending",
+          "planned_start": "2026-04-20",
+          "planned_end": "2026-05-01",
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": ["Blocked on Phase 1 analytics access"]
+        },
+        {
+          "name": "Revenue tracking live — $20K/mo target visible in dashboard",
+          "status": "pending",
+          "planned_start": "2026-04-20",
+          "planned_end": "2026-05-01",
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": ["Revenue Report N8N workflow errored — needs fix"]
+        }
+      ],
+      "critical_blockers": [
+        "Analytics access not yet wired (Arlo action)",
+        "Revenue Report N8N workflow unresolved error"
+      ],
       "task_count": 1,
       "task_summary": {
         "in_progress": 0,
@@ -145,17 +239,64 @@
         "blocked": 0,
         "done": 0
       },
-      "next_milestone": "Start execution",
-      "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T21:25:01.535502Z"
+      "next_milestone": "Arlo wires analytics connections",
+      "brief_source": "https://docs.google.com/document/d/1mtliZiV2VpyoxRfD39SlN0aWbOZ83-UEoQXwB3JEk0k/edit",
+      "last_updated": "2026-04-13T21:35:01.769744Z"
     },
     {
       "agent": "Maya",
-      "plan_name": "Maya",
+      "plan_name": "Maya — Customer Acquisition Coordinator (4 Apps)",
       "overall_progress_pct": 0,
-      "timeline_status": "UNKNOWN",
-      "phases": [],
-      "critical_blockers": [],
+      "timeline_status": "AT_RISK",
+      "phases": [
+        {
+          "name": "mm-ctrl: Acquisition strategy documented (user definition + channels + success metric)",
+          "status": "pending",
+          "planned_start": "2026-04-14",
+          "planned_end": "2026-05-01",
+          "tasks_assigned": ["maya-phase2-active"],
+          "task_count": 1,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": ["Krish must approve maya-1 strategy first"]
+        },
+        {
+          "name": "Circle (Fractionl): Acquisition strategy documented",
+          "status": "pending",
+          "planned_start": "2026-04-14",
+          "planned_end": "2026-05-01",
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": []
+        },
+        {
+          "name": "Gutted: Acquisition strategy documented",
+          "status": "pending",
+          "planned_start": "2026-04-14",
+          "planned_end": "2026-05-01",
+          "tasks_assigned": ["maya-beta-sprint"],
+          "task_count": 1,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": []
+        },
+        {
+          "name": "On Alert / Merciless: Acquisition strategy documented",
+          "status": "pending",
+          "planned_start": "2026-04-14",
+          "planned_end": "2026-05-01",
+          "tasks_assigned": [],
+          "task_count": 0,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": []
+        }
+      ],
+      "critical_blockers": [
+        "maya-beta-sprint — Krish must approve acquisition strategy before Maya executes"
+      ],
       "task_count": 3,
       "task_summary": {
         "in_progress": 0,
@@ -163,33 +304,69 @@
         "blocked": 0,
         "done": 0
       },
-      "next_milestone": "Start execution",
-      "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T21:25:01.535658Z"
+      "next_milestone": "Krish approves maya-1 acquisition strategy",
+      "brief_source": "https://docs.google.com/document/d/1tV3EKTEz7PfEL5mN371F5czmsUxkwjFzYZzcryh1YJU/edit",
+      "last_updated": "2026-04-13T21:35:01.769828Z"
     },
     {
       "agent": "Nell",
-      "plan_name": "Nell - Outbound Sequencing Agent",
-      "overall_progress_pct": 0,
-      "timeline_status": "UNKNOWN",
-      "phases": [],
-      "critical_blockers": [],
+      "plan_name": "Nell — Outbound Sequencing / Podcast Guest Booking",
+      "overall_progress_pct": 10,
+      "timeline_status": "AT_RISK",
+      "phases": [
+        {
+          "name": "Signal & Noise: Bob Pittman draft approved, Tier 1 batch sent",
+          "status": "in_progress",
+          "planned_start": "2026-04-13",
+          "planned_end": "2026-04-16",
+          "tasks_assigned": ["nell-possible-outreach"],
+          "task_count": 1,
+          "completed_count": 0,
+          "progress_pct": 20,
+          "blockers": ["Krish must approve Bob Pittman email draft in Gmail Drafts"]
+        },
+        {
+          "name": "Signal & Noise: 5 POSSIBLE guests booked by Apr 27",
+          "status": "pending",
+          "planned_start": "2026-04-16",
+          "planned_end": "2026-04-27",
+          "tasks_assigned": ["nell-possible-outreach"],
+          "task_count": 1,
+          "completed_count": 0,
+          "progress_pct": 0,
+          "blockers": ["Blocked on draft approval first"]
+        },
+        {
+          "name": "Open Threads: Chris Handy + Dan Pratl added",
+          "status": "in_progress",
+          "planned_start": "2026-04-13",
+          "planned_end": "2026-04-14",
+          "tasks_assigned": ["nell-open-threads-update"],
+          "task_count": 1,
+          "completed_count": 0,
+          "progress_pct": 50,
+          "blockers": []
+        }
+      ],
+      "critical_blockers": [
+        "nell-possible-outreach — Krish must approve Bob Pittman draft in Gmail"
+      ],
       "task_count": 2,
       "task_summary": {
-        "in_progress": 0,
+        "in_progress": 2,
         "waiting": 0,
         "blocked": 0,
         "done": 0
       },
-      "next_milestone": "Start execution",
-      "brief_source": "https://docs.google.com/document/d/...",
-      "last_updated": "2026-04-13T21:25:01.535734Z"
+      "next_milestone": "Krish approves Bob Pittman draft → Nell sends Tier 1 batch",
+      "brief_source": "https://docs.google.com/document/d/1BVa-yUeGgx5e3tB1axFdLtFJussbC-smLqxJdvjCvek/edit",
+      "last_updated": "2026-04-13T21:35:01.769871Z"
     }
   ],
   "system_health": {
     "all_plans_updated": true,
     "contradictions_detected": 0,
-    "sync_source": "agent briefs + tasks.json",
-    "next_sync": "2026-04-13T21:30:01.535959Z"
+    "sync_source": "agent briefs + tasks.json (manual — N8N automation pending)",
+    "next_sync": "2026-04-14T03:05:00Z"
   }
 }
