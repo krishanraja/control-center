@@ -20,11 +20,29 @@ export function ExecutionTabContent() {
   const [lastUpdate, setLastUpdate] = useState<string>('')
 
   useEffect(() => {
-    fetch('/data/execution-state.json')
+    fetch('/data/execution-state.json', { cache: 'no-cache' })
       .then(r => r.json())
       .then(d => {
-        setEngines(d.engines)
-        setLastUpdate(new Date(d.updated_at).toLocaleString())
+        // Defensively normalise each engine so missing fields never crash the render
+        const raw: unknown[] = Array.isArray(d?.engines) ? d.engines : []
+        const safe: EngineState[] = raw.map((e: unknown) => {
+          const eng = (e ?? {}) as Record<string, unknown>
+          return {
+            id:            String(eng.id   ?? eng.name ?? 'unknown'),
+            name:          String(eng.name ?? 'Unknown'),
+            domain:        String(eng.domain ?? eng.data_source ?? '—'),
+            cron:          String(eng.cron  ?? eng.last_sync   ?? '—'),
+            n8n_workflow:  String(eng.n8n_workflow ?? eng.webhook_endpoint ?? 'None'),
+            infra_status:  (['green','amber','red'].includes(String(eng.infra_status)) ? eng.infra_status : (eng.status === 'operational' || eng.status === 'healthy' ? 'green' : eng.status === 'error' ? 'red' : 'amber')) as 'green'|'amber'|'red',
+            qa_status:     (['green','amber','red'].includes(String(eng.qa_status)) ? eng.qa_status : 'amber') as 'green'|'amber'|'red',
+            infra_note:    String(eng.infra_note ?? eng.note ?? ''),
+            qa_note:       String(eng.qa_note ?? ''),
+            state:         String(eng.state ?? (eng.status === 'operational' ? 'Running' : eng.status ?? 'Unknown')),
+            next_run:      String(eng.next_run ?? eng.next_check ?? '—'),
+          }
+        })
+        setEngines(safe)
+        setLastUpdate(d?.updated_at ? new Date(String(d.updated_at)).toLocaleString() : '—')
       })
       .catch(e => console.error('Failed to load execution state:', e))
   }, [])

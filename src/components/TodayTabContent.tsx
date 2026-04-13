@@ -412,7 +412,7 @@ export function TodayTabContent() {
             </div>
           )}
 
-          {goals?.goals.length ? (
+          {goals?.goals?.length ? (
             <div className="space-y-2">
               {goals.goals.map(goal => (
                 <GoalItem key={goal.id} goal={goal} onSaved={fetchAll} />

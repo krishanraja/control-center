@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { AGENTS, COMPANY_VALUES } from './services/agentData'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { DesktopNav } from './components/DesktopNav'
 import { BottomNav } from './components/BottomNav'
 import { HomeIntelligence } from './components/HomeIntelligence'
@@ -99,54 +100,66 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
 
 function DesktopHome({ currentTime }: { currentTime: Date }) {
   return (
-    <div className="space-y-8">
-      <HomeIntelligence />
-    </div>
+    <ErrorBoundary label="Home">
+      <div className="space-y-8">
+        <HomeIntelligence />
+      </div>
+    </ErrorBoundary>
   )
 }
 
 function DesktopToday() {
   return (
-    <div className="space-y-4">
-      <div className="flex items-baseline gap-3">
-        <h1 className="text-[22px] font-bold text-white">Today</h1>
-        <p className="text-[13px] text-white/30">Everything that needs you</p>
+    <ErrorBoundary label="Today">
+      <div className="space-y-4">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-[22px] font-bold text-white">Today</h1>
+          <p className="text-[13px] text-white/30">Everything that needs you</p>
+        </div>
+        <TodayTabContent />
       </div>
-      <TodayTabContent />
-    </div>
+    </ErrorBoundary>
   )
 }
 
 function DesktopTeam({ currentTime }: { currentTime: Date }) {
   return (
-    <div className="space-y-4">
-      <h1 className="text-[22px] font-bold text-white">Team</h1>
-      <AgentGrid agents={AGENTS} currentTime={currentTime} />
-    </div>
+    <ErrorBoundary label="Team">
+      <div className="space-y-4">
+        <h1 className="text-[22px] font-bold text-white">Team</h1>
+        <AgentGrid agents={AGENTS} currentTime={currentTime} />
+      </div>
+    </ErrorBoundary>
   )
 }
 
 function DesktopPlans() {
   return (
-    <PlanExecutionDashboard />
+    <ErrorBoundary label="Plans">
+      <PlanExecutionDashboard />
+    </ErrorBoundary>
   )
 }
 
 function DesktopOrg({ currentTime }: { currentTime: Date }) {
   return (
-    <div className="space-y-4">
-      <h1 className="text-[22px] font-bold text-white">Organisation</h1>
-      <OrgChart agents={AGENTS} currentTime={currentTime} />
-    </div>
+    <ErrorBoundary label="Org">
+      <div className="space-y-4">
+        <h1 className="text-[22px] font-bold text-white">Organisation</h1>
+        <OrgChart agents={AGENTS} currentTime={currentTime} />
+      </div>
+    </ErrorBoundary>
   )
 }
 
 function DesktopOps() {
   return (
-    <div className="space-y-4">
-      <h1 className="text-[22px] font-bold text-white">Automations</h1>
-      <AutomationsPanel />
-    </div>
+    <ErrorBoundary label="Automations">
+      <div className="space-y-4">
+        <h1 className="text-[22px] font-bold text-white">Automations</h1>
+        <AutomationsPanel />
+      </div>
+    </ErrorBoundary>
   )
 }
 
@@ -165,72 +178,88 @@ function MobileHeader({ title, subtitle }: { title: string; subtitle?: string })
 
 function MobileHome({ currentTime }: { currentTime: Date }) {
   return (
-    <div className="space-y-5">
-      <MobileHeader title="Exec Summary" subtitle="April 2026" />
-      <HomeIntelligence />
-    </div>
+    <ErrorBoundary label="Home">
+      <div className="space-y-5">
+        <MobileHeader title="Exec Summary" subtitle="April 2026" />
+        <HomeIntelligence />
+      </div>
+    </ErrorBoundary>
   )
 }
 
 function MobileToday() {
   return (
-    <div className="space-y-4">
-      <MobileHeader title="Today" subtitle="Everything that needs you" />
-      <TodayTabContent />
-    </div>
+    <ErrorBoundary label="Today">
+      <div className="space-y-4">
+        <MobileHeader title="Today" subtitle="Everything that needs you" />
+        <TodayTabContent />
+      </div>
+    </ErrorBoundary>
   )
 }
 
 function MobileTeam({ currentTime }: { currentTime: Date }) {
   return (
-    <div className="space-y-4">
-      <MobileHeader title="Team" subtitle="Your AI agents" />
-      <AgentGrid agents={AGENTS} currentTime={currentTime} />
-    </div>
+    <ErrorBoundary label="Team">
+      <div className="space-y-4">
+        <MobileHeader title="Team" subtitle="Your AI agents" />
+        <AgentGrid agents={AGENTS} currentTime={currentTime} />
+      </div>
+    </ErrorBoundary>
   )
 }
 
 function MobilePlans() {
   return (
-    <div className="space-y-4">
-      <MobileHeader title="Plan Execution" subtitle="Real-time agent progress" />
-      <PlanExecutionDashboard />
-    </div>
+    <ErrorBoundary label="Plans">
+      <div className="space-y-4">
+        <MobileHeader title="Plan Execution" subtitle="Real-time agent progress" />
+        <PlanExecutionDashboard />
+      </div>
+    </ErrorBoundary>
   )
 }
 
 function MobileOrg({ currentTime }: { currentTime: Date }) {
   return (
-    <div className="space-y-4">
-      <MobileHeader title="Org Chart" subtitle="Reporting chain & pods" />
-      <MobileOrgChart agents={AGENTS} />
-    </div>
+    <ErrorBoundary label="Org">
+      <div className="space-y-4">
+        <MobileHeader title="Org Chart" subtitle="Reporting chain & pods" />
+        <MobileOrgChart agents={AGENTS} />
+      </div>
+    </ErrorBoundary>
   )
 }
 
 function MobileOps() {
   return (
-    <div className="space-y-4">
-      <MobileHeader title="Automations" subtitle="N8N workflows" />
-      <AutomationsPanel />
-    </div>
+    <ErrorBoundary label="Automations">
+      <div className="space-y-4">
+        <MobileHeader title="Automations" subtitle="N8N workflows" />
+        <AutomationsPanel />
+      </div>
+    </ErrorBoundary>
   )
 }
 
 function DesktopSystems() {
   return (
-    <div className="space-y-4">
-      <SystemsPanel />
-    </div>
+    <ErrorBoundary label="Systems">
+      <div className="space-y-4">
+        <SystemsPanel />
+      </div>
+    </ErrorBoundary>
   )
 }
 
 function MobileSystems() {
   return (
-    <div className="space-y-4">
-      <MobileHeader title="Systems" subtitle="Connected services · Monitored by Arlo" />
-      <SystemsPanel />
-    </div>
+    <ErrorBoundary label="Systems">
+      <div className="space-y-4">
+        <MobileHeader title="Systems" subtitle="Connected services · Monitored by Arlo" />
+        <SystemsPanel />
+      </div>
+    </ErrorBoundary>
   )
 }
 
