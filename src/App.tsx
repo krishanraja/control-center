@@ -15,6 +15,7 @@ import { SystemsPanel } from './components/SystemsPanel'
 import { WeeklyGoals } from './components/WeeklyGoals'
 import { PlaybooksPanel } from './components/PlaybooksPanel'
 import { PlanExecutionDashboard } from './components/PlanExecutionDashboard'
+import { WorkstreamBoard } from './components/WorkstreamBoard'
 
 // ─── Tab IDs shared across desktop + mobile ───────────────────────────────────
 type TabId = 'home' | 'today' | 'playbooks' | 'plans' | 'org' | 'execution' | 'systems'
@@ -136,7 +137,7 @@ function DesktopTeam({ currentTime }: { currentTime: Date }) {
 function DesktopPlans() {
   return (
     <ErrorBoundary label="Plans">
-      <PlanExecutionDashboard />
+      <WorkstreamBoard />
     </ErrorBoundary>
   )
 }
@@ -213,8 +214,7 @@ function MobilePlans() {
   return (
     <ErrorBoundary label="Plans">
       <div className="space-y-4">
-        <MobileHeader title="Plan Execution" subtitle="Real-time agent progress" />
-        <PlanExecutionDashboard />
+        <WorkstreamBoard />
       </div>
     </ErrorBoundary>
   )
