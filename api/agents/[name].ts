@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { execSync } from 'child_process'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -11,36 +12,25 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const agentName = name.toLowerCase()
+  const briefPath = join(process.cwd(), 'public', 'data', 'agent-briefs', `${agentName}.json`)
 
-  // Read agent brief index from workspace
   try {
-    const output = execSync(
-      `cat /root/.openclaw/workspace/active/agent-briefs-index.json 2>/dev/null`,
-      { encoding: 'utf8' }
-    )
-    const briefs = JSON.parse(output)
-
-    if (!briefs[agentName]) {
-      return res.status(404).json({ error: `agent not found: ${agentName}` })
-    }
-
-    const brief = briefs[agentName]
-
-    // Return brief with metadata
+    const briefData = JSON.parse(readFileSync(briefPath, 'utf8'))
     return res.json({
       success: true,
-      agent: brief.agent,
-      brief_file: brief.file,
-      updated_at: brief.updated,
-      content: brief.brief_content,
-      content_hash: brief.content_hash,
-      source: 'workspace',
+      agent: briefData.agent,
+      brief_file: briefData.file,
+      updated_at: briefData.updated_at,
+      content: briefData.content,
+      source: 'control-center',
       synced_at: new Date().toISOString()
     })
   } catch (error) {
-    return res.status(500).json({
-      error: 'Failed to fetch agent brief',
-      message: error instanceof Error ? error.message : 'Unknown error'
+    return res.status(404).json({
+      error: `Agent brief not found: ${agentName}`,
+      available_agents: [
+        'arlo', 'cleo', 'felix', 'leo', 'marcus', 'maya', 'nell', 'nova', 'priya', 'vera', 'zara'
+      ]
     })
   }
 }
