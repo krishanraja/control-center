@@ -6,61 +6,65 @@ const today = new Date().toLocaleDateString('en-GB', {
   weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
 })
 
-// Today's queue is derived from sequences.json — Krish-owned pending unblocked steps only.
-// Update sequences.json (public/data/sequences.json) to change what appears here.
+const BLOCKED_PATH = join(process.cwd(), 'public', 'data', 'blocked.json')
+const SYNC_CACHE_PATH = join(process.cwd(), 'public', 'data', 'sync-cache.json')
 
-function getKrishStepsFromSequences() {
+function getKrishStepsFromTasks() {
+  let tasks = []
+  
+  // Try live sync cache first
   try {
-    const raw = readFileSync(join(process.cwd(), 'public', 'data', 'sequences.json'), 'utf8')
-    const data = JSON.parse(raw)
-
-    const items: Array<{
-      id: string; title: string; detail: string; owner: string;
-      status: string; priority: number; est: string; link?: string
-    }> = []
-
-    let priority = 1
-    for (const seq of data.sequences ?? []) {
-      // Build a set of done step IDs for this sequence
-      const doneIds = new Set(
-        (seq.steps ?? [])
-          .filter((s: { status: string }) => s.status === 'done')
-          .map((s: { id: string }) => s.id)
-      )
-
-      for (const step of seq.steps ?? []) {
-        if (step.owner !== 'krish') continue
-        if (step.status === 'done') continue
-
-        // Is it blocked?
-        const isBlocked = step.blocked_by && !doneIds.has(step.blocked_by)
-        if (isBlocked) continue
-
-        // Unblocked Krish step — add to queue
-        const mins = step.estimated_mins ? `${step.estimated_mins} min` : '—'
-        const firstLink = step.links?.[0]?.url
-
-        items.push({
-          id: step.id,
-          title: step.description,
-          detail: step.owner_note ?? `Part of ${seq.agent}'s sequence: ${seq.title}`,
-          owner: 'krish',
-          status: 'pending',
-          priority: priority++,
-          est: mins,
-          link: firstLink,
-        })
-      }
+    const syncData = JSON.parse(readFileSync(SYNC_CACHE_PATH, 'utf8'))
+    if (syncData.tasks && syncData.tasks.length > 0) {
+      tasks = syncData.tasks
     }
+  } catch {}
 
-    return items
-  } catch {
-    return []
+  // Fall back to blocked.json
+  if (tasks.length === 0) {
+    try {
+      const blockedData = JSON.parse(readFileSync(BLOCKED_PATH, 'utf8'))
+      if (blockedData.tasks) {
+        tasks = blockedData.tasks
+      }
+    } catch {}
   }
+
+  const items: Array<{
+    id: string; title: string; detail: string; owner: string;
+    status: string; priority: number; est: string; link?: string
+  }> = []
+
+  let priority = 1
+
+  for (const t of tasks) {
+    if (t.status === 'done') continue
+    if (t.owner !== 'krish' && t.blockedBy !== 'krish') continue
+
+    const isHighPriority = t.priority === 'pri-0' || t.urgency === 'high' || t.urgency === 'CRITICAL'
+    const est = t.estimated_mins ? `${t.estimated_mins} min` : '—'
+    const link = t.linkPrimary || t.plan_doc_url || ''
+
+    items.push({
+      id: t.id,
+      title: t.title,
+      detail: t.description || t.nextStep || `Assigned to: ${t.agent || t.owner}`,
+      owner: 'krish',
+      status: t.status === 'in_progress' ? 'active' : 'pending',
+      priority: isHighPriority ? priority++ : priority + 10,
+      est: est,
+      link: link
+    })
+  }
+
+  // Sort: pri-0/high urgency first
+  items.sort((a, b) => a.priority - b.priority)
+
+  return items
 }
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Cache-Control', 'no-store')
-  res.json({ date: today, items: getKrishStepsFromSequences() })
+  res.json({ date: today, items: getKrishStepsFromTasks() })
 }
