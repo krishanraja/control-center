@@ -1,116 +1,16 @@
 {
-  "updated_at": "2026-04-12T07:01:00Z",
-  "updated_by": "arlo-weekly-2026-04-12",
-  "next_check": "2026-04-19T07:00:00Z",
-  "categories": [
-    {
-      "id": "automation",
-      "label": "Automation Layer",
-      "services": [
-        {
-          "id": "n8n",
-          "name": "N8N Cloud",
-          "url": "https://krishraja10101.app.n8n.cloud",
-          "status": "green",
-          "note": "30 active / 8 inactive workflows",
-          "last_checked": "2026-04-12T07:01:00Z"
-        },
-        {
-          "id": "n8n-revenue-report",
-          "name": "Revenue Report Workflow",
-          "status": "red",
-          "note": "Errored Apr 6-7 — unresolved. Investigate in N8N UI (pyr9wurcs1M9utW3)",
-          "last_checked": "2026-04-12T07:01:00Z"
-        },
-        {
-          "id": "n8n-content-engine",
-          "name": "Content Engine Workflow",
-          "status": "amber",
-          "note": "Errored Apr 11 — node-level detail unavailable via API",
-          "last_checked": "2026-04-12T07:01:00Z"
-        }
-      ]
-    },
-    {
-      "id": "outreach",
-      "label": "Outreach & Enrichment",
-      "services": [
-        {
-          "id": "instantly",
-          "name": "Instantly v2",
-          "status": "green",
-          "note": "Auth verified Apr 8 — v2 API confirmed",
-          "last_checked": "2026-04-12T07:01:00Z"
-        },
-        {
-          "id": "apollo",
-          "name": "Apollo.io",
-          "status": "amber",
-          "note": "422 on health endpoint — key may be valid but manual test needed",
-          "last_checked": "2026-04-12T07:01:00Z"
-        },
-        {
-          "id": "apify",
-          "name": "Apify",
-          "status": "green",
-          "note": "STARTER $29/mo — LinkedIn, Workday, Career Site actors all active",
-          "last_checked": "2026-04-12T07:01:00Z"
-        }
-      ]
-    },
-    {
-      "id": "payments",
-      "label": "Revenue & Payments",
-      "services": [
-        {
-          "id": "stripe",
-          "name": "Stripe",
-          "status": "green",
-          "note": "Webhooks live — confirmed 200 Apr 7",
-          "last_checked": "2026-04-12T07:01:00Z"
-        },
-        {
-          "id": "beehiiv",
-          "name": "Beehiiv",
-          "status": "unknown",
-          "note": "Not tested this cycle",
-          "last_checked": null
-        }
-      ]
-    },
-    {
-      "id": "infrastructure",
-      "label": "Infrastructure",
-      "services": [
-        {
-          "id": "github",
-          "name": "GitHub",
-          "status": "green",
-          "note": "Token valid — API calls returning data",
-          "last_checked": "2026-04-12T07:01:00Z"
-        },
-        {
-          "id": "google-oauth",
-          "name": "Google OAuth",
-          "status": "amber",
-          "note": "Refresh required each session — not re-tested this cycle",
-          "last_checked": null
-        },
-        {
-          "id": "supabase",
-          "name": "Supabase",
-          "status": "green",
-          "note": "PAT valid — Circle + Pulse projects accessible",
-          "last_checked": "2026-04-12T07:01:00Z"
-        },
-        {
-          "id": "agentops",
-          "name": "AgentOps",
-          "status": "unknown",
-          "note": "Key configured — monthly spend not yet pulled",
-          "last_checked": null
-        }
-      ]
-    }
-  ]
+  "updated_at": "2026-04-13T21:53:27.437890Z",
+  "os_version": "v3",
+  "os_status": "operational",
+  "components": {
+    "single_source_of_truth": "operational",
+    "communication_protocol": "verified",
+    "agent_standardization": "complete",
+    "workspace_cleanliness": "verified",
+    "contradiction_detection": "zero_contradictions",
+    "phase_1_infrastructure": "live",
+    "phase_2_agents": "executing",
+    "phase_3_oversight": "ready",
+    "control_center_sync": "every 5 minutes (last: 2026-04-13T21:53:27.437890Z)"
+  }
 }

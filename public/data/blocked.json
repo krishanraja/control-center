@@ -1,1004 +1,997 @@
 {
-    "updated_at": "2026-04-13T21:45:01.966240Z",
-    "updated_by": "arlo-sync",
-    "tasks": [
-        {
-            "id": "arlo-apollo-sheet-pull",
-            "venture": "ops",
-            "title": "Apollo Raw Data Pull - Creative Macros (Google Sheet Only)",
-            "status": "in_progress",
-            "priority": "pri-0",
-            "urgency": "CRITICAL",
-            "created": "2026-04-10T21:00:00Z",
-            "owner": "agatha",
-            "agent": "Arlo",
-            "group": "apollo-deployment",
-            "groupLabel": "Apollo Deployment",
-            "linkPrimary": "",
-            "nextStep": "Arlo: Run Apollo search with refined filters NOW (credits expire tonight). Search params: CEO/CTO/CSO/CFO/COO/President/VP Strategy/VP Biz Dev/VP Ops; Tech/Finance/Media/Healthcare/Retail; 50-5000 employees. Expected 1500-2000 contacts. Format to multi-tab Google Sheet per industry. Notify Agatha on completion.",
-            "description": "\nExecute the approved Apollo deployment plan. Pull leads into a richly formatted Google Sheet with tabs:\n1. AdF US Sniper (~100): WBD, Disney, NYT, Bloomberg, WaPo, Dotdash, Vox (SVP/VP Addressability, Data, Direct Sales)\n2. MM Capital (~1000): MDs, Partners at US/UK/MENA Family Offices/Micro-VCs (B2B SaaS, Future of Work, AI)\n3. Aggregators (~400): Founders, MDs of Pavilion, Chief, Hampton, Vistage\n4. PR/Journalists (~500): Senior Editors, Podcasters at The Information, Axios, Bloomberg, WSJ\n5. CAIOs (~1000): Chief AI Officer, Head of AI (Verified Custom Domain Only)\n6. Fractional Execs (~1000): Fractional CMO/CFO/COO (Verified Custom Domain Only)\n\nOutput is purely a spreadsheet for Krish to review.\n",
-            "guards": [
-                "DO NOT UPLOAD LEADS TO INSTANTLY.",
-                "DO NOT CREATE INSTANTLY CAMPAIGNS.",
-                "Enforce strictly Verified Custom Domain emails for CAIO and Fractional tabs.",
-                "Follow Google Doc protocol for creating the Sheet/Doc."
-            ],
-            "updatedAt": "2026-04-11T20:09:48.264Z"
-        },
-        {
-            "id": "agatha-apollo-deployment-plan",
-            "venture": "ops",
-            "title": "Apollo Credit Deployment Plan - April 2026",
-            "status": "waiting",
-            "priority": "pri-0",
-            "urgency": "high",
-            "created": "2026-04-10T20:47:00Z",
-            "owner": "agatha",
-            "agent": "Agatha",
-            "group": "apollo-deployment",
-            "groupLabel": "Apollo Deployment",
-            "linkPrimary": "https://docs.google.com/document/d/1EchOZcbwHDZrdcNSWi2f8qAwWpyq53FzONbGKmW8kTo/edit?usp=drivesdk",
-            "nextStep": "Review the deployment plan in the doc and approve before Apollo execution.",
-            "description": "Comprehensive plan to allocate 4,015 Apollo credits across AdFixus, Mindmaker, and Fractionl, based on an audit of Instantly campaigns."
-        },
-        {
-            "id": "arlo-systems-monitor",
-            "venture": "ops",
-            "title": "Arlo — Build Systems Monitor + Control Center Systems Tab",
-            "status": "waiting",
-            "priority": "pri-0",
-            "blockedBy": "krish",
-            "urgency": "high",
-            "created": "2026-04-08T15:35:00Z",
-            "owner": "agatha",
-            "agent": "Arlo",
-            "group": "ops-governance",
-            "groupLabel": "Ops Governance",
-            "nextStep": "Approve spec, then Arlo builds N8N workflow + Notion Systems tab",
-            "description": "Arlo to build: (1) Full service inventory from hot/systems.md — every API, Supabase project, Stripe account, automation tool. (2) N8N health check workflow: hourly ping + auth validity + credit/quota monitoring. (3) Status flags: green/yellow/red/unchecked per service. (4) Notion Systems tab in Ops Board — live status written by Arlo after each check run. (5) Ops-bot Telegram alert on any red or critical yellow. (6) Weekly cost report via Agentops key (aa_YBQsXLzdHthiVbwcDEScjRQbFsUVAYUA) — fed to Vera for Friday audit. Schedule: hourly lightweight ping + full sweep on Arlo's Sunday 3AM cron."
-        },
-        {
-            "id": "model-tier-enforcement",
-            "venture": "ops",
-            "title": "Enforce model tier rules across all agent N8N workflows",
-            "status": "done",
-            "priority": "pri-0",
-            "blockedBy": null,
-            "urgency": "high",
-            "created": "2026-04-08T15:35:00Z",
-            "owner": "agatha",
-            "agent": "Arlo",
-            "group": "ops-governance",
-            "groupLabel": "Ops Governance",
-            "nextStep": "Arlo to audit all active N8N workflows and enforce model tier rules (patterns.md MT-001 to MT-006)",
-            "description": "Audit every N8N AI node across all agent workflows. Enforce: Haiku for Zara/Felix/Arlo/heartbeats/data-fetch nodes. Sonnet for Vera/Marcus/Priya/Leo/Nova/Maya. Opus removed from all N8N nodes entirely. Add max_tokens caps per tier. Report back with before/after model config list.",
-            "evidence": "Audited all 5 active N8N AI workflows (2026-04-10). 4 already on claude-sonnet-4-6. 1 violation found: Product Proposal Review using claude-3-5-haiku-20241022 for Agatha-level judgment — patched to claude-sonnet-4-6 via N8N API (HTTP 200). No Opus nodes found anywhere. Max tokens within MT-003 limits.",
-            "completedAt": "2026-04-10T11:10:00Z"
-        },
-        {
-            "id": "ops-agent-brief-refresh-all",
-            "venture": "ops",
-            "title": "All agents to publish refreshed KPI-plan briefs to Control Center",
-            "status": "done",
-            "priority": "pri-0",
-            "created": "2026-04-08T14:16:29Z",
-            "nextStep": "On each agent next run, require refreshed brief with KPI, plan, schedule, expected outputs, and decision triggers; route to Control Center attention queue.",
-            "owner": "agatha",
-            "group": "ops-governance",
-            "groupLabel": "Ops Governance",
-            "completedAt": "2026-04-08T15:09:42Z",
-            "outcome": "All 14 agents submitted execution plans incorporating Krish feedback. Plans pushed to Drive, tasks added to Control Center for prioritization and approval.",
-            "evidence": "Control Center blocked.json updated with 14 agent plan review tasks"
-        },
-        {
-            "id": "ops-48h-remediation-plan",
-            "venture": "ops",
-            "title": "Approve 48-hour remediation sprint plan",
-            "status": "done",
-            "priority": "pri-0",
-            "created": "2026-04-08T12:08:35Z",
-            "nextStep": "Review remediation changes and approve live enforcement run.",
-            "linkPrimary": "https://docs.google.com/document/d/1CDsOAWSntfHSU6iNMhesqH3GEfaVIR1x1f28j486mGo/edit",
-            "owner": "agatha",
-            "group": "ops-governance",
-            "groupLabel": "Ops Governance",
-            "startedAt": "2026-04-08T12:12:24Z",
-            "progress": "Controlled dry run passed: 33/33 templates compliant with governance + Control Center attention + external action gate.",
-            "updatedAt": "2026-04-08T14:10:15Z",
-            "evidence": "warm/agent-reports/control-center-dry-run-2026-04-08.json",
-            "completedAt": "2026-04-08T14:10:41Z",
-            "outcome": "Live enforcement enabled. Governance, Control Center attention block, and external action gate enforced across active templates; dry run passed 33/33."
-        },
-        {
-            "id": "ops-mm-os-v1-blueprint",
-            "venture": "ops",
-            "title": "Review and approve MindMaker OS v1 operating blueprint",
-            "status": "waiting",
-            "priority": "pri-0",
-            "created": "2026-04-08T12:03:58Z",
-            "nextStep": "Review the Google Doc and approve or mark required changes before implementation.",
-            "linkPrimary": "https://docs.google.com/document/d/11BTUPxk4zfe7W3-Mxvc530xBtVeSzqGKZ0515dh5dJo/edit",
-            "owner": "agatha",
-            "group": "ops-governance",
-            "groupLabel": "Ops Governance"
-        },
-        {
-            "id": "adfixus-navigator-roi",
-            "venture": "adfixus",
-            "title": "Navigator NYC 2026 ROI Document for Marko",
-            "status": "waiting",
-            "priority": "pri-0",
-            "created": "2026-04-07T19:10:00Z",
-            "nextStep": "Review the ROI document and send to Marko to secure the Beeler.tech VIP ticket.",
-            "linkPrimary": "https://docs.google.com/document/d/10uDLofJ8-Om1MxF9Kinfdn849H9xNQf1d-0xwb5ahPc/edit",
-            "group": "adfixus-ops",
-            "groupLabel": "AdFixus Operations",
-            "owner": "agatha"
-        },
-        {
-            "id": "b1",
-            "venture": "ops",
-            "title": "Drive Sync — Activate in N8N",
-            "description": "Open workflow PPfv8kHNBzSq7fm0, confirm Google Docs credential, click Activate.",
-            "status": "waiting",
-            "blockedBy": "krish",
-            "urgency": "medium",
-            "priority": "pri-1",
-            "agent": "Arlo",
-            "daysOld": 2
-        },
-        {
-            "id": "b2",
-            "venture": "ops",
-            "title": "Instantly API - v2 key verified and updated",
-            "status": "done",
-            "completedAt": "2026-04-08T16:40:00Z",
-            "outcome": "v2 API confirmed. New key provided by Krish, verified working (GET /api/v2/campaigns returns 200). Auth: raw base64 Bearer token. Updated in systems.md, TOOLS.md, systems-status.json."
-        },
-        {
-            "id": "b3",
-            "venture": "ops",
-            "title": "GSC API Credentials",
-            "description": "Google Search Console live for all 6 products. Wire GSC API access to Marketing Agent for real ranking data.",
-            "status": "completed",
-            "blockedBy": "krish",
-            "urgency": "medium",
-            "priority": "pri-1",
-            "agent": "Maya",
-            "daysOld": 1,
-            "feedbackText": "Krish gave feedback — wire GSC API access to Maya",
-            "feedbackTs": "2026-04-07T10:49:00Z",
-            "outcome": "Stripe webhooks added by Krish, GSC API routed to Maya",
-            "completedAt": "2026-04-07T14:00:00Z"
-        },
-        {
-            "id": "bd-signal-2026-04-07-faye-caio",
-            "title": "BD Signal: Faye — Fractional CAIO Launch (market validation)",
-            "venture": "mindmaker",
-            "status": "pending-agatha-review",
-            "priority": "HIGH",
-            "signal": "Faye (global AI/software firm, Calabasas CA) launched fractional CAIO services on Mar 17 2026, targeting mid-market organisations. Direct market entry into Mindmaker's core space — confirms demand and pricing opportunity at $300K+/year avoided cost.",
-            "warm_path": "Faye targets mid-market orgs that may outgrow their model and need more strategic depth (Krish's angle). Check Faye leadership team at fayedigital.com/team for any connection to Mindmaker network. Krish can position as the human-led, founder-mentality alternative to institutional CAIO-as-a-service.",
-            "source_url": "https://www.prnewswire.com/news-releases/faye-launches-fractional-chief-ai-officer-services-to-provide-strategic-ai-leadership-for-mid-market-organizations-302715227.html",
-            "evidence": "Found via web_search query 'fractional CAIO chief AI officer' at 2026-04-07T18:13:00Z",
-            "owner": "bd-agent",
-            "created": "2026-04-07T18:13:00Z"
-        },
-        {
-            "id": "bd-signal-2026-04-07-bpo-rfp-ai",
-            "title": "BD Signal: Enterprise BPO Sector — AI criteria now 30-40% of RFP evaluation",
-            "venture": "mindmaker",
-            "status": "pending-agatha-review",
-            "priority": "HIGH",
-            "signal": "Published 2026-04-06: Enterprise buyers now require 30-40% AI-specific criteria in BPO RFPs. BPOs without AI capability are being eliminated before first meeting. Hallucination risk management, outcome-based pricing, and autonomous agent readiness are now table stakes.",
-            "warm_path": "Any BPO or managed services company currently scrambling to build AI competency is a live Mindmaker prospect. Signal is sector-wide — logistics, CX outsourcing, finance operations all affected. Krish's Strategy Day format maps directly to what these buyers need to evaluate. Target CTO/CDO/COO at mid-tier BPO firms (500-5000 employees) who are about to lose deals.",
-            "source_url": "https://blog.anyreach.ai/rfp-changing/",
-            "evidence": "Found via web_search query 'AI strategy consultant RFP 2026' at 2026-04-07T18:13:00Z",
-            "owner": "bd-agent",
-            "created": "2026-04-07T18:13:00Z"
-        },
-        {
-            "id": "bd-signal-2026-04-07-caio-summits",
-            "title": "BD Signal: CAIO NY + CAIO London 2026 Summits — right rooms for Krish",
-            "venture": "mindmaker",
-            "status": "pending-agatha-review",
-            "priority": "MEDIUM",
-            "signal": "RE•WORK running Chief AI Officer summits in New York and London in 2026. These are attended by practitioners implementing AI at enterprise scale — exact ICP for Mindmaker's consulting and Strategy Day offers.",
-            "warm_path": "Speaker applications via RE•WORK directly (re-work.co). Speaking at either event = immediate CAIO peer credibility. Attendee networking = qualified prospects. Flag to Visibility Agent (Nova/Scout) to pursue speaker slot applications.",
-            "source_url": "https://caio-ny.re-work.co/",
-            "evidence": "Found via web_search query 'CAIO chief AI officer forum community online 2026' at 2026-04-07T18:13:00Z",
-            "owner": "bd-agent",
-            "created": "2026-04-07T18:13:00Z"
-        },
-        {
-            "id": "bd-signal-2026-04-07-jubilee-fractionl",
-            "title": "BD Signal: Jubilee + fractional ownership startups — mainstream Business Insider coverage",
-            "venture": "fractionl",
-            "status": "pending-agatha-review",
-            "priority": "MEDIUM",
-            "signal": "Business Insider + Yahoo Finance featured fractional homeownership startups (Jubilee, San Francisco) in Apr 2026. Growing media narrative around fractional ownership solving affordability crisis. Jubilee uses 99-year land lease model targeting cash-strapped buyers.",
-            "warm_path": "Jubilee's investors are in the proptech VC ecosystem — same network Fractionl should be cultivating. Media moment active: Krish could pitch Fractionl POV to same journalists covering this wave. Competitors getting coverage = differentiation opportunity.",
-            "source_url": "https://www.businessinsider.com/new-homebuying-option-fractional-ownership-startups-2026-4",
-            "evidence": "Found via web_search query 'fractional property investment platform competitor reviews Reddit 2026' at 2026-04-07T18:13:00Z",
-            "owner": "bd-agent",
-            "created": "2026-04-07T18:13:00Z"
-        },
-        {
-            "id": "bd-signal-2026-04-08-anyreach-bpo-ai-rfp",
-            "title": "BD Signal: Anyreach.ai — AI strategy primary in enterprise CX RFPs",
-            "venture": "mindmaker",
-            "status": "pending-agatha-review",
-            "priority": "HIGH",
-            "signal": "Anyreach.ai published 2 days ago: AI strategy questions have migrated from supplementary to primary evaluation criteria in enterprise CX/BPO RFPs. BPO buyers are now requiring AI roadmaps and strategy credentials before awarding contracts.",
-            "warm_path": "Anyreach (backed by Antler) = signal of a buyer segment actively publishing about AI-in-RFPs. Antler is a warm path if Krish has any connection to Antler portfolio. Founders: Karthik Ganesan, Richard L. Also: the BPO/CX sector is now a high-intent buyer for Mindmaker CAIO work.",
-            "source_url": "https://blog.anyreach.ai/rfp-changing/",
-            "evidence": "Found via web_search at 2026-04-08T14:08Z. Published 2 days ago.",
-            "owner": "bd-agent",
-            "created": "2026-04-08T14:08:00Z"
-        },
-        {
-            "id": "bd-signal-2026-04-08-aws-box-consulting-partner",
-            "title": "BD Signal: AWS BOX Program — expanded to consulting/advisory partners",
-            "venture": "mindmaker",
-            "status": "pending-agatha-review",
-            "priority": "MEDIUM",
-            "signal": "AWS expanded Business Outcomes Xcelerator (BOX) program to Business Consulting and Advisory Partners. The program bridges the gap between AI investment and measurable business outcomes — exact Mindmaker positioning.",
-            "warm_path": "Direct application to AWS Partner Network as a Business Consulting/Advisory Partner. No cold path required — AWS has open enrollment. Would give Mindmaker co-marketing, referrals from AWS enterprise customers, and credibility.",
-            "source_url": "https://aws.amazon.com/blogs/apn/expanding-the-box-program-to-business-consulting-and-advisory-partners/",
-            "evidence": "Found via web_search at 2026-04-08T14:08Z. Published ~3 weeks ago.",
-            "owner": "bd-agent",
-            "created": "2026-04-08T14:08:00Z"
-        },
-        {
-            "id": "bd-signal-2026-04-08-adfixus-agentic-data-era",
-            "title": "BD Signal: AdExchanger — First-party data will define the agentic advertising era",
-            "venture": "adfixus",
-            "status": "pending-agatha-review",
-            "priority": "MEDIUM",
-            "signal": "AdExchanger published 2 days ago: environments with proven identity integrity and first-party data lineage are capturing budget as agentic AI reshapes advertising. Retail media, premium publishing, and regulated industries explicitly called out.",
-            "warm_path": "AdExchanger is the trade publication for AdFixus buyers. This article names the exact problem AdFixus solves. Warm path: reach out to AdExchanger editorial team for a contributed piece from AdFixus, or target the publishers/retail media buyers named in the article as signal-aligned leads.",
-            "source_url": "https://www.adexchanger.com/the-sell-sider/ai-has-already-decided-first-party-data-will-define-advertisings-agentic-era/",
-            "evidence": "Found via web_search at 2026-04-08T14:08Z. Published 2 days ago.",
-            "owner": "bd-agent",
-            "created": "2026-04-08T14:08:00Z"
-        },
-        {
-            "id": "bd-signal-2026-04-08-fractionl-addy-collapse",
-            "title": "BD Signal: Addy (fractional real estate) collapsed — platform trust concern active",
-            "venture": "fractionl",
-            "status": "pending-agatha-review",
-            "priority": "MEDIUM",
-            "signal": "Globe and Mail (3 weeks ago) reported Addy, a Canadian fractional real estate platform, collapsed due to new residential construction failures. Experts warning other prop-share platforms at risk. Reddit discussion active with users seeking safe fractional platforms.",
-            "warm_path": "Users actively comparing platforms on Reddit (r/passive_income, r/RealEstate). This is a trust/governance moment for Fractionl to differentiate. Warm path: Reddit community presence + transparent governance messaging. No cold path needed — users are searching right now.",
-            "source_url": "https://www.theglobeandmail.com/real-estate/article-collapse-fractional-real-estate-investing-firm-business-model-risks/",
-            "evidence": "Found via web_search at 2026-04-08T14:08Z. Published 3 weeks ago.",
-            "owner": "bd-agent",
-            "created": "2026-04-08T14:08:00Z"
-        },
-        {
-            "id": "bd-signal-2026-04-08-family-office-ai-incubation",
-            "title": "BD Signal: Family offices incubating AI companies — new Mindmaker ICP segment",
-            "venture": "mindmaker",
-            "status": "pending-agatha-review",
-            "priority": "MEDIUM",
-            "signal": "TechCrunch (1 day ago): growing number of family offices are incubating their own AI companies, taking operational roles, and deploying entrepreneurial capital into early AI bets. These are sophisticated capital allocators without in-house AI expertise.",
-            "warm_path": "Family office networks (TIGER 21, FOX, family office associations) are warm path via existing wealth management contacts. This segment would pay premium for Mindmaker CAIO strategy work as they build AI companies without technical depth.",
-            "source_url": "https://techcrunch.com/2026/04/07/the-ai-gold-rush-is-pulling-private-wealth-into-riskier-earlier-bets/",
-            "evidence": "Found via web_search at 2026-04-08T14:08Z. Published 1 day ago.",
-            "owner": "bd-agent",
-            "created": "2026-04-08T14:08:00Z"
-        },
-        {
-            "id": "cleo-breaking-news-radar",
-            "title": "Build Breaking AI News Early Warning System",
-            "status": "active",
-            "priority": "high",
-            "owner": "cleo",
-            "due": "2026-04-09",
-            "description": "Cleo to design and document a real-time AI news monitoring stack so Krish is first-to-know when major announcements drop (e.g. Claude Managed Agents). Triggers same-day reactive content. Requires Arlo to build RSS alert pipeline in N8N.",
-            "brief_file": "warm/agent-plans/cleo-plan-2026-04.md",
-            "created": "2026-04-09T01:57:00Z",
-            "workstream": "Mindmaker Live — Breaking AI News Radar"
-        },
-        {
-            "id": "maya-beta-sprint",
-            "venture": "fractionl",
-            "title": "Maya — Beta Acquisition Sprint: 20 Users Per App by Next Week",
-            "status": "waiting",
-            "priority": "pri-1",
-            "owner": "agatha",
-            "agent": "Maya",
-            "group": "growth",
-            "groupLabel": "Growth",
-            "created": "2026-04-09T19:16:00Z",
-            "linkPrimary": "https://docs.google.com/document/d/1wnGzwwV81jhyiUKJQsdZbQLUtE571qRsGkflqyA0SDQ/edit",
-            "nextStep": "Approve maya-1 strategy (SEO + influencer approach) in the doc. Each app gets its own sub-agent once approved: mm-ctrl, Circle, Gutted, On Alert/Merciless.",
-            "description": "Maya has documented the acquisition strategy for all 4 apps. Waiting on Krish's approval before sub-agents begin execution. Sequence per app: SEO → Reddit/community → BetaList/ShowHN → Product Hunt → influencers.",
-            "blockedBy": "krish",
-            "urgency": "medium",
-            "workstream": "Acquisition Strategy — All 4 Apps (mm-ctrl, Circle, Gutted, On Alert)"
-        },
-        {
-            "id": "nell-possible-outreach",
-            "venture": "mindmaker",
-            "title": "Nell — POSSIBLE Outreach: Book 5 S&N Guests",
-            "status": "waiting",
-            "priority": "pri-0",
-            "owner": "agatha",
-            "agent": "Nell",
-            "group": "growth",
-            "groupLabel": "Growth",
-            "created": "2026-04-09T19:16:00Z",
-            "linkPrimary": "https://docs.google.com/spreadsheets/d/1DyAy1H3fnoI2_58nS3u2yIbbswJq1BddWmBUKyW8Yf8/edit",
-            "nextStep": "Open Gmail Drafts — Bob Pittman test email is there. Approve the voice or send feedback. One call unblocks the full Tier 1 batch.",
-            "description": "Nell has drafted all Tier 1 POSSIBLE speaker emails in Krish's voice and pushed to Gmail Drafts. Bob Pittman is the test case. Approve or revise, then Nell sends the batch to all 5 guests.",
-            "blockedBy": "krish",
-            "urgency": "high",
-            "workstream": "Signal & Noise Podcast"
-        },
-        {
-            "id": "nell-open-threads-update",
-            "venture": "mindmaker",
-            "title": "Nell — Add Chris Handy + Dan Pratl to Open Threads Tab",
-            "status": "active",
-            "priority": "pri-1",
-            "owner": "agatha",
-            "agent": "Nell",
-            "group": "growth",
-            "groupLabel": "Growth",
-            "created": "2026-04-09T19:41:00Z",
-            "linkPrimary": "https://docs.google.com/spreadsheets/d/1DyAy1H3fnoI2_58nS3u2yIbbswJq1BddWmBUKyW8Yf8/edit",
-            "nextStep": "In progress — Nell adding both rows with full columns and email drafts"
-        },
-        {
-            "id": "marcus-home-intelligence",
-            "venture": "ops",
-            "title": "Marcus Home Intelligence — Strategic Assessment Tab",
-            "status": "waiting",
-            "priority": "pri-0",
-            "owner": "agatha",
-            "agent": "Marcus + Arlo",
-            "group": "ops-governance",
-            "groupLabel": "Ops Governance",
-            "created": "2026-04-09T20:55:00Z",
-            "linkPrimary": "/root/.openclaw/workspace/warm/marcus-home-intelligence-spec.md",
-            "nextStep": "Arlo builds HomeIntelligence.tsx component. Marcus builds N8N workflow to generate the intelligence brief every 48 hours.",
-            "description": "Redesign Home tab as Marcus's strategic intelligence canvas. Marcus runs every 48 hours, reads across all org data (Vera, sequences, tasks, agent docs, Zara signals), and writes an opinionated assessment: what's working, what's misaligned, recommended focus. Home tab renders his brief with metrics + interpretation. NOT a summary — a point of view."
-        },
-        {
-            "id": "apollo-1894-outreach-campaign",
-            "venture": "growth",
-            "title": "Apollo 1,894 Contact Outreach Campaign - Ready to Deploy",
-            "status": "waiting",
-            "priority": "pri-0",
-            "urgency": "high",
-            "created": "2026-04-11T21:45:14.249Z",
-            "owner": "krish",
-            "agent": "Felix",
-            "group": "outreach",
-            "groupLabel": "Outreach Campaigns",
-            "linkPrimary": "https://docs.google.com/spreadsheets/d/1ubMUnGfhmm3n9OTwGuCcvEn9NhwZQzj8/edit",
-            "linkSecondary": "",
-            "description": "Complete outreach campaign: 1,894 qualified contacts across 4 segments (Mindmaker, Fractionl, AdFixus, Visibility). 12-day multi-touch sequence with POV-driven messaging. Target: 50-80 calendar meetings.",
-            "segments": {
-                "segment_1_mindmaker": {
-                    "name": "Mindmaker Primary",
-                    "contacts": 1009,
-                    "description": "Mid-market CEOs/C-suite. POV: Your AI strategy is probably wrong.",
-                    "target_meetings": "20-30"
-                },
-                "segment_2_fractionl": {
-                    "name": "Fractionl/Investors/Advisors",
-                    "contacts": 692,
-                    "description": "VCs, angels, fractional operators. POV: Fractional economy hitting inflection.",
-                    "target_meetings": "25-35"
-                },
-                "segment_3_adfixus": {
-                    "name": "AdFixus/Publishers",
-                    "contacts": 28,
-                    "description": "Premium publisher execs. POV: Identity infrastructure is your moat.",
-                    "target_meetings": "2-3"
-                },
-                "segment_4_visibility": {
-                    "name": "Visibility/Speaking/Podcast",
-                    "contacts": 165,
-                    "description": "Podcast hosts, conference orgs. POV: AI narrative needs builder pushback.",
-                    "target_meetings": "3-5"
-                }
-            },
-            "deployment": {
-                "day_1": "Segment 1 (Mindmaker) - first 250 contacts",
-                "day_2": "Segment 2 (Fractionl/Investors) - first 200 contacts",
-                "day_3": "Segment 3 (AdFixus) all 28 + Segment 4 first 100",
-                "day_4": "Continue rolling remaining contacts",
-                "day_5": "LinkedIn follow-ups begin (staggered)",
-                "day_12": "Final touch emails (staggered)"
-            },
-            "successMetrics": {
-                "calendar_meetings": "50-80 (primary)",
-                "open_rate": "25-35% target",
-                "reply_rate": "3-8% target",
-                "positive_response": "50%+ of replies"
-            },
-            "nextStep": "Review Apollo outreach campaign copy & strategy in Drive",
-            "blockedBy": "krish",
-            "tags": [
-                "outreach",
-                "apollo",
-                "multi-segment",
-                "high-intent",
-                "ready-to-ship"
-            ],
-            "notes": [
-                "All copy written in Krish voice (confrontational, specific, forces choice)",
-                "4 full email sequences (Day 1, 5, 12) per segment",
-                "Publisher variations built in (FT, Bloomberg, WaPo, Economist)",
-                "Visibility segment variations (podcast, conference, newsletter)",
-                "Master sheet: https://docs.google.com/spreadsheets/d/1ubMUnGfhmm3n9OTwGuCcvEn9NhwZQzj8/edit",
-                "Deployment guide in sheet tabs"
-            ]
-        },
-        {
-            "id": "arlo-phase-1-live",
-            "venture": "infrastructure",
-            "title": "PHASE 1: Control Center Live API + Event-Driven Sync (Execute NOW)",
-            "status": "in_progress",
-            "priority": "pri-0",
-            "urgency": "critical",
-            "created": "2026-04-12T22:39:47.830Z",
-            "owner": "krish",
-            "agent": "Arlo",
-            "nextStep": "FIX GIT CONFIG NOW: Run these commands BEFORE pushing to krishanraja/control-center:",
-            "description": "Restructure Control Center from static JSON to live API. Event-driven N8N sync (immediate + 5-min fallback). Full spec in restructuring proposal Section 1 and Phase 1.",
-            "subtasks": [
-                {
-                    "order": 1,
-                    "title": "Build Control Center API Endpoint",
-                    "what_to_do": "Update krishanraja/control-center repo (GitHub). Add new API endpoint /api/sync that accepts JSON POST from N8N. This endpoint updates the dashboard data in real-time. Dashboard Today/Plays/Agents tabs now read from this API instead of static JSON files. Test endpoint with curl.",
-                    "where": "GitHub: krishanraja/control-center. Vercel auto-deploys on push."
-                },
-                {
-                    "order": 2,
-                    "title": "Build Event-Driven N8N Sync Workflow",
-                    "what_to_do": "N8N workflow that (1) watches /root/.openclaw/workspace/active/tasks.json for changes (via file watcher or git commit hook), (2) fires immediately when file changes, (3) reads tasks.json, (4) POSTs to Control Center API endpoint. (5) Fallback: 5-minute cron if event-driven fails. (6) Include validation: if blocker marked done in tasks.json but showing open in dashboard, correct it and log.",
-                    "where": "N8N: krishraja10101.app.n8n.cloud"
-                },
-                {
-                    "order": 3,
-                    "title": "Build Cross-Agent Propagation",
-                    "what_to_do": "Add propagates_to field to tasks.json format. When a task updates and has propagates_to: [agent1, agent2], N8N workflow regenerates those agents' Google Drive plan documents automatically. Agents wake to current info.",
-                    "where": "N8N workflow extends (task 2) + Google Docs API calls"
-                },
-                {
-                    "order": 4,
-                    "title": "Build Contradiction Detection",
-                    "what_to_do": "N8N script that runs every hour. Scans /root/.openclaw/workspace/warm/ and /root/.openclaw/workspace/hot/ for any document containing references to tasks marked done in tasks.json. Produces contradiction report JSON. Outputs to /root/.openclaw/workspace/active/vera-queue.json.",
-                    "where": "N8N workflow or scheduled script"
-                }
-            ],
-            "blockedBy": null,
-            "instruction": "Poll /root/.openclaw/workspace/active/tasks.json every 5 minutes. When you see updates to this task (arlo-phase-1-live), act immediately. Do not wait for your scheduled execution windows.",
-            "technical_spec": {
-                "subtask_1": {
-                    "title": "Build Control Center API Endpoint",
-                    "repo": "krishanraja/control-center",
-                    "what_to_build": "New endpoint: POST /api/sync that accepts { \"tasks\": [...], \"updated_at\": \"...\", \"agent_states\": {...} }",
-                    "where_to_add_it": "src/pages/api/sync.ts or src/api/sync.js (depending on existing pattern)",
-                    "what_it_does": "Receives JSON from N8N workflow. Updates in-memory dashboard state. Dashboard Today/Plays/Agents tabs read from this endpoint live instead of static JSON files.",
-                    "after_deploy": "Vercel auto-deploys on git push. Test with: curl -X POST http://localhost:3000/api/sync -H \"Content-Type: application/json\" -d '{\"tasks\":[...]}'"
-                },
-                "subtask_2": {
-                    "title": "Build Event-Driven N8N Sync Workflow",
-                    "n8n_url": "krishraja10101.app.n8n.cloud",
-                    "workflow_name": "TasksJSON-to-ControlCenter-Sync",
-                    "trigger": "Webhook: Listen for HTTP POST from file watcher OR git commit hook on tasks.json change",
-                    "actions": [
-                        "Read /root/.openclaw/workspace/active/tasks.json",
-                        "POST to Control Center /api/sync endpoint with full payload",
-                        "Validate response: if 200, mark success. If error, retry 3x then log to vera-queue.json",
-                        "Check for stale tasks: if any blocker.created_at is >14 days old AND status != done, add to contradiction report"
-                    ],
-                    "fallback_cron": "If event-driven fails, N8N cron runs every 5 minutes with same payload",
-                    "git_hook": "Install post-commit hook in krishanraja/control-center that curls N8N webhook URL when tasks.json changes"
-                },
-                "subtask_3": {
-                    "title": "Cross-Agent Propagation",
-                    "what_to_change": "tasks.json schema gains optional field: \"propagates_to\": [\"agent_id\", \"agent_id\"]",
-                    "example": "{ \"id\": \"leo-cro-audit\", \"propagates_to\": [\"nova\", \"cleo\"], ... }",
-                    "n8n_logic": "When sync workflow reads tasks.json and sees propagates_to field populated, call Google Docs API to regenerate those agents' plan documents with updated info",
-                    "result": "Nova and Cleo wake up to Leo's updated plan automatically. No manual regeneration needed."
-                },
-                "subtask_4": {
-                    "title": "Contradiction Detection Sweep",
-                    "what_it_does": "Scans all .md files in /root/.openclaw/workspace/warm/ and /root/.openclaw/workspace/hot/ for task references",
-                    "logic": "For each task marked done in tasks.json, search all files for that task's name or ID. If found, note it as a contradiction.",
-                    "output": "Write /root/.openclaw/workspace/active/vera-queue.json with: { \"contradictions\": [{\"task_id\": \"...\", \"found_in\": \"file_path\", \"context\": \"...snippet...\"}]}",
-                    "run_frequency": "N8N workflow runs this every hour automatically"
-                }
-            },
-            "git_config_required": [
-                "git config user.name \"Krish Raja\"",
-                "git config user.email \"hello@krishraja.com\"",
-                "Then commit with: git commit -m \"[Phase 1] Add /api/sync endpoint\"",
-                "Then push: git push origin main",
-                "Vercel will auto-deploy. Check deployment status."
-            ],
-            "critical_note": "DO NOT use arlo@openclaw or any other email. MUST be hello@krishraja.com or commits will be rejected."
-        },
-        {
-            "id": "phase-1-agent-restructure",
-            "venture": "ops",
-            "title": "PHASE 1: Sub-Agent Restructuring Mandate",
-            "status": "in_progress",
-            "priority": "pri-0",
-            "urgency": "CRITICAL",
-            "created": "2026-04-12T22:41:00Z",
-            "owner": "agatha",
-            "agent": "Arlo",
-            "group": "agent-architecture",
-            "groupLabel": "Agent Architecture Restructure",
-            "nextStep": "Execute Phase 1 immediately: (1) Archive 6 lightweight agents (Kai, Marcus, Priya, Nell, Zara, Maya) to isolated sub-agent spawning via sessions_spawn. (2) Convert their cron jobs to spawn isolated sessions instead of running inline. (3) Update agents-status.json sub_agents:true. (4) Update cron payloads with runtime=subagent. (5) Verify first 2 runs succeed. (6) Report execution evidence.",
-            "description": "Restructure agent fleet to use true sub-agent isolation for lightweight/periodic agents. Reduces main-session context bloat and improves token efficiency. Phase 1 targets 6 agents: Kai, Marcus, Priya, Nell, Zara, Maya.",
-            "guards": [
-                "DO NOT modify Agatha, Vera, Leo, Felix, Cleo, Nova (Phase 2+)",
-                "DO NOT disable cron jobs — convert to spawn mode",
-                "Verify each sub-agent starts and completes successfully",
-                "Report full execution log with session IDs"
-            ],
-            "blockedBy": null,
-            "linkedTask": "phase-2-agent-briefs",
-            "updatedAt": "2026-04-12T22:57:00Z",
-            "evidence": "Phase 1 executed: Updated 5 cron jobs (Marcus, Kai/Tools, Maya, Priya, Nell) to spawn sub-agents. Marked all 5 as sub_agents=true in agents-status.json. Committed to control-center. Awaiting first scheduled runs for verification."
-        },
-        {
-            "id": "arlo-sub-agent-cron-work",
-            "title": "Arlo Sub-Agent Cron Execution (Completed)",
-            "status": "done",
-            "description": "Arlo updated 5 cron payloads to spawn sub-agents. This is valid work but NOT Phase 1. Phase 1 is the Control Center infrastructure rebuild. File separately.",
-            "completedAt": "2026-04-12T22:46:37.281Z",
-            "completedNote": "Completed by Arlo at 22:45 UTC. Not Phase 1, but valid infrastructure work."
-        },
-        {
-            "id": "phase-2-agent-briefs",
-            "title": "PHASE 2: Agent Restructuring - Cleo, Maya, Leo Execution",
-            "status": "done",
-            "priority": "pri-0",
-            "created": "2026-04-12T23:42:23.191Z",
-            "owner": "agatha",
-            "description": "Cleo (Content Coordinator + 5 sub-agents), Maya (Acquisition Coordinator + 4 sub-agents), Leo (CRO full funnel audit) all spawned and executing in parallel with Phase 1.",
-            "agents_active": [
-                "Cleo",
-                "Maya",
-                "Leo"
-            ],
-            "target_completion": "2026-04-13 02:00 UTC",
-            "completedAt": "2026-04-13T00:38:11.372Z",
-            "completedNote": "All 3 coordinator briefs written: Cleo (content, 5 streams), Maya (acquisition, 4 apps), Leo (CRO, 3 ventures). Agents are now live coordinators with clear mandates."
-        },
-        {
-            "id": "cleo-phase2-active",
-            "title": "Cleo — Content Production Coordinator",
-            "status": "active",
-            "priority": "pri-1",
-            "agent": "Cleo",
-            "owner": "agatha",
-            "created": "2026-04-13T00:38:11.374Z",
-            "description": "Coordinator for 5 content streams (Builder Economy, Signal & Noise, Techonomic, Instagram, Mindmaker Live). Weekly quality gatekeeping. Mandate: zero generic content reaches Krish.",
-            "briefLocation": "/root/.openclaw/workspace/warm/agent-plans/cleo-coordinator-phase2.md",
-            "successMetric": "Weekly: 100% of escalated content passes voice.md audit"
-        },
-        {
-            "id": "maya-phase2-active",
-            "title": "Maya — Customer Acquisition Coordinator",
-            "status": "active",
-            "priority": "pri-1",
-            "agent": "Maya",
-            "owner": "agatha",
-            "created": "2026-04-13T00:38:11.374Z",
-            "description": "Coordinator for 4 B2C app acquisition (mm-ctrl, Circle, Gutted, On Alert/Merciless). Delivers acquisition strategies. No spend approved without strategy.",
-            "briefLocation": "/root/.openclaw/workspace/warm/agent-plans/maya-coordinator-phase2.md",
-            "successMetric": "By 2026-05-01: All 4 apps have documented acquisition strategies"
-        },
-        {
-            "id": "leo-phase2-active",
-            "title": "Leo — Chief Revenue Officer (CRO)",
-            "status": "active",
-            "priority": "pri-0",
-            "agent": "Leo",
-            "owner": "agatha",
-            "created": "2026-04-13T00:38:11.374Z",
-            "description": "Maps autonomous revenue across all 3 ventures (Mindmaker, Fractionl, AdFixus). Identifies drop-offs and optimization targets. Reports weekly.",
-            "briefLocation": "/root/.openclaw/workspace/warm/agent-plans/leo-cro-phase2.md",
-            "successMetric": "By 2026-06-01: Full funnel map + drop-off analysis + prioritized optimization targets for all 3 ventures",
-            "blocker": "Needs analytics access: Google Analytics, email, Stripe, Calendly, CRM. Arlo to wire connections."
-        }
-    ],
-    "by_status": {
-        "in_progress": [
-            {
-                "id": "arlo-apollo-sheet-pull",
-                "venture": "ops",
-                "title": "Apollo Raw Data Pull - Creative Macros (Google Sheet Only)",
-                "status": "in_progress",
-                "priority": "pri-0",
-                "urgency": "CRITICAL",
-                "created": "2026-04-10T21:00:00Z",
-                "owner": "agatha",
-                "agent": "Arlo",
-                "group": "apollo-deployment",
-                "groupLabel": "Apollo Deployment",
-                "linkPrimary": "",
-                "nextStep": "Arlo: Run Apollo search with refined filters NOW (credits expire tonight). Search params: CEO/CTO/CSO/CFO/COO/President/VP Strategy/VP Biz Dev/VP Ops; Tech/Finance/Media/Healthcare/Retail; 50-5000 employees. Expected 1500-2000 contacts. Format to multi-tab Google Sheet per industry. Notify Agatha on completion.",
-                "description": "\nExecute the approved Apollo deployment plan. Pull leads into a richly formatted Google Sheet with tabs:\n1. AdF US Sniper (~100): WBD, Disney, NYT, Bloomberg, WaPo, Dotdash, Vox (SVP/VP Addressability, Data, Direct Sales)\n2. MM Capital (~1000): MDs, Partners at US/UK/MENA Family Offices/Micro-VCs (B2B SaaS, Future of Work, AI)\n3. Aggregators (~400): Founders, MDs of Pavilion, Chief, Hampton, Vistage\n4. PR/Journalists (~500): Senior Editors, Podcasters at The Information, Axios, Bloomberg, WSJ\n5. CAIOs (~1000): Chief AI Officer, Head of AI (Verified Custom Domain Only)\n6. Fractional Execs (~1000): Fractional CMO/CFO/COO (Verified Custom Domain Only)\n\nOutput is purely a spreadsheet for Krish to review.\n",
-                "guards": [
-                    "DO NOT UPLOAD LEADS TO INSTANTLY.",
-                    "DO NOT CREATE INSTANTLY CAMPAIGNS.",
-                    "Enforce strictly Verified Custom Domain emails for CAIO and Fractional tabs.",
-                    "Follow Google Doc protocol for creating the Sheet/Doc."
-                ],
-                "updatedAt": "2026-04-11T20:09:48.264Z"
-            },
-            {
-                "id": "arlo-phase-1-live",
-                "venture": "infrastructure",
-                "title": "PHASE 1: Control Center Live API + Event-Driven Sync (Execute NOW)",
-                "status": "in_progress",
-                "priority": "pri-0",
-                "urgency": "critical",
-                "created": "2026-04-12T22:39:47.830Z",
-                "owner": "krish",
-                "agent": "Arlo",
-                "nextStep": "FIX GIT CONFIG NOW: Run these commands BEFORE pushing to krishanraja/control-center:",
-                "description": "Restructure Control Center from static JSON to live API. Event-driven N8N sync (immediate + 5-min fallback). Full spec in restructuring proposal Section 1 and Phase 1.",
-                "subtasks": [
-                    {
-                        "order": 1,
-                        "title": "Build Control Center API Endpoint",
-                        "what_to_do": "Update krishanraja/control-center repo (GitHub). Add new API endpoint /api/sync that accepts JSON POST from N8N. This endpoint updates the dashboard data in real-time. Dashboard Today/Plays/Agents tabs now read from this API instead of static JSON files. Test endpoint with curl.",
-                        "where": "GitHub: krishanraja/control-center. Vercel auto-deploys on push."
-                    },
-                    {
-                        "order": 2,
-                        "title": "Build Event-Driven N8N Sync Workflow",
-                        "what_to_do": "N8N workflow that (1) watches /root/.openclaw/workspace/active/tasks.json for changes (via file watcher or git commit hook), (2) fires immediately when file changes, (3) reads tasks.json, (4) POSTs to Control Center API endpoint. (5) Fallback: 5-minute cron if event-driven fails. (6) Include validation: if blocker marked done in tasks.json but showing open in dashboard, correct it and log.",
-                        "where": "N8N: krishraja10101.app.n8n.cloud"
-                    },
-                    {
-                        "order": 3,
-                        "title": "Build Cross-Agent Propagation",
-                        "what_to_do": "Add propagates_to field to tasks.json format. When a task updates and has propagates_to: [agent1, agent2], N8N workflow regenerates those agents' Google Drive plan documents automatically. Agents wake to current info.",
-                        "where": "N8N workflow extends (task 2) + Google Docs API calls"
-                    },
-                    {
-                        "order": 4,
-                        "title": "Build Contradiction Detection",
-                        "what_to_do": "N8N script that runs every hour. Scans /root/.openclaw/workspace/warm/ and /root/.openclaw/workspace/hot/ for any document containing references to tasks marked done in tasks.json. Produces contradiction report JSON. Outputs to /root/.openclaw/workspace/active/vera-queue.json.",
-                        "where": "N8N workflow or scheduled script"
-                    }
-                ],
-                "blockedBy": null,
-                "instruction": "Poll /root/.openclaw/workspace/active/tasks.json every 5 minutes. When you see updates to this task (arlo-phase-1-live), act immediately. Do not wait for your scheduled execution windows.",
-                "technical_spec": {
-                    "subtask_1": {
-                        "title": "Build Control Center API Endpoint",
-                        "repo": "krishanraja/control-center",
-                        "what_to_build": "New endpoint: POST /api/sync that accepts { \"tasks\": [...], \"updated_at\": \"...\", \"agent_states\": {...} }",
-                        "where_to_add_it": "src/pages/api/sync.ts or src/api/sync.js (depending on existing pattern)",
-                        "what_it_does": "Receives JSON from N8N workflow. Updates in-memory dashboard state. Dashboard Today/Plays/Agents tabs read from this endpoint live instead of static JSON files.",
-                        "after_deploy": "Vercel auto-deploys on git push. Test with: curl -X POST http://localhost:3000/api/sync -H \"Content-Type: application/json\" -d '{\"tasks\":[...]}'"
-                    },
-                    "subtask_2": {
-                        "title": "Build Event-Driven N8N Sync Workflow",
-                        "n8n_url": "krishraja10101.app.n8n.cloud",
-                        "workflow_name": "TasksJSON-to-ControlCenter-Sync",
-                        "trigger": "Webhook: Listen for HTTP POST from file watcher OR git commit hook on tasks.json change",
-                        "actions": [
-                            "Read /root/.openclaw/workspace/active/tasks.json",
-                            "POST to Control Center /api/sync endpoint with full payload",
-                            "Validate response: if 200, mark success. If error, retry 3x then log to vera-queue.json",
-                            "Check for stale tasks: if any blocker.created_at is >14 days old AND status != done, add to contradiction report"
-                        ],
-                        "fallback_cron": "If event-driven fails, N8N cron runs every 5 minutes with same payload",
-                        "git_hook": "Install post-commit hook in krishanraja/control-center that curls N8N webhook URL when tasks.json changes"
-                    },
-                    "subtask_3": {
-                        "title": "Cross-Agent Propagation",
-                        "what_to_change": "tasks.json schema gains optional field: \"propagates_to\": [\"agent_id\", \"agent_id\"]",
-                        "example": "{ \"id\": \"leo-cro-audit\", \"propagates_to\": [\"nova\", \"cleo\"], ... }",
-                        "n8n_logic": "When sync workflow reads tasks.json and sees propagates_to field populated, call Google Docs API to regenerate those agents' plan documents with updated info",
-                        "result": "Nova and Cleo wake up to Leo's updated plan automatically. No manual regeneration needed."
-                    },
-                    "subtask_4": {
-                        "title": "Contradiction Detection Sweep",
-                        "what_it_does": "Scans all .md files in /root/.openclaw/workspace/warm/ and /root/.openclaw/workspace/hot/ for task references",
-                        "logic": "For each task marked done in tasks.json, search all files for that task's name or ID. If found, note it as a contradiction.",
-                        "output": "Write /root/.openclaw/workspace/active/vera-queue.json with: { \"contradictions\": [{\"task_id\": \"...\", \"found_in\": \"file_path\", \"context\": \"...snippet...\"}]}",
-                        "run_frequency": "N8N workflow runs this every hour automatically"
-                    }
-                },
-                "git_config_required": [
-                    "git config user.name \"Krish Raja\"",
-                    "git config user.email \"hello@krishraja.com\"",
-                    "Then commit with: git commit -m \"[Phase 1] Add /api/sync endpoint\"",
-                    "Then push: git push origin main",
-                    "Vercel will auto-deploy. Check deployment status."
-                ],
-                "critical_note": "DO NOT use arlo@openclaw or any other email. MUST be hello@krishraja.com or commits will be rejected."
-            },
-            {
-                "id": "phase-1-agent-restructure",
-                "venture": "ops",
-                "title": "PHASE 1: Sub-Agent Restructuring Mandate",
-                "status": "in_progress",
-                "priority": "pri-0",
-                "urgency": "CRITICAL",
-                "created": "2026-04-12T22:41:00Z",
-                "owner": "agatha",
-                "agent": "Arlo",
-                "group": "agent-architecture",
-                "groupLabel": "Agent Architecture Restructure",
-                "nextStep": "Execute Phase 1 immediately: (1) Archive 6 lightweight agents (Kai, Marcus, Priya, Nell, Zara, Maya) to isolated sub-agent spawning via sessions_spawn. (2) Convert their cron jobs to spawn isolated sessions instead of running inline. (3) Update agents-status.json sub_agents:true. (4) Update cron payloads with runtime=subagent. (5) Verify first 2 runs succeed. (6) Report execution evidence.",
-                "description": "Restructure agent fleet to use true sub-agent isolation for lightweight/periodic agents. Reduces main-session context bloat and improves token efficiency. Phase 1 targets 6 agents: Kai, Marcus, Priya, Nell, Zara, Maya.",
-                "guards": [
-                    "DO NOT modify Agatha, Vera, Leo, Felix, Cleo, Nova (Phase 2+)",
-                    "DO NOT disable cron jobs — convert to spawn mode",
-                    "Verify each sub-agent starts and completes successfully",
-                    "Report full execution log with session IDs"
-                ],
-                "blockedBy": null,
-                "linkedTask": "phase-2-agent-briefs",
-                "updatedAt": "2026-04-12T22:57:00Z",
-                "evidence": "Phase 1 executed: Updated 5 cron jobs (Marcus, Kai/Tools, Maya, Priya, Nell) to spawn sub-agents. Marked all 5 as sub_agents=true in agents-status.json. Committed to control-center. Awaiting first scheduled runs for verification."
-            }
-        ],
-        "waiting": [
-            {
-                "id": "agatha-apollo-deployment-plan",
-                "venture": "ops",
-                "title": "Apollo Credit Deployment Plan - April 2026",
-                "status": "waiting",
-                "priority": "pri-0",
-                "urgency": "high",
-                "created": "2026-04-10T20:47:00Z",
-                "owner": "agatha",
-                "agent": "Agatha",
-                "group": "apollo-deployment",
-                "groupLabel": "Apollo Deployment",
-                "linkPrimary": "https://docs.google.com/document/d/1EchOZcbwHDZrdcNSWi2f8qAwWpyq53FzONbGKmW8kTo/edit?usp=drivesdk",
-                "nextStep": "Review the deployment plan in the doc and approve before Apollo execution.",
-                "description": "Comprehensive plan to allocate 4,015 Apollo credits across AdFixus, Mindmaker, and Fractionl, based on an audit of Instantly campaigns."
-            },
-            {
-                "id": "arlo-systems-monitor",
-                "venture": "ops",
-                "title": "Arlo — Build Systems Monitor + Control Center Systems Tab",
-                "status": "waiting",
-                "priority": "pri-0",
-                "blockedBy": "krish",
-                "urgency": "high",
-                "created": "2026-04-08T15:35:00Z",
-                "owner": "agatha",
-                "agent": "Arlo",
-                "group": "ops-governance",
-                "groupLabel": "Ops Governance",
-                "nextStep": "Approve spec, then Arlo builds N8N workflow + Notion Systems tab",
-                "description": "Arlo to build: (1) Full service inventory from hot/systems.md — every API, Supabase project, Stripe account, automation tool. (2) N8N health check workflow: hourly ping + auth validity + credit/quota monitoring. (3) Status flags: green/yellow/red/unchecked per service. (4) Notion Systems tab in Ops Board — live status written by Arlo after each check run. (5) Ops-bot Telegram alert on any red or critical yellow. (6) Weekly cost report via Agentops key (aa_YBQsXLzdHthiVbwcDEScjRQbFsUVAYUA) — fed to Vera for Friday audit. Schedule: hourly lightweight ping + full sweep on Arlo's Sunday 3AM cron."
-            },
-            {
-                "id": "ops-mm-os-v1-blueprint",
-                "venture": "ops",
-                "title": "Review and approve MindMaker OS v1 operating blueprint",
-                "status": "waiting",
-                "priority": "pri-0",
-                "created": "2026-04-08T12:03:58Z",
-                "nextStep": "Review the Google Doc and approve or mark required changes before implementation.",
-                "linkPrimary": "https://docs.google.com/document/d/11BTUPxk4zfe7W3-Mxvc530xBtVeSzqGKZ0515dh5dJo/edit",
-                "owner": "agatha",
-                "group": "ops-governance",
-                "groupLabel": "Ops Governance"
-            },
-            {
-                "id": "adfixus-navigator-roi",
-                "venture": "adfixus",
-                "title": "Navigator NYC 2026 ROI Document for Marko",
-                "status": "waiting",
-                "priority": "pri-0",
-                "created": "2026-04-07T19:10:00Z",
-                "nextStep": "Review the ROI document and send to Marko to secure the Beeler.tech VIP ticket.",
-                "linkPrimary": "https://docs.google.com/document/d/10uDLofJ8-Om1MxF9Kinfdn849H9xNQf1d-0xwb5ahPc/edit",
-                "group": "adfixus-ops",
-                "groupLabel": "AdFixus Operations",
-                "owner": "agatha"
-            },
-            {
-                "id": "b1",
-                "venture": "ops",
-                "title": "Drive Sync — Activate in N8N",
-                "description": "Open workflow PPfv8kHNBzSq7fm0, confirm Google Docs credential, click Activate.",
-                "status": "waiting",
-                "blockedBy": "krish",
-                "urgency": "medium",
-                "priority": "pri-1",
-                "agent": "Arlo",
-                "daysOld": 2
-            },
-            {
-                "id": "marcus-home-intelligence",
-                "venture": "ops",
-                "title": "Marcus Home Intelligence — Strategic Assessment Tab",
-                "status": "waiting",
-                "priority": "pri-0",
-                "owner": "agatha",
-                "agent": "Marcus + Arlo",
-                "group": "ops-governance",
-                "groupLabel": "Ops Governance",
-                "created": "2026-04-09T20:55:00Z",
-                "linkPrimary": "/root/.openclaw/workspace/warm/marcus-home-intelligence-spec.md",
-                "nextStep": "Arlo builds HomeIntelligence.tsx component. Marcus builds N8N workflow to generate the intelligence brief every 48 hours.",
-                "description": "Redesign Home tab as Marcus's strategic intelligence canvas. Marcus runs every 48 hours, reads across all org data (Vera, sequences, tasks, agent docs, Zara signals), and writes an opinionated assessment: what's working, what's misaligned, recommended focus. Home tab renders his brief with metrics + interpretation. NOT a summary — a point of view."
-            },
-            {
-                "id": "apollo-1894-outreach-campaign",
-                "venture": "growth",
-                "title": "Apollo 1,894 Contact Outreach Campaign - Ready to Deploy",
-                "status": "waiting",
-                "priority": "pri-0",
-                "urgency": "high",
-                "created": "2026-04-11T21:45:14.249Z",
-                "owner": "krish",
-                "agent": "Felix",
-                "group": "outreach",
-                "groupLabel": "Outreach Campaigns",
-                "linkPrimary": "https://docs.google.com/spreadsheets/d/1ubMUnGfhmm3n9OTwGuCcvEn9NhwZQzj8/edit",
-                "linkSecondary": "",
-                "description": "Complete outreach campaign: 1,894 qualified contacts across 4 segments (Mindmaker, Fractionl, AdFixus, Visibility). 12-day multi-touch sequence with POV-driven messaging. Target: 50-80 calendar meetings.",
-                "segments": {
-                    "segment_1_mindmaker": {
-                        "name": "Mindmaker Primary",
-                        "contacts": 1009,
-                        "description": "Mid-market CEOs/C-suite. POV: Your AI strategy is probably wrong.",
-                        "target_meetings": "20-30"
-                    },
-                    "segment_2_fractionl": {
-                        "name": "Fractionl/Investors/Advisors",
-                        "contacts": 692,
-                        "description": "VCs, angels, fractional operators. POV: Fractional economy hitting inflection.",
-                        "target_meetings": "25-35"
-                    },
-                    "segment_3_adfixus": {
-                        "name": "AdFixus/Publishers",
-                        "contacts": 28,
-                        "description": "Premium publisher execs. POV: Identity infrastructure is your moat.",
-                        "target_meetings": "2-3"
-                    },
-                    "segment_4_visibility": {
-                        "name": "Visibility/Speaking/Podcast",
-                        "contacts": 165,
-                        "description": "Podcast hosts, conference orgs. POV: AI narrative needs builder pushback.",
-                        "target_meetings": "3-5"
-                    }
-                },
-                "deployment": {
-                    "day_1": "Segment 1 (Mindmaker) - first 250 contacts",
-                    "day_2": "Segment 2 (Fractionl/Investors) - first 200 contacts",
-                    "day_3": "Segment 3 (AdFixus) all 28 + Segment 4 first 100",
-                    "day_4": "Continue rolling remaining contacts",
-                    "day_5": "LinkedIn follow-ups begin (staggered)",
-                    "day_12": "Final touch emails (staggered)"
-                },
-                "successMetrics": {
-                    "calendar_meetings": "50-80 (primary)",
-                    "open_rate": "25-35% target",
-                    "reply_rate": "3-8% target",
-                    "positive_response": "50%+ of replies"
-                },
-                "nextStep": "Review Apollo outreach campaign copy & strategy in Drive",
-                "blockedBy": "krish",
-                "tags": [
-                    "outreach",
-                    "apollo",
-                    "multi-segment",
-                    "high-intent",
-                    "ready-to-ship"
-                ],
-                "notes": [
-                    "All copy written in Krish voice (confrontational, specific, forces choice)",
-                    "4 full email sequences (Day 1, 5, 12) per segment",
-                    "Publisher variations built in (FT, Bloomberg, WaPo, Economist)",
-                    "Visibility segment variations (podcast, conference, newsletter)",
-                    "Master sheet: https://docs.google.com/spreadsheets/d/1ubMUnGfhmm3n9OTwGuCcvEn9NhwZQzj8/edit",
-                    "Deployment guide in sheet tabs"
-                ]
-            }
-        ],
-        "blocked": [],
-        "done": [
-            {
-                "id": "model-tier-enforcement",
-                "venture": "ops",
-                "title": "Enforce model tier rules across all agent N8N workflows",
-                "status": "done",
-                "priority": "pri-0",
-                "blockedBy": null,
-                "urgency": "high",
-                "created": "2026-04-08T15:35:00Z",
-                "owner": "agatha",
-                "agent": "Arlo",
-                "group": "ops-governance",
-                "groupLabel": "Ops Governance",
-                "nextStep": "Arlo to audit all active N8N workflows and enforce model tier rules (patterns.md MT-001 to MT-006)",
-                "description": "Audit every N8N AI node across all agent workflows. Enforce: Haiku for Zara/Felix/Arlo/heartbeats/data-fetch nodes. Sonnet for Vera/Marcus/Priya/Leo/Nova/Maya. Opus removed from all N8N nodes entirely. Add max_tokens caps per tier. Report back with before/after model config list.",
-                "evidence": "Audited all 5 active N8N AI workflows (2026-04-10). 4 already on claude-sonnet-4-6. 1 violation found: Product Proposal Review using claude-3-5-haiku-20241022 for Agatha-level judgment — patched to claude-sonnet-4-6 via N8N API (HTTP 200). No Opus nodes found anywhere. Max tokens within MT-003 limits.",
-                "completedAt": "2026-04-10T11:10:00Z"
-            },
-            {
-                "id": "ops-agent-brief-refresh-all",
-                "venture": "ops",
-                "title": "All agents to publish refreshed KPI-plan briefs to Control Center",
-                "status": "done",
-                "priority": "pri-0",
-                "created": "2026-04-08T14:16:29Z",
-                "nextStep": "On each agent next run, require refreshed brief with KPI, plan, schedule, expected outputs, and decision triggers; route to Control Center attention queue.",
-                "owner": "agatha",
-                "group": "ops-governance",
-                "groupLabel": "Ops Governance",
-                "completedAt": "2026-04-08T15:09:42Z",
-                "outcome": "All 14 agents submitted execution plans incorporating Krish feedback. Plans pushed to Drive, tasks added to Control Center for prioritization and approval.",
-                "evidence": "Control Center blocked.json updated with 14 agent plan review tasks"
-            },
-            {
-                "id": "ops-48h-remediation-plan",
-                "venture": "ops",
-                "title": "Approve 48-hour remediation sprint plan",
-                "status": "done",
-                "priority": "pri-0",
-                "created": "2026-04-08T12:08:35Z",
-                "nextStep": "Review remediation changes and approve live enforcement run.",
-                "linkPrimary": "https://docs.google.com/document/d/1CDsOAWSntfHSU6iNMhesqH3GEfaVIR1x1f28j486mGo/edit",
-                "owner": "agatha",
-                "group": "ops-governance",
-                "groupLabel": "Ops Governance",
-                "startedAt": "2026-04-08T12:12:24Z",
-                "progress": "Controlled dry run passed: 33/33 templates compliant with governance + Control Center attention + external action gate.",
-                "updatedAt": "2026-04-08T14:10:15Z",
-                "evidence": "warm/agent-reports/control-center-dry-run-2026-04-08.json",
-                "completedAt": "2026-04-08T14:10:41Z",
-                "outcome": "Live enforcement enabled. Governance, Control Center attention block, and external action gate enforced across active templates; dry run passed 33/33."
-            },
-            {
-                "id": "b2",
-                "venture": "ops",
-                "title": "Instantly API - v2 key verified and updated",
-                "status": "done",
-                "completedAt": "2026-04-08T16:40:00Z",
-                "outcome": "v2 API confirmed. New key provided by Krish, verified working (GET /api/v2/campaigns returns 200). Auth: raw base64 Bearer token. Updated in systems.md, TOOLS.md, systems-status.json."
-            },
-            {
-                "id": "arlo-sub-agent-cron-work",
-                "title": "Arlo Sub-Agent Cron Execution (Completed)",
-                "status": "done",
-                "description": "Arlo updated 5 cron payloads to spawn sub-agents. This is valid work but NOT Phase 1. Phase 1 is the Control Center infrastructure rebuild. File separately.",
-                "completedAt": "2026-04-12T22:46:37.281Z",
-                "completedNote": "Completed by Arlo at 22:45 UTC. Not Phase 1, but valid infrastructure work."
-            },
-            {
-                "id": "phase-2-agent-briefs",
-                "title": "PHASE 2: Agent Restructuring - Cleo, Maya, Leo Execution",
-                "status": "done",
-                "priority": "pri-0",
-                "created": "2026-04-12T23:42:23.191Z",
-                "owner": "agatha",
-                "description": "Cleo (Content Coordinator + 5 sub-agents), Maya (Acquisition Coordinator + 4 sub-agents), Leo (CRO full funnel audit) all spawned and executing in parallel with Phase 1.",
-                "agents_active": [
-                    "Cleo",
-                    "Maya",
-                    "Leo"
-                ],
-                "target_completion": "2026-04-13 02:00 UTC",
-                "completedAt": "2026-04-13T00:38:11.372Z",
-                "completedNote": "All 3 coordinator briefs written: Cleo (content, 5 streams), Maya (acquisition, 4 apps), Leo (CRO, 3 ventures). Agents are now live coordinators with clear mandates."
-            }
-        ]
+  "updated_at": "2026-04-13T21:53:27.437890Z",
+  "updated_by": "arlo-sync",
+  "tasks": [
+    {
+      "id": "arlo-apollo-sheet-pull",
+      "venture": "ops",
+      "title": "Apollo Raw Data Pull - Creative Macros (Google Sheet Only)",
+      "status": "in_progress",
+      "priority": "pri-0",
+      "urgency": "CRITICAL",
+      "created": "2026-04-10T21:00:00Z",
+      "owner": "agatha",
+      "agent": "Arlo",
+      "group": "apollo-deployment",
+      "groupLabel": "Apollo Deployment",
+      "linkPrimary": "",
+      "nextStep": "Arlo: Run Apollo search with refined filters NOW (credits expire tonight). Search params: CEO/CTO/CSO/CFO/COO/President/VP Strategy/VP Biz Dev/VP Ops; Tech/Finance/Media/Healthcare/Retail; 50-5000 employees. Expected 1500-2000 contacts. Format to multi-tab Google Sheet per industry. Notify Agatha on completion.",
+      "description": "\nExecute the approved Apollo deployment plan. Pull leads into a richly formatted Google Sheet with tabs:\n1. AdF US Sniper (~100): WBD, Disney, NYT, Bloomberg, WaPo, Dotdash, Vox (SVP/VP Addressability, Data, Direct Sales)\n2. MM Capital (~1000): MDs, Partners at US/UK/MENA Family Offices/Micro-VCs (B2B SaaS, Future of Work, AI)\n3. Aggregators (~400): Founders, MDs of Pavilion, Chief, Hampton, Vistage\n4. PR/Journalists (~500): Senior Editors, Podcasters at The Information, Axios, Bloomberg, WSJ\n5. CAIOs (~1000): Chief AI Officer, Head of AI (Verified Custom Domain Only)\n6. Fractional Execs (~1000): Fractional CMO/CFO/COO (Verified Custom Domain Only)\n\nOutput is purely a spreadsheet for Krish to review.\n",
+      "guards": [
+        "DO NOT UPLOAD LEADS TO INSTANTLY.",
+        "DO NOT CREATE INSTANTLY CAMPAIGNS.",
+        "Enforce strictly Verified Custom Domain emails for CAIO and Fractional tabs.",
+        "Follow Google Doc protocol for creating the Sheet/Doc."
+      ],
+      "updatedAt": "2026-04-11T20:09:48.264Z"
     },
-    "total": 33
+    {
+      "id": "agatha-apollo-deployment-plan",
+      "venture": "ops",
+      "title": "Apollo Credit Deployment Plan - April 2026",
+      "status": "waiting",
+      "priority": "pri-0",
+      "urgency": "high",
+      "created": "2026-04-10T20:47:00Z",
+      "owner": "agatha",
+      "agent": "Agatha",
+      "group": "apollo-deployment",
+      "groupLabel": "Apollo Deployment",
+      "linkPrimary": "https://docs.google.com/document/d/1EchOZcbwHDZrdcNSWi2f8qAwWpyq53FzONbGKmW8kTo/edit?usp=drivesdk",
+      "nextStep": "Review the deployment plan in the doc and approve before Apollo execution.",
+      "description": "Comprehensive plan to allocate 4,015 Apollo credits across AdFixus, Mindmaker, and Fractionl, based on an audit of Instantly campaigns."
+    },
+    {
+      "id": "arlo-systems-monitor",
+      "venture": "ops",
+      "title": "Arlo \u2014 Build Systems Monitor + Control Center Systems Tab",
+      "status": "waiting",
+      "priority": "pri-0",
+      "blockedBy": "krish",
+      "urgency": "high",
+      "created": "2026-04-08T15:35:00Z",
+      "owner": "agatha",
+      "agent": "Arlo",
+      "group": "ops-governance",
+      "groupLabel": "Ops Governance",
+      "nextStep": "Approve spec, then Arlo builds N8N workflow + Notion Systems tab",
+      "description": "Arlo to build: (1) Full service inventory from hot/systems.md \u2014 every API, Supabase project, Stripe account, automation tool. (2) N8N health check workflow: hourly ping + auth validity + credit/quota monitoring. (3) Status flags: green/yellow/red/unchecked per service. (4) Notion Systems tab in Ops Board \u2014 live status written by Arlo after each check run. (5) Ops-bot Telegram alert on any red or critical yellow. (6) Weekly cost report via Agentops key (aa_YBQsXLzdHthiVbwcDEScjRQbFsUVAYUA) \u2014 fed to Vera for Friday audit. Schedule: hourly lightweight ping + full sweep on Arlo's Sunday 3AM cron."
+    },
+    {
+      "id": "model-tier-enforcement",
+      "venture": "ops",
+      "title": "Enforce model tier rules across all agent N8N workflows",
+      "status": "done",
+      "priority": "pri-0",
+      "blockedBy": null,
+      "urgency": "high",
+      "created": "2026-04-08T15:35:00Z",
+      "owner": "agatha",
+      "agent": "Arlo",
+      "group": "ops-governance",
+      "groupLabel": "Ops Governance",
+      "nextStep": "Arlo to audit all active N8N workflows and enforce model tier rules (patterns.md MT-001 to MT-006)",
+      "description": "Audit every N8N AI node across all agent workflows. Enforce: Haiku for Zara/Felix/Arlo/heartbeats/data-fetch nodes. Sonnet for Vera/Marcus/Priya/Leo/Nova/Maya. Opus removed from all N8N nodes entirely. Add max_tokens caps per tier. Report back with before/after model config list.",
+      "evidence": "Audited all 5 active N8N AI workflows (2026-04-10). 4 already on claude-sonnet-4-6. 1 violation found: Product Proposal Review using claude-3-5-haiku-20241022 for Agatha-level judgment \u2014 patched to claude-sonnet-4-6 via N8N API (HTTP 200). No Opus nodes found anywhere. Max tokens within MT-003 limits.",
+      "completedAt": "2026-04-10T11:10:00Z"
+    },
+    {
+      "id": "ops-agent-brief-refresh-all",
+      "venture": "ops",
+      "title": "All agents to publish refreshed KPI-plan briefs to Control Center",
+      "status": "done",
+      "priority": "pri-0",
+      "created": "2026-04-08T14:16:29Z",
+      "nextStep": "On each agent next run, require refreshed brief with KPI, plan, schedule, expected outputs, and decision triggers; route to Control Center attention queue.",
+      "owner": "agatha",
+      "group": "ops-governance",
+      "groupLabel": "Ops Governance",
+      "completedAt": "2026-04-08T15:09:42Z",
+      "outcome": "All 14 agents submitted execution plans incorporating Krish feedback. Plans pushed to Drive, tasks added to Control Center for prioritization and approval.",
+      "evidence": "Control Center blocked.json updated with 14 agent plan review tasks"
+    },
+    {
+      "id": "ops-48h-remediation-plan",
+      "venture": "ops",
+      "title": "Approve 48-hour remediation sprint plan",
+      "status": "done",
+      "priority": "pri-0",
+      "created": "2026-04-08T12:08:35Z",
+      "nextStep": "Review remediation changes and approve live enforcement run.",
+      "linkPrimary": "https://docs.google.com/document/d/1CDsOAWSntfHSU6iNMhesqH3GEfaVIR1x1f28j486mGo/edit",
+      "owner": "agatha",
+      "group": "ops-governance",
+      "groupLabel": "Ops Governance",
+      "startedAt": "2026-04-08T12:12:24Z",
+      "progress": "Controlled dry run passed: 33/33 templates compliant with governance + Control Center attention + external action gate.",
+      "updatedAt": "2026-04-08T14:10:15Z",
+      "evidence": "warm/agent-reports/control-center-dry-run-2026-04-08.json",
+      "completedAt": "2026-04-08T14:10:41Z",
+      "outcome": "Live enforcement enabled. Governance, Control Center attention block, and external action gate enforced across active templates; dry run passed 33/33."
+    },
+    {
+      "id": "ops-mm-os-v1-blueprint",
+      "venture": "ops",
+      "title": "Review and approve MindMaker OS v1 operating blueprint",
+      "status": "waiting",
+      "priority": "pri-0",
+      "created": "2026-04-08T12:03:58Z",
+      "nextStep": "Review the Google Doc and approve or mark required changes before implementation.",
+      "linkPrimary": "https://docs.google.com/document/d/11BTUPxk4zfe7W3-Mxvc530xBtVeSzqGKZ0515dh5dJo/edit",
+      "owner": "agatha",
+      "group": "ops-governance",
+      "groupLabel": "Ops Governance"
+    },
+    {
+      "id": "adfixus-navigator-roi",
+      "venture": "adfixus",
+      "title": "Navigator NYC 2026 ROI Document for Marko",
+      "status": "waiting",
+      "priority": "pri-0",
+      "created": "2026-04-07T19:10:00Z",
+      "nextStep": "Review the ROI document and send to Marko to secure the Beeler.tech VIP ticket.",
+      "linkPrimary": "https://docs.google.com/document/d/10uDLofJ8-Om1MxF9Kinfdn849H9xNQf1d-0xwb5ahPc/edit",
+      "group": "adfixus-ops",
+      "groupLabel": "AdFixus Operations",
+      "owner": "agatha"
+    },
+    {
+      "id": "b1",
+      "venture": "ops",
+      "title": "Drive Sync \u2014 Activate in N8N",
+      "description": "Open workflow PPfv8kHNBzSq7fm0, confirm Google Docs credential, click Activate.",
+      "status": "waiting",
+      "blockedBy": "krish",
+      "urgency": "medium",
+      "priority": "pri-1",
+      "agent": "Arlo",
+      "daysOld": 2
+    },
+    {
+      "id": "b2",
+      "venture": "ops",
+      "title": "Instantly API - v2 key verified and updated",
+      "status": "done",
+      "completedAt": "2026-04-08T16:40:00Z",
+      "outcome": "v2 API confirmed. New key provided by Krish, verified working (GET /api/v2/campaigns returns 200). Auth: raw base64 Bearer token. Updated in systems.md, TOOLS.md, systems-status.json."
+    },
+    {
+      "id": "b3",
+      "venture": "ops",
+      "title": "GSC API Credentials",
+      "description": "Google Search Console live for all 6 products. Wire GSC API access to Marketing Agent for real ranking data.",
+      "status": "completed",
+      "blockedBy": "krish",
+      "urgency": "medium",
+      "priority": "pri-1",
+      "agent": "Maya",
+      "daysOld": 1,
+      "feedbackText": "Krish gave feedback \u2014 wire GSC API access to Maya",
+      "feedbackTs": "2026-04-07T10:49:00Z",
+      "outcome": "Stripe webhooks added by Krish, GSC API routed to Maya",
+      "completedAt": "2026-04-07T14:00:00Z"
+    },
+    {
+      "id": "bd-signal-2026-04-07-faye-caio",
+      "title": "BD Signal: Faye \u2014 Fractional CAIO Launch (market validation)",
+      "venture": "mindmaker",
+      "status": "pending-agatha-review",
+      "priority": "HIGH",
+      "signal": "Faye (global AI/software firm, Calabasas CA) launched fractional CAIO services on Mar 17 2026, targeting mid-market organisations. Direct market entry into Mindmaker's core space \u2014 confirms demand and pricing opportunity at $300K+/year avoided cost.",
+      "warm_path": "Faye targets mid-market orgs that may outgrow their model and need more strategic depth (Krish's angle). Check Faye leadership team at fayedigital.com/team for any connection to Mindmaker network. Krish can position as the human-led, founder-mentality alternative to institutional CAIO-as-a-service.",
+      "source_url": "https://www.prnewswire.com/news-releases/faye-launches-fractional-chief-ai-officer-services-to-provide-strategic-ai-leadership-for-mid-market-organizations-302715227.html",
+      "evidence": "Found via web_search query 'fractional CAIO chief AI officer' at 2026-04-07T18:13:00Z",
+      "owner": "bd-agent",
+      "created": "2026-04-07T18:13:00Z"
+    },
+    {
+      "id": "bd-signal-2026-04-07-bpo-rfp-ai",
+      "title": "BD Signal: Enterprise BPO Sector \u2014 AI criteria now 30-40% of RFP evaluation",
+      "venture": "mindmaker",
+      "status": "pending-agatha-review",
+      "priority": "HIGH",
+      "signal": "Published 2026-04-06: Enterprise buyers now require 30-40% AI-specific criteria in BPO RFPs. BPOs without AI capability are being eliminated before first meeting. Hallucination risk management, outcome-based pricing, and autonomous agent readiness are now table stakes.",
+      "warm_path": "Any BPO or managed services company currently scrambling to build AI competency is a live Mindmaker prospect. Signal is sector-wide \u2014 logistics, CX outsourcing, finance operations all affected. Krish's Strategy Day format maps directly to what these buyers need to evaluate. Target CTO/CDO/COO at mid-tier BPO firms (500-5000 employees) who are about to lose deals.",
+      "source_url": "https://blog.anyreach.ai/rfp-changing/",
+      "evidence": "Found via web_search query 'AI strategy consultant RFP 2026' at 2026-04-07T18:13:00Z",
+      "owner": "bd-agent",
+      "created": "2026-04-07T18:13:00Z"
+    },
+    {
+      "id": "bd-signal-2026-04-07-caio-summits",
+      "title": "BD Signal: CAIO NY + CAIO London 2026 Summits \u2014 right rooms for Krish",
+      "venture": "mindmaker",
+      "status": "pending-agatha-review",
+      "priority": "MEDIUM",
+      "signal": "RE\u2022WORK running Chief AI Officer summits in New York and London in 2026. These are attended by practitioners implementing AI at enterprise scale \u2014 exact ICP for Mindmaker's consulting and Strategy Day offers.",
+      "warm_path": "Speaker applications via RE\u2022WORK directly (re-work.co). Speaking at either event = immediate CAIO peer credibility. Attendee networking = qualified prospects. Flag to Visibility Agent (Nova/Scout) to pursue speaker slot applications.",
+      "source_url": "https://caio-ny.re-work.co/",
+      "evidence": "Found via web_search query 'CAIO chief AI officer forum community online 2026' at 2026-04-07T18:13:00Z",
+      "owner": "bd-agent",
+      "created": "2026-04-07T18:13:00Z"
+    },
+    {
+      "id": "bd-signal-2026-04-07-jubilee-fractionl",
+      "title": "BD Signal: Jubilee + fractional ownership startups \u2014 mainstream Business Insider coverage",
+      "venture": "fractionl",
+      "status": "pending-agatha-review",
+      "priority": "MEDIUM",
+      "signal": "Business Insider + Yahoo Finance featured fractional homeownership startups (Jubilee, San Francisco) in Apr 2026. Growing media narrative around fractional ownership solving affordability crisis. Jubilee uses 99-year land lease model targeting cash-strapped buyers.",
+      "warm_path": "Jubilee's investors are in the proptech VC ecosystem \u2014 same network Fractionl should be cultivating. Media moment active: Krish could pitch Fractionl POV to same journalists covering this wave. Competitors getting coverage = differentiation opportunity.",
+      "source_url": "https://www.businessinsider.com/new-homebuying-option-fractional-ownership-startups-2026-4",
+      "evidence": "Found via web_search query 'fractional property investment platform competitor reviews Reddit 2026' at 2026-04-07T18:13:00Z",
+      "owner": "bd-agent",
+      "created": "2026-04-07T18:13:00Z"
+    },
+    {
+      "id": "bd-signal-2026-04-08-anyreach-bpo-ai-rfp",
+      "title": "BD Signal: Anyreach.ai \u2014 AI strategy primary in enterprise CX RFPs",
+      "venture": "mindmaker",
+      "status": "pending-agatha-review",
+      "priority": "HIGH",
+      "signal": "Anyreach.ai published 2 days ago: AI strategy questions have migrated from supplementary to primary evaluation criteria in enterprise CX/BPO RFPs. BPO buyers are now requiring AI roadmaps and strategy credentials before awarding contracts.",
+      "warm_path": "Anyreach (backed by Antler) = signal of a buyer segment actively publishing about AI-in-RFPs. Antler is a warm path if Krish has any connection to Antler portfolio. Founders: Karthik Ganesan, Richard L. Also: the BPO/CX sector is now a high-intent buyer for Mindmaker CAIO work.",
+      "source_url": "https://blog.anyreach.ai/rfp-changing/",
+      "evidence": "Found via web_search at 2026-04-08T14:08Z. Published 2 days ago.",
+      "owner": "bd-agent",
+      "created": "2026-04-08T14:08:00Z"
+    },
+    {
+      "id": "bd-signal-2026-04-08-aws-box-consulting-partner",
+      "title": "BD Signal: AWS BOX Program \u2014 expanded to consulting/advisory partners",
+      "venture": "mindmaker",
+      "status": "pending-agatha-review",
+      "priority": "MEDIUM",
+      "signal": "AWS expanded Business Outcomes Xcelerator (BOX) program to Business Consulting and Advisory Partners. The program bridges the gap between AI investment and measurable business outcomes \u2014 exact Mindmaker positioning.",
+      "warm_path": "Direct application to AWS Partner Network as a Business Consulting/Advisory Partner. No cold path required \u2014 AWS has open enrollment. Would give Mindmaker co-marketing, referrals from AWS enterprise customers, and credibility.",
+      "source_url": "https://aws.amazon.com/blogs/apn/expanding-the-box-program-to-business-consulting-and-advisory-partners/",
+      "evidence": "Found via web_search at 2026-04-08T14:08Z. Published ~3 weeks ago.",
+      "owner": "bd-agent",
+      "created": "2026-04-08T14:08:00Z"
+    },
+    {
+      "id": "bd-signal-2026-04-08-adfixus-agentic-data-era",
+      "title": "BD Signal: AdExchanger \u2014 First-party data will define the agentic advertising era",
+      "venture": "adfixus",
+      "status": "pending-agatha-review",
+      "priority": "MEDIUM",
+      "signal": "AdExchanger published 2 days ago: environments with proven identity integrity and first-party data lineage are capturing budget as agentic AI reshapes advertising. Retail media, premium publishing, and regulated industries explicitly called out.",
+      "warm_path": "AdExchanger is the trade publication for AdFixus buyers. This article names the exact problem AdFixus solves. Warm path: reach out to AdExchanger editorial team for a contributed piece from AdFixus, or target the publishers/retail media buyers named in the article as signal-aligned leads.",
+      "source_url": "https://www.adexchanger.com/the-sell-sider/ai-has-already-decided-first-party-data-will-define-advertisings-agentic-era/",
+      "evidence": "Found via web_search at 2026-04-08T14:08Z. Published 2 days ago.",
+      "owner": "bd-agent",
+      "created": "2026-04-08T14:08:00Z"
+    },
+    {
+      "id": "bd-signal-2026-04-08-fractionl-addy-collapse",
+      "title": "BD Signal: Addy (fractional real estate) collapsed \u2014 platform trust concern active",
+      "venture": "fractionl",
+      "status": "pending-agatha-review",
+      "priority": "MEDIUM",
+      "signal": "Globe and Mail (3 weeks ago) reported Addy, a Canadian fractional real estate platform, collapsed due to new residential construction failures. Experts warning other prop-share platforms at risk. Reddit discussion active with users seeking safe fractional platforms.",
+      "warm_path": "Users actively comparing platforms on Reddit (r/passive_income, r/RealEstate). This is a trust/governance moment for Fractionl to differentiate. Warm path: Reddit community presence + transparent governance messaging. No cold path needed \u2014 users are searching right now.",
+      "source_url": "https://www.theglobeandmail.com/real-estate/article-collapse-fractional-real-estate-investing-firm-business-model-risks/",
+      "evidence": "Found via web_search at 2026-04-08T14:08Z. Published 3 weeks ago.",
+      "owner": "bd-agent",
+      "created": "2026-04-08T14:08:00Z"
+    },
+    {
+      "id": "bd-signal-2026-04-08-family-office-ai-incubation",
+      "title": "BD Signal: Family offices incubating AI companies \u2014 new Mindmaker ICP segment",
+      "venture": "mindmaker",
+      "status": "pending-agatha-review",
+      "priority": "MEDIUM",
+      "signal": "TechCrunch (1 day ago): growing number of family offices are incubating their own AI companies, taking operational roles, and deploying entrepreneurial capital into early AI bets. These are sophisticated capital allocators without in-house AI expertise.",
+      "warm_path": "Family office networks (TIGER 21, FOX, family office associations) are warm path via existing wealth management contacts. This segment would pay premium for Mindmaker CAIO strategy work as they build AI companies without technical depth.",
+      "source_url": "https://techcrunch.com/2026/04/07/the-ai-gold-rush-is-pulling-private-wealth-into-riskier-earlier-bets/",
+      "evidence": "Found via web_search at 2026-04-08T14:08Z. Published 1 day ago.",
+      "owner": "bd-agent",
+      "created": "2026-04-08T14:08:00Z"
+    },
+    {
+      "id": "cleo-breaking-news-radar",
+      "title": "Build Breaking AI News Early Warning System",
+      "status": "active",
+      "priority": "high",
+      "owner": "cleo",
+      "due": "2026-04-09",
+      "description": "Cleo to design and document a real-time AI news monitoring stack so Krish is first-to-know when major announcements drop (e.g. Claude Managed Agents). Triggers same-day reactive content. Requires Arlo to build RSS alert pipeline in N8N.",
+      "brief_file": "warm/agent-plans/cleo-plan-2026-04.md",
+      "created": "2026-04-09T01:57:00Z"
+    },
+    {
+      "id": "maya-beta-sprint",
+      "venture": "fractionl",
+      "title": "Maya \u2014 Beta Acquisition Sprint: 20 Users Per App by Next Week",
+      "status": "active",
+      "priority": "pri-1",
+      "owner": "agatha",
+      "agent": "Maya",
+      "group": "growth",
+      "groupLabel": "Growth",
+      "created": "2026-04-09T19:16:00Z",
+      "linkPrimary": "https://docs.google.com/document/d/1wnGzwwV81jhyiUKJQsdZbQLUtE571qRsGkflqyA0SDQ/edit",
+      "nextStep": "Krish approves maya-1 (tooling + influencer strategy in principle), then Maya begins SEO foundation + Reddit seeding",
+      "description": "Web apps only. No App Store. Goal: 20 real beta users per app (Gutted, Merciless, OnAlert, Fractionl Circle, Fractionl Pulse) giving active feedback within 7 days. Sequence: SEO \u2192 Reddit/community \u2192 Betalist/ShowHN \u2192 Product Hunt \u2192 influencers last."
+    },
+    {
+      "id": "nell-possible-outreach",
+      "venture": "mindmaker",
+      "title": "Nell \u2014 POSSIBLE Outreach: Book 5 S&N Guests",
+      "status": "active",
+      "priority": "pri-0",
+      "owner": "agatha",
+      "agent": "Nell",
+      "group": "growth",
+      "groupLabel": "Growth",
+      "created": "2026-04-09T19:16:00Z",
+      "linkPrimary": "https://docs.google.com/spreadsheets/d/1DyAy1H3fnoI2_58nS3u2yIbbswJq1BddWmBUKyW8Yf8/edit",
+      "nextStep": "Check Gmail Drafts \u2014 Bob Pittman test draft is in inbox. Approve voice or give feedback. Then Nell batches all Tier 1 emails.",
+      "description": "Nell drafts all Tier 1 POSSIBLE speaker emails in Krish's voice, pushes to Gmail drafts. Test draft (Bob Pittman) already in inbox. Approve or revise, then Nell sends the batch."
+    },
+    {
+      "id": "nell-open-threads-update",
+      "venture": "mindmaker",
+      "title": "Nell \u2014 Add Chris Handy + Dan Pratl to Open Threads Tab",
+      "status": "active",
+      "priority": "pri-1",
+      "owner": "agatha",
+      "agent": "Nell",
+      "group": "growth",
+      "groupLabel": "Growth",
+      "created": "2026-04-09T19:41:00Z",
+      "linkPrimary": "https://docs.google.com/spreadsheets/d/1DyAy1H3fnoI2_58nS3u2yIbbswJq1BddWmBUKyW8Yf8/edit",
+      "nextStep": "In progress \u2014 Nell adding both rows with full columns and email drafts"
+    },
+    {
+      "id": "marcus-home-intelligence",
+      "venture": "ops",
+      "title": "Marcus Home Intelligence \u2014 Strategic Assessment Tab",
+      "status": "waiting",
+      "priority": "pri-0",
+      "owner": "agatha",
+      "agent": "Marcus + Arlo",
+      "group": "ops-governance",
+      "groupLabel": "Ops Governance",
+      "created": "2026-04-09T20:55:00Z",
+      "linkPrimary": "/root/.openclaw/workspace/warm/marcus-home-intelligence-spec.md",
+      "nextStep": "Arlo builds HomeIntelligence.tsx component. Marcus builds N8N workflow to generate the intelligence brief every 48 hours.",
+      "description": "Redesign Home tab as Marcus's strategic intelligence canvas. Marcus runs every 48 hours, reads across all org data (Vera, sequences, tasks, agent docs, Zara signals), and writes an opinionated assessment: what's working, what's misaligned, recommended focus. Home tab renders his brief with metrics + interpretation. NOT a summary \u2014 a point of view."
+    },
+    {
+      "id": "apollo-1894-outreach-campaign",
+      "venture": "growth",
+      "title": "Apollo 1,894 Contact Outreach Campaign - Ready to Deploy",
+      "status": "waiting",
+      "priority": "pri-0",
+      "urgency": "high",
+      "created": "2026-04-11T21:45:14.249Z",
+      "owner": "krish",
+      "agent": "Felix",
+      "group": "outreach",
+      "groupLabel": "Outreach Campaigns",
+      "linkPrimary": "https://docs.google.com/spreadsheets/d/1ubMUnGfhmm3n9OTwGuCcvEn9NhwZQzj8/edit",
+      "linkSecondary": "",
+      "description": "Complete outreach campaign: 1,894 qualified contacts across 4 segments (Mindmaker, Fractionl, AdFixus, Visibility). 12-day multi-touch sequence with POV-driven messaging. Target: 50-80 calendar meetings.",
+      "segments": {
+        "segment_1_mindmaker": {
+          "name": "Mindmaker Primary",
+          "contacts": 1009,
+          "description": "Mid-market CEOs/C-suite. POV: Your AI strategy is probably wrong.",
+          "target_meetings": "20-30"
+        },
+        "segment_2_fractionl": {
+          "name": "Fractionl/Investors/Advisors",
+          "contacts": 692,
+          "description": "VCs, angels, fractional operators. POV: Fractional economy hitting inflection.",
+          "target_meetings": "25-35"
+        },
+        "segment_3_adfixus": {
+          "name": "AdFixus/Publishers",
+          "contacts": 28,
+          "description": "Premium publisher execs. POV: Identity infrastructure is your moat.",
+          "target_meetings": "2-3"
+        },
+        "segment_4_visibility": {
+          "name": "Visibility/Speaking/Podcast",
+          "contacts": 165,
+          "description": "Podcast hosts, conference orgs. POV: AI narrative needs builder pushback.",
+          "target_meetings": "3-5"
+        }
+      },
+      "deployment": {
+        "day_1": "Segment 1 (Mindmaker) - first 250 contacts",
+        "day_2": "Segment 2 (Fractionl/Investors) - first 200 contacts",
+        "day_3": "Segment 3 (AdFixus) all 28 + Segment 4 first 100",
+        "day_4": "Continue rolling remaining contacts",
+        "day_5": "LinkedIn follow-ups begin (staggered)",
+        "day_12": "Final touch emails (staggered)"
+      },
+      "successMetrics": {
+        "calendar_meetings": "50-80 (primary)",
+        "open_rate": "25-35% target",
+        "reply_rate": "3-8% target",
+        "positive_response": "50%+ of replies"
+      },
+      "nextStep": "Review Apollo outreach campaign copy & strategy in Drive",
+      "blockedBy": "krish",
+      "tags": [
+        "outreach",
+        "apollo",
+        "multi-segment",
+        "high-intent",
+        "ready-to-ship"
+      ],
+      "notes": [
+        "All copy written in Krish voice (confrontational, specific, forces choice)",
+        "4 full email sequences (Day 1, 5, 12) per segment",
+        "Publisher variations built in (FT, Bloomberg, WaPo, Economist)",
+        "Visibility segment variations (podcast, conference, newsletter)",
+        "Master sheet: https://docs.google.com/spreadsheets/d/1ubMUnGfhmm3n9OTwGuCcvEn9NhwZQzj8/edit",
+        "Deployment guide in sheet tabs"
+      ]
+    },
+    {
+      "id": "arlo-phase-1-live",
+      "venture": "infrastructure",
+      "title": "PHASE 1: Control Center Live API + Event-Driven Sync (Execute NOW)",
+      "status": "in_progress",
+      "priority": "pri-0",
+      "urgency": "critical",
+      "created": "2026-04-12T22:39:47.830Z",
+      "owner": "krish",
+      "agent": "Arlo",
+      "nextStep": "FIX GIT CONFIG NOW: Run these commands BEFORE pushing to krishanraja/control-center:",
+      "description": "Restructure Control Center from static JSON to live API. Event-driven N8N sync (immediate + 5-min fallback). Full spec in restructuring proposal Section 1 and Phase 1.",
+      "subtasks": [
+        {
+          "order": 1,
+          "title": "Build Control Center API Endpoint",
+          "what_to_do": "Update krishanraja/control-center repo (GitHub). Add new API endpoint /api/sync that accepts JSON POST from N8N. This endpoint updates the dashboard data in real-time. Dashboard Today/Plays/Agents tabs now read from this API instead of static JSON files. Test endpoint with curl.",
+          "where": "GitHub: krishanraja/control-center. Vercel auto-deploys on push."
+        },
+        {
+          "order": 2,
+          "title": "Build Event-Driven N8N Sync Workflow",
+          "what_to_do": "N8N workflow that (1) watches /root/.openclaw/workspace/active/tasks.json for changes (via file watcher or git commit hook), (2) fires immediately when file changes, (3) reads tasks.json, (4) POSTs to Control Center API endpoint. (5) Fallback: 5-minute cron if event-driven fails. (6) Include validation: if blocker marked done in tasks.json but showing open in dashboard, correct it and log.",
+          "where": "N8N: krishraja10101.app.n8n.cloud"
+        },
+        {
+          "order": 3,
+          "title": "Build Cross-Agent Propagation",
+          "what_to_do": "Add propagates_to field to tasks.json format. When a task updates and has propagates_to: [agent1, agent2], N8N workflow regenerates those agents' Google Drive plan documents automatically. Agents wake to current info.",
+          "where": "N8N workflow extends (task 2) + Google Docs API calls"
+        },
+        {
+          "order": 4,
+          "title": "Build Contradiction Detection",
+          "what_to_do": "N8N script that runs every hour. Scans /root/.openclaw/workspace/warm/ and /root/.openclaw/workspace/hot/ for any document containing references to tasks marked done in tasks.json. Produces contradiction report JSON. Outputs to /root/.openclaw/workspace/active/vera-queue.json.",
+          "where": "N8N workflow or scheduled script"
+        }
+      ],
+      "blockedBy": null,
+      "instruction": "Poll /root/.openclaw/workspace/active/tasks.json every 5 minutes. When you see updates to this task (arlo-phase-1-live), act immediately. Do not wait for your scheduled execution windows.",
+      "technical_spec": {
+        "subtask_1": {
+          "title": "Build Control Center API Endpoint",
+          "repo": "krishanraja/control-center",
+          "what_to_build": "New endpoint: POST /api/sync that accepts { \"tasks\": [...], \"updated_at\": \"...\", \"agent_states\": {...} }",
+          "where_to_add_it": "src/pages/api/sync.ts or src/api/sync.js (depending on existing pattern)",
+          "what_it_does": "Receives JSON from N8N workflow. Updates in-memory dashboard state. Dashboard Today/Plays/Agents tabs read from this endpoint live instead of static JSON files.",
+          "after_deploy": "Vercel auto-deploys on git push. Test with: curl -X POST http://localhost:3000/api/sync -H \"Content-Type: application/json\" -d '{\"tasks\":[...]}'"
+        },
+        "subtask_2": {
+          "title": "Build Event-Driven N8N Sync Workflow",
+          "n8n_url": "krishraja10101.app.n8n.cloud",
+          "workflow_name": "TasksJSON-to-ControlCenter-Sync",
+          "trigger": "Webhook: Listen for HTTP POST from file watcher OR git commit hook on tasks.json change",
+          "actions": [
+            "Read /root/.openclaw/workspace/active/tasks.json",
+            "POST to Control Center /api/sync endpoint with full payload",
+            "Validate response: if 200, mark success. If error, retry 3x then log to vera-queue.json",
+            "Check for stale tasks: if any blocker.created_at is >14 days old AND status != done, add to contradiction report"
+          ],
+          "fallback_cron": "If event-driven fails, N8N cron runs every 5 minutes with same payload",
+          "git_hook": "Install post-commit hook in krishanraja/control-center that curls N8N webhook URL when tasks.json changes"
+        },
+        "subtask_3": {
+          "title": "Cross-Agent Propagation",
+          "what_to_change": "tasks.json schema gains optional field: \"propagates_to\": [\"agent_id\", \"agent_id\"]",
+          "example": "{ \"id\": \"leo-cro-audit\", \"propagates_to\": [\"nova\", \"cleo\"], ... }",
+          "n8n_logic": "When sync workflow reads tasks.json and sees propagates_to field populated, call Google Docs API to regenerate those agents' plan documents with updated info",
+          "result": "Nova and Cleo wake up to Leo's updated plan automatically. No manual regeneration needed."
+        },
+        "subtask_4": {
+          "title": "Contradiction Detection Sweep",
+          "what_it_does": "Scans all .md files in /root/.openclaw/workspace/warm/ and /root/.openclaw/workspace/hot/ for task references",
+          "logic": "For each task marked done in tasks.json, search all files for that task's name or ID. If found, note it as a contradiction.",
+          "output": "Write /root/.openclaw/workspace/active/vera-queue.json with: { \"contradictions\": [{\"task_id\": \"...\", \"found_in\": \"file_path\", \"context\": \"...snippet...\"}]}",
+          "run_frequency": "N8N workflow runs this every hour automatically"
+        }
+      },
+      "git_config_required": [
+        "git config user.name \"Krish Raja\"",
+        "git config user.email \"hello@krishraja.com\"",
+        "Then commit with: git commit -m \"[Phase 1] Add /api/sync endpoint\"",
+        "Then push: git push origin main",
+        "Vercel will auto-deploy. Check deployment status."
+      ],
+      "critical_note": "DO NOT use arlo@openclaw or any other email. MUST be hello@krishraja.com or commits will be rejected."
+    },
+    {
+      "id": "phase-1-agent-restructure",
+      "venture": "ops",
+      "title": "PHASE 1: Sub-Agent Restructuring Mandate",
+      "status": "in_progress",
+      "priority": "pri-0",
+      "urgency": "CRITICAL",
+      "created": "2026-04-12T22:41:00Z",
+      "owner": "agatha",
+      "agent": "Arlo",
+      "group": "agent-architecture",
+      "groupLabel": "Agent Architecture Restructure",
+      "nextStep": "Execute Phase 1 immediately: (1) Archive 6 lightweight agents (Kai, Marcus, Priya, Nell, Zara, Maya) to isolated sub-agent spawning via sessions_spawn. (2) Convert their cron jobs to spawn isolated sessions instead of running inline. (3) Update agents-status.json sub_agents:true. (4) Update cron payloads with runtime=subagent. (5) Verify first 2 runs succeed. (6) Report execution evidence.",
+      "description": "Restructure agent fleet to use true sub-agent isolation for lightweight/periodic agents. Reduces main-session context bloat and improves token efficiency. Phase 1 targets 6 agents: Kai, Marcus, Priya, Nell, Zara, Maya.",
+      "guards": [
+        "DO NOT modify Agatha, Vera, Leo, Felix, Cleo, Nova (Phase 2+)",
+        "DO NOT disable cron jobs \u2014 convert to spawn mode",
+        "Verify each sub-agent starts and completes successfully",
+        "Report full execution log with session IDs"
+      ],
+      "blockedBy": null,
+      "linkedTask": "phase-2-agent-briefs",
+      "updatedAt": "2026-04-12T22:57:00Z",
+      "evidence": "Phase 1 executed: Updated 5 cron jobs (Marcus, Kai/Tools, Maya, Priya, Nell) to spawn sub-agents. Marked all 5 as sub_agents=true in agents-status.json. Committed to control-center. Awaiting first scheduled runs for verification."
+    },
+    {
+      "id": "arlo-sub-agent-cron-work",
+      "title": "Arlo Sub-Agent Cron Execution (Completed)",
+      "status": "done",
+      "description": "Arlo updated 5 cron payloads to spawn sub-agents. This is valid work but NOT Phase 1. Phase 1 is the Control Center infrastructure rebuild. File separately.",
+      "completedAt": "2026-04-12T22:46:37.281Z",
+      "completedNote": "Completed by Arlo at 22:45 UTC. Not Phase 1, but valid infrastructure work."
+    },
+    {
+      "id": "phase-2-agent-briefs",
+      "title": "PHASE 2: Agent Restructuring - Cleo, Maya, Leo Execution",
+      "status": "done",
+      "priority": "pri-0",
+      "created": "2026-04-12T23:42:23.191Z",
+      "owner": "agatha",
+      "description": "Cleo (Content Coordinator + 5 sub-agents), Maya (Acquisition Coordinator + 4 sub-agents), Leo (CRO full funnel audit) all spawned and executing in parallel with Phase 1.",
+      "agents_active": [
+        "Cleo",
+        "Maya",
+        "Leo"
+      ],
+      "target_completion": "2026-04-13 02:00 UTC",
+      "completedAt": "2026-04-13T00:38:11.372Z",
+      "completedNote": "All 3 coordinator briefs written: Cleo (content, 5 streams), Maya (acquisition, 4 apps), Leo (CRO, 3 ventures). Agents are now live coordinators with clear mandates."
+    },
+    {
+      "id": "cleo-phase2-active",
+      "title": "Cleo \u2014 Content Production Coordinator",
+      "status": "active",
+      "priority": "pri-1",
+      "agent": "Cleo",
+      "owner": "agatha",
+      "created": "2026-04-13T00:38:11.374Z",
+      "description": "Coordinator for 5 content streams (Builder Economy, Signal & Noise, Techonomic, Instagram, Mindmaker Live). Weekly quality gatekeeping. Mandate: zero generic content reaches Krish.",
+      "briefLocation": "/root/.openclaw/workspace/warm/agent-plans/cleo-coordinator-phase2.md",
+      "successMetric": "Weekly: 100% of escalated content passes voice.md audit"
+    },
+    {
+      "id": "maya-phase2-active",
+      "title": "Maya \u2014 Customer Acquisition Coordinator",
+      "status": "active",
+      "priority": "pri-1",
+      "agent": "Maya",
+      "owner": "agatha",
+      "created": "2026-04-13T00:38:11.374Z",
+      "description": "Coordinator for 4 B2C app acquisition (mm-ctrl, Circle, Gutted, On Alert/Merciless). Delivers acquisition strategies. No spend approved without strategy.",
+      "briefLocation": "/root/.openclaw/workspace/warm/agent-plans/maya-coordinator-phase2.md",
+      "successMetric": "By 2026-05-01: All 4 apps have documented acquisition strategies"
+    },
+    {
+      "id": "leo-phase2-active",
+      "title": "Leo \u2014 Chief Revenue Officer (CRO)",
+      "status": "active",
+      "priority": "pri-0",
+      "agent": "Leo",
+      "owner": "agatha",
+      "created": "2026-04-13T00:38:11.374Z",
+      "description": "Maps autonomous revenue across all 3 ventures (Mindmaker, Fractionl, AdFixus). Identifies drop-offs and optimization targets. Reports weekly.",
+      "briefLocation": "/root/.openclaw/workspace/warm/agent-plans/leo-cro-phase2.md",
+      "successMetric": "By 2026-06-01: Full funnel map + drop-off analysis + prioritized optimization targets for all 3 ventures",
+      "blocker": "Needs analytics access: Google Analytics, email, Stripe, Calendly, CRM. Arlo to wire connections."
+    }
+  ],
+  "by_status": {
+    "in_progress": [
+      {
+        "id": "arlo-apollo-sheet-pull",
+        "venture": "ops",
+        "title": "Apollo Raw Data Pull - Creative Macros (Google Sheet Only)",
+        "status": "in_progress",
+        "priority": "pri-0",
+        "urgency": "CRITICAL",
+        "created": "2026-04-10T21:00:00Z",
+        "owner": "agatha",
+        "agent": "Arlo",
+        "group": "apollo-deployment",
+        "groupLabel": "Apollo Deployment",
+        "linkPrimary": "",
+        "nextStep": "Arlo: Run Apollo search with refined filters NOW (credits expire tonight). Search params: CEO/CTO/CSO/CFO/COO/President/VP Strategy/VP Biz Dev/VP Ops; Tech/Finance/Media/Healthcare/Retail; 50-5000 employees. Expected 1500-2000 contacts. Format to multi-tab Google Sheet per industry. Notify Agatha on completion.",
+        "description": "\nExecute the approved Apollo deployment plan. Pull leads into a richly formatted Google Sheet with tabs:\n1. AdF US Sniper (~100): WBD, Disney, NYT, Bloomberg, WaPo, Dotdash, Vox (SVP/VP Addressability, Data, Direct Sales)\n2. MM Capital (~1000): MDs, Partners at US/UK/MENA Family Offices/Micro-VCs (B2B SaaS, Future of Work, AI)\n3. Aggregators (~400): Founders, MDs of Pavilion, Chief, Hampton, Vistage\n4. PR/Journalists (~500): Senior Editors, Podcasters at The Information, Axios, Bloomberg, WSJ\n5. CAIOs (~1000): Chief AI Officer, Head of AI (Verified Custom Domain Only)\n6. Fractional Execs (~1000): Fractional CMO/CFO/COO (Verified Custom Domain Only)\n\nOutput is purely a spreadsheet for Krish to review.\n",
+        "guards": [
+          "DO NOT UPLOAD LEADS TO INSTANTLY.",
+          "DO NOT CREATE INSTANTLY CAMPAIGNS.",
+          "Enforce strictly Verified Custom Domain emails for CAIO and Fractional tabs.",
+          "Follow Google Doc protocol for creating the Sheet/Doc."
+        ],
+        "updatedAt": "2026-04-11T20:09:48.264Z"
+      },
+      {
+        "id": "arlo-phase-1-live",
+        "venture": "infrastructure",
+        "title": "PHASE 1: Control Center Live API + Event-Driven Sync (Execute NOW)",
+        "status": "in_progress",
+        "priority": "pri-0",
+        "urgency": "critical",
+        "created": "2026-04-12T22:39:47.830Z",
+        "owner": "krish",
+        "agent": "Arlo",
+        "nextStep": "FIX GIT CONFIG NOW: Run these commands BEFORE pushing to krishanraja/control-center:",
+        "description": "Restructure Control Center from static JSON to live API. Event-driven N8N sync (immediate + 5-min fallback). Full spec in restructuring proposal Section 1 and Phase 1.",
+        "subtasks": [
+          {
+            "order": 1,
+            "title": "Build Control Center API Endpoint",
+            "what_to_do": "Update krishanraja/control-center repo (GitHub). Add new API endpoint /api/sync that accepts JSON POST from N8N. This endpoint updates the dashboard data in real-time. Dashboard Today/Plays/Agents tabs now read from this API instead of static JSON files. Test endpoint with curl.",
+            "where": "GitHub: krishanraja/control-center. Vercel auto-deploys on push."
+          },
+          {
+            "order": 2,
+            "title": "Build Event-Driven N8N Sync Workflow",
+            "what_to_do": "N8N workflow that (1) watches /root/.openclaw/workspace/active/tasks.json for changes (via file watcher or git commit hook), (2) fires immediately when file changes, (3) reads tasks.json, (4) POSTs to Control Center API endpoint. (5) Fallback: 5-minute cron if event-driven fails. (6) Include validation: if blocker marked done in tasks.json but showing open in dashboard, correct it and log.",
+            "where": "N8N: krishraja10101.app.n8n.cloud"
+          },
+          {
+            "order": 3,
+            "title": "Build Cross-Agent Propagation",
+            "what_to_do": "Add propagates_to field to tasks.json format. When a task updates and has propagates_to: [agent1, agent2], N8N workflow regenerates those agents' Google Drive plan documents automatically. Agents wake to current info.",
+            "where": "N8N workflow extends (task 2) + Google Docs API calls"
+          },
+          {
+            "order": 4,
+            "title": "Build Contradiction Detection",
+            "what_to_do": "N8N script that runs every hour. Scans /root/.openclaw/workspace/warm/ and /root/.openclaw/workspace/hot/ for any document containing references to tasks marked done in tasks.json. Produces contradiction report JSON. Outputs to /root/.openclaw/workspace/active/vera-queue.json.",
+            "where": "N8N workflow or scheduled script"
+          }
+        ],
+        "blockedBy": null,
+        "instruction": "Poll /root/.openclaw/workspace/active/tasks.json every 5 minutes. When you see updates to this task (arlo-phase-1-live), act immediately. Do not wait for your scheduled execution windows.",
+        "technical_spec": {
+          "subtask_1": {
+            "title": "Build Control Center API Endpoint",
+            "repo": "krishanraja/control-center",
+            "what_to_build": "New endpoint: POST /api/sync that accepts { \"tasks\": [...], \"updated_at\": \"...\", \"agent_states\": {...} }",
+            "where_to_add_it": "src/pages/api/sync.ts or src/api/sync.js (depending on existing pattern)",
+            "what_it_does": "Receives JSON from N8N workflow. Updates in-memory dashboard state. Dashboard Today/Plays/Agents tabs read from this endpoint live instead of static JSON files.",
+            "after_deploy": "Vercel auto-deploys on git push. Test with: curl -X POST http://localhost:3000/api/sync -H \"Content-Type: application/json\" -d '{\"tasks\":[...]}'"
+          },
+          "subtask_2": {
+            "title": "Build Event-Driven N8N Sync Workflow",
+            "n8n_url": "krishraja10101.app.n8n.cloud",
+            "workflow_name": "TasksJSON-to-ControlCenter-Sync",
+            "trigger": "Webhook: Listen for HTTP POST from file watcher OR git commit hook on tasks.json change",
+            "actions": [
+              "Read /root/.openclaw/workspace/active/tasks.json",
+              "POST to Control Center /api/sync endpoint with full payload",
+              "Validate response: if 200, mark success. If error, retry 3x then log to vera-queue.json",
+              "Check for stale tasks: if any blocker.created_at is >14 days old AND status != done, add to contradiction report"
+            ],
+            "fallback_cron": "If event-driven fails, N8N cron runs every 5 minutes with same payload",
+            "git_hook": "Install post-commit hook in krishanraja/control-center that curls N8N webhook URL when tasks.json changes"
+          },
+          "subtask_3": {
+            "title": "Cross-Agent Propagation",
+            "what_to_change": "tasks.json schema gains optional field: \"propagates_to\": [\"agent_id\", \"agent_id\"]",
+            "example": "{ \"id\": \"leo-cro-audit\", \"propagates_to\": [\"nova\", \"cleo\"], ... }",
+            "n8n_logic": "When sync workflow reads tasks.json and sees propagates_to field populated, call Google Docs API to regenerate those agents' plan documents with updated info",
+            "result": "Nova and Cleo wake up to Leo's updated plan automatically. No manual regeneration needed."
+          },
+          "subtask_4": {
+            "title": "Contradiction Detection Sweep",
+            "what_it_does": "Scans all .md files in /root/.openclaw/workspace/warm/ and /root/.openclaw/workspace/hot/ for task references",
+            "logic": "For each task marked done in tasks.json, search all files for that task's name or ID. If found, note it as a contradiction.",
+            "output": "Write /root/.openclaw/workspace/active/vera-queue.json with: { \"contradictions\": [{\"task_id\": \"...\", \"found_in\": \"file_path\", \"context\": \"...snippet...\"}]}",
+            "run_frequency": "N8N workflow runs this every hour automatically"
+          }
+        },
+        "git_config_required": [
+          "git config user.name \"Krish Raja\"",
+          "git config user.email \"hello@krishraja.com\"",
+          "Then commit with: git commit -m \"[Phase 1] Add /api/sync endpoint\"",
+          "Then push: git push origin main",
+          "Vercel will auto-deploy. Check deployment status."
+        ],
+        "critical_note": "DO NOT use arlo@openclaw or any other email. MUST be hello@krishraja.com or commits will be rejected."
+      },
+      {
+        "id": "phase-1-agent-restructure",
+        "venture": "ops",
+        "title": "PHASE 1: Sub-Agent Restructuring Mandate",
+        "status": "in_progress",
+        "priority": "pri-0",
+        "urgency": "CRITICAL",
+        "created": "2026-04-12T22:41:00Z",
+        "owner": "agatha",
+        "agent": "Arlo",
+        "group": "agent-architecture",
+        "groupLabel": "Agent Architecture Restructure",
+        "nextStep": "Execute Phase 1 immediately: (1) Archive 6 lightweight agents (Kai, Marcus, Priya, Nell, Zara, Maya) to isolated sub-agent spawning via sessions_spawn. (2) Convert their cron jobs to spawn isolated sessions instead of running inline. (3) Update agents-status.json sub_agents:true. (4) Update cron payloads with runtime=subagent. (5) Verify first 2 runs succeed. (6) Report execution evidence.",
+        "description": "Restructure agent fleet to use true sub-agent isolation for lightweight/periodic agents. Reduces main-session context bloat and improves token efficiency. Phase 1 targets 6 agents: Kai, Marcus, Priya, Nell, Zara, Maya.",
+        "guards": [
+          "DO NOT modify Agatha, Vera, Leo, Felix, Cleo, Nova (Phase 2+)",
+          "DO NOT disable cron jobs \u2014 convert to spawn mode",
+          "Verify each sub-agent starts and completes successfully",
+          "Report full execution log with session IDs"
+        ],
+        "blockedBy": null,
+        "linkedTask": "phase-2-agent-briefs",
+        "updatedAt": "2026-04-12T22:57:00Z",
+        "evidence": "Phase 1 executed: Updated 5 cron jobs (Marcus, Kai/Tools, Maya, Priya, Nell) to spawn sub-agents. Marked all 5 as sub_agents=true in agents-status.json. Committed to control-center. Awaiting first scheduled runs for verification."
+      }
+    ],
+    "waiting": [
+      {
+        "id": "agatha-apollo-deployment-plan",
+        "venture": "ops",
+        "title": "Apollo Credit Deployment Plan - April 2026",
+        "status": "waiting",
+        "priority": "pri-0",
+        "urgency": "high",
+        "created": "2026-04-10T20:47:00Z",
+        "owner": "agatha",
+        "agent": "Agatha",
+        "group": "apollo-deployment",
+        "groupLabel": "Apollo Deployment",
+        "linkPrimary": "https://docs.google.com/document/d/1EchOZcbwHDZrdcNSWi2f8qAwWpyq53FzONbGKmW8kTo/edit?usp=drivesdk",
+        "nextStep": "Review the deployment plan in the doc and approve before Apollo execution.",
+        "description": "Comprehensive plan to allocate 4,015 Apollo credits across AdFixus, Mindmaker, and Fractionl, based on an audit of Instantly campaigns."
+      },
+      {
+        "id": "arlo-systems-monitor",
+        "venture": "ops",
+        "title": "Arlo \u2014 Build Systems Monitor + Control Center Systems Tab",
+        "status": "waiting",
+        "priority": "pri-0",
+        "blockedBy": "krish",
+        "urgency": "high",
+        "created": "2026-04-08T15:35:00Z",
+        "owner": "agatha",
+        "agent": "Arlo",
+        "group": "ops-governance",
+        "groupLabel": "Ops Governance",
+        "nextStep": "Approve spec, then Arlo builds N8N workflow + Notion Systems tab",
+        "description": "Arlo to build: (1) Full service inventory from hot/systems.md \u2014 every API, Supabase project, Stripe account, automation tool. (2) N8N health check workflow: hourly ping + auth validity + credit/quota monitoring. (3) Status flags: green/yellow/red/unchecked per service. (4) Notion Systems tab in Ops Board \u2014 live status written by Arlo after each check run. (5) Ops-bot Telegram alert on any red or critical yellow. (6) Weekly cost report via Agentops key (aa_YBQsXLzdHthiVbwcDEScjRQbFsUVAYUA) \u2014 fed to Vera for Friday audit. Schedule: hourly lightweight ping + full sweep on Arlo's Sunday 3AM cron."
+      },
+      {
+        "id": "ops-mm-os-v1-blueprint",
+        "venture": "ops",
+        "title": "Review and approve MindMaker OS v1 operating blueprint",
+        "status": "waiting",
+        "priority": "pri-0",
+        "created": "2026-04-08T12:03:58Z",
+        "nextStep": "Review the Google Doc and approve or mark required changes before implementation.",
+        "linkPrimary": "https://docs.google.com/document/d/11BTUPxk4zfe7W3-Mxvc530xBtVeSzqGKZ0515dh5dJo/edit",
+        "owner": "agatha",
+        "group": "ops-governance",
+        "groupLabel": "Ops Governance"
+      },
+      {
+        "id": "adfixus-navigator-roi",
+        "venture": "adfixus",
+        "title": "Navigator NYC 2026 ROI Document for Marko",
+        "status": "waiting",
+        "priority": "pri-0",
+        "created": "2026-04-07T19:10:00Z",
+        "nextStep": "Review the ROI document and send to Marko to secure the Beeler.tech VIP ticket.",
+        "linkPrimary": "https://docs.google.com/document/d/10uDLofJ8-Om1MxF9Kinfdn849H9xNQf1d-0xwb5ahPc/edit",
+        "group": "adfixus-ops",
+        "groupLabel": "AdFixus Operations",
+        "owner": "agatha"
+      },
+      {
+        "id": "b1",
+        "venture": "ops",
+        "title": "Drive Sync \u2014 Activate in N8N",
+        "description": "Open workflow PPfv8kHNBzSq7fm0, confirm Google Docs credential, click Activate.",
+        "status": "waiting",
+        "blockedBy": "krish",
+        "urgency": "medium",
+        "priority": "pri-1",
+        "agent": "Arlo",
+        "daysOld": 2
+      },
+      {
+        "id": "marcus-home-intelligence",
+        "venture": "ops",
+        "title": "Marcus Home Intelligence \u2014 Strategic Assessment Tab",
+        "status": "waiting",
+        "priority": "pri-0",
+        "owner": "agatha",
+        "agent": "Marcus + Arlo",
+        "group": "ops-governance",
+        "groupLabel": "Ops Governance",
+        "created": "2026-04-09T20:55:00Z",
+        "linkPrimary": "/root/.openclaw/workspace/warm/marcus-home-intelligence-spec.md",
+        "nextStep": "Arlo builds HomeIntelligence.tsx component. Marcus builds N8N workflow to generate the intelligence brief every 48 hours.",
+        "description": "Redesign Home tab as Marcus's strategic intelligence canvas. Marcus runs every 48 hours, reads across all org data (Vera, sequences, tasks, agent docs, Zara signals), and writes an opinionated assessment: what's working, what's misaligned, recommended focus. Home tab renders his brief with metrics + interpretation. NOT a summary \u2014 a point of view."
+      },
+      {
+        "id": "apollo-1894-outreach-campaign",
+        "venture": "growth",
+        "title": "Apollo 1,894 Contact Outreach Campaign - Ready to Deploy",
+        "status": "waiting",
+        "priority": "pri-0",
+        "urgency": "high",
+        "created": "2026-04-11T21:45:14.249Z",
+        "owner": "krish",
+        "agent": "Felix",
+        "group": "outreach",
+        "groupLabel": "Outreach Campaigns",
+        "linkPrimary": "https://docs.google.com/spreadsheets/d/1ubMUnGfhmm3n9OTwGuCcvEn9NhwZQzj8/edit",
+        "linkSecondary": "",
+        "description": "Complete outreach campaign: 1,894 qualified contacts across 4 segments (Mindmaker, Fractionl, AdFixus, Visibility). 12-day multi-touch sequence with POV-driven messaging. Target: 50-80 calendar meetings.",
+        "segments": {
+          "segment_1_mindmaker": {
+            "name": "Mindmaker Primary",
+            "contacts": 1009,
+            "description": "Mid-market CEOs/C-suite. POV: Your AI strategy is probably wrong.",
+            "target_meetings": "20-30"
+          },
+          "segment_2_fractionl": {
+            "name": "Fractionl/Investors/Advisors",
+            "contacts": 692,
+            "description": "VCs, angels, fractional operators. POV: Fractional economy hitting inflection.",
+            "target_meetings": "25-35"
+          },
+          "segment_3_adfixus": {
+            "name": "AdFixus/Publishers",
+            "contacts": 28,
+            "description": "Premium publisher execs. POV: Identity infrastructure is your moat.",
+            "target_meetings": "2-3"
+          },
+          "segment_4_visibility": {
+            "name": "Visibility/Speaking/Podcast",
+            "contacts": 165,
+            "description": "Podcast hosts, conference orgs. POV: AI narrative needs builder pushback.",
+            "target_meetings": "3-5"
+          }
+        },
+        "deployment": {
+          "day_1": "Segment 1 (Mindmaker) - first 250 contacts",
+          "day_2": "Segment 2 (Fractionl/Investors) - first 200 contacts",
+          "day_3": "Segment 3 (AdFixus) all 28 + Segment 4 first 100",
+          "day_4": "Continue rolling remaining contacts",
+          "day_5": "LinkedIn follow-ups begin (staggered)",
+          "day_12": "Final touch emails (staggered)"
+        },
+        "successMetrics": {
+          "calendar_meetings": "50-80 (primary)",
+          "open_rate": "25-35% target",
+          "reply_rate": "3-8% target",
+          "positive_response": "50%+ of replies"
+        },
+        "nextStep": "Review Apollo outreach campaign copy & strategy in Drive",
+        "blockedBy": "krish",
+        "tags": [
+          "outreach",
+          "apollo",
+          "multi-segment",
+          "high-intent",
+          "ready-to-ship"
+        ],
+        "notes": [
+          "All copy written in Krish voice (confrontational, specific, forces choice)",
+          "4 full email sequences (Day 1, 5, 12) per segment",
+          "Publisher variations built in (FT, Bloomberg, WaPo, Economist)",
+          "Visibility segment variations (podcast, conference, newsletter)",
+          "Master sheet: https://docs.google.com/spreadsheets/d/1ubMUnGfhmm3n9OTwGuCcvEn9NhwZQzj8/edit",
+          "Deployment guide in sheet tabs"
+        ]
+      }
+    ],
+    "blocked": [],
+    "done": [
+      {
+        "id": "model-tier-enforcement",
+        "venture": "ops",
+        "title": "Enforce model tier rules across all agent N8N workflows",
+        "status": "done",
+        "priority": "pri-0",
+        "blockedBy": null,
+        "urgency": "high",
+        "created": "2026-04-08T15:35:00Z",
+        "owner": "agatha",
+        "agent": "Arlo",
+        "group": "ops-governance",
+        "groupLabel": "Ops Governance",
+        "nextStep": "Arlo to audit all active N8N workflows and enforce model tier rules (patterns.md MT-001 to MT-006)",
+        "description": "Audit every N8N AI node across all agent workflows. Enforce: Haiku for Zara/Felix/Arlo/heartbeats/data-fetch nodes. Sonnet for Vera/Marcus/Priya/Leo/Nova/Maya. Opus removed from all N8N nodes entirely. Add max_tokens caps per tier. Report back with before/after model config list.",
+        "evidence": "Audited all 5 active N8N AI workflows (2026-04-10). 4 already on claude-sonnet-4-6. 1 violation found: Product Proposal Review using claude-3-5-haiku-20241022 for Agatha-level judgment \u2014 patched to claude-sonnet-4-6 via N8N API (HTTP 200). No Opus nodes found anywhere. Max tokens within MT-003 limits.",
+        "completedAt": "2026-04-10T11:10:00Z"
+      },
+      {
+        "id": "ops-agent-brief-refresh-all",
+        "venture": "ops",
+        "title": "All agents to publish refreshed KPI-plan briefs to Control Center",
+        "status": "done",
+        "priority": "pri-0",
+        "created": "2026-04-08T14:16:29Z",
+        "nextStep": "On each agent next run, require refreshed brief with KPI, plan, schedule, expected outputs, and decision triggers; route to Control Center attention queue.",
+        "owner": "agatha",
+        "group": "ops-governance",
+        "groupLabel": "Ops Governance",
+        "completedAt": "2026-04-08T15:09:42Z",
+        "outcome": "All 14 agents submitted execution plans incorporating Krish feedback. Plans pushed to Drive, tasks added to Control Center for prioritization and approval.",
+        "evidence": "Control Center blocked.json updated with 14 agent plan review tasks"
+      },
+      {
+        "id": "ops-48h-remediation-plan",
+        "venture": "ops",
+        "title": "Approve 48-hour remediation sprint plan",
+        "status": "done",
+        "priority": "pri-0",
+        "created": "2026-04-08T12:08:35Z",
+        "nextStep": "Review remediation changes and approve live enforcement run.",
+        "linkPrimary": "https://docs.google.com/document/d/1CDsOAWSntfHSU6iNMhesqH3GEfaVIR1x1f28j486mGo/edit",
+        "owner": "agatha",
+        "group": "ops-governance",
+        "groupLabel": "Ops Governance",
+        "startedAt": "2026-04-08T12:12:24Z",
+        "progress": "Controlled dry run passed: 33/33 templates compliant with governance + Control Center attention + external action gate.",
+        "updatedAt": "2026-04-08T14:10:15Z",
+        "evidence": "warm/agent-reports/control-center-dry-run-2026-04-08.json",
+        "completedAt": "2026-04-08T14:10:41Z",
+        "outcome": "Live enforcement enabled. Governance, Control Center attention block, and external action gate enforced across active templates; dry run passed 33/33."
+      },
+      {
+        "id": "b2",
+        "venture": "ops",
+        "title": "Instantly API - v2 key verified and updated",
+        "status": "done",
+        "completedAt": "2026-04-08T16:40:00Z",
+        "outcome": "v2 API confirmed. New key provided by Krish, verified working (GET /api/v2/campaigns returns 200). Auth: raw base64 Bearer token. Updated in systems.md, TOOLS.md, systems-status.json."
+      },
+      {
+        "id": "arlo-sub-agent-cron-work",
+        "title": "Arlo Sub-Agent Cron Execution (Completed)",
+        "status": "done",
+        "description": "Arlo updated 5 cron payloads to spawn sub-agents. This is valid work but NOT Phase 1. Phase 1 is the Control Center infrastructure rebuild. File separately.",
+        "completedAt": "2026-04-12T22:46:37.281Z",
+        "completedNote": "Completed by Arlo at 22:45 UTC. Not Phase 1, but valid infrastructure work."
+      },
+      {
+        "id": "phase-2-agent-briefs",
+        "title": "PHASE 2: Agent Restructuring - Cleo, Maya, Leo Execution",
+        "status": "done",
+        "priority": "pri-0",
+        "created": "2026-04-12T23:42:23.191Z",
+        "owner": "agatha",
+        "description": "Cleo (Content Coordinator + 5 sub-agents), Maya (Acquisition Coordinator + 4 sub-agents), Leo (CRO full funnel audit) all spawned and executing in parallel with Phase 1.",
+        "agents_active": [
+          "Cleo",
+          "Maya",
+          "Leo"
+        ],
+        "target_completion": "2026-04-13 02:00 UTC",
+        "completedAt": "2026-04-13T00:38:11.372Z",
+        "completedNote": "All 3 coordinator briefs written: Cleo (content, 5 streams), Maya (acquisition, 4 apps), Leo (CRO, 3 ventures). Agents are now live coordinators with clear mandates."
+      }
+    ]
+  },
+  "total": 33
 }
