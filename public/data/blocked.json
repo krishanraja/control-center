@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-14T00:25:01.252394Z",
+  "updated_at": "2026-04-14T00:26:53.683605Z",
   "updated_by": "arlo-sync",
   "tasks": [
     {
@@ -317,8 +317,8 @@
     {
       "id": "nell-possible-outreach",
       "venture": "mindmaker",
-      "title": "Nell \u2014 POSSIBLE Outreach: Book 5 S&N Guests",
-      "status": "active",
+      "title": "POSSIBLE 2026 \u2014 S&N Podcast Guest Outreach",
+      "status": "in_progress",
       "priority": "pri-0",
       "owner": "agatha",
       "agent": "Nell",
@@ -326,8 +326,26 @@
       "groupLabel": "Growth",
       "created": "2026-04-09T19:16:00Z",
       "linkPrimary": "https://docs.google.com/spreadsheets/d/1DyAy1H3fnoI2_58nS3u2yIbbswJq1BddWmBUKyW8Yf8/edit",
-      "nextStep": "Check Gmail Drafts \u2014 Bob Pittman test draft is in inbox. Approve voice or give feedback. Then Nell batches all Tier 1 emails.",
-      "description": "Nell drafts all Tier 1 POSSIBLE speaker emails in Krish's voice, pushes to Gmail drafts. Test draft (Bob Pittman) already in inbox. Approve or revise, then Nell sends the batch."
+      "nextStep": "Review Tier 2 Gmail drafts, verify guessed emails before sending. Then draft + send Tier 3. Target: 5+ confirmed guests booked.",
+      "description": "78 contacts across 3 tiers. Sheet fully populated (all fields complete). Email voice rules locked v6. Signature confirmed. Tier 1 (17 contacts) sent 2026-04-13. Tier 2 (47 contacts) drafted in Gmail, pending review + send. Tier 3 (14 contacts) not yet drafted. Outreach goal: book guests for Signal & Noise podcast at POSSIBLE conference.",
+      "progress": {
+        "tier1": {
+          "total": 17,
+          "status": "sent",
+          "note": "All sent 2026-04-13"
+        },
+        "tier2": {
+          "total": 47,
+          "status": "drafted",
+          "note": "In Gmail drafts. Several guessed emails need verification before send."
+        },
+        "tier3": {
+          "total": 14,
+          "status": "not_started",
+          "note": "No drafts yet"
+        }
+      },
+      "updated": "2026-04-14T00:26:00Z"
     },
     {
       "id": "nell-open-threads-update",
@@ -630,6 +648,39 @@
           "Follow Google Doc protocol for creating the Sheet/Doc."
         ],
         "updatedAt": "2026-04-11T20:09:48.264Z"
+      },
+      {
+        "id": "nell-possible-outreach",
+        "venture": "mindmaker",
+        "title": "POSSIBLE 2026 \u2014 S&N Podcast Guest Outreach",
+        "status": "in_progress",
+        "priority": "pri-0",
+        "owner": "agatha",
+        "agent": "Nell",
+        "group": "growth",
+        "groupLabel": "Growth",
+        "created": "2026-04-09T19:16:00Z",
+        "linkPrimary": "https://docs.google.com/spreadsheets/d/1DyAy1H3fnoI2_58nS3u2yIbbswJq1BddWmBUKyW8Yf8/edit",
+        "nextStep": "Review Tier 2 Gmail drafts, verify guessed emails before sending. Then draft + send Tier 3. Target: 5+ confirmed guests booked.",
+        "description": "78 contacts across 3 tiers. Sheet fully populated (all fields complete). Email voice rules locked v6. Signature confirmed. Tier 1 (17 contacts) sent 2026-04-13. Tier 2 (47 contacts) drafted in Gmail, pending review + send. Tier 3 (14 contacts) not yet drafted. Outreach goal: book guests for Signal & Noise podcast at POSSIBLE conference.",
+        "progress": {
+          "tier1": {
+            "total": 17,
+            "status": "sent",
+            "note": "All sent 2026-04-13"
+          },
+          "tier2": {
+            "total": 47,
+            "status": "drafted",
+            "note": "In Gmail drafts. Several guessed emails need verification before send."
+          },
+          "tier3": {
+            "total": 14,
+            "status": "not_started",
+            "note": "No drafts yet"
+          }
+        },
+        "updated": "2026-04-14T00:26:00Z"
       },
       {
         "id": "arlo-phase-1-live",

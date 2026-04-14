@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-04-14T00:25:01.252394Z",
+  "generated_at": "2026-04-14T00:26:53.683605Z",
   "schema_version": "1.0",
   "strategic_assessment": {
-    "headline": "3 active, 4 waiting on Krish approval",
-    "body": "OS v3 live. 3 agents executing in parallel. 4 critical items blocked: Arlo \u2014 Build Systems Monitor + Control C, Drive Sync \u2014 Activate in N8N, GSC API Credentials. Control Center syncs every 5 min. Zero contradictions.",
+    "headline": "4 active, 4 waiting on Krish approval",
+    "body": "OS v3 live. 4 agents executing in parallel. 4 critical items blocked: Arlo \u2014 Build Systems Monitor + Control C, Drive Sync \u2014 Activate in N8N, GSC API Credentials. Control Center syncs every 5 min. Zero contradictions.",
     "recommended_focus": "Approve top blockers to unblock downstream tasks"
   },
   "metrics": [
     {
       "id": "active-work",
       "label": "Active Workstreams",
-      "value": "3",
+      "value": "4",
       "target": "15",
-      "progress_pct": 20,
+      "progress_pct": 26,
       "interpretation": "Agents executing",
       "status": "in_progress"
     },
@@ -46,7 +46,7 @@
   ],
   "external_signals": [
     {
-      "signal": "3 agents executing in parallel",
+      "signal": "4 agents executing in parallel",
       "source": "Arlo",
       "relevance": "High",
       "recommended_action": "Monitor execution"
@@ -59,8 +59,8 @@
     }
   ],
   "data_freshness": {
-    "vera_last_run": "2026-04-14T00:25:01.252394Z",
-    "sequences_last_updated": "2026-04-14T00:25:01.252394Z",
-    "zara_last_signal": "2026-04-14T00:25:01.252394Z"
+    "vera_last_run": "2026-04-14T00:26:53.683605Z",
+    "sequences_last_updated": "2026-04-14T00:26:53.683605Z",
+    "zara_last_signal": "2026-04-14T00:26:53.683605Z"
   }
 }
