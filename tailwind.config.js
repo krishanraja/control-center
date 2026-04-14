@@ -17,7 +17,19 @@ export default {
           warning: '#f59e0b',
           error: '#ef4444',
           info: '#3b82f6',
-        }
+        },
+        pod: {
+          ops:     '#22d3ee',
+          revenue: '#34d399',
+          growth:  '#a78bfa',
+        },
+        status: {
+          needsYou: '#fbbf24',
+          blocked:  '#f87171',
+          active:   '#34d399',
+          waiting:  '#94a3b8',
+          done:     '#6b7280',
+        },
       }
     },
   },

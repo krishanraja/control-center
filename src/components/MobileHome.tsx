@@ -1,137 +1,247 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
+import { MoreHorizontal, CheckCircle2 } from 'lucide-react'
 import { AGENTS } from '../services/agentData'
-import {
-  MobileShell, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState,
-} from './mobile/primitives'
+import { MobileShell } from './mobile/MobileShell'
+import { TabHeader } from './mobile/TabHeader'
+import { Logomark } from './mobile/Logomark'
+import { SynthesisLine } from './mobile/SynthesisLine'
+import { BlockerCard, BlockerItem } from './mobile/BlockerCard'
+import { DetailSheet, SheetAction } from './mobile/DetailSheet'
+import { HealthStrip, HealthItem } from './mobile/HealthStrip'
+import { TeamStrip } from './mobile/TeamStrip'
+import { SkeletonCard } from './mobile/SkeletonLine'
+import { useHaptics } from '../hooks/useHaptics'
 
-interface BlockedTask { id: string; title: string; description?: string; urgency?: string; agent?: string; blockedBy?: string }
-interface Goal        { id: string; title: string; progress: number }
-interface GoalsData   { week_of?: string; goals?: Goal[] }
-interface Approval    { id: string; agentName: string; planUrl?: string; status: string }
-
-const URGENCY_DOT: Record<string, string> = {
-  high:   'bg-red-400',
-  medium: 'bg-amber-400',
-  low:    'bg-blue-400',
+// ── Types ────────────────────────────────────────────────────────────────────
+interface RawTask {
+  id: string
+  title: string
+  description?: string
+  agent?: string
+  urgency?: string
+  blockedBy?: string
+  createdAt?: string
+  actionUrl?: string
+  actionLabel?: string
 }
 
-export function MobileHome() {
-  const [blocked,   setBlocked]   = useState<BlockedTask[]>([])
-  const [approvals, setApprovals] = useState<Approval[]>([])
-  const [goals,     setGoals]     = useState<GoalsData | null>(null)
+interface RawApproval {
+  id: string
+  agentName: string
+  status: string
+  planUrl?: string
+  createdAt?: string
+}
 
-  const refresh = () => {
-    fetch('/api/data', { cache: 'no-cache' }).then(r => r.json())
-      .then(d => {
-        const mine = (d.tasks || []).filter((t: any) => t.blockedBy === 'krish')
-        const high = mine.filter((t: any) => t.urgency === 'high')
-        const rest = mine.filter((t: any) => t.urgency !== 'high')
-        setBlocked([...high, ...rest])
-      }).catch(() => {})
+interface HomeIntel {
+  executive_summary?: string
+  generated_at?: string
+  strategic_assessment?: { headline?: string; recommended_focus?: string }
+}
 
-    fetch('/api/approvals', { cache: 'no-cache' }).then(r => r.json())
-      .then(d => setApprovals((d.items || []).filter((a: any) => a.status === 'pending')))
-      .catch(() => {})
+interface SystemsData {
+  categories?: { id: string; label: string; services: { id: string; name: string; status: string }[] }[]
+}
 
-    fetch('/api/goals', { cache: 'no-cache' }).then(r => r.json())
-      .then(setGoals).catch(() => {})
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function agentPod(agentName?: string) {
+  if (!agentName) return undefined
+  const match = AGENTS.find(a =>
+    a.humanName.toLowerCase() === agentName.toLowerCase() ||
+    a.name.toLowerCase() === agentName.toLowerCase() ||
+    a.id === agentName
+  )
+  return match?.pod
+}
+
+function humanDecision(t: RawTask): string {
+  // Human, specific copy. The raw `title` is usually already specific; we just
+  // pass it through. If it were generic, we could enrich here.
+  return t.title
+}
+
+function blockerFromTask(t: RawTask): BlockerItem {
+  return {
+    id: t.id,
+    title: humanDecision(t),
+    description: t.description,
+    agent: t.agent,
+    urgency: t.urgency,
+    createdAt: t.createdAt,
+    action: { label: t.actionLabel ?? 'Review', kind: 'review' },
+    actionUrl: t.actionUrl,
   }
+}
+
+function blockerFromApproval(a: RawApproval): BlockerItem {
+  return {
+    id: `approval-${a.id}`,
+    title: `Approve ${a.agentName}'s plan`,
+    agent: a.agentName,
+    urgency: 'medium',
+    createdAt: a.createdAt,
+    action: { label: 'Approve', kind: 'approve' },
+    actionUrl: a.planUrl,
+  }
+}
+
+// ── Component ───────────────────────────────────────────────────────────────
+export function MobileHome() {
+  const h = useHaptics()
+
+  const [blockers,  setBlockers]  = useState<BlockerItem[]>([])
+  const [intel,     setIntel]     = useState<HomeIntel | null>(null)
+  const [systems,   setSystems]   = useState<HealthItem[]>([])
+  const [loading,   setLoading]   = useState(true)
+  const [activeBlocker, setActiveBlocker] = useState<BlockerItem | null>(null)
+
+  const refresh = useCallback(async () => {
+    const bkd: BlockerItem[] = []
+
+    // Tasks blocked on krish
+    try {
+      const r = await fetch('/api/data', { cache: 'no-cache' })
+      const d = await r.json()
+      const mine = ((d.tasks || []) as RawTask[]).filter(t => t.blockedBy === 'krish')
+      const high = mine.filter(t => t.urgency === 'high')
+      const rest = mine.filter(t => t.urgency !== 'high')
+      ;[...high, ...rest].forEach(t => bkd.push(blockerFromTask(t)))
+    } catch {}
+
+    // Pending approvals
+    try {
+      const r = await fetch('/api/approvals', { cache: 'no-cache' })
+      const d = await r.json()
+      ;((d.items || []) as RawApproval[])
+        .filter(a => a.status === 'pending')
+        .forEach(a => bkd.push(blockerFromApproval(a)))
+    } catch {}
+
+    setBlockers(bkd)
+
+    // Home intelligence synthesis
+    try {
+      const r = await fetch('/data/home-intelligence.json', { cache: 'no-cache' })
+      const d = await r.json()
+      setIntel(d)
+    } catch {}
+
+    // Systems/engines compressed into chips
+    try {
+      const r = await fetch(`/data/systems-status.json?t=${Date.now()}`)
+      const d: SystemsData = await r.json()
+      const chips: HealthItem[] = []
+      for (const cat of d.categories ?? []) {
+        for (const svc of cat.services ?? []) {
+          chips.push({ id: svc.id, label: svc.name, status: svc.status })
+          if (chips.length >= 8) break
+        }
+        if (chips.length >= 8) break
+      }
+      setSystems(chips)
+    } catch {}
+
+    setLoading(false)
+  }, [])
 
   useEffect(() => {
     refresh()
-    const iv = setInterval(refresh, 30000)
+    const iv = setInterval(refresh, 30_000)
     return () => clearInterval(iv)
-  }, [])
+  }, [refresh])
 
-  const goalsList = goals?.goals ?? []
-  const goalsOnTrack = goalsList.filter(g => g.progress >= 40).length
-  const agentCounts = {
-    running: AGENTS.filter(a => a.status === 'running').length,
-    blocked: AGENTS.filter(a => a.status === 'blocked').length,
-  }
+  const synthesisText =
+    intel?.strategic_assessment?.headline ??
+    intel?.executive_summary ??
+    undefined
 
-  const hero = blocked[0]
-  const restBlocked = blocked.slice(1)
+  const subtitle = blockers.length > 0
+    ? `${blockers.length} ${blockers.length === 1 ? 'item needs' : 'items need'} you`
+    : 'Nothing blocked on you'
+
+  // Actions rendered in the DetailSheet for the tapped blocker
+  const sheetActions: SheetAction[] = activeBlocker ? [
+    ...(activeBlocker.actionUrl ? [{
+      label: activeBlocker.action?.label ?? 'Open',
+      variant: 'primary' as const,
+      onClick: () => { h.heavy(); window.open(activeBlocker.actionUrl, '_blank') }
+    }] : []),
+    { label: 'Mark done', variant: 'secondary' as const, onClick: () => { h.success(); setActiveBlocker(null) } },
+    { label: 'Defer for now', variant: 'secondary' as const, onClick: () => { h.select(); setActiveBlocker(null) } },
+  ] : []
 
   return (
-    <MobileShell
-      header={<TabHeader title="Mindmaker OS" subtitle="Everything that needs you" />}
-    >
-      {/* Hero: top blocker, or approvals, or all-clear */}
-      {hero ? (
-        <HeroCard
-          eyebrow={`Needs you · ${blocked.length}`}
-          accent={hero.urgency === 'high' ? 'red' : 'amber'}
-          dotColor={URGENCY_DOT[hero.urgency ?? 'medium']}
-          title={hero.title}
-          detail={hero.description}
-          meta={hero.agent ? `from ${hero.agent}` : undefined}
-          cta="Open"
-        />
-      ) : approvals.length > 0 ? (
-        <HeroCard
-          eyebrow={`Pending approvals · ${approvals.length}`}
-          accent="violet"
-          dotColor="bg-violet-400"
-          title={`${approvals.length} plan${approvals.length === 1 ? '' : 's'} awaiting your approval`}
-          detail={approvals.slice(0, 3).map(a => a.agentName).join(' · ')}
-          cta="Review"
-        />
-      ) : (
-        <HeroCard
-          eyebrow="All clear"
-          accent="emerald"
-          dotColor="bg-emerald-400"
-          title="Nothing blocked on you"
-          detail="Your agents are running — check back when something surfaces."
-        />
-      )}
+    <>
+      <MobileShell
+        onRefresh={refresh}
+        header={
+          <TabHeader
+            title="Mindmaker OS"
+            subtitle={subtitle}
+            leading={<Logomark size={40} />}
+            trailing={
+              <button
+                aria-label="More"
+                className="w-10 h-10 rounded-full bg-white/[0.05] flex items-center justify-center active:bg-white/[0.10]"
+              >
+                <MoreHorizontal className="w-5 h-5 text-white/60" />
+              </button>
+            }
+          />
+        }
+      >
+        {/* Synthesis line */}
+        {synthesisText && <SynthesisLine text={synthesisText} />}
 
-      {/* Stat strip */}
-      <div className="flex gap-3">
-        <StatPill label="Blocked" value={blocked.length} color={blocked.length > 0 ? 'text-red-400' : 'text-white/60'} />
-        <StatPill label="Approvals" value={approvals.length} color={approvals.length > 0 ? 'text-violet-300' : 'text-white/60'} />
-        <StatPill label="Goals" value={`${goalsOnTrack}/${goalsList.length || 0}`} sub="on track" color="text-emerald-400" />
-      </div>
+        {/* Blocker stack (hero) */}
+        {loading ? (
+          <div className="flex flex-col gap-3">
+            <SkeletonCard height={88} />
+            <SkeletonCard height={88} />
+            <SkeletonCard height={88} />
+          </div>
+        ) : blockers.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {blockers.map(b => (
+              <BlockerCard
+                key={b.id}
+                item={b}
+                pod={agentPod(b.agent)}
+                onOpen={setActiveBlocker}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 px-5 py-6 flex items-start gap-3">
+            <CheckCircle2 className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-0.5" strokeWidth={2.2} />
+            <div>
+              <p className="text-[17px] font-semibold text-white">Inbox zero.</p>
+              <p className="text-[13px] text-white/60 mt-1 leading-relaxed">
+                Your agents are running. Enjoy the clarity — next surface will hit when it needs you.
+              </p>
+            </div>
+          </div>
+        )}
 
-      {/* Secondary feed: remaining blockers + approvals */}
-      {(restBlocked.length > 0 || approvals.length > 0) && (
-        <FeedCard title="Queue">
-          {restBlocked.map(t => (
-            <FeedRow
-              key={`b-${t.id}`}
-              dotColor={URGENCY_DOT[t.urgency ?? 'medium'] ?? 'bg-white/30'}
-              title={t.title}
-              detail={t.agent ? `from ${t.agent}` : t.description}
-              trailing={<span className="text-[14px] font-semibold text-white/55 uppercase tracking-wider">Blocked</span>}
-            />
-          ))}
-          {approvals.slice(0, 8).map(a => (
-            <FeedRow
-              key={`a-${a.id}`}
-              dotColor="bg-violet-400"
-              title={`${a.agentName} — plan ready`}
-              trailing={a.planUrl ? (
-                <span className="text-[16px] font-semibold text-violet-300">Open →</span>
-              ) : undefined}
-              onClick={a.planUrl ? () => window.open(a.planUrl, '_blank') : undefined}
-            />
-          ))}
-        </FeedCard>
-      )}
+        {/* Systems strip */}
+        <HealthStrip items={systems} />
 
-      {/* Team pulse — grows to fill leftover space */}
-      <FeedCard title="Team pulse" fill>
-        <FeedRow
-          dotColor="bg-emerald-400"
-          title={`${agentCounts.running} agents running`}
-          detail={`${AGENTS.length} total · ${agentCounts.blocked} blocked`}
-        />
-      </FeedCard>
+        {/* Team pulse strip */}
+        <TeamStrip agents={AGENTS} />
+      </MobileShell>
 
-      {blocked.length === 0 && approvals.length === 0 && goalsList.length === 0 && (
-        <EmptyState label="No live data yet — give it a moment." />
-      )}
-    </MobileShell>
+      <DetailSheet
+        open={!!activeBlocker}
+        onClose={() => setActiveBlocker(null)}
+        eyebrow={activeBlocker?.agent ? `Waiting on you · ${activeBlocker.agent}` : 'Waiting on you'}
+        title={activeBlocker?.title ?? ''}
+        body={activeBlocker?.description}
+        agent={activeBlocker?.agent}
+        status="needs_you"
+        meta={activeBlocker?.createdAt ? undefined : undefined}
+        docUrl={activeBlocker?.actionUrl}
+        actions={sheetActions}
+      />
+    </>
   )
 }

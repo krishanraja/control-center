@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
+import { AgentAvatar } from './shared/AgentAvatar'
+import { StatusPill } from './shared/StatusPill'
 
 // ── Schema v1 ────────────────────────────────────────────────────────────
 interface Metric {
@@ -218,23 +220,18 @@ function V2View({ data }: { data: V2Data }) {
             <span className="text-[10px] text-white/20">{actions.length}</span>
           </div>
           <div className="divide-y divide-white/[0.04]">
-            {actions.map(a => {
-              const bar = statusBar[a.status] ?? 'bg-white/20'
-              const label = statusLabel[a.status] ?? a.status
-              return (
-                <div key={a.id} className="px-5 py-3 flex items-start gap-3">
-                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-2 ${bar}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] text-white/80 leading-snug">{a.title}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-white/40 uppercase tracking-wide">{a.owner}</span>
-                      <span className="text-[10px] text-white/20">·</span>
-                      <span className="text-[10px] text-white/40 uppercase tracking-wide">{label}</span>
-                    </div>
+            {actions.map(a => (
+              <div key={a.id} className="px-5 py-3 flex items-start gap-3">
+                <AgentAvatar agent={a.owner} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] text-white/85 leading-snug">{a.title}</p>
+                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                    <span className="text-[11px] font-medium text-white/55">{a.owner}</span>
+                    <StatusPill status={a.status} />
                   </div>
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
         </div>
       )}
