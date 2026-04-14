@@ -100,14 +100,14 @@ export function MobileToday() {
       )}
 
       {goalsList.length > 0 && (
-        <FeedCard title="Goals">
+        <FeedCard title="Goals" fill>
           {goalsList.map(g => (
-            <div key={g.id} className="px-5 py-4">
-              <div className="flex items-center justify-between mb-2.5">
-                <p className="text-[15px] font-medium text-white/85 truncate pr-3">{g.title}</p>
-                <span className="text-[14px] font-mono font-semibold text-white/60 flex-shrink-0">{g.progress}%</span>
+            <div key={g.id} className="px-6 py-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[17px] font-semibold text-white/90 truncate pr-3">{g.title}</p>
+                <span className="text-[16px] font-mono font-bold text-white/70 flex-shrink-0">{g.progress}%</span>
               </div>
-              <div className="h-2 bg-white/[0.07] rounded-full overflow-hidden">
+              <div className="h-2.5 bg-white/[0.08] rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full ${
                     g.progress === 0 ? 'bg-white/10' :
@@ -117,7 +117,7 @@ export function MobileToday() {
                   style={{ width: `${Math.min(g.progress, 100)}%` }}
                 />
               </div>
-              {g.owner && <p className="text-[12px] text-white/40 mt-2">{g.owner}</p>}
+              {g.owner && <p className="text-[13px] text-white/45 mt-2.5">{g.owner}</p>}
             </div>
           ))}
         </FeedCard>

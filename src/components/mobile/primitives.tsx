@@ -1,19 +1,17 @@
 import React from 'react'
 
 /**
- * Mobile-native primitives sized for human thumbs.
+ * Mobile-native primitives sized like a flagship consumer app.
  *
- * Scale follows Material 3 / iOS HIG:
- *   - 48dp minimum tap target (we use 56dp on rows, 64dp on pills)
- *   - 16sp body minimum, 22-28sp titles, 32sp+ hero numerics
- *   - 20-24dp horizontal padding, 16-20dp between sections
+ * Scale references: iOS Large Title ≈ 34pt, Material Display Small ≈ 36sp,
+ * Gmail/Calendar row titles ≈ 17sp, Stripe mobile dashboard numerals ≈ 40sp.
+ * Minimum tap target 48dp; we use 72dp on rows and 120dp on pills.
  */
 
-// Reserve space for BottomNav (~88px incl. safe area) so pinned tabs never
-// overlap content and the last row in a FeedCard is never cut off.
-const BOTTOM_NAV_SPACE = 'pb-[calc(env(safe-area-inset-bottom,0px)+96px)]'
+// Reserve space for BottomNav (~96-104px incl. safe area).
+const BOTTOM_NAV_SPACE = 'pb-[calc(env(safe-area-inset-bottom,0px)+104px)]'
 
-/** Fixed-height column: page never scrolls, content scrolls inside. */
+/** Fixed-height column. Content fills the viewport — no dead space. */
 export function MobileShell({
   header,
   children,
@@ -26,14 +24,14 @@ export function MobileShell({
       {header && (
         <div className="px-5 pt-6 pb-4 flex-shrink-0">{header}</div>
       )}
-      <div className={`flex-1 min-h-0 overflow-y-auto px-5 space-y-4 scrollbar-hide ${BOTTOM_NAV_SPACE}`}>
+      <div className={`flex-1 min-h-0 overflow-y-auto px-5 space-y-5 scrollbar-hide ${BOTTOM_NAV_SPACE}`}>
         {children}
       </div>
     </div>
   )
 }
 
-/** Tab title + subtitle — large, iOS-style navigation title. */
+/** iOS-style large navigation title. */
 export function TabHeader({
   title,
   subtitle,
@@ -46,11 +44,11 @@ export function TabHeader({
   return (
     <div className="flex items-end justify-between">
       <div className="min-w-0">
-        <h1 className="text-[30px] font-bold text-white leading-[1.1] tracking-tight">
+        <h1 className="text-[36px] font-bold text-white leading-[1.05] tracking-tight">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-[15px] text-white/50 mt-1 truncate">{subtitle}</p>
+          <p className="text-[17px] text-white/55 mt-2 truncate">{subtitle}</p>
         )}
       </div>
       {trailing && <div className="flex-shrink-0 ml-3">{trailing}</div>}
@@ -58,7 +56,7 @@ export function TabHeader({
   )
 }
 
-/** The one thing that needs you — large, tappable, visually dominant. */
+/** Dominant hero card — the single thing that needs you. */
 export function HeroCard({
   eyebrow,
   title,
@@ -79,48 +77,48 @@ export function HeroCard({
   onClick?: () => void
 }) {
   const accentMap: Record<string, string> = {
-    violet:  'from-violet-500/25 via-violet-500/10 to-transparent border-violet-400/30',
-    amber:   'from-amber-500/25 via-amber-500/10 to-transparent border-amber-400/30',
-    emerald: 'from-emerald-500/25 via-emerald-500/10 to-transparent border-emerald-400/30',
-    red:     'from-red-500/25 via-red-500/10 to-transparent border-red-400/30',
-    neutral: 'from-white/[0.08] via-white/[0.04] to-transparent border-white/[0.10]',
+    violet:  'from-violet-500/30 via-violet-500/12 to-transparent border-violet-400/35',
+    amber:   'from-amber-500/30 via-amber-500/12 to-transparent border-amber-400/35',
+    emerald: 'from-emerald-500/30 via-emerald-500/12 to-transparent border-emerald-400/35',
+    red:     'from-red-500/30 via-red-500/12 to-transparent border-red-400/35',
+    neutral: 'from-white/[0.10] via-white/[0.05] to-transparent border-white/[0.12]',
   }
   const ctaColorMap: Record<string, string> = {
     violet:  'bg-violet-500 text-white',
-    amber:   'bg-amber-500 text-black',
-    emerald: 'bg-emerald-500 text-black',
+    amber:   'bg-amber-400 text-black',
+    emerald: 'bg-emerald-400 text-black',
     red:     'bg-red-500 text-white',
-    neutral: 'bg-white/[0.12] text-white',
+    neutral: 'bg-white text-black',
   }
   const Wrapper: any = onClick ? 'button' : 'div'
   return (
     <Wrapper
       onClick={onClick}
-      className={`relative w-full text-left rounded-3xl border p-6 bg-gradient-to-br ${accentMap[accent]} overflow-hidden ${onClick ? 'active:scale-[0.99] transition-transform' : ''}`}
-      style={{ minHeight: 180 }}
+      className={`relative w-full text-left rounded-[28px] border p-7 bg-gradient-to-br ${accentMap[accent]} overflow-hidden ${onClick ? 'active:scale-[0.99] transition-transform' : ''}`}
+      style={{ minHeight: 240 }}
     >
       {eyebrow && (
-        <div className="flex items-center gap-2 mb-3">
-          {dotColor && <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />}
-          <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-white/60">
+        <div className="flex items-center gap-2.5 mb-4">
+          {dotColor && <span className={`w-3 h-3 rounded-full ${dotColor}`} />}
+          <span className="text-[13px] font-bold uppercase tracking-[0.16em] text-white/65">
             {eyebrow}
           </span>
         </div>
       )}
-      <p className="text-[22px] font-semibold text-white leading-[1.25]">
+      <p className="text-[26px] font-semibold text-white leading-[1.2]">
         {title}
       </p>
       {detail && (
-        <p className="text-[15px] text-white/60 mt-3 leading-relaxed line-clamp-3">
+        <p className="text-[16px] text-white/65 mt-4 leading-relaxed line-clamp-3">
           {detail}
         </p>
       )}
-      <div className="flex items-center justify-between mt-5">
+      <div className="flex items-center justify-between mt-6">
         {meta ? (
-          <span className="text-[13px] text-white/45">{meta}</span>
+          <span className="text-[14px] text-white/50">{meta}</span>
         ) : <span />}
         {cta && (
-          <span className={`text-[14px] font-semibold rounded-full px-5 py-2.5 ${ctaColorMap[accent]}`}>
+          <span className={`text-[16px] font-semibold rounded-full px-6 py-3 ${ctaColorMap[accent]}`}>
             {cta}
           </span>
         )}
@@ -129,7 +127,7 @@ export function HeroCard({
   )
 }
 
-/** Compact stat for a 3-up horizontal row — large numerals, readable label. */
+/** 3-up stat row — big, scannable numerals. */
 export function StatPill({
   label,
   value,
@@ -143,46 +141,54 @@ export function StatPill({
 }) {
   return (
     <div
-      className="flex-1 min-w-0 bg-white/[0.04] border border-white/[0.07] rounded-2xl px-3 py-4 text-center"
-      style={{ minHeight: 88 }}
+      className="flex-1 min-w-0 bg-white/[0.05] border border-white/[0.08] rounded-2xl px-3 py-5 text-center"
+      style={{ minHeight: 116 }}
     >
-      <p className={`text-[28px] font-bold leading-none font-mono tracking-tight ${color}`}>{value}</p>
-      <p className="text-[11px] uppercase tracking-[0.12em] text-white/45 mt-2 truncate">
+      <p className={`text-[38px] font-bold leading-none font-mono tracking-tight ${color}`}>
+        {value}
+      </p>
+      <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-white/55 mt-3 truncate">
         {label}
       </p>
-      {sub && <p className="text-[10px] text-white/30 mt-0.5 truncate">{sub}</p>}
+      {sub && <p className="text-[11px] text-white/35 mt-1 truncate">{sub}</p>}
     </div>
   )
 }
 
-/** Card container for secondary detail. */
+/** Secondary card — grows to fill leftover viewport so there's no dead space. */
 export function FeedCard({
   title,
   action,
   children,
+  fill = false,
 }: {
   title?: string
   action?: React.ReactNode
   children: React.ReactNode
+  fill?: boolean
 }) {
   return (
-    <div className="bg-white/[0.04] border border-white/[0.07] rounded-3xl overflow-hidden">
+    <div
+      className={`bg-white/[0.05] border border-white/[0.08] rounded-[28px] overflow-hidden ${fill ? 'flex-1 min-h-0 flex flex-col' : ''}`}
+    >
       {(title || action) && (
-        <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-white/[0.05]">
+        <div className="px-6 pt-5 pb-3 flex items-center justify-between border-b border-white/[0.06] flex-shrink-0">
           {title && (
-            <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-white/50">
+            <p className="text-[13px] font-bold uppercase tracking-[0.16em] text-white/60">
               {title}
             </p>
           )}
           {action}
         </div>
       )}
-      <div className="divide-y divide-white/[0.05]">{children}</div>
+      <div className={`divide-y divide-white/[0.06] ${fill ? 'flex-1 min-h-0 overflow-y-auto scrollbar-hide' : ''}`}>
+        {children}
+      </div>
     </div>
   )
 }
 
-/** Single row inside a FeedCard — 56dp minimum tap target. */
+/** 72dp min row with generous typography. */
 export function FeedRow({
   dotColor,
   title,
@@ -200,30 +206,30 @@ export function FeedRow({
   return (
     <Wrapper
       onClick={onClick}
-      className={`w-full text-left px-5 py-4 flex items-start gap-3.5 ${onClick ? 'active:bg-white/[0.05] transition-colors' : ''}`}
-      style={{ minHeight: 64 }}
+      className={`w-full text-left px-6 py-5 flex items-start gap-4 ${onClick ? 'active:bg-white/[0.05] transition-colors' : ''}`}
+      style={{ minHeight: 76 }}
     >
       {dotColor && (
-        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-2 ${dotColor}`} />
+        <span className={`w-3 h-3 rounded-full flex-shrink-0 mt-1.5 ${dotColor}`} />
       )}
       <div className="flex-1 min-w-0">
-        <p className="text-[16px] font-medium text-white leading-snug line-clamp-2">
+        <p className="text-[18px] font-semibold text-white leading-snug line-clamp-2">
           {title}
         </p>
         {detail && (
-          <p className="text-[14px] text-white/50 mt-1 leading-relaxed line-clamp-2">
+          <p className="text-[15px] text-white/55 mt-1.5 leading-relaxed line-clamp-2">
             {detail}
           </p>
         )}
       </div>
-      {trailing && <div className="flex-shrink-0 ml-2 self-center">{trailing}</div>}
+      {trailing && <div className="flex-shrink-0 ml-3 self-center">{trailing}</div>}
     </Wrapper>
   )
 }
 
-/** Skeleton/empty state */
+/** Empty state */
 export function EmptyState({ label }: { label: string }) {
   return (
-    <div className="px-5 py-16 text-center text-[15px] text-white/35">{label}</div>
+    <div className="px-5 py-16 text-center text-[16px] text-white/40">{label}</div>
   )
 }
