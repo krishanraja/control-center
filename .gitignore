@@ -6,3 +6,4 @@ dist/
 *.log
 .vercel/
 public/data/_archived/
+.claude/

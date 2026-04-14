@@ -1,0 +1,54 @@
+import { useEffect, useState, useCallback } from 'react'
+import { supabase } from '../lib/supabase'
+
+export interface TaskRow {
+  id: string
+  title: string
+  description?: string
+  status: string
+  owner?: string
+  agent?: string
+  next_step?: string
+  priority?: string
+  priority_override?: number
+  group_label?: string
+  workstream?: string
+  krish_notes?: string
+  krish_reviewed?: boolean
+  due_date?: string
+  created?: string
+  updated_at?: string
+  completed_at?: string
+  notes?: string
+  feedback_text?: string
+  [key: string]: any
+}
+
+interface Options {
+  filter?: (t: TaskRow) => boolean
+  statusIn?: string[]
+}
+
+export function useRealtimeTasks(opts: Options = {}) {
+  const [tasks, setTasks] = useState<TaskRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchAll = useCallback(async () => {
+    let q = supabase.from('tasks').select('*').order('updated_at', { ascending: false })
+    if (opts.statusIn && opts.statusIn.length) q = q.in('status', opts.statusIn)
+    const { data } = await q
+    if (data) setTasks(opts.filter ? data.filter(opts.filter) : data as TaskRow[])
+    setLoading(false)
+  }, [JSON.stringify(opts.statusIn)])
+
+  useEffect(() => {
+    fetchAll()
+    const ch = supabase
+      .channel('tasks-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => fetchAll())
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [fetchAll])
+
+  return { tasks, loading, refresh: fetchAll }
+}
