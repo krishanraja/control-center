@@ -22,7 +22,13 @@ export function DesktopPlans() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
-    let t = tasks
+    let t = tasks.filter(x => {
+      const agent = (x.agent || '').toLowerCase()
+      if (agent === 'zara') return false
+      const gl = (x.group_label || '').toLowerCase()
+      if (gl.includes('signal')) return false
+      return true
+    })
     if (filter === 'waiting') t = t.filter(x => x.status === 'waiting' || !x.krish_reviewed)
     else if (filter !== 'all') t = t.filter(x => x.status === filter)
     return t

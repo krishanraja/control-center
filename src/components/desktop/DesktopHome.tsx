@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { AlertTriangle, Activity as ActivityIcon, TrendingUp } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '../../lib/supabase'
-import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
-import { InlineActions } from '../InlineActions'
+import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { AgentAvatar } from '../shared/AgentAvatar'
 
 interface HomeIntel {
@@ -85,9 +84,9 @@ export function DesktopHome() {
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4 space-y-2">
             <p className="text-[10px] uppercase tracking-wider text-white/35">Weekly Goals</p>
             {goals.slice(0, 4).map(g => (
-              <div key={g.id} className="flex items-center justify-between gap-2">
-                <span className="text-[12px] text-white/70 truncate">{g.title}</span>
-                <span className="text-[11px] font-mono text-white/50">{g.current}/{g.target}</span>
+              <div key={g.id} className="flex items-start justify-between gap-2">
+                <span className="flex-1 whitespace-pre-wrap break-words leading-tight text-[12px] text-white/70">{g.title}</span>
+                <span className="flex-shrink-0 text-[11px] font-mono text-white/50">{g.current}/{g.target}</span>
               </div>
             ))}
           </div>
@@ -100,15 +99,23 @@ export function DesktopHome() {
           <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/50">Needs You</h2>
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/25">{waiting.length}</span>
         </div>
-        {waiting.length === 0 ? (
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-8 text-center text-[13px] text-white/30">
-            Nothing waiting on you. Nice.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {waiting.map(t => <NeedsYouCard key={t.id} task={t} />)}
-          </div>
-        )}
+        <div className="rounded-xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.04] to-transparent p-6">
+          {waiting.length === 0 ? (
+            <div className="text-center text-[13px] text-white/40">
+              Nothing waiting on you. Nice.
+            </div>
+          ) : (
+            <div className="flex flex-col items-start gap-3">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[32px] font-semibold text-amber-300 leading-none">{waiting.length}</span>
+                <span className="text-[13px] text-white/60">{waiting.length === 1 ? 'item needs' : 'items need'} your attention</span>
+              </div>
+              <p className="text-[12px] text-white/50 leading-relaxed">
+                Open the Today tab to review and act on {waiting.length === 1 ? 'it' : 'them'}.
+              </p>
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="col-span-12 xl:col-span-3 space-y-3">
@@ -138,22 +145,3 @@ export function DesktopHome() {
   )
 }
 
-function NeedsYouCard({ task }: { task: TaskRow }) {
-  const agent = task.agent || task.owner || 'system'
-  return (
-    <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-4 space-y-2 hover:border-amber-500/40 transition-colors">
-      <div className="flex items-start gap-3">
-        <AgentAvatar agent={agent} size="sm" />
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-white leading-snug">{task.title}</p>
-          <p className="text-[11px] text-white/50 mt-0.5">
-            <span className="text-white/70">{agent}</span>
-            {task.updated_at && <> · {formatDistanceToNow(new Date(task.updated_at), { addSuffix: true })}</>}
-          </p>
-          {task.next_step && <p className="text-[11px] text-amber-300/70 mt-1.5 leading-snug line-clamp-3">{task.next_step}</p>}
-        </div>
-      </div>
-      <InlineActions taskId={task.id} currentStatus={task.status} />
-    </div>
-  )
-}

@@ -2,15 +2,12 @@ import React, { useEffect, useState } from 'react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '../../lib/supabase'
-import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
-import { InlineActions } from '../InlineActions'
 import { AgentAvatar } from '../shared/AgentAvatar'
 
 export function DesktopExec() {
   const [metrics, setMetrics] = useState<any[]>([])
   const [reports, setReports] = useState<any[]>([])
   const [runs, setRuns] = useState<any[]>([])
-  const { tasks } = useRealtimeTasks({ statusIn: ['waiting', 'blocked'] })
 
   useEffect(() => {
     supabase.from('home_intelligence').select('metrics').eq('id', 'current').maybeSingle().then(({ data }) => setMetrics((data as any)?.metrics || []))
@@ -30,11 +27,6 @@ export function DesktopExec() {
     acc[k].runs += 1
     return acc
   }, {} as any)) as any[]
-
-  const strategic = tasks.filter(t =>
-    /strategic|decision|approve|review/i.test(t.title) ||
-    /strategic|decision|approve|review/i.test(t.next_step || '')
-  )
 
   return (
     <div className="grid grid-cols-12 gap-4">
@@ -71,7 +63,7 @@ export function DesktopExec() {
         </div>
       </section>
 
-      <section className="col-span-12 xl:col-span-5 space-y-3">
+      <section className="col-span-12 xl:col-span-8 space-y-3">
         <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/50">Intelligence Feed</h2>
         <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] divide-y divide-white/[0.04] max-h-[calc(100vh-8rem)] overflow-y-auto">
           {reports.length === 0 && <p className="p-4 text-[12px] text-white/30">No recent reports</p>}
@@ -92,29 +84,6 @@ export function DesktopExec() {
         </div>
       </section>
 
-      <section className="col-span-12 xl:col-span-3 space-y-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/50">Strategic Decisions</h2>
-        {strategic.length === 0 ? (
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-6 text-center text-[12px] text-white/30">
-            No strategic decisions queued
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {strategic.map(t => <StrategicCard key={t.id} task={t} />)}
-          </div>
-        )}
-      </section>
-
-    </div>
-  )
-}
-
-function StrategicCard({ task }: { task: TaskRow }) {
-  return (
-    <div className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-3 space-y-2">
-      <p className="text-[12px] font-semibold text-white leading-snug">{task.title}</p>
-      {task.next_step && <p className="text-[11px] text-white/45 leading-snug line-clamp-3">{task.next_step}</p>}
-      <InlineActions taskId={task.id} currentStatus={task.status} compact />
     </div>
   )
 }

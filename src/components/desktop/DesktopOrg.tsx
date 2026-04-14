@@ -104,19 +104,6 @@ export function DesktopOrg() {
       )}
 
       <div>
-        <p className="text-[10px] uppercase tracking-widest text-white/35 mb-2">Current Tasks ({detail.tasks.length})</p>
-        <div className="space-y-1.5">
-          {detail.tasks.length === 0 && <p className="text-[11px] text-white/30">No active tasks</p>}
-          {detail.tasks.slice(0, 8).map(t => (
-            <div key={t.id} className="rounded-lg border border-white/[0.06] bg-white/[0.015] p-2 text-[12px] text-white/70">
-              {t.title}
-              {t.status && <span className="text-[10px] text-white/40 ml-2">· {t.status}</span>}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div>
         <p className="text-[10px] uppercase tracking-widest text-white/35 mb-2">Recent Activity</p>
         <div className="space-y-1">
           {detail.activity.length === 0 && <p className="text-[11px] text-white/30">No recent activity</p>}
