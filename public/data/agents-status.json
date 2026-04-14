@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-14T06:30:01.676675Z",
+  "updated_at": "2026-04-14T06:35:01.312792Z",
   "total_agents": 11,
   "agents": {
     "arlo": {
@@ -7,77 +7,77 @@
       "tasks_assigned": 6,
       "tasks_active": 3,
       "tasks_waiting": 2,
-      "last_update": "2026-04-14T06:30:01.676675Z"
+      "last_update": "2026-04-14T06:35:01.312792Z"
     },
     "cleo": {
       "name": "Cleo",
       "tasks_assigned": 1,
       "tasks_active": 0,
       "tasks_waiting": 0,
-      "last_update": "2026-04-14T06:30:01.676675Z"
+      "last_update": "2026-04-14T06:35:01.312792Z"
     },
     "felix": {
       "name": "Felix",
       "tasks_assigned": 1,
       "tasks_active": 0,
       "tasks_waiting": 1,
-      "last_update": "2026-04-14T06:30:01.676675Z"
+      "last_update": "2026-04-14T06:35:01.312792Z"
     },
     "leo": {
       "name": "Leo",
       "tasks_assigned": 2,
       "tasks_active": 0,
       "tasks_waiting": 0,
-      "last_update": "2026-04-14T06:30:01.676675Z"
+      "last_update": "2026-04-14T06:35:01.312792Z"
     },
     "marcus": {
       "name": "Marcus",
       "tasks_assigned": 0,
       "tasks_active": 0,
       "tasks_waiting": 0,
-      "last_update": "2026-04-14T06:30:01.676675Z"
+      "last_update": "2026-04-14T06:35:01.312792Z"
     },
     "maya": {
       "name": "Maya",
       "tasks_assigned": 3,
       "tasks_active": 0,
       "tasks_waiting": 0,
-      "last_update": "2026-04-14T06:30:01.676675Z"
+      "last_update": "2026-04-14T06:35:01.312792Z"
     },
     "nell": {
       "name": "Nell",
       "tasks_assigned": 2,
       "tasks_active": 1,
       "tasks_waiting": 0,
-      "last_update": "2026-04-14T06:30:01.676675Z"
+      "last_update": "2026-04-14T06:35:01.312792Z"
     },
     "nova": {
       "name": "Nova",
       "tasks_assigned": 0,
       "tasks_active": 0,
       "tasks_waiting": 0,
-      "last_update": "2026-04-14T06:30:01.676675Z"
+      "last_update": "2026-04-14T06:35:01.312792Z"
     },
     "priya": {
       "name": "Priya",
       "tasks_assigned": 0,
       "tasks_active": 0,
       "tasks_waiting": 0,
-      "last_update": "2026-04-14T06:30:01.676675Z"
+      "last_update": "2026-04-14T06:35:01.312792Z"
     },
     "vera": {
       "name": "Vera",
       "tasks_assigned": 0,
       "tasks_active": 0,
       "tasks_waiting": 0,
-      "last_update": "2026-04-14T06:30:01.676675Z"
+      "last_update": "2026-04-14T06:35:01.312792Z"
     },
     "zara": {
       "name": "Zara",
       "tasks_assigned": 0,
       "tasks_active": 0,
       "tasks_waiting": 0,
-      "last_update": "2026-04-14T06:30:01.676675Z"
+      "last_update": "2026-04-14T06:35:01.312792Z"
     }
   }
 }
