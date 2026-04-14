@@ -30,10 +30,17 @@ type TabId = 'home' | 'today' | 'playbooks' | 'plans' | 'org' | 'execution' | 's
 export default function App() {
   const [tab, setTab] = useState<TabId>('home')
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
 
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(t)
+  }, [])
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   }, [])
 
   const handleTab = (id: string) => {
@@ -44,28 +51,28 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-col">
 
-      {/* Desktop nav - hidden on mobile */}
-      <DesktopNav active={tab} onChange={handleTab} currentTime={currentTime} />
+      {/* Nav: desktop top bar OR nothing (mobile uses bottom nav) */}
+      {!isMobile && <DesktopNav active={tab} onChange={handleTab} currentTime={currentTime} />}
 
       {/* Content area */}
       <main className="flex-1 overflow-y-auto">
 
-        {/* ── DESKTOP (md+) ─────────────────────────────────── */}
-        <div className="hidden md:block">
+        {/* ── DESKTOP ───────────────────────────────────────── */}
+        {!isMobile && (
           <div className="max-w-[1600px] mx-auto px-6 py-6">
-            {tab === 'home'  && <DesktopHome currentTime={currentTime} />}
-            {tab === 'today' && <DesktopToday />}
-            
+            {tab === 'home'      && <DesktopHome currentTime={currentTime} />}
+            {tab === 'today'     && <DesktopToday />}
             {tab === 'playbooks' && <PlaybooksPanel />}
-            {tab === 'plans' && <DesktopPlans />}
-            {tab === 'org'   && <DesktopOrg currentTime={currentTime} />}
+            {tab === 'plans'     && <DesktopPlans />}
+            {tab === 'org'       && <DesktopOrg currentTime={currentTime} />}
             {tab === 'execution' && <ExecutionTabContent />}
             {tab === 'systems'   && <DesktopSystems />}
           </div>
-        </div>
+        )}
 
-        {/* ── MOBILE (< md) ─────────────────────────────────── */}
-        <div className="md:hidden pb-24">
+        {/* ── MOBILE ────────────────────────────────────────── */}
+        {isMobile && (
+          <div className="pb-24">
           <div className="flex items-center gap-2.5 px-4 pt-4 pb-2">
             <img src="/favicon.png" alt="Mindmaker OS" className="w-6 h-6 rounded-md object-cover" />
             <span className="text-[13px] font-semibold text-white/80 tracking-tight">Mindmaker OS</span>
@@ -79,11 +86,12 @@ export default function App() {
             {tab === 'execution' && <ErrorBoundary label="Execution"><MobileExecution /></ErrorBoundary>}
             {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
           </div>
-        </div>
+          </div>
+        )}
       </main>
 
-      {/* Mobile bottom nav */}
-      <BottomNav active={tab} onChange={handleTab} />
+      {/* Bottom nav — mobile only */}
+      {isMobile && <BottomNav active={tab} onChange={handleTab} />}
     </div>
   )
 }
