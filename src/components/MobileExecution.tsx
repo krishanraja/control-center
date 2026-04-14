@@ -94,7 +94,7 @@ export function MobileExecution() {
         />
       )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <StatPill label="Running" value={ts.in_progress} color="text-emerald-400" />
         <StatPill label="Waiting" value={ts.waiting} color="text-white/60" />
         <StatPill label="Blocked" value={ts.blocked} color={ts.blocked > 0 ? 'text-red-400' : 'text-white/60'} />

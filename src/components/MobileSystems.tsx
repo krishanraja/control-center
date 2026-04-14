@@ -72,7 +72,7 @@ export function MobileSystems() {
         />
       )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <StatPill label="Green" value={green.length} color="text-emerald-400" />
         <StatPill label="Amber" value={amber.length} color={amber.length > 0 ? 'text-amber-400' : 'text-white/60'} />
         <StatPill label="Red"   value={red.length}   color={red.length > 0 ? 'text-red-400' : 'text-white/60'} />

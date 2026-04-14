@@ -77,7 +77,7 @@ export function MobileToday() {
         />
       )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <StatPill label="Blocked" value={blocked.length} color={blocked.length > 0 ? 'text-red-400' : 'text-white/60'} />
         <StatPill label="Goals" value={`${avgGoalProgress}%`} color={avgGoalProgress >= 60 ? 'text-emerald-400' : 'text-amber-300'} sub="avg" />
         <StatPill label="Today" value={today.length} color="text-violet-300" />
@@ -102,12 +102,12 @@ export function MobileToday() {
       {goalsList.length > 0 && (
         <FeedCard title="Goals" fill>
           {goalsList.map(g => (
-            <div key={g.id} className="px-6 py-5">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[17px] font-semibold text-white/90 truncate pr-3">{g.title}</p>
-                <span className="text-[16px] font-mono font-bold text-white/70 flex-shrink-0">{g.progress}%</span>
+            <div key={g.id} className="px-7 py-6">
+              <div className="flex items-center justify-between mb-3.5">
+                <p className="text-[19px] font-semibold text-white leading-snug truncate pr-3">{g.title}</p>
+                <span className="text-[18px] font-mono font-bold text-white/70 flex-shrink-0">{g.progress}%</span>
               </div>
-              <div className="h-2.5 bg-white/[0.08] rounded-full overflow-hidden">
+              <div className="h-3 bg-white/[0.08] rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full ${
                     g.progress === 0 ? 'bg-white/10' :
@@ -117,7 +117,7 @@ export function MobileToday() {
                   style={{ width: `${Math.min(g.progress, 100)}%` }}
                 />
               </div>
-              {g.owner && <p className="text-[13px] text-white/45 mt-2.5">{g.owner}</p>}
+              {g.owner && <p className="text-[15px] text-white/45 mt-3">{g.owner}</p>}
             </div>
           ))}
         </FeedCard>

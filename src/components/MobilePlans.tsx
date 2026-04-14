@@ -79,7 +79,7 @@ export function MobilePlans() {
         />
       )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <StatPill label="Your move" value={needsYou.length} color={needsYou.length > 0 ? 'text-amber-400' : 'text-white/60'} />
         <StatPill label="Active" value={active.length} color="text-emerald-400" />
         <StatPill label="Pending" value={pending.length} color="text-white/60" />
