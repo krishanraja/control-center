@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-14T13:25:01.903695Z",
+  "updated_at": "2026-04-14T13:26:23.397263Z",
   "schema_version": "3.0",
   "system_status": "operational",
   "agents_active": {
@@ -11,13 +11,13 @@
     "Nell": 2,
     "Marcus + Arlo": 1,
     "Felix": 1,
-    "Cleo": 2,
+    "Cleo": 3,
     "Leo": 2
   },
   "task_summary": {
-    "total": 35,
+    "total": 36,
     "in_progress": 4,
-    "waiting": 9,
+    "waiting": 10,
     "blocked": 0,
     "done": 6
   },
@@ -30,7 +30,7 @@
       "n8n_workflow": "None",
       "infra_status": "green",
       "qa_status": "green",
-      "infra_note": "Last push: 2026-04-14T13:25Z",
+      "infra_note": "Last push: 2026-04-14T13:26Z",
       "qa_note": "All 10 JSON files verified",
       "state": "Running",
       "next_run": "In ~5 min"

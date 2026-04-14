@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-14T13:25:01.939436Z",
+  "generated_at": "2026-04-14T13:26:23.426065Z",
   "total_agents": 6,
-  "total_tasks": 35,
+  "total_tasks": 36,
   "plans": [
     {
       "agent": "Arlo",
@@ -74,7 +74,7 @@
       },
       "next_milestone": "Complete Zero undetected workflow failures, 100% uptime tracking",
       "brief_source": "https://docs.google.com/document/d/16IaX5tmaJS3Tby4GLjWEcznHP_-gwk1Si7rvvE7z4yw/edit",
-      "last_updated": "2026-04-14T13:25:01.938664Z"
+      "last_updated": "2026-04-14T13:26:23.425048Z"
     },
     {
       "agent": "Cleo",
@@ -83,18 +83,19 @@
       "timeline_status": "UNKNOWN",
       "phases": [],
       "critical_blockers": [
-        "Cleo \u2014 Content: Reactive AI News Hot Takes (waiting)"
+        "Cleo \u2014 Content: Reactive AI News Hot Takes (waiting)",
+        "Cleo \u2014 Builder Economy Instagram Strategy (waiting)"
       ],
-      "task_count": 2,
+      "task_count": 3,
       "task_summary": {
         "in_progress": 0,
-        "waiting": 1,
+        "waiting": 2,
         "blocked": 0,
         "done": 0
       },
       "next_milestone": "Start execution",
       "brief_source": "https://docs.google.com/document/d/10-kH5pAbMe0QOUZQdWbaeXP4CRfoPX4sL9XtiUekoQg/edit",
-      "last_updated": "2026-04-14T13:25:01.938797Z"
+      "last_updated": "2026-04-14T13:26:23.425172Z"
     },
     {
       "agent": "Felix",
@@ -152,7 +153,7 @@
       },
       "next_milestone": "Complete \u22651 active engagement in proposal stage",
       "brief_source": "https://docs.google.com/document/d/1o_Gcn9AZM2RxYV4MCSidWcIdmz--IyoeZDyqzHcIQy4/edit",
-      "last_updated": "2026-04-14T13:25:01.939128Z"
+      "last_updated": "2026-04-14T13:26:23.425658Z"
     },
     {
       "agent": "Leo",
@@ -170,7 +171,7 @@
       },
       "next_milestone": "Start execution",
       "brief_source": "https://docs.google.com/document/d/1mtliZiV2VpyoxRfD39SlN0aWbOZ83-UEoQXwB3JEk0k/edit",
-      "last_updated": "2026-04-14T13:25:01.939200Z"
+      "last_updated": "2026-04-14T13:26:23.425782Z"
     },
     {
       "agent": "Maya",
@@ -188,7 +189,7 @@
       },
       "next_milestone": "Start execution",
       "brief_source": "https://docs.google.com/document/d/1tV3EKTEz7PfEL5mN371F5czmsUxkwjFzYZzcryh1YJU/edit",
-      "last_updated": "2026-04-14T13:25:01.939289Z"
+      "last_updated": "2026-04-14T13:26:23.425915Z"
     },
     {
       "agent": "Nell",
@@ -206,13 +207,13 @@
       },
       "next_milestone": "Start execution",
       "brief_source": "https://docs.google.com/document/d/1BVa-yUeGgx5e3tB1axFdLtFJussbC-smLqxJdvjCvek/edit",
-      "last_updated": "2026-04-14T13:25:01.939335Z"
+      "last_updated": "2026-04-14T13:26:23.425962Z"
     }
   ],
   "system_health": {
     "all_plans_updated": true,
     "contradictions_detected": 0,
     "sync_source": "agent briefs + tasks.json",
-    "next_sync": "2026-04-14T13:30:01.939438Z"
+    "next_sync": "2026-04-14T13:31:23.426067Z"
   }
 }
