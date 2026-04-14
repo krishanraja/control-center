@@ -215,6 +215,22 @@ export function PlanExecutionDashboard() {
         const { supabase } = await import('../lib/supabase')
         const { data: plans } = await supabase.from('plan_execution').select('*')
         if (plans) {
+          // Also fetch agent brief sources from agents table
+          let agentBriefMap: Record<string, string> = {}
+          try {
+            const { data: agentRows } = await supabase
+              .from('agents')
+              .select('name,plan_doc_url')
+              .eq('active', true)
+            if (agentRows) {
+              for (const a of agentRows as any[]) {
+                if (a.name && a.plan_doc_url) {
+                  agentBriefMap[a.name] = a.plan_doc_url
+                }
+              }
+            }
+          } catch { /* fall through with empty map */ }
+
           const mapped = plans.map((p: any) => ({
             agent: p.agent,
             plan_name: p.plan_name || '',
@@ -224,6 +240,7 @@ export function PlanExecutionDashboard() {
             critical_blockers: [],
             task_summary: typeof p.task_summary === 'string' ? JSON.parse(p.task_summary) : (p.task_summary || {}),
             next_milestone: '',
+            brief_source: p.brief_source || agentBriefMap[p.agent] || undefined,
             last_updated: p.updated_at || new Date().toISOString(),
           }))
           setData(mapped)

@@ -56,7 +56,7 @@ export function AgentDetailModal({ agent, isOpen, onClose }: Props) {
 
         <div className="p-6 space-y-6">
 
-          {/* Agent Brief link — single source of truth */}
+          {/* Agent Brief link + Supabase sync status */}
           {agent.planDocUrl && (
             <a
               href={agent.planDocUrl}
@@ -72,9 +72,30 @@ export function AgentDetailModal({ agent, isOpen, onClose }: Props) {
                 <p className="text-[11px] text-white/40 truncate">
                   KPIs · Mission · Feedback from Krish · Run Log
                 </p>
+                {agent.briefUpdatedAt && (
+                  <p className="text-[10px] text-white/30 mt-0.5">
+                    Brief synced: {formatRelativeTime(new Date(agent.briefUpdatedAt).getTime())}
+                    {agent.briefChecksum && <span className="ml-2 font-mono text-white/20">{agent.briefChecksum.slice(0, 8)}</span>}
+                  </p>
+                )}
               </div>
               <ExternalLink className="w-4 h-4 text-violet-400/60 flex-shrink-0 group-hover:text-violet-300 transition-colors" />
             </a>
+          )}
+
+          {/* Brief content from Supabase (if available) */}
+          {agent.briefContent && (
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <FileText className="w-5 h-5 text-command-accent" />
+                <h3 className="text-lg font-semibold text-white">Brief Summary</h3>
+              </div>
+              <div className="text-command-text/80 bg-command-bg/30 p-4 rounded-lg text-sm leading-relaxed whitespace-pre-wrap max-h-64 overflow-y-auto">
+                {agent.briefContent.length > 2000
+                  ? agent.briefContent.slice(0, 2000) + '...'
+                  : agent.briefContent}
+              </div>
+            </div>
           )}
 
           {/* Personality & Mission */}

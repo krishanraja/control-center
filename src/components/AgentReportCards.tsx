@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { AGENTS } from '../services/agentData'
+import { loadAgentsWithBriefs } from '../services/agentBriefs'
 import { ExternalLink, Loader2 } from 'lucide-react'
 import { AgentDetailModal } from './AgentDetailModal'
 import { Agent } from '../types'
@@ -42,8 +43,18 @@ function timeAgo(iso: string | null): string {
 }
 
 export function AgentReportCards() {
+  const [agents, setAgents] = useState<Agent[]>(AGENTS)
   const [statusData, setStatusData] = useState<StatusData | null>(null)
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
+
+  // Load agents with brief data from Supabase
+  useEffect(() => {
+    loadAgentsWithBriefs().then(setAgents).catch(() => {})
+    const iv = setInterval(() => {
+      loadAgentsWithBriefs().then(setAgents).catch(() => {})
+    }, 60000)
+    return () => clearInterval(iv)
+  }, [])
 
   const fetchStatus = () => {
     fetch('/api/agents', { cache: 'no-cache' })
@@ -59,9 +70,9 @@ export function AgentReportCards() {
   }, [])
 
   const pods = [
-    { key: 'revenue', label: 'Revenue Pod', agents: AGENTS.filter(a => a.pod === 'revenue') },
-    { key: 'growth',  label: 'Growth Pod',  agents: AGENTS.filter(a => a.pod === 'growth') },
-    { key: 'ops',     label: 'Ops Pod',     agents: AGENTS.filter(a => a.pod === 'ops') },
+    { key: 'revenue', label: 'Revenue Pod', agents: agents.filter(a => a.pod === 'revenue') },
+    { key: 'growth',  label: 'Growth Pod',  agents: agents.filter(a => a.pod === 'growth') },
+    { key: 'ops',     label: 'Ops Pod',     agents: agents.filter(a => a.pod === 'ops') },
   ]
 
   return (

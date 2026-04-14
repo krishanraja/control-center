@@ -304,6 +304,23 @@ export function HomeIntelligence() {
           if (hi.external_signals) {
             try { parsed.external_signals = typeof hi.external_signals === 'string' ? JSON.parse(hi.external_signals) : hi.external_signals } catch {}
           }
+
+          // Enrich agent_health.brief_files from Supabase agents table
+          // instead of relying on static JSON file counts
+          if (parsed.agent_health) {
+            try {
+              const { data: agentRows } = await supabase
+                .from('agents')
+                .select('id,brief_content,brief_updated_at')
+                .eq('active', true)
+              if (agentRows) {
+                const withBriefs = agentRows.filter((a: any) => a.brief_content && a.brief_content.length > 0)
+                parsed.agent_health.brief_files = withBriefs.length
+                parsed.agent_health.total_agents = agentRows.length
+              }
+            } catch { /* keep existing values */ }
+          }
+
           setData(parsed)
         }
       } catch (e) { console.error('HomeIntelligence load error:', e) }

@@ -26,6 +26,9 @@ export interface Agent {
   }
   pod?: 'ops' | 'revenue' | 'growth'
   planDocUrl?: string
+  briefContent?: string
+  briefUpdatedAt?: string
+  briefChecksum?: string
 }
 
 export interface SystemHealth {
