@@ -1,60 +1,45 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { readFileSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { supabase } from './_supabase'
 
-const QUEUE_PATH = join(process.cwd(), 'public', 'feedback-queue.json')
-
-function readQueue(): any[] {
-  try {
-    return JSON.parse(readFileSync(QUEUE_PATH, 'utf8'))
-  } catch {
-    return []
-  }
-}
-
-function writeQueue(items: any[]) {
-  writeFileSync(QUEUE_PATH, JSON.stringify(items, null, 2))
-}
-
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end()
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end()
 
   if (req.method === 'GET') {
-    return res.json({ items: readQueue() })
+    const { data, error } = await supabase.from('feedback_queue').select('*').order('created_at', { ascending: false })
+    if (error) return res.status(500).json({ error: error.message })
+    return res.json({ items: data || [] })
   }
 
   if (req.method === 'PATCH') {
     const { id, status, comment, owner } = req.body || {}
     if (!id) return res.status(400).json({ error: 'id required' })
 
-    const queue = readQueue()
-    const existing = queue.find(i => i.id === id)
+    // Check if entry exists
+    const { data: existing } = await supabase.from('feedback_queue').select('*').eq('id', id).single()
 
-    const entry = existing || { id }
-    entry.status = status || entry.status
-    entry.owner = owner || entry.owner
-    entry.updatedAt = new Date().toISOString()
+    const updates: any = { updated_at: new Date().toISOString() }
+    if (status) updates.status = status
+    if (owner) updates.owner = owner
+
     if (comment) {
-      entry.comments = entry.comments || []
-      entry.comments.push({ text: comment, from: 'krish', ts: Date.now() })
-      entry.feedbackText = comment
+      const comments = Array.isArray(existing?.comments) ? existing.comments : []
+      comments.push({ text: comment, from: 'krish', ts: Date.now() })
+      updates.comments = comments
+      updates.feedback_text = comment
     }
 
-    if (!existing) queue.push(entry)
-
-    try {
-      writeQueue(queue)
+    if (existing) {
+      const { data: entry, error } = await supabase.from('feedback_queue').update(updates).eq('id', id).select().single()
+      if (error) return res.status(500).json({ error: error.message })
       return res.json({ ok: true, entry })
-    } catch (err: any) {
-      // Vercel serverless is read-only for most paths — log but don't fail the UI
-      console.error('feedback-queue write error (expected on Vercel read-only fs):', err.message)
-      return res.json({ ok: true, entry, note: 'persisted in-memory only' })
+    } else {
+      const { data: entry, error } = await supabase.from('feedback_queue').insert({ id, ...updates }).select().single()
+      if (error) return res.status(500).json({ error: error.message })
+      return res.json({ ok: true, entry })
     }
   }
 

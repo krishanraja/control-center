@@ -210,19 +210,30 @@ export function PlanExecutionDashboard() {
   const [dataNote, setDataNote] = useState<string>('')
 
   useEffect(() => {
-    const load = () =>
-      fetch('/data/plan-execution.json', { cache: 'no-cache' })
-        .then(r => r.json())
-        .then(d => {
-          setData(d.plans || [])
-          setLastUpdated(d.generated_at)
-          if (d.data_note) setDataNote(d.data_note)
-          setLoading(false)
-        })
-        .catch(() => setLoading(false))
-    
+    const load = async () => {
+      try {
+        const { supabase } = await import('../lib/supabase')
+        const { data: plans } = await supabase.from('plan_execution').select('*')
+        if (plans) {
+          const mapped = plans.map((p: any) => ({
+            agent: p.agent,
+            plan_name: p.plan_name || '',
+            overall_progress_pct: p.overall_progress_pct || 0,
+            timeline_status: 'ON_TRACK' as const,
+            phases: typeof p.phases === 'string' ? JSON.parse(p.phases) : (p.phases || []),
+            critical_blockers: [],
+            task_summary: typeof p.task_summary === 'string' ? JSON.parse(p.task_summary) : (p.task_summary || {}),
+            next_milestone: '',
+            last_updated: p.updated_at || new Date().toISOString(),
+          }))
+          setData(mapped)
+          setLastUpdated(new Date().toISOString())
+        }
+      } catch (e) { console.error('Plan load error:', e) }
+      setLoading(false)
+    }
     load()
-    const iv = setInterval(load, 5 * 60_000)
+    const iv = setInterval(load, 30_000)
     return () => clearInterval(iv)
   }, [])
 

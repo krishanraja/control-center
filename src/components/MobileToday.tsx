@@ -14,23 +14,39 @@ export function MobileToday() {
   const [goals,   setGoals]   = useState<GoalsData | null>(null)
 
   const refresh = () => {
-    fetch('/api/data', { cache: 'no-cache' }).then(r => r.json())
-      .then(d => {
-        const mine = (d.tasks || []).filter((t: any) => t.blockedBy === 'krish')
+    import('../lib/supabase').then(({ supabase }) => {
+      // Tasks blocked on krish
+      supabase.from('tasks').select('*').eq('blocked_by', 'krish').then(({ data: tasks }) => {
+        const mine = (tasks || []).map((t: any) => ({
+          id: t.id, title: t.title, description: t.description,
+          urgency: t.urgency, agent: t.agent, blockedBy: t.blocked_by,
+        }))
         const high = mine.filter((t: any) => t.urgency === 'high')
         const rest = mine.filter((t: any) => t.urgency !== 'high')
         setBlocked([...high, ...rest])
       }).catch(() => {})
 
-    fetch('/api/today', { cache: 'no-cache' }).then(r => r.json())
-      .then(d => setToday(((d.items || []) as TodayItem[])
-        .filter((i: any) => i.owner === 'krish')
-        .sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99))
-      ))
-      .catch(() => {})
+      // Today items - tasks owned by krish that aren't done
+      supabase.from('tasks').select('*').eq('owner', 'krish').neq('status', 'done').then(({ data: tasks }) => {
+        const items: TodayItem[] = (tasks || []).map((t: any) => ({
+          id: t.id, title: t.title, detail: t.description,
+          owner: t.owner || 'krish', priority: t.priority || 99, est: undefined,
+        }))
+        setToday(items.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99)))
+      }).catch(() => {})
 
-    fetch('/api/goals', { cache: 'no-cache' }).then(r => r.json())
-      .then(setGoals).catch(() => {})
+      // Goals
+      supabase.from('goals').select('*').then(({ data: goalRows }) => {
+        if (goalRows && goalRows.length > 0) {
+          const goals: Goal[] = goalRows.map((g: any) => ({
+            id: g.id, title: g.title, progress: g.progress || 0, owner: g.owner,
+          }))
+          supabase.from('system_config').select('value').eq('key', 'week_of').single().then(({ data: wk }) => {
+            setGoals({ week_of: wk?.value || undefined, goals })
+          }).catch(() => setGoals({ goals }))
+        }
+      }).catch(() => {})
+    }).catch(() => {})
   }
 
   useEffect(() => {

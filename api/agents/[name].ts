@@ -1,8 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { supabase } from '../_supabase'
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
 
@@ -12,25 +11,43 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const agentName = name.toLowerCase()
-  const briefPath = join(process.cwd(), 'public', 'data', 'agent-briefs', `${agentName}.json`)
 
-  try {
-    const briefData = JSON.parse(readFileSync(briefPath, 'utf8'))
-    return res.json({
-      success: true,
-      agent: briefData.agent,
-      brief_file: briefData.file,
-      updated_at: briefData.updated_at,
-      content: briefData.content,
-      source: 'control-center',
-      synced_at: new Date().toISOString()
-    })
-  } catch (error) {
+  // Fetch agent from DB
+  const { data: agent, error } = await supabase
+    .from('agents')
+    .select('*')
+    .eq('id', agentName)
+    .single()
+
+  if (error || !agent) {
     return res.status(404).json({
-      error: `Agent brief not found: ${agentName}`,
-      available_agents: [
-        'arlo', 'cleo', 'felix', 'leo', 'marcus', 'maya', 'nell', 'nova', 'priya', 'vera', 'zara'
-      ]
+      error: `Agent not found: ${agentName}`,
+      available_agents: ['arlo', 'cleo', 'felix', 'leo', 'marcus', 'maya', 'nell', 'nova', 'priya', 'vera', 'zara', 'agatha', 'marty', 'kai']
     })
   }
+
+  // Fetch agent's tasks
+  const { data: tasks } = await supabase
+    .from('tasks')
+    .select('id, title, status, priority, urgency')
+    .eq('agent', agentName)
+
+  // Fetch Google Drive sync info
+  const { data: driveSync } = await supabase
+    .from('google_drive_sync')
+    .select('doc_id, last_synced, checksum')
+    .eq('agent_id', agentName)
+    .single()
+
+  return res.json({
+    success: true,
+    agent: {
+      ...agent,
+      tasks: tasks || [],
+      drive_doc_id: driveSync?.doc_id || null,
+      last_brief_sync: driveSync?.last_synced || null,
+    },
+    source: 'supabase',
+    synced_at: new Date().toISOString()
+  })
 }

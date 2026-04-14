@@ -277,10 +277,30 @@ export function WorkstreamBoard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/data/workstreams.json', { cache: 'no-cache' })
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false) })
-      .catch(() => setLoading(false))
+    import('../lib/supabase').then(({ supabase }) => {
+      supabase.from('workstreams').select('*').then(({ data: rows }) => {
+        if (rows && rows.length > 0) {
+          const workstreams: Workstream[] = rows.map((r: any) => ({
+            id: r.id,
+            name: r.name || '',
+            category: r.category || 'infrastructure',
+            categoryLabel: r.category_label || r.category || '',
+            owner: r.owner || '',
+            supporting: r.supporting || [],
+            status: r.status || 'pending',
+            lastUpdate: r.last_update || r.updated_at,
+            nextAction: r.next_action || '',
+            blockedTaskId: r.blocked_task_id || null,
+            kpi: r.kpi || null,
+            actionLabel: r.action_label || null,
+            actionUrl: r.action_url || null,
+            briefUrl: r.brief_url || null,
+          }))
+          setData({ updated_at: new Date().toISOString(), total: workstreams.length, workstreams })
+        }
+        setLoading(false)
+      })
+    }).catch(() => setLoading(false))
   }, [])
 
   if (loading) return (

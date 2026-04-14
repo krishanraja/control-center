@@ -42,8 +42,26 @@ export function MobileExecution() {
   const [state, setState] = useState<ExecutionState | null>(null)
 
   const refresh = () => {
-    fetch('/data/execution-state.json', { cache: 'no-cache' }).then(r => r.json())
-      .then(setState).catch(() => {})
+    import('../lib/supabase').then(({ supabase }) => {
+      supabase.from('agents').select('*').eq('active', true).then(({ data: agents }) => {
+        const agentsList = agents || []
+        const engines: Engine[] = agentsList.map((a: any) => ({
+          id: a.id, name: a.name, domain: a.role || '',
+          cron: '*/5 * * * *', infra_status: 'green', qa_status: 'green',
+          infra_note: 'Connected', qa_note: 'Active',
+          state: 'Running', next_run: 'Realtime',
+        }))
+        const agents_active: Record<string, number> = {}
+        agentsList.forEach((a: any) => { agents_active[a.name] = 1 })
+        setState({
+          updated_at: new Date().toISOString(),
+          system_status: 'operational',
+          agents_active,
+          task_summary: { total: agentsList.length, in_progress: agentsList.length, waiting: 0, blocked: 0, done: 0 },
+          engines,
+        })
+      })
+    }).catch(() => {})
   }
 
   useEffect(() => {

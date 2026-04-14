@@ -98,47 +98,54 @@ export function MobileHome() {
   const refresh = useCallback(async () => {
     const bkd: BlockerItem[] = []
 
-    // Tasks blocked on krish
     try {
-      const r = await fetch('/api/data', { cache: 'no-cache' })
-      const d = await r.json()
-      const mine = ((d.tasks || []) as RawTask[]).filter(t => t.blockedBy === 'krish')
-      const high = mine.filter(t => t.urgency === 'high')
-      const rest = mine.filter(t => t.urgency !== 'high')
-      ;[...high, ...rest].forEach(t => bkd.push(blockerFromTask(t)))
-    } catch {}
+      const { supabase } = await import('../lib/supabase')
 
-    // Pending approvals
-    try {
-      const r = await fetch('/api/approvals', { cache: 'no-cache' })
-      const d = await r.json()
-      ;((d.items || []) as RawApproval[])
-        .filter(a => a.status === 'pending')
-        .forEach(a => bkd.push(blockerFromApproval(a)))
-    } catch {}
+      // Tasks blocked on krish
+      try {
+        const { data: tasks } = await supabase.from('tasks').select('*').eq('blocked_by', 'krish')
+        const mine = ((tasks || []) as any[]).map(t => ({
+          id: t.id, title: t.title, description: t.description,
+          agent: t.agent, urgency: t.urgency, blockedBy: t.blocked_by,
+          createdAt: t.created, actionUrl: t.link_primary, actionLabel: 'Review',
+        } as RawTask))
+        const high = mine.filter(t => t.urgency === 'high')
+        const rest = mine.filter(t => t.urgency !== 'high')
+        ;[...high, ...rest].forEach(t => bkd.push(blockerFromTask(t)))
+      } catch {}
 
-    setBlockers(bkd)
+      setBlockers(bkd)
 
-    // Home intelligence synthesis
-    try {
-      const r = await fetch('/data/home-intelligence.json', { cache: 'no-cache' })
-      const d = await r.json()
-      setIntel(d)
-    } catch {}
+      // Home intelligence synthesis
+      try {
+        const { data: hi } = await supabase.from('home_intelligence').select('*').eq('id', 'current').single()
+        if (hi) {
+          const parsed: any = { generated_at: hi.generated_at || hi.updated_at }
+          if (hi.summary) {
+            try {
+              const summary = typeof hi.summary === 'string' ? JSON.parse(hi.summary) : hi.summary
+              Object.assign(parsed, summary)
+            } catch { parsed.executive_summary = hi.assessment || hi.summary }
+          }
+          if (hi.assessment && !parsed.strategic_assessment) {
+            parsed.strategic_assessment = { headline: '', body: hi.assessment, recommended_focus: '' }
+          }
+          setIntel(parsed)
+        }
+      } catch {}
 
-    // Systems/engines compressed into chips
-    try {
-      const r = await fetch(`/data/systems-status.json?t=${Date.now()}`)
-      const d: SystemsData = await r.json()
-      const chips: HealthItem[] = []
-      for (const cat of d.categories ?? []) {
-        for (const svc of cat.services ?? []) {
-          chips.push({ id: svc.id, label: svc.name, status: svc.status })
+      // Systems/engines compressed into chips
+      try {
+        const { data: rows } = await supabase.from('system_health').select('*')
+        const chips: HealthItem[] = []
+        for (const r of rows || []) {
+          const details = typeof r.details === 'string' ? JSON.parse(r.details) : (r.details || {})
+          const status = r.status === 'healthy' ? 'green' : r.status === 'degraded' ? 'amber' : r.status === 'failing' ? 'red' : 'unknown'
+          chips.push({ id: r.id, label: details.name || r.component, status })
           if (chips.length >= 8) break
         }
-        if (chips.length >= 8) break
-      }
-      setSystems(chips)
+        setSystems(chips)
+      } catch {}
     } catch {}
 
     setLoading(false)

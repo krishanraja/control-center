@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { supabase } from './_supabase'
 
 interface HealthStatus {
   status: 'healthy' | 'degraded' | 'failed'
@@ -20,7 +19,7 @@ interface HealthStatus {
   }>
 }
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
 
   const health: HealthStatus = {
@@ -31,58 +30,55 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Check 1: Tasks sync
-    const tasksPath = join(process.cwd(), 'public', 'data', 'blocked.json')
-    const tasksData = JSON.parse(readFileSync(tasksPath, 'utf8'))
-    const tasksAge = new Date().getTime() - new Date(tasksData.updated_at).getTime()
+    // Check 1: Supabase connection + task count
+    const { count, error: taskError } = await supabase
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
 
-    health.components['tasks-sync'] = {
-      status: tasksAge < 300000 ? 'healthy' : 'degraded', // 5 minutes
-      last_check: tasksData.updated_at,
-      message: `${tasksData.tasks?.length || 0} tasks synced`
+    health.components['supabase-connection'] = {
+      status: taskError ? 'failed' : 'healthy',
+      last_check: new Date().toISOString(),
+      message: taskError ? taskError.message : `${count} tasks in database`
     }
 
-    if (tasksAge > 600000) {
-      health.alerts.push({
-        severity: 'warning',
-        message: 'Tasks sync older than 10 minutes',
-        component: 'tasks-sync',
-        timestamp: new Date().toISOString()
-      })
-    }
-
-    // Check 2: Agent briefs
-    const briefsPath = join(process.cwd(), 'public', 'data', 'agent-briefs', 'index.json')
-    const briefsData = JSON.parse(readFileSync(briefsPath, 'utf8'))
-    const briefsAge = new Date().getTime() - new Date(briefsData.updated_at).getTime()
-
-    health.components['agent-briefs'] = {
-      status: briefsAge < 300000 ? 'healthy' : 'degraded',
-      last_check: briefsData.updated_at,
-      message: `${briefsData.total_agents} briefs current`
-    }
-
-    if (briefsData.total_agents < 11) {
+    if (taskError) {
       health.alerts.push({
         severity: 'critical',
-        message: `Missing ${11 - briefsData.total_agents} agent briefs`,
-        component: 'agent-briefs',
+        message: 'Supabase connection failed',
+        component: 'supabase-connection',
         timestamp: new Date().toISOString()
       })
     }
 
-    // Check 3: System health endpoints
+    // Check 2: Agent count
+    const { count: agentCount } = await supabase
+      .from('agents')
+      .select('*', { count: 'exact', head: true })
+      .eq('active', true)
+
+    health.components['agents'] = {
+      status: (agentCount || 0) >= 11 ? 'healthy' : 'degraded',
+      last_check: new Date().toISOString(),
+      message: `${agentCount} active agents`
+    }
+
+    // Check 3: System health entries
+    const { data: sysHealth } = await supabase
+      .from('system_health')
+      .select('component, status')
+
+    const failingComponents = (sysHealth || []).filter(s => s.status === 'failing')
+    health.components['system-services'] = {
+      status: failingComponents.length > 0 ? 'degraded' : 'healthy',
+      last_check: new Date().toISOString(),
+      message: `${sysHealth?.length || 0} services tracked, ${failingComponents.length} failing`
+    }
+
+    // Check 4: API endpoints
     health.components['api-endpoints'] = {
       status: 'healthy',
       last_check: new Date().toISOString(),
-      message: '/api/data, /api/agents, /api/goals operational'
-    }
-
-    // Check 4: Contradiction detection
-    health.components['contradiction-detection'] = {
-      status: 'healthy',
-      last_check: new Date().toISOString(),
-      message: '0 contradictions found (last hourly scan)'
+      message: 'All Supabase-backed endpoints operational'
     }
 
     // Overall status

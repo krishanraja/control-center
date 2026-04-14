@@ -87,10 +87,34 @@ export function SystemsPanel() {
   const load = useCallback(() => {
     setLoading(true)
     setError(null)
-    fetch(`/data/systems-status.json?t=${Date.now()}`)
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
-      .then(d => { setData(d); setLoading(false); setLastRefreshed(new Date()) })
-      .catch(e => { setError(e.message); setLoading(false) })
+    import('../lib/supabase').then(({ supabase }) => {
+      supabase.from('system_health').select('*').then(({ data: rows, error: err }) => {
+        if (err) { setError(err.message); setLoading(false); return }
+        // Group by component category or build a flat list
+        const categories: Category[] = []
+        const catMap = new Map<string, Service[]>()
+        for (const r of rows || []) {
+          const details = typeof r.details === 'string' ? JSON.parse(r.details) : (r.details || {})
+          const catName = details.category || r.component?.split('-')[0] || 'General'
+          if (!catMap.has(catName)) catMap.set(catName, [])
+          catMap.get(catName)!.push({
+            id: r.id,
+            name: details.name || r.component,
+            url: details.url,
+            status: r.status === 'healthy' ? 'green' : r.status === 'degraded' ? 'amber' : r.status === 'failing' ? 'red' : 'unknown',
+            note: r.message || details.note || details.status || '',
+            credits: details.credits ?? null,
+            last_checked: r.last_check,
+          })
+        }
+        catMap.forEach((services, label) => {
+          categories.push({ id: label.toLowerCase().replace(/\s/g, '-'), label, services })
+        })
+        setData({ updated_at: new Date().toISOString(), updated_by: 'supabase', next_check: 'realtime', categories })
+        setLoading(false)
+        setLastRefreshed(new Date())
+      })
+    }).catch(e => { setError(e.message); setLoading(false) })
   }, [])
 
   useEffect(() => { load() }, [load])

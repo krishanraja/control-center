@@ -37,9 +37,20 @@ export function MobilePlans() {
   const [workstreams, setWorkstreams] = useState<Workstream[]>([])
 
   const refresh = () => {
-    fetch('/data/workstreams.json', { cache: 'no-cache' }).then(r => r.json())
-      .then(d => setWorkstreams(d.workstreams || d.items || []))
-      .catch(() => {})
+    import('../lib/supabase').then(({ supabase }) => {
+      supabase.from('workstreams').select('*').then(({ data: rows }) => {
+        const ws: Workstream[] = (rows || []).map((r: any) => ({
+          id: r.id, name: r.name || '', category: r.category,
+          categoryLabel: r.category_label || r.category || '',
+          owner: r.owner || '', supporting: r.supporting || [],
+          status: r.status || 'pending', lastUpdate: r.last_update || r.updated_at,
+          nextAction: r.next_action || '', kpi: r.kpi || undefined,
+          actionLabel: r.action_label || undefined, actionUrl: r.action_url || undefined,
+          briefUrl: r.brief_url || undefined,
+        }))
+        setWorkstreams(ws)
+      })
+    }).catch(() => {})
   }
 
   useEffect(() => {

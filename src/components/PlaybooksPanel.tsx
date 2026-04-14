@@ -296,13 +296,18 @@ export function PlaybooksPanel() {
   const [justDone, setJustDone] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/data/sequences.json')
-      .then(r => r.json())
-      .then((d: SequencesData) => {
-        setData(d.sequences)
+    import('../lib/supabase').then(({ supabase }) => {
+      supabase.from('sequences').select('*').then(({ data: seqs }) => {
+        if (seqs) {
+          const mapped = seqs.map((s: any) => ({
+            ...s,
+            steps: typeof s.steps === 'string' ? JSON.parse(s.steps) : (s.steps || []),
+          }))
+          setData(mapped)
+        }
         setLoading(false)
       })
-      .catch(() => setLoading(false))
+    }).catch(() => setLoading(false))
   }, [])
 
   const handleMarkDone = (id: string) => {

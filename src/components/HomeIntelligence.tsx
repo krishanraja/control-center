@@ -279,13 +279,38 @@ export function HomeIntelligence() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const load = () =>
-      fetch('/data/home-intelligence.json', { cache: 'no-cache' })
-        .then(r => r.json())
-        .then(d => { setData(d); setLoading(false) })
-        .catch(() => setLoading(false))
+    const load = async () => {
+      try {
+        const { supabase } = await import('../lib/supabase')
+        const { data: hi } = await supabase.from('home_intelligence').select('*').eq('id', 'current').single()
+        if (hi) {
+          // Reconstruct the shape the UI expects
+          const parsed: any = {
+            generated_at: hi.generated_at || hi.updated_at,
+            version: hi.version,
+          }
+          if (hi.version === 2 || hi.summary) {
+            try {
+              const summary = typeof hi.summary === 'string' ? JSON.parse(hi.summary) : hi.summary
+              Object.assign(parsed, summary)
+            } catch { parsed.executive_summary = hi.assessment || hi.summary }
+          }
+          if (hi.assessment && !parsed.strategic_assessment) {
+            parsed.strategic_assessment = { headline: '', body: hi.assessment, recommended_focus: '' }
+          }
+          if (hi.metrics) {
+            try { parsed.metrics = typeof hi.metrics === 'string' ? JSON.parse(hi.metrics) : hi.metrics } catch {}
+          }
+          if (hi.external_signals) {
+            try { parsed.external_signals = typeof hi.external_signals === 'string' ? JSON.parse(hi.external_signals) : hi.external_signals } catch {}
+          }
+          setData(parsed)
+        }
+      } catch (e) { console.error('HomeIntelligence load error:', e) }
+      setLoading(false)
+    }
     load()
-    const iv = setInterval(load, 5 * 60_000)
+    const iv = setInterval(load, 30_000) // 30s instead of 5min
     return () => clearInterval(iv)
   }, [])
 

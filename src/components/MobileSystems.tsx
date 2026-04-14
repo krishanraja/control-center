@@ -23,8 +23,29 @@ export function MobileSystems() {
   const [data, setData] = useState<SystemsData | null>(null)
 
   const refresh = () => {
-    fetch(`/data/systems-status.json?t=${Date.now()}`).then(r => r.json())
-      .then(setData).catch(() => {})
+    import('../lib/supabase').then(({ supabase }) => {
+      supabase.from('system_health').select('*').then(({ data: rows }) => {
+        const catMap = new Map<string, Service[]>()
+        for (const r of rows || []) {
+          const details = typeof r.details === 'string' ? JSON.parse(r.details) : (r.details || {})
+          const catName = details.category || r.component?.split('-')[0] || 'General'
+          if (!catMap.has(catName)) catMap.set(catName, [])
+          catMap.get(catName)!.push({
+            id: r.id,
+            name: details.name || r.component,
+            url: details.url,
+            status: r.status === 'healthy' ? 'green' : r.status === 'degraded' ? 'amber' : r.status === 'failing' ? 'red' : 'unknown',
+            note: r.message || details.note || details.status || '',
+            last_checked: r.last_check,
+          })
+        }
+        const categories: Category[] = []
+        catMap.forEach((services, label) => {
+          categories.push({ id: label.toLowerCase().replace(/\s/g, '-'), label, services })
+        })
+        setData({ updated_at: new Date().toISOString(), categories })
+      })
+    }).catch(() => {})
   }
 
   useEffect(() => {

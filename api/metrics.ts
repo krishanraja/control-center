@@ -1,19 +1,25 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { supabase } from './_supabase'
 
-function readJson(name: string) {
-  try {
-    return JSON.parse(readFileSync(join(process.cwd(), 'public', 'data', name), 'utf8'))
-  } catch {
-    return null
-  }
-}
-
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Cache-Control', 'no-store')
-  const data = readJson('metrics.json')
-  if (!data) return res.status(500).json({ error: 'metrics.json not found' })
-  res.json(data)
+
+  // Build metrics from live task data
+  const { data: tasks } = await supabase.from('tasks').select('status, priority, venture, agent')
+
+  const byStatus: Record<string, number> = {}
+  const byVenture: Record<string, number> = {}
+  for (const t of tasks || []) {
+    byStatus[t.status] = (byStatus[t.status] || 0) + 1
+    if (t.venture) byVenture[t.venture] = (byVenture[t.venture] || 0) + 1
+  }
+
+  res.json({
+    total_tasks: tasks?.length || 0,
+    by_status: byStatus,
+    by_venture: byVenture,
+    updated_at: new Date().toISOString(),
+    updated_by: 'supabase'
+  })
 }
