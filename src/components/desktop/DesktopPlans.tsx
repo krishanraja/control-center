@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
@@ -29,6 +29,32 @@ export function DesktopPlans() {
   }, [tasks, filter])
 
   const selected = tasks.find(t => t.id === selectedId) || filtered[0] || null
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (!filtered.length) return
+      const idx = selected ? filtered.findIndex(t => t.id === selected.id) : -1
+      if (e.key === 'j' || e.key === 'ArrowDown') {
+        e.preventDefault()
+        const next = filtered[Math.min(filtered.length - 1, idx + 1)]
+        if (next) setSelectedId(next.id)
+      } else if (e.key === 'k' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        const prev = filtered[Math.max(0, idx - 1)]
+        if (prev) setSelectedId(prev.id)
+      } else if (selected && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault()
+        supabase.from('tasks').update({ status: 'active', krish_reviewed: true, updated_at: new Date().toISOString() }).eq('id', selected.id)
+      } else if (selected && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault()
+        supabase.from('tasks').update({ status: 'done', krish_reviewed: true, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', selected.id)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [filtered, selected?.id])
 
   const list = (
     <div className="space-y-3 pr-2">
