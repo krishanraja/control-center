@@ -120,12 +120,12 @@ export function MobileHome() {
         </FeedCard>
       )}
 
-      {/* Team pulse mini row */}
-      <FeedCard title="Team pulse">
+      {/* Team pulse — grows to fill leftover space */}
+      <FeedCard title="Team pulse" fill>
         <FeedRow
           dotColor="bg-emerald-400"
-          title={`${agentCounts.running} running`}
-          detail={`${AGENTS.length} agents · ${agentCounts.blocked} blocked`}
+          title={`${agentCounts.running} agents running`}
+          detail={`${AGENTS.length} total · ${agentCounts.blocked} blocked`}
         />
       </FeedCard>
 
