@@ -20,7 +20,7 @@ export function BottomNav({ active, onChange }: Props) {
   const h = useHaptics()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50">
       {/* Blur backdrop */}
       <div className="absolute inset-0 bg-[#0a0a0f]/80 backdrop-blur-2xl border-t border-white/[0.06]" />
       <div className="relative flex items-stretch pb-safe">

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { Activity, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import {
+  MobileShell, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState,
+} from './mobile/primitives'
 
-interface Agent       { name: string; count: number }
 interface TaskSummary { total: number; in_progress: number; waiting: number; blocked: number; done: number }
 interface Engine {
   id: string; name: string; domain: string; cron?: string
@@ -10,13 +11,13 @@ interface Engine {
   state: string; next_run?: string
 }
 interface ExecutionState {
-  updated_at: string; schema_version: string; system_status: string
+  updated_at: string; system_status: string
   agents_active: Record<string, number>
   task_summary: TaskSummary
   engines: Engine[]
 }
 
-const STATUS_COLOR: Record<string, string> = {
+const STATUS_DOT: Record<string, string> = {
   green:       'bg-emerald-400',
   amber:       'bg-amber-400',
   red:         'bg-red-400',
@@ -24,10 +25,17 @@ const STATUS_COLOR: Record<string, string> = {
   degraded:    'bg-amber-400',
   down:        'bg-red-400',
 }
-const STATUS_TEXT: Record<string, string> = {
-  green: 'text-emerald-400',
-  amber: 'text-amber-400',
-  red:   'text-red-400',
+
+const SYSTEM_LABEL: Record<string, string> = {
+  operational: 'All systems operational',
+  degraded:    'Some systems degraded',
+  down:        'Outage detected',
+}
+
+function worstStatus(e: Engine): 'red' | 'amber' | 'green' {
+  if (e.infra_status === 'red' || e.qa_status === 'red') return 'red'
+  if (e.infra_status === 'amber' || e.qa_status === 'amber') return 'amber'
+  return 'green'
 }
 
 export function MobileExecution() {
@@ -46,137 +54,78 @@ export function MobileExecution() {
 
   if (!state) {
     return (
-      <div className="flex items-center gap-2 text-[12px] text-white/30 py-8 justify-center">
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-        Loading execution state…
-      </div>
+      <MobileShell header={<TabHeader title="Execution" />}>
+        <EmptyState label="Loading execution state…" />
+      </MobileShell>
     )
   }
 
   const ts = state.task_summary
+  const engines = state.engines ?? []
+  const redEngines   = engines.filter(e => worstStatus(e) === 'red')
+  const amberEngines = engines.filter(e => worstStatus(e) === 'amber')
+  const greenEngines = engines.filter(e => worstStatus(e) === 'green')
+
   const agents = Object.entries(state.agents_active ?? {})
     .sort((a, b) => b[1] - a[1])
 
-  const systemColor = STATUS_COLOR[state.system_status] ?? 'bg-white/20'
+  const heroEngine = redEngines[0] ?? amberEngines[0]
 
   return (
-    <div className="space-y-3">
-
-      {/* ── SYSTEM STATUS ─────────────────────────────── */}
-      <Card>
-        <div className="flex items-center justify-between mb-3">
-          <SectionLabel
-            icon={<Activity className="w-3.5 h-3.5" />}
-            color="text-white/50"
-            label="System Status"
-          />
-          <div className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${systemColor}`} />
-            <span className="text-[11px] text-white/50 capitalize">{state.system_status}</span>
-          </div>
-        </div>
-
-        {/* Task summary grid */}
-        <div className="grid grid-cols-4 gap-1.5">
-          {[
-            { label: 'Total',    value: ts.total,       color: 'text-white/60' },
-            { label: 'Running',  value: ts.in_progress, color: 'text-emerald-400' },
-            { label: 'Waiting',  value: ts.waiting,     color: 'text-amber-400' },
-            { label: 'Done',     value: ts.done,        color: 'text-white/30' },
-          ].map(s => (
-            <div key={s.label} className="bg-white/[0.03] rounded-lg px-1.5 py-2 text-center">
-              <p className={`text-[18px] font-bold font-mono ${s.color}`}>{s.value}</p>
-              <p className="text-[9px] text-white/25 uppercase tracking-wide">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* ── ACTIVE AGENTS ─────────────────────────────── */}
-      {agents.length > 0 && (
-        <Card>
-          <SectionLabel
-            icon={<Activity className="w-3.5 h-3.5" />}
-            color="text-emerald-400"
-            label={`Active Agents (${agents.length})`}
-          />
-          <div className="mt-2.5 space-y-2">
-            {agents.map(([name, count]) => (
-              <div key={name} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-md bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-[9px] font-bold text-emerald-400">{name[0]?.toUpperCase()}</span>
-                  </div>
-                  <span className="text-[13px] text-white/75">{name}</span>
-                </div>
-                <span className="text-[11px] font-mono text-white/35">{count} task{count !== 1 ? 's' : ''}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
+    <MobileShell
+      header={<TabHeader title="Execution" subtitle={`${ts.in_progress} in progress · ${ts.waiting} waiting · ${ts.blocked} blocked`} />}
+    >
+      {heroEngine ? (
+        <HeroCard
+          eyebrow={`Engine attention · ${heroEngine.domain}`}
+          accent={worstStatus(heroEngine) === 'red' ? 'red' : 'amber'}
+          dotColor={STATUS_DOT[worstStatus(heroEngine)]}
+          title={heroEngine.name}
+          detail={heroEngine.qa_note || heroEngine.infra_note}
+          meta={heroEngine.next_run ? `Next: ${heroEngine.next_run}` : heroEngine.state}
+        />
+      ) : (
+        <HeroCard
+          eyebrow="System status"
+          accent="emerald"
+          dotColor="bg-emerald-400"
+          title={SYSTEM_LABEL[state.system_status] ?? 'Operational'}
+          detail={`${greenEngines.length}/${engines.length} engines green · ${ts.in_progress} tasks in progress`}
+        />
       )}
 
-      {/* ── ENGINES / CRONS ───────────────────────────── */}
-      <Card>
-        <SectionLabel
-          icon={<Activity className="w-3.5 h-3.5" />}
-          color="text-violet-400"
-          label={`Engines (${state.engines?.length ?? 0})`}
-        />
-        <div className="mt-2.5 space-y-1">
-          {(state.engines ?? []).map((eng, i) => {
-            const infraOk = eng.infra_status === 'green'
-            const qaOk    = eng.qa_status === 'green'
-            const allOk   = infraOk && qaOk
-            return (
-              <div key={eng.id}>
-                <div className="flex items-start gap-2.5 py-2">
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${STATUS_COLOR[eng.infra_status] ?? 'bg-white/20'}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[13px] font-medium text-white/80 truncate">{eng.name}</p>
-                      <span className={`text-[10px] flex-shrink-0 ${allOk ? 'text-emerald-400' : 'text-amber-400'}`}>
-                        {allOk ? '✓' : '!'}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-white/30 mt-0.5">{eng.domain}</p>
-                    {!infraOk && eng.infra_note && (
-                      <p className="text-[10px] text-red-400/70 mt-0.5 leading-relaxed">{eng.infra_note}</p>
-                    )}
-                    {!qaOk && eng.qa_note && (
-                      <p className="text-[10px] text-amber-400/70 mt-0.5 leading-relaxed">{eng.qa_note}</p>
-                    )}
-                    {eng.next_run && (
-                      <p className="text-[10px] text-white/20 mt-0.5">{eng.next_run}</p>
-                    )}
-                  </div>
-                </div>
-                {i < (state.engines?.length ?? 0) - 1 && (
-                  <div className="border-t border-white/[0.04]" />
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </Card>
+      <div className="flex gap-2">
+        <StatPill label="Running" value={ts.in_progress} color="text-emerald-400" />
+        <StatPill label="Waiting" value={ts.waiting} color="text-white/60" />
+        <StatPill label="Blocked" value={ts.blocked} color={ts.blocked > 0 ? 'text-red-400' : 'text-white/60'} />
+      </div>
 
-    </div>
-  )
-}
+      {agents.length > 0 && (
+        <FeedCard title={`Agents active · ${agents.length}`}>
+          {agents.slice(0, 10).map(([name, count]) => (
+            <FeedRow
+              key={name}
+              dotColor="bg-emerald-400"
+              title={name}
+              trailing={<span className="text-[11px] font-mono text-white/40">{count}</span>}
+            />
+          ))}
+        </FeedCard>
+      )}
 
-function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4 backdrop-blur-sm">
-      {children}
-    </div>
-  )
-}
-
-function SectionLabel({ icon, color, label }: { icon: React.ReactNode; color: string; label: string }) {
-  return (
-    <div className={`flex items-center gap-2 ${color}`}>
-      {icon}
-      <span className="text-[11px] font-bold uppercase tracking-widest">{label}</span>
-    </div>
+      {engines.length > 0 && (
+        <FeedCard title={`Engines · ${engines.length}`}>
+          {[...redEngines, ...amberEngines, ...greenEngines].map(e => (
+            <FeedRow
+              key={e.id}
+              dotColor={STATUS_DOT[worstStatus(e)]}
+              title={e.name}
+              detail={`${e.domain} · ${e.state}${e.next_run ? ' · next ' + e.next_run : ''}`}
+              trailing={<span className="text-[10px] text-white/30 uppercase tracking-wide">{worstStatus(e)}</span>}
+            />
+          ))}
+        </FeedCard>
+      )}
+    </MobileShell>
   )
 }

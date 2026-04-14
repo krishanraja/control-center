@@ -21,7 +21,7 @@ export function DesktopNav({ active, onChange, currentTime }: Props) {
   const dateStr = currentTime.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 
   return (
-    <header className="hidden md:flex items-center border-b border-white/[0.07] bg-[#0a0a0b]/95 backdrop-blur-xl sticky top-0 z-40 px-6 h-14 flex-shrink-0">
+    <header className="flex items-center border-b border-white/[0.07] bg-[#0a0a0b]/95 backdrop-blur-xl sticky top-0 z-40 px-6 h-14 flex-shrink-0">
       {/* Brand */}
       <div className="flex items-center gap-2.5 mr-8 flex-shrink-0">
         <img src="/favicon.png" alt="Mindmaker OS" className="w-6 h-6 rounded-md object-cover" />
