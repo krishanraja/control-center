@@ -3,14 +3,14 @@ import { AGENTS } from './services/agentData'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { DesktopSidebar } from './components/DesktopSidebar'
 import { BottomNav } from './components/BottomNav'
-import { HomeIntelligence } from './components/HomeIntelligence'
-import { TodayTabContent } from './components/TodayTabContent'
 import { ExecutionTabContent } from './components/ExecutionTabContent'
 import { OrgChart } from './components/OrgChart'
 import { MobileOrgChart } from './components/MobileOrgChart'
 import { SystemsPanel } from './components/SystemsPanel'
-import { WorkstreamBoard } from './components/WorkstreamBoard'
 import { WorkflowImprovements } from './components/WorkflowImprovements'
+import { DesktopHome } from './components/desktop/DesktopHome'
+import { DesktopToday } from './components/desktop/DesktopToday'
+import { DesktopPlans } from './components/desktop/DesktopPlans'
 import { MobileHome } from './components/MobileHome'
 import { MobileToday } from './components/MobileToday'
 import { MobilePlans } from './components/MobilePlans'
@@ -80,9 +80,9 @@ export default function App() {
       <DesktopSidebar active={tab} onChange={handleTab} />
       <main className="flex-1 overflow-y-auto min-w-0">
         <div className="px-6 py-6">
-          {tab === 'home'      && <ErrorBoundary label="Home"><HomeIntelligence /></ErrorBoundary>}
-          {tab === 'today'     && <ErrorBoundary label="Today"><TodayTabContent /></ErrorBoundary>}
-          {tab === 'plans'     && <ErrorBoundary label="Plans"><WorkstreamBoard /></ErrorBoundary>}
+          {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome /></ErrorBoundary>}
+          {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday /></ErrorBoundary>}
+          {tab === 'plans'     && <ErrorBoundary label="Plans"><DesktopPlans /></ErrorBoundary>}
           {tab === 'org'       && <ErrorBoundary label="Org"><OrgChart agents={AGENTS} currentTime={currentTime} /></ErrorBoundary>}
           {tab === 'exec'      && <ErrorBoundary label="Intel"><ExecutionTabContent /></ErrorBoundary>}
           {tab === 'workflows' && <ErrorBoundary label="Flows"><WorkflowImprovements /></ErrorBoundary>}
