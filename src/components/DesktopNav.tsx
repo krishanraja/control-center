@@ -1,5 +1,5 @@
 import React from 'react'
-import { Home, Clock, ListChecks, GitBranch, Activity, Server } from 'lucide-react'
+import { Home, Clock, ListChecks, GitBranch, Activity, Server, Zap } from 'lucide-react'
 
 const TABS = [
   { id: 'home',      label: 'Home',      icon: Home },
@@ -7,6 +7,7 @@ const TABS = [
   { id: 'plans',     label: 'Plans',     icon: ListChecks },
   { id: 'org',       label: 'Org',       icon: GitBranch },
   { id: 'execution', label: 'Execution', icon: Activity },
+  { id: 'workflows', label: 'Workflows', icon: Zap },
   { id: 'systems',   label: 'Systems',   icon: Server },
 ]
 

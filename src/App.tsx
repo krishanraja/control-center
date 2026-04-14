@@ -16,6 +16,7 @@ import { WeeklyGoals } from './components/WeeklyGoals'
 import { PlaybooksPanel } from './components/PlaybooksPanel'
 import { PlanExecutionDashboard } from './components/PlanExecutionDashboard'
 import { WorkstreamBoard } from './components/WorkstreamBoard'
+import { WorkflowImprovements } from './components/WorkflowImprovements'
 // ─── Mobile-native components ─────────────────────────────────────────────────
 import { MobileHome } from './components/MobileHome'
 import { MobileToday } from './components/MobileToday'
@@ -25,7 +26,7 @@ import { MobileSystems } from './components/MobileSystems'
 import { MobileShell, TabHeader as MobileTabHeader } from './components/mobile/primitives'
 
 // ─── Tab IDs shared across desktop + mobile ───────────────────────────────────
-type TabId = 'home' | 'today' | 'playbooks' | 'plans' | 'org' | 'execution' | 'systems'
+type TabId = 'home' | 'today' | 'playbooks' | 'plans' | 'org' | 'execution' | 'workflows' | 'systems'
 
 // ─── Mobile detection ─────────────────────────────────────────────────────────
 // Combines four independent signals so we render mobile UI reliably even when:
@@ -88,6 +89,7 @@ export default function App() {
         {tab === 'plans'     && <ErrorBoundary label="Plans"><MobilePlans /></ErrorBoundary>}
         {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrgWrapper currentTime={currentTime} /></ErrorBoundary>}
         {tab === 'execution' && <ErrorBoundary label="Execution"><MobileExecution /></ErrorBoundary>}
+        {tab === 'workflows' && <ErrorBoundary label="Workflows"><MobileShell header={<MobileTabHeader title="Workflows" subtitle="Pipelines and proposals" />}><WorkflowImprovements /></MobileShell></ErrorBoundary>}
         {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
         <BottomNav active={tab} onChange={handleTab} />
       </div>
@@ -106,6 +108,7 @@ export default function App() {
           {tab === 'plans'     && <DesktopPlans />}
           {tab === 'org'       && <DesktopOrg currentTime={currentTime} />}
           {tab === 'execution' && <ExecutionTabContent />}
+          {tab === 'workflows' && <DesktopWorkflows />}
           {tab === 'systems'   && <DesktopSystems />}
         </div>
       </main>
@@ -223,6 +226,16 @@ function MobilePlaybooksWrapper() {
     <MobileShell header={<MobileTabHeader title="Playbooks" subtitle="Step tracks & runbooks" />}>
       <PlaybooksPanel />
     </MobileShell>
+  )
+}
+
+function DesktopWorkflows() {
+  return (
+    <ErrorBoundary label="Workflows">
+      <div className="space-y-4">
+        <WorkflowImprovements />
+      </div>
+    </ErrorBoundary>
   )
 }
 
