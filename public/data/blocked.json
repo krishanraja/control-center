@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-14T01:45:01.109966Z",
+  "updated_at": "2026-04-14T01:50:02.010238Z",
   "updated_by": "arlo-sync",
   "tasks": [
     {
@@ -622,6 +622,35 @@
       "briefLocation": "/root/.openclaw/workspace/warm/agent-plans/leo-cro-phase2.md",
       "successMetric": "By 2026-06-01: Full funnel map + drop-off analysis + prioritized optimization targets for all 3 ventures",
       "blocker": "Needs analytics access: Google Analytics, email, Stripe, Calendly, CRM. Arlo to wire connections."
+    },
+    {
+      "id": "leo-meeting-volume-kpi",
+      "venture": "mindmaker",
+      "title": "Leo \u2014 Meeting Volume KPI & Revenue Coordination",
+      "description": "Drive and measure 10+ qualified meetings/month (Mindmaker Sprints + Fractionl Circle). Weekly push to Krish on pace and blockers.",
+      "status": "active",
+      "priority": "pri-0",
+      "owner": "agatha",
+      "agent": "Leo",
+      "group": "growth",
+      "groupLabel": "Growth",
+      "created": "2026-04-14T01:45:22.597470Z",
+      "linkPrimary": "https://docs.google.com/spreadsheets/d/1gJHU37h8nSw8K2XA6fphpC1UiAukR_BTJ9e39os5oh8/edit#gid=0",
+      "nextStep": "Vera completes Calendly automation (due 2026-04-20). First Monday email: 2026-04-21 9am.",
+      "progress": {
+        "calendly_api_setup": {
+          "status": "done",
+          "note": "Client ID + Secret received 2026-04-14"
+        },
+        "vera_automation": {
+          "status": "in_progress",
+          "note": "Brief written, awaiting implementation, due 2026-04-20"
+        },
+        "first_report": {
+          "status": "waiting",
+          "note": "First Monday email due 2026-04-21 9am"
+        }
+      }
     }
   ],
   "by_status": {
@@ -1044,5 +1073,5 @@
       }
     ]
   },
-  "total": 33
+  "total": 34
 }
