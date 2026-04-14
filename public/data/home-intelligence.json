@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-14T05:40:01.517783Z",
+  "generated_at": "2026-04-14T05:45:01.892777Z",
   "schema_version": "1.0",
   "strategic_assessment": {
     "headline": "4 active, 4 waiting on Krish approval",
@@ -59,8 +59,8 @@
     }
   ],
   "data_freshness": {
-    "vera_last_run": "2026-04-14T05:40:01.517783Z",
-    "sequences_last_updated": "2026-04-14T05:40:01.517783Z",
-    "zara_last_signal": "2026-04-14T05:40:01.517783Z"
+    "vera_last_run": "2026-04-14T05:45:01.892777Z",
+    "sequences_last_updated": "2026-04-14T05:45:01.892777Z",
+    "zara_last_signal": "2026-04-14T05:45:01.892777Z"
   }
 }
