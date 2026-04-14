@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { formatDistanceToNow } from 'date-fns'
+import { Radio, BarChart3 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { AgentAvatar } from '../shared/AgentAvatar'
 
@@ -29,61 +30,88 @@ export function DesktopExec() {
   }, {} as any)) as any[]
 
   return (
-    <div className="grid grid-cols-12 gap-4">
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-[26px] font-semibold text-white tracking-tight">Intel</h1>
+        <p className="text-[12px] text-white/40 mt-1">Revenue pulse, agent economics, and the intelligence feed.</p>
+      </div>
 
-      <section className="col-span-12 xl:col-span-4 space-y-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/50">Revenue & Pipeline</h2>
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] p-4">
-          <p className="text-[11px] text-white/40 mb-2">Progress Across KPIs</p>
-          <div className="h-[180px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                <XAxis dataKey="name" tick={{ fill: '#ffffff60', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#ffffff60', fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: '#111113', border: '1px solid #ffffff20', fontSize: 11 }} />
-                <Line type="monotone" dataKey="value" stroke="#a78bfa" strokeWidth={2} dot={{ fill: '#a78bfa', r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] p-4">
-          <p className="text-[11px] text-white/40 mb-2">Agent Cost ($USD / {runs.length} runs)</p>
-          <div className="h-[180px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={costByAgent}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                <XAxis dataKey="agent" tick={{ fill: '#ffffff60', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#ffffff60', fontSize: 10 }} />
-                <Tooltip contentStyle={{ background: '#111113', border: '1px solid #ffffff20', fontSize: 11 }} />
-                <Bar dataKey="cost" fill="#34d399" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </section>
+      <div className="grid grid-cols-12 gap-5">
+        <section className="col-span-12 xl:col-span-4 space-y-4">
+          <SectionHeader icon={<BarChart3 size={13} className="text-violet-400" />} label="Revenue & Pipeline" />
 
-      <section className="col-span-12 xl:col-span-8 space-y-3">
-        <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/50">Intelligence Feed</h2>
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] divide-y divide-white/[0.04] max-h-[calc(100vh-8rem)] overflow-y-auto">
-          {reports.length === 0 && <p className="p-4 text-[12px] text-white/30">No recent reports</p>}
-          {reports.map(r => (
-            <div key={r.id} className="p-3 flex items-start gap-2">
-              <AgentAvatar agent={r.actor || 'system'} size="sm" />
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] text-white/75">
-                  <span className="font-semibold">{r.actor}</span> <span className="text-white/40">{r.event_type}</span>
-                  {r.target && <span className="text-white/35"> → {r.target}</span>}
-                </p>
-                {r.details?.message && <p className="text-[11px] text-white/45 mt-0.5 leading-snug">{r.details.message}</p>}
-                {r.details?.summary && <p className="text-[11px] text-white/45 mt-0.5 leading-snug line-clamp-3">{r.details.summary}</p>}
-                <p className="text-[10px] text-white/25 mt-1">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</p>
-              </div>
+          <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-5">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-white/40 font-medium mb-3">Progress Across KPIs</p>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0d" />
+                  <XAxis dataKey="name" tick={{ fill: '#ffffff55', fontSize: 10 }} axisLine={{ stroke: '#ffffff15' }} tickLine={false} />
+                  <YAxis tick={{ fill: '#ffffff55', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: '#111113', border: '1px solid #ffffff20', fontSize: 11, borderRadius: 8 }} />
+                  <Line type="monotone" dataKey="value" stroke="#a78bfa" strokeWidth={2} dot={{ fill: '#a78bfa', r: 3 }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
 
+          <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-5">
+            <div className="flex items-baseline justify-between mb-3">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-white/40 font-medium">Agent Cost</p>
+              <p className="text-[10px] text-white/30 font-mono tabular-nums">{runs.length} runs · USD</p>
+            </div>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={costByAgent} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0d" />
+                  <XAxis dataKey="agent" tick={{ fill: '#ffffff55', fontSize: 10 }} axisLine={{ stroke: '#ffffff15' }} tickLine={false} />
+                  <YAxis tick={{ fill: '#ffffff55', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: '#111113', border: '1px solid #ffffff20', fontSize: 11, borderRadius: 8 }} />
+                  <Bar dataKey="cost" fill="#34d399" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </section>
+
+        <section className="col-span-12 xl:col-span-8 space-y-4">
+          <SectionHeader icon={<Radio size={13} className="text-blue-400" />} label="Intelligence Feed" trailing={
+            <span className="text-[10px] text-white/30 font-mono tabular-nums">{reports.length}</span>
+          } />
+          <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] divide-y divide-white/[0.04] max-h-[calc(100vh-12rem)] overflow-y-auto">
+            {reports.length === 0 ? (
+              <div className="p-12 text-center">
+                <p className="text-[13px] text-white/40">Feed is quiet.</p>
+                <p className="text-[11px] text-white/25 mt-1">New reports will appear here in real time.</p>
+              </div>
+            ) : reports.map(r => (
+              <div key={r.id} className="p-4 flex items-start gap-3">
+                <AgentAvatar agent={r.actor || 'system'} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] text-white/80 leading-snug">
+                    <span className="font-semibold text-white/95">{r.actor}</span>{' '}
+                    <span className="text-white/45">{r.event_type}</span>
+                    {r.target && <span className="text-white/35"> → {r.target}</span>}
+                  </p>
+                  {r.details?.message && <p className="text-[11px] text-white/50 mt-1 leading-relaxed">{r.details.message}</p>}
+                  {r.details?.summary && <p className="text-[11px] text-white/50 mt-1 leading-relaxed line-clamp-3">{r.details.summary}</p>}
+                  <p className="text-[10px] text-white/25 mt-1.5">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}
+
+function SectionHeader({ icon, label, trailing }: { icon: React.ReactNode; label: string; trailing?: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 h-5">
+      {icon}
+      <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45 flex-1">{label}</h2>
+      {trailing}
     </div>
   )
 }

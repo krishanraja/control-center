@@ -49,9 +49,12 @@ export function DesktopOrg() {
   }, [selected?.id])
 
   const list = (
-    <div className="space-y-3 pr-2">
-      <h1 className="text-[22px] font-bold text-white">Organisation</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+    <div className="space-y-4 pr-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <h1 className="text-[26px] font-semibold text-white tracking-tight">Organisation</h1>
+        <p className="text-[12px] text-white/35 font-mono tabular-nums">{agents.length} {agents.length === 1 ? 'agent' : 'agents'}</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {agents.map(a => {
           const podCls = POD_COLOR[a.pod || ''] || 'text-white/50 border-white/10 bg-white/[0.03]'
           const isSel = selected?.id === a.id
@@ -59,16 +62,16 @@ export function DesktopOrg() {
             <button
               key={a.id}
               onClick={() => setSelectedId(a.id)}
-              className={`text-left rounded-lg border p-3 transition-all ${
-                isSel ? 'border-violet-500/40 bg-violet-500/[0.06]' : 'border-white/[0.06] bg-white/[0.015] hover:border-white/[0.12]'
+              className={`text-left rounded-xl border p-3.5 transition-all ${
+                isSel ? 'border-violet-500/40 bg-violet-500/[0.07]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.03]'
               }`}
             >
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-3">
                 <AgentAvatar agent={a.id} size="md" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] text-white font-semibold truncate">{a.name}</p>
-                  <span className={`inline-block text-[10px] px-1.5 py-0.5 mt-0.5 rounded border ${podCls}`}>{a.pod || 'unassigned'}</span>
-                  {a.last_run && <p className="text-[10px] text-white/30 mt-1">Last run {formatDistanceToNow(new Date(a.last_run), { addSuffix: true })}</p>}
+                  <span className={`inline-block text-[10px] px-1.5 py-0.5 mt-1 rounded border font-medium ${podCls}`}>{a.pod || 'unassigned'}</span>
+                  {a.last_run && <p className="text-[10px] text-white/30 mt-1.5">Last run {formatDistanceToNow(new Date(a.last_run), { addSuffix: true })}</p>}
                 </div>
               </div>
             </button>
@@ -79,53 +82,63 @@ export function DesktopOrg() {
   )
 
   const rightPanel = selected ? (
-    <div className="space-y-5 pb-6">
-      <div className="flex items-start gap-3">
+    <div className="space-y-6 pb-6">
+      <div className="flex items-start gap-4">
         <AgentAvatar agent={selected.id} size="lg" />
-        <div>
-          <h1 className="text-[22px] font-bold text-white leading-tight">{selected.name}</h1>
-          <p className="text-[12px] text-white/50 mt-0.5">{selected.role}</p>
-          <span className={`inline-block text-[10px] px-1.5 py-0.5 mt-1 rounded border ${POD_COLOR[selected.pod || ''] || 'text-white/50 border-white/10 bg-white/[0.03]'}`}>{selected.pod}</span>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-[26px] font-semibold text-white leading-tight tracking-tight">{selected.name}</h1>
+          {selected.role && <p className="text-[13px] text-white/55 mt-1">{selected.role}</p>}
+          {selected.pod && (
+            <span className={`inline-block text-[10px] px-1.5 py-0.5 mt-2 rounded border font-medium ${POD_COLOR[selected.pod || ''] || 'text-white/50 border-white/10 bg-white/[0.03]'}`}>{selected.pod}</span>
+          )}
         </div>
       </div>
 
       {selected.mandate && (
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-white/35 mb-1">Mandate</p>
-          <p className="text-[12px] text-white/70 leading-relaxed whitespace-pre-wrap">{selected.mandate}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Mandate</p>
+          <p className="text-[13px] text-white/75 leading-relaxed whitespace-pre-wrap">{selected.mandate}</p>
         </div>
       )}
 
       {selected.brief_content && (
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-white/35 mb-1">Brief</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Brief</p>
           <p className="text-[12px] text-white/60 leading-relaxed line-clamp-6 whitespace-pre-wrap">{selected.brief_content}</p>
         </div>
       )}
 
       <div>
-        <p className="text-[10px] uppercase tracking-widest text-white/35 mb-2">Recent Activity</p>
-        <div className="space-y-1">
-          {detail.activity.length === 0 && <p className="text-[11px] text-white/30">No recent activity</p>}
-          {detail.activity.slice(0, 5).map(a => (
-            <p key={a.id} className="text-[11px] text-white/55">
-              <span className="text-white/35">{formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}</span> · {a.event_type} {a.target && <>→ {a.target}</>}
-            </p>
-          ))}
-        </div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2.5">Recent Activity</p>
+        {detail.activity.length === 0 ? (
+          <p className="text-[11px] text-white/30">No recent activity.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {detail.activity.slice(0, 5).map(a => (
+              <p key={a.id} className="text-[12px] text-white/60 leading-snug">
+                <span className="text-white/30">{formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}</span>
+                <span className="text-white/25 mx-1.5">·</span>
+                {a.event_type}{a.target && <span className="text-white/45"> → {a.target}</span>}
+              </p>
+            ))}
+          </div>
+        )}
       </div>
 
       <div>
-        <p className="text-[10px] uppercase tracking-widest text-white/35 mb-2">N8N Runs</p>
-        <div className="space-y-1">
-          {detail.runs.length === 0 && <p className="text-[11px] text-white/30">No workflow runs</p>}
-          {detail.runs.slice(0, 5).map(r => (
-            <div key={r.id} className="flex items-center justify-between text-[11px]">
-              <span className="text-white/60 truncate">{r.workflow_name}</span>
-              <span className={r.status === 'success' ? 'text-emerald-400' : r.status === 'error' ? 'text-rose-400' : 'text-white/40'}>{r.status}</span>
-            </div>
-          ))}
-        </div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2.5">N8N Runs</p>
+        {detail.runs.length === 0 ? (
+          <p className="text-[11px] text-white/30">No workflow runs.</p>
+        ) : (
+          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] divide-y divide-white/[0.04]">
+            {detail.runs.slice(0, 5).map(r => (
+              <div key={r.id} className="flex items-center justify-between px-3 py-2 text-[12px]">
+                <span className="text-white/70 truncate">{r.workflow_name}</span>
+                <span className={`text-[11px] font-medium ${r.status === 'success' ? 'text-emerald-400' : r.status === 'error' ? 'text-rose-400' : 'text-white/40'}`}>{r.status}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   ) : <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an agent</div>

@@ -63,10 +63,10 @@ export function DesktopPlans() {
   }, [filtered, selected?.id])
 
   const list = (
-    <div className="space-y-3 pr-2">
-      <div className="flex items-baseline gap-3">
-        <h1 className="text-[22px] font-bold text-white">Plans</h1>
-        <p className="text-[13px] text-white/35">{filtered.length} tasks</p>
+    <div className="space-y-4 pr-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <h1 className="text-[26px] font-semibold text-white tracking-tight">Plans</h1>
+        <p className="text-[12px] text-white/35 font-mono tabular-nums">{filtered.length} {filtered.length === 1 ? 'task' : 'tasks'}</p>
       </div>
       <div className="flex gap-1.5 flex-wrap">
         {FILTERS.map(f => (
@@ -75,32 +75,37 @@ export function DesktopPlans() {
             onClick={() => setFilter(f.id)}
             className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
               filter === f.id
-                ? 'bg-violet-500/15 border-violet-500/30 text-white'
-                : 'border-white/[0.08] text-white/45 hover:text-white/70'
+                ? 'bg-violet-500/15 border-violet-500/35 text-white'
+                : 'border-white/[0.08] text-white/45 hover:text-white/75 hover:border-white/[0.14]'
             }`}
           >{f.label}</button>
         ))}
       </div>
       <div className="space-y-1.5">
-        {loading && <p className="text-[12px] text-white/30">Loading…</p>}
-        {!loading && filtered.length === 0 && <p className="text-[12px] text-white/30 py-6 text-center">Nothing here.</p>}
+        {loading && <p className="text-[12px] text-white/30 py-6 text-center">Loading…</p>}
+        {!loading && filtered.length === 0 && (
+          <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] py-12 text-center">
+            <p className="text-[13px] text-white/45">Nothing here.</p>
+            <p className="text-[11px] text-white/25 mt-1">Try a different filter.</p>
+          </div>
+        )}
         {filtered.map(t => (
           <button
             key={t.id}
             onClick={() => setSelectedId(t.id)}
-            className={`w-full text-left rounded-lg border p-3 transition-all ${
+            className={`w-full text-left rounded-lg border p-3.5 transition-all ${
               selected?.id === t.id
-                ? 'border-violet-500/40 bg-violet-500/[0.06]'
-                : 'border-white/[0.06] bg-white/[0.015] hover:border-white/[0.12]'
+                ? 'border-violet-500/40 bg-violet-500/[0.07]'
+                : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.03]'
             }`}
           >
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-2.5">
               <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${statusDot(t.status)}`} />
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] text-white font-medium leading-snug truncate">{t.title}</p>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1.5">
                   <AgentAvatar agent={t.agent || t.owner || 'system'} size="sm" />
-                  <span className="text-[11px] text-white/45">{t.agent || t.owner}</span>
+                  <span className="text-[11px] text-white/50">{t.agent || t.owner}</span>
                   {t.updated_at && <span className="text-[10px] text-white/25">· {formatDistanceToNow(new Date(t.updated_at), { addSuffix: true })}</span>}
                 </div>
               </div>
@@ -143,10 +148,10 @@ function TaskDetail({ task }: { task: TaskRow }) {
   }
 
   return (
-    <div className="space-y-5 pb-6">
+    <div className="space-y-6 pb-6">
       <div>
-        <h1 className="text-[22px] font-bold text-white leading-tight">{task.title}</h1>
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
+        <h1 className="text-[26px] font-semibold text-white leading-tight tracking-tight">{task.title}</h1>
+        <div className="flex items-center gap-2 mt-3 flex-wrap">
           <StatusPill status={(task.status === 'waiting' ? 'needs_you' : task.status) as any} />
           <span className="text-[11px] text-white/40">
             Owner: <span className="text-white/70">{task.owner || '—'}</span>
@@ -160,13 +165,13 @@ function TaskDetail({ task }: { task: TaskRow }) {
 
       {task.description && (
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-white/35 mb-1">Description</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Description</p>
           <p className="text-[13px] text-white/70 leading-relaxed whitespace-pre-wrap">{task.description}</p>
         </div>
       )}
 
       <div>
-        <p className="text-[10px] uppercase tracking-widest text-white/35 mb-1">Next Step</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Next Step</p>
         <textarea
           value={nextStep}
           onChange={(e) => setNextStep(e.target.value)}
@@ -177,7 +182,7 @@ function TaskDetail({ task }: { task: TaskRow }) {
       </div>
 
       <div>
-        <p className="text-[10px] uppercase tracking-widest text-white/35 mb-1">Krish Notes</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Krish Notes</p>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
