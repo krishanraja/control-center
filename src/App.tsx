@@ -3,14 +3,16 @@ import { AGENTS } from './services/agentData'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { DesktopSidebar } from './components/DesktopSidebar'
 import { BottomNav } from './components/BottomNav'
-import { ExecutionTabContent } from './components/ExecutionTabContent'
-import { OrgChart } from './components/OrgChart'
 import { MobileOrgChart } from './components/MobileOrgChart'
 import { SystemsPanel } from './components/SystemsPanel'
 import { WorkflowImprovements } from './components/WorkflowImprovements'
+import { CommandPalette } from './components/CommandPalette'
 import { DesktopHome } from './components/desktop/DesktopHome'
 import { DesktopToday } from './components/desktop/DesktopToday'
 import { DesktopPlans } from './components/desktop/DesktopPlans'
+import { DesktopOrg } from './components/desktop/DesktopOrg'
+import { DesktopExec } from './components/desktop/DesktopExec'
+import { DesktopFlows } from './components/desktop/DesktopFlows'
 import { MobileHome } from './components/MobileHome'
 import { MobileToday } from './components/MobileToday'
 import { MobilePlans } from './components/MobilePlans'
@@ -36,13 +38,8 @@ function detectIsMobile() {
 
 export default function App() {
   const [tab, setTab] = useState<TabId>('home')
-  const [currentTime, setCurrentTime] = useState(new Date())
   const [isMobile, setIsMobile] = useState(detectIsMobile)
-
-  useEffect(() => {
-    const t = setInterval(() => setCurrentTime(new Date()), 1000)
-    return () => clearInterval(t)
-  }, [])
+  const [paletteOpen, setPaletteOpen] = useState(false)
 
   useEffect(() => {
     const onResize = () => setIsMobile(detectIsMobile())
@@ -52,6 +49,19 @@ export default function App() {
       window.removeEventListener('resize', onResize)
       window.removeEventListener('orientationchange', onResize)
     }
+  }, [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen(o => !o)
+      } else if (e.key === 'Escape') {
+        setPaletteOpen(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
   }, [])
 
   const handleTab = (id: string) => {
@@ -83,12 +93,13 @@ export default function App() {
           {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome /></ErrorBoundary>}
           {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday /></ErrorBoundary>}
           {tab === 'plans'     && <ErrorBoundary label="Plans"><DesktopPlans /></ErrorBoundary>}
-          {tab === 'org'       && <ErrorBoundary label="Org"><OrgChart agents={AGENTS} currentTime={currentTime} /></ErrorBoundary>}
-          {tab === 'exec'      && <ErrorBoundary label="Intel"><ExecutionTabContent /></ErrorBoundary>}
-          {tab === 'workflows' && <ErrorBoundary label="Flows"><WorkflowImprovements /></ErrorBoundary>}
+          {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}
+          {tab === 'exec'      && <ErrorBoundary label="Intel"><DesktopExec /></ErrorBoundary>}
+          {tab === 'workflows' && <ErrorBoundary label="Flows"><DesktopFlows /></ErrorBoundary>}
           {tab === 'systems'   && <ErrorBoundary label="Systems"><SystemsPanel /></ErrorBoundary>}
         </div>
       </main>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onTab={handleTab} />
     </div>
   )
 }
