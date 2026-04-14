@@ -1,83 +1,83 @@
 {
-  "updated_at": "2026-04-13T01:18:33.310Z",
-  "updated_by": "agatha",
-  "agents": [
-    {
+  "updated_at": "2026-04-14T02:45:01.893681Z",
+  "total_agents": 11,
+  "agents": {
+    "arlo": {
       "name": "Arlo",
-      "brief": "arlo-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "in_progress",
-      "execution_status": "active"
+      "tasks_assigned": 6,
+      "tasks_active": 3,
+      "tasks_waiting": 2,
+      "last_update": "2026-04-14T02:45:01.893681Z"
     },
-    {
+    "cleo": {
       "name": "Cleo",
-      "brief": "cleo-coordinator-phase2.md",
-      "mcf_status": "complete",
-      "last_task_status": "active",
-      "execution_status": "active"
+      "tasks_assigned": 1,
+      "tasks_active": 0,
+      "tasks_waiting": 0,
+      "last_update": "2026-04-14T02:45:01.893681Z"
     },
-    {
+    "felix": {
       "name": "Felix",
-      "brief": "felix-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "waiting",
-      "execution_status": "active"
+      "tasks_assigned": 1,
+      "tasks_active": 0,
+      "tasks_waiting": 1,
+      "last_update": "2026-04-14T02:45:01.893681Z"
     },
-    {
+    "leo": {
       "name": "Leo",
-      "brief": "leo-cro-phase2.md",
-      "mcf_status": "complete",
-      "last_task_status": "active",
-      "execution_status": "active"
+      "tasks_assigned": 2,
+      "tasks_active": 0,
+      "tasks_waiting": 0,
+      "last_update": "2026-04-14T02:45:01.893681Z"
     },
-    {
+    "marcus": {
       "name": "Marcus",
-      "brief": "marcus-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "none",
-      "execution_status": "idle"
+      "tasks_assigned": 0,
+      "tasks_active": 0,
+      "tasks_waiting": 0,
+      "last_update": "2026-04-14T02:45:01.893681Z"
     },
-    {
+    "maya": {
       "name": "Maya",
-      "brief": "maya-coordinator-phase2.md",
-      "mcf_status": "complete",
-      "last_task_status": "completed",
-      "execution_status": "active"
+      "tasks_assigned": 3,
+      "tasks_active": 0,
+      "tasks_waiting": 0,
+      "last_update": "2026-04-14T02:45:01.893681Z"
     },
-    {
+    "nell": {
       "name": "Nell",
-      "brief": "nell-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "active",
-      "execution_status": "active"
+      "tasks_assigned": 2,
+      "tasks_active": 1,
+      "tasks_waiting": 0,
+      "last_update": "2026-04-14T02:45:01.893681Z"
     },
-    {
+    "nova": {
       "name": "Nova",
-      "brief": "nova-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "none",
-      "execution_status": "idle"
+      "tasks_assigned": 0,
+      "tasks_active": 0,
+      "tasks_waiting": 0,
+      "last_update": "2026-04-14T02:45:01.893681Z"
     },
-    {
+    "priya": {
       "name": "Priya",
-      "brief": "priya-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "none",
-      "execution_status": "idle"
+      "tasks_assigned": 0,
+      "tasks_active": 0,
+      "tasks_waiting": 0,
+      "last_update": "2026-04-14T02:45:01.893681Z"
     },
-    {
+    "vera": {
       "name": "Vera",
-      "brief": "vera-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "none",
-      "execution_status": "idle"
+      "tasks_assigned": 0,
+      "tasks_active": 0,
+      "tasks_waiting": 0,
+      "last_update": "2026-04-14T02:45:01.893681Z"
     },
-    {
+    "zara": {
       "name": "Zara",
-      "brief": "zara-plan-2026-04.md",
-      "mcf_status": "complete",
-      "last_task_status": "none",
-      "execution_status": "idle"
+      "tasks_assigned": 0,
+      "tasks_active": 0,
+      "tasks_waiting": 0,
+      "last_update": "2026-04-14T02:45:01.893681Z"
     }
-  ]
+  }
 }

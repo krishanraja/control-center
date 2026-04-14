@@ -1,13 +1,13 @@
 {
-  "updated_at": "2026-04-13T01:18:33.310Z",
-  "audit_date": "2026-04-13T01:18:33.310Z",
+  "updated_at": "2026-04-14T02:45:01.893681Z",
+  "audit_date": "2026-04-14T02:45:01.893681Z",
   "sections": {
-    "single-source-of-truth": "verified",
-    "mandate-clarity-framework": "all 11 agents have MCF",
-    "workspace-cleanliness": "verified",
-    "contradiction-detection": "zero contradictions",
-    "control-center-sync": "live and current",
-    "communication-protocol": "bulletproof"
+    "single_source_of_truth": "verified",
+    "mandate_clarity_framework": "all_agents_complete",
+    "workspace_cleanliness": "verified",
+    "contradiction_detection": "zero_contradictions",
+    "control_center_sync": "live_and_current",
+    "communication_protocol": "bulletproof"
   },
   "pass_rate": "100%",
   "status": "pass"

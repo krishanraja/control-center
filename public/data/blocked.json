@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-04-13T01:41:36.944Z",
-  "updated_by": "agatha-monitor",
+  "updated_at": "2026-04-14T02:45:01.893681Z",
+  "updated_by": "arlo-sync",
   "tasks": [
     {
       "id": "arlo-apollo-sheet-pull",
@@ -44,7 +44,7 @@
     {
       "id": "arlo-systems-monitor",
       "venture": "ops",
-      "title": "Arlo — Build Systems Monitor + Control Center Systems Tab",
+      "title": "Arlo \u2014 Build Systems Monitor + Control Center Systems Tab",
       "status": "waiting",
       "priority": "pri-0",
       "blockedBy": "krish",
@@ -55,7 +55,7 @@
       "group": "ops-governance",
       "groupLabel": "Ops Governance",
       "nextStep": "Approve spec, then Arlo builds N8N workflow + Notion Systems tab",
-      "description": "Arlo to build: (1) Full service inventory from hot/systems.md — every API, Supabase project, Stripe account, automation tool. (2) N8N health check workflow: hourly ping + auth validity + credit/quota monitoring. (3) Status flags: green/yellow/red/unchecked per service. (4) Notion Systems tab in Ops Board — live status written by Arlo after each check run. (5) Ops-bot Telegram alert on any red or critical yellow. (6) Weekly cost report via Agentops key (aa_YBQsXLzdHthiVbwcDEScjRQbFsUVAYUA) — fed to Vera for Friday audit. Schedule: hourly lightweight ping + full sweep on Arlo's Sunday 3AM cron."
+      "description": "Arlo to build: (1) Full service inventory from hot/systems.md \u2014 every API, Supabase project, Stripe account, automation tool. (2) N8N health check workflow: hourly ping + auth validity + credit/quota monitoring. (3) Status flags: green/yellow/red/unchecked per service. (4) Notion Systems tab in Ops Board \u2014 live status written by Arlo after each check run. (5) Ops-bot Telegram alert on any red or critical yellow. (6) Weekly cost report via Agentops key (aa_YBQsXLzdHthiVbwcDEScjRQbFsUVAYUA) \u2014 fed to Vera for Friday audit. Schedule: hourly lightweight ping + full sweep on Arlo's Sunday 3AM cron."
     },
     {
       "id": "model-tier-enforcement",
@@ -72,7 +72,7 @@
       "groupLabel": "Ops Governance",
       "nextStep": "Arlo to audit all active N8N workflows and enforce model tier rules (patterns.md MT-001 to MT-006)",
       "description": "Audit every N8N AI node across all agent workflows. Enforce: Haiku for Zara/Felix/Arlo/heartbeats/data-fetch nodes. Sonnet for Vera/Marcus/Priya/Leo/Nova/Maya. Opus removed from all N8N nodes entirely. Add max_tokens caps per tier. Report back with before/after model config list.",
-      "evidence": "Audited all 5 active N8N AI workflows (2026-04-10). 4 already on claude-sonnet-4-6. 1 violation found: Product Proposal Review using claude-3-5-haiku-20241022 for Agatha-level judgment — patched to claude-sonnet-4-6 via N8N API (HTTP 200). No Opus nodes found anywhere. Max tokens within MT-003 limits.",
+      "evidence": "Audited all 5 active N8N AI workflows (2026-04-10). 4 already on claude-sonnet-4-6. 1 violation found: Product Proposal Review using claude-3-5-haiku-20241022 for Agatha-level judgment \u2014 patched to claude-sonnet-4-6 via N8N API (HTTP 200). No Opus nodes found anywhere. Max tokens within MT-003 limits.",
       "completedAt": "2026-04-10T11:10:00Z"
     },
     {
@@ -138,7 +138,7 @@
     {
       "id": "b1",
       "venture": "ops",
-      "title": "Drive Sync — Activate in N8N",
+      "title": "Drive Sync \u2014 Activate in N8N",
       "description": "Open workflow PPfv8kHNBzSq7fm0, confirm Google Docs credential, click Activate.",
       "status": "waiting",
       "blockedBy": "krish",
@@ -166,18 +166,18 @@
       "priority": "pri-1",
       "agent": "Maya",
       "daysOld": 1,
-      "feedbackText": "Krish gave feedback — wire GSC API access to Maya",
+      "feedbackText": "Krish gave feedback \u2014 wire GSC API access to Maya",
       "feedbackTs": "2026-04-07T10:49:00Z",
       "outcome": "Stripe webhooks added by Krish, GSC API routed to Maya",
       "completedAt": "2026-04-07T14:00:00Z"
     },
     {
       "id": "bd-signal-2026-04-07-faye-caio",
-      "title": "BD Signal: Faye — Fractional CAIO Launch (market validation)",
+      "title": "BD Signal: Faye \u2014 Fractional CAIO Launch (market validation)",
       "venture": "mindmaker",
       "status": "pending-agatha-review",
       "priority": "HIGH",
-      "signal": "Faye (global AI/software firm, Calabasas CA) launched fractional CAIO services on Mar 17 2026, targeting mid-market organisations. Direct market entry into Mindmaker's core space — confirms demand and pricing opportunity at $300K+/year avoided cost.",
+      "signal": "Faye (global AI/software firm, Calabasas CA) launched fractional CAIO services on Mar 17 2026, targeting mid-market organisations. Direct market entry into Mindmaker's core space \u2014 confirms demand and pricing opportunity at $300K+/year avoided cost.",
       "warm_path": "Faye targets mid-market orgs that may outgrow their model and need more strategic depth (Krish's angle). Check Faye leadership team at fayedigital.com/team for any connection to Mindmaker network. Krish can position as the human-led, founder-mentality alternative to institutional CAIO-as-a-service.",
       "source_url": "https://www.prnewswire.com/news-releases/faye-launches-fractional-chief-ai-officer-services-to-provide-strategic-ai-leadership-for-mid-market-organizations-302715227.html",
       "evidence": "Found via web_search query 'fractional CAIO chief AI officer' at 2026-04-07T18:13:00Z",
@@ -186,12 +186,12 @@
     },
     {
       "id": "bd-signal-2026-04-07-bpo-rfp-ai",
-      "title": "BD Signal: Enterprise BPO Sector — AI criteria now 30-40% of RFP evaluation",
+      "title": "BD Signal: Enterprise BPO Sector \u2014 AI criteria now 30-40% of RFP evaluation",
       "venture": "mindmaker",
       "status": "pending-agatha-review",
       "priority": "HIGH",
       "signal": "Published 2026-04-06: Enterprise buyers now require 30-40% AI-specific criteria in BPO RFPs. BPOs without AI capability are being eliminated before first meeting. Hallucination risk management, outcome-based pricing, and autonomous agent readiness are now table stakes.",
-      "warm_path": "Any BPO or managed services company currently scrambling to build AI competency is a live Mindmaker prospect. Signal is sector-wide — logistics, CX outsourcing, finance operations all affected. Krish's Strategy Day format maps directly to what these buyers need to evaluate. Target CTO/CDO/COO at mid-tier BPO firms (500-5000 employees) who are about to lose deals.",
+      "warm_path": "Any BPO or managed services company currently scrambling to build AI competency is a live Mindmaker prospect. Signal is sector-wide \u2014 logistics, CX outsourcing, finance operations all affected. Krish's Strategy Day format maps directly to what these buyers need to evaluate. Target CTO/CDO/COO at mid-tier BPO firms (500-5000 employees) who are about to lose deals.",
       "source_url": "https://blog.anyreach.ai/rfp-changing/",
       "evidence": "Found via web_search query 'AI strategy consultant RFP 2026' at 2026-04-07T18:13:00Z",
       "owner": "bd-agent",
@@ -199,12 +199,12 @@
     },
     {
       "id": "bd-signal-2026-04-07-caio-summits",
-      "title": "BD Signal: CAIO NY + CAIO London 2026 Summits — right rooms for Krish",
+      "title": "BD Signal: CAIO NY + CAIO London 2026 Summits \u2014 right rooms for Krish",
       "venture": "mindmaker",
       "status": "pending-agatha-review",
       "priority": "MEDIUM",
-      "signal": "RE•WORK running Chief AI Officer summits in New York and London in 2026. These are attended by practitioners implementing AI at enterprise scale — exact ICP for Mindmaker's consulting and Strategy Day offers.",
-      "warm_path": "Speaker applications via RE•WORK directly (re-work.co). Speaking at either event = immediate CAIO peer credibility. Attendee networking = qualified prospects. Flag to Visibility Agent (Nova/Scout) to pursue speaker slot applications.",
+      "signal": "RE\u2022WORK running Chief AI Officer summits in New York and London in 2026. These are attended by practitioners implementing AI at enterprise scale \u2014 exact ICP for Mindmaker's consulting and Strategy Day offers.",
+      "warm_path": "Speaker applications via RE\u2022WORK directly (re-work.co). Speaking at either event = immediate CAIO peer credibility. Attendee networking = qualified prospects. Flag to Visibility Agent (Nova/Scout) to pursue speaker slot applications.",
       "source_url": "https://caio-ny.re-work.co/",
       "evidence": "Found via web_search query 'CAIO chief AI officer forum community online 2026' at 2026-04-07T18:13:00Z",
       "owner": "bd-agent",
@@ -212,12 +212,12 @@
     },
     {
       "id": "bd-signal-2026-04-07-jubilee-fractionl",
-      "title": "BD Signal: Jubilee + fractional ownership startups — mainstream Business Insider coverage",
+      "title": "BD Signal: Jubilee + fractional ownership startups \u2014 mainstream Business Insider coverage",
       "venture": "fractionl",
       "status": "pending-agatha-review",
       "priority": "MEDIUM",
       "signal": "Business Insider + Yahoo Finance featured fractional homeownership startups (Jubilee, San Francisco) in Apr 2026. Growing media narrative around fractional ownership solving affordability crisis. Jubilee uses 99-year land lease model targeting cash-strapped buyers.",
-      "warm_path": "Jubilee's investors are in the proptech VC ecosystem — same network Fractionl should be cultivating. Media moment active: Krish could pitch Fractionl POV to same journalists covering this wave. Competitors getting coverage = differentiation opportunity.",
+      "warm_path": "Jubilee's investors are in the proptech VC ecosystem \u2014 same network Fractionl should be cultivating. Media moment active: Krish could pitch Fractionl POV to same journalists covering this wave. Competitors getting coverage = differentiation opportunity.",
       "source_url": "https://www.businessinsider.com/new-homebuying-option-fractional-ownership-startups-2026-4",
       "evidence": "Found via web_search query 'fractional property investment platform competitor reviews Reddit 2026' at 2026-04-07T18:13:00Z",
       "owner": "bd-agent",
@@ -225,7 +225,7 @@
     },
     {
       "id": "bd-signal-2026-04-08-anyreach-bpo-ai-rfp",
-      "title": "BD Signal: Anyreach.ai — AI strategy primary in enterprise CX RFPs",
+      "title": "BD Signal: Anyreach.ai \u2014 AI strategy primary in enterprise CX RFPs",
       "venture": "mindmaker",
       "status": "pending-agatha-review",
       "priority": "HIGH",
@@ -238,12 +238,12 @@
     },
     {
       "id": "bd-signal-2026-04-08-aws-box-consulting-partner",
-      "title": "BD Signal: AWS BOX Program — expanded to consulting/advisory partners",
+      "title": "BD Signal: AWS BOX Program \u2014 expanded to consulting/advisory partners",
       "venture": "mindmaker",
       "status": "pending-agatha-review",
       "priority": "MEDIUM",
-      "signal": "AWS expanded Business Outcomes Xcelerator (BOX) program to Business Consulting and Advisory Partners. The program bridges the gap between AI investment and measurable business outcomes — exact Mindmaker positioning.",
-      "warm_path": "Direct application to AWS Partner Network as a Business Consulting/Advisory Partner. No cold path required — AWS has open enrollment. Would give Mindmaker co-marketing, referrals from AWS enterprise customers, and credibility.",
+      "signal": "AWS expanded Business Outcomes Xcelerator (BOX) program to Business Consulting and Advisory Partners. The program bridges the gap between AI investment and measurable business outcomes \u2014 exact Mindmaker positioning.",
+      "warm_path": "Direct application to AWS Partner Network as a Business Consulting/Advisory Partner. No cold path required \u2014 AWS has open enrollment. Would give Mindmaker co-marketing, referrals from AWS enterprise customers, and credibility.",
       "source_url": "https://aws.amazon.com/blogs/apn/expanding-the-box-program-to-business-consulting-and-advisory-partners/",
       "evidence": "Found via web_search at 2026-04-08T14:08Z. Published ~3 weeks ago.",
       "owner": "bd-agent",
@@ -251,7 +251,7 @@
     },
     {
       "id": "bd-signal-2026-04-08-adfixus-agentic-data-era",
-      "title": "BD Signal: AdExchanger — First-party data will define the agentic advertising era",
+      "title": "BD Signal: AdExchanger \u2014 First-party data will define the agentic advertising era",
       "venture": "adfixus",
       "status": "pending-agatha-review",
       "priority": "MEDIUM",
@@ -264,12 +264,12 @@
     },
     {
       "id": "bd-signal-2026-04-08-fractionl-addy-collapse",
-      "title": "BD Signal: Addy (fractional real estate) collapsed — platform trust concern active",
+      "title": "BD Signal: Addy (fractional real estate) collapsed \u2014 platform trust concern active",
       "venture": "fractionl",
       "status": "pending-agatha-review",
       "priority": "MEDIUM",
       "signal": "Globe and Mail (3 weeks ago) reported Addy, a Canadian fractional real estate platform, collapsed due to new residential construction failures. Experts warning other prop-share platforms at risk. Reddit discussion active with users seeking safe fractional platforms.",
-      "warm_path": "Users actively comparing platforms on Reddit (r/passive_income, r/RealEstate). This is a trust/governance moment for Fractionl to differentiate. Warm path: Reddit community presence + transparent governance messaging. No cold path needed — users are searching right now.",
+      "warm_path": "Users actively comparing platforms on Reddit (r/passive_income, r/RealEstate). This is a trust/governance moment for Fractionl to differentiate. Warm path: Reddit community presence + transparent governance messaging. No cold path needed \u2014 users are searching right now.",
       "source_url": "https://www.theglobeandmail.com/real-estate/article-collapse-fractional-real-estate-investing-firm-business-model-risks/",
       "evidence": "Found via web_search at 2026-04-08T14:08Z. Published 3 weeks ago.",
       "owner": "bd-agent",
@@ -277,7 +277,7 @@
     },
     {
       "id": "bd-signal-2026-04-08-family-office-ai-incubation",
-      "title": "BD Signal: Family offices incubating AI companies — new Mindmaker ICP segment",
+      "title": "BD Signal: Family offices incubating AI companies \u2014 new Mindmaker ICP segment",
       "venture": "mindmaker",
       "status": "pending-agatha-review",
       "priority": "MEDIUM",
@@ -302,7 +302,7 @@
     {
       "id": "maya-beta-sprint",
       "venture": "fractionl",
-      "title": "Maya — Beta Acquisition Sprint: 20 Users Per App by Next Week",
+      "title": "Maya \u2014 Beta Acquisition Sprint: 20 Users Per App by Next Week",
       "status": "active",
       "priority": "pri-1",
       "owner": "agatha",
@@ -312,13 +312,13 @@
       "created": "2026-04-09T19:16:00Z",
       "linkPrimary": "https://docs.google.com/document/d/1wnGzwwV81jhyiUKJQsdZbQLUtE571qRsGkflqyA0SDQ/edit",
       "nextStep": "Krish approves maya-1 (tooling + influencer strategy in principle), then Maya begins SEO foundation + Reddit seeding",
-      "description": "Web apps only. No App Store. Goal: 20 real beta users per app (Gutted, Merciless, OnAlert, Fractionl Circle, Fractionl Pulse) giving active feedback within 7 days. Sequence: SEO → Reddit/community → Betalist/ShowHN → Product Hunt → influencers last."
+      "description": "Web apps only. No App Store. Goal: 20 real beta users per app (Gutted, Merciless, OnAlert, Fractionl Circle, Fractionl Pulse) giving active feedback within 7 days. Sequence: SEO \u2192 Reddit/community \u2192 Betalist/ShowHN \u2192 Product Hunt \u2192 influencers last."
     },
     {
       "id": "nell-possible-outreach",
       "venture": "mindmaker",
-      "title": "Nell — POSSIBLE Outreach: Book 5 S&N Guests",
-      "status": "active",
+      "title": "POSSIBLE 2026 \u2014 S&N Podcast Guest Outreach",
+      "status": "in_progress",
       "priority": "pri-0",
       "owner": "agatha",
       "agent": "Nell",
@@ -326,13 +326,31 @@
       "groupLabel": "Growth",
       "created": "2026-04-09T19:16:00Z",
       "linkPrimary": "https://docs.google.com/spreadsheets/d/1DyAy1H3fnoI2_58nS3u2yIbbswJq1BddWmBUKyW8Yf8/edit",
-      "nextStep": "Check Gmail Drafts — Bob Pittman test draft is in inbox. Approve voice or give feedback. Then Nell batches all Tier 1 emails.",
-      "description": "Nell drafts all Tier 1 POSSIBLE speaker emails in Krish's voice, pushes to Gmail drafts. Test draft (Bob Pittman) already in inbox. Approve or revise, then Nell sends the batch."
+      "nextStep": "Review Tier 2 Gmail drafts, verify guessed emails before sending. Then draft + send Tier 3. Target: 5+ confirmed guests booked.",
+      "description": "78 contacts across 3 tiers. Sheet fully populated (all fields complete). Email voice rules locked v6. Signature confirmed. Tier 1 (17 contacts) sent 2026-04-13. Tier 2 (47 contacts) drafted in Gmail, pending review + send. Tier 3 (14 contacts) not yet drafted. Outreach goal: book guests for Signal & Noise podcast at POSSIBLE conference.",
+      "progress": {
+        "tier1": {
+          "total": 17,
+          "status": "sent",
+          "note": "All sent 2026-04-13"
+        },
+        "tier2": {
+          "total": 47,
+          "status": "drafted",
+          "note": "In Gmail drafts. Several guessed emails need verification before send."
+        },
+        "tier3": {
+          "total": 14,
+          "status": "not_started",
+          "note": "No drafts yet"
+        }
+      },
+      "updated": "2026-04-14T00:26:00Z"
     },
     {
       "id": "nell-open-threads-update",
       "venture": "mindmaker",
-      "title": "Nell — Add Chris Handy + Dan Pratl to Open Threads Tab",
+      "title": "Nell \u2014 Add Chris Handy + Dan Pratl to Open Threads Tab",
       "status": "active",
       "priority": "pri-1",
       "owner": "agatha",
@@ -341,12 +359,12 @@
       "groupLabel": "Growth",
       "created": "2026-04-09T19:41:00Z",
       "linkPrimary": "https://docs.google.com/spreadsheets/d/1DyAy1H3fnoI2_58nS3u2yIbbswJq1BddWmBUKyW8Yf8/edit",
-      "nextStep": "In progress — Nell adding both rows with full columns and email drafts"
+      "nextStep": "In progress \u2014 Nell adding both rows with full columns and email drafts"
     },
     {
       "id": "marcus-home-intelligence",
       "venture": "ops",
-      "title": "Marcus Home Intelligence — Strategic Assessment Tab",
+      "title": "Marcus Home Intelligence \u2014 Strategic Assessment Tab",
       "status": "waiting",
       "priority": "pri-0",
       "owner": "agatha",
@@ -356,7 +374,7 @@
       "created": "2026-04-09T20:55:00Z",
       "linkPrimary": "/root/.openclaw/workspace/warm/marcus-home-intelligence-spec.md",
       "nextStep": "Arlo builds HomeIntelligence.tsx component. Marcus builds N8N workflow to generate the intelligence brief every 48 hours.",
-      "description": "Redesign Home tab as Marcus's strategic intelligence canvas. Marcus runs every 48 hours, reads across all org data (Vera, sequences, tasks, agent docs, Zara signals), and writes an opinionated assessment: what's working, what's misaligned, recommended focus. Home tab renders his brief with metrics + interpretation. NOT a summary — a point of view."
+      "description": "Redesign Home tab as Marcus's strategic intelligence canvas. Marcus runs every 48 hours, reads across all org data (Vera, sequences, tasks, agent docs, Zara signals), and writes an opinionated assessment: what's working, what's misaligned, recommended focus. Home tab renders his brief with metrics + interpretation. NOT a summary \u2014 a point of view."
     },
     {
       "id": "apollo-1894-outreach-campaign",
@@ -534,7 +552,7 @@
       "description": "Restructure agent fleet to use true sub-agent isolation for lightweight/periodic agents. Reduces main-session context bloat and improves token efficiency. Phase 1 targets 6 agents: Kai, Marcus, Priya, Nell, Zara, Maya.",
       "guards": [
         "DO NOT modify Agatha, Vera, Leo, Felix, Cleo, Nova (Phase 2+)",
-        "DO NOT disable cron jobs — convert to spawn mode",
+        "DO NOT disable cron jobs \u2014 convert to spawn mode",
         "Verify each sub-agent starts and completes successfully",
         "Report full execution log with session IDs"
       ],
@@ -570,7 +588,7 @@
     },
     {
       "id": "cleo-phase2-active",
-      "title": "Cleo — Content Production Coordinator",
+      "title": "Cleo \u2014 Content Production Coordinator",
       "status": "active",
       "priority": "pri-1",
       "agent": "Cleo",
@@ -582,7 +600,7 @@
     },
     {
       "id": "maya-phase2-active",
-      "title": "Maya — Customer Acquisition Coordinator",
+      "title": "Maya \u2014 Customer Acquisition Coordinator",
       "status": "active",
       "priority": "pri-1",
       "agent": "Maya",
@@ -594,7 +612,7 @@
     },
     {
       "id": "leo-phase2-active",
-      "title": "Leo — Chief Revenue Officer (CRO)",
+      "title": "Leo \u2014 Chief Revenue Officer (CRO)",
       "status": "active",
       "priority": "pri-0",
       "agent": "Leo",
@@ -604,6 +622,35 @@
       "briefLocation": "/root/.openclaw/workspace/warm/agent-plans/leo-cro-phase2.md",
       "successMetric": "By 2026-06-01: Full funnel map + drop-off analysis + prioritized optimization targets for all 3 ventures",
       "blocker": "Needs analytics access: Google Analytics, email, Stripe, Calendly, CRM. Arlo to wire connections."
+    },
+    {
+      "id": "leo-meeting-volume-kpi",
+      "venture": "mindmaker",
+      "title": "Leo \u2014 Meeting Volume KPI & Revenue Coordination",
+      "description": "Drive and measure 10+ qualified meetings/month (Mindmaker Sprints + Fractionl Circle). Weekly push to Krish on pace and blockers.",
+      "status": "active",
+      "priority": "pri-0",
+      "owner": "agatha",
+      "agent": "Leo",
+      "group": "growth",
+      "groupLabel": "Growth",
+      "created": "2026-04-14T01:45:22.597470Z",
+      "linkPrimary": "https://docs.google.com/spreadsheets/d/1gJHU37h8nSw8K2XA6fphpC1UiAukR_BTJ9e39os5oh8/edit#gid=0",
+      "nextStep": "Vera completes Calendly automation (due 2026-04-20). First Monday email: 2026-04-21 9am.",
+      "progress": {
+        "calendly_api_setup": {
+          "status": "done",
+          "note": "Client ID + Secret received 2026-04-14"
+        },
+        "vera_automation": {
+          "status": "in_progress",
+          "note": "Brief written, awaiting implementation, due 2026-04-20"
+        },
+        "first_report": {
+          "status": "waiting",
+          "note": "First Monday email due 2026-04-21 9am"
+        }
+      }
     }
   ],
   "by_status": {
@@ -630,6 +677,39 @@
           "Follow Google Doc protocol for creating the Sheet/Doc."
         ],
         "updatedAt": "2026-04-11T20:09:48.264Z"
+      },
+      {
+        "id": "nell-possible-outreach",
+        "venture": "mindmaker",
+        "title": "POSSIBLE 2026 \u2014 S&N Podcast Guest Outreach",
+        "status": "in_progress",
+        "priority": "pri-0",
+        "owner": "agatha",
+        "agent": "Nell",
+        "group": "growth",
+        "groupLabel": "Growth",
+        "created": "2026-04-09T19:16:00Z",
+        "linkPrimary": "https://docs.google.com/spreadsheets/d/1DyAy1H3fnoI2_58nS3u2yIbbswJq1BddWmBUKyW8Yf8/edit",
+        "nextStep": "Review Tier 2 Gmail drafts, verify guessed emails before sending. Then draft + send Tier 3. Target: 5+ confirmed guests booked.",
+        "description": "78 contacts across 3 tiers. Sheet fully populated (all fields complete). Email voice rules locked v6. Signature confirmed. Tier 1 (17 contacts) sent 2026-04-13. Tier 2 (47 contacts) drafted in Gmail, pending review + send. Tier 3 (14 contacts) not yet drafted. Outreach goal: book guests for Signal & Noise podcast at POSSIBLE conference.",
+        "progress": {
+          "tier1": {
+            "total": 17,
+            "status": "sent",
+            "note": "All sent 2026-04-13"
+          },
+          "tier2": {
+            "total": 47,
+            "status": "drafted",
+            "note": "In Gmail drafts. Several guessed emails need verification before send."
+          },
+          "tier3": {
+            "total": 14,
+            "status": "not_started",
+            "note": "No drafts yet"
+          }
+        },
+        "updated": "2026-04-14T00:26:00Z"
       },
       {
         "id": "arlo-phase-1-live",
@@ -734,7 +814,7 @@
         "description": "Restructure agent fleet to use true sub-agent isolation for lightweight/periodic agents. Reduces main-session context bloat and improves token efficiency. Phase 1 targets 6 agents: Kai, Marcus, Priya, Nell, Zara, Maya.",
         "guards": [
           "DO NOT modify Agatha, Vera, Leo, Felix, Cleo, Nova (Phase 2+)",
-          "DO NOT disable cron jobs — convert to spawn mode",
+          "DO NOT disable cron jobs \u2014 convert to spawn mode",
           "Verify each sub-agent starts and completes successfully",
           "Report full execution log with session IDs"
         ],
@@ -764,7 +844,7 @@
       {
         "id": "arlo-systems-monitor",
         "venture": "ops",
-        "title": "Arlo — Build Systems Monitor + Control Center Systems Tab",
+        "title": "Arlo \u2014 Build Systems Monitor + Control Center Systems Tab",
         "status": "waiting",
         "priority": "pri-0",
         "blockedBy": "krish",
@@ -775,7 +855,7 @@
         "group": "ops-governance",
         "groupLabel": "Ops Governance",
         "nextStep": "Approve spec, then Arlo builds N8N workflow + Notion Systems tab",
-        "description": "Arlo to build: (1) Full service inventory from hot/systems.md — every API, Supabase project, Stripe account, automation tool. (2) N8N health check workflow: hourly ping + auth validity + credit/quota monitoring. (3) Status flags: green/yellow/red/unchecked per service. (4) Notion Systems tab in Ops Board — live status written by Arlo after each check run. (5) Ops-bot Telegram alert on any red or critical yellow. (6) Weekly cost report via Agentops key (aa_YBQsXLzdHthiVbwcDEScjRQbFsUVAYUA) — fed to Vera for Friday audit. Schedule: hourly lightweight ping + full sweep on Arlo's Sunday 3AM cron."
+        "description": "Arlo to build: (1) Full service inventory from hot/systems.md \u2014 every API, Supabase project, Stripe account, automation tool. (2) N8N health check workflow: hourly ping + auth validity + credit/quota monitoring. (3) Status flags: green/yellow/red/unchecked per service. (4) Notion Systems tab in Ops Board \u2014 live status written by Arlo after each check run. (5) Ops-bot Telegram alert on any red or critical yellow. (6) Weekly cost report via Agentops key (aa_YBQsXLzdHthiVbwcDEScjRQbFsUVAYUA) \u2014 fed to Vera for Friday audit. Schedule: hourly lightweight ping + full sweep on Arlo's Sunday 3AM cron."
       },
       {
         "id": "ops-mm-os-v1-blueprint",
@@ -806,7 +886,7 @@
       {
         "id": "b1",
         "venture": "ops",
-        "title": "Drive Sync — Activate in N8N",
+        "title": "Drive Sync \u2014 Activate in N8N",
         "description": "Open workflow PPfv8kHNBzSq7fm0, confirm Google Docs credential, click Activate.",
         "status": "waiting",
         "blockedBy": "krish",
@@ -818,7 +898,7 @@
       {
         "id": "marcus-home-intelligence",
         "venture": "ops",
-        "title": "Marcus Home Intelligence — Strategic Assessment Tab",
+        "title": "Marcus Home Intelligence \u2014 Strategic Assessment Tab",
         "status": "waiting",
         "priority": "pri-0",
         "owner": "agatha",
@@ -828,7 +908,7 @@
         "created": "2026-04-09T20:55:00Z",
         "linkPrimary": "/root/.openclaw/workspace/warm/marcus-home-intelligence-spec.md",
         "nextStep": "Arlo builds HomeIntelligence.tsx component. Marcus builds N8N workflow to generate the intelligence brief every 48 hours.",
-        "description": "Redesign Home tab as Marcus's strategic intelligence canvas. Marcus runs every 48 hours, reads across all org data (Vera, sequences, tasks, agent docs, Zara signals), and writes an opinionated assessment: what's working, what's misaligned, recommended focus. Home tab renders his brief with metrics + interpretation. NOT a summary — a point of view."
+        "description": "Redesign Home tab as Marcus's strategic intelligence canvas. Marcus runs every 48 hours, reads across all org data (Vera, sequences, tasks, agent docs, Zara signals), and writes an opinionated assessment: what's working, what's misaligned, recommended focus. Home tab renders his brief with metrics + interpretation. NOT a summary \u2014 a point of view."
       },
       {
         "id": "apollo-1894-outreach-campaign",
@@ -921,7 +1001,7 @@
         "groupLabel": "Ops Governance",
         "nextStep": "Arlo to audit all active N8N workflows and enforce model tier rules (patterns.md MT-001 to MT-006)",
         "description": "Audit every N8N AI node across all agent workflows. Enforce: Haiku for Zara/Felix/Arlo/heartbeats/data-fetch nodes. Sonnet for Vera/Marcus/Priya/Leo/Nova/Maya. Opus removed from all N8N nodes entirely. Add max_tokens caps per tier. Report back with before/after model config list.",
-        "evidence": "Audited all 5 active N8N AI workflows (2026-04-10). 4 already on claude-sonnet-4-6. 1 violation found: Product Proposal Review using claude-3-5-haiku-20241022 for Agatha-level judgment — patched to claude-sonnet-4-6 via N8N API (HTTP 200). No Opus nodes found anywhere. Max tokens within MT-003 limits.",
+        "evidence": "Audited all 5 active N8N AI workflows (2026-04-10). 4 already on claude-sonnet-4-6. 1 violation found: Product Proposal Review using claude-3-5-haiku-20241022 for Agatha-level judgment \u2014 patched to claude-sonnet-4-6 via N8N API (HTTP 200). No Opus nodes found anywhere. Max tokens within MT-003 limits.",
         "completedAt": "2026-04-10T11:10:00Z"
       },
       {
@@ -993,5 +1073,5 @@
       }
     ]
   },
-  "total": 33
+  "total": 34
 }

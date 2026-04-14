@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   UserCheck, CheckCircle, MessageCircle, Send, Clock, ArrowRight,
-  Hourglass, Pencil, Check, X, ExternalLink, ChevronDown, ChevronUp, Loader2
+  Hourglass, Pencil, Check, X, ExternalLink, ChevronDown, ChevronUp, Loader2, Copy
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -75,33 +75,32 @@ const ageLabel = (d?: number) => {
 function BlockedItem({ item, onRefresh }: { item: BlockItem; onRefresh: () => void }) {
   const [expanded, setExpanded] = useState(false)
   const [feedbackText, setFeedbackText] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
 
-  const submit = async (done: boolean) => {
-    setSubmitting(true)
-    try {
-      await fetch('/api/data', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: item.id,
-          done: done || undefined,
-          status: done ? 'done' : 'feedback',
-          comment: feedbackText || undefined,
-        })
-      })
-      setFeedbackText('')
-      setExpanded(false)
-      setTimeout(onRefresh, 400)
-    } finally {
-      setSubmitting(false)
-    }
+  // Build a structured message Krish can paste to Agatha in Telegram.
+  // Agatha processes it, updates tasks.json, and the 5-min sync commits it.
+  const buildAgathaMessage = (decision: string) =>
+    `DECISION | task:${item.id} | agent:${item.agent ?? 'unknown'} | ${decision} | ${new Date().toISOString()}`
+
+  const copyAndSend = () => {
+    const msg = buildAgathaMessage(feedbackText.trim() || 'approved')
+    navigator.clipboard.writeText(msg).then(() => {
+      setCopied(true)
+      setConfirmed(true)
+      setTimeout(() => setCopied(false), 3000)
+    })
   }
 
   const urgency = urgencyOf(item)
 
   return (
-    <div className="bg-white/[0.02] border border-white/[0.07] rounded-xl p-4 space-y-3 hover:border-white/[0.12] transition-colors">
+    <div className={`border rounded-xl p-4 space-y-3 transition-colors
+      ${confirmed
+        ? 'border-emerald-500/20 bg-emerald-500/[0.02]'
+        : 'border-white/[0.07] bg-white/[0.02] hover:border-white/[0.12]'
+      }`}
+    >
       <div className="flex items-start gap-2 flex-wrap">
         <UserCheck size={13} className="text-amber-400 shrink-0 mt-0.5" />
         <span className="text-[13px] font-semibold text-white flex-1">{item.title}</span>
@@ -115,6 +114,14 @@ function BlockedItem({ item, onRefresh }: { item: BlockItem; onRefresh: () => vo
         <p className="text-[12px] text-white/50 leading-relaxed pl-5">{item.description || item.nextStep}</p>
       )}
 
+      {(item as any).workstream && (
+        <div className="pl-5">
+          <span className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/25 text-violet-300 font-semibold tracking-wide">
+            {(item as any).workstream}
+          </span>
+        </div>
+      )}
+
       {item.agent && (
         <div className="flex items-center gap-1 text-[11px] text-white/30 pl-5">
           <span>from</span>
@@ -124,7 +131,6 @@ function BlockedItem({ item, onRefresh }: { item: BlockItem; onRefresh: () => vo
         </div>
       )}
 
-      {/* Prior feedback */}
       {item.feedbackText && (
         <div className="ml-5 bg-purple-900/20 border border-purple-700/20 rounded-lg px-3 py-2">
           <p className="text-[11px] text-white/40">
@@ -139,14 +145,16 @@ function BlockedItem({ item, onRefresh }: { item: BlockItem; onRefresh: () => vo
           onClick={() => setExpanded(!expanded)}
           className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-white/[0.04] border border-white/[0.08] text-white/50 hover:bg-white/[0.08] transition-colors"
         >
-          <MessageCircle size={11} /> Comment
+          <MessageCircle size={11} /> {expanded ? 'Cancel' : 'Decide'}
         </button>
         <button
-          onClick={() => submit(true)}
-          disabled={submitting}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+          onClick={() => {
+            const msg = buildAgathaMessage('approved — mark as done')
+            navigator.clipboard.writeText(msg).then(() => { setConfirmed(true); setCopied(true); setTimeout(() => setCopied(false), 3000) })
+          }}
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
         >
-          <CheckCircle size={11} /> Mark Done
+          <CheckCircle size={11} /> Approve
         </button>
       </div>
 
@@ -155,18 +163,28 @@ function BlockedItem({ item, onRefresh }: { item: BlockItem; onRefresh: () => vo
           <textarea
             className="w-full bg-white/[0.04] border border-white/[0.10] rounded-lg p-2.5 text-[12px] text-white placeholder-white/20 resize-none focus:outline-none focus:border-amber-500/40"
             rows={3}
-            placeholder="Your decision or feedback — Arlo picks this up and routes to the right agent…"
+            placeholder="Your decision or feedback (e.g. 'approved with changes', 'reject — try again with…')"
             value={feedbackText}
             onChange={e => setFeedbackText(e.target.value)}
           />
           <button
-            onClick={() => submit(false)}
-            disabled={submitting || !feedbackText.trim()}
+            onClick={copyAndSend}
+            disabled={!feedbackText.trim()}
             className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-amber-500/10 border border-amber-500/25 text-amber-400 hover:bg-amber-500/20 transition-colors disabled:opacity-50"
           >
-            <Send size={11} /> {submitting ? 'Sending…' : 'Send to Agent →'}
+            {copied ? <Check size={11} /> : <Copy size={11} />}
+            {copied ? 'Copied! Paste to Agatha in Telegram →' : 'Copy Decision → Paste to Agatha'}
           </button>
+          <p className="text-[10px] text-white/25 leading-relaxed">
+            Paste this in Telegram to Agatha. She'll update the task and notify {item.agent ?? 'the agent'} within the next sync cycle.
+          </p>
         </div>
+      )}
+
+      {confirmed && !expanded && (
+        <p className="pl-5 text-[11px] text-emerald-400/60 flex items-center gap-1.5">
+          <Check size={10} /> Decision copied — paste to Agatha in Telegram to route it
+        </p>
       )}
     </div>
   )
@@ -412,7 +430,7 @@ export function TodayTabContent() {
             </div>
           )}
 
-          {goals?.goals.length ? (
+          {goals?.goals?.length ? (
             <div className="space-y-2">
               {goals.goals.map(goal => (
                 <GoalItem key={goal.id} goal={goal} onSaved={fetchAll} />

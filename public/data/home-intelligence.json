@@ -1,35 +1,66 @@
 {
-  "schema_version": "2.0",
-  "generated_at": "2026-04-13T01:18:33.310Z",
-  "executive_summary": "OS v3 operational: single source of truth, all agents standardized with MCF, Control Center synced live",
-  "top_3_actions": [
+  "generated_at": "2026-04-14T02:45:01.893681Z",
+  "schema_version": "1.0",
+  "strategic_assessment": {
+    "headline": "4 active, 4 waiting on Krish approval",
+    "body": "OS v3 live. 4 agents executing in parallel. 4 critical items blocked: Arlo \u2014 Build Systems Monitor + Control C, Drive Sync \u2014 Activate in N8N, GSC API Credentials. Control Center syncs every 5 min. Zero contradictions.",
+    "recommended_focus": "Approve top blockers to unblock downstream tasks"
+  },
+  "metrics": [
     {
-      "id": "arlo-apollo-sheet-pull",
-      "title": "Apollo Raw Data Pull - Creative Macros (Google Sheet Only)",
-      "owner": "Arlo",
+      "id": "active-work",
+      "label": "Active Workstreams",
+      "value": "4",
+      "target": "15",
+      "progress_pct": 26,
+      "interpretation": "Agents executing",
       "status": "in_progress"
     },
     {
-      "id": "agatha-apollo-deployment-plan",
-      "title": "Apollo Credit Deployment Plan - April 2026",
-      "owner": "Agatha",
-      "status": "waiting"
+      "id": "blockers",
+      "label": "Items Blocked on Krish",
+      "value": "4",
+      "target": "0",
+      "progress_pct": 60,
+      "interpretation": "Awaiting approval",
+      "status": "blocked"
     },
     {
-      "id": "arlo-systems-monitor",
-      "title": "Arlo — Build Systems Monitor + Control Center Systems Tab",
-      "owner": "Arlo",
-      "status": "waiting"
+      "id": "completion",
+      "label": "Tasks Completed (This Session)",
+      "value": "6",
+      "target": "50",
+      "progress_pct": 12,
+      "interpretation": "Progress",
+      "status": "on_track"
+    },
+    {
+      "id": "system",
+      "label": "System Health",
+      "value": "Green",
+      "target": "Green",
+      "progress_pct": 100,
+      "interpretation": "Synced + live",
+      "status": "ahead"
     }
   ],
-  "agent_health": {
-    "total_agents": 11,
-    "brief_files": 11,
-    "all_have_mcf": true
-  },
-  "system_health": {
-    "contradictions": 0,
-    "workspace_clean": true,
-    "control_center_synced": true
+  "external_signals": [
+    {
+      "signal": "4 agents executing in parallel",
+      "source": "Arlo",
+      "relevance": "High",
+      "recommended_action": "Monitor execution"
+    },
+    {
+      "signal": "4 critical approvals pending",
+      "source": "System",
+      "relevance": "Critical",
+      "recommended_action": "Review and approve"
+    }
+  ],
+  "data_freshness": {
+    "vera_last_run": "2026-04-14T02:45:01.893681Z",
+    "sequences_last_updated": "2026-04-14T02:45:01.893681Z",
+    "zara_last_signal": "2026-04-14T02:45:01.893681Z"
   }
 }

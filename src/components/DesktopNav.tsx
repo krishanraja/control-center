@@ -4,7 +4,7 @@ import { Home, Clock, ListChecks, GitBranch, Activity, Server } from 'lucide-rea
 const TABS = [
   { id: 'home',      label: 'Home',      icon: Home },
   { id: 'today',     label: 'Today',     icon: Clock },
-  { id: 'playbooks', label: 'Playbooks', icon: ListChecks },
+  { id: 'plans',     label: 'Plans',     icon: ListChecks },
   { id: 'org',       label: 'Org',       icon: GitBranch },
   { id: 'execution', label: 'Execution', icon: Activity },
   { id: 'systems',   label: 'Systems',   icon: Server },
