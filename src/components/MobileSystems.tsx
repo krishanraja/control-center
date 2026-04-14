@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Server } from 'lucide-react'
+import {
+  MobileShell, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState,
+} from './mobile/primitives'
 
 interface Service {
   id: string; name: string; url?: string; status: string; note?: string; last_checked?: string
@@ -16,19 +18,6 @@ const STATUS_DOT: Record<string, string> = {
   amber: 'bg-amber-400',
   red:   'bg-red-400',
 }
-const STATUS_RING: Record<string, string> = {
-  green: 'ring-emerald-400/20',
-  amber: 'ring-amber-400/20',
-  red:   'ring-red-400/20',
-}
-
-function fmtTime(iso?: string) {
-  if (!iso) return ''
-  try {
-    const d = new Date(iso)
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  } catch { return '' }
-}
 
 export function MobileSystems() {
   const [data, setData] = useState<SystemsData | null>(null)
@@ -44,101 +33,69 @@ export function MobileSystems() {
     return () => clearInterval(iv)
   }, [])
 
-  if (!data) return (
-    <Card>
-      <p className="text-[12px] text-white/30">Loading systems…</p>
-    </Card>
-  )
+  if (!data) {
+    return (
+      <MobileShell header={<TabHeader title="Systems" />}>
+        <EmptyState label="Loading systems…" />
+      </MobileShell>
+    )
+  }
 
-  const allServices = data.categories.flatMap(c => c.services)
-  const greenCount  = allServices.filter(s => s.status === 'green').length
-  const amberCount  = allServices.filter(s => s.status === 'amber').length
-  const redCount    = allServices.filter(s => s.status === 'red').length
+  const all = data.categories.flatMap(c => c.services.map(s => ({ ...s, category: c.label })))
+  const red   = all.filter(s => s.status === 'red')
+  const amber = all.filter(s => s.status === 'amber')
+  const green = all.filter(s => s.status === 'green')
+
+  const hero = red[0] ?? amber[0]
 
   return (
-    <div className="space-y-3">
-
-      {/* ── OVERVIEW ──────────────────────────────────── */}
-      <Card>
-        <SectionLabel
-          icon={<Server className="w-3.5 h-3.5" />}
-          color="text-white/50"
-          label={`Systems (${allServices.length})`}
+    <MobileShell
+      header={<TabHeader title="Systems" subtitle={`${all.length} services · monitored by Arlo`} />}
+    >
+      {hero ? (
+        <HeroCard
+          eyebrow={`${hero.category} · ${hero.status === 'red' ? 'Down' : 'Degraded'}`}
+          accent={hero.status === 'red' ? 'red' : 'amber'}
+          dotColor={STATUS_DOT[hero.status]}
+          title={hero.name}
+          detail={hero.note}
+          cta={hero.url ? 'Open' : undefined}
+          onClick={hero.url ? () => window.open(hero.url, '_blank') : undefined}
         />
-        <div className="grid grid-cols-3 gap-2 mt-2.5">
-          {[
-            { label: 'Healthy',  value: greenCount, color: 'text-emerald-400' },
-            { label: 'Warning',  value: amberCount, color: 'text-amber-400'  },
-            { label: 'Down',     value: redCount,   color: 'text-red-400'    },
-          ].map(s => (
-            <div key={s.label} className="bg-white/[0.03] rounded-lg px-2 py-2 text-center">
-              <p className={`text-[20px] font-bold font-mono ${s.color}`}>{s.value}</p>
-              <p className="text-[9px] text-white/25 uppercase tracking-wide">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </Card>
+      ) : (
+        <HeroCard
+          eyebrow="All systems"
+          accent="emerald"
+          dotColor="bg-emerald-400"
+          title="All green"
+          detail={`${green.length} services healthy.`}
+        />
+      )}
 
-      {/* ── CATEGORIES ────────────────────────────────── */}
+      <div className="flex gap-2">
+        <StatPill label="Green" value={green.length} color="text-emerald-400" />
+        <StatPill label="Amber" value={amber.length} color={amber.length > 0 ? 'text-amber-400' : 'text-white/60'} />
+        <StatPill label="Red"   value={red.length}   color={red.length > 0 ? 'text-red-400' : 'text-white/60'} />
+      </div>
+
       {data.categories.map(cat => (
-        <Card key={cat.id}>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2.5">{cat.label}</p>
-          <div className="space-y-1">
-            {cat.services.map((svc, i) => (
-              <div key={svc.id}>
-                <div className="flex items-start gap-2.5 py-2">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ring-2 ${STATUS_DOT[svc.status] ?? 'bg-white/20'} ${STATUS_RING[svc.status] ?? 'ring-white/10'}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[13px] font-medium text-white/80 truncate">
-                        {svc.url ? (
-                          <a href={svc.url} target="_blank" rel="noreferrer"
-                            className="hover:text-white transition-colors">
-                            {svc.name}
-                          </a>
-                        ) : svc.name}
-                      </p>
-                      {svc.last_checked && (
-                        <span className="text-[10px] text-white/20 flex-shrink-0">
-                          {fmtTime(svc.last_checked)}
-                        </span>
-                      )}
-                    </div>
-                    {svc.note && (
-                      <p className={`text-[11px] mt-0.5 leading-relaxed ${
-                        svc.status === 'red'   ? 'text-red-400/70' :
-                        svc.status === 'amber' ? 'text-amber-400/70' :
-                        'text-white/35'
-                      }`}>{svc.note}</p>
-                    )}
-                  </div>
-                </div>
-                {i < cat.services.length - 1 && (
-                  <div className="border-t border-white/[0.04]" />
-                )}
-              </div>
-            ))}
-          </div>
-        </Card>
+        <FeedCard key={cat.id} title={cat.label}>
+          {cat.services.map(s => (
+            <FeedRow
+              key={s.id}
+              dotColor={STATUS_DOT[s.status] ?? 'bg-white/20'}
+              title={s.name}
+              detail={s.note}
+              onClick={s.url ? () => window.open(s.url, '_blank') : undefined}
+              trailing={<span className={`text-[10px] uppercase tracking-wide ${
+                s.status === 'green' ? 'text-emerald-400/70' :
+                s.status === 'amber' ? 'text-amber-400/70' :
+                s.status === 'red'   ? 'text-red-400/70' : 'text-white/30'
+              }`}>{s.status}</span>}
+            />
+          ))}
+        </FeedCard>
       ))}
-
-    </div>
-  )
-}
-
-function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4 backdrop-blur-sm">
-      {children}
-    </div>
-  )
-}
-
-function SectionLabel({ icon, color, label }: { icon: React.ReactNode; color: string; label: string }) {
-  return (
-    <div className={`flex items-center gap-2 ${color}`}>
-      {icon}
-      <span className="text-[11px] font-bold uppercase tracking-widest">{label}</span>
-    </div>
+    </MobileShell>
   )
 }

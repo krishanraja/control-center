@@ -22,6 +22,7 @@ import { MobileToday } from './components/MobileToday'
 import { MobilePlans } from './components/MobilePlans'
 import { MobileExecution } from './components/MobileExecution'
 import { MobileSystems } from './components/MobileSystems'
+import { MobileShell, TabHeader as MobileTabHeader } from './components/mobile/primitives'
 
 // ─── Tab IDs shared across desktop + mobile ───────────────────────────────────
 type TabId = 'home' | 'today' | 'playbooks' | 'plans' | 'org' | 'execution' | 'systems'
@@ -77,50 +78,38 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  // ── MOBILE: fixed-viewport shell + pinned bottom nav ──────────────────────
+  if (isMobile) {
+    return (
+      <div className="bg-[#0a0a0b] text-white">
+        {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome /></ErrorBoundary>}
+        {tab === 'today'     && <ErrorBoundary label="Today"><MobileToday /></ErrorBoundary>}
+        {tab === 'playbooks' && <ErrorBoundary label="Playbooks"><MobilePlaybooksWrapper /></ErrorBoundary>}
+        {tab === 'plans'     && <ErrorBoundary label="Plans"><MobilePlans /></ErrorBoundary>}
+        {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrgWrapper currentTime={currentTime} /></ErrorBoundary>}
+        {tab === 'execution' && <ErrorBoundary label="Execution"><MobileExecution /></ErrorBoundary>}
+        {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
+        <BottomNav active={tab} onChange={handleTab} />
+      </div>
+    )
+  }
+
+  // ── DESKTOP ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-col">
-
-      {/* Nav: desktop top bar OR nothing (mobile uses bottom nav) */}
-      {!isMobile && <DesktopNav active={tab} onChange={handleTab} currentTime={currentTime} />}
-
-      {/* Content area */}
+      <DesktopNav active={tab} onChange={handleTab} currentTime={currentTime} />
       <main className="flex-1 overflow-y-auto">
-
-        {/* ── DESKTOP ───────────────────────────────────────── */}
-        {!isMobile && (
-          <div className="max-w-[1600px] mx-auto px-6 py-6">
-            {tab === 'home'      && <DesktopHome currentTime={currentTime} />}
-            {tab === 'today'     && <DesktopToday />}
-            {tab === 'playbooks' && <PlaybooksPanel />}
-            {tab === 'plans'     && <DesktopPlans />}
-            {tab === 'org'       && <DesktopOrg currentTime={currentTime} />}
-            {tab === 'execution' && <ExecutionTabContent />}
-            {tab === 'systems'   && <DesktopSystems />}
-          </div>
-        )}
-
-        {/* ── MOBILE ────────────────────────────────────────── */}
-        {isMobile && (
-          <div className="pb-24">
-          <div className="flex items-center gap-2.5 px-4 pt-4 pb-2">
-            <img src="/favicon.png" alt="Mindmaker OS" className="w-6 h-6 rounded-md object-cover" />
-            <span className="text-[13px] font-semibold text-white/80 tracking-tight">Mindmaker OS</span>
-          </div>
-          <div className="px-4 pt-2 space-y-4">
-            {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome /></ErrorBoundary>}
-            {tab === 'today'     && <ErrorBoundary label="Today"><MobileToday /></ErrorBoundary>}
-            {tab === 'playbooks' && <ErrorBoundary label="Playbooks"><PlaybooksPanel /></ErrorBoundary>}
-            {tab === 'plans'     && <ErrorBoundary label="Plans"><MobilePlans /></ErrorBoundary>}
-            {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrgWrapper currentTime={currentTime} /></ErrorBoundary>}
-            {tab === 'execution' && <ErrorBoundary label="Execution"><MobileExecution /></ErrorBoundary>}
-            {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
-          </div>
-          </div>
-        )}
+        <div className="max-w-[1600px] mx-auto px-6 py-6">
+          {tab === 'home'      && <DesktopHome currentTime={currentTime} />}
+          {tab === 'today'     && <DesktopToday />}
+          {tab === 'playbooks' && <PlaybooksPanel />}
+          {tab === 'plans'     && <DesktopPlans />}
+          {tab === 'org'       && <DesktopOrg currentTime={currentTime} />}
+          {tab === 'execution' && <ExecutionTabContent />}
+          {tab === 'systems'   && <DesktopSystems />}
+        </div>
       </main>
 
-      {/* Bottom nav — mobile only */}
-      {isMobile && <BottomNav active={tab} onChange={handleTab} />}
     </div>
   )
 }
@@ -219,13 +208,21 @@ function MobileHeader({ title, subtitle }: { title: string; subtitle?: string })
   )
 }
 
-// ── Org wrapper (keeps MobileOrgChart + header pattern) ──────────────────────
-function MobileOrgWrapper({ currentTime }: { currentTime: Date }) {
+// ── Org wrapper: MobileShell + MobileOrgChart ────────────────────────────────
+function MobileOrgWrapper({ currentTime: _ct }: { currentTime: Date }) {
   return (
-    <div className="space-y-4">
-      <MobileHeader title="Org Chart" subtitle="Reporting chain & pods" />
+    <MobileShell header={<MobileTabHeader title="Org" subtitle="Reporting chain & pods" />}>
       <MobileOrgChart agents={AGENTS} />
-    </div>
+    </MobileShell>
+  )
+}
+
+// ── Playbooks wrapper: MobileShell + existing PlaybooksPanel ─────────────────
+function MobilePlaybooksWrapper() {
+  return (
+    <MobileShell header={<MobileTabHeader title="Playbooks" subtitle="Step tracks & runbooks" />}>
+      <PlaybooksPanel />
+    </MobileShell>
   )
 }
 
