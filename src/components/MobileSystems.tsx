@@ -87,10 +87,10 @@ export function MobileSystems() {
               title={s.name}
               detail={s.note}
               onClick={s.url ? () => window.open(s.url, '_blank') : undefined}
-              trailing={<span className={`text-[10px] uppercase tracking-wide ${
-                s.status === 'green' ? 'text-emerald-400/70' :
-                s.status === 'amber' ? 'text-amber-400/70' :
-                s.status === 'red'   ? 'text-red-400/70' : 'text-white/30'
+              trailing={<span className={`text-[12px] font-semibold uppercase tracking-wider ${
+                s.status === 'green' ? 'text-emerald-300' :
+                s.status === 'amber' ? 'text-amber-300' :
+                s.status === 'red'   ? 'text-red-300' : 'text-white/45'
               }`}>{s.status}</span>}
             />
           ))}

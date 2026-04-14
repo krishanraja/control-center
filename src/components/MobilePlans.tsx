@@ -93,7 +93,7 @@ export function MobilePlans() {
               dotColor={STATUS_DOT[w.status]}
               title={w.name}
               detail={w.nextAction}
-              trailing={<span className="text-[10px] text-white/40">{w.owner}</span>}
+              trailing={<span className="text-[12px] font-semibold text-white/55">{w.owner}</span>}
               onClick={w.actionUrl ? () => window.open(w.actionUrl, '_blank') : undefined}
             />
           ))}
@@ -108,7 +108,7 @@ export function MobilePlans() {
               dotColor={STATUS_DOT[w.status]}
               title={w.name}
               detail={w.nextAction}
-              trailing={<span className="text-[10px] text-white/40">{w.owner}</span>}
+              trailing={<span className="text-[12px] font-semibold text-white/55">{w.owner}</span>}
               onClick={w.briefUrl ? () => window.open(w.briefUrl, '_blank') : undefined}
             />
           ))}
@@ -123,7 +123,7 @@ export function MobilePlans() {
               dotColor={STATUS_DOT[w.status]}
               title={w.name}
               detail={w.nextAction}
-              trailing={<span className="text-[10px] text-white/40">{w.owner}</span>}
+              trailing={<span className="text-[12px] font-semibold text-white/55">{w.owner}</span>}
             />
           ))}
         </FeedCard>
@@ -136,7 +136,7 @@ export function MobilePlans() {
               key={w.id}
               dotColor={STATUS_DOT[w.status] ?? 'bg-white/20'}
               title={w.name}
-              trailing={<span className="text-[10px] text-white/30">{STATUS_LABEL[w.status] ?? w.status}</span>}
+              trailing={<span className="text-[12px] font-medium text-white/45">{STATUS_LABEL[w.status] ?? w.status}</span>}
             />
           ))}
         </FeedCard>

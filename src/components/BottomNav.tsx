@@ -30,21 +30,22 @@ export function BottomNav({ active, onChange }: Props) {
             <button
               key={id}
               onClick={() => { h.select(); onChange(id) }}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all duration-200 active:scale-95 ${
-                isActive ? 'text-white' : 'text-white/30'
+              className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3.5 transition-all duration-200 active:scale-95 ${
+                isActive ? 'text-white' : 'text-white/40'
               }`}
+              style={{ minHeight: 64 }}
             >
               <div className={`relative transition-all duration-200 ${isActive ? 'scale-110' : 'scale-100'}`}>
                 {isActive && (
-                  <div className="absolute inset-0 rounded-full bg-violet-500/20 blur-sm scale-150" />
+                  <div className="absolute inset-0 rounded-full bg-violet-500/25 blur-md scale-150" />
                 )}
-                <Icon className={`relative w-[20px] h-[20px] transition-all duration-200 ${isActive ? 'stroke-violet-400' : ''}`} strokeWidth={isActive ? 2.2 : 1.8} />
+                <Icon className={`relative w-[26px] h-[26px] transition-all duration-200 ${isActive ? 'stroke-violet-300' : ''}`} strokeWidth={isActive ? 2.3 : 1.8} />
               </div>
-              <span className={`text-[9px] font-semibold tracking-wide transition-all duration-200 ${isActive ? 'text-violet-300' : ''}`}>
+              <span className={`text-[11px] font-semibold tracking-wide transition-all duration-200 ${isActive ? 'text-violet-200' : ''}`}>
                 {label}
               </span>
               {isActive && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-gradient-to-r from-transparent via-violet-400 to-transparent rounded-full" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[2.5px] bg-gradient-to-r from-transparent via-violet-400 to-transparent rounded-full" />
               )}
             </button>
           )

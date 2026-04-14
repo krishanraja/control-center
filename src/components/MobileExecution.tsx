@@ -107,7 +107,7 @@ export function MobileExecution() {
               key={name}
               dotColor="bg-emerald-400"
               title={name}
-              trailing={<span className="text-[11px] font-mono text-white/40">{count}</span>}
+              trailing={<span className="text-[16px] font-mono font-semibold text-white/70">{count}</span>}
             />
           ))}
         </FeedCard>
@@ -121,7 +121,10 @@ export function MobileExecution() {
               dotColor={STATUS_DOT[worstStatus(e)]}
               title={e.name}
               detail={`${e.domain} · ${e.state}${e.next_run ? ' · next ' + e.next_run : ''}`}
-              trailing={<span className="text-[10px] text-white/30 uppercase tracking-wide">{worstStatus(e)}</span>}
+              trailing={<span className={`text-[12px] font-semibold uppercase tracking-wider ${
+                worstStatus(e) === 'red' ? 'text-red-300' :
+                worstStatus(e) === 'amber' ? 'text-amber-300' : 'text-emerald-300'
+              }`}>{worstStatus(e)}</span>}
             />
           ))}
         </FeedCard>

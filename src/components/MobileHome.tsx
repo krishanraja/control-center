@@ -103,19 +103,18 @@ export function MobileHome() {
               dotColor={URGENCY_DOT[t.urgency ?? 'medium'] ?? 'bg-white/30'}
               title={t.title}
               detail={t.agent ? `from ${t.agent}` : t.description}
-              trailing={<span className="text-[10px] text-white/30 uppercase tracking-wide">Blocked</span>}
+              trailing={<span className="text-[12px] font-semibold text-white/50 uppercase tracking-wider">Blocked</span>}
             />
           ))}
           {approvals.slice(0, 8).map(a => (
             <FeedRow
               key={`a-${a.id}`}
               dotColor="bg-violet-400"
-              title={`${a.agentName} — plan ready for review`}
+              title={`${a.agentName} — plan ready`}
               trailing={a.planUrl ? (
-                <a href={a.planUrl} target="_blank" rel="noreferrer"
-                  className="text-[11px] text-violet-300 active:opacity-60"
-                >Open →</a>
+                <span className="text-[13px] font-semibold text-violet-300">Open →</span>
               ) : undefined}
+              onClick={a.planUrl ? () => window.open(a.planUrl, '_blank') : undefined}
             />
           ))}
         </FeedCard>
