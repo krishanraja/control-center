@@ -1,17 +1,20 @@
 import React from 'react'
 
 /**
- * Mobile-native primitives sized like a flagship consumer app.
+ * Mobile-native primitives — thumb-scale, fills the viewport.
  *
- * Scale references: iOS Large Title ≈ 34pt, Material Display Small ≈ 36sp,
- * Gmail/Calendar row titles ≈ 17sp, Stripe mobile dashboard numerals ≈ 40sp.
- * Minimum tap target 48dp; we use 72dp on rows and 120dp on pills.
+ * Sized for an average 390-420px-wide modern phone at arm's length. Scale is
+ * deliberately ~2× a desktop dashboard so a glance gives you the state
+ * without squinting. All tap targets ≥ 48dp (rows 84dp, pills 140dp).
  */
 
-// Reserve space for BottomNav (~96-104px incl. safe area).
-const BOTTOM_NAV_SPACE = 'pb-[calc(env(safe-area-inset-bottom,0px)+104px)]'
+// BottomNav is ~96-104px tall including safe area.
+const BOTTOM_NAV_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+104px)]'
 
-/** Fixed-height column. Content fills the viewport — no dead space. */
+/**
+ * h-[100dvh] column. Content area is a flex column with gap-5 so fill={true}
+ * children actually grow (margin-based space-y-* defeats flex-1).
+ */
 export function MobileShell({
   header,
   children,
@@ -21,17 +24,17 @@ export function MobileShell({
 }) {
   return (
     <div className="flex flex-col h-[100dvh]">
-      {header && (
-        <div className="px-5 pt-6 pb-4 flex-shrink-0">{header}</div>
-      )}
-      <div className={`flex-1 min-h-0 overflow-y-auto px-5 space-y-5 scrollbar-hide ${BOTTOM_NAV_SPACE}`}>
+      {header && <div className="px-5 pt-7 pb-5 flex-shrink-0">{header}</div>}
+      <div
+        className={`flex-1 min-h-0 overflow-y-auto px-5 flex flex-col gap-5 scrollbar-hide ${BOTTOM_NAV_PAD}`}
+      >
         {children}
       </div>
     </div>
   )
 }
 
-/** iOS-style large navigation title. */
+/** Large nav title — iOS Large Title + Display Small scale. */
 export function TabHeader({
   title,
   subtitle,
@@ -44,11 +47,11 @@ export function TabHeader({
   return (
     <div className="flex items-end justify-between">
       <div className="min-w-0">
-        <h1 className="text-[36px] font-bold text-white leading-[1.05] tracking-tight">
+        <h1 className="text-[44px] font-bold text-white leading-[1.02] tracking-tight">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-[17px] text-white/55 mt-2 truncate">{subtitle}</p>
+          <p className="text-[19px] text-white/55 mt-2 truncate">{subtitle}</p>
         )}
       </div>
       {trailing && <div className="flex-shrink-0 ml-3">{trailing}</div>}
@@ -56,7 +59,7 @@ export function TabHeader({
   )
 }
 
-/** Dominant hero card — the single thing that needs you. */
+/** The one thing that needs you — prominent, tappable, impossible to miss. */
 export function HeroCard({
   eyebrow,
   title,
@@ -77,10 +80,10 @@ export function HeroCard({
   onClick?: () => void
 }) {
   const accentMap: Record<string, string> = {
-    violet:  'from-violet-500/30 via-violet-500/12 to-transparent border-violet-400/35',
-    amber:   'from-amber-500/30 via-amber-500/12 to-transparent border-amber-400/35',
-    emerald: 'from-emerald-500/30 via-emerald-500/12 to-transparent border-emerald-400/35',
-    red:     'from-red-500/30 via-red-500/12 to-transparent border-red-400/35',
+    violet:  'from-violet-500/30 via-violet-500/12 to-transparent border-violet-400/40',
+    amber:   'from-amber-500/30 via-amber-500/12 to-transparent border-amber-400/40',
+    emerald: 'from-emerald-500/30 via-emerald-500/12 to-transparent border-emerald-400/40',
+    red:     'from-red-500/30 via-red-500/12 to-transparent border-red-400/40',
     neutral: 'from-white/[0.10] via-white/[0.05] to-transparent border-white/[0.12]',
   }
   const ctaColorMap: Record<string, string> = {
@@ -94,31 +97,31 @@ export function HeroCard({
   return (
     <Wrapper
       onClick={onClick}
-      className={`relative w-full text-left rounded-[28px] border p-7 bg-gradient-to-br ${accentMap[accent]} overflow-hidden ${onClick ? 'active:scale-[0.99] transition-transform' : ''}`}
-      style={{ minHeight: 240 }}
+      className={`relative w-full text-left rounded-[32px] border p-8 bg-gradient-to-br ${accentMap[accent]} overflow-hidden flex-shrink-0 ${onClick ? 'active:scale-[0.99] transition-transform' : ''}`}
+      style={{ minHeight: 300 }}
     >
       {eyebrow && (
-        <div className="flex items-center gap-2.5 mb-4">
-          {dotColor && <span className={`w-3 h-3 rounded-full ${dotColor}`} />}
-          <span className="text-[13px] font-bold uppercase tracking-[0.16em] text-white/65">
+        <div className="flex items-center gap-3 mb-5">
+          {dotColor && <span className={`w-3.5 h-3.5 rounded-full ${dotColor}`} />}
+          <span className="text-[15px] font-bold uppercase tracking-[0.16em] text-white/70">
             {eyebrow}
           </span>
         </div>
       )}
-      <p className="text-[26px] font-semibold text-white leading-[1.2]">
+      <p className="text-[32px] font-bold text-white leading-[1.15] tracking-tight">
         {title}
       </p>
       {detail && (
-        <p className="text-[16px] text-white/65 mt-4 leading-relaxed line-clamp-3">
+        <p className="text-[18px] text-white/65 mt-5 leading-[1.45] line-clamp-3">
           {detail}
         </p>
       )}
-      <div className="flex items-center justify-between mt-6">
+      <div className="flex items-center justify-between mt-7">
         {meta ? (
-          <span className="text-[14px] text-white/50">{meta}</span>
+          <span className="text-[16px] text-white/50">{meta}</span>
         ) : <span />}
         {cta && (
-          <span className={`text-[16px] font-semibold rounded-full px-6 py-3 ${ctaColorMap[accent]}`}>
+          <span className={`text-[18px] font-semibold rounded-full px-7 py-4 ${ctaColorMap[accent]}`}>
             {cta}
           </span>
         )}
@@ -127,7 +130,7 @@ export function HeroCard({
   )
 }
 
-/** 3-up stat row — big, scannable numerals. */
+/** 3-up stat row — big display numerals, 140dp min. */
 export function StatPill({
   label,
   value,
@@ -141,21 +144,21 @@ export function StatPill({
 }) {
   return (
     <div
-      className="flex-1 min-w-0 bg-white/[0.05] border border-white/[0.08] rounded-2xl px-3 py-5 text-center"
-      style={{ minHeight: 116 }}
+      className="flex-1 min-w-0 bg-white/[0.05] border border-white/[0.08] rounded-3xl px-3 py-6 text-center flex-shrink-0"
+      style={{ minHeight: 140 }}
     >
-      <p className={`text-[38px] font-bold leading-none font-mono tracking-tight ${color}`}>
+      <p className={`text-[52px] font-bold leading-none font-mono tracking-tight ${color}`}>
         {value}
       </p>
-      <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-white/55 mt-3 truncate">
+      <p className="text-[14px] font-semibold uppercase tracking-[0.14em] text-white/55 mt-3.5 truncate">
         {label}
       </p>
-      {sub && <p className="text-[11px] text-white/35 mt-1 truncate">{sub}</p>}
+      {sub && <p className="text-[12px] text-white/35 mt-1 truncate">{sub}</p>}
     </div>
   )
 }
 
-/** Secondary card — grows to fill leftover viewport so there's no dead space. */
+/** Secondary card. fill=true grows to claim leftover viewport. */
 export function FeedCard({
   title,
   action,
@@ -169,26 +172,28 @@ export function FeedCard({
 }) {
   return (
     <div
-      className={`bg-white/[0.05] border border-white/[0.08] rounded-[28px] overflow-hidden ${fill ? 'flex-1 min-h-0 flex flex-col' : ''}`}
+      className={`bg-white/[0.05] border border-white/[0.08] rounded-[32px] overflow-hidden ${fill ? 'flex-1 min-h-0 flex flex-col' : 'flex-shrink-0'}`}
     >
       {(title || action) && (
-        <div className="px-6 pt-5 pb-3 flex items-center justify-between border-b border-white/[0.06] flex-shrink-0">
+        <div className="px-7 pt-6 pb-4 flex items-center justify-between border-b border-white/[0.06] flex-shrink-0">
           {title && (
-            <p className="text-[13px] font-bold uppercase tracking-[0.16em] text-white/60">
+            <p className="text-[14px] font-bold uppercase tracking-[0.16em] text-white/60">
               {title}
             </p>
           )}
           {action}
         </div>
       )}
-      <div className={`divide-y divide-white/[0.06] ${fill ? 'flex-1 min-h-0 overflow-y-auto scrollbar-hide' : ''}`}>
+      <div
+        className={`divide-y divide-white/[0.06] ${fill ? 'flex-1 min-h-0 overflow-y-auto scrollbar-hide' : ''}`}
+      >
         {children}
       </div>
     </div>
   )
 }
 
-/** 72dp min row with generous typography. */
+/** 84dp row, 22px title. */
 export function FeedRow({
   dotColor,
   title,
@@ -206,18 +211,18 @@ export function FeedRow({
   return (
     <Wrapper
       onClick={onClick}
-      className={`w-full text-left px-6 py-5 flex items-start gap-4 ${onClick ? 'active:bg-white/[0.05] transition-colors' : ''}`}
-      style={{ minHeight: 76 }}
+      className={`w-full text-left px-7 py-6 flex items-start gap-4 ${onClick ? 'active:bg-white/[0.05] transition-colors' : ''}`}
+      style={{ minHeight: 88 }}
     >
       {dotColor && (
-        <span className={`w-3 h-3 rounded-full flex-shrink-0 mt-1.5 ${dotColor}`} />
+        <span className={`w-3.5 h-3.5 rounded-full flex-shrink-0 mt-2 ${dotColor}`} />
       )}
       <div className="flex-1 min-w-0">
-        <p className="text-[18px] font-semibold text-white leading-snug line-clamp-2">
+        <p className="text-[20px] font-semibold text-white leading-snug line-clamp-2">
           {title}
         </p>
         {detail && (
-          <p className="text-[15px] text-white/55 mt-1.5 leading-relaxed line-clamp-2">
+          <p className="text-[16px] text-white/55 mt-2 leading-[1.45] line-clamp-2">
             {detail}
           </p>
         )}
@@ -230,6 +235,6 @@ export function FeedRow({
 /** Empty state */
 export function EmptyState({ label }: { label: string }) {
   return (
-    <div className="px-5 py-16 text-center text-[16px] text-white/40">{label}</div>
+    <div className="px-5 py-20 text-center text-[18px] text-white/40">{label}</div>
   )
 }

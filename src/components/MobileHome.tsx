@@ -88,7 +88,7 @@ export function MobileHome() {
       )}
 
       {/* Stat strip */}
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <StatPill label="Blocked" value={blocked.length} color={blocked.length > 0 ? 'text-red-400' : 'text-white/60'} />
         <StatPill label="Approvals" value={approvals.length} color={approvals.length > 0 ? 'text-violet-300' : 'text-white/60'} />
         <StatPill label="Goals" value={`${goalsOnTrack}/${goalsList.length || 0}`} sub="on track" color="text-emerald-400" />
@@ -103,7 +103,7 @@ export function MobileHome() {
               dotColor={URGENCY_DOT[t.urgency ?? 'medium'] ?? 'bg-white/30'}
               title={t.title}
               detail={t.agent ? `from ${t.agent}` : t.description}
-              trailing={<span className="text-[12px] font-semibold text-white/50 uppercase tracking-wider">Blocked</span>}
+              trailing={<span className="text-[14px] font-semibold text-white/55 uppercase tracking-wider">Blocked</span>}
             />
           ))}
           {approvals.slice(0, 8).map(a => (
@@ -112,7 +112,7 @@ export function MobileHome() {
               dotColor="bg-violet-400"
               title={`${a.agentName} — plan ready`}
               trailing={a.planUrl ? (
-                <span className="text-[13px] font-semibold text-violet-300">Open →</span>
+                <span className="text-[16px] font-semibold text-violet-300">Open →</span>
               ) : undefined}
               onClick={a.planUrl ? () => window.open(a.planUrl, '_blank') : undefined}
             />
