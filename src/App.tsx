@@ -16,6 +16,12 @@ import { WeeklyGoals } from './components/WeeklyGoals'
 import { PlaybooksPanel } from './components/PlaybooksPanel'
 import { PlanExecutionDashboard } from './components/PlanExecutionDashboard'
 import { WorkstreamBoard } from './components/WorkstreamBoard'
+// ─── Mobile-native components ─────────────────────────────────────────────────
+import { MobileHome } from './components/MobileHome'
+import { MobileToday } from './components/MobileToday'
+import { MobilePlans } from './components/MobilePlans'
+import { MobileExecution } from './components/MobileExecution'
+import { MobileSystems } from './components/MobileSystems'
 
 // ─── Tab IDs shared across desktop + mobile ───────────────────────────────────
 type TabId = 'home' | 'today' | 'playbooks' | 'plans' | 'org' | 'execution' | 'systems'
@@ -65,14 +71,13 @@ export default function App() {
             <span className="text-[13px] font-semibold text-white/80 tracking-tight">Mindmaker OS</span>
           </div>
           <div className="px-4 pt-2 space-y-4">
-            {tab === 'home'  && <MobileHome currentTime={currentTime} />}
-            {tab === 'today' && <MobileToday />}
-            
-            {tab === 'playbooks' && <PlaybooksPanel />}
-            {tab === 'plans' && <MobilePlans />}
-            {tab === 'org'   && <MobileOrg currentTime={currentTime} />}
-            {tab === 'execution' && <ExecutionTabContent />}
-            {tab === 'systems'   && <MobileSystems />}
+            {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome /></ErrorBoundary>}
+            {tab === 'today'     && <ErrorBoundary label="Today"><MobileToday /></ErrorBoundary>}
+            {tab === 'playbooks' && <ErrorBoundary label="Playbooks"><PlaybooksPanel /></ErrorBoundary>}
+            {tab === 'plans'     && <ErrorBoundary label="Plans"><MobilePlans /></ErrorBoundary>}
+            {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrgWrapper currentTime={currentTime} /></ErrorBoundary>}
+            {tab === 'execution' && <ErrorBoundary label="Execution"><MobileExecution /></ErrorBoundary>}
+            {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
           </div>
         </div>
       </main>
@@ -177,68 +182,13 @@ function MobileHeader({ title, subtitle }: { title: string; subtitle?: string })
   )
 }
 
-function MobileHome({ currentTime }: { currentTime: Date }) {
+// ── Org wrapper (keeps MobileOrgChart + header pattern) ──────────────────────
+function MobileOrgWrapper({ currentTime }: { currentTime: Date }) {
   return (
-    <ErrorBoundary label="Home">
-      <div className="space-y-5">
-        <MobileHeader title="Exec Summary" subtitle="April 2026" />
-        <HomeIntelligence />
-      </div>
-    </ErrorBoundary>
-  )
-}
-
-function MobileToday() {
-  return (
-    <ErrorBoundary label="Today">
-      <div className="space-y-4">
-        <MobileHeader title="Today" subtitle="Everything that needs you" />
-        <TodayTabContent />
-      </div>
-    </ErrorBoundary>
-  )
-}
-
-function MobileTeam({ currentTime }: { currentTime: Date }) {
-  return (
-    <ErrorBoundary label="Team">
-      <div className="space-y-4">
-        <MobileHeader title="Team" subtitle="Your AI agents" />
-        <AgentGrid agents={AGENTS} currentTime={currentTime} />
-      </div>
-    </ErrorBoundary>
-  )
-}
-
-function MobilePlans() {
-  return (
-    <ErrorBoundary label="Plans">
-      <div className="space-y-4">
-        <WorkstreamBoard />
-      </div>
-    </ErrorBoundary>
-  )
-}
-
-function MobileOrg({ currentTime }: { currentTime: Date }) {
-  return (
-    <ErrorBoundary label="Org">
-      <div className="space-y-4">
-        <MobileHeader title="Org Chart" subtitle="Reporting chain & pods" />
-        <MobileOrgChart agents={AGENTS} />
-      </div>
-    </ErrorBoundary>
-  )
-}
-
-function MobileOps() {
-  return (
-    <ErrorBoundary label="Automations">
-      <div className="space-y-4">
-        <MobileHeader title="Automations" subtitle="N8N workflows" />
-        <AutomationsPanel />
-      </div>
-    </ErrorBoundary>
+    <div className="space-y-4">
+      <MobileHeader title="Org Chart" subtitle="Reporting chain & pods" />
+      <MobileOrgChart agents={AGENTS} />
+    </div>
   )
 }
 
@@ -246,17 +196,6 @@ function DesktopSystems() {
   return (
     <ErrorBoundary label="Systems">
       <div className="space-y-4">
-        <SystemsPanel />
-      </div>
-    </ErrorBoundary>
-  )
-}
-
-function MobileSystems() {
-  return (
-    <ErrorBoundary label="Systems">
-      <div className="space-y-4">
-        <MobileHeader title="Systems" subtitle="Connected services · Monitored by Arlo" />
         <SystemsPanel />
       </div>
     </ErrorBoundary>
