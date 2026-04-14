@@ -92,7 +92,7 @@ export function MobileToday() {
               title={item.title}
               detail={item.detail}
               trailing={item.est ? (
-                <span className="text-[10px] text-white/30">{item.est}</span>
+                <span className="text-[12px] font-semibold text-white/50">{item.est}</span>
               ) : undefined}
             />
           ))}
@@ -102,12 +102,12 @@ export function MobileToday() {
       {goalsList.length > 0 && (
         <FeedCard title="Goals">
           {goalsList.map(g => (
-            <div key={g.id} className="px-4 py-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-[12px] font-medium text-white/80 truncate pr-2">{g.title}</p>
-                <span className="text-[11px] font-mono text-white/40 flex-shrink-0">{g.progress}%</span>
+            <div key={g.id} className="px-5 py-4">
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-[15px] font-medium text-white/85 truncate pr-3">{g.title}</p>
+                <span className="text-[14px] font-mono font-semibold text-white/60 flex-shrink-0">{g.progress}%</span>
               </div>
-              <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+              <div className="h-2 bg-white/[0.07] rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full ${
                     g.progress === 0 ? 'bg-white/10' :
@@ -117,7 +117,7 @@ export function MobileToday() {
                   style={{ width: `${Math.min(g.progress, 100)}%` }}
                 />
               </div>
-              {g.owner && <p className="text-[10px] text-white/25 mt-1">{g.owner}</p>}
+              {g.owner && <p className="text-[12px] text-white/40 mt-2">{g.owner}</p>}
             </div>
           ))}
         </FeedCard>
