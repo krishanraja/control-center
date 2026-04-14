@@ -47,7 +47,7 @@ export function MobileOrgChart({ agents }: Props) {
   const byId = (id: string) => agents.find(a => a.id === id)
 
   const handleAgentTap = (agent: Agent) => {
-    h.impact()
+    h.select()
     setSelectedAgent(agent)
   }
 

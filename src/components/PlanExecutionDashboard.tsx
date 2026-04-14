@@ -16,6 +16,7 @@ interface Plan {
     done: number
   }
   next_milestone: string
+  brief_source?: string
   last_updated: string
 }
 
