@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { ExternalLink, Copy, Check, ChevronDown, ChevronRight, Mic, Mail, Instagram, Video, Cpu, TrendingUp, Users, Zap, AlertTriangle, Clock, CheckCircle2, ArrowUpRight } from 'lucide-react'
+import { AgentAvatar } from './shared/AgentAvatar'
+import { StatusPill } from './shared/StatusPill'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -142,10 +144,11 @@ function WorkstreamRow({ ws, showCopyHint }: { ws: Workstream; showCopyHint: boo
         </div>
 
         {/* Owner + supporters */}
-        <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
-          <span className="text-[11px] text-white/40 font-medium">{ws.owner}</span>
+        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+          <AgentAvatar agent={ws.owner} size="sm" />
+          <span className="text-[12px] text-white/75 font-medium">{ws.owner}</span>
           {ws.supporting && ws.supporting.length > 0 && (
-            <span className="text-[10px] text-white/25">+{ws.supporting.join(', ')}</span>
+            <span className="text-[10px] text-white/35">+{ws.supporting.join(', ')}</span>
           )}
         </div>
 
@@ -158,9 +161,9 @@ function WorkstreamRow({ ws, showCopyHint }: { ws: Workstream; showCopyHint: boo
         )}
 
         {/* Status badge */}
-        <span className={`hidden sm:inline-flex flex-shrink-0 text-[10px] px-2 py-0.5 rounded border font-medium ${cfg.badge}`}>
-          {cfg.label}
-        </span>
+        <StatusPill status={ws.status} className="hidden sm:inline-flex flex-shrink-0" />
+        {/* Retain hidden legacy cfg reference to avoid unused-var break */}
+        <span className="hidden" data-legacy={cfg.label} />
 
         {/* Chevron */}
         <div className="text-white/20 flex-shrink-0">

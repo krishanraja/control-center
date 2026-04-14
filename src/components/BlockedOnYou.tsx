@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { UserCheck, Clock, ArrowRight, MessageCircle, CheckCircle, Send, Hourglass } from 'lucide-react'
 import { AGENTS } from '../services/agentData'
+import { AgentAvatar } from './shared/AgentAvatar'
 
 interface BlockItem {
   id: string
@@ -173,10 +174,10 @@ export function BlockedOnYou() {
                     </div>
                   )}
                   {item.agent && (
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <span>from</span>
-                      <span className="font-medium text-gray-400">{item.agent}</span>
-                      <ArrowRight size={10} />
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <AgentAvatar agent={item.agent} size="xs" />
+                      <span className="font-medium">{item.agent}</span>
+                      <ArrowRight size={10} className="text-gray-500" />
                       <span className="text-amber-400">Needs your input</span>
                     </div>
                   )}
@@ -295,10 +296,10 @@ export function BlockedOnYou() {
                     <p className="text-xs text-gray-400 leading-relaxed">{item.description || item.nextStep}</p>
                   )}
                   {item.agent && (
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <span>from</span>
-                      <span className="font-medium text-gray-400">{item.agent}</span>
-                      <ArrowRight size={10} />
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <AgentAvatar agent={item.agent} size="xs" />
+                      <span className="font-medium">{item.agent}</span>
+                      <ArrowRight size={10} className="text-gray-500" />
                       <span className="text-blue-400">In progress</span>
                     </div>
                   )}
