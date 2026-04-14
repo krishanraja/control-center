@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-04-14T09:25:01.686059Z",
+  "updated_at": "2026-04-14T09:30:01.716336Z",
   "updated_by": "arlo-sync-5min",
-  "next_check": "2026-04-14T09:25:01.686059Z",
+  "next_check": "2026-04-14T09:30:01.716336Z",
   "categories": [
     {
       "id": "automation",
@@ -13,21 +13,21 @@
           "url": "https://krishraja10101.app.n8n.cloud",
           "status": "green",
           "note": "30 active / 8 inactive workflows",
-          "last_checked": "2026-04-14T09:25:01.686059Z"
+          "last_checked": "2026-04-14T09:30:01.716336Z"
         },
         {
           "id": "n8n-revenue-report",
           "name": "Revenue Report Workflow",
           "status": "red",
           "note": "Errored Apr 6-7 \u2014 unresolved. Investigate in N8N UI (pyr9wurcs1M9utW3)",
-          "last_checked": "2026-04-14T09:25:01.686059Z"
+          "last_checked": "2026-04-14T09:30:01.716336Z"
         },
         {
           "id": "n8n-content-engine",
           "name": "Content Engine Workflow",
           "status": "amber",
           "note": "Errored Apr 11 \u2014 node-level detail unavailable via API",
-          "last_checked": "2026-04-14T09:25:01.686059Z"
+          "last_checked": "2026-04-14T09:30:01.716336Z"
         }
       ]
     },
@@ -40,21 +40,21 @@
           "name": "Instantly v2",
           "status": "green",
           "note": "Auth verified Apr 8 \u2014 v2 API confirmed",
-          "last_checked": "2026-04-14T09:25:01.686059Z"
+          "last_checked": "2026-04-14T09:30:01.716336Z"
         },
         {
           "id": "apollo",
           "name": "Apollo.io",
           "status": "amber",
           "note": "422 on health endpoint \u2014 key may be valid but manual test needed",
-          "last_checked": "2026-04-14T09:25:01.686059Z"
+          "last_checked": "2026-04-14T09:30:01.716336Z"
         },
         {
           "id": "apify",
           "name": "Apify",
           "status": "green",
           "note": "STARTER $29/mo \u2014 LinkedIn, Workday, Career Site actors all active",
-          "last_checked": "2026-04-14T09:25:01.686059Z"
+          "last_checked": "2026-04-14T09:30:01.716336Z"
         }
       ]
     },
@@ -67,7 +67,7 @@
           "name": "Stripe",
           "status": "green",
           "note": "Webhooks live \u2014 confirmed 200 Apr 7",
-          "last_checked": "2026-04-14T09:25:01.686059Z"
+          "last_checked": "2026-04-14T09:30:01.716336Z"
         },
         {
           "id": "beehiiv",
@@ -87,28 +87,28 @@
           "name": "GitHub",
           "status": "green",
           "note": "Token valid \u2014 auto-push every 5 min via cron",
-          "last_checked": "2026-04-14T09:25:01.686059Z"
+          "last_checked": "2026-04-14T09:30:01.716336Z"
         },
         {
           "id": "control-center-sync",
           "name": "Control Center Sync",
           "status": "green",
-          "note": "Last auto-push: 2026-04-14T09:25:01.686059Z",
-          "last_checked": "2026-04-14T09:25:01.686059Z"
+          "note": "Last auto-push: 2026-04-14T09:30:01.716336Z",
+          "last_checked": "2026-04-14T09:30:01.716336Z"
         },
         {
           "id": "supabase",
           "name": "Supabase",
           "status": "green",
           "note": "PAT valid \u2014 Circle + Pulse projects accessible",
-          "last_checked": "2026-04-14T09:25:01.686059Z"
+          "last_checked": "2026-04-14T09:30:01.716336Z"
         },
         {
           "id": "google-oauth",
           "name": "Google OAuth",
           "status": "amber",
           "note": "Refresh required each session \u2014 verified via gog docs info",
-          "last_checked": "2026-04-14T09:25:01.686059Z"
+          "last_checked": "2026-04-14T09:30:01.716336Z"
         }
       ]
     }
