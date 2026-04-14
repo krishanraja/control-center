@@ -1,23 +1,23 @@
 {
-  "updated_at": "2026-04-14T05:45:01.892777Z",
+  "updated_at": "2026-04-14T05:50:01.233325Z",
   "components": {
     "control_center_api": {
       "status": "healthy",
-      "last_check": "2026-04-14T05:45:01.892777Z",
+      "last_check": "2026-04-14T05:50:01.233325Z",
       "endpoint": "/api/data"
     },
     "task_sync": {
       "status": "healthy",
-      "last_check": "2026-04-14T05:45:01.892777Z",
+      "last_check": "2026-04-14T05:50:01.233325Z",
       "synced_tasks": 34
     },
     "github_sync": {
       "status": "healthy",
-      "last_check": "2026-04-14T05:45:01.892777Z"
+      "last_check": "2026-04-14T05:50:01.233325Z"
     },
     "contradiction_detection": {
       "status": "active",
-      "last_check": "2026-04-14T05:45:01.892777Z",
+      "last_check": "2026-04-14T05:50:01.233325Z",
       "issues_found": 0
     }
   },
