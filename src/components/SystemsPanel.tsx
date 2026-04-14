@@ -197,7 +197,7 @@ export function SystemsPanel() {
       <div className="rounded-xl border border-violet-500/10 bg-violet-500/[0.03] px-4 py-3">
         <p className="text-[11px] text-violet-300/50 leading-relaxed">
           <strong className="text-violet-300/70">Arlo</strong> runs hourly health checks and a full sweep every Sunday 3AM UTC.
-          Statuses update via <code className="text-[10px] bg-white/[0.05] px-1 py-0.5 rounded">public/data/systems-status.json</code>.
+          Statuses update via the <code className="text-[10px] bg-white/[0.05] px-1 py-0.5 rounded">system_health</code> Supabase table.
           Red or critical warnings route to ops-bot immediately.
         </p>
       </div>

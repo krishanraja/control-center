@@ -74,7 +74,7 @@ export function AgentDetailModal({ agent, isOpen, onClose }: Props) {
                 </p>
                 {agent.briefUpdatedAt && (
                   <p className="text-[10px] text-white/30 mt-0.5">
-                    Brief synced: {formatRelativeTime(new Date(agent.briefUpdatedAt).getTime())}
+                    Brief synced: {formatRelativeTime(new Date(agent.briefUpdatedAt))}
                     {agent.briefChecksum && <span className="ml-2 font-mono text-white/20">{agent.briefChecksum.slice(0, 8)}</span>}
                   </p>
                 )}

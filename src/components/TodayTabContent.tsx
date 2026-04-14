@@ -79,7 +79,7 @@ function BlockedItem({ item, onRefresh }: { item: BlockItem; onRefresh: () => vo
   const [confirmed, setConfirmed] = useState(false)
 
   // Build a structured message Krish can paste to Agatha in Telegram.
-  // Agatha processes it, updates tasks.json, and the 5-min sync commits it.
+  // Agatha processes it, updates the Supabase tasks table, and agents pick it up on next poll.
   const buildAgathaMessage = (decision: string) =>
     `DECISION | task:${item.id} | agent:${item.agent ?? 'unknown'} | ${decision} | ${new Date().toISOString()}`
 

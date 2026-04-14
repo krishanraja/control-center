@@ -48,8 +48,7 @@ export function ExecutionTabContent() {
         })
         setEngines(safe)
         setLastUpdate(d?.updated_at ? new Date(String(d.updated_at)).toLocaleString() : '—')
-      })
-      .catch(e => console.error('Failed to load execution state:', e))
+      }, e => console.error('Failed to load execution state:', e))
     })
   }, [])
 

@@ -24,7 +24,7 @@ export function MobileToday() {
         const high = mine.filter((t: any) => t.urgency === 'high')
         const rest = mine.filter((t: any) => t.urgency !== 'high')
         setBlocked([...high, ...rest])
-      }).catch(() => {})
+      }, () => {})
 
       // Today items - tasks owned by krish that aren't done
       supabase.from('tasks').select('*').eq('owner', 'krish').neq('status', 'done').then(({ data: tasks }) => {
@@ -33,7 +33,7 @@ export function MobileToday() {
           owner: t.owner || 'krish', priority: t.priority || 99, est: undefined,
         }))
         setToday(items.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99)))
-      }).catch(() => {})
+      }, () => {})
 
       // Goals
       supabase.from('goals').select('*').then(({ data: goalRows }) => {
@@ -43,9 +43,9 @@ export function MobileToday() {
           }))
           supabase.from('system_config').select('value').eq('key', 'week_of').single().then(({ data: wk }) => {
             setGoals({ week_of: wk?.value || undefined, goals })
-          }).catch(() => setGoals({ goals }))
+          }, () => setGoals({ goals }))
         }
-      }).catch(() => {})
+      }, () => {})
     }).catch(() => {})
   }
 
