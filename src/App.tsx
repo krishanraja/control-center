@@ -27,15 +27,28 @@ import { MobileSystems } from './components/MobileSystems'
 type TabId = 'home' | 'today' | 'playbooks' | 'plans' | 'org' | 'execution' | 'systems'
 
 // ─── Mobile detection ─────────────────────────────────────────────────────────
-// Uses two signals so we render mobile UI reliably even when viewport width
-// doesn't equal device-width (high-DPI phones, browsers ignoring the viewport
-// meta, cached zoom, etc.): (a) narrow viewport OR (b) mobile user agent.
+// Combines four independent signals so we render mobile UI reliably even when:
+//   - viewport width doesn't equal device-width (high-DPI phones)
+//   - the browser ignores the viewport meta
+//   - the user toggled "Request desktop site" (UA is spoofed AND viewport
+//     widens to ~980px, defeating any CSS media query under 900)
+// Touch signals (pointer:coarse, maxTouchPoints) can't be spoofed by that mode
+// and reliably identify a phone/tablet regardless of UA or viewport width.
 function detectIsMobile() {
   if (typeof window === 'undefined') return false
   const narrow = window.innerWidth < 900
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
   const mobileUA = /Android|iPhone|iPad|iPod|Mobile|BlackBerry|IEMobile|Opera Mini/i.test(ua)
-  return narrow || mobileUA
+  const coarsePointer =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(pointer: coarse)').matches
+  const touchPoints =
+    typeof navigator !== 'undefined' && (navigator.maxTouchPoints ?? 0) > 1
+  // Treat any touch-primary device as mobile (covers "Request desktop site"
+  // mode, which spoofs UA and inflates the viewport to ~980px but can't hide
+  // that the physical input is a coarse-pointer touchscreen).
+  const isTouchDevice = coarsePointer || touchPoints
+  return narrow || mobileUA || isTouchDevice
 }
 
 // ─── Root App ─────────────────────────────────────────────────────────────────
