@@ -26,11 +26,23 @@ import { MobileSystems } from './components/MobileSystems'
 // ─── Tab IDs shared across desktop + mobile ───────────────────────────────────
 type TabId = 'home' | 'today' | 'playbooks' | 'plans' | 'org' | 'execution' | 'systems'
 
+// ─── Mobile detection ─────────────────────────────────────────────────────────
+// Uses two signals so we render mobile UI reliably even when viewport width
+// doesn't equal device-width (high-DPI phones, browsers ignoring the viewport
+// meta, cached zoom, etc.): (a) narrow viewport OR (b) mobile user agent.
+function detectIsMobile() {
+  if (typeof window === 'undefined') return false
+  const narrow = window.innerWidth < 900
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
+  const mobileUA = /Android|iPhone|iPad|iPod|Mobile|BlackBerry|IEMobile|Opera Mini/i.test(ua)
+  return narrow || mobileUA
+}
+
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState<TabId>('home')
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
+  const [isMobile, setIsMobile] = useState(detectIsMobile)
 
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -38,9 +50,13 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 768)
+    const onResize = () => setIsMobile(detectIsMobile())
     window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+    }
   }, [])
 
   const handleTab = (id: string) => {
