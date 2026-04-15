@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { formatDistanceToNow } from 'date-fns'
+import { Crown, Cog, Rocket, Users, Activity as ActivityIcon } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
@@ -14,6 +15,36 @@ interface Agent {
   last_run?: string
   last_output?: string
   brief_content?: string
+}
+
+const POD_CONFIG: Record<string, { 
+  label: string
+  icon: typeof Crown
+  color: string
+  headerBg: string
+  order: number
+}> = {
+  executive: { 
+    label: 'Executive', 
+    icon: Crown, 
+    color: 'text-purple-400 border-purple-500/25 bg-purple-500/10',
+    headerBg: 'bg-gradient-to-r from-purple-500/10 to-transparent border-purple-500/20',
+    order: 1
+  },
+  ops: { 
+    label: 'Operations', 
+    icon: Cog, 
+    color: 'text-blue-400 border-blue-500/25 bg-blue-500/10',
+    headerBg: 'bg-gradient-to-r from-blue-500/10 to-transparent border-blue-500/20',
+    order: 2
+  },
+  growth: { 
+    label: 'Growth', 
+    icon: Rocket, 
+    color: 'text-emerald-400 border-emerald-500/25 bg-emerald-500/10',
+    headerBg: 'bg-gradient-to-r from-emerald-500/10 to-transparent border-emerald-500/20',
+    order: 3
+  },
 }
 
 const POD_COLOR: Record<string, string> = {
@@ -35,6 +66,23 @@ export function DesktopOrg() {
 
   const selected = agents.find(a => a.id === selectedId) || agents[0] || null
 
+  // Group agents by pod with proper ordering
+  const groupedAgents = useMemo(() => {
+    const groups: Record<string, Agent[]> = {}
+    agents.forEach(a => {
+      const pod = a.pod || 'unassigned'
+      if (!groups[pod]) groups[pod] = []
+      groups[pod].push(a)
+    })
+    
+    // Sort pods by configured order
+    return Object.entries(groups).sort(([a], [b]) => {
+      const orderA = POD_CONFIG[a]?.order ?? 99
+      const orderB = POD_CONFIG[b]?.order ?? 99
+      return orderA - orderB
+    })
+  }, [agents])
+
   useEffect(() => {
     if (!selected) return
     const load = async () => {
@@ -49,35 +97,63 @@ export function DesktopOrg() {
   }, [selected?.id])
 
   const list = (
-    <div className="space-y-4 pr-2">
+    <div className="space-y-5 pr-2">
       <div className="flex items-baseline justify-between gap-3">
-        <h1 className="text-[26px] font-semibold text-white tracking-tight">Organisation</h1>
+        <h1 className="text-xl md:text-2xl font-semibold text-white tracking-tight">Organisation</h1>
         <p className="text-[12px] text-white/35 font-mono tabular-nums">{agents.length} {agents.length === 1 ? 'agent' : 'agents'}</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-        {agents.map(a => {
-          const podCls = POD_COLOR[a.pod || ''] || 'text-white/50 border-white/10 bg-white/[0.03]'
-          const isSel = selected?.id === a.id
-          return (
-            <button
-              key={a.id}
-              onClick={() => setSelectedId(a.id)}
-              className={`text-left rounded-xl border p-3.5 transition-all ${
-                isSel ? 'border-violet-500/40 bg-violet-500/[0.07]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.03]'
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <AgentAvatar agent={a.id} size="md" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] text-white font-semibold truncate">{a.name}</p>
-                  <span className={`inline-block text-[10px] px-1.5 py-0.5 mt-1 rounded border font-medium ${podCls}`}>{a.pod || 'unassigned'}</span>
-                  {a.last_run && <p className="text-[10px] text-white/30 mt-1.5">Last run {formatDistanceToNow(new Date(a.last_run), { addSuffix: true })}</p>}
+      
+      {groupedAgents.length === 0 ? (
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-12 flex flex-col items-center justify-center text-center">
+          <Users size={24} className="text-white/20 mb-3" />
+          <p className="text-[13px] text-white/45">No agents found</p>
+          <p className="text-[11px] text-white/25 mt-1">Agents will appear here when active</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {groupedAgents.map(([podName, podAgents]) => {
+            const config = POD_CONFIG[podName]
+            const Icon = config?.icon || Users
+            const headerBg = config?.headerBg || 'bg-white/[0.02] border-white/[0.06]'
+            const labelColor = config ? config.color.split(' ')[0] : 'text-white/50'
+            
+            return (
+              <div key={podName} className="space-y-2">
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${headerBg}`}>
+                  <Icon size={14} className={labelColor} />
+                  <span className={`text-[11px] font-semibold uppercase tracking-[0.12em] ${labelColor}`}>
+                    {config?.label || podName}
+                  </span>
+                  <span className="text-[10px] text-white/30 font-mono ml-auto">{podAgents.length}</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {podAgents.map(a => {
+                    const podCls = POD_COLOR[a.pod || ''] || 'text-white/50 border-white/10 bg-white/[0.03]'
+                    const isSel = selected?.id === a.id
+                    return (
+                      <button
+                        key={a.id}
+                        onClick={() => setSelectedId(a.id)}
+                        className={`text-left rounded-xl border p-3 transition-all ${
+                          isSel ? 'border-violet-500/40 bg-violet-500/[0.07]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.03]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <AgentAvatar agent={a.id} size="md" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[13px] text-white font-semibold truncate">{a.name}</p>
+                            {a.role && <p className="text-[10px] text-white/40 truncate mt-0.5">{a.role}</p>}
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
-            </button>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 
@@ -86,7 +162,7 @@ export function DesktopOrg() {
       <div className="flex items-start gap-4">
         <AgentAvatar agent={selected.id} size="lg" />
         <div className="flex-1 min-w-0">
-          <h1 className="text-[26px] font-semibold text-white leading-tight tracking-tight">{selected.name}</h1>
+          <h1 className="text-xl md:text-2xl font-semibold text-white leading-tight tracking-tight">{selected.name}</h1>
           {selected.role && <p className="text-[13px] text-white/55 mt-1">{selected.role}</p>}
           {selected.pod && (
             <span className={`inline-block text-[10px] px-1.5 py-0.5 mt-2 rounded border font-medium ${POD_COLOR[selected.pod || ''] || 'text-white/50 border-white/10 bg-white/[0.03]'}`}>{selected.pod}</span>
@@ -111,7 +187,10 @@ export function DesktopOrg() {
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2.5">Recent Activity</p>
         {detail.activity.length === 0 ? (
-          <p className="text-[11px] text-white/30">No recent activity.</p>
+          <div className="flex flex-col items-center py-4 text-center">
+            <ActivityIcon size={16} className="text-white/15 mb-1.5" />
+            <p className="text-[11px] text-white/30">No recent activity</p>
+          </div>
         ) : (
           <div className="space-y-1.5">
             {detail.activity.slice(0, 5).map(a => (

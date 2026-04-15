@@ -132,7 +132,7 @@ export function SystemsPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-bold text-white">Systems</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-white">Systems</h1>
           <p className="text-[13px] text-white/30 mt-0.5">All connected services. Monitored by Arlo.</p>
         </div>
         <button

@@ -24,9 +24,15 @@ export function DesktopPlans() {
   const filtered = useMemo(() => {
     let t = tasks.filter(x => {
       const agent = (x.agent || '').toLowerCase()
-      if (agent === 'zara') return false
+      const title = (x.title || '').toLowerCase()
       const gl = (x.group_label || '').toLowerCase()
-      if (gl.includes('signal')) return false
+      
+      // Filter out BD signals - they clutter the Plans view
+      // BD signals come from: zara, bd-agent, or have "signal" in group_label/title
+      if (agent === 'zara' || agent === 'bd-agent') return false
+      if (gl.includes('signal') || gl.includes('bd')) return false
+      if (title.startsWith('bd signal:') || title.startsWith('bd:')) return false
+      
       return true
     })
     if (filter === 'waiting') t = t.filter(x => x.status === 'waiting' || !x.krish_reviewed)
@@ -65,7 +71,7 @@ export function DesktopPlans() {
   const list = (
     <div className="space-y-4 pr-2">
       <div className="flex items-baseline justify-between gap-3">
-        <h1 className="text-[26px] font-semibold text-white tracking-tight">Plans</h1>
+        <h1 className="text-xl md:text-2xl font-semibold text-white tracking-tight">Plans</h1>
         <p className="text-[12px] text-white/35 font-mono tabular-nums">{filtered.length} {filtered.length === 1 ? 'task' : 'tasks'}</p>
       </div>
       <div className="flex gap-1.5 flex-wrap">
@@ -84,9 +90,12 @@ export function DesktopPlans() {
       <div className="space-y-1.5">
         {loading && <p className="text-[12px] text-white/30 py-6 text-center">Loading…</p>}
         {!loading && filtered.length === 0 && (
-          <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] py-12 text-center">
-            <p className="text-[13px] text-white/45">Nothing here.</p>
-            <p className="text-[11px] text-white/25 mt-1">Try a different filter.</p>
+          <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] py-12 flex flex-col items-center justify-center text-center">
+            <svg className="w-6 h-6 text-white/15 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <p className="text-[13px] text-white/45">No tasks match this filter</p>
+            <p className="text-[11px] text-white/25 mt-1">Try selecting a different filter above</p>
           </div>
         )}
         {filtered.map(t => (
@@ -150,11 +159,11 @@ function TaskDetail({ task }: { task: TaskRow }) {
   return (
     <div className="space-y-6 pb-6">
       <div>
-        <h1 className="text-[26px] font-semibold text-white leading-tight tracking-tight">{task.title}</h1>
+        <h1 className="text-lg md:text-xl font-semibold text-white leading-tight tracking-tight">{task.title}</h1>
         <div className="flex items-center gap-2 mt-3 flex-wrap">
           <StatusPill status={(task.status === 'waiting' ? 'needs_you' : task.status) as any} />
           <span className="text-[11px] text-white/40">
-            Owner: <span className="text-white/70">{task.owner || '—'}</span>
+            Owner: <span className="text-white/70">{task.owner || 'Unassigned'}</span>
           </span>
           {task.agent && task.agent !== task.owner && (
             <span className="text-[11px] text-white/40">Agent: <span className="text-white/70">{task.agent}</span></span>

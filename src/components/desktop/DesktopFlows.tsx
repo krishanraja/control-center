@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Check, X } from 'lucide-react'
+import { Check, X, Workflow, Lightbulb, Bot } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 interface Run {
@@ -79,7 +79,7 @@ export function DesktopFlows() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[22px] font-bold text-white">Flows</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-white">Flows</h1>
         <p className="text-[13px] text-white/35">N8N workflows & proposals</p>
       </div>
 
@@ -98,12 +98,20 @@ export function DesktopFlows() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
-              {loading && <tr><td colSpan={6} className="px-3 py-6 text-center text-white/30">Loading…</td></tr>}
-              {!loading && grouped.length === 0 && <tr><td colSpan={6} className="px-3 py-6 text-center text-white/30">No workflow runs</td></tr>}
+              {loading && <tr><td colSpan={6} className="px-3 py-8 text-center text-white/30">Loading…</td></tr>}
+              {!loading && grouped.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-3 py-10 text-center">
+                    <Workflow size={20} className="text-white/15 mx-auto mb-2" />
+                    <p className="text-[12px] text-white/35">No workflow runs yet</p>
+                    <p className="text-[10px] text-white/20 mt-0.5">N8N workflows will appear here</p>
+                  </td>
+                </tr>
+              )}
               {grouped.map(w => (
                 <tr key={w.workflow_id} className="hover:bg-white/[0.02]">
                   <td className="px-3 py-2 text-white/80">{w.workflow_name}</td>
-                  <td className="px-3 py-2 text-white/55">{w.agent_id || '—'}</td>
+                  <td className="px-3 py-2 text-white/55">{w.agent_id || <span className="text-white/25 italic">System</span>}</td>
                   <td className="px-3 py-2 text-white/45">{formatDistanceToNow(new Date(w.lastRun), { addSuffix: true })}</td>
                   <td className={`px-3 py-2 ${w.status === 'success' ? 'text-emerald-400' : w.status === 'error' ? 'text-rose-400' : 'text-white/50'}`}>{w.status}</td>
                   <td className="px-3 py-2 text-white/50">{w.runCount}</td>
@@ -118,8 +126,10 @@ export function DesktopFlows() {
       <section className="space-y-2">
         <h2 className="text-[11px] font-bold uppercase tracking-widest text-white/50">Pending Proposals ({proposals.length})</h2>
         {proposals.length === 0 ? (
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-6 text-center text-[12px] text-white/30">
-            No pending proposals
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-8 flex flex-col items-center justify-center text-center">
+            <Lightbulb size={20} className="text-white/15 mb-2" />
+            <p className="text-[12px] text-white/35">No pending proposals</p>
+            <p className="text-[10px] text-white/20 mt-0.5">Agent improvement suggestions will appear here</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

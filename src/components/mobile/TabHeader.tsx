@@ -17,7 +17,7 @@ export function TabHeader({ title, subtitle, leading, trailing }: Props) {
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {leading}
         <div className="min-w-0">
-          <h1 className="text-[26px] font-bold text-white leading-[1.1] tracking-tight truncate">
+          <h1 className="text-2xl md:text-3xl font-bold text-white leading-[1.1] tracking-tight truncate">
             {title}
           </h1>
           {subtitle && (

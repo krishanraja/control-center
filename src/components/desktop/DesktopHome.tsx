@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from 'react'
-import { AlertTriangle, Activity as ActivityIcon, TrendingUp, Sparkles } from 'lucide-react'
+import { AlertTriangle, Activity as ActivityIcon, TrendingUp, Sparkles, BarChart3, Target } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { AgentAvatar } from '../shared/AgentAvatar'
+
+function humanizeEventType(eventType: string): string {
+  if (!eventType) return 'Action'
+  return eventType
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
+}
 
 interface HomeIntel {
   summary?: any
@@ -60,10 +67,18 @@ export function DesktopHome() {
 
       <section className="col-span-12 xl:col-span-3 space-y-4">
         <SectionHeader icon={<TrendingUp size={13} className="text-emerald-400" />} label="Revenue Pulse" />
-        <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-5 space-y-2">
-          <p className="text-[13px] text-white/80 leading-relaxed font-medium">{summary.headline || '—'}</p>
-          {summary.body && <p className="text-[12px] text-white/45 leading-relaxed">{summary.body}</p>}
-        </div>
+        {summary.headline ? (
+          <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-5 space-y-2">
+            <p className="text-[13px] text-white/80 leading-relaxed font-medium">{summary.headline}</p>
+            {summary.body && <p className="text-[12px] text-white/45 leading-relaxed">{summary.body}</p>}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-8 flex flex-col items-center justify-center text-center">
+            <BarChart3 size={20} className="text-white/20 mb-3" />
+            <p className="text-[13px] text-white/45">No revenue data yet</p>
+            <p className="text-[11px] text-white/25 mt-1">Intelligence brief will appear here</p>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2.5">
           {metrics.map((m: any) => (
             <div key={m.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5">
@@ -77,17 +92,36 @@ export function DesktopHome() {
             </div>
           ))}
         </div>
-        {goals.length > 0 && (
+        {goals.length > 0 ? (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-3">
             <p className="text-[10px] uppercase tracking-[0.14em] text-white/35 font-medium">Weekly Goals</p>
-            <div className="space-y-2.5">
-              {goals.slice(0, 4).map(g => (
-                <div key={g.id} className="flex items-start justify-between gap-3">
-                  <span className="flex-1 whitespace-pre-wrap break-words leading-snug text-[12px] text-white/75">{g.title}</span>
-                  <span className="flex-shrink-0 text-[11px] font-mono text-white/45 tabular-nums">{g.current}/{g.target}</span>
-                </div>
-              ))}
+            <div className="space-y-3">
+              {goals.slice(0, 4).map(g => {
+                const progressPct = typeof g.progress === 'number' ? Math.min(100, Math.max(0, g.progress)) : 0
+                const isComplete = g.status === 'complete' || g.status === 'done' || progressPct >= 100
+                return (
+                  <div key={g.id} className="space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="flex-1 text-[12px] text-white/80 font-medium leading-snug line-clamp-2">{g.title}</span>
+                      <span className={`flex-shrink-0 text-[10px] font-mono tabular-nums ${isComplete ? 'text-emerald-400' : 'text-white/40'}`}>
+                        {isComplete ? 'Done' : `${progressPct}%`}
+                      </span>
+                    </div>
+                    <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-300 ${isComplete ? 'bg-emerald-400' : 'bg-gradient-to-r from-violet-500 to-violet-400'}`}
+                        style={{ width: `${progressPct}%` }} 
+                      />
+                    </div>
+                  </div>
+                )
+              })}
             </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-6 flex flex-col items-center justify-center text-center">
+            <Target size={18} className="text-white/20 mb-2" />
+            <p className="text-[12px] text-white/40">No goals set</p>
           </div>
         )}
       </section>
@@ -119,17 +153,20 @@ export function DesktopHome() {
         <SectionHeader icon={<ActivityIcon size={13} className="text-blue-400" />} label="Live Activity" />
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] divide-y divide-white/[0.04] max-h-[calc(100vh-8rem)] overflow-y-auto">
           {events.length === 0 ? (
-            <div className="p-8 text-center text-[12px] text-white/30">No recent events</div>
+            <div className="p-8 flex flex-col items-center justify-center text-center">
+              <ActivityIcon size={18} className="text-white/15 mb-2" />
+              <p className="text-[12px] text-white/30">No recent events</p>
+              <p className="text-[10px] text-white/20 mt-0.5">Activity will appear here in real time</p>
+            </div>
           ) : events.map(ev => (
             <div key={ev.id} className="p-3.5 flex items-start gap-2.5">
               <AgentAvatar agent={ev.actor || 'system'} size="sm" />
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] text-white/75 leading-snug">
-                  <span className="font-semibold text-white/90">{ev.actor || 'system'}</span>{' '}
-                  <span className="text-white/45">{ev.event_type}</span>
-                  {ev.target && <span className="text-white/30"> → {ev.target}</span>}
+                  <span className="font-semibold text-white/90 capitalize">{ev.actor || 'system'}</span>{' '}
+                  <span className="text-white/50">{ev.details?.message || humanizeEventType(ev.event_type)}</span>
+                  {ev.target && !ev.details?.message && <span className="text-white/30"> → {ev.target}</span>}
                 </p>
-                {ev.details?.message && <p className="text-[11px] text-white/45 mt-1 line-clamp-2 leading-snug">{ev.details.message}</p>}
                 <p className="text-[10px] text-white/25 mt-1.5">{formatDistanceToNow(new Date(ev.created_at), { addSuffix: true })}</p>
               </div>
             </div>
