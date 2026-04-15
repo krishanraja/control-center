@@ -55,6 +55,19 @@ export function statusStyle(status?: string) {
   return STATUS_STYLE[status] ?? STATUS_STYLE.waiting
 }
 
+/**
+ * Humanize a snake_case / kebab-case / dotted identifier into a readable
+ * title. e.g. `arlo_daily_audit` → `Arlo Daily Audit`.
+ */
+export function humanize(text?: string | null): string {
+  if (!text) return ''
+  return String(text)
+    .replace(/[_\-.]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, c => c.toUpperCase())
+}
+
 /** Safe initials from an agent name (1-2 letters). */
 export function initialsOf(name: string): string {
   if (!name) return '?'

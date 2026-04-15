@@ -22,11 +22,18 @@ export function DesktopPlans() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
+    // Exclude BD signal tasks — they clutter the macro roadmap. The Supabase
+    // `tasks` table marks BD signals with owner='bd-agent' and an id prefix of
+    // 'bd-signal-'. Also defensively filter any agent/group_label carrying
+    // "signal" or "bd-agent".
     let t = tasks.filter(x => {
+      const owner = (x.owner || '').toLowerCase()
       const agent = (x.agent || '').toLowerCase()
-      if (agent === 'zara') return false
-      const gl = (x.group_label || '').toLowerCase()
-      if (gl.includes('signal')) return false
+      const id    = (x.id || '').toLowerCase()
+      const gl    = (x.group_label || '').toLowerCase()
+      if (owner === 'bd-agent' || agent === 'bd-agent') return false
+      if (id.startsWith('bd-signal-')) return false
+      if (gl.includes('bd signal') || gl.includes('signal intelligence')) return false
       return true
     })
     if (filter === 'waiting') t = t.filter(x => x.status === 'waiting' || !x.krish_reviewed)
@@ -65,7 +72,7 @@ export function DesktopPlans() {
   const list = (
     <div className="space-y-4 pr-2">
       <div className="flex items-baseline justify-between gap-3">
-        <h1 className="text-[26px] font-semibold text-white tracking-tight">Plans</h1>
+        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Plans</h1>
         <p className="text-[12px] text-white/35 font-mono tabular-nums">{filtered.length} {filtered.length === 1 ? 'task' : 'tasks'}</p>
       </div>
       <div className="flex gap-1.5 flex-wrap">
@@ -150,7 +157,7 @@ function TaskDetail({ task }: { task: TaskRow }) {
   return (
     <div className="space-y-6 pb-6">
       <div>
-        <h1 className="text-[26px] font-semibold text-white leading-tight tracking-tight">{task.title}</h1>
+        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white leading-tight tracking-tight">{task.title}</h1>
         <div className="flex items-center gap-2 mt-3 flex-wrap">
           <StatusPill status={(task.status === 'waiting' ? 'needs_you' : task.status) as any} />
           <span className="text-[11px] text-white/40">
