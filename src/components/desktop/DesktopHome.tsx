@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
-import { AlertTriangle, Activity as ActivityIcon, TrendingUp, Sparkles, BarChart3, Target, Radio, Clock, ExternalLink, Briefcase } from 'lucide-react'
+import { AlertTriangle, Activity as ActivityIcon, TrendingUp, Sparkles, BarChart3, Target, Radio, Clock, ExternalLink, Briefcase, Brain } from 'lucide-react'
 import { formatDistanceToNow, differenceInDays } from 'date-fns'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
@@ -15,6 +15,19 @@ function humanizeEventType(eventType: string): string {
 interface HomeIntel {
   summary?: any
   metrics?: any[]
+  executive_summary?: string
+  generated_at?: string
+  strategic_assessment?: {
+    headline?: string
+    body?: string
+    recommended_focus?: string
+  }
+  top_3_actions?: Array<{
+    id: string
+    title: string
+    owner: string
+    status: string
+  }>
 }
 
 interface AuditEvent {
@@ -53,7 +66,32 @@ export function DesktopHome() {
   const { tasks: allTasks } = useRealtimeTasks()
 
   useEffect(() => {
-    supabase.from('home_intelligence').select('*').eq('id', 'current').maybeSingle().then(({ data }) => setIntel(data as any))
+    const loadIntel = async () => {
+      const { data: hi } = await supabase.from('home_intelligence').select('*').eq('id', 'current').maybeSingle()
+      if (hi) {
+        const parsed: HomeIntel = {
+          generated_at: hi.generated_at || hi.updated_at,
+        }
+        if (hi.summary) {
+          try {
+            const summary = typeof hi.summary === 'string' ? JSON.parse(hi.summary) : hi.summary
+            Object.assign(parsed, summary)
+          } catch {
+            parsed.executive_summary = hi.assessment || hi.summary
+          }
+        }
+        if (hi.assessment && !parsed.strategic_assessment) {
+          parsed.strategic_assessment = { headline: '', body: hi.assessment, recommended_focus: '' }
+        }
+        if (hi.metrics) {
+          try {
+            parsed.metrics = typeof hi.metrics === 'string' ? JSON.parse(hi.metrics) : hi.metrics
+          } catch {}
+        }
+        setIntel(parsed)
+      }
+    }
+    loadIntel()
     supabase.from('goals').select('*').order('updated_at', { ascending: false }).limit(6).then(({ data }) => setGoals((data as any) || []))
 
     const loadEvents = async () => {
@@ -109,26 +147,63 @@ export function DesktopHome() {
       .slice(0, 5)
   }, [allTasks])
 
-  const summary = intel?.summary || {}
+  // After parsing, headline/body/recommended_focus are spread directly onto intel
+  const headline = (intel as any)?.headline
+  const body = (intel as any)?.body
+  const recommendedFocus = (intel as any)?.recommended_focus
   const metrics = intel?.metrics || []
+  const execSummary = intel?.executive_summary || body
+  const topActions = intel?.top_3_actions || []
 
   return (
-    <div className="grid grid-cols-12 gap-5 min-h-[calc(100vh-4rem)]">
+    <div className="space-y-5">
+      {/* Executive Summary - Full Width at Top */}
+      {execSummary && (
+        <div className="rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.08] via-violet-500/[0.03] to-transparent p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
+              <Brain size={18} className="text-violet-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-400/80">Executive Summary</p>
+                <span className="text-[10px] text-white/25">· Marcus</span>
+                {intel?.generated_at && (
+                  <span className="text-[10px] text-white/20">· {formatDistanceToNow(new Date(intel.generated_at), { addSuffix: true })}</span>
+                )}
+              </div>
+              {headline && <p className="text-[15px] text-white font-semibold mb-2">{headline}</p>}
+              <p className="text-[14px] text-white/85 leading-relaxed">{execSummary}</p>
+              {recommendedFocus && (
+                <div className="mt-4 pt-4 border-t border-violet-500/10">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-400/70 mb-1">Focus This Week</p>
+                  <p className="text-[13px] text-amber-200/70 leading-relaxed">{recommendedFocus}</p>
+                </div>
+              )}
+            </div>
+          </div>
+          {topActions.length > 0 && (
+            <div className="mt-5 pt-4 border-t border-violet-500/10">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40 mb-3">Top {topActions.length} Actions</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {topActions.map((action, i) => (
+                  <div key={action.id || i} className="flex items-start gap-2.5 p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                    <AgentAvatar agent={action.owner} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] text-white/80 leading-snug line-clamp-2">{action.title}</p>
+                      <p className="text-[10px] text-white/40 mt-1 capitalize">{action.owner}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-12 gap-5 min-h-[calc(100vh-12rem)]">
 
       <section className="col-span-12 xl:col-span-3 space-y-4">
-        <SectionHeader icon={<TrendingUp size={13} className="text-emerald-400" />} label="Revenue Pulse" />
-        {summary.headline ? (
-          <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-5 space-y-2">
-            <p className="text-[13px] text-white/80 leading-relaxed font-medium">{summary.headline}</p>
-            {summary.body && <p className="text-[12px] text-white/45 leading-relaxed">{summary.body}</p>}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-8 flex flex-col items-center justify-center text-center">
-            <BarChart3 size={20} className="text-white/20 mb-3" />
-            <p className="text-[13px] text-white/45">No revenue data yet</p>
-            <p className="text-[11px] text-white/25 mt-1">Intelligence brief will appear here</p>
-          </div>
-        )}
         <div className="grid grid-cols-2 gap-2.5">
           {metrics.map((m: any) => (
             <div key={m.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5">
@@ -325,6 +400,7 @@ export function DesktopHome() {
           ))}
         </div>
       </section>
+      </div>
     </div>
   )
 }
