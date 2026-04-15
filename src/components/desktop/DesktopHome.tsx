@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react'
-import { AlertTriangle, Activity as ActivityIcon, TrendingUp, Sparkles, BarChart3, Target, Radio, Clock, ExternalLink, Briefcase, Brain } from 'lucide-react'
+import { AlertTriangle, Activity as ActivityIcon, TrendingUp, Sparkles, BarChart3, Target, Clock, ExternalLink, Briefcase, Brain } from 'lucide-react'
 import { formatDistanceToNow, differenceInDays } from 'date-fns'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { AgentAvatar } from '../shared/AgentAvatar'
+import { ZaraIntelligence } from '../ZaraIntelligence'
 
 function humanizeEventType(eventType: string): string {
   if (!eventType) return 'Action'
@@ -48,20 +49,10 @@ interface Goal {
   status: string
 }
 
-interface BDSignal {
-  id: string
-  title: string
-  evidence?: string
-  created_at?: string
-  group_label?: string
-  venture_id?: string
-}
-
 export function DesktopHome() {
   const [intel, setIntel] = useState<HomeIntel | null>(null)
   const [events, setEvents] = useState<AuditEvent[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
-  const [bdSignals, setBdSignals] = useState<BDSignal[]>([])
   const { tasks: waiting } = useRealtimeTasks({ statusIn: ['waiting', 'blocked'] })
   const { tasks: allTasks } = useRealtimeTasks()
 
@@ -111,17 +102,6 @@ export function DesktopHome() {
       setEvents((data as any) || [])
     }
     loadEvents()
-
-    const loadBDSignals = async () => {
-      const { data } = await supabase
-        .from('tasks')
-        .select('id, title, evidence, created_at, group_label, venture_id')
-        .or('owner.eq.bd-agent,agent.eq.zara')
-        .order('created_at', { ascending: false })
-        .limit(8)
-      setBdSignals((data as any) || [])
-    }
-    loadBDSignals()
 
     const ch = supabase
       .channel('home-activity')
@@ -212,6 +192,9 @@ export function DesktopHome() {
           )}
         </div>
       )}
+
+      {/* Zara signals — venture-tabbed, sourced from zara_signals */}
+      <ZaraIntelligence />
 
       <div className="grid grid-cols-12 gap-5 min-h-[calc(100vh-12rem)]">
 
@@ -308,48 +291,6 @@ export function DesktopHome() {
           </div>
         )}
 
-        <SectionHeader icon={<Radio size={13} className="text-cyan-400" />} label="Market Signals" trailing={
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 font-mono tabular-nums">{bdSignals.length}</span>
-        } />
-        {bdSignals.length === 0 ? (
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-8 flex flex-col items-center justify-center text-center">
-            <Radio size={18} className="text-white/20 mb-2" />
-            <p className="text-[12px] text-white/40">No market signals yet</p>
-            <p className="text-[10px] text-white/25 mt-1">BD agents will surface opportunities here</p>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] divide-y divide-white/[0.04]">
-            {bdSignals.map(signal => {
-              const cleanTitle = signal.title
-                .replace(/^BD Signal:\s*/i, '')
-                .replace(/^BD:\s*/i, '')
-              const ventureTags = extractVentureTags(signal.title, signal.group_label)
-              return (
-                <div key={signal.id} className="p-3.5">
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] text-white/80 leading-snug line-clamp-2">{cleanTitle}</p>
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        {ventureTags.map(tag => (
-                          <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-medium uppercase tracking-wide">
-                            {tag}
-                          </span>
-                        ))}
-                        {signal.created_at && (
-                          <span className="text-[10px] text-white/25">{formatDistanceToNow(new Date(signal.created_at), { addSuffix: true })}</span>
-                        )}
-                      </div>
-                      {signal.evidence && (
-                        <p className="text-[10px] text-white/30 mt-1.5 truncate font-mono">{signal.evidence}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
         {agingBlockers.length > 0 && (
           <>
             <SectionHeader icon={<Clock size={13} className="text-rose-400" />} label="Aging Blockers" trailing={
@@ -427,15 +368,3 @@ function SectionHeader({ icon, label, trailing }: { icon: React.ReactNode; label
   )
 }
 
-function extractVentureTags(title: string, groupLabel?: string): string[] {
-  const tags: string[] = []
-  const text = `${title} ${groupLabel || ''}`.toLowerCase()
-  
-  if (text.includes('adfixus') || text.includes('adf')) tags.push('AdFixus')
-  if (text.includes('mindmaker') || text.includes('mm')) tags.push('MindMaker')
-  if (text.includes('fractionl') || text.includes('fractional')) tags.push('Fractionl')
-  if (text.includes('caio') || text.includes('chief ai')) tags.push('CAIO')
-  if (text.includes('enterprise') || text.includes('bpo')) tags.push('Enterprise')
-  
-  return tags.length > 0 ? tags : ['General']
-}

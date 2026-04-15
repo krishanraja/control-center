@@ -11,6 +11,7 @@ import { HealthStrip, HealthItem } from './mobile/HealthStrip'
 import { TeamStrip } from './mobile/TeamStrip'
 import { SkeletonCard } from './mobile/SkeletonLine'
 import { useHaptics } from '../hooks/useHaptics'
+import { ZaraIntelligence } from './ZaraIntelligence'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface RawTask {
@@ -229,6 +230,9 @@ export function MobileHome() {
             </div>
           </div>
         )}
+
+        {/* Zara signals — below Marcus synthesis */}
+        <ZaraIntelligence />
 
         {/* Systems strip */}
         <HealthStrip items={systems} />
