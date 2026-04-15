@@ -53,15 +53,49 @@ const POD_COLOR: Record<string, string> = {
   growth:    'text-emerald-400 border-emerald-500/25 bg-emerald-500/10',
 }
 
+interface AgentWorkload {
+  active: number
+  blocked: number
+  waiting: number
+}
+
 export function DesktopOrg() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<{ tasks: any[]; activity: any[]; runs: any[] }>({ tasks: [], activity: [], runs: [] })
+  const [workloads, setWorkloads] = useState<Record<string, AgentWorkload>>({})
 
   useEffect(() => {
     supabase.from('agents').select('*').eq('active', true).order('pod').then(({ data }) => {
       setAgents((data as any) || [])
     })
+    
+    const loadWorkloads = async () => {
+      const { data: tasks } = await supabase
+        .from('tasks')
+        .select('agent, owner, status')
+        .neq('status', 'done')
+      
+      if (!tasks) return
+      
+      const wl: Record<string, AgentWorkload> = {}
+      tasks.forEach((t: any) => {
+        const agentId = t.agent || t.owner
+        if (!agentId) return
+        if (!wl[agentId]) wl[agentId] = { active: 0, blocked: 0, waiting: 0 }
+        if (t.status === 'active' || t.status === 'in_progress') wl[agentId].active++
+        else if (t.status === 'blocked') wl[agentId].blocked++
+        else if (t.status === 'waiting') wl[agentId].waiting++
+      })
+      setWorkloads(wl)
+    }
+    loadWorkloads()
+
+    const ch = supabase
+      .channel('org-workloads')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, loadWorkloads)
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
   }, [])
 
   const selected = agents.find(a => a.id === selectedId) || agents[0] || null
@@ -130,6 +164,8 @@ export function DesktopOrg() {
                   {podAgents.map(a => {
                     const podCls = POD_COLOR[a.pod || ''] || 'text-white/50 border-white/10 bg-white/[0.03]'
                     const isSel = selected?.id === a.id
+                    const wl = workloads[a.id] || { active: 0, blocked: 0, waiting: 0 }
+                    const hasWork = wl.active > 0 || wl.blocked > 0 || wl.waiting > 0
                     return (
                       <button
                         key={a.id}
@@ -143,6 +179,25 @@ export function DesktopOrg() {
                           <div className="flex-1 min-w-0">
                             <p className="text-[13px] text-white font-semibold truncate">{a.name}</p>
                             {a.role && <p className="text-[10px] text-white/40 truncate mt-0.5">{a.role}</p>}
+                            {hasWork && (
+                              <div className="flex items-center gap-1.5 mt-1.5">
+                                {wl.active > 0 && (
+                                  <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-mono tabular-nums" title="Active tasks">
+                                    {wl.active}
+                                  </span>
+                                )}
+                                {wl.waiting > 0 && (
+                                  <span className="text-[9px] px-1 py-0.5 rounded bg-amber-500/15 text-amber-400 font-mono tabular-nums" title="Waiting tasks">
+                                    {wl.waiting}
+                                  </span>
+                                )}
+                                {wl.blocked > 0 && (
+                                  <span className="text-[9px] px-1 py-0.5 rounded bg-rose-500/15 text-rose-400 font-mono tabular-nums" title="Blocked tasks">
+                                    {wl.blocked}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </button>

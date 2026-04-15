@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react'
-import { AlertTriangle, Activity as ActivityIcon, TrendingUp, Sparkles, BarChart3, Target } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import React, { useEffect, useState, useMemo } from 'react'
+import { AlertTriangle, Activity as ActivityIcon, TrendingUp, Sparkles, BarChart3, Target, Radio, Clock, ExternalLink, Briefcase } from 'lucide-react'
+import { formatDistanceToNow, differenceInDays } from 'date-fns'
 import { supabase } from '../../lib/supabase'
-import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
+import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { AgentAvatar } from '../shared/AgentAvatar'
 
 function humanizeEventType(eventType: string): string {
@@ -35,11 +35,22 @@ interface Goal {
   status: string
 }
 
+interface BDSignal {
+  id: string
+  title: string
+  evidence?: string
+  created_at?: string
+  group_label?: string
+  venture_id?: string
+}
+
 export function DesktopHome() {
   const [intel, setIntel] = useState<HomeIntel | null>(null)
   const [events, setEvents] = useState<AuditEvent[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
+  const [bdSignals, setBdSignals] = useState<BDSignal[]>([])
   const { tasks: waiting } = useRealtimeTasks({ statusIn: ['waiting', 'blocked'] })
+  const { tasks: allTasks } = useRealtimeTasks()
 
   useEffect(() => {
     supabase.from('home_intelligence').select('*').eq('id', 'current').maybeSingle().then(({ data }) => setIntel(data as any))
@@ -50,6 +61,18 @@ export function DesktopHome() {
       setEvents((data as any) || [])
     }
     loadEvents()
+
+    const loadBDSignals = async () => {
+      const { data } = await supabase
+        .from('tasks')
+        .select('id, title, evidence, created_at, group_label, venture_id')
+        .or('owner.eq.bd-agent,agent.eq.zara')
+        .order('created_at', { ascending: false })
+        .limit(8)
+      setBdSignals((data as any) || [])
+    }
+    loadBDSignals()
+
     const ch = supabase
       .channel('home-activity')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_log' }, (p) => {
@@ -58,6 +81,33 @@ export function DesktopHome() {
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [])
+
+  const agingBlockers = useMemo(() => {
+    return allTasks
+      .filter(t => t.status === 'blocked' || t.status === 'waiting')
+      .map(t => {
+        const daysAgo = t.updated_at ? differenceInDays(new Date(), new Date(t.updated_at)) : 0
+        return { ...t, daysAgo }
+      })
+      .filter(t => t.daysAgo >= 3)
+      .sort((a, b) => b.daysAgo - a.daysAgo)
+      .slice(0, 5)
+  }, [allTasks])
+
+  const ventureHealth = useMemo(() => {
+    const ventureMap: Record<string, { active: number; blocked: number; total: number }> = {}
+    allTasks.forEach(t => {
+      const v = t.venture_id || 'unassigned'
+      if (!ventureMap[v]) ventureMap[v] = { active: 0, blocked: 0, total: 0 }
+      ventureMap[v].total++
+      if (t.status === 'active' || t.status === 'in_progress') ventureMap[v].active++
+      if (t.status === 'blocked' || t.status === 'waiting') ventureMap[v].blocked++
+    })
+    return Object.entries(ventureMap)
+      .filter(([v]) => v !== 'unassigned')
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 5)
+  }, [allTasks])
 
   const summary = intel?.summary || {}
   const metrics = intel?.metrics || []
@@ -124,6 +174,29 @@ export function DesktopHome() {
             <p className="text-[12px] text-white/40">No goals set</p>
           </div>
         )}
+
+        {ventureHealth.length > 0 && (
+          <>
+            <SectionHeader icon={<Briefcase size={13} className="text-violet-400" />} label="Venture Health" />
+            <div className="space-y-2">
+              {ventureHealth.map(([venture, stats]) => (
+                <div key={venture} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 flex items-center gap-3">
+                  <span className="text-[12px] text-white/80 font-medium capitalize flex-1 truncate">{venture}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono tabular-nums">
+                      {stats.active} active
+                    </span>
+                    {stats.blocked > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-mono tabular-nums">
+                        {stats.blocked} blocked
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       <section className="col-span-12 xl:col-span-6 space-y-4">
@@ -146,6 +219,85 @@ export function DesktopHome() {
               Open the <span className="text-white/70 font-medium">Today</span> tab to review and act on {waiting.length === 1 ? 'it' : 'them'}.
             </p>
           </div>
+        )}
+
+        <SectionHeader icon={<Radio size={13} className="text-cyan-400" />} label="Market Signals" trailing={
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 font-mono tabular-nums">{bdSignals.length}</span>
+        } />
+        {bdSignals.length === 0 ? (
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-8 flex flex-col items-center justify-center text-center">
+            <Radio size={18} className="text-white/20 mb-2" />
+            <p className="text-[12px] text-white/40">No market signals yet</p>
+            <p className="text-[10px] text-white/25 mt-1">BD agents will surface opportunities here</p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] divide-y divide-white/[0.04]">
+            {bdSignals.map(signal => {
+              const cleanTitle = signal.title
+                .replace(/^BD Signal:\s*/i, '')
+                .replace(/^BD:\s*/i, '')
+              const ventureTags = extractVentureTags(signal.title, signal.group_label)
+              return (
+                <div key={signal.id} className="p-3.5">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] text-white/80 leading-snug line-clamp-2">{cleanTitle}</p>
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        {ventureTags.map(tag => (
+                          <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-medium uppercase tracking-wide">
+                            {tag}
+                          </span>
+                        ))}
+                        {signal.created_at && (
+                          <span className="text-[10px] text-white/25">{formatDistanceToNow(new Date(signal.created_at), { addSuffix: true })}</span>
+                        )}
+                      </div>
+                      {signal.evidence && (
+                        <p className="text-[10px] text-white/30 mt-1.5 truncate font-mono">{signal.evidence}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {agingBlockers.length > 0 && (
+          <>
+            <SectionHeader icon={<Clock size={13} className="text-rose-400" />} label="Aging Blockers" trailing={
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/25 font-mono tabular-nums">{agingBlockers.length}</span>
+            } />
+            <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.03] divide-y divide-rose-500/10">
+              {agingBlockers.map(blocker => {
+                const isRed = blocker.daysAgo >= 7
+                const colorClass = isRed ? 'text-rose-400' : 'text-amber-400'
+                return (
+                  <div key={blocker.id} className="p-3.5 flex items-start gap-3">
+                    <div className={`flex-shrink-0 text-[11px] font-mono font-bold tabular-nums ${colorClass}`}>
+                      {blocker.daysAgo}d
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] text-white/75 leading-snug line-clamp-2">{blocker.title}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-[10px] text-white/40">{blocker.owner || blocker.agent || 'Unassigned'}</span>
+                        {blocker.link_primary && (
+                          <a
+                            href={blocker.link_primary}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] text-violet-400 hover:text-violet-300"
+                          >
+                            <ExternalLink size={9} /> Doc
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </>
         )}
       </section>
 
@@ -185,4 +337,17 @@ function SectionHeader({ icon, label, trailing }: { icon: React.ReactNode; label
       {trailing}
     </div>
   )
+}
+
+function extractVentureTags(title: string, groupLabel?: string): string[] {
+  const tags: string[] = []
+  const text = `${title} ${groupLabel || ''}`.toLowerCase()
+  
+  if (text.includes('adfixus') || text.includes('adf')) tags.push('AdFixus')
+  if (text.includes('mindmaker') || text.includes('mm')) tags.push('MindMaker')
+  if (text.includes('fractionl') || text.includes('fractional')) tags.push('Fractionl')
+  if (text.includes('caio') || text.includes('chief ai')) tags.push('CAIO')
+  if (text.includes('enterprise') || text.includes('bpo')) tags.push('Enterprise')
+  
+  return tags.length > 0 ? tags : ['General']
 }

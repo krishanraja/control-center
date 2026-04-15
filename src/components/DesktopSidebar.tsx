@@ -22,18 +22,24 @@ export function DesktopSidebar({ active, onChange }: Props) {
   const [healthStatus, setHealthStatus] = useState<'healthy' | 'warning' | 'critical' | 'unknown'>('unknown')
   const [mrr, setMrr] = useState<string | null>(null)
 
+  const [unhealthyCount, setUnhealthyCount] = useState(0)
+
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase.from('system_health').select('metric,value,status')
       if (!data) return
       const mrrRow = data.find((r: any) => r.metric === 'mrr')
       if (mrrRow) setMrr(mrrRow.value)
+      
+      let unhealthy = 0
       const worst = data.reduce((acc: string, r: any) => {
+        if (r.status === 'critical' || r.status === 'warning') unhealthy++
         if (r.status === 'critical') return 'critical'
         if (r.status === 'warning' && acc !== 'critical') return 'warning'
         return acc
       }, 'healthy')
       setHealthStatus(worst as any)
+      setUnhealthyCount(unhealthy)
     }
     load()
     const ch = supabase
@@ -70,18 +76,34 @@ export function DesktopSidebar({ active, onChange }: Props) {
       <nav className="flex-1 py-3 px-2 space-y-1">
         {NAV.map(({ id, label, icon: Icon }) => {
           const isActive = active === id
+          const showHealthBadge = id === 'systems' && unhealthyCount > 0
           return (
             <button
               key={id}
               onClick={() => onChange(id)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all relative
                 ${isActive
                   ? 'bg-violet-500/15 text-white border border-violet-500/25'
                   : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04] border border-transparent'}`}
-              title={!expanded ? label : undefined}
+              title={!expanded ? (showHealthBadge ? `${label} (${unhealthyCount} issues)` : label) : undefined}
             >
-              <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={isActive ? 2.2 : 1.8} />
-              {expanded && <span className="truncate">{label}</span>}
+              <div className="relative">
+                <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={isActive ? 2.2 : 1.8} />
+                {showHealthBadge && (
+                  <span 
+                    className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${healthStatus === 'critical' ? 'bg-rose-500' : 'bg-amber-400'} animate-pulse`}
+                    title={`${unhealthyCount} system${unhealthyCount > 1 ? 's' : ''} need attention`}
+                  />
+                )}
+              </div>
+              {expanded && (
+                <span className="truncate flex-1">{label}</span>
+              )}
+              {expanded && showHealthBadge && (
+                <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${healthStatus === 'critical' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                  {unhealthyCount}
+                </span>
+              )}
             </button>
           )
         })}

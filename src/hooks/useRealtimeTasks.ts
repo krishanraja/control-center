@@ -21,6 +21,10 @@ export interface TaskRow {
   completed_at?: string
   notes?: string
   feedback_text?: string
+  link_primary?: string
+  link_secondary?: string
+  evidence?: string
+  venture_id?: string
   [key: string]: any
 }
 
