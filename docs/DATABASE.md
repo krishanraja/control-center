@@ -28,6 +28,7 @@ The primary work item table. Tasks represent actionable items assigned to agents
 | `due_date` | timestamp | Due date |
 | `created` | timestamp | Creation time |
 | `updated_at` | timestamp | Last update |
+| `started_at` | timestamp | Auto-set when status changes to `in_progress` (DB trigger) |
 | `completed_at` | timestamp | Completion time |
 | `notes` | text | General notes |
 | `feedback_text` | text | Feedback from agents |
@@ -159,7 +160,19 @@ supabase
   .subscribe()
 ```
 
-## Indexes (Recommended)
+## Indexes
+
+### Active Indexes (Added 2026-04-15)
+
+| Index | Columns | Purpose |
+|-------|---------|---------|
+| `idx_tasks_status_updated_at` | `status`, `updated_at` | Faster dashboard loads |
+| `idx_tasks_agent_status` | `agent`, `status` | Faster agent workload views |
+| `idx_tasks_venture_status` | `venture_id`, `status` | Faster venture health cards |
+| `idx_audit_log_actor_created_at` | `actor`, `created_at` | Faster activity feeds |
+| `idx_workflow_runs_agent_run_at` | `agent_id`, `run_at` | Faster agent economics view |
+
+### Legacy Indexes
 
 ```sql
 CREATE INDEX idx_tasks_status ON tasks(status);
@@ -168,6 +181,29 @@ CREATE INDEX idx_tasks_updated_at ON tasks(updated_at DESC);
 CREATE INDEX idx_tasks_venture_id ON tasks(venture_id);
 CREATE INDEX idx_audit_log_created_at ON audit_log(created_at DESC);
 CREATE INDEX idx_system_health_status ON system_health(status);
+```
+
+## Database Triggers
+
+### `started_at` Auto-Stamp Trigger
+
+When a task's status changes to `in_progress`, the database automatically sets `started_at` to the current timestamp. This enables cycle time tracking (`completed_at - started_at = actual work duration`).
+
+```sql
+CREATE OR REPLACE FUNCTION stamp_started_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status = 'in_progress' AND (OLD.status IS DISTINCT FROM 'in_progress') THEN
+    NEW.started_at = NOW();
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tasks_stamp_started_at
+BEFORE UPDATE ON tasks
+FOR EACH ROW
+EXECUTE FUNCTION stamp_started_at();
 ```
 
 ## Row Level Security (RLS)

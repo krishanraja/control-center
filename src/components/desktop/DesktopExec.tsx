@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from 'recharts'
-import { formatDistanceToNow, format } from 'date-fns'
-import { Radio, BarChart3, TrendingUp, Zap, Clock } from 'lucide-react'
+import { formatDistanceToNow, format, differenceInHours } from 'date-fns'
+import { Radio, BarChart3, TrendingUp, Zap, Clock, Timer } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { AgentAvatar } from '../shared/AgentAvatar'
 
@@ -16,12 +16,40 @@ export function DesktopExec() {
   const [metrics, setMetrics] = useState<any[]>([])
   const [reports, setReports] = useState<any[]>([])
   const [runs, setRuns] = useState<any[]>([])
+  const [completedTasks, setCompletedTasks] = useState<any[]>([])
 
   useEffect(() => {
     supabase.from('home_intelligence').select('metrics').eq('id', 'current').maybeSingle().then(({ data }) => setMetrics((data as any)?.metrics || []))
     supabase.from('audit_log').select('*').order('created_at', { ascending: false }).limit(30).then(({ data }) => setReports((data as any) || []))
     supabase.from('workflow_runs').select('*').order('run_at', { ascending: false }).limit(30).then(({ data }) => setRuns((data as any) || []))
+    
+    // Fetch completed tasks with cycle time data
+    supabase
+      .from('tasks')
+      .select('started_at, completed_at')
+      .eq('status', 'done')
+      .not('started_at', 'is', null)
+      .not('completed_at', 'is', null)
+      .order('completed_at', { ascending: false })
+      .limit(50)
+      .then(({ data }) => setCompletedTasks((data as any) || []))
   }, [])
+
+  // Calculate average cycle time
+  const avgCycleTime = useMemo(() => {
+    if (completedTasks.length === 0) return null
+    const totalHours = completedTasks.reduce((sum, t) => {
+      const hours = differenceInHours(new Date(t.completed_at), new Date(t.started_at))
+      return sum + Math.max(0, hours)
+    }, 0)
+    const avgHours = totalHours / completedTasks.length
+    if (avgHours >= 24) {
+      const days = Math.floor(avgHours / 24)
+      const remainingHours = Math.round(avgHours % 24)
+      return { value: remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`, count: completedTasks.length }
+    }
+    return { value: `${avgHours.toFixed(1)}h`, count: completedTasks.length }
+  }, [completedTasks])
 
   const chartData = metrics.map((m: any) => ({
     name: m.label?.split(' ')[0] || m.id,
@@ -48,7 +76,7 @@ export function DesktopExec() {
       </div>
 
       {/* Key Metrics Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <MetricCard 
           icon={<TrendingUp size={14} className="text-violet-400" />}
           label="KPIs Tracked"
@@ -72,6 +100,12 @@ export function DesktopExec() {
           label="Active Agents"
           value={costByAgent.length.toString()}
           subtext="With recent runs"
+        />
+        <MetricCard 
+          icon={<Timer size={14} className="text-cyan-400" />}
+          label="Avg Cycle Time"
+          value={avgCycleTime?.value || '—'}
+          subtext={avgCycleTime ? `Last ${avgCycleTime.count} tasks` : 'No data yet'}
         />
       </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { formatDistanceToNow } from 'date-fns'
-import { ExternalLink, FileText, FolderOpen } from 'lucide-react'
+import { formatDistanceToNow, differenceInHours, differenceInMinutes } from 'date-fns'
+import { ExternalLink, FileText, FolderOpen, Timer } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { InlineActions } from '../InlineActions'
@@ -162,10 +162,16 @@ export function DesktopPlans() {
                     </a>
                   )}
                 </div>
-                <div className="flex items-center gap-2 mt-1.5">
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   <AgentAvatar agent={t.agent || t.owner || 'system'} size="sm" />
                   <span className="text-[11px] text-white/50">{t.agent || t.owner}</span>
-                  {t.updated_at && <span className="text-[10px] text-white/25">· {formatDistanceToNow(new Date(t.updated_at), { addSuffix: true })}</span>}
+                  {(t.status === 'in_progress' || t.status === 'active') && t.started_at ? (
+                    <span className="flex items-center gap-1 text-[10px] text-blue-400">
+                      <Timer size={9} /> {formatDistanceToNow(new Date(t.started_at))}
+                    </span>
+                  ) : t.updated_at ? (
+                    <span className="text-[10px] text-white/25">· {formatDistanceToNow(new Date(t.updated_at), { addSuffix: true })}</span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -300,6 +306,20 @@ function TaskDetail({ task }: { task: TaskRow }) {
       <div className="text-[11px] text-white/30 space-x-3">
         {task.created && <span>Created {formatDistanceToNow(new Date(task.created), { addSuffix: true })}</span>}
         {task.updated_at && <span>· Updated {formatDistanceToNow(new Date(task.updated_at), { addSuffix: true })}</span>}
+        {task.started_at && task.completed_at && (() => {
+          const hours = differenceInHours(new Date(task.completed_at), new Date(task.started_at))
+          if (hours >= 24) {
+            const days = Math.floor(hours / 24)
+            const remainingHours = hours % 24
+            return <span className="text-emerald-400">· Cycle time: {remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`}</span>
+          }
+          if (hours > 0) return <span className="text-emerald-400">· Cycle time: {hours}h</span>
+          const mins = differenceInMinutes(new Date(task.completed_at), new Date(task.started_at))
+          return <span className="text-emerald-400">· Cycle time: {mins}m</span>
+        })()}
+        {(task.status === 'in_progress' || task.status === 'active') && task.started_at && (
+          <span className="text-blue-400">· In progress for {formatDistanceToNow(new Date(task.started_at))}</span>
+        )}
       </div>
     </div>
   )

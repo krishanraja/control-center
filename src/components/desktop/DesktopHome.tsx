@@ -76,6 +76,10 @@ export function DesktopHome() {
           try {
             const summary = typeof hi.summary === 'string' ? JSON.parse(hi.summary) : hi.summary
             Object.assign(parsed, summary)
+            // Explicitly extract top_3_actions if present in summary
+            if (summary.top_3_actions && Array.isArray(summary.top_3_actions)) {
+              parsed.top_3_actions = summary.top_3_actions
+            }
           } catch {
             parsed.executive_summary = hi.assessment || hi.summary
           }
@@ -86,6 +90,14 @@ export function DesktopHome() {
         if (hi.metrics) {
           try {
             parsed.metrics = typeof hi.metrics === 'string' ? JSON.parse(hi.metrics) : hi.metrics
+          } catch {}
+        }
+        // Also check for top_3_actions at the top level of hi (in case Marcus stores it there)
+        if (hi.top_3_actions && !parsed.top_3_actions) {
+          try {
+            parsed.top_3_actions = typeof hi.top_3_actions === 'string' 
+              ? JSON.parse(hi.top_3_actions) 
+              : hi.top_3_actions
           } catch {}
         }
         setIntel(parsed)

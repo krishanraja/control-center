@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
-import { formatDistanceToNow, isToday, isPast, parseISO } from 'date-fns'
-import { ExternalLink, FileText, FolderOpen } from 'lucide-react'
+import { formatDistanceToNow, isToday, isPast, parseISO, differenceInHours, differenceInMinutes } from 'date-fns'
+import { ExternalLink, FileText, FolderOpen, Clock, Timer } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { InlineActions } from '../InlineActions'
@@ -124,14 +124,37 @@ function TodayDetail({ task }: { task: TaskRow }) {
     })
   }
 
+  const cycleTimeDisplay = useMemo(() => {
+    if (task.status === 'done' && task.started_at && task.completed_at) {
+      const hours = differenceInHours(new Date(task.completed_at), new Date(task.started_at))
+      if (hours >= 24) {
+        const days = Math.floor(hours / 24)
+        const remainingHours = hours % 24
+        return { label: 'Completed in', value: remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`, color: 'text-emerald-400' }
+      }
+      if (hours > 0) return { label: 'Completed in', value: `${hours}h`, color: 'text-emerald-400' }
+      const mins = differenceInMinutes(new Date(task.completed_at), new Date(task.started_at))
+      return { label: 'Completed in', value: `${mins}m`, color: 'text-emerald-400' }
+    }
+    if ((task.status === 'in_progress' || task.status === 'active') && task.started_at) {
+      return { label: 'In progress for', value: formatDistanceToNow(new Date(task.started_at)), color: 'text-blue-400' }
+    }
+    return null
+  }, [task.status, task.started_at, task.completed_at])
+
   return (
     <div className="space-y-5 pb-6">
       <div>
         <h1 className="text-lg md:text-xl font-bold text-white leading-tight">{task.title}</h1>
-        <div className="flex items-center gap-2 mt-2 text-[11px] text-white/45">
+        <div className="flex items-center gap-2 mt-2 text-[11px] text-white/45 flex-wrap">
           <AgentAvatar agent={task.agent || task.owner || 'system'} size="sm" />
           <span className="text-white/70">{task.agent || task.owner}</span>
           {task.updated_at && <span>· {formatDistanceToNow(new Date(task.updated_at), { addSuffix: true })}</span>}
+          {cycleTimeDisplay && (
+            <span className={`flex items-center gap-1 ${cycleTimeDisplay.color}`}>
+              · <Timer size={10} /> {cycleTimeDisplay.label} {cycleTimeDisplay.value}
+            </span>
+          )}
         </div>
       </div>
 

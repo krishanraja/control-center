@@ -20,6 +20,7 @@ export interface TaskRow {
   due_date?: string
   created?: string
   updated_at?: string
+  started_at?: string    // Auto-stamped when status changes to in_progress (DB trigger)
   completed_at?: string
   notes?: string
   feedback_text?: string
