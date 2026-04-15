@@ -87,14 +87,24 @@ export function DesktopSidebar({ active, onChange }: Props) {
         })}
       </nav>
 
-      <div className="border-t border-white/[0.07] p-3">
+      <div className="border-t border-white/[0.07] p-3 space-y-2">
         {expanded ? (
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-white/30">MRR</p>
-            <p className="text-[15px] font-mono font-semibold text-emerald-400">{mrr ?? '—'}</p>
-          </div>
+          <>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-white/40 font-semibold">MRR</p>
+              {mrr ? (
+                <p className="text-[15px] font-mono font-semibold text-emerald-400 tabular-nums mt-0.5">{mrr}</p>
+              ) : (
+                <p className="text-[12px] text-white/30 mt-1 leading-snug">Not reported yet</p>
+              )}
+            </div>
+            <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-[0.14em] text-white/30 font-medium">Command</span>
+              <kbd className="text-[10px] font-mono text-white/45 border border-white/10 rounded px-1.5 py-0.5 bg-white/[0.03]">⌘K</kbd>
+            </div>
+          </>
         ) : (
-          <div className={`w-2 h-2 mx-auto rounded-full ${dotColor}`} />
+          <div className={`w-2 h-2 mx-auto rounded-full ${dotColor}`} title={healthStatus} />
         )}
       </div>
     </aside>

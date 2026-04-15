@@ -22,8 +22,8 @@ export function DesktopToday() {
   const list = (
     <div className="space-y-4 pr-2">
       <div>
-        <h1 className="text-[22px] font-bold text-white">Today</h1>
-        <p className="text-[13px] text-white/35">Everything that needs you</p>
+        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Today</h1>
+        <p className="text-xs md:text-[13px] text-white/50 mt-0.5">Everything that needs you.</p>
       </div>
       {loading && <p className="text-[12px] text-white/30">Loading…</p>}
 
@@ -40,8 +40,9 @@ export function DesktopToday() {
       )}
 
       {items.length === 0 && !loading && (
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-8 text-center text-[13px] text-white/30">
-          Nothing scheduled for today. Clear mind.
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
+          <p className="text-sm md:text-[14px] text-white/55 font-medium">Nothing scheduled for today.</p>
+          <p className="text-xs md:text-[12px] text-white/30 mt-1">Clear mind.</p>
         </div>
       )}
     </div>
@@ -112,7 +113,7 @@ function TodayDetail({ task }: { task: TaskRow }) {
   return (
     <div className="space-y-5 pb-6">
       <div>
-        <h1 className="text-[22px] font-bold text-white leading-tight">{task.title}</h1>
+        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white leading-tight tracking-tight">{task.title}</h1>
         <div className="flex items-center gap-2 mt-2 text-[11px] text-white/45">
           <AgentAvatar agent={task.agent || task.owner || 'system'} size="sm" />
           <span className="text-white/70">{task.agent || task.owner}</span>
