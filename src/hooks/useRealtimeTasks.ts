@@ -1,5 +1,7 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+
+let channelCounter = 0
 
 export interface TaskRow {
   id: string
@@ -36,6 +38,11 @@ interface Options {
 export function useRealtimeTasks(opts: Options = {}) {
   const [tasks, setTasks] = useState<TaskRow[]>([])
   const [loading, setLoading] = useState(true)
+  const channelIdRef = useRef<number | null>(null)
+  
+  if (channelIdRef.current === null) {
+    channelIdRef.current = ++channelCounter
+  }
 
   const fetchAll = useCallback(async () => {
     let q = supabase.from('tasks').select('*').order('updated_at', { ascending: false })
@@ -47,8 +54,9 @@ export function useRealtimeTasks(opts: Options = {}) {
 
   useEffect(() => {
     fetchAll()
+    const channelName = `tasks-rt-${channelIdRef.current}`
     const ch = supabase
-      .channel('tasks-rt')
+      .channel(channelName)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => fetchAll())
       .subscribe()
     return () => { supabase.removeChannel(ch) }
