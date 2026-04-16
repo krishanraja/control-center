@@ -76,6 +76,9 @@ export function useAgents(intervalMs = 60_000) {
           briefChecksum: live.brief_checksum ?? staticAgent.briefChecksum,
           role: live.role || staticAgent.role,
           pod: (live.pod as Agent['pod']) || staticAgent.pod,
+          kpi_label: (live as any).kpi_label ?? undefined,
+          kpi_target: (live as any).kpi_target ?? undefined,
+          kpi_current: (live as any).kpi_current ?? undefined,
         }
       })
 
