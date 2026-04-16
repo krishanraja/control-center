@@ -1,6 +1,7 @@
 import React from 'react'
 import { Calendar, TrendingUp, Target, Award } from 'lucide-react'
-import { AGENTS } from '../services/agentData'
+import { useAgents } from '../hooks/useAgents'
+import { LastUpdated } from './shared/LastUpdated'
 
 function getDaysUntilLastDayOfMonth(): number {
   const now = new Date()
@@ -41,7 +42,8 @@ export function AllHandsPanel() {
   const month = getCurrentMonth()
   const isUrgent = daysUntil <= 3
 
-  const agents = AGENTS.filter(a => a.id !== 'agatha')
+  const { agents: allAgents, updatedAt } = useAgents()
+  const agents = allAgents.filter(a => a.id !== 'agatha')
 
   return (
     <div className="space-y-4">
@@ -94,7 +96,7 @@ export function AllHandsPanel() {
           <div className="px-4 py-3 border-b border-command-border flex items-center space-x-2">
             <Target className="w-4 h-4 text-command-accent" />
             <span className="font-semibold text-white">Agent KPI Scoreboard</span>
-            <span className="text-xs text-command-text/50 ml-auto">April progress</span>
+            <span className="ml-auto"><LastUpdated date={updatedAt} /></span>
           </div>
           <div className="divide-y divide-command-border/40">
             {agents.map(agent => {
