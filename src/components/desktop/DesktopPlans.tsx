@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { formatDistanceToNow, differenceInHours, differenceInMinutes } from 'date-fns'
-import { ExternalLink, FileText, FolderOpen, Timer } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { InlineActions } from '../InlineActions'
@@ -20,38 +19,27 @@ const FILTERS = [
 export function DesktopPlans() {
   const { tasks, loading } = useRealtimeTasks()
   const [filter, setFilter] = useState<string>('all')
-  const [ventureFilter, setVentureFilter] = useState<string>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const ventures = useMemo(() => {
-    const ventureSet = new Set<string>()
-    tasks.forEach(t => {
-      if (t.venture_id) ventureSet.add(t.venture_id)
-    })
-    return Array.from(ventureSet).sort()
-  }, [tasks])
-
   const filtered = useMemo(() => {
+    // Exclude BD signal tasks — they clutter the macro roadmap. The Supabase
+    // `tasks` table marks BD signals with owner='bd-agent' and an id prefix of
+    // 'bd-signal-'. Also defensively filter any agent/group_label carrying
+    // "signal" or "bd-agent".
     let t = tasks.filter(x => {
+      const owner = (x.owner || '').toLowerCase()
       const agent = (x.agent || '').toLowerCase()
-      const title = (x.title || '').toLowerCase()
-      const gl = (x.group_label || '').toLowerCase()
-      
-      // Filter out BD signals - they clutter the Plans view
-      // BD signals come from: zara, bd-agent, or have "signal" in group_label/title
-      if (agent === 'zara' || agent === 'bd-agent') return false
-      if (gl.includes('signal') || gl.includes('bd')) return false
-      if (title.startsWith('bd signal:') || title.startsWith('bd:')) return false
-      
+      const id    = (x.id || '').toLowerCase()
+      const gl    = (x.group_label || '').toLowerCase()
+      if (owner === 'bd-agent' || agent === 'bd-agent') return false
+      if (id.startsWith('bd-signal-')) return false
+      if (gl.includes('bd signal') || gl.includes('signal intelligence')) return false
       return true
     })
     if (filter === 'waiting') t = t.filter(x => x.status === 'waiting' || !x.krish_reviewed)
     else if (filter !== 'all') t = t.filter(x => x.status === filter)
-    
-    if (ventureFilter !== 'all') t = t.filter(x => x.venture_id === ventureFilter)
-    
     return t
-  }, [tasks, filter, ventureFilter])
+  }, [tasks, filter])
 
   const selected = tasks.find(t => t.id === selectedId) || filtered[0] || null
 
@@ -84,7 +72,7 @@ export function DesktopPlans() {
   const list = (
     <div className="space-y-4 pr-2">
       <div className="flex items-baseline justify-between gap-3">
-        <h1 className="text-xl md:text-2xl font-semibold text-white tracking-tight">Plans</h1>
+        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Plans</h1>
         <p className="text-[12px] text-white/35 font-mono tabular-nums">{filtered.length} {filtered.length === 1 ? 'task' : 'tasks'}</p>
       </div>
       <div className="flex gap-1.5 flex-wrap">
@@ -100,38 +88,12 @@ export function DesktopPlans() {
           >{f.label}</button>
         ))}
       </div>
-      {ventures.length > 0 && (
-        <div className="flex gap-1.5 flex-wrap">
-          <button
-            onClick={() => setVentureFilter('all')}
-            className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${
-              ventureFilter === 'all'
-                ? 'bg-cyan-500/15 border border-cyan-500/35 text-cyan-300'
-                : 'border border-white/[0.06] text-white/40 hover:text-white/60 hover:border-white/[0.12]'
-            }`}
-          >All Ventures</button>
-          {ventures.map(v => (
-            <button
-              key={v}
-              onClick={() => setVentureFilter(v)}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all capitalize ${
-                ventureFilter === v
-                  ? 'bg-cyan-500/15 border border-cyan-500/35 text-cyan-300'
-                  : 'border border-white/[0.06] text-white/40 hover:text-white/60 hover:border-white/[0.12]'
-              }`}
-            >{v}</button>
-          ))}
-        </div>
-      )}
       <div className="space-y-1.5">
         {loading && <p className="text-[12px] text-white/30 py-6 text-center">Loading…</p>}
         {!loading && filtered.length === 0 && (
-          <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] py-12 flex flex-col items-center justify-center text-center">
-            <svg className="w-6 h-6 text-white/15 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <p className="text-[13px] text-white/45">No tasks match this filter</p>
-            <p className="text-[11px] text-white/25 mt-1">Try selecting a different filter above</p>
+          <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] py-12 text-center">
+            <p className="text-[13px] text-white/45">Nothing here.</p>
+            <p className="text-[11px] text-white/25 mt-1">Try a different filter.</p>
           </div>
         )}
         {filtered.map(t => (
@@ -147,31 +109,11 @@ export function DesktopPlans() {
             <div className="flex items-start gap-2.5">
               <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${statusDot(t.status)}`} />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-[13px] text-white font-medium leading-snug truncate flex-1">{t.title}</p>
-                  {t.link_primary && (
-                    <a
-                      href={t.link_primary}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex-shrink-0 p-1 rounded hover:bg-white/10 text-violet-400 hover:text-violet-300 transition-colors"
-                      title="Open document"
-                    >
-                      <ExternalLink size={12} />
-                    </a>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <p className="text-[13px] text-white font-medium leading-snug truncate">{t.title}</p>
+                <div className="flex items-center gap-2 mt-1.5">
                   <AgentAvatar agent={t.agent || t.owner || 'system'} size="sm" />
                   <span className="text-[11px] text-white/50">{t.agent || t.owner}</span>
-                  {(t.status === 'in_progress' || t.status === 'active') && t.started_at ? (
-                    <span className="flex items-center gap-1 text-[10px] text-blue-400">
-                      <Timer size={9} /> {formatDistanceToNow(new Date(t.started_at))}
-                    </span>
-                  ) : t.updated_at ? (
-                    <span className="text-[10px] text-white/25">· {formatDistanceToNow(new Date(t.updated_at), { addSuffix: true })}</span>
-                  ) : null}
+                  {t.updated_at && <span className="text-[10px] text-white/25">· {formatDistanceToNow(new Date(t.updated_at), { addSuffix: true })}</span>}
                 </div>
               </div>
             </div>
@@ -215,11 +157,11 @@ function TaskDetail({ task }: { task: TaskRow }) {
   return (
     <div className="space-y-6 pb-6">
       <div>
-        <h1 className="text-lg md:text-xl font-semibold text-white leading-tight tracking-tight">{task.title}</h1>
+        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white leading-tight tracking-tight">{task.title}</h1>
         <div className="flex items-center gap-2 mt-3 flex-wrap">
           <StatusPill status={(task.status === 'waiting' ? 'needs_you' : task.status) as any} />
           <span className="text-[11px] text-white/40">
-            Owner: <span className="text-white/70">{task.owner || 'Unassigned'}</span>
+            Owner: <span className="text-white/70">{task.owner || '—'}</span>
           </span>
           {task.agent && task.agent !== task.owner && (
             <span className="text-[11px] text-white/40">Agent: <span className="text-white/70">{task.agent}</span></span>
@@ -232,47 +174,6 @@ function TaskDetail({ task }: { task: TaskRow }) {
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Description</p>
           <p className="text-[13px] text-white/70 leading-relaxed whitespace-pre-wrap">{task.description}</p>
-        </div>
-      )}
-
-      {(task.link_primary || task.link_secondary || task.evidence) && (
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Documents</p>
-          <div className="space-y-2">
-            {task.link_primary && (
-              <a
-                href={task.link_primary}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-violet-500/20 bg-violet-500/[0.05] hover:bg-violet-500/10 transition-colors group"
-              >
-                <FileText size={14} className="text-violet-400" />
-                <span className="flex-1 text-[12px] text-violet-300 truncate">
-                  {task.link_primary.includes('docs.google.com') ? 'Google Doc' : 
-                   task.link_primary.includes('sheets.google.com') ? 'Google Sheet' : 'Primary Document'}
-                </span>
-                <ExternalLink size={11} className="text-violet-400/60 group-hover:text-violet-400" />
-              </a>
-            )}
-            {task.link_secondary && (
-              <a
-                href={task.link_secondary}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] transition-colors group"
-              >
-                <FileText size={14} className="text-white/50" />
-                <span className="flex-1 text-[12px] text-white/60 truncate">Secondary Document</span>
-                <ExternalLink size={11} className="text-white/30 group-hover:text-white/50" />
-              </a>
-            )}
-            {task.evidence && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/[0.06] bg-white/[0.015]">
-                <FolderOpen size={14} className="text-white/40" />
-                <span className="flex-1 text-[11px] text-white/40 truncate font-mono">{task.evidence}</span>
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -306,20 +207,6 @@ function TaskDetail({ task }: { task: TaskRow }) {
       <div className="text-[11px] text-white/30 space-x-3">
         {task.created && <span>Created {formatDistanceToNow(new Date(task.created), { addSuffix: true })}</span>}
         {task.updated_at && <span>· Updated {formatDistanceToNow(new Date(task.updated_at), { addSuffix: true })}</span>}
-        {task.started_at && task.completed_at && (() => {
-          const hours = differenceInHours(new Date(task.completed_at), new Date(task.started_at))
-          if (hours >= 24) {
-            const days = Math.floor(hours / 24)
-            const remainingHours = hours % 24
-            return <span className="text-emerald-400">· Cycle time: {remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`}</span>
-          }
-          if (hours > 0) return <span className="text-emerald-400">· Cycle time: {hours}h</span>
-          const mins = differenceInMinutes(new Date(task.completed_at), new Date(task.started_at))
-          return <span className="text-emerald-400">· Cycle time: {mins}m</span>
-        })()}
-        {(task.status === 'in_progress' || task.status === 'active') && task.started_at && (
-          <span className="text-blue-400">· In progress for {formatDistanceToNow(new Date(task.started_at))}</span>
-        )}
       </div>
     </div>
   )
