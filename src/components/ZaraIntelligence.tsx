@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { ExternalLink, ThumbsUp, ThumbsDown, Check, ChevronDown, ChevronUp, Radio } from 'lucide-react'
+import { ExternalLink, ThumbsUp, ThumbsDown, Check, ChevronDown, ChevronUp, Radio, X } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '../lib/supabase'
+import { signalStatusStyle } from './shared/tokens'
 
 interface ZaraSignal {
   id: string
@@ -14,6 +15,10 @@ interface ZaraSignal {
   routed_to: string | null
   surfaced_at: string | null
   krish_rating: number | null
+  status: string | null
+  actioned_at: string | null
+  closed_at: string | null
+  closed_reason: string | null
 }
 
 type VentureTab = 'mindmaker' | 'adfixus' | 'personal-brand'
@@ -59,7 +64,7 @@ export function ZaraIntelligence() {
         const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
         const { data, error } = await supabase
           .from('zara_signals')
-          .select('id, signal_type, venture, company_name, description, source_url, signal_score, routed_to, surfaced_at, krish_rating')
+          .select('id, signal_type, venture, company_name, description, source_url, signal_score, routed_to, surfaced_at, krish_rating, status, actioned_at, closed_at, closed_reason')
           .gt('surfaced_at', since)
           .order('signal_score', { ascending: false })
         if (error) throw error
@@ -85,6 +90,21 @@ export function ZaraIntelligence() {
       console.error('ZaraIntelligence rate error:', error)
       // Revert on error
       setSignals(prev => prev.map(s => s.id === id ? { ...s, krish_rating: null } : s))
+    }
+  }
+
+  const actionSignal = async (id: string, action: 'actioned' | 'expired') => {
+    const now = new Date().toISOString()
+    const updates: Record<string, string> = { status: action }
+    if (action === 'actioned') updates.actioned_at = now
+    if (action === 'expired') { updates.closed_at = now; updates.closed_reason = 'manually closed' }
+
+    const prev = signals.find(s => s.id === id)
+    setSignals(ss => ss.map(s => s.id === id ? { ...s, ...updates } : s))
+    const { error } = await supabase.from('zara_signals').update(updates).eq('id', id)
+    if (error) {
+      console.error('ZaraIntelligence action error:', error)
+      if (prev) setSignals(ss => ss.map(s => s.id === id ? prev : s))
     }
   }
 
@@ -150,7 +170,7 @@ export function ZaraIntelligence() {
           ) : (
             <div className="flex flex-col gap-3">
               {unrated.map(s => (
-                <SignalCard key={s.id} signal={s} onRate={rateSignal} />
+                <SignalCard key={s.id} signal={s} onRate={rateSignal} onAction={actionSignal} />
               ))}
             </div>
           )}
@@ -167,7 +187,7 @@ export function ZaraIntelligence() {
               {showRated[tab] && (
                 <div className="flex flex-col gap-3 mt-3 opacity-60">
                   {rated.map(s => (
-                    <SignalCard key={s.id} signal={s} onRate={rateSignal} />
+                    <SignalCard key={s.id} signal={s} onRate={rateSignal} onAction={actionSignal} />
                   ))}
                 </div>
               )}
@@ -179,7 +199,7 @@ export function ZaraIntelligence() {
   )
 }
 
-function SignalCard({ signal, onRate }: { signal: ZaraSignal; onRate: (id: string, rating: number) => void }) {
+function SignalCard({ signal, onRate, onAction }: { signal: ZaraSignal; onRate: (id: string, rating: number) => void; onAction: (id: string, action: 'actioned' | 'expired') => void }) {
   const rated = signal.krish_rating != null
   return (
     <div className="rounded-lg border border-white/[0.06] bg-white/[0.015] p-3.5">
@@ -205,6 +225,14 @@ function SignalCard({ signal, onRate }: { signal: ZaraSignal; onRate: (id: strin
             {RATING_LABEL[signal.krish_rating!]}
           </span>
         )}
+        {(() => {
+          const ss = signalStatusStyle(signal.status)
+          return (
+            <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${ss.bg} ${ss.text} ${ss.border}`}>
+              {ss.label}
+            </span>
+          )
+        })()}
       </div>
 
       {signal.company_name && (
@@ -256,6 +284,25 @@ function SignalCard({ signal, onRate }: { signal: ZaraSignal; onRate: (id: strin
             className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/25 hover:bg-rose-500/20 transition-colors"
           >
             <ThumbsDown className="w-3 h-3" /> Not useful
+          </button>
+        </div>
+      )}
+
+      {signal.status !== 'expired' && (
+        <div className="flex items-center gap-2 mt-2">
+          {(signal.status === 'received' || signal.status === 'routed' || !signal.status) && (
+            <button
+              onClick={() => onAction(signal.id, 'actioned')}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-blue-300 bg-blue-500/10 border border-blue-500/25 hover:bg-blue-500/20 transition-colors"
+            >
+              <Check className="w-3 h-3" /> Mark Actioned
+            </button>
+          )}
+          <button
+            onClick={() => onAction(signal.id, 'expired')}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-white/40 bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] transition-colors"
+          >
+            <X className="w-3 h-3" /> Close
           </button>
         </div>
       )}
