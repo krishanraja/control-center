@@ -78,11 +78,11 @@ export function AgentReportCards() {
                   {/* KPI */}
                   {agent.kpi && (
                     <div className="space-y-1">
-                      <p className="text-[10px] text-white/25 uppercase tracking-wider">{agent.kpi.label}</p>
+                      <p className="text-[10px] text-white/45 uppercase tracking-wider">{agent.kpi.label}</p>
                       <p className="text-[11px] text-white/60 truncate">
                         {agent.kpi.current ?? '—'}
                       </p>
-                      <p className="text-[10px] text-white/20 truncate">Target: {agent.kpi.target}</p>
+                      <p className="text-[10px] text-white/35 truncate">Target: {agent.kpi.target}</p>
                     </div>
                   )}
 
