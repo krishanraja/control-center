@@ -1,21 +1,10 @@
-import React, { useState, useEffect } from 'react'
-import { AGENTS } from '../services/agentData'
-import { loadAgentsWithBriefs } from '../services/agentBriefs'
-import { ExternalLink, Loader2 } from 'lucide-react'
+import React, { useState } from 'react'
+import { ExternalLink } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
+import { useAgents } from '../hooks/useAgents'
 import { AgentDetailModal } from './AgentDetailModal'
+import { LastUpdated } from './shared/LastUpdated'
 import { Agent } from '../types'
-
-interface AgentStatus {
-  status: string
-  lastRun: string | null
-  kpi_current: string
-  note: string
-}
-
-interface StatusData {
-  updated_at: string
-  agents: Record<string, AgentStatus>
-}
 
 const STATUS_DOT: Record<string, string> = {
   running: 'bg-emerald-400 shadow-emerald-400/50 animate-pulse shadow-sm',
@@ -31,43 +20,9 @@ const POD_STYLE: Record<string, string> = {
   ops:     'text-slate-400 bg-slate-400/10 border-slate-400/20',
 }
 
-function timeAgo(iso: string | null): string {
-  if (!iso) return 'Never'
-  const diff = Date.now() - new Date(iso).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
-}
-
 export function AgentReportCards() {
-  const [agents, setAgents] = useState<Agent[]>(AGENTS)
-  const [statusData, setStatusData] = useState<StatusData | null>(null)
+  const { agents, updatedAt } = useAgents()
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
-
-  // Load agents with brief data from Supabase
-  useEffect(() => {
-    loadAgentsWithBriefs().then(setAgents).catch(() => {})
-    const iv = setInterval(() => {
-      loadAgentsWithBriefs().then(setAgents).catch(() => {})
-    }, 60000)
-    return () => clearInterval(iv)
-  }, [])
-
-  const fetchStatus = () => {
-    fetch('/api/agents', { cache: 'no-cache' })
-      .then(r => r.json())
-      .then(setStatusData)
-      .catch(() => {})
-  }
-
-  useEffect(() => {
-    fetchStatus()
-    const iv = setInterval(fetchStatus, 60000)
-    return () => clearInterval(iv)
-  }, [])
 
   const pods = [
     { key: 'revenue', label: 'Revenue Pod', agents: agents.filter(a => a.pod === 'revenue') },
@@ -79,11 +34,7 @@ export function AgentReportCards() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-[15px] font-semibold text-white">Agent Report Cards</h2>
-        {statusData && (
-          <p className="text-[11px] text-white/25 font-mono">
-            Updated {timeAgo(statusData.updated_at)}
-          </p>
-        )}
+        <LastUpdated date={updatedAt} />
       </div>
 
       {pods.map(pod => (
@@ -93,8 +44,7 @@ export function AgentReportCards() {
           </p>
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {pod.agents.map(agent => {
-              const live = statusData?.agents[agent.id]
-              const status = (live?.status ?? agent.status) as keyof typeof STATUS_DOT
+              const status = agent.status as keyof typeof STATUS_DOT
               const isBlocked = status === 'blocked' || status === 'error'
 
               return (
@@ -130,7 +80,7 @@ export function AgentReportCards() {
                     <div className="space-y-1">
                       <p className="text-[10px] text-white/25 uppercase tracking-wider">{agent.kpi.label}</p>
                       <p className="text-[11px] text-white/60 truncate">
-                        {live?.kpi_current ?? agent.kpi.current ?? '—'}
+                        {agent.kpi.current ?? '—'}
                       </p>
                       <p className="text-[10px] text-white/20 truncate">Target: {agent.kpi.target}</p>
                     </div>
@@ -139,7 +89,7 @@ export function AgentReportCards() {
                   {/* Footer */}
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.06]">
                     <p className="text-[10px] text-white/25 font-mono">
-                      {live?.lastRun ? timeAgo(live.lastRun) : 'Not run'}
+                      {agent.lastRun ? formatDistanceToNow(agent.lastRun, { addSuffix: true }) : 'Not run'}
                     </p>
                     {agent.planDocUrl && (
                       <a
@@ -153,11 +103,6 @@ export function AgentReportCards() {
                       </a>
                     )}
                   </div>
-
-                  {/* Blocker note */}
-                  {isBlocked && live?.note && (
-                    <p className="text-[10px] text-red-400/70 mt-2 leading-snug">{live.note}</p>
-                  )}
                 </button>
               )
             })}
