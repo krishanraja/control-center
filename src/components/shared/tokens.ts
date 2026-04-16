@@ -68,6 +68,20 @@ export function humanize(text?: string | null): string {
     .replace(/\b\w/g, c => c.toUpperCase())
 }
 
+/** Signal lifecycle status styling. */
+export type SignalStatus = 'received' | 'routed' | 'actioned' | 'expired'
+
+const SIGNAL_STATUS_STYLE: Record<SignalStatus, { bg: string; text: string; border: string; label: string }> = {
+  received: { bg: 'bg-white/[0.06]',      text: 'text-white/50',      border: 'border-white/10',         label: 'New' },
+  routed:   { bg: 'bg-blue-500/10',       text: 'text-blue-300',      border: 'border-blue-500/25',      label: 'Routed' },
+  actioned: { bg: 'bg-emerald-500/10',    text: 'text-emerald-300',   border: 'border-emerald-500/25',   label: 'Actioned' },
+  expired:  { bg: 'bg-white/[0.04]',      text: 'text-white/30',      border: 'border-white/[0.06]',     label: 'Expired' },
+}
+
+export function signalStatusStyle(status?: string | null) {
+  return SIGNAL_STATUS_STYLE[(status as SignalStatus) ?? 'received'] ?? SIGNAL_STATUS_STYLE.received
+}
+
 /** Safe initials from an agent name (1-2 letters). */
 export function initialsOf(name: string): string {
   if (!name) return '?'

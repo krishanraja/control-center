@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { ToastProvider } from './components/shared/Toast'
 import { DesktopSidebar } from './components/DesktopSidebar'
 import { BottomNav } from './components/BottomNav'
 import { SystemsPanel } from './components/SystemsPanel'
@@ -53,21 +54,23 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-row">
-      {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
-      <main className={`flex-1 overflow-y-auto min-w-0 ${narrow ? 'pb-20' : ''}`}>
-        <div className={narrow ? 'px-3 py-4' : 'px-6 py-6'}>
-          {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome /></ErrorBoundary>}
-          {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday /></ErrorBoundary>}
-          {tab === 'plans'     && <ErrorBoundary label="Plans"><DesktopPlans /></ErrorBoundary>}
-          {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}
-          {tab === 'exec'      && <ErrorBoundary label="Intel"><DesktopExec /></ErrorBoundary>}
-          {tab === 'workflows' && <ErrorBoundary label="Flows"><DesktopFlows /></ErrorBoundary>}
-          {tab === 'systems'   && <ErrorBoundary label="Systems"><SystemsPanel /></ErrorBoundary>}
-        </div>
-      </main>
-      {narrow && <BottomNav active={tab === 'exec' ? 'execution' : tab} onChange={handleTab} />}
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onTab={handleTab} />
-    </div>
+    <ToastProvider>
+      <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-row">
+        {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
+        <main className={`flex-1 overflow-y-auto min-w-0 ${narrow ? 'pb-20' : ''}`}>
+          <div className={narrow ? 'px-3 py-4' : 'px-6 py-6'}>
+            {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome /></ErrorBoundary>}
+            {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday /></ErrorBoundary>}
+            {tab === 'plans'     && <ErrorBoundary label="Plans"><DesktopPlans /></ErrorBoundary>}
+            {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}
+            {tab === 'exec'      && <ErrorBoundary label="Intel"><DesktopExec /></ErrorBoundary>}
+            {tab === 'workflows' && <ErrorBoundary label="Flows"><DesktopFlows /></ErrorBoundary>}
+            {tab === 'systems'   && <ErrorBoundary label="Systems"><SystemsPanel /></ErrorBoundary>}
+          </div>
+        </main>
+        {narrow && <BottomNav active={tab === 'exec' ? 'execution' : tab} onChange={handleTab} />}
+        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onTab={handleTab} />
+      </div>
+    </ToastProvider>
   )
 }

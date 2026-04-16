@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Crown, Cog, Sparkles } from 'lucide-react'
+import { Crown, Cog, Sparkles, Zap } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { humanize } from '../shared/tokens'
+import { FlagAgentModal } from '../FlagAgentModal'
 
 interface Agent {
   id: string
@@ -81,6 +82,7 @@ export function DesktopOrg() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<{ tasks: any[]; activity: any[]; runs: any[] }>({ tasks: [], activity: [], runs: [] })
+  const [flagTarget, setFlagTarget] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     supabase.from('agents').select('*').eq('active', true).order('pod').then(({ data }) => {
@@ -135,7 +137,7 @@ export function DesktopOrg() {
 
       <div className="space-y-5">
         {groups.map(({ pod, members }) => (
-          <PodSection key={pod.key} pod={pod} members={members} selectedId={selected?.id} onSelect={setSelectedId} />
+          <PodSection key={pod.key} pod={pod} members={members} selectedId={selected?.id} onSelect={setSelectedId} onFlag={(id, name) => setFlagTarget({ id, name })} />
         ))}
       </div>
     </div>
@@ -155,6 +157,12 @@ export function DesktopOrg() {
             </span>
           )}
         </div>
+        <button
+          onClick={() => setFlagTarget({ id: selected.id, name: selected.name })}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/25 hover:bg-amber-500/20 transition-colors"
+        >
+          <Zap size={12} /> Flag
+        </button>
       </div>
 
       {selected.mandate && (
@@ -206,10 +214,17 @@ export function DesktopOrg() {
     </div>
   ) : <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an agent</div>
 
-  return <SplitPane left={list} right={rightPanel} hasSelection={!!selectedId} onBack={() => setSelectedId(null)} leftWidth="45%" />
+  return (
+    <>
+      <SplitPane left={list} right={rightPanel} hasSelection={!!selectedId} onBack={() => setSelectedId(null)} leftWidth="45%" />
+      {flagTarget && (
+        <FlagAgentModal agentId={flagTarget.id} agentDisplayName={flagTarget.name} onClose={() => setFlagTarget(null)} />
+      )}
+    </>
+  )
 }
 
-function PodSection({ pod, members, selectedId, onSelect }: { pod: PodDef; members: Agent[]; selectedId?: string; onSelect: (id: string) => void }) {
+function PodSection({ pod, members, selectedId, onSelect, onFlag }: { pod: PodDef; members: Agent[]; selectedId?: string; onSelect: (id: string) => void; onFlag: (id: string, name: string) => void }) {
   return (
     <section className={`rounded-xl border ${pod.ring} bg-gradient-to-br ${pod.tint} p-3 md:p-4`}>
       <header className="flex items-center gap-2 mb-3 px-0.5">
@@ -231,7 +246,7 @@ function PodSection({ pod, members, selectedId, onSelect }: { pod: PodDef; membe
             <button
               key={a.id}
               onClick={() => onSelect(a.id)}
-              className={`text-left rounded-lg border p-2.5 md:p-3 transition-all min-h-[64px] ${
+              className={`group text-left rounded-lg border p-2.5 md:p-3 transition-all min-h-[64px] ${
                 isSel
                   ? 'border-violet-500/40 bg-violet-500/[0.08]'
                   : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.16] hover:bg-white/[0.04]'
@@ -248,6 +263,14 @@ function PodSection({ pod, members, selectedId, onSelect }: { pod: PodDef; membe
                     </p>
                   )}
                 </div>
+                <span
+                  role="button"
+                  onClick={(e) => { e.stopPropagation(); onFlag(a.id, a.name) }}
+                  className="self-start p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-amber-500/10 text-white/25 hover:text-amber-400 transition-all"
+                  title={`Flag ${a.name}`}
+                >
+                  <Zap size={12} />
+                </span>
               </div>
             </button>
           )
