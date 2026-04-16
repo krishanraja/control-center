@@ -1,3 +1,8 @@
+// Leo's N8N workflow (pyr9wurcs1M9utW3) writes to `business_metrics` every Friday at 11AM EST.
+// To update a metric manually:
+//   PATCH /rest/v1/business_metrics?id=eq.monthly-revenue
+//   Body: {"value": "$X,XXX", "status": "hit", "updated_by": "leo"}
+
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from './_supabase'
 

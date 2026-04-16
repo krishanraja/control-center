@@ -1,5 +1,7 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Calendar, TrendingUp, Target, Award } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
+import { supabase } from '../lib/supabase'
 import { useAgents } from '../hooks/useAgents'
 import { LastUpdated } from './shared/LastUpdated'
 
@@ -20,16 +22,7 @@ function getCurrentMonth(): string {
   return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
 
-const BUSINESS_VITALS = [
-  { label: "Monthly Revenue", target: "$20,000", current: "Tracking blocked", unit: "", status: "blocked" as const },
-  { label: "Active Products", target: "6", current: "6", unit: "", status: "hit" as const },
-  { label: "N8N Workflows", target: "24 active", current: "21 active", unit: "", status: "partial" as const },
-  { label: "Agents Running", target: "10", current: "10", unit: "", status: "hit" as const },
-  { label: "Content Published", target: "≥4 pieces", current: "0 this month", unit: "", status: "behind" as const },
-  { label: "Pipeline Value", target: "≥$100K", current: "$120K (Skyview)", unit: "", status: "hit" as const },
-]
-
-const statusStyle = {
+const statusStyle: Record<string, { dot: string; text: string; bg: string }> = {
   hit: { dot: "bg-green-400", text: "text-green-400", bg: "bg-green-400/10 border-green-400/20" },
   partial: { dot: "bg-amber-400", text: "text-amber-400", bg: "bg-amber-400/10 border-amber-400/20" },
   blocked: { dot: "bg-red-400 animate-pulse", text: "text-red-400", bg: "bg-red-400/10 border-red-400/20" },
@@ -44,6 +37,27 @@ export function AllHandsPanel() {
 
   const { agents: allAgents, updatedAt } = useAgents()
   const agents = allAgents.filter(a => a.id !== 'agatha')
+
+  const [vitals, setVitals] = useState<any[]>([])
+  const [vitalsUpdatedAt, setVitalsUpdatedAt] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchVitals = async () => {
+      const { data } = await supabase
+        .from('business_metrics')
+        .select('*')
+        .order('id')
+      if (data) {
+        setVitals(data)
+        const latest = data.reduce((max: string | null, row: any) =>
+          row.updated_at && (!max || row.updated_at > max) ? row.updated_at : max, null)
+        setVitalsUpdatedAt(latest)
+      }
+    }
+    fetchVitals()
+    const iv = setInterval(fetchVitals, 60_000)
+    return () => clearInterval(iv)
+  }, [])
 
   return (
     <div className="space-y-4">
@@ -70,24 +84,45 @@ export function AllHandsPanel() {
           <div className="px-4 py-3 border-b border-command-border flex items-center space-x-2">
             <TrendingUp className="w-4 h-4 text-command-accent" />
             <span className="font-semibold text-white">Business Vitals</span>
-            <span className="text-xs text-command-text/50 ml-auto">vs {month} targets</span>
+            {vitalsUpdatedAt ? (
+              <span className="text-xs text-command-text/40 ml-auto">
+                Updated {formatDistanceToNow(new Date(vitalsUpdatedAt), { addSuffix: true })}
+              </span>
+            ) : (
+              <span className="text-xs text-command-text/50 ml-auto">vs {month} targets</span>
+            )}
           </div>
           <div className="divide-y divide-command-border/40">
-            {BUSINESS_VITALS.map((v, i) => {
-              const s = statusStyle[v.status]
-              return (
-                <div key={i} className="flex items-center justify-between px-4 py-3">
+            {vitals.length === 0 ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-3 animate-pulse">
                   <div className="flex items-center gap-3">
-                    <span className={`w-2 h-2 rounded-full ${s.dot} flex-shrink-0`} />
+                    <span className="w-2 h-2 rounded-full bg-command-text/20 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-command-text">{v.label}</p>
-                      <p className="text-xs text-command-text/50">Target: {v.target}</p>
+                      <div className="h-3 w-28 bg-command-text/10 rounded" />
+                      <div className="h-2 w-20 bg-command-text/10 rounded mt-1.5" />
                     </div>
                   </div>
-                  <span className={`text-sm font-medium ${s.text} text-right`}>{v.current}</span>
+                  <div className="h-3 w-24 bg-command-text/10 rounded" />
                 </div>
-              )
-            })}
+              ))
+            ) : (
+              vitals.map((v) => {
+                const s = statusStyle[v.status] || statusStyle.behind
+                return (
+                  <div key={v.id} className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className={`w-2 h-2 rounded-full ${s.dot} flex-shrink-0`} />
+                      <div>
+                        <p className="text-sm text-command-text">{v.label}</p>
+                        <p className="text-xs text-command-text/50">Target: {v.target}</p>
+                      </div>
+                    </div>
+                    <span className={`text-sm font-medium ${s.text} text-right`}>{v.value}</span>
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
 
@@ -110,12 +145,12 @@ export function AllHandsPanel() {
                       <span className="text-sm font-medium text-white">{agent.humanName}</span>
                     </div>
                     <div className="min-w-0 flex-1 text-right">
-                      {agent.kpi ? (
+                      {(agent as any).kpi_target ? (
                         <>
-                          <p className="text-xs text-command-text/80 leading-snug">{agent.kpi.target}</p>
-                          {agent.kpi.current && (
+                          <p className="text-xs text-command-text/80 leading-snug">{(agent as any).kpi_target}</p>
+                          {(agent as any).kpi_current && (
                             <p className={`text-xs mt-0.5 ${isBlocked ? 'text-red-400' : 'text-command-text/50'}`}>
-                              {agent.kpi.current}
+                              {(agent as any).kpi_current}
                             </p>
                           )}
                         </>
