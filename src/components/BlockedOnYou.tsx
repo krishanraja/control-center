@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { UserCheck, Clock, ArrowRight, MessageCircle, CheckCircle, Send, Hourglass } from 'lucide-react'
-import { AGENTS } from '../services/agentData'
 import { AgentAvatar } from './shared/AgentAvatar'
+import { LastUpdated } from './shared/LastUpdated'
 
 interface BlockItem {
   id: string
@@ -47,6 +47,7 @@ const ageLabel = (daysOld?: number) => {
 export function BlockedOnYou() {
   const [items, setItems] = useState<BlockItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [lastFetched, setLastFetched] = useState<Date | null>(null)
   const [feedback, setFeedback] = useState<FeedbackState>({})
   const [submitting, setSubmitting] = useState<{ [id: string]: boolean }>({})
 
@@ -54,24 +55,12 @@ export function BlockedOnYou() {
     try {
       const res = await fetch('/api/data', { cache: 'no-cache' })
       const data = await res.json()
-      // Tasks blocked on Krish or needing feedback
+      // Tasks blocked on Krish or needing feedback — live from Supabase
       const taskItems: BlockItem[] = (data.tasks || []).filter(
         (t: any) => t.blockedBy === 'krish' || t.status === 'feedback'
       )
-      // Agent blockers from agentData (status=blocked + has blockers array)
-      const agentBlockerItems: BlockItem[] = AGENTS
-        .filter(a => a.blockers && a.blockers.length > 0)
-        .flatMap(a => a.blockers!.map((b, i) => ({
-          id: `agent-blocker-${a.id}-${i}`,
-          title: `${a.humanName}: ${b}`,
-          description: b,
-          agent: a.humanName,
-          status: 'blocked',
-          urgency: 'high' as const,
-          blockedBy: 'krish' as const,
-          nextStep: `Unblock ${a.humanName} to resume their work`,
-        })))
-      setItems([...taskItems, ...agentBlockerItems])
+      setItems(taskItems)
+      setLastFetched(new Date())
     } catch (e) {
       console.error('BlockedOnYou fetch error:', e)
     } finally {
@@ -140,9 +129,10 @@ export function BlockedOnYou() {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <div className="w-2 h-2 rounded-full bg-amber-400" />
-          <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wider flex-1">
             Blocked on You {blockedOnKrish.length > 0 && `(${blockedOnKrish.length})`}
           </h2>
+          <LastUpdated date={lastFetched} />
         </div>
         {blockedOnKrish.length === 0 ? (
           <div className="text-center py-5 text-gray-500 text-sm border border-dashed border-gray-700 rounded-xl">
