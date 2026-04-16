@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { MoreHorizontal, CheckCircle2 } from 'lucide-react'
-import { AGENTS } from '../services/agentData'
+import { useAgents } from '../hooks/useAgents'
 import { MobileShell } from './mobile/MobileShell'
 import { TabHeader } from './mobile/TabHeader'
 import { Logomark } from './mobile/Logomark'
@@ -45,9 +45,9 @@ interface SystemsData {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-function agentPod(agentName?: string) {
+function agentPod(agentName: string | undefined, agents: { humanName: string; name: string; id: string; pod?: string }[]) {
   if (!agentName) return undefined
-  const match = AGENTS.find(a =>
+  const match = agents.find(a =>
     a.humanName.toLowerCase() === agentName.toLowerCase() ||
     a.name.toLowerCase() === agentName.toLowerCase() ||
     a.id === agentName
@@ -89,6 +89,7 @@ function blockerFromApproval(a: RawApproval): BlockerItem {
 // ── Component ───────────────────────────────────────────────────────────────
 export function MobileHome() {
   const h = useHaptics()
+  const { agents: teamAgents } = useAgents()
 
   const [blockers,  setBlockers]  = useState<BlockerItem[]>([])
   const [intel,     setIntel]     = useState<HomeIntel | null>(null)
@@ -214,7 +215,7 @@ export function MobileHome() {
               <BlockerCard
                 key={b.id}
                 item={b}
-                pod={agentPod(b.agent)}
+                pod={agentPod(b.agent, teamAgents)}
                 onOpen={setActiveBlocker}
               />
             ))}
@@ -238,7 +239,7 @@ export function MobileHome() {
         <HealthStrip items={systems} />
 
         {/* Team pulse strip */}
-        <TeamStrip agents={AGENTS} />
+        <TeamStrip agents={teamAgents} />
       </MobileShell>
 
       <DetailSheet

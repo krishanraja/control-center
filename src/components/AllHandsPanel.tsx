@@ -1,6 +1,7 @@
 import React from 'react'
 import { Calendar, TrendingUp, Target, Award } from 'lucide-react'
-import { AGENTS } from '../services/agentData'
+import { useAgents } from '../hooks/useAgents'
+import { LastUpdated } from './shared/LastUpdated'
 
 function getDaysUntilLastDayOfMonth(): number {
   const now = new Date()
@@ -41,7 +42,8 @@ export function AllHandsPanel() {
   const month = getCurrentMonth()
   const isUrgent = daysUntil <= 3
 
-  const agents = AGENTS.filter(a => a.id !== 'agatha')
+  const { agents: allAgents, updatedAt } = useAgents()
+  const agents = allAgents.filter(a => a.id !== 'agatha')
 
   return (
     <div className="space-y-4">
@@ -68,7 +70,7 @@ export function AllHandsPanel() {
           <div className="px-4 py-3 border-b border-command-border flex items-center space-x-2">
             <TrendingUp className="w-4 h-4 text-command-accent" />
             <span className="font-semibold text-white">Business Vitals</span>
-            <span className="text-xs text-command-text/50 ml-auto">vs April targets</span>
+            <span className="text-xs text-command-text/50 ml-auto">vs {month} targets</span>
           </div>
           <div className="divide-y divide-command-border/40">
             {BUSINESS_VITALS.map((v, i) => {
@@ -94,7 +96,7 @@ export function AllHandsPanel() {
           <div className="px-4 py-3 border-b border-command-border flex items-center space-x-2">
             <Target className="w-4 h-4 text-command-accent" />
             <span className="font-semibold text-white">Agent KPI Scoreboard</span>
-            <span className="text-xs text-command-text/50 ml-auto">April progress</span>
+            <span className="ml-auto"><LastUpdated date={updatedAt} /></span>
           </div>
           <div className="divide-y divide-command-border/40">
             {agents.map(agent => {
@@ -140,7 +142,7 @@ export function AllHandsPanel() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
             { n: "01", title: "Business Vitals", desc: "Revenue, pipeline, products vs targets" },
-            { n: "02", title: "Agent Scorecards", desc: "Each agent rated against their April KPIs" },
+            { n: "02", title: "Agent Scorecards", desc: `Each agent rated against their ${month} KPIs` },
             { n: "03", title: "Wins", desc: "What worked, what compounded, what to double down on" },
             { n: "04", title: "What Didn't", desc: "Honest failures, root causes, no softening" },
             { n: "05", title: "Next Month", desc: "New KPI targets for each agent + business goal" },
