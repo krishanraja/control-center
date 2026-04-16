@@ -120,7 +120,16 @@ export function BlockedOnYou() {
   const feedbackSent = items.filter(i => i.status === 'feedback')
   const blockedOnAgatha = items.filter(i => i.blockedBy === 'agatha' && i.status !== 'feedback')
 
-  if (loading) return <div className="p-6 text-center text-gray-500 text-sm">Loading...</div>
+  if (loading) return (
+    <div className="p-4 space-y-3">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="bg-gray-800/40 border border-gray-700/50 rounded-xl p-4 animate-pulse">
+          <div className="h-4 bg-white/[0.06] rounded w-3/4 mb-3" />
+          <div className="h-3 bg-white/[0.04] rounded w-1/2" />
+        </div>
+      ))}
+    </div>
+  )
 
   return (
     <div className="p-4 space-y-6">

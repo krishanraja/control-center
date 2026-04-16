@@ -38,15 +38,19 @@ export function useAgents(intervalMs = 60_000) {
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const mountedRef = useRef(true)
+  const abortRef = useRef<AbortController | null>(null)
 
   const refresh = useCallback(async () => {
+    abortRef.current?.abort()
+    abortRef.current = new AbortController()
+
     try {
-      const res = await fetch('/api/agents', { cache: 'no-cache' })
+      const res = await fetch('/api/agents', {
+        cache: 'no-cache',
+        signal: abortRef.current.signal,
+      })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data: ApiResponse = await res.json()
-
-      if (!mountedRef.current) return
 
       // Build lookup by id from API response
       const liveById = new Map<string, ApiAgent>()
@@ -79,18 +83,18 @@ export function useAgents(intervalMs = 60_000) {
       setUpdatedAt(new Date(data.updated_at))
       setError(null)
     } catch (err: any) {
-      if (mountedRef.current) setError(err.message)
+      if (err.name === 'AbortError') return
+      setError(err.message)
     } finally {
-      if (mountedRef.current) setLoading(false)
+      setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    mountedRef.current = true
     refresh()
     const iv = setInterval(refresh, intervalMs)
     return () => {
-      mountedRef.current = false
+      abortRef.current?.abort()
       clearInterval(iv)
     }
   }, [refresh, intervalMs])
