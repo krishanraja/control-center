@@ -8,9 +8,9 @@ export interface Agent {
   nextRun: Date
   lastRun?: Date
   status: "running" | "waiting" | "blocked" | "error" | "success"
-  description?: string // Legacy field, now using mission
-  personality: string
-  mission: string
+  description?: string
+  personality?: string
+  mission?: string
   currentWork: string[]
   collaborations: string[]
   nextActions: string[]
@@ -29,6 +29,12 @@ export interface Agent {
   briefContent?: string
   briefUpdatedAt?: string
   briefChecksum?: string
+  expected_runs_per_day?: number | null
+  active?: boolean
+  mandate?: string | null
+  kpi_label?: string
+  kpi_target?: string
+  kpi_current?: string
 }
 
 export interface SystemHealth {

@@ -55,8 +55,11 @@ export function AllHandsPanel() {
       }
     }
     fetchVitals()
-    const iv = setInterval(fetchVitals, 60_000)
-    return () => clearInterval(iv)
+    const ch = supabase
+      .channel('allhands-vitals')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'business_metrics' }, fetchVitals)
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
   }, [])
 
   return (
@@ -145,12 +148,12 @@ export function AllHandsPanel() {
                       <span className="text-sm font-medium text-white">{agent.humanName}</span>
                     </div>
                     <div className="min-w-0 flex-1 text-right">
-                      {(agent as any).kpi_target ? (
+                      {agent.kpi_target ? (
                         <>
-                          <p className="text-xs text-command-text/80 leading-snug">{(agent as any).kpi_target}</p>
-                          {(agent as any).kpi_current && (
+                          <p className="text-xs text-command-text/80 leading-snug">{agent.kpi_target}</p>
+                          {agent.kpi_current && (
                             <p className={`text-xs mt-0.5 ${isBlocked ? 'text-red-400' : 'text-command-text/50'}`}>
-                              {(agent as any).kpi_current}
+                              {agent.kpi_current}
                             </p>
                           )}
                         </>

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Crown, Cog, Sparkles, Zap } from 'lucide-react'
+import { Crown, Cog, Sparkles, Zap, Play, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
@@ -17,6 +17,9 @@ interface Agent {
   last_run?: string
   last_output?: string
   brief_content?: string
+  personality?: string | null
+  mission?: string | null
+  expected_runs_per_day?: number | null
 }
 
 interface PodDef {
@@ -83,6 +86,22 @@ export function DesktopOrg() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<{ tasks: any[]; activity: any[]; runs: any[] }>({ tasks: [], activity: [], runs: [] })
   const [flagTarget, setFlagTarget] = useState<{ id: string; name: string } | null>(null)
+  const [triggering, setTriggering] = useState<Record<string, 'idle' | 'loading' | 'ok' | 'err'>>({})
+
+  const triggerAgent = async (name: string) => {
+    setTriggering(prev => ({ ...prev, [name]: 'loading' }))
+    try {
+      const res = await fetch('/api/trigger-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent: name }),
+      })
+      setTriggering(prev => ({ ...prev, [name]: res.ok ? 'ok' : 'err' }))
+    } catch {
+      setTriggering(prev => ({ ...prev, [name]: 'err' }))
+    }
+    setTimeout(() => setTriggering(prev => ({ ...prev, [name]: 'idle' })), 2500)
+  }
 
   useEffect(() => {
     supabase.from('agents').select('*').eq('active', true).order('pod').then(({ data }) => {
@@ -137,7 +156,16 @@ export function DesktopOrg() {
 
       <div className="space-y-5">
         {groups.map(({ pod, members }) => (
-          <PodSection key={pod.key} pod={pod} members={members} selectedId={selected?.id} onSelect={setSelectedId} onFlag={(id, name) => setFlagTarget({ id, name })} />
+          <PodSection
+            key={pod.key}
+            pod={pod}
+            members={members}
+            selectedId={selected?.id}
+            onSelect={setSelectedId}
+            onFlag={(id, name) => setFlagTarget({ id, name })}
+            onTrigger={triggerAgent}
+            triggering={triggering}
+          />
         ))}
       </div>
     </div>
@@ -164,6 +192,20 @@ export function DesktopOrg() {
           <Zap size={12} /> Flag
         </button>
       </div>
+
+      {selected.personality && (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Personality</p>
+          <p className="text-xs md:text-[13px] italic text-white/55 leading-relaxed whitespace-pre-wrap">{selected.personality}</p>
+        </div>
+      )}
+
+      {selected.mission && (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Mission</p>
+          <p className="text-xs md:text-[13px] text-white/75 leading-relaxed whitespace-pre-wrap">{selected.mission}</p>
+        </div>
+      )}
 
       {selected.mandate && (
         <div>
@@ -224,7 +266,7 @@ export function DesktopOrg() {
   )
 }
 
-function PodSection({ pod, members, selectedId, onSelect, onFlag }: { pod: PodDef; members: Agent[]; selectedId?: string; onSelect: (id: string) => void; onFlag: (id: string, name: string) => void }) {
+function PodSection({ pod, members, selectedId, onSelect, onFlag, onTrigger, triggering }: { pod: PodDef; members: Agent[]; selectedId?: string; onSelect: (id: string) => void; onFlag: (id: string, name: string) => void; onTrigger: (name: string) => void; triggering: Record<string, 'idle' | 'loading' | 'ok' | 'err'> }) {
   return (
     <section className={`rounded-xl border ${pod.ring} bg-gradient-to-br ${pod.tint} p-3 md:p-4`}>
       <header className="flex items-center gap-2 mb-3 px-0.5">
@@ -263,14 +305,30 @@ function PodSection({ pod, members, selectedId, onSelect, onFlag }: { pod: PodDe
                     </p>
                   )}
                 </div>
-                <span
-                  role="button"
-                  onClick={(e) => { e.stopPropagation(); onFlag(a.id, a.name) }}
-                  className="self-start p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-amber-500/10 text-white/25 hover:text-amber-400 transition-all"
-                  title={`Flag ${a.name}`}
-                >
-                  <Zap size={12} />
-                </span>
+                <div className="flex items-center gap-0.5 self-start">
+                  {a.expected_runs_per_day != null && (
+                    <span
+                      role="button"
+                      onClick={(e) => { e.stopPropagation(); if (triggering[a.name] !== 'loading') onTrigger(a.name) }}
+                      className={`p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${
+                        triggering[a.name] === 'ok' ? 'text-emerald-400 bg-emerald-500/10 opacity-100' :
+                        triggering[a.name] === 'err' ? 'text-rose-400 bg-rose-500/10 opacity-100' :
+                        'hover:bg-violet-500/10 text-white/25 hover:text-violet-400'
+                      }`}
+                      title={`Trigger ${a.name}`}
+                    >
+                      {triggering[a.name] === 'loading' ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+                    </span>
+                  )}
+                  <span
+                    role="button"
+                    onClick={(e) => { e.stopPropagation(); onFlag(a.id, a.name) }}
+                    className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-amber-500/10 text-white/25 hover:text-amber-400 transition-all"
+                    title={`Flag ${a.name}`}
+                  >
+                    <Zap size={12} />
+                  </span>
+                </div>
               </div>
             </button>
           )

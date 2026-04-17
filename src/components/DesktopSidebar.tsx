@@ -19,41 +19,56 @@ interface Props {
 
 export function DesktopSidebar({ active, onChange }: Props) {
   const [expanded, setExpanded] = useState(true)
-  const [healthStatus, setHealthStatus] = useState<'healthy' | 'warning' | 'critical' | 'unknown'>('unknown')
+  const [badge, setBadge] = useState<'green' | 'amber' | 'red' | 'unknown'>('unknown')
+  const [badgeStatus, setBadgeStatus] = useState<string>('unknown')
+  const [alertCount, setAlertCount] = useState(0)
   const [mrr, setMrr] = useState<string | null>(null)
-
   const [unhealthyCount, setUnhealthyCount] = useState(0)
 
   useEffect(() => {
-    const load = async () => {
+    const loadSys = async () => {
       const { data } = await supabase.from('system_health').select('metric,value,status')
       if (!data) return
       const mrrRow = data.find((r: any) => r.metric === 'mrr')
       if (mrrRow) setMrr(mrrRow.value)
-      
-      let unhealthy = 0
-      const worst = data.reduce((acc: string, r: any) => {
-        if (r.status === 'critical' || r.status === 'warning') unhealthy++
-        if (r.status === 'critical') return 'critical'
-        if (r.status === 'warning' && acc !== 'critical') return 'warning'
-        return acc
-      }, 'healthy')
-      setHealthStatus(worst as any)
+      const unhealthy = data.filter((r: any) => r.status === 'critical' || r.status === 'warning').length
       setUnhealthyCount(unhealthy)
     }
-    load()
+    loadSys()
     const ch = supabase
       .channel('sidebar-health')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_health' }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_health' }, loadSys)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [])
 
+  useEffect(() => {
+    let alive = true
+    const loadBadge = async () => {
+      try {
+        const res = await fetch('/api/health', { cache: 'no-cache' })
+        if (!res.ok) throw new Error(String(res.status))
+        const data = await res.json()
+        if (!alive) return
+        setBadge(data.badge || 'unknown')
+        setBadgeStatus(data.status || 'unknown')
+        setAlertCount(Array.isArray(data.alerts) ? data.alerts.length : 0)
+      } catch {
+        if (alive) { setBadge('unknown'); setBadgeStatus('unreachable') }
+      }
+    }
+    loadBadge()
+    const iv = setInterval(loadBadge, 30_000)
+    return () => { alive = false; clearInterval(iv) }
+  }, [])
+
   const dotColor =
-    healthStatus === 'healthy'  ? 'bg-emerald-400' :
-    healthStatus === 'warning'  ? 'bg-amber-400'   :
-    healthStatus === 'critical' ? 'bg-rose-500'    :
-                                  'bg-white/20'
+    badge === 'green' ? 'bg-emerald-400' :
+    badge === 'amber' ? 'bg-amber-400'   :
+    badge === 'red'   ? 'bg-rose-500'    :
+                        'bg-white/20'
+
+  const dotTitle = alertCount > 0 ? `${badgeStatus} (${alertCount} alert${alertCount === 1 ? '' : 's'})` : badgeStatus
 
   const w = expanded ? 'w-60' : 'w-16'
 
@@ -68,7 +83,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
         {expanded && (
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-[13px] font-semibold text-white/85 truncate">Mindmaker OS</span>
-            <span className={`w-2 h-2 rounded-full ${dotColor}`} title={healthStatus} />
+            <span className={`w-2 h-2 rounded-full ${dotColor}`} title={dotTitle} />
           </div>
         )}
       </div>
@@ -90,8 +105,8 @@ export function DesktopSidebar({ active, onChange }: Props) {
               <div className="relative">
                 <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={isActive ? 2.2 : 1.8} />
                 {showHealthBadge && (
-                  <span 
-                    className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${healthStatus === 'critical' ? 'bg-rose-500' : 'bg-amber-400'} animate-pulse`}
+                  <span
+                    className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${badge === 'red' ? 'bg-rose-500' : 'bg-amber-400'} animate-pulse`}
                     title={`${unhealthyCount} system${unhealthyCount > 1 ? 's' : ''} need attention`}
                   />
                 )}
@@ -100,7 +115,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
                 <span className="truncate flex-1">{label}</span>
               )}
               {expanded && showHealthBadge && (
-                <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${healthStatus === 'critical' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${badge === 'red' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
                   {unhealthyCount}
                 </span>
               )}
@@ -126,7 +141,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
             </div>
           </>
         ) : (
-          <div className={`w-2 h-2 mx-auto rounded-full ${dotColor}`} title={healthStatus} />
+          <div className={`w-2 h-2 mx-auto rounded-full ${dotColor}`} title={dotTitle} />
         )}
       </div>
     </aside>

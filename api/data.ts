@@ -60,21 +60,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (error) return res.status(404).json({ error: error.message })
 
     // Forward to N8N (fire and forget)
-    try {
-      fetch('https://krishraja10101.app.n8n.cloud/webhook/krish-feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          taskId: id,
-          feedback: comment || '',
-          status: done ? 'done' : status,
-          timestamp: new Date().toISOString(),
-          submittedBy: 'krish',
-          agent: task.agent || 'unknown',
-          title: task.title
-        })
-      }).catch(() => {})
-    } catch {}
+    const n8nUrl = process.env.N8N_FEEDBACK_URL
+    if (n8nUrl) {
+      try {
+        fetch(n8nUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            taskId: id,
+            feedback: comment || '',
+            status: done ? 'done' : status,
+            timestamp: new Date().toISOString(),
+            submittedBy: 'krish',
+            agent: task.agent || 'unknown',
+            title: task.title
+          })
+        }).catch(() => {})
+      } catch {}
+    }
 
     // Log to audit
     await supabase.from('audit_log').insert({
