@@ -78,8 +78,14 @@ export function BlockedOnYou() {
     setSubmitting(prev => ({ ...prev, [taskId]: true }))
     const item = items.find(i => i.id === taskId)
     const feedbackText = feedback[taskId]?.text || ''
+    const n8nUrl = import.meta.env.VITE_N8N_FEEDBACK_URL
+    if (!n8nUrl) {
+      console.warn('VITE_N8N_FEEDBACK_URL is not set; skipping N8N forward.')
+      setSubmitting(prev => ({ ...prev, [taskId]: false }))
+      return
+    }
     try {
-      const n8nRes = await fetch('https://krishraja10101.app.n8n.cloud/webhook/krish-feedback', {
+      const n8nRes = await fetch(n8nUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

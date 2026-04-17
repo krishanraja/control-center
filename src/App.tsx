@@ -11,6 +11,8 @@ import { DesktopPlans } from './components/desktop/DesktopPlans'
 import { DesktopOrg } from './components/desktop/DesktopOrg'
 import { DesktopExec } from './components/desktop/DesktopExec'
 import { DesktopFlows } from './components/desktop/DesktopFlows'
+import { AgentsProvider } from './contexts/AgentsContext'
+import { PendingFlagModal } from './components/PendingFlagModal'
 
 type TabId = 'home' | 'today' | 'plans' | 'org' | 'exec' | 'workflows' | 'systems'
 
@@ -55,22 +57,25 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-row">
-        {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
-        <main className={`flex-1 overflow-y-auto min-w-0 ${narrow ? 'pb-20' : ''}`}>
-          <div className={narrow ? 'px-3 py-4' : 'px-6 py-6'}>
-            {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome /></ErrorBoundary>}
-            {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday /></ErrorBoundary>}
-            {tab === 'plans'     && <ErrorBoundary label="Plans"><DesktopPlans /></ErrorBoundary>}
-            {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}
-            {tab === 'exec'      && <ErrorBoundary label="Intel"><DesktopExec /></ErrorBoundary>}
-            {tab === 'workflows' && <ErrorBoundary label="Flows"><DesktopFlows /></ErrorBoundary>}
-            {tab === 'systems'   && <ErrorBoundary label="Systems"><SystemsPanel /></ErrorBoundary>}
-          </div>
-        </main>
-        {narrow && <BottomNav active={tab === 'exec' ? 'execution' : tab} onChange={handleTab} />}
-        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onTab={handleTab} />
-      </div>
+      <AgentsProvider>
+        <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-row">
+          {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
+          <main className={`flex-1 overflow-y-auto min-w-0 ${narrow ? 'pb-20' : ''}`}>
+            <div className={narrow ? 'px-3 py-4' : 'px-6 py-6'}>
+              {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome /></ErrorBoundary>}
+              {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday /></ErrorBoundary>}
+              {tab === 'plans'     && <ErrorBoundary label="Plans"><DesktopPlans /></ErrorBoundary>}
+              {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}
+              {tab === 'exec'      && <ErrorBoundary label="Intel"><DesktopExec /></ErrorBoundary>}
+              {tab === 'workflows' && <ErrorBoundary label="Flows"><DesktopFlows /></ErrorBoundary>}
+              {tab === 'systems'   && <ErrorBoundary label="Systems"><SystemsPanel /></ErrorBoundary>}
+            </div>
+          </main>
+          {narrow && <BottomNav active={tab === 'exec' ? 'execution' : tab} onChange={handleTab} />}
+          <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onTab={handleTab} />
+          <PendingFlagModal />
+        </div>
+      </AgentsProvider>
     </ToastProvider>
   )
 }

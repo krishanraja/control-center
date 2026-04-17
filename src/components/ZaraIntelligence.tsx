@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { ExternalLink, ThumbsUp, ThumbsDown, Check, ChevronDown, ChevronUp, Radio, X } from 'lucide-react'
+import { ExternalLink, ThumbsUp, ThumbsDown, Check, ChevronDown, ChevronUp, Radio, X, Ban } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '../lib/supabase'
 import { signalStatusStyle } from './shared/tokens'
@@ -201,6 +201,27 @@ export function ZaraIntelligence() {
 
 function SignalCard({ signal, onRate, onAction }: { signal: ZaraSignal; onRate: (id: string, rating: number) => void; onAction: (id: string, action: 'actioned' | 'expired') => void }) {
   const rated = signal.krish_rating != null
+  const [rejecting, setRejecting] = useState(false)
+
+  const reject = async () => {
+    const reason = window.prompt('Rejection reason?')
+    if (!reason || !reason.trim()) return
+    setRejecting(true)
+    try {
+      await fetch('/api/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          original_agent: 'zara',
+          original_item_id: signal.id,
+          rejection_reason: reason.trim(),
+        }),
+      })
+      onAction(signal.id, 'expired')
+    } finally {
+      setRejecting(false)
+    }
+  }
   return (
     <div className="rounded-lg border border-white/[0.06] bg-white/[0.015] p-3.5">
       {/* Badges row */}
@@ -303,6 +324,14 @@ function SignalCard({ signal, onRate, onAction }: { signal: ZaraSignal; onRate: 
             className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-white/40 bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] transition-colors"
           >
             <X className="w-3 h-3" /> Close
+          </button>
+          {/* TODO: wire nell_candidates reject button once Nell UI panel exists */}
+          <button
+            onClick={reject}
+            disabled={rejecting}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/25 hover:bg-rose-500/20 transition-colors disabled:opacity-50"
+          >
+            <Ban className="w-3 h-3" /> {rejecting ? 'Rejecting...' : 'Reject'}
           </button>
         </div>
       )}

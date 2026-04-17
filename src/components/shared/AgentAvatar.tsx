@@ -1,5 +1,5 @@
 import React from 'react'
-import { AGENTS } from '../../services/agentData'
+import { useAgentsContext } from '../../contexts/AgentsContext'
 import { podColor, initialsOf } from './tokens'
 
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
@@ -13,16 +13,11 @@ const SIZE_MAP: Record<Size, { box: string; text: string; dot: string; ring: str
 }
 
 interface Props {
-  /** Agent id, name, or human name. Resolves against AGENTS. Falls back to name-based initial if no match. */
   agent?: string
-  /** Override the display name (used when no agent record exists). */
   name?: string
-  /** Override pod for color (used when no agent record exists). */
   pod?: string
   size?: Size
-  /** Render a small status dot on the bottom-right corner. */
   statusDot?: string
-  /** Extra className on the wrapper. */
   className?: string
   title?: string
 }
@@ -30,14 +25,8 @@ interface Props {
 export function AgentAvatar({
   agent, name, pod, size = 'md', statusDot, className = '', title,
 }: Props) {
-  // Resolve agent record if an identifier was passed
-  const record = agent
-    ? AGENTS.find(a =>
-        a.id === agent ||
-        a.name.toLowerCase() === agent.toLowerCase() ||
-        a.humanName.toLowerCase() === agent.toLowerCase()
-      )
-    : undefined
+  const { resolveAgent } = useAgentsContext()
+  const record = agent ? resolveAgent(agent) : undefined
 
   const displayName = record?.humanName ?? record?.name ?? name ?? agent ?? '?'
   const resolvedPod = record?.pod ?? pod
