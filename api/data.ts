@@ -80,13 +80,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Log to audit
-    await supabase.from('audit_log').insert({
+    try {
+      await supabase.from('audit_log').insert({
       event_type: 'task_updated',
       actor: 'krish',
       target: id,
       changes: updates,
       details: comment || `status -> ${updates.status}`
-    }).catch(() => {})
+      })
+    } catch {}
 
     return res.json({ ok: true, task })
   }
