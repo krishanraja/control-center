@@ -61,7 +61,13 @@ export function DesktopFlows() {
         supabase.from('workflow_runs').select('*').order('run_at', { ascending: false }).limit(50),
         supabase.from('workflow_proposals').select('*').eq('status', 'pending').order('created_at', { ascending: false }),
       ])
-      setRuns((r.data as any) || [])
+      // Legacy rows may carry the owner on `agent` instead of `agent_id`.
+      // Backfill in the client so workflow→agent attribution is not lost.
+      const normalizedRuns = ((r.data as any[]) || []).map((row) => ({
+        ...row,
+        agent_id: row.agent_id || row.agent || null,
+      })) as Run[]
+      setRuns(normalizedRuns)
       setProposals((p.data as any) || [])
       setLoading(false)
     }

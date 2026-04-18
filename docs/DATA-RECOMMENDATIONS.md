@@ -134,14 +134,13 @@ CREATE TABLE goal_tasks (
 
 ## Priority 3: Infrastructure Improvements
 
-### 3.1 Realtime Channel Optimization
+### 3.1 Realtime Channel Optimization — ✅ Resolved
 
-**Current State**: Each `useRealtimeTasks` instance creates a separate channel.
-
-**Recommendation**:
-- Create a single global tasks channel at app level
-- Distribute updates to components via React context
-- Reduces Supabase connection overhead
+`useRealtimeTasks` now maintains a single module-level Supabase channel
+(`tasks-rt-shared`) and a shared task cache. All consumers subscribe through
+the cache and filter client-side, so there is at most one `tasks` channel per
+browser session regardless of how many components mount the hook. See
+`src/hooks/useRealtimeTasks.ts`.
 
 ### 3.2 Database Indexes
 

@@ -43,13 +43,18 @@ Agent profiles and pod assignments.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `id` | uuid | Primary key |
-| `name` | text | Agent name (e.g., "Arlo") |
-| `slug` | text | Lowercase identifier |
+| `id` | text | Primary key — lowercase slug (e.g. `cleo`). Used as the join key on `tasks.agent`, `workflow_runs.agent_id`, and `audit_log.actor` |
+| `name` | text | Display name (e.g., "Cleo") |
 | `role` | text | Job title |
-| `pod` | text | Pod assignment (`executive`, `operations`, `growth`) |
-| `status` | text | `active`, `paused`, `archived` |
-| `avatar_color` | text | Avatar background color |
+| `pod` | text | Pod assignment (`executive`, `ops`, `growth`) |
+| `active` | bool | Is the agent in the active roster |
+| `mandate` | text | Mandate / operating charter |
+| `mission` | text | Mission statement (surfaced in Org detail) |
+| `personality` | text | Personality brief |
+| `brief_content` | text | Long-form brief content |
+| `last_run` | timestamp | Last known execution |
+| `last_output` | text | Last output summary |
+| `expected_runs_per_day` | int | Expected cadence (used for freshness checks) |
 | `created_at` | timestamp | Creation time |
 
 ### `goals`
@@ -68,16 +73,14 @@ Weekly/monthly goals with progress tracking.
 
 ### `home_intelligence`
 
-Intelligence briefs and revenue data for the Home dashboard.
+Intelligence briefs and revenue data for the Home dashboard. Singleton row keyed by `id = 'current'`.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `id` | uuid | Primary key |
-| `type` | text | `revenue_pulse`, `brief`, `metric` |
-| `headline` | text | Main headline |
-| `summary` | text | Summary text |
-| `data` | jsonb | Structured data payload |
-| `created_at` | timestamp | Creation time |
+| `id` | text | Primary key — typically `current` |
+| `summary` | text | JSON-encoded `{ headline, body, recommended_focus }`. Stored as `text`, not `jsonb` — parse defensively |
+| `metrics` | jsonb | Array of `{ id, label, value, progress_pct, sub? }` KPI tiles rendered on Home |
+| `updated_at` | timestamp | Last refresh time |
 
 ### `audit_log`
 
@@ -87,8 +90,9 @@ Activity feed for all system events.
 |--------|------|-------------|
 | `id` | uuid | Primary key |
 | `event_type` | text | Event type identifier |
-| `agent` | text | Agent that triggered event |
-| `details` | jsonb | Event details |
+| `actor` | text | Who triggered the event — agent slug, `krish`, or `system` |
+| `target` | text | Optional subject of the event (e.g. `Google Drive Sync`) |
+| `details` | jsonb \| text | Event details; may be a plain string, `{message}`, or `{summary}` |
 | `created_at` | timestamp | Event time |
 
 ### `system_health`
@@ -113,12 +117,17 @@ N8N workflow execution history.
 | `id` | uuid | Primary key |
 | `workflow_id` | text | N8N workflow ID |
 | `workflow_name` | text | Human-readable name |
-| `agent` | text | Owning agent |
+| `agent_id` | text | Owning agent slug (lowercase, matches `agents.id`) |
 | `status` | text | `running`, `success`, `error` |
-| `cost` | decimal | Execution cost |
-| `started_at` | timestamp | Start time |
-| `finished_at` | timestamp | End time |
+| `outcome` | text | Outcome tag (optional, e.g. `draft_posted`) |
+| `cost_usd` | decimal | Execution cost in USD |
+| `quality_score` | decimal | Optional quality score |
+| `duration_ms` | int | Execution duration in milliseconds |
+| `run_at` | timestamp | Run start time (primary sort key) |
 | `error_message` | text | Error details if failed |
+| `created_at` | timestamp | Row insertion time |
+
+> **Legacy columns.** Prior to 2026-04-15 this table used `agent` (renamed → `agent_id`) and `started_at` (renamed → `run_at`). Rows written before the migration may still have the old column values populated. UI queries should read `agent_id`/`run_at` first and fall back to the legacy names only when rehydrating historical data. See `src/components/desktop/DesktopOrg.tsx` for the fallback pattern.
 
 ### `ventures`
 

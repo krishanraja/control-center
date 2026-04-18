@@ -1,7 +1,6 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
-
-let channelCounter = 0
 
 export interface TaskRow {
   id: string
@@ -36,32 +35,101 @@ interface Options {
   statusIn?: string[]
 }
 
-export function useRealtimeTasks(opts: Options = {}) {
-  const [tasks, setTasks] = useState<TaskRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const channelIdRef = useRef<number | null>(null)
-  
-  if (channelIdRef.current === null) {
-    channelIdRef.current = ++channelCounter
-  }
+// ─── Shared store ────────────────────────────────────────────────────────────
+// One channel + one cache of all tasks, fanned out to every consumer. Avoids
+// the N-channels-per-mount fan-out flagged in DATA-RECOMMENDATIONS §3.1.
 
-  const fetchAll = useCallback(async () => {
-    let q = supabase.from('tasks').select('*').order('updated_at', { ascending: false })
-    if (opts.statusIn && opts.statusIn.length) q = q.in('status', opts.statusIn)
-    const { data } = await q
-    if (data) setTasks(opts.filter ? data.filter(opts.filter) : data as TaskRow[])
-    setLoading(false)
-  }, [JSON.stringify(opts.statusIn)])
+let cache: TaskRow[] = []
+let loadingCache = true
+let channel: RealtimeChannel | null = null
+let refCount = 0
+let inflight: Promise<void> | null = null
+const listeners = new Set<() => void>()
+
+function notify() {
+  for (const l of listeners) l()
+}
+
+async function fetchAll(): Promise<void> {
+  if (inflight) return inflight
+  inflight = (async () => {
+    const { data } = await supabase
+      .from('tasks')
+      .select('*')
+      .order('updated_at', { ascending: false })
+    cache = (data as TaskRow[]) || []
+    loadingCache = false
+    notify()
+    inflight = null
+  })()
+  return inflight
+}
+
+function attachChannelIfNeeded() {
+  if (channel) return
+  channel = supabase
+    .channel('tasks-rt-shared')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+      fetchAll()
+    })
+    .subscribe()
+}
+
+function detachChannelIfIdle() {
+  if (refCount > 0 || !channel) return
+  supabase.removeChannel(channel)
+  channel = null
+}
+
+export function useRealtimeTasks(opts: Options = {}) {
+  // Bump a local counter so we re-render when the shared cache changes. We
+  // don't copy the cache into local state — just depend on the version.
+  const [, setVersion] = useState(0)
 
   useEffect(() => {
-    fetchAll()
-    const channelName = `tasks-rt-${channelIdRef.current}`
-    const ch = supabase
-      .channel(channelName)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => fetchAll())
-      .subscribe()
-    return () => { supabase.removeChannel(ch) }
-  }, [fetchAll])
+    refCount += 1
+    attachChannelIfNeeded()
+    if (loadingCache && !inflight) fetchAll()
 
-  return { tasks, loading, refresh: fetchAll }
+    const listener = () => setVersion(v => v + 1)
+    listeners.add(listener)
+
+    return () => {
+      listeners.delete(listener)
+      refCount -= 1
+      // Defer teardown a tick so fast tab swaps don't churn the channel.
+      setTimeout(detachChannelIfIdle, 0)
+    }
+  }, [])
+
+  const refresh = useCallback(() => { fetchAll() }, [])
+
+  const statusKey = opts.statusIn ? opts.statusIn.join('|') : ''
+  const filterFn = opts.filter
+
+  const tasks = useMemo(() => {
+    let out: TaskRow[] = cache
+    if (opts.statusIn && opts.statusIn.length) {
+      const allow = new Set(opts.statusIn)
+      out = out.filter(t => allow.has(t.status))
+    }
+    if (filterFn) out = out.filter(filterFn)
+    return out
+    // `cache` itself is module-scoped; we re-derive whenever a listener fires
+    // (which triggers setVersion) or the options change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusKey, filterFn, cache])
+
+  return { tasks, loading: loadingCache, refresh }
+}
+
+// Test hook — reset the shared module state. Intentionally not exported
+// from the public barrel; imported only by unit tests if/when they exist.
+export function __resetRealtimeTasksStore() {
+  cache = []
+  loadingCache = true
+  inflight = null
+  listeners.clear()
+  refCount = 0
+  if (channel) { supabase.removeChannel(channel); channel = null }
 }

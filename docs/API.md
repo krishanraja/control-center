@@ -202,13 +202,18 @@ const { data } = await supabase
 
 ## Workflow Runs API
 
+Column naming reference: as of 2026-04-15 the owning-agent column is `agent_id`
+(text, lowercase slug matching `agents.id`) and the run timestamp is `run_at`.
+Legacy `agent`/`started_at` columns may still hold historical rows — see
+`docs/DATABASE.md#workflow_runs` for the fallback pattern.
+
 ### Fetch Recent Runs
 
 ```typescript
 const { data } = await supabase
   .from('workflow_runs')
   .select('*')
-  .order('started_at', { ascending: false })
+  .order('run_at', { ascending: false })
   .limit(50)
 ```
 
@@ -217,14 +222,15 @@ const { data } = await supabase
 ```typescript
 const { data } = await supabase
   .from('workflow_runs')
-  .select('agent, cost')
-  .gte('started_at', thirtyDaysAgo)
+  .select('agent_id, cost_usd')
+  .gte('run_at', thirtyDaysAgo)
 
 // Sum by agent in JS
-const costs = data.reduce((acc, run) => {
-  acc[run.agent] = (acc[run.agent] || 0) + (run.cost || 0)
+const costs = (data || []).reduce((acc, run) => {
+  const k = run.agent_id || 'system'
+  acc[k] = (acc[k] || 0) + (run.cost_usd || 0)
   return acc
-}, {})
+}, {} as Record<string, number>)
 ```
 
 ## Realtime Subscriptions

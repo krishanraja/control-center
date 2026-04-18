@@ -94,7 +94,7 @@ Each tab is wrapped in `ErrorBoundary` with:
 
 ## Performance Considerations
 
-1. **Unique Channel Names**: Each `useRealtimeTasks` instance uses a unique channel ID to prevent subscription conflicts
+1. **Shared Realtime Channel**: `useRealtimeTasks` uses a single module-level Supabase channel (`tasks-rt-shared`) and a shared cache. Every mount subscribes through the cache and filters client-side — there is at most one `tasks` channel per browser session regardless of how many consumers.
 2. **Memoization**: Heavy computations (filtering, grouping) use `useMemo`
 3. **Lazy Loading**: Components render only when their tab is active
 4. **Optimistic Updates**: Actions update UI immediately, then sync with server
