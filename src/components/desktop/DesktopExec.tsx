@@ -24,9 +24,10 @@ export function DesktopExec() {
 
   const costByAgent = useMemo(() => (
     Object.values(runs.reduce((acc: any, r: any) => {
-      const k = r.agent_id || 'system'
+      // Fall back to legacy `agent` column for pre-2026-04-15 rows.
+      const k = r.agent_id || r.agent || 'system'
       if (!acc[k]) acc[k] = { agent: humanize(k), cost: 0, runs: 0 }
-      acc[k].cost += Number(r.cost_usd || 0)
+      acc[k].cost += Number(r.cost_usd || r.cost || 0)
       acc[k].runs += 1
       return acc
     }, {} as any)) as any[]
