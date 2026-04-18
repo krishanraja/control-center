@@ -114,12 +114,32 @@ export function DesktopOrg() {
   useEffect(() => {
     if (!selected) return
     const load = async () => {
-      const [tasks, activity, runs] = await Promise.all([
-        supabase.from('tasks').select('*').or(`owner.eq.${selected.id},agent.eq.${selected.id}`).neq('status', 'done').order('updated_at', { ascending: false }).limit(20),
-        supabase.from('audit_log').select('*').eq('actor', selected.id).order('created_at', { ascending: false }).limit(10),
-        supabase.from('workflow_runs').select('*').eq('agent_id', selected.id).order('run_at', { ascending: false }).limit(10),
+      // Agents may appear under id (`cleo`), display name (`Cleo`), or legacy `agent`
+      // column on workflow_runs — match all to tolerate pre-migration rows and casing drift.
+      const id = selected.id
+      const name = selected.name
+      const tokens = Array.from(new Set([id, id?.toLowerCase(), name, name?.toLowerCase()].filter(Boolean))) as string[]
+      const inList = `(${tokens.map(t => `"${t}"`).join(',')})`
+
+      const [tasks, activity, runs, legacyRuns] = await Promise.all([
+        supabase.from('tasks').select('*').or(`owner.in.${inList},agent.in.${inList}`).neq('status', 'done').order('updated_at', { ascending: false }).limit(20),
+        supabase.from('audit_log').select('*').in('actor', tokens).order('created_at', { ascending: false }).limit(10),
+        supabase.from('workflow_runs').select('*').in('agent_id', tokens).order('run_at', { ascending: false }).limit(10),
+        // Legacy column fallback — silently ignore if the column doesn't exist.
+        supabase.from('workflow_runs').select('*').in('agent', tokens).order('run_at', { ascending: false }).limit(10).then(r => r, () => ({ data: [] as any[] })),
       ])
-      setDetail({ tasks: (tasks.data as any) || [], activity: (activity.data as any) || [], runs: (runs.data as any) || [] })
+
+      const mergedRunsMap = new Map<string, any>()
+      for (const r of [...((runs.data as any) || []), ...((legacyRuns as any).data || [])]) {
+        if (r?.id) mergedRunsMap.set(r.id, r)
+      }
+      const mergedRuns = Array.from(mergedRunsMap.values()).sort((a, b) => {
+        const ad = new Date(a.run_at || a.started_at || a.created_at || 0).getTime()
+        const bd = new Date(b.run_at || b.started_at || b.created_at || 0).getTime()
+        return bd - ad
+      }).slice(0, 10)
+
+      setDetail({ tasks: (tasks.data as any) || [], activity: (activity.data as any) || [], runs: mergedRuns })
     }
     load()
   }, [selected?.id])

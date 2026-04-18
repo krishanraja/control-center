@@ -15,11 +15,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'agent (string) required' })
   }
 
+  // Normalize to match how sync.ts stores tasks.agent so org/today views find the row.
+  const agentSlug = agent.toLowerCase().split('+')[0].split('&')[0].trim()
+
   const now = new Date().toISOString()
   const { data, error } = await supabase
     .from('tasks')
     .insert({
-      agent,
+      agent: agentSlug,
       title: 'Manual trigger',
       status: 'active',
       source: 'manual',
