@@ -115,9 +115,6 @@ export function useRealtimeTasks(opts: Options = {}) {
     }
     if (filterFn) out = out.filter(filterFn)
     return out
-    // `cache` itself is module-scoped; we re-derive whenever a listener fires
-    // (which triggers setVersion) or the options change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusKey, filterFn, cache])
 
   return { tasks, loading: loadingCache, refresh }
