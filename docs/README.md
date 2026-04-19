@@ -6,6 +6,8 @@
 
 | Document | Description |
 |----------|-------------|
+| [Product](./PRODUCT.md) | Per-tab product spec — what each surface is for, what it reads/writes, behaviour rules, SLAs |
+| [Agents](./AGENTS.md) | Agent roster, slug-as-key rule, taxonomy, lifecycle, manual trigger and flag flow |
 | [Architecture](./ARCHITECTURE.md) | System architecture, data flow, and component overview |
 | [Database Schema](./DATABASE.md) | Supabase tables, relationships, and RLS policies |
 | [Components](./COMPONENTS.md) | React component library and usage patterns |
