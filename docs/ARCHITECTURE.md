@@ -1,100 +1,71 @@
-# Architecture
+# Architecture & Engineering Contract
 
-## System Overview
+This document serves as the absolute truth for the data contracts, control flows, and global deployment facts of MindMaker OS v3 Control Center. It dictates **what** the UI is allowed to do, not how it looks.
 
-Control Center is the human interface layer of MindMaker OS v3 — an event-driven autonomous organisation operating system. It provides real-time visibility into agent operations, task management, and system health.
+## 1. Global Architecture & Environment Truths
 
-## Core Principles
+### Single Source of Truth (SSOT)
+- **Agent IDs & Fleet Composition:** The frontend code does **not** dictate Agent IDs. The canonical SSOT for all Agent and Workflow IDs is `hot/systems.md` on the OpenClaw orchestrator. The Control Center pulls active agents dynamically from the `agents` table.
+- **Workflow Names:** The system relies on the `Agent | Venture | Function` naming convention for all downstream displays.
 
-1. **Event-Driven**: All state changes flow through Supabase, triggering webhooks that wake N8N agents
-2. **Realtime-First**: UI subscribes to `postgres_changes` for instant updates
-3. **CEO-Optimized**: Every view is designed for quick executive decision-making
-4. **Mobile + Desktop**: Single codebase, responsive breakpoint at 900px
+### Deployment Quirks (Vercel)
+- **Vercel CLI is BANNED:** All deployments must happen by pushing directly to the `main` branch on GitHub.
+- **ESM Import Requirements:** Because `package.json` specifies `"type": "module"`, all local imports inside the `api/` directory (serverless functions) **must** have a `.js` extension (e.g., `import { supabase } from './_supabase.js'`). Failure to do this causes silent Vercel 500 errors on deployment.
+- **Authentication & Endpoints:** Vercel SSO blocks external access by default. Endpoints that require external reachability (like monitors hitting `/api/health`) must be explicitly handled or Vercel protection bypassed.
 
-## Component Architecture
+## 2. Tab-by-Tab Data Contracts
 
-```
-src/
-├── App.tsx                    # Root component, routing, responsive logic
-├── components/
-│   ├── DesktopSidebar.tsx    # Desktop navigation with system health indicator
-│   ├── BottomNav.tsx         # Mobile navigation
-│   ├── CommandPalette.tsx    # Cmd+K quick actions
-│   ├── ErrorBoundary.tsx     # Graceful error handling per tab
-│   ├── InlineActions.tsx     # Task action buttons (Approve, Reject, Done, etc.)
-│   ├── SplitPane.tsx         # Master-detail layout
-│   ├── SystemsPanel.tsx      # Infrastructure health monitoring
-│   ├── shared/
-│   │   ├── AgentAvatar.tsx   # Consistent agent avatars
-│   │   ├── StatusPill.tsx    # Status badges
-│   │   └── SectionHeader.tsx # Section titles with icons
-│   └── desktop/
-│       ├── DesktopHome.tsx   # Command center dashboard
-│       ├── DesktopToday.tsx  # Today's priorities
-│       ├── DesktopPlans.tsx  # Full task backlog
-│       ├── DesktopOrg.tsx    # Agent hierarchy
-│       ├── DesktopExec.tsx   # Strategic metrics
-│       └── DesktopFlows.tsx  # Workflow monitoring
-├── hooks/
-│   └── useRealtimeTasks.ts   # Realtime task subscription hook
-└── lib/
-    └── supabase.ts           # Supabase client configuration
-```
+### 2.1 Home Intelligence (Command Center)
+- **The Read:** 
+  - `home_intelligence` (where `id = 'current'`)
+  - `goals` (top 6 recent)
+  - `audit_log` (top 30 recent)
+- **The Write:** No direct mutations. This tab is strictly a consumer of Marcus's synthesised intelligence.
+- **Failure State:** If `home_intelligence` is empty or unreachable, falls back to an empty state for the briefing. `goals` and `audit_log` will render as empty lists.
 
-## Data Flow
+### 2.2 Today & Plans (Task Management)
+- **The Read:** `tasks` table (subscribed via `useRealtimeTasks` for instant UI updates).
+- **The Write:** 
+  - Updates `status` ('active', 'done')
+  - Toggles `krish_reviewed` = true
+  - Updates `krish_notes` and `next_step`
+  - Defers tasks by updating `due_date`
+  - Inserts into `corrections` when a task requires a hard pivot or correction.
+- **Failure State:** If `tasks` fails to load, the `ErrorBoundary` will catch it and display a retry button.
 
-### Read Path (UI → Data)
+### 2.3 Exec (Strategic Metrics)
+- **The Read:**
+  - `home_intelligence.metrics` 
+  - `audit_log` (top 20)
+  - `workflow_runs` (top 20)
+- **The Write:** Read-only dashboard.
+- **Failure State:** Fails gracefully to empty arrays if `home_intelligence` or logs cannot be fetched.
 
-1. Component mounts
-2. Initial data fetch via Supabase REST API
-3. Subscribe to `postgres_changes` channel
-4. UI updates on every INSERT/UPDATE/DELETE
+### 2.4 Flows (Workflow Proposals & Health)
+- **The Read:** 
+  - `workflow_proposals` (where `status = 'pending'`)
+  - `workflow_runs` (top 50)
+- **The Write:**
+  - Updates `workflow_proposals.status` (e.g., to 'approved' or 'rejected')
+  - Updates `krish_reviewed` = true and records `completed_at` timestamps.
+- **Failure State:** Errors isolated via `ErrorBoundary`. Missing proposals default to a "No pending workflows" empty state.
 
-### Write Path (UI → Agents)
+### 2.5 Org (Agent Hierarchy)
+- **The Read:** 
+  - `agents` (where `active = true`, ordered by `pod`)
+  - `tasks`, `audit_log`, `workflow_runs` (filtered dynamically via `inList` queries based on selected Agent ID/tokens).
+- **The Write:** Read-only view of agent health and recent activity.
+- **Failure State:** If `agents` table fails, the hierarchy renders empty. Activity feeds fail gracefully to empty arrays if specific agent logs timeout.
 
-1. User clicks action button (e.g., "Approve")
-2. `InlineActions` calls `supabase.from('tasks').update({...})`
-3. Supabase webhook (pg_net) fires
-4. N8N workflow receives webhook payload
-5. Agent processes task and updates Supabase
-6. UI receives realtime update
+### 2.6 Background Services & Global UI
+- **Command Palette (Cmd+K):** Reads `tasks` (limit 50, active) and `agents` (active=true). Writes task status changes directly.
+- **Pending Flag Modal:** Reads `pending_flags` and updates `fired = false` to dismiss active system alerts.
+- **Inline Actions:** Generic component executing `supabase.from('tasks').update({...})`.
 
-```
-User Action → Supabase Update → Webhook → N8N Agent → Supabase Update → UI Refresh
-```
+## 3. The Control Flow
 
-## Responsive Design
-
-| Viewport | Layout | Navigation |
-|----------|--------|------------|
-| < 900px | Single column, stacked | Bottom nav bar |
-| ≥ 900px | Multi-column, split pane | Left sidebar |
-
-The breakpoint is controlled in `App.tsx`:
-
-```typescript
-function detectIsNarrow() {
-  return window.innerWidth < 900
-}
-```
-
-## State Management
-
-- **Local State**: React `useState` for UI state (selected items, filters)
-- **Server State**: Supabase realtime subscriptions (tasks, agents, etc.)
-- **No Redux/Zustand**: Intentionally simple — data lives in Supabase
-
-## Error Handling
-
-Each tab is wrapped in `ErrorBoundary` with:
-- Graceful fallback UI
-- Retry button
-- Error message display
-- No cascading failures
-
-## Performance Considerations
-
-1. **Shared Realtime Channel**: `useRealtimeTasks` uses a single module-level Supabase channel (`tasks-rt-shared`) and a shared cache. Every mount subscribes through the cache and filters client-side — there is at most one `tasks` channel per browser session regardless of how many consumers.
-2. **Memoization**: Heavy computations (filtering, grouping) use `useMemo`
-3. **Lazy Loading**: Components render only when their tab is active
-4. **Optimistic Updates**: Actions update UI immediately, then sync with server
+1. **User Action:** User clicks an action button (e.g., Approve, Reject, Done).
+2. **Supabase Mutation:** The UI updates the respective Supabase row (e.g., `tasks`, `workflow_proposals`).
+3. **Webhook Trigger:** Supabase `pg_net` webhooks fire automatically on data change.
+4. **Agent Execution:** An N8N workflow receives the payload and executes the required logic.
+5. **Realtime Sync:** N8N updates Supabase, and the UI's `useRealtimeTasks` hook (via `postgres_changes`) instantly refreshes the interface.
