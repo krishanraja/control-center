@@ -13,6 +13,10 @@
 | [Components](./COMPONENTS.md) | React component library and usage patterns |
 | [Data Pipeline](./DATA-PIPELINE.md) | Event-driven architecture and N8N integration |
 | [API Reference](./API.md) | Supabase queries and realtime subscriptions |
+| [Observability](./OBSERVABILITY.md) | Health model, alerts, SLIs, logging conventions |
+| [Security](./SECURITY.md) | Threat model, secrets inventory, auth, rotation procedure |
+| [Glossary](./GLOSSARY.md) | Canonical definitions for every product / data term |
+| [Decisions (ADRs)](./DECISIONS/) | Architecture decisions: what was chosen, why, and trade-offs |
 | [Deployment](./DEPLOYMENT.md) | Vercel deployment and environment setup |
 | [Contributing](./CONTRIBUTING.md) | Development workflow and code standards |
 | [Data Recommendations](./DATA-RECOMMENDATIONS.md) | Future improvements for data pipeline |
