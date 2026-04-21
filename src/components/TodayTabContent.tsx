@@ -3,6 +3,7 @@ import {
   UserCheck, CheckCircle, MessageCircle, Send, Clock, ArrowRight,
   Hourglass, Pencil, Check, X, ExternalLink, ChevronDown, ChevronUp, Loader2, Copy
 } from 'lucide-react'
+import { supabase, logKrishAction } from '../lib/supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -75,21 +76,23 @@ const ageLabel = (d?: number) => {
 function BlockedItem({ item, onRefresh }: { item: BlockItem; onRefresh: () => void }) {
   const [expanded, setExpanded] = useState(false)
   const [feedbackText, setFeedbackText] = useState('')
-  const [copied, setCopied] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
 
-  // Build a structured message Krish can paste to Agatha in Telegram.
-  // Agatha processes it, updates the Supabase tasks table, and agents pick it up on next poll.
-  const buildAgathaMessage = (decision: string) =>
-    `DECISION | task:${item.id} | agent:${item.agent ?? 'unknown'} | ${decision} | ${new Date().toISOString()}`
-
-  const copyAndSend = () => {
-    const msg = buildAgathaMessage(feedbackText.trim() || 'approved')
-    navigator.clipboard.writeText(msg).then(() => {
-      setCopied(true)
-      setConfirmed(true)
-      setTimeout(() => setCopied(false), 3000)
-    })
+  const submitDecision = async (decisionText?: string) => {
+    const decision = (decisionText ?? feedbackText.trim()) || 'approved'
+    setSubmitting(true)
+    await supabase.from('tasks').update({
+      krish_notes: decision,
+      krish_reviewed: true,
+      feedback_text: decision,
+      updated_at: new Date().toISOString(),
+    }).eq('id', item.id)
+    await logKrishAction(item.id, 'submit_decision', item.agent, decision)
+    setSubmitting(false)
+    setConfirmed(true)
+    setExpanded(false)
+    onRefresh()
   }
 
   const urgency = urgencyOf(item)
@@ -148,11 +151,9 @@ function BlockedItem({ item, onRefresh }: { item: BlockItem; onRefresh: () => vo
           <MessageCircle size={11} /> {expanded ? 'Cancel' : 'Decide'}
         </button>
         <button
-          onClick={() => {
-            const msg = buildAgathaMessage('approved — mark as done')
-            navigator.clipboard.writeText(msg).then(() => { setConfirmed(true); setCopied(true); setTimeout(() => setCopied(false), 3000) })
-          }}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+          onClick={() => submitDecision('approved — mark as done')}
+          disabled={submitting}
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
         >
           <CheckCircle size={11} /> Approve
         </button>
@@ -168,22 +169,22 @@ function BlockedItem({ item, onRefresh }: { item: BlockItem; onRefresh: () => vo
             onChange={e => setFeedbackText(e.target.value)}
           />
           <button
-            onClick={copyAndSend}
-            disabled={!feedbackText.trim()}
+            onClick={() => submitDecision()}
+            disabled={!feedbackText.trim() || submitting}
             className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-amber-500/10 border border-amber-500/25 text-amber-400 hover:bg-amber-500/20 transition-colors disabled:opacity-50"
           >
-            {copied ? <Check size={11} /> : <Copy size={11} />}
-            {copied ? 'Copied! Paste to Agatha in Telegram →' : 'Copy Decision → Paste to Agatha'}
+            <Send size={11} />
+            {submitting ? 'Submitting…' : 'Submit Decision'}
           </button>
           <p className="text-[10px] text-white/25 leading-relaxed">
-            Paste this in Telegram to Agatha. She'll update the task and notify {item.agent ?? 'the agent'} within the next sync cycle.
+            Your feedback will be routed to {item.agent ?? 'the agent'} automatically.
           </p>
         </div>
       )}
 
       {confirmed && !expanded && (
         <p className="pl-5 text-[11px] text-emerald-400/60 flex items-center gap-1.5">
-          <Check size={10} /> Decision copied — paste to Agatha in Telegram to route it
+          <Check size={10} /> Decision submitted — routed to {item.agent ?? 'the agent'}
         </p>
       )}
     </div>

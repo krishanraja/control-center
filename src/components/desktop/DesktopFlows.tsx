@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { Check, X, Workflow as WorkflowIcon, AlertCircle } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase, logKrishAction } from '../../lib/supabase'
 import { humanize } from '../shared/tokens'
 import { AgentAvatar } from '../shared/AgentAvatar'
 
@@ -81,6 +81,8 @@ export function DesktopFlows() {
       approved_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }).eq('id', id)
+    const proposal = proposals.find(p => p.id === id)
+    await logKrishAction(id, `proposal_${status}`, proposal?.agent_id, proposal?.title)
     loadProposals()
   }
 

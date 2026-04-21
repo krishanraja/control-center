@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { formatDistanceToNow, isToday, isPast, parseISO } from 'date-fns'
-import { supabase } from '../../lib/supabase'
+import { ExternalLink } from 'lucide-react'
+import { supabase, logKrishAction } from '../../lib/supabase'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { InlineActions } from '../InlineActions'
 import { SplitPane } from '../SplitPane'
@@ -93,11 +94,13 @@ function TodayDetail({ task }: { task: TaskRow }) {
   const saveNotes = async () => {
     if (notes === (task.krish_notes || '')) return
     await supabase.from('tasks').update({ krish_notes: notes, krish_reviewed: true, updated_at: new Date().toISOString() }).eq('id', task.id)
+    await logKrishAction(task.id, 'save_notes', task.agent || task.owner, notes)
   }
   const pushTomorrow = async () => {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     await supabase.from('tasks').update({ due_date: tomorrow.toISOString(), updated_at: new Date().toISOString() }).eq('id', task.id)
+    await logKrishAction(task.id, 'push_tomorrow', task.agent || task.owner)
   }
   const submitRevision = async () => {
     await supabase.from('corrections').insert({
@@ -108,6 +111,7 @@ function TodayDetail({ task }: { task: TaskRow }) {
       correction_type: 'revision_request',
       status: 'pending',
     })
+    await logKrishAction(task.id, 'submit_revision', task.agent || task.owner, notes || 'Needs revision')
   }
 
   return (
@@ -128,6 +132,14 @@ function TodayDetail({ task }: { task: TaskRow }) {
         </div>
       )}
 
+      {task.link_primary && (
+        <a href={task.link_primary} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-violet-500/25 bg-violet-500/[0.06] text-violet-300 hover:bg-violet-500/10 text-[13px] font-medium transition-colors w-fit">
+          <ExternalLink size={14} />
+          Open Document
+        </a>
+      )}
+
       <div>
         <p className="text-[10px] uppercase tracking-widest text-white/35 mb-1">Your Notes</p>
         <textarea
@@ -141,7 +153,7 @@ function TodayDetail({ task }: { task: TaskRow }) {
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <InlineActions taskId={task.id} currentStatus={task.status} />
+        <InlineActions taskId={task.id} currentStatus={task.status} agent={task.agent || task.owner} />
         <button onClick={submitRevision} className="px-2.5 py-1.5 rounded-lg border border-amber-500/25 text-amber-400 hover:bg-amber-500/10 text-[11px] font-medium">Needs Revision</button>
         <button onClick={pushTomorrow} className="px-2.5 py-1.5 rounded-lg border border-white/10 text-white/60 hover:bg-white/[0.06] text-[11px] font-medium">Add to Tomorrow</button>
       </div>

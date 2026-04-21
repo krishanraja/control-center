@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Command } from 'cmdk'
-import { supabase } from '../lib/supabase'
+import { supabase, logKrishAction } from '../lib/supabase'
 
 interface Props {
   open: boolean
@@ -24,16 +24,20 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
 
   useEffect(() => {
     if (!open) return
-    supabase.from('tasks').select('id,title,status').neq('status', 'done').limit(50).then(({ data }) => setTasks((data as any) || []))
+    supabase.from('tasks').select('id,title,status,agent,owner').neq('status', 'done').limit(50).then(({ data }) => setTasks((data as any) || []))
     supabase.from('agents').select('id,name,pod').eq('active', true).then(({ data }) => setAgents((data as any) || []))
   }, [open])
 
   const approve = async (id: string) => {
     await supabase.from('tasks').update({ status: 'active', krish_reviewed: true, updated_at: new Date().toISOString() }).eq('id', id)
+    const t = tasks.find(x => x.id === id)
+    await logKrishAction(id, 'approve', t?.agent || t?.owner)
     onClose()
   }
   const markDone = async (id: string) => {
     await supabase.from('tasks').update({ status: 'done', krish_reviewed: true, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', id)
+    const t = tasks.find(x => x.id === id)
+    await logKrishAction(id, 'done', t?.agent || t?.owner)
     onClose()
   }
 

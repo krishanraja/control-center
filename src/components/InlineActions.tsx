@@ -1,23 +1,24 @@
 import React, { useState } from 'react'
 import { Check, ThumbsUp, X, MessageSquarePlus } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase, logKrishAction } from '../lib/supabase'
 
 interface Props {
   taskId: string
   currentStatus?: string
   onSuccess?: () => void
   compact?: boolean
+  agent?: string
 }
 
 type ActionState = null | 'done' | 'approve' | 'reject' | 'note'
 
-export function InlineActions({ taskId, onSuccess, compact }: Props) {
+export function InlineActions({ taskId, onSuccess, compact, agent }: Props) {
   const [busy, setBusy] = useState<ActionState>(null)
   const [flash, setFlash] = useState<ActionState>(null)
   const [noteOpen, setNoteOpen] = useState(false)
   const [noteText, setNoteText] = useState('')
 
-  const patch = async (action: ActionState, payload: Record<string, any>) => {
+  const patch = async (action: ActionState, payload: Record<string, any>, notes?: string) => {
     setBusy(action)
     const { error } = await supabase.from('tasks').update({
       ...payload,
@@ -27,6 +28,7 @@ export function InlineActions({ taskId, onSuccess, compact }: Props) {
     if (!error) {
       setFlash(action)
       setTimeout(() => setFlash(null), 1200)
+      if (action) await logKrishAction(taskId, action, agent, notes)
       onSuccess?.()
     }
   }
@@ -36,7 +38,7 @@ export function InlineActions({ taskId, onSuccess, compact }: Props) {
   const reject     = () => patch('reject',  { status: 'blocked', krish_reviewed: true })
   const submitNote = async () => {
     if (!noteText.trim()) { setNoteOpen(false); return }
-    await patch('note', { krish_notes: noteText.trim(), krish_reviewed: true })
+    await patch('note', { krish_notes: noteText.trim(), krish_reviewed: true }, noteText.trim())
     setNoteText('')
     setNoteOpen(false)
   }

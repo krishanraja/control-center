@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { supabase } from '../../lib/supabase'
+import { supabase, logKrishAction } from '../../lib/supabase'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { InlineActions } from '../InlineActions'
 import { SplitPane } from '../SplitPane'
@@ -148,10 +148,12 @@ function TaskDetail({ task }: { task: TaskRow }) {
   const saveNotes = async () => {
     if (notes === (task.krish_notes || '')) return
     await supabase.from('tasks').update({ krish_notes: notes, krish_reviewed: true, updated_at: new Date().toISOString() }).eq('id', task.id)
+    await logKrishAction(task.id, 'save_notes', task.agent || task.owner, notes)
   }
   const saveNextStep = async () => {
     if (nextStep === (task.next_step || '')) return
     await supabase.from('tasks').update({ next_step: nextStep, updated_at: new Date().toISOString() }).eq('id', task.id)
+    await logKrishAction(task.id, 'save_next_step', task.agent || task.owner, nextStep)
   }
 
   return (
@@ -201,7 +203,7 @@ function TaskDetail({ task }: { task: TaskRow }) {
       </div>
 
       <div className="flex items-center gap-3">
-        <InlineActions taskId={task.id} currentStatus={task.status} />
+        <InlineActions taskId={task.id} currentStatus={task.status} agent={task.agent || task.owner} />
       </div>
 
       <div className="text-[11px] text-white/30 space-x-3">
