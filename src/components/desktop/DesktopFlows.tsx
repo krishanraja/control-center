@@ -81,8 +81,7 @@ export function DesktopFlows() {
       approved_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }).eq('id', id)
-    const proposal = proposals.find(p => p.id === id)
-    await logKrishAction(id, `proposal_${status}`, proposal?.agent_id, proposal?.title)
+    await logKrishAction(id, status, 'system', 'Workflow proposal ' + status)
     loadProposals()
   }
 

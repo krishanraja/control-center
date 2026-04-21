@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   UserCheck, CheckCircle, MessageCircle, Send, Clock, ArrowRight,
-  Hourglass, Pencil, Check, X, ExternalLink, ChevronDown, ChevronUp, Loader2, Copy
+  Pencil, Check, X, Loader2
 } from 'lucide-react'
 import { supabase, logKrishAction } from '../lib/supabase'
 
@@ -177,7 +177,7 @@ function BlockedItem({ item, onRefresh }: { item: BlockItem; onRefresh: () => vo
             {submitting ? 'Submitting…' : 'Submit Decision'}
           </button>
           <p className="text-[10px] text-white/25 leading-relaxed">
-            Your feedback will be routed to {item.agent ?? 'the agent'} automatically.
+            Your feedback will be routed to {item.agent || 'the agent'} automatically.
           </p>
         </div>
       )}

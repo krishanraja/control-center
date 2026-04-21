@@ -148,12 +148,12 @@ function TaskDetail({ task }: { task: TaskRow }) {
   const saveNotes = async () => {
     if (notes === (task.krish_notes || '')) return
     await supabase.from('tasks').update({ krish_notes: notes, krish_reviewed: true, updated_at: new Date().toISOString() }).eq('id', task.id)
-    await logKrishAction(task.id, 'save_notes', task.agent || task.owner, notes)
+    await logKrishAction(task.id, 'note', task.agent || task.owner, notes)
   }
   const saveNextStep = async () => {
     if (nextStep === (task.next_step || '')) return
     await supabase.from('tasks').update({ next_step: nextStep, updated_at: new Date().toISOString() }).eq('id', task.id)
-    await logKrishAction(task.id, 'save_next_step', task.agent || task.owner, nextStep)
+    await logKrishAction(task.id, 'next_step', task.agent || task.owner, nextStep)
   }
 
   return (

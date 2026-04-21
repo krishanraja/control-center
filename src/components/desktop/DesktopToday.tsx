@@ -94,7 +94,7 @@ function TodayDetail({ task }: { task: TaskRow }) {
   const saveNotes = async () => {
     if (notes === (task.krish_notes || '')) return
     await supabase.from('tasks').update({ krish_notes: notes, krish_reviewed: true, updated_at: new Date().toISOString() }).eq('id', task.id)
-    await logKrishAction(task.id, 'save_notes', task.agent || task.owner, notes)
+    await logKrishAction(task.id, 'note', task.agent || task.owner, notes)
   }
   const pushTomorrow = async () => {
     const tomorrow = new Date()
@@ -111,7 +111,7 @@ function TodayDetail({ task }: { task: TaskRow }) {
       correction_type: 'revision_request',
       status: 'pending',
     })
-    await logKrishAction(task.id, 'submit_revision', task.agent || task.owner, notes || 'Needs revision')
+    await logKrishAction(task.id, 'revision', task.agent || task.owner, notes || 'Needs revision')
   }
 
   return (

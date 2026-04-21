@@ -30,14 +30,12 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
 
   const approve = async (id: string) => {
     await supabase.from('tasks').update({ status: 'active', krish_reviewed: true, updated_at: new Date().toISOString() }).eq('id', id)
-    const t = tasks.find(x => x.id === id)
-    await logKrishAction(id, 'approve', t?.agent || t?.owner)
+    await logKrishAction(id, 'approve')
     onClose()
   }
   const markDone = async (id: string) => {
     await supabase.from('tasks').update({ status: 'done', krish_reviewed: true, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', id)
-    const t = tasks.find(x => x.id === id)
-    await logKrishAction(id, 'done', t?.agent || t?.owner)
+    await logKrishAction(id, 'done')
     onClose()
   }
 
