@@ -36,6 +36,19 @@ function parseSummary(raw: any): { headline?: string; body?: string; recommended
   try { return JSON.parse(raw) } catch { return {} }
 }
 
+/** `metrics` may arrive as a JSON-encoded string in some rows — coerce to array. */
+function parseMetrics(raw: any): any[] {
+  if (!raw) return []
+  if (Array.isArray(raw)) return raw
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch { return [] }
+  }
+  return []
+}
+
 export function DesktopHome() {
   const [intel, setIntel] = useState<HomeIntel | null>(null)
   const [events, setEvents] = useState<AuditEvent[]>([])
@@ -61,7 +74,7 @@ export function DesktopHome() {
   }, [])
 
   const summary = useMemo(() => parseSummary(intel?.summary), [intel?.summary])
-  const metrics: any[] = intel?.metrics || []
+  const metrics = useMemo(() => parseMetrics(intel?.metrics), [intel?.metrics])
   const topWaiting = useMemo(() => rankWaiting(waiting).slice(0, 6), [waiting])
 
   return (
