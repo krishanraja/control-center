@@ -10,16 +10,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end()
 
   if (req.method === 'GET') {
-    const [goalsRes, configRes] = await Promise.all([
+    const [goalsRes, configRes, tasksRes] = await Promise.all([
       supabase.from('goals').select('*').order('created_at'),
-      supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus', 'week_of'])
+      supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus', 'week_of']),
+      supabase.from('tasks').select('id, title, status, agent, weekly_goal_id').not('weekly_goal_id', 'is', null)
     ])
 
     const config: Record<string, string> = {}
     for (const c of configRes.data || []) config[c.key] = c.value
 
+    const goals = goalsRes.data || []
+    const allTasks = tasksRes.data || []
+    
+    // Attach tasks and auto-calculate progress
+    for (const g of goals) {
+      const gTasks = allTasks.filter(t => t.weekly_goal_id === g.id)
+      g.tasks = gTasks
+      if (gTasks.length > 0) {
+        const completed = gTasks.filter(t => t.status === 'Complete' || t.status === 'Closed' || t.status === 'Done').length
+        g.calculated_progress = Math.round((completed / gTasks.length) * 100)
+      } else {
+        g.calculated_progress = g.progress || 0 // fallback
+      }
+    }
+
     return res.json({
-      goals: goalsRes.data || [],
+      goals,
       north_star: config.north_star || '',
       team_focus: config.team_focus || '',
       week_of: config.week_of || '',

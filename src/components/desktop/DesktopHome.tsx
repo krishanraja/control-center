@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { humanize } from '../shared/tokens'
+import { WeeklyGoals } from '../WeeklyGoals'
 
 interface HomeIntel {
   summary?: any
@@ -74,13 +75,11 @@ const hasRenderableMessage = (ev: AuditEvent) => resolveMessage(ev) !== null
 export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const [intel, setIntel] = useState<HomeIntel | null>(null)
   const [events, setEvents] = useState<AuditEvent[]>([])
-  const [goals, setGoals] = useState<Goal[]>([])
-  const { tasks: waiting } = useRealtimeTasks({ statusIn: ['waiting', 'blocked'] })
+    const { tasks: waiting } = useRealtimeTasks({ statusIn: ['waiting', 'blocked'] })
 
   useEffect(() => {
     supabase.from('home_intelligence').select('*').eq('id', 'current').maybeSingle().then(({ data }) => setIntel(data as any))
-    supabase.from('goals').select('*').order('updated_at', { ascending: false }).limit(6).then(({ data }) => setGoals((data as any) || []))
-
+    
     const loadEvents = async () => {
       const excluded = Array.from(EXCLUDED_EVENT_TYPES).map(t => `"${t}"`).join(',')
       const { data } = await supabase
@@ -146,44 +145,10 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
             />
           )}
 
-          <SectionHeader icon={<Target size={13} className="text-violet-400" />} label="Weekly Goals" trailing={
-            goals.length > 0 ? <span className="text-[10px] text-white/30 font-mono tabular-nums">{goals.length}</span> : null
-          } />
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5 flex-1 min-h-0 overflow-y-auto">
-            {goals.length === 0 ? (
-              <p className="text-[12px] text-white/35 py-2">No goals this week.</p>
-            ) : (
-              <ul className="space-y-3">
-                {goals.slice(0, 4).map(g => {
-                  const pct = typeof g.progress === 'number' ? Math.max(0, Math.min(100, g.progress)) : null
-                  return (
-                    <li key={g.id} className="space-y-1.5">
-                      <div className="flex items-baseline gap-2">
-                        <p className="flex-1 text-[12.5px] text-white/85 font-medium leading-snug line-clamp-2">{g.title}</p>
-                        {pct !== null && (
-                          <span className="flex-shrink-0 text-[11px] font-mono tabular-nums text-white/45">{pct}%</span>
-                        )}
-                      </div>
-                      {pct !== null ? (
-                        <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-[width] duration-500 ${
-                              pct >= 100 ? 'bg-emerald-400'
-                              : pct >= 66  ? 'bg-gradient-to-r from-violet-500 to-emerald-400'
-                              : pct >= 33  ? 'bg-gradient-to-r from-violet-500 to-violet-400'
-                                           : 'bg-gradient-to-r from-amber-500 to-violet-500'
-                            }`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-1.5 bg-white/[0.04] rounded-full" />
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
+          
+          {/* Replaced static list with interactive component */}
+          <div className="flex flex-col min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+            <WeeklyGoals />
           </div>
         </section>
 

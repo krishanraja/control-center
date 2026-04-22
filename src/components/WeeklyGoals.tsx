@@ -3,6 +3,13 @@ import { Target, Loader2, Pencil, Check, X, ChevronDown, ChevronUp } from 'lucid
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
+interface MappedTask {
+  id: string
+  title: string
+  status: string
+  agent: string
+}
+
 interface Goal {
   id: string
   title: string
@@ -11,6 +18,8 @@ interface Goal {
   owner: string
   progress: number
   notes?: string
+  tasks?: MappedTask[]
+  calculated_progress?: number
 }
 
 interface GoalsData {
@@ -224,7 +233,7 @@ export function WeeklyGoals() {
       {/* Goals list */}
       <div className="divide-y divide-white/[0.04]">
         {data.goals.map(goal => {
-          const pct = Math.max(0, Math.min(100, goal.progress))
+          const pct = Math.max(0, Math.min(100, goal.tasks && goal.tasks.length > 0 ? (goal.calculated_progress || 0) : goal.progress))
           const done = pct >= 100
           const isExpanded = expanded === goal.id
           const isEditing = editingGoal === goal.id
@@ -340,13 +349,17 @@ export function WeeklyGoals() {
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] text-white/30 uppercase tracking-wider block mb-1">Progress % (0–100)</label>
+                        <label className="text-[10px] text-white/30 uppercase tracking-wider flex items-center gap-2 mb-1">
+                          Progress % (0–100)
+                          {goal.tasks && goal.tasks.length > 0 && <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded font-mono lowercase">Auto-calculated</span>}
+                        </label>
                         <input
                           type="number"
                           min={0}
                           max={100}
-                          className="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-2.5 py-1.5 text-[12px] text-white placeholder-white/20 focus:outline-none focus:border-violet-500/50"
-                          value={goalEdit.progress}
+                          disabled={goal.tasks && goal.tasks.length > 0}
+                          className="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-2.5 py-1.5 text-[12px] text-white placeholder-white/20 focus:outline-none focus:border-violet-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          value={goal.tasks && goal.tasks.length > 0 ? (goal.calculated_progress || 0) : goalEdit.progress}
                           onChange={e => setGoalEdit(s => ({ ...s, progress: e.target.value }))}
                         />
                       </div>
@@ -395,6 +408,25 @@ export function WeeklyGoals() {
                       >
                         + Update progress
                       </button>
+
+                      {/* Tasks List */}
+                      <div className="mt-4 pt-3 border-t border-white/[0.04]">
+                        <h4 className="text-[10px] font-semibold tracking-wider uppercase text-white/40 mb-2">Mapped Tactical Tasks</h4>
+                        {!goal.tasks || goal.tasks.length === 0 ? (
+                          <p className="text-[11px] text-white/30 italic">No tasks mapped to this goal yet.</p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {goal.tasks.map(t => (
+                              <div key={t.id} className="flex items-center gap-2 text-[11.5px] bg-white/[0.015] border border-white/[0.04] p-1.5 rounded-lg">
+                                <div className={`w-1.5 h-1.5 rounded-full ${['Complete', 'Closed', 'Done'].includes(t.status) ? 'bg-emerald-400' : 'bg-violet-400'}`} />
+                                <span className="text-white/40 uppercase text-[9px] font-bold w-12 truncate">{t.agent}</span>
+                                <span className="text-white/80 truncate flex-1">{t.title}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
                     </div>
                   )}
                 </div>
