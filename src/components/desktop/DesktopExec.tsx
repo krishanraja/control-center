@@ -17,13 +17,6 @@ interface ZaraSignal {
   summary: string | null
 }
 
-interface ExternalSignal {
-  signal: string
-  source: string
-  relevance: string
-  recommended_action: string
-}
-
 interface MarcusSynthesis {
   id: string
   week_of: string
@@ -39,7 +32,6 @@ type LoadState = 'loading' | 'ok' | 'error'
 
 export function DesktopExec() {
   const [assessment, setAssessment] = useState<string | null>(null)
-  const [externalSignals, setExternalSignals] = useState<ExternalSignal[]>([])
   const [synthesis, setSynthesis] = useState<MarcusSynthesis | null>(null)
   const [signals, setSignals] = useState<ZaraSignal[]>([])
   const [ventureFilter, setVentureFilter] = useState<VentureFilter>('all')
@@ -50,11 +42,10 @@ export function DesktopExec() {
   const [signalsError, setSignalsError] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase.from('home_intelligence').select('assessment,external_signals').eq('id', 'current').maybeSingle().then(({ data, error }) => {
+    supabase.from('home_intelligence').select('assessment').eq('id', 'current').maybeSingle().then(({ data, error }) => {
       if (error) { setIntelState('error'); setIntelError(error.message); return }
       if (data) {
         setAssessment((data as any).assessment || null)
-        setExternalSignals(Array.isArray((data as any).external_signals) ? (data as any).external_signals : [])
       }
       setIntelState('ok')
     })
@@ -89,7 +80,7 @@ export function DesktopExec() {
 
       <div className="grid grid-cols-12 gap-4 md:gap-5">
 
-        <section className="col-span-12 xl:col-span-5 space-y-4">
+        <section className="col-span-12 xl:col-span-7 space-y-4">
 
           <SectionHeader icon={<Brain size={13} className="text-violet-400" />} label="Strategic Assessment" />
           {intelState === 'loading' ? (
@@ -133,34 +124,9 @@ export function DesktopExec() {
             </>
           )}
 
-          {externalSignals.length > 0 && (
-            <>
-              <SectionHeader icon={<Radio size={13} className="text-emerald-400" />} label="External Signals" />
-              <div className="space-y-2">
-                {externalSignals.map((es, i) => (
-                  <div key={i} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
-                    <div className="flex items-start gap-2">
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded border font-semibold uppercase tracking-wider flex-shrink-0 mt-0.5 ${
-                        es.relevance === 'Critical' ? 'text-rose-300 border-rose-500/25 bg-rose-500/10' :
-                        es.relevance === 'High' ? 'text-amber-300 border-amber-500/25 bg-amber-500/10' :
-                        'text-white/40 border-white/10 bg-white/[0.04]'
-                      }`}>{es.relevance}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[12px] text-white/70 leading-snug">{es.signal}</p>
-                        <p className="text-[10px] text-white/30 mt-1">Source: {es.source}</p>
-                        {es.recommended_action && (
-                          <p className="text-[11px] text-emerald-300/60 mt-1.5 leading-snug">→ {es.recommended_action}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
         </section>
 
-        <section className="col-span-12 xl:col-span-7 space-y-4">
+        <section className="col-span-12 xl:col-span-5 space-y-4">
           <div className="flex items-center gap-3">
             <SectionHeader icon={<Zap size={13} className="text-rose-400" />} label="Zara Signal Feed" />
             <div className="flex gap-1.5 ml-auto">
@@ -197,7 +163,7 @@ export function DesktopExec() {
             ) : (
               <div className="divide-y divide-white/[0.04]">
                 {filteredSignals.map(s => (
-                  <div key={s.id} className="p-3.5 hover:bg-white/[0.015] transition-colors">
+                  <div key={s.id} className="p-2.5 hover:bg-white/[0.015] transition-colors">
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 mt-0.5">
                         {s.signal_score !== null && s.signal_score !== undefined && s.signal_score > 0 ? (
@@ -209,7 +175,7 @@ export function DesktopExec() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                           {s.venture && (
                             <span className="text-[9px] px-1.5 py-0.5 rounded border border-white/10 bg-white/[0.04] text-white/40 uppercase tracking-wider font-medium">{s.venture}</span>
                           )}
@@ -227,7 +193,7 @@ export function DesktopExec() {
                         </div>
                         <p className="text-[12.5px] text-white/75 leading-snug">{s.description}</p>
                         {s.company_name && <p className="text-[11px] text-white/40 mt-1">{s.company_name}</p>}
-                        <div className="flex items-center gap-3 mt-2 text-[10px] text-white/25">
+                        <div className="flex items-center gap-3 mt-1.5 text-[10px] text-white/25">
                           {s.surfaced_at && <span>{formatDistanceToNow(new Date(s.surfaced_at), { addSuffix: true })}</span>}
                           {s.source_url && s.source_url !== 'https://example.com/test-podcast' && (
                             <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-violet-400/50 hover:text-violet-400">

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Target, AlertTriangle, TrendingUp, CheckCircle, ChevronRight } from 'lucide-react'
+import { Target, AlertTriangle, TrendingUp, CheckCircle, ChevronRight, ExternalLink } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { SplitPane } from '../SplitPane'
@@ -15,6 +15,8 @@ interface AgentPlan {
   progress_pct: number | null
   last_updated: string | null
   updated_at: string | null
+  doc_link: string | null
+  tactical_plans_folder_id: string | null
 }
 
 interface AgentRow {
@@ -233,6 +235,17 @@ export function DesktopPlans() {
               </p>
               <p className="text-[13px] text-white/75 leading-relaxed">{selected.plan.next_milestone}</p>
             </div>
+          )}
+
+          {selected.plan.doc_link && (
+            <a
+              href={selected.plan.doc_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[11px] text-violet-400 hover:text-violet-300 mt-3"
+            >
+              <ExternalLink size={10} /> View Identity & Action File
+            </a>
           )}
 
           {selected.plan.updated_at && (
