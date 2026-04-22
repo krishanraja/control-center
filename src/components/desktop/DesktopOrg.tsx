@@ -20,6 +20,9 @@ interface Agent {
   personality?: string | null
   mission?: string | null
   expected_runs_per_day?: number | null
+  kpi_label?: string | null
+  kpi_target?: string | null
+  kpi_current?: string | null
 }
 
 interface PodDef {
@@ -84,7 +87,7 @@ function podOf(pod?: string): PodDef {
 export function DesktopOrg() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [detail, setDetail] = useState<{ tasks: any[]; activity: any[]; runs: any[] }>({ tasks: [], activity: [], runs: [] })
+  const [detail, setDetail] = useState<{ tasks: any[]; runs: any[] }>({ tasks: [], runs: [] })
   const [flagTarget, setFlagTarget] = useState<{ id: string; name: string } | null>(null)
   const [triggering, setTriggering] = useState<Record<string, 'idle' | 'loading' | 'ok' | 'err'>>({})
 
@@ -121,9 +124,8 @@ export function DesktopOrg() {
       const tokens = Array.from(new Set([id, id?.toLowerCase(), name, name?.toLowerCase()].filter(Boolean))) as string[]
       const inList = `(${tokens.map(t => `"${t}"`).join(',')})`
 
-      const [tasks, activity, runs, legacyRuns] = await Promise.all([
+      const [tasks, runs, legacyRuns] = await Promise.all([
         supabase.from('tasks').select('*').or(`owner.in.${inList},agent.in.${inList}`).neq('status', 'done').order('updated_at', { ascending: false }).limit(20),
-        supabase.from('audit_log').select('*').in('actor', tokens).order('created_at', { ascending: false }).limit(10),
         supabase.from('workflow_runs').select('*').in('agent_id', tokens).order('run_at', { ascending: false }).limit(10),
         // Legacy column fallback — silently ignore if the column doesn't exist.
         supabase.from('workflow_runs').select('*').in('agent', tokens).order('run_at', { ascending: false }).limit(10).then(r => r, () => ({ data: [] as any[] })),
@@ -139,7 +141,7 @@ export function DesktopOrg() {
         return bd - ad
       }).slice(0, 10)
 
-      setDetail({ tasks: (tasks.data as any) || [], activity: (activity.data as any) || [], runs: mergedRuns })
+      setDetail({ tasks: (tasks.data as any) || [], runs: mergedRuns })
     }
     load()
   }, [selected?.id])
@@ -196,14 +198,22 @@ export function DesktopOrg() {
       <div className="flex items-start gap-4">
         <AgentAvatar agent={selected.id} size="lg" />
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white leading-tight tracking-tight">{selected.name}</h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white leading-tight tracking-tight">{selected.name}</h1>
+            <RunHealthDot runs={detail.runs} />
+          </div>
           {selected.role && <p className="text-xs md:text-[13px] text-white/55 mt-1">{selected.role}</p>}
-          {selected.pod && (
-            <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 mt-2 rounded-full border font-medium ${podOf(selected.pod).chip}`}>
-              {podOf(selected.pod).icon}
-              {podOf(selected.pod).label}
-            </span>
-          )}
+          <div className="flex items-center gap-3 mt-2">
+            {selected.pod && (
+              <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium ${podOf(selected.pod).chip}`}>
+                {podOf(selected.pod).icon}
+                {podOf(selected.pod).label}
+              </span>
+            )}
+            {selected.last_run && (
+              <span className="text-[10px] text-white/30">Last run {formatDistanceToNow(new Date(selected.last_run), { addSuffix: true })}</span>
+            )}
+          </div>
         </div>
         <button
           onClick={() => setFlagTarget({ id: selected.id, name: selected.name })}
@@ -213,46 +223,36 @@ export function DesktopOrg() {
         </button>
       </div>
 
-      {selected.personality && (
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Personality</p>
-          <p className="text-xs md:text-[13px] italic text-white/55 leading-relaxed whitespace-pre-wrap">{selected.personality}</p>
-        </div>
-      )}
-
-      {selected.mission && (
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Mission</p>
-          <p className="text-xs md:text-[13px] text-white/75 leading-relaxed whitespace-pre-wrap">{selected.mission}</p>
-        </div>
-      )}
-
-      {selected.mandate && (
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Mandate</p>
-          <p className="text-xs md:text-[13px] text-white/75 leading-relaxed whitespace-pre-wrap">{selected.mandate}</p>
-        </div>
-      )}
-
-      {selected.brief_content && (
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Brief</p>
-          <p className="text-[11px] md:text-[12px] text-white/60 leading-relaxed line-clamp-6 whitespace-pre-wrap">{selected.brief_content}</p>
+      {selected.kpi_label && (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/70 mb-2">{selected.kpi_label}</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-[10px] text-white/35 uppercase tracking-wider">Target</p>
+              <p className="text-[13px] text-white/80 mt-0.5">{selected.kpi_target || '—'}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-white/35 uppercase tracking-wider">Current</p>
+              <p className="text-[13px] text-emerald-300/80 mt-0.5 font-medium">{selected.kpi_current || '—'}</p>
+            </div>
+          </div>
         </div>
       )}
 
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2.5">Recent Activity</p>
-        {detail.activity.length === 0 ? (
-          <p className="text-[11px] text-white/30">No recent activity.</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2.5">Active Tasks ({detail.tasks.length})</p>
+        {detail.tasks.length === 0 ? (
+          <p className="text-[11px] text-white/30">No active tasks.</p>
         ) : (
           <div className="space-y-1.5">
-            {detail.activity.slice(0, 5).map(a => (
-              <p key={a.id} className="text-[11px] md:text-[12px] text-white/60 leading-snug">
-                <span className="text-white/30">{formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}</span>
-                <span className="text-white/25 mx-1.5">·</span>
-                {humanize(a.event_type)}{a.target && <span className="text-white/45"> → {humanize(a.target)}</span>}
-              </p>
+            {detail.tasks.slice(0, 8).map((t: any) => (
+              <div key={t.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                  t.status === 'waiting' ? 'bg-amber-400 animate-pulse' : t.status === 'active' ? 'bg-emerald-400' : t.status === 'in_progress' ? 'bg-blue-400' : 'bg-white/20'
+                }`} />
+                <p className="text-[12px] text-white/70 truncate flex-1">{t.title}</p>
+                <span className="text-[10px] text-white/30">{t.status}</span>
+              </div>
             ))}
           </div>
         )}
@@ -261,18 +261,26 @@ export function DesktopOrg() {
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2.5">N8N Runs</p>
         {detail.runs.length === 0 ? (
-          <p className="text-[11px] text-white/30">No workflow runs.</p>
+          <p className="text-[11px] text-white/30">No workflow runs recorded.</p>
         ) : (
           <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] divide-y divide-white/[0.04]">
-            {detail.runs.slice(0, 5).map(r => (
-              <div key={r.id} className="flex items-center justify-between px-3 py-2 text-[11px] md:text-[12px] gap-3">
-                <span className="text-white/70 truncate">{humanize(r.workflow_name) || r.workflow_name}</span>
-                <span className={`text-[11px] font-medium whitespace-nowrap ${r.status === 'success' ? 'text-emerald-400' : r.status === 'error' ? 'text-rose-400' : 'text-white/40'}`}>{humanize(r.status)}</span>
+            {detail.runs.slice(0, 10).map((r: any) => (
+              <div key={r.id} className="flex items-center justify-between px-3 py-2.5 text-[12px] gap-3">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${r.status === 'success' ? 'bg-emerald-400' : r.status === 'error' ? 'bg-rose-400' : 'bg-white/30'}`} />
+                  <span className="text-white/70 truncate">{humanize(r.workflow_name) || r.workflow_name}</span>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {Number(r.cost_usd) > 0 && <span className="text-[10px] text-white/30 font-mono">${Number(r.cost_usd).toFixed(3)}</span>}
+                  <span className="text-[10px] text-white/25">{r.run_at ? formatDistanceToNow(new Date(r.run_at), { addSuffix: true }) : '—'}</span>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {selected.brief_content && <CollapsibleBrief content={selected.brief_content} />}
     </div>
   ) : <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an agent</div>
 
@@ -355,5 +363,43 @@ function PodSection({ pod, members, selectedId, onSelect, onFlag, onTrigger, tri
         })}
       </div>
     </section>
+  )
+}
+
+function RunHealthDot({ runs }: { runs: any[] }) {
+  if (!runs || runs.length === 0) {
+    return <span className="w-2.5 h-2.5 rounded-full bg-white/15" title="No runs recorded" />
+  }
+  const recent = runs.slice(0, 5)
+  const errorCount = recent.filter(r => r.status === 'error').length
+  const color = errorCount === 0 ? 'bg-emerald-400' : errorCount <= 2 ? 'bg-amber-400' : 'bg-rose-500'
+  const label = errorCount === 0 ? 'Healthy' : `${errorCount}/${recent.length} errors`
+  return <span className={`w-2.5 h-2.5 rounded-full ${color}`} title={label} />
+}
+
+function CollapsibleBrief({ content }: { content: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const hasMore = content.length > 200
+  const preview = content.slice(0, 200)
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2 hover:text-white/60 transition-colors"
+      >
+        Brief {expanded ? '▾' : '▸'}
+      </button>
+      <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+        <p className="text-[11px] text-white/50 leading-relaxed whitespace-pre-wrap">
+          {expanded || !hasMore ? content : preview + '…'}
+        </p>
+        {hasMore && !expanded && (
+          <button onClick={() => setExpanded(true)} className="text-[10px] text-violet-400 hover:text-violet-300 mt-1.5">
+            Show full brief
+          </button>
+        )}
+      </div>
+    </div>
   )
 }

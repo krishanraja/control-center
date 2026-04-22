@@ -17,8 +17,11 @@ interface AuditEvent {
   actor: string
   target?: string
   details?: any
+  display_message?: string | null
   created_at: string
 }
+
+type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
 interface Goal {
   id: string
@@ -49,7 +52,7 @@ function parseMetrics(raw: any): any[] {
   return []
 }
 
-export function DesktopHome() {
+export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const [intel, setIntel] = useState<HomeIntel | null>(null)
   const [events, setEvents] = useState<AuditEvent[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
@@ -60,15 +63,24 @@ export function DesktopHome() {
     supabase.from('goals').select('*').order('updated_at', { ascending: false }).limit(6).then(({ data }) => setGoals((data as any) || []))
 
     const loadEvents = async () => {
-      const { data } = await supabase.from('audit_log').select('*').order('created_at', { ascending: false }).limit(30)
+      const { data } = await supabase
+        .from('audit_log')
+        .select('*')
+        .not('event_type', 'eq', 'cc-sync-engine')
+        .order('created_at', { ascending: false })
+        .limit(15)
       setEvents((data as any) || [])
     }
     loadEvents()
     const ch = supabase
       .channel('home-activity')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_log' }, (p) => {
-        setEvents(prev => [p.new as any, ...prev].slice(0, 30))
-      })
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'audit_log', filter: 'event_type=neq.cc-sync-engine' },
+        (p) => {
+          setEvents(prev => [p.new as any, ...prev].slice(0, 15))
+        },
+      )
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [])
@@ -173,7 +185,7 @@ export function DesktopHome() {
                 <span className="ml-auto text-[10px] text-white/35 uppercase tracking-[0.14em]">Top {Math.min(topWaiting.length, 6)}</span>
               </div>
               <ul className="divide-y divide-white/[0.04] overflow-y-auto flex-1">
-                {topWaiting.map(t => <WaitingRow key={t.id} task={t} />)}
+                {topWaiting.map(t => <WaitingRow key={t.id} task={t} onNavigate={onNavigate} />)}
               </ul>
               {waiting.length > topWaiting.length && (
                 <div className="px-4 py-2 border-t border-white/[0.04] text-[11px] text-white/35 text-center">
@@ -222,14 +234,21 @@ function rankWaiting(tasks: TaskRow[]): TaskRow[] {
   })
 }
 
-function WaitingRow({ task: t }: { task: TaskRow }) {
+function WaitingRow({ task: t, onNavigate }: { task: TaskRow; onNavigate?: NavigateFn }) {
   const pri = (t.priority || '').toLowerCase()
   const priChip =
     pri === 'critical' || pri === 'urgent' ? 'text-rose-300 bg-rose-500/15 border-rose-500/25' :
     pri === 'high' ? 'text-amber-300 bg-amber-500/15 border-amber-500/25' :
     null
+  const go = () => onNavigate?.('today', { task: t.id })
   return (
-    <li className="px-4 py-2.5 flex items-start gap-2.5 hover:bg-white/[0.02] transition-colors">
+    <li
+      className="px-4 py-2.5 flex items-start gap-2.5 hover:bg-white/[0.02] transition-colors cursor-pointer"
+      onClick={go}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go() } }}
+    >
       {t.agent ? <AgentAvatar agent={t.agent} size="sm" /> : <div className="w-6 h-6 rounded-full bg-white/[0.05] border border-white/[0.06]" />}
       <div className="flex-1 min-w-0">
         <p className="text-[12.5px] text-white/90 font-medium leading-snug line-clamp-1">{t.title}</p>
@@ -274,11 +293,15 @@ function KpiTile({ metric: m }: { metric: any }) {
 }
 
 function ActivityRow({ event: ev }: { event: AuditEvent }) {
-  const details = ev.details
-  let message: string | null = null
-  if (typeof details === 'string') message = details
-  else if (details?.message) message = details.message
-  else if (details?.summary) message = details.summary
+  // Prefer the curated display_message column; fall back to raw details parsing
+  // for rows written before Brief 3's schema landed.
+  let message: string | null = ev.display_message || null
+  if (!message) {
+    const details = ev.details
+    if (typeof details === 'string') message = details
+    else if (details?.message) message = details.message
+    else if (details?.summary) message = details.summary
+  }
 
   return (
     <div className="p-3 flex items-start gap-2.5">

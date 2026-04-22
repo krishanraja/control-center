@@ -13,8 +13,10 @@ import { DesktopExec } from './components/desktop/DesktopExec'
 import { DesktopFlows } from './components/desktop/DesktopFlows'
 import { AgentsProvider } from './contexts/AgentsContext'
 import { PendingFlagModal } from './components/PendingFlagModal'
+import { useHashRoute } from './hooks/useHashRoute'
 
 type TabId = 'home' | 'today' | 'plans' | 'org' | 'exec' | 'workflows' | 'systems'
+const VALID_TABS: TabId[] = ['home', 'today', 'plans', 'org', 'exec', 'workflows', 'systems']
 
 function detectIsNarrow() {
   if (typeof window === 'undefined') return false
@@ -22,7 +24,9 @@ function detectIsNarrow() {
 }
 
 export default function App() {
-  const [tab, setTab] = useState<TabId>('home')
+  const { route, navigate } = useHashRoute()
+  const rawTab = route.tab === 'execution' ? 'exec' : route.tab
+  const tab: TabId = (VALID_TABS as string[]).includes(rawTab) ? (rawTab as TabId) : 'home'
   const [narrow, setNarrow] = useState(detectIsNarrow)
   const [paletteOpen, setPaletteOpen] = useState(false)
 
@@ -51,7 +55,7 @@ export default function App() {
 
   const handleTab = (id: string) => {
     const normalised = id === 'execution' ? 'exec' : id
-    setTab(normalised as TabId)
+    navigate(normalised)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -62,8 +66,8 @@ export default function App() {
           {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
           <main className={`flex-1 overflow-y-auto min-w-0 ${narrow ? 'pb-20' : ''}`}>
             <div className={narrow ? 'px-3 py-4' : 'px-6 py-6'}>
-              {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome /></ErrorBoundary>}
-              {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday /></ErrorBoundary>}
+              {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome onNavigate={navigate} /></ErrorBoundary>}
+              {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday selectedTaskId={route.params.task || null} onSelectTask={(id) => navigate('today', id ? { task: id } : {})} /></ErrorBoundary>}
               {tab === 'plans'     && <ErrorBoundary label="Plans"><DesktopPlans /></ErrorBoundary>}
               {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}
               {tab === 'exec'      && <ErrorBoundary label="Intel"><DesktopExec /></ErrorBoundary>}

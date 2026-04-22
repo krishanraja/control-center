@@ -1,215 +1,285 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { supabase, logKrishAction } from '../../lib/supabase'
-import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
-import { InlineActions } from '../InlineActions'
+import { Target, AlertTriangle, TrendingUp, CheckCircle, ChevronRight } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
+import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
-import { StatusPill } from '../shared/StatusPill'
 
-const FILTERS = [
-  { id: 'all',         label: 'All' },
-  { id: 'waiting',     label: 'Needs You' },
-  { id: 'in_progress', label: 'In Progress' },
-  { id: 'active',      label: 'Active' },
-  { id: 'blocked',     label: 'Blocked' },
-  { id: 'done',        label: 'Done' },
-]
+interface AgentPlan {
+  agent_id: string
+  current_phase: string | null
+  objective: string | null
+  blockers: string | null
+  next_milestone: string | null
+  progress_pct: number | null
+  last_updated: string | null
+  updated_at: string | null
+}
+
+interface AgentRow {
+  id: string
+  name: string
+  role?: string
+  pod?: string
+  active?: boolean
+  kpi_label?: string
+  kpi_target?: string
+  kpi_current?: string
+  last_run?: string
+  mission?: string
+}
+
+type MergedPlan = AgentRow & { plan?: AgentPlan }
+
+const POD_ORDER = ['executive', 'ops', 'growth']
+
+function podSort(a: MergedPlan, b: MergedPlan) {
+  const ai = POD_ORDER.indexOf((a.pod || '').toLowerCase())
+  const bi = POD_ORDER.indexOf((b.pod || '').toLowerCase())
+  return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
+}
 
 export function DesktopPlans() {
-  const { tasks, loading } = useRealtimeTasks()
-  const [filter, setFilter] = useState<string>('all')
+  const [agents, setAgents] = useState<AgentRow[]>([])
+  const [plans, setPlans] = useState<AgentPlan[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-
-  const filtered = useMemo(() => {
-    // Exclude BD signal tasks — they clutter the macro roadmap. The Supabase
-    // `tasks` table marks BD signals with owner='bd-agent' and an id prefix of
-    // 'bd-signal-'. Also defensively filter any agent/group_label carrying
-    // "signal" or "bd-agent".
-    let t = tasks.filter(x => {
-      const owner = (x.owner || '').toLowerCase()
-      const agent = (x.agent || '').toLowerCase()
-      const id    = (x.id || '').toLowerCase()
-      const gl    = (x.group_label || '').toLowerCase()
-      if (owner === 'bd-agent' || agent === 'bd-agent') return false
-      if (id.startsWith('bd-signal-')) return false
-      if (gl.includes('bd signal') || gl.includes('signal intelligence')) return false
-      return true
-    })
-    if (filter === 'waiting') t = t.filter(x => x.status === 'waiting' || !x.krish_reviewed)
-    else if (filter !== 'all') t = t.filter(x => x.status === filter)
-    return t
-  }, [tasks, filter])
-
-  const selected = tasks.find(t => t.id === selectedId) || filtered[0] || null
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { tasks } = useRealtimeTasks()
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return
-      if (!filtered.length) return
-      const idx = selected ? filtered.findIndex(t => t.id === selected.id) : -1
-      if (e.key === 'j' || e.key === 'ArrowDown') {
-        e.preventDefault()
-        const next = filtered[Math.min(filtered.length - 1, idx + 1)]
-        if (next) setSelectedId(next.id)
-      } else if (e.key === 'k' || e.key === 'ArrowUp') {
-        e.preventDefault()
-        const prev = filtered[Math.max(0, idx - 1)]
-        if (prev) setSelectedId(prev.id)
-      } else if (selected && (e.key === 'a' || e.key === 'A')) {
-        e.preventDefault()
-        supabase.from('tasks').update({ status: 'active', krish_reviewed: true, updated_at: new Date().toISOString() }).eq('id', selected.id)
-      } else if (selected && (e.key === 'd' || e.key === 'D')) {
-        e.preventDefault()
-        supabase.from('tasks').update({ status: 'done', krish_reviewed: true, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', selected.id)
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+      const [ag, pl] = await Promise.all([
+        supabase.from('agents').select('*').eq('active', true),
+        supabase.from('agent_plans').select('*'),
+      ])
+      if (cancelled) return
+      if (ag.error) {
+        setError(ag.error.message)
+        setLoading(false)
+        return
       }
+      // Missing agent_plans table shouldn't break the tab — plans view falls
+      // back to the KPI card from the agents row.
+      if (pl.error) console.warn('agent_plans load failed:', pl.error.message)
+      setAgents((ag.data as AgentRow[]) || [])
+      setPlans(pl.error ? [] : ((pl.data as AgentPlan[]) || []))
+      setLoading(false)
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [filtered, selected?.id])
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  const merged: MergedPlan[] = useMemo(() => {
+    const planMap = new Map(plans.map(p => [p.agent_id, p]))
+    return agents
+      .map(a => ({ ...a, plan: planMap.get(a.id) }))
+      .sort(podSort)
+  }, [agents, plans])
+
+  const selected = selectedId ? (merged.find(m => m.id === selectedId) ?? null) : null
+
+  const agentTasks = useMemo(() => {
+    if (!selected) return []
+    const id = selected.id.toLowerCase()
+    const name = selected.name.toLowerCase()
+    return tasks
+      .filter(t => {
+        const agent = (t.agent || '').toLowerCase()
+        const owner = (t.owner || '').toLowerCase()
+        return (agent === id || agent === name || owner === id || owner === name) && t.status !== 'done'
+      })
+      .slice(0, 8)
+  }, [selected?.id, tasks])
 
   const list = (
     <div className="space-y-4 pr-2">
       <div className="flex items-baseline justify-between gap-3">
-        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Plans</h1>
-        <p className="text-[12px] text-white/35 font-mono tabular-nums">{filtered.length} {filtered.length === 1 ? 'task' : 'tasks'}</p>
-      </div>
-      <div className="flex gap-1.5 flex-wrap">
-        {FILTERS.map(f => (
-          <button
-            key={f.id}
-            onClick={() => setFilter(f.id)}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
-              filter === f.id
-                ? 'bg-violet-500/15 border-violet-500/35 text-white'
-                : 'border-white/[0.08] text-white/45 hover:text-white/75 hover:border-white/[0.14]'
-            }`}
-          >{f.label}</button>
-        ))}
-      </div>
-      <div className="space-y-1.5">
-        {loading && <p className="text-[12px] text-white/30 py-6 text-center">Loading…</p>}
-        {!loading && filtered.length === 0 && (
-          <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] py-12 text-center">
-            <p className="text-[13px] text-white/45">Nothing here.</p>
-            <p className="text-[11px] text-white/25 mt-1">Try a different filter.</p>
-          </div>
-        )}
-        {filtered.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setSelectedId(t.id)}
-            className={`w-full text-left rounded-lg border p-3.5 transition-all ${
-              selected?.id === t.id
-                ? 'border-violet-500/40 bg-violet-500/[0.07]'
-                : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.03]'
-            }`}
-          >
-            <div className="flex items-start gap-2.5">
-              <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${statusDot(t.status)}`} />
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] text-white font-medium leading-snug truncate">{t.title}</p>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <AgentAvatar agent={t.agent || t.owner || 'system'} size="sm" />
-                  <span className="text-[11px] text-white/50">{t.agent || t.owner}</span>
-                  {t.updated_at && <span className="text-[10px] text-white/25">· {formatDistanceToNow(new Date(t.updated_at), { addSuffix: true })}</span>}
-                </div>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-
-  const detail = selected ? <TaskDetail key={selected.id} task={selected} /> : (
-    <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select a task</div>
-  )
-
-  return <SplitPane left={list} right={detail} hasSelection={!!selectedId} onBack={() => setSelectedId(null)} />
-}
-
-function statusDot(status?: string) {
-  switch (status) {
-    case 'active':      return 'bg-emerald-400'
-    case 'in_progress': return 'bg-blue-400'
-    case 'waiting':     return 'bg-amber-400 animate-pulse'
-    case 'blocked':     return 'bg-rose-400'
-    case 'done':        return 'bg-white/25'
-    default:            return 'bg-white/20'
-  }
-}
-
-function TaskDetail({ task }: { task: TaskRow }) {
-  const [notes, setNotes] = useState(task.krish_notes || '')
-  const [nextStep, setNextStep] = useState(task.next_step || '')
-
-  const saveNotes = async () => {
-    if (notes === (task.krish_notes || '')) return
-    await supabase.from('tasks').update({ krish_notes: notes, krish_reviewed: true, updated_at: new Date().toISOString() }).eq('id', task.id)
-    await logKrishAction(task.id, 'note', task.agent || task.owner, notes)
-  }
-  const saveNextStep = async () => {
-    if (nextStep === (task.next_step || '')) return
-    await supabase.from('tasks').update({ next_step: nextStep, updated_at: new Date().toISOString() }).eq('id', task.id)
-    await logKrishAction(task.id, 'next_step', task.agent || task.owner, nextStep)
-  }
-
-  return (
-    <div className="space-y-6 pb-6">
-      <div>
-        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white leading-tight tracking-tight">{task.title}</h1>
-        <div className="flex items-center gap-2 mt-3 flex-wrap">
-          <StatusPill status={(task.status === 'waiting' ? 'needs_you' : task.status) as any} />
-          <span className="text-[11px] text-white/40">
-            Owner: <span className="text-white/70">{task.owner || '—'}</span>
-          </span>
-          {task.agent && task.agent !== task.owner && (
-            <span className="text-[11px] text-white/40">Agent: <span className="text-white/70">{task.agent}</span></span>
-          )}
-          {task.group_label && <span className="text-[11px] text-white/40">· {task.group_label}</span>}
-        </div>
-      </div>
-
-      {task.description && (
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Description</p>
-          <p className="text-[13px] text-white/70 leading-relaxed whitespace-pre-wrap">{task.description}</p>
+          <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Plans</h1>
+          <p className="text-[11px] md:text-[12px] text-white/40 mt-0.5">Strategic roadmap by agent — where we are, where we're headed.</p>
+        </div>
+        <p className="text-[12px] text-white/35 font-mono tabular-nums">{merged.length} agents</p>
+      </div>
+
+      {loading && (
+        <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] py-12 text-center">
+          <p className="text-[13px] text-white/45">Loading plans…</p>
         </div>
       )}
 
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Next Step</p>
-        <textarea
-          value={nextStep}
-          onChange={(e) => setNextStep(e.target.value)}
-          onBlur={saveNextStep}
-          rows={3}
-          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white/80 focus:outline-none focus:border-violet-500/40"
-        />
-      </div>
+      {!loading && error && (
+        <div className="rounded-xl border border-rose-500/25 bg-rose-500/[0.04] py-6 px-4 text-center">
+          <p className="text-[13px] text-rose-300 font-medium">Couldn't load agents.</p>
+          <p className="text-[11px] text-rose-300/60 mt-1 font-mono">{error}</p>
+        </div>
+      )}
 
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">Krish Notes</p>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          onBlur={saveNotes}
-          rows={3}
-          placeholder="Notes for the team..."
-          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white/80 focus:outline-none focus:border-violet-500/40 placeholder-white/20"
-        />
-      </div>
+      {!loading && !error && merged.length === 0 && (
+        <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] py-12 text-center">
+          <p className="text-[13px] text-white/45">No active agents.</p>
+        </div>
+      )}
 
-      <div className="flex items-center gap-3">
-        <InlineActions taskId={task.id} currentStatus={task.status} agent={task.agent || task.owner} />
-      </div>
+      {!loading && !error && merged.length > 0 && (
+        <div className="space-y-2">
+          {merged.map(m => {
+            const plan = m.plan
+            const pct = plan?.progress_pct ?? null
+            const isSel = selected?.id === m.id
+            const hasBlocker = !!(plan?.blockers && plan.blockers.length > 0)
 
-      <div className="text-[11px] text-white/30 space-x-3">
-        {task.created && <span>Created {formatDistanceToNow(new Date(task.created), { addSuffix: true })}</span>}
-        {task.updated_at && <span>· Updated {formatDistanceToNow(new Date(task.updated_at), { addSuffix: true })}</span>}
-      </div>
+            return (
+              <button
+                key={m.id}
+                onClick={() => setSelectedId(m.id)}
+                className={`w-full text-left rounded-xl border p-3.5 transition-all ${
+                  isSel
+                    ? 'border-violet-500/40 bg-violet-500/[0.07]'
+                    : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.03]'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <AgentAvatar agent={m.id} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[13px] text-white font-semibold truncate">{m.name}</p>
+                      {hasBlocker && <AlertTriangle size={12} className="text-amber-400 flex-shrink-0" />}
+                    </div>
+                    <p className="text-[11px] text-white/45 truncate mt-0.5">
+                      {plan?.current_phase || m.role || 'No plan set'}
+                    </p>
+                    {pct !== null && (
+                      <div className="mt-2 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            pct >= 80 ? 'bg-emerald-400' : pct >= 40 ? 'bg-violet-400' : 'bg-amber-400'
+                          }`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <ChevronRight size={14} className="text-white/20 flex-shrink-0 mt-1" />
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
+
+  const detail = selected ? (
+    <div className="space-y-6 pb-6">
+      <div className="flex items-start gap-4">
+        <AgentAvatar agent={selected.id} size="lg" />
+        <div>
+          <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">{selected.name}</h1>
+          {selected.role && <p className="text-[13px] text-white/55 mt-1">{selected.role}</p>}
+        </div>
+      </div>
+
+      {selected.plan ? (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-400/70 mb-1.5">Current Phase</p>
+            <p className="text-[14px] text-white font-medium leading-snug">{selected.plan.current_phase || '—'}</p>
+          </div>
+
+          {selected.plan.objective && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">
+                <Target size={10} className="inline mr-1.5" />Objective
+              </p>
+              <p className="text-[13px] text-white/75 leading-relaxed">{selected.plan.objective}</p>
+            </div>
+          )}
+
+          {selected.plan.progress_pct !== null && selected.plan.progress_pct !== undefined && (
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">Progress</p>
+                <span className="text-[12px] font-mono text-white/50">{selected.plan.progress_pct}%</span>
+              </div>
+              <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    selected.plan.progress_pct >= 80 ? 'bg-emerald-400' : selected.plan.progress_pct >= 40 ? 'bg-violet-400' : 'bg-amber-400'
+                  }`}
+                  style={{ width: `${selected.plan.progress_pct}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {selected.plan.blockers && (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-400/70 mb-1.5">
+                <AlertTriangle size={10} className="inline mr-1.5" />Blockers
+              </p>
+              <p className="text-[13px] text-amber-200/80 leading-relaxed whitespace-pre-wrap">{selected.plan.blockers}</p>
+            </div>
+          )}
+
+          {selected.plan.next_milestone && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2">
+                <TrendingUp size={10} className="inline mr-1.5" />Next Milestone
+              </p>
+              <p className="text-[13px] text-white/75 leading-relaxed">{selected.plan.next_milestone}</p>
+            </div>
+          )}
+
+          {selected.plan.updated_at && (
+            <p className="text-[10px] text-white/25">Plan updated {formatDistanceToNow(new Date(selected.plan.updated_at), { addSuffix: true })}</p>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
+          <p className="text-[11px] text-white/35 italic">No strategic plan set yet. Showing KPI summary from agent config.</p>
+          {selected.kpi_label && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-1">{selected.kpi_label}</p>
+              <p className="text-[13px] text-white/70">Target: {selected.kpi_target || '—'}</p>
+              <p className="text-[13px] text-white/70">Current: {selected.kpi_current || '—'}</p>
+            </div>
+          )}
+          {selected.mission && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-1">Mission</p>
+              <p className="text-[13px] text-white/55 leading-relaxed">{selected.mission}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {agentTasks.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2.5">
+            <CheckCircle size={10} className="inline mr-1.5" />Active Tasks ({agentTasks.length})
+          </p>
+          <div className="space-y-1.5">
+            {agentTasks.map(t => (
+              <div key={t.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                  t.status === 'waiting' ? 'bg-amber-400' : t.status === 'active' ? 'bg-emerald-400' : t.status === 'in_progress' ? 'bg-blue-400' : 'bg-white/20'
+                }`} />
+                <p className="text-[12px] text-white/70 truncate flex-1">{t.title}</p>
+                <span className="text-[10px] text-white/30">{t.status}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  ) : (
+    <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an agent</div>
+  )
+
+  return <SplitPane left={list} right={detail} hasSelection={!!selectedId} onBack={() => setSelectedId(null)} />
 }
