@@ -278,7 +278,7 @@ export function WeeklyGoals() {
                       <div>
                         <label className="text-[10px] text-white/30 uppercase tracking-wider block mb-1">Current status</label>
                         <input
-                          className="w-full opacity-50 bg-white/[0.06] border border-white/[0.12] rounded-lg px-2.5 py-1.5 text-[12px] text-white placeholder-white/20 focus:outline-none focus:border-violet-500/50"
+                          className="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-2.5 py-1.5 text-[12px] text-white placeholder-white/20 focus:outline-none focus:border-violet-500/50"
                           value={goalEdit.current}
                           onChange={e => setGoalEdit(s => ({ ...s, current: e.target.value }))}
                           placeholder="What's the current state?"
@@ -290,15 +290,15 @@ export function WeeklyGoals() {
                           type="number"
                           min={0}
                           max={100}
-                          className="w-full opacity-50 bg-white/[0.06] border border-white/[0.12] rounded-lg px-2.5 py-1.5 text-[12px] text-white placeholder-white/20 focus:outline-none focus:border-violet-500/50"
+                          className="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-2.5 py-1.5 text-[12px] text-white placeholder-white/20 focus:outline-none focus:border-violet-500/50"
                           value={goalEdit.progress}
-                          readOnly disabled title="Progress is auto-calculated from tasks"
+                          onChange={e => setGoalEdit(s => ({ ...s, progress: e.target.value }))}
                         />
                       </div>
                       <div>
                         <label className="text-[10px] text-white/30 uppercase tracking-wider block mb-1">Notes (optional)</label>
                         <textarea
-                          className="w-full opacity-50 bg-white/[0.06] border border-white/[0.12] rounded-lg px-2.5 py-1.5 text-[12px] text-white placeholder-white/20 focus:outline-none focus:border-violet-500/50 resize-none"
+                          className="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-2.5 py-1.5 text-[12px] text-white placeholder-white/20 focus:outline-none focus:border-violet-500/50 resize-none"
                           rows={2}
                           value={goalEdit.notes}
                           onChange={e => setGoalEdit(s => ({ ...s, notes: e.target.value }))}

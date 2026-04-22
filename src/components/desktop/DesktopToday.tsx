@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { formatDistanceToNow, isToday, isPast, parseISO } from 'date-fns'
 import { ExternalLink } from 'lucide-react'
 import { supabase, logKrishAction } from '../../lib/supabase'
@@ -7,9 +7,23 @@ import { InlineActions } from '../InlineActions'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
 
-export function DesktopToday() {
+interface Props {
+  selectedTaskId?: string | null
+  onSelectTask?: (id: string | null) => void
+}
+
+export function DesktopToday({ selectedTaskId, onSelectTask }: Props = {}) {
   const { tasks, loading } = useRealtimeTasks()
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Fallback to local state when the URL hasn't specified a task yet — preserves
+  // the prior "first item auto-selected" behavior for direct visits to /today.
+  const [localSelectedId, setLocalSelectedId] = useState<string | null>(null)
+  const urlControlled = selectedTaskId !== undefined
+  const selectedId = urlControlled ? (selectedTaskId ?? null) : localSelectedId
+
+  const selectTask = (id: string | null) => {
+    if (urlControlled) onSelectTask?.(id)
+    else setLocalSelectedId(id)
+  }
 
   const today = useMemo(() => {
     const due = tasks.filter(t => t.due_date && (isToday(parseISO(t.due_date)) || isPast(parseISO(t.due_date))) && t.status !== 'done')
@@ -30,13 +44,13 @@ export function DesktopToday() {
 
       {today.due.length > 0 && (
         <Group title="Due" count={today.due.length} accent="text-rose-400">
-          {today.due.map(t => <DayRow key={t.id} task={t} selected={selected?.id === t.id} onClick={() => setSelectedId(t.id)} />)}
+          {today.due.map(t => <DayRow key={t.id} task={t} selected={selected?.id === t.id} onClick={() => selectTask(t.id)} />)}
         </Group>
       )}
 
       {today.waiting.length > 0 && (
         <Group title="Waiting on You" count={today.waiting.length} accent="text-amber-400">
-          {today.waiting.map(t => <DayRow key={t.id} task={t} selected={selected?.id === t.id} onClick={() => setSelectedId(t.id)} />)}
+          {today.waiting.map(t => <DayRow key={t.id} task={t} selected={selected?.id === t.id} onClick={() => selectTask(t.id)} />)}
         </Group>
       )}
 
@@ -53,7 +67,7 @@ export function DesktopToday() {
     <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an item from your day</div>
   )
 
-  return <SplitPane left={list} right={detail} hasSelection={!!selectedId} onBack={() => setSelectedId(null)} />
+  return <SplitPane left={list} right={detail} hasSelection={!!selectedId} onBack={() => selectTask(null)} />
 }
 
 function Group({ title, count, accent, children }: { title: string; count: number; accent: string; children: React.ReactNode }) {
