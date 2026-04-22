@@ -244,7 +244,7 @@ function WaitingRow({ task: t, onNavigate }: { task: TaskRow; onNavigate?: Navig
     >
       {t.agent ? <AgentAvatar agent={t.agent} size="sm" /> : <div className="w-6 h-6 rounded-full bg-white/[0.05] border border-white/[0.06]" />}
       <div className="flex-1 min-w-0">
-        <p className="text-[12.5px] text-white/90 font-medium leading-snug line-clamp-1">{t.title}</p>
+        <div className="flex items-center gap-2 overflow-hidden"><p className="text-[12.5px] text-white/90 font-medium leading-snug line-clamp-1">{t.title}</p>{!t.weekly_goal_id && <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium uppercase tracking-wide flex-shrink-0">Drift</span>}</div>
         <div className="flex items-center gap-1.5 mt-1 text-[10.5px] text-white/40">
           {priChip && (
             <span className={`px-1.5 py-px rounded border uppercase tracking-wider text-[9px] font-semibold ${priChip}`}>{pri}</span>
