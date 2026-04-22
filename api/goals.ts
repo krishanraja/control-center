@@ -31,6 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'POST') {
     const body = req.body || {}
     const newGoal = {
+      id: 'goal-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
       title: body.title || 'New Goal',
       current: body.current || '',
       progress: 0,
