@@ -280,7 +280,7 @@ export function DesktopOrg() {
         )}
       </div>
 
-      {selected.brief_content && <CollapsibleBrief content={selected.brief_content} />}
+      {selected.brief_content && <CollapsibleBrief content={selected.brief_content} agentId={selected.id} />}
     </div>
   ) : <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an agent</div>
 
@@ -377,19 +377,51 @@ function RunHealthDot({ runs }: { runs: any[] }) {
   return <span className={`w-2.5 h-2.5 rounded-full ${color}`} title={label} />
 }
 
-function CollapsibleBrief({ content }: { content: string }) {
+function CollapsibleBrief({ content, agentId }: { content: string, agentId: string }) {
   const [expanded, setExpanded] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [synced, setSynced] = useState(false)
+  
   const hasMore = content.length > 200
   const preview = content.slice(0, 200)
 
+  const triggerSync = async () => {
+    setSyncing(true)
+    setSynced(false)
+    try {
+      await fetch('/api/sync-brief', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentId })
+      })
+      setTimeout(() => {
+        setSyncing(false)
+        setSynced(true)
+        setTimeout(() => setSynced(false), 3000)
+      }, 1500)
+    } catch (e) {
+      setSyncing(false)
+    }
+  }
+
   return (
     <div>
-      <button
-        onClick={() => setExpanded(e => !e)}
-        className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2 hover:text-white/60 transition-colors"
-      >
-        Brief {expanded ? '▾' : '▸'}
-      </button>
+      <div className="flex items-center justify-between mb-2">
+        <button
+          onClick={() => setExpanded(e => !e)}
+          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 hover:text-white/60 transition-colors"
+        >
+          Brief {expanded ? '▾' : '▸'}
+        </button>
+        <button
+          onClick={triggerSync}
+          disabled={syncing}
+          className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[10px] font-medium text-white/60 transition-colors disabled:opacity-50"
+        >
+          {syncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Cog className="w-3 h-3" />}
+          {synced ? 'Deploy Triggered' : 'Deploy Master Brief'}
+        </button>
+      </div>
       <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
         <p className="text-[11px] text-white/50 leading-relaxed whitespace-pre-wrap">
           {expanded || !hasMore ? content : preview + '…'}
