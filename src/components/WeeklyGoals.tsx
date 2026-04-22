@@ -54,6 +54,8 @@ export function WeeklyGoals() {
   const [editingGoal, setEditingGoal] = useState<string | null>(null)
   const [goalEdit, setGoalEdit] = useState<GoalEditState>({ current: '', progress: '', notes: '' })
   const [saving, setSaving] = useState(false)
+  const [savedFlash, setSavedFlash] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const fetchGoals = async () => {
     try {
@@ -87,12 +89,14 @@ export function WeeklyGoals() {
     setEditingGoal(goal.id)
     setGoalEdit({ current: goal.current, progress: String(goal.progress), notes: goal.notes || '' })
     setExpanded(goal.id)
+    setSaveError(null)
   }
 
   const saveGoal = async (goalId: string) => {
     setSaving(true)
+    setSaveError(null)
     try {
-      await fetch(`${API}/api/goals`, {
+      const res = await fetch(`${API}/api/goals`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -102,14 +106,26 @@ export function WeeklyGoals() {
           notes: goalEdit.notes,
         })
       })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok || body?.ok === false) {
+        setSaveError(body?.error || `Save failed (${res.status})`)
+        return
+      }
       setEditingGoal(null)
-      fetchGoals()
+      await fetchGoals()
+      setSavedFlash(goalId)
+      setTimeout(() => setSavedFlash(prev => (prev === goalId ? null : prev)), 2000)
+    } catch (err: any) {
+      setSaveError(err?.message || 'Network error')
     } finally {
       setSaving(false)
     }
   }
 
-  const cancelEditGoal = () => setEditingGoal(null)
+  const cancelEditGoal = () => {
+    setEditingGoal(null)
+    setSaveError(null)
+  }
 
   if (loading) return (
     <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4 flex items-center gap-2 text-white/40">
@@ -170,7 +186,7 @@ export function WeeklyGoals() {
               </p>
               <button
                 onClick={() => { setFocusText(data.team_focus ?? ''); setEditingFocus(true) }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-white/25 hover:text-white/60 flex-shrink-0 mt-0.5"
+                className="text-white/40 hover:text-white/70 transition-colors flex-shrink-0 mt-0.5"
                 title="Edit team focus"
               >
                 <Pencil className="w-3 h-3" />
@@ -226,11 +242,14 @@ export function WeeklyGoals() {
                     {!isEditing && (
                       <button
                         onClick={() => startEditGoal(goal)}
-                        className="opacity-0 group-hover/goal:opacity-100 transition-opacity text-white/20 hover:text-white/60 flex-shrink-0"
+                        className="text-white/40 hover:text-white/70 transition-colors flex-shrink-0"
                         title="Update progress"
                       >
                         <Pencil className="w-3 h-3" />
                       </button>
+                    )}
+                    {savedFlash === goal.id && (
+                      <span className="text-[11px] text-emerald-400 flex-shrink-0">✓ Saved</span>
                     )}
                   </div>
 
@@ -305,7 +324,7 @@ export function WeeklyGoals() {
                           placeholder="Any context or feedback for the agent…"
                         />
                       </div>
-                      <div className="flex gap-2 pt-0.5">
+                      <div className="flex gap-2 pt-0.5 items-center">
                         <button
                           onClick={() => saveGoal(goal.id)}
                           disabled={saving}
@@ -320,6 +339,9 @@ export function WeeklyGoals() {
                         >
                           Cancel
                         </button>
+                        {saveError && (
+                          <span className="text-[11px] text-rose-400 ml-1">{saveError}</span>
+                        )}
                       </div>
                     </div>
                   ) : (

@@ -43,7 +43,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (body.current !== undefined) updates.current = body.current
       if (body.progress !== undefined) updates.progress = Math.max(0, Math.min(100, Number(body.progress)))
       if (body.notes !== undefined) updates.notes = body.notes
-      await supabase.from('goals').update(updates).eq('id', body.goalId)
+      const { error } = await supabase.from('goals').update(updates).eq('id', body.goalId)
+      if (error) {
+        return res.status(500).json({ ok: false, error: error.message })
+      }
     }
 
     const { data: goals } = await supabase.from('goals').select('*').order('created_at')

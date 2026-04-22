@@ -52,6 +52,25 @@ function parseMetrics(raw: any): any[] {
   return []
 }
 
+// Noisy agent-internal events that clutter the operator view — filtered from both
+// the initial fetch and the realtime stream.
+const EXCLUDED_EVENT_TYPES = new Set([
+  'cc-sync-engine',
+  'drive-sync-run',
+  'signal-sweep-complete',
+])
+
+function resolveMessage(ev: AuditEvent): string | null {
+  if (ev.display_message) return ev.display_message
+  const d = ev.details
+  if (typeof d === 'string') return d
+  if (d?.message) return d.message
+  if (d?.summary) return d.summary
+  return null
+}
+
+const hasRenderableMessage = (ev: AuditEvent) => resolveMessage(ev) !== null
+
 export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const [intel, setIntel] = useState<HomeIntel | null>(null)
   const [events, setEvents] = useState<AuditEvent[]>([])
@@ -63,12 +82,13 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
     supabase.from('goals').select('*').order('updated_at', { ascending: false }).limit(6).then(({ data }) => setGoals((data as any) || []))
 
     const loadEvents = async () => {
+      const excluded = Array.from(EXCLUDED_EVENT_TYPES).map(t => `"${t}"`).join(',')
       const { data } = await supabase
         .from('audit_log')
         .select('*')
-        .not('event_type', 'eq', 'cc-sync-engine')
+        .not('event_type', 'in', `(${excluded})`)
         .order('created_at', { ascending: false })
-        .limit(15)
+        .limit(40)
       setEvents((data as any) || [])
     }
     loadEvents()
@@ -76,9 +96,11 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       .channel('home-activity')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'audit_log', filter: 'event_type=neq.cc-sync-engine' },
+        { event: 'INSERT', schema: 'public', table: 'audit_log' },
         (p) => {
-          setEvents(prev => [p.new as any, ...prev].slice(0, 15))
+          const ev = p.new as AuditEvent
+          if (EXCLUDED_EVENT_TYPES.has(ev.event_type)) return
+          setEvents(prev => [ev, ...prev].slice(0, 40))
         },
       )
       .subscribe()
@@ -200,14 +222,20 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         <section className="col-span-12 xl:col-span-3 flex flex-col gap-3 min-h-0">
           <SectionHeader icon={<ActivityIcon size={13} className="text-blue-400" />} label="Live Activity" />
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] divide-y divide-white/[0.04] flex-1 min-h-0 overflow-y-auto">
-            {events.length === 0 ? (
-              <EmptyTile
-                icon={<ActivityIcon size={18} className="text-white/25" />}
-                title="Quiet."
-                subtitle="Activity will appear here in real time."
-                bare
-              />
-            ) : events.map(ev => <ActivityRow key={ev.id} event={ev} />)}
+            {(() => {
+              const visible = events.filter(hasRenderableMessage).slice(0, 15)
+              if (visible.length === 0) {
+                return (
+                  <EmptyTile
+                    icon={<ActivityIcon size={18} className="text-white/25" />}
+                    title="Quiet."
+                    subtitle="Activity will appear here in real time."
+                    bare
+                  />
+                )
+              }
+              return visible.map(ev => <ActivityRow key={ev.id} event={ev} />)
+            })()}
           </div>
         </section>
       </div>
@@ -293,16 +321,7 @@ function KpiTile({ metric: m }: { metric: any }) {
 }
 
 function ActivityRow({ event: ev }: { event: AuditEvent }) {
-  // Prefer the curated display_message column; fall back to raw details parsing
-  // for rows written before Brief 3's schema landed.
-  let message: string | null = ev.display_message || null
-  if (!message) {
-    const details = ev.details
-    if (typeof details === 'string') message = details
-    else if (details?.message) message = details.message
-    else if (details?.summary) message = details.summary
-  }
-
+  const message = resolveMessage(ev)
   return (
     <div className="p-3 flex items-start gap-2.5">
       <AgentAvatar agent={ev.actor || 'system'} size="sm" />
@@ -312,7 +331,7 @@ function ActivityRow({ event: ev }: { event: AuditEvent }) {
           <span className="text-white/45">{humanize(ev.event_type).toLowerCase()}</span>
           {ev.target && <span className="text-white/30"> → {humanize(ev.target)}</span>}
         </p>
-        {message && <p className="text-[11px] text-white/45 mt-1 line-clamp-2 leading-snug">{message}</p>}
+        <p className="text-[11px] text-white/45 mt-1 line-clamp-2 leading-snug">{message}</p>
         <p className="text-[10px] text-white/25 mt-1.5">{formatDistanceToNow(new Date(ev.created_at), { addSuffix: true })}</p>
       </div>
     </div>
