@@ -21,6 +21,7 @@ interface GoalsData {
 }
 
 interface GoalEditState {
+  title: string
   current: string
   progress: string
   notes: string
@@ -52,7 +53,7 @@ export function WeeklyGoals() {
 
   // Goal inline editing — keyed by goal id
   const [editingGoal, setEditingGoal] = useState<string | null>(null)
-  const [goalEdit, setGoalEdit] = useState<GoalEditState>({ current: '', progress: '', notes: '' })
+  const [goalEdit, setGoalEdit] = useState<GoalEditState>({ title: '', current: '', progress: '', notes: '' })
   const [saving, setSaving] = useState(false)
   const [savedFlash, setSavedFlash] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -87,7 +88,7 @@ export function WeeklyGoals() {
 
   const startEditGoal = (goal: Goal) => {
     setEditingGoal(goal.id)
-    setGoalEdit({ current: goal.current, progress: String(goal.progress), notes: goal.notes || '' })
+    setGoalEdit({ title: goal.title, current: goal.current, progress: String(goal.progress), notes: goal.notes || '' })
     setExpanded(goal.id)
     setSaveError(null)
   }
@@ -101,6 +102,7 @@ export function WeeklyGoals() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           goalId,
+          title: goalEdit.title,
           current: goalEdit.current,
           progress: Number(goalEdit.progress),
           notes: goalEdit.notes,
@@ -122,6 +124,21 @@ export function WeeklyGoals() {
     }
   }
 
+  
+  const addGoal = async () => {
+    setSaving(true)
+    try {
+      await fetch(`${API}/api/goals`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'New Goal', current: 'Define goal...' })
+      })
+      await fetchGoals()
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const cancelEditGoal = () => {
     setEditingGoal(null)
     setSaveError(null)
@@ -134,7 +151,15 @@ export function WeeklyGoals() {
     </div>
   )
 
-  if (!data || data.goals.length === 0) return null
+  if (!data) return null
+  if (data.goals.length === 0) return (
+    <div className="bg-[#0c0d12] border border-white/[0.08] rounded-2xl overflow-hidden">
+      <div className="px-4 py-3">
+        <p className="text-[12px] text-white/35">No goals this week.</p>
+        <button onClick={addGoal} disabled={saving} className="mt-2 text-[11px] text-violet-400 hover:text-violet-300">+ Add Goal</button>
+      </div>
+    </div>
+  )
 
   return (
     <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden">
@@ -294,6 +319,17 @@ export function WeeklyGoals() {
                   {isEditing ? (
                     /* ── EDIT MODE ── */
                     <div className="space-y-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl p-3">
+
+                      <div>
+                        <label className="text-[10px] text-white/30 uppercase tracking-wider block mb-1">Goal Title</label>
+                        <input
+                          className="w-full bg-white/[0.06] border border-white/[0.12] rounded-lg px-2.5 py-1.5 text-[12px] text-white font-medium placeholder-white/20 focus:outline-none focus:border-violet-500/50"
+                          value={goalEdit.title}
+                          onChange={e => setGoalEdit(s => ({ ...s, title: e.target.value }))}
+                          placeholder="e.g. Launch Product X"
+                        />
+                      </div>
+
                       <div>
                         <label className="text-[10px] text-white/30 uppercase tracking-wider block mb-1">Current status</label>
                         <input
@@ -366,7 +402,14 @@ export function WeeklyGoals() {
             </div>
           )
         })}
+      
       </div>
+      <div className="px-4 py-3 border-t border-white/[0.04]">
+        <button onClick={addGoal} disabled={saving} className="text-[11px] text-violet-400 hover:text-violet-300 flex items-center gap-1">
+          + Add New Goal
+        </button>
+      </div>
+
     </div>
   )
 }

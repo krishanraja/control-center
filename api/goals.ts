@@ -27,6 +27,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   }
 
+  
+  if (req.method === 'POST') {
+    const body = req.body || {}
+    const newGoal = {
+      title: body.title || 'New Goal',
+      current: body.current || '',
+      progress: 0,
+      notes: '',
+      status: 'active',
+      week_of: 'Week of ' + new Date().toISOString().split('T')[0]
+    }
+    const { error } = await supabase.from('goals').insert(newGoal)
+    if (error) return res.status(500).json({ ok: false, error: error.message })
+    
+    return res.json({ ok: true })
+  }
+
   if (req.method === 'PATCH') {
     const body = req.body || {}
 
