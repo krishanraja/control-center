@@ -18,7 +18,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const items: Array<{
     id: string; title: string; detail: string; owner: string;
-    status: string; priority: number; est: string; link?: string
+    status: string; priority: number; est: string; link?: string;
+    weekly_goal_id?: string | null
   }> = []
 
   let priorityCounter = 1
@@ -36,7 +37,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: t.status === 'in_progress' ? 'active' : 'pending',
       priority: isHighPriority ? priorityCounter++ : priorityCounter + 10,
       est: '—',
-      link: t.link_primary || ''
+      link: t.link_primary || '',
+      // Surface weekly_goal_id so the client can render the DRIFT badge
+      // (matches the pattern used on DesktopHome.WaitingRow).
+      weekly_goal_id: t.weekly_goal_id ?? null,
     })
   }
 
