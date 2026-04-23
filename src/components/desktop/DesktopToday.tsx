@@ -95,7 +95,10 @@ function DayRow({ task, selected, onClick }: { task: TaskRow; selected: boolean;
       <div className="flex items-start gap-2">
         <AgentAvatar agent={task.agent || task.owner || 'system'} size="sm" />
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] text-white font-medium leading-snug truncate">{task.title}</p>
+          <div className="flex items-center gap-2 overflow-hidden">
+            <p className="text-[13px] text-white font-medium leading-snug truncate">{task.title}</p>
+            {!task.weekly_goal_id && <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium uppercase tracking-wide flex-shrink-0">Drift</span>}
+          </div>
           {task.next_step && <p className="text-[11px] text-white/45 mt-0.5 line-clamp-1">{task.next_step}</p>}
         </div>
       </div>

@@ -3,7 +3,7 @@ import { supabase } from './_supabase.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   res.setHeader('Cache-Control', 'no-store')
 
@@ -46,19 +46,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   
   if (req.method === 'POST') {
     const body = req.body || {}
-    const newGoal = {
-      id: 'goal-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+    // goals.id is TEXT per the schema audit — we keep generating a
+    // namespaced id when the caller doesn't supply one, but we accept
+    // an explicit `id` so callers (e.g. seed scripts) can set their own.
+    const generatedId = 'goal-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9)
+    const newGoal: Record<string, any> = {
+      id: typeof body.id === 'string' && body.id.length > 0 ? body.id : generatedId,
       title: body.title || 'New Goal',
       current: body.current || '',
       progress: 0,
       notes: '',
       status: 'active',
-      week_of: 'Week of ' + new Date().toISOString().split('T')[0]
+      week_of: 'Week of ' + new Date().toISOString().split('T')[0],
     }
+    // Optional fields — only set when the caller provided them so we
+    // don't overwrite column defaults with nulls.
+    if (body.owner !== undefined) newGoal.owner = body.owner
+    if (body.target !== undefined) newGoal.target = body.target
+    if (body.weekly_goal_id !== undefined) newGoal.weekly_goal_id = body.weekly_goal_id
+
     const { error } = await supabase.from('goals').insert(newGoal)
     if (error) return res.status(500).json({ ok: false, error: error.message })
-    
-    return res.json({ ok: true })
+
+    return res.json({ ok: true, id: newGoal.id })
+  }
+
+  if (req.method === 'DELETE') {
+    // Accept goalId from query string OR body so curl/REST clients and
+    // the fetch() caller can both hit this without friction.
+    const q = req.query || {}
+    const b = req.body || {}
+    const goalId =
+      (typeof q.goalId === 'string' && q.goalId) ||
+      (typeof q.id === 'string' && q.id) ||
+      (typeof b.goalId === 'string' && b.goalId) ||
+      (typeof b.id === 'string' && b.id) ||
+      ''
+    if (!goalId) {
+      return res.status(400).json({ ok: false, error: 'goalId is required (query or body)' })
+    }
+    const { error } = await supabase.from('goals').delete().eq('id', goalId)
+    if (error) return res.status(500).json({ ok: false, error: error.message })
+    return res.json({ ok: true, deleted: goalId })
   }
 
   if (req.method === 'PATCH') {

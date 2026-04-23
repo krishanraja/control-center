@@ -1,5 +1,13 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Zap, Clock, CheckCircle, XCircle, Pause, ChevronDown, ChevronRight } from 'lucide-react'
+
+// TODO(audit-2026-04-23): The WORKFLOWS / CRON_JOBS arrays below are static
+// and were the source of a split-brain between this panel's "N crons live"
+// claim and the actual execution state in Supabase `workflow_runs`. We now
+// overlay live data from /api/automations (successful runs in the last 48h)
+// and fall back to an honest "configured automations" label when the live
+// feed is unavailable. The static arrays remain as the source of metadata
+// (human names / schedules / categories) until we model that in Supabase.
 
 interface Workflow {
   id: string
@@ -75,10 +83,51 @@ const categoryColors: Record<string, string> = {
   Product: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
 }
 
+interface LiveAutomation {
+  workflow_id: string | null
+  workflow_name: string | null
+  agent_id: string | null
+  successful_runs: number
+  last_run_at: string | null
+}
+interface LiveAutomationsResponse {
+  ok: boolean
+  window_hours?: number
+  counted_at?: string
+  workflows?: LiveAutomation[]
+  total_successful_runs?: number
+  error?: string
+}
+
+type LiveState =
+  | { status: 'loading' }
+  | { status: 'ok'; data: LiveAutomationsResponse }
+  | { status: 'unavailable' }
+
 export function AutomationsPanel() {
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
     Infrastructure: true, Revenue: true, Content: true, BD: false, Product: false
   })
+  const [live, setLive] = useState<LiveState>({ status: 'loading' })
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await fetch('/api/automations', { cache: 'no-cache' })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const body = (await res.json()) as LiveAutomationsResponse
+        if (cancelled) return
+        if (body && body.ok) setLive({ status: 'ok', data: body })
+        else setLive({ status: 'unavailable' })
+      } catch {
+        if (!cancelled) setLive({ status: 'unavailable' })
+      }
+    }
+    load()
+    const iv = setInterval(load, 60_000)
+    return () => { cancelled = true; clearInterval(iv) }
+  }, [])
 
   const toggleCategory = (cat: string) => {
     setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }))
@@ -86,7 +135,9 @@ export function AutomationsPanel() {
 
   const activeCount = WORKFLOWS.filter(w => w.status === 'active').length
   const errorCount = WORKFLOWS.filter(w => w.status === 'error').length
-  const enabledCrons = CRON_JOBS.filter(c => c.enabled).length
+  const configuredCrons = CRON_JOBS.filter(c => c.enabled).length
+  const liveWorkflows = live.status === 'ok' ? (live.data.workflows || []) : []
+  const liveCount = liveWorkflows.length
 
   const categories = Array.from(new Set(WORKFLOWS.map(w => w.category)))
 
@@ -100,7 +151,23 @@ export function AutomationsPanel() {
         <div className="flex items-center space-x-4 text-sm">
           <span className="text-command-success">{activeCount} active</span>
           {errorCount > 0 && <span className="text-command-error">{errorCount} errored</span>}
-          <span className="text-command-info">{enabledCrons} crons live</span>
+          {live.status === 'ok' ? (
+            <span
+              className="text-command-info"
+              title={`Distinct workflows with a successful run in the last ${live.data.window_hours ?? 48}h`}
+            >
+              {liveCount} ran in last 48h
+            </span>
+          ) : live.status === 'loading' ? (
+            <span className="text-command-text/50">checking live runs…</span>
+          ) : (
+            <span
+              className="text-command-text/50"
+              title="Live /api/automations fetch failed; showing static configuration count"
+            >
+              {configuredCrons} configured automations (live data unavailable)
+            </span>
+          )}
         </div>
       </div>
 
@@ -161,7 +228,7 @@ export function AutomationsPanel() {
         <div className="bg-command-card border border-command-border rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-command-border flex items-center justify-between">
             <span className="font-semibold text-white">Agent Cron Schedule</span>
-            <span className="text-sm text-command-text/60">{enabledCrons}/{CRON_JOBS.length} enabled</span>
+            <span className="text-sm text-command-text/60">{configuredCrons}/{CRON_JOBS.length} enabled</span>
           </div>
           <div className="divide-y divide-command-border/50">
             {/* Phase 1 */}

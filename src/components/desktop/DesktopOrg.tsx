@@ -381,7 +381,7 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
   const [expanded, setExpanded] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [synced, setSynced] = useState(false)
-  
+
   const hasMore = content.length > 200
   const preview = content.slice(0, 200)
 
@@ -389,10 +389,13 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
     setSyncing(true)
     setSynced(false)
     try {
+      // Dual-write: send the current brief text so the server can PATCH
+      // the agents row AND enqueue for an external Docs/local-FS mirror.
+      // Without brief_content the server returns 400 (split-brain guard).
       await fetch('/api/sync-brief', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId })
+        body: JSON.stringify({ agentId, brief_content: content })
       })
       setTimeout(() => {
         setSyncing(false)

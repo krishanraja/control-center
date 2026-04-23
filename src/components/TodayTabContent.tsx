@@ -48,6 +48,7 @@ interface TodayItem {
   status?: string
   priority?: number
   est?: string
+  weekly_goal_id?: string | null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -378,7 +379,10 @@ export function TodayTabContent() {
               {todayItems.map(item => (
                 <div key={item.id} className="flex items-start gap-3 bg-white/[0.02] border border-white/[0.07] rounded-xl p-3 hover:border-white/[0.12] transition-colors">
                   <div className="flex-1">
-                    <p className="text-[13px] font-medium text-white">{item.title}</p>
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <p className="text-[13px] font-medium text-white">{item.title}</p>
+                      {!item.weekly_goal_id && <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium uppercase tracking-wide flex-shrink-0">Drift</span>}
+                    </div>
                     {item.detail && <p className="text-[11px] text-white/40 mt-0.5 leading-relaxed">{item.detail}</p>}
                     {item.est && <p className="text-[10px] text-white/25 mt-1 font-mono">Est. {item.est}</p>}
                   </div>

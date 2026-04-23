@@ -12,6 +12,7 @@ interface TodayItem {
   est?: string
   venture?: string
   link?: string
+  weekly_goal_id?: string | null
 }
 
 interface TodayData {
@@ -183,6 +184,7 @@ export function TodayPanel() {
                     <span className={`text-sm font-medium ${item.status === 'done' ? 'line-through text-gray-500' : 'text-white'}`}>
                       {item.title}
                     </span>
+                    {!item.weekly_goal_id && <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium uppercase tracking-wide flex-shrink-0">Drift</span>}
                     <span className={`text-xs px-2 py-0.5 rounded border ${ownerStyle[item.owner]}`}>
                       {item.owner === 'krish' ? 'You' : item.agentName || 'Agatha'}
                     </span>
