@@ -16,7 +16,7 @@ interface AgentPlan {
   last_updated: string | null
   updated_at: string | null
   doc_link: string | null
-  tactical_plans_folder_id: string | null
+  plans_folder_id: string | null
 }
 
 interface AgentRow {
