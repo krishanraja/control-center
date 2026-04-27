@@ -25,6 +25,30 @@ interface Agent {
   kpi_current?: string | null
 }
 
+interface AgentPlan {
+  agent_id: string
+  objective: string | null
+  current_phase: string | null
+  next_milestone: string | null
+  progress_pct: number | null
+}
+
+interface EditForm {
+  brief_content: string
+  objective: string
+  current_phase: string
+  next_milestone: string
+  progress_pct: number
+}
+
+const EMPTY_FORM: EditForm = {
+  brief_content: '',
+  objective: '',
+  current_phase: '',
+  next_milestone: '',
+  progress_pct: 0,
+}
+
 interface PodDef {
   key: string
   label: string
@@ -90,6 +114,11 @@ export function DesktopOrg() {
   const [detail, setDetail] = useState<{ tasks: any[]; runs: any[] }>({ tasks: [], runs: [] })
   const [flagTarget, setFlagTarget] = useState<{ id: string; name: string } | null>(null)
   const [triggering, setTriggering] = useState<Record<string, 'idle' | 'loading' | 'ok' | 'err'>>({})
+  const [plan, setPlan] = useState<AgentPlan | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState<EditForm>(EMPTY_FORM)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const triggerAgent = async (name: string) => {
     setTriggering(prev => ({ ...prev, [name]: 'loading' }))
@@ -116,6 +145,9 @@ export function DesktopOrg() {
 
   useEffect(() => {
     if (!selected) return
+    // Selection changed — drop any in-progress edit so we don't carry stale state.
+    setIsEditing(false)
+    setSaveError(null)
     const load = async () => {
       // Agents may appear under id (`cleo`), display name (`Cleo`), or legacy `agent`
       // column on workflow_runs — match all to tolerate pre-migration rows and casing drift.
@@ -124,11 +156,12 @@ export function DesktopOrg() {
       const tokens = Array.from(new Set([id, id?.toLowerCase(), name, name?.toLowerCase()].filter(Boolean))) as string[]
       const inList = `(${tokens.map(t => `"${t}"`).join(',')})`
 
-      const [tasks, runs, legacyRuns] = await Promise.all([
+      const [tasks, runs, legacyRuns, planRes] = await Promise.all([
         supabase.from('tasks').select('*').or(`owner.in.${inList},agent.in.${inList}`).neq('status', 'done').order('updated_at', { ascending: false }).limit(20),
         supabase.from('workflow_runs').select('*').in('agent_id', tokens).order('run_at', { ascending: false }).limit(10),
         // Legacy column fallback — silently ignore if the column doesn't exist.
         supabase.from('workflow_runs').select('*').in('agent', tokens).order('run_at', { ascending: false }).limit(10).then(r => r, () => ({ data: [] as any[] })),
+        supabase.from('agent_plans').select('*').eq('agent_id', id).maybeSingle(),
       ])
 
       const mergedRunsMap = new Map<string, any>()
@@ -142,9 +175,70 @@ export function DesktopOrg() {
       }).slice(0, 10)
 
       setDetail({ tasks: (tasks.data as any) || [], runs: mergedRuns })
+      setPlan(((planRes as any).data as AgentPlan | null) ?? null)
     }
     load()
   }, [selected?.id])
+
+  const startEdit = () => {
+    setEditForm({
+      brief_content: selected?.brief_content || '',
+      objective: plan?.objective || '',
+      current_phase: plan?.current_phase || '',
+      next_milestone: plan?.next_milestone || '',
+      progress_pct: typeof plan?.progress_pct === 'number' ? plan.progress_pct : 0,
+    })
+    setSaveError(null)
+    setIsEditing(true)
+  }
+
+  const cancelEdit = () => {
+    setIsEditing(false)
+    setSaveError(null)
+  }
+
+  const handleSave = async () => {
+    if (!selected) return
+    setSaving(true)
+    setSaveError(null)
+    const pct = Number.isFinite(editForm.progress_pct)
+      ? Math.max(0, Math.min(100, Math.round(editForm.progress_pct)))
+      : 0
+    try {
+      const [agRes, plRes] = await Promise.all([
+        supabase
+          .from('agents')
+          .update({ brief_content: editForm.brief_content })
+          .eq('id', selected.id),
+        supabase
+          .from('agent_plans')
+          .upsert(
+            {
+              agent_id: selected.id,
+              objective: editForm.objective || null,
+              current_phase: editForm.current_phase || null,
+              next_milestone: editForm.next_milestone || null,
+              progress_pct: pct,
+            },
+            { onConflict: 'agent_id' },
+          ),
+      ])
+      if (agRes.error) throw agRes.error
+      if (plRes.error) throw plRes.error
+      // Reload so the read-only view reflects the saved changes.
+      const [agAll, planAfter] = await Promise.all([
+        supabase.from('agents').select('*').eq('active', true).order('pod'),
+        supabase.from('agent_plans').select('*').eq('agent_id', selected.id).maybeSingle(),
+      ])
+      setAgents(((agAll.data as any) as Agent[]) || [])
+      setPlan(((planAfter.data as any) as AgentPlan | null) ?? null)
+      setIsEditing(false)
+    } catch (e: any) {
+      setSaveError(e?.message || 'Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   // Group agents by pod, preserving POD_ORDER then alphabetical for unknown pods.
   const groups = useMemo(() => {
@@ -215,72 +309,110 @@ export function DesktopOrg() {
             )}
           </div>
         </div>
-        <button
-          onClick={() => setFlagTarget({ id: selected.id, name: selected.name })}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/25 hover:bg-amber-500/20 transition-colors"
-        >
-          <Zap size={12} /> Flag
-        </button>
-      </div>
-
-      {selected.kpi_label && (
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/70 mb-2">{selected.kpi_label}</p>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-[10px] text-white/35 uppercase tracking-wider">Target</p>
-              <p className="text-[13px] text-white/80 mt-0.5">{selected.kpi_target || '—'}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-white/35 uppercase tracking-wider">Current</p>
-              <p className="text-[13px] text-emerald-300/80 mt-0.5 font-medium">{selected.kpi_current || '—'}</p>
-            </div>
-          </div>
+        <div className="flex items-center gap-2 self-start">
+          {isEditing ? (
+            <>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+              >
+                {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                Save Changes
+              </button>
+              <button
+                onClick={cancelEdit}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-white/[0.04] text-white/65 border border-white/[0.08] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
+              >
+                <X size={12} /> Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={startEdit}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-violet-500/10 text-violet-300 border border-violet-500/25 hover:bg-violet-500/20 transition-colors"
+              >
+                <Pencil size={12} /> Edit Plan & Identity
+              </button>
+              <button
+                onClick={() => setFlagTarget({ id: selected.id, name: selected.name })}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/25 hover:bg-amber-500/20 transition-colors"
+              >
+                <Zap size={12} /> Flag
+              </button>
+            </>
+          )}
         </div>
+      </div>
+
+      {isEditing ? (
+        <IdentityPlanEditor form={editForm} onChange={setEditForm} saving={saving} error={saveError} />
+      ) : (
+        <>
+          {selected.kpi_label && (
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/70 mb-2">{selected.kpi_label}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] text-white/35 uppercase tracking-wider">Target</p>
+                  <p className="text-[13px] text-white/80 mt-0.5">{selected.kpi_target || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-white/35 uppercase tracking-wider">Current</p>
+                  <p className="text-[13px] text-emerald-300/80 mt-0.5 font-medium">{selected.kpi_current || '—'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <PlanReadonly plan={plan} />
+
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2.5">Active Tasks ({detail.tasks.length})</p>
+            {detail.tasks.length === 0 ? (
+              <p className="text-[11px] text-white/30">No active tasks.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {detail.tasks.slice(0, 8).map((t: any) => (
+                  <div key={t.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                      t.status === 'waiting' ? 'bg-amber-400 animate-pulse' : t.status === 'active' ? 'bg-emerald-400' : t.status === 'in_progress' ? 'bg-blue-400' : 'bg-white/20'
+                    }`} />
+                    <p className="text-[12px] text-white/70 truncate flex-1">{t.title}</p>
+                    <span className="text-[10px] text-white/30">{t.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2.5">N8N Runs</p>
+            {detail.runs.length === 0 ? (
+              <p className="text-[11px] text-white/30">No workflow runs recorded.</p>
+            ) : (
+              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] divide-y divide-white/[0.04]">
+                {detail.runs.slice(0, 10).map((r: any) => (
+                  <div key={r.id} className="flex items-center justify-between px-3 py-2.5 text-[12px] gap-3">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${r.status === 'success' ? 'bg-emerald-400' : r.status === 'error' ? 'bg-rose-400' : 'bg-white/30'}`} />
+                      <span className="text-white/70 truncate">{humanize(r.workflow_name) || r.workflow_name}</span>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {Number(r.cost_usd) > 0 && <span className="text-[10px] text-white/30 font-mono">${Number(r.cost_usd).toFixed(3)}</span>}
+                      <span className="text-[10px] text-white/25">{r.run_at ? formatDistanceToNow(new Date(r.run_at), { addSuffix: true }) : '—'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {selected.brief_content && <CollapsibleBrief content={selected.brief_content} agentId={selected.id} />}
+        </>
       )}
-
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2.5">Active Tasks ({detail.tasks.length})</p>
-        {detail.tasks.length === 0 ? (
-          <p className="text-[11px] text-white/30">No active tasks.</p>
-        ) : (
-          <div className="space-y-1.5">
-            {detail.tasks.slice(0, 8).map((t: any) => (
-              <div key={t.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
-                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                  t.status === 'waiting' ? 'bg-amber-400 animate-pulse' : t.status === 'active' ? 'bg-emerald-400' : t.status === 'in_progress' ? 'bg-blue-400' : 'bg-white/20'
-                }`} />
-                <p className="text-[12px] text-white/70 truncate flex-1">{t.title}</p>
-                <span className="text-[10px] text-white/30">{t.status}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 mb-2.5">N8N Runs</p>
-        {detail.runs.length === 0 ? (
-          <p className="text-[11px] text-white/30">No workflow runs recorded.</p>
-        ) : (
-          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] divide-y divide-white/[0.04]">
-            {detail.runs.slice(0, 10).map((r: any) => (
-              <div key={r.id} className="flex items-center justify-between px-3 py-2.5 text-[12px] gap-3">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${r.status === 'success' ? 'bg-emerald-400' : r.status === 'error' ? 'bg-rose-400' : 'bg-white/30'}`} />
-                  <span className="text-white/70 truncate">{humanize(r.workflow_name) || r.workflow_name}</span>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  {Number(r.cost_usd) > 0 && <span className="text-[10px] text-white/30 font-mono">${Number(r.cost_usd).toFixed(3)}</span>}
-                  <span className="text-[10px] text-white/25">{r.run_at ? formatDistanceToNow(new Date(r.run_at), { addSuffix: true }) : '—'}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {selected.brief_content && <CollapsibleBrief content={selected.brief_content} agentId={selected.id} />}
     </div>
   ) : <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an agent</div>
 
@@ -375,6 +507,132 @@ function RunHealthDot({ runs }: { runs: any[] }) {
   const color = errorCount === 0 ? 'bg-emerald-400' : errorCount <= 2 ? 'bg-amber-400' : 'bg-rose-500'
   const label = errorCount === 0 ? 'Healthy' : `${errorCount}/${recent.length} errors`
   return <span className={`w-2.5 h-2.5 rounded-full ${color}`} title={label} />
+}
+
+function PlanReadonly({ plan }: { plan: AgentPlan | null }) {
+  if (!plan || (!plan.objective && !plan.current_phase && !plan.next_milestone && plan.progress_pct == null)) {
+    return (
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-400/70 mb-2">Plan</p>
+        <p className="text-[11px] text-white/30 italic">No plan set yet. Click <span className="text-violet-300">Edit Plan &amp; Identity</span> to add one.</p>
+      </div>
+    )
+  }
+  const pct = typeof plan.progress_pct === 'number' ? Math.max(0, Math.min(100, plan.progress_pct)) : null
+  return (
+    <div className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-4 space-y-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-400/70">Plan</p>
+      {plan.objective && (
+        <div>
+          <p className="text-[10px] text-white/35 uppercase tracking-wider">May KPI / Objective</p>
+          <p className="text-[13px] text-white/85 mt-0.5 leading-relaxed">{plan.objective}</p>
+        </div>
+      )}
+      {plan.current_phase && (
+        <div>
+          <p className="text-[10px] text-white/35 uppercase tracking-wider">Current Phase</p>
+          <p className="text-[13px] text-white/80 mt-0.5">{plan.current_phase}</p>
+        </div>
+      )}
+      {plan.next_milestone && (
+        <div>
+          <p className="text-[10px] text-white/35 uppercase tracking-wider">Next Milestone</p>
+          <p className="text-[13px] text-white/80 mt-0.5">{plan.next_milestone}</p>
+        </div>
+      )}
+      {pct !== null && (
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[10px] text-white/35 uppercase tracking-wider">Progress</p>
+            <span className="text-[12px] font-mono tabular-nums text-white/60">{pct}%</span>
+          </div>
+          <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full ${pct >= 66 ? 'bg-emerald-400' : pct >= 33 ? 'bg-violet-400' : 'bg-amber-400'}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function IdentityPlanEditor({ form, onChange, saving, error }: { form: EditForm; onChange: (next: EditForm) => void; saving: boolean; error: string | null }) {
+  const set = <K extends keyof EditForm>(key: K, value: EditForm[K]) => onChange({ ...form, [key]: value })
+  const inputCls = 'w-full bg-white/[0.02] border border-white/[0.06] rounded-lg px-2.5 py-2 text-[12.5px] text-white placeholder-white/20 focus:outline-none focus:border-violet-500/60 disabled:opacity-50'
+  return (
+    <div className="space-y-4">
+      {/* Identity */}
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">Identity (brief_content)</p>
+        <textarea
+          value={form.brief_content}
+          onChange={(e) => set('brief_content', e.target.value)}
+          rows={14}
+          disabled={saving}
+          placeholder="Identity / brief_content…"
+          className="w-full bg-black/30 border border-white/10 rounded p-2 text-[12px] text-white/85 leading-relaxed font-mono resize-y focus:outline-none focus:border-violet-500/60 disabled:opacity-50"
+        />
+      </div>
+
+      {/* Plan */}
+      <div className="rounded-xl border border-violet-500/20 bg-violet-500/[0.03] p-4 space-y-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-400/70">Plan</p>
+
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-white/45 block mb-1">May KPI / Objective</label>
+          <input
+            value={form.objective}
+            onChange={(e) => set('objective', e.target.value)}
+            disabled={saving}
+            placeholder="e.g. Hit 1k MRR by end of May"
+            className={inputCls}
+          />
+        </div>
+
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-white/45 block mb-1">Current Phase</label>
+          <input
+            value={form.current_phase}
+            onChange={(e) => set('current_phase', e.target.value)}
+            disabled={saving}
+            placeholder="e.g. Validation, Launch, Scale"
+            className={inputCls}
+          />
+        </div>
+
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-white/45 block mb-1">Next Milestone</label>
+          <input
+            value={form.next_milestone}
+            onChange={(e) => set('next_milestone', e.target.value)}
+            disabled={saving}
+            placeholder="e.g. Ship onboarding flow"
+            className={inputCls}
+          />
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-[10px] uppercase tracking-wider text-white/45">Progress %</label>
+            <span className="text-[11px] font-mono tabular-nums text-white/60">{form.progress_pct}%</span>
+          </div>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={form.progress_pct}
+            onChange={(e) => set('progress_pct', Number(e.target.value))}
+            disabled={saving}
+            className={inputCls}
+          />
+        </div>
+      </div>
+
+      {error && <p className="text-[11px] text-rose-400">{error}</p>}
+    </div>
+  )
 }
 
 function CollapsibleBrief({ content, agentId }: { content: string, agentId: string }) {
