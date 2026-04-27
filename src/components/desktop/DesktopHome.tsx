@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Activity as ActivityIcon, TrendingUp, Sparkles, Target, Radio, ArrowUpRight } from 'lucide-react'
+import { AlertTriangle, Activity as ActivityIcon, TrendingUp, Target, Radio, ArrowUpRight, Server } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '../../lib/supabase'
-import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
+import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { humanize } from '../shared/tokens'
 import { WeeklyGoals } from '../WeeklyGoals'
+import { SystemHealth } from '../SystemHealth'
 
 interface HomeIntel {
   summary?: any
@@ -75,7 +76,7 @@ const hasRenderableMessage = (ev: AuditEvent) => resolveMessage(ev) !== null
 export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const [intel, setIntel] = useState<HomeIntel | null>(null)
   const [events, setEvents] = useState<AuditEvent[]>([])
-    const { tasks: waiting } = useRealtimeTasks({ statusIn: ['waiting', 'blocked'] })
+    const { tasks: waiting } = useRealtimeTasks({ statusIn: ['waiting'] })
 
   useEffect(() => {
     supabase.from('home_intelligence').select('*').eq('id', 'current').maybeSingle().then(({ data }) => setIntel(data as any))
@@ -108,10 +109,29 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
   const summary = useMemo(() => parseSummary(intel?.summary), [intel?.summary])
   const metrics = useMemo(() => parseMetrics(intel?.metrics), [intel?.metrics])
-  const topWaiting = useMemo(() => rankWaiting(waiting).slice(0, 6), [waiting])
+
+  const approvalCount = waiting.length
+  const goToToday = () => onNavigate?.('today')
 
   return (
     <div className="flex flex-col gap-4 md:gap-5 xl:h-[calc(100vh-3rem)]">
+
+      {/* APPROVAL BANNER — slim alert routing to Today tab */}
+      {approvalCount > 0 && (
+        <button
+          type="button"
+          onClick={goToToday}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToToday() } }}
+          className="flex items-center gap-2 w-full text-left rounded-xl border border-amber-500/25 bg-amber-500/[0.06] hover:bg-amber-500/[0.10] transition-colors px-4 py-2.5"
+        >
+          <AlertTriangle size={14} className="text-amber-300 flex-shrink-0" />
+          <span className="text-[12.5px] text-amber-200/90 font-medium leading-snug">
+            <span className="tabular-nums font-semibold text-amber-200">{approvalCount}</span>{' '}
+            {approvalCount === 1 ? 'item needs' : 'items need'} your approval in the Today tab
+          </span>
+          <ArrowUpRight size={13} className="text-amber-300/70 ml-auto flex-shrink-0" />
+        </button>
+      )}
 
       {/* KPI STRIP — most important numbers above the fold */}
       {metrics.length > 0 && (
@@ -152,39 +172,15 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
           </div>
         </section>
 
-        {/* CENTER: Needs You — actual items, not just a count */}
+        {/* CENTER: Active Plans — read-only macro scoreboard */}
         <section className="col-span-12 xl:col-span-5 flex flex-col gap-3 min-h-0">
-          <SectionHeader icon={<AlertTriangle size={13} className="text-amber-400" />} label="Needs You" trailing={
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/25 font-mono tabular-nums">{waiting.length}</span>
-          } />
-          {waiting.length === 0 ? (
-            <EmptyTile
-              icon={<Sparkles size={20} className="text-white/25" />}
-              title="Inbox zero."
-              subtitle="Nothing is waiting on you."
-              size="lg"
-            />
-          ) : (
-            <div className="rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-500/[0.06] via-amber-500/[0.015] to-transparent flex-1 min-h-0 flex flex-col">
-              <div className="px-4 py-3 border-b border-amber-500/15 flex items-baseline gap-3">
-                <span className="text-2xl font-semibold text-amber-300 leading-none tracking-tight tabular-nums">{waiting.length}</span>
-                <span className="text-[12px] text-white/60">{waiting.length === 1 ? 'item needs' : 'items need'} your attention</span>
-                <span className="ml-auto text-[10px] text-white/35 uppercase tracking-[0.14em]">Top {Math.min(topWaiting.length, 6)}</span>
-              </div>
-              <ul className="divide-y divide-white/[0.04] overflow-y-auto flex-1">
-                {topWaiting.map(t => <WaitingRow key={t.id} task={t} onNavigate={onNavigate} />)}
-              </ul>
-              {waiting.length > topWaiting.length && (
-                <div className="px-4 py-2 border-t border-white/[0.04] text-[11px] text-white/35 text-center">
-                  +{waiting.length - topWaiting.length} more · open <span className="text-white/65 font-medium">Today</span> to review all
-                </div>
-              )}
-            </div>
-          )}
+          <ActivePlansList />
         </section>
 
-        {/* RIGHT: Live Activity feed */}
+        {/* RIGHT: System Health on top, Live Activity below */}
         <section className="col-span-12 xl:col-span-3 flex flex-col gap-3 min-h-0">
+          <SectionHeader icon={<Server size={13} className="text-emerald-400" />} label="System Health" />
+          <SystemHealth />
           <SectionHeader icon={<ActivityIcon size={13} className="text-blue-400" />} label="Live Activity" />
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] divide-y divide-white/[0.04] flex-1 min-h-0 overflow-y-auto">
             {(() => {
@@ -208,64 +204,130 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   )
 }
 
-/** Sort waiting tasks so the most urgent surface first. */
-function rankWaiting(tasks: TaskRow[]): TaskRow[] {
-  const priorityRank: Record<string, number> = { critical: 0, urgent: 0, high: 1, medium: 2, normal: 2, low: 3 }
-  return [...tasks].sort((a, b) => {
-    const ap = priorityRank[(a.priority || '').toLowerCase()] ?? (a.priority_override ? 1 : 2)
-    const bp = priorityRank[(b.priority || '').toLowerCase()] ?? (b.priority_override ? 1 : 2)
-    if (ap !== bp) return ap - bp
-    const ao = -(a.priority_override ?? 0)
-    const bo = -(b.priority_override ?? 0)
-    if (ao !== bo) return ao - bo
-    const ad = a.due_date ? new Date(a.due_date).getTime() : Number.POSITIVE_INFINITY
-    const bd = b.due_date ? new Date(b.due_date).getTime() : Number.POSITIVE_INFINITY
-    if (ad !== bd) return ad - bd
-    const au = a.updated_at ? new Date(a.updated_at).getTime() : 0
-    const bu = b.updated_at ? new Date(b.updated_at).getTime() : 0
-    return bu - au
-  })
+interface AgentPlanRow {
+  agent_id: string
+  current_phase: string | null
+  objective: string | null
+  progress_pct: number | null
 }
 
-function WaitingRow({ task: t, onNavigate }: { task: TaskRow; onNavigate?: NavigateFn }) {
-  const pri = (t.priority || '').toLowerCase()
-  const priChip =
-    pri === 'critical' || pri === 'urgent' ? 'text-rose-300 bg-rose-500/15 border-rose-500/25' :
-    pri === 'high' ? 'text-amber-300 bg-amber-500/15 border-amber-500/25' :
-    null
-  const go = () => onNavigate?.('today', { task: t.id })
+interface AgentRow {
+  id: string
+  name: string
+  active?: boolean
+}
+
+interface MergedPlan {
+  agent_id: string
+  agent_name: string
+  current_phase: string | null
+  objective: string | null
+  progress_pct: number | null
+}
+
+function ActivePlansList() {
+  const [plans, setPlans] = useState<MergedPlan[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      const [ag, pl] = await Promise.all([
+        supabase.from('agents').select('id,name,active').eq('active', true),
+        supabase.from('agent_plans').select('agent_id,current_phase,objective,progress_pct'),
+      ])
+      if (cancelled) return
+      const agentMap = new Map<string, AgentRow>(((ag.data as AgentRow[]) || []).map(a => [a.id, a]))
+      const merged: MergedPlan[] = ((pl.data as AgentPlanRow[]) || [])
+        .filter(p => agentMap.has(p.agent_id))
+        .map(p => ({
+          agent_id: p.agent_id,
+          agent_name: agentMap.get(p.agent_id)!.name || humanize(p.agent_id) || p.agent_id,
+          current_phase: p.current_phase,
+          objective: p.objective,
+          progress_pct: typeof p.progress_pct === 'number' ? p.progress_pct : null,
+        }))
+        .sort((a, b) => {
+          const ap = a.progress_pct ?? Number.POSITIVE_INFINITY
+          const bp = b.progress_pct ?? Number.POSITIVE_INFINITY
+          if (ap !== bp) return ap - bp
+          return a.agent_name.localeCompare(b.agent_name)
+        })
+      setPlans(merged)
+      setLoading(false)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
   return (
-    <li
-      className="px-4 py-2.5 flex items-start gap-2.5 hover:bg-white/[0.02] transition-colors cursor-pointer"
-      onClick={go}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go() } }}
-    >
-      {t.agent ? <AgentAvatar agent={t.agent} size="sm" /> : <div className="w-6 h-6 rounded-full bg-white/[0.05] border border-white/[0.06]" />}
+    <>
+      <SectionHeader
+        icon={<Target size={13} className="text-violet-400" />}
+        label="Active Plans"
+        trailing={
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-300 border border-violet-500/25 font-mono tabular-nums">{plans.length}</span>
+        }
+      />
+      {loading ? (
+        <EmptyTile
+          icon={<Target size={18} className="text-white/25" />}
+          title="Loading plans…"
+          bare
+        />
+      ) : plans.length === 0 ? (
+        <EmptyTile
+          icon={<Target size={20} className="text-white/25" />}
+          title="No active plans."
+          subtitle="Plans appear here once agents publish them."
+          size="lg"
+        />
+      ) : (
+        <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] divide-y divide-white/[0.04] flex-1 min-h-0 overflow-y-auto">
+          {plans.map(p => <PlanRow key={p.agent_id} plan={p} />)}
+        </div>
+      )}
+    </>
+  )
+}
+
+function PlanRow({ plan: p }: { plan: MergedPlan }) {
+  const pct = p.progress_pct
+  const pctClamped = pct !== null ? Math.max(0, Math.min(100, pct)) : null
+  const barColor =
+    pctClamped === null ? 'bg-white/[0.12]' :
+    pctClamped >= 66 ? 'bg-emerald-400' :
+    pctClamped >= 33 ? 'bg-gradient-to-r from-violet-500 to-violet-400' :
+    'bg-gradient-to-r from-amber-500 to-violet-500'
+  return (
+    <div className="px-4 py-3 flex items-start gap-3">
+      <AgentAvatar agent={p.agent_id} size="sm" />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 overflow-hidden"><p className="text-[12.5px] text-white/90 font-medium leading-snug line-clamp-1">{t.title}</p>{!t.weekly_goal_id && <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium uppercase tracking-wide flex-shrink-0">Drift</span>}</div>
-        <div className="flex items-center gap-1.5 mt-1 text-[10.5px] text-white/40">
-          {priChip && (
-            <span className={`px-1.5 py-px rounded border uppercase tracking-wider text-[9px] font-semibold ${priChip}`}>{pri}</span>
+        <div className="flex items-center gap-2">
+          <p className="text-[12.5px] text-white/90 font-medium leading-snug truncate">{p.agent_name}</p>
+          {p.current_phase && (
+            <span className="text-[9.5px] uppercase tracking-wider text-white/55 bg-white/[0.05] border border-white/[0.08] px-1.5 py-px rounded flex-shrink-0">
+              {p.current_phase}
+            </span>
           )}
-          {t.agent && <span className="text-white/55">{humanize(t.agent)}</span>}
-          {t.due_date && (
-            <>
-              <span className="text-white/20">·</span>
-              <span className="tabular-nums">{formatDistanceToNow(new Date(t.due_date), { addSuffix: true })}</span>
-            </>
-          )}
-          {!t.due_date && t.updated_at && (
-            <>
-              <span className="text-white/20">·</span>
-              <span className="tabular-nums">{formatDistanceToNow(new Date(t.updated_at), { addSuffix: true })}</span>
-            </>
+        </div>
+        {p.objective ? (
+          <p className="text-[11.5px] text-white/55 leading-snug mt-1 line-clamp-2">{p.objective}</p>
+        ) : (
+          <p className="text-[11.5px] text-white/30 italic mt-1">No objective set.</p>
+        )}
+      </div>
+      <div className="w-16 flex flex-col items-end flex-shrink-0 gap-1.5 mt-0.5">
+        <span className="text-[11px] font-mono tabular-nums text-white/60">
+          {pctClamped !== null ? `${Math.round(pctClamped)}%` : '—'}
+        </span>
+        <div className="w-full h-1 bg-white/[0.06] rounded-full overflow-hidden">
+          {pctClamped !== null && (
+            <div className={`h-full ${barColor}`} style={{ width: `${pctClamped}%` }} />
           )}
         </div>
       </div>
-      <ArrowUpRight size={12} className="text-white/20 flex-shrink-0 mt-0.5" />
-    </li>
+    </div>
   )
 }
 
