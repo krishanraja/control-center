@@ -5,7 +5,6 @@ import { supabase } from '../../lib/supabase'
 import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { humanize } from '../shared/tokens'
-import { WeeklyGoals } from '../WeeklyGoals'
 import { SystemHealth } from '../SystemHealth'
 
 interface HomeIntel {
@@ -24,15 +23,6 @@ interface AuditEvent {
 }
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
-
-interface Goal {
-  id: string
-  title: string
-  target?: string
-  current?: string
-  progress?: number | null
-  status?: string
-}
 
 /** `summary` is stored as a JSON text column, not jsonb — parse defensively. */
 function parseSummary(raw: any): { headline?: string; body?: string; recommended_focus?: string } {
@@ -143,7 +133,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       {/* MAIN 3-COL — fills remaining viewport */}
       <div className="grid grid-cols-12 gap-4 md:gap-5 flex-1 min-h-0">
 
-        {/* LEFT: Revenue Pulse + Weekly Goals */}
+        {/* LEFT: Revenue Pulse */}
         <section className="col-span-12 xl:col-span-4 flex flex-col gap-3 min-h-0">
           <SectionHeader icon={<TrendingUp size={13} className="text-emerald-400" />} label="Revenue Pulse" />
           {summary.headline ? (
@@ -164,12 +154,6 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
               subtitle="Once intel is generated, the headline will appear here."
             />
           )}
-
-          
-          {/* Replaced static list with interactive component */}
-          <div className="flex flex-col min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1">
-            <WeeklyGoals />
-          </div>
         </section>
 
         {/* CENTER: Active Plans — read-only macro scoreboard */}
@@ -283,7 +267,7 @@ function ActivePlansList() {
           size="lg"
         />
       ) : (
-        <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] divide-y divide-white/[0.04] flex-1 min-h-0 overflow-y-auto">
+        <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] divide-y divide-white/[0.04] flex-1 min-h-0 overflow-y-auto custom-scrollbar">
           {plans.map(p => <PlanRow key={p.agent_id} plan={p} />)}
         </div>
       )}
