@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Crown, Cog, Sparkles, Zap, Play, Loader2 } from 'lucide-react'
+import { Crown, Cog, Sparkles, Zap, Play, Loader2, Pencil, Check, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
@@ -381,29 +381,82 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
   const [expanded, setExpanded] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [synced, setSynced] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(content)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [liveContent, setLiveContent] = useState(content)
 
-  const hasMore = content.length > 200
-  const preview = content.slice(0, 200)
+  // Reset draft if the server-supplied content changes (e.g. a different agent is selected)
+  React.useEffect(() => {
+    setLiveContent(content)
+    if (!editing) setDraft(content)
+  }, [content, agentId])
+
+  const hasMore = liveContent.length > 200
+  const preview = liveContent.slice(0, 200)
+
+  const persist = async (body: { brief_content: string }) => {
+    const resp = await fetch('/api/sync-brief', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agentId, ...body })
+    })
+    if (!resp.ok) {
+      const j = await resp.json().catch(() => ({}))
+      throw new Error(j.error || `HTTP ${resp.status}`)
+    }
+    return resp.json()
+  }
 
   const triggerSync = async () => {
     setSyncing(true)
     setSynced(false)
     try {
-      // Dual-write: send the current brief text so the server can PATCH
-      // the agents row AND enqueue for an external Docs/local-FS mirror.
-      // Without brief_content the server returns 400 (split-brain guard).
-      await fetch('/api/sync-brief', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId, brief_content: content })
-      })
-      setTimeout(() => {
-        setSyncing(false)
-        setSynced(true)
-        setTimeout(() => setSynced(false), 3000)
-      }, 1500)
+      // Re-trigger sync without changing content. PATCHes brief_updated_at and enqueues sync_queue.
+      // poll_sync_queue.py picks it up within 60s and runs render-identity.py.
+      await persist({ brief_content: liveContent })
+      setSyncing(false)
+      setSynced(true)
+      setTimeout(() => setSynced(false), 3000)
     } catch (e) {
       setSyncing(false)
+      setSaveError((e as Error).message)
+    }
+  }
+
+  const startEdit = () => {
+    setDraft(liveContent)
+    setSaveError(null)
+    setEditing(true)
+    setExpanded(true)
+  }
+
+  const cancelEdit = () => {
+    setDraft(liveContent)
+    setEditing(false)
+    setSaveError(null)
+  }
+
+  const saveEdit = async () => {
+    if (draft.trim().length === 0) {
+      setSaveError('Brief content cannot be empty.')
+      return
+    }
+    setSaving(true)
+    setSaveError(null)
+    try {
+      // Save: PATCHes agents.brief_content + enqueues sync_queue.
+      // poll_sync_queue.py renders SKILL.md from the new brief_content.
+      await persist({ brief_content: draft })
+      setLiveContent(draft)
+      setEditing(false)
+      setSynced(true)
+      setTimeout(() => setSynced(false), 3000)
+    } catch (e) {
+      setSaveError((e as Error).message)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -414,25 +467,71 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
           onClick={() => setExpanded(e => !e)}
           className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40 hover:text-white/60 transition-colors"
         >
-          Brief {expanded ? '▾' : '▸'}
+          Identity {expanded ? '▾' : '▸'}
         </button>
-        <button
-          onClick={triggerSync}
-          disabled={syncing}
-          className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[10px] font-medium text-white/60 transition-colors disabled:opacity-50"
-        >
-          {syncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Cog className="w-3 h-3" />}
-          {synced ? 'Deploy Triggered' : 'Deploy Master Brief'}
-        </button>
+        <div className="flex items-center gap-1.5">
+          {!editing && (
+            <button
+              onClick={startEdit}
+              className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[10px] font-medium text-white/60 transition-colors"
+              title="Edit brief_content directly. Saves to Supabase, render-identity.py writes SKILL.md."
+            >
+              <Pencil className="w-3 h-3" /> Edit
+            </button>
+          )}
+          {editing && (
+            <>
+              <button
+                onClick={saveEdit}
+                disabled={saving}
+                className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-[10px] font-medium text-emerald-300 transition-colors disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                Save
+              </button>
+              <button
+                onClick={cancelEdit}
+                disabled={saving}
+                className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[10px] font-medium text-white/60 transition-colors disabled:opacity-50"
+              >
+                <X className="w-3 h-3" /> Cancel
+              </button>
+            </>
+          )}
+          {!editing && (
+            <button
+              onClick={triggerSync}
+              disabled={syncing}
+              className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[10px] font-medium text-white/60 transition-colors disabled:opacity-50"
+            >
+              {syncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Cog className="w-3 h-3" />}
+              {synced ? 'Deployed' : 'Deploy Identity'}
+            </button>
+          )}
+        </div>
       </div>
       <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
-        <p className="text-[11px] text-white/50 leading-relaxed whitespace-pre-wrap">
-          {expanded || !hasMore ? content : preview + '…'}
-        </p>
-        {hasMore && !expanded && (
+        {editing ? (
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={Math.min(30, Math.max(10, draft.split('\n').length + 2))}
+            className="w-full bg-black/30 border border-white/10 rounded p-2 text-[11px] text-white/80 leading-relaxed font-mono resize-y focus:outline-none focus:border-violet-500/60"
+            disabled={saving}
+            placeholder="Edit the agent's Identity (brief_content). This becomes SKILL.md after save + sync."
+          />
+        ) : (
+          <p className="text-[11px] text-white/50 leading-relaxed whitespace-pre-wrap">
+            {expanded || !hasMore ? liveContent : preview + '…'}
+          </p>
+        )}
+        {!editing && hasMore && !expanded && (
           <button onClick={() => setExpanded(true)} className="text-[10px] text-violet-400 hover:text-violet-300 mt-1.5">
-            Show full brief
+            Show full Identity
           </button>
+        )}
+        {saveError && (
+          <p className="text-[10px] text-rose-400 mt-2">{saveError}</p>
         )}
       </div>
     </div>
