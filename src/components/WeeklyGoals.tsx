@@ -171,9 +171,9 @@ export function WeeklyGoals() {
   )
 
   return (
-    <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden">
+    <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden flex flex-col h-full max-h-[calc(100vh-8rem)]">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-white/[0.06]">
+      <div className="px-4 pt-4 pb-3 border-b border-white/[0.06] flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-violet-400" />
@@ -231,7 +231,7 @@ export function WeeklyGoals() {
       </div>
 
       {/* Goals list */}
-      <div className="divide-y divide-white/[0.04]">
+      <div className="divide-y divide-white/[0.04] flex-1 min-h-0 overflow-y-auto">
         {data.goals.map(goal => {
           const pct = Math.max(0, Math.min(100, goal.tasks && goal.tasks.length > 0 ? (goal.calculated_progress || 0) : goal.progress))
           const done = pct >= 100
@@ -436,7 +436,7 @@ export function WeeklyGoals() {
         })}
       
       </div>
-      <div className="px-4 py-3 border-t border-white/[0.04]">
+      <div className="px-4 py-3 border-t border-white/[0.04] flex-shrink-0">
         <button onClick={addGoal} disabled={saving} className="text-[11px] text-violet-400 hover:text-violet-300 flex items-center gap-1">
           + Add New Goal
         </button>
