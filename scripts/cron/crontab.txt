@@ -1,0 +1,12 @@
+0 3 * * * /root/.openclaw/workspace/scripts/arlo-daily-contradiction-audit.sh
+0 3 * * 1 /root/.openclaw/workspace/scripts/vera-contradiction-audit.sh >> /tmp/vera-audit.log 2>&1
+30 2 * * * python3 /root/.openclaw/workspace/scripts/regenerate-standards-digest.py >> /tmp/standards-digest.log 2>&1
+0 8 * * * /usr/local/bin/node /root/.openclaw/workspace/vera-n8n-audit.js >> /var/log/vera-audit.log 2>&1
+0 3 * * * /root/.openclaw/cron/workspace_maintenance.sh
+0 */6 * * * cd /root/.openclaw/integrations/google && bash refresh_token.sh >> /var/log/openclaw-drive-sync.log 2>&1 && cd /root/.openclaw/workspace && python3 scripts/sync-to-drive.py >> /var/log/openclaw-drive-sync.log 2>&1
+*/2 * * * * /usr/bin/python3 /root/.openclaw/workspace/scripts/fire-pending-flags.py >> /var/log/openclaw-flags.log 2>&1
+*/5 * * * * /root/.openclaw/workspace-ops/scripts/cc-sync-engine.sh >> /tmp/cc-sync.log 2>&1
+*/15 * * * * /root/.openclaw/workspace-ops/scripts/cc-doc-creator.sh >> /tmp/cc-doc-creator.log 2>&1
+* * * * * /usr/bin/python3 /root/.openclaw/workspace-ops/scripts/poll_sync_queue.py >> /tmp/poll_sync.log 2>&1
+*/15 * * * * /usr/bin/python3 /root/.openclaw/workspace/scripts/render-identity.py >> /tmp/render-identity.log 2>&1
+30 2 * * * /root/.openclaw/workspace-ops/scripts/vera-nightly-quality-loop.sh >> /root/.openclaw/workspace-ops/logs/vera-nightly-cron.log 2>&1
