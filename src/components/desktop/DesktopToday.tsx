@@ -6,6 +6,9 @@ import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { InlineActions } from '../InlineActions'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
+import { PipelineQueue, PIPELINE_WORKSTREAMS } from './PipelineQueue'
+
+const PIPELINE_WORKSTREAM_SET = new Set<string>(PIPELINE_WORKSTREAMS as readonly string[])
 
 interface Props {
   selectedTaskId?: string | null
@@ -27,7 +30,11 @@ export function DesktopToday({ selectedTaskId, onSelectTask }: Props = {}) {
 
   const today = useMemo(() => {
     const due = tasks.filter(t => t.due_date && (isToday(parseISO(t.due_date)) || isPast(parseISO(t.due_date))) && t.status !== 'done')
-    const waiting = tasks.filter(t => t.status === 'waiting' && !due.find(d => d.id === t.id))
+    const waiting = tasks.filter(t =>
+      t.status === 'waiting'
+      && !due.find(d => d.id === t.id)
+      && !(t.workstream && PIPELINE_WORKSTREAM_SET.has(t.workstream))
+    )
     return { due, waiting }
   }, [tasks])
 
@@ -53,6 +60,8 @@ export function DesktopToday({ selectedTaskId, onSelectTask }: Props = {}) {
           {today.waiting.map(t => <DayRow key={t.id} task={t} selected={selected?.id === t.id} onClick={() => selectTask(t.id)} />)}
         </Group>
       )}
+
+      <PipelineQueue />
 
       {items.length === 0 && !loading && (
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
