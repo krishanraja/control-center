@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Check, X, Workflow as WorkflowIcon, AlertCircle } from 'lucide-react'
+import { Check, X, Workflow as WorkflowIcon, AlertCircle, Wand2 } from 'lucide-react'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { humanize } from '../shared/tokens'
 import { AgentAvatar } from '../shared/AgentAvatar'
+import { SkillForge } from '../flows/SkillForge'
 
 interface Run {
   id: string
@@ -45,7 +46,10 @@ interface GroupedRun {
 
 const usd0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 
+type FlowsView = 'workflows' | 'skill-forge'
+
 export function DesktopFlows() {
+  const [view, setView] = useState<FlowsView>('workflows')
   const [runs, setRuns] = useState<Run[]>([])
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [loading, setLoading] = useState(true)
@@ -101,11 +105,37 @@ export function DesktopFlows() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Flows</h1>
-        <p className="text-xs md:text-[13px] text-white/50 mt-0.5">N8N workflows & proposals.</p>
+      <div className="flex items-end justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Flows</h1>
+          <p className="text-xs md:text-[13px] text-white/50 mt-0.5">
+            {view === 'workflows' ? 'N8N workflows & proposals.' : 'Forge custom Agent Skills for clients.'}
+          </p>
+        </div>
+        <div className="inline-flex rounded-lg border border-white/[0.07] bg-white/[0.015] p-0.5">
+          <button
+            onClick={() => setView('workflows')}
+            className={`inline-flex items-center gap-1.5 px-3 h-7 rounded-md text-[11.5px] font-medium transition-colors ${
+              view === 'workflows' ? 'bg-white/[0.07] text-white' : 'text-white/50 hover:text-white/80'
+            }`}
+          >
+            <WorkflowIcon size={11} /> Workflows
+          </button>
+          <button
+            onClick={() => setView('skill-forge')}
+            className={`inline-flex items-center gap-1.5 px-3 h-7 rounded-md text-[11.5px] font-medium transition-colors ${
+              view === 'skill-forge' ? 'bg-white/[0.07] text-white' : 'text-white/50 hover:text-white/80'
+            }`}
+          >
+            <Wand2 size={11} /> Skill Forge
+          </button>
+        </div>
       </div>
 
+      {view === 'skill-forge' ? (
+        <SkillForge />
+      ) : (
+      <>
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <WorkflowIcon size={13} className="text-blue-400" />
@@ -220,6 +250,8 @@ export function DesktopFlows() {
           </div>
         )}
       </section>
+      </>
+      )}
     </div>
   )
 }
