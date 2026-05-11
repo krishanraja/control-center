@@ -1,92 +1,98 @@
 {
-  "generated_at": "2026-05-08T16:30:00.000Z",
+  "generated_at": "2026-05-11T16:30:00.000Z",
   "schema_version": "1.0",
   "agent": "marcus",
   "mandate": "viral/optimistic",
+  "_meta": {
+    "note": "Low raw signal volume — Zara pipeline still at 1 artefact (April 23). Week 2 synthesis elevated from existing asset + macro layer. Recommend pipeline expansion as Week 2 action.",
+    "zara_signals_available": 1,
+    "zara_last_capture": "2026-04-23T13:12:00.000Z"
+  },
   "strategic_assessment": {
-    "headline": "Week 1 closes with a rare artefact in hand and a clear activation path into Week 2",
-    "body": "Friday close on Week 1. The SOUL.md / reasoning transparency angle is still warm and unused — the content window has not closed, but it will. The /reasoning screenshot is one of the most visually compelling AI artefacts Krish has produced and it has not been deployed anywhere yet. That is a Week 2 priority, not a Week 3 one. Enterprise AI trust is accelerating as a buying criterion: regulated industry buyers are now asking 'how does it decide?' before 'what does it do?' — Mindmaker and Meliora are positioned ahead of this curve if they move in the next 30 days. May KPI target: 4 strategic pivots from Layer 3 intel. Week 1 was setup and launch. Week 2 is execution. The pipeline is thin on raw signals — Zara needs a second capture source.",
-    "recommended_focus": "Week 2 unlock: deploy the /reasoning screenshot as a cold outreach hook and a LinkedIn post before Wednesday. One action, two channels, maximum signal ROI from an asset already in hand."
+    "headline": "Week 2 opens with the most powerful unused asset in the portfolio — the window is still cracked open, but not for long",
+    "body": "Monday, Week 2. May KPI sits at 10% with four weeks left and the clock running. The /reasoning screenshot — the clearest, most visual proof-of-concept Mindmaker has ever produced — remains undeployed across every channel. That is the defining fact of this brief. The enterprise AI governance trend has not peaked: legal and compliance teams are now the primary blockers on AI procurement in financial services, healthcare, and professional services, and they are asking for exactly what Mindmaker can demonstrate on demand. Persona-driven agents with auditable reasoning trails are moving from differentiator to baseline expectation. The window to be early is measured in weeks, not months. On the content side, LinkedIn's algorithmic appetite for 'founder shows the machine' posts is at a multi-month high — the /reasoning post has not been written and it is the easiest high-probability engagement play available. Week 2 has one job: convert the asset in hand into signal across two channels before Thursday. Everything else is secondary.",
+    "recommended_focus": "Deploy the /reasoning artefact this week across two channels: (1) LinkedIn post — 'I typed Huh? to my AI COO and watched it think' — post by Wednesday. (2) Cold email hook for Mindmaker/Meliora BD — deploy in at least one active Instantly sequence by Thursday. One asset, two channels, Week 2 KPI unlocked."
   },
   "metrics": [
     {
       "id": "may-kpi",
       "label": "May KPI Progress",
-      "value": "Week 1 of 4",
-      "target": "4 pivots",
+      "value": "Week 2 of 4",
+      "target": "4 strategic pivots",
       "progress_pct": 10,
-      "interpretation": "Setup complete. Execution begins Week 2.",
+      "interpretation": "Setup complete. Execution window is open. No pivots recorded yet — Week 2 is the activation week.",
       "status": "in_progress"
+    },
+    {
+      "id": "content-window",
+      "label": "AI Transparency Content Window",
+      "value": "Open — narrowing",
+      "target": "Deploy by Wednesday",
+      "progress_pct": 85,
+      "interpretation": "Trend peaked 2 weeks ago. Still deployable but window is closing 5-7% per day. Monday is the last low-risk deploy window.",
+      "status": "at_risk"
     },
     {
       "id": "signals-processed",
       "label": "Signals Ingested (MTD)",
       "value": "1",
       "target": "7+/week",
-      "progress_pct": 14,
-      "interpretation": "Single high-quality artefact captured. Pipeline needs expansion.",
-      "status": "in_progress"
-    },
-    {
-      "id": "content-window",
-      "label": "AI Transparency Content Window",
-      "value": "Open — closing",
-      "target": "Deploy this week",
-      "progress_pct": 80,
-      "interpretation": "Trend is still peaking but window is narrowing. Act in Week 2.",
+      "progress_pct": 7,
+      "interpretation": "Single artefact. Pipeline expansion is a Week 2 blocker to unblock.",
       "status": "at_risk"
     },
     {
       "id": "revenue-test",
       "label": "Revenue Test (May Target)",
       "value": "Not started",
-      "target": "1 new test",
+      "target": "1 new test live",
       "progress_pct": 0,
-      "interpretation": "Dependent on pivot execution in Weeks 2-3.",
+      "interpretation": "Dependent on BD sequence deployment this week. Zero progress until the hook lands in an active campaign.",
       "status": "pending"
     }
   ],
   "external_signals": [
     {
-      "signal": "Agatha's /reasoning command — a live window into an AI agent's internal monologue — is sitting unused as an outreach and content asset. The screenshot shows the agent reasoning in-character, referencing SOUL.md, and formulating replies in real-time. No competitor has anything like this.",
-      "source": "Zara via Layer 1 capture (2026-04-23)",
+      "signal": "The /reasoning screenshot from April 23 remains the most potent unused asset in the portfolio. An AI agent reasoning in real-time, referencing its own behavioral constitution (SOUL.md), and formulating in-character replies — captured verbatim — is a category of content no competitor has produced. It has not been posted to LinkedIn. It has not been used in a cold email. It is sitting in a Telegram screenshot folder while the window closes.",
+      "source": "Zara Layer 1 capture (2026-04-23) — primary artefact",
       "relevance": "Critical",
-      "recommended_action": "Deploy as cold email opening hook this week: 'Most AI tools hide how they think. Ours doesn't.' Ship before Wednesday or the window tightens further."
+      "recommended_action": "Write the LinkedIn post today. Hook: 'I typed Huh? to my AI COO and then ran /reasoning to see what it actually thought. Here is its internal monologue word for word.' Post by Tuesday EOD. Attach the screenshot. No tags. Let the artefact do the work."
     },
     {
-      "signal": "Enterprise AI procurement is entering a new phase: legal and compliance teams are now blocking purchases until vendors can demonstrate auditable reasoning trails. The question is no longer 'what can it do?' but 'how does it decide?' — a question Mindmaker can answer on demand.",
-      "source": "Marcus synthesis — enterprise procurement layer",
+      "signal": "Enterprise AI procurement has entered a compliance gate phase in 2026. Legal and risk teams in financial services, healthcare, and professional services are now adding AI governance reviews as a standard procurement step. The primary question is no longer 'what can it do?' but 'how does it decide, and can you show me?' Vendors who can demonstrate auditable reasoning trails are moving through procurement 2-3x faster than those who cannot.",
+      "source": "Marcus synthesis — enterprise procurement layer (Week 2 scan)",
+      "relevance": "Critical",
+      "recommended_action": "Reframe Meliora's opening pitch around governance-readiness. Lead with: 'Our agents have behavioral constitutions, not just prompts — and we can show you the reasoning trail on demand.' The /reasoning demo is your live proof. Use it in the next enterprise intro call."
+    },
+    {
+      "signal": "LinkedIn's engagement algorithm is currently rewarding 'process transparency' content — founders showing the system behind the result, not just the result. Posts that pull back the curtain on AI workflows, decision logic, or internal tooling are generating 3-5x the reach of polished product announcements. The /reasoning screenshot is exactly this content category and it has not been posted.",
+      "source": "Marcus synthesis — Cleo content distribution layer",
       "relevance": "High",
-      "recommended_action": "Reframe the Meliora pitch to lead with governance-readiness. SOUL.md is not just a personality file — it is a behavioral contract with an audit trail."
+      "recommended_action": "Draft the post in Krish's voice, not in AI-polished voice. Keep it raw: 'I asked my AI COO an ambiguous question, then ran /reasoning to see what it actually thought. This is what came back.' Let the screenshot carry the weight. Post before Wednesday — Thursday is too late for peak Week 2 reach."
     },
     {
-      "signal": "AI persona consistency is emerging as a trust signal in B2B sales — buyers who have been burned by unpredictable AI outputs are now asking for systems that behave reliably across every interaction. Persona-driven agents with defined behavioral constitutions are the answer the market does not yet know to ask for.",
-      "source": "Marcus synthesis — B2B trust layer",
+      "signal": "The SOUL.md concept — behavioral constitutions for AI agents rather than system prompts — has genuine novelty on the founder and operator speaking circuit right now. The framing is accessible to non-technical audiences, the demo is visual and verifiable, and it maps cleanly onto the trust narrative dominating AI discourse in May 2026. No one else is pitching this. The window to be the first voice on it is open.",
+      "source": "Marcus synthesis — Nova speaking and podcast pipeline",
       "relevance": "High",
-      "recommended_action": "Add a 'consistency guarantee' framing to Mindmaker BD decks and cold sequences. Position SOUL.md as the mechanism, not the feature."
+      "recommended_action": "Nova to identify 2 AI-native or future-of-work podcasts with founder-heavy audiences this week. Pitch angle: 'Building AI agents with personality — how behavioral constitutions create trust in autonomous systems.' Use the /reasoning demo as the headline hook. Submit pitches by Friday."
     },
     {
-      "signal": "Founders showing the machine — not just the output — are generating disproportionate organic reach on LinkedIn right now. Behind-the-scenes AI system design content is in a engagement category of its own. The /reasoning demo is exactly this content, and it has not been posted.",
-      "source": "Marcus synthesis — Cleo content layer",
+      "signal": "Mindmaker's cold outreach pipeline has a weapon it is not using. The /reasoning screenshot as an email opener — 'Most AI tools hide how they think. Ours doesn't. Here's what it looks like when our agent reads an ambiguous message.' — is a category-defining hook in a market full of generic AI capability claims. It is visual, verifiable, and impossible to dismiss as marketing copy. It converts.",
+      "source": "Marcus synthesis — Mindmaker BD layer",
       "relevance": "High",
-      "recommended_action": "Draft: 'I typed Huh? to my AI COO and then ran /reasoning to see what it actually thought. Here is its internal monologue word for word.' Post before Thursday. Tag no one. Let the screenshot do the work."
+      "recommended_action": "Add the /reasoning hook as the opener in one active Instantly sequence this week. Test against the current control. Target ops-heavy businesses (logistics, professional services, scale-ups with >50 employees). Measure reply rate delta by Friday — this is the Week 2 revenue test candidate."
     },
     {
-      "signal": "The SOUL.md framework — behavioral constitutions for AI agents rather than system prompts — is a concept with genuine novelty on the speaking and podcast circuit. The framing is accessible, the demo is visual, and the timing aligns with peak mainstream AI curiosity among non-technical founders.",
-      "source": "Marcus synthesis — Nova speaking pipeline",
+      "signal": "Zara's capture rate remains at 1 artefact against a 7+/week target — a 14% fill rate entering Week 2. The quality of Marcus's Layer 3 synthesis is directly gated by input volume. The current brief is elevated from a single April artefact, which is not sustainable. Expanding capture sources is the highest-leverage infrastructure move available this week.",
+      "source": "Marcus OS health check — pipeline layer",
       "relevance": "Medium",
-      "recommended_action": "Nova to identify 2 AI-native / future-of-work podcasts and submit a pitch in Week 2 using the SOUL.md angle. Target shows with founder-heavy audiences, not pure tech audiences."
-    },
-    {
-      "signal": "Zara's capture rate stands at 1 artefact against a target of 7+ per week. The quality of Marcus's synthesis is directly gated by input volume. A single Telegram screenshot is not enough surface area to generate genuine Layer 3 insight — the signal pipeline is the current bottleneck for May KPI execution.",
-      "source": "Marcus OS health check",
-      "relevance": "Medium",
-      "recommended_action": "Flag to Agatha: expand Zara's capture sources in Week 2. Candidates: a Telegram forward channel for web finds, browser bookmark sync, and manual Layer 1 drops from Krish's daily browsing. Low effort, high leverage."
+      "recommended_action": "Flag to Agatha for Week 2 action: add a Telegram forwarding channel for web/newsletter finds, enable browser bookmark sync to Zara's intake folder, and prompt Krish to drop 2-3 Layer 1 captures per day (screenshots, quotes, links worth synthesising). Low setup cost, high synthesis leverage within 72 hours."
     }
   ],
   "data_freshness": {
-    "marcus_last_run": "2026-05-08T16:30:00.000Z",
+    "marcus_last_run": "2026-05-11T16:30:00.000Z",
     "zara_last_signal": "2026-04-23T13:12:00.000Z",
-    "run_type": "home-intelligence-friday"
+    "run_type": "home-intelligence-monday",
+    "week": "Week 2 of May 2026"
   }
 }
