@@ -1,44 +1,45 @@
 {
-  "generated_at": "2026-05-11T16:30:00.000Z",
+  "generated_at": "2026-05-13T16:30:00.000Z",
   "schema_version": "1.0",
   "agent": "marcus",
   "mandate": "viral/optimistic",
   "_meta": {
-    "note": "Low raw signal volume — Zara pipeline still at 1 artefact (April 23). Week 2 synthesis elevated from existing asset + macro layer. Recommend pipeline expansion as Week 2 action.",
+    "note": "Spec file marcus-home-intelligence-spec.md not found — generated from N8N-05 brief + weekly-intel-brief (2026-05-11) + available OS state. Zara pipeline still at 1 artefact. Wednesday brief elevated from macro layer intel.",
     "zara_signals_available": 1,
-    "zara_last_capture": "2026-04-23T13:12:00.000Z"
+    "zara_last_capture": "2026-04-23T13:12:00.000Z",
+    "sources_used": ["zara-signals/latest.json", "warm/weekly-intel-brief.md", "warm/agent-plans/marcus-action.md"]
   },
   "strategic_assessment": {
-    "headline": "Week 2 opens with the most powerful unused asset in the portfolio — the window is still cracked open, but not for long",
-    "body": "Monday, Week 2. May KPI sits at 10% with four weeks left and the clock running. The /reasoning screenshot — the clearest, most visual proof-of-concept Mindmaker has ever produced — remains undeployed across every channel. That is the defining fact of this brief. The enterprise AI governance trend has not peaked: legal and compliance teams are now the primary blockers on AI procurement in financial services, healthcare, and professional services, and they are asking for exactly what Mindmaker can demonstrate on demand. Persona-driven agents with auditable reasoning trails are moving from differentiator to baseline expectation. The window to be early is measured in weeks, not months. On the content side, LinkedIn's algorithmic appetite for 'founder shows the machine' posts is at a multi-month high — the /reasoning post has not been written and it is the easiest high-probability engagement play available. Week 2 has one job: convert the asset in hand into signal across two channels before Thursday. Everything else is secondary.",
-    "recommended_focus": "Deploy the /reasoning artefact this week across two channels: (1) LinkedIn post — 'I typed Huh? to my AI COO and watched it think' — post by Wednesday. (2) Cold email hook for Mindmaker/Meliora BD — deploy in at least one active Instantly sequence by Thursday. One asset, two channels, Week 2 KPI unlocked."
+    "headline": "Wednesday is the last no-excuses window this week — three live shots at the board before Friday closes the doors",
+    "body": "Wednesday, Week 2 of May. Three opportunities with hard expiries are converging today. The AI fokus CFP (May 19 event) closes today or tomorrow — abstract is drafted and ready, this is a single submission action. The /reasoning LinkedIn post has not gone up — if it does not go up today, the Week 2 reach window is gone and the asset sits cold for another week. And the BCG 61% CEO-board tension data is on day 3 of its 7-day window — still high-conviction for Mindmaker BD outreach, still alive, but decaying. Wednesday is not a planning day. It is an execution day. Three actions, three different agents, one afternoon. The week can still close with meaningful signal if those actions land. Everything else waits until Thursday.",
+    "recommended_focus": "Three priority actions before end of day: (1) Submit AI fokus CFP — Sessionize, abstract ready, 20 minutes max. (2) Post the /reasoning LinkedIn post — today is the last viable day for Week 2 reach. (3) Load BCG 61% hook into one active Instantly sequence — Mindmaker/Meliora targets, ops-heavy businesses."
   },
   "metrics": [
     {
       "id": "may-kpi",
       "label": "May KPI Progress",
-      "value": "Week 2 of 4",
+      "value": "Week 2 — Mid-week",
       "target": "4 strategic pivots",
-      "progress_pct": 10,
-      "interpretation": "Setup complete. Execution window is open. No pivots recorded yet — Week 2 is the activation week.",
+      "progress_pct": 15,
+      "interpretation": "Still early. No confirmed pivots recorded. Three executable actions today can move the needle before Friday. Week 2 is still salvageable.",
       "status": "in_progress"
     },
     {
-      "id": "content-window",
-      "label": "AI Transparency Content Window",
-      "value": "Open — narrowing",
-      "target": "Deploy by Wednesday",
-      "progress_pct": 85,
-      "interpretation": "Trend peaked 2 weeks ago. Still deployable but window is closing 5-7% per day. Monday is the last low-risk deploy window.",
+      "id": "reasoning-content-window",
+      "label": "/reasoning LinkedIn Post Window",
+      "value": "CRITICAL — Today or never",
+      "target": "Post by Wednesday EOD",
+      "progress_pct": 98,
+      "interpretation": "Window has been open since April 23 — 20 days. If not posted today, the trend cycle ends and reach drops materially. Wednesday EOD is the hard close.",
       "status": "at_risk"
     },
     {
-      "id": "signals-processed",
-      "label": "Signals Ingested (MTD)",
-      "value": "1",
-      "target": "7+/week",
-      "progress_pct": 7,
-      "interpretation": "Single artefact. Pipeline expansion is a Week 2 blocker to unblock.",
+      "id": "ai-fokus-cfp",
+      "label": "AI fokus CFP Deadline",
+      "value": "TODAY / Tomorrow",
+      "target": "Submit on Sessionize",
+      "progress_pct": 99,
+      "interpretation": "Abstract draft ready. This is a 20-minute execution task. Missing this CFP is a repeat of Applied AI and ODSC East. Submit now.",
       "status": "at_risk"
     },
     {
@@ -47,52 +48,52 @@
       "value": "Not started",
       "target": "1 new test live",
       "progress_pct": 0,
-      "interpretation": "Dependent on BD sequence deployment this week. Zero progress until the hook lands in an active campaign.",
+      "interpretation": "BCG hook in outreach + /reasoning in BD sequences are the two fastest paths to a testable revenue action this week. Neither deployed yet.",
       "status": "pending"
     }
   ],
   "external_signals": [
     {
-      "signal": "The /reasoning screenshot from April 23 remains the most potent unused asset in the portfolio. An AI agent reasoning in real-time, referencing its own behavioral constitution (SOUL.md), and formulating in-character replies — captured verbatim — is a category of content no competitor has produced. It has not been posted to LinkedIn. It has not been used in a cold email. It is sitting in a Telegram screenshot folder while the window closes.",
-      "source": "Zara Layer 1 capture (2026-04-23) — primary artefact",
+      "signal": "BCG data: 61% of CEOs say their board does not trust their AI strategy. The tension is structural — CEOs want to move faster, boards want governance proof before they approve budget. This gap is exactly what Mindmaker closes. The data is 3 days into a 7-day reach window and has not been deployed in a single piece of outreach or content yet.",
+      "source": "BCG 2026 CEO-board survey — Week 2 intel layer (2026-05-11)",
       "relevance": "Critical",
-      "recommended_action": "Write the LinkedIn post today. Hook: 'I typed Huh? to my AI COO and then ran /reasoning to see what it actually thought. Here is its internal monologue word for word.' Post by Tuesday EOD. Attach the screenshot. No tags. Let the artefact do the work."
+      "recommended_action": "Load the BCG 61% hook as the opener in a Mindmaker Instantly sequence today. Subject line candidate: '61% of CEOs told BCG their board doesn't trust their AI strategy. Here's what the 39% are doing differently.' Target: C-suite ops leads at mid-market companies with active AI transformation agendas. Send before Friday or the data window expires."
     },
     {
-      "signal": "Enterprise AI procurement has entered a compliance gate phase in 2026. Legal and risk teams in financial services, healthcare, and professional services are now adding AI governance reviews as a standard procurement step. The primary question is no longer 'what can it do?' but 'how does it decide, and can you show me?' Vendors who can demonstrate auditable reasoning trails are moving through procurement 2-3x faster than those who cannot.",
-      "source": "Marcus synthesis — enterprise procurement layer (Week 2 scan)",
+      "signal": "AI fokus conference (May 19, Vienna) has its CFP closing today or tomorrow on Sessionize. An abstract is drafted and ready. This is a 20-minute submission task. Missing this is a third consecutive CFP loss after Applied AI Conference and ODSC East — both expired without submission while abstracts sat ready.",
+      "source": "Nova visibility pipeline — Week 2 intel brief (2026-05-11)",
       "relevance": "Critical",
-      "recommended_action": "Reframe Meliora's opening pitch around governance-readiness. Lead with: 'Our agents have behavioral constitutions, not just prompts — and we can show you the reasoning trail on demand.' The /reasoning demo is your live proof. Use it in the next enterprise intro call."
+      "recommended_action": "Submit the AI fokus abstract on Sessionize right now. Do not route this through approval workflows — the abstract is drafted and the window is today. Nova to confirm submission by end of day. This is not a planning item. It is a 20-minute action with a binary outcome."
     },
     {
-      "signal": "LinkedIn's engagement algorithm is currently rewarding 'process transparency' content — founders showing the system behind the result, not just the result. Posts that pull back the curtain on AI workflows, decision logic, or internal tooling are generating 3-5x the reach of polished product announcements. The /reasoning screenshot is exactly this content category and it has not been posted.",
-      "source": "Marcus synthesis — Cleo content distribution layer",
+      "signal": "Google's AI Health Coach launches May 19 — 6 days from today — at $9.99/month with AI-powered food tracking and coaching built into the Google ecosystem. For Gutted, this is not a threat: it is a positioning window. Platform AI is generalist. Founder-built AI is opinionated. The launch creates editorial attention that independent alternatives can ride.",
+      "source": "Product domain intel — Week 2 cross-domain brief (2026-05-11)",
       "relevance": "High",
-      "recommended_action": "Draft the post in Krish's voice, not in AI-polished voice. Keep it raw: 'I asked my AI COO an ambiguous question, then ran /reasoning to see what it actually thought. This is what came back.' Let the screenshot carry the weight. Post before Wednesday — Thursday is too late for peak Week 2 reach."
+      "recommended_action": "Priya to draft Gutted's positioning response before May 19. Frame: 'Google just entered health coaching. Here is what an AI built by a founder who actually cares looks like.' A launch-day post or Product Hunt comparison is the play — the editorial window opens May 18-20. Do not miss it by planning it after launch."
     },
     {
-      "signal": "The SOUL.md concept — behavioral constitutions for AI agents rather than system prompts — has genuine novelty on the founder and operator speaking circuit right now. The framing is accessible to non-technical audiences, the demo is visual and verifiable, and it maps cleanly onto the trust narrative dominating AI discourse in May 2026. No one else is pitching this. The window to be the first voice on it is open.",
-      "source": "Marcus synthesis — Nova speaking and podcast pipeline",
+      "signal": "The /reasoning artefact — AI agent reasoning verbatim in Telegram, referencing its SOUL.md behavioral constitution — has been sitting undeployed for 20 days. Wednesday is the last day in the Week 2 LinkedIn reach window. The post writes itself: 'I typed Huh? to my AI COO. Then I ran /reasoning. This is what it actually thought.' No tags. Let the screenshot lead. This category of content is generating 3-5x algorithmic lift on LinkedIn right now.",
+      "source": "Zara Layer 1 capture (2026-04-23) + Cleo content layer synthesis",
       "relevance": "High",
-      "recommended_action": "Nova to identify 2 AI-native or future-of-work podcasts with founder-heavy audiences this week. Pitch angle: 'Building AI agents with personality — how behavioral constitutions create trust in autonomous systems.' Use the /reasoning demo as the headline hook. Submit pitches by Friday."
+      "recommended_action": "Post the /reasoning LinkedIn post today. Final window. Draft in Krish's voice — raw, not polished. Attach the screenshot. 150 words max. If it is not posted by Wednesday EOD, move it to a Monday slot and accept the Week 2 content gap. But post it today."
     },
     {
-      "signal": "Mindmaker's cold outreach pipeline has a weapon it is not using. The /reasoning screenshot as an email opener — 'Most AI tools hide how they think. Ours doesn't. Here's what it looks like when our agent reads an ambiguous message.' — is a category-defining hook in a market full of generic AI capability claims. It is visual, verifiable, and impossible to dismiss as marketing copy. It converts.",
-      "source": "Marcus synthesis — Mindmaker BD layer",
+      "signal": "POSSIBLE 2026 data confirms agentic AI is entering mainstream B2B buying cycles. Procurement teams are evaluating AI agents as standard infrastructure — not experimental tools. The identity and consent layer (who the agent is, how it decides, who it answers to) is becoming the primary enterprise differentiator. AdFixus's trust infrastructure is a natural fit for this buying moment.",
+      "source": "POSSIBLE 2026 conference coverage — Week 2 intel layer (2026-05-11)",
       "relevance": "High",
-      "recommended_action": "Add the /reasoning hook as the opener in one active Instantly sequence this week. Test against the current control. Target ops-heavy businesses (logistics, professional services, scale-ups with >50 employees). Measure reply rate delta by Friday — this is the Week 2 revenue test candidate."
+      "recommended_action": "Felix to reframe the AdFixus enterprise pitch around the trust infrastructure angle: 'As AI agents enter procurement, the question is no longer capability — it is identity and consent. AdFixus solves the identity layer.' Test this framing in the next two enterprise outreach sequences and measure reply rate against the current control."
     },
     {
-      "signal": "Zara's capture rate remains at 1 artefact against a 7+/week target — a 14% fill rate entering Week 2. The quality of Marcus's Layer 3 synthesis is directly gated by input volume. The current brief is elevated from a single April artefact, which is not sustainable. Expanding capture sources is the highest-leverage infrastructure move available this week.",
-      "source": "Marcus OS health check — pipeline layer",
-      "relevance": "Medium",
-      "recommended_action": "Flag to Agatha for Week 2 action: add a Telegram forwarding channel for web/newsletter finds, enable browser bookmark sync to Zara's intake folder, and prompt Krish to drop 2-3 Layer 1 captures per day (screenshots, quotes, links worth synthesising). Low setup cost, high synthesis leverage within 72 hours."
+      "signal": "AI Engineer World's Fair CFP closes May 30 — 17 days away. This is the largest technical AI conference in the calendar (6,000+ live, 15M+ online reach). The abstract window is open and this is the highest-leverage visibility submission available. Krish's behavioral constitution / SOUL.md angle is technically credible and founder-accessible — exactly the conference's audience profile.",
+      "source": "Nova visibility pipeline — Week 2 intel brief (2026-05-11)",
+      "relevance": "High",
+      "recommended_action": "Nova to draft and submit the AI Engineer World's Fair abstract this week — target May 16 internal deadline, May 25 hard deadline. Angle: 'Behavioral constitutions for AI agents — how SOUL.md creates auditable, in-character autonomous systems at scale.' This is the conference that makes careers in technical AI circles. Prioritise above all other CFPs."
     }
   ],
   "data_freshness": {
-    "marcus_last_run": "2026-05-11T16:30:00.000Z",
+    "marcus_last_run": "2026-05-13T16:30:00.000Z",
     "zara_last_signal": "2026-04-23T13:12:00.000Z",
-    "run_type": "home-intelligence-monday",
+    "run_type": "home-intelligence-wednesday",
     "week": "Week 2 of May 2026"
   }
 }
