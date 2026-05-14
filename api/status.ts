@@ -1,8 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from './_supabase.js'
 
-const N8N_BASE = process.env.N8N_API_BASE_URL ?? 'https://krishraja10101.app.n8n.cloud/api/v1'
+const N8N_BASE = process.env.N8N_API_BASE_URL
 const N8N_KEY = process.env.N8N_API_KEY || ''
+
+if (!N8N_BASE) {
+  throw new Error('Missing N8N_API_BASE_URL environment variable')
+}
 
 async function fetchN8N(path: string) {
   const res = await fetch(`${N8N_BASE}${path}`, {
