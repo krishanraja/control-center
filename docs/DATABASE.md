@@ -194,26 +194,37 @@ CREATE INDEX idx_system_health_status ON system_health(status);
 
 ## Database Triggers
 
-### `started_at` Auto-Stamp Trigger
+### Task Timestamp Auto-Stamp Trigger
 
-When a task's status changes to `in_progress`, the database automatically sets `started_at` to the current timestamp. This enables cycle time tracking (`completed_at - started_at = actual work duration`).
+A single BEFORE UPDATE trigger stamps `started_at` on transition to `in_progress` and `completed_at` on transition to `done`. Both are no-ops if the column is already set, so explicit values in the UPDATE statement are preserved.
 
 ```sql
-CREATE OR REPLACE FUNCTION stamp_started_at()
+CREATE OR REPLACE FUNCTION stamp_task_timestamps()
 RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.status = 'in_progress' AND (OLD.status IS DISTINCT FROM 'in_progress') THEN
-    NEW.started_at = NOW();
+    IF NEW.started_at IS NULL THEN
+      NEW.started_at = NOW();
+    END IF;
   END IF;
+
+  IF NEW.status = 'done' AND (OLD.status IS DISTINCT FROM 'done') THEN
+    IF NEW.completed_at IS NULL THEN
+      NEW.completed_at = NOW();
+    END IF;
+  END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER tasks_stamp_started_at
+CREATE TRIGGER tasks_stamp_timestamps
 BEFORE UPDATE ON tasks
 FOR EACH ROW
-EXECUTE FUNCTION stamp_started_at();
+EXECUTE FUNCTION stamp_task_timestamps();
 ```
+
+Migration: `scripts/migrations/2026-05-18-stamp-completed-at.sql` replaces the prior `stamp_started_at` function/trigger and backfills `completed_at` from `updated_at` for any `done` row missing it.
 
 ## Row Level Security (RLS)
 
