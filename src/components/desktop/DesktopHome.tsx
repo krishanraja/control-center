@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
-  AlertTriangle, Activity as ActivityIcon, Target, ArrowUpRight, ChevronRight,
+  Activity as ActivityIcon, Target, ArrowUpRight, ChevronRight,
   Pencil, Check, X, Compass, CheckSquare, Server, Workflow as WorkflowIcon,
+  Inbox, Ban,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '../../lib/supabase'
@@ -59,6 +60,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const [goalsData, setGoalsData] = useState<GoalsData | null>(null)
   const [planCount, setPlanCount] = useState<number | null>(null)
   const { tasks: waiting } = useRealtimeTasks({ statusIn: ['waiting'] })
+  const { tasks: blocked } = useRealtimeTasks({ statusIn: ['blocked'] })
   const live = useLiveStatus(60_000)
 
   useEffect(() => {
@@ -96,7 +98,6 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
   const summary = useMemo(() => parseSummary(intel?.summary), [intel?.summary])
   const approvalCount = waiting.length
-  const goToToday = () => onNavigate?.('today')
 
   const handleSaveFocus = async (newFocus: string) => {
     await fetch(`${API}/api/goals`, {
@@ -111,22 +112,11 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   return (
     <div className="flex flex-col gap-6 max-w-[1280px] mx-auto w-full">
 
-      {/* APPROVAL BANNER — slim alert routing to Today tab */}
-      {approvalCount > 0 && (
-        <button
-          type="button"
-          onClick={goToToday}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToToday() } }}
-          className="flex items-center gap-2 w-full text-left rounded-xl border border-amber-500/25 bg-amber-500/[0.06] hover:bg-amber-500/[0.10] transition-colors px-4 py-2.5"
-        >
-          <AlertTriangle size={14} className="text-amber-300 flex-shrink-0" />
-          <span className="text-[12.5px] text-amber-200/90 font-medium leading-snug">
-            <span className="tabular-nums font-semibold text-amber-200">{approvalCount}</span>{' '}
-            {approvalCount === 1 ? 'item needs' : 'items need'} your approval in the Today tab
-          </span>
-          <ArrowUpRight size={13} className="text-amber-300/70 ml-auto flex-shrink-0" />
-        </button>
-      )}
+      {/* NEEDS YOU — ranked list, top of prominence ladder (blocking actions) */}
+      <NeedsYouList tasks={waiting} onNavigate={onNavigate} />
+
+      {/* BLOCKED — investigate, not approve. Visually lower than Needs You. */}
+      <BlockedList tasks={blocked} onNavigate={onNavigate} />
 
       {/* OS MISSION — north star + this week's focus */}
       <OsMissionHero
@@ -363,6 +353,133 @@ function PulseStrip({ onNavigate, planCount, approvalCount, live }: {
             <p className={`text-[11px] mt-1 ${t.subClass ?? 'text-white/40'}`}>{t.sub}</p>
           </button>
         ))}
+      </div>
+    </div>
+  )
+}
+
+/** Rank tasks awaiting Krish's approval. Top 6 by priority_override, then
+ *  priority weight, then oldest-updated first (stale items rise). */
+function rankWaiting(tasks: any[]): any[] {
+  const priorityWeight: Record<string, number> = { high: 3, medium: 2, low: 1 }
+  return [...tasks].sort((a, b) => {
+    const ao = a.priority_override ?? 0
+    const bo = b.priority_override ?? 0
+    if (ao !== bo) return bo - ao
+    const ap = priorityWeight[a.priority || ''] ?? 0
+    const bp = priorityWeight[b.priority || ''] ?? 0
+    if (ap !== bp) return bp - ap
+    const au = a.updated_at ? new Date(a.updated_at).getTime() : 0
+    const bu = b.updated_at ? new Date(b.updated_at).getTime() : 0
+    return au - bu
+  }).slice(0, 6)
+}
+
+function NeedsYouList({ tasks, onNavigate }: { tasks: any[]; onNavigate?: NavigateFn }) {
+  const ranked = useMemo(() => rankWaiting(tasks), [tasks])
+  const total = tasks.length
+
+  if (total === 0) return null
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between h-5">
+        <div className="flex items-center gap-2">
+          <Inbox size={13} className="text-amber-400" />
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">Needs You</h2>
+          <span className="text-[11px] text-amber-300/80 tabular-nums font-semibold">{total}</span>
+        </div>
+        <button
+          onClick={() => onNavigate?.('today')}
+          className="flex items-center gap-1 text-[11px] text-amber-300/60 hover:text-amber-200 transition-colors"
+        >
+          Open Today
+          <ArrowUpRight size={11} />
+        </button>
+      </div>
+
+      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] divide-y divide-white/[0.04]">
+        {ranked.map(t => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onNavigate?.('today', { task: t.id })}
+            className="w-full text-left px-4 py-3 hover:bg-amber-500/[0.06] transition-colors flex items-start gap-3"
+          >
+            <span className="mt-1 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] text-white/90 leading-snug truncate">{t.title}</p>
+              {t.next_step && (
+                <p className="text-[11px] text-white/45 leading-snug mt-0.5 line-clamp-1">{t.next_step}</p>
+              )}
+            </div>
+            <span className="text-[10px] text-white/30 tabular-nums flex-shrink-0">
+              {t.updated_at && formatDistanceToNow(new Date(t.updated_at), { addSuffix: true })}
+            </span>
+          </button>
+        ))}
+        {total > ranked.length && (
+          <div className="px-4 py-2 text-[11px] text-amber-300/50 text-center">
+            +{total - ranked.length} more in Today
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function BlockedList({ tasks, onNavigate }: { tasks: any[]; onNavigate?: NavigateFn }) {
+  const ranked = useMemo(() => {
+    return [...tasks]
+      .sort((a, b) => {
+        const au = a.updated_at ? new Date(a.updated_at).getTime() : 0
+        const bu = b.updated_at ? new Date(b.updated_at).getTime() : 0
+        return au - bu // oldest first — longest-blocked surface higher
+      })
+      .slice(0, 6)
+  }, [tasks])
+  const total = tasks.length
+
+  if (total === 0) return null
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2 h-5">
+        <Ban size={13} className="text-white/40" />
+        <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">Blocked</h2>
+        <span className="text-[11px] text-white/40 tabular-nums">{total}</span>
+        <span className="text-[10px] text-white/30 ml-2">investigate, not approve</span>
+      </div>
+
+      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.015] divide-y divide-white/[0.04]">
+        {ranked.map(t => {
+          const days = t.updated_at
+            ? Math.max(0, Math.floor((Date.now() - new Date(t.updated_at).getTime()) / 86_400_000))
+            : null
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => onNavigate?.('today', { task: t.id })}
+              className="w-full text-left px-4 py-3 hover:bg-white/[0.03] transition-colors flex items-start gap-3"
+            >
+              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-rose-400/70 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] text-white/85 leading-snug truncate">{t.title}</p>
+                {t.blocked_by && (
+                  <p className="text-[11px] text-white/45 leading-snug mt-0.5 line-clamp-1">
+                    <span className="text-white/30">blocked by</span> {t.blocked_by}
+                  </p>
+                )}
+              </div>
+              {days !== null && (
+                <span className="text-[10px] text-white/30 tabular-nums flex-shrink-0">
+                  {days === 0 ? 'today' : `${days}d`}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
