@@ -20,16 +20,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS system_health_component_uniq
 -- 3. Upsert each row. Component strings match the display labels used in the
 --    Systems tab. If your existing rows use a different string format (e.g.
 --    'n8n-cloud' vs 'N8N Cloud'), adjust here — inspect first via step 2.
-INSERT INTO public.system_health (component, status, message, last_check)
+-- id convention: 'sys-' || lower-kebab(component). Required because id is TEXT NOT NULL with no default.
+INSERT INTO public.system_health (id, component, status, message, last_check)
 VALUES
-  ('N8N Cloud',                'healthy',  '49 active / 3 inactive workflows',                                                now()),
-  ('Status Webhook',           'healthy',  'POST /webhook/status-update returns 200 (workflow cVnbywEWaDS4Xa5V)',             now()),
-  ('HARO Ingestion',           'inactive', 'Deactivated 2026-05-18 - Gmail OAuth cred deleted, decision was kill',            now()),
-  ('Content Engine',           'degraded', '5/7 content workflows healthy. Draft Post on Demand and Zara Signal Sweep need UI fixes.', now()),
-  ('Supabase',                 'healthy',  'Schema clean, 4 ghost tables dropped',                                            now()),
-  ('Grok API',                 'healthy',  'Key restored to openclaw.json',                                                   now()),
-  ('Cleo Content Factory',     'healthy',  'Last run 6d ago, status success',                                                 now())
-ON CONFLICT (component) DO UPDATE
+  ('sys-n8n-cloud',            'N8N Cloud',            'healthy',  '49 active / 3 inactive workflows',                                                now()),
+  ('sys-status-webhook',       'Status Webhook',       'healthy',  'POST /webhook/status-update returns 200 (workflow cVnbywEWaDS4Xa5V)',             now()),
+  ('sys-haro-ingestion',       'HARO Ingestion',       'unknown',  'Deactivated 2026-05-18 - Gmail OAuth cred deleted, decision was kill',            now()),
+  ('sys-content-engine',       'Content Engine',       'degraded', '5/7 content workflows healthy. Draft Post on Demand and Zara Signal Sweep need UI fixes.', now()),
+  ('sys-supabase',             'Supabase',             'healthy',  'Schema clean, 4 ghost tables dropped',                                            now()),
+  ('sys-grok-api',             'Grok API',             'healthy',  'Key restored to openclaw.json',                                                   now()),
+  ('sys-cleo-content-factory', 'Cleo Content Factory', 'healthy',  'Last run 6d ago, status success',                                                 now())
+ON CONFLICT (component) WHERE component IS NOT NULL DO UPDATE
   SET status     = EXCLUDED.status,
       message    = EXCLUDED.message,
       last_check = EXCLUDED.last_check;
