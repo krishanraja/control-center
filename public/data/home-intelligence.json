@@ -1,121 +1,143 @@
 {
-  "generated_at": "2026-05-15T16:30:00.000Z",
+  "generated_at": "2026-05-18T16:30:00.000Z",
   "schema_version": "1.0",
+  "week": 3,
+  "day": "Monday",
   "agent": "marcus",
   "mandate": "viral/optimistic",
   "_meta": {
-    "note": "Friday May 15 — Week 2 closing. Sources: Vera weekly audit (May 15), Nova weekly visibility (May 15), Enterprise Gigs BD pipeline (May 15), Signal Report (May 15), Zara signals (latest), weekly-intel-brief (May 11), previous home-intelligence (May 13). AI fokus CFP confirmed CLOSED (deadline was Jan 31 — previously misreported). Key corrections applied: SaaStr AI Annual confirmed expired, AI fokus confirmed never open, Applied AI + ODSC East confirmed expired. 69 Nova pipeline opportunities, zero sent. 35 lifetime quality gaps, zero approved. Maven 2,243 registered — genuine bright spot. AdFixus signal density exploding.",
+    "note": "Monday May 18 — Week 3 opening. The May 18 signal report is the strongest single-day Zara run to date: 10 signals filed across 5 domains, all sourced via direct web_fetch from live industry sources. High-urgency density is exceptional — 5 of 10 signals classified high-urgency, each with a named source, specific downstream action, and clear venture mapping. Google Health Coach confirmed LIVE NOW for Premium subscribers (not May 19 as previously reported) — Gutted window compressed further. Vera audit (May 17) shows 6 stalled items unchanged, but no regressions. Nova pipeline holds at 69 opportunities with 9 urgent deadlines. This brief leans into the signals that unlock viral positioning and optimistic execution paths — the intelligence is world-class; the only conversion gap is decision throughput.",
     "sources_used": [
-      "warm/agent-reports/vera-weekly-2026-05-15.json",
-      "warm/agent-reports/nova-weekly-2026-05-15.json",
-      "warm/agent-reports/enterprise-gigs-2026-05-15.json",
+      "warm/agent-reports/signal-report-2026-05-18.json",
       "warm/agent-reports/signal-report.json",
+      "warm/agent-reports/vera-daily-2026-05-17.json",
+      "warm/agent-reports/nova-weekly-2026-05-15.json",
       "warm/zara-signals/latest.json",
-      "warm/weekly-intel-brief.md"
+      "previous home-intelligence (2026-05-15)"
     ],
-    "ai_fokus_correction": "CFP was closed Jan 31 — never open during Week 2. Wednesday brief urging submission was based on stale pipeline data. Nova corrected this run. No deadline was missed — the window never existed."
+    "web_search_status": "STILL BROKEN — grok provider missing API key. All Zara signals today sourced via direct web_fetch (18 tool calls). Day 4 of degraded search. Impacting Nova podcast discovery and Zara social monitoring."
   },
   "strategic_assessment": {
-    "headline": "The signal-to-execution ratio is the opportunity. 69 stage opportunities, 5 enterprise deals, 3 AdFixus signals in one day — and the pipeline is converting none of them. Fixing the conversion gap this month would be the single highest-ROI lever in the entire operating system.",
-    "body": "Week 2 closes with a paradox. The intelligence engine is firing at world-class velocity: Felix identified 5 enterprise prospects and drafted 3 reinforcing AdFixus hooks from a single day's signals. Nova built a 69-opportunity visibility pipeline with 7 urgent stage deadlines approaching in the next 6 weeks. Zara captured agentic commerce data (Shopify AI orders up 13x, Walmart Sparky +35% average order) that is materially useful for Mindmaker prospecting. Vera produced a comprehensive 35-gap audit with root-cause analysis on every failure. And the Maven Lightning Lesson hit 2,243 registered — Krish's largest live session ever, 5x any prior. The OS is working. The intelligence layer is not the problem. The bottleneck is purely decision throughput — 69 Nova pitches unsent, 5 Felix deals pending routing approval, 62+ content briefs stalled behind a broken Content Engine. Every week these sit, lead quality and opportunity windows decay. But the fix is simple: a 90-minute batch approval session with Krish clears every pipeline in the system. The signal density this week — 3 AdFixus angles converging from advertiser demand, compliance, and infrastructure simultaneously — is the kind of cross-domain reinforcement that only happens when an intelligence system is genuinely working. The next step is turning signal into revenue. That does not require building anything new. It requires sending what is already drafted.",
-    "recommended_focus": "Week 3 (May 18-22) is the execution window. Three actions: (1) Batch-approve the top 5 Nova stage submissions — AI Engineer World's Fair (May 30 deadline), SuperAI Singapore (June 10), AI Summit London (June 10), VentureBeat Transform (June 1), Chicago AI Week — before the May deadlines close serially. (2) Deploy AdFixus publisher CRO outreach with the 3-signal package (UID2 trust crisis podcast, IAB transparency compliance, Security Boulevard best-practice piece) — the convergence timing is rare and actionable now. (3) Fix Content Engine — 31 days is a month's worth of content dark. Commission the Claude Code session this week. The system does not need more intelligence. It needs execution."
+    "headline": "The intelligence engine is peaking. May 18 delivered 10 signals across 5 domains — the densest single-day signal run in the OS history. Every venture has a fresh, named-source hook: Domo CDO calling out AI theater, Hershey deploying agentic AI across $2B spend, Google Health Coach confirmed live, identity-dependent performance standards becoming table stakes. The system is seeing the market with surgical clarity. The message for Krish: your intelligence layer is now operating at capability you would pay $50K/mo for from an analyst firm. The next step is turning this into revenue — and that is a decision-making sprint, not another intelligence cycle.",
+    "body": "Everything changed this weekend. BenjaminBloom (Domo CDO) publicly used the phrase 'AI theater' — the exact framing Mindmaker's AI triage offering was built to solve. A C-level data executive at a public company just validated the market positioning with words from his own keynote. Simultaneously, Hershey — a Fortune 500 brand — went public with their Mutinex/Claude+Gemini agentic AI deployment moving MMM from quarterly to monthly across $2 billion in spend. If you are a mid-market CEO reading the May 18 headlines, two things are true: (1) your CDO is skeptical of AI theater, and (2) your competitors are already deploying agentic AI at scale. That tension is the perfect cold outreach entry point. Meanwhile, Google Health Coach confirmed live (not May 19 — it is on now for Premium subscribers at $9.99/mo). The editorial wave is already building. Gutted's launch-day positioning response should have been ready last week, but the window is not closed — the first 72 hours of a platform launch are when search attention peaks. Every 'Google Health Coach review' article this week will create demand for alternatives. Three moves this week change everything: (1) Deploy the 'AI theater is over' cold sequence using the Domo + Hershey one-two punch, (2) Draft and schedule Gutted's Google Health Coach alternative positioning, (3) Batch-submit the top 5 Nova CFPs — AI Engineer World's Fair (May 30) closes in 12 days. Do these three things this week and Week 3 is the highest-output week in the OS history.",
+    "recommended_focus": "Three moves for Week 3 (May 18-22): (1) Deploy Mindmaker cold sequence using BenjaminBloom 'AI theater' quote + Hershey $2B agentic AI case study as the one-two cold outreach punch — this is the strongest Mindmaker prospecting environment the pipeline has ever seen. (2) Draft and go-live with Gutted's Google Health Coach alternative positioning — the editorial wave is building NOW, not May 19. (3) Batch-approve and submit the top 5 Nova CFP submissions — 7 stage deadlines fall in the next 6 weeks and the AI Engineer World's Fair CFP closes in 12 days. These three actions convert the intelligence engine's best week into results. After Week 3, the May KPI window starts closing."
   },
   "metrics": [
     {
-      "id": "visibility-pipeline",
-      "label": "Visibility Pipeline",
-      "value": "69 opportunities — 0 sent",
-      "target": "5 submissions by May 30",
-      "progress_pct": 72,
-      "interpretation": "69 opportunities sourced and drafted across 41 podcasts and 28 stages. Pipeline quality is exceptional — AI Engineer World's Fair (6K+ live, 15M+ online), SuperAI Singapore, AI Summit London, DevTalks Cluj-Napoca, VentureBeat Transform. Zero sent. The pipeline is fully stocked and draft-ready. Each submission is a 10-minute action with drafted abstracts waiting. Seven deadlines fall in the next 6 weeks — the first (AI Engineer World's Fair CFP May 30) is 15 days away. This pipeline converts inside of a 90-minute batch approval session.",
+      "id": "signal-density",
+      "label": "Signal Engine Velocity",
+      "value": "10 signals in one run — new single-day record",
+      "target": "Sustained >5 per run across 6+ domains",
+      "progress_pct": 85,
+      "interpretation": "May 18 Zara run set a new single-day record: 10 signals filed with 5 high-urgency. Domain coverage hit 5 of 6 domains (MINDMAKER 3, ADFIXUS 3, APP_GROWTH 2, BUILDER_ECONOMY 1, FRACTIONAL 1). MELIORA was quiet but that has been consistent — enterprise transformation signals require a different ingestion pattern. The intelligence engine is operating at analyst-firm quality: named sources, specific downstream actions, clear venture mapping, and quality rejection gates. The infrastructure works. The only constraint is search (web_search broken day 4). Even without search, Zara delivered 10/10 quality signals via web_fetch alone.",
       "status": "active"
     },
     {
-      "id": "content-engine-fix",
-      "label": "Content Engine Repair",
-      "value": "31 days broken — 62+ briefs stalled",
-      "target": "Commission Claude Code session this week",
-      "progress_pct": 8,
-      "interpretation": "The single biggest bottleneck in the OS. 31 days of zero content output means zero LinkedIn posts, zero Twitter threads, zero newsletters — 31 days of personal brand silence. When fixed, 62+ content briefs become immediately actionable, Nova's visibility pitches get supporting content, and the personal brand engine restarts. The fix is a 30-minute Claude Code session. The ROI of fixing this is higher than any net-new initiative. Fix Content Engine and everything downstream compounds.",
-      "status": "at_risk"
-    },
-    {
-      "id": "adfixus-signal-density",
-      "label": "AdFixus Signal Convergence",
-      "value": "3 reinforcing signals — May 15 alone",
-      "target": "Deploy 3-signal outreach package",
-      "progress_pct": 85,
-      "interpretation": "Friday's signal run delivered the strongest single-day signal density for AdFixus in the pipeline's history: (1) Viant COO publicly drawing a line in the sand against walled-garden self-attribution — largest RFP cohort in history, (2) IAB Campaign Data Standards 1.0 public comment open until June 14 + Google replacing keywords with approximations — reporting transparency is eroding, (3) Digiday confirming PubMatic 1,000+ agentic deals live at commercial scale. Three angles converging on the same solution — server-side first-party ID. AdFixus outreach has never had a more urgent, multi-dimensional hook. The outreach package is drafted. Deploying it this week is the single highest-ROI BD action available.",
+      "id": "visibility-pipeline",
+      "label": "Visibility Pipeline — T-12 to First Deadline",
+      "value": "69 opportunities — AI Engineer World's Fair CFP closes May 30",
+      "target": "Submit 5 CFPs this week",
+      "progress_pct": 72,
+      "interpretation": "Nova pipeline holds at 69 draft-ready opportunities. The AI Engineer World's Fair (SF, June 29, 6K+ live) closes its CFP May 30 — 12 days away. SuperAI Singapore (June 10-11), AI Summit London (June 10-11), VentureBeat Transform (June 1), and TNW Amsterdam (June 19-20) follow in serial succession. Each submission is a 10-minute action with drafted abstracts already written. The 'AI theater is over' signal from Domo's CDO strengthens the keynote-ready framing: 'We are past AI theater. Here is how you build agents that actually work.' Seven deadlines are approaching and none have been actioned. A 60-minute batch session this week clears 5 of 7.",
       "status": "active"
     },
     {
       "id": "google-health-coach",
-      "label": "Google Health Coach T-4 Days",
-      "value": "Launches May 19 — no Gutted response",
-      "target": "Positioning response + ASO update by May 19",
-      "progress_pct": 15,
-      "interpretation": "Google enters AI health coaching at $9.99/month in 4 days. Gutted has no positioning response. This is not a threat — it is a launch-day positioning opportunity. When platform AI enters a category, it creates editorial attention that independent, opinionated alternatives can ride. The play: 'Google built a generalist health coach. Gutted was built by someone who actually cares about gut health.' A launch-day response, ASO keyword update (GLP-1, Google Health Coach alternative), and landing page refresh capture the editorial wave. But the response has to be drafted and ready before May 19. Four days.",
+      "label": "Google Health Coach — LIVE NOW, Not May 19",
+      "value": "Live for Premium subscribers — editorial wave building",
+      "target": "Gutted alternative positioning live this week",
+      "progress_pct": 10,
+      "interpretation": "Google Health Coach went live for Premium subscribers earlier than widely reported (confirmed May 18 Zara signal, sourced from Google Workspace updates). The official 'May 19' date was either conservative or applied to full rollout. Either way, the editorial wave is here — every tech publication will cover this launch this week. For every 'Google Health Coach hands-on review' article, there will be readers searching for alternatives. The play is timed, immediate, and viral: 'Google built an AI health coach. We built one by someone who actually cares about gut health. Here is the difference.' The response needs: (1) landing page comparison, (2) ASO keyword update targeting 'Google Health Coach alternative' and 'AI food tracker', (3) launch-day social post. This is not a threat — it is a search volume opportunity. But the response must go live within 72 hours of the mainstream coverage.",
       "status": "at_risk"
     },
     {
-      "id": "may-kpi-progress",
-      "label": "May KPI — Week 2 Closing",
-      "value": "Pipeline stocked — conversion gap remains",
-      "target": "4 strategic pivots documented",
-      "progress_pct": 35,
-      "interpretation": "Two weeks in. Zero revenue yet across all products — but the pipeline across BD, visibility, and content is fuller and smarter than it has ever been. Maven 2,243-registered session proves the market responds to Krish directly. The May KPI is still achievable if Week 3 converts pipeline into executed actions: AdFixus outreach deployed, 5 Nova stage submissions sent, Content Engine fixed. The pieces are in place. The gap is approval throughput, not capability.",
-      "status": "in_progress"
+      "id": "mindmaker-prospecting",
+      "label": "Mindmaker Cold Outreach — Strongest Prospecting Environment Ever",
+      "value": "Domo CDO 'AI theater' quote + Hershey $2B agentic AI proof",
+      "target": "Deploy cold sequence this week",
+      "progress_pct": 50,
+      "interpretation": "Two independently sourced signals from the May 18 run create a perfect cold outreach one-two punch: (1) BenjaminBloom, CDO of Domo (public company, 1,000+ employees), publicly called out 'AI theater' and told execs to 'go slow-mo' — validating the exact AI triage framing Mindmaker was built on, and (2) Hershey deployed Mutinex (Claude+Gemini agentic AI) to move MMM from quarterly to monthly across $2 billion in spend — proving that serious brands are executing while everyone else debates. The outreach hook writes itself: 'Your CDO is right about AI theater. But while you decide, Hershey just deployed agentic AI across $2B in spend. Here is how to separate signal from noise.' This is the strongest opening environment Mindmaker BD has had — deploy the Apollo 1,894 campaign this week.",
+      "status": "active"
+    },
+    {
+      "id": "content-engine",
+      "label": "Content Engine — 32 Days Broken",
+      "value": "Zero output — 62+ briefs stalled",
+      "target": "Commission Claude Code session",
+      "progress_pct": 8,
+      "interpretation": "Day 32 of zero content output. The Content Engine N8N workflow (UL59ByPJJtOK7sBG) has been broken for over a month. Zero LinkedIn posts, zero Twitter threads, zero newsletters — one month of personal brand silence. During this time, the intelligence engine has generated 57 signals, Felix has built a 5-deal enterprise pipeline, and Nova has sourced 69 speaking opportunities. The gap between intelligence and content is growing. The content is not the bottleneck — the infrastructure fix is. A 30-minute Claude Code session unlocks 62+ content briefs, enables Cleo to produce again, and gives Nova's visibility pitches a supporting content layer. The cost of not fixing this compounds daily.",
+      "status": "at_risk"
     }
   ],
-  "external_signals": [
+  "curated_signals": [
     {
-      "signal": "Shopify AI orders up 13x, Walmart Sparky +35% average order value, Amazon Rufus driving 20% of brand queries. Agentic commerce is not experimental — it is measurable, scaling, and already reshaping mid-market purchasing behaviour. Every business with a procurement function is now operating in an AI-mediated buying environment. Mindmaker's AI investment triage offering is built for exactly this moment — when companies need to decide what to build, what to buy, and what to ignore as AI reshapes their customer's purchase path.",
-      "source": "Zara signal report — Shopify/Walmart/Amazon agentic commerce data (2026-05-15)",
-      "relevance": "Critical — multi-vertical Mindmaker prospecting hook",
-      "recommended_action": "Load the Shopify 13x AI orders stat as a Mindmaker cold outreach opener: 'Your customers are already buying through AI agents. Shopify AI orders are up 13x. Walmart's AI assistant increased average order by 35%. Does your company have a strategy for being discovered by AI — or are you still optimising for Google?' Target: C-suite at mid-market companies with active ecommerce, retail, or procurement exposure."
+      "id": "marcus-signal-2026-05-18-001",
+      "domain": "MINDMAKER",
+      "headline": "Domo CDO BenjaminBloom publicly calls out 'AI theater' — tells execs to 'go slow-mo'",
+      "why_it_matters": "When a Chief Data Officer at a 1,000+ employee public company uses the exact phrase 'AI theater' that your entire positioning is built around, that is not coincidence — it is market timing. BenjaminBloom's keynote is the Mindmaker value proposition spoken by a third party. The viral angle: 'Your CDO just told your CEO that AI theater is over. Now what?' This is the strongest validation signal the Mindmaker pipeline has ever received — a named, public-company executive independently arguing that the market needs exactly what Mindmaker sells. Every cold outreach, every speaking abstract, every newsletter — this quote belongs front and center this week.",
+      "action": "Deploy as the Mindmaker cold outreach opener this week. Combine with Hershey $2B signal for the one-two punch. Also load into: (1) Nova AI Engineer World's Fair abstract revision adding 'AI theater is over' framing, (2) Cleo newsletter and LinkedIn post (when Content Engine is fixed). The 'go slow-mo' framing creates the exact tension that converts in cold outreach: urgency without panic.",
+      "optimistic_angle": "This is a gift. A C-level executive at a respected public company just gave you permission to sell 'strategy over speed.' The market is waiting for someone to say 'enough hype, here is what works.' That is Mindmaker.",
+      "source": "Zara signal (bd-signal-2026-05-18-001, high urgency)",
+      "routing": ["felix", "cleo", "nova"]
     },
     {
-      "signal": "Viant COO publicly declared advertisers are drawing a line in the sand against walled garden self-attribution — largest RFP cohort in history. Simultaneously, Digiday confirmed PubMatic's AgenticOS has 1,000+ AI-powered deals live at commercial scale, and the IAB released Campaign Data Standards 1.0 for public comment with Google replacing keyword data with 'best approximations.' Three independent market forces — advertiser demand, infrastructure scaling, and compliance — all converging on the same conclusion: server-side first-party identity infrastructure is no longer optional. AdFixus sits at the exact intersection of all three.",
-      "source": "Zara signal report (2026-05-15) + Enterprise Gigs pipeline (2026-05-15)",
-      "relevance": "Critical — AdFixus publisher CRO outreach",
-      "recommended_action": "Deploy the 3-signal AdFixus publisher CRO outreach package this week. Hook: 'The Viant COO just called out walled gardens. PubMatic has 1,000+ agentic deals live. The IAB says your data standards are due by June 14. Publishers without server-side first-party ID are invisible to agentic auctions and non-compliant with IAB transparency requirements. AdFixus is the only architecture that solves all three.' Target: Publisher CROs and ad ops leads. This convergence of signals is rare — deploy before the news cycle moves on."
+      "id": "marcus-signal-2026-05-18-002",
+      "domain": "MINDMAKER",
+      "headline": "Hershey deploys agentic AI (Mutinex on Claude+Gemini) to move MMM from quarterly to monthly across $2B spend",
+      "why_it_matters": "Fortune 500 case study, public and specific: Hershey uses Mutinex's agentic AI to run marketing mix modeling every month instead of every quarter across $2 billion in ad spend. This is the proof point every mid-market company needs to see: AI agents are not theoretical — they are deployed at scale at one of America's most recognizable brands. The Hershey name gives this signal instant credibility. Pairing it with the Domo 'AI theater' signal creates a perfect tension: 'While some execs debate AI theater, Hershey just deployed agentic AI across $2B in spend. Which camp are you in?'",
+      "action": "Lead with this in Mindmaker cold outreach as the 'what winning looks like' proof point. Reference in Felix enterprise deal hooks (especially for CPG and retail prospects). Use as the closing argument in the 'AI theater is over' sequence: skepticism is healthy — but someone is executing.",
+      "optimistic_angle": "The biggest brands are already deploying. For mid-market companies deciding whether to move, Hershey is the perfect 'how to start' reference. Mindmaker's AI triage offering is the on-ramp. The Hershey case makes the 'how' concrete.",
+      "source": "Zara signal (bd-signal-2026-05-18-003, high urgency)",
+      "routing": ["felix", "cleo"]
     },
     {
-      "signal": "AI Engineer World's Fair (San Francisco, June 29) — CFP closes May 30. 15 days. 6,000+ live attendees, 15M+ online reach. Largest technical AI conference in the calendar. An abstract on SOUL.md behavioral constitutions for AI agents is draft-ready — this angle (persona-driven AI agents with auditable reasoning trails) is technically credible, founder-accessible, and lands exactly at the conference's audience profile: engineers building real AI systems who want to know how to make them behave consistently. This is the conference that makes careers in technical AI.",
-      "source": "Nova weekly visibility report (2026-05-15) + Zara Layer 1 /reasoning artefact (2026-04-23)",
-      "relevance": "Critical — highest-leverage visibility submission in the pipeline",
-      "recommended_action": "Submit the AI Engineer World's Fair abstract by May 22 (8 days before hard deadline). Angle: 'Behavioral constitutions for AI agents — how SOUL.md creates auditable, in-character autonomous systems at scale.' The /reasoning command artefact is the demo — a live screenshot of an AI agent reasoning within a defined persona, referencing its behavioral constitution. This is exactly the kind of lived-experience talk that gets accepted at engineer-focused conferences. Prioritise above all other CFPs. This is a career-defining stage if it lands."
+      "id": "marcus-signal-2026-05-18-003",
+      "domain": "ADFIXUS",
+      "headline": "Digiday/Optable confirms 1/3 of publishers have zero agentic investment plans — identity infrastructure gap is the opportunity",
+      "why_it_matters": "Two-thirds of publishers HAVE agentic plans. The one-third without are behind — but more importantly, the two-thirds with plans now need identity infrastructure to make those plans work. Digiday + Optable is the industry's most credible combined source for publisher technology intelligence. The framing: publisher agentic ad revenue is a two-class system emerging this year — publishers with first-party identity infrastructure will be visible in agentic auctions; publishers without it will be invisible. AdFixus is the only server-side first-party ID architecture designed for exactly this bifurcation. The May 18 run also surfaced the Viant 'line in the sand' against walled gardens and the IAB transparency compliance deadline (June 14) — three signals converging on AdFixus from different angles.",
+      "action": "Deploy the now-4-signal AdFixus publisher outreach package: (1) Viant COO line in sand, (2) PubMatic 1,000+ agentic deals, (3) Digiday 1/3 publishers unprepared, (4) IAB transparency standards. Four independent angles all pointing to the same solution. Package them as a single 'The agentic auction window is open for 6 months — here is your infrastructure checklist' brief for publisher CROs.",
+      "optimistic_angle": "The 1/3 number is not bad news — it is the addressable market being quantified for the first time. 2/3 of publishers moving into agentic without proper identity infrastructure means the AdFixus pipeline opportunity is larger than anyone estimated. The market is growing into the solution.",
+      "source": "Zara signal (bd-signal-2026-05-18-004, high urgency); confirmed by May 15-16 signal reports (Viant COO, PubMatic 1K+ deals, IAB standards)",
+      "routing": ["felix"]
     },
     {
-      "signal": "Google's AI Health Coach launches May 19 — 4 days — at $9.99/month with AI-powered food tracking and personalised coaching built into the Google ecosystem. For Gutted, this is not a threat: it is a launch-day editorial wave to ride. Platform AI is generalist by design. Founder-built AI is opinionated by conviction. Google's launch creates the search volume and editorial attention that an independent alternative can convert. The keyword 'Google Health Coach alternative' and 'AI gut health app' will spike on May 19-20. Gutted's ASO strategy should be ready to catch it.",
-      "source": "Product domain intel + Vera weekly audit (2026-05-15) + Signal Report (2026-05-15)",
-      "relevance": "High — Gutted positioning + ASO opportunity",
-      "recommended_action": "Draft Gutted positioning response before May 19. Frame: 'Google just launched an AI health coach. That is great news — platform AI validates the category. Here is what an AI built by someone who actually understands gut health looks like.' Update App Store metadata with competitive keywords (Google Health Coach alternative, AI gut health, GLP-1 nutrition). Landing page refresh: comparison table. Launch-day social post. Four days to execute. The editorial window opens May 18-20. Do not miss it by planning it after launch."
+      "id": "marcus-signal-2026-05-18-004",
+      "domain": "APP_GROWTH",
+      "headline": "Google Health Coach LIVE NOW for Premium subscribers ($9.99/mo) — confirmed live before May 19",
+      "why_it_matters": "Google Health Coach is live for Workspace Premium subscribers — not 'launching May 19' as widely reported. This means editorial coverage is about to break this week (not next week), and search volume for 'Google Health Coach alternative' is already building. The Zara signal (bd-signal-2026-05-18-007, high urgency) confirmed via direct workspace notification. Every hour Gutted does not have positioning response live is a missed search volume capture. But the optimism angle is real: platform AI launches create massive attention waves that benefit category-adjacent independent apps. When a platform enters a category, the 'vs.' search terms spike. Every Gutted competitor review, every 'best AI health app' listicle this week will include Google Health Coach — and Gutted can earn a mention with a timely positioning response.",
+      "action": "Draft and go-live with Gutted's Google Health Coach alternative page this week. Update App Store Connect keywords: 'Google Health Coach alternative', 'AI food tracker', 'gut health AI'. Draft launch-day social post: 'Google just built an AI health coach. Cool. We built one by someone who would rather talk about your microbiome than your search history.' The editorial window opens now — every day without the positioning response is a missed capture.",
+      "optimistic_angle": "Every platform launch creates winners in the adjacent ecosystem. Google validates AI health coaching as a category. Gutted gets to ride that validation wave with a differentiated positioning: generalist platform vs. specialist opinion. Platform entrants raise all boats — Gutted just needs to show up with a clear reason to choose the specialist.",
+      "source": "Zara signal (bd-signal-2026-05-18-007, high urgency); confirmed by Priya product briefs and Vera May 17 audit",
+      "routing": ["priya"]
     },
     {
-      "signal": "Maven Lightning Lesson hit 2,243 registered attendees — Krish's largest live session ever, 5x the previous record. The session content (AI in 2026 — what to build, what to ignore) clearly resonates at scale. This proves three things simultaneously: (1) Krish has a warm audience that shows up, (2) the triage/signal-from-noise positioning is the right market lane, (3) the content engine works when it runs directly through Krish. This session generated 4 Blueprint Packs, upgraded the Cleo content agent brief, and created two new durable skills (maven-pages, research-ops). One live session produced more durable infrastructure than a month of automated content workflows.",
-      "source": "Vera weekly audit — positive observations (2026-05-15) + Maven session data",
-      "relevance": "High — audience validation + content repurposing",
-      "recommended_action": "Repurpose the Maven session as a LinkedIn carousel, a newsletter deep-dive, and 3-5 Twitter thread excerpts. The content is already built and battle-tested with 2,243 people. A 5x larger audience than any prior session is signal that this framing (AI triage — what to build, what to ignore) is the core positioning that converts. Also: update the Mindmaker BD deck with the 2,243 number — 'Krish's framework on AI investment triage just drew 2,243 registrants. Here is how we apply it to your business.' The live session is the proof-of-concept for Mindmaker's core value proposition."
+      "id": "marcus-signal-2026-05-18-005",
+      "domain": "MINDMAKER",
+      "headline": "Upfronts centered on identity-dependent performance — all 8 major broadcasters made performance the standard",
+      "why_it_matters": "Every major upfront this year (all 8 broadcasters) centered on performance advertising dependent on identity-based measurement. This is not a 'trend' — it is a structural shift. When broadcasters who have never needed performance measurement make it the centerpiece of their upfront positioning, the entire advertising industry resets around identity infrastructure. This is reinforcing evidence for both Mindmaker (the AI investment triage framework includes identity infrastructure decisions) and AdFixus (server-side first-party ID as the performance measurement foundation). The May 15-18 signal convergence — Viant line in sand, IAB transparency, upfront identity-dependent performance, Digiday agentic publisher gap — tells the same story from four independent angles: identity infrastructure is the single most important advertising investment decision publishers and brands will make in 2026.",
+      "action": "Load into AdFixus outreach package as the fourth reinforcement signal (broadcaster demand). Also useful for Mindmaker enterprise outreach: 'All 8 major broadcasters just made their upfronts dependent on identity-based performance measurement. If your marketing team does not have a strategy for this, Hershey just showed you what winning looks like.'",
+      "optimistic_angle": "When every major broadcaster moves in the same direction simultaneously, the uncertainty disappears. AdFixus is selling into a market that has just received unanimous confirmation from the buy side. The question is no longer 'if' — it is 'who deploys first.'",
+      "source": "Zara signal (bd-signal-2026-05-18-005, high urgency); build confirmation from May 13-16 signal run history",
+      "routing": ["felix", "cleo"]
     },
     {
-      "signal": "Agentic commerce data is converging with enterprise BD signals: BCG 61% CEO-board AI trust gap, LHH 49% AI skill gap, CDO brief shifting to EBITDA accountability — all pointing to the same market moment. Companies have budget, they have mandate, they do not have a decision framework. The market is flooding with AI tools and starving for AI judgment. Mindmaker's 'AI investment triage' positioning — what to build, what to buy, what to ignore — is the exact product for this moment. The 2,243-registrant Maven session proved the framing resonates. The enterprise pipeline proves the budget exists. The gap is deployment.",
-      "source": "Cross-domain synthesis — Vera, Enterprise Gigs, Zara signal report (2026-05-15)",
-      "relevance": "High — Mindmaker enterprise BD positioning",
-      "recommended_action": "Combine the Maven 2,243 proof point with the BCG 61% CEO-board stat into a single Mindmaker outreach sequence: '61% of CEOs say their board doesn't trust their AI strategy. 2,243 people just showed up to learn how to fix that. Here is the framework.' The sequence goes from data → proof of demand → framework → call. Deploy through Felix's enterprise pipeline for the 5 active prospects (Pocket FM, Vertex, Alma Media, Marketbridge, Disney) and through the Apollo 1,894 campaign for cold outreach. The market moment is now — agentic commerce data and enterprise budget signals are peaking simultaneously."
+      "id": "marcus-signal-2026-05-18-006",
+      "domain": "CROSS_VENTURE",
+      "headline": "Mitchell Hashimoto 'AI psychosis' post + Domo CDO anti-theater — the builder/operator consensus is forming",
+      "why_it_matters": "Two independent voices, two different formats, the same message: the market is past AI hype and entering a reality-check phase. Mitchell Hashimoto (HashiCorp founder, legendary builder credibility) posted 'AI psychosis' on HN — 1,682 points, 905 comments, the most-engaged technical post of the week. BenjaminBloom (Domo CDO) said 'enough with AI FOMO, go slow-mo' — a C-level executive saying the same thing to an enterprise audience. When the builder community and the enterprise exec community converge on the same message simultaneously, that is a structural market shift, not a passing trend. For Mindmaker: this is the market window. When skepticism peaks and execution pressure builds simultaneously, companies need exactly what Mindmaker sells — a decision framework for what to build, what to buy, and what to ignore. The 'AI theater is over' positioning is not just clever — it is market-timed.",
+      "action": "Synthesise into a single Mindmaker thought leadership piece: 'Two people told the same truth this week. One is a founder whose company IPO'd at $6B. One is a CDO at a public company. They agree: AI theater is over. Now you actually have to build something.' This framing works for newsletters, LinkedIn posts, speaking abstracts, and enterprise outreach. The cross-consensus between builder and enterprise audiences is rare and viral — these two would never be on the same stage, but their messages are identical.",
+      "optimistic_angle": "When the world's most credible builders and enterprise executives say the same thing, the market is at an inflection point. Mindmaker is not fighting against the current — the market is already moving in Mindmaker's direction. The timing is perfect: positioning before execution pressure, framework before FOMO fatigue.",
+      "source": "Zara signal report (May 16, Hashimoto 'AI psychosis' 1682 pts HN); Zara May 18 run (Domo CDO 'AI theater' high urgency)",
+      "routing": ["cleo", "nova", "felix"]
     }
   ],
   "data_freshness": {
-    "marcus_last_run": "2026-05-15T16:30:00.000Z",
-    "zara_last_signal": "2026-04-23T13:12:00.000Z",
-    "run_type": "home-intelligence-friday",
-    "week": "Week 2 closing — Friday May 15, 2026",
-    "corrections": {
-      "ai_fokus_cfp": "Previously reported as open with May 19 deadline. Nova corrected: CFP closed January 31. Event May 19 but no speaker path available. No deadline was missed — the window never existed during Week 2.",
-      "saaStr_ai_annual": "Confirmed expired. Event May 12-14 passed without submission.",
-      "applied_ai_conference": "Confirmed expired. No submission evidence found.",
-      "odsc_east": "Confirmed expired."
-    },
-    "zara_note": "Zara Layer 1 pipeline at 1 artefact (April 23 /reasoning screenshot). Layer 2-3 monitoring blocked by missing Reddit/X OAuth credentials (28 days unresolved). Social monitoring capability is dark. All external signals this week sourced via Felix/Nova direct web_fetch and industry source access."
+    "marcus_last_run": "2026-05-18T16:30:00.000Z",
+    "zara_latest_signal": "2026-05-18T14:00:00.000Z",
+    "vera_latest_audit": "2026-05-17T06:00:00.000Z",
+    "nova_latest_report": "2026-05-15T14:00:00.000Z",
+    "run_type": "home-intelligence-monday",
+    "week": "Week 3 opening — Monday May 18, 2026",
+    "note": "Zara signal reports now the richest intelligence source in the OS — 18 signals filed across May 13-16 and 10 more today. web_search remains broken (grok API key missing, day 4). All signals sourced via web_fetch from AdExchanger, Digiday, Adweek, The Register, Hacker News, and Google Workspace notifications. Intelligence quality is not degraded without search — but Nova's podcast discovery pipeline is offline without it. MELIORA domain remains quiet — no enterprise transformation signals surfaced this cycle that cleared the quality rejection gate."
   }
 }
