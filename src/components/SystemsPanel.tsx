@@ -81,6 +81,7 @@ function CategoryBlock({ category }: { category: Category }) {
 export function SystemsPanel() {
   const [data, setData] = useState<SystemsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
 
@@ -119,6 +120,25 @@ export function SystemsPanel() {
 
   useEffect(() => { load() }, [load])
 
+  // Triggers /api/refresh-health (which re-polls N8N and upserts to system_health),
+  // then re-reads the table. Idempotent.
+  const liveRefresh = useCallback(async () => {
+    setRefreshing(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/refresh-health', { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setError(body.error || `Refresh failed: ${res.status}`)
+      }
+    } catch (e: any) {
+      setError(e.message || 'Refresh failed')
+    } finally {
+      setRefreshing(false)
+      load()
+    }
+  }, [load])
+
   const allServices = data?.categories.flatMap(c => c.services) ?? []
   const downServices   = allServices.filter(s => s.status === 'red')
   const warnServices   = allServices.filter(s => s.status === 'amber')
@@ -136,12 +156,13 @@ export function SystemsPanel() {
           <p className="text-[13px] text-white/30 mt-0.5">All connected services. Monitored by Arlo.</p>
         </div>
         <button
-          onClick={load}
-          disabled={loading}
+          onClick={liveRefresh}
+          disabled={loading || refreshing}
+          title="Re-poll N8N and update system_health"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-40 text-white/40 hover:text-white/60 text-[11px] transition-colors"
         >
-          <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-          {loading ? 'Refreshing...' : lastRefreshed ? `Refreshed ${timeAgo(lastRefreshed.toISOString())}` : 'Refresh'}
+          <RefreshCw className={`w-3 h-3 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Polling N8N…' : loading ? 'Loading…' : lastRefreshed ? `Refreshed ${timeAgo(lastRefreshed.toISOString())}` : 'Refresh'}
         </button>
       </div>
 
