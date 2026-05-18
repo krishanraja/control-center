@@ -36,15 +36,19 @@ $$ LANGUAGE plpgsql;
 
 -- 2. Swap the trigger to point at the new function. Drop+create rather than
 --    rename so the old started_at-only function can be cleaned up safely.
-DROP TRIGGER IF EXISTS tasks_stamp_started_at ON public.tasks;
-DROP TRIGGER IF EXISTS tasks_stamp_timestamps ON public.tasks;
+--    Real existing names in this DB: trigger `trg_set_started_at`, function `set_started_at()`.
+--    (Also drop the documented `tasks_stamp_*` names in case any environment uses them.)
+DROP TRIGGER IF EXISTS trg_set_started_at      ON public.tasks;
+DROP TRIGGER IF EXISTS tasks_stamp_started_at  ON public.tasks;
+DROP TRIGGER IF EXISTS tasks_stamp_timestamps  ON public.tasks;
 
 CREATE TRIGGER tasks_stamp_timestamps
 BEFORE UPDATE ON public.tasks
 FOR EACH ROW
 EXECUTE FUNCTION stamp_task_timestamps();
 
--- 3. Drop the old function (now unreferenced)
+-- 3. Drop the old functions (now unreferenced)
+DROP FUNCTION IF EXISTS set_started_at();
 DROP FUNCTION IF EXISTS stamp_started_at();
 
 -- 4. Backfill: stamp completed_at from updated_at for done rows missing it.
