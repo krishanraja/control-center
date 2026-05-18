@@ -97,7 +97,6 @@ export function WeeklyGoals({ variant = 'compact', hideHeader = false, onDataLoa
     fetchGoals()
     const iv = setInterval(fetchGoals, 30000)
     return () => clearInterval(iv)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const saveFocus = async () => {

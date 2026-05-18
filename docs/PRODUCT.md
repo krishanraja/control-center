@@ -43,18 +43,20 @@ These rules apply to every tab and override per-tab styling decisions when in co
 > *In three seconds, tell me whether revenue is on track and what's blocking it.*
 
 ### Above-the-fold information ladder
-1. **KPI strip** — Monthly revenue, Outreach pipeline, Visibility, Content engine. Most prominent.
-2. **Needs You** — count + ranked list of the top 6 waiting items.
-3. **Revenue Pulse** — current intel headline + recommended focus.
-4. **Live Activity** — chronological agent activity for context.
-5. **Weekly Goals** — progress bars for the active period.
+1. **Needs You** — count + ranked list of the top 6 waiting items (blocking action; sits above context per §23).
+2. **Blocked** — count + list of tasks where the agent or workflow can't proceed. Visually lower-weight than Needs You; the action is investigate, not approve.
+3. **KPI strip** — Monthly revenue, Outreach pipeline, Visibility, Content engine. Most prominent context tile.
+4. **Revenue Pulse** — current intel headline + recommended focus.
+5. **Live Activity** — chronological agent activity for context.
+6. **Weekly Goals** — progress bars for the active period.
 
 ### Inputs
 | Element | Table / source | Filter |
 |---|---|---|
+| Needs You count + list | `tasks` via shared realtime channel | `status = 'waiting'` |
+| Blocked count + list | `tasks` via shared realtime channel | `status = 'blocked'` |
 | KPI strip | `home_intelligence.metrics` | `id = 'current'` |
 | Revenue Pulse headline | `home_intelligence.summary` | `id = 'current'` (parsed JSON) |
-| Needs You count + list | `tasks` via shared realtime channel | `status in ('waiting','blocked')` |
 | Live Activity | `audit_log` | latest 30, realtime INSERT subscription |
 | Weekly Goals | `goals` | latest 6 by `updated_at`, current period |
 
@@ -63,13 +65,16 @@ None. Home is read-only.
 
 ### Behaviour rules
 - **Needs You ranking**: priority (`critical|urgent` > `high` > default > `low`) → manual override (`priority_override` desc) → due date asc → updated_at desc. Documented here because it is a product decision; the implementation lives in `DesktopHome.rankWaiting()`.
+- **Blocked ranking**: oldest-updated first — items blocked the longest surface higher, since they're the most likely to need a manual unblock.
+- **Needs You vs Blocked split**: Needs You shows `status='waiting'` (action: approve/reject); Blocked shows `status='blocked'` (action: investigate/unblock). They share the same shared realtime channel (`tasks-rt-shared`) per ADR-002; do not open a second channel.
 - If `metrics` is empty, the KPI strip collapses entirely (do not show placeholder tiles).
 - If `summary` parsing fails, fall back to the empty-tile state — never render raw JSON.
 
 ### States
 | State | Visual |
 |---|---|
-| Empty waiting list | "Inbox zero." subtitle "Nothing is waiting on you." |
+| Empty waiting list | Needs You section collapses entirely (no empty card). |
+| Empty blocked list | Blocked section collapses entirely (no empty card). |
 | No intel | "No revenue pulse yet" with explainer copy |
 | Quiet activity | "Quiet." subtitle "Activity will appear here in real time." |
 | Realtime disconnected | (TODO — surface a small dot in the Live Activity header. Not yet implemented.) |
