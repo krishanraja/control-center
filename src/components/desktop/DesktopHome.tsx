@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import {
   Activity as ActivityIcon, Target, ArrowUpRight, ChevronRight,
   Pencil, Check, X, Compass, CheckSquare, Server, Workflow as WorkflowIcon,
-  Inbox, Ban,
+  Inbox, Ban, FileText,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '../../lib/supabase'
@@ -61,6 +61,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const [planCount, setPlanCount] = useState<number | null>(null)
   const { tasks: waiting } = useRealtimeTasks({ statusIn: ['waiting'] })
   const { tasks: blocked } = useRealtimeTasks({ statusIn: ['blocked'] })
+  const { tasks: allTasks } = useRealtimeTasks()
   const live = useLiveStatus(60_000)
 
   useEffect(() => {
@@ -98,6 +99,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
   const summary = useMemo(() => parseSummary(intel?.summary), [intel?.summary])
   const approvalCount = waiting.length
+  const contentCounts = useMemo(() => computeContentCounts(allTasks), [allTasks])
 
   const handleSaveFocus = async (newFocus: string) => {
     await fetch(`${API}/api/goals`, {
@@ -140,6 +142,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         planCount={planCount}
         approvalCount={approvalCount}
         live={live}
+        contentCounts={contentCounts}
       />
 
       {/* ACTIVITY — collapsed by default */}
@@ -266,11 +269,12 @@ interface PulseTile {
   tab: string
 }
 
-function PulseStrip({ onNavigate, planCount, approvalCount, live }: {
+function PulseStrip({ onNavigate, planCount, approvalCount, live, contentCounts }: {
   onNavigate?: NavigateFn
   planCount: number | null
   approvalCount: number
   live: LiveStatus
+  contentCounts: { inDraft: number; publishedThisWeek: number }
 }) {
   const systemsStatus =
     live.error ? 'offline' :
@@ -324,6 +328,19 @@ function PulseStrip({ onNavigate, planCount, approvalCount, live }: {
       subClass: live.workflows.errors > 0 ? 'text-red-400' : 'text-white/40',
       tab: 'workflows',
     },
+    {
+      key: 'content',
+      icon: <FileText size={12} className="text-rose-400" />,
+      label: 'Content',
+      value: String(contentCounts.inDraft),
+      sub: contentCounts.publishedThisWeek > 0
+        ? `${contentCounts.publishedThisWeek} shipped this week`
+        : contentCounts.inDraft > 0
+          ? `${contentCounts.inDraft === 1 ? 'piece' : 'pieces'} in draft`
+          : 'none in draft',
+      subClass: contentCounts.publishedThisWeek > 0 ? 'text-emerald-400' : 'text-white/40',
+      tab: 'plans',
+    },
   ]
 
   return (
@@ -332,7 +349,7 @@ function PulseStrip({ onNavigate, planCount, approvalCount, live }: {
         <ActivityIcon size={13} className="text-white/40" />
         <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">Pulse</h2>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {tiles.map(t => (
           <button
             key={t.key}
@@ -356,6 +373,34 @@ function PulseStrip({ onNavigate, planCount, approvalCount, live }: {
       </div>
     </div>
   )
+}
+
+/** Content Engine bucket counts for the PulseStrip tile. Keyed off
+ *  `workstream='content'` — the canonical tag. Two buckets:
+ *    - inDraft: not yet shipped (status in active/in_progress/waiting)
+ *    - publishedThisWeek: status='done' AND completed_at >= start of week
+ *  Blocked content tasks are intentionally excluded — they surface in the
+ *  Blocked panel already. */
+function computeContentCounts(tasks: any[]): { inDraft: number; publishedThisWeek: number } {
+  const startOfWeek = new Date()
+  const day = startOfWeek.getDay() // 0=Sun..6=Sat
+  const daysFromMonday = (day + 6) % 7
+  startOfWeek.setDate(startOfWeek.getDate() - daysFromMonday)
+  startOfWeek.setHours(0, 0, 0, 0)
+  const weekStartMs = startOfWeek.getTime()
+
+  let inDraft = 0
+  let publishedThisWeek = 0
+  for (const t of tasks) {
+    if (t.workstream !== 'content') continue
+    if (t.status === 'done') {
+      const c = t.completed_at ? new Date(t.completed_at).getTime() : 0
+      if (c >= weekStartMs) publishedThisWeek += 1
+    } else if (t.status === 'active' || t.status === 'in_progress' || t.status === 'waiting') {
+      inDraft += 1
+    }
+  }
+  return { inDraft, publishedThisWeek }
 }
 
 /** Rank tasks awaiting Krish's approval. Top 6 by priority_override, then

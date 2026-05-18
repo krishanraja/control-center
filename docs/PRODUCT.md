@@ -56,6 +56,7 @@ These rules apply to every tab and override per-tab styling decisions when in co
 | Needs You count + list | `tasks` via shared realtime channel | `status = 'waiting'` |
 | Blocked count + list | `tasks` via shared realtime channel | `status = 'blocked'` |
 | KPI strip | `home_intelligence.metrics` | `id = 'current'` |
+| Pulse · Content tile | `tasks` via shared realtime channel | `workstream = 'content'`; in-draft = status in (`active`,`in_progress`,`waiting`); shipped = `status='done'` AND `completed_at` >= Monday 00:00 local |
 | Revenue Pulse headline | `home_intelligence.summary` | `id = 'current'` (parsed JSON) |
 | Live Activity | `audit_log` | latest 30, realtime INSERT subscription |
 | Weekly Goals | `goals` | latest 6 by `updated_at`, current period |
@@ -67,6 +68,8 @@ None. Home is read-only.
 - **Needs You ranking**: priority (`critical|urgent` > `high` > default > `low`) → manual override (`priority_override` desc) → due date asc → updated_at desc. Documented here because it is a product decision; the implementation lives in `DesktopHome.rankWaiting()`.
 - **Blocked ranking**: oldest-updated first — items blocked the longest surface higher, since they're the most likely to need a manual unblock.
 - **Needs You vs Blocked split**: Needs You shows `status='waiting'` (action: approve/reject); Blocked shows `status='blocked'` (action: investigate/unblock). They share the same shared realtime channel (`tasks-rt-shared`) per ADR-002; do not open a second channel.
+- **Content tile tagging**: only `workstream = 'content'` rolls up into the Content tile. Other content-adjacent tags (`pitch-ready-for-review`, `seo-brief-ready`, etc.) are intentionally excluded — they belong to other workstreams. To surface a task in the tile, tag it `workstream='content'`. Click the tile → Plans tab filtered to that workstream.
+- **`completed_at` is trigger-stamped** on transition to `status='done'` (see `docs/DATABASE.md` §Database Triggers). Do not rely on application code to set it.
 - If `metrics` is empty, the KPI strip collapses entirely (do not show placeholder tiles).
 - If `summary` parsing fails, fall back to the empty-tile state — never render raw JSON.
 
