@@ -40,59 +40,83 @@ These rules apply to every tab and override per-tab styling decisions when in co
 ## Tab: Home
 
 ### Purpose
-> *In three seconds, tell me whether revenue is on track and what's blocking it.*
+> *In three seconds, tell me the state of my three pipelines and what should I do next. OS health is always visible but never in the way.*
 
-### Above-the-fold information ladder
-1. **Needs You** — count + ranked list of the top 6 waiting items (blocking action; sits above context per §23).
-2. **Blocked** — count + list of tasks where the agent or workflow can't proceed. Visually lower-weight than Needs You; the action is investigate, not approve.
-3. **KPI strip** — Monthly revenue, Outreach pipeline, Visibility, Content engine. Most prominent context tile.
-4. **Revenue Pulse** — current intel headline + recommended focus.
-5. **Live Activity** — chronological agent activity for context.
-6. **Weekly Goals** — progress bars for the active period.
+### Above-the-fold information ladder (1280×800)
+1. **Pipeline Lanes** — three columns: **Content** (primary, leftmost, 2fr width) · **Leads** (1fr) · **Visibility** (1fr). Each lane shows stage rollup chips + a small number of top items. The Content lane includes a featured **Approve in one click** card with the draft preview inline.
+2. **Needs You + Blocked** — side-by-side, 4 items each. Needs You is the universal "approve / reject" queue across all pipelines; Blocked is "investigate / unblock." They live below the lanes so the action queue is one glance below the pipeline picture.
+3. **OS Health strip** — one thin row: Plans · Today · Systems · Running · Errors. Operational chrome. Never foreground unless something is on fire.
+
+Below the fold (context, not action):
+- **OS Mission** (north star + this week's focus) + **Weekly Goals** — side-by-side, compact.
+- **Activity** — collapsed `<details>` rolling `audit_log`.
 
 ### Inputs
 | Element | Table / source | Filter |
 |---|---|---|
-| Needs You count + list | `tasks` via shared realtime channel | `status = 'waiting'` |
-| Blocked count + list | `tasks` via shared realtime channel | `status = 'blocked'` |
-| KPI strip | `home_intelligence.metrics` | `id = 'current'` |
-| Pulse · Content tile | `tasks` via shared realtime channel | `workstream = 'content'`; in-draft = status in (`active`,`in_progress`,`waiting`); shipped = `status='done'` AND `completed_at` >= Monday 00:00 local |
-| Revenue Pulse headline | `home_intelligence.summary` | `id = 'current'` (parsed JSON) |
-| Live Activity | `audit_log` | latest 30, realtime INSERT subscription |
-| Weekly Goals | `goals` | latest 6 by `updated_at`, current period |
+| Pipeline lanes — tasks | `tasks` via `tasks-rt-shared` (ADR-002) | classified client-side in `src/lib/pipelines.ts` |
+| Pipeline · Content membership | `tasks` | `workstream = 'content'` |
+| Pipeline · Leads membership | `tasks` | `workstream IN ('advisory_sales','AdFixus Pipeline')` OR `group_label IN ('Enterprise Pipeline','Outreach Campaigns','Growth')` |
+| Pipeline · Visibility membership (tasks) | `tasks` | `workstream='podcast_booking'` OR `group_label='Visibility'` |
+| Pipeline · Visibility candidates | `nell_candidates` via `useNellCandidates` (60s polling, no realtime channel) | `status='new'` |
+| Needs You count + list | `tasks` via `tasks-rt-shared` | `status = 'waiting'` |
+| Blocked count + list | `tasks` via `tasks-rt-shared` | `status = 'blocked'` |
+| OS Health · Plans | `agent_plans` count | one-shot on mount |
+| OS Health · Today / Systems / Running / Errors | `/api/status` via `useLiveStatus` | 60s polling |
+| OS Mission · north star + team focus | `goals` via `WeeklyGoals` | latest period |
+| Revenue pulse text (recommended focus) | `home_intelligence.summary` | `id = 'current'` (parsed JSON) |
+| Weekly Goals | `goals` via `WeeklyGoals` | latest 6 by `updated_at`, current period |
+| Activity feed | `audit_log` | latest 40, realtime INSERT subscription on `home-activity` channel |
 
 ### Writes
-None. Home is read-only.
+- **Featured Content card · Approve** → `tasks.status='active'`, `krish_reviewed=true`, `updated_at=now()`. Audit-logged via `logKrishAction(taskId, 'approve', agent)`.
+- **Featured Content card · Request revisions** → `tasks.krish_notes=<text>`, `krish_reviewed=true`. Audit-logged via `logKrishAction(taskId, 'note', agent, text)`.
+- **Pending Nell candidate · Approve** → inserts a new `tasks` row (`workstream='podcast_booking'`, `status='waiting'`, `agent='nell'`, `draft_hook=<pitch_draft>`, `link_primary=<source_url>`). Updates `nell_candidates.status='pitched'`, `pitched_at=now()`. Audit-logged via `logKrishAction(newTaskId, 'promote_from_nell', 'nell', notes)`.
+- **OS Mission · Save focus** → `PATCH /api/goals` (`team_focus`).
 
 ### Behaviour rules
-- **Needs You ranking**: priority (`critical|urgent` > `high` > default > `low`) → manual override (`priority_override` desc) → due date asc → updated_at desc. Documented here because it is a product decision; the implementation lives in `DesktopHome.rankWaiting()`.
-- **Blocked ranking**: oldest-updated first — items blocked the longest surface higher, since they're the most likely to need a manual unblock.
-- **Needs You vs Blocked split**: Needs You shows `status='waiting'` (action: approve/reject); Blocked shows `status='blocked'` (action: investigate/unblock). They share the same shared realtime channel (`tasks-rt-shared`) per ADR-002; do not open a second channel.
-- **Content tile tagging**: only `workstream = 'content'` rolls up into the Content tile. Other content-adjacent tags (`pitch-ready-for-review`, `seo-brief-ready`, etc.) are intentionally excluded — they belong to other workstreams. To surface a task in the tile, tag it `workstream='content'`. Click the tile → Plans tab filtered to that workstream.
+- **Pipeline classification is permissive.** A task is matched if either `workstream` or `group_label` is in the membership set — the schema is mid-evolution and either signal counts. Tasks without either are not surfaced (intentional — they belong to the un-pipelined ops backlog).
+- **One shared realtime channel for tasks.** All three lanes, Needs You, Blocked, and Activity read from the same `tasks-rt-shared` channel (ADR-002). The lanes filter client-side. **Do not open a second tasks channel for Home.**
+- **`nell_candidates` is polled, not realtime.** 60s on mount; refreshed on `window focus` and `visibilitychange` (≥5s debounce). Low-volume slow-lifecycle table — adding a realtime channel is unjustified (ADR-002 spirit).
+- **Featured card selection (Content lane):** oldest task in "Awaiting review" wins. Falls back to oldest in "Drafting" if review is empty. If both stages are empty, no featured card; the lane shows compact rows only.
+- **Cross-counting is allowed.** A waiting Content task appears both in the Content lane's "Awaiting review" stage *and* in Needs You. Approve from either; one write, one realtime tick, both update.
+- **Stage classification:**
+  - *Content*: `done` AND `completed_at` ≥ Monday 00:00 → `published`; `waiting` → `review`; `active|in_progress` AND `krish_reviewed=true` → `approved`; `active|in_progress` → `drafting`.
+  - *Leads*: `done` → `closed`; `in_progress` → `conversation`; `contact_email` AND `active|waiting` → `contacted`; otherwise → `drafted`.
+  - *Visibility tasks*: `done` (last 30 days) → `booked`; `waiting` → `pitch_drafted`; `active|in_progress` → `outreach_sent`.
+- **Needs You ranking**: priority (`critical|urgent` > `high` > default > `low`) → manual override (`priority_override` desc) → updated_at asc. Top 4 shown; rest are one click away in Today.
+- **Blocked ranking**: oldest-updated first — items blocked the longest surface higher. Top 4 shown.
 - **`completed_at` is trigger-stamped** on transition to `status='done'` (see `docs/DATABASE.md` §Database Triggers). Do not rely on application code to set it.
-- If `metrics` is empty, the KPI strip collapses entirely (do not show placeholder tiles).
-- If `summary` parsing fails, fall back to the empty-tile state — never render raw JSON.
 
 ### States
 | State | Visual |
 |---|---|
+| Lane has no tasks (and no Nell candidates, for Visibility) | "Nothing in motion." inside the lane body. |
+| Stage chip count is zero | Chip renders muted (40% opacity), not hidden — Krish should see the shape of the pipeline. |
+| All three lanes empty | Each lane independently renders its empty phrase; no "All clear." banner — pipeline shape stays visible. |
 | Empty waiting list | Needs You section collapses entirely (no empty card). |
 | Empty blocked list | Blocked section collapses entirely (no empty card). |
-| No intel | "No revenue pulse yet" with explainer copy |
-| Quiet activity | "Quiet." subtitle "Activity will appear here in real time." |
-| Realtime disconnected | (TODO — surface a small dot in the Live Activity header. Not yet implemented.) |
+| Featured Content card absent (review + drafting both empty) | Content lane shows only compact rows. No placeholder card. |
+| Pending Nell candidates absent | The dashed header row is hidden — the Visibility lane shows only task stages. |
+| Quiet activity | "Quiet. Activity will appear here in real time." inside the collapsed `<details>`. |
+| Loading > 500ms | Calm. Never a full-page spinner. Empty lanes render their phrase. |
 
 ### SLAs
 | Signal | Freshness target |
 |---|---|
-| KPI strip | within 1 hour of latest agent run |
-| Needs You | realtime |
-| Live Activity | realtime |
-| Weekly Goals | within 24 hours |
+| Pipeline lanes (tasks) | realtime (`tasks-rt-shared`, one tick) |
+| Pending Nell candidates | ≤ 60s (poll) + window focus refresh |
+| Needs You / Blocked | realtime |
+| OS Health · Today queue | realtime (shared task cache) |
+| OS Health · Plans count | one-shot on mount; reload on tab re-mount |
+| OS Health · Systems / Running / Errors | ≤ 60s (`useLiveStatus`) |
+| Activity | realtime |
+| OS Mission / Weekly Goals | within 24h |
 
 ### Screenshots
 - `docs/img/home-golden.png` — populated state (TODO)
-- `docs/img/home-empty.png` — empty inbox (TODO)
+- `docs/img/home-leads-empty.png` — Leads lane empty, Content + Visibility populated (TODO)
+- `docs/img/home-narrow.png` — 414×900 narrow stack (TODO)
 
 ---
 
