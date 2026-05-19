@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { UserCheck, Clock, ArrowRight, MessageCircle, CheckCircle, Send, Hourglass } from 'lucide-react'
 import { AgentAvatar } from './shared/AgentAvatar'
 import { LastUpdated } from './shared/LastUpdated'
+import { ageLabel } from '../lib/ageHelpers'
 
 interface BlockItem {
   id: string
@@ -35,13 +36,6 @@ const urgencyStyle = {
   high: 'bg-red-500/10 border-red-500/30 text-red-400',
   medium: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
   low: 'bg-blue-500/10 border-blue-500/30 text-blue-400'
-}
-
-const ageLabel = (daysOld?: number) => {
-  if (daysOld === undefined || daysOld === null) return ''
-  if (daysOld === 0) return 'today'
-  if (daysOld === 1) return '1d'
-  return `${daysOld}d`
 }
 
 export function BlockedOnYou() {

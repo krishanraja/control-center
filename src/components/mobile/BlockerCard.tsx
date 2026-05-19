@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { podColor } from '../shared/tokens'
 import { useHaptics } from '../../hooks/useHaptics'
+import { humanAge } from '../../lib/ageHelpers'
 
 export interface BlockerItem {
   id: string
@@ -25,16 +26,6 @@ const URGENCY_DOT: Record<string, string> = {
   high:   'bg-status-blocked',
   medium: 'bg-status-needsYou',
   low:    'bg-pod-ops',
-}
-
-function humanAge(iso?: string) {
-  if (!iso) return ''
-  const ms = Date.now() - new Date(iso).getTime()
-  if (Number.isNaN(ms) || ms < 0) return ''
-  const h = Math.floor(ms / 3_600_000)
-  if (h < 1) return 'just now'
-  if (h < 24) return `${h}h`
-  return `${Math.floor(h / 24)}d`
 }
 
 function actionLabel(item: BlockerItem) {

@@ -1,16 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
-  Activity as ActivityIcon, Target, ArrowUpRight, ChevronRight,
-  Pencil, Check, X, Compass, CheckSquare, Server, Workflow as WorkflowIcon,
-  Inbox, Ban, FileText,
+  Activity as ActivityIcon, ArrowUpRight, ChevronRight,
+  Pencil, Check, X, Compass, Inbox, Ban,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
-import { useLiveStatus, type LiveStatus } from '../../hooks/useLiveStatus'
+import { useLiveStatus } from '../../hooks/useLiveStatus'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { humanize } from '../shared/tokens'
 import { WeeklyGoals, type GoalsData } from '../WeeklyGoals'
+import { PipelineLanes } from './PipelineLanes'
+import { OsHealthStrip } from './OsHealthStrip'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -61,7 +62,6 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const [planCount, setPlanCount] = useState<number | null>(null)
   const { tasks: waiting } = useRealtimeTasks({ statusIn: ['waiting'] })
   const { tasks: blocked } = useRealtimeTasks({ statusIn: ['blocked'] })
-  const { tasks: allTasks } = useRealtimeTasks()
   const live = useLiveStatus(60_000)
 
   useEffect(() => {
@@ -99,7 +99,6 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
   const summary = useMemo(() => parseSummary(intel?.summary), [intel?.summary])
   const approvalCount = waiting.length
-  const contentCounts = useMemo(() => computeContentCounts(allTasks), [allTasks])
 
   const handleSaveFocus = async (newFocus: string) => {
     await fetch(`${API}/api/goals`, {
@@ -112,38 +111,42 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-[1280px] mx-auto w-full">
+    <div className="flex flex-col gap-4 max-w-[1280px] mx-auto w-full">
 
-      {/* NEEDS YOU — ranked list, top of prominence ladder (blocking actions) */}
-      <NeedsYouList tasks={waiting} onNavigate={onNavigate} />
+      {/* PIPELINES — primary surface. Answers "what's the state of my three
+          pipelines and what should I do next" at a glance. */}
+      <PipelineLanes onNavigate={onNavigate} />
 
-      {/* BLOCKED — investigate, not approve. Visually lower than Needs You. */}
-      <BlockedList tasks={blocked} onNavigate={onNavigate} />
+      {/* NEEDS YOU + BLOCKED — side-by-side. Still prominent (blocking
+          actions / investigation) but no longer hero. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <NeedsYouList tasks={waiting} onNavigate={onNavigate} />
+        <BlockedList tasks={blocked} onNavigate={onNavigate} />
+      </div>
 
-      {/* OS MISSION — north star + this week's focus */}
-      <OsMissionHero
-        northStar={goalsData?.north_star}
-        teamFocus={goalsData?.team_focus}
-        weekOf={goalsData?.week_of}
-        recommendedFocus={summary.recommended_focus}
-        onSaveFocus={handleSaveFocus}
-      />
-
-      {/* WEEKLY GOALS — spacious, headerless (hero owns the framing) */}
-      <WeeklyGoals
-        variant="spacious"
-        hideHeader={true}
-        onDataLoaded={setGoalsData}
-      />
-
-      {/* PULSE — slim status tiles routing to dedicated tabs */}
-      <PulseStrip
+      {/* OS HEALTH — thin chrome strip. Plans · Today · Systems · Running · Errors. */}
+      <OsHealthStrip
         onNavigate={onNavigate}
         planCount={planCount}
         approvalCount={approvalCount}
         live={live}
-        contentCounts={contentCounts}
       />
+
+      {/* ── Below the fold (compact context) ─────────────────────────────── */}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
+        <OsMissionHero
+          northStar={goalsData?.north_star}
+          teamFocus={goalsData?.team_focus}
+          weekOf={goalsData?.week_of}
+          recommendedFocus={summary.recommended_focus}
+          onSaveFocus={handleSaveFocus}
+        />
+        <WeeklyGoals
+          variant="compact"
+          onDataLoaded={setGoalsData}
+        />
+      </div>
 
       {/* ACTIVITY — collapsed by default */}
       <ActivityTail events={events} />
@@ -258,153 +261,10 @@ function OsMissionHero({
   )
 }
 
-interface PulseTile {
-  key: string
-  icon: React.ReactNode
-  label: string
-  value: string
-  sub: string
-  subClass?: string
-  dot?: string
-  tab: string
-}
-
-function PulseStrip({ onNavigate, planCount, approvalCount, live, contentCounts }: {
-  onNavigate?: NavigateFn
-  planCount: number | null
-  approvalCount: number
-  live: LiveStatus
-  contentCounts: { inDraft: number; publishedThisWeek: number }
-}) {
-  const systemsStatus =
-    live.error ? 'offline' :
-    live.loading ? 'syncing' :
-    live.workflows.errors > 0 ? 'warning' : 'healthy'
-  const systemsConfig = {
-    healthy: { dot: 'bg-emerald-400', label: 'Healthy', text: 'text-emerald-400' },
-    warning: { dot: 'bg-amber-400', label: `${live.workflows.errors} errors`, text: 'text-amber-400' },
-    offline: { dot: 'bg-red-400', label: 'Offline', text: 'text-red-400' },
-    syncing: { dot: 'bg-blue-400 animate-pulse', label: 'Syncing', text: 'text-blue-400' },
-  }[systemsStatus]
-
-  const tiles: PulseTile[] = [
-    {
-      key: 'plans',
-      icon: <Target size={12} className="text-violet-400" />,
-      label: 'Active Plans',
-      value: planCount === null ? '—' : String(planCount),
-      sub: planCount !== null && planCount > 0
-        ? `${planCount === 1 ? 'plan' : 'plans'} active`
-        : 'no plans yet',
-      tab: 'plans',
-    },
-    {
-      key: 'today',
-      icon: <CheckSquare size={12} className="text-amber-400" />,
-      label: 'Today Queue',
-      value: String(approvalCount),
-      sub: approvalCount > 0
-        ? `${approvalCount === 1 ? 'item' : 'items'} need you`
-        : 'all clear',
-      subClass: approvalCount > 0 ? 'text-amber-400' : 'text-white/40',
-      tab: 'today',
-    },
-    {
-      key: 'systems',
-      icon: <Server size={12} className="text-emerald-400" />,
-      label: 'Systems',
-      value: live.loading ? '—' : `${live.workflows.active}/${live.workflows.total}`,
-      sub: systemsConfig.label,
-      subClass: systemsConfig.text,
-      dot: systemsConfig.dot,
-      tab: 'systems',
-    },
-    {
-      key: 'workflows',
-      icon: <WorkflowIcon size={12} className="text-blue-400" />,
-      label: 'Workflows',
-      value: live.loading ? '—' : String(live.workflows.running),
-      sub: live.workflows.errors > 0 ? `${live.workflows.errors} errors` : 'running now',
-      subClass: live.workflows.errors > 0 ? 'text-red-400' : 'text-white/40',
-      tab: 'workflows',
-    },
-    {
-      key: 'content',
-      icon: <FileText size={12} className="text-rose-400" />,
-      label: 'Content',
-      value: String(contentCounts.inDraft),
-      sub: contentCounts.publishedThisWeek > 0
-        ? `${contentCounts.publishedThisWeek} shipped this week`
-        : contentCounts.inDraft > 0
-          ? `${contentCounts.inDraft === 1 ? 'piece' : 'pieces'} in draft`
-          : 'none in draft',
-      subClass: contentCounts.publishedThisWeek > 0 ? 'text-emerald-400' : 'text-white/40',
-      tab: 'plans',
-    },
-  ]
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 h-5">
-        <ActivityIcon size={13} className="text-white/40" />
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">Pulse</h2>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {tiles.map(t => (
-          <button
-            key={t.key}
-            onClick={() => onNavigate?.(t.tab)}
-            className="rounded-xl border border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.12] transition-colors px-4 py-3 text-left group"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                {t.icon}
-                <span className="text-[10px] uppercase tracking-[0.14em] text-white/45 font-semibold">{t.label}</span>
-              </div>
-              <ChevronRight size={12} className="text-white/20 group-hover:text-white/50 transition-colors" />
-            </div>
-            <div className="flex items-baseline gap-2 mt-2">
-              <span className="text-[20px] font-semibold text-white tabular-nums leading-none">{t.value}</span>
-              {t.dot && <span className={`w-1.5 h-1.5 rounded-full ${t.dot} flex-shrink-0`} />}
-            </div>
-            <p className={`text-[11px] mt-1 ${t.subClass ?? 'text-white/40'}`}>{t.sub}</p>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/** Content Engine bucket counts for the PulseStrip tile. Keyed off
- *  `workstream='content'` — the canonical tag. Two buckets:
- *    - inDraft: not yet shipped (status in active/in_progress/waiting)
- *    - publishedThisWeek: status='done' AND completed_at >= start of week
- *  Blocked content tasks are intentionally excluded — they surface in the
- *  Blocked panel already. */
-function computeContentCounts(tasks: any[]): { inDraft: number; publishedThisWeek: number } {
-  const startOfWeek = new Date()
-  const day = startOfWeek.getDay() // 0=Sun..6=Sat
-  const daysFromMonday = (day + 6) % 7
-  startOfWeek.setDate(startOfWeek.getDate() - daysFromMonday)
-  startOfWeek.setHours(0, 0, 0, 0)
-  const weekStartMs = startOfWeek.getTime()
-
-  let inDraft = 0
-  let publishedThisWeek = 0
-  for (const t of tasks) {
-    if (t.workstream !== 'content') continue
-    if (t.status === 'done') {
-      const c = t.completed_at ? new Date(t.completed_at).getTime() : 0
-      if (c >= weekStartMs) publishedThisWeek += 1
-    } else if (t.status === 'active' || t.status === 'in_progress' || t.status === 'waiting') {
-      inDraft += 1
-    }
-  }
-  return { inDraft, publishedThisWeek }
-}
-
-/** Rank tasks awaiting Krish's approval. Top 6 by priority_override, then
- *  priority weight, then oldest-updated first (stale items rise). */
+/** Rank tasks awaiting Krish's approval. Top 4 by priority_override, then
+ *  priority weight, then oldest-updated first (stale items rise). The lane
+ *  cap dropped from 6 to 4 once Needs You moved into the side-by-side row
+ *  beneath the pipeline lanes — the rest stay one click away in Today. */
 function rankWaiting(tasks: any[]): any[] {
   const priorityWeight: Record<string, number> = { high: 3, medium: 2, low: 1 }
   return [...tasks].sort((a, b) => {
@@ -417,7 +277,7 @@ function rankWaiting(tasks: any[]): any[] {
     const au = a.updated_at ? new Date(a.updated_at).getTime() : 0
     const bu = b.updated_at ? new Date(b.updated_at).getTime() : 0
     return au - bu
-  }).slice(0, 6)
+  }).slice(0, 4)
 }
 
 function NeedsYouList({ tasks, onNavigate }: { tasks: any[]; onNavigate?: NavigateFn }) {
@@ -481,7 +341,7 @@ function BlockedList({ tasks, onNavigate }: { tasks: any[]; onNavigate?: Navigat
         const bu = b.updated_at ? new Date(b.updated_at).getTime() : 0
         return au - bu // oldest first — longest-blocked surface higher
       })
-      .slice(0, 6)
+      .slice(0, 4)
   }, [tasks])
   const total = tasks.length
 
