@@ -63,8 +63,23 @@ const LEADS_GROUPS      = new Set(['Enterprise Pipeline', 'Outreach Campaigns', 
 const VISIBILITY_WORKSTREAMS = new Set(['podcast_booking'])
 const VISIBILITY_GROUPS      = new Set(['Visibility'])
 
+// Tasks that look like content by workstream but are actually ops plumbing
+// (Arlo's "FIX: …" tasks) or Maya's marketing/acquisition plans. They were
+// drowning the Content lane in admin/marketing items.
+const CONTENT_EXCLUDE_AGENTS = new Set(['arlo', 'maya'])
+const FIX_TITLE_RE = /^\s*(fix|mandate|todo|ops)[:\-]/i
+
+function looksLikeAdminTask(t: TaskRow): boolean {
+  if (t.agent && CONTENT_EXCLUDE_AGENTS.has(String(t.agent).toLowerCase())) return true
+  if (t.title && FIX_TITLE_RE.test(t.title)) return true
+  return false
+}
+
 export function pipelineForTask(t: TaskRow): PipelineKey | null {
-  if (t.workstream === 'content') return 'content'
+  if (t.workstream === 'content') {
+    // Keep admin/marketing tasks out of the Content lane entirely.
+    return looksLikeAdminTask(t) ? null : 'content'
+  }
   if (LEADS_WORKSTREAMS.has(t.workstream || '') || LEADS_GROUPS.has(t.group_label || '')) return 'leads'
   if (VISIBILITY_WORKSTREAMS.has(t.workstream || '') || VISIBILITY_GROUPS.has(t.group_label || '')) return 'visibility'
   return null

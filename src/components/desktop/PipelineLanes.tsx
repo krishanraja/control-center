@@ -1,9 +1,13 @@
 import React, { useMemo, useState } from 'react'
-import { ExternalLink, ThumbsUp, MessageSquarePlus, ChevronRight, Users } from 'lucide-react'
+import { ExternalLink, ThumbsUp, MessageSquarePlus, ChevronRight, Users, Sparkles } from 'lucide-react'
 import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { useNellCandidates, type NellCandidate } from '../../hooks/useNellCandidates'
+import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
+import { useNovaConferences, type NovaConferenceRow } from '../../hooks/useNovaConferences'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { PipelineCard } from '../PipelineCard'
+import { ContentIdeaCard } from '../ContentIdeaCard'
+import { VisibilityEventCard } from '../VisibilityEventCard'
 import { PipelineLane } from './PipelineLane'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { useToast } from '../shared/Toast'
@@ -31,6 +35,12 @@ interface Props {
 export function PipelineLanes({ onNavigate }: Props) {
   const { tasks } = useRealtimeTasks()
   const { candidates } = useNellCandidates()
+  const { ideas } = useRealtimeContentIdeas({
+    // Hide dropped + published-elsewhere from the always-visible inbox; they
+    // still surface in the full Content view via "Open all".
+    stateIn: ['seeded', 'researching', 'drafting', 'review', 'approved'],
+  })
+  const { conferences } = useNovaConferences()
   const rollup = useMemo(() => rollupTasks(tasks), [tasks])
 
   // Pending Nell candidates — Nell drafts that haven't been promoted yet.
@@ -49,11 +59,17 @@ export function PipelineLanes({ onNavigate }: Props) {
         xl:[grid-template-columns:2fr_1fr_1fr]
       "
     >
-      <ContentLane rollup={rollup.content} onOpenTask={openInToday} onNavigate={onNavigate} />
+      <ContentLane
+        rollup={rollup.content}
+        ideas={ideas}
+        onOpenTask={openInToday}
+        onNavigate={onNavigate}
+      />
       <LeadsLane rollup={rollup.leads} onOpenTask={openInToday} onNavigate={onNavigate} />
       <VisibilityLane
         rollup={rollup.visibility}
         pendingNell={pendingNell}
+        conferences={conferences}
         onOpenTask={openInToday}
         onNavigate={onNavigate}
       />
@@ -64,9 +80,10 @@ export function PipelineLanes({ onNavigate }: Props) {
 // ─── Content lane (primary, 2fr, featured Approve card) ─────────────────────
 
 function ContentLane({
-  rollup, onOpenTask, onNavigate,
+  rollup, ideas, onOpenTask, onNavigate,
 }: {
   rollup: ReturnType<typeof rollupTasks>['content']
+  ideas: ContentIdeaRow[]
   onOpenTask: (id: string) => void
   onNavigate?: NavigateFn
 }) {
@@ -79,26 +96,71 @@ function ContentLane({
     return pool.slice(0, 2)
   }, [rollup, featured])
 
+  // Surface the most recent seeded/researching ideas at the top of the lane —
+  // this is the user's stated "what idea, why, where" inbox.
+  const topIdeas = useMemo(() => {
+    return [...ideas]
+      .filter(i => i.state === 'seeded' || i.state === 'researching')
+      .sort((a, b) => {
+        const at = a.created_at ? new Date(a.created_at).getTime() : 0
+        const bt = b.created_at ? new Date(b.created_at).getTime() : 0
+        return bt - at
+      })
+      .slice(0, 3)
+  }, [ideas])
+
+  const seededCount = ideas.filter(i => i.state === 'seeded').length
+
   const stageCounts: Record<string, number> = {}
   for (const s of CONTENT_STAGES) stageCounts[s.key] = (rollup.byStage[s.key] || []).length
+
+  const combinedTotal = rollup.total + ideas.length
 
   return (
     <PipelineLane
       pipeline="content"
-      total={rollup.total}
+      total={combinedTotal}
       stages={CONTENT_STAGES}
       stageCounts={stageCounts}
       onOpenAll={() => onNavigate?.('plans', { workstream: 'content' })}
     >
       <div className="flex flex-col gap-2">
+        {/* Ideas inbox — the user's "idea / thesis / where" view. */}
+        {topIdeas.length > 0 && (
+          <div>
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-rose-300/85 font-semibold mb-1">
+              <Sparkles size={11} />
+              Seeded ideas
+              {seededCount > 0 && (
+                <span className="text-rose-200/55 tabular-nums">· {seededCount}</span>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              {topIdeas.map(i => (
+                <ContentIdeaCard key={i.id} idea={i} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Featured draft awaiting approval — the existing one-click approve UX. */}
         {featured && (
           <FeaturedContentCard task={featured} onOpenTask={onOpenTask} />
         )}
+
         {compactRows.length > 0 && (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] divide-y divide-white/[0.04] mt-1">
             {compactRows.map(t => (
               <PipelineCard key={t.id} task={t} onOpen={onOpenTask} />
             ))}
+          </div>
+        )}
+
+        {topIdeas.length === 0 && !featured && compactRows.length === 0 && (
+          <div className="rounded-xl border border-dashed border-white/[0.08] bg-white/[0.01] px-3 py-4 text-center">
+            <p className="text-[11px] text-white/45">
+              No content in motion. Hit <kbd className="text-[10px] font-mono border border-white/15 rounded px-1 mx-0.5">⌘I</kbd> to capture an idea.
+            </p>
           </div>
         )}
       </div>
@@ -318,10 +380,11 @@ function LeadMeta({ task: t }: { task: TaskRow }) {
 // ─── Visibility lane (1fr, Nell header + task stages) ───────────────────────
 
 function VisibilityLane({
-  rollup, pendingNell, onOpenTask, onNavigate,
+  rollup, pendingNell, conferences, onOpenTask, onNavigate,
 }: {
   rollup: ReturnType<typeof rollupTasks>['visibility']
   pendingNell: NellCandidate[]
+  conferences: NovaConferenceRow[]
   onOpenTask: (id: string) => void
   onNavigate?: NavigateFn
 }) {
@@ -342,8 +405,23 @@ function VisibilityLane({
       .slice(0, 2)
   }, [rollup])
 
-  const combinedTotal = rollup.total + pendingNell.length
-  // The lane is "empty" only when no tasks AND no Nell candidates.
+  // Conferences with rich enrichment lead the lane. Filter to ones with
+  // *some* enrichment (deadline OR why_relevant OR audience_size) and sort
+  // by nearest deadline first.
+  const richConferences = useMemo(() => {
+    return conferences
+      .filter(c => c.deadline_at || c.why_relevant || c.audience_size != null)
+      .filter(c => {
+        // Hide deadline-passed-by-more-than-30d so the lane doesn't drown
+        // in stale CFPs.
+        if (!c.deadline_at) return true
+        const days = (new Date(c.deadline_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+        return days > -30
+      })
+      .slice(0, 2)
+  }, [conferences])
+
+  const combinedTotal = rollup.total + pendingNell.length + richConferences.length
   const laneEmpty = combinedTotal === 0
 
   return (
@@ -356,6 +434,9 @@ function VisibilityLane({
       emptyLabel={laneEmpty ? 'Nothing in motion.' : undefined}
     >
       <div className="flex flex-col gap-2">
+        {richConferences.map(c => (
+          <VisibilityEventCard key={c.id} conference={c} />
+        ))}
         {pendingNell.length > 0 && (
           <NellCandidatesHeader candidates={pendingNell} onOpenTask={onOpenTask} />
         )}

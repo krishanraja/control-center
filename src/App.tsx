@@ -8,15 +8,17 @@ import { CommandPalette } from './components/CommandPalette'
 import { DesktopHome } from './components/desktop/DesktopHome'
 import { DesktopToday } from './components/desktop/DesktopToday'
 import { DesktopPlans } from './components/desktop/DesktopPlans'
+import { DesktopLeads } from './components/desktop/DesktopLeads'
 import { DesktopOrg } from './components/desktop/DesktopOrg'
 import { DesktopExec } from './components/desktop/DesktopExec'
 import { DesktopFlows } from './components/desktop/DesktopFlows'
 import { AgentsProvider } from './contexts/AgentsContext'
 import { PendingFlagModal } from './components/PendingFlagModal'
+import { QuickCaptureIdea } from './components/QuickCaptureIdea'
 import { useHashRoute } from './hooks/useHashRoute'
 
-type TabId = 'home' | 'today' | 'plans' | 'org' | 'exec' | 'workflows' | 'systems'
-const VALID_TABS: TabId[] = ['home', 'today', 'plans', 'org', 'exec', 'workflows', 'systems']
+type TabId = 'home' | 'today' | 'plans' | 'leads' | 'org' | 'exec' | 'workflows' | 'systems'
+const VALID_TABS: TabId[] = ['home', 'today', 'plans', 'leads', 'org', 'exec', 'workflows', 'systems']
 
 function detectIsNarrow() {
   if (typeof window === 'undefined') return false
@@ -69,6 +71,7 @@ export default function App() {
               {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome onNavigate={navigate} /></ErrorBoundary>}
               {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday selectedTaskId={route.params.task || null} onSelectTask={(id) => navigate('today', id ? { task: id } : {})} /></ErrorBoundary>}
               {tab === 'plans'     && <ErrorBoundary label="Plans"><DesktopPlans /></ErrorBoundary>}
+              {tab === 'leads'     && <ErrorBoundary label="Leads"><DesktopLeads /></ErrorBoundary>}
               {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}
               {tab === 'exec'      && <ErrorBoundary label="Intel"><DesktopExec /></ErrorBoundary>}
               {tab === 'workflows' && <ErrorBoundary label="Flows"><DesktopFlows /></ErrorBoundary>}
@@ -78,6 +81,7 @@ export default function App() {
           {narrow && <BottomNav active={tab === 'exec' ? 'execution' : tab} onChange={handleTab} />}
           <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onTab={handleTab} />
           <PendingFlagModal />
+          <QuickCaptureIdea />
         </div>
       </AgentsProvider>
     </ToastProvider>

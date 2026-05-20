@@ -17,6 +17,7 @@ interface AgentPlan {
   updated_at: string | null
   doc_link: string | null
   plans_folder_id: string | null
+  weekly_goal_id?: string | null
 }
 
 interface AgentRow {
@@ -32,7 +33,20 @@ interface AgentRow {
   mission?: string
 }
 
-type MergedPlan = AgentRow & { plan?: AgentPlan }
+interface GoalRow {
+  id: string
+  title: string | null
+  target: string | null
+  current: string | null
+  progress: number | null
+  notes: string | null
+  owner: string | null
+  week_of: string | null
+  status: string | null
+  updated_at: string | null
+}
+
+type MergedPlan = AgentRow & { plan?: AgentPlan; goal?: GoalRow }
 
 const POD_ORDER = ['executive', 'ops', 'growth']
 
@@ -45,6 +59,7 @@ function podSort(a: MergedPlan, b: MergedPlan) {
 export function DesktopPlans() {
   const [agents, setAgents] = useState<AgentRow[]>([])
   const [plans, setPlans] = useState<AgentPlan[]>([])
+  const [goals, setGoals] = useState<GoalRow[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -55,9 +70,10 @@ export function DesktopPlans() {
     const load = async () => {
       setLoading(true)
       setError(null)
-      const [ag, pl] = await Promise.all([
+      const [ag, pl, gl] = await Promise.all([
         supabase.from('agents').select('*').eq('active', true),
         supabase.from('agent_plans').select('*'),
+        supabase.from('goals').select('*'),
       ])
       if (cancelled) return
       if (ag.error) {
@@ -68,8 +84,10 @@ export function DesktopPlans() {
       // Missing agent_plans table shouldn't break the tab — plans view falls
       // back to the KPI card from the agents row.
       if (pl.error) console.warn('agent_plans load failed:', pl.error.message)
+      if (gl.error) console.warn('goals load failed:', gl.error.message)
       setAgents((ag.data as AgentRow[]) || [])
       setPlans(pl.error ? [] : ((pl.data as AgentPlan[]) || []))
+      setGoals(gl.error ? [] : ((gl.data as GoalRow[]) || []))
       setLoading(false)
     }
     load()
@@ -78,10 +96,22 @@ export function DesktopPlans() {
 
   const merged: MergedPlan[] = useMemo(() => {
     const planMap = new Map(plans.map(p => [p.agent_id, p]))
+    const goalById = new Map(goals.map(g => [g.id, g]))
     return agents
-      .map(a => ({ ...a, plan: planMap.get(a.id) }))
+      .map(a => {
+        const plan = planMap.get(a.id)
+        let goal: GoalRow | undefined
+        if (plan?.weekly_goal_id) goal = goalById.get(plan.weekly_goal_id)
+        // Fallback: match by `owner` on the goal (case-insensitive) when no
+        // explicit weekly_goal_id is set. Most existing goals carry an owner.
+        if (!goal) {
+          const want = a.name.toLowerCase()
+          goal = goals.find(g => (g.owner || '').toLowerCase() === want && (g.status || '') !== 'closed')
+        }
+        return { ...a, plan, goal }
+      })
       .sort(podSort)
-  }, [agents, plans])
+  }, [agents, plans, goals])
 
   const selected = selectedId ? (merged.find(m => m.id === selectedId) ?? null) : null
 
@@ -188,6 +218,8 @@ export function DesktopPlans() {
 
       {selected.plan ? (
         <div className="space-y-4">
+          {selected.goal && <KpiStrip goal={selected.goal} />}
+
           <div className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-400/70 mb-1.5">Current Phase</p>
             <p className="text-[14px] text-white font-medium leading-snug">{selected.plan.current_phase || '—'}</p>
@@ -295,4 +327,62 @@ export function DesktopPlans() {
   )
 
   return <SplitPane left={list} right={detail} hasSelection={!!selectedId} onBack={() => setSelectedId(null)} />
+}
+
+function KpiStrip({ goal }: { goal: GoalRow }) {
+  const progress = typeof goal.progress === 'number'
+    ? Math.max(0, Math.min(100, goal.progress))
+    : 0
+  const tone =
+    progress >= 80 ? { ring: 'border-emerald-400/40', bar: 'bg-emerald-400', label: 'text-emerald-300', dot: 'On track' } :
+    progress >= 40 ? { ring: 'border-violet-400/40',  bar: 'bg-violet-400',  label: 'text-violet-200',  dot: 'In progress' } :
+                     { ring: 'border-amber-400/40',   bar: 'bg-amber-400',   label: 'text-amber-200',   dot: 'Behind' }
+
+  return (
+    <div className={`rounded-xl border ${tone.ring} bg-white/[0.02] p-4`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45 mb-1">
+            <Target size={10} className="inline mr-1.5" />
+            Weekly KPI
+            {goal.week_of && <span className="text-white/30 font-normal normal-case tracking-normal ml-2">· {goal.week_of}</span>}
+          </p>
+          <p className="text-[14px] text-white font-medium leading-snug">{goal.title || '—'}</p>
+        </div>
+        <span className={`text-[10px] uppercase tracking-[0.12em] font-semibold ${tone.label} flex-shrink-0`}>
+          {tone.dot}
+        </span>
+      </div>
+
+      {(goal.target || goal.current) && (
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.12em] text-white/35 mb-0.5">Target</p>
+            <p className="text-[12px] text-white/85 leading-snug">{goal.target || '—'}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.12em] text-white/35 mb-0.5">Current</p>
+            <p className="text-[12px] text-white/85 leading-snug">{goal.current || '—'}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-3">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-white/35">Progress</p>
+          <span className="text-[11px] tabular-nums text-white/55 font-mono">{progress}%</span>
+        </div>
+        <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+          <div
+            className={`h-full ${tone.bar} rounded-full transition-all duration-500`}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      {goal.notes && (
+        <p className="text-[11px] text-white/55 mt-3 leading-relaxed">{goal.notes}</p>
+      )}
+    </div>
+  )
 }

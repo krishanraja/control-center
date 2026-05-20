@@ -11,6 +11,7 @@ interface Props {
 const TABS = [
   { id: 'home', label: 'Home' },
   { id: 'today', label: 'Today' },
+  { id: 'leads', label: 'Leads' },
   { id: 'plans', label: 'Plans' },
   { id: 'org', label: 'Org' },
   { id: 'exec', label: 'Intel' },

@@ -29,6 +29,9 @@ export function OsHealthStrip({ onNavigate, planCount, approvalCount, live }: Pr
     syncing: { dot: 'bg-blue-400 animate-pulse',   label: 'Syncing' },
   }[systemsStatus]
 
+  // Hide zero-state metrics — the strip is meant to surface attention-worthy
+  // numbers. "0 errors" doesn't deserve a tile; if you need it you can deep-link
+  // from the Running tile or the sidebar health dot.
   const cells: Array<{
     key: string
     icon: React.ReactNode
@@ -62,21 +65,21 @@ export function OsHealthStrip({ onNavigate, planCount, approvalCount, live }: Pr
       tone: systemsConfig.label,
       tab: 'systems',
     },
-    {
+    ...(live.workflows.running > 0 || live.loading ? [{
       key: 'workflows',
       icon: <WorkflowIcon size={11} className="text-blue-400" />,
       label: 'Running',
       value: live.loading ? '—' : String(live.workflows.running),
       tab: 'workflows',
-    },
-    {
+    }] : []),
+    ...(live.workflows.errors > 0 ? [{
       key: 'errors',
-      icon: <ActivityIcon size={11} className={live.workflows.errors > 0 ? 'text-rose-400' : 'text-white/30'} />,
+      icon: <ActivityIcon size={11} className="text-rose-400" />,
       label: 'Errors',
-      value: live.loading ? '—' : String(live.workflows.errors),
-      tone: live.workflows.errors > 0 ? 'text-rose-300' : undefined,
+      value: String(live.workflows.errors),
+      tone: 'text-rose-300',
       tab: 'workflows',
-    },
+    }] : []),
   ]
 
   return (
