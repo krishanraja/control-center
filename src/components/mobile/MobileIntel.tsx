@@ -4,11 +4,43 @@ import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
 
+type SignalUrgency = 'critical' | 'high' | 'medium' | 'low'
+
 interface ExternalSignal {
   signal: string
   source?: string
   relevance?: string
   recommended_action?: string | null
+  // Extended fields — Marcus prompt patch 2026-05-21 populates these so the
+  // UI can render an urgency chip, a days-until countdown, and a deep-link
+  // back to the source artifact (CFP url, podcast url, etc.).
+  source_url?: string | null
+  event_id?: string | null
+  urgency?: SignalUrgency | null
+  days_until?: number | null
+}
+
+const URGENCY_DOT: Record<SignalUrgency, string> = {
+  critical: 'bg-red-500',
+  high:     'bg-red-400',
+  medium:   'bg-amber-400',
+  low:      'bg-violet-400',
+}
+
+const URGENCY_ACCENT: Record<SignalUrgency, 'red' | 'amber' | 'violet'> = {
+  critical: 'red',
+  high:     'red',
+  medium:   'amber',
+  low:      'violet',
+}
+
+function urgencyChip(u?: SignalUrgency | null, days?: number | null): string | undefined {
+  if (!u && (days == null || !Number.isFinite(days))) return undefined
+  const label = u ? u.toUpperCase() : ''
+  const dayPart = (days != null && Number.isFinite(days))
+    ? (days <= 0 ? 'past' : `${days}d`)
+    : ''
+  return [label, dayPart].filter(Boolean).join(' · ')
 }
 
 interface Metric {
@@ -82,8 +114,9 @@ export function MobileIntel() {
     >
       {hero && (
         <HeroCard
-          eyebrow="Top signal"
-          accent="amber"
+          eyebrow={urgencyChip(hero.urgency, hero.days_until) || 'Top signal'}
+          accent={hero.urgency ? URGENCY_ACCENT[hero.urgency] : 'amber'}
+          dotColor={hero.urgency ? URGENCY_DOT[hero.urgency] : undefined}
           title={hero.signal}
           detail={hero.relevance}
           meta={hero.recommended_action ? `Move: ${truncate(hero.recommended_action, 80)}` : hero.source}
@@ -127,15 +160,21 @@ export function MobileIntel() {
 
       {rest.length > 0 && (
         <FeedCard title={`More signals · ${rest.length}`}>
-          {rest.map((sig, i) => (
-            <FeedRow
-              key={i}
-              dotColor="bg-amber-400"
-              title={sig.signal}
-              detail={sig.relevance}
-              onClick={() => { h.select(); setOpenSignal(sig) }}
-            />
-          ))}
+          {rest.map((sig, i) => {
+            const chip = urgencyChip(sig.urgency, sig.days_until)
+            return (
+              <FeedRow
+                key={i}
+                dotColor={sig.urgency ? URGENCY_DOT[sig.urgency] : 'bg-amber-400'}
+                title={sig.signal}
+                detail={sig.relevance}
+                trailing={chip ? (
+                  <span className="text-[12px] font-semibold tabular-nums text-white/70">{chip}</span>
+                ) : null}
+                onClick={() => { h.select(); setOpenSignal(sig) }}
+              />
+            )
+          })}
         </FeedCard>
       )}
 
@@ -154,17 +193,23 @@ export function MobileIntel() {
       <DetailSheet
         open={openSignal != null}
         onClose={() => setOpenSignal(null)}
-        eyebrow={openSignal?.source || 'Marcus signal'}
+        eyebrow={
+          urgencyChip(openSignal?.urgency, openSignal?.days_until) ||
+          openSignal?.source ||
+          'Marcus signal'
+        }
         title={openSignal?.signal || ''}
         body={
           openSignal
             ? [
                 openSignal.relevance ? `Why it matters: ${openSignal.relevance}` : null,
                 openSignal.recommended_action ? `Recommended move: ${openSignal.recommended_action}` : null,
+                openSignal.source ? `Source: ${openSignal.source}` : null,
               ].filter(Boolean).join('\n\n')
             : undefined
         }
         agent="marcus"
+        docUrl={openSignal?.source_url || undefined}
         actions={[]}
       />
     </MobileShellPrim>

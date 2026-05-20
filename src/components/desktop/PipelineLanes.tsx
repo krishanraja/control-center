@@ -4,10 +4,12 @@ import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { useNellCandidates, type NellCandidate } from '../../hooks/useNellCandidates'
 import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { useNovaConferences, type NovaConferenceRow } from '../../hooks/useNovaConferences'
+import { usePodchaserPodcasts, type PodchaserPodcast } from '../../hooks/usePodchaserPodcasts'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { PipelineCard } from '../PipelineCard'
 import { ContentIdeaCard } from '../ContentIdeaCard'
 import { VisibilityEventCard } from '../VisibilityEventCard'
+import { PodcastTargetCard } from '../PodcastTargetCard'
 import { PipelineLane } from './PipelineLane'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { useToast } from '../shared/Toast'
@@ -41,6 +43,7 @@ export function PipelineLanes({ onNavigate }: Props) {
     stateIn: ['seeded', 'researching', 'drafting', 'review', 'approved'],
   })
   const { conferences } = useNovaConferences()
+  const { podcasts } = usePodchaserPodcasts()
   const rollup = useMemo(() => rollupTasks(tasks), [tasks])
 
   // Pending Nell candidates — Nell drafts that haven't been promoted yet.
@@ -70,6 +73,7 @@ export function PipelineLanes({ onNavigate }: Props) {
         rollup={rollup.visibility}
         pendingNell={pendingNell}
         conferences={conferences}
+        podcasts={podcasts}
         onOpenTask={openInToday}
         onNavigate={onNavigate}
       />
@@ -380,11 +384,12 @@ function LeadMeta({ task: t }: { task: TaskRow }) {
 // ─── Visibility lane (1fr, Nell header + task stages) ───────────────────────
 
 function VisibilityLane({
-  rollup, pendingNell, conferences, onOpenTask, onNavigate,
+  rollup, pendingNell, conferences, podcasts, onOpenTask, onNavigate,
 }: {
   rollup: ReturnType<typeof rollupTasks>['visibility']
   pendingNell: NellCandidate[]
   conferences: NovaConferenceRow[]
+  podcasts: PodchaserPodcast[]
   onOpenTask: (id: string) => void
   onNavigate?: NavigateFn
 }) {
@@ -421,7 +426,17 @@ function VisibilityLane({
       .slice(0, 2)
   }, [conferences])
 
-  const combinedTotal = rollup.total + pendingNell.length + richConferences.length
+  // Top podcasts by fit_score; cap to 2 so the lane stays scannable. Drops
+  // shows with no enrichment (no fit_score AND no why_relevant) so an empty
+  // podchaser_podcasts table doesn't drown the lane.
+  const topPodcasts = useMemo(() => {
+    return podcasts
+      .filter(p => (p.fit_score ?? 0) > 0 || p.why_relevant)
+      .slice(0, 2)
+  }, [podcasts])
+
+  const combinedTotal =
+    rollup.total + pendingNell.length + richConferences.length + topPodcasts.length
   const laneEmpty = combinedTotal === 0
 
   return (
@@ -436,6 +451,9 @@ function VisibilityLane({
       <div className="flex flex-col gap-2">
         {richConferences.map(c => (
           <VisibilityEventCard key={c.id} conference={c} />
+        ))}
+        {topPodcasts.map(p => (
+          <PodcastTargetCard key={p.id} podcast={p} />
         ))}
         {pendingNell.length > 0 && (
           <NellCandidatesHeader candidates={pendingNell} onOpenTask={onOpenTask} />
