@@ -1,7 +1,22 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, AlertTriangle, Compass } from 'lucide-react'
 import { AgentAvatar } from './shared/AgentAvatar'
 import { StatusPill } from './shared/StatusPill'
+
+// Marcus's prompt sometimes folds empty system-health rows into the
+// "Top blockers" sentence ("…Top blockers: Health alert: 0 down, 0 stale…").
+// We strip those tokens client-side so they don't render as actionable noise.
+// The Marcus prompt patch is the source-side fix; this is defence in depth.
+const BODY_NOISE_PATTERNS: RegExp[] = [
+  /Top blockers:\s*Health alert:\s*0\s*down,\s*0\s*stale[^.]*\.?/gi,
+  /Health alert:\s*0\s*down,\s*0\s*stale[^,.]*[,.]?\s*/gi,
+]
+
+function scrubBody(body: string): string {
+  let out = body
+  for (const re of BODY_NOISE_PATTERNS) out = out.replace(re, '')
+  return out.replace(/\s{2,}/g, ' ').trim()
+}
 
 // ── Schema v1 ────────────────────────────────────────────────────────────
 interface Metric {
@@ -113,11 +128,30 @@ function isV2(d: any): d is V2Data {
 function V1View({ data }: { data: V1Data }) {
   const [expanded, setExpanded] = useState(false)
   const { strategic_assessment: sa, metrics = [], external_signals = [], generated_at } = data
-  const body = (sa.body ?? '').replace(/\n\n/g, ' ')
+  const body = scrubBody((sa.body ?? '').replace(/\n\n/g, ' '))
   const bodyResult = truncate(body, 55)
 
   return (
     <div className="space-y-5">
+      {/* Lead with structured action cards — one per external signal. These
+          already have signal/relevance/recommended_action fields; previously
+          rendered as small bulleted text. Now they're the headline. */}
+      {external_signals.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <AlertTriangle size={12} className="text-amber-300" />
+            <p className="text-[10px] font-bold text-amber-300 uppercase tracking-widest">
+              What needs you · {external_signals.length}
+            </p>
+          </div>
+          <div className="space-y-2">
+            {external_signals.map((sig, i) => (
+              <IntelligenceActionCard key={i} signal={sig} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {metrics.length > 0 && (
         <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
           <div className="flex gap-3 min-w-max md:min-w-0 md:grid md:grid-cols-5">
@@ -143,49 +177,60 @@ function V1View({ data }: { data: V1Data }) {
 
       <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5">
         <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest mb-3">
-          Intelligence · Marcus{generated_at ? ` · ${timeAgo(generated_at)}` : ''}
+          Marcus context{generated_at ? ` · ${timeAgo(generated_at)}` : ''}
         </p>
         {sa.headline && (
           <p className="text-[15px] font-semibold text-white leading-snug mb-3">{sa.headline}</p>
         )}
-        <p className="text-[13px] text-white/50 leading-relaxed">
-          {expanded ? body : bodyResult.text}
-        </p>
-        {bodyResult.truncated && (
-          <button
-            onClick={() => setExpanded(e => !e)}
-            className="flex items-center gap-1 mt-2 text-[12px] text-white/25 hover:text-white/50 transition-colors"
-          >
-            {expanded ? <><ChevronUp className="w-3 h-3" />Less</> : <><ChevronDown className="w-3 h-3" />Read more</>}
-          </button>
+        {body && (
+          <>
+            <p className="text-[13px] text-white/50 leading-relaxed">
+              {expanded ? body : bodyResult.text}
+            </p>
+            {bodyResult.truncated && (
+              <button
+                onClick={() => setExpanded(e => !e)}
+                className="flex items-center gap-1 mt-2 text-[12px] text-white/25 hover:text-white/50 transition-colors"
+              >
+                {expanded ? <><ChevronUp className="w-3 h-3" />Less</> : <><ChevronDown className="w-3 h-3" />Read more</>}
+              </button>
+            )}
+          </>
         )}
         {sa.recommended_focus && (
-          <div className="mt-4 pt-4 border-t border-white/[0.05]">
-            <p className="text-[10px] font-bold text-amber-400/60 uppercase tracking-widest mb-1.5">Focus this week</p>
-            <p className="text-[13px] text-amber-200/70 leading-relaxed">{sa.recommended_focus}</p>
+          <div className="mt-4 pt-4 border-t border-white/[0.05] flex items-start gap-2">
+            <Compass size={11} className="text-amber-400/70 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-[10px] font-bold text-amber-400/60 uppercase tracking-widest mb-1.5">Focus this week</p>
+              <p className="text-[13px] text-amber-200/70 leading-relaxed">{sa.recommended_focus}</p>
+            </div>
           </div>
         )}
       </div>
-
-      {external_signals.length > 0 && (
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5">
-          <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest mb-3">Signals · Zara</p>
-          <div className="space-y-4">
-            {external_signals.map((sig, i) => (
-              <div key={i} className="flex gap-3">
-                <div className="w-1 h-1 rounded-full bg-white/20 flex-shrink-0 mt-[6px]" />
-                <div>
-                  <p className="text-[13px] text-white/65 leading-snug">{sig.signal}</p>
-                  {sig.recommended_action && (
-                    <p className="text-[12px] text-amber-300/55 mt-1 italic">{sig.recommended_action}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
+  )
+}
+
+function IntelligenceActionCard({ signal: sig }: { signal: ExternalSignal }) {
+  return (
+    <article className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
+      <p className="text-[13px] font-semibold text-white leading-snug">{sig.signal}</p>
+      {sig.relevance && (
+        <p className="text-[12px] text-white/65 leading-snug mt-2">
+          <span className="text-white/35">Why it matters: </span>
+          {sig.relevance}
+        </p>
+      )}
+      {sig.recommended_action && (
+        <p className="text-[12px] text-amber-200/85 leading-snug mt-2">
+          <span className="text-amber-300/55">Move: </span>
+          {sig.recommended_action}
+        </p>
+      )}
+      {sig.source && (
+        <p className="text-[10px] text-white/35 mt-2 truncate">{sig.source}</p>
+      )}
+    </article>
   )
 }
 

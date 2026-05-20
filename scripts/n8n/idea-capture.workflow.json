@@ -1,0 +1,85 @@
+{
+  "name": "Cleo | Mindmaker OS | Content Idea Capture",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "idea-capture",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 320],
+      "webhookId": "idea-capture",
+      "notes": "One funnel for all six source types: manual, signal_inbox, cleo_chat, agatha_chat, openclaw_workspace, zara_signal."
+    },
+    {
+      "parameters": {
+        "modelId": { "__rl": true, "mode": "list", "value": "claude-sonnet-4-6" },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You extract structured content ideas from raw text. Return JSON only.\nSchema: { \"idea\":string, \"thesis\":string, \"distribution\":string[], \"confidence\":number }\nRules:\n- idea: one-line headline-style framing of the seed.\n- thesis: 1-2 sentences explaining why this is interesting / true / useful right now.\n- distribution: array of channels best suited. Allowed values: linkedin, newsletter, signal-noise-pod, builder-economy-pod, techonomic, x.\n- confidence: 0.0-1.0. Lower for vague seeds, higher for already-developed ones.\nOutput strictly valid JSON."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.body.raw_text }}"
+            }
+          ]
+        },
+        "options": { "responseFormat": "json_object", "maxTokens": 800, "temperature": 0.2 }
+      },
+      "id": "extract-idea",
+      "name": "Claude: Extract Idea",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [500, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('Webhook').item.json.body || {};\nconst ex = JSON.parse($('Claude: Extract Idea').item.json.message.content);\nreturn [{ json: {\n  idea: ex.idea || body.raw_text.slice(0, 280),\n  thesis: ex.thesis || null,\n  distribution: Array.isArray(ex.distribution) ? ex.distribution : null,\n  confidence: typeof ex.confidence === 'number' ? ex.confidence : null,\n  source_type: body.source_type || 'manual',\n  source_ref: body.source_ref || null,\n  source_url: body.source_url || null,\n  source_snippet: body.source_snippet || body.raw_text.slice(0, 280),\n  source_captured_at: body.captured_at || new Date().toISOString(),\n  state: 'seeded',\n  assigned_to: 'cleo',\n} }];"
+      },
+      "id": "shape-row",
+      "name": "Shape row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [740, 320]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "content_ideas",
+        "dataToSend": "autoMapInputData"
+      },
+      "id": "supabase-insert",
+      "name": "Supabase: Insert idea",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [980, 320],
+      "credentials": { "supabaseApi": { "id": "supabase-os", "name": "Supabase (Mindmaker OS)" } }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, idea: $items('Supabase: Insert idea')[0]?.json } }}"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1220, 320]
+    }
+  ],
+  "connections": {
+    "Webhook":                 { "main": [[{ "node": "Claude: Extract Idea", "type": "main", "index": 0 }]] },
+    "Claude: Extract Idea":    { "main": [[{ "node": "Shape row", "type": "main", "index": 0 }]] },
+    "Shape row":               { "main": [[{ "node": "Supabase: Insert idea", "type": "main", "index": 0 }]] },
+    "Supabase: Insert idea":   { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

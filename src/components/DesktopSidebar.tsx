@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { LayoutDashboard, Calendar, CheckSquare, Users, Brain, Workflow, Activity } from 'lucide-react'
+import { LayoutDashboard, Calendar, CheckSquare, Users, Brain, Workflow, Activity, UserPlus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 const NAV = [
   { id: 'home',      label: 'Home',    icon: LayoutDashboard },
   { id: 'today',     label: 'Today',   icon: Calendar },
+  { id: 'leads',     label: 'Leads',   icon: UserPlus },
   { id: 'plans',     label: 'Plans',   icon: CheckSquare },
   { id: 'org',       label: 'Org',     icon: Users },
   { id: 'exec',      label: 'Intel',   icon: Brain },

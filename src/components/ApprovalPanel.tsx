@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { CheckCircle, XCircle, MessageSquare, ExternalLink, ClipboardList, Loader2 } from 'lucide-react'
+import { useHaptics } from '../hooks/useHaptics'
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
@@ -17,6 +18,7 @@ interface ApprovalItem {
 }
 
 export function ApprovalPanel() {
+  const h = useHaptics()
   const [items, setItems] = useState<ApprovalItem[]>([])
   const [loading, setLoading] = useState(true)
   const [feedbackId, setFeedbackId] = useState<string | null>(null)
@@ -36,12 +38,19 @@ export function ApprovalPanel() {
   const done = items.filter(i => i.status !== 'pending')
 
   const act = async (id: string, action: 'approve' | 'reject' | 'feedback', feedback = '') => {
+    h.heavy()
     setActing(id)
-    await fetch(`${API}/api/approvals/action`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, action, feedback })
-    })
+    try {
+      const r = await fetch(`${API}/api/approvals/action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action, feedback })
+      })
+      if (!r.ok) throw new Error(String(r.status))
+      h.success()
+    } catch {
+      h.error()
+    }
     setFeedbackId(null)
     setFeedbackText('')
     setActing(null)

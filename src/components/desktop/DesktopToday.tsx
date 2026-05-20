@@ -1,14 +1,47 @@
 import React, { useMemo, useState } from 'react'
 import { formatDistanceToNow, isToday, isPast, parseISO } from 'date-fns'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Archive, ChevronRight } from 'lucide-react'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { InlineActions } from '../InlineActions'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
+import { useToast } from '../shared/Toast'
 import { PipelineQueue, PIPELINE_WORKSTREAMS } from './PipelineQueue'
 
 const PIPELINE_WORKSTREAM_SET = new Set<string>(PIPELINE_WORKSTREAMS as readonly string[])
+
+// Stale threshold for the Today auto-collapse. Tasks not touched for this many
+// days, with no progress, hide behind a single "N stale items hidden" disclosure.
+const STALE_DAYS = 14
+const STALE_THRESHOLD_MS = STALE_DAYS * 24 * 60 * 60 * 1000
+
+// Health-alert noise that Marcus's prompt sometimes collapses into the
+// "Top blockers" string. We filter these patterns out client-side so they
+// don't surface as actionable items. The Marcus prompt patch is the
+// source-side fix; this is defence in depth.
+const NOISE_TITLE_PATTERNS: RegExp[] = [
+  /^\s*health alert:\s*0\s*down,\s*0\s*stale/i,
+  /^\s*sync engine running every/i,
+]
+
+function isStaleNoProgress(t: TaskRow): boolean {
+  if (t.started_at) return false
+  if (!t.updated_at) return false
+  const updated = new Date(t.updated_at).getTime()
+  if (!Number.isFinite(updated)) return false
+  if (Date.now() - updated < STALE_THRESHOLD_MS) return false
+  return t.status === 'active' || t.status === 'waiting' || t.status === 'new'
+}
+
+function isNoiseTask(t: TaskRow): boolean {
+  if (!t.title) return false
+  return NOISE_TITLE_PATTERNS.some(re => re.test(t.title))
+}
+
+function isSupersededOrDone(t: TaskRow): boolean {
+  return t.status === 'superseded' || t.status === 'done' || t.status === 'closed'
+}
 
 interface Props {
   selectedTaskId?: string | null
@@ -29,13 +62,26 @@ export function DesktopToday({ selectedTaskId, onSelectTask }: Props = {}) {
   }
 
   const today = useMemo(() => {
-    const due = tasks.filter(t => t.due_date && (isToday(parseISO(t.due_date)) || isPast(parseISO(t.due_date))) && t.status !== 'done')
-    const waiting = tasks.filter(t =>
+    // Pre-filter: hide superseded/done, hide noise patterns, defer stale items
+    // to the collapsed bucket. The user complaint was that the Today list
+    // surfaced "Configure ListenNotes API…" (29 days untouched) and
+    // "Health alert: 0 down, 0 stale" (Marcus noise). This fixes both.
+    const visible: TaskRow[] = []
+    const stale: TaskRow[] = []
+    for (const t of tasks) {
+      if (isSupersededOrDone(t)) continue
+      if (isNoiseTask(t)) continue
+      if (isStaleNoProgress(t)) { stale.push(t); continue }
+      visible.push(t)
+    }
+
+    const due = visible.filter(t => t.due_date && (isToday(parseISO(t.due_date)) || isPast(parseISO(t.due_date))) && t.status !== 'done')
+    const waiting = visible.filter(t =>
       t.status === 'waiting'
       && !due.find(d => d.id === t.id)
       && !(t.workstream && PIPELINE_WORKSTREAM_SET.has(t.workstream))
     )
-    return { due, waiting }
+    return { due, waiting, stale }
   }, [tasks])
 
   const items: TaskRow[] = [...today.due, ...today.waiting]
@@ -62,6 +108,10 @@ export function DesktopToday({ selectedTaskId, onSelectTask }: Props = {}) {
       )}
 
       <PipelineQueue />
+
+      {today.stale.length > 0 && (
+        <StaleDisclosure tasks={today.stale} onSelectTask={selectTask} selectedId={selected?.id || null} />
+      )}
 
       {items.length === 0 && !loading && (
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
@@ -115,8 +165,84 @@ function DayRow({ task, selected, onClick }: { task: TaskRow; selected: boolean;
   )
 }
 
+function StaleDisclosure({
+  tasks, onSelectTask, selectedId,
+}: {
+  tasks: TaskRow[]
+  onSelectTask: (id: string | null) => void
+  selectedId: string | null
+}) {
+  const [open, setOpen] = useState(false)
+  const { toast } = useToast()
+
+  const dismissAll = async () => {
+    const ids = tasks.map(t => t.id)
+    const { error } = await supabase
+      .from('tasks')
+      .update({ status: 'superseded', updated_at: new Date().toISOString() })
+      .in('id', ids)
+    if (error) {
+      toast('Could not bulk-dismiss — try again.', 'error')
+      return
+    }
+    for (const id of ids) {
+      await logKrishAction(id, 'dismiss_superseded', undefined, `Bulk-dismiss: ${tasks.length} stale (>${STALE_DAYS}d) items`)
+    }
+    toast(`Dismissed ${ids.length} stale items.`, 'success')
+  }
+
+  return (
+    <div className="rounded-xl border border-white/[0.05] bg-white/[0.01]">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/[0.02] transition-colors text-left"
+      >
+        <ChevronRight
+          size={11}
+          className={`text-white/40 transition-transform ${open ? 'rotate-90' : ''}`}
+        />
+        <Archive size={11} className="text-white/35" />
+        <span className="text-[11px] font-semibold text-white/55 uppercase tracking-[0.14em]">
+          Stale ({tasks.length})
+        </span>
+        <span className="text-[10px] text-white/35 ml-1">no progress in {STALE_DAYS}+ days</span>
+        {open && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); dismissAll() }}
+            className="ml-auto px-2 py-0.5 rounded-md text-[10px] font-medium border border-white/10 text-white/55 hover:bg-white/[0.06] transition-colors"
+          >
+            Dismiss all
+          </button>
+        )}
+      </button>
+
+      {open && (
+        <div className="border-t border-white/[0.05] divide-y divide-white/[0.04]">
+          {tasks.slice(0, 30).map(t => (
+            <DayRow
+              key={t.id}
+              task={t}
+              selected={selectedId === t.id}
+              onClick={() => onSelectTask(t.id)}
+            />
+          ))}
+          {tasks.length > 30 && (
+            <div className="px-3 py-2 text-[10px] text-white/35 text-center">
+              +{tasks.length - 30} more (collapse or open Plans for full triage)
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TodayDetail({ task }: { task: TaskRow }) {
+  const { toast } = useToast()
   const [notes, setNotes] = useState(task.krish_notes || '')
+  const [dismissing, setDismissing] = useState(false)
   const saveNotes = async () => {
     if (notes === (task.krish_notes || '')) return
     await supabase.from('tasks').update({ krish_notes: notes, krish_reviewed: true, updated_at: new Date().toISOString() }).eq('id', task.id)
@@ -127,6 +253,22 @@ function TodayDetail({ task }: { task: TaskRow }) {
     tomorrow.setDate(tomorrow.getDate() + 1)
     await supabase.from('tasks').update({ due_date: tomorrow.toISOString(), updated_at: new Date().toISOString() }).eq('id', task.id)
     await logKrishAction(task.id, 'push_tomorrow', task.agent || task.owner)
+  }
+  const dismissSuperseded = async () => {
+    if (dismissing) return
+    setDismissing(true)
+    const { error } = await supabase
+      .from('tasks')
+      .update({ status: 'superseded', updated_at: new Date().toISOString() })
+      .eq('id', task.id)
+    if (error) {
+      toast('Could not dismiss — try again.', 'error')
+      setDismissing(false)
+      return
+    }
+    await logKrishAction(task.id, 'dismiss_superseded', task.agent || task.owner, 'Dismissed from Today as superseded')
+    toast('Dismissed as superseded.', 'success')
+    setDismissing(false)
   }
   const submitRevision = async () => {
     await supabase.from('corrections').insert({
@@ -182,6 +324,14 @@ function TodayDetail({ task }: { task: TaskRow }) {
         <InlineActions taskId={task.id} currentStatus={task.status} agent={task.agent || task.owner} />
         <button onClick={submitRevision} className="px-2.5 py-1.5 rounded-lg border border-amber-500/25 text-amber-400 hover:bg-amber-500/10 text-[11px] font-medium">Needs Revision</button>
         <button onClick={pushTomorrow} className="px-2.5 py-1.5 rounded-lg border border-white/10 text-white/60 hover:bg-white/[0.06] text-[11px] font-medium">Add to Tomorrow</button>
+        <button
+          onClick={dismissSuperseded}
+          disabled={dismissing}
+          className="px-2.5 py-1.5 rounded-lg border border-white/10 text-white/45 hover:text-white/75 hover:bg-white/[0.06] text-[11px] font-medium disabled:opacity-40 ml-auto"
+          title="Hide this task — the underlying need no longer exists (e.g. replaced tool)"
+        >
+          Dismiss as superseded
+        </button>
       </div>
     </div>
   )
