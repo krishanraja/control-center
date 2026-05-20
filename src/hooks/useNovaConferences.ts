@@ -44,7 +44,6 @@ export function useNovaConferences() {
         .order('deadline_at', { ascending: true, nullsFirst: false })
       if (cancelled) return
       if (error) {
-        // eslint-disable-next-line no-console
         console.warn('[useNovaConferences] fetch error', error.message)
         setConferences([])
       } else {

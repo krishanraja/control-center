@@ -78,7 +78,6 @@ async function fetchAll(): Promise<void> {
       .order('updated_at', { ascending: false })
     if (error && error.code !== 'PGRST205') {
       // 404 / table-missing during pre-migration: degrade gracefully
-      // eslint-disable-next-line no-console
       console.warn('[useRealtimeLeads] fetch error', error.message)
     }
     cache = (data as LeadRow[]) || []
@@ -141,7 +140,6 @@ export function useRealtimeLeads(opts: Options = {}) {
     }
     if (filterFn) out = out.filter(filterFn)
     return out
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceKey, statusKey, filterFn, cache])
 
   return { leads, loading: loadingCache, refresh }

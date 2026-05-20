@@ -66,7 +66,6 @@ async function fetchAll(): Promise<void> {
       .select('*')
       .order('created_at', { ascending: false })
     if (error && error.code !== 'PGRST205') {
-      // eslint-disable-next-line no-console
       console.warn('[useRealtimeContentIdeas] fetch error', error.message)
     }
     cache = (data as ContentIdeaRow[]) || []
@@ -129,7 +128,6 @@ export function useRealtimeContentIdeas(opts: Options = {}) {
     }
     if (filterFn) out = out.filter(filterFn)
     return out
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceKey, stateKey, filterFn, cache])
 
   return { ideas, loading: loadingCache, refresh }

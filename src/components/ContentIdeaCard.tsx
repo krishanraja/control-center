@@ -3,6 +3,7 @@ import { ExternalLink, PenLine, Search, X } from 'lucide-react'
 import { humanAge } from '../lib/ageHelpers'
 import { LeadSourcePill } from './LeadSourcePill'
 import { useToast } from './shared/Toast'
+import { useHaptics } from '../hooks/useHaptics'
 import type { ContentIdeaRow, IdeaState } from '../hooks/useRealtimeContentIdeas'
 
 interface Props {
@@ -19,9 +20,11 @@ interface Props {
  */
 export function ContentIdeaCard({ idea: i, onOpen }: Props) {
   const { toast } = useToast()
+  const h = useHaptics()
   const [busy, setBusy] = useState<null | IdeaState>(null)
 
   const setState = async (next: IdeaState) => {
+    h.heavy()
     setBusy(next)
     try {
       const r = await fetch('/api/content-ideas', {
@@ -35,8 +38,10 @@ export function ContentIdeaCard({ idea: i, onOpen }: Props) {
         researching: 'Sent to Zara for research.',
         dropped: 'Dropped.',
       }
+      h.success()
       toast(labels[next] || 'Updated.', 'success')
     } catch {
+      h.error()
       toast('Could not update idea — try again.', 'error')
     } finally {
       setBusy(null)

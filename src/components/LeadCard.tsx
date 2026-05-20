@@ -3,6 +3,7 @@ import { ExternalLink, ThumbsUp, X, Linkedin, Mail } from 'lucide-react'
 import { humanAge } from '../lib/ageHelpers'
 import { LeadSourcePill } from './LeadSourcePill'
 import { useToast } from './shared/Toast'
+import { useHaptics } from '../hooks/useHaptics'
 import type { LeadRow, LeadStatus } from '../hooks/useRealtimeLeads'
 
 interface Props {
@@ -23,9 +24,11 @@ interface Props {
  */
 export function LeadCard({ lead: l, onOpen }: Props) {
   const { toast } = useToast()
+  const h = useHaptics()
   const [busy, setBusy] = useState<null | LeadStatus>(null)
 
   const setStatus = async (next: LeadStatus) => {
+    h.heavy()
     setBusy(next)
     try {
       const r = await fetch(`/api/leads/${l.id}`, {
@@ -39,8 +42,10 @@ export function LeadCard({ lead: l, onOpen }: Props) {
         superseded: 'Dropped.',
         ready: 'Marked ready.',
       }
+      h.success()
       toast(labels[next] || 'Updated.', 'success')
     } catch {
+      h.error()
       toast('Could not update lead — try again.', 'error')
     } finally {
       setBusy(null)
