@@ -16,6 +16,10 @@ import { MobileHome } from './components/mobile/MobileHome'
 import { MobileToday } from './components/mobile/MobileToday'
 import { MobileLeads } from './components/mobile/MobileLeads'
 import { MobileIntel } from './components/mobile/MobileIntel'
+import { MobilePlans } from './components/mobile/MobilePlans'
+import { MobileOrg } from './components/mobile/MobileOrg'
+import { MobileFlows } from './components/mobile/MobileFlows'
+import { MobileSystems } from './components/mobile/MobileSystems'
 import { AgentsProvider } from './contexts/AgentsContext'
 import { PendingFlagModal } from './components/PendingFlagModal'
 import { QuickCaptureIdea } from './components/QuickCaptureIdea'
@@ -77,10 +81,10 @@ export default function App() {
                 {tab === 'today'     && <ErrorBoundary label="Today"><MobileToday /></ErrorBoundary>}
                 {tab === 'leads'     && <ErrorBoundary label="Leads"><MobileLeads /></ErrorBoundary>}
                 {tab === 'exec'      && <ErrorBoundary label="Intel"><MobileIntel /></ErrorBoundary>}
-                {tab === 'plans'     && <ErrorBoundary label="Plans"><div className="px-3 py-4"><DesktopPlans /></div></ErrorBoundary>}
-                {tab === 'org'       && <ErrorBoundary label="Org"><div className="px-3 py-4"><DesktopOrg /></div></ErrorBoundary>}
-                {tab === 'workflows' && <ErrorBoundary label="Flows"><div className="px-3 py-4"><DesktopFlows /></div></ErrorBoundary>}
-                {tab === 'systems'   && <ErrorBoundary label="Systems"><div className="px-3 py-4"><SystemsPanel /></div></ErrorBoundary>}
+                {tab === 'plans'     && <ErrorBoundary label="Plans"><MobilePlans /></ErrorBoundary>}
+                {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrg /></ErrorBoundary>}
+                {tab === 'workflows' && <ErrorBoundary label="Flows"><MobileFlows /></ErrorBoundary>}
+                {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
               </>
             ) : (
               <div className="px-6 py-6">

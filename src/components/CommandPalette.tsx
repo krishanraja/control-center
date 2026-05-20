@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Command } from 'cmdk'
 import { supabase, logKrishAction } from '../lib/supabase'
+import { useHaptics } from '../hooks/useHaptics'
 
 interface Props {
   open: boolean
@@ -20,6 +21,7 @@ const TABS = [
 ]
 
 export function CommandPalette({ open, onClose, onTab }: Props) {
+  const h = useHaptics()
   const [tasks, setTasks] = useState<any[]>([])
   const [agents, setAgents] = useState<any[]>([])
 
@@ -30,12 +32,16 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
   }, [open])
 
   const approve = async (id: string) => {
-    await supabase.from('tasks').update({ status: 'active', krish_reviewed: true, updated_at: new Date().toISOString() }).eq('id', id)
+    h.heavy()
+    const { error } = await supabase.from('tasks').update({ status: 'active', krish_reviewed: true, updated_at: new Date().toISOString() }).eq('id', id)
+    if (error) { h.error() } else { h.success() }
     await logKrishAction(id, 'approve')
     onClose()
   }
   const markDone = async (id: string) => {
-    await supabase.from('tasks').update({ status: 'done', krish_reviewed: true, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', id)
+    h.heavy()
+    const { error } = await supabase.from('tasks').update({ status: 'done', krish_reviewed: true, completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', id)
+    if (error) { h.error() } else { h.success() }
     await logKrishAction(id, 'done')
     onClose()
   }
@@ -56,7 +62,7 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
 
             <Command.Group heading="Navigate">
               {TABS.map(t => (
-                <Command.Item key={t.id} value={`tab ${t.label}`} onSelect={() => { onTab(t.id); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-[13px] text-white/70 cursor-pointer data-[selected=true]:bg-white/[0.06] data-[selected=true]:text-white">
+                <Command.Item key={t.id} value={`tab ${t.label}`} onSelect={() => { h.select(); onTab(t.id); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-[13px] text-white/70 cursor-pointer data-[selected=true]:bg-white/[0.06] data-[selected=true]:text-white">
                   <span>Go to {t.label}</span>
                   <span className="text-[10px] text-white/30">tab</span>
                 </Command.Item>

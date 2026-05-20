@@ -3,6 +3,7 @@ import { Zap, X, Loader2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { AgentAvatar } from './shared/AgentAvatar'
 import { useToast } from './shared/Toast'
+import { useHaptics } from '../hooks/useHaptics'
 
 interface Props {
   agentId: string
@@ -14,10 +15,12 @@ export function FlagAgentModal({ agentId, agentDisplayName, onClose }: Props) {
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const { toast } = useToast()
+  const h = useHaptics()
 
   const handleSubmit = async () => {
     const trimmed = note.trim()
     if (!trimmed) return
+    h.heavy()
     setSubmitting(true)
 
     try {
@@ -42,6 +45,7 @@ export function FlagAgentModal({ agentId, agentDisplayName, onClose }: Props) {
         if (updateErr) throw updateErr
 
         const minsLeft = Math.max(1, Math.round((new Date(existing.fires_at).getTime() - Date.now()) / 60000))
+        h.success()
         toast(`Note added to existing flag — fires in ${minsLeft} min`, 'success')
       } else {
         const firesAt = new Date(Date.now() + 20 * 60 * 1000).toISOString()
@@ -50,12 +54,14 @@ export function FlagAgentModal({ agentId, agentDisplayName, onClose }: Props) {
           .insert({ agent: agentId, notes: [trimmed], fires_at: firesAt })
         if (insertErr) throw insertErr
 
+        h.success()
         toast(`Agent flagged — task fires in 20 minutes`, 'success')
       }
 
       onClose()
     } catch (err) {
       console.error('FlagAgentModal submit error:', err)
+      h.error()
       toast('Failed to flag agent — try again', 'error')
     } finally {
       setSubmitting(false)

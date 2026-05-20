@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react'
 import { UploadCloud, FileText, Loader2, CheckCircle2 } from 'lucide-react'
 import { useToast } from './shared/Toast'
+import { useHaptics } from '../hooks/useHaptics'
 
 interface Props {
   onIngested?: (run: { fileName: string }) => void
@@ -30,6 +31,7 @@ interface PendingFile {
  */
 export function LeadImportDropzone({ onIngested }: Props) {
   const { toast } = useToast()
+  const h = useHaptics()
   const [hover, setHover] = useState(false)
   const [files, setFiles] = useState<PendingFile[]>([])
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -50,18 +52,21 @@ export function LeadImportDropzone({ onIngested }: Props) {
         }
         setFiles(prev => prev.map(f => f.id === id ? { ...f, state: 'done' } : f))
         onIngested?.({ fileName })
+        h.success()
         toast(`Importing leads from ${fileName}…`, 'success')
       } catch (e: any) {
         setFiles(prev => prev.map(f => f.id === id ? { ...f, state: 'error', message: String(e?.message || e) } : f))
+        h.error()
         toast('Ingest failed — check the N8N webhook.', 'error')
       }
     },
-    [onIngested, toast],
+    [onIngested, toast, h],
   )
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     setHover(false)
+    h.heavy()
     const dropped = Array.from(e.dataTransfer.files || [])
     for (const file of dropped) {
       // For OS drops we read the file inline and ship it as raw_text. The
@@ -73,7 +78,7 @@ export function LeadImportDropzone({ onIngested }: Props) {
         raw_text: text,
       })
     }
-  }, [send])
+  }, [send, h])
 
   const handleFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files || [])

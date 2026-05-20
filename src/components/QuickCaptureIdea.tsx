@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Sparkles, X, Loader2 } from 'lucide-react'
 import { useToast } from './shared/Toast'
+import { useHaptics } from '../hooks/useHaptics'
 
 /**
  * ⌘+I — capture a content idea from anywhere in the Control Center.
@@ -16,6 +17,7 @@ import { useToast } from './shared/Toast'
  */
 export function QuickCaptureIdea() {
   const { toast } = useToast()
+  const h = useHaptics()
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
@@ -49,6 +51,7 @@ export function QuickCaptureIdea() {
   const submit = async () => {
     const raw = text.trim()
     if (!raw || busy) return
+    h.heavy()
     setBusy(true)
     try {
       const r = await fetch('/api/content-ideas', {
@@ -57,10 +60,12 @@ export function QuickCaptureIdea() {
         body: JSON.stringify({ raw_text: raw, source_type: 'manual' }),
       })
       if (!r.ok) throw new Error(String(r.status))
+      h.success()
       toast('Idea captured — Cleo is enriching it.', 'success')
       setText('')
       setOpen(false)
     } catch {
+      h.error()
       toast('Could not capture idea — try again.', 'error')
     } finally {
       setBusy(false)

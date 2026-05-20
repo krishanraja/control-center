@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Check, ThumbsUp, X, MessageSquarePlus } from 'lucide-react'
 import { supabase, logKrishAction } from '../lib/supabase'
+import { useHaptics } from '../hooks/useHaptics'
 
 interface Props {
   taskId: string
@@ -13,12 +14,14 @@ interface Props {
 type ActionState = null | 'done' | 'approve' | 'reject' | 'note'
 
 export function InlineActions({ taskId, onSuccess, compact, agent }: Props) {
+  const h = useHaptics()
   const [busy, setBusy] = useState<ActionState>(null)
   const [flash, setFlash] = useState<ActionState>(null)
   const [noteOpen, setNoteOpen] = useState(false)
   const [noteText, setNoteText] = useState('')
 
   const patch = async (action: ActionState, payload: Record<string, any>, notes?: string) => {
+    h.heavy()
     setBusy(action)
     const { error } = await supabase.from('tasks').update({
       ...payload,
@@ -26,10 +29,13 @@ export function InlineActions({ taskId, onSuccess, compact, agent }: Props) {
     }).eq('id', taskId)
     setBusy(null)
     if (!error) {
+      h.success()
       setFlash(action)
       setTimeout(() => setFlash(null), 1200)
       if (action) await logKrishAction(taskId, action, agent, notes)
       onSuccess?.()
+    } else {
+      h.error()
     }
   }
 
