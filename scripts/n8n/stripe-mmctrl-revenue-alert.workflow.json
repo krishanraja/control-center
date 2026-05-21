@@ -1,0 +1,91 @@
+{
+  "name": "Stripe | mm-ctrl | Revenue Alert",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "nodes": [
+    {
+      "name": "Stripe Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 280],
+      "parameters": {
+        "path": "mmctrl-stripe-revenue",
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      }
+    },
+    {
+      "name": "Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: '5712840770', text: '💰 mm-ctrl: ' + ($json.body?.type || 'event') + ' — ' + ($json.body?.data?.object?.customer_email || $json.body?.data?.object?.customer || 'unknown') }) }}"
+      },
+      "notes": "Replace chat_id with the Telegram chat you want. Currently using the existing bot."
+    },
+    {
+      "name": "Supabase: Upsert Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 360],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/customers?on_conflict=product,stripe_customer_id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "resolution=merge-duplicates,return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const evt = $json.body || $json; const t = (evt.type || '').toLowerCase(); const obj = evt.data?.object || {}; const isPaid = t === 'checkout.session.completed' || t === 'invoice.payment_succeeded' || t === 'customer.subscription.created' || t === 'customer.subscription.updated'; const isChurned = t === 'customer.subscription.deleted'; const kind = isChurned ? 'churned' : 'paid'; const now = new Date().toISOString(); const mrr = obj.plan?.amount ? obj.plan.amount / 100 : (obj.amount_total ? obj.amount_total / 100 : null); return JSON.stringify({ product: 'mm_ctrl', kind, email: obj.customer_email || obj.customer_details?.email || null, full_name: obj.customer_details?.name || null, stripe_customer_id: obj.customer || obj.id || null, stripe_subscription_id: obj.subscription || null, plan: obj.plan?.nickname || obj.items?.data?.[0]?.price?.nickname || null, mrr_usd: mrr, became_paid_at: isPaid && !isChurned ? now : null, churned_at: isChurned ? now : null, source: obj.metadata?.utm_source || null, raw: evt }); })() }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+    },
+    {
+      "name": "Log to workflow_runs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [780, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow_name: 'Stripe | mm-ctrl | Revenue Alert', workflow_id: 'mmctrl-stripe-revenue', status: 'success', agent: 'system', run_at: new Date().toISOString(), outcome: ($json.body?.type || 'event') }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+    }
+  ],
+  "connections": {
+    "Stripe Webhook": {
+      "main": [[
+        { "node": "Telegram", "type": "main", "index": 0 },
+        { "node": "Supabase: Upsert Customer", "type": "main", "index": 0 },
+        { "node": "Log to workflow_runs", "type": "main", "index": 0 }
+      ]]
+    }
+  }
+}

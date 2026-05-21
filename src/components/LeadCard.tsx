@@ -1,10 +1,23 @@
 import React, { useState } from 'react'
-import { ExternalLink, ThumbsUp, X, Linkedin, Mail } from 'lucide-react'
+import { ExternalLink, ThumbsUp, X, Linkedin, Mail, ArrowUpRight, Calendar, UserCog, Sparkles } from 'lucide-react'
 import { humanAge } from '../lib/ageHelpers'
 import { LeadSourcePill } from './LeadSourcePill'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import type { LeadRow, LeadStatus } from '../hooks/useRealtimeLeads'
+
+const ASSIGNEE_OPTIONS = ['felix', 'maya', 'nell', 'krish'] as const
+
+function plusDaysIso(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  return d.toISOString()
+}
+
+function overdueFollowUp(iso?: string | null): boolean {
+  if (!iso) return false
+  return new Date(iso).getTime() < Date.now()
+}
 
 interface Props {
   lead: LeadRow
@@ -22,10 +35,14 @@ interface Props {
  * Status changes write through /api/leads/:id which updates Supabase; the
  * realtime subscription animates the card to its new lane.
  */
+type LeadActionState = LeadStatus | 'promote' | 'reassign' | 'follow_up' | 'deep_enrich'
+
 export function LeadCard({ lead: l, onOpen }: Props) {
   const { toast } = useToast()
   const h = useHaptics()
-  const [busy, setBusy] = useState<null | LeadStatus>(null)
+  const [busy, setBusy] = useState<null | LeadActionState>(null)
+  const [reassignOpen, setReassignOpen] = useState(false)
+  const [followUpOpen, setFollowUpOpen] = useState(false)
 
   const setStatus = async (next: LeadStatus) => {
     h.heavy()
@@ -47,6 +64,87 @@ export function LeadCard({ lead: l, onOpen }: Props) {
     } catch {
       h.error()
       toast('Could not update lead — try again.', 'error')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const patchLead = async (body: Record<string, unknown>) => {
+    const r = await fetch(`/api/leads/${l.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!r.ok) throw new Error(String(r.status))
+  }
+
+  const promote = async () => {
+    h.heavy()
+    setBusy('promote')
+    try {
+      const r = await fetch('/api/leads/promote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead_id: l.id }),
+      })
+      if (!r.ok) throw new Error(String(r.status))
+      h.success()
+      toast('Promoted — task created.', 'success')
+    } catch {
+      h.error()
+      toast('Could not promote — try again.', 'error')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const reassign = async (agent: string) => {
+    h.heavy()
+    setBusy('reassign')
+    setReassignOpen(false)
+    try {
+      await patchLead({ assignee_agent: agent })
+      h.success()
+      toast(`Reassigned to ${agent}.`, 'success')
+    } catch {
+      h.error()
+      toast('Could not reassign — try again.', 'error')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const scheduleFollowUp = async (days: number) => {
+    h.heavy()
+    setBusy('follow_up')
+    setFollowUpOpen(false)
+    try {
+      await patchLead({ follow_up_at: plusDaysIso(days) })
+      h.success()
+      toast(`Follow up in ${days}d.`, 'success')
+    } catch {
+      h.error()
+      toast('Could not schedule — try again.', 'error')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const deepEnrich = async () => {
+    h.heavy()
+    setBusy('deep_enrich')
+    try {
+      const r = await fetch('/webhook/lead-deep-enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead_id: l.id }),
+      })
+      if (!r.ok) throw new Error(String(r.status))
+      h.success()
+      toast('Agatha is enriching — refresh in ~30s.', 'success')
+    } catch {
+      h.error()
+      toast('Could not trigger enrichment — try again.', 'error')
     } finally {
       setBusy(null)
     }
@@ -120,6 +218,28 @@ export function LeadCard({ lead: l, onOpen }: Props) {
         </p>
       )}
 
+      {l.follow_up_at && (
+        <p className={`text-[11px] mt-2 leading-snug ${overdueFollowUp(l.follow_up_at) ? 'text-rose-300' : 'text-white/45'}`}>
+          <Calendar size={10} className="inline mr-1" />
+          {overdueFollowUp(l.follow_up_at)
+            ? `Follow-up overdue (${humanAge(l.follow_up_at)})`
+            : `Follow up ${humanAge(l.follow_up_at)}`}
+        </p>
+      )}
+
+      {l.promoted_task_id && (
+        <p className="text-[11px] text-emerald-300/80 mt-1.5">
+          <ArrowUpRight size={10} className="inline mr-1" />
+          Promoted to opportunity
+        </p>
+      )}
+      {l.deep_enriched_at && (
+        <p className="text-[10px] text-white/35 mt-1">
+          <Sparkles size={9} className="inline mr-1" />
+          Deep-enriched {humanAge(l.deep_enriched_at)}
+        </p>
+      )}
+
       {/* Actions */}
       <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
         {l.status !== 'contacted' && (
@@ -133,6 +253,77 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             Mark contacted
           </button>
         )}
+        {!l.promoted_task_id && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); promote() }}
+            disabled={busy !== null}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-40 transition-colors"
+          >
+            <ArrowUpRight size={11} />
+            {busy === 'promote' ? 'Promoting…' : 'Promote'}
+          </button>
+        )}
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => setReassignOpen(o => !o)}
+            disabled={busy !== null}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+          >
+            <UserCog size={11} />
+            {l.assignee_agent ? `Reassign · ${l.assignee_agent}` : 'Assign'}
+          </button>
+          {reassignOpen && (
+            <div className="absolute z-20 mt-1 left-0 rounded-md border border-white/10 bg-[#141416] shadow-2xl p-1 flex flex-col min-w-[110px]">
+              {ASSIGNEE_OPTIONS.filter(a => a !== l.assignee_agent).map(a => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => reassign(a)}
+                  className="text-left px-2 py-1 rounded text-[11px] text-white/75 hover:bg-white/[0.06]"
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => setFollowUpOpen(o => !o)}
+            disabled={busy !== null}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+          >
+            <Calendar size={11} />
+            Follow-up
+          </button>
+          {followUpOpen && (
+            <div className="absolute z-20 mt-1 left-0 rounded-md border border-white/10 bg-[#141416] shadow-2xl p-1 flex gap-1">
+              {[1, 3, 7, 14].map(d => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => scheduleFollowUp(d)}
+                  className="text-left px-2 py-1 rounded text-[11px] text-white/75 hover:bg-white/[0.06] tabular-nums"
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); deepEnrich() }}
+          disabled={busy !== null || l.deep_enriched_at != null}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-amber-500/30 text-amber-200 hover:bg-amber-500/15 disabled:opacity-40 transition-colors"
+          title={l.deep_enriched_at ? 'Already deep-enriched' : 'Send to Agatha for deeper enrichment'}
+        >
+          <Sparkles size={11} />
+          {busy === 'deep_enrich' ? 'Enriching…' : 'Deep enrich'}
+        </button>
         {l.linkedin_url && (
           <a
             href={l.linkedin_url}

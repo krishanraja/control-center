@@ -1,0 +1,135 @@
+{
+  "name": "Maya | Customer Acquisition Sweeper",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "nodes": [
+    {
+      "name": "Daily 7AM UTC",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 200],
+      "parameters": {
+        "triggerTimes": { "item": [{ "mode": "everyDay", "hour": 7, "minute": 0 }] }
+      }
+    },
+    {
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 360],
+      "parameters": {}
+    },
+    {
+      "name": "Gutted: profiles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 100],
+      "parameters": {
+        "method": "GET",
+        "url": "https://hzadscrqmyilbisexvyz.supabase.co/rest/v1/profiles?select=id,created_at&limit=500",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "notes": "Create credential 'Gutted Anon' (httpHeaderAuth) with header 'apikey=<gutted anon key>'."
+    },
+    {
+      "name": "OnAlert: profiles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "https://zcreubinittdqyoxxwtp.supabase.co/rest/v1/profiles?select=id,created_at&limit=500",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "notes": "Credential 'OnAlert Anon'."
+    },
+    {
+      "name": "Merciless: subscriptions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://cgkcplcamsijghalintq.supabase.co/rest/v1/user_subscriptions?select=*&limit=500",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "notes": "Credential 'Merciless Anon'."
+    },
+    {
+      "name": "Fractionl Circle: subscriptions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 400],
+      "parameters": {
+        "method": "GET",
+        "url": "https://ksyuwacuigshvcyptlhe.supabase.co/rest/v1/subscriptions?select=*&limit=500",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "notes": "Credential 'Fractionl Circle Anon'."
+    },
+    {
+      "name": "Fractionl Pulse: waitlist",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 500],
+      "parameters": {
+        "method": "GET",
+        "url": "https://dtlcprcpvdomrehbejhw.supabase.co/rest/v1/waitlist?select=*&limit=500",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "notes": "Credential 'Fractionl Pulse Anon'."
+    },
+    {
+      "name": "Normalise All",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [820, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Each upstream node returns an array of rows. We map them all into the\n// central customers shape, tagged with the right product + kind.\nconst gutted   = $('Gutted: profiles').all().map(i => i.json).flat();\nconst onalert  = $('OnAlert: profiles').all().map(i => i.json).flat();\nconst merc     = $('Merciless: subscriptions').all().map(i => i.json).flat();\nconst circle   = $('Fractionl Circle: subscriptions').all().map(i => i.json).flat();\nconst pulseW   = $('Fractionl Pulse: waitlist').all().map(i => i.json).flat();\n\nconst out = [];\nfor (const r of gutted)  out.push({ product: 'gutted',           kind: 'free_signup', email: r.email || null, signed_up_at: r.created_at, source: 'profiles' });\nfor (const r of onalert) out.push({ product: 'onalert',          kind: 'free_signup', email: r.email || null, signed_up_at: r.created_at, source: 'profiles' });\nfor (const r of merc) {\n  const isActive = r.status === 'active' && !r.cancel_at_period_end;\n  out.push({ product: 'merciless', kind: isActive ? 'paid' : 'churned', email: r.email || null, plan: r.tier || null, stripe_customer_id: r.stripe_customer_id || null, stripe_subscription_id: r.stripe_subscription_id || null, became_paid_at: r.created_at, churned_at: isActive ? null : (r.updated_at || null) });\n}\nfor (const r of circle) {\n  const isActive = r.status === 'active' && !r.cancel_at_period_end;\n  out.push({ product: 'fractionl_circle', kind: isActive ? 'paid' : 'churned', email: r.email || null, plan: r.tier || null, stripe_customer_id: r.stripe_customer_id || null, stripe_subscription_id: r.stripe_subscription_id || null, became_paid_at: r.created_at, churned_at: isActive ? null : (r.updated_at || null) });\n}\nfor (const r of pulseW)  out.push({ product: 'fractionl_pulse', kind: 'waitlist',   email: r.email || null, signed_up_at: r.created_at, source: 'waitlist' });\n\nreturn out.map(row => ({ json: row }));"
+      }
+    },
+    {
+      "name": "Upsert Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1080, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/customers?on_conflict=product,email",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "resolution=merge-duplicates,return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+    }
+  ],
+  "connections": {
+    "Daily 7AM UTC":       { "main": [[{ "node": "Gutted: profiles",            "type": "main", "index": 0 }]] },
+    "Manual Trigger":      { "main": [[{ "node": "Gutted: profiles",            "type": "main", "index": 0 }]] },
+    "Gutted: profiles":    { "main": [[{ "node": "OnAlert: profiles",           "type": "main", "index": 0 }]] },
+    "OnAlert: profiles":   { "main": [[{ "node": "Merciless: subscriptions",    "type": "main", "index": 0 }]] },
+    "Merciless: subscriptions": { "main": [[{ "node": "Fractionl Circle: subscriptions", "type": "main", "index": 0 }]] },
+    "Fractionl Circle: subscriptions": { "main": [[{ "node": "Fractionl Pulse: waitlist", "type": "main", "index": 0 }]] },
+    "Fractionl Pulse: waitlist": { "main": [[{ "node": "Normalise All",         "type": "main", "index": 0 }]] },
+    "Normalise All":       { "main": [[{ "node": "Upsert Customer",             "type": "main", "index": 0 }]] }
+  }
+}
