@@ -27,6 +27,7 @@ import { MobileBets } from './components/mobile/MobileBets'
 import { AgentsProvider } from './contexts/AgentsContext'
 import { PendingFlagModal } from './components/PendingFlagModal'
 import { QuickCaptureIdea } from './components/QuickCaptureIdea'
+import { KillListModal } from './components/KillListModal'
 import { useHashRoute } from './hooks/useHashRoute'
 
 type TabId = 'home' | 'today' | 'plans' | 'leads' | 'customers' | 'bets' | 'org' | 'exec' | 'workflows' | 'systems'
@@ -111,6 +112,7 @@ export default function App() {
           <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onTab={handleTab} />
           <PendingFlagModal />
           <QuickCaptureIdea />
+          <KillListModal />
         </div>
       </AgentsProvider>
     </ToastProvider>

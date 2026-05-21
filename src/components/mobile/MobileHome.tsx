@@ -8,6 +8,8 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
 import { MrrTicker } from '../MrrTicker'
 import { DailyBriefBanner } from '../DailyBriefBanner'
+import { StreakPills } from '../StreakPills'
+import { DailyLockBanner } from '../DailyLockBanner'
 
 interface ExternalSignal {
   signal: string
@@ -55,8 +57,10 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
     <MobileShellPrim
       header={<TabHeader title="Mindmaker" subtitle="Decisions, not admin" />}
     >
+      <DailyLockBanner />
       <DailyBriefBanner />
       <MrrTicker variant="mobile" />
+      <StreakPills variant="mobile" />
       {heroSignal && (
         <HeroCard
           eyebrow="What needs you"
