@@ -3,6 +3,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { Brain, Radio, Zap, ExternalLink } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { AgentAvatar } from '../shared/AgentAvatar'
+import { AskMarcus } from '../AskMarcus'
 
 interface ZaraSignal {
   id: string
@@ -77,6 +78,8 @@ export function DesktopExec() {
         <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Intelligence</h1>
         <p className="text-xs md:text-[12px] text-white/40 mt-1">Strategic assessment, market signals, and external intelligence.</p>
       </div>
+
+      <AskMarcus />
 
       <div className="grid grid-cols-12 gap-4 md:gap-5">
 

@@ -13,6 +13,7 @@ import { WeeklyGoals, type GoalsData } from '../WeeklyGoals'
 import { PipelineLanes } from './PipelineLanes'
 import { OsHealthStrip } from './OsHealthStrip'
 import { MrrTicker } from '../MrrTicker'
+import { DailyBriefBanner } from '../DailyBriefBanner'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -113,6 +114,8 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
   return (
     <div className="flex flex-col gap-4 max-w-[1280px] mx-auto w-full">
+
+      <DailyBriefBanner />
 
       {/* MONEY MACHINE — the only number that matters. */}
       <MrrTicker variant="desktop" />
