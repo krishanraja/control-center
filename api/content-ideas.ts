@@ -64,6 +64,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : 'manual'
 
     // Try the N8N webhook first (handles extraction + embedding dedupe).
+    // PR 1 hardening: if the webhook returns 200 but did not actually persist
+    // an idea (no id in payload), treat as silent failure and log to
+    // audit_log so we never lose visibility into broken extraction.
     try {
       const r = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
@@ -82,10 +85,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
       if (r.ok) {
         const payload = await r.json().catch(() => ({}))
-        return res.json({ ok: true, via: 'n8n', ...payload })
+        const persistedId = (payload && (payload.id || (payload.idea && payload.idea.id))) || null
+        if (persistedId) {
+          return res.json({ ok: true, via: 'n8n', id: persistedId, idea: payload.idea || null })
+        }
+        await supabase.from('audit_log').insert({
+          event_type: 'idea_capture_webhook_silent_failure',
+          actor: 'control_center_api',
+          target: 'cleo-content-idea-capture-workflow',
+          details: JSON.stringify({
+            status: r.status,
+            payload,
+            raw_text_preview: rawText.slice(0, 100),
+            source_type: sourceType,
+          }),
+        })
+      } else {
+        await supabase.from('audit_log').insert({
+          event_type: 'idea_capture_webhook_non_2xx',
+          actor: 'control_center_api',
+          target: 'cleo-content-idea-capture-workflow',
+          details: JSON.stringify({
+            status: r.status,
+            raw_text_preview: rawText.slice(0, 100),
+            source_type: sourceType,
+          }),
+        })
       }
-    } catch {
-      // fall through to the direct-insert fallback
+    } catch (e) {
+      await supabase.from('audit_log').insert({
+        event_type: 'idea_capture_webhook_exception',
+        actor: 'control_center_api',
+        target: 'cleo-content-idea-capture-workflow',
+        details: JSON.stringify({
+          error: String(e),
+          raw_text_preview: rawText.slice(0, 100),
+          source_type: sourceType,
+        }),
+      })
     }
 
     // Fallback: direct insert with the raw text as the idea, so nothing is

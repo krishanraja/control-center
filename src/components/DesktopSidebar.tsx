@@ -1,17 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { LayoutDashboard, Calendar, CheckSquare, Users, Brain, Workflow, Activity, UserPlus } from 'lucide-react'
+import { MoreHorizontal, type LucideIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-
-const NAV = [
-  { id: 'home',      label: 'Home',    icon: LayoutDashboard },
-  { id: 'today',     label: 'Today',   icon: Calendar },
-  { id: 'leads',     label: 'Leads',   icon: UserPlus },
-  { id: 'plans',     label: 'Plans',   icon: CheckSquare },
-  { id: 'org',       label: 'Org',     icon: Users },
-  { id: 'exec',      label: 'Intel',   icon: Brain },
-  { id: 'workflows', label: 'Flows',   icon: Workflow },
-  { id: 'systems',   label: 'Systems', icon: Activity },
-]
+import { DESKTOP_PRIMARY_TABS, DESKTOP_DRAWER_TABS } from '../lib/tabs'
 
 interface Props {
   active: string
@@ -20,6 +10,7 @@ interface Props {
 
 export function DesktopSidebar({ active, onChange }: Props) {
   const [expanded, setExpanded] = useState(true)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [badge, setBadge] = useState<'green' | 'amber' | 'red' | 'unknown'>('unknown')
   const [badgeStatus, setBadgeStatus] = useState<string>('unknown')
   const [alertCount, setAlertCount] = useState(0)
@@ -77,7 +68,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
     <aside
       className={`${w} flex-shrink-0 border-r border-white/[0.07] bg-[#0a0a0b] flex flex-col sticky top-0 h-screen transition-[width] duration-150`}
       onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
+      onMouseLeave={() => { setExpanded(false); setDrawerOpen(false) }}
     >
       <div className="h-14 flex items-center gap-3 px-4 border-b border-white/[0.07]">
         <img src="/favicon.png" alt="" className="w-7 h-7 rounded-md object-cover flex-shrink-0" />
@@ -89,40 +80,59 @@ export function DesktopSidebar({ active, onChange }: Props) {
         )}
       </div>
 
-      <nav className="flex-1 py-3 px-2 space-y-1">
-        {NAV.map(({ id, label, icon: Icon }) => {
-          const isActive = active === id
-          const showHealthBadge = id === 'systems' && unhealthyCount > 0
-          return (
+      <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
+        {DESKTOP_PRIMARY_TABS.map(({ id, label, desktopIcon }) => (
+          <SidebarButton
+            key={id}
+            id={id}
+            label={label}
+            Icon={desktopIcon}
+            active={active === id}
+            onClick={() => onChange(id)}
+            expanded={expanded}
+            showHealthBadge={id === 'systems' && unhealthyCount > 0}
+            unhealthyCount={unhealthyCount}
+            badge={badge}
+          />
+        ))}
+
+        {DESKTOP_DRAWER_TABS.length > 0 && (
+          <>
             <button
-              key={id}
-              onClick={() => onChange(id)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all relative
-                ${isActive
-                  ? 'bg-violet-500/15 text-white border border-violet-500/25'
-                  : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04] border border-transparent'}`}
-              title={!expanded ? (showHealthBadge ? `${label} (${unhealthyCount} issues)` : label) : undefined}
+              type="button"
+              onClick={() => setDrawerOpen(o => !o)}
+              aria-label="More tabs"
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all border ${
+                drawerOpen
+                  ? 'bg-white/[0.04] text-white/80 border-white/10'
+                  : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04] border-transparent'
+              }`}
+              title={!expanded ? 'More' : undefined}
             >
-              <div className="relative">
-                <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={isActive ? 2.2 : 1.8} />
-                {showHealthBadge && (
-                  <span
-                    className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${badge === 'red' ? 'bg-rose-500' : 'bg-amber-400'} animate-pulse`}
-                    title={`${unhealthyCount} system${unhealthyCount > 1 ? 's' : ''} need attention`}
-                  />
-                )}
-              </div>
-              {expanded && (
-                <span className="truncate flex-1">{label}</span>
-              )}
-              {expanded && showHealthBadge && (
-                <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${badge === 'red' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                  {unhealthyCount}
-                </span>
-              )}
+              <MoreHorizontal className="w-4 h-4 flex-shrink-0" strokeWidth={1.8} />
+              {expanded && <span className="truncate flex-1">More</span>}
             </button>
-          )
-        })}
+
+            {drawerOpen && (
+              <div className="border-t border-white/[0.06] pt-2 mt-2 space-y-1">
+                {DESKTOP_DRAWER_TABS.map(({ id, label, desktopIcon }) => (
+                  <SidebarButton
+                    key={id}
+                    id={id}
+                    label={label}
+                    Icon={desktopIcon}
+                    active={active === id}
+                    onClick={() => { onChange(id); setDrawerOpen(false) }}
+                    expanded={expanded}
+                    showHealthBadge={false}
+                    unhealthyCount={0}
+                    badge={badge}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </nav>
 
       <div className="border-t border-white/[0.07] p-3 space-y-2">
@@ -146,5 +156,46 @@ export function DesktopSidebar({ active, onChange }: Props) {
         )}
       </div>
     </aside>
+  )
+}
+
+interface SidebarButtonProps {
+  id: string
+  label: string
+  Icon: LucideIcon
+  active: boolean
+  onClick: () => void
+  expanded: boolean
+  showHealthBadge: boolean
+  unhealthyCount: number
+  badge: 'green' | 'amber' | 'red' | 'unknown'
+}
+
+function SidebarButton({ id, label, Icon, active, onClick, expanded, showHealthBadge, unhealthyCount, badge }: SidebarButtonProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all relative
+        ${active
+          ? 'bg-violet-500/15 text-white border border-violet-500/25'
+          : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04] border border-transparent'}`}
+      title={!expanded ? (showHealthBadge ? `${label} (${unhealthyCount} issues)` : label) : undefined}
+    >
+      <div className="relative">
+        <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={active ? 2.2 : 1.8} />
+        {showHealthBadge && (
+          <span
+            className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${badge === 'red' ? 'bg-rose-500' : 'bg-amber-400'} animate-pulse`}
+            title={`${unhealthyCount} system${unhealthyCount > 1 ? 's' : ''} need attention`}
+          />
+        )}
+      </div>
+      {expanded && <span className="truncate flex-1">{label}</span>}
+      {expanded && showHealthBadge && (
+        <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${badge === 'red' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
+          {unhealthyCount}
+        </span>
+      )}
+    </button>
   )
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
 import { DetailSheet } from './DetailSheet'
+import { Logomark } from './Logomark'
 import { useRealtimeTasks, type TaskRow } from '../../hooks/useRealtimeTasks'
 import { useRealtimeLeads } from '../../hooks/useRealtimeLeads'
 import { useRealtimeContentIdeas } from '../../hooks/useRealtimeContentIdeas'
@@ -55,7 +56,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
   return (
     <MobileShellPrim
-      header={<TabHeader title="Mindmaker" subtitle="Decisions, not admin" />}
+      header={<TabHeader title="Mindmaker" subtitle="Decisions, not admin" leading={<Logomark size={36} />} />}
     >
       <DailyLockBanner />
       <DailyBriefBanner />
