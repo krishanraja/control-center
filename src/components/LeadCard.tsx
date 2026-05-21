@@ -4,6 +4,7 @@ import { humanAge } from '../lib/ageHelpers'
 import { LeadSourcePill } from './LeadSourcePill'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
+import { FeedbackButton } from './shared/FeedbackButton'
 import type { LeadRow, LeadStatus } from '../hooks/useRealtimeLeads'
 
 const ASSIGNEE_OPTIONS = ['felix', 'maya', 'nell', 'krish'] as const
@@ -358,15 +359,23 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             Source
           </a>
         )}
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); setStatus('superseded') }}
-          disabled={busy !== null}
-          className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors ml-auto"
-          title="Drop this lead"
-        >
-          <X size={11} />
-        </button>
+        <div className="flex items-center gap-1 ml-auto" onClick={(e) => e.stopPropagation()}>
+          <FeedbackButton
+            sourceTable="leads"
+            sourceId={l.id}
+            agentId={l.assignee_agent || 'felix'}
+            compact
+          />
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setStatus('superseded') }}
+            disabled={busy !== null}
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
+            title="Drop this lead"
+          >
+            <X size={11} />
+          </button>
+        </div>
       </div>
     </article>
   )

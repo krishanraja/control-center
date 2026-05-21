@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Crown, Cog, Sparkles, Zap, Play, Loader2, Pencil, Check, X } from 'lucide-react'
+import { Crown, Cog, Sparkles, Zap, Play, Loader2, Pencil, Check, X, AlertTriangle, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { humanize } from '../shared/tokens'
 import { FlagAgentModal } from '../FlagAgentModal'
+import { usePendingCorrections, type PendingCorrection } from '../../hooks/usePendingCorrections'
 
 interface Agent {
   id: string
@@ -110,6 +111,7 @@ function podOf(pod?: string): PodDef {
 
 export function DesktopOrg() {
   const [agents, setAgents] = useState<Agent[]>([])
+  const pendingCorrections = usePendingCorrections(5)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<{ tasks: any[]; runs: any[] }>({ tasks: [], runs: [] })
   const [flagTarget, setFlagTarget] = useState<{ id: string; name: string } | null>(null)
@@ -263,6 +265,14 @@ export function DesktopOrg() {
         </div>
         <p className="text-[11px] md:text-[12px] text-white/35 font-mono tabular-nums whitespace-nowrap">{agents.length} {agents.length === 1 ? 'agent' : 'agents'}</p>
       </div>
+
+      {pendingCorrections.data.length > 0 && (
+        <PendingCorrectionsPanel
+          corrections={pendingCorrections.data}
+          loading={pendingCorrections.loading}
+          onRefetch={pendingCorrections.refetch}
+        />
+      )}
 
       {groups.length === 0 && (
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] py-10 md:py-12 text-center">
@@ -632,6 +642,109 @@ function IdentityPlanEditor({ form, onChange, saving, error }: { form: EditForm;
 
       {error && <p className="text-[11px] text-rose-400">{error}</p>}
     </div>
+  )
+}
+
+function PendingCorrectionsPanel({
+  corrections,
+  loading,
+  onRefetch,
+}: {
+  corrections: PendingCorrection[]
+  loading: boolean
+  onRefetch: () => Promise<void>
+}) {
+  const [busy, setBusy] = useState<Record<string, 'idle' | 'approving' | 'rejecting' | 'ok' | 'err'>>({})
+  const [errMsg, setErrMsg] = useState<Record<string, string>>({})
+
+  const act = async (id: string, action: 'approve' | 'reject') => {
+    setBusy(prev => ({ ...prev, [id]: action === 'approve' ? 'approving' : 'rejecting' }))
+    setErrMsg(prev => ({ ...prev, [id]: '' }))
+    try {
+      const r = await fetch(`/api/corrections/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correction_id: id }),
+      })
+      const payload = await r.json().catch(() => ({}))
+      if (!r.ok || !payload.ok) throw new Error(payload.error || `HTTP ${r.status}`)
+      setBusy(prev => ({ ...prev, [id]: 'ok' }))
+      await onRefetch()
+    } catch (e) {
+      setBusy(prev => ({ ...prev, [id]: 'err' }))
+      setErrMsg(prev => ({ ...prev, [id]: (e as Error).message }))
+    }
+  }
+
+  return (
+    <section className="rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/[0.06] to-transparent p-3 md:p-4">
+      <header className="flex items-center gap-2 mb-3 px-0.5">
+        <span className="inline-flex items-center justify-center w-5 h-5 rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-300">
+          <AlertTriangle size={13} />
+        </span>
+        <h3 className="text-[11px] md:text-[12px] font-semibold uppercase tracking-[0.18em] text-amber-300">
+          Pending corrections from Vera
+        </h3>
+        <span className="text-[10px] font-mono tabular-nums text-white/30 ml-auto">
+          {loading ? '…' : corrections.length}
+        </span>
+      </header>
+      <p className="text-[10.5px] md:text-[11px] text-white/45 leading-snug mb-3 px-0.5">
+        Vera detected feedback patterns and proposed brief edits. Approve to append to the agent's identity, reject to dismiss.
+      </p>
+      <div className="space-y-2">
+        {corrections.map(c => {
+          const state = busy[c.id] || 'idle'
+          return (
+            <div key={c.id} className="rounded-lg border border-amber-500/20 bg-white/[0.02] p-3">
+              <div className="flex items-start gap-2 mb-2">
+                <AgentAvatar agent={c.agent_id} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-semibold text-white capitalize">{c.agent_id}</p>
+                  {c.pattern_reason_code && (
+                    <p className="text-[10px] text-amber-200/80 mt-0.5">
+                      Pattern: <span className="font-mono">{c.pattern_reason_code}</span>
+                      {Array.isArray(c.consumed_feedback_ids) && c.consumed_feedback_ids.length > 0 && (
+                        <span className="text-white/40"> · {c.consumed_feedback_ids.length} downvotes</span>
+                      )}
+                    </p>
+                  )}
+                </div>
+                <span className="text-[10px] text-white/30 tabular-nums flex-shrink-0">
+                  {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
+                </span>
+              </div>
+              {c.proposed_brief_edit && (
+                <pre className="text-[11px] text-white/70 leading-relaxed whitespace-pre-wrap bg-black/30 border border-white/[0.06] rounded p-2 max-h-40 overflow-auto font-mono">
+                  {c.proposed_brief_edit}
+                </pre>
+              )}
+              {errMsg[c.id] && (
+                <p className="text-[10px] text-rose-400 mt-1.5">{errMsg[c.id]}</p>
+              )}
+              <div className="flex items-center gap-1.5 mt-2.5">
+                <button
+                  onClick={() => act(c.id, 'approve')}
+                  disabled={state === 'approving' || state === 'rejecting' || state === 'ok'}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+                >
+                  {state === 'approving' ? <Loader2 size={11} className="animate-spin" /> : <ThumbsUp size={11} />}
+                  Approve
+                </button>
+                <button
+                  onClick={() => act(c.id, 'reject')}
+                  disabled={state === 'approving' || state === 'rejecting' || state === 'ok'}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-white/[0.04] text-white/60 border border-white/[0.08] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
+                >
+                  {state === 'rejecting' ? <Loader2 size={11} className="animate-spin" /> : <ThumbsDown size={11} />}
+                  Reject
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 

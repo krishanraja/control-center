@@ -4,6 +4,7 @@ import { humanAge } from '../lib/ageHelpers'
 import { LeadSourcePill } from './LeadSourcePill'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
+import { FeedbackButton } from './shared/FeedbackButton'
 import type { ContentIdeaRow, IdeaState } from '../hooks/useRealtimeContentIdeas'
 
 interface Props {
@@ -140,15 +141,23 @@ export function ContentIdeaCard({ idea: i, onOpen }: Props) {
             Draft
           </a>
         )}
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); setState('dropped') }}
-          disabled={busy !== null}
-          className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors ml-auto"
-          title="Drop this idea"
-        >
-          <X size={11} />
-        </button>
+        <div className="flex items-center gap-1 ml-auto" onClick={(e) => e.stopPropagation()}>
+          <FeedbackButton
+            sourceTable="content_ideas"
+            sourceId={i.id}
+            agentId="cleo"
+            compact
+          />
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setState('dropped') }}
+            disabled={busy !== null}
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
+            title="Drop this idea"
+          >
+            <X size={11} />
+          </button>
+        </div>
       </div>
     </article>
   )

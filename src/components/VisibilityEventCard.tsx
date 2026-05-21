@@ -2,6 +2,7 @@ import React from 'react'
 import {
   ExternalLink, Calendar, Users, MapPin, DollarSign, Globe2, Sparkles,
 } from 'lucide-react'
+import { FeedbackButton } from './shared/FeedbackButton'
 import type { NovaConferenceRow } from '../hooks/useNovaConferences'
 
 interface Props {
@@ -146,6 +147,14 @@ export function VisibilityEventCard({ conference: c }: Props) {
             Speakers
           </a>
         )}
+        <div className="ml-auto">
+          <FeedbackButton
+            sourceTable="nova_target_conferences"
+            sourceId={c.id}
+            agentId="nova"
+            compact
+          />
+        </div>
       </div>
     </article>
   )
