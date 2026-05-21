@@ -71,7 +71,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
   const submit = async (v: 1 | -1, reasonCode?: string) => {
     if (busy) return
     setBusy(true)
-    h.light()
+    h.tap()
     try {
       const r = await fetch('/api/feedback', {
         method: 'POST',
@@ -118,7 +118,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
       </button>
       <button
         type="button"
-        onClick={() => { h.light(); setShowReasons(true) }}
+        onClick={() => { h.tap(); setShowReasons(true) }}
         disabled={busy || vote !== null}
         aria-label="Thumbs down"
         title="Not useful"
