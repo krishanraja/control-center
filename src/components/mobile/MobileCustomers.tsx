@@ -7,6 +7,8 @@ import {
   type CustomerRow, type CustomerProduct,
 } from '../../hooks/useCustomers'
 import { MrrTicker } from '../MrrTicker'
+import { CustomerCouncilCard } from '../CustomerCouncilCard'
+import { ExpansionRadar } from '../ExpansionRadar'
 import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
 
 export function MobileCustomers() {
@@ -48,6 +50,8 @@ export function MobileCustomers() {
       }
     >
       <MrrTicker variant="mobile" />
+      <CustomerCouncilCard />
+      <ExpansionRadar />
       <CustomerSourcesPanel />
       {hero && (
         <HeroCard
