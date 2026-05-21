@@ -6,6 +6,8 @@ import {
   useCustomers, PRODUCT_LABEL, PRODUCT_ACCENT, KIND_LABEL, KIND_ACCENT,
   type CustomerRow, type CustomerProduct,
 } from '../../hooks/useCustomers'
+import { MrrTicker } from '../MrrTicker'
+import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
 
 export function MobileCustomers() {
   const h = useHaptics()
@@ -45,6 +47,8 @@ export function MobileCustomers() {
         />
       }
     >
+      <MrrTicker variant="mobile" />
+      <CustomerSourcesPanel />
       {hero && (
         <HeroCard
           eyebrow={hero.mode === 'paid' ? 'New paid customer' : 'Recent churn'}
