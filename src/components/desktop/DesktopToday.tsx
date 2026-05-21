@@ -46,10 +46,26 @@ function isSupersededOrDone(t: TaskRow): boolean {
 interface Props {
   selectedTaskId?: string | null
   onSelectTask?: (id: string | null) => void
+  lane?: string | null
+  onClearLane?: () => void
 }
 
-export function DesktopToday({ selectedTaskId, onSelectTask }: Props = {}) {
-  const { tasks, loading } = useRealtimeTasks()
+function matchesLane(t: TaskRow, lane: string | null): boolean {
+  if (!lane) return true
+  const agent = (t.agent || '').toLowerCase()
+  const workstream = (t.workstream || '').toLowerCase()
+  if (lane === 'content') return agent === 'cleo' || workstream === 'content'
+  if (lane === 'visibility') return agent === 'nova' || workstream === 'visibility'
+  if (lane === 'leads') return agent === 'felix' || agent === 'maya' || workstream === 'leads'
+  return true
+}
+
+export function DesktopToday({ selectedTaskId, onSelectTask, lane = null, onClearLane }: Props = {}) {
+  const { tasks: allTasks, loading } = useRealtimeTasks()
+  const tasks = useMemo(
+    () => (lane ? allTasks.filter(t => matchesLane(t, lane)) : allTasks),
+    [allTasks, lane],
+  )
   // Fallback to local state when the URL hasn't specified a task yet — preserves
   // the prior "first item auto-selected" behavior for direct visits to /today.
   const [localSelectedId, setLocalSelectedId] = useState<string | null>(null)
@@ -93,6 +109,17 @@ export function DesktopToday({ selectedTaskId, onSelectTask }: Props = {}) {
         <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Today</h1>
         <p className="text-xs md:text-[13px] text-white/50 mt-0.5">Everything that needs you.</p>
       </div>
+      {lane && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-violet-500/10 border border-violet-400/20 rounded-lg text-sm">
+          <span className="text-violet-200">Filtered to {lane}</span>
+          <button
+            onClick={() => onClearLane?.()}
+            className="ml-auto text-white/60 hover:text-white text-xs"
+          >
+            Show all
+          </button>
+        </div>
+      )}
       {loading && <p className="text-[12px] text-white/30">Loading…</p>}
 
       {today.due.length > 0 && (

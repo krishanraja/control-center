@@ -142,7 +142,7 @@ function ContentLane({
       total={combinedTotal}
       stages={CONTENT_STAGES}
       stageCounts={stageCounts}
-      onOpenAll={() => onNavigate?.('plans', { workstream: 'content' })}
+      onOpenAll={() => onNavigate?.('today', { lane: 'content' })}
     >
       <div className="flex flex-col gap-2">
         {/* Ideas inbox — the user's "idea / thesis / where" view. */}
@@ -396,7 +396,7 @@ function LeadsLane({
       total={rollup.total}
       stages={LEADS_STAGES}
       stageCounts={stageCounts}
-      onOpenAll={() => onNavigate?.('plans', { workstream: 'leads' })}
+      onOpenAll={() => onNavigate?.('leads')}
     >
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] divide-y divide-white/[0.04]">
         {topItems.map(t => (
@@ -492,7 +492,7 @@ function VisibilityLane({
       total={combinedTotal}
       stages={VISIBILITY_STAGES}
       stageCounts={stageCounts}
-      onOpenAll={() => onNavigate?.('plans', { workstream: 'visibility' })}
+      onOpenAll={() => onNavigate?.('today', { lane: 'visibility' })}
       emptyLabel={laneEmpty ? 'Nothing in motion.' : undefined}
     >
       <div className="flex flex-col gap-2">

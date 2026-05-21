@@ -38,15 +38,18 @@ export function MobileShell({
 export function TabHeader({
   title,
   subtitle,
+  leading,
   trailing,
 }: {
   title: string
   subtitle?: string
+  leading?: React.ReactNode
   trailing?: React.ReactNode
 }) {
   return (
-    <div className="flex items-end justify-between">
-      <div className="min-w-0">
+    <div className="flex items-end justify-between gap-3">
+      {leading && <div className="flex-shrink-0 self-start mt-1">{leading}</div>}
+      <div className="min-w-0 flex-1">
         <h1 className="text-[44px] font-bold text-white leading-[1.02] tracking-tight">
           {title}
         </h1>

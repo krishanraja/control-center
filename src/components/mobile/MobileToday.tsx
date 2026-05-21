@@ -38,10 +38,29 @@ function urgencyAccent(t: TaskRow): 'red' | 'amber' | 'violet' | 'neutral' {
   return 'neutral'
 }
 
-export function MobileToday() {
+interface MobileTodayProps {
+  lane?: string | null
+  onClearLane?: () => void
+}
+
+function matchesLane(t: TaskRow, lane: string | null): boolean {
+  if (!lane) return true
+  const agent = (t.agent || '').toLowerCase()
+  const ws = (t.workstream || '').toLowerCase()
+  if (lane === 'content') return agent === 'cleo' || ws === 'content'
+  if (lane === 'visibility') return agent === 'nova' || ws === 'visibility'
+  if (lane === 'leads') return agent === 'felix' || agent === 'maya' || ws === 'leads'
+  return true
+}
+
+export function MobileToday({ lane = null, onClearLane }: MobileTodayProps = {}) {
   const h = useHaptics()
   const { toast } = useToast()
-  const { tasks, loading } = useRealtimeTasks()
+  const { tasks: allTasks, loading } = useRealtimeTasks()
+  const tasks = useMemo(
+    () => (lane ? allTasks.filter(t => matchesLane(t, lane)) : allTasks),
+    [allTasks, lane],
+  )
   const [openId, setOpenId] = useState<string | null>(null)
   const [showStale, setShowStale] = useState(false)
 
@@ -113,6 +132,17 @@ export function MobileToday() {
         />
       }
     >
+      {lane && (
+        <div className="flex items-center gap-2 px-3 py-2 mb-3 bg-violet-500/10 border border-violet-400/20 rounded-lg text-sm">
+          <span className="text-violet-200">Filtered to {lane}</span>
+          <button
+            onClick={() => onClearLane?.()}
+            className="ml-auto text-white/60 hover:text-white text-xs"
+          >
+            Show all
+          </button>
+        </div>
+      )}
       {hero && (
         <HeroCard
           eyebrow={hero.agent ? `Needs you · ${hero.agent}` : 'Needs you'}

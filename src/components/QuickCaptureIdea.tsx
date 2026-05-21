@@ -53,23 +53,33 @@ export function QuickCaptureIdea() {
     if (!raw || busy) return
     h.heavy()
     setBusy(true)
-    try {
-      const r = await fetch('/api/content-ideas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ raw_text: raw, source_type: 'manual' }),
-      })
-      if (!r.ok) throw new Error(String(r.status))
-      h.success()
-      toast('Idea captured — Cleo is enriching it.', 'success')
-      setText('')
-      setOpen(false)
-    } catch {
-      h.error()
-      toast('Could not capture idea — try again.', 'error')
-    } finally {
-      setBusy(false)
+    let lastError: string | null = null
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const r = await fetch('/api/content-ideas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw_text: raw, source_type: 'manual' }),
+        })
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        const payload = await r.json().catch(() => ({}))
+        if (!payload.ok) throw new Error(payload.error || 'unknown error')
+        h.success()
+        toast('Idea captured. Cleo is enriching it.', 'success')
+        setText('')
+        setOpen(false)
+        setBusy(false)
+        return
+      } catch (e) {
+        lastError = (e as Error).message
+        if (attempt === 0) {
+          await new Promise(r => setTimeout(r, 1000))
+        }
+      }
     }
+    h.error()
+    toast(`Could not capture idea: ${lastError || 'unknown'}`, 'error')
+    setBusy(false)
   }
 
   return (
