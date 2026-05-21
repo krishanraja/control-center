@@ -4,6 +4,7 @@ import { humanAge } from '../lib/ageHelpers'
 import { LeadSourcePill } from './LeadSourcePill'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
+import { FeedbackButton } from './shared/FeedbackButton'
 import type { ContentIdeaRow, IdeaState } from '../hooks/useRealtimeContentIdeas'
 
 interface Props {
