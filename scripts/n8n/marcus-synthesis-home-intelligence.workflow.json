@@ -1,0 +1,912 @@
+{
+  "active": true,
+  "connections": {
+    "Cron Monday 11:55 ET": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Brief",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Audit Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Mode Deep": {
+      "main": [
+        [
+          {
+            "node": "Load OS State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Mode Fast": {
+      "main": [
+        [
+          {
+            "node": "Load OS State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load OS State": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call Anthropic Sonnet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Anthropic Sonnet": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini Flash Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Flash Fallback": {
+      "main": [
+        [
+          {
+            "node": "Parse LLM Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LLM Response": {
+      "main": [
+        [
+          {
+            "node": "Write to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Telegram Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Brief": {
+      "main": [
+        [
+          {
+            "node": "Load Voice Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Voice Rules": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Identity Prepend": {
+      "main": [
+        [
+          {
+            "node": "Set Mode Deep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Brief 2": {
+      "main": [
+        [
+          {
+            "node": "Load Voice Rules 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Voice Rules 2": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Plan 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Identity Prepend 2": {
+      "main": [
+        [
+          {
+            "node": "Set Mode Fast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Notify": {
+      "main": [
+        [
+          {
+            "node": "Log Run to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron Wed Fri 07:00 ET": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Brief 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron Sunday 11:55 ET Deep": {
+      "main": [
+        [
+          {
+            "node": "Load Agent Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Plan": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Agent Plan 2": {
+      "main": [
+        [
+          {
+            "node": "Build Identity Prepend 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "name": "Marcus | Mindmaker OS | Synthesis + Home Intelligence",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "55 15 * * 1"
+            }
+          ]
+        }
+      },
+      "name": "Cron Monday 11:55 ET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        208
+      ],
+      "id": "a1881c51-8cf4-4d83-b6bf-af32f7acf8b7"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 11 * * 3,5"
+            }
+          ]
+        }
+      },
+      "name": "Cron Wed Fri 07:00 ET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        432
+      ],
+      "id": "3c3b1f72-6362-4d59-a276-f5b3f21bf6ab"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "mode-deep",
+              "name": "mode",
+              "value": "deep",
+              "type": "string"
+            },
+            {
+              "id": "started-deep",
+              "name": "started_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set Mode Deep",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        208
+      ],
+      "id": "62ff296b-7d97-45dd-aca7-42e614db8966"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "mode-fast",
+              "name": "mode",
+              "value": "fast",
+              "type": "string"
+            },
+            {
+              "id": "started-fast",
+              "name": "started_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set Mode Fast",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        432
+      ],
+      "id": "a6b5c5f1-b051-428c-84a8-a067326af6a2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nconst SB_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc';\nconst H = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY };\n\nconst mode = $input.first().json.mode;\nconst startedAt = $input.first().json.started_at;\n\nasync function q(path) {\n  try {\n    const resp = await __httpRequest({ method: 'GET', url: SB_URL + path, headers: H });\n    return Array.isArray(resp) ? resp : [];\n  } catch (e) { return []; }\n}\n\nconst qb = q.bind(this);\n\nconst sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();\n\nconst [\n  brief,\n  signals,\n  tasks,\n  auditLog,\n  veraAudit,\n  productHealth,\n  nellCandidates,\n  mayaStriking,\n  mayaCompetitive,\n  opportunities,\n  businessMetrics,\n  systemHealth,\n  agents\n] = await Promise.all([\n  qb('/rest/v1/agents?id=eq.marcus&select=brief_content,mandate,personality,mission,kpi_label,kpi_target,kpi_current'),\n  qb('/rest/v1/zara_signals?select=signal_type,venture,company_name,description,source_url,signal_score,routed_to,surfaced_at,krish_rating,rating_notes&order=surfaced_at.desc&surfaced_at=gte.' + sevenDaysAgo + '&limit=50'),\n  qb('/rest/v1/tasks?select=owner,agent,venture,title,status,priority,urgency,next_step,blocked_by,created,updated_at&order=updated_at.desc&limit=60'),\n  qb('/rest/v1/audit_log?select=actor,event_type,details,created_at&order=created_at.desc&created_at=gte.' + sevenDaysAgo + '&limit=150'),\n  qb('/rest/v1/vera_audit?select=audit_date,audit_type,clean,quality_score,findings&order=audit_date.desc&audit_date=gte.' + sevenDaysAgo + '&limit=10'),\n  qb('/rest/v1/product_health?select=app_name,system_status,days_since_last_commit,http_status,open_issues,checked_at&order=checked_at.desc&limit=25'),\n  qb('/rest/v1/nell_candidates?select=name,signal_type,signal_description,status,fit_score,best_channel,surfaced_at&order=surfaced_at.desc&surfaced_at=gte.' + sevenDaysAgo + '&limit=20'),\n  qb('/rest/v1/maya_striking_distance?select=product,query,current_position,previous_position,ctr,priority,found_at&order=found_at.desc&limit=15'),\n  qb('/rest/v1/maya_competitive_changes?select=product,competitor,change_type,previous_value,new_value,detected_at&order=detected_at.desc&detected_at=gte.' + sevenDaysAgo + '&limit=15'),\n  qb('/rest/v1/opportunities?select=company_name,venture,stage,owner,estimated_value,notes,updated_at&order=updated_at.desc&limit=20'),\n  qb('/rest/v1/business_metrics?select=label,value,target,status,unit,updated_at&order=updated_at.desc&limit=20'),\n  qb('/rest/v1/system_health?select=component,status,last_check,message&order=last_check.desc&limit=20'),\n  qb('/rest/v1/agents?select=id,name,role,pod,active,last_run,last_output,expected_runs_per_day&active=eq.true&order=id.asc')\n]);\n\nconst marcusBrief = brief[0] || {};\n\nreturn [{\n  json: {\n    mode,\n    started_at: startedAt,\n    week_of: new Date().toISOString().split('T')[0],\n    marcus_brief: marcusBrief.brief_content || '',\n    marcus_mission: marcusBrief.mission || '',\n    marcus_kpi: { label: marcusBrief.kpi_label, target: marcusBrief.kpi_target, current: marcusBrief.kpi_current },\n    signals,\n    tasks,\n    audit_log: auditLog,\n    vera_audit: veraAudit,\n    product_health: productHealth,\n    nell_candidates: nellCandidates,\n    maya_striking: mayaStriking,\n    maya_competitive: mayaCompetitive,\n    opportunities,\n    business_metrics: businessMetrics,\n    system_health: systemHealth,\n    agents\n  }\n}];"
+      },
+      "name": "Load OS State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        304
+      ],
+      "id": "d1cd5923-3fcf-41dc-b789-13a06a92b416"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Identity Prepend ---\nlet identity_prepend = '';\ntry { identity_prepend = $('Build Identity Prepend').first().json.identity_prepend || ''; } catch(e) {}\ntry { if (!identity_prepend) identity_prepend = $('Build Identity Prepend 2').first().json.identity_prepend || ''; } catch(e) {}\n// --- End Identity Prepend ---\n\nconst s = $input.first().json;\nconst mode = s.mode;\n\nconst agentActivity = {};\nfor (const l of s.audit_log) {\n  const a = l.actor || 'unknown';\n  agentActivity[a] = (agentActivity[a] || 0) + 1;\n}\n\nconst signalsBlock = s.signals.length === 0 ? 'No signals logged this week.' : s.signals.map(x => '[' + (x.signal_type || '?') + '/' + (x.venture || '?') + '] score=' + (x.signal_score ?? '?') + ' routed=' + (x.routed_to || '?') + ' rated=' + (x.krish_rating ?? 'unrated') + ' — ' + (x.company_name ? x.company_name + ': ' : '') + (x.description || '').slice(0, 220)).join('\\n');\n\nconst tasksBlock = s.tasks.length === 0 ? 'No tasks logged.' : s.tasks.slice(0, 40).map(t => (t.agent || t.owner || 'unassigned') + ' [' + (t.venture || '?') + '] ' + t.status + ' p=' + (t.priority || '?') + ': ' + (t.title || '').slice(0, 160) + (t.blocked_by ? ' (blocked: ' + t.blocked_by + ')' : '')).join('\\n');\n\nconst veraBlock = s.vera_audit.length === 0 ? 'No recent Vera audits.' : s.vera_audit.map(v => v.audit_type + ' clean=' + v.clean + ' score=' + (v.quality_score ?? '?') + ' findings=' + (v.findings ? JSON.stringify(v.findings).slice(0, 300) : 'none')).join('\\n');\n\nconst productBlock = s.product_health.length === 0 ? 'No product health data.' : s.product_health.slice(0, 15).map(p => p.app_name + ': ' + p.system_status + ' commits_age=' + (p.days_since_last_commit ?? '?') + 'd issues=' + (p.open_issues ?? '?')).join('\\n');\n\nconst nellBlock = s.nell_candidates.length === 0 ? 'No new Nell candidates this week.' : s.nell_candidates.slice(0, 10).map(n => n.name + ' [' + (n.signal_type || '?') + '] fit=' + (n.fit_score ?? '?') + ' status=' + (n.status || '?') + ' — ' + (n.signal_description || '').slice(0, 150)).join('\\n');\n\nconst mayaBlock = (s.maya_striking.length + s.maya_competitive.length === 0) ? 'No SEO or competitive movement detected.' : [\n  s.maya_striking.length > 0 ? 'Striking-distance: ' + s.maya_striking.slice(0, 5).map(m => m.product + '/' + m.query + ' pos=' + m.current_position + ' (was ' + m.previous_position + ')').join(' | ') : '',\n  s.maya_competitive.length > 0 ? 'Competitive moves: ' + s.maya_competitive.slice(0, 5).map(m => m.competitor + ' ' + m.change_type + ' on ' + m.product).join(' | ') : ''\n].filter(Boolean).join('\\n');\n\nconst oppsBlock = s.opportunities.length === 0 ? 'No pipeline opportunities logged.' : s.opportunities.slice(0, 10).map(o => (o.company_name || '?') + ' [' + (o.venture || '?') + '] stage=' + (o.stage || '?') + ' owner=' + (o.owner || '?') + ' est=$' + (o.estimated_value || 0)).join('\\n');\n\nconst metricsBlock = s.business_metrics.length === 0 ? 'No business metrics set.' : s.business_metrics.map(m => m.label + ': ' + m.value + (m.unit || '') + ' (target: ' + m.target + ') status=' + m.status).join('\\n');\n\nconst healthBlock = s.system_health.length === 0 ? 'No system health checks.' : s.system_health.slice(0, 10).map(h => h.component + ': ' + h.status + (h.message ? ' — ' + h.message.slice(0, 100) : '')).join('\\n');\n\nconst agentsBlock = s.agents.map(a => {\n  const activity = agentActivity[a.id] || 0;\n  const lastOut = (a.last_output || '').slice(0, 400);\n  return '[' + a.id + '/' + a.pod + '] ' + a.role + ' — runs_7d=' + activity + ' last_run=' + (a.last_run || 'never') + (lastOut ? '\\n  last_output: ' + lastOut : '');\n}).join('\\n');\n\nconst marcusIdentity = identity_prepend + 'You are Marcus, Intelligence Synthesist for Krish Raja — founder-operator running Mindmaker (AI literacy advisory for senior leaders), AdFixus (publisher identity infrastructure), Meliora (AI transformation advisory for broadcast/legacy media), and a personal brand (Techonomic, Signal and Noise, Builder Economy). You serve 14 other agents and Krish. You do not write content, run BD outreach, or make product calls. You find patterns no single agent can see, and you route insights through Agatha (COO), never directly to Krish.\\n\\nYour voice is direct, commercial, and opinionated. No em dashes anywhere. No hedging. No management-speak. No motivational language. Prefer short sentences. Name specific agents, specific ventures, specific numbers.';\n\nlet prompt;\n\nif (mode === 'deep') {\n  prompt = marcusIdentity + '\\n\\n=== WEEKLY SYNTHESIS TASK ===\\n\\nAnalyse the last 7 days of OS data below. Produce exactly 3 cross-domain insights. Each insight must connect signals from at least two different domains (e.g. a Zara signal + a Nell outreach gap, or a Vera audit finding + a product health issue + a market window). Insights must be specific and actionable. Summaries are a failure.\\n\\nAlso produce:\\n(1) org_focus: one sentence naming the single most important thing Krish should focus on this week and why\\n(2) cleo_recommendation: one content angle Cleo should publish this week, drawn from a real signal in the data, with the actual hook\\n\\nAlso produce the Home Intelligence brief for the Control Center dashboard:\\n- summary: { headline: string (under 15 words), body: string (2-3 sentences, opinionated, names specific things), recommended_focus: string (one sentence) }\\n- metrics: array of 3-5 objects { id, label, value, target, status (one of: on_track, ahead, blocked, in_progress, at_risk), progress_pct (0-100), interpretation (one sentence, not just a number) }\\n- external_signals: array of 1-2 objects { signal, source, relevance (Critical|High|Medium), recommended_action }\\n\\n=== MARCUS BRIEF (your own identity) ===\\n' + (s.marcus_brief ? s.marcus_brief.slice(0, 2500) : 'Not loaded.') + '\\n\\n=== AGENT FLEET (15 agents, last 7 days activity + last output) ===\\n' + agentsBlock + '\\n\\n=== ZARA SIGNALS (7d) ===\\n' + signalsBlock + '\\n\\n=== TASKS (active + recent) ===\\n' + tasksBlock + '\\n\\n=== VERA AUDITS (7d) ===\\n' + veraBlock + '\\n\\n=== PRODUCT HEALTH ===\\n' + productBlock + '\\n\\n=== NELL CANDIDATES (7d) ===\\n' + nellBlock + '\\n\\n=== MAYA SEO + COMPETITIVE (7d) ===\\n' + mayaBlock + '\\n\\n=== OPPORTUNITIES (pipeline) ===\\n' + oppsBlock + '\\n\\n=== BUSINESS METRICS ===\\n' + metricsBlock + '\\n\\n=== SYSTEM HEALTH ===\\n' + healthBlock + '\\n\\nRespond in this exact JSON shape and nothing else (no markdown, no preamble):\\n{\\n  \"insights\": [\"...\", \"...\", \"...\"],\\n  \"org_focus\": \"...\",\\n  \"cleo_recommendation\": \"...\",\\n  \"home_summary\": { \"headline\": \"...\", \"body\": \"...\", \"recommended_focus\": \"...\" },\\n  \"home_metrics\": [ { \"id\": \"...\", \"label\": \"...\", \"value\": \"...\", \"target\": \"...\", \"status\": \"...\", \"progress_pct\": 0, \"interpretation\": \"...\" } ],\\n  \"home_external_signals\": [ { \"signal\": \"...\", \"source\": \"...\", \"relevance\": \"...\", \"recommended_action\": \"...\" } ],\\n  \"home_customer_signals\": [ { \"product\": \"gutted|onalert|merciless|fractionl_circle|fractionl_pulse|mm_ctrl\", \"paid_added\": 0, \"churned\": 0, \"mrr_delta\": 0, \"free_added\": 0, \"top_source\": null } ],\\n  \"home_customer_voice\": [ { \"theme\": \"...\", \"mention_count\": 0, \"sample_quote\": \"...\", \"products\": [], \"recommended_response\": \"...\" } ]\\n}';\n} else {\n  prompt = marcusIdentity + '\\n\\n=== HOME INTELLIGENCE FAST UPDATE ===\\n\\nProduce a fast Home Intelligence update for the Control Center dashboard. Keep it tight: 3 bullets max in body, opinionated, specific. This is a 48-hour refresh, not a deep synthesis.\\n\\nReturn:\\n- summary: { headline: string (under 12 words), body: string (exactly 3 short lines separated by \\\\n, each naming a specific agent/venture/metric), recommended_focus: string (one sentence) }\\n- metrics: array of 3-4 objects { id, label, value, target, status, progress_pct, interpretation }\\n- external_signals: array of 1 object { signal, source, relevance, recommended_action }\\n\\n=== AGENT FLEET ACTIVITY (7d) ===\\n' + agentsBlock + '\\n\\n=== TOP SIGNALS ===\\n' + signalsBlock + '\\n\\n=== ACTIVE TASKS ===\\n' + tasksBlock.split('\\n').slice(0, 20).join('\\n') + '\\n\\n=== SYSTEM HEALTH ===\\n' + healthBlock + '\\n\\nRespond in this exact JSON shape (no markdown, no preamble):\\n{\\n  \"home_summary\": { \"headline\": \"...\", \"body\": \"...\", \"recommended_focus\": \"...\" },\\n  \"home_metrics\": [ { \"id\": \"...\", \"label\": \"...\", \"value\": \"...\", \"target\": \"...\", \"status\": \"...\", \"progress_pct\": 0, \"interpretation\": \"...\" } ],\\n  \"home_external_signals\": [ { \"signal\": \"...\", \"source\": \"...\", \"relevance\": \"...\", \"recommended_action\": \"...\" } ],\\n  \"home_customer_signals\": [ { \"product\": \"gutted|onalert|merciless|fractionl_circle|fractionl_pulse|mm_ctrl\", \"paid_added\": 0, \"churned\": 0, \"mrr_delta\": 0, \"free_added\": 0, \"top_source\": null } ],\\n  \"home_customer_voice\": [ { \"theme\": \"...\", \"mention_count\": 0, \"sample_quote\": \"...\", \"products\": [], \"recommended_response\": \"...\" } ]\\n}';\n}\n\nconst anthropic_body = {\n  model: 'claude-sonnet-4-6',\n  max_tokens: mode === 'deep' ? 3500 : 1200,\n  messages: [{ role: 'user', content: prompt }]\n};\n\nconst gemini_body = {\n  contents: [{ parts: [{ text: prompt }] }],\n  generationConfig: { maxOutputTokens: mode === 'deep' ? 3500 : 1200, temperature: 0.6 }\n};\n\nreturn [{\n  json: {\n    mode,\n    week_of: s.week_of,\n    started_at: s.started_at,\n    prompt_length: prompt.length,\n    anthropic_body,\n    gemini_body\n  }\n}];"
+      },
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        304
+      ],
+      "id": "88814748-16bc-43dc-9b72-3d8b3588cfa5"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropic_body }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "name": "Call Anthropic Sonnet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1120,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mWM02P5QWwMeKi1Q",
+          "name": "Vercel Access Token"
+        },
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "56bbf7c3-5996-4e0d-9759-d67cab49bc13"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('Build Prompt').first().json.gemini_body }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "name": "Gemini Flash Fallback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1120,
+        528
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mWM02P5QWwMeKi1Q",
+          "name": "Vercel Access Token"
+        },
+        "googlePalmApi": {
+          "id": "9APxaZ9EWJLh0hgi",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "id": "19b29816-646d-4a76-bf7b-5c14ab0dedaf"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Defensive: LLM could be Anthropic success OR Gemini fallback\n// Previous version called $('Gemini Flash Fallback') via helper which threw an Error\n// that the n8n runtime couldn't properly catch/mutate, producing:\n// \"Cannot assign to read only property 'name' of object 'Error: Node ... hasn't been executed'\"\n//\n// Fix: read from $input (merged upstream) and detect shape rather than querying by node name.\n\nconst inputJson = $input.first().json || {};\nconst ctx = $('Build Prompt').first().json;\nconst mode = ctx.mode;\nconst weekOf = ctx.week_of;\nconst startedAt = ctx.started_at;\n\n// Detect shape. Anthropic response has { content: [{text: ...}], usage: {...}, model: ... }\n// Gemini response has { candidates: [{ content: { parts: [{text: ...}] } }] }\nlet text = '';\nlet modelUsed = null;\nlet anthropicRaw = null;\nlet geminiRaw = null;\n\nif (inputJson.content && Array.isArray(inputJson.content) && inputJson.content[0] && inputJson.content[0].text) {\n  anthropicRaw = inputJson;\n  text = inputJson.content[0].text;\n  modelUsed = (ctx.anthropic_body && ctx.anthropic_body.model) || 'claude-sonnet';\n} else if (inputJson.candidates && inputJson.candidates[0] && inputJson.candidates[0].content && inputJson.candidates[0].content.parts && inputJson.candidates[0].content.parts[0] && inputJson.candidates[0].content.parts[0].text) {\n  geminiRaw = inputJson;\n  text = inputJson.candidates[0].content.parts[0].text;\n  modelUsed = 'gemini-2.5-flash';\n}\n\nfunction extractJson(s) {\n  if (!s) return null;\n  const clean = s.replace(/```json|```/g, '').trim();\n  const first = clean.indexOf('{');\n  const last = clean.lastIndexOf('}');\n  if (first === -1 || last === -1 || last <= first) return null;\n  try { return JSON.parse(clean.slice(first, last + 1)); } catch (e) { return null; }\n}\n\nconst parsed = extractJson(text) || {};\n\nconst insights = Array.isArray(parsed.insights) ? parsed.insights : [];\nconst orgFocus = parsed.org_focus || '';\nconst cleoRec = parsed.cleo_recommendation || '';\nconst homeSummary = parsed.home_summary || null;\nconst homeMetrics = Array.isArray(parsed.home_metrics) ? parsed.home_metrics : [];\nconst homeSignals = Array.isArray(parsed.home_external_signals) ? parsed.home_external_signals : [];\nconst homeCustomerSignals = Array.isArray(parsed.home_customer_signals) ? parsed.home_customer_signals : [];\nconst homeCustomerVoice = Array.isArray(parsed.home_customer_voice) ? parsed.home_customer_voice : (Array.isArray(parsed.customer_voice) ? parsed.customer_voice : []);\n\nconst durationMs = Date.now() - new Date(startedAt).getTime();\n\nconst inputTokens = (anthropicRaw && anthropicRaw.usage && anthropicRaw.usage.input_tokens) || 0;\nconst outputTokens = (anthropicRaw && anthropicRaw.usage && anthropicRaw.usage.output_tokens) || 0;\nlet costEstimateUsd = 0;\nif (modelUsed && modelUsed.indexOf('sonnet') !== -1) {\n  costEstimateUsd = (inputTokens / 1000000) * 3 + (outputTokens / 1000000) * 15;\n} else if (modelUsed && modelUsed.indexOf('gemini') !== -1) {\n  costEstimateUsd = (inputTokens / 1000000) * 0.075 + (outputTokens / 1000000) * 0.3;\n}\ncostEstimateUsd = Math.round(costEstimateUsd * 10000) / 10000;\n\nconst ok = (mode === 'deep' ? insights.length >= 1 && homeSummary !== null : homeSummary !== null);\n\nreturn [{\n  json: {\n    mode,\n    week_of: weekOf,\n    started_at: startedAt,\n    model_used: modelUsed || 'none',\n    ok,\n    insights,\n    org_focus: orgFocus,\n    cleo_recommendation: cleoRec,\n    home_summary: homeSummary,\n    home_metrics: homeMetrics,\n    home_external_signals: homeSignals,\n    home_customer_signals: homeCustomerSignals,\n    home_customer_voice: homeCustomerVoice,\n    raw_text: text.slice(0, 2000),\n    input_tokens: inputTokens,\n    output_tokens: outputTokens,\n    cost_estimate_usd: costEstimateUsd,\n    duration_ms: durationMs\n  }\n}];\n"
+      },
+      "name": "Parse LLM Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        400
+      ],
+      "id": "10d6b726-a8d3-4e4f-bdc4-9004c01c505d"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Injected fetch-based httpRequest shim (task-runner-safe)\nconst __helpers = this.helpers;\nasync function __httpRequest(opts) {\n  const method = (opts.method || 'GET').toUpperCase();\n  const url = opts.url;\n  const headers = Object.assign({}, opts.headers || {});\n  const cfg = {\n    method,\n    url,\n    headers,\n    json: opts.json !== false,\n    returnFullResponse: true,\n    timeout: opts.timeout || 30000,\n  };\n  if (opts.body !== undefined && opts.body !== null) {\n    cfg.body = opts.body;\n    if (typeof opts.body === 'object' && !headers['Content-Type'] && !headers['content-type']) {\n      cfg.headers['Content-Type'] = 'application/json';\n    }\n  }\n  let res;\n  try {\n    res = await __helpers.httpRequest(cfg);\n  } catch (err) {\n    const status = err.httpCode || err.statusCode || (err.response && err.response.status) || 0;\n    const body = (err.response && err.response.body) || err.body || null;\n    const wrapped = new Error('HTTP ' + (status || 'network') + ': ' + (err.message || String(err)).slice(0, 300));\n    wrapped.httpCode = status;\n    wrapped.body = body;\n    throw wrapped;\n  }\n  const status = res.statusCode || res.status || 0;\n  const body = res.body !== undefined ? res.body : res;\n  if (status < 200 || status >= 300) {\n    const e = new Error('HTTP ' + status + ': ' + String(body).slice(0, 300));\n    e.httpCode = status;\n    e.body = body;\n    throw e;\n  }\n  return body;\n}\n\nconst SB_URL = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc';\nconst H = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };\nconst H_UPSERT = { ...H, 'Prefer': 'resolution=merge-duplicates,return=minimal' };\n\nconst d = $input.first().json;\nconst writesLog = { home_intelligence: false, marcus_synthesis: false, agatha_task: false, audit_log: false, workflow_runs: false };\n\nif (!d.ok || !d.home_summary) {\n  writesLog.error = 'LLM parse failed or empty, skipping Supabase writes';\n  return [{ json: { ...d, writes: writesLog } }];\n}\n\n// === Compute customer_signals and overdue lead follow-ups directly from DB ===\n// Brief tells Marcus to roll these up from customers/leads tables, but the\n// synthesis LLM has no DB tool. Computing deterministically here so the\n// brief's intent actually materialises on home_intelligence.\nlet computedCustomerSignals = [];\ntry {\n  const sevenDaysAgo = new Date(Date.now() - 7*24*3600*1000).toISOString();\n  const customersUrl = SB_URL + '/rest/v1/customers?select=product,kind,mrr_usd,source,became_paid_at,churned_at,signed_up_at&or=(became_paid_at.gte.' + encodeURIComponent(sevenDaysAgo) + ',churned_at.gte.' + encodeURIComponent(sevenDaysAgo) + ',signed_up_at.gte.' + encodeURIComponent(sevenDaysAgo) + ')';\n  const customers = await __httpRequest({ method: 'GET', url: customersUrl, headers: H });\n  const byProduct = {};\n  for (const c of (customers || [])) {\n    const p = c.product;\n    if (!byProduct[p]) byProduct[p] = { product: p, paid_added: 0, churned: 0, mrr_delta: 0, free_added: 0, sources: {} };\n    const b = byProduct[p];\n    if (c.became_paid_at && c.became_paid_at >= sevenDaysAgo) {\n      b.paid_added += 1;\n      b.mrr_delta += Number(c.mrr_usd || 0);\n      if (c.source) b.sources[c.source] = (b.sources[c.source] || 0) + 1;\n    }\n    if (c.churned_at && c.churned_at >= sevenDaysAgo) {\n      b.churned += 1;\n      b.mrr_delta -= Number(c.mrr_usd || 0);\n    }\n    if (c.signed_up_at && c.signed_up_at >= sevenDaysAgo && c.kind === 'free_signup') {\n      b.free_added += 1;\n    }\n  }\n  computedCustomerSignals = Object.values(byProduct).map(b => ({\n    product: b.product,\n    paid_added: b.paid_added,\n    churned: b.churned,\n    mrr_delta: Math.round(b.mrr_delta * 100) / 100,\n    free_added: b.free_added,\n    top_source: Object.entries(b.sources).sort((a,b) => b[1]-a[1])[0]?.[0] || null\n  }));\n} catch (e) { writesLog.customer_signals_error = String(e).slice(0, 200); }\n\nlet overdueLeadSignals = [];\ntry {\n  const nowIso = new Date().toISOString();\n  const leadsUrl = SB_URL + '/rest/v1/leads?select=id,full_name,company,why_relevant,next_step,follow_up_at&follow_up_at=lt.' + encodeURIComponent(nowIso) + '&status=in.(ready,contacted,conversation)&order=follow_up_at.asc&limit=3';\n  const overdueLeads = await __httpRequest({ method: 'GET', url: leadsUrl, headers: H });\n  for (const l of (overdueLeads || [])) {\n    const days = Math.round((new Date(l.follow_up_at).getTime() - Date.now()) / (24*3600*1000));\n    overdueLeadSignals.push({\n      signal: 'Follow up: ' + (l.full_name || 'unnamed lead') + ' - ' + (l.company || 'unknown company'),\n      source: 'Leads',\n      relevance: l.why_relevant || 'Lead awaiting next touch',\n      recommended_action: l.next_step || 'Re-engage with a one-line update',\n      urgency: 'high',\n      days_until: days,\n      event_id: l.id\n    });\n  }\n} catch (e) { writesLog.overdue_leads_error = String(e).slice(0, 200); }\n\nconst mergedExternalSignals = [...overdueLeadSignals, ...(d.home_external_signals || [])];\n// === end deterministic signals ===\n\nconst homePayload = {\n  id: 'current',\n  assessment: d.mode === 'deep' ? (d.insights.join(' | ') || null) : null,\n  summary: JSON.stringify(d.home_summary),\n  metrics: d.home_metrics,\n  external_signals: mergedExternalSignals,\n  customer_signals: computedCustomerSignals.length ? computedCustomerSignals : (d.home_customer_signals || []),\n  customer_voice: d.home_customer_voice || [],\n  generated_at: new Date().toISOString(),\n  updated_at: new Date().toISOString()\n};\ntry {\n  await __httpRequest({ method: 'POST', url: SB_URL + '/rest/v1/home_intelligence?on_conflict=id', headers: H_UPSERT, body: JSON.stringify(homePayload) });\n  writesLog.home_intelligence = true;\n} catch (e) { writesLog.home_intelligence_error = String(e).slice(0, 200); }\n\nif (d.mode === 'deep') {\n  const synthPayload = {\n    week_of: d.week_of,\n    insights: d.insights,\n    cleo_recommendations: d.cleo_recommendation,\n    org_focus: d.org_focus,\n    generated_at: new Date().toISOString()\n  };\n  try {\n    await __httpRequest({ method: 'POST', url: SB_URL + '/rest/v1/marcus_synthesis', headers: H, body: JSON.stringify(synthPayload) });\n    writesLog.marcus_synthesis = true;\n  } catch (e) { writesLog.marcus_synthesis_error = String(e).slice(0, 200); }\n\n  const taskPayload = {\n    agent: 'agatha',\n    venture: 'mindmaker-os',\n    title: 'Marcus Weekly Synthesis Ready — week of ' + d.week_of,\n    description: 'Marcus has produced weekly synthesis. Org focus: ' + d.org_focus + '\\n\\nInsights:\\n' + (d.insights || []).map((x, i) => (i + 1) + '. ' + x).join('\\n') + '\\n\\nCleo angle: ' + d.cleo_recommendation,\n    status: 'active',\n    priority: 'high',\n    next_step: 'Review insights, route to Cleo and Leo, decide escalation to Krish',\n    workstream: 'marcus-synthesis',\n    created: new Date().toISOString(),\n    updated_at: new Date().toISOString()\n  };\n  try {\n    await __httpRequest({ method: 'POST', url: SB_URL + '/rest/v1/tasks', headers: H, body: JSON.stringify(taskPayload) });\n    writesLog.agatha_task = true;\n  } catch (e) { writesLog.agatha_task_error = String(e).slice(0, 200); }\n}\n\n\nif (d.mode === 'deep' && d.agent_plans && Array.isArray(d.agent_plans)) {\n  writesLog.agent_plans = 0;\n  for (const plan of d.agent_plans) {\n    if (!plan.agent_id) continue;\n    const planPayload = {\n      agent_id: plan.agent_id,\n      current_phase: plan.current_phase || 'Active',\n      objective: plan.objective || 'Support weekly goals',\n      next_milestone: plan.next_milestone || 'Complete weekly sprint',\n      updated_at: new Date().toISOString()\n    };\n    try {\n      await __httpRequest({ method: 'POST', url: SB_URL + '/rest/v1/agent_plans?on_conflict=agent_id', headers: H_UPSERT, body: JSON.stringify(planPayload) });\n      writesLog.agent_plans++;\n    } catch (e) {\n      if (!writesLog.agent_plans_error) writesLog.agent_plans_error = '';\n      writesLog.agent_plans_error += `[${plan.agent_id}: ${e.message}] `;\n    }\n  }\n}\n\nconst auditPayload = {\n  actor: 'marcus',\n  event_type: d.mode === 'deep' ? 'monday-synthesis' : 'home-intel-update',\n  target: d.mode === 'deep' ? 'marcus_synthesis+home_intelligence' : 'home_intelligence',\n  details: 'mode=' + d.mode + ' week_of=' + d.week_of + ' model=' + d.model_used + ' insights=' + (d.insights || []).length + ' cost_usd=' + d.cost_estimate_usd,\n  changes: { writes: writesLog, duration_ms: d.duration_ms }\n};\ntry {\n  await __httpRequest({ method: 'POST', url: SB_URL + '/rest/v1/audit_log', headers: H, body: JSON.stringify(auditPayload) });\n  writesLog.audit_log = true;\n} catch (e) { writesLog.audit_log_error = String(e).slice(0, 200); }\n\nconst runPayload = {\n  workflow_id: 'TI1ozQbPtI69qlgO',\n  workflow_name: 'OS — Marcus Synthesis + Home Intelligence',\n  agent_id: 'marcus',\n  run_at: d.started_at,\n  duration_ms: d.duration_ms,\n  api_calls: 1,\n  api_calls_count: 1,\n  cost_usd: d.cost_estimate_usd,\n  cost_estimate_usd: d.cost_estimate_usd,\n  outcome: d.mode === 'deep' ? 'synthesis+home-intel' : 'home-intel',\n  outcome_count: d.mode === 'deep' ? (d.insights || []).length : d.home_metrics.length,\n  status: d.ok ? 'success' : 'partial',\n  metadata: { mode: d.mode, model: d.model_used, input_tokens: d.input_tokens, output_tokens: d.output_tokens, writes: writesLog }\n};\ntry {\n  await __httpRequest({ method: 'POST', url: SB_URL + '/rest/v1/workflow_runs', headers: H, body: JSON.stringify(runPayload) });\n  writesLog.workflow_runs = true;\n} catch (e) { writesLog.workflow_runs_error = String(e).slice(0, 200); }\n\nreturn [{ json: { ...d, writes: writesLog } }];"
+      },
+      "name": "Write to Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        400
+      ],
+      "id": "5e3d947c-9be7-4176-a290-5e1e735163bd"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: '6773796504', parse_mode: 'Markdown', text: ($json.mode === 'deep' ? '*Marcus weekly synthesis* ready for Agatha\\nweek_of ' + $json.week_of + '\\nmodel ' + $json.model_used + '\\ncost $' + $json.cost_estimate_usd + '\\n\\n' + ($json.insights || []).map(function(x, i) { return (i+1) + '. ' + x; }).join('\\n\\n') + '\\n\\nFOCUS: ' + $json.org_focus + '\\nCLEO: ' + $json.cleo_recommendation : '🧠 *Marcus*: Home Intelligence updated.\\n\\n' + ($json.home_summary ? $json.home_summary.headline : '') + '\\n\\nDive deeper: https://controlcenter.krishraja.com') } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Telegram Notify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1824,
+        400
+      ],
+      "id": "272c1143-0682-4d03-8c3d-2c0c7b743ccf"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.marcus&select=brief_content",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        112
+      ],
+      "name": "Load Agent Brief",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mWM02P5QWwMeKi1Q",
+          "name": "Vercel Access Token"
+        }
+      },
+      "alwaysOutputData": true,
+      "id": "9461a915-d672-4227-8787-f85ba691ed53"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.krish_voice_rules&select=value",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        304
+      ],
+      "name": "Load Voice Rules",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mWM02P5QWwMeKi1Q",
+          "name": "Vercel Access Token"
+        }
+      },
+      "alwaysOutputData": true,
+      "id": "eea24e0c-b2e3-44df-b2a7-dbee20cde3d6"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build identity prepend from Agent Brief + Voice Rules + Agent Plan\nconst briefRaw = $('Load Agent Brief').first().json;\nconst voiceRaw = $('Load Voice Rules').first().json;\nconst planRaw  = $('Load Agent Plan').first().json;\n\n// Handle array response from Supabase REST\nconst briefArr = Array.isArray(briefRaw) ? briefRaw : (briefRaw.data || [briefRaw]);\nconst voiceArr = Array.isArray(voiceRaw) ? voiceRaw : (voiceRaw.data || [voiceRaw]);\nconst planArr  = Array.isArray(planRaw)  ? planRaw  : (planRaw.data  || [planRaw]);\n\nconst brief = briefArr[0]?.brief_content || '';\nconst voice = voiceArr[0]?.value || 'Write as Krish Raja. Direct, casual, no fluff. No em dashes. Short paragraphs. Max 120 words outbound.';\nconst plan  = planArr[0] || {};\n\n// Stale-Plan gating: null or > 72h triggers READ-ONLY mode downstream\nconst STALE_HOURS = 72;\nlet plan_stale = false;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\n\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst identity_prepend =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '') +\n  planBlock +\n  'VOICE RULES:\\n' + voice + '\\n\\n';\n\nconst items = $input.all();\nreturn items.map(item => ({\n  json: { ...item.json, identity_prepend, plan_stale }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        208
+      ],
+      "name": "Build Identity Prepend",
+      "id": "48c4fea2-6841-46e3-b004-2414bb970162"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents?id=eq.marcus&select=brief_content",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        384,
+        352
+      ],
+      "name": "Load Agent Brief 2",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mWM02P5QWwMeKi1Q",
+          "name": "Vercel Access Token"
+        }
+      },
+      "alwaysOutputData": true,
+      "id": "cbeeda42-f4c8-48cf-9daf-0dc866f2caf9"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?key=eq.krish_voice_rules&select=value",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        528
+      ],
+      "name": "Load Voice Rules 2",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mWM02P5QWwMeKi1Q",
+          "name": "Vercel Access Token"
+        }
+      },
+      "alwaysOutputData": true,
+      "id": "050fa621-8077-4e82-a5e5-8a6bdc1bbbf0"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build identity prepend from Agent Brief + Voice Rules + Agent Plan\nconst briefRaw = $('Load Agent Brief 2').first().json;\nconst voiceRaw = $('Load Voice Rules 2').first().json;\nconst planRaw  = $('Load Agent Plan 2').first().json;\n\n// Handle array response from Supabase REST\nconst briefArr = Array.isArray(briefRaw) ? briefRaw : (briefRaw.data || [briefRaw]);\nconst voiceArr = Array.isArray(voiceRaw) ? voiceRaw : (voiceRaw.data || [voiceRaw]);\nconst planArr  = Array.isArray(planRaw)  ? planRaw  : (planRaw.data  || [planRaw]);\n\nconst brief = briefArr[0]?.brief_content || '';\nconst voice = voiceArr[0]?.value || 'Write as Krish Raja. Direct, casual, no fluff. No em dashes. Short paragraphs. Max 120 words outbound.';\nconst plan  = planArr[0] || {};\n\n// Stale-Plan gating: null or > 72h triggers READ-ONLY mode downstream\nconst STALE_HOURS = 72;\nlet plan_stale = false;\nif (!plan.last_rendered_at) {\n  plan_stale = true;\n} else {\n  const ageHours = (Date.now() - new Date(plan.last_rendered_at).getTime()) / 3600000;\n  plan_stale = ageHours > STALE_HOURS;\n}\n\nconst planBlock = (plan.current_phase || plan.objective) ? (\n  'CURRENT PLAN:\\n' +\n  (plan.current_phase  ? `Phase: ${plan.current_phase}\\n` : '') +\n  (plan.objective      ? `Objective: ${plan.objective}\\n` : '') +\n  (plan.next_milestone ? `Next milestone: ${plan.next_milestone}\\n` : '') +\n  (plan.blockers       ? `Blockers: ${plan.blockers}\\n` : '') +\n  (plan.doc_link       ? `Plan doc: ${plan.doc_link}\\n` : '') +\n  (plan.status         ? `Status: ${plan.status}\\n` : '') +\n  '\\n'\n) : '';\n\nconst identity_prepend =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n' : '') +\n  planBlock +\n  'VOICE RULES:\\n' + voice + '\\n\\n';\n\nconst items = $input.all();\nreturn items.map(item => ({\n  json: { ...item.json, identity_prepend, plan_stale }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        432
+      ],
+      "name": "Build Identity Prepend 2",
+      "id": "dc2094c2-06f8-4d7e-9046-5c1f6c9820b2"
+    },
+    {
+      "name": "Log Run to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2044,
+        400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"workflow_id\": \"TI1ozQbPtI69qlgO\", \"workflow_name\": \"Marcus | Mindmaker OS | Synthesis + Home Intelligence\", \"agent_id\": \"marcus\", \"outcome\": \"success\", \"status\": \"success\", \"outcome_count\": 1, \"api_calls_count\": 0, \"cost_estimate_usd\": 0}",
+        "options": {}
+      },
+      "continueOnFail": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "id": "445138c4-acf3-47ad-9dc5-b3530296c533"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        632
+      ],
+      "id": "888e3540-db16-465f-b9bd-a96428aff6ee"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "55 15 * * 0"
+            }
+          ]
+        }
+      },
+      "name": "Cron Sunday 11:55 ET Deep",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        80
+      ],
+      "id": "dd493829-510f-44f4-ac15-780827b8b335"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.marcus&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        624,
+        304
+      ],
+      "name": "Load Agent Plan",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mWM02P5QWwMeKi1Q",
+          "name": "Vercel Access Token"
+        }
+      },
+      "alwaysOutputData": true,
+      "id": "4c879f62-4941-412a-8820-8b044e0ed415"
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agent_plans?agent_id=eq.marcus&select=current_phase,objective,blockers,next_milestone,doc_link,last_rendered_at,status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        544,
+        544
+      ],
+      "name": "Load Agent Plan 2",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mWM02P5QWwMeKi1Q",
+          "name": "Vercel Access Token"
+        }
+      },
+      "alwaysOutputData": true,
+      "id": "3498fd18-02de-41db-8b6a-4a28ba86261d"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"event_type\": \"workflow_executed\",\n  \"actor\": \"marcus\",\n  \"target\": \"Synthesis + Home Intelligence\",\n  \"details\": {\n    \"message\": \"Executed scheduled workflow.\"\n  }\n}",
+        "options": {}
+      },
+      "name": "Audit Log to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        408,
+        58
+      ],
+      "id": "7f366b16-1172-4e95-8d6f-93475078a1eb"
+    }
+  ],
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed"
+  }
+}

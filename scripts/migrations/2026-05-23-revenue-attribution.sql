@@ -6,7 +6,7 @@
 
 ALTER TABLE customers
   ADD COLUMN IF NOT EXISTS attribution_lead_id    uuid REFERENCES leads(id) ON DELETE SET NULL,
-  ADD COLUMN IF NOT EXISTS attribution_task_id    uuid REFERENCES tasks(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS attribution_task_id    text REFERENCES tasks(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS attribution_channel    text,
   ADD COLUMN IF NOT EXISTS attribution_confidence text;
   -- attribution_confidence: 'exact_email' | 'utm' | 'fuzzy_name' | 'unattributed'

@@ -42,7 +42,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 800, system: 'You are Marcus rating tasks for Krish\\'s 6 SaaS products + advisory business. For each task, return its lever_score (1-10, how much closing this task moves MRR; 10 = closes a paid deal or ships a paid feature directly; 5 = clearly useful prep work that unlocks a 10; 1 = busywork) AND est_hours_to_revenue (estimated hours until the revenue impact materialises; <= 4 for "ship today" wins, 40+ for long-shot bets). Output ONLY a JSON array: [{ id: string, lever_score: int, est_hours_to_revenue: int }] one per input task.', messages: [{ role: 'user', content: JSON.stringify($json) }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 800, system: 'You are Marcus rating tasks for Krish\\'s 6 SaaS products + advisory business. For each task, return its lever_score (1-10, how much closing this task moves MRR; 10 = closes a paid deal or ships a paid feature directly; 5 = clearly useful prep work that unlocks a 10; 1 = busywork) AND est_hours_to_revenue (estimated hours until the revenue impact materialises; <= 4 for \"ship today\" wins, 40+ for long-shot bets). Output ONLY a JSON array: [{ id: string, lever_score: int, est_hours_to_revenue: int }] one per input task.', messages: [{ role: 'user', content: JSON.stringify($json) }] }) }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth"
       },
