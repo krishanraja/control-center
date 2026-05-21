@@ -1,0 +1,85 @@
+{
+  "name": "Maya | Churn → Exit Interview Task",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "nodes": [
+    {
+      "name": "Every 30 minutes",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 280],
+      "parameters": {
+        "triggerTimes": { "item": [{ "mode": "everyX", "value": 30, "unit": "minutes" }] }
+      }
+    },
+    {
+      "name": "Fetch recent churns",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 280],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/customers?kind=eq.churned&churned_at=gte.{{ new Date(Date.now() - 7*86400000).toISOString() }}&select=id,full_name,email,product,churned_at,plan,mrr_usd",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+    },
+    {
+      "name": "Per churn — already tasked?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 280],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// For each churned customer, check if an exit_interview contact OR an\n// existing maya 'Exit interview' task exists. If neither — emit the row\n// so the next nodes create the task.\nconst rows = $input.first().json;\nconst out = [];\nfor (const c of (Array.isArray(rows) ? rows : [])) {\n  // Check existing exit_interview contact.\n  const cRes = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/customer_contacts?customer_id=eq.${c.id}&reason=eq.exit_interview&select=id&limit=1`,\n    headers: { apikey: $credentials.supabaseApi.apiKey, Authorization: `Bearer ${$credentials.supabaseApi.apiKey}` },\n    json: true,\n  });\n  if (Array.isArray(cRes) && cRes.length > 0) continue;\n  // Check existing task.\n  const tRes = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks?agent=eq.maya&title=ilike.${encodeURIComponent('Exit interview:%' + (c.full_name || c.email || '') + '%')}&status=neq.done&select=id&limit=1`,\n    headers: { apikey: $credentials.supabaseApi.apiKey, Authorization: `Bearer ${$credentials.supabaseApi.apiKey}` },\n    json: true,\n  });\n  if (Array.isArray(tRes) && tRes.length > 0) continue;\n  out.push({ json: c });\n}\nreturn out;"
+      }
+    },
+    {
+      "name": "Create exit task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1020, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=representation" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: 'Exit interview: ' + ($json.full_name || $json.email || 'churned customer'), description: 'Customer churned ' + $json.churned_at + ' from ' + $json.product + ' (' + ($json.plan || 'unknown plan') + ', $' + ($json.mrr_usd || 0) + '/mo). Find the actual reason — pattern match is more valuable than the save.', status: 'waiting', workstream: 'customer_success', group_label: 'Customers', agent: 'maya', owner: 'krish', due_date: new Date(Date.now() + 7*86400000).toISOString(), updated_at: new Date().toISOString() }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+    },
+    {
+      "name": "Telegram alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1280, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: '5712840770', text: '⚠️ Churn: ' + ($('Per churn — already tasked?').item.json.full_name || $('Per churn — already tasked?').item.json.email || 'customer') + ' — Maya task created. Exit interview within 7d.' }) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Every 30 minutes":          { "main": [[{ "node": "Fetch recent churns",      "type": "main", "index": 0 }]] },
+    "Fetch recent churns":       { "main": [[{ "node": "Per churn — already tasked?", "type": "main", "index": 0 }]] },
+    "Per churn — already tasked?": { "main": [[{ "node": "Create exit task",        "type": "main", "index": 0 }]] },
+    "Create exit task":          { "main": [[{ "node": "Telegram alert",            "type": "main", "index": 0 }]] }
+  }
+}

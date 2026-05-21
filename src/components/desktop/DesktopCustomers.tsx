@@ -7,6 +7,8 @@ import {
   type CustomerProduct,
 } from '../../hooks/useCustomers'
 import { MrrTicker } from '../MrrTicker'
+import { CustomerCouncilCard } from '../CustomerCouncilCard'
+import { ExpansionRadar } from '../ExpansionRadar'
 import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
 
 export function DesktopCustomers() {
@@ -18,6 +20,8 @@ export function DesktopCustomers() {
   const left = (
     <div className="h-full overflow-y-auto p-4 space-y-4">
       <MrrTicker variant="desktop" />
+      <CustomerCouncilCard />
+      <ExpansionRadar />
       <CustomerSourcesPanel />
       <div>
         <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">
