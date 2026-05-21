@@ -6,6 +6,8 @@ import {
   useCustomers, PRODUCT_LABEL, PRODUCT_ACCENT,
   type CustomerProduct,
 } from '../../hooks/useCustomers'
+import { MrrTicker } from '../MrrTicker'
+import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
 
 export function DesktopCustomers() {
   const { buckets, totals, customers, loading, error } = useCustomers()
@@ -15,6 +17,8 @@ export function DesktopCustomers() {
 
   const left = (
     <div className="h-full overflow-y-auto p-4 space-y-4">
+      <MrrTicker variant="desktop" />
+      <CustomerSourcesPanel />
       <div>
         <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">
           Customers

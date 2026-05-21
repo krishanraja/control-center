@@ -29,6 +29,12 @@ export interface CustomerRow {
   raw?: Record<string, unknown> | null
   created_at: string
   updated_at: string
+  // Pillar 1 — revenue attribution. Set by Stripe webhook patch on insert,
+  // or backfilled by the matching playbook.
+  attribution_lead_id?: string | null
+  attribution_task_id?: string | null
+  attribution_channel?: string | null
+  attribution_confidence?: string | null
 }
 
 export interface ProductBucket {

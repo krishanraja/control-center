@@ -6,6 +6,7 @@ import { useRealtimeLeads } from '../../hooks/useRealtimeLeads'
 import { useRealtimeContentIdeas } from '../../hooks/useRealtimeContentIdeas'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
+import { MrrTicker } from '../MrrTicker'
 
 interface ExternalSignal {
   signal: string
@@ -53,6 +54,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
     <MobileShellPrim
       header={<TabHeader title="Mindmaker" subtitle="Decisions, not admin" />}
     >
+      <MrrTicker variant="mobile" />
       {heroSignal && (
         <HeroCard
           eyebrow="What needs you"
