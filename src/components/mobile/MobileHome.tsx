@@ -7,6 +7,7 @@ import { useRealtimeContentIdeas } from '../../hooks/useRealtimeContentIdeas'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
 import { MrrTicker } from '../MrrTicker'
+import { DailyBriefBanner } from '../DailyBriefBanner'
 
 interface ExternalSignal {
   signal: string
@@ -54,6 +55,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
     <MobileShellPrim
       header={<TabHeader title="Mindmaker" subtitle="Decisions, not admin" />}
     >
+      <DailyBriefBanner />
       <MrrTicker variant="mobile" />
       {heroSignal && (
         <HeroCard

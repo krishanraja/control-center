@@ -3,6 +3,7 @@ import { MobileShell as MobileShellPrim, TabHeader, HeroCard, FeedCard, FeedRow,
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
+import { AskMarcus } from '../AskMarcus'
 
 interface ExternalSignal {
   signal: string
@@ -80,6 +81,7 @@ export function MobileIntel() {
         />
       }
     >
+      <AskMarcus />
       {hero && (
         <HeroCard
           eyebrow="Top signal"
