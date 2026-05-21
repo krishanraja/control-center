@@ -1,5 +1,5 @@
 import React from 'react'
-import { Home, GitBranch, Clock, ListChecks, Activity, Server, Zap, UserPlus, DollarSign } from 'lucide-react'
+import { Home, GitBranch, Clock, ListChecks, Activity, Server, Zap, UserPlus, DollarSign, Target } from 'lucide-react'
 import { useHaptics } from '../hooks/useHaptics'
 
 interface Props {
@@ -12,6 +12,7 @@ const TABS = [
   { id: 'today',     label: 'Today',     icon: Clock },
   { id: 'leads',     label: 'Leads',     icon: UserPlus },
   { id: 'customers', label: 'Customers', icon: DollarSign },
+  { id: 'bets',      label: 'Bets',      icon: Target },
   { id: 'plans',     label: 'Plans',     icon: ListChecks },
   { id: 'org',       label: 'Org',       icon: GitBranch },
   { id: 'execution', label: 'Intel',     icon: Activity },
