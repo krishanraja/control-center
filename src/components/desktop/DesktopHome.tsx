@@ -14,6 +14,8 @@ import { PipelineLanes } from './PipelineLanes'
 import { OsHealthStrip } from './OsHealthStrip'
 import { MrrTicker } from '../MrrTicker'
 import { DailyBriefBanner } from '../DailyBriefBanner'
+import { StreakPills } from '../StreakPills'
+import { DailyLockBanner } from '../DailyLockBanner'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -115,10 +117,12 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   return (
     <div className="flex flex-col gap-4 max-w-[1280px] mx-auto w-full">
 
+      <DailyLockBanner />
       <DailyBriefBanner />
 
       {/* MONEY MACHINE — the only number that matters. */}
       <MrrTicker variant="desktop" />
+      <StreakPills variant="desktop" />
 
       {/* PIPELINES — primary surface. Answers "what's the state of my three
           pipelines and what should I do next" at a glance. */}
