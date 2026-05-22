@@ -1,0 +1,485 @@
+{
+  "name": "Nova | Mindmaker OS | Visibility Sweeper",
+  "nodes": [
+    {
+      "id": "Schedule_Trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        304
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 11
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "Run_Start",
+      "name": "Run Start",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst runId = 'nova_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);\nreturn [{ json: { run_id: runId, started_at: new Date().toISOString() } }];\n"
+      }
+    },
+    {
+      "id": "Perplexity:_Research",
+      "name": "Perplexity: Research",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        688,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"model\": \"sonar-pro\", \"messages\": [{\"role\": \"system\", \"content\": \"You are a precise research assistant. Always cite urls.\"}, {\"role\": \"user\", \"content\": \"You are a research assistant for Krish Raja, founder of Mindmaker (an AI orchestration company) and host of two podcasts (Signal & Noise, Builder Economy). Find 15 specific upcoming visibility opportunities in the next 120 days. Mix of: (a) Conference CFPs open or closing soon (b) Conferences worth attending (c) Podcasts seeking guests. Relevant themes: AI in advertising and marketing, programmatic CTV/streaming, identity and privacy in advertising, telco AI, founder storytelling, brand strategy in the AI era, ad-tech consolidation, applied AI for non-technical buyers. For each item, return: name, official url, cfp url (if separate), type (cfp or conference or podcast), deadline date (ISO if any), event start date (ISO if known), audience description, approximate audience size, why this is relevant to Krish, suggested talk title or pitch angle. Skip anything without a verifiable official url. Skip events that already happened. Format as a numbered list with structured fields, not prose.\"}], \"temperature\": 0.2, \"max_tokens\": 4000}"
+      },
+      "credentials": {
+        "perplexityApi": {
+          "id": "yQQw8iiQtekSntvI",
+          "name": "Perplexity account"
+        }
+      }
+    },
+    {
+      "id": "Shape_Perplexity",
+      "name": "Shape Perplexity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst r = $input.first().json;\nconst text = r.choices?.[0]?.message?.content || JSON.stringify(r);\nreturn [{ json: { perplexity_text: text } }];\n"
+      }
+    },
+    {
+      "id": "Anthropic:_Extract",
+      "name": "Anthropic: Extract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1136,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 4000, \"temperature\": 0.3, \"system\": \"You convert research notes into structured visibility_targets rows. Return ONLY a JSON array, no prose, no code fences. Each element: {title, type, event_url, cfp_url, deadline_at, event_start_at, audience, audience_size, why_relevant, suggested_talk_title, relevance_score, quality_score, recommended_next_step}. type must be one of: cfp, conference, podcast, newsletter, guest_appearance. Dates must be ISO 8601 or null. audience_size integer or null. relevance_score 0-100. quality_score: green if highly relevant + open + meaningful audience, amber if relevant but uncertain timing or fit, red if marginal. Skip any item without an event_url. Skip any item where deadline or event has already passed (today is 2026-05-22). If the research mentions an item but the url is unverifiable, omit it. Do not invent details. If a field is unknown, set it to null. No em dashes anywhere in the output. Use commas, colons, or parentheses instead.\", \"messages\": [{\"role\": \"user\", \"content\": \"Research notes from Perplexity:\\n\\n{{ $json.perplexity_text }}\\n\\nConvert to a JSON array of visibility_targets rows per the system prompt.\"}]}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "w8sWwz8EfYc1JA7G",
+          "name": "Anthropic Header 2026-05-21"
+        }
+      }
+    },
+    {
+      "id": "Parse_+_Validate",
+      "name": "Parse + Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\n// Parse Sonnet response, strip fences, validate rows.\nconst item = $input.first().json;\nlet text = item.content?.[0]?.text || item.text || JSON.stringify(item);\n\n// Strip markdown fences if present.\ntext = text.trim();\nif (text.startsWith('```')) {\n  text = text.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\n}\n\nlet rows;\ntry {\n  rows = JSON.parse(text);\n} catch (e) {\n  return [{ json: {\n    ok: false,\n    rejection_reason: 'invalid_json',\n    raw_text: text.slice(0, 2000),\n    error: String(e),\n  }}];\n}\n\nif (!Array.isArray(rows)) {\n  return [{ json: {\n    ok: false,\n    rejection_reason: 'not_an_array',\n    raw_text: text.slice(0, 2000),\n  }}];\n}\n\nconst valid = [];\nconst allowedTypes = new Set(['cfp','conference','podcast','newsletter','guest_appearance']);\nconst allowedQ = new Set(['red','amber','green']);\n\nfor (const r of rows) {\n  if (!r || typeof r !== 'object') continue;\n  if (!r.title || !r.event_url) continue;\n  if (!allowedTypes.has(r.type)) r.type = 'conference';\n  if (r.quality_score && !allowedQ.has(r.quality_score)) r.quality_score = null;\n  if (typeof r.relevance_score === 'number') {\n    r.relevance_score = Math.max(0, Math.min(100, Math.round(r.relevance_score)));\n  } else {\n    r.relevance_score = null;\n  }\n  if (typeof r.audience_size !== 'number') r.audience_size = null;\n  valid.push({\n    title: String(r.title).slice(0, 500),\n    type: r.type,\n    event_url: r.event_url,\n    cfp_url: r.cfp_url || null,\n    deadline_at: r.deadline_at || null,\n    event_start_at: r.event_start_at || null,\n    audience: r.audience || null,\n    audience_size: r.audience_size,\n    why_relevant: r.why_relevant || null,\n    suggested_talk_title: r.suggested_talk_title || null,\n    relevance_score: r.relevance_score,\n    quality_score: r.quality_score || null,\n    recommended_next_step: r.recommended_next_step || null,\n    source: 'nova_sweep',\n    raw_data: { extracted_at: new Date().toISOString(), raw: r },\n  });\n}\n\nif (!valid.length) {\n  return [{ json: {\n    ok: false,\n    rejection_reason: 'no_valid_rows',\n    raw_text: text.slice(0, 2000),\n  }}];\n}\n\nreturn [{ json: { ok: true, rows: valid, count: valid.length } }];\n"
+      }
+    },
+    {
+      "id": "OK_Check",
+      "name": "Valid Rows?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        304
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "ok",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "Fetch_Existing_URLs",
+      "name": "Fetch Existing URLs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1808,
+        200
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/visibility_targets",
+        "options": {
+          "timeout": 60000
+        },
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "event_url"
+            },
+            {
+              "name": "limit",
+              "value": "10000"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Filter_New",
+      "name": "Filter New",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2032,
+        200
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\n// Drop any row whose event_url already exists in visibility_targets.\nconst incoming = $('Parse + Validate').first().json.rows || [];\nconst existing = $input.first().json || [];\nconst seen = new Set(existing.map(r => r.event_url).filter(Boolean));\nconst fresh = incoming.filter(r => !seen.has(r.event_url));\nreturn fresh.map(r => ({ json: r }));\n"
+      }
+    },
+    {
+      "id": "Supabase:_Insert",
+      "name": "Supabase: Insert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2256,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/visibility_targets",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Audit_Log_Success",
+      "name": "Audit Log Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2480,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"event_type\": \"nova_visibility_sweep_insert\", \"actor\": \"nova\", \"target\": \"={{ $json[0].id }}\", \"details\": \"={{ JSON.stringify({ title: $json[0].title, type: $json[0].type, event_url: $json[0].event_url }) }}\"}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Audit_Log_Skip",
+      "name": "Audit Log Skip",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1808,
+        480
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"event_type\": \"nova_visibility_sweep_skip\", \"actor\": \"nova\", \"target\": \"visibility_targets\", \"details\": \"={{ JSON.stringify({ rejection_reason: $json.rejection_reason, raw_text: ($json.raw_text || '').slice(0, 500) }) }}\"}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Run Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Start": {
+      "main": [
+        [
+          {
+            "node": "Perplexity: Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity: Research": {
+      "main": [
+        [
+          {
+            "node": "Shape Perplexity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Perplexity": {
+      "main": [
+        [
+          {
+            "node": "Anthropic: Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic: Extract": {
+      "main": [
+        [
+          {
+            "node": "Parse + Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse + Validate": {
+      "main": [
+        [
+          {
+            "node": "Valid Rows?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid Rows?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Existing URLs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Audit Log Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Existing URLs": {
+      "main": [
+        [
+          {
+            "node": "Filter New",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter New": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Insert": {
+      "main": [
+        [
+          {
+            "node": "Audit Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  }
+}

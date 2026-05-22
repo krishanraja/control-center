@@ -3,11 +3,11 @@ import { ExternalLink, ThumbsUp, MessageSquarePlus, ChevronRight, Users, Sparkle
 import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { useNellCandidates, type NellCandidate } from '../../hooks/useNellCandidates'
 import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
-import { useNovaConferences, type NovaConferenceRow } from '../../hooks/useNovaConferences'
+import { useVisibilityTargets, type VisibilityTargetRow } from '../../hooks/useVisibilityTargets'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { PipelineCard } from '../PipelineCard'
 import { ContentIdeaCard } from '../ContentIdeaCard'
-import { VisibilityEventCard } from '../VisibilityEventCard'
+import { VisibilityTargetCard } from '../VisibilityTargetCard'
 import { GuestCandidateCard } from '../GuestCandidateCard'
 import { PipelineLane } from './PipelineLane'
 import { supabase, logKrishAction } from '../../lib/supabase'
@@ -41,7 +41,7 @@ export function PipelineLanes({ onNavigate }: Props) {
     // still surface in the full Content view via "Open all".
     stateIn: ['seeded', 'researching', 'drafting', 'review', 'approved'],
   })
-  const { conferences } = useNovaConferences()
+  const { targets: visibilityTargets } = useVisibilityTargets()
   const rollup = useMemo(() => rollupTasks(tasks), [tasks])
 
   // Pending Nell candidates — Nell drafts that haven't been promoted yet.
@@ -70,7 +70,7 @@ export function PipelineLanes({ onNavigate }: Props) {
       <LeadsLane rollup={rollup.leads} onOpenTask={openInToday} onNavigate={onNavigate} />
       <VisibilityLane
         rollup={rollup.visibility}
-        conferences={conferences}
+        targets={visibilityTargets}
         onOpenTask={openInToday}
         onNavigate={onNavigate}
       />
@@ -440,10 +440,10 @@ function LeadMeta({ task: t }: { task: TaskRow }) {
 // ─── Visibility lane (1fr, Nell header + task stages) ───────────────────────
 
 function VisibilityLane({
-  rollup, conferences, onOpenTask, onNavigate,
+  rollup, targets, onOpenTask, onNavigate,
 }: {
   rollup: ReturnType<typeof rollupTasks>['visibility']
-  conferences: NovaConferenceRow[]
+  targets: VisibilityTargetRow[]
   onOpenTask: (id: string) => void
   onNavigate?: NavigateFn
 }) {
@@ -464,26 +464,24 @@ function VisibilityLane({
       .slice(0, 2)
   }, [rollup])
 
-  // Conferences with rich enrichment lead the lane. Filter to ones with
-  // *some* enrichment (deadline OR why_relevant OR audience_size) and sort
-  // by nearest deadline first.
-  const richConferences = useMemo(() => {
-    return conferences
-      .filter(c => c.deadline_at || c.why_relevant || c.audience_size != null)
-      .filter(c => {
-        // Hide deadline-passed-by-more-than-30d so the lane doesn't drown
-        // in stale CFPs.
-        if (!c.deadline_at) return true
-        const days = (new Date(c.deadline_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+  // Visibility targets with some enrichment lead the lane. Filter to ones
+  // with deadline, why_relevant, or audience_size, sort by nearest deadline,
+  // and drop anything whose deadline is more than 30 days past.
+  const richTargets = useMemo(() => {
+    return targets
+      .filter(t => t.deadline_at || t.why_relevant || t.audience_size != null)
+      .filter(t => {
+        if (!t.deadline_at) return true
+        const days = (new Date(t.deadline_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
         return days > -30
       })
       .slice(0, 2)
-  }, [conferences])
+  }, [targets])
 
-  // Nell candidates are guest-host candidates for Krish's OWN podcasts — they
-  // belong in Content, not Visibility. The mental split: Visibility = Krish
-  // appears on someone else's show / stage. Content = Krish hosts someone.
-  const combinedTotal = rollup.total + richConferences.length
+  // Nell candidates are guest-host candidates for Krish's OWN podcasts, they
+  // belong in Content, not Visibility. Visibility = Krish appears on someone
+  // else's show / stage. Content = Krish hosts someone.
+  const combinedTotal = rollup.total + richTargets.length
   const laneEmpty = combinedTotal === 0
 
   return (
@@ -496,13 +494,13 @@ function VisibilityLane({
       emptyLabel={laneEmpty ? 'Nothing in motion.' : undefined}
     >
       <div className="flex flex-col gap-2">
-        {richConferences.map(c => (
-          <VisibilityEventCard key={c.id} conference={c} />
+        {richTargets.map(t => (
+          <VisibilityTargetCard key={t.id} target={t} />
         ))}
         {topItems.length > 0 && (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] divide-y divide-white/[0.04]">
-            {topItems.map(t => (
-              <PipelineCard key={t.id} task={t} onOpen={onOpenTask} />
+            {topItems.map(task => (
+              <PipelineCard key={task.id} task={task} onOpen={onOpenTask} />
             ))}
           </div>
         )}
