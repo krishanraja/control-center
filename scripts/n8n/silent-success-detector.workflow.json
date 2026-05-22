@@ -1,0 +1,261 @@
+{
+  "name": "System | Mindmaker OS | Silent Success Detector",
+  "nodes": [
+    {
+      "id": "fcbef4b7-d76f-4c21-8040-04b69c74bc61",
+      "name": "Schedule (every 4h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        304
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */4 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "7c7c3d0e-58d1-46da-96c2-69a081a4106c",
+      "name": "Audit Silent Failures",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase service role"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/rpc/audit_silent_failures",
+        "sendBody": false,
+        "specifyBody": "json",
+        "jsonBody": "",
+        "options": {
+          "timeout": 60000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "9f4fe918-04f1-4a45-955e-ed094a0e609e",
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst raw = $json;\nlet arr = Array.isArray(raw) ? raw : (raw && Array.isArray(raw[Object.keys(raw)[0]]) ? raw[Object.keys(raw)[0]] : []);\nif (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch (_) { arr = []; } }\nreturn [{ json: { count: arr.length, failures: arr } }];\n"
+      }
+    },
+    {
+      "id": "15e8513e-d78d-4baa-b9e4-1fd316ef082f",
+      "name": "Any failures?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        304
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "5717e58d-7ec9-4e1e-b4ea-012d60a9dd48",
+      "name": "Telegram Krish",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1136,
+        240
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "15qiGJ7kDXgD33jU",
+          "name": "Arlo - Telegram account"
+        }
+      },
+      "parameters": {
+        "chatId": "6773796504",
+        "text": "=Silent Success Detector\n{{ $('Parse Results').first().json.count }} workflow(s) ran green but wrote 0 useful rows in the last 4 hours.\n\n{{ $('Parse Results').first().json.failures.map(f => '- ' + f.workflow_name + ' (' + f.runs + ' runs to ' + f.target_table + ')').join('\\n') }}\n\nOpen Control Center: https://control-center-mindmaker.vercel.app/systems",
+        "additionalFields": {}
+      }
+    },
+    {
+      "id": "1904d601-9992-498c-8d31-ec0e4fbf2c3c",
+      "name": "Log skip (no failures)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        368
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "return [{ json: { skipped: true, ts: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "86470890-97f4-4f53-8d21-7720cd0ae827",
+      "name": "Heartbeat workflow_runs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase service role"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/rpc/log_workflow_run",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"p_workflow_id\": \"F6srw1yE9uH67q14\", \"p_status\": \"success\", \"p_outcome\": \"audit complete\"}",
+        "options": {
+          "timeout": 60000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule (every 4h)": {
+      "main": [
+        [
+          {
+            "node": "Audit Silent Failures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audit Silent Failures": {
+      "main": [
+        [
+          {
+            "node": "Parse Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Results": {
+      "main": [
+        [
+          {
+            "node": "Any failures?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any failures?": {
+      "main": [
+        [
+          {
+            "node": "Telegram Krish",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log skip (no failures)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Krish": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat workflow_runs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log skip (no failures)": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat workflow_runs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  }
+}

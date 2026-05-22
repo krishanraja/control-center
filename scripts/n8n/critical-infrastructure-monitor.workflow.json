@@ -1,0 +1,200 @@
+{
+  "name": "System | Mindmaker OS | Critical Infrastructure Monitor",
+  "nodes": [
+    {
+      "id": "d8116825-64bd-4f50-bae3-333a84efb139",
+      "name": "Schedule (every 5m)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        304
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/5 * * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a02e455a-acb3-46e6-b416-97cc2a2107a8",
+      "name": "Audit Critical Infra",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase service role"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/rpc/audit_critical_infra",
+        "sendBody": false,
+        "specifyBody": "json",
+        "jsonBody": "",
+        "options": {
+          "timeout": 60000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "5ae084b0-4a18-4572-8dda-df98096db59d",
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst raw = $json;\nlet arr = Array.isArray(raw) ? raw : (raw && Array.isArray(raw[Object.keys(raw)[0]]) ? raw[Object.keys(raw)[0]] : []);\nif (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch (_) { arr = []; } }\nreturn [{ json: { count: arr.length, failures: arr } }];\n"
+      }
+    },
+    {
+      "id": "ccf61bdd-5e05-43b7-9650-002bc0da3b35",
+      "name": "Any critical failures?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        304
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "e59ba55d-4613-4eea-a571-4b78785794c5",
+      "name": "Telegram Krish",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1136,
+        240
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "15qiGJ7kDXgD33jU",
+          "name": "Arlo - Telegram account"
+        }
+      },
+      "parameters": {
+        "chatId": "6773796504",
+        "text": "=CRITICAL: {{ $('Parse Results').first().json.count }} infrastructure component(s) down.\n\n{{ $('Parse Results').first().json.failures.map(f => '- ' + f.component + ' (' + f.status + '): ' + (f.detail || 'no detail').slice(0,140)).join('\\n') }}\n\nOpen Control Center: https://control-center-mindmaker.vercel.app/systems",
+        "additionalFields": {}
+      }
+    },
+    {
+      "id": "50c6d00d-a600-4c14-bfb3-7c3fd9da64ff",
+      "name": "Log skip (healthy)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        368
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "return [{ json: { skipped: true, ts: new Date().toISOString() } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule (every 5m)": {
+      "main": [
+        [
+          {
+            "node": "Audit Critical Infra",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audit Critical Infra": {
+      "main": [
+        [
+          {
+            "node": "Parse Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Results": {
+      "main": [
+        [
+          {
+            "node": "Any critical failures?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any critical failures?": {
+      "main": [
+        [
+          {
+            "node": "Telegram Krish",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log skip (healthy)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  }
+}

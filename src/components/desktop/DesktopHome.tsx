@@ -16,6 +16,7 @@ import { MrrTicker } from '../MrrTicker'
 import { DailyBriefBanner } from '../DailyBriefBanner'
 import { StreakPills } from '../StreakPills'
 import { DailyLockBanner } from '../DailyLockBanner'
+import { CriticalAlertBanner } from '../CriticalAlertBanner'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -117,6 +118,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   return (
     <div className="flex flex-col gap-4 max-w-[1280px] mx-auto w-full">
 
+      <CriticalAlertBanner />
       <DailyLockBanner />
       <DailyBriefBanner />
 
