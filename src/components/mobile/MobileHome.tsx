@@ -9,6 +9,7 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
 import { MrrTicker } from '../MrrTicker'
 import { DailyBriefBanner } from '../DailyBriefBanner'
+import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { StreakPills } from '../StreakPills'
 import { DailyLockBanner } from '../DailyLockBanner'
 
@@ -58,6 +59,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
     <MobileShellPrim
       header={<TabHeader title="Mindmaker" subtitle="Decisions, not admin" leading={<Logomark size={36} />} />}
     >
+      <CriticalAlertBanner />
       <DailyLockBanner />
       <DailyBriefBanner />
       <MrrTicker variant="mobile" />
