@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Home, Calendar, Clock, UserPlus, DollarSign, Mic, Target, FileText,
-  CheckSquare, ListChecks, Users, GitBranch, Brain, Activity, Workflow, Zap, Server,
+  Users, GitBranch, Brain, Activity, Workflow, Zap, Server,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -13,9 +13,9 @@ export interface TabDef {
   mobilePriority: 'primary' | 'drawer'
 }
 
-// Canonical IA. URL ids preserved for bookmark compatibility; labels follow
+// Canonical 11-tab IA. URL ids preserved for bookmark compatibility; labels follow
 // the rename pass (Leads -> Services, Customers -> Subscriptions, Guests -> Visibility).
-// Content is the new tab; Plans demotes to the drawer.
+// Content is the new tab.
 export const TABS: TabDef[] = [
   { id: 'home',      label: 'Home',          desktopIcon: LayoutDashboard, mobileIcon: Home,       desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'today',     label: 'Today',         desktopIcon: Calendar,        mobileIcon: Clock,      desktopPriority: 'primary', mobilePriority: 'primary' },
@@ -28,7 +28,6 @@ export const TABS: TabDef[] = [
   { id: 'exec',      label: 'Intel',         desktopIcon: Brain,           mobileIcon: Activity,   desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'workflows', label: 'Flows',         desktopIcon: Workflow,        mobileIcon: Zap,        desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'systems',   label: 'Systems',       desktopIcon: Server,          mobileIcon: Server,     desktopPriority: 'primary', mobilePriority: 'drawer'  },
-  { id: 'plans',     label: 'Plans',         desktopIcon: CheckSquare,     mobileIcon: ListChecks, desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
 ]
 
 export const DESKTOP_PRIMARY_TABS = TABS.filter(t => t.desktopPriority === 'primary')

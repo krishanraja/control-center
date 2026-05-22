@@ -7,7 +7,6 @@ import { SystemsPanel } from './components/SystemsPanel'
 import { CommandPalette } from './components/CommandPalette'
 import { DesktopHome } from './components/desktop/DesktopHome'
 import { DesktopToday } from './components/desktop/DesktopToday'
-import { DesktopPlans } from './components/desktop/DesktopPlans'
 import { DesktopLeads } from './components/desktop/DesktopLeads'
 import { DesktopOrg } from './components/desktop/DesktopOrg'
 import { DesktopExec } from './components/desktop/DesktopExec'
@@ -20,7 +19,6 @@ import { MobileHome } from './components/mobile/MobileHome'
 import { MobileToday } from './components/mobile/MobileToday'
 import { MobileLeads } from './components/mobile/MobileLeads'
 import { MobileIntel } from './components/mobile/MobileIntel'
-import { MobilePlans } from './components/mobile/MobilePlans'
 import { MobileOrg } from './components/mobile/MobileOrg'
 import { MobileFlows } from './components/mobile/MobileFlows'
 import { MobileSystems } from './components/mobile/MobileSystems'
@@ -34,8 +32,8 @@ import { QuickCaptureIdea } from './components/QuickCaptureIdea'
 import { KillListModal } from './components/KillListModal'
 import { useHashRoute } from './hooks/useHashRoute'
 
-type TabId = 'home' | 'today' | 'plans' | 'leads' | 'customers' | 'guests' | 'content' | 'bets' | 'org' | 'exec' | 'workflows' | 'systems'
-const VALID_TABS: TabId[] = ['home', 'today', 'plans', 'leads', 'customers', 'guests', 'content', 'bets', 'org', 'exec', 'workflows', 'systems']
+type TabId = 'home' | 'today' | 'leads' | 'customers' | 'guests' | 'content' | 'bets' | 'org' | 'exec' | 'workflows' | 'systems'
+const VALID_TABS: TabId[] = ['home', 'today', 'leads', 'customers', 'guests', 'content', 'bets', 'org', 'exec', 'workflows', 'systems']
 
 function detectIsNarrow() {
   if (typeof window === 'undefined') return false
@@ -94,7 +92,6 @@ export default function App() {
                 {tab === 'content'   && <ErrorBoundary label="Content"><MobileContent /></ErrorBoundary>}
                 {tab === 'bets'      && <ErrorBoundary label="Bets"><MobileBets /></ErrorBoundary>}
                 {tab === 'exec'      && <ErrorBoundary label="Intel"><MobileIntel /></ErrorBoundary>}
-                {tab === 'plans'     && <ErrorBoundary label="Plans"><MobilePlans /></ErrorBoundary>}
                 {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrg /></ErrorBoundary>}
                 {tab === 'workflows' && <ErrorBoundary label="Flows"><MobileFlows /></ErrorBoundary>}
                 {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
@@ -103,7 +100,6 @@ export default function App() {
               <div className="px-6 py-6">
                 {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome onNavigate={navigate} /></ErrorBoundary>}
                 {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday selectedTaskId={route.params.task || null} onSelectTask={(id) => navigate('today', id ? { task: id } : {})} lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
-                {tab === 'plans'     && <ErrorBoundary label="Plans"><DesktopPlans /></ErrorBoundary>}
                 {tab === 'leads'     && <ErrorBoundary label="Leads"><DesktopLeads /></ErrorBoundary>}
                 {tab === 'customers' && <ErrorBoundary label="Customers"><DesktopCustomers /></ErrorBoundary>}
                 {tab === 'guests'    && <ErrorBoundary label="Visibility"><DesktopGuests onNavigate={navigate} /></ErrorBoundary>}

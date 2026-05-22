@@ -1,12 +1,11 @@
 import React from 'react'
-import { Activity as ActivityIcon, Target, CheckSquare, Server, Workflow as WorkflowIcon } from 'lucide-react'
+import { Activity as ActivityIcon, CheckSquare, Server, Workflow as WorkflowIcon } from 'lucide-react'
 import type { LiveStatus } from '../../hooks/useLiveStatus'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
 interface Props {
   onNavigate?: NavigateFn
-  planCount: number | null
   approvalCount: number
   live: LiveStatus
 }
@@ -16,7 +15,7 @@ interface Props {
  * OS observability stays present but no longer competes with pipeline state
  * for visual weight. Each metric is a button that deep-links to its tab.
  */
-export function OsHealthStrip({ onNavigate, planCount, approvalCount, live }: Props) {
+export function OsHealthStrip({ onNavigate, approvalCount, live }: Props) {
   const systemsStatus =
     live.error ? 'offline' :
     live.loading ? 'syncing' :
@@ -41,13 +40,6 @@ export function OsHealthStrip({ onNavigate, planCount, approvalCount, live }: Pr
     dot?: string
     tab: string
   }> = [
-    {
-      key: 'plans',
-      icon: <Target size={11} className="text-violet-400" />,
-      label: 'Plans',
-      value: planCount === null ? '—' : String(planCount),
-      tab: 'plans',
-    },
     {
       key: 'today',
       icon: <CheckSquare size={11} className="text-amber-400" />,
