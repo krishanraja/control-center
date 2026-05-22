@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronDown, ChevronUp, AlertTriangle, Compass } from 'lucide-react'
+import { ChevronDown, ChevronUp, AlertTriangle, Compass, ExternalLink } from 'lucide-react'
 import { AgentAvatar } from './shared/AgentAvatar'
 import { StatusPill } from './shared/StatusPill'
 
@@ -29,11 +29,27 @@ interface Metric {
   status: string
 }
 
+type SignalUrgency = 'critical' | 'high' | 'medium' | 'low'
+
 interface ExternalSignal {
   signal: string
   source: string
   relevance: string
   recommended_action: string | null
+  // Extended fields populated by the Marcus prompt patch 2026-05-21 — the
+  // UI now renders an urgency chip, a days-until countdown, and a deep
+  // link back to the source artifact (CFP url, podcast url, etc.).
+  source_url?: string | null
+  event_id?: string | null
+  urgency?: SignalUrgency | null
+  days_until?: number | null
+}
+
+const URGENCY_TONE: Record<SignalUrgency, { chip: string; dot: string }> = {
+  critical: { chip: 'bg-red-500/15 text-red-300 border-red-500/30',     dot: 'bg-red-500' },
+  high:     { chip: 'bg-red-500/10 text-red-200 border-red-500/25',     dot: 'bg-red-400' },
+  medium:   { chip: 'bg-amber-500/10 text-amber-200 border-amber-500/25', dot: 'bg-amber-400' },
+  low:      { chip: 'bg-violet-500/10 text-violet-200 border-violet-500/25', dot: 'bg-violet-400' },
 }
 
 interface V1Data {
@@ -212,9 +228,34 @@ function V1View({ data }: { data: V1Data }) {
 }
 
 function IntelligenceActionCard({ signal: sig }: { signal: ExternalSignal }) {
+  const tone = sig.urgency ? URGENCY_TONE[sig.urgency] : null
+  const days = (typeof sig.days_until === 'number' && Number.isFinite(sig.days_until))
+    ? sig.days_until
+    : null
+  const chipLabel =
+    sig.urgency && days != null
+      ? `${sig.urgency.toUpperCase()} · ${days <= 0 ? 'past' : `${days}d`}`
+      : sig.urgency
+        ? sig.urgency.toUpperCase()
+        : days != null
+          ? (days <= 0 ? 'Past' : `${days}d`)
+          : null
+
   return (
     <article className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
-      <p className="text-[13px] font-semibold text-white leading-snug">{sig.signal}</p>
+      <header className="flex items-start gap-2 min-w-0">
+        {tone && (
+          <span className={`mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0 ${tone.dot}`} />
+        )}
+        <p className="text-[13px] font-semibold text-white leading-snug flex-1 min-w-0">
+          {sig.signal}
+        </p>
+        {chipLabel && (
+          <span className={`text-[10px] tabular-nums px-2 py-0.5 rounded-full border flex-shrink-0 ${tone?.chip || 'bg-white/[0.04] text-white/55 border-white/[0.08]'}`}>
+            {chipLabel}
+          </span>
+        )}
+      </header>
       {sig.relevance && (
         <p className="text-[12px] text-white/65 leading-snug mt-2">
           <span className="text-white/35">Why it matters: </span>
@@ -227,9 +268,22 @@ function IntelligenceActionCard({ signal: sig }: { signal: ExternalSignal }) {
           {sig.recommended_action}
         </p>
       )}
-      {sig.source && (
-        <p className="text-[10px] text-white/35 mt-2 truncate">{sig.source}</p>
-      )}
+      <div className="flex items-center gap-3 mt-3 flex-wrap">
+        {sig.source_url && (
+          <a
+            href={sig.source_url}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border border-amber-500/30 text-amber-200 hover:bg-amber-500/15 transition-colors"
+          >
+            <ExternalLink size={10} />
+            Open source
+          </a>
+        )}
+        {sig.source && (
+          <span className="text-[10px] text-white/35 truncate">{sig.source}</span>
+        )}
+      </div>
     </article>
   )
 }

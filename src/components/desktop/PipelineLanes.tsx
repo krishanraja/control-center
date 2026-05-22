@@ -8,6 +8,7 @@ import { AgentAvatar } from '../shared/AgentAvatar'
 import { PipelineCard } from '../PipelineCard'
 import { ContentIdeaCard } from '../ContentIdeaCard'
 import { VisibilityTargetCard } from '../VisibilityTargetCard'
+import { PodcastTargetCard } from '../PodcastTargetCard'
 import { GuestCandidateCard } from '../GuestCandidateCard'
 import { PipelineLane } from './PipelineLane'
 import { supabase, logKrishAction } from '../../lib/supabase'
@@ -495,7 +496,9 @@ function VisibilityLane({
     >
       <div className="flex flex-col gap-2">
         {richTargets.map(t => (
-          <VisibilityTargetCard key={t.id} target={t} />
+          t.type === 'podcast'
+            ? <PodcastTargetCard key={t.id} target={t} />
+            : <VisibilityTargetCard key={t.id} target={t} />
         ))}
         {topItems.length > 0 && (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] divide-y divide-white/[0.04]">
