@@ -1,8 +1,16 @@
 {
   "name": "Nell | Mindmaker OS | Lead Document Ingest",
-  "active": false,
   "nodes": [
     {
+      "id": "Webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "lead-doc-ingest",
       "parameters": {
         "httpMethod": "POST",
         "path": "lead-doc-ingest",
@@ -10,131 +18,492 @@
         "options": {
           "rawBody": false
         }
-      },
-      "id": "webhook",
-      "name": "Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1.1,
-      "position": [240, 320],
-      "webhookId": "lead-doc-ingest"
+      }
     },
     {
+      "id": "Validate",
+      "name": "Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst body = $input.first().json.body || $input.first().json;\nconst raw_text = body.raw_text || body.rawText || null;\nconst drive_file_id = body.drive_file_id || body.driveFileId || null;\nconst source_document_name = body.source_document_name || body.sourceDocumentName || (raw_text ? 'pasted lead list' : 'drive file');\nconst source_url = body.source_url || body.sourceUrl || null;\nconst source_type = body.source_type || (raw_text ? 'paste' : 'drive');\n\nif (!raw_text && !drive_file_id) {\n  throw new Error('Need either raw_text or drive_file_id');\n}\n\nconst run_id = 'leadingest_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);\n\nreturn [{ json: {\n  run_id,\n  source_document_name,\n  source_url,\n  source_type,\n  drive_file_id,\n  raw_text: raw_text || null,\n  has_raw_text: !!raw_text,\n  received_at: new Date().toISOString(),\n}}];\n"
+      }
+    },
+    {
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        144
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, run_id: $json.run_id }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "Source_Branch",
+      "name": "Source Branch",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        688,
+        304
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
-              "id": "auth-check",
-              "leftValue": "={{ $json.headers['x-agatha-secret'] }}",
-              "rightValue": "={{ $env.AGATHA_WEBHOOK_SECRET }}",
-              "operator": { "type": "string", "operation": "equals" }
+              "id": "cond-1",
+              "leftValue": "={{ $json.has_raw_text }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
             }
           ],
           "combinator": "and"
         }
-      },
-      "id": "auth-check",
-      "name": "Verify X-Agatha-Secret",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.1,
-      "position": [460, 320],
-      "notes": "Reject calls missing the shared secret. Matches PUB-001."
+      }
     },
     {
-      "parameters": {
-        "operation": "download",
-        "fileId": "={{ $('Webhook').item.json.body.drive_file_id }}",
-        "options": { "convertText": true, "convertToFormat": "text" }
-      },
-      "id": "drive-download",
+      "id": "Drive_Download",
       "name": "Drive: Download File",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
-      "position": [700, 220],
-      "credentials": { "googleDriveOAuth2Api": { "id": "google-drive", "name": "Google Drive (OS)" } }
+      "position": [
+        912,
+        416
+      ],
+      "parameters": {
+        "operation": "download",
+        "fileId": "={{ $('Validate').first().json.drive_file_id }}",
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "s6zCfprx9HPrbmA8",
+          "name": "Google Drive account"
+        }
+      }
     },
     {
+      "id": "Merge_text",
+      "name": "Merge text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        304
+      ],
       "parameters": {
-        "modelId": { "__rl": true, "mode": "list", "value": "claude-sonnet-4-6" },
-        "messages": {
-          "values": [
+        "language": "javaScript",
+        "jsCode": "\nconst meta = $('Validate').first().json;\nlet text = '';\nif (meta.has_raw_text) {\n  text = meta.raw_text;\n} else {\n  const drive = $input.first().json;\n  text = typeof drive === 'string' ? drive : (drive.body || drive.data || JSON.stringify(drive));\n}\nreturn [{ json: { text: String(text).slice(0, 200000), source_document_name: meta.source_document_name, source_type: meta.source_type, run_id: meta.run_id }}];\n"
+      }
+    },
+    {
+      "id": "Fetch_venture_registry",
+      "name": "Fetch venture_registry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        304
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/venture_registry",
+        "options": {
+          "timeout": 120000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
             {
-              "role": "system",
-              "content": "You extract structured leads from arbitrary documents. Return JSON only.\nSchema: { \"leads\": [ { \"full_name\":string|null, \"email\":string|null, \"linkedin_url\":string|null, \"twitter_handle\":string|null, \"company\":string|null, \"title\":string|null, \"fit_score\":int|null, \"tier\":\"strategic\"|\"icp\"|\"adjacent\"|null, \"why_relevant\":string, \"primary_tension\":string|null } ] }\nRules:\n- Skip rows that aren't clearly people. Don't fabricate emails or LinkedIn URLs.\n- why_relevant: one sentence grounded in the document context.\n- fit_score: 1-10 based on alignment with Mindmaker ICP (senior AI leaders, founders, media execs, builders).\n- Output strictly valid JSON."
+              "name": "select",
+              "value": "slug,display_name,kind,icp_description,scoring_criteria,sort_order"
             },
             {
-              "role": "user",
-              "content": "={{ $('Drive: Download File').item.binary?.data?.toString() || $('Webhook').item.json.body.raw_text || '' }}"
+              "name": "active",
+              "value": "eq.true"
+            },
+            {
+              "name": "order",
+              "value": "sort_order.asc"
             }
           ]
         },
-        "options": { "responseFormat": "json_object", "maxTokens": 4000, "temperature": 0.1 }
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        }
       },
-      "id": "extract-leads",
-      "name": "Claude: Extract Leads",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1.7,
-      "position": [940, 220],
-      "notes": "Sonnet 4.6 — per MT-003 default for agent work."
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
     },
     {
+      "id": "Fetch_contacted_persons",
+      "name": "Fetch contacted_persons",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1584,
+        304
+      ],
       "parameters": {
-        "jsCode": "// Map extracted leads to Supabase `leads` rows with provenance.\nconst body = $('Webhook').item.json.body || {};\nconst extracted = JSON.parse($('Claude: Extract Leads').item.json.message.content);\nconst leads = (extracted.leads || []).map(l => ({\n  full_name: l.full_name || null,\n  email: l.email || null,\n  linkedin_url: l.linkedin_url || null,\n  twitter_handle: l.twitter_handle || null,\n  company: l.company || null,\n  title: l.title || null,\n  source_type: body.drive_file_id ? 'drive_import' : 'drive_import',\n  source_ref: body.drive_file_id || null,\n  source_url: body.source_url || null,\n  source_document_id: body.drive_file_id || null,\n  source_document_name: body.source_document_name || null,\n  fit_score: l.fit_score || null,\n  tier: l.tier || null,\n  why_relevant: l.why_relevant || null,\n  primary_tension: l.primary_tension || null,\n  status: 'new',\n  raw_extraction: l,\n}));\nreturn leads.map(l => ({ json: l }));"
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons",
+        "options": {
+          "timeout": 120000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "email,linkedin_url"
+            },
+            {
+              "name": "limit",
+              "value": "5000"
+            }
+          ]
+        }
       },
-      "id": "shape-rows",
-      "name": "Shape rows",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Anthropic_Extract_Leads",
+      "name": "Anthropic: Extract Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1808,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 6000, \"temperature\": 0.2, \"system\": \"You convert raw lead research (pasted notes, Apollo exports, Google Doc text, sheets) into structured lead candidates scored against every active Krish venture. Return ONLY a JSON object, no prose, no code fences. Shape: { \\\"leads\\\": [ { \\\"full_name\\\":string|null, \\\"email\\\":string|null, \\\"linkedin_url\\\":string|null, \\\"twitter_handle\\\":string|null, \\\"company\\\":string|null, \\\"title\\\":string|null, \\\"why_relevant\\\":string|null, \\\"primary_tension\\\":string|null, \\\"fit_score\\\":int|null, \\\"attainability_score\\\":int|null, \\\"icp_scores\\\": { venture_slug: 0..100 integer for every venture in the registry } } ] }. The list of active ventures (slug + ICP description + scoring criteria) is provided in the user message under VENTURES. Score every lead against every venture, even if the score is 0. Be conservative; absent evidence means a low score, not a high one. Skip rows without at least a name AND a contact channel (email or linkedin). No em dashes. Use commas, colons, parentheses, or line breaks.\", \"messages\": [{\"role\": \"user\", \"content\": \"VENTURES:\\n{{ JSON.stringify($('Fetch venture_registry').first().json) }}\\n\\nSource document name: {{ $('Validate').first().json.source_document_name }}\\nSource type: {{ $('Validate').first().json.source_type }}\\n\\nRaw content:\\n{{ $('Merge text').first().json.text }}\\n\\nExtract lead candidates per the system prompt. Return JSON only.\"}]}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "w8sWwz8EfYc1JA7G",
+          "name": "Anthropic Header 2026-05-21"
+        }
+      }
+    },
+    {
+      "id": "Parse_and_Validate",
+      "name": "Parse + Validate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1180, 220]
+      "position": [
+        2032,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst item = $input.first().json;\nlet text = item.content?.[0]?.text || item.text || JSON.stringify(item);\ntext = text.trim();\nif (text.startsWith('```')) {\n  text = text.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\n}\n\nlet parsed;\ntry { parsed = JSON.parse(text); }\ncatch (e) {\n  return [{ json: { ok: false, rejection_reason: 'invalid_json', raw_text: text.slice(0,2000), error: String(e) }}];\n}\n\nconst ventures = $('Fetch venture_registry').first().json || [];\nconst ventureMap = {};\nfor (const v of ventures) ventureMap[v.slug] = v;\n\nconst meta = $('Validate').first().json;\nconst incoming = Array.isArray(parsed.leads) ? parsed.leads : [];\n\nconst clampScore = (v) => typeof v === 'number' ? Math.max(0, Math.min(100, Math.round(v))) : null;\n\nconst rows = [];\nfor (const l of incoming) {\n  if (!l || typeof l !== 'object') continue;\n  if (!l.full_name) continue;\n  if (!l.email && !l.linkedin_url) continue;\n\n  const scores = {};\n  for (const slug of Object.keys(ventureMap)) {\n    const s = (l.icp_scores || {})[slug];\n    scores[slug] = clampScore(s) ?? 0;\n  }\n\n  // Determine primary_venture and tags.\n  const tags = new Set();\n  let bestSlug = null;\n  let bestScore = -1;\n  let bestSortOrder = 999;\n  for (const slug of Object.keys(scores)) {\n    const v = ventureMap[slug];\n    const warm = v?.scoring_criteria?.tier_thresholds?.warm ?? 60;\n    if (scores[slug] >= warm) {\n      if (slug === 'mindmaker') tags.add('mindmaker_buyer');\n      else if (v?.kind === 'podcast') {\n        tags.add('podcast_guest_candidate');\n        tags.add(slug + '_guest');\n      } else {\n        tags.add(slug + '_match');\n      }\n      const sort = v?.sort_order ?? 999;\n      if (scores[slug] > bestScore || (scores[slug] === bestScore && sort < bestSortOrder)) {\n        bestSlug = slug;\n        bestScore = scores[slug];\n        bestSortOrder = sort;\n      }\n    }\n  }\n\n  rows.push({\n    full_name: String(l.full_name).slice(0,255),\n    email: l.email || null,\n    linkedin_url: l.linkedin_url || null,\n    twitter_handle: l.twitter_handle || null,\n    company: l.company || null,\n    title: l.title || null,\n    why_relevant: l.why_relevant || null,\n    primary_tension: l.primary_tension || null,\n    fit_score: clampScore(l.fit_score),\n    attainability_score: clampScore(l.attainability_score),\n    icp_score: scores.mindmaker ?? null,  // legacy column, preserve for back-compat\n    icp_scores: scores,\n    primary_venture: bestSlug,\n    tags: Array.from(tags),\n    source_type: meta.source_type,\n    source_ref: meta.run_id,\n    source_document_name: meta.source_document_name,\n    source_url: meta.source_url,\n    raw_extraction: l,\n    status: 'new',\n    assignee_agent: bestSlug === 'mindmaker' ? 'felix' : (bestSlug ? 'nell' : 'nell'),\n  });\n}\n\nreturn rows.map(r => ({ json: r }));\n"
+      }
     },
     {
+      "id": "Filter_New",
+      "name": "Filter New",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2256,
+        304
+      ],
       "parameters": {
-        "operation": "upsert",
-        "tableId": "leads",
-        "dataToSend": "autoMapInputData",
-        "matchFields": "email"
-      },
-      "id": "supabase-upsert",
-      "name": "Supabase: Upsert leads",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [1420, 220],
-      "credentials": { "supabaseApi": { "id": "supabase-os", "name": "Supabase (Mindmaker OS)" } }
+        "language": "javaScript",
+        "jsCode": "\nconst candidate = $input.first().json;\nconst contacted = $('Fetch contacted_persons').first().json || [];\nconst seenEmail = new Set();\nconst seenLink = new Set();\nfor (const c of contacted) {\n  if (c.email) seenEmail.add(String(c.email).toLowerCase());\n  if (c.linkedin_url) seenLink.add(String(c.linkedin_url).toLowerCase());\n}\n\nif (candidate.email && seenEmail.has(candidate.email.toLowerCase())) {\n  return [];\n}\nif (candidate.linkedin_url && seenLink.has(candidate.linkedin_url.toLowerCase())) {\n  return [];\n}\nreturn [{ json: candidate }];\n"
+      }
     },
     {
+      "id": "Supabase_Upsert_lead",
+      "name": "Supabase: Upsert lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2480,
+        304
+      ],
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { ok: true, count: $items('Supabase: Upsert leads').length, run_id: $execution.id } }}"
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "on_conflict",
+              "value": "email"
+            }
+          ]
+        },
+        "sendQuery": true
       },
-      "id": "respond-ok",
-      "name": "Respond OK",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [1660, 220]
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
     },
     {
+      "id": "Audit_Log",
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2704,
+        304
+      ],
       "parameters": {
-        "respondWith": "json",
-        "responseCode": 401,
-        "responseBody": "={{ { ok: false, error: 'invalid X-Agatha-Secret' } }}"
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"event_type\": \"nell_lead_doc_ingest\", \"actor\": \"nell\", \"target\": \"={{ Array.isArray($json) ? $json[0]?.id : $json.id }}\", \"details\": \"={{ JSON.stringify({ primary_venture: (Array.isArray($json) ? $json[0]?.primary_venture : $json.primary_venture), tags: (Array.isArray($json) ? $json[0]?.tags : $json.tags), icp_scores: (Array.isArray($json) ? $json[0]?.icp_scores : $json.icp_scores), run_id: $('Validate').first().json.run_id }) }}\"}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        }
       },
-      "id": "respond-unauth",
-      "name": "Respond Unauthorized",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [700, 460]
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
     }
   ],
   "connections": {
-    "Webhook":                    { "main": [[{ "node": "Verify X-Agatha-Secret", "type": "main", "index": 0 }]] },
-    "Verify X-Agatha-Secret":     { "main": [
-      [{ "node": "Drive: Download File", "type": "main", "index": 0 }],
-      [{ "node": "Respond Unauthorized", "type": "main", "index": 0 }]
-    ]},
-    "Drive: Download File":       { "main": [[{ "node": "Claude: Extract Leads", "type": "main", "index": 0 }]] },
-    "Claude: Extract Leads":      { "main": [[{ "node": "Shape rows", "type": "main", "index": 0 }]] },
-    "Shape rows":                 { "main": [[{ "node": "Supabase: Upsert leads", "type": "main", "index": 0 }]] },
-    "Supabase: Upsert leads":     { "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]] }
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Source Branch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Source Branch": {
+      "main": [
+        [
+          {
+            "node": "Merge text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Drive: Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive: Download File": {
+      "main": [
+        [
+          {
+            "node": "Merge text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge text": {
+      "main": [
+        [
+          {
+            "node": "Fetch venture_registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch venture_registry": {
+      "main": [
+        [
+          {
+            "node": "Fetch contacted_persons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch contacted_persons": {
+      "main": [
+        [
+          {
+            "node": "Anthropic: Extract Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic: Extract Leads": {
+      "main": [
+        [
+          {
+            "node": "Parse + Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse + Validate": {
+      "main": [
+        [
+          {
+            "node": "Filter New",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter New": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Upsert lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Upsert lead": {
+      "main": [
+        [
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  }
 }

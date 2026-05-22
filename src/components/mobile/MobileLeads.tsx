@@ -4,6 +4,7 @@ import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard
 import { DetailSheet } from './DetailSheet'
 import { LeadImportDropzone } from '../LeadImportDropzone'
 import { useRealtimeLeads, type LeadRow, type LeadSourceType, type LeadStatus } from '../../hooks/useRealtimeLeads'
+import { useVentureRegistry } from '../../hooks/useVentureRegistry'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { humanAge } from '../../lib/ageHelpers'
@@ -16,24 +17,6 @@ const SOURCE_TITLE: Record<LeadSourceType, string> = {
   signal_inbox:     'Signal Inbox',
   manual:           'Manual',
 }
-
-const SOURCE_DOT: Record<LeadSourceType, string> = {
-  podcast_audience: 'bg-violet-400',
-  drive_import:     'bg-emerald-400',
-  apollo:           'bg-amber-400',
-  nell_candidate:   'bg-sky-400',
-  signal_inbox:     'bg-rose-400',
-  manual:           'bg-white/40',
-}
-
-const SOURCE_ORDER: LeadSourceType[] = [
-  'podcast_audience',
-  'drive_import',
-  'apollo',
-  'nell_candidate',
-  'signal_inbox',
-  'manual',
-]
 
 function fitDot(fit?: number | null): string {
   if (fit == null) return 'bg-white/30'
@@ -59,15 +42,19 @@ export function MobileLeads() {
   const { leads, loading } = useRealtimeLeads({
     statusIn: ['new', 'enriching', 'ready', 'contacted', 'conversation'],
   })
+  const { ventures } = useVentureRegistry()
 
-  const grouped = useMemo(() => {
-    const out: Partial<Record<LeadSourceType, LeadRow[]>> = {}
+  const groupedByVenture = useMemo(() => {
+    const out: Record<string, LeadRow[]> = {}
     for (const l of leads) {
-      const arr = out[l.source_type] || (out[l.source_type] = [])
+      const key = l.primary_venture || '__other'
+      const arr = out[key] || (out[key] = [])
       arr.push(l)
     }
     return out
   }, [leads])
+
+  const ventureCount = Object.keys(groupedByVenture).filter(k => (groupedByVenture[k] || []).length > 0).length
 
   const featured = useMemo(() => pickFeatured(leads), [leads])
 
@@ -109,7 +96,7 @@ export function MobileLeads() {
       header={
         <TabHeader
           title="Leads"
-          subtitle={loading ? 'Loading…' : `${total} active across ${Object.keys(grouped).length} sources`}
+          subtitle={loading ? 'Loading…' : `${total} active across ${ventureCount} ventures`}
           trailing={
             <button
               onClick={() => { h.tap(); setShowImport(s => !s) }}
@@ -150,13 +137,16 @@ export function MobileLeads() {
         <EmptyState label="No active leads. Tap Import to drop a Google Drive file." />
       )}
 
-      {SOURCE_ORDER.map(src => {
-        const rows = grouped[src] || []
+      {[
+        ...ventures.map(v => ({ slug: v.slug, title: v.display_name })),
+        { slug: '__other', title: 'Other' },
+      ].map(({ slug, title }) => {
+        const rows = groupedByVenture[slug] || []
         if (rows.length === 0) return null
         return (
           <FeedCard
-            key={src}
-            title={`${SOURCE_TITLE[src]} · ${rows.length}`}
+            key={slug}
+            title={`${title} · ${rows.length}`}
           >
             {rows.slice(0, 8).map(l => (
               <FeedRow

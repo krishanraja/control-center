@@ -1,0 +1,368 @@
+{
+  "name": "Vera | Mindmaker OS | Feedback Aggregation",
+  "nodes": [
+    {
+      "id": "Schedule",
+      "name": "Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        304
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * 0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "Fetch_Unconsumed_Feedback",
+      "name": "Fetch Unconsumed Feedback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        304
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/feedback_queue",
+        "options": {
+          "timeout": 120000
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "consumed_by_vera",
+              "value": "eq.false"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Cluster",
+      "name": "Cluster",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst rows = $input.first().json || [];\nif (!Array.isArray(rows) || rows.length === 0) {\n  return [{ json: { clusters: [], total_rows: 0, run_id: 'vera_' + Date.now().toString(36) } }];\n}\n\nconst negative = rows.filter(r => (r.vote != null && r.vote < 0) || r.rejection_reason);\nconst groups = {};\nfor (const r of negative) {\n  const key = [r.agent_id || r.original_agent || 'unknown', r.source_table || 'unknown', r.reason_code || 'other'].join('|');\n  if (!groups[key]) groups[key] = [];\n  groups[key].push(r);\n}\n\nconst clusters = [];\nfor (const [key, items] of Object.entries(groups)) {\n  const [agent_id, source_table, reason_code] = key.split('|');\n  const hasReasonCode = reason_code !== 'other';\n  const meetsThreshold = items.length >= 3\n    || (hasReasonCode && items.length >= 2);\n  if (!meetsThreshold) continue;\n  clusters.push({\n    cluster_key: key,\n    agent_id,\n    source_table,\n    reason_code,\n    feedback_ids: items.map(i => i.id),\n    sample_reason_texts: items.map(i => i.reason_text || i.feedback_text).filter(Boolean).slice(0, 8),\n    sample_source_ids: items.map(i => i.source_id || i.original_item_id).filter(Boolean).slice(0, 8),\n    count: items.length,\n  });\n}\n\nreturn [{ json: { clusters, total_rows: rows.length, negative_rows: negative.length, eligible_clusters: clusters.length, run_id: 'vera_' + Date.now().toString(36) } }];\n"
+      }
+    },
+    {
+      "id": "Anthropic_Propose_Brief_Edits",
+      "name": "Anthropic: Propose Brief Edits",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        912,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 4000, \"temperature\": 0.2, \"system\": \"You are Vera, the Mindmaker OS reflection layer. You read clusters of negative feedback that landed on a specific agent's outputs and propose ONE concrete brief edit that would prevent the same mistake. Return ONLY JSON, no prose, no code fences. Shape: { \\\"clusters\\\": [ { \\\"cluster_key\\\":string, \\\"agent_id\\\":string, \\\"source_table\\\":string, \\\"reason_code\\\":string, \\\"feedback_ids\\\":[string], \\\"correction_instruction\\\":string, \\\"proposed_brief_edit\\\":string, \\\"confidence\\\":\\\"low\\\"|\\\"medium\\\"|\\\"high\\\" } ] }. correction_instruction is a one-line summary of the change. proposed_brief_edit is the exact prose to insert into the agent's brief, phrased as a positive rule (e.g., 'When extracting why_relevant, ground claims in specific signals from the source document; do not invent generic motivations.'). Skip clusters where feedback is inconsistent or noisy. No em dashes. Use commas, colons, parentheses, or line breaks.\", \"messages\": [{\"role\": \"user\", \"content\": \"Aggregated negative-feedback clusters from the last week:\\n{{ JSON.stringify($('Cluster').first().json.clusters) }}\\n\\nPropose brief edits per the system prompt.\"}]}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "w8sWwz8EfYc1JA7G",
+          "name": "Anthropic Header 2026-05-21"
+        }
+      }
+    },
+    {
+      "id": "Parse_and_Validate",
+      "name": "Parse + Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst item = $input.first().json;\nlet text = item.content?.[0]?.text || item.text || JSON.stringify(item);\ntext = text.trim();\nif (text.startsWith('```')) {\n  text = text.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\n}\n\nlet parsed;\ntry { parsed = JSON.parse(text); }\ncatch (e) {\n  return [{ json: { ok: false, rejection_reason: 'invalid_json', raw: text.slice(0,2000), error: String(e) }}];\n}\n\nconst validConf = new Set(['low','medium','high']);\nconst clusters = Array.isArray(parsed.clusters) ? parsed.clusters : [];\nconst rows = [];\nfor (const c of clusters) {\n  if (!c || !c.agent_id || !c.proposed_brief_edit) continue;\n  rows.push({\n    agent_id: c.agent_id,\n    correction_type: 'pattern_recall',\n    detection_source: 'vera_feedback_aggregation',\n    pattern_reason_code: c.reason_code || null,\n    consumed_feedback_ids: Array.isArray(c.feedback_ids) ? c.feedback_ids : [],\n    correction_instruction: String(c.correction_instruction || '').slice(0, 2000),\n    proposed_brief_edit: String(c.proposed_brief_edit || '').slice(0, 4000),\n    confidence: validConf.has(c.confidence) ? c.confidence : 'low',\n    approval_state: 'proposed',\n    status: 'open',\n    detected_at: new Date().toISOString(),\n  });\n}\nreturn rows.map(r => ({ json: r }));\n"
+      }
+    },
+    {
+      "id": "Write_Corrections",
+      "name": "Write Corrections",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/corrections",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Fan_out_feedback_ids",
+      "name": "Fan out feedback ids",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\n// For each correction just written (Supabase returns inserted rows), mark the\n// feedback rows it consumed. We fan out PATCH requests per feedback id.\nconst inserted = $input.first().json;\nconst rows = Array.isArray(inserted) ? inserted : [inserted];\nconst out = [];\nfor (const r of rows) {\n  if (!r || !r.id || !Array.isArray(r.consumed_feedback_ids)) continue;\n  for (const fid of r.consumed_feedback_ids) {\n    out.push({ json: { correction_id: r.id, feedback_id: fid }});\n  }\n}\nreturn out;\n"
+      }
+    },
+    {
+      "id": "Mark_Feedback_Consumed",
+      "name": "Mark Feedback Consumed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1808,
+        304
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/feedback_queue",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"consumed_by_vera\": true, \"consumed_correction_id\": \"={{ $json.correction_id }}\", \"consumed_at\": \"={{ new Date().toISOString() }}\"}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.feedback_id }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Audit_Log",
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2032,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"event_type\": \"vera_feedback_aggregation\", \"actor\": \"vera\", \"target\": \"feedback_queue\", \"details\": \"={{ JSON.stringify({ run_id: $('Cluster').first().json.run_id, eligible_clusters: $('Cluster').first().json.eligible_clusters, total_rows: $('Cluster').first().json.total_rows }) }}\"}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule": {
+      "main": [
+        [
+          {
+            "node": "Fetch Unconsumed Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Unconsumed Feedback": {
+      "main": [
+        [
+          {
+            "node": "Cluster",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cluster": {
+      "main": [
+        [
+          {
+            "node": "Anthropic: Propose Brief Edits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic: Propose Brief Edits": {
+      "main": [
+        [
+          {
+            "node": "Parse + Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse + Validate": {
+      "main": [
+        [
+          {
+            "node": "Write Corrections",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Corrections": {
+      "main": [
+        [
+          {
+            "node": "Fan out feedback ids",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fan out feedback ids": {
+      "main": [
+        [
+          {
+            "node": "Mark Feedback Consumed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  }
+}
