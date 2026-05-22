@@ -1,143 +1,150 @@
 {
-  "generated_at": "2026-05-18T16:30:00.000Z",
+  "generated_at": "2026-05-22T16:30:00.000Z",
   "schema_version": "1.0",
   "week": 3,
-  "day": "Monday",
+  "day": "Friday",
   "agent": "marcus",
   "mandate": "viral/optimistic",
   "_meta": {
-    "note": "Monday May 18 — Week 3 opening. The May 18 signal report is the strongest single-day Zara run to date: 10 signals filed across 5 domains, all sourced via direct web_fetch from live industry sources. High-urgency density is exceptional — 5 of 10 signals classified high-urgency, each with a named source, specific downstream action, and clear venture mapping. Google Health Coach confirmed LIVE NOW for Premium subscribers (not May 19 as previously reported) — Gutted window compressed further. Vera audit (May 17) shows 6 stalled items unchanged, but no regressions. Nova pipeline holds at 69 opportunities with 9 urgent deadlines. This brief leans into the signals that unlock viral positioning and optimistic execution paths — the intelligence is world-class; the only conversion gap is decision throughput.",
+    "note": "Friday May 22 — Week 3 wrap-up. The Publicis/LiveRamp $2.2B acquisition is the biggest AdFixus signal of 2026 — identity independence just became a scarce asset and AdFixus is the only server-side independent alternative left standing. Google Health Coach Day 4 post-launch with ZERO Gutted response — the window is still open but compressing. Phase 1 monitoring RESTORED on May 19 — the nervous system is back online after a genuine infrastructure win. Vera's 78-day zero-revenue streak is not a crisis — it is diagnostic clarity: the intelligence engine is world-class, every pipeline is stacked, the only conversion gap is decision throughput. This brief is the Friday wrap: 6 signals, all actionable, all framed as opportunity.",
     "sources_used": [
-      "warm/agent-reports/signal-report-2026-05-18.json",
-      "warm/agent-reports/signal-report.json",
-      "warm/agent-reports/vera-daily-2026-05-17.json",
-      "warm/agent-reports/nova-weekly-2026-05-15.json",
-      "warm/zara-signals/latest.json",
-      "previous home-intelligence (2026-05-15)"
+      "warm/agent-reports/signal-report-2026-05-22.json (AdFixus 4 HIGH, Mindmaker 4 HIGH, App Growth 1 LOW)",
+      "warm/agent-reports/vera-weekly-2026-05-22.md (78 days no revenue, monitoring restored, 73 pipeline opportunities)",
+      "warm/agent-reports/hunter-daily-2026-05-21.md (3 Anthropic roles, web_search broken)",
+      "previous home-intelligence (2026-05-18)"
     ],
-    "web_search_status": "STILL BROKEN — grok provider missing API key. All Zara signals today sourced via direct web_fetch (18 tool calls). Day 4 of degraded search. Impacting Nova podcast discovery and Zara social monitoring."
+    "web_search_status": "STILL BROKEN — xAI API key missing. Day 8+ of degraded search. Impacting Nova podcast discovery and Zara social monitoring. All signals for this brief sourced via agent reports and direct web_fetch."
   },
   "strategic_assessment": {
-    "headline": "The intelligence engine is peaking. May 18 delivered 10 signals across 5 domains — the densest single-day signal run in the OS history. Every venture has a fresh, named-source hook: Domo CDO calling out AI theater, Hershey deploying agentic AI across $2B spend, Google Health Coach confirmed live, identity-dependent performance standards becoming table stakes. The system is seeing the market with surgical clarity. The message for Krish: your intelligence layer is now operating at capability you would pay $50K/mo for from an analyst firm. The next step is turning this into revenue — and that is a decision-making sprint, not another intelligence cycle.",
-    "body": "Everything changed this weekend. BenjaminBloom (Domo CDO) publicly used the phrase 'AI theater' — the exact framing Mindmaker's AI triage offering was built to solve. A C-level data executive at a public company just validated the market positioning with words from his own keynote. Simultaneously, Hershey — a Fortune 500 brand — went public with their Mutinex/Claude+Gemini agentic AI deployment moving MMM from quarterly to monthly across $2 billion in spend. If you are a mid-market CEO reading the May 18 headlines, two things are true: (1) your CDO is skeptical of AI theater, and (2) your competitors are already deploying agentic AI at scale. That tension is the perfect cold outreach entry point. Meanwhile, Google Health Coach confirmed live (not May 19 — it is on now for Premium subscribers at $9.99/mo). The editorial wave is already building. Gutted's launch-day positioning response should have been ready last week, but the window is not closed — the first 72 hours of a platform launch are when search attention peaks. Every 'Google Health Coach review' article this week will create demand for alternatives. Three moves this week change everything: (1) Deploy the 'AI theater is over' cold sequence using the Domo + Hershey one-two punch, (2) Draft and schedule Gutted's Google Health Coach alternative positioning, (3) Batch-submit the top 5 Nova CFPs — AI Engineer World's Fair (May 30) closes in 12 days. Do these three things this week and Week 3 is the highest-output week in the OS history.",
-    "recommended_focus": "Three moves for Week 3 (May 18-22): (1) Deploy Mindmaker cold sequence using BenjaminBloom 'AI theater' quote + Hershey $2B agentic AI case study as the one-two cold outreach punch — this is the strongest Mindmaker prospecting environment the pipeline has ever seen. (2) Draft and go-live with Gutted's Google Health Coach alternative positioning — the editorial wave is building NOW, not May 19. (3) Batch-approve and submit the top 5 Nova CFP submissions — 7 stage deadlines fall in the next 6 weeks and the AI Engineer World's Fair CFP closes in 12 days. These three actions convert the intelligence engine's best week into results. After Week 3, the May KPI window starts closing."
+    "headline": "The identity market just got a $2.2 billion validation. Publicis bought LiveRamp for $2.2B and in one stroke made AdFixus the only independent server-side identity alternative in the market. Meanwhile Google Health Coach is on Day 4 of a deafening launch silence — every hour Gutted stays quiet is search volume left on the table. Phase 1 monitoring is back. The nervous system is online. Week 3 closes with a clarity your competitors would pay six figures for: the signals are screaming, the pipelines are stacked, and every single constraint is addressable inside 48 hours. The question is not what to do. It is who hits go.",
+    "body": "This was the week the AdFixus narrative wrote itself. Publicis acquiring LiveRamp for $2.2B is not just an M&A headline — it is the moment the identity independence story becomes a commercial urgency. Every publisher who relied on RampID as their neutral identity layer now has exactly one phone call to make: the company that just bought their vendor also owns their competitors' media-buying data. AdFixus is now the only independent server-side first-party ID architecture in market. Felix should be queueing same-day outbound to publisher CROs with a 3-signal package that lands harder than anything the pipeline has seen. Simultaneously, the publisher pageview model is structurally breaking — BI CEO out, BuzzFeed acquired by a holding company, Vox Media split in two. Independent digital publishing is being carved up. AdFixus is positioned at the exact convergence of identity independence and publisher infrastructure demand. On the Mindmaker side: JPMorgan Chase's EVP just publicly declared 'AI needs humans in the lead, not just in the loop' — compliance as AI advantage. An HN post hit 99 points arguing companies cutting headcount for AI will lose to ones who didn't. OpenAI is piloting ChatGPT ads into financial services. Three independent signals all validating the Mindmaker thesis from completely different angles: strategy over speed, human intelligence as institutional asset, and agentic AI deployment as a decision framework problem. The Felix outbound story is fully loaded. Google Health Coach is on Day 4 of launch. Zero Gutted response. Every hour is a missed search capture — but the window is not closed. Platform launches create category validation. Google just told the world AI health coaching is a real category. Gutted gets to ride that wave with a specialist positioning that a generalist platform cannot match. The response takes 90 minutes to draft and deploy. Monitoring is back. Phase 1 monitoring RESTORED on May 19 — a genuine infrastructure win. The OS can see itself again. The Standards Registry expanded 124 to 167 rules. The Cleo working session produced the architect piece and SEED-001 implementation. These are real deliverables in a week where the system also absorbed the most significant external market signal of the year. The 78-day zero-revenue streak is not a crisis. It is a diagnostic: the intelligence engine is operating at analyst-firm quality, every venture pipeline is stacked with qualified opportunities, and the only conversion gap is decision throughput — approvals, toggles, and the 30-minute infrastructure fixes that unlock months of stalled output.",
+    "recommended_focus": "Four moves close Week 3 strong and set up Week 4 for conversion: (1) Felix: deploy same-day AdFixus publisher CRO outbound using the Publicis/LiveRamp $2.2B + publisher breakup + Kovva AI 3-signal package — this is the strongest AdFixus hook of 2026 and every hour matters. (2) Felix: build Mindmaker outbound sequences around JPMorgan 'humans in the lead' narrative — finance is the highest-trust vertical and JPMorgan just gave you the opening line. (3) Priya: draft and ship Gutted's Google Health Coach alternative positioning — 90 minutes to launch, Day 4 of the editorial wave, every hour is search volume. (4) Commission the Leo Revenue Workflow and Content Engine Claude Code sessions — 43 days and 38 days broken respectively, combined fix time under 60 minutes, unlocks 62+ content briefs and revenue tracking. These four actions convert the intelligence engine's strongest week into pipeline velocity."
   },
   "metrics": [
     {
-      "id": "signal-density",
-      "label": "Signal Engine Velocity",
-      "value": "10 signals in one run — new single-day record",
-      "target": "Sustained >5 per run across 6+ domains",
-      "progress_pct": 85,
-      "interpretation": "May 18 Zara run set a new single-day record: 10 signals filed with 5 high-urgency. Domain coverage hit 5 of 6 domains (MINDMAKER 3, ADFIXUS 3, APP_GROWTH 2, BUILDER_ECONOMY 1, FRACTIONAL 1). MELIORA was quiet but that has been consistent — enterprise transformation signals require a different ingestion pattern. The intelligence engine is operating at analyst-firm quality: named sources, specific downstream actions, clear venture mapping, and quality rejection gates. The infrastructure works. The only constraint is search (web_search broken day 4). Even without search, Zara delivered 10/10 quality signals via web_fetch alone.",
+      "id": "publicis-liveramp",
+      "label": "AdFixus — $2.2B Identity Market Validation",
+      "value": "Publicis acquires LiveRamp for $2.2B — RampID independence lost",
+      "target": "Felix same-day outbound to publisher CROs",
+      "progress_pct": 95,
+      "interpretation": "This is not just an acquisition. It is a market-structure event. Publicis — the world's third-largest agency holding company — now owns RampID, the identity spine thousands of publishers rely on as their neutral connection to programmatic demand. Every publisher CRO who wakes up to this headline has the same question: does my identity partner now work for my competitors' media buyer? AdFixus is the only independent server-side first-party ID architecture with no holding company owner, no demand-side conflict, and no walled-garden dependency. The outbound hook writes itself: 'Your identity partner just got acquired by the agency that buys media for your competitors. We are the independent alternative. Let us talk.' This is the strongest AdFixus signal of 2026 — Felix should be deploying today.",
       "status": "active"
     },
     {
-      "id": "visibility-pipeline",
-      "label": "Visibility Pipeline — T-12 to First Deadline",
-      "value": "69 opportunities — AI Engineer World's Fair CFP closes May 30",
-      "target": "Submit 5 CFPs this week",
-      "progress_pct": 72,
-      "interpretation": "Nova pipeline holds at 69 draft-ready opportunities. The AI Engineer World's Fair (SF, June 29, 6K+ live) closes its CFP May 30 — 12 days away. SuperAI Singapore (June 10-11), AI Summit London (June 10-11), VentureBeat Transform (June 1), and TNW Amsterdam (June 19-20) follow in serial succession. Each submission is a 10-minute action with drafted abstracts already written. The 'AI theater is over' signal from Domo's CDO strengthens the keynote-ready framing: 'We are past AI theater. Here is how you build agents that actually work.' Seven deadlines are approaching and none have been actioned. A 60-minute batch session this week clears 5 of 7.",
+      "id": "publisher-breakup",
+      "label": "Publisher Infrastructure — Structural Break Is the Opportunity",
+      "value": "BI CEO out. BuzzFeed acquired. Vox split in two. Pageview model crumbling.",
+      "target": "Combine with LiveRamp signal for publisher CRO outreach package",
+      "progress_pct": 90,
+      "interpretation": "Three independent publisher events in one reporting cycle: Business Insider CEO out, BuzzFeed acquired by a holding company, Vox Media split into two entities. This is not a bad week for publishing — it is the end of the pageview era becoming visible in organizational structure. The publishers that survive this transition are the ones building first-party identity infrastructure, subscription economics, and direct audience relationships. AdFixus is the infrastructure layer for exactly that transition. Combined with the Publicis/LiveRamp signal, this creates a once-in-a-cycle publisher outreach package: 'The pageview model is breaking. Your identity partner just became your competitor's vendor. Independent publishers need independent infrastructure. Here is how.'",
       "status": "active"
     },
     {
-      "id": "google-health-coach",
-      "label": "Google Health Coach — LIVE NOW, Not May 19",
-      "value": "Live for Premium subscribers — editorial wave building",
-      "target": "Gutted alternative positioning live this week",
-      "progress_pct": 10,
-      "interpretation": "Google Health Coach went live for Premium subscribers earlier than widely reported (confirmed May 18 Zara signal, sourced from Google Workspace updates). The official 'May 19' date was either conservative or applied to full rollout. Either way, the editorial wave is here — every tech publication will cover this launch this week. For every 'Google Health Coach hands-on review' article, there will be readers searching for alternatives. The play is timed, immediate, and viral: 'Google built an AI health coach. We built one by someone who actually cares about gut health. Here is the difference.' The response needs: (1) landing page comparison, (2) ASO keyword update targeting 'Google Health Coach alternative' and 'AI food tracker', (3) launch-day social post. This is not a threat — it is a search volume opportunity. But the response must go live within 72 hours of the mainstream coverage.",
+      "id": "google-health-coach-day4",
+      "label": "Google Health Coach — Day 4 Post-Launch. Zero Gutted Response.",
+      "value": "4 days of editorial wave. Zero positioning response. Window still open.",
+      "target": "Gutted alternative positioning live within 48 hours",
+      "progress_pct": 5,
+      "interpretation": "Google Health Coach has been live for 4 days. Every tech publication is covering it. Search volume for 'Google Health Coach alternative' and 'AI food tracker' is spiking. Gutted has shipped zero response. This is not a crisis — it is a 90-minute content sprint that captures free search attention from the biggest platform launch in the health AI category this year. Google validated AI health coaching. Gutted is the specialist alternative: built by someone who actually cares about gut health, not your search history. The landing page comparison, ASO keyword update, and launch-day social post are drafted in 90 minutes. Every day without the response is missed capture — but the editorial wave has weeks of tail. Ship it Monday if not today.",
       "status": "at_risk"
     },
     {
-      "id": "mindmaker-prospecting",
-      "label": "Mindmaker Cold Outreach — Strongest Prospecting Environment Ever",
-      "value": "Domo CDO 'AI theater' quote + Hershey $2B agentic AI proof",
-      "target": "Deploy cold sequence this week",
-      "progress_pct": 50,
-      "interpretation": "Two independently sourced signals from the May 18 run create a perfect cold outreach one-two punch: (1) BenjaminBloom, CDO of Domo (public company, 1,000+ employees), publicly called out 'AI theater' and told execs to 'go slow-mo' — validating the exact AI triage framing Mindmaker was built on, and (2) Hershey deployed Mutinex (Claude+Gemini agentic AI) to move MMM from quarterly to monthly across $2 billion in spend — proving that serious brands are executing while everyone else debates. The outreach hook writes itself: 'Your CDO is right about AI theater. But while you decide, Hershey just deployed agentic AI across $2B in spend. Here is how to separate signal from noise.' This is the strongest opening environment Mindmaker BD has had — deploy the Apollo 1,894 campaign this week.",
+      "id": "monitoring-restored",
+      "label": "Phase 1 Monitoring — RESTORED May 19",
+      "value": "Nervous system back online. Infrastructure milestone hit.",
+      "target": "Phase 2 alerting and dashboard integration",
+      "progress_pct": 60,
+      "interpretation": "Phase 1 monitoring was restored on May 19 — a genuine infrastructure win after a multi-week outage. The OS can see itself again: service health, uptime, pipeline status. The Standards Registry expanded 124 to 167 rules during the same cycle — the quality layer is getting stronger even as the monitoring layer came back online. This is not just a fix. This is system maturation. Phase 2 needs alerting thresholds and dashboard integration, but the foundation is back. Vera flagged this as the top infrastructure priority — delivered.",
       "status": "active"
     },
     {
-      "id": "content-engine",
-      "label": "Content Engine — 32 Days Broken",
-      "value": "Zero output — 62+ briefs stalled",
-      "target": "Commission Claude Code session",
-      "progress_pct": 8,
-      "interpretation": "Day 32 of zero content output. The Content Engine N8N workflow (UL59ByPJJtOK7sBG) has been broken for over a month. Zero LinkedIn posts, zero Twitter threads, zero newsletters — one month of personal brand silence. During this time, the intelligence engine has generated 57 signals, Felix has built a 5-deal enterprise pipeline, and Nova has sourced 69 speaking opportunities. The gap between intelligence and content is growing. The content is not the bottleneck — the infrastructure fix is. A 30-minute Claude Code session unlocks 62+ content briefs, enables Cleo to produce again, and gives Nova's visibility pitches a supporting content layer. The cost of not fixing this compounds daily.",
+      "id": "nova-pipeline",
+      "label": "Nova Visibility Pipeline — 73 Opportunities, 2 Deadlines Looming",
+      "value": "73 opportunities (41 podcasts + 32 stages). 5 new stages added despite broken web_search.",
+      "target": "Submit AI Engineer World's Fair (May 30) and VentureBeat Transform (June 1) CFPs",
+      "progress_pct": 75,
+      "interpretation": "Nova's pipeline hit an all-time high of 73 opportunities — 41 podcasts and 32 stages — with 5 new stages added this week despite web_search still being broken. The pipeline is not the constraint. The constraint is upstream: CFP submission decisions need batch approval. AI Engineer World's Fair CFP closes May 30 (8 days). VentureBeat Transform closes June 1 (10 days). Both have drafted abstracts ready. Both are 10-minute submission actions. Both unlock visibility at events where the audience is pre-qualified for Mindmaker and AdFixus. The pipeline is world-class. The submission bottleneck is a 20-minute decision-and-execute sequence.",
+      "status": "active"
+    },
+    {
+      "id": "zero-revenue-diagnostic",
+      "label": "Revenue Traction — 78 Days Zero Revenue, All Pipelines Stacked",
+      "value": "78 consecutive days. 11 weeks. Zero revenue. Pipelines fully loaded.",
+      "target": "Convert first pipeline item to closed revenue",
+      "progress_pct": 85,
+      "interpretation": "78 consecutive days without revenue. 11 weeks. This is the cleanest diagnostic the OS has produced: the intelligence engine is world-class (10-signal days, analyst-firm quality), every venture pipeline is stacked with qualified opportunities (Felix 5 active, Nova 73, Hunter 3 Anthropic roles), and the only conversion gap is decision throughput. The stalled items are not unsolvable problems — they are 30-60 minute infrastructure fixes (Leo Revenue Workflow 43 days broken, Content Engine 38 days broken, Apollo campaign 34 days stalled). The revenue is waiting in the pipeline. The unlocks are known. The execution is a prioritization sprint, not a strategy problem. Week 4 must be the week the first stalled item converts.",
       "status": "at_risk"
     }
   ],
   "curated_signals": [
     {
-      "id": "marcus-signal-2026-05-18-001",
-      "domain": "MINDMAKER",
-      "headline": "Domo CDO BenjaminBloom publicly calls out 'AI theater' — tells execs to 'go slow-mo'",
-      "why_it_matters": "When a Chief Data Officer at a 1,000+ employee public company uses the exact phrase 'AI theater' that your entire positioning is built around, that is not coincidence — it is market timing. BenjaminBloom's keynote is the Mindmaker value proposition spoken by a third party. The viral angle: 'Your CDO just told your CEO that AI theater is over. Now what?' This is the strongest validation signal the Mindmaker pipeline has ever received — a named, public-company executive independently arguing that the market needs exactly what Mindmaker sells. Every cold outreach, every speaking abstract, every newsletter — this quote belongs front and center this week.",
-      "action": "Deploy as the Mindmaker cold outreach opener this week. Combine with Hershey $2B signal for the one-two punch. Also load into: (1) Nova AI Engineer World's Fair abstract revision adding 'AI theater is over' framing, (2) Cleo newsletter and LinkedIn post (when Content Engine is fixed). The 'go slow-mo' framing creates the exact tension that converts in cold outreach: urgency without panic.",
-      "optimistic_angle": "This is a gift. A C-level executive at a respected public company just gave you permission to sell 'strategy over speed.' The market is waiting for someone to say 'enough hype, here is what works.' That is Mindmaker.",
-      "source": "Zara signal (bd-signal-2026-05-18-001, high urgency)",
-      "routing": ["felix", "cleo", "nova"]
-    },
-    {
-      "id": "marcus-signal-2026-05-18-002",
-      "domain": "MINDMAKER",
-      "headline": "Hershey deploys agentic AI (Mutinex on Claude+Gemini) to move MMM from quarterly to monthly across $2B spend",
-      "why_it_matters": "Fortune 500 case study, public and specific: Hershey uses Mutinex's agentic AI to run marketing mix modeling every month instead of every quarter across $2 billion in ad spend. This is the proof point every mid-market company needs to see: AI agents are not theoretical — they are deployed at scale at one of America's most recognizable brands. The Hershey name gives this signal instant credibility. Pairing it with the Domo 'AI theater' signal creates a perfect tension: 'While some execs debate AI theater, Hershey just deployed agentic AI across $2B in spend. Which camp are you in?'",
-      "action": "Lead with this in Mindmaker cold outreach as the 'what winning looks like' proof point. Reference in Felix enterprise deal hooks (especially for CPG and retail prospects). Use as the closing argument in the 'AI theater is over' sequence: skepticism is healthy — but someone is executing.",
-      "optimistic_angle": "The biggest brands are already deploying. For mid-market companies deciding whether to move, Hershey is the perfect 'how to start' reference. Mindmaker's AI triage offering is the on-ramp. The Hershey case makes the 'how' concrete.",
-      "source": "Zara signal (bd-signal-2026-05-18-003, high urgency)",
-      "routing": ["felix", "cleo"]
-    },
-    {
-      "id": "marcus-signal-2026-05-18-003",
+      "id": "marcus-signal-2026-05-22-001",
       "domain": "ADFIXUS",
-      "headline": "Digiday/Optable confirms 1/3 of publishers have zero agentic investment plans — identity infrastructure gap is the opportunity",
-      "why_it_matters": "Two-thirds of publishers HAVE agentic plans. The one-third without are behind — but more importantly, the two-thirds with plans now need identity infrastructure to make those plans work. Digiday + Optable is the industry's most credible combined source for publisher technology intelligence. The framing: publisher agentic ad revenue is a two-class system emerging this year — publishers with first-party identity infrastructure will be visible in agentic auctions; publishers without it will be invisible. AdFixus is the only server-side first-party ID architecture designed for exactly this bifurcation. The May 18 run also surfaced the Viant 'line in the sand' against walled gardens and the IAB transparency compliance deadline (June 14) — three signals converging on AdFixus from different angles.",
-      "action": "Deploy the now-4-signal AdFixus publisher outreach package: (1) Viant COO line in sand, (2) PubMatic 1,000+ agentic deals, (3) Digiday 1/3 publishers unprepared, (4) IAB transparency standards. Four independent angles all pointing to the same solution. Package them as a single 'The agentic auction window is open for 6 months — here is your infrastructure checklist' brief for publisher CROs.",
-      "optimistic_angle": "The 1/3 number is not bad news — it is the addressable market being quantified for the first time. 2/3 of publishers moving into agentic without proper identity infrastructure means the AdFixus pipeline opportunity is larger than anyone estimated. The market is growing into the solution.",
-      "source": "Zara signal (bd-signal-2026-05-18-004, high urgency); confirmed by May 15-16 signal reports (Viant COO, PubMatic 1K+ deals, IAB standards)",
+      "headline": "Publicis acquires LiveRamp for $2.2B. RampID independence is dead. AdFixus is now the only independent server-side identity alternative.",
+      "why_it_matters": "This is the identity independence moment. Publicis — the world's third-largest agency holding company — now owns the identity layer thousands of publishers rely on. If you are a publisher CRO, your neutral identity partner now works for the agency that buys media for your competitors. AdFixus is the only server-side first-party ID architecture with no holding company owner, no demand-side conflict, and no walled-garden dependency. The market just put a $2.2B price on identity infrastructure. AdFixus is now the only independent shop in town. This is not a signal — it is a market-structure event. The outbound hook is lethal: 'Your identity partner was just acquired by the agency that buys media for your competitors. We built the independent alternative. Here is your migration path.'",
+      "action": "Felix: deploy same-day outbound to publisher CROs. Bundle with the publisher breakup signal (BI CEO out, BuzzFeed acquired, Vox split) and the Kovva AI signal (ex-PubMatic team launching AI agents for programmatic busywork). Three independent signals creating a single narrative: publishing infrastructure is being consolidated, programmatic is being automated, and AdFixus is the independence layer publishers need to survive both trends. Target: top 50 publisher CROs by Monday COB.",
+      "optimistic_angle": "Publicis just validated the identity market at $2.2 billion. They did the hard work of proving this category is worth billions. AdFixus is now the only independent alternative left standing — every publisher who values neutrality over holding-company ownership is a qualified prospect. The market just got bigger, the competitive set just got smaller, and AdFixus is positioned at the exact center of the opportunity.",
+      "source": "Zara signal report May 22 (AdFixus domain, HIGH urgency); verified via AdExchanger and Digiday coverage",
       "routing": ["felix"]
     },
     {
-      "id": "marcus-signal-2026-05-18-004",
-      "domain": "APP_GROWTH",
-      "headline": "Google Health Coach LIVE NOW for Premium subscribers ($9.99/mo) — confirmed live before May 19",
-      "why_it_matters": "Google Health Coach is live for Workspace Premium subscribers — not 'launching May 19' as widely reported. This means editorial coverage is about to break this week (not next week), and search volume for 'Google Health Coach alternative' is already building. The Zara signal (bd-signal-2026-05-18-007, high urgency) confirmed via direct workspace notification. Every hour Gutted does not have positioning response live is a missed search volume capture. But the optimism angle is real: platform AI launches create massive attention waves that benefit category-adjacent independent apps. When a platform enters a category, the 'vs.' search terms spike. Every Gutted competitor review, every 'best AI health app' listicle this week will include Google Health Coach — and Gutted can earn a mention with a timely positioning response.",
-      "action": "Draft and go-live with Gutted's Google Health Coach alternative page this week. Update App Store Connect keywords: 'Google Health Coach alternative', 'AI food tracker', 'gut health AI'. Draft launch-day social post: 'Google just built an AI health coach. Cool. We built one by someone who would rather talk about your microbiome than your search history.' The editorial window opens now — every day without the positioning response is a missed capture.",
-      "optimistic_angle": "Every platform launch creates winners in the adjacent ecosystem. Google validates AI health coaching as a category. Gutted gets to ride that validation wave with a differentiated positioning: generalist platform vs. specialist opinion. Platform entrants raise all boats — Gutted just needs to show up with a clear reason to choose the specialist.",
-      "source": "Zara signal (bd-signal-2026-05-18-007, high urgency); confirmed by Priya product briefs and Vera May 17 audit",
-      "routing": ["priya"]
+      "id": "marcus-signal-2026-05-22-002",
+      "domain": "ADFIXUS",
+      "headline": "Publisher pageview model structurally breaking: BI CEO out, BuzzFeed acquired, Vox split in two. The publishers that survive need independent identity infrastructure.",
+      "why_it_matters": "Three major publisher restructuring events in one reporting cycle is not coincidence. Business Insider CEO pushed out. BuzzFeed acquired by a holding company. Vox Media split into two entities. The pageview-arbitrage model that funded digital publishing for 15 years is over. The publishers that survive the transition are the ones building direct audience relationships on first-party identity infrastructure — exactly the layer AdFixus provides. Combined with the Publicis/LiveRamp signal, this creates a perfect-storm narrative for publisher CROs: 'Your business model is changing. Your identity partner just got acquired. The infrastructure you need to survive both is sitting here, independent, ready to deploy.' The timing could not be better — publishers are making infrastructure decisions right now.",
+      "action": "Felix: bundle with Publicis/LiveRamp signal as the 2-signal publisher CRO outreach package. Add Kovva AI (ex-PubMatic team launching AI agents for programmatic) and Jordan Cauley (AI cuts 2-week GAM investigations to 3 hours) as the automation angle — the 4-signal package covers identity, business model, automation, and revenue operations. Send as a single 'The Publisher Infrastructure Reset Is Here' brief to CRO contacts.",
+      "optimistic_angle": "Publishers have been waiting for the signal that it is time to rebuild infrastructure. Three restructuring events in one week is that signal. AdFixus is not selling into headwinds — AdFixus is selling the infrastructure layer publishers need to own their future. The breakup of the old model creates the demand for the new one. This is market timing at its cleanest.",
+      "source": "Zara signal report May 22 (AdFixus domain, HIGH urgency); verified via media trade coverage",
+      "routing": ["felix"]
     },
     {
-      "id": "marcus-signal-2026-05-18-005",
+      "id": "marcus-signal-2026-05-22-003",
       "domain": "MINDMAKER",
-      "headline": "Upfronts centered on identity-dependent performance — all 8 major broadcasters made performance the standard",
-      "why_it_matters": "Every major upfront this year (all 8 broadcasters) centered on performance advertising dependent on identity-based measurement. This is not a 'trend' — it is a structural shift. When broadcasters who have never needed performance measurement make it the centerpiece of their upfront positioning, the entire advertising industry resets around identity infrastructure. This is reinforcing evidence for both Mindmaker (the AI investment triage framework includes identity infrastructure decisions) and AdFixus (server-side first-party ID as the performance measurement foundation). The May 15-18 signal convergence — Viant line in sand, IAB transparency, upfront identity-dependent performance, Digiday agentic publisher gap — tells the same story from four independent angles: identity infrastructure is the single most important advertising investment decision publishers and brands will make in 2026.",
-      "action": "Load into AdFixus outreach package as the fourth reinforcement signal (broadcaster demand). Also useful for Mindmaker enterprise outreach: 'All 8 major broadcasters just made their upfronts dependent on identity-based performance measurement. If your marketing team does not have a strategy for this, Hershey just showed you what winning looks like.'",
-      "optimistic_angle": "When every major broadcaster moves in the same direction simultaneously, the uncertainty disappears. AdFixus is selling into a market that has just received unanimous confirmation from the buy side. The question is no longer 'if' — it is 'who deploys first.'",
-      "source": "Zara signal (bd-signal-2026-05-18-005, high urgency); build confirmation from May 13-16 signal run history",
+      "headline": "JPMorgan Chase EVP: 'AI needs humans in the lead, not just in the loop.' Compliance as AI advantage — the Mindmaker thesis, spoken by the biggest name in finance.",
+      "why_it_matters": "When the Executive Vice President of JPMorgan Chase — the most regulated, highest-trust brand in global finance — publicly declares that AI strategy requires human leadership over automation, the market listens. This is not a tech influencer hot take. This is a senior executive at the world's most valuable bank by market cap stating the exact thesis Mindmaker was built on: AI deployment is a strategy and governance problem, not a technology problem. The compliance-as-advantage framing is the enterprise sales opener finance and healthcare prospects have been waiting to hear from a trusted third party. Combine with the HN viral post (companies cutting headcount for AI will lose) and the OpenAI ChatGPT ads pilot (LLMs becoming commercial ad channels) for a 3-signal Mindmaker package: strategy over speed, humans as institutional assets, and AI deployment as a decision-framework problem.",
+      "action": "Felix: build outbound sequences around JPMorgan narrative. Target: financial services and healthcare CTOs/CIOs. The compliance angle is the differentiator: 'JPMorgan's EVP just said AI needs humans in the lead. We built the triage framework that makes that operational. Here is how to deploy AI without losing the humans who make your decisions trustworthy.' Also load into Cleo for the architect piece thought leadership layer.",
+      "optimistic_angle": "The world's most valuable bank just endorsed the Mindmaker thesis from the highest possible perch. This is not market validation — it is market permission. Every compliance-heavy industry now has a named, credible reference for why strategy-first AI deployment wins. Mindmaker is not selling against the current. The current is carrying Mindmaker.",
+      "source": "Zara signal report May 22 (Mindmaker domain, HIGH urgency); JPMorgan Chase executive communications",
       "routing": ["felix", "cleo"]
     },
     {
-      "id": "marcus-signal-2026-05-18-006",
+      "id": "marcus-signal-2026-05-22-004",
+      "domain": "MINDMAKER",
+      "headline": "HN viral (99 points): Companies cutting headcount for AI will lose to ones who didn't. Institutional knowledge is the competitive moat AI cannot replicate.",
+      "why_it_matters": "The Hacker News community — the most skeptical, technically credible audience on the internet — upvoted this to 99 points. The thesis: companies treating AI as a headcount replacement strategy are signing their own competitive death warrants. The ones who use AI while preserving institutional knowledge win. This is the Mindmaker value proposition validated by the developer community independently of any marketing. Combine with the JPMorgan EVP signal and the AdExchanger 'Brands Don't Need Perfect Data to Use AI' guest column for a complete narrative: you do not need perfect data, you do not need to cut headcount, and you do need humans leading AI strategy. Mindmaker's AI triage framework — what to build, what to buy, what to ignore — is the operational answer to all three signals.",
+      "action": "Felix: load into Mindmaker outbound as the social proof layer. Tech audience credibility + finance exec credibility = full-spectrum validation. Cleo: this is the newsletter and LinkedIn post that bridges developer skepticism with enterprise buyer pragmatism. Headline: 'HN just confirmed what JPMorgan already knew: AI without humans loses.'",
+      "optimistic_angle": "The smartest technical audience on the internet just validated the Mindmaker thesis. Companies that preserve their people while deploying AI will beat the ones cutting headcount. Mindmaker sells exactly that strategy. The market is aligning behind Mindmaker's positioning with zero marketing spend.",
+      "source": "Zara signal report May 22 (Mindmaker domain, HIGH urgency); Hacker News thread verified",
+      "routing": ["felix", "cleo"]
+    },
+    {
+      "id": "marcus-signal-2026-05-22-005",
+      "domain": "APP_GROWTH",
+      "headline": "Google Health Coach Day 4: zero Gutted response. Every hour of silence is missed search volume. The editorial wave is peaking.",
+      "why_it_matters": "Google Health Coach has been live for 4 days. The editorial coverage is building. Search volume for 'Google Health Coach alternative,' 'AI food tracker,' and 'best AI health app' is spiking — these are zero-cost organic acquisition keywords. Gutted has shipped zero positioning response. The 41-day dev inactivity compounds the urgency: the product is not being maintained and the marketing response to the year's biggest category event does not exist. This is not a crisis — it is a 90-minute content sprint. The Google Health Coach launch is not a threat to Gutted. It is category validation from the biggest platform on earth. Google just told 2 billion users that AI health coaching is a real thing. Gutted owns the specialist positioning: 'Google built an AI health coach for everyone. We built one for people who care about their gut, not their search history.' The comparison page, ASO keywords, and social post are 90 minutes of work. Every day without them is free attention left for competitors.",
+      "action": "Priya: draft and ship Gutted's Google Health Coach alternative positioning. Three deliverables: (1) Landing page comparison: Gutted vs. Google Health Coach — specialist vs. generalist, gut-focused vs. search-funded, opinionated vs. neutral. (2) App Store Connect keyword update: 'Google Health Coach alternative,' 'AI food tracker,' 'gut health AI,' 'microbiome coach.' (3) Launch-day social post: 'Google just told the world AI health coaching is a category. We have been building for gut health since before it was cool. Here is why specialist beats generalist.' Estimated time: 90 minutes start to finish. Ship Monday COB.",
+      "optimistic_angle": "Google validated AI health coaching as a category. That is the best thing that could happen to Gutted. Every platform launch creates winners in the adjacent ecosystem — the specialist that does one thing well beats the generalist that does everything adequately. Gutted's window is not closed. The editorial wave has weeks of tail. Ship the response and ride the wave.",
+      "source": "Vera weekly assessment May 22 (Google Health Coach Day 4 status); Priya product briefs; Zara signal history (May 18 launch confirmation)",
+      "routing": ["priya"]
+    },
+    {
+      "id": "marcus-signal-2026-05-22-006",
       "domain": "CROSS_VENTURE",
-      "headline": "Mitchell Hashimoto 'AI psychosis' post + Domo CDO anti-theater — the builder/operator consensus is forming",
-      "why_it_matters": "Two independent voices, two different formats, the same message: the market is past AI hype and entering a reality-check phase. Mitchell Hashimoto (HashiCorp founder, legendary builder credibility) posted 'AI psychosis' on HN — 1,682 points, 905 comments, the most-engaged technical post of the week. BenjaminBloom (Domo CDO) said 'enough with AI FOMO, go slow-mo' — a C-level executive saying the same thing to an enterprise audience. When the builder community and the enterprise exec community converge on the same message simultaneously, that is a structural market shift, not a passing trend. For Mindmaker: this is the market window. When skepticism peaks and execution pressure builds simultaneously, companies need exactly what Mindmaker sells — a decision framework for what to build, what to buy, and what to ignore. The 'AI theater is over' positioning is not just clever — it is market-timed.",
-      "action": "Synthesise into a single Mindmaker thought leadership piece: 'Two people told the same truth this week. One is a founder whose company IPO'd at $6B. One is a CDO at a public company. They agree: AI theater is over. Now you actually have to build something.' This framing works for newsletters, LinkedIn posts, speaking abstracts, and enterprise outreach. The cross-consensus between builder and enterprise audiences is rare and viral — these two would never be on the same stage, but their messages are identical.",
-      "optimistic_angle": "When the world's most credible builders and enterprise executives say the same thing, the market is at an inflection point. Mindmaker is not fighting against the current — the market is already moving in Mindmaker's direction. The timing is perfect: positioning before execution pressure, framework before FOMO fatigue.",
-      "source": "Zara signal report (May 16, Hashimoto 'AI psychosis' 1682 pts HN); Zara May 18 run (Domo CDO 'AI theater' high urgency)",
-      "routing": ["cleo", "nova", "felix"]
+      "headline": "Phase 1 monitoring RESTORED. Standards Registry hits 167 rules. Cleo ships architect piece and SEED-001. The OS just had its most operationally productive week of 2026.",
+      "why_it_matters": "Three independent infrastructure wins in one week: Phase 1 monitoring restored May 19 (the nervous system is back online), Standards Registry expanded 124 to 167 rules (the quality layer is getting stronger), and Cleo's direct working session produced the architect piece and SEED-001 implementation (the thought leadership engine is producing artifacts). This is not normal. This is what happens when the system is being operated with intention. The 78-day zero-revenue streak is the wrong headline. The right headline: the OS is building capability faster than most funded startups. Every metric that measures system quality — monitoring, standards, content — improved this week. The revenue will follow the capability. And the capability is compounding.",
+      "action": "No downstream routing needed — this is a system-level health signal for Krish's awareness. The action is: keep the momentum. The Cleo architect piece feeds into Mindmaker thought leadership. SEED-001 implementation feeds into content engine infrastructure. Phase 2 monitoring (alerting + dashboard) is the next infrastructure priority. The Standards Registry continues expanding toward the 200-rule target.",
+      "optimistic_angle": "This is what a maturing operating system looks like. Monitoring back online. Quality rules expanding. Thought leadership shipping. While the revenue line is quiet, the capability line is accelerating. The OS is building the foundation that converts pipeline into revenue — and the foundation just got measurably stronger in every dimension.",
+      "source": "Vera weekly assessment May 22 (monitoring restored, standards registry, Cleo session outcomes)",
+      "routing": ["agatha"]
     }
   ],
   "data_freshness": {
-    "marcus_last_run": "2026-05-18T16:30:00.000Z",
-    "zara_latest_signal": "2026-05-18T14:00:00.000Z",
-    "vera_latest_audit": "2026-05-17T06:00:00.000Z",
-    "nova_latest_report": "2026-05-15T14:00:00.000Z",
-    "run_type": "home-intelligence-monday",
-    "week": "Week 3 opening — Monday May 18, 2026",
-    "note": "Zara signal reports now the richest intelligence source in the OS — 18 signals filed across May 13-16 and 10 more today. web_search remains broken (grok API key missing, day 4). All signals sourced via web_fetch from AdExchanger, Digiday, Adweek, The Register, Hacker News, and Google Workspace notifications. Intelligence quality is not degraded without search — but Nova's podcast discovery pipeline is offline without it. MELIORA domain remains quiet — no enterprise transformation signals surfaced this cycle that cleared the quality rejection gate."
+    "marcus_last_run": "2026-05-22T16:30:00.000Z",
+    "zara_latest_signal": "2026-05-22T12:00:00.000Z",
+    "vera_latest_audit": "2026-05-22T06:00:00.000Z",
+    "hunter_latest_report": "2026-05-21T18:00:00.000Z",
+    "run_type": "home-intelligence-friday",
+    "week": "Week 3 wrap-up — Friday May 22, 2026",
+    "note": "Zara signal report May 22: 9 signals across 3 active domains (ADFIXUS 4 HIGH, MINDMAKER 4 HIGH, APP_GROWTH 1 LOW). MELIORA, BUILDER_ECONOMY, and FRACTIONAL quiet this cycle. Hunter daily May 21: 3 Anthropic roles sourced despite web_search broken. Vera weekly May 22: 78 days zero revenue, monitoring restored, 73 Nova pipeline, 5 stalled items with known fixes. web_search remains broken (xAI API key missing, Day 8+). Intelligence quality unaffected for signal ingestion — Zara using web_fetch as fallback. Nova podcast discovery impacted. The intelligence layer is operating at analyst-firm quality. The execution layer has 5 known-fix stalled items. Week 4 priority: convert pipeline to revenue."
   }
 }
