@@ -122,7 +122,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       <CriticalAlertBanner />
       <DailyLockBanner />
       <DailyBriefBanner />
-      <DecisionsWaitingPanel onNavigate={onNavigate} />
+      <DecisionsWaitingPanel onNavigate={onNavigate} limit={8} />
 
       {/* MONEY MACHINE — the only number that matters. */}
       <MrrTicker variant="desktop" />
