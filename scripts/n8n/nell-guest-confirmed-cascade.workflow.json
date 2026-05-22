@@ -1,0 +1,610 @@
+{
+  "name": "Nell | Mindmaker OS | Guest Confirmed Cascade",
+  "nodes": [
+    {
+      "id": "Webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "guest-confirmed-cascade",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "guest-confirmed-cascade",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "Validate",
+      "name": "Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst body = $input.first().json.body || $input.first().json;\nconst guest_id = body.guest_id || body.guestId;\nif (!guest_id) throw new Error('guest_id required');\nreturn [{ json: { guest_id }}];\n"
+      }
+    },
+    {
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        144
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, guest_id: $json.guest_id }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "Fetch_Guest",
+      "name": "Fetch Guest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        688,
+        304
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/guests",
+        "options": {
+          "timeout": 60000
+        },
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "id",
+              "value": "eq.{{ $json.guest_id }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Build_Tasks",
+      "name": "Build Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst guest = $('Fetch Guest').first().json[0];\nif (!guest) throw new Error('guest not found');\n\nconst now = new Date();\nconst scheduledAt = guest.scheduled_at ? new Date(guest.scheduled_at) : new Date(now.getTime() + 14 * 24 * 3600 * 1000);\nconst prepAt = new Date(scheduledAt.getTime() - 7 * 24 * 3600 * 1000);\nconst followupAt = new Date(scheduledAt.getTime() + 3 * 24 * 3600 * 1000);\n\nconst target = guest.podcast_target === 'signal_noise' ? 'Signal & Noise'\n              : guest.podcast_target === 'builder_economy' ? 'Builder Economy'\n              : 'podcast';\n\nconst rid = () => 'task_g_' + guest.id.slice(0,8) + '_' + Math.random().toString(36).slice(2,8);\n\nreturn [\n  { json: {\n      id: rid(),\n      title: `Prep brief: ${guest.name} (${target})`,\n      description: `Research questions, recent work, hot takes. Why fit: ${guest.why_fit || 'see guest record'}.`,\n      status: 'todo',\n      priority: 'P1',\n      owner: 'krish',\n      agent: 'nell',\n      due_date: prepAt.toISOString(),\n      group: 'podcast_prep',\n      group_label: target,\n      link_primary: guest.linkedin_url || guest.personal_url || null,\n      next_step: 'Draft 8-10 question outline.',\n  }},\n  { json: {\n      id: rid(),\n      title: `Record: ${guest.name} (${target})`,\n      description: `Recording session with ${guest.name}. Confirm tech setup 30 min prior.`,\n      status: 'todo',\n      priority: 'P0',\n      owner: 'krish',\n      agent: 'nell',\n      due_date: scheduledAt.toISOString(),\n      group: 'podcast_recording',\n      group_label: target,\n      link_primary: guest.linkedin_url || guest.personal_url || null,\n      next_step: 'Show up, hit record.',\n  }},\n  { json: {\n      id: rid(),\n      title: `Follow-up: thank ${guest.name} + share clip`,\n      description: '72h post-recording: send thank-you, share preview clip, ask about preferred promo angles.',\n      status: 'todo',\n      priority: 'P2',\n      owner: 'krish',\n      agent: 'nell',\n      due_date: followupAt.toISOString(),\n      group: 'podcast_followup',\n      group_label: target,\n      next_step: 'Draft 4-line thank-you, attach clip url.',\n  }},\n];\n"
+      }
+    },
+    {
+      "id": "Insert_Tasks",
+      "name": "Insert Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1136,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Anthropic:_Draft_Promos",
+      "name": "Anthropic: Draft Promos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        480
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 2000, \"temperature\": 0.5, \"system\": \"You draft 3 promo posts for a confirmed podcast recording, in Krish Raja's voice. Krish hosts Signal & Noise (deep tech and culture) and Builder Economy (operators and founders). Return ONLY a JSON array of 3 objects. Each: {channel, body, suggested_send_at_offset_days}. channel: linkedin, twitter, or email_teaser. linkedin: 2-4 sentences, punchy, real angle on what we will discuss, no humble brag. twitter: under 240 chars, one strong line, can include 1 hashtag max. email_teaser: 4-6 sentence newsletter blurb teasing the conversation. Voice rules: concrete, opinionated, no corporate filler, no em dashes (use commas, colons, parentheses), no exclamation marks, no emoji.\", \"messages\": [{\"role\": \"user\", \"content\": \"Guest confirmed for {{ $('Fetch Guest').first().json[0].podcast_target }}: {{ $('Fetch Guest').first().json[0].name }}. One-liner: {{ $('Fetch Guest').first().json[0].one_liner }}. Why fit: {{ $('Fetch Guest').first().json[0].why_fit }}. Draft the 3 promo posts.\"}]}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "w8sWwz8EfYc1JA7G",
+          "name": "Anthropic Header 2026-05-21"
+        }
+      }
+    },
+    {
+      "id": "Parse_Promos",
+      "name": "Parse Promos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        480
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst guest = $('Fetch Guest').first().json[0];\nlet text = $input.first().json.content?.[0]?.text || '';\ntext = text.trim();\nif (text.startsWith('```')) text = text.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\nlet rows;\ntry { rows = JSON.parse(text); } catch { rows = []; }\nif (!Array.isArray(rows)) rows = [];\n\nconst target = guest.podcast_target === 'signal_noise' ? 'Signal & Noise'\n              : guest.podcast_target === 'builder_economy' ? 'Builder Economy' : 'podcast';\n\nreturn rows.slice(0, 3).map(r => ({ json: {\n  idea: `${r.channel} promo for ${guest.name} (${target})`,\n  thesis: r.body || '(no body)',\n  distribution: r.channel,\n  status: 'draft',\n  source: 'guest_confirmed_cascade',\n  confidence: 0.7,\n  quality_score: 'amber',\n  raw_data: { guest_id: guest.id, channel: r.channel, suggested_offset_days: r.suggested_send_at_offset_days },\n}}));\n"
+      }
+    },
+    {
+      "id": "Insert_Promo_Drafts",
+      "name": "Insert Promo Drafts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1808,
+        480
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/content_ideas",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Build_Gmail",
+      "name": "Build Gmail",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        656
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst guest = $('Fetch Guest').first().json[0];\nconst target = guest.podcast_target === 'signal_noise' ? 'Signal & Noise'\n              : guest.podcast_target === 'builder_economy' ? 'Builder Economy' : 'the podcast';\nconst scheduledAt = guest.scheduled_at ? new Date(guest.scheduled_at) : null;\nconst scheduledStr = scheduledAt ? scheduledAt.toUTCString() : 'a time we will confirm shortly';\n\nconst subject = `Confirmed: ${target} recording`;\nconst body = [\n  `Hi ${guest.name.split(' ')[0]},`,\n  '',\n  `Locking us in for ${scheduledStr}.`,\n  '',\n  'Will send the recording link 48 hours before. If anything changes on your end, just reply here.',\n  '',\n  'Topics I am most excited to dig into come straight from your work, will send a question outline a few days before.',\n  '',\n  'Thanks,',\n  'Krish',\n].join('\\n');\n\nreturn [{ json: { to: guest.email, subject, body, has_email: !!guest.email }}];\n"
+      }
+    },
+    {
+      "id": "Has_Email",
+      "name": "Has Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        656
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has",
+              "leftValue": "={{ $json.has_email }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "Gmail_Draft",
+      "name": "Gmail: Create Draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1808,
+        656
+      ],
+      "parameters": {
+        "resource": "draft",
+        "operation": "create",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": {
+          "sendTo": "={{ $json.to }}"
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "lHiqteKckU5IUxQ6",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "id": "Insert_contacted_persons",
+      "name": "Insert contacted_persons",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        832
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/contacted_persons",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ person_email: $('Fetch Guest').first().json[0].email, person_name: $('Fetch Guest').first().json[0].name, agent: 'nell', context: 'guest_confirmed_cascade', source_signal_id: $('Fetch Guest').first().json[0].id }) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Stamp_cascade_fired_at",
+      "name": "Stamp cascade_fired_at",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1584,
+        832
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/guests",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ cascade_fired_at: new Date().toISOString() }) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "eq.{{ $('Validate').first().json.guest_id }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Audit_Log",
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1808,
+        832
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"event_type\": \"nell_guest_confirmed_cascade\", \"actor\": \"nell\", \"target\": \"={{ $('Validate').first().json.guest_id }}\", \"details\": \"={{ JSON.stringify({ name: $('Fetch Guest').first().json[0].name, podcast_target: $('Fetch Guest').first().json[0].podcast_target }) }}\"}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Guest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Guest": {
+      "main": [
+        [
+          {
+            "node": "Build Tasks",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Anthropic: Draft Promos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Gmail",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert contacted_persons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Tasks": {
+      "main": [
+        [
+          {
+            "node": "Insert Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic: Draft Promos": {
+      "main": [
+        [
+          {
+            "node": "Parse Promos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Promos": {
+      "main": [
+        [
+          {
+            "node": "Insert Promo Drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gmail": {
+      "main": [
+        [
+          {
+            "node": "Has Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Email?": {
+      "main": [
+        [
+          {
+            "node": "Gmail: Create Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Insert contacted_persons": {
+      "main": [
+        [
+          {
+            "node": "Stamp cascade_fired_at",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stamp cascade_fired_at": {
+      "main": [
+        [
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  }
+}
