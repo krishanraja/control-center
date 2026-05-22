@@ -90,7 +90,7 @@ export default function App() {
                 {tab === 'today'     && <ErrorBoundary label="Today"><MobileToday lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
                 {tab === 'leads'     && <ErrorBoundary label="Leads"><MobileLeads /></ErrorBoundary>}
                 {tab === 'customers' && <ErrorBoundary label="Customers"><MobileCustomers /></ErrorBoundary>}
-                {tab === 'guests'    && <ErrorBoundary label="Visibility"><MobileGuests /></ErrorBoundary>}
+                {tab === 'guests'    && <ErrorBoundary label="Visibility"><MobileGuests onNavigate={navigate} /></ErrorBoundary>}
                 {tab === 'content'   && <ErrorBoundary label="Content"><MobileContent /></ErrorBoundary>}
                 {tab === 'bets'      && <ErrorBoundary label="Bets"><MobileBets /></ErrorBoundary>}
                 {tab === 'exec'      && <ErrorBoundary label="Intel"><MobileIntel /></ErrorBoundary>}
@@ -106,7 +106,7 @@ export default function App() {
                 {tab === 'plans'     && <ErrorBoundary label="Plans"><DesktopPlans /></ErrorBoundary>}
                 {tab === 'leads'     && <ErrorBoundary label="Leads"><DesktopLeads /></ErrorBoundary>}
                 {tab === 'customers' && <ErrorBoundary label="Customers"><DesktopCustomers /></ErrorBoundary>}
-                {tab === 'guests'    && <ErrorBoundary label="Visibility"><DesktopGuests /></ErrorBoundary>}
+                {tab === 'guests'    && <ErrorBoundary label="Visibility"><DesktopGuests onNavigate={navigate} /></ErrorBoundary>}
                 {tab === 'content'   && <ErrorBoundary label="Content"><DesktopContent /></ErrorBoundary>}
                 {tab === 'bets'      && <ErrorBoundary label="Bets"><DesktopBets /></ErrorBoundary>}
                 {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}

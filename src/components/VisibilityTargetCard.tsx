@@ -8,6 +8,7 @@ import type { VisibilityTargetRow, VisibilityTargetType } from '../hooks/useVisi
 
 interface Props {
   target: VisibilityTargetRow
+  onOpen?: (id: string) => void
 }
 
 const TYPE_META: Record<VisibilityTargetType, { label: string; Icon: LucideIcon }> = {
@@ -24,7 +25,7 @@ const TYPE_META: Record<VisibilityTargetType, { label: string; Icon: LucideIcon 
  * visibility_targets table (PR 4), which carries event_url + cfp_url +
  * deadline + audience + why_relevant + suggested_talk_title on every row.
  */
-export function VisibilityTargetCard({ target: t }: Props) {
+export function VisibilityTargetCard({ target: t, onOpen }: Props) {
   const daysToDeadline = t.deadline_at
     ? Math.ceil((new Date(t.deadline_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
     : null
@@ -52,7 +53,10 @@ export function VisibilityTargetCard({ target: t }: Props) {
   const TypeIcon = meta.Icon
 
   return (
-    <article className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-3.5 hover:border-violet-500/35 transition-colors">
+    <article
+      className={`rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-3.5 hover:border-violet-500/35 transition-colors ${onOpen ? 'cursor-pointer' : ''}`}
+      onClick={onOpen ? () => onOpen(t.id) : undefined}
+    >
       <header className="flex items-start gap-2 min-w-0">
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-semibold text-white leading-snug">{t.title}</p>
