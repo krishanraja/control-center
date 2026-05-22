@@ -38,11 +38,18 @@
       "position": [760, 280],
       "parameters": {
         "method": "GET",
-        "url": "=https://api.search.brave.com/res/v1/web/search?q={{ encodeURIComponent(($json[0].full_name || '') + ' ' + ($json[0].company || '') + ' role LinkedIn') }}&count=3",
+        "url": "=https://api.search.brave.com/res/v1/web/search?q={{ encodeURIComponent([$json.full_name, $json.company, 'role LinkedIn'].filter(Boolean).join(' ').trim()) }}&count=3",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth"
       },
-      "notes": "Brave Search httpHeaderAuth credential with X-Subscription-Token header."
+      "credentials": { "httpHeaderAuth": { "name": "Brave Search API" } },
+      "notes": "Brave Search httpHeaderAuth credential MUST set header X-Subscription-Token (not e.g. Authorization). Brave's API rejects N8N's default Accept header — must override to application/json or */*."
     },
     {
       "name": "Sonnet Enrich",
@@ -61,7 +68,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: 'You re-score a Mindmaker sales lead given fresh public context. Return ONLY a JSON object with keys: fit_score (int 0-10), icp_score (int 0-10), attainability_score (int 0-10), why_relevant (string, 1 sentence), primary_tension (string, 1 sentence), next_step (string, action verb + object). Buyer profile: senior leaders at mid/large media + advertising + commerce orgs.', messages: [{ role: 'user', content: 'Lead: ' + JSON.stringify($('Fetch Lead').item.json[0]) + '\\n\\nBrave results:\\n' + JSON.stringify(($json.web?.results || []).slice(0,3)) }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: 'You re-score a Mindmaker sales lead given fresh public context. Return ONLY a JSON object with keys: fit_score (int 0-10), icp_score (int 0-10), attainability_score (int 0-10), why_relevant (string, 1 sentence), primary_tension (string, 1 sentence), next_step (string, action verb + object). Buyer profile: senior leaders at mid/large media + advertising + commerce orgs.', messages: [{ role: 'user', content: 'Lead: ' + JSON.stringify($('Fetch Lead').item.json) + '\\n\\nBrave results:\\n' + JSON.stringify(($json.web?.results || []).slice(0,3)) }] }) }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth"
       },
@@ -74,7 +81,7 @@
       "position": [1280, 280],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "const item = $input.first();\nconst blocks = item.json.content || [];\nconst text = blocks.map(b => b.text || '').join('\\n').trim();\nlet parsed = null;\ntry {\n  const a = text.indexOf('{');\n  const b = text.lastIndexOf('}');\n  if (a >= 0 && b > a) parsed = JSON.parse(text.slice(a, b + 1));\n} catch (e) { parsed = null; }\nconst src = $('Fetch Lead').item.json[0];\nreturn [{ json: { id: src.id, ...(parsed || {}) } }];"
+        "jsCode": "const item = $input.first();\nconst blocks = item.json.content || [];\nconst text = blocks.map(b => b.text || '').join('\\n').trim();\nlet parsed = null;\ntry {\n  const a = text.indexOf('{');\n  const b = text.lastIndexOf('}');\n  if (a >= 0 && b > a) parsed = JSON.parse(text.slice(a, b + 1));\n} catch (e) { parsed = null; }\nconst src = $('Fetch Lead').item.json;\nreturn [{ json: { id: src.id, ...(parsed || {}) } }];"
       }
     },
     {
