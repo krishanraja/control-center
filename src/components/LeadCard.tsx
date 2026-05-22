@@ -192,19 +192,52 @@ export function LeadCard({ lead: l, onOpen }: Props) {
         </p>
       )}
 
-      {/* Scoring + tier chips */}
-      {(l.fit_score != null || l.icp_score != null || l.tier) && (
+      {/* Venture + tag chips */}
+      {(l.primary_venture || (l.tags && l.tags.length > 0)) && (
+        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+          {l.primary_venture && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 uppercase tracking-[0.1em]">
+              {l.primary_venture.replace(/_/g, ' ')}
+            </span>
+          )}
+          {(l.tags || [])
+            .filter(t => t !== `${l.primary_venture}_buyer` && t !== `${l.primary_venture}_guest`)
+            .slice(0, 4)
+            .map(t => (
+              <span key={t} className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55">
+                {t.replace(/_/g, ' ')}
+              </span>
+            ))}
+        </div>
+      )}
+
+      {/* Scoring chips: per-venture icp_scores when present, fall back to single icp_score */}
+      {(l.fit_score != null || l.icp_score != null || (l.icp_scores && Object.keys(l.icp_scores).length > 0) || l.tier) && (
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
           {typeof l.fit_score === 'number' && (
             <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300 tabular-nums">
               Fit {l.fit_score}
             </span>
           )}
-          {typeof l.icp_score === 'number' && l.icp_score > 0 && (
-            <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300 tabular-nums">
-              ICP {l.icp_score}
-            </span>
-          )}
+          {l.icp_scores && Object.keys(l.icp_scores).length > 0
+            ? Object.entries(l.icp_scores)
+                .filter(([, score]) => typeof score === 'number' && score > 0)
+                .sort((a, b) => Number(b[1]) - Number(a[1]))
+                .slice(0, 3)
+                .map(([slug, score]) => (
+                  <span
+                    key={slug}
+                    className="text-[9px] px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300 tabular-nums"
+                    title={`${slug} ICP score`}
+                  >
+                    {slug.split('_').map(s => s[0]?.toUpperCase()).join('') || slug.slice(0, 2).toUpperCase()} {Number(score)}
+                  </span>
+                ))
+            : typeof l.icp_score === 'number' && l.icp_score > 0 && (
+                <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300 tabular-nums">
+                  ICP {l.icp_score}
+                </span>
+              )}
           {l.tier && (
             <span className="text-[9px] px-1 py-0.5 rounded bg-white/[0.06] text-white/55 uppercase tracking-[0.1em]">
               {l.tier}
