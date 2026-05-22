@@ -3,6 +3,7 @@ import { Mic, Megaphone } from 'lucide-react'
 import { useRealtimeGuests, type GuestRow, type GuestStatus, type GuestPodcastTarget } from '../../hooks/useRealtimeGuests'
 import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'
 import { GuestImportDropzone } from '../GuestImportDropzone'
+import { VisibilityImportDropzone } from '../VisibilityImportDropzone'
 import { GuestStatusLane } from './GuestStatusLane'
 import { VisibilityTargetLane } from './VisibilityTargetLane'
 
@@ -133,6 +134,12 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate }: Props =
       ) : (
         <div className="grid grid-cols-1 lg:[grid-template-columns:1fr_2fr] gap-5">
           <aside className="space-y-4">
+            <section>
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
+                Import
+              </h2>
+              <VisibilityImportDropzone />
+            </section>
             <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
               <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
                 By type

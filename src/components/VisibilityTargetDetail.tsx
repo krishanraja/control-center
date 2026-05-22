@@ -321,9 +321,9 @@ function AudienceSnapshot({ target }: { target: VisibilityTargetDeep }) {
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
       <h3 className="text-[10px] uppercase tracking-[0.14em] text-white/55 mb-2">Audience</h3>
       <div className="grid grid-cols-3 gap-3 text-[12px]">
-        <Stat label="Size" value={target.audience_size ? `${target.audience_size.toLocaleString()}+` : '—'} />
-        <Stat label="Sector" value={target.audience_sector || '—'} />
-        <Stat label="Seniority" value={target.audience_seniority || '—'} />
+        <Stat label="Size" value={target.audience_size ? `${target.audience_size.toLocaleString()}+` : '-'} />
+        <Stat label="Sector" value={target.audience_sector || '-'} />
+        <Stat label="Seniority" value={target.audience_seniority || '-'} />
       </div>
       {target.audience && (
         <p className="text-[12px] text-white/65 mt-3 leading-relaxed">{target.audience}</p>
@@ -404,14 +404,14 @@ function EffortStrip({ effort }: { effort: NonNullable<VisibilityTargetDeep['eff
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
       <h3 className="text-[10px] uppercase tracking-[0.14em] text-white/55 mb-2">Effort estimate</h3>
       <div className="grid grid-cols-3 gap-3 text-[12px]">
-        <Stat label="Prep" value={effort.prep_hours != null ? `${effort.prep_hours}h` : '—'} />
-        <Stat label="Travel" value={effort.travel_days != null ? (effort.travel_days === 0 ? 'online' : `${effort.travel_days}d`) : '—'} />
+        <Stat label="Prep" value={effort.prep_hours != null ? `${effort.prep_hours}h` : '-'} />
+        <Stat label="Travel" value={effort.travel_days != null ? (effort.travel_days === 0 ? 'online' : `${effort.travel_days}d`) : '-'} />
         <Stat
           label="Cost"
           value={
             effort.cost_usd_low != null
-              ? `$${effort.cost_usd_low}–${effort.cost_usd_high ?? effort.cost_usd_low}`
-              : '—'
+              ? `$${effort.cost_usd_low} to ${effort.cost_usd_high ?? effort.cost_usd_low}`
+              : '-'
           }
         />
       </div>
