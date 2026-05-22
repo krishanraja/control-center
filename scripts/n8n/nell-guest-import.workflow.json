@@ -1,0 +1,343 @@
+{
+  "name": "Nell | Mindmaker OS | Guest Sheet Bulk Import",
+  "nodes": [
+    {
+      "id": "Webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "guest-doc-ingest",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "guest-doc-ingest",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "Validate",
+      "name": "Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst body = $input.first().json.body || $input.first().json;\nconst raw_text = body.raw_text || body.rawText || null;\nconst drive_file_id = body.drive_file_id || body.driveFileId || null;\nconst source_document_name = body.source_document_name || body.sourceDocumentName || 'pasted guest list';\nconst source_url = body.source_url || body.sourceUrl || null;\n\nif (!raw_text && !drive_file_id) {\n  throw new Error('Need either raw_text or drive_file_id');\n}\n\nconst run_id = 'guestimport_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);\n\nreturn [{ json: {\n  run_id,\n  source_document_name,\n  source_url,\n  drive_file_id,\n  raw_text: raw_text || '(drive_file_id branch not implemented; provide raw_text)',\n  has_raw_text: !!raw_text,\n  received_at: new Date().toISOString(),\n}}];\n"
+      }
+    },
+    {
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        144
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, run_id: $json.run_id }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "Anthropic:_Extract_Guests",
+      "name": "Anthropic: Extract Guests",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        688,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "options": {
+          "timeout": 90000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 4000, \"temperature\": 0.2, \"system\": \"You convert raw guest research (pasted from sheets, CSVs, notes, Apollo exports, anything text) into a structured JSON array of podcast guest candidates. Krish runs two podcasts: Signal & Noise (deep tech and culture) and Builder Economy (operators and founders). Return ONLY a JSON array, no prose, no code fences. Each element: {name, email, linkedin_url, twitter_handle, personal_url, podcast_target, one_liner, why_fit, best_channel, fit_score, attainability_score, quality_score, notes}. podcast_target must be exactly one of: signal_noise, builder_economy, either. fit_score and attainability_score are 0 to 100 integers. quality_score: green if name + a contact channel + clear fit, amber if missing one, red if speculative. best_channel: email, linkedin, twitter, warm_intro, or other. Skip rows without a name. If email and linkedin are both missing, set quality_score to red. Do not invent contact info. Unknown fields must be null, not invented. No em dashes. Use commas, colons, or parentheses.\", \"messages\": [{\"role\": \"user\", \"content\": \"Source: {{ $('Validate').first().json.source_document_name }}\\n\\nRaw content:\\n{{ $('Validate').first().json.raw_text }}\\n\\nExtract the guest candidates per the system prompt.\"}]}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "w8sWwz8EfYc1JA7G",
+          "name": "Anthropic Header 2026-05-21"
+        }
+      }
+    },
+    {
+      "id": "Parse_+_Validate",
+      "name": "Parse + Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst item = $input.first().json;\nlet text = item.content?.[0]?.text || item.text || JSON.stringify(item);\ntext = text.trim();\nif (text.startsWith('```')) {\n  text = text.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\n}\n\nlet rows;\ntry { rows = JSON.parse(text); }\ncatch (e) {\n  return [{ json: { ok: false, rejection_reason: 'invalid_json', raw_text: text.slice(0,2000), error: String(e) }}];\n}\n\nif (!Array.isArray(rows)) {\n  return [{ json: { ok: false, rejection_reason: 'not_an_array', raw_text: text.slice(0,2000) }}];\n}\n\nconst allowedTarget = new Set(['signal_noise','builder_economy','either']);\nconst allowedQ = new Set(['red','amber','green']);\nconst validChannels = new Set(['email','linkedin','twitter','warm_intro','other']);\n\nconst valid = [];\nconst skipped = [];\nconst meta = $('Validate').first().json;\n\nfor (const r of rows) {\n  if (!r || typeof r !== 'object') continue;\n  if (!r.name) { skipped.push({ reason: 'missing_name', row: r }); continue; }\n  if (!allowedTarget.has(r.podcast_target)) r.podcast_target = 'either';\n  if (r.quality_score && !allowedQ.has(r.quality_score)) r.quality_score = null;\n  if (r.best_channel && !validChannels.has(r.best_channel)) r.best_channel = 'other';\n  const clampScore = (v) => typeof v === 'number' ? Math.max(0, Math.min(100, Math.round(v))) : null;\n  valid.push({\n    name: String(r.name).slice(0,255),\n    email: r.email || null,\n    linkedin_url: r.linkedin_url || null,\n    twitter_handle: r.twitter_handle || null,\n    personal_url: r.personal_url || null,\n    podcast_target: r.podcast_target,\n    one_liner: r.one_liner || null,\n    why_fit: r.why_fit || null,\n    best_channel: r.best_channel || null,\n    fit_score: clampScore(r.fit_score),\n    attainability_score: clampScore(r.attainability_score),\n    quality_score: r.quality_score || null,\n    notes: r.notes || null,\n    source: 'sheet_import',\n    raw_data: {\n      ingest_run_id: meta.run_id,\n      source_document_name: meta.source_document_name,\n      received_at: meta.received_at,\n      extracted_raw: r,\n    },\n  });\n}\n\nreturn [{ json: { ok: true, rows: valid, skipped_count: skipped.length, total_extracted: rows.length, run_id: meta.run_id }}];\n"
+      }
+    },
+    {
+      "id": "Fetch_Existing",
+      "name": "Fetch Existing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1136,
+        304
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/guests",
+        "options": {
+          "timeout": 90000
+        },
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "email,name"
+            },
+            {
+              "name": "limit",
+              "value": "5000"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Filter_New",
+      "name": "Filter New",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst incoming = $('Parse + Validate').first().json.rows || [];\nconst existing = $input.first().json || [];\nconst seenEmail = new Set();\nconst seenName = new Set();\nfor (const e of existing) {\n  if (e.email) seenEmail.add(e.email.toLowerCase());\n  if (e.name) seenName.add(e.name.toLowerCase().trim());\n}\nconst fresh = incoming.filter(r => {\n  if (r.email && seenEmail.has(r.email.toLowerCase())) return false;\n  if (!r.email && r.name && seenName.has(r.name.toLowerCase().trim())) return false;\n  return true;\n});\nreturn fresh.map(r => ({ json: r }));\n"
+      }
+    },
+    {
+      "id": "Supabase:_Insert_Guest",
+      "name": "Supabase: Insert Guest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1584,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/guests",
+        "options": {
+          "timeout": 90000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Audit_Log_Insert",
+      "name": "Audit Log Insert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1808,
+        304
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "options": {
+          "timeout": 90000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"event_type\": \"nell_guest_sheet_import\", \"actor\": \"nell\", \"target\": \"={{ $json[0].id }}\", \"details\": \"={{ JSON.stringify({ name: $json[0].name, podcast_target: $json[0].podcast_target, source: 'sheet_import' }) }}\"}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Anthropic: Extract Guests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic: Extract Guests": {
+      "main": [
+        [
+          {
+            "node": "Parse + Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse + Validate": {
+      "main": [
+        [
+          {
+            "node": "Fetch Existing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Existing": {
+      "main": [
+        [
+          {
+            "node": "Filter New",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter New": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Insert Guest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Insert Guest": {
+      "main": [
+        [
+          {
+            "node": "Audit Log Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  }
+}

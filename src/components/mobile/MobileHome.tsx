@@ -1,11 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
 import { DetailSheet } from './DetailSheet'
+import { Logomark } from './Logomark'
 import { useRealtimeTasks, type TaskRow } from '../../hooks/useRealtimeTasks'
 import { useRealtimeLeads } from '../../hooks/useRealtimeLeads'
 import { useRealtimeContentIdeas } from '../../hooks/useRealtimeContentIdeas'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
+import { MrrTicker } from '../MrrTicker'
+import { DailyBriefBanner } from '../DailyBriefBanner'
+import { CriticalAlertBanner } from '../CriticalAlertBanner'
+import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
+import { StreakPills } from '../StreakPills'
+import { DailyLockBanner } from '../DailyLockBanner'
 
 interface ExternalSignal {
   signal: string
@@ -51,8 +58,14 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
   return (
     <MobileShellPrim
-      header={<TabHeader title="Mindmaker" subtitle="Decisions, not admin" />}
+      header={<TabHeader title="Mindmaker" subtitle="Decisions, not admin" leading={<Logomark size={36} />} />}
     >
+      <CriticalAlertBanner />
+      <DailyLockBanner />
+      <DailyBriefBanner />
+      <DecisionsWaitingPanel />
+      <MrrTicker variant="mobile" />
+      <StreakPills variant="mobile" />
       {heroSignal && (
         <HeroCard
           eyebrow="What needs you"

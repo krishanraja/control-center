@@ -47,6 +47,13 @@ export interface LeadRow {
   created_at: string
   updated_at: string
   superseded_by?: string | null
+  follow_up_at?: string | null
+  promoted_task_id?: string | null
+  deep_enriched_at?: string | null
+  quality_score?: string | null
+  tags?: string[] | null
+  icp_scores?: Record<string, number> | null
+  primary_venture?: string | null
 }
 
 interface Options {

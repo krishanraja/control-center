@@ -1,0 +1,104 @@
+{
+  "name": "Marcus | Daily Brief 06:30",
+  "active": false,
+  "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
+  "nodes": [
+    {
+      "name": "06:30 daily",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 280],
+      "parameters": {
+        "triggerTimes": { "item": [{ "mode": "everyDay", "hour": 6, "minute": 30 }] }
+      }
+    },
+    {
+      "name": "Pull live data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 280],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Pull yesterday's customers + live bets + leads needing follow-up.\nconst SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1';\nconst hdr = { apikey: $credentials.supabaseApi.apiKey, Authorization: `Bearer ${$credentials.supabaseApi.apiKey}` };\nconst yesterdayIso = new Date(Date.now() - 86400000).toISOString();\nconst [customers, bets, leadsRes, councilRes] = await Promise.all([\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/customers?select=product,kind,mrr_usd,became_paid_at,churned_at&limit=500`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/bets?status=eq.live&select=hypothesis,kind,started_at,time_box_days,est_mrr_impact_usd&order=started_at.desc&limit=50`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/leads?status=in.(ready,contacted,conversation)&select=full_name,company,tier,follow_up_at&order=follow_up_at.asc.nullslast&limit=20`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/customers?kind=eq.paid&churned_at=is.null&select=full_name,email,product,mrr_usd,became_paid_at&order=mrr_usd.desc.nullslast&limit=10`, headers: hdr, json: true }),\n]);\nconst paidAddedYesterday = customers.filter(c => c.kind === 'paid' && c.became_paid_at >= yesterdayIso);\nconst churnedYesterday   = customers.filter(c => c.kind === 'churned' && c.churned_at >= yesterdayIso);\nconst yesterdayMrr = paidAddedYesterday.reduce((s, c) => s + (Number(c.mrr_usd) || 0), 0) - churnedYesterday.reduce((s, c) => s + (Number(c.mrr_usd) || 0), 0);\nreturn [{ json: { customers, bets, leads: leadsRes, council: councilRes, yesterday_mrr_delta_usd: yesterdayMrr } }];"
+      }
+    },
+    {
+      "name": "Sonnet brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [760, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 600, system: 'You are Marcus — Krish\\'s COO. Write a 06:30 daily brief: a JSON object with keys one_bet (string — the ONE bet that matters most today, pulled from the live bets list, focused on revenue impact), one_customer (string — the ONE customer to talk to today, name them, say why), one_anti_action (string — the ONE thing he should NOT do today), body (optional 1-2 sentence narrative). Be terse and opinionated. Return ONLY the JSON object.', messages: [{ role: 'user', content: 'Yesterday MRR delta: $' + $json.yesterday_mrr_delta_usd + '. Live bets: ' + JSON.stringify(($json.bets || []).slice(0,6)) + '. Top paid customers: ' + JSON.stringify(($json.council || []).slice(0,6)) + '. Leads needing follow-up: ' + JSON.stringify(($json.leads || []).slice(0,5)) }] }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "credentials": { "httpHeaderAuth": { "name": "Anthropic Header" } }
+    },
+    {
+      "name": "Parse + stamp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1020, 280],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const blocks = $input.first().json.content || [];\nconst text = blocks.map(b => b.text || '').join('').trim();\nlet brief = null;\ntry {\n  const a = text.indexOf('{'); const b = text.lastIndexOf('}');\n  if (a >= 0 && b > a) brief = JSON.parse(text.slice(a, b + 1));\n} catch { brief = null; }\nbrief = brief || { body: text };\nbrief.yesterday_mrr_delta_usd = $('Pull live data').item.json.yesterday_mrr_delta_usd || 0;\nreturn [{ json: { brief, telegram_text: 'Today: ' + (brief.one_bet || brief.body || 'No brief.') + (brief.one_customer ? '\\nTalk to: ' + brief.one_customer : '') + (brief.one_anti_action ? '\\nDon\\'t: ' + brief.one_anti_action : '') + (brief.yesterday_mrr_delta_usd ? '\\nYesterday: $' + Math.round(brief.yesterday_mrr_delta_usd) + ' MRR' : '') } }];"
+      }
+    },
+    {
+      "name": "Write home_intelligence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1280, 200],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/home_intelligence?id=eq.current",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ daily_brief: $json.brief, daily_brief_at: new Date().toISOString() }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+    },
+    {
+      "name": "Telegram push",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1280, 360],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: '5712840770', text: $json.telegram_text }) }}"
+      }
+    }
+  ],
+  "connections": {
+    "06:30 daily":    { "main": [[{ "node": "Pull live data",          "type": "main", "index": 0 }]] },
+    "Pull live data": { "main": [[{ "node": "Sonnet brief",            "type": "main", "index": 0 }]] },
+    "Sonnet brief":   { "main": [[{ "node": "Parse + stamp",           "type": "main", "index": 0 }]] },
+    "Parse + stamp":  { "main": [[
+                          { "node": "Write home_intelligence", "type": "main", "index": 0 },
+                          { "node": "Telegram push",            "type": "main", "index": 0 }
+                       ]] }
+  }
+}

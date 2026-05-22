@@ -1,15 +1,15 @@
 import React, { useMemo, useState } from 'react'
-import { ExternalLink, ThumbsUp, MessageSquarePlus, ChevronRight, Users, Sparkles } from 'lucide-react'
+import { ExternalLink, ThumbsUp, MessageSquarePlus, ChevronRight, Users, Sparkles, Mic } from 'lucide-react'
 import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { useNellCandidates, type NellCandidate } from '../../hooks/useNellCandidates'
 import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
-import { useNovaConferences, type NovaConferenceRow } from '../../hooks/useNovaConferences'
-import { usePodchaserPodcasts, type PodchaserPodcast } from '../../hooks/usePodchaserPodcasts'
+import { useVisibilityTargets, type VisibilityTargetRow } from '../../hooks/useVisibilityTargets'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { PipelineCard } from '../PipelineCard'
 import { ContentIdeaCard } from '../ContentIdeaCard'
-import { VisibilityEventCard } from '../VisibilityEventCard'
+import { VisibilityTargetCard } from '../VisibilityTargetCard'
 import { PodcastTargetCard } from '../PodcastTargetCard'
+import { GuestCandidateCard } from '../GuestCandidateCard'
 import { PipelineLane } from './PipelineLane'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { useToast } from '../shared/Toast'
@@ -42,8 +42,7 @@ export function PipelineLanes({ onNavigate }: Props) {
     // still surface in the full Content view via "Open all".
     stateIn: ['seeded', 'researching', 'drafting', 'review', 'approved'],
   })
-  const { conferences } = useNovaConferences()
-  const { podcasts } = usePodchaserPodcasts()
+  const { targets: visibilityTargets } = useVisibilityTargets()
   const rollup = useMemo(() => rollupTasks(tasks), [tasks])
 
   // Pending Nell candidates — Nell drafts that haven't been promoted yet.
@@ -65,15 +64,14 @@ export function PipelineLanes({ onNavigate }: Props) {
       <ContentLane
         rollup={rollup.content}
         ideas={ideas}
+        guests={pendingNell}
         onOpenTask={openInToday}
         onNavigate={onNavigate}
       />
       <LeadsLane rollup={rollup.leads} onOpenTask={openInToday} onNavigate={onNavigate} />
       <VisibilityLane
         rollup={rollup.visibility}
-        pendingNell={pendingNell}
-        conferences={conferences}
-        podcasts={podcasts}
+        targets={visibilityTargets}
         onOpenTask={openInToday}
         onNavigate={onNavigate}
       />
@@ -84,10 +82,11 @@ export function PipelineLanes({ onNavigate }: Props) {
 // ─── Content lane (primary, 2fr, featured Approve card) ─────────────────────
 
 function ContentLane({
-  rollup, ideas, onOpenTask, onNavigate,
+  rollup, ideas, guests, onOpenTask, onNavigate,
 }: {
   rollup: ReturnType<typeof rollupTasks>['content']
   ideas: ContentIdeaRow[]
+  guests: NellCandidate[]
   onOpenTask: (id: string) => void
   onNavigate?: NavigateFn
 }) {
@@ -115,10 +114,28 @@ function ContentLane({
 
   const seededCount = ideas.filter(i => i.state === 'seeded').length
 
+  // Guest candidates Nell scouted for Krish to *host* on his own podcasts.
+  // Distinct from Visibility (Krish appears on others' shows). Group by
+  // podcast_target so each show has its own scannable lane.
+  const guestsByPod = useMemo(() => {
+    const map = new Map<string, NellCandidate[]>()
+    for (const g of guests) {
+      if (g.scheduled_task_id) continue
+      if (g.status === 'scheduled' || g.status === 'skipped') continue
+      const key = g.podcast_target || 'other'
+      const arr = map.get(key) || []
+      arr.push(g)
+      map.set(key, arr)
+    }
+    return Array.from(map.entries())
+      .map(([key, list]) => ({ key, list: list.sort((a, b) => (b.fit_score ?? 0) - (a.fit_score ?? 0)) }))
+  }, [guests])
+  const activeGuests = guestsByPod.reduce((acc, g) => acc + g.list.length, 0)
+
   const stageCounts: Record<string, number> = {}
   for (const s of CONTENT_STAGES) stageCounts[s.key] = (rollup.byStage[s.key] || []).length
 
-  const combinedTotal = rollup.total + ideas.length
+  const combinedTotal = rollup.total + ideas.length + activeGuests
 
   return (
     <PipelineLane
@@ -126,7 +143,7 @@ function ContentLane({
       total={combinedTotal}
       stages={CONTENT_STAGES}
       stageCounts={stageCounts}
-      onOpenAll={() => onNavigate?.('plans', { workstream: 'content' })}
+      onOpenAll={() => onNavigate?.('today', { lane: 'content' })}
     >
       <div className="flex flex-col gap-2">
         {/* Ideas inbox — the user's "idea / thesis / where" view. */}
@@ -160,7 +177,47 @@ function ContentLane({
           </div>
         )}
 
-        {topIdeas.length === 0 && !featured && compactRows.length === 0 && (
+        {/* Guest candidates Nell has scouted for Krish to host. The pillar
+            split: Visibility = Krish on someone else's show;
+            Content = Krish hosting on Signal & Noise / Builder Economy. */}
+        {guestsByPod.length > 0 && (
+          <div className="mt-2">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-rose-300/85 font-semibold mb-1">
+              <Mic size={11} />
+              Guests to host
+              <span className="text-rose-200/55 tabular-nums">· {activeGuests}</span>
+            </div>
+            <div className="space-y-2.5">
+              {guestsByPod.map(group => {
+                const label =
+                  group.key === 'signal-and-noise' ? 'Signal & Noise' :
+                  group.key === 'builder-economy'  ? 'Builder Economy' :
+                  group.key
+                const top = group.list.slice(0, 3)
+                const remaining = group.list.length - top.length
+                return (
+                  <div key={group.key}>
+                    <p className="text-[10px] text-white/45 mb-1">
+                      {label} · {group.list.length}
+                    </p>
+                    <div className="space-y-1.5">
+                      {top.map(c => (
+                        <GuestCandidateCard key={c.id} candidate={c} />
+                      ))}
+                    </div>
+                    {remaining > 0 && (
+                      <p className="text-[10px] text-white/35 mt-1 px-0.5">
+                        +{remaining} more
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {topIdeas.length === 0 && !featured && compactRows.length === 0 && activeGuests === 0 && (
           <div className="rounded-xl border border-dashed border-white/[0.08] bg-white/[0.01] px-3 py-4 text-center">
             <p className="text-[11px] text-white/45">
               No content in motion. Hit <kbd className="text-[10px] font-mono border border-white/15 rounded px-1 mx-0.5">⌘I</kbd> to capture an idea.
@@ -340,7 +397,7 @@ function LeadsLane({
       total={rollup.total}
       stages={LEADS_STAGES}
       stageCounts={stageCounts}
-      onOpenAll={() => onNavigate?.('plans', { workstream: 'leads' })}
+      onOpenAll={() => onNavigate?.('leads')}
     >
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] divide-y divide-white/[0.04]">
         {topItems.map(t => (
@@ -384,12 +441,10 @@ function LeadMeta({ task: t }: { task: TaskRow }) {
 // ─── Visibility lane (1fr, Nell header + task stages) ───────────────────────
 
 function VisibilityLane({
-  rollup, pendingNell, conferences, podcasts, onOpenTask, onNavigate,
+  rollup, targets, onOpenTask, onNavigate,
 }: {
   rollup: ReturnType<typeof rollupTasks>['visibility']
-  pendingNell: NellCandidate[]
-  conferences: NovaConferenceRow[]
-  podcasts: PodchaserPodcast[]
+  targets: VisibilityTargetRow[]
   onOpenTask: (id: string) => void
   onNavigate?: NavigateFn
 }) {
@@ -410,33 +465,24 @@ function VisibilityLane({
       .slice(0, 2)
   }, [rollup])
 
-  // Conferences with rich enrichment lead the lane. Filter to ones with
-  // *some* enrichment (deadline OR why_relevant OR audience_size) and sort
-  // by nearest deadline first.
-  const richConferences = useMemo(() => {
-    return conferences
-      .filter(c => c.deadline_at || c.why_relevant || c.audience_size != null)
-      .filter(c => {
-        // Hide deadline-passed-by-more-than-30d so the lane doesn't drown
-        // in stale CFPs.
-        if (!c.deadline_at) return true
-        const days = (new Date(c.deadline_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
+  // Visibility targets with some enrichment lead the lane. Filter to ones
+  // with deadline, why_relevant, or audience_size, sort by nearest deadline,
+  // and drop anything whose deadline is more than 30 days past.
+  const richTargets = useMemo(() => {
+    return targets
+      .filter(t => t.deadline_at || t.why_relevant || t.audience_size != null)
+      .filter(t => {
+        if (!t.deadline_at) return true
+        const days = (new Date(t.deadline_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000)
         return days > -30
       })
       .slice(0, 2)
-  }, [conferences])
+  }, [targets])
 
-  // Top podcasts by fit_score; cap to 2 so the lane stays scannable. Drops
-  // shows with no enrichment (no fit_score AND no why_relevant) so an empty
-  // podchaser_podcasts table doesn't drown the lane.
-  const topPodcasts = useMemo(() => {
-    return podcasts
-      .filter(p => (p.fit_score ?? 0) > 0 || p.why_relevant)
-      .slice(0, 2)
-  }, [podcasts])
-
-  const combinedTotal =
-    rollup.total + pendingNell.length + richConferences.length + topPodcasts.length
+  // Nell candidates are guest-host candidates for Krish's OWN podcasts, they
+  // belong in Content, not Visibility. Visibility = Krish appears on someone
+  // else's show / stage. Content = Krish hosts someone.
+  const combinedTotal = rollup.total + richTargets.length
   const laneEmpty = combinedTotal === 0
 
   return (
@@ -445,23 +491,19 @@ function VisibilityLane({
       total={combinedTotal}
       stages={VISIBILITY_STAGES}
       stageCounts={stageCounts}
-      onOpenAll={() => onNavigate?.('plans', { workstream: 'visibility' })}
+      onOpenAll={() => onNavigate?.('today', { lane: 'visibility' })}
       emptyLabel={laneEmpty ? 'Nothing in motion.' : undefined}
     >
       <div className="flex flex-col gap-2">
-        {richConferences.map(c => (
-          <VisibilityEventCard key={c.id} conference={c} />
+        {richTargets.map(t => (
+          t.type === 'podcast'
+            ? <PodcastTargetCard key={t.id} target={t} />
+            : <VisibilityTargetCard key={t.id} target={t} />
         ))}
-        {topPodcasts.map(p => (
-          <PodcastTargetCard key={p.id} podcast={p} />
-        ))}
-        {pendingNell.length > 0 && (
-          <NellCandidatesHeader candidates={pendingNell} onOpenTask={onOpenTask} />
-        )}
         {topItems.length > 0 && (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] divide-y divide-white/[0.04]">
-            {topItems.map(t => (
-              <PipelineCard key={t.id} task={t} onOpen={onOpenTask} />
+            {topItems.map(task => (
+              <PipelineCard key={task.id} task={task} onOpen={onOpenTask} />
             ))}
           </div>
         )}

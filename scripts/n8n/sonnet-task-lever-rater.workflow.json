@@ -1,0 +1,67 @@
+{
+  "name": "Sonnet | Task Lever Rater",
+  "active": false,
+  "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
+  "nodes": [
+    {
+      "name": "Every 5 minutes",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 280],
+      "parameters": {
+        "triggerTimes": { "item": [{ "mode": "everyX", "value": 5, "unit": "minutes" }] }
+      }
+    },
+    {
+      "name": "Fetch unrated",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 280],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/tasks?lever_score=is.null&status=in.(active,waiting,blocked,new)&select=id,title,description,agent,workstream&limit=20",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+    },
+    {
+      "name": "Sonnet rate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [760, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 800, system: 'You are Marcus rating tasks for Krish\\'s 6 SaaS products + advisory business. For each task, return its lever_score (1-10, how much closing this task moves MRR; 10 = closes a paid deal or ships a paid feature directly; 5 = clearly useful prep work that unlocks a 10; 1 = busywork) AND est_hours_to_revenue (estimated hours until the revenue impact materialises; <= 4 for \"ship today\" wins, 40+ for long-shot bets). Output ONLY a JSON array: [{ id: string, lever_score: int, est_hours_to_revenue: int }] one per input task.', messages: [{ role: 'user', content: JSON.stringify($json) }] }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "credentials": { "httpHeaderAuth": { "name": "Anthropic Header" } }
+    },
+    {
+      "name": "Parse + patch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1020, 280],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const text = ($input.first().json.content || []).map(b => b.text || '').join('').trim();\nlet ratings = [];\ntry {\n  const a = text.indexOf('['); const b = text.lastIndexOf(']');\n  if (a >= 0 && b > a) ratings = JSON.parse(text.slice(a, b + 1));\n} catch { ratings = []; }\nconst SUPA='https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1';\nconst hdr={ apikey: $credentials.supabaseApi.apiKey, Authorization: `Bearer ${$credentials.supabaseApi.apiKey}`, Prefer: 'return=minimal' };\nfor (const r of ratings) {\n  if (!r?.id) continue;\n  await this.helpers.httpRequest({\n    method: 'PATCH',\n    url: `${SUPA}/tasks?id=eq.${r.id}`,\n    headers: { ...hdr, 'Content-Type': 'application/json' },\n    body: JSON.stringify({ lever_score: r.lever_score, est_hours_to_revenue: r.est_hours_to_revenue, lever_rated_at: new Date().toISOString() }),\n    json: true,\n  });\n}\nreturn [{ json: { rated: ratings.length } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Every 5 minutes": { "main": [[{ "node": "Fetch unrated",  "type": "main", "index": 0 }]] },
+    "Fetch unrated":   { "main": [[{ "node": "Sonnet rate",    "type": "main", "index": 0 }]] },
+    "Sonnet rate":     { "main": [[{ "node": "Parse + patch",  "type": "main", "index": 0 }]] }
+  }
+}

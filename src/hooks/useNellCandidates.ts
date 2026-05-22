@@ -32,6 +32,11 @@ export interface NellCandidate {
   enriched_at?: string | null
   pitched_at?: string | null
   notes?: string | null
+  // Added by 2026-05-22-nell-scheduled-task.sql — when Krish taps
+  // "Schedule with Nell" the API creates a tasks row and stamps this
+  // FK; skipped_at marks candidates Krish has opted to ignore.
+  scheduled_task_id?: string | null
+  skipped_at?: string | null
 }
 
 let cache: NellCandidate[] = []

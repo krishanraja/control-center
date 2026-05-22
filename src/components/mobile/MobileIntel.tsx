@@ -3,6 +3,7 @@ import { MobileShell as MobileShellPrim, TabHeader, HeroCard, FeedCard, FeedRow,
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
+import { AskMarcus } from '../AskMarcus'
 
 type SignalUrgency = 'critical' | 'high' | 'medium' | 'low'
 
@@ -112,6 +113,7 @@ export function MobileIntel() {
         />
       }
     >
+      <AskMarcus />
       {hero && (
         <HeroCard
           eyebrow={urgencyChip(hero.urgency, hero.days_until) || 'Top signal'}

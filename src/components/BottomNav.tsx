@@ -1,65 +1,115 @@
-import React from 'react'
-import { Home, GitBranch, Clock, ListChecks, Activity, Server, Zap, UserPlus } from 'lucide-react'
+import React, { useState } from 'react'
+import { MoreHorizontal, type LucideIcon } from 'lucide-react'
 import { useHaptics } from '../hooks/useHaptics'
+import { MOBILE_PRIMARY_TABS, MOBILE_DRAWER_TABS, type TabDef } from '../lib/tabs'
 
 interface Props {
   active: string
   onChange: (tab: string) => void
 }
 
-const TABS = [
-  { id: 'home',      label: 'Home',      icon: Home },
-  { id: 'today',     label: 'Today',     icon: Clock },
-  { id: 'leads',     label: 'Leads',     icon: UserPlus },
-  { id: 'plans',     label: 'Plans',     icon: ListChecks },
-  { id: 'org',       label: 'Org',       icon: GitBranch },
-  { id: 'execution', label: 'Intel',     icon: Activity },
-  { id: 'workflows', label: 'Flows',     icon: Zap },
-  { id: 'systems',   label: 'Systems',   icon: Server },
-]
-
 export function BottomNav({ active, onChange }: Props) {
   const h = useHaptics()
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50">
-      {/* Blur backdrop */}
-      <div className="absolute inset-0 bg-[#0a0a0f]/85 backdrop-blur-2xl border-t border-white/[0.06]" />
-      <div className="relative flex items-stretch pb-safe px-1">
-        {TABS.map(({ id, label, icon: Icon }) => {
-          const isActive = active === id
-          return (
+    <>
+      <nav className="fixed bottom-0 left-0 right-0 z-50">
+        <div className="absolute inset-0 bg-[#0a0a0f]/85 backdrop-blur-2xl border-t border-white/[0.06]" />
+        <div className="relative flex items-stretch pb-safe px-1">
+          {MOBILE_PRIMARY_TABS.map(tab => (
+            <NavButton
+              key={tab.id}
+              tab={tab}
+              active={active === tab.id}
+              onClick={() => { h.select(); onChange(tab.id) }}
+            />
+          ))}
+          {MOBILE_DRAWER_TABS.length > 0 && (
+            <button
+              onClick={() => { h.select(); setDrawerOpen(true) }}
+              aria-label="More"
+              className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[56px] sm:min-h-[64px] text-white/45"
+            >
+              <MoreHorizontal className="w-[22px] h-[22px] sm:w-6 sm:h-6" strokeWidth={1.8} />
+              <span className="text-[10px] sm:text-[11px] font-medium leading-none tracking-tight">More</span>
+            </button>
+          )}
+        </div>
+      </nav>
+      {drawerOpen && (
+        <MobileMoreDrawer
+          tabs={MOBILE_DRAWER_TABS}
+          active={active}
+          onSelect={(id) => { h.select(); onChange(id); setDrawerOpen(false) }}
+          onClose={() => setDrawerOpen(false)}
+        />
+      )}
+    </>
+  )
+}
+
+function NavButton({ tab, active, onClick }: { tab: TabDef; active: boolean; onClick: () => void }) {
+  const Icon: LucideIcon = tab.mobileIcon
+  return (
+    <button
+      onClick={onClick}
+      aria-label={tab.label}
+      className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[56px] sm:min-h-[64px] ${
+        active ? 'text-white' : 'text-white/45'
+      }`}
+    >
+      <div className={`relative transition-transform duration-200 ${active ? 'scale-110' : 'scale-100'}`}>
+        {active && (
+          <span aria-hidden className="absolute inset-0 rounded-full bg-violet-500/30 blur-md scale-[1.7]" />
+        )}
+        <Icon
+          className={`relative w-[22px] h-[22px] sm:w-6 sm:h-6 transition-colors ${active ? 'text-violet-200' : ''}`}
+          strokeWidth={active ? 2.3 : 1.8}
+        />
+      </div>
+      <span className={`w-full text-center text-[10px] sm:text-[11px] font-medium leading-none tracking-tight truncate transition-colors ${active ? 'text-violet-200' : ''}`}>
+        {tab.label}
+      </span>
+      {active && (
+        <span aria-hidden className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-gradient-to-r from-transparent via-violet-400 to-transparent rounded-full" />
+      )}
+    </button>
+  )
+}
+
+function MobileMoreDrawer({
+  tabs, active, onSelect, onClose,
+}: {
+  tabs: TabDef[]
+  active: string
+  onSelect: (id: string) => void
+  onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-[60]">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute bottom-0 left-0 right-0 bg-[#0a0a0f] border-t border-white/[0.08] rounded-t-2xl pb-safe">
+        <div className="flex items-center justify-center pt-3 pb-2">
+          <div className="w-10 h-1 bg-white/20 rounded-full" />
+        </div>
+        <div className="grid grid-cols-3 gap-2 p-4">
+          {tabs.map(({ id, label, mobileIcon: Icon }) => (
             <button
               key={id}
-              onClick={() => { h.select(); onChange(id) }}
-              aria-label={label}
-              className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[56px] sm:min-h-[64px] ${
-                isActive ? 'text-white' : 'text-white/45'
+              onClick={() => onSelect(id)}
+              className={`flex flex-col items-center gap-2 py-4 rounded-xl border transition-colors ${
+                active === id
+                  ? 'border-violet-400/40 bg-violet-500/10 text-white'
+                  : 'border-white/[0.06] text-white/70 hover:bg-white/[0.04]'
               }`}
             >
-              <div className={`relative transition-transform duration-200 ${isActive ? 'scale-110' : 'scale-100'}`}>
-                {isActive && (
-                  <span aria-hidden className="absolute inset-0 rounded-full bg-violet-500/30 blur-md scale-[1.7]" />
-                )}
-                <Icon
-                  className={`relative w-[22px] h-[22px] sm:w-6 sm:h-6 transition-colors ${isActive ? 'text-violet-200' : ''}`}
-                  strokeWidth={isActive ? 2.3 : 1.8}
-                />
-              </div>
-              <span
-                className={`w-full text-center text-[10px] sm:text-[11px] font-medium leading-none tracking-tight truncate transition-colors ${
-                  isActive ? 'text-violet-200' : ''
-                }`}
-              >
-                {label}
-              </span>
-              {isActive && (
-                <span aria-hidden className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-gradient-to-r from-transparent via-violet-400 to-transparent rounded-full" />
-              )}
+              <Icon className="w-6 h-6" strokeWidth={1.8} />
+              <span className="text-xs font-medium">{label}</span>
             </button>
-          )
-        })}
+          ))}
+        </div>
       </div>
-    </nav>
+    </div>
   )
 }

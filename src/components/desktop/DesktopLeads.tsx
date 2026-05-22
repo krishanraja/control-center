@@ -1,27 +1,26 @@
 import React, { useMemo } from 'react'
 import { Users } from 'lucide-react'
 import { useRealtimeLeads, type LeadSourceType, type LeadRow } from '../../hooks/useRealtimeLeads'
+import { useVentureRegistry, type VentureRow } from '../../hooks/useVentureRegistry'
 import { LeadImportDropzone } from '../LeadImportDropzone'
-import { LeadSourceLane } from './LeadSourceLane'
+import { LeadVentureLane } from './LeadVentureLane'
 
 /**
- * Leads tab — source-grouped lanes.
+ * Leads tab — venture-grouped lanes (PR 5).
  *
- * The user complaint that drove this: "leads should really be pulling in all
- * the... I have tons of documents of leads that need to go in here". Today
- * leads are scattered across the Home pipeline lane (3 cards) and the Plans
- * tab filter view. This tab is the canonical surface.
- *
- * Layout:
- *   • Left rail (1fr): drag-and-drop ingest + summary chips
- *   • Right pane (2fr): lanes grouped by source_type
+ * After PR 5 each lead carries primary_venture + tags + per-venture icp_scores.
+ * The primary lane grouping is therefore by venture (Mindmaker, Signal & Noise,
+ * Builder Economy, ...) with an "Other" bucket for leads that did not clear any
+ * venture's warm threshold yet. Source-type counts remain as a secondary
+ * summary in the left rail so the import provenance is still legible.
  */
 export function DesktopLeads({ onOpenLead }: { onOpenLead?: (id: string) => void } = {}) {
   const { leads, loading } = useRealtimeLeads({
-    // Active workflow only — closed_won/closed_lost/superseded archived from default view.
     statusIn: ['new', 'enriching', 'ready', 'contacted', 'conversation'],
   })
+  const { ventures } = useVentureRegistry()
 
+  const byVenture = useMemo(() => groupByVenture(leads), [leads])
   const bySource = useMemo(() => groupBySource(leads), [leads])
 
   const totalActive = leads.length
@@ -35,8 +34,7 @@ export function DesktopLeads({ onOpenLead }: { onOpenLead?: (id: string) => void
             Leads
           </h1>
           <p className="text-[13px] text-white/55 mt-1">
-            Every lead, with the source it came from. Drop a doc, paste a Drive link,
-            pull a podcast audience — they all land here.
+            Grouped by venture. One lead can surface in multiple lanes when it qualifies for more than one.
           </p>
         </div>
         <span className="text-[11px] text-white/55 tabular-nums">
@@ -45,7 +43,6 @@ export function DesktopLeads({ onOpenLead }: { onOpenLead?: (id: string) => void
       </header>
 
       <div className="grid grid-cols-1 lg:[grid-template-columns:1fr_2fr] gap-5">
-        {/* Left rail — ingest + summary */}
         <aside className="space-y-4">
           <section>
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
@@ -78,18 +75,21 @@ export function DesktopLeads({ onOpenLead }: { onOpenLead?: (id: string) => void
           </section>
         </aside>
 
-        {/* Right pane — lanes */}
         <div className="space-y-3">
-          {(Object.keys(SOURCE_META) as LeadSourceType[]).map(src => (
-            <LeadSourceLane
-              key={src}
-              sourceType={src}
-              title={SOURCE_META[src].title}
-              description={SOURCE_META[src].description}
-              leads={bySource[src] || []}
+          {ventures.map(v => (
+            <LeadVentureLane
+              key={v.slug}
+              venture={v}
+              leads={byVenture[v.slug] || []}
               onOpen={onOpenLead}
             />
           ))}
+          <LeadVentureLane
+            venture={null}
+            fallbackTitle="Other"
+            leads={byVenture.__other || []}
+            onOpen={onOpenLead}
+          />
         </div>
       </div>
     </div>
@@ -97,36 +97,28 @@ export function DesktopLeads({ onOpenLead }: { onOpenLead?: (id: string) => void
 }
 
 const SOURCE_META: Record<LeadSourceType, { title: string; description: string }> = {
-  podcast_audience: {
-    title: 'Podcast audiences',
-    description: "From episodes you've appeared on — Signal & Noise, Builder Economy.",
-  },
-  drive_import: {
-    title: 'Document imports',
-    description: 'CSV / PDF / DOCX dropped into the ingest zone.',
-  },
-  apollo: {
-    title: 'Apollo / outbound',
-    description: 'Enriched contacts from Apollo + Instantly sequences.',
-  },
-  nell_candidate: {
-    title: 'Nell candidates',
-    description: 'Auto-surfaced contacts from Nell\'s daily scout.',
-  },
-  signal_inbox: {
-    title: 'Signal Inbox',
-    description: 'Drive Signal Inbox folder, processed by Layer 1.',
-  },
-  manual: {
-    title: 'Manual',
-    description: "Anything you added by hand.",
-  },
+  podcast_audience: { title: 'Podcast audiences', description: "From episodes you've appeared on." },
+  drive_import: { title: 'Document imports', description: 'CSV / PDF / DOCX dropped into the ingest zone.' },
+  apollo: { title: 'Apollo / outbound', description: 'Enriched contacts from Apollo + Instantly sequences.' },
+  nell_candidate: { title: 'Nell candidates', description: 'Auto-surfaced contacts from Nell\'s daily scout.' },
+  signal_inbox: { title: 'Signal Inbox', description: 'Drive Signal Inbox folder, processed by Layer 1.' },
+  manual: { title: 'Manual', description: 'Anything you added by hand.' },
 }
 
 function groupBySource(leads: LeadRow[]): Partial<Record<LeadSourceType, LeadRow[]>> {
   const out: Partial<Record<LeadSourceType, LeadRow[]>> = {}
   for (const l of leads) {
     const arr = out[l.source_type] || (out[l.source_type] = [])
+    arr.push(l)
+  }
+  return out
+}
+
+function groupByVenture(leads: LeadRow[]): Record<string, LeadRow[]> {
+  const out: Record<string, LeadRow[]> = {}
+  for (const l of leads) {
+    const key = l.primary_venture || '__other'
+    const arr = out[key] || (out[key] = [])
     arr.push(l)
   }
   return out

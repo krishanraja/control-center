@@ -1,0 +1,178 @@
+{
+  "active": true,
+  "connections": {
+    "Stripe Webhook": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log to workflow_runs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Lookup Attribution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Attribution": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Upsert Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "name": "Stripe | mm-ctrl | Revenue Alert",
+  "nodes": [
+    {
+      "name": "Stripe Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        280
+      ],
+      "parameters": {
+        "path": "mmctrl-stripe-revenue",
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      },
+      "id": "a66decb1-9e81-47e7-8609-215f23018ecb",
+      "webhookId": "b6027f30-1bd4-438f-8c33-5a88218d4842"
+    },
+    {
+      "name": "Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        520,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: '5712840770', text: '💰 mm-ctrl: ' + ($json.body?.type || 'event') + ' — ' + ($json.body?.data?.object?.customer_email || $json.body?.data?.object?.customer || 'unknown') }) }}"
+      },
+      "notes": "Replace chat_id with the Telegram chat you want. Currently using the existing bot.",
+      "id": "591dec78-e623-4ec8-b662-8e38009b7600"
+    },
+    {
+      "name": "Supabase: Upsert Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        520,
+        360
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/customers?on_conflict=product,stripe_customer_id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const webhookData = $node[\"Stripe Webhook\"].json;\n  const lookup = Array.isArray($json) ? $json : [];\n  const evt = webhookData.body || webhookData;\n  const t = (evt.type || '').toLowerCase();\n  const obj = evt.data?.object || {};\n  const isPaid    = t === 'checkout.session.completed' || t === 'invoice.payment_succeeded' || t === 'customer.subscription.created' || t === 'customer.subscription.updated';\n  const isChurned = t === 'customer.subscription.deleted';\n  const kind      = isChurned ? 'churned' : isPaid ? 'paid' : 'paid';\n  const product   = 'mm_ctrl';\n  const customerId = obj.customer || obj.id || null;\n  const email      = obj.customer_email || obj.customer_details?.email || obj.receipt_email || null;\n  const name       = obj.customer_details?.name || obj.metadata?.full_name || null;\n  const plan       = obj.plan?.nickname || obj.items?.data?.[0]?.price?.nickname || obj.metadata?.plan || null;\n  const mrr        = obj.plan?.amount ? obj.plan.amount / 100 : (obj.amount_total ? obj.amount_total / 100 : null);\n  const utm        = obj.metadata?.utm_source || obj.metadata?.attribution_channel || null;\n  const now        = new Date().toISOString();\n  const lead       = lookup.length > 0 ? lookup[0] : null;\n  const attribution_lead_id    = lead ? lead.id : null;\n  const attribution_task_id    = lead ? (lead.promoted_task_id || null) : null;\n  const attribution_channel    = lead ? (utm || ('agent:' + (lead.assignee_agent || 'unknown'))) : (utm || null);\n  const attribution_confidence = lead ? 'exact_email' : (utm ? 'utm' : 'unattributed');\n  return JSON.stringify({\n    product, kind, email, full_name: name,\n    stripe_customer_id: customerId,\n    stripe_subscription_id: obj.subscription || obj.id || null,\n    plan, mrr_usd: mrr,\n    became_paid_at: isPaid && !isChurned ? now : null,\n    churned_at:     isChurned ? now : null,\n    source: utm,\n    raw: evt,\n    attribution_lead_id, attribution_task_id, attribution_channel, attribution_confidence,\n  });\n})() }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "2929629a-b698-4334-8352-6dfd1876afa2"
+    },
+    {
+      "name": "Log to workflow_runs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        780,
+        280
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow_name: 'Stripe | mm-ctrl | Revenue Alert', workflow_id: 'mmctrl-stripe-revenue', status: 'success', agent: 'system', run_at: new Date().toISOString(), outcome: ($json.body?.type || 'event') }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "1f9cd187-03fc-457e-a8cf-40081fefc008"
+    },
+    {
+      "name": "Lookup Attribution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        440,
+        520
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?email=ilike.{{ encodeURIComponent(($json.body?.data?.object?.customer_email || $json.body?.data?.object?.customer_details?.email || $json.body?.data?.object?.receipt_email || '__none__')) }}&select=id,promoted_task_id,assignee_agent&order=created_at.desc&limit=1",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "2yHduC474hSIvO0t",
+          "name": "Supabase account 2"
+        }
+      },
+      "id": "65249702-e437-4763-b02a-e60d78993028"
+    }
+  ],
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "name": "Agatha | Lead Deep Enrich",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "nodes": [
+    {
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 280],
+      "parameters": {
+        "path": "lead-deep-enrich",
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      }
+    },
+    {
+      "name": "Fetch Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 280],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?id=eq.{{ $json.body.lead_id }}&select=id,full_name,email,company,title,linkedin_url,why_relevant,primary_tension,assignee_agent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+    },
+    {
+      "name": "Brave Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [760, 280],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.search.brave.com/res/v1/web/search?q={{ encodeURIComponent([$json.full_name, $json.company, 'role LinkedIn'].filter(Boolean).join(' ').trim()) }}&count=3",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "credentials": { "httpHeaderAuth": { "name": "Brave Search API" } },
+      "notes": "Brave Search httpHeaderAuth credential MUST set header X-Subscription-Token (not e.g. Authorization). Brave's API rejects N8N's default Accept header — must override to application/json or */*."
+    },
+    {
+      "name": "Sonnet Enrich",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1020, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: 'You re-score a Mindmaker sales lead given fresh public context. Return ONLY a JSON object with keys: fit_score (int 0-10), icp_score (int 0-10), attainability_score (int 0-10), why_relevant (string, 1 sentence), primary_tension (string, 1 sentence), next_step (string, action verb + object). Buyer profile: senior leaders at mid/large media + advertising + commerce orgs.', messages: [{ role: 'user', content: 'Lead: ' + JSON.stringify($('Fetch Lead').item.json) + '\\n\\nBrave results:\\n' + JSON.stringify(($json.web?.results || []).slice(0,3)) }] }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "credentials": { "httpHeaderAuth": { "name": "Anthropic Header" } }
+    },
+    {
+      "name": "Parse Sonnet",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1280, 280],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const item = $input.first();\nconst blocks = item.json.content || [];\nconst text = blocks.map(b => b.text || '').join('\\n').trim();\nlet parsed = null;\ntry {\n  const a = text.indexOf('{');\n  const b = text.lastIndexOf('}');\n  if (a >= 0 && b > a) parsed = JSON.parse(text.slice(a, b + 1));\n} catch (e) { parsed = null; }\nconst src = $('Fetch Lead').item.json;\nreturn [{ json: { id: src.id, ...(parsed || {}) } }];"
+      }
+    },
+    {
+      "name": "Patch Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1540, 280],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?id=eq.{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fit_score: $json.fit_score ?? null, icp_score: $json.icp_score ?? null, attainability_score: $json.attainability_score ?? null, why_relevant: $json.why_relevant ?? null, primary_tension: $json.primary_tension ?? null, next_step: $json.next_step ?? null, deep_enriched_at: new Date().toISOString() }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+    }
+  ],
+  "connections": {
+    "Webhook":        { "main": [[{ "node": "Fetch Lead",   "type": "main", "index": 0 }]] },
+    "Fetch Lead":     { "main": [[{ "node": "Brave Search", "type": "main", "index": 0 }]] },
+    "Brave Search":   { "main": [[{ "node": "Sonnet Enrich","type": "main", "index": 0 }]] },
+    "Sonnet Enrich":  { "main": [[{ "node": "Parse Sonnet", "type": "main", "index": 0 }]] },
+    "Parse Sonnet":   { "main": [[{ "node": "Patch Lead",   "type": "main", "index": 0 }]] }
+  }
+}
