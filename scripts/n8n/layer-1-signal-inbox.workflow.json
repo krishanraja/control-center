@@ -1,0 +1,256 @@
+{
+  "name": "Zara | Mindmaker OS | Layer 1 Signal Inbox (Drive watcher)",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1zspGabjdCcVTs037EsgnmPHTix9UOMsJ",
+          "mode": "id"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "name": "Drive Trigger: Signal Inbox folder",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "s6zCfprx9HPrbmA8",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": "={{ $json.id }}",
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "name": "Drive: Download File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [440, 300],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "s6zCfprx9HPrbmA8",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-nano",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-NANO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are the Layer 1 Signal Inbox extractor. Krish drops documents (PDFs, Docs, pasted emails, screenshots-with-OCR-text) into a Drive folder, and you turn them into two output streams:\n\n1) Market signals — concrete things happening in the world that change Mindmaker's go-to-market posture (a CAIO appointment, a competitor product launch, a new piece of regulation, a venture announcement, a podcast appearance opportunity).\n\n2) Content ideas — seeds for Krish's own writing/speaking. A thesis, an observation, an unpublished framing, a quote worth riffing on, a contrarian take.\n\nA single document can produce 0..N of each. Be greedy on content ideas — if it's even a kernel, emit it. Be strict on signals — only real, verifiable, dated events.\n\nReturn STRICTLY VALID JSON in this shape:\n{\n  \"signals\": [\n    {\n      \"signal_type\": \"caio_appointment\" | \"cdo_appointment\" | \"board_ai_mandate\" | \"vc_ai_mandate\" | \"competitor_move\" | \"podcast_opportunity\" | \"conference_opportunity\" | \"regulation\" | \"venture_announcement\" | \"other\",\n      \"venture\": \"mindmaker\" | \"adfixus\" | \"meliora\" | \"shared\",\n      \"company_name\": string | null,\n      \"contact_name\": string | null,\n      \"description\": string,\n      \"source_url\": string | null,\n      \"signal_score\": int (1-10, how actionable for Krish right now),\n      \"summary\": string (one sentence)\n    }\n  ],\n  \"content_ideas\": [\n    {\n      \"idea\": string (headline-style framing, one sentence),\n      \"thesis\": string (why it's interesting / true / useful right now, 1-2 sentences),\n      \"distribution\": [\"linkedin\" | \"newsletter\" | \"signal-noise-pod\" | \"builder-economy-pod\" | \"techonomic\" | \"x\"],\n      \"source_snippet\": string (the exact text from the document that triggered this idea),\n      \"confidence\": number (0.0-1.0)\n    }\n  ]\n}\n\nRules:\n- One idea per distinct seed. If the doc has 3 essays in it, emit 3 ideas.\n- If confidence < 0.4, still emit — Cleo will triage. Don't drop seeds silently.\n- Signals need a source_url when possible. If the doc itself is the source, leave null — the workflow will fill in the Drive link.\n- Output ONLY the JSON object, no preamble.",
+              "role": "system"
+            },
+            {
+              "content": "=Document: {{ $('Drive Trigger: Signal Inbox folder').item.json.name }}\nDrive link: {{ $('Drive Trigger: Signal Inbox folder').item.json.webViewLink }}\n\n---\n\n{{ $('Drive: Download File').item.binary?.data?.toString() || '(no extractable text — file may be a binary; skip)' }}",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 4000,
+          "temperature": 0.2,
+          "responseFormat": "json_object"
+        }
+      },
+      "name": "Extract Signals + Ideas",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.6,
+      "position": [680, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "hHjEG4Lz57JxBiOs",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Split the extractor output into two streams: signals + content_ideas.\n// We emit a unified item shape with `kind` so the IF node below can route.\n\nconst raw = $('Extract Signals + Ideas').item.json.message.content;\nlet parsed;\ntry { parsed = JSON.parse(raw); } catch (e) {\n  // Bad JSON — log to audit and bail.\n  return [{ json: { kind: 'parse_error', raw, error: e.message } }];\n}\n\nconst trig = $('Drive Trigger: Signal Inbox folder').item.json;\nconst driveLink = trig.webViewLink || `https://drive.google.com/file/d/${trig.id}/view`;\nconst fileId = trig.id;\nconst fileName = trig.name;\nconst capturedAt = trig.createdTime || new Date().toISOString();\n\nconst out = [];\n\nfor (const s of (parsed.signals || [])) {\n  out.push({ json: {\n    kind: 'signal',\n    payload: {\n      signal_type: s.signal_type || 'other',\n      venture: s.venture || 'shared',\n      company_name: s.company_name || null,\n      contact_name: s.contact_name || null,\n      description: s.description,\n      source_url: s.source_url || driveLink,\n      signal_score: s.signal_score || 5,\n      summary: s.summary || null,\n      raw_data: { from: 'signal_inbox', drive_file_id: fileId, drive_file_name: fileName },\n      status: 'new',\n      surfaced_at: capturedAt,\n    }\n  }});\n}\n\nfor (const i of (parsed.content_ideas || [])) {\n  out.push({ json: {\n    kind: 'idea',\n    payload: {\n      source_type: 'signal_inbox',\n      source_ref: fileId,\n      source_url: driveLink,\n      source_snippet: i.source_snippet || null,\n      raw_text: JSON.stringify({ idea: i.idea, thesis: i.thesis, distribution: i.distribution || [], confidence: i.confidence }),\n      captured_at: capturedAt,\n    }\n  }});\n}\n\n// If nothing extracted, emit a single noop row so downstream merge still sees a result\nif (out.length === 0) {\n  out.push({ json: { kind: 'noop', file: fileName, fileId } });\n}\n\nreturn out;\n"
+      },
+      "name": "Split signals + ideas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-signal",
+              "leftValue": "={{ $json.kind }}",
+              "rightValue": "signal",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "name": "Is Signal?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1160, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-idea",
+              "leftValue": "={{ $json.kind }}",
+              "rightValue": "idea",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "name": "Is Idea?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1160, 420]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "tableId": "zara_signals",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldId": "signal_type", "fieldValue": "={{ $json.payload.signal_type }}" },
+            { "fieldId": "venture", "fieldValue": "={{ $json.payload.venture }}" },
+            { "fieldId": "company_name", "fieldValue": "={{ $json.payload.company_name }}" },
+            { "fieldId": "contact_name", "fieldValue": "={{ $json.payload.contact_name }}" },
+            { "fieldId": "description", "fieldValue": "={{ $json.payload.description }}" },
+            { "fieldId": "source_url", "fieldValue": "={{ $json.payload.source_url }}" },
+            { "fieldId": "signal_score", "fieldValue": "={{ $json.payload.signal_score }}" },
+            { "fieldId": "summary", "fieldValue": "={{ $json.payload.summary }}" },
+            { "fieldId": "raw_data", "fieldValue": "={{ JSON.stringify($json.payload.raw_data) }}" },
+            { "fieldId": "status", "fieldValue": "={{ $json.payload.status }}" },
+            { "fieldId": "surfaced_at", "fieldValue": "={{ $json.payload.surfaced_at }}" }
+          ]
+        }
+      },
+      "name": "Supabase: Insert signal",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1400, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://krishraja10101.app.n8n.cloud/webhook/idea-capture",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "response": { "response": { "neverError": true } }
+        }
+      },
+      "name": "POST /webhook/idea-capture",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1400, 420]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "tableId": "audit_log",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldId": "event_type", "fieldValue": "signal_inbox_ingest" },
+            { "fieldId": "actor", "fieldValue": "zara" },
+            { "fieldId": "payload", "fieldValue": "={{ JSON.stringify({ file: $('Drive Trigger: Signal Inbox folder').item.json.name, drive_file_id: $('Drive Trigger: Signal Inbox folder').item.json.id }) }}" }
+          ]
+        }
+      },
+      "name": "Audit: ingest event",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1160, 600],
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Drive Trigger: Signal Inbox folder": {
+      "main": [[
+        { "node": "Drive: Download File", "type": "main", "index": 0 },
+        { "node": "Audit: ingest event", "type": "main", "index": 0 }
+      ]]
+    },
+    "Drive: Download File": {
+      "main": [[{ "node": "Extract Signals + Ideas", "type": "main", "index": 0 }]]
+    },
+    "Extract Signals + Ideas": {
+      "main": [[{ "node": "Split signals + ideas", "type": "main", "index": 0 }]]
+    },
+    "Split signals + ideas": {
+      "main": [[
+        { "node": "Is Signal?", "type": "main", "index": 0 },
+        { "node": "Is Idea?", "type": "main", "index": 0 }
+      ]]
+    },
+    "Is Signal?": {
+      "main": [
+        [{ "node": "Supabase: Insert signal", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Is Idea?": {
+      "main": [
+        [{ "node": "POST /webhook/idea-capture", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}
