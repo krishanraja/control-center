@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabase'
 import { MrrTicker } from '../MrrTicker'
 import { DailyBriefBanner } from '../DailyBriefBanner'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
+import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
 import { StreakPills } from '../StreakPills'
 import { DailyLockBanner } from '../DailyLockBanner'
 
@@ -62,6 +63,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       <CriticalAlertBanner />
       <DailyLockBanner />
       <DailyBriefBanner />
+      <DecisionsWaitingPanel />
       <MrrTicker variant="mobile" />
       <StreakPills variant="mobile" />
       {heroSignal && (

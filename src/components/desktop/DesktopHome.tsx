@@ -17,6 +17,7 @@ import { DailyBriefBanner } from '../DailyBriefBanner'
 import { StreakPills } from '../StreakPills'
 import { DailyLockBanner } from '../DailyLockBanner'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
+import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -121,6 +122,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       <CriticalAlertBanner />
       <DailyLockBanner />
       <DailyBriefBanner />
+      <DecisionsWaitingPanel onNavigate={onNavigate} />
 
       {/* MONEY MACHINE — the only number that matters. */}
       <MrrTicker variant="desktop" />

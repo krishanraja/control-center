@@ -1,0 +1,136 @@
+{
+  "name": "Agatha | Mindmaker OS | Weekly Plan Refresh",
+  "nodes": [
+    {
+      "id": "55ba518b-5cb8-43e5-9c23-6d24afd1b7cd",
+      "name": "Schedule (Mon 09:00 UTC)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        304
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "366972ef-411f-4158-9f84-3dead8738917",
+      "name": "Refresh Agent Plans",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        304
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase service role"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/rpc/refresh_agent_plans",
+        "sendBody": false,
+        "options": {
+          "timeout": 120000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "95610ec4-5472-4693-b086-b92109182522",
+      "name": "Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        304
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "\nconst raw = $json;\nlet arr = Array.isArray(raw) ? raw : (raw && Array.isArray(raw[Object.keys(raw)[0]]) ? raw[Object.keys(raw)[0]] : []);\nif (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch (_) { arr = []; } }\nconst blocked = arr.filter(a => a.silent_failures_7d > 0 || (a.failed_runs_7d > 0 && a.successful_runs_7d === 0));\nconst onTrack = arr.length - blocked.length;\nreturn [{ json: { total: arr.length, on_track: onTrack, blocked, agents: arr } }];\n"
+      }
+    },
+    {
+      "id": "d8b0890f-ff25-495f-8ee8-a9e511ac5523",
+      "name": "Telegram Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        912,
+        304
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "15qiGJ7kDXgD33jU",
+          "name": "Arlo - Telegram account"
+        }
+      },
+      "parameters": {
+        "chatId": "6773796504",
+        "additionalFields": {},
+        "text": "=Plan refresh complete\nOn track: {{ $('Parse').first().json.on_track }}/{{ $('Parse').first().json.total }} agents\nBlocked: {{ $('Parse').first().json.blocked.length }}\n\n{{ $('Parse').first().json.blocked.length === 0 ? '' : $('Parse').first().json.blocked.map(a => '- ' + a.agent_id + ': ' + a.silent_failures_7d + ' silent failures, ' + a.failed_runs_7d + ' failed runs (7d)').join('\\n') }}\n\nOpen Plans tab: https://control-center-mindmaker.vercel.app/plans"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule (Mon 09:00 UTC)": {
+      "main": [
+        [
+          {
+            "node": "Refresh Agent Plans",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh Agent Plans": {
+      "main": [
+        [
+          {
+            "node": "Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse": {
+      "main": [
+        [
+          {
+            "node": "Telegram Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  }
+}
