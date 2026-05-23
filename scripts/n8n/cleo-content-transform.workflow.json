@@ -1,0 +1,206 @@
+{
+  "name": "Cleo | Content Transform",
+  "description": "Phase 1 — Mission Control rebuild. Webhook accepts { idea_id, target_format } and writes the derivative draft into content_ideas.transformed_outputs[target_format]. Powers the Content tab Expand/Edit/Transform actions.",
+  "nodes": [
+    {
+      "id": "Webhook_Trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cleo/transform",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "cleo-transform-cli-2026-05-23"
+    },
+    {
+      "id": "Validate_Input",
+      "name": "Validate input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const body = $json.body || {};\nconst allowed = new Set(['linkedin','substack','twitter','cohort_prompt','mindmaker_block','expand']);\nconst idea_id = body.idea_id;\nconst target_format = body.target_format;\nif (!idea_id || typeof idea_id !== 'string') {\n  throw new Error('idea_id is required (uuid string)');\n}\nif (!target_format || !allowed.has(target_format)) {\n  throw new Error(`target_format must be one of: ${Array.from(allowed).join(', ')}`);\n}\nreturn [{ json: { idea_id, target_format } }];"
+      }
+    },
+    {
+      "id": "Fetch_Idea",
+      "name": "Fetch idea",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/content_ideas?id=eq.{{ $json.idea_id }}&select=*&limit=1",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": { "id": "GG97LVY7cTl2zFMn", "name": "Supabase account" }
+      }
+    },
+    {
+      "id": "Prepare_Prompt",
+      "name": "Prepare prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const rows = $input.first().json;\nconst row = Array.isArray(rows) ? rows[0] : rows;\nif (!row || !row.id) throw new Error('idea not found');\nconst target_format = $('Validate input').item.json.target_format;\n\nconst formatBriefs = {\n  linkedin:        \"500-900 word LinkedIn post in Krish Raja's voice. Hook in line 1 (one-line, eyebrow-raising). Single concrete claim, single named example, single takeaway. NO emoji-bullet wall. NO 'thoughts?' close. End with a specific question that invites a contrarian reply.\",\n  substack:        \"800-1400 word Substack post. Required sections: title (≤ 80 chars), body. Open with a one-paragraph thesis, develop 2-3 supporting beats with a named example each, close with a 1-line bet. Use markdown headings sparingly.\",\n  twitter:         \"6-9 tweet thread. Each tweet ≤ 270 chars. Thread starts with hook tweet (no '🧵', no '1/'). Each tweet self-contained but builds. Last tweet has a CTA: link to substack OR a specific question.\",\n  cohort_prompt:   \"A 1-paragraph prompt for the Mindmaker cohort to debate this week. Frame as a forced choice (A or B), not an open question. Include the named example and the constraint that makes the choice non-trivial.\",\n  mindmaker_block: \"A 250-400 word Mindmaker website block. Two-sentence thesis up top, three concrete supporting points, one named outcome metric. Voice: peer-to-peer with operators. No fluff.\",\n  expand:          \"Expand this seed into a 400-700 word draft article in Krish Raja's voice. Develop the thesis, add one named example, end with a 1-line bet. Output in body field only.\"\n};\nconst brief = formatBriefs[target_format];\n\nconst voice = `Voice rules:\n- No em dashes anywhere. Use commas, semicolons, colons, parentheses, line breaks.\n- British-Australian register. Direct, dry, anti-hype.\n- No buzzwords (transforming, leveraging, unlocking, journey, ecosystem when vague).\n- Concrete over abstract. Named projects, named outcomes.\n- Krish IS a builder running a 14-agent AI OS across Mindmaker, AdFixus, Meliora.`;\n\nconst output_schema = {\n  linkedin:        '{ \"body\": \"...\" }',\n  substack:        '{ \"title\": \"...\", \"body\": \"...\" }',\n  twitter:         '{ \"thread\": [\"tweet 1\", \"tweet 2\", ...] }',\n  cohort_prompt:   '{ \"prompt\": \"...\" }',\n  mindmaker_block: '{ \"block\": \"...\" }',\n  expand:          '{ \"body\": \"...\" }'\n}[target_format];\n\nconst system = `You are Cleo, Krish Raja's content engine. ${brief}\\n\\n${voice}\\n\\nReturn ONLY a JSON object: ${output_schema}. No preamble, no markdown fence.`;\n\nconst userContent = JSON.stringify({\n  idea: row.idea,\n  thesis: row.thesis,\n  distribution: row.distribution,\n  source_url: row.source_url,\n  source_snippet: row.source_snippet,\n  body: row.body,\n});\n\nreturn [{ json: { idea_id: row.id, target_format, system, user: userContent } }];"
+      }
+    },
+    {
+      "id": "Sonnet_Transform",
+      "name": "Sonnet transform",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2400, system: $json.system, messages: [{ role: 'user', content: $json.user }] }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": { "timeout": 180000 }
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "w8sWwz8EfYc1JA7G", "name": "Anthropic Header 2026-05-21" }
+      }
+    },
+    {
+      "id": "Parse_Output",
+      "name": "Parse output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1400, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const blocks = $input.first().json.content || [];\nconst text = blocks.map(b => b.text || '').join('').trim();\nlet parsed = null;\ntry {\n  const cleaned = text.replace(/```json\\s*|\\s*```/g, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  throw new Error('Sonnet returned non-JSON: ' + text.slice(0, 200));\n}\nconst EM = String.fromCharCode(0x2014);\nconst scrub = (s) => typeof s === 'string' ? s.split(EM).join(', ') : s;\nfor (const k of Object.keys(parsed)) {\n  if (typeof parsed[k] === 'string') parsed[k] = scrub(parsed[k]);\n  else if (Array.isArray(parsed[k])) parsed[k] = parsed[k].map(scrub);\n}\nconst idea_id = $('Validate input').item.json.idea_id;\nconst target_format = $('Validate input').item.json.target_format;\nconst nowIso = new Date().toISOString();\n// Build the slot for transformed_outputs[target_format].\nconst slot = { ...parsed, generated_at: nowIso, model: 'claude-sonnet-4-6' };\n// expand writes back to body, not a slot.\nreturn [{ json: { idea_id, target_format, slot, body_for_expand: target_format === 'expand' ? (parsed.body || null) : null } }];"
+      }
+    },
+    {
+      "id": "Fetch_Existing",
+      "name": "Fetch existing outputs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1640, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/content_ideas?id=eq.{{ $json.idea_id }}&select=transformed_outputs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": { "id": "GG97LVY7cTl2zFMn", "name": "Supabase account" }
+      }
+    },
+    {
+      "id": "Merge_Outputs",
+      "name": "Merge outputs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1880, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const existingRows = $input.first().json;\nconst existing = (Array.isArray(existingRows) ? existingRows[0] : existingRows) || {};\nconst { idea_id, target_format, slot, body_for_expand } = $('Parse output').item.json;\nconst current = existing.transformed_outputs && typeof existing.transformed_outputs === 'object' ? existing.transformed_outputs : {};\nconst next = { ...current };\n// expand: write to body too, but also store the prose under the slot for trail.\nif (target_format === 'expand') {\n  next.expand = slot;\n} else {\n  next[target_format] = slot;\n}\nreturn [{ json: { idea_id, target_format, transformed_outputs: next, body_for_expand } }];"
+      }
+    },
+    {
+      "id": "Patch_Idea",
+      "name": "Patch idea",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2120, 300],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/content_ideas?id=eq.{{ $json.idea_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify(Object.assign({ transformed_outputs: $json.transformed_outputs, updated_at: new Date().toISOString() }, $json.body_for_expand ? { body: $json.body_for_expand } : {})) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "credentials": {
+        "supabaseApi": { "id": "GG97LVY7cTl2zFMn", "name": "Supabase account" }
+      }
+    },
+    {
+      "id": "Audit",
+      "name": "Audit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2360, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'cleo_content_transform', actor: 'cleo-content-transform', target: $('Merge outputs').item.json.idea_id, details: JSON.stringify({ target_format: $('Merge outputs').item.json.target_format, fired_at: new Date().toISOString() }) }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "credentials": {
+        "supabaseApi": { "id": "GG97LVY7cTl2zFMn", "name": "Supabase account" }
+      }
+    },
+    {
+      "id": "Respond_Webhook",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2600, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, idea_id: $('Merge outputs').item.json.idea_id, target_format: $('Merge outputs').item.json.target_format, transformed_outputs: $('Merge outputs').item.json.transformed_outputs }) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook":             { "main": [[{ "node": "Validate input",         "type": "main", "index": 0 }]] },
+    "Validate input":      { "main": [[{ "node": "Fetch idea",             "type": "main", "index": 0 }]] },
+    "Fetch idea":          { "main": [[{ "node": "Prepare prompt",         "type": "main", "index": 0 }]] },
+    "Prepare prompt":      { "main": [[{ "node": "Sonnet transform",      "type": "main", "index": 0 }]] },
+    "Sonnet transform":    { "main": [[{ "node": "Parse output",          "type": "main", "index": 0 }]] },
+    "Parse output":        { "main": [[{ "node": "Fetch existing outputs", "type": "main", "index": 0 }]] },
+    "Fetch existing outputs": { "main": [[{ "node": "Merge outputs",      "type": "main", "index": 0 }]] },
+    "Merge outputs":       { "main": [[{ "node": "Patch idea",            "type": "main", "index": 0 }]] },
+    "Patch idea":          { "main": [[{ "node": "Audit",                  "type": "main", "index": 0 }]] },
+    "Audit":               { "main": [[{ "node": "Respond",                "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  }
+}

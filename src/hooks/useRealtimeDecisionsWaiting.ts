@@ -14,6 +14,8 @@ export interface DecisionRow {
   url: string | null
   source_table: string
   meta: Record<string, unknown>
+  /** Hash route hint emitted by the view (e.g. `today?task=:id`). Reserved for future use. */
+  route_target: string | null
 }
 
 let cache: DecisionRow[] = []

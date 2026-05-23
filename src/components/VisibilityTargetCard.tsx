@@ -162,6 +162,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
             href={primaryCta}
             target="_blank"
             rel="noreferrer noopener"
+            onClick={(e) => e.stopPropagation()}
             className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 transition-colors"
           >
             <ExternalLink size={11} />
@@ -173,13 +174,14 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
             href={t.event_url}
             target="_blank"
             rel="noreferrer noopener"
+            onClick={(e) => e.stopPropagation()}
             className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
           >
             <ExternalLink size={11} />
             Event page
           </a>
         )}
-        <div className="ml-auto">
+        <div className="ml-auto" onClick={(e) => e.stopPropagation()}>
           <FeedbackButton
             sourceTable="visibility_targets"
             sourceId={t.id}

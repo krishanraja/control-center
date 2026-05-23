@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow, isToday, isPast, parseISO } from 'date-fns'
 import { ExternalLink, Archive, ChevronRight } from 'lucide-react'
 import { supabase, logKrishAction } from '../../lib/supabase'
@@ -10,6 +10,7 @@ import { useToast } from '../shared/Toast'
 import { PipelineQueue, PIPELINE_WORKSTREAMS } from './PipelineQueue'
 import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
 import { DecisionDetail } from '../DecisionDetail'
+import { navigateDecision } from '../../lib/routeDecision'
 
 const PIPELINE_WORKSTREAM_SET = new Set<string>(PIPELINE_WORKSTREAMS as readonly string[])
 
@@ -74,6 +75,21 @@ export function DesktopToday({
   onNavigate,
   onClearDecision,
 }: Props = {}) {
+  // Legacy URL guard: `#/today?decision=<kind>:<id>` should redirect non-task kinds
+  // to their canonical tab (idea→content, guest/visibility→guests, lead→leads).
+  // Tasks continue to use the inline DecisionDetail split-pane.
+  useEffect(() => {
+    if (!decision) return
+    const [kind, ...rest] = decision.split(':')
+    const id = rest.join(':')
+    if (!kind || !id) return
+    if (kind === 'task') return
+    if (kind === 'idea' || kind === 'guest' || kind === 'visibility' || kind === 'lead') {
+      onClearDecision?.()
+      navigateDecision(onNavigate, kind, id)
+    }
+  }, [decision, onClearDecision, onNavigate])
+
   const { tasks: allTasks, loading } = useRealtimeTasks()
   const tasks = useMemo(
     () => (lane ? allTasks.filter(t => matchesLane(t, lane)) : allTasks),
@@ -239,6 +255,25 @@ function StaleDisclosure({
     toast(`Dismissed ${ids.length} stale items.`, 'success')
   }
 
+  // Inline snooze replaces what KillListModal used to ask weekly. Push due_date
+  // out 30 days so the items fall off Today without losing their work history.
+  const snoozeAll = async () => {
+    const ids = tasks.map(t => t.id)
+    const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    const { error } = await supabase
+      .from('tasks')
+      .update({ due_date: future, updated_at: new Date().toISOString() })
+      .in('id', ids)
+    if (error) {
+      toast('Could not snooze — try again.', 'error')
+      return
+    }
+    for (const id of ids) {
+      await logKrishAction(id, 'snooze_30d', undefined, `Bulk-snooze: ${tasks.length} stale items pushed 30d`)
+    }
+    toast(`Snoozed ${ids.length} for 30 days.`, 'success')
+  }
+
   return (
     <div className="rounded-xl border border-white/[0.05] bg-white/[0.01]">
       <button
@@ -256,13 +291,22 @@ function StaleDisclosure({
         </span>
         <span className="text-[10px] text-white/35 ml-1">no progress in {STALE_DAYS}+ days</span>
         {open && (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); dismissAll() }}
-            className="ml-auto px-2 py-0.5 rounded-md text-[10px] font-medium border border-white/10 text-white/55 hover:bg-white/[0.06] transition-colors"
-          >
-            Dismiss all
-          </button>
+          <span className="ml-auto flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); snoozeAll() }}
+              className="px-2 py-0.5 rounded-md text-[10px] font-medium border border-white/10 text-white/55 hover:bg-white/[0.06] transition-colors"
+            >
+              Snooze 30d
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); dismissAll() }}
+              className="px-2 py-0.5 rounded-md text-[10px] font-medium border border-rose-500/20 text-rose-300 hover:bg-rose-500/10 transition-colors"
+            >
+              Dismiss all
+            </button>
+          </span>
         )}
       </button>
 

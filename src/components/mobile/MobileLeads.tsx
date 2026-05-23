@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Users, Linkedin, Mail, ExternalLink, X, ThumbsUp } from 'lucide-react'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
 import { DetailSheet } from './DetailSheet'
@@ -8,6 +8,7 @@ import { useVentureRegistry } from '../../hooks/useVentureRegistry'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { humanAge } from '../../lib/ageHelpers'
+import { navigateDecision } from '../../lib/routeDecision'
 
 const SOURCE_TITLE: Record<LeadSourceType, string> = {
   podcast_audience: 'Podcast audiences',
@@ -33,7 +34,13 @@ function leadSubtitle(l: LeadRow): string {
   return [l.title, l.company].filter(Boolean).join(' · ')
 }
 
-export function MobileLeads() {
+interface MobileLeadsProps {
+  leadId?: string | null
+  onClearDetail?: () => void
+  onNavigate?: (tab: string, params?: Record<string, string>) => void
+}
+
+export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: MobileLeadsProps = {}) {
   const h = useHaptics()
   const { toast } = useToast()
   const [openId, setOpenId] = useState<string | null>(null)
@@ -43,6 +50,21 @@ export function MobileLeads() {
     statusIn: ['new', 'enriching', 'ready', 'contacted', 'conversation'],
   })
   const { ventures } = useVentureRegistry()
+
+  useEffect(() => {
+    setOpenId(leadId || null)
+  }, [leadId])
+
+  const openLeadFromRow = (id: string) => {
+    h.select()
+    if (onNavigate) navigateDecision(onNavigate, 'lead', id)
+    else setOpenId(id)
+  }
+
+  const closeDetail = () => {
+    setOpenId(null)
+    onClearDetail?.()
+  }
 
   const groupedByVenture = useMemo(() => {
     const out: Record<string, LeadRow[]> = {}
@@ -82,7 +104,7 @@ export function MobileLeads() {
       }
       h.success()
       toast(labels[next] || 'Updated.', 'success')
-      setOpenId(null)
+      closeDetail()
     } catch {
       h.error()
       toast('Could not update lead — try again.', 'error')
@@ -123,7 +145,7 @@ export function MobileLeads() {
           detail={featured.why_relevant || leadSubtitle(featured) || 'No context yet — open to enrich.'}
           meta={featured.fit_score != null ? `Fit ${featured.fit_score}/10 · ${humanAge(featured.updated_at) || 'just now'}` : humanAge(featured.updated_at)}
           cta="Open"
-          onClick={() => { h.select(); setOpenId(featured.id) }}
+          onClick={() => openLeadFromRow(featured.id)}
         />
       )}
 
@@ -157,7 +179,7 @@ export function MobileLeads() {
                 trailing={
                   <span className="text-[14px] text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>
                 }
-                onClick={() => { h.select(); setOpenId(l.id) }}
+                onClick={() => openLeadFromRow(l.id)}
               />
             ))}
             {rows.length > 8 && (
@@ -171,7 +193,7 @@ export function MobileLeads() {
 
       <DetailSheet
         open={openLead != null}
-        onClose={() => setOpenId(null)}
+        onClose={closeDetail}
         eyebrow={openLead ? SOURCE_TITLE[openLead.source_type] : undefined}
         title={openLead ? leadName(openLead) : ''}
         body={openLead?.why_relevant || openLead?.primary_tension || leadSubtitle(openLead || ({} as LeadRow))}

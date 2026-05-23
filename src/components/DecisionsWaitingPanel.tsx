@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react'
 import { Mail, FileText, Mic, UserPlus, Target, ExternalLink } from 'lucide-react'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../hooks/useRealtimeDecisionsWaiting'
+import { navigateDecision } from '../lib/routeDecision'
+import { useHaptics } from '../hooks/useHaptics'
 
 const KIND_ICON: Record<DecisionRow['kind'], typeof Mail> = {
   task: Mail,
@@ -37,6 +39,7 @@ interface Props {
 export function DecisionsWaitingPanel({ onNavigate, limit, filterable = false }: Props) {
   const { decisions, loading } = useRealtimeDecisionsWaiting()
   const [activeKind, setActiveKind] = useState<DecisionRow['kind'] | null>(null)
+  const h = useHaptics()
 
   const byKind = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -63,7 +66,8 @@ export function DecisionsWaitingPanel({ onNavigate, limit, filterable = false }:
   }
 
   const openDecision = (d: DecisionRow) => {
-    onNavigate?.('today', { decision: `${d.kind}:${d.id}` })
+    h.select()
+    navigateDecision(onNavigate, d.kind, d.id)
   }
 
   return (

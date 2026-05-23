@@ -19,10 +19,32 @@ export type IdeaState =
   | 'published'
   | 'dropped'
 
+/**
+ * Container for Cleo's derivative outputs keyed by target format. Cleo's
+ * transform webhook (`POST /webhook/cleo/transform`) writes the long-form
+ * variants here so the editor can flip between them without losing the seed.
+ */
+export type TransformedOutputs = Partial<Record<
+  | 'linkedin'
+  | 'substack'
+  | 'twitter'
+  | 'cohort_prompt'
+  | 'mindmaker_block'
+  | 'expand',
+  {
+    body: string
+    generated_at: string
+    model?: string | null
+    notes?: string | null
+  }
+>>
+
 export interface ContentIdeaRow {
   id: string
   idea: string
   thesis?: string | null
+  /** Long-form draft body, edited inline by Krish or expanded by Cleo. */
+  body?: string | null
   distribution?: string[] | null
   source_type: IdeaSourceType
   source_ref?: string | null
@@ -37,6 +59,8 @@ export interface ContentIdeaRow {
   published_url?: string | null
   confidence?: number | null
   related_idea_ids?: string[] | null
+  /** Cleo's per-format derivatives. Empty until Transform is fired. */
+  transformed_outputs?: TransformedOutputs | null
   created_at: string
   updated_at: string
 }

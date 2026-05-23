@@ -325,7 +325,7 @@ function SignalCard({ signal, onRate, onAction }: { signal: ZaraSignal; onRate: 
           >
             <X className="w-3 h-3" /> Close
           </button>
-          {/* TODO: wire nell_candidates reject button once Nell UI panel exists */}
+          {/* TODO: wire guests reject button once Nell UI panel exists */}
           <button
             onClick={reject}
             disabled={rejecting}

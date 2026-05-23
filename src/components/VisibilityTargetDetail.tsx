@@ -1,9 +1,27 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Clock, MapPin, Sparkles, AlertTriangle, Copy, CheckCircle2 } from 'lucide-react'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { supabase } from '../lib/supabase'
 
-const N8N_WEBHOOK_BASE = 'https://krishraja10101.app.n8n.cloud/webhook'
+/**
+ * Visibility deep-enrich webhook. Pulled from env so we can swap N8N envs
+ * without redeploying. Falls back to the production cloud webhook URL when
+ * unset so dev environments still light up Nova.
+ */
+const VISIBILITY_DEEP_ENRICH_URL =
+  (import.meta.env.VITE_N8N_VISIBILITY_DEEP_ENRICH_URL as string | undefined)
+  || 'https://krishraja10101.app.n8n.cloud/webhook/visibility-deep-enrich'
+
+/** A target is "stale" if it was never enriched, or last enriched > 14d ago. */
+const STALE_AFTER_MS = 14 * 24 * 60 * 60 * 1000
+
+function isTargetStale(t: { deep_enriched_at: string | null; strategic_value: string | null }): boolean {
+  if (!t.strategic_value) return true
+  if (!t.deep_enriched_at) return true
+  const ts = Date.parse(t.deep_enriched_at)
+  if (Number.isNaN(ts)) return true
+  return Date.now() - ts > STALE_AFTER_MS
+}
 
 export interface VisibilityTargetDeep {
   id: string
@@ -64,6 +82,7 @@ interface Props {
 
 export function VisibilityTargetDetail({ target }: Props) {
   const [enriching, setEnriching] = useState(false)
+  const [autoFired, setAutoFired] = useState(false)
   const [actionsChecked, setActionsChecked] = useState<Set<number>>(() => {
     const initial = new Set<number>()
     ;(target.next_actions || []).forEach((a, i) => {
@@ -74,13 +93,14 @@ export function VisibilityTargetDetail({ target }: Props) {
   const [copied, setCopied] = useState(false)
 
   const isEnriched = !!target.deep_enriched_at && !!target.strategic_value
+  const stale = isTargetStale(target)
   const deadlineMeta = useDeadlineMeta(target.deadline_at)
 
   const fireDeepEnrich = async () => {
     if (enriching) return
     setEnriching(true)
     try {
-      await fetch(`${N8N_WEBHOOK_BASE}/visibility-deep-enrich`, {
+      await fetch(VISIBILITY_DEEP_ENRICH_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ target_id: target.id }),
@@ -88,9 +108,22 @@ export function VisibilityTargetDetail({ target }: Props) {
     } catch (e) {
       console.warn('[VisibilityTargetDetail] deep enrich fire failed', e)
     } finally {
+      // Realtime will refresh `deep_enriched_at`, but keep the pill visible
+      // long enough for the user to clock that something happened.
       setTimeout(() => setEnriching(false), 4000)
     }
   }
+
+  // Auto-fire enrichment on detail open if the target is stale. Once per
+  // mount per target id — never spam the webhook on re-renders.
+  const firedForRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (firedForRef.current === target.id) return
+    if (!stale) return
+    firedForRef.current = target.id
+    setAutoFired(true)
+    fireDeepEnrich()
+  }, [target.id, stale])
 
   const copyAbstract = async () => {
     if (!target.proposed_talk?.abstract) return
@@ -147,7 +180,12 @@ export function VisibilityTargetDetail({ target }: Props) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto">
-        <HeaderStrip target={target} deadlineMeta={deadlineMeta} />
+        <HeaderStrip
+          target={target}
+          deadlineMeta={deadlineMeta}
+          enriching={enriching}
+          autoFired={autoFired && stale}
+        />
 
         <div className="px-5 pb-5 space-y-5">
           <StrategicValueBlock target={target} onEnrich={fireDeepEnrich} enriching={enriching} />
@@ -203,16 +241,34 @@ export function VisibilityTargetDetail({ target }: Props) {
   )
 }
 
-function HeaderStrip({ target, deadlineMeta }: { target: VisibilityTargetDeep; deadlineMeta: DeadlineMeta }) {
+function HeaderStrip({
+  target,
+  deadlineMeta,
+  enriching,
+  autoFired,
+}: {
+  target: VisibilityTargetDeep
+  deadlineMeta: DeadlineMeta
+  enriching: boolean
+  autoFired: boolean
+}) {
   return (
     <header className="px-5 pt-5 pb-4 border-b border-white/[0.06] space-y-3">
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-[20px] text-white font-semibold leading-tight">{target.title}</h2>
-        {target.deep_enriched_at && (
-          <span className="text-[10px] text-emerald-300/80 uppercase tracking-wider flex-shrink-0 mt-1">
-            Deep enriched {formatDistanceToNow(parseISO(target.deep_enriched_at), { addSuffix: true })}
-          </span>
-        )}
+        <div className="flex flex-col items-end gap-1 flex-shrink-0 mt-1">
+          {enriching && (
+            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-violet-400/40 bg-violet-500/10 text-violet-200 inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-violet-300 animate-pulse" />
+              {autoFired ? 'Auto enriching' : 'Enriching now'}
+            </span>
+          )}
+          {target.deep_enriched_at && !enriching && (
+            <span className="text-[10px] text-emerald-300/80 uppercase tracking-wider">
+              Deep enriched {formatDistanceToNow(parseISO(target.deep_enriched_at), { addSuffix: true })}
+            </span>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-2 flex-wrap text-[11px]">
         {target.type && <Chip>{target.type}</Chip>}

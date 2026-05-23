@@ -1,11 +1,13 @@
-import React, { useMemo, useState } from 'react'
-import { Mic, Megaphone } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Mic, Megaphone, X } from 'lucide-react'
 import { useRealtimeGuests, type GuestRow, type GuestStatus, type GuestPodcastTarget } from '../../hooks/useRealtimeGuests'
 import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'
 import { GuestImportDropzone } from '../GuestImportDropzone'
 import { VisibilityImportDropzone } from '../VisibilityImportDropzone'
 import { GuestStatusLane } from './GuestStatusLane'
 import { VisibilityTargetLane } from './VisibilityTargetLane'
+import { DecisionDetail } from '../DecisionDetail'
+import { navigateDecision } from '../../lib/routeDecision'
 
 type Lane = 'inbound' | 'outbound'
 
@@ -45,12 +47,26 @@ interface Props {
   onOpenGuest?: (id: string) => void
   onOpenTarget?: (id: string) => void
   onNavigate?: (tab: string, params?: Record<string, string>) => void
+  guestId?: string | null
+  targetId?: string | null
+  onClearDetail?: () => void
 }
 
-export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate }: Props = {}) {
+export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, targetId, onClearDetail }: Props = {}) {
   const [lane, setLane] = useState<Lane>('inbound')
   const { guests, loading: guestsLoading } = useRealtimeGuests()
   const { targets, loading: targetsLoading } = useVisibilityTargets({ includeArchived: false })
+
+  useEffect(() => {
+    if (guestId) setLane('inbound')
+    if (targetId) setLane('outbound')
+  }, [guestId, targetId])
+
+  const detailDecision = guestId
+    ? `guest:${guestId}`
+    : targetId
+      ? `visibility:${targetId}`
+      : null
 
   const byStatus = useMemo(() => groupByStatus(guests), [guests])
   const byTarget = useMemo(() => groupByTarget(guests), [guests])
@@ -62,7 +78,8 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate }: Props =
   const loading = lane === 'inbound' ? guestsLoading : targetsLoading
   const activeCount = lane === 'inbound' ? inboundActive : outboundActive
 
-  const openTarget = onOpenTarget || ((id: string) => onNavigate?.('today', { decision: `visibility:${id}` }))
+  const handleOpenGuest = onOpenGuest || ((id: string) => navigateDecision(onNavigate || (() => {}), 'guest', id))
+  const openTarget = onOpenTarget || ((id: string) => navigateDecision(onNavigate || (() => {}), 'visibility', id))
 
   return (
     <div className="space-y-5">
@@ -89,6 +106,25 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate }: Props =
           Outbound <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{outboundActive}</span>
         </LaneTab>
       </div>
+
+      {detailDecision && (
+        <section className="rounded-2xl border border-violet-400/30 bg-violet-500/[0.04] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06]">
+            <span className="text-[11px] uppercase tracking-[0.16em] text-violet-300/85">Detail</span>
+            <button
+              type="button"
+              onClick={() => onClearDetail?.()}
+              className="text-white/50 hover:text-white/85 inline-flex items-center gap-1 text-[12px]"
+              aria-label="Close detail"
+            >
+              <X size={14} /> Close
+            </button>
+          </div>
+          <div className="max-h-[60vh] overflow-y-auto">
+            <DecisionDetail decision={detailDecision} />
+          </div>
+        </section>
+      )}
 
       {lane === 'inbound' ? (
         <div className="grid grid-cols-1 lg:[grid-template-columns:1fr_2fr] gap-5">
@@ -126,7 +162,7 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate }: Props =
                 title={STATUS_META[s].title}
                 description={STATUS_META[s].description}
                 guests={byStatus[s] || []}
-                onOpen={onOpenGuest}
+                onOpen={handleOpenGuest}
               />
             ))}
           </div>

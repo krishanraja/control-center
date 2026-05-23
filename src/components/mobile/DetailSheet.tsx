@@ -122,7 +122,7 @@ export function DetailSheet({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="flex-shrink-0 w-9 h-9 rounded-full bg-white/5 flex items-center justify-center active:bg-white/10"
+            className="flex-shrink-0 w-11 h-11 rounded-full bg-white/5 flex items-center justify-center active:bg-white/10"
           >
             <X className="w-4 h-4 text-white/70" strokeWidth={2.2} />
           </button>

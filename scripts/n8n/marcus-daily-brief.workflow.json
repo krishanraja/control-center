@@ -1,88 +1,143 @@
 {
   "name": "Marcus | Daily Brief 06:30",
   "active": false,
-  "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
   "nodes": [
     {
       "name": "06:30 daily",
       "type": "n8n-nodes-base.cron",
       "typeVersion": 1,
-      "position": [240, 280],
+      "position": [
+        240,
+        280
+      ],
       "parameters": {
-        "triggerTimes": { "item": [{ "mode": "everyDay", "hour": 6, "minute": 30 }] }
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyDay",
+              "hour": 6,
+              "minute": 30
+            }
+          ]
+        }
       }
     },
     {
       "name": "Pull live data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [500, 280],
+      "position": [
+        500,
+        280
+      ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// Pull yesterday's customers + live bets + leads needing follow-up.\nconst SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1';\nconst hdr = { apikey: $credentials.supabaseApi.apiKey, Authorization: `Bearer ${$credentials.supabaseApi.apiKey}` };\nconst yesterdayIso = new Date(Date.now() - 86400000).toISOString();\nconst [customers, bets, leadsRes, councilRes] = await Promise.all([\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/customers?select=product,kind,mrr_usd,became_paid_at,churned_at&limit=500`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/bets?status=eq.live&select=hypothesis,kind,started_at,time_box_days,est_mrr_impact_usd&order=started_at.desc&limit=50`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/leads?status=in.(ready,contacted,conversation)&select=full_name,company,tier,follow_up_at&order=follow_up_at.asc.nullslast&limit=20`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/customers?kind=eq.paid&churned_at=is.null&select=full_name,email,product,mrr_usd,became_paid_at&order=mrr_usd.desc.nullslast&limit=10`, headers: hdr, json: true }),\n]);\nconst paidAddedYesterday = customers.filter(c => c.kind === 'paid' && c.became_paid_at >= yesterdayIso);\nconst churnedYesterday   = customers.filter(c => c.kind === 'churned' && c.churned_at >= yesterdayIso);\nconst yesterdayMrr = paidAddedYesterday.reduce((s, c) => s + (Number(c.mrr_usd) || 0), 0) - churnedYesterday.reduce((s, c) => s + (Number(c.mrr_usd) || 0), 0);\nreturn [{ json: { customers, bets, leads: leadsRes, council: councilRes, yesterday_mrr_delta_usd: yesterdayMrr } }];"
+        "jsCode": "// Pull yesterday's customers + live bets + leads needing follow-up + open\n// visibility targets + top stale tasks. The extra fetches here power Marcus's\n// new top_three and momentum outputs (Mission Control rebuild, Phase 1).\nconst SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1';\nconst cred = await this.getCredentials('supabaseApi');\nconst hdr  = { apikey: cred.apiKey, Authorization: `Bearer ${cred.apiKey}` };\nconst nowIso = new Date().toISOString();\nconst yesterdayIso = new Date(Date.now() - 86400000).toISOString();\nconst sevenDaysAgoIso = new Date(Date.now() - 7 * 86400000).toISOString();\n\nconst [\n  customers, bets, leadsRes, councilRes,\n  hotLeads, openVis, staleTasks, recentTasks, recentLeads, recentVisActions\n] = await Promise.all([\n  // Existing pulls (kept identical for backward compat).\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/customers?select=product,kind,mrr_usd,became_paid_at,churned_at&limit=500`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/bets?status=eq.live&select=hypothesis,kind,started_at,time_box_days,est_mrr_impact_usd&order=started_at.desc&limit=50`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/leads?status=in.(ready,contacted,conversation)&select=full_name,company,tier,follow_up_at&order=follow_up_at.asc.nullslast&limit=20`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/customers?kind=eq.paid&churned_at=is.null&select=full_name,email,product,mrr_usd,became_paid_at&order=mrr_usd.desc.nullslast&limit=10`, headers: hdr, json: true }),\n\n  // New pulls for top_three.\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/leads?status=in.(ready,conversation)&quality_score=eq.green&select=id,full_name,company,why_relevant,fit_score,follow_up_at&order=fit_score.desc.nullslast&limit=10`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/visibility_targets?status=neq.declined&deadline_at=gt.${nowIso}&select=id,title,type,deadline_at,relevance_score,quality_score&order=deadline_at.asc&limit=10`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/tasks?status=eq.waiting&krish_reviewed=eq.false&select=id,title,priority,lever_score,due_date,started_at&order=lever_score.desc.nullslast&limit=10`, headers: hdr, json: true }),\n\n  // New pulls for momentum (7-day strip).\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/tasks?status=eq.shipped&completed_at=gt.${sevenDaysAgoIso}&select=completed_at&limit=500`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/leads?created_at=gt.${sevenDaysAgoIso}&select=created_at&limit=500`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/visibility_targets?updated_at=gt.${sevenDaysAgoIso}&status=in.(accepted,submitted,pitched)&select=updated_at&limit=500`, headers: hdr, json: true }),\n]);\n\nconst paidAddedYesterday = customers.filter(c => c.kind === 'paid'    && c.became_paid_at >= yesterdayIso);\nconst churnedYesterday   = customers.filter(c => c.kind === 'churned' && c.churned_at     >= yesterdayIso);\nconst yesterdayMrr = paidAddedYesterday.reduce((s, c) => s + (Number(c.mrr_usd) || 0), 0)\n                   - churnedYesterday  .reduce((s, c) => s + (Number(c.mrr_usd) || 0), 0);\n\n// Build 7-day buckets oldest → newest.\nconst dayKey = (iso) => new Date(iso).toISOString().slice(0, 10);\nconst days = [];\nfor (let i = 6; i >= 0; i--) {\n  days.push(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));\n}\nconst bucket = (rows, key) => {\n  const counts = days.map(() => 0);\n  for (const r of rows || []) {\n    const k = dayKey(r[key]);\n    const idx = days.indexOf(k);\n    if (idx >= 0) counts[idx] += 1;\n  }\n  return counts;\n};\nconst mrrSeries = days.map(d => {\n  const dayStart = d + 'T00:00:00Z', dayEnd = d + 'T23:59:59Z';\n  const added   = customers.filter(c => c.kind === 'paid'    && c.became_paid_at >= dayStart && c.became_paid_at <= dayEnd);\n  const churned = customers.filter(c => c.kind === 'churned' && c.churned_at     >= dayStart && c.churned_at     <= dayEnd);\n  return added.reduce((s, c) => s + (Number(c.mrr_usd) || 0), 0)\n       - churned.reduce((s, c) => s + (Number(c.mrr_usd) || 0), 0);\n});\nconst momentum = {\n  mrr:        mrrSeries,\n  leads:      bucket(recentLeads,       'created_at'),\n  shipped:    bucket(recentTasks,       'completed_at'),\n  visibility: bucket(recentVisActions,  'updated_at'),\n  days,\n};\n\nreturn [{\n  json: {\n    customers, bets, leads: leadsRes, council: councilRes,\n    hot_leads: hotLeads, open_visibility: openVis, stale_tasks: staleTasks,\n    yesterday_mrr_delta_usd: yesterdayMrr,\n    momentum,\n  },\n}];"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "name": "Supabase account 2"
+        }
       }
     },
     {
       "name": "Sonnet brief",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [760, 280],
+      "position": [
+        760,
+        280
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 600, system: 'You are Marcus — Krish\\'s COO. Write a 06:30 daily brief: a JSON object with keys one_bet (string — the ONE bet that matters most today, pulled from the live bets list, focused on revenue impact), one_customer (string — the ONE customer to talk to today, name them, say why), one_anti_action (string — the ONE thing he should NOT do today), body (optional 1-2 sentence narrative). Be terse and opinionated. Return ONLY the JSON object.', messages: [{ role: 'user', content: 'Yesterday MRR delta: $' + $json.yesterday_mrr_delta_usd + '. Live bets: ' + JSON.stringify(($json.bets || []).slice(0,6)) + '. Top paid customers: ' + JSON.stringify(($json.council || []).slice(0,6)) + '. Leads needing follow-up: ' + JSON.stringify(($json.leads || []).slice(0,5)) }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1200, system: 'You are Marcus — Krish\\'s COO. Output a single JSON object with TWO sections.\\n\\nSection 1 — daily_brief: { one_bet (string), one_customer (string), one_anti_action (string), body (optional 1-2 sentence narrative) }. Be terse and opinionated.\\n\\nSection 2 — top_three: an array of EXACTLY 3 ranked decisions for Mission Control, in this order: (1) revenue, (2) growth, (3) risk. Each item has: kind ∈ {revenue, growth, risk}, title (≤ 80 chars), why_now (≤ 140 chars, the 1-line because-now reason), action_label (e.g. \"Open lead\", \"Brief Cleo\"), action_kind ∈ {task, lead, guest, idea, visibility}, action_target_id (the id of the row to open — pull from hot_leads, stale_tasks, or open_visibility), expires_at (ISO 24h from now).\\n\\nPicking rules: revenue card MUST point to a green-quality lead from hot_leads if any exist, else the top live bet from bets. Growth card MUST point to either an open visibility target with deadline ≤ 14 days OR a high-leverage stale task. Risk card MUST point to either a churned customer (action_kind=lead with empty action_target_id and a clear save-call ask) or a stale task with lever_score ≥ 7 that is blocking. Never invent ids — only use ids you see in the inputs.\\n\\nReturn ONLY the JSON object, no prose.', messages: [{ role: 'user', content: 'Yesterday MRR delta: $' + $json.yesterday_mrr_delta_usd + '.\\nHot leads: ' + JSON.stringify(($json.hot_leads || []).slice(0,8)) + '.\\nOpen visibility: ' + JSON.stringify(($json.open_visibility || []).slice(0,8)) + '.\\nStale tasks: ' + JSON.stringify(($json.stale_tasks || []).slice(0,8)) + '.\\nLive bets: ' + JSON.stringify(($json.bets || []).slice(0,6)) + '.\\nTop paid customers: ' + JSON.stringify(($json.council || []).slice(0,6)) + '.\\nLeads needing follow-up: ' + JSON.stringify(($json.leads || []).slice(0,5)) }] }) }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth"
       },
-      "credentials": { "httpHeaderAuth": { "name": "Anthropic Header" } }
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Anthropic Header"
+        }
+      }
     },
     {
       "name": "Parse + stamp",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1020, 280],
+      "position": [
+        1020,
+        280
+      ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "const blocks = $input.first().json.content || [];\nconst text = blocks.map(b => b.text || '').join('').trim();\nlet brief = null;\ntry {\n  const a = text.indexOf('{'); const b = text.lastIndexOf('}');\n  if (a >= 0 && b > a) brief = JSON.parse(text.slice(a, b + 1));\n} catch { brief = null; }\nbrief = brief || { body: text };\nbrief.yesterday_mrr_delta_usd = $('Pull live data').item.json.yesterday_mrr_delta_usd || 0;\nreturn [{ json: { brief, telegram_text: 'Today: ' + (brief.one_bet || brief.body || 'No brief.') + (brief.one_customer ? '\\nTalk to: ' + brief.one_customer : '') + (brief.one_anti_action ? '\\nDon\\'t: ' + brief.one_anti_action : '') + (brief.yesterday_mrr_delta_usd ? '\\nYesterday: $' + Math.round(brief.yesterday_mrr_delta_usd) + ' MRR' : '') } }];"
+        "jsCode": "const blocks = $input.first().json.content || [];\nconst text = blocks.map(b => b.text || '').join('').trim();\nlet payload = null;\ntry {\n  const a = text.indexOf('{'); const b = text.lastIndexOf('}');\n  if (a >= 0 && b > a) payload = JSON.parse(text.slice(a, b + 1));\n} catch { payload = null; }\npayload = payload || {};\n\nconst brief = payload.daily_brief || { body: text };\nbrief.yesterday_mrr_delta_usd = $('Pull live data').item.json.yesterday_mrr_delta_usd || 0;\n\n// Validate top_three. If Sonnet returned a malformed shape, fall back to a\n// safe deterministic top_three so the UI never sees garbage.\nconst now = Date.now();\nconst expires = new Date(now + 24 * 3600 * 1000).toISOString();\nfunction safeTopThree(raw, hot_leads, open_visibility, stale_tasks) {\n  const allowedKinds = new Set(['task','lead','guest','idea','visibility']);\n  const isCard = (c) =>\n    c && ['revenue','growth','risk'].includes(c.kind) &&\n    typeof c.title === 'string' && typeof c.why_now === 'string' &&\n    typeof c.action_label === 'string' && allowedKinds.has(c.action_kind) &&\n    c.action_target_id != null;\n  if (Array.isArray(raw) && raw.length === 3 && raw.every(isCard)) {\n    return raw.map(c => ({ ...c, expires_at: c.expires_at || expires }));\n  }\n  // Deterministic fallback so Mission Control still renders 3 cards.\n  const lead = (hot_leads || [])[0];\n  const vis  = (open_visibility || [])[0];\n  const task = (stale_tasks || [])[0];\n  return [\n    lead\n      ? { kind: 'revenue', title: `Open ${lead.full_name || 'lead'}${lead.company ? ' · ' + lead.company : ''}`,\n          why_now: lead.why_relevant || 'Hot green-quality lead waiting for outreach.',\n          action_label: 'Open lead', action_kind: 'lead', action_target_id: lead.id, expires_at: expires }\n      : { kind: 'revenue', title: 'No green leads in queue', why_now: 'Felix has nothing live. Surface a customer call instead.',\n          action_label: 'Open Today', action_kind: 'task', action_target_id: '', expires_at: expires },\n    vis\n      ? { kind: 'growth', title: `${vis.title || 'Visibility target'}${vis.type ? ' (' + vis.type + ')' : ''}`,\n          why_now: vis.deadline_at ? `Deadline ${new Date(vis.deadline_at).toISOString().slice(0,10)}` : 'Deadline approaching.',\n          action_label: 'Open target', action_kind: 'visibility', action_target_id: vis.id, expires_at: expires }\n      : { kind: 'growth', title: 'No active visibility targets', why_now: 'Nova is dry. Audit /visibility for revival candidates.',\n          action_label: 'Open Visibility', action_kind: 'visibility', action_target_id: '', expires_at: expires },\n    task\n      ? { kind: 'risk', title: task.title || 'Stale task',\n          why_now: 'High-leverage and stalled. Triage or kill.',\n          action_label: 'Triage task', action_kind: 'task', action_target_id: task.id, expires_at: expires }\n      : { kind: 'risk', title: 'No stale risks', why_now: 'Inbox is clean. Spend the slack on customer calls.',\n          action_label: 'Open Today', action_kind: 'task', action_target_id: '', expires_at: expires },\n  ];\n}\nconst top_three = safeTopThree(\n  payload.top_three,\n  $('Pull live data').item.json.hot_leads,\n  $('Pull live data').item.json.open_visibility,\n  $('Pull live data').item.json.stale_tasks,\n);\nconst momentum = $('Pull live data').item.json.momentum;\n\nreturn [{ json: {\n  brief, top_three, momentum,\n  telegram_text: 'Today: ' + (brief.one_bet || brief.body || 'No brief.')\n    + (brief.one_customer    ? '\\nTalk to: ' + brief.one_customer       : '')\n    + (brief.one_anti_action ? '\\nDon\\'t: ' + brief.one_anti_action     : '')\n    + (brief.yesterday_mrr_delta_usd ? '\\nYesterday: $' + Math.round(brief.yesterday_mrr_delta_usd) + ' MRR' : '')\n} }];"
       }
     },
     {
       "name": "Write home_intelligence",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1280, 200],
+      "position": [
+        1280,
+        200
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/home_intelligence?id=eq.current",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Prefer", "value": "return=minimal" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ daily_brief: $json.brief, daily_brief_at: new Date().toISOString() }) }}",
+        "jsonBody": "={{ JSON.stringify({ daily_brief: $json.brief, daily_brief_at: new Date().toISOString(), top_three: $json.top_three, top_three_at: new Date().toISOString(), momentum: $json.momentum, momentum_at: new Date().toISOString() }) }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
-      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+      "credentials": {
+        "supabaseApi": {
+          "name": "Supabase account 2"
+        }
+      }
     },
     {
       "name": "Telegram push",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1280, 360],
+      "position": [
+        1280,
+        360
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
@@ -93,12 +148,54 @@
     }
   ],
   "connections": {
-    "06:30 daily":    { "main": [[{ "node": "Pull live data",          "type": "main", "index": 0 }]] },
-    "Pull live data": { "main": [[{ "node": "Sonnet brief",            "type": "main", "index": 0 }]] },
-    "Sonnet brief":   { "main": [[{ "node": "Parse + stamp",           "type": "main", "index": 0 }]] },
-    "Parse + stamp":  { "main": [[
-                          { "node": "Write home_intelligence", "type": "main", "index": 0 },
-                          { "node": "Telegram push",            "type": "main", "index": 0 }
-                       ]] }
+    "06:30 daily": {
+      "main": [
+        [
+          {
+            "node": "Pull live data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pull live data": {
+      "main": [
+        [
+          {
+            "node": "Sonnet brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet brief": {
+      "main": [
+        [
+          {
+            "node": "Parse + stamp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse + stamp": {
+      "main": [
+        [
+          {
+            "node": "Write home_intelligence",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram push",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   }
 }

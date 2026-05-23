@@ -67,7 +67,7 @@ export function MobileBets() {
           trailing={
             <button
               onClick={() => { h.tap(); setComposing(c => !c) }}
-              className="rounded-full bg-violet-500/20 border border-violet-500/30 px-4 py-2 text-[13px] font-medium text-violet-100"
+              className="rounded-full bg-violet-500/20 border border-violet-500/30 px-4 py-2 text-[13px] font-medium text-violet-100 inline-flex items-center min-h-[44px]"
             >
               <Plus size={14} className="inline mr-1" />
               Place bet
@@ -123,14 +123,14 @@ export function MobileBets() {
               type="button"
               onClick={submit}
               disabled={busy}
-              className="px-4 py-2 rounded-md text-[13px] font-semibold bg-violet-500/30 border border-violet-500/40 text-violet-100 hover:bg-violet-500/40 disabled:opacity-40"
+              className="px-4 py-2 rounded-md text-[13px] font-semibold bg-violet-500/30 border border-violet-500/40 text-violet-100 hover:bg-violet-500/40 disabled:opacity-40 inline-flex items-center min-h-[44px]"
             >
               {busy ? 'Saving…' : 'Place bet'}
             </button>
             <button
               type="button"
               onClick={() => setComposing(false)}
-              className="px-3 py-2 rounded-md text-[13px] font-medium text-white/55"
+              className="px-3 py-2 rounded-md text-[13px] font-medium text-white/55 inline-flex items-center min-h-[44px]"
             >
               Cancel
             </button>
