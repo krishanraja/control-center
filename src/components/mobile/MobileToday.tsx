@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { isToday, isPast, parseISO } from 'date-fns'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
 import { DetailSheet } from './DetailSheet'
@@ -10,6 +10,7 @@ import { supabase, logKrishAction } from '../../lib/supabase'
 import { humanAge } from '../../lib/ageHelpers'
 import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
 import { DecisionDetail } from '../DecisionDetail'
+import { navigateDecision } from '../../lib/routeDecision'
 
 // Mirrors the desktop noise/stale filters in DesktopToday so the two surfaces
 // agree on what counts as "today".
@@ -66,6 +67,20 @@ export function MobileToday({
   onNavigate,
   onClearDecision,
 }: MobileTodayProps = {}) {
+  // Legacy URL guard: non-task decision params redirect to their canonical tab
+  // so Today never shows generic detail for idea/guest/visibility/lead.
+  useEffect(() => {
+    if (!decision) return
+    const [kind, ...rest] = decision.split(':')
+    const id = rest.join(':')
+    if (!kind || !id) return
+    if (kind === 'task') return
+    if (kind === 'idea' || kind === 'guest' || kind === 'visibility' || kind === 'lead') {
+      onClearDecision?.()
+      navigateDecision(onNavigate, kind, id)
+    }
+  }, [decision, onClearDecision, onNavigate])
+
   const h = useHaptics()
   const { toast } = useToast()
   const { tasks: allTasks, loading } = useRealtimeTasks()
@@ -149,7 +164,7 @@ export function MobileToday({
           <span className="text-violet-200">Filtered to {lane}</span>
           <button
             onClick={() => onClearLane?.()}
-            className="ml-auto text-white/60 hover:text-white text-xs"
+            className="ml-auto text-white/60 hover:text-white text-xs px-3 py-2 rounded-md min-h-[44px] inline-flex items-center"
           >
             Show all
           </button>
@@ -246,7 +261,7 @@ export function MobileToday({
               trailing={
                 <button
                   onClick={(e) => { e.stopPropagation(); supersede(t.id) }}
-                  className="text-[13px] text-red-300 font-semibold px-3 py-1.5 rounded-full bg-red-500/10 active:bg-red-500/20"
+                  className="text-[13px] text-red-300 font-semibold px-3 py-1.5 rounded-full bg-red-500/10 active:bg-red-500/20 inline-flex items-center min-h-[44px] min-w-[44px] justify-center"
                 >
                   Drop
                 </button>

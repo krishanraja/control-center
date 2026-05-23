@@ -1,9 +1,11 @@
 import React, { useMemo } from 'react'
-import { Users } from 'lucide-react'
+import { Users, X } from 'lucide-react'
 import { useRealtimeLeads, type LeadSourceType, type LeadRow } from '../../hooks/useRealtimeLeads'
 import { useVentureRegistry, type VentureRow } from '../../hooks/useVentureRegistry'
 import { LeadImportDropzone } from '../LeadImportDropzone'
 import { LeadVentureLane } from './LeadVentureLane'
+import { DecisionDetail } from '../DecisionDetail'
+import { navigateDecision } from '../../lib/routeDecision'
 
 /**
  * Leads tab — venture-grouped lanes (PR 5).
@@ -14,7 +16,14 @@ import { LeadVentureLane } from './LeadVentureLane'
  * venture's warm threshold yet. Source-type counts remain as a secondary
  * summary in the left rail so the import provenance is still legible.
  */
-export function DesktopLeads({ onOpenLead }: { onOpenLead?: (id: string) => void } = {}) {
+interface DesktopLeadsProps {
+  onOpenLead?: (id: string) => void
+  leadId?: string | null
+  onClearDetail?: () => void
+  onNavigate?: (tab: string, params?: Record<string, string>) => void
+}
+
+export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavigate }: DesktopLeadsProps = {}) {
   const { leads, loading } = useRealtimeLeads({
     statusIn: ['new', 'enriching', 'ready', 'contacted', 'conversation'],
   })
@@ -24,6 +33,8 @@ export function DesktopLeads({ onOpenLead }: { onOpenLead?: (id: string) => void
   const bySource = useMemo(() => groupBySource(leads), [leads])
 
   const totalActive = leads.length
+
+  const handleOpen = onOpenLead || ((id: string) => navigateDecision(onNavigate || (() => {}), 'lead', id))
 
   return (
     <div className="space-y-5">
@@ -41,6 +52,25 @@ export function DesktopLeads({ onOpenLead }: { onOpenLead?: (id: string) => void
           {loading ? '…' : `${totalActive} active`}
         </span>
       </header>
+
+      {leadId && (
+        <section className="rounded-2xl border border-emerald-400/30 bg-emerald-500/[0.04] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06]">
+            <span className="text-[11px] uppercase tracking-[0.16em] text-emerald-300/85">Detail</span>
+            <button
+              type="button"
+              onClick={() => onClearDetail?.()}
+              className="text-white/50 hover:text-white/85 inline-flex items-center gap-1 text-[12px]"
+              aria-label="Close detail"
+            >
+              <X size={14} /> Close
+            </button>
+          </div>
+          <div className="max-h-[60vh] overflow-y-auto">
+            <DecisionDetail decision={`lead:${leadId}`} onClose={onClearDetail} />
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 lg:[grid-template-columns:1fr_2fr] gap-5">
         <aside className="space-y-4">
@@ -81,14 +111,14 @@ export function DesktopLeads({ onOpenLead }: { onOpenLead?: (id: string) => void
               key={v.slug}
               venture={v}
               leads={byVenture[v.slug] || []}
-              onOpen={onOpenLead}
+              onOpen={handleOpen}
             />
           ))}
           <LeadVentureLane
             venture={null}
             fallbackTitle="Other"
             leads={byVenture.__other || []}
-            onOpen={onOpenLead}
+            onOpen={handleOpen}
           />
         </div>
       </div>

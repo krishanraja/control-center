@@ -1,105 +1,79 @@
-import React, { useEffect, useState } from 'react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
+import React, { useState } from 'react'
+import {
+  MobileShell as MobileShellPrim,
+  TabHeader,
+  FeedCard,
+  FeedRow,
+  EmptyState,
+} from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { Logomark } from './Logomark'
-import { useRealtimeTasks, type TaskRow } from '../../hooks/useRealtimeTasks'
-import { useRealtimeLeads } from '../../hooks/useRealtimeLeads'
-import { useRealtimeContentIdeas } from '../../hooks/useRealtimeContentIdeas'
 import { useHaptics } from '../../hooks/useHaptics'
-import { supabase } from '../../lib/supabase'
+import { useHomeIntelligence, type ExternalSignal } from '../../hooks/useHomeIntelligence'
 import { MrrTicker } from '../MrrTicker'
 import { DailyBriefBanner } from '../DailyBriefBanner'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
 import { StreakPills } from '../StreakPills'
-import { DailyLockBanner } from '../DailyLockBanner'
-
-interface ExternalSignal {
-  signal: string
-  source?: string
-  relevance?: string
-  recommended_action?: string | null
-}
+import { TopThreeCards } from '../TopThreeCards'
+import { MomentumStrip } from '../MomentumStrip'
+import { RoomPreviews } from '../RoomPreviews'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
+/**
+ * Mission Control on mobile. Same surfaces as desktop, single column, with
+ * haptics on every primary action and a bottom-sheet detail pattern for
+ * external signals (kept because Marcus's external scan is useful but lives
+ * below the fold once Top Three is ranked).
+ */
 export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const h = useHaptics()
-  const { tasks } = useRealtimeTasks()
-  const { leads } = useRealtimeLeads({
-    statusIn: ['new', 'enriching', 'ready', 'contacted', 'conversation'],
-  })
-  const { ideas } = useRealtimeContentIdeas({
-    stateIn: ['seeded', 'researching', 'drafting', 'review'],
-  })
-  const [signals, setSignals] = useState<ExternalSignal[]>([])
+  const { intel } = useHomeIntelligence()
   const [openSignal, setOpenSignal] = useState<ExternalSignal | null>(null)
 
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const { data } = await supabase
-        .from('home_intelligence')
-        .select('external_signals, summary')
-        .eq('id', 'current')
-        .single()
-      if (cancelled || !data) return
-      const raw = data.external_signals
-      const parsed: ExternalSignal[] = Array.isArray(raw)
-        ? raw
-        : (typeof raw === 'string' ? safeParse(raw) : [])
-      setSignals(parsed)
-    })()
-    return () => { cancelled = true }
-  }, [])
-
-  const waiting = tasks.filter(t => t.status === 'waiting' && !isNoise(t)).slice(0, 5)
-  const heroSignal = signals[0] || null
+  const signals = intel.external_signals
+  const topThree = intel.top_three
 
   return (
     <MobileShellPrim
       header={<TabHeader title="Mindmaker" subtitle="Decisions, not admin" leading={<Logomark size={36} />} />}
     >
       <CriticalAlertBanner />
-      <DailyLockBanner />
-      <DailyBriefBanner />
-      <DecisionsWaitingPanel onNavigate={onNavigate} limit={6} />
+
+      {/* MONEY MACHINE — live pulse with sparkline. */}
       <MrrTicker variant="mobile" />
+
+      {/* TOP THREE — Marcus's three plays for today. */}
+      <TopThreeCards
+        cards={topThree}
+        onNavigate={onNavigate}
+        variant="mobile"
+        generatedAt={intel.top_three_at ?? intel.generated_at}
+      />
+
+      {/* ROOM PREVIEWS — Content / Visibility / Leads, stacked. */}
+      <RoomPreviews onNavigate={onNavigate} variant="mobile" />
+
+      {/* MOMENTUM — 7-day mini-bars. */}
+      <MomentumStrip
+        momentum={intel.momentum}
+        generatedAt={intel.momentum_at ?? intel.generated_at}
+        variant="mobile"
+      />
+
+      {/* DECISIONS WAITING — compact, kind-routed. */}
+      <DecisionsWaitingPanel onNavigate={onNavigate} limit={4} />
+
+      {/* DAILY BRIEF — non-blocking. Retro is a collapsible card. */}
+      <DailyBriefBanner blocking={false} variant="mobile" />
+
       <StreakPills variant="mobile" />
-      {heroSignal && (
-        <HeroCard
-          eyebrow="What needs you"
-          accent="amber"
-          title={heroSignal.signal}
-          detail={heroSignal.relevance}
-          meta={heroSignal.recommended_action ? `Move: ${truncate(heroSignal.recommended_action, 90)}` : heroSignal.source}
-          cta="Open"
-          onClick={() => { h.select(); setOpenSignal(heroSignal) }}
-        />
-      )}
 
-      <div className="flex gap-3 flex-shrink-0">
-        <StatPill
-          label="Content"
-          value={ideas.length}
-          color={ideas.length > 0 ? 'text-rose-300' : 'text-white/45'}
-        />
-        <StatPill
-          label="Leads"
-          value={leads.length}
-          color={leads.length > 0 ? 'text-emerald-300' : 'text-white/45'}
-        />
-        <StatPill
-          label="Waiting"
-          value={waiting.length}
-          color={waiting.length > 0 ? 'text-amber-300' : 'text-white/45'}
-          sub="on you"
-        />
-      </div>
-
-      {signals.length > 1 && (
+      {/* External signals — secondary surface, only render when present. */}
+      {signals.length > 0 && (
         <FeedCard title={`Signals · ${signals.length}`}>
-          {signals.slice(1, 5).map((sig, i) => (
+          {signals.slice(0, 5).map((sig, i) => (
             <FeedRow
               key={i}
               dotColor="bg-amber-400"
@@ -111,32 +85,9 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         </FeedCard>
       )}
 
-      {waiting.length > 0 && (
-        <FeedCard
-          title={`Needs you · ${waiting.length}`}
-          action={
-            <button
-              onClick={() => { h.tap(); onNavigate?.('today') }}
-              className="text-[13px] text-white/55 font-medium active:text-white"
-            >
-              Open Today →
-            </button>
-          }
-        >
-          {waiting.map(t => (
-            <FeedRow
-              key={t.id}
-              dotColor="bg-amber-400"
-              title={t.title}
-              detail={t.next_step || (t.agent ? `From ${t.agent}` : undefined)}
-              onClick={() => { h.select(); onNavigate?.('today', { task: t.id }) }}
-            />
-          ))}
-        </FeedCard>
-      )}
-
-      {!heroSignal && waiting.length === 0 && (
-        <EmptyState label="Quiet morning. No signals, no waiting decisions." />
+      {/* Empty-state floor: only show if absolutely nothing has populated. */}
+      {topThree.length === 0 && signals.length === 0 && !intel.daily_brief && (
+        <EmptyState label="Quiet morning. Marcus will populate Top Three after the next brief run." />
       )}
 
       <DetailSheet
@@ -167,23 +118,4 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       />
     </MobileShellPrim>
   )
-}
-
-function safeParse(s: string): ExternalSignal[] {
-  try {
-    const v = JSON.parse(s)
-    return Array.isArray(v) ? v : []
-  } catch {
-    return []
-  }
-}
-
-function truncate(s: string, n: number): string {
-  return s.length > n ? s.slice(0, n - 1) + '…' : s
-}
-
-function isNoise(t: TaskRow): boolean {
-  if (!t.title) return false
-  return /^\s*health alert:\s*0\s*down,\s*0\s*stale/i.test(t.title) ||
-         /^\s*sync engine running every/i.test(t.title)
 }

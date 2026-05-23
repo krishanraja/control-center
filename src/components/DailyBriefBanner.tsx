@@ -1,102 +1,65 @@
-import React, { useEffect, useState } from 'react'
-import { Sun, AlertOctagon, CheckCircle2 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import React, { useState } from 'react'
+import { Sun, AlertOctagon, CheckCircle2, ChevronDown } from 'lucide-react'
+import { useHomeIntelligence } from '../hooks/useHomeIntelligence'
 
-interface DailyBrief {
-  yesterday_mrr_delta_usd?: number
-  one_bet?:               string
-  one_customer?:          string
-  one_anti_action?:       string
-  body?:                  string
-}
-
-interface WeeklyRetro {
-  what_worked?:   string[]
-  what_flopped?:  string[]
-  next_focus?:    string
-  generated_at?:  string
+interface Props {
+  /**
+   * If false, the Friday retro is rendered as a normal collapsible card
+   * instead of a blocking acknowledge-to-dismiss banner. The Mission Control
+   * Home no longer wants the retro to block — it lives as a collapsed surface
+   * the user can expand.
+   */
+  blocking?: boolean
+  variant?: 'desktop' | 'mobile'
 }
 
 /**
- * Pillar 4 surface. Renders the latest Marcus daily brief at the top of
- * Home. If a weekly retro exists and hasn't been acknowledged, the retro
- * takes priority (forced acknowledgment to dismiss).
+ * Pillar 4 surface. Renders Marcus's latest daily brief at the top of Home.
+ * If a Friday retro is unacknowledged, it shows alongside the brief — but
+ * only as a blocking banner when explicitly requested. The Mission Control
+ * default (Phase 2) is non-blocking; the user can expand it on demand.
+ *
+ * All data flows through `useHomeIntelligence`, the canonical reader.
  */
-export function DailyBriefBanner() {
-  const [brief, setBrief]         = useState<DailyBrief | null>(null)
-  const [briefAt, setBriefAt]     = useState<string | null>(null)
-  const [retro, setRetro]         = useState<WeeklyRetro | null>(null)
-  const [retroAt, setRetroAt]     = useState<string | null>(null)
-  const [retroAcked, setRetroAcked] = useState<string | null>(null)
-  const [acking, setAcking]       = useState(false)
+export function DailyBriefBanner({ blocking = false, variant = 'desktop' }: Props = {}) {
+  const { intel, ackRetro } = useHomeIntelligence()
+  const [acking, setAcking] = useState(false)
+  const [retroOpen, setRetroOpen] = useState(false)
 
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      const { data } = await supabase
-        .from('home_intelligence')
-        .select('daily_brief, daily_brief_at, weekly_retro, weekly_retro_at, weekly_retro_ack_at')
-        .eq('id', 'current')
-        .maybeSingle()
-      if (cancelled) return
-      setBrief(parseJson<DailyBrief>(data?.daily_brief))
-      setBriefAt(data?.daily_brief_at ?? null)
-      setRetro(parseJson<WeeklyRetro>(data?.weekly_retro))
-      setRetroAt(data?.weekly_retro_at ?? null)
-      setRetroAcked(data?.weekly_retro_ack_at ?? null)
-    }
-    load()
-    const iv = setInterval(load, 60_000)
-    return () => { cancelled = true; clearInterval(iv) }
-  }, [])
+  const brief = intel.daily_brief
+  const briefAt = intel.daily_brief_at
+  const retro = intel.weekly_retro
+  const retroAt = intel.weekly_retro_at
+  const retroAcked = intel.weekly_retro_ack_at
 
   const showRetro = retro != null && retroAt && (!retroAcked || retroAt > retroAcked)
 
-  const ackRetro = async () => {
+  const onAck = async () => {
     setAcking(true)
-    await supabase
-      .from('home_intelligence')
-      .update({ weekly_retro_ack_at: new Date().toISOString() })
-      .eq('id', 'current')
-    setRetroAcked(new Date().toISOString())
+    await ackRetro()
     setAcking(false)
   }
 
-  if (showRetro && retro) {
+  // Blocking variant — only used in legacy callers; Mission Control passes
+  // blocking={false} so the retro becomes a collapsible card under the brief.
+  if (blocking && showRetro && retro) {
     return (
-      <section className="rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/[0.10] to-amber-500/[0.02] p-5">
-        <header className="flex items-center gap-2 mb-3">
-          <AlertOctagon size={14} className="text-amber-300" />
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-amber-300">
+      <section
+        className="rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/[0.10] to-amber-500/[0.02] p-4 sm:p-5 min-w-0 overflow-hidden break-words"
+        aria-label="Weekly retro — blocking"
+      >
+        <header className="flex items-center gap-2 mb-3 min-w-0">
+          <AlertOctagon size={14} className="text-amber-300 flex-shrink-0" />
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-amber-300 truncate">
             Friday retro — acknowledge to dismiss
           </h2>
         </header>
-        {retro.what_worked && retro.what_worked.length > 0 && (
-          <div className="mb-3">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-emerald-300/80 font-semibold mb-1">Worked</p>
-            <ul className="text-[13px] text-white/85 space-y-0.5">
-              {retro.what_worked.slice(0, 4).map((w, i) => <li key={i}>· {w}</li>)}
-            </ul>
-          </div>
-        )}
-        {retro.what_flopped && retro.what_flopped.length > 0 && (
-          <div className="mb-3">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-red-300/80 font-semibold mb-1">Flopped</p>
-            <ul className="text-[13px] text-white/85 space-y-0.5">
-              {retro.what_flopped.slice(0, 4).map((w, i) => <li key={i}>· {w}</li>)}
-            </ul>
-          </div>
-        )}
-        {retro.next_focus && (
-          <p className="text-[13px] text-amber-100 mt-3 font-medium">
-            → Next week: {retro.next_focus}
-          </p>
-        )}
+        <RetroBody retro={retro} />
         <button
           type="button"
-          onClick={ackRetro}
+          onClick={onAck}
           disabled={acking}
-          className="mt-3 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-amber-500/25 border border-amber-500/40 text-amber-100 hover:bg-amber-500/35 disabled:opacity-40"
+          className="mt-3 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-amber-500/25 border border-amber-500/40 text-amber-100 hover:bg-amber-500/35 disabled:opacity-40 min-h-[44px] sm:min-h-0"
         >
           <CheckCircle2 size={12} className="inline mr-1" />
           {acking ? 'Saving…' : 'Acknowledged — dismiss'}
@@ -105,57 +68,150 @@ export function DailyBriefBanner() {
     )
   }
 
-  if (!brief) return null
+  if (!brief && !showRetro) return null
 
-  const delta = brief.yesterday_mrr_delta_usd ?? 0
+  const delta = brief?.yesterday_mrr_delta_usd ?? 0
   const deltaColor = delta > 0 ? 'text-emerald-300' : delta < 0 ? 'text-red-300' : 'text-white/55'
 
   return (
-    <section className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.06] to-violet-500/[0.01] p-5">
-      <header className="flex items-center gap-2 mb-3">
-        <Sun size={14} className="text-violet-300" />
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-violet-300">
-          Today’s brief from Marcus
-        </h2>
-        {briefAt && (
-          <span className="text-[10px] text-white/35 ml-auto">
-            {humanAgo(briefAt)}
-          </span>
-        )}
-      </header>
+    <div className="flex flex-col gap-3 min-w-0">
+      {brief && (
+        <section
+          className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.06] to-violet-500/[0.01] p-4 sm:p-5 min-w-0 overflow-hidden break-words"
+          aria-label="Marcus daily brief"
+        >
+          <header className="flex items-center gap-2 mb-3 min-w-0">
+            <Sun size={14} className="text-violet-300 flex-shrink-0" />
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-violet-300 truncate">
+              Today's brief from Marcus
+            </h2>
+            {briefAt && (
+              <span className="text-[10px] text-white/35 ml-auto tabular-nums flex-shrink-0">
+                {humanAgo(briefAt)}
+              </span>
+            )}
+          </header>
 
-      {delta !== 0 && (
-        <p className={`text-[14px] font-semibold mb-2 ${deltaColor}`}>
-          Yesterday: {delta > 0 ? '+' : ''}${Math.round(delta).toLocaleString()} MRR
-        </p>
+          {delta !== 0 && (
+            <p className={`text-[14px] font-semibold mb-2 ${deltaColor}`}>
+              Yesterday: {delta > 0 ? '+' : ''}${Math.round(delta).toLocaleString()} MRR
+            </p>
+          )}
+
+          {brief.one_bet && (
+            <p className="text-[13px] text-white/85 leading-snug mb-1.5 break-words">
+              <span className="text-violet-300/80 font-semibold">Today's bet · </span>
+              {brief.one_bet}
+            </p>
+          )}
+          {brief.one_customer && (
+            <p className="text-[13px] text-white/85 leading-snug mb-1.5 break-words">
+              <span className="text-emerald-300/80 font-semibold">Talk to · </span>
+              {brief.one_customer}
+            </p>
+          )}
+          {brief.one_anti_action && (
+            <p className="text-[13px] text-white/85 leading-snug break-words">
+              <span className="text-red-300/80 font-semibold">Don't · </span>
+              {brief.one_anti_action}
+            </p>
+          )}
+          {brief.body && !brief.one_bet && (
+            <p className="text-[13px] text-white/75 leading-snug whitespace-pre-wrap break-words">
+              {brief.body}
+            </p>
+          )}
+        </section>
       )}
 
-      {brief.one_bet && (
-        <p className="text-[13px] text-white/85 leading-snug mb-1.5">
-          <span className="text-violet-300/80 font-semibold">Today’s bet · </span>{brief.one_bet}
-        </p>
+      {showRetro && retro && (
+        <section
+          className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.04] min-w-0 overflow-hidden"
+          aria-label="Friday retro"
+        >
+          <button
+            type="button"
+            onClick={() => setRetroOpen(o => !o)}
+            className="w-full flex items-center gap-2 px-4 sm:px-5 py-3 hover:bg-amber-500/[0.06] transition-colors min-h-[44px]"
+          >
+            <AlertOctagon size={13} className="text-amber-300 flex-shrink-0" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-amber-300 truncate">
+              Friday retro
+            </span>
+            {retroAt && (
+              <span className="text-[10px] text-white/35 tabular-nums flex-shrink-0 ml-1">
+                {humanAgo(retroAt)}
+              </span>
+            )}
+            <span className="ml-auto flex items-center gap-2 flex-shrink-0">
+              {!retroAcked && (
+                <span className="text-[10px] uppercase tracking-[0.12em] font-semibold text-amber-200/80 hidden sm:inline">
+                  New
+                </span>
+              )}
+              <ChevronDown
+                size={14}
+                className={`text-amber-300/60 transition-transform ${retroOpen ? 'rotate-180' : ''}`}
+              />
+            </span>
+          </button>
+
+          {retroOpen && (
+            <div className="px-4 sm:px-5 pb-4 sm:pb-5 break-words">
+              <RetroBody retro={retro} />
+              {!retroAcked && (
+                <button
+                  type="button"
+                  onClick={onAck}
+                  disabled={acking}
+                  className="mt-3 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-100 hover:bg-amber-500/25 disabled:opacity-40 min-h-[44px] sm:min-h-0"
+                >
+                  <CheckCircle2 size={12} className="inline mr-1" />
+                  {acking ? 'Saving…' : 'Mark read'}
+                </button>
+              )}
+            </div>
+          )}
+        </section>
       )}
-      {brief.one_customer && (
-        <p className="text-[13px] text-white/85 leading-snug mb-1.5">
-          <span className="text-emerald-300/80 font-semibold">Talk to · </span>{brief.one_customer}
-        </p>
-      )}
-      {brief.one_anti_action && (
-        <p className="text-[13px] text-white/85 leading-snug">
-          <span className="text-red-300/80 font-semibold">Don’t · </span>{brief.one_anti_action}
-        </p>
-      )}
-      {brief.body && !brief.one_bet && (
-        <p className="text-[13px] text-white/75 leading-snug whitespace-pre-wrap">{brief.body}</p>
-      )}
-    </section>
+    </div>
   )
 }
 
-function parseJson<T>(raw: any): T | null {
-  if (!raw) return null
-  if (typeof raw === 'object') return raw as T
-  try { return JSON.parse(raw) } catch { return null }
+function RetroBody({ retro }: { retro: NonNullable<ReturnType<typeof useHomeIntelligence>['intel']['weekly_retro']> }) {
+  return (
+    <div className="space-y-3 min-w-0">
+      {retro.what_worked && retro.what_worked.length > 0 && (
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.14em] text-emerald-300/80 font-semibold mb-1">
+            Worked
+          </p>
+          <ul className="text-[13px] text-white/85 space-y-0.5 whitespace-normal break-words">
+            {retro.what_worked.slice(0, 4).map((w, i) => (
+              <li key={i} className="break-words">· {w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {retro.what_flopped && retro.what_flopped.length > 0 && (
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.14em] text-red-300/80 font-semibold mb-1">
+            Flopped
+          </p>
+          <ul className="text-[13px] text-white/85 space-y-0.5 whitespace-normal break-words">
+            {retro.what_flopped.slice(0, 4).map((w, i) => (
+              <li key={i} className="break-words">· {w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {retro.next_focus && (
+        <p className="text-[13px] text-amber-100 font-medium leading-snug break-words line-clamp-3">
+          → Next week: {retro.next_focus}
+        </p>
+      )}
+    </div>
+  )
 }
 
 function humanAgo(iso: string): string {

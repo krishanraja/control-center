@@ -1,29 +1,27 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
-  Activity as ActivityIcon, ArrowUpRight, ChevronRight,
-  Pencil, Check, X, Compass, Inbox, Ban,
+  Activity as ActivityIcon, ChevronRight,
+  Pencil, Check, X, Compass,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '../../lib/supabase'
-import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { useLiveStatus } from '../../hooks/useLiveStatus'
+import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
+import { useHomeIntelligence } from '../../hooks/useHomeIntelligence'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { humanize } from '../shared/tokens'
 import { WeeklyGoals, type GoalsData } from '../WeeklyGoals'
-import { PipelineLanes } from './PipelineLanes'
 import { OsHealthStrip } from './OsHealthStrip'
 import { MrrTicker } from '../MrrTicker'
 import { DailyBriefBanner } from '../DailyBriefBanner'
 import { StreakPills } from '../StreakPills'
-import { DailyLockBanner } from '../DailyLockBanner'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
+import { TopThreeCards } from '../TopThreeCards'
+import { MomentumStrip } from '../MomentumStrip'
+import { RoomPreviews } from '../RoomPreviews'
 
 const API = import.meta.env.VITE_API_URL ?? ''
-
-interface HomeIntel {
-  summary?: any
-}
 
 interface AuditEvent {
   id: string
@@ -36,13 +34,6 @@ interface AuditEvent {
 }
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
-
-/** `summary` is stored as a JSON text column, not jsonb — parse defensively. */
-function parseSummary(raw: any): { headline?: string; body?: string; recommended_focus?: string } {
-  if (!raw) return {}
-  if (typeof raw === 'object') return raw
-  try { return JSON.parse(raw) } catch { return {} }
-}
 
 const EXCLUDED_EVENT_TYPES = new Set([
   'cc-sync-engine',
@@ -61,18 +52,30 @@ function resolveMessage(ev: AuditEvent): string | null {
 
 const hasRenderableMessage = (ev: AuditEvent) => resolveMessage(ev) !== null
 
+/**
+ * Mission Control. The CEO opens this once a day — within five seconds they
+ * should know: "is the money up, what are my three plays today, and what's
+ * waiting on me." Everything else is one click below.
+ *
+ * Order is deliberate, top to bottom:
+ *   1. CriticalAlertBanner — only renders when something is on fire.
+ *   2. MrrTicker — the only number that matters, with 7-day sparkline.
+ *   3. TopThreeCards — Marcus's three ranked plays (revenue / growth / risk).
+ *   4. RoomPreviews — Content / Visibility / Leads, top 2 each, kind-routed.
+ *   5. MomentumStrip — 7-day mini-bars across the four pulse metrics.
+ *   6. DecisionsWaitingPanel — compact (limit=4), kind-routed.
+ *   7. DailyBriefBanner — non-blocking. Retro is a collapsed card.
+ *   8. StreakPills + OsHealthStrip — thin context chrome.
+ * Below the fold: OsMissionHero + WeeklyGoals + ActivityTail.
+ */
 export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
-  const [intel, setIntel] = useState<HomeIntel | null>(null)
+  const { intel } = useHomeIntelligence()
   const [events, setEvents] = useState<AuditEvent[]>([])
   const [goalsData, setGoalsData] = useState<GoalsData | null>(null)
   const { tasks: waiting } = useRealtimeTasks({ statusIn: ['waiting'] })
-  const { tasks: blocked } = useRealtimeTasks({ statusIn: ['blocked'] })
   const live = useLiveStatus(60_000)
 
   useEffect(() => {
-    supabase.from('home_intelligence').select('*').eq('id', 'current').maybeSingle()
-      .then(({ data }) => setIntel(data as any))
-
     const loadEvents = async () => {
       const excluded = Array.from(EXCLUDED_EVENT_TYPES).map(t => `"${t}"`).join(',')
       const { data } = await supabase
@@ -99,8 +102,8 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
     return () => { supabase.removeChannel(ch) }
   }, [])
 
-  const summary = useMemo(() => parseSummary(intel?.summary), [intel?.summary])
-  const approvalCount = waiting.length
+  const summary = intel.summary ?? {}
+  const recommendedFocus = (summary as any)?.recommended_focus
 
   const handleSaveFocus = async (newFocus: string) => {
     await fetch(`${API}/api/goals`, {
@@ -108,7 +111,6 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ team_focus: newFocus }),
     })
-    // Optimistic update — WeeklyGoals will reconfirm on its 30s refetch.
     setGoalsData(prev => prev ? { ...prev, team_focus: newFocus } : prev)
   }
 
@@ -116,29 +118,40 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
     <div className="flex flex-col gap-4 max-w-[1280px] mx-auto w-full">
 
       <CriticalAlertBanner />
-      <DailyLockBanner />
-      <DailyBriefBanner />
-      <DecisionsWaitingPanel onNavigate={onNavigate} limit={8} />
 
       {/* MONEY MACHINE — the only number that matters. */}
       <MrrTicker variant="desktop" />
+
+      {/* TOP THREE — Marcus's ranked plays for today. */}
+      <TopThreeCards
+        cards={intel.top_three}
+        onNavigate={onNavigate}
+        variant="desktop"
+        generatedAt={intel.top_three_at ?? intel.generated_at}
+      />
+
+      {/* ROOM PREVIEWS — Content / Visibility / Leads. Two items per room,
+          one tap into the right detail. Replaces PipelineLanes. */}
+      <RoomPreviews onNavigate={onNavigate} variant="desktop" />
+
+      {/* MOMENTUM — 7-day pulse across MRR / leads / shipped / visibility. */}
+      <MomentumStrip
+        momentum={intel.momentum}
+        generatedAt={intel.momentum_at ?? intel.generated_at}
+        variant="desktop"
+      />
+
+      {/* DECISIONS WAITING — compact preview, kind-routed. */}
+      <DecisionsWaitingPanel onNavigate={onNavigate} limit={4} />
+
+      {/* DAILY BRIEF — non-blocking. Retro is a collapsible card. */}
+      <DailyBriefBanner blocking={false} variant="desktop" />
+
       <StreakPills variant="desktop" />
 
-      {/* PIPELINES — primary surface. Answers "what's the state of my three
-          pipelines and what should I do next" at a glance. */}
-      <PipelineLanes onNavigate={onNavigate} />
-
-      {/* NEEDS YOU + BLOCKED — side-by-side. Still prominent (blocking
-          actions / investigation) but no longer hero. */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <NeedsYouList tasks={waiting} onNavigate={onNavigate} />
-        <BlockedList tasks={blocked} onNavigate={onNavigate} />
-      </div>
-
-      {/* OS HEALTH: thin chrome strip. Today, Systems, Running, Errors. */}
       <OsHealthStrip
         onNavigate={onNavigate}
-        approvalCount={approvalCount}
+        approvalCount={waiting.length}
         live={live}
       />
 
@@ -149,7 +162,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
           northStar={goalsData?.north_star}
           teamFocus={goalsData?.team_focus}
           weekOf={goalsData?.week_of}
-          recommendedFocus={summary.recommended_focus}
+          recommendedFocus={recommendedFocus}
           onSaveFocus={handleSaveFocus}
         />
         <WeeklyGoals
@@ -158,7 +171,6 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         />
       </div>
 
-      {/* ACTIVITY — collapsed by default */}
       <ActivityTail events={events} />
     </div>
   )
@@ -266,135 +278,6 @@ function OsMissionHero({
             </p>
           )}
         </div>
-      </div>
-    </div>
-  )
-}
-
-/** Rank tasks awaiting Krish's approval. Top 4 by priority_override, then
- *  priority weight, then oldest-updated first (stale items rise). The lane
- *  cap dropped from 6 to 4 once Needs You moved into the side-by-side row
- *  beneath the pipeline lanes — the rest stay one click away in Today. */
-function rankWaiting(tasks: any[]): any[] {
-  const priorityWeight: Record<string, number> = { high: 3, medium: 2, low: 1 }
-  return [...tasks].sort((a, b) => {
-    const ao = a.priority_override ?? 0
-    const bo = b.priority_override ?? 0
-    if (ao !== bo) return bo - ao
-    const ap = priorityWeight[a.priority || ''] ?? 0
-    const bp = priorityWeight[b.priority || ''] ?? 0
-    if (ap !== bp) return bp - ap
-    const au = a.updated_at ? new Date(a.updated_at).getTime() : 0
-    const bu = b.updated_at ? new Date(b.updated_at).getTime() : 0
-    return au - bu
-  }).slice(0, 4)
-}
-
-function NeedsYouList({ tasks, onNavigate }: { tasks: any[]; onNavigate?: NavigateFn }) {
-  const ranked = useMemo(() => rankWaiting(tasks), [tasks])
-  const total = tasks.length
-
-  if (total === 0) return null
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between h-5">
-        <div className="flex items-center gap-2">
-          <Inbox size={13} className="text-amber-400" />
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">Needs You</h2>
-          <span className="text-[11px] text-amber-300/80 tabular-nums font-semibold">{total}</span>
-        </div>
-        <button
-          onClick={() => onNavigate?.('today')}
-          className="flex items-center gap-1 text-[11px] text-amber-300/60 hover:text-amber-200 transition-colors"
-        >
-          Open Today
-          <ArrowUpRight size={11} />
-        </button>
-      </div>
-
-      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] divide-y divide-white/[0.04]">
-        {ranked.map(t => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onNavigate?.('today', { task: t.id })}
-            className="w-full text-left px-4 py-3 hover:bg-amber-500/[0.06] transition-colors flex items-start gap-3"
-          >
-            <span className="mt-1 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] text-white/90 leading-snug truncate">{t.title}</p>
-              {t.next_step && (
-                <p className="text-[11px] text-white/45 leading-snug mt-0.5 line-clamp-1">{t.next_step}</p>
-              )}
-            </div>
-            <span className="text-[10px] text-white/30 tabular-nums flex-shrink-0">
-              {t.updated_at && formatDistanceToNow(new Date(t.updated_at), { addSuffix: true })}
-            </span>
-          </button>
-        ))}
-        {total > ranked.length && (
-          <div className="px-4 py-2 text-[11px] text-amber-300/50 text-center">
-            +{total - ranked.length} more in Today
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function BlockedList({ tasks, onNavigate }: { tasks: any[]; onNavigate?: NavigateFn }) {
-  const ranked = useMemo(() => {
-    return [...tasks]
-      .sort((a, b) => {
-        const au = a.updated_at ? new Date(a.updated_at).getTime() : 0
-        const bu = b.updated_at ? new Date(b.updated_at).getTime() : 0
-        return au - bu // oldest first — longest-blocked surface higher
-      })
-      .slice(0, 4)
-  }, [tasks])
-  const total = tasks.length
-
-  if (total === 0) return null
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 h-5">
-        <Ban size={13} className="text-white/40" />
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">Blocked</h2>
-        <span className="text-[11px] text-white/40 tabular-nums">{total}</span>
-        <span className="text-[10px] text-white/30 ml-2">investigate, not approve</span>
-      </div>
-
-      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.015] divide-y divide-white/[0.04]">
-        {ranked.map(t => {
-          const days = t.updated_at
-            ? Math.max(0, Math.floor((Date.now() - new Date(t.updated_at).getTime()) / 86_400_000))
-            : null
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => onNavigate?.('today', { task: t.id })}
-              className="w-full text-left px-4 py-3 hover:bg-white/[0.03] transition-colors flex items-start gap-3"
-            >
-              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-rose-400/70 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] text-white/85 leading-snug truncate">{t.title}</p>
-                {t.blocked_by && (
-                  <p className="text-[11px] text-white/45 leading-snug mt-0.5 line-clamp-1">
-                    <span className="text-white/30">blocked by</span> {t.blocked_by}
-                  </p>
-                )}
-              </div>
-              {days !== null && (
-                <span className="text-[10px] text-white/30 tabular-nums flex-shrink-0">
-                  {days === 0 ? 'today' : `${days}d`}
-                </span>
-              )}
-            </button>
-          )
-        })}
       </div>
     </div>
   )
