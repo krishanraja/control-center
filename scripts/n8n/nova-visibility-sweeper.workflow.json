@@ -1,5 +1,6 @@
 {
   "name": "Nova | Mindmaker OS | Visibility Sweeper",
+  "description": null,
   "nodes": [
     {
       "id": "Schedule_Trigger",
@@ -357,6 +358,177 @@
           "name": "Supabase Service Role"
         }
       }
+    },
+    {
+      "id": "Explode_Inserted",
+      "name": "Explode Inserted",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2476,
+        360
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Supabase Insert returns the inserted rows as an array in the response body.\n// HTTP Request node wraps this as $json. If the array is the body, we explode it.\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const body = item.json;\n  if (Array.isArray(body)) {\n    for (const row of body) out.push({ json: row });\n  } else if (body && Array.isArray(body.data)) {\n    for (const row of body.data) out.push({ json: row });\n  } else if (body && body.id) {\n    out.push({ json: body });\n  }\n}\nreturn out;\n"
+      }
+    },
+    {
+      "id": "Trigger_Deep_Enrich",
+      "name": "Trigger Deep Enrich",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2480,
+        360
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://krishraja10101.app.n8n.cloud/webhook/visibility-deep-enrich",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ target_id: $json.id }) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "Schedule_Retry",
+      "name": "Schedule Retry",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        720
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "Fetch_Unenriched",
+      "name": "Fetch Unenriched",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        720
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/visibility_targets",
+        "options": {
+          "timeout": 30000
+        },
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.value }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "id"
+            },
+            {
+              "name": "deep_enriched_at",
+              "value": "is.null"
+            },
+            {
+              "name": "limit",
+              "value": "10"
+            },
+            {
+              "name": "order",
+              "value": "created_at.asc"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nd473D3tq83O5PKP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "Explode_Unenriched",
+      "name": "Explode Unenriched",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        720
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const body = item.json;\n  const rows = Array.isArray(body) ? body : (Array.isArray(body && body.data) ? body.data : []);\n  for (const row of rows) {\n    if (row && row.id) out.push({ json: { id: row.id } });\n  }\n}\nreturn out;\n"
+      }
+    },
+    {
+      "id": "Trigger_Deep_Enrich_Retry",
+      "name": "Trigger Deep Enrich (Retry)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        720
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://krishraja10101.app.n8n.cloud/webhook/visibility-deep-enrich",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ target_id: $json.id, source: 'retry-sweep' }) }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      }
     }
   ],
   "connections": {
@@ -471,6 +643,55 @@
         [
           {
             "node": "Audit Log Success",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Explode Inserted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Explode Inserted": {
+      "main": [
+        [
+          {
+            "node": "Trigger Deep Enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Retry": {
+      "main": [
+        [
+          {
+            "node": "Fetch Unenriched",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Unenriched": {
+      "main": [
+        [
+          {
+            "node": "Explode Unenriched",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Explode Unenriched": {
+      "main": [
+        [
+          {
+            "node": "Trigger Deep Enrich (Retry)",
             "type": "main",
             "index": 0
           }
