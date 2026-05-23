@@ -1,0 +1,494 @@
+{
+  "name": "Nell | Mindmaker OS | Guest Pitch Draft",
+  "description": null,
+  "nodes": [
+    {
+      "id": "Webhook_Trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        200
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "guest-pitch-draft",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "guest-pitch-draft-cli-2026-05-23"
+    },
+    {
+      "id": "Schedule_12h",
+      "name": "Every 12h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        420
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 12
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "Fetch_Single",
+      "name": "Fetch Single",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        200
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/guests?id=eq.{{ $json.body.guest_id }}&select=*&limit=1",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "Fetch_Batch",
+      "name": "Fetch Batch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        420
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/guests?select=*&pitch_draft=is.null&status=in.(scouted,enriched)&order=fit_score.desc.nullslast,created_at.asc&limit=10",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "Explode_Guests",
+      "name": "Explode Guests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const items=$input.all();const out=[];for(const item of items){const body=item.json;if(Array.isArray(body))for(const row of body)out.push({json:row});else if(body&&body.id)out.push({json:body});}return out;\n"
+      }
+    },
+    {
+      "id": "Has_Min_Signal",
+      "name": "Has Min Signal",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        920,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "leftValue": "={{ ($json.name || $json.one_liner || $json.why_fit || '').length }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "Wait_5s",
+      "name": "Wait 5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1160,
+        200
+      ],
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "webhookId": "pitch-draft-wait-5s-cli-2026-05-23"
+    },
+    {
+      "id": "Sonnet_Pitch",
+      "name": "Sonnet Pitch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1400,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1500, system: \"You are drafting an outbound pitch for Krish Raja to a potential podcast guest. Krish hosts two shows:\\n\\nBuilder Economy: AI-native builders, indie hackers, founders building in public. Audience: developers, makers, technical founders. Tone: practitioner, accelerationist, specific.\\n\\nSignal Noise: senior media and adtech operators with public POV. Audience: C-suite at media, agencies, publishers. Tone: peer-to-peer, industry insider, contrarian.\\n\\nYou receive ONE guest row. Generate a JSON object with these keys exactly:\\n\\n{\\n  \\\"pitch_draft\\\": \\\"warm 80-150 word pitch, ready to send as LinkedIn DM or short email. References ONE specific thing from their public work (one_liner / personal_url / why_fit). Frames the pod fit in one sentence. Ends with one specific question they can answer in a reply (yes/no or two-options, not open-ended). NO subject line.\\\",\\n  \\\"suggested_angles\\\": \\\"2-3 angles for the actual recorded conversation, NOT the pitch. Each angle is one sentence: a specific question or topic grounded in their named work. Newline-separated.\\\",\\n  \\\"quality_score\\\": \\\"green | amber | red\\\",\\n  \\\"quality_reason\\\": \\\"one sentence why this score\\\"\\n}\\n\\nKrish voice rules (non-negotiable):\\n- No em dashes (U+2014) anywhere. Use commas, semicolons, colons, parentheses, line breaks.\\n- British-Australian register. Direct, dry, anti-hype.\\n- No buzzwords (transforming, leveraging, unlocking, journey, ecosystem when used vaguely).\\n- No corporate apologies (sorry for the cold reach, hope this finds you well).\\n- No fawning (love your work, huge fan, your podcast appearance was incredible).\\n- Concrete over abstract. Named projects, named outcomes.\\n- Krish IS a builder running a 14-agent AI OS across Mindmaker, AdFixus, Meliora. He pitches operator-to-operator, not host-to-prospect.\\n\\nquality_score rubric:\\n- green: real named person, clear public POV, named project Krish can reference, strong show-fit.\\n- amber: username only OR thin public work OR show-fit uncertain. Still draft pitch but flag for human review.\\n- red: insufficient data to write a credible pitch. Return pitch_draft as \\\"(insufficient data: need to enrich first)\\\" and explain in quality_reason.\\n\\nIf the guest's `name` looks like a username (no space, all lowercase, looks like a handle), use \\\"the maker of [one_liner]\\\" framing in the pitch. Do not pretend you know their real name.\\n\\nIf podcast_target is `builder_economy`: pitch lands harder on specific shipped product, technical depth, the build-in-public angle.\\nIf podcast_target is `signal_noise`: pitch lands on industry POV, audience-of-peers framing, what Krish has seen across Mindmaker/AdFixus.\\n\\nReturn ONLY the JSON object. No preamble, no markdown fence.\", messages: [{ role: 'user', content: JSON.stringify({ id: $json.id, name: $json.name, podcast_target: $json.podcast_target, one_liner: $json.one_liner, why_fit: $json.why_fit, personal_url: $json.personal_url, linkedin_url: $json.linkedin_url, twitter_handle: $json.twitter_handle, fit_score: $json.fit_score, attainability_score: $json.attainability_score, best_channel: $json.best_channel, raw_data: $json.raw_data }) }] }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "w8sWwz8EfYc1JA7G",
+          "name": "Anthropic Header 2026-05-21"
+        }
+      }
+    },
+    {
+      "id": "Parse_Pitch",
+      "name": "Parse Pitch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        200
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nconst out = [];\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  let guest_id = null;\n  try { guest_id = $('Has Min Signal').all()[i].json.id; } catch (e) {}\n  if (!guest_id) { try { guest_id = $('Explode Guests').all()[i].json.id; } catch (e) {} }\n  const content = item.json.content && item.json.content[0] && item.json.content[0].text;\n  let parsed = { pitch_draft: null, suggested_angles: null, quality_score: 'red', quality_reason: 'no Sonnet response' };\n  if (content) {\n    try {\n      const cleaned = content.replace(/```json\\s*|\\s*```/g, '').trim();\n      parsed = JSON.parse(cleaned);\n    } catch (e) {\n      parsed = { pitch_draft: null, suggested_angles: null, quality_score: 'red', quality_reason: 'parse_error: ' + e.message };\n    }\n  }\n  const EM = String.fromCharCode(0x2014);\n  if (parsed.pitch_draft && parsed.pitch_draft.includes(EM)) {\n    parsed.pitch_draft = parsed.pitch_draft.replace(/\\u2014/g, ', ');\n    parsed.quality_reason = (parsed.quality_reason || '') + ' (em-dashes scrubbed)';\n  }\n  if (parsed.suggested_angles && parsed.suggested_angles.includes(EM)) {\n    parsed.suggested_angles = parsed.suggested_angles.replace(/\\u2014/g, ', ');\n  }\n  out.push({ json: { guest_id, pitch_draft: parsed.pitch_draft, suggested_angles: parsed.suggested_angles, quality_score: parsed.quality_score, quality_reason: parsed.quality_reason } });\n}\nreturn out;\n"
+      }
+    },
+    {
+      "id": "Patch_Guest",
+      "name": "Patch Guest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1880,
+        200
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/guests?id=eq.{{ $json.guest_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ pitch_draft: $json.pitch_draft, notes: $json.suggested_angles ? ('Suggested angles:\\n' + $json.suggested_angles) : undefined, quality_score: $json.quality_score, status: ($json.pitch_draft && $json.quality_score !== 'red') ? 'enriched' : undefined }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "Audit_Pitch",
+      "name": "Audit Pitch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'guest_pitch_draft_generated', actor: 'nell-guest-pitch-draft', target: $('Parse Pitch').item.json.guest_id, details: JSON.stringify({ quality_score: $('Parse Pitch').item.json.quality_score, quality_reason: $('Parse Pitch').item.json.quality_reason, has_draft: !!$('Parse Pitch').item.json.pitch_draft, fired_at: new Date().toISOString() }) }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "id": "Respond_Webhook",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2360,
+        200
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, guest_id: $('Parse Pitch').item.json.guest_id, quality_score: $('Parse Pitch').item.json.quality_score, pitch_draft_length: ($('Parse Pitch').item.json.pitch_draft || '').length }) }}"
+      }
+    },
+    {
+      "id": "Audit_Skip",
+      "name": "Audit Skip",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        420
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'guest_pitch_draft_skipped', actor: 'nell-guest-pitch-draft', target: $json.id || 'unknown', details: JSON.stringify({ reason: 'insufficient_signal', name: $json.name, fired_at: new Date().toISOString() }) }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Single",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 12h": {
+      "main": [
+        [
+          {
+            "node": "Fetch Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Single": {
+      "main": [
+        [
+          {
+            "node": "Explode Guests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Batch": {
+      "main": [
+        [
+          {
+            "node": "Explode Guests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Explode Guests": {
+      "main": [
+        [
+          {
+            "node": "Has Min Signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Min Signal": {
+      "main": [
+        [
+          {
+            "node": "Wait 5s",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Audit Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 5s": {
+      "main": [
+        [
+          {
+            "node": "Sonnet Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet Pitch": {
+      "main": [
+        [
+          {
+            "node": "Parse Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Pitch": {
+      "main": [
+        [
+          {
+            "node": "Patch Guest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Patch Guest": {
+      "main": [
+        [
+          {
+            "node": "Audit Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audit Pitch": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  }
+}
