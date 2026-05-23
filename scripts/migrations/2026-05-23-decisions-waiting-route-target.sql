@@ -28,13 +28,13 @@ SELECT
   coalesce(tasks.due_date, tasks.started_at, tasks.created) AS sort_at,
   tasks.link_primary                                      AS url,
   'tasks'::text                                           AS source_table,
-  ('today?task=' || tasks.id::text)                       AS route_target,
   jsonb_build_object(
     'agent', tasks.agent,
     'workstream', tasks.workstream,
     'tier', tasks.tier,
     'lever_score', tasks.lever_score
-  )                                                       AS meta
+  )                                                       AS meta,
+  ('today?task=' || tasks.id::text)                       AS route_target
 FROM public.tasks
 WHERE tasks.status = ANY (ARRAY['waiting'::text, 'in_progress'::text, 'blocked'::text, 'new'::text])
   AND coalesce(tasks.krish_reviewed, false) = false
@@ -52,7 +52,6 @@ SELECT
   coalesce(guests.updated_at, guests.created_at, now())   AS sort_at,
   coalesce(guests.linkedin_url, guests.personal_url, guests.twitter_handle) AS url,
   'guests'::text                                          AS source_table,
-  ('guests?guest=' || guests.id::text)                    AS route_target,
   jsonb_build_object(
     'podcast_target', guests.podcast_target,
     'fit_score', guests.fit_score,
@@ -61,7 +60,8 @@ SELECT
     'has_pitch_draft', (guests.pitch_draft IS NOT NULL),
     'pitch_draft_preview', left(coalesce(guests.pitch_draft, ''), 200),
     'suggested_angles', guests.notes
-  )                                                       AS meta
+  )                                                       AS meta,
+  ('guests?guest=' || guests.id::text)                    AS route_target
 FROM public.guests
 WHERE guests.status = ANY (ARRAY['researched'::text, 'pitched'::text, 'scouted'::text, 'enriched'::text])
 
@@ -78,12 +78,12 @@ SELECT
   coalesce(content_ideas.updated_at, content_ideas.created_at, now()) AS sort_at,
   content_ideas.source_url                                AS url,
   'content_ideas'::text                                   AS source_table,
-  ('content?idea=' || content_ideas.id::text)             AS route_target,
   jsonb_build_object(
     'distribution', content_ideas.distribution,
     'confidence', content_ideas.confidence,
     'quality_score', content_ideas.quality_score
-  )                                                       AS meta
+  )                                                       AS meta,
+  ('content?idea=' || content_ideas.id::text)             AS route_target
 FROM public.content_ideas
 WHERE coalesce(content_ideas.state, 'seeded'::text) = ANY (ARRAY['seeded'::text, 'researching'::text, 'drafting'::text, 'review'::text])
 
@@ -104,14 +104,14 @@ SELECT
   coalesce(leads.updated_at, leads.created_at, now())     AS sort_at,
   coalesce(leads.linkedin_url, leads.source_url)          AS url,
   'leads'::text                                           AS source_table,
-  ('leads?lead=' || leads.id::text)                       AS route_target,
   jsonb_build_object(
     'primary_venture', leads.primary_venture,
     'tags', leads.tags,
     'icp_scores', leads.icp_scores,
     'fit_score', leads.fit_score,
     'quality_score', leads.quality_score
-  )                                                       AS meta
+  )                                                       AS meta,
+  ('leads?lead=' || leads.id::text)                       AS route_target
 FROM public.leads
 WHERE leads.status = ANY (ARRAY['new'::text, 'ready'::text])
   AND (leads.quality_score IS NULL OR leads.quality_score = ANY (ARRAY['green'::text, 'amber'::text]))
@@ -133,7 +133,6 @@ SELECT
   coalesce(visibility_targets.deadline_at, visibility_targets.event_start_at, now() + interval '30 days') AS sort_at,
   coalesce(visibility_targets.cfp_url, visibility_targets.event_url) AS url,
   'visibility_targets'::text                              AS source_table,
-  ('guests?target=' || visibility_targets.id::text)       AS route_target,
   jsonb_build_object(
     'event_start_at', visibility_targets.event_start_at,
     'deadline_at', visibility_targets.deadline_at,
@@ -142,7 +141,8 @@ SELECT
     'type', visibility_targets.type,
     'deep_enriched_at', visibility_targets.deep_enriched_at,
     'enrichment_version', visibility_targets.enrichment_version
-  )                                                       AS meta
+  )                                                       AS meta,
+  ('guests?target=' || visibility_targets.id::text)       AS route_target
 FROM public.visibility_targets
 WHERE (visibility_targets.quality_score IS NULL OR visibility_targets.quality_score = ANY (ARRAY['green'::text, 'amber'::text]))
   AND (visibility_targets.deadline_at IS NULL OR visibility_targets.deadline_at > (now() - interval '7 days'));
