@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react'
-import { FileText, ExternalLink } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import React, { useEffect, useMemo } from 'react'
+import { FileText } from 'lucide-react'
 import { MobileShell } from './MobileShell'
 import { TabHeader } from './TabHeader'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
+import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 
 const ACTIVE_STATES: IdeaState[] = ['seeded', 'researching', 'drafting', 'review', 'approved']
 const STATE_LABEL: Record<IdeaState, string> = {
@@ -16,8 +16,19 @@ const STATE_LABEL: Record<IdeaState, string> = {
   dropped: 'Dropped',
 }
 
-export function MobileContent() {
+interface Props {
+  ideaId?: string | null
+  onClearIdea?: () => void
+}
+
+export function MobileContent({ ideaId, onClearIdea }: Props = {}) {
   const { ideas, loading } = useRealtimeContentIdeas({ stateIn: ACTIVE_STATES })
+
+  const detailIdea = useMemo(() => (ideaId ? ideas.find(i => i.id === ideaId) || null : null), [ideaId, ideas])
+
+  useEffect(() => {
+    if (detailIdea) window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [detailIdea?.id])
 
   const grouped = useMemo(() => {
     const out: Partial<Record<IdeaState, ContentIdeaRow[]>> = {}
@@ -33,6 +44,15 @@ export function MobileContent() {
       header={<TabHeader title="Content" subtitle="Ideas to live, one lane" />}
     >
       <div className="px-3 pb-6 space-y-3">
+        {detailIdea && (
+          <section
+            aria-label="Selected idea"
+            className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.04] p-1"
+          >
+            <ContentIdeaCardActionable idea={detailIdea} expanded onClose={onClearIdea} />
+          </section>
+        )}
+
         {loading && (
           <div className="text-[12px] text-white/45 text-center py-4">Loading…</div>
         )}
@@ -53,31 +73,11 @@ export function MobileContent() {
               <h3 className="text-[11px] uppercase tracking-[0.14em] text-violet-300 mb-2 flex items-baseline gap-2">
                 {STATE_LABEL[state]} <span className="text-white/45 tabular-nums">{rows.length}</span>
               </h3>
-              <ul className="divide-y divide-white/[0.04]">
+              <ul className="space-y-2.5">
                 {rows.map(i => (
-                  <li key={i.id} className="py-2">
-                    <p className="text-[13px] text-white/90 leading-snug">{i.idea}</p>
-                    {i.thesis && (
-                      <p className="text-[11px] text-white/55 leading-snug mt-1 line-clamp-2">{i.thesis}</p>
-                    )}
-                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                      {i.assigned_to && (
-                        <span className="text-[10px] uppercase tracking-wider text-violet-300/80">{i.assigned_to}</span>
-                      )}
-                      {(i.draft_link || i.published_url) && (
-                        <a
-                          href={i.published_url || i.draft_link!}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                          className="text-[10px] text-violet-300 hover:text-violet-200 flex items-center gap-1"
-                        >
-                          {i.published_url ? 'Live' : 'Draft'} <ExternalLink size={9} />
-                        </a>
-                      )}
-                      <span className="text-[10px] text-white/30 ml-auto tabular-nums">
-                        {i.updated_at && formatDistanceToNow(new Date(i.updated_at), { addSuffix: true })}
-                      </span>
-                    </div>
+                  <li key={i.id}>
+                    {/* Hide the inline card if it's already pinned at the top as the detail. */}
+                    {i.id !== (ideaId || null) && <ContentIdeaCardActionable idea={i} />}
                   </li>
                 ))}
               </ul>

@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { FileText, ExternalLink } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
+import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 
 const STATE_ORDER: IdeaState[] = ['seeded', 'researching', 'drafting', 'review', 'approved', 'published', 'dropped']
 
@@ -15,11 +16,25 @@ const STATE_META: Record<IdeaState, { title: string; description: string; tone: 
   dropped:     { title: 'Dropped',     description: 'Killed before publish.',                     tone: 'text-white/30' },
 }
 
-export function DesktopContent() {
+interface Props {
+  ideaId?: string | null
+  onClearIdea?: () => void
+}
+
+export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
   const { ideas, loading } = useRealtimeContentIdeas()
 
   const byState = useMemo(() => groupByState(ideas), [ideas])
   const activeCount = ideas.filter(i => i.state !== 'dropped' && i.state !== 'published').length
+  const detailIdea = useMemo(() => (ideaId ? ideas.find(i => i.id === ideaId) || null : null), [ideaId, ideas])
+
+  // If a deep-link was provided, scroll the lane into view once data lands.
+  useEffect(() => {
+    if (detailIdea) {
+      // Scroll idle to top so the detail panel is visible above the lanes.
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [detailIdea?.id])
 
   return (
     <div className="space-y-5">
@@ -37,6 +52,15 @@ export function DesktopContent() {
           {loading ? '…' : `${activeCount} active`}
         </span>
       </header>
+
+      {detailIdea && (
+        <section
+          aria-label="Selected idea"
+          className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.04] p-1"
+        >
+          <ContentIdeaCardActionable idea={detailIdea} expanded onClose={onClearIdea} />
+        </section>
+      )}
 
       <div className="grid grid-cols-1 lg:[grid-template-columns:1fr_2fr] gap-5">
         <aside className="space-y-4">
@@ -64,6 +88,7 @@ export function DesktopContent() {
               key={s}
               state={s}
               ideas={byState[s] || []}
+              selectedId={ideaId || null}
             />
           ))}
         </div>
@@ -72,7 +97,13 @@ export function DesktopContent() {
   )
 }
 
-function ContentStateLane({ state, ideas }: { state: IdeaState; ideas: ContentIdeaRow[] }) {
+function ContentStateLane({
+  state, ideas, selectedId,
+}: {
+  state: IdeaState
+  ideas: ContentIdeaRow[]
+  selectedId: string | null
+}) {
   const meta = STATE_META[state]
   if (ideas.length === 0) {
     return (
@@ -91,18 +122,25 @@ function ContentStateLane({ state, ideas }: { state: IdeaState; ideas: ContentId
         </h3>
         <span className="text-[10px] text-white/35">{meta.description}</span>
       </header>
-      <ul className="divide-y divide-white/[0.04]">
+      <ul className="space-y-2.5">
         {ideas.map(i => (
-          <ContentIdeaRowDisplay key={i.id} idea={i} />
+          <li key={i.id}>
+            {i.id === selectedId ? (
+              // Detail card already shown at the top — render a compact placeholder here.
+              <ContentIdeaRowDisplay idea={i} muted />
+            ) : (
+              <ContentIdeaCardActionable idea={i} />
+            )}
+          </li>
         ))}
       </ul>
     </section>
   )
 }
 
-function ContentIdeaRowDisplay({ idea }: { idea: ContentIdeaRow }) {
+function ContentIdeaRowDisplay({ idea, muted }: { idea: ContentIdeaRow; muted?: boolean }) {
   return (
-    <li className="py-2.5 flex items-start gap-3">
+    <div className={`py-2 px-3 rounded-md flex items-start gap-3 ${muted ? 'opacity-50' : ''}`}>
       <div className="flex-1 min-w-0">
         <p className="text-[13px] text-white/90 leading-snug">{idea.idea}</p>
         {idea.thesis && (
@@ -132,7 +170,7 @@ function ContentIdeaRowDisplay({ idea }: { idea: ContentIdeaRow }) {
           {idea.published_url ? 'Live' : 'Draft'} <ExternalLink size={10} />
         </a>
       )}
-    </li>
+    </div>
   )
 }
 
