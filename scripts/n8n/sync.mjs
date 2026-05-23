@@ -90,11 +90,24 @@ async function listCloudWorkflows() {
   return all
 }
 
+// N8N's cloud editor adds internal-only settings keys that the public API's
+// PUT/POST schema rejects with `additionalProperties` validation errors.
+// Strip them defensively so canonical files can be exported from the editor
+// without manually pruning every time.
+const SETTINGS_DENYLIST = new Set(['availableInMCP', 'binaryMode', 'timeSavedMode'])
+
 function buildPayload(local) {
   // N8N PUT/POST accepts only canonical fields. `active` cannot be toggled
   // through the workflow body — there is a separate /activate endpoint.
   const payload = {}
   for (const f of CANONICAL_FIELDS) if (local[f] !== undefined) payload[f] = local[f]
+  if (payload.settings && typeof payload.settings === 'object') {
+    const cleaned = {}
+    for (const [k, v] of Object.entries(payload.settings)) {
+      if (!SETTINGS_DENYLIST.has(k)) cleaned[k] = v
+    }
+    payload.settings = cleaned
+  }
   return payload
 }
 
@@ -155,7 +168,9 @@ async function main() {
       }
     } catch (e) {
       failed++
-      console.error(`  ! failed ${p.name}: ${e.message.split('\n')[0]}`)
+      const lines = e.message.split('\n')
+      console.error(`  ! failed ${p.name}: ${lines[0]}`)
+      if (lines.length > 1) console.error(`    ${lines.slice(1).join('\n    ').slice(0, 800)}`)
     }
   }
 
