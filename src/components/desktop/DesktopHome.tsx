@@ -135,7 +135,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         <BlockedList tasks={blocked} onNavigate={onNavigate} />
       </div>
 
-      {/* OS HEALTH — thin chrome strip. Today · Systems · Running · Errors. */}
+      {/* OS HEALTH: thin chrome strip. Today, Systems, Running, Errors. */}
       <OsHealthStrip
         onNavigate={onNavigate}
         approvalCount={approvalCount}
