@@ -2,11 +2,14 @@ import React, { useMemo, useState } from 'react'
 import { isToday, isPast, parseISO } from 'date-fns'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
 import { DetailSheet } from './DetailSheet'
+import { BottomSheet } from './BottomSheet'
 import { useRealtimeTasks, type TaskRow } from '../../hooks/useRealtimeTasks'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { humanAge } from '../../lib/ageHelpers'
+import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
+import { DecisionDetail } from '../DecisionDetail'
 
 // Mirrors the desktop noise/stale filters in DesktopToday so the two surfaces
 // agree on what counts as "today".
@@ -41,6 +44,9 @@ function urgencyAccent(t: TaskRow): 'red' | 'amber' | 'violet' | 'neutral' {
 interface MobileTodayProps {
   lane?: string | null
   onClearLane?: () => void
+  decision?: string | null
+  onNavigate?: (tab: string, params?: Record<string, string>) => void
+  onClearDecision?: () => void
 }
 
 function matchesLane(t: TaskRow, lane: string | null): boolean {
@@ -53,7 +59,13 @@ function matchesLane(t: TaskRow, lane: string | null): boolean {
   return true
 }
 
-export function MobileToday({ lane = null, onClearLane }: MobileTodayProps = {}) {
+export function MobileToday({
+  lane = null,
+  onClearLane,
+  decision = null,
+  onNavigate,
+  onClearDecision,
+}: MobileTodayProps = {}) {
   const h = useHaptics()
   const { toast } = useToast()
   const { tasks: allTasks, loading } = useRealtimeTasks()
@@ -143,6 +155,9 @@ export function MobileToday({ lane = null, onClearLane }: MobileTodayProps = {})
           </button>
         </div>
       )}
+      <div className="px-3">
+        <DecisionsWaitingPanel onNavigate={onNavigate} filterable />
+      </div>
       {hero && (
         <HeroCard
           eyebrow={hero.agent ? `Needs you · ${hero.agent}` : 'Needs you'}
@@ -261,6 +276,16 @@ export function MobileToday({ lane = null, onClearLane }: MobileTodayProps = {})
             : []
         }
       />
+
+      <BottomSheet
+        open={!!decision}
+        onClose={() => onClearDecision?.()}
+        ariaLabel="Decision detail"
+      >
+        {decision && (
+          <DecisionDetail decision={decision} onClose={() => onClearDecision?.()} />
+        )}
+      </BottomSheet>
     </MobileShellPrim>
   )
 }

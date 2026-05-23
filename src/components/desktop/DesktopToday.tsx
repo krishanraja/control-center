@@ -8,6 +8,8 @@ import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { useToast } from '../shared/Toast'
 import { PipelineQueue, PIPELINE_WORKSTREAMS } from './PipelineQueue'
+import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
+import { DecisionDetail } from '../DecisionDetail'
 
 const PIPELINE_WORKSTREAM_SET = new Set<string>(PIPELINE_WORKSTREAMS as readonly string[])
 
@@ -48,6 +50,9 @@ interface Props {
   onSelectTask?: (id: string | null) => void
   lane?: string | null
   onClearLane?: () => void
+  decision?: string | null
+  onNavigate?: (tab: string, params?: Record<string, string>) => void
+  onClearDecision?: () => void
 }
 
 function matchesLane(t: TaskRow, lane: string | null): boolean {
@@ -60,7 +65,15 @@ function matchesLane(t: TaskRow, lane: string | null): boolean {
   return true
 }
 
-export function DesktopToday({ selectedTaskId, onSelectTask, lane = null, onClearLane }: Props = {}) {
+export function DesktopToday({
+  selectedTaskId,
+  onSelectTask,
+  lane = null,
+  onClearLane,
+  decision = null,
+  onNavigate,
+  onClearDecision,
+}: Props = {}) {
   const { tasks: allTasks, loading } = useRealtimeTasks()
   const tasks = useMemo(
     () => (lane ? allTasks.filter(t => matchesLane(t, lane)) : allTasks),
@@ -109,6 +122,7 @@ export function DesktopToday({ selectedTaskId, onSelectTask, lane = null, onClea
         <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Today</h1>
         <p className="text-xs md:text-[13px] text-white/50 mt-0.5">Everything that needs you.</p>
       </div>
+      <DecisionsWaitingPanel onNavigate={onNavigate} filterable />
       {lane && (
         <div className="flex items-center gap-2 px-3 py-2 bg-violet-500/10 border border-violet-400/20 rounded-lg text-sm">
           <span className="text-violet-200">Filtered to {lane}</span>
@@ -149,11 +163,18 @@ export function DesktopToday({ selectedTaskId, onSelectTask, lane = null, onClea
     </div>
   )
 
-  const detail = selected ? <TodayDetail key={selected.id} task={selected} /> : (
-    <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an item from your day</div>
-  )
+  const detail = decision
+    ? <DecisionDetail key={decision} decision={decision} onClose={onClearDecision} />
+    : selected
+      ? <TodayDetail key={selected.id} task={selected} />
+      : <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an item from your day</div>
 
-  return <SplitPane left={list} right={detail} hasSelection={!!selectedId} onBack={() => selectTask(null)} />
+  const onBack = () => {
+    if (decision) onClearDecision?.()
+    else selectTask(null)
+  }
+
+  return <SplitPane left={list} right={detail} hasSelection={!!selectedId || !!decision} onBack={onBack} />
 }
 
 function Group({ title, count, accent, children }: { title: string; count: number; accent: string; children: React.ReactNode }) {

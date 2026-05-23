@@ -36,6 +36,38 @@ export interface VisibilityTargetRow {
   source: string
   created_at: string
   updated_at: string
+  // Deep enrichment fields (migration 2026-05-22-visibility-deep-enrichment).
+  organizer: string | null
+  organizer_reputation: string | null
+  audience_sector: string | null
+  audience_seniority: string | null
+  past_speakers: Array<{ name: string; role?: string; talk_title?: string }> | null
+  cfp_requirements: {
+    needs_bio?: boolean
+    needs_headshot?: boolean
+    needs_video?: boolean
+    abstract_max_words?: number | null
+    talk_length_min?: number | null
+    additional_notes?: string
+  } | null
+  proposed_talk: {
+    title: string
+    abstract: string
+    format: string
+    length_min: number
+  } | null
+  strategic_value: string | null
+  angle: string | null
+  effort_estimate: {
+    prep_hours?: number
+    travel_days?: number
+    cost_usd_low?: number
+    cost_usd_high?: number
+  } | null
+  risk_notes: string | null
+  next_actions: string[] | null
+  deep_enriched_at: string | null
+  enrichment_version: number
 }
 
 /**
