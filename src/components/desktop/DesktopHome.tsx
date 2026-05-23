@@ -65,7 +65,6 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const [intel, setIntel] = useState<HomeIntel | null>(null)
   const [events, setEvents] = useState<AuditEvent[]>([])
   const [goalsData, setGoalsData] = useState<GoalsData | null>(null)
-  const [planCount, setPlanCount] = useState<number | null>(null)
   const { tasks: waiting } = useRealtimeTasks({ statusIn: ['waiting'] })
   const { tasks: blocked } = useRealtimeTasks({ statusIn: ['blocked'] })
   const live = useLiveStatus(60_000)
@@ -73,9 +72,6 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   useEffect(() => {
     supabase.from('home_intelligence').select('*').eq('id', 'current').maybeSingle()
       .then(({ data }) => setIntel(data as any))
-
-    supabase.from('agent_plans').select('agent_id', { count: 'exact', head: true })
-      .then(({ count }) => setPlanCount(count ?? null))
 
     const loadEvents = async () => {
       const excluded = Array.from(EXCLUDED_EVENT_TYPES).map(t => `"${t}"`).join(',')
@@ -122,7 +118,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       <CriticalAlertBanner />
       <DailyLockBanner />
       <DailyBriefBanner />
-      <DecisionsWaitingPanel onNavigate={onNavigate} />
+      <DecisionsWaitingPanel onNavigate={onNavigate} limit={8} />
 
       {/* MONEY MACHINE — the only number that matters. */}
       <MrrTicker variant="desktop" />
@@ -139,10 +135,9 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         <BlockedList tasks={blocked} onNavigate={onNavigate} />
       </div>
 
-      {/* OS HEALTH — thin chrome strip. Plans · Today · Systems · Running · Errors. */}
+      {/* OS HEALTH: thin chrome strip. Today, Systems, Running, Errors. */}
       <OsHealthStrip
         onNavigate={onNavigate}
-        planCount={planCount}
         approvalCount={approvalCount}
         live={live}
       />

@@ -63,7 +63,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       <CriticalAlertBanner />
       <DailyLockBanner />
       <DailyBriefBanner />
-      <DecisionsWaitingPanel />
+      <DecisionsWaitingPanel onNavigate={onNavigate} limit={6} />
       <MrrTicker variant="mobile" />
       <StreakPills variant="mobile" />
       {heroSignal && (

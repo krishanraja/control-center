@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Command } from 'cmdk'
 import { supabase, logKrishAction } from '../lib/supabase'
 import { useHaptics } from '../hooks/useHaptics'
+import { TABS as CANONICAL_TABS } from '../lib/tabs'
 
 interface Props {
   open: boolean
@@ -9,18 +10,7 @@ interface Props {
   onTab: (tab: string) => void
 }
 
-const TABS = [
-  { id: 'home', label: 'Home' },
-  { id: 'today', label: 'Today' },
-  { id: 'leads', label: 'Leads' },
-  { id: 'customers', label: 'Customers' },
-  { id: 'bets', label: 'Bets' },
-  { id: 'plans', label: 'Plans' },
-  { id: 'org', label: 'Org' },
-  { id: 'exec', label: 'Intel' },
-  { id: 'workflows', label: 'Flows' },
-  { id: 'systems', label: 'Systems' },
-]
+const TABS = CANONICAL_TABS.map(t => ({ id: t.id, label: t.label }))
 
 export function CommandPalette({ open, onClose, onTab }: Props) {
   const h = useHaptics()
@@ -73,7 +63,7 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
 
             <Command.Group heading="Tasks">
               {tasks.map(t => (
-                <Command.Item key={t.id} value={`task ${t.title}`} onSelect={() => { onTab('plans'); onClose() }} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-[13px] text-white/70 cursor-pointer data-[selected=true]:bg-white/[0.06] data-[selected=true]:text-white">
+                <Command.Item key={t.id} value={`task ${t.title}`} onSelect={() => { onTab('today'); onClose() }} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-[13px] text-white/70 cursor-pointer data-[selected=true]:bg-white/[0.06] data-[selected=true]:text-white">
                   <span className="truncate flex-1">{t.title}</span>
                   <span className="text-[10px] text-white/35">{t.status}</span>
                   <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
