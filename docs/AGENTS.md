@@ -1,16 +1,17 @@
 # Agents
 
-> **Scope.** This document is the source of truth for the agent roster, the
-> taxonomy that classifies them, and the rules that govern how their identity
-> flows through the system.
+> **Scope.** Source of truth for the agent roster surfaced by Control
+> Center, the taxonomy that classifies them, and the rules that govern how
+> their identity flows through the system.
 >
 > **Not in this document.** The `agents` table schema lives in
-> [`DATABASE.md`](./DATABASE.md). The N8N execution model and webhook chain
-> live in [`DATA-PIPELINE.md`](./DATA-PIPELINE.md). System architecture
-> (event loop, realtime, error boundaries) lives in
+> [`DATABASE.md`](./DATABASE.md). The N8N execution model and webhook
+> chain live in [`DATA-PIPELINE.md`](./DATA-PIPELINE.md). System
+> architecture (event loop, realtime, error boundaries) lives in
 > [`ARCHITECTURE.md`](./ARCHITECTURE.md). UI surfaces consuming agent data
-> are specified in [`PRODUCT.md`](./PRODUCT.md). This file references those
-> rather than restating them.
+> are specified in [`PRODUCT.md`](./PRODUCT.md). The canonical fleet
+> description (agent purpose, KPIs, cron cadence) lives in
+> `MINDMAKER_OS_ARCHITECTURE.md` §2 on the VPS workspace root.
 
 ---
 
@@ -18,7 +19,8 @@
 
 The single most important rule in the codebase:
 
-> **Every cross-table reference to an agent uses the lowercase slug stored in `agents.id`.**
+> **Every cross-table reference to an agent uses the lowercase slug stored
+> in `agents.id`.**
 
 | Table | Column | Value |
 |---|---|---|
@@ -26,18 +28,19 @@ The single most important rule in the codebase:
 | `tasks` | `owner` | slug, or `krish` |
 | `audit_log` | `actor` | slug, `krish`, `system`, or `vps-pipeline` |
 | `workflow_runs` | `agent_id` | slug (legacy `agent` for pre-2026-04-15 rows) |
+| `leads` | `assignee_agent` | slug |
 | `google_drive_sync` | `agent_id` | slug |
 
 ### Consequences
 
-- **Writers must lowercase before insert.** `sync.ts` and `trigger-agent.ts`
-  both normalise. New writers must do the same. Mixed-case writes are a bug
-  even if they "look fine" because they fragment join results.
-- **Readers should expand tolerantly.** When a single user-visible token
-  (e.g. selecting "Cleo" in the UI) might match either `cleo` (slug) or
-  `Cleo` (display name in legacy rows), the reader expands to the set of
-  variants and queries with `.in()`. See `DesktopOrg.tsx` for the canonical
-  pattern.
+- **Writers must lowercase before insert.** `sync.ts`, `trigger-agent.ts`
+  and `/api/agents/[name].ts` all normalise. New writers must do the same.
+  Mixed-case writes are a bug even if they "look fine" because they
+  fragment join results.
+- **Readers expand tolerantly.** When a single user-visible token (e.g.
+  selecting "Cleo" in the UI) might match `cleo` (slug) or `Cleo` (display
+  name in legacy rows), the reader expands to the set of variants and
+  queries with `.in()`. See `DesktopOrg.tsx` for the canonical pattern.
 - **Display name is *only* for display.** `agents.name` is for human eyes,
   never for joins.
 
@@ -51,8 +54,8 @@ visual grouping and section ordering on the Org tab.
 | Pod | Slug | Purpose | Accent |
 |---|---|---|---|
 | Executive | `executive` | Sets direction. Owns cross-venture decisions. | Purple |
-| Operations | `ops` | Runs the machine. Quality, infrastructure, product. | Blue |
-| Growth | `growth` | Revenue, pipeline, visibility. | Emerald |
+| Operations | `ops` | Runs the machine. Quality, infrastructure, product, revenue ops. | Blue |
+| Growth | `growth` | Revenue motion, pipeline, visibility, content. | Emerald |
 
 **Render order is fixed**: Executive → Operations → Growth → any
 unrecognised pod. This is enforced in `DesktopOrg.POD_ORDER` and is a
@@ -67,13 +70,13 @@ trump Growth experiments).
 
 | Type | Behaviour | Example |
 |---|---|---|
-| **Coordinator** | Plans, delegates, reviews. Does not execute N8N workflows directly. | Cleo (Content Production) |
-| **Executor** | Runs scheduled N8N workflows; produces artefacts. | Felix (Enterprise BD), Maya (Marketing/SEO) |
-| **Monitor** | Continuous health/audit; rarely surfaces unless something is wrong. | Vera (Audit/Standards), Arlo (Infra) |
+| **Coordinator** | Plans, delegates, reviews. Does not execute N8N workflows directly. | Agatha (COO), Cleo (Content) |
+| **Executor** | Runs scheduled N8N workflows; produces artefacts. | Felix (Enterprise Pipeline), Maya (Marketing/SEO), Marcus (Synthesis) |
+| **Monitor** | Continuous health/audit; rarely surfaces unless something is wrong. | Vera (Audit/Standards), Arlo (Infra), Kai (Integrations) |
 
-A coordinator with zero `workflow_runs` is **expected behaviour**, not a data
-pipeline failure. A coordinator with stale `audit_log` activity *is* a
-problem — they should still be logging coordination events.
+A coordinator with zero `workflow_runs` is **expected behaviour**, not a
+data-pipeline failure. A coordinator with stale `audit_log` activity *is*
+a problem — they should still be logging coordination events.
 
 ### By cadence
 
@@ -93,49 +96,59 @@ check.
 
 ## Roster
 
-The canonical list (14 agents) is enforced by `api/agents/[name].ts`. The
-table below mirrors that list and is the definitive product reference.
+The canonical fleet is 14 production agents. Supabase `agents` (where
+`active = true`) is authoritative; the roster below mirrors that list and
+is the definitive product reference. The same list is hard-coded as a
+fallback in `api/agents/[name].ts:available_agents` — **the table and the
+fallback list must agree.**
 
 ### Executive
 
 | Slug | Display | Role |
 |---|---|---|
 | `agatha` | Agatha | Chief Operating Officer |
-| `marcus` | Marcus | Business Development |
+| `marcus` | Marcus | Business Development Intelligence / Synthesis |
 
 ### Operations
 
 | Slug | Display | Role |
 |---|---|---|
-| `leo` | Leo | Chief Revenue Officer |
-| `kai` | Kai | Technical Architecture |
-| `arlo` | Arlo | Technical Operations & Infrastructure |
 | `vera` | Vera | Chief of Staff & Quality |
+| `leo` | Leo | Chief Revenue Officer |
 | `priya` | Priya | Product Strategy |
-| `marty` | Marty | Operations |
+| `arlo` | Arlo | Technical Operations & Infrastructure |
+| `kai` | Kai | Technical Architecture / Integrations |
 
 ### Growth
 
 | Slug | Display | Role |
 |---|---|---|
 | `cleo` | Cleo | Content Production & Voice (Coordinator) |
-| `felix` | Felix | Enterprise Business Development |
-| `maya` | Maya | Marketing & SEO |
-| `nell` | Nell | Growth |
-| `nova` | Nova | Visibility & Podcasts |
-| `zara` | Zara | BD Signals |
+| `felix` | Felix | Enterprise Sales Pipeline |
+| `maya` | Maya | Customer Acquisition (Marketing / SEO) |
+| `nell` | Nell | Outbound + Podcast Guest Booking |
+| `nova` | Nova | Visibility & Speaking |
+| `zara` | Zara | Signal Intelligence & Market Research |
+| `hunter` | Hunter | Job Sourcing & Application Specialist |
 
 > **Source of truth.** The Supabase `agents` table is authoritative. The
 > roster above must match `api/agents/[name].ts:available_agents`. If the
 > table grows or shrinks, update both in the same commit.
 
+**Personal-life agents** (Lozatron, Aria, Finno, Devi) live only in
+OpenClaw config on the VPS, outside the Mindmaker business. They are not
+in the `agents` table and never appear in Control Center.
+
 ---
 
 ## Briefs
 
-Each agent has a long-form brief that defines their voice, mandate, and
-operating envelope. Briefs are authored in Google Docs and synced into
-Supabase.
+Each agent has a long-form brief that defines voice, mandate, and
+operating envelope. Briefs are authored either by Krish or by Agatha and
+stored in Supabase as `agents.brief_content`. They are rendered to
+`~/.openclaw/skills/agent-{id}/SKILL.md` on the VPS by
+`render-identity.py` (every 15 min). **Edit in the DB, not the rendered
+files** — the renderer overwrites the file on every tick.
 
 | Field on `agents` | Source of truth | Purpose |
 |---|---|---|
@@ -143,35 +156,42 @@ Supabase.
 | `mission` | Brief mission section | One-paragraph north star |
 | `mandate` | Brief mandate section | Operating charter |
 | `brief_content` | Full brief text | Excerpted in the Org drawer; full text via the linked Doc |
-| `brief_updated_at` | Drive sync timestamp | Used to detect drift |
-| `brief_checksum` | Drive sync hash | Used to detect drift |
+| `brief_updated_at` | Last write | Used to detect drift |
+| `brief_checksum` | Content hash | Used to detect drift |
 
 Drive sync is owned by `google_drive_sync` (joined on `agent_id`). When a
-doc edit is detected, the sync writes new content + bumps the timestamp;
-the Org drawer then shows the updated brief on next mount.
+brief edit lands in Supabase, the sync writes content to Drive and bumps
+the timestamp; the Org drawer shows the updated brief on next mount.
+
+The Org tab's inline brief editor writes to `/api/sync-brief` which then
+PATCHes `agents.brief_content`. The render pipeline runs independently
+and will pick up the edit on its next 15-minute tick.
 
 ---
 
 ## Lifecycle
 
 ### Activation
-- New agents are inserted into the `agents` table with `active = true`.
+- New agents are inserted into `agents` with `active = true`.
 - The slug must be chosen at insert time and never renamed (it is a join
   key — see [Slug-as-Key](#slug-as-key)).
 - Add the slug to `api/agents/[name].ts:available_agents`.
 - Add an entry to the [Roster](#roster) table in this file.
+- Add the rendered SKILL.md output path to the VPS cron's render list.
 
 ### Deactivation
-- Set `active = false`. Do not delete — historic `tasks`, `audit_log`, and
-  `workflow_runs` rows are still meaningful.
+- Set `active = false`. Do not delete — historic `tasks`, `audit_log`,
+  `workflow_runs`, and `leads.assignee_agent` rows are still meaningful.
 - The Org tab filters on `active = true` so deactivated agents disappear
-  from the list, but their history remains queryable from Intel and Flows.
+  from the list, but their history remains queryable from Intel and
+  Flows.
 
 ### Renaming
 - `name` may change freely (display only).
-- `id` (slug) **must not change**. If renaming the slug is unavoidable, run
-  a migration that updates every join column atomically and bumps the
-  legacy-column note in [`DATABASE.md`](./DATABASE.md#workflow_runs).
+- `id` (slug) **must not change**. If renaming the slug is unavoidable,
+  run a migration that updates every join column atomically and bumps
+  the legacy-column note in
+  [`DATABASE.md`](./DATABASE.md#workflow_runs).
 
 ---
 
@@ -196,14 +216,14 @@ agent's N8N workflow, not in Control Center.
 
 ## Flagging and Escalation
 
-The CEO can flag an agent from:
+Krish can flag an agent from:
 - The Org drawer (`Flag` button).
 - Any inline action in Today / Plans (`Flag` verb).
 
-Flags persist in the flag store and are surfaced on the next session start
-via `PendingFlagModal`. The intent is *unmissable accountability* — a flag
-should never be silently dismissed; it is either acknowledged with notes
-or resolved with a corrective action.
+Flags persist in the flag store and are surfaced on the next session
+start via `PendingFlagModal`. The intent is *unmissable accountability* —
+a flag should never be silently dismissed; it is either acknowledged
+with notes or resolved with a corrective action.
 
 ---
 
@@ -213,9 +233,15 @@ The following must hold at all times. If any is violated, file an issue.
 
 1. Every `agents.id` is lowercase, alphanumeric, no spaces.
 2. Every `tasks.agent` value either equals an `agents.id` or is null.
-3. Every `audit_log.actor` value equals an `agents.id`, `krish`, `system`, or `vps-pipeline`.
-4. Every `workflow_runs.agent_id` value equals an `agents.id` (legacy `agent` column may carry historical mixed-case values; new writes must not).
-5. The Roster table in this document, `api/agents/[name].ts:available_agents`, and `SELECT id FROM agents WHERE active` must all agree.
+3. Every `tasks.owner` value equals an `agents.id`, `krish`, or null.
+4. Every `audit_log.actor` value equals an `agents.id`, `krish`,
+   `system`, or `vps-pipeline`.
+5. Every `workflow_runs.agent_id` value equals an `agents.id` (legacy
+   `agent` column may carry historical mixed-case values; new writes must
+   not).
+6. Every `leads.assignee_agent` value equals an `agents.id` or is null.
+7. The Roster table in this document, `api/agents/[name].ts:available_agents`,
+   and `SELECT id FROM agents WHERE active` must all agree.
 
-A periodic audit (Vera is the natural owner) should verify these and write
-a single `audit_log` row per check, healthy or otherwise.
+A periodic audit (Vera is the natural owner) verifies these and writes a
+single `audit_log` row per check, healthy or otherwise.

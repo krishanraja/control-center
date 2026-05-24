@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (error || !agent) {
     return res.status(404).json({
       error: `Agent not found: ${agentName}`,
-      available_agents: ['arlo', 'cleo', 'felix', 'leo', 'marcus', 'maya', 'nell', 'nova', 'priya', 'vera', 'zara', 'agatha', 'marty', 'kai']
+      available_agents: ['agatha', 'arlo', 'cleo', 'felix', 'hunter', 'kai', 'leo', 'marcus', 'maya', 'nell', 'nova', 'priya', 'vera', 'zara']
     })
   }
 
