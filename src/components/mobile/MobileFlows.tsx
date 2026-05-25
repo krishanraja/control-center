@@ -239,7 +239,25 @@ export function MobileFlows() {
             ? `${openFlow.errorCount} errors out of last ${openFlow.runCount} runs.\nLast run: ${humanAgo(openFlow.lastRun)} ago.`
             : undefined
         }
-        actions={[]}
+        actions={openFlow ? [
+          {
+            label: 'Rerun',
+            variant: 'primary',
+            onClick: async () => {
+              h.heavy()
+              try {
+                const r = await fetch(`/api/automations/${openFlow.workflow_id}/rerun`, { method: 'POST' })
+                const body = await r.json().catch(() => ({}))
+                if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
+                h.success()
+                toast('Rerun queued.', 'success')
+              } catch (e: any) {
+                h.error()
+                toast(`Could not rerun: ${e?.message || 'try again'}`, 'error')
+              }
+            },
+          },
+        ] : []}
       />
     </MobileShellPrim>
   )

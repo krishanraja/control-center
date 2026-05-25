@@ -140,9 +140,23 @@ Vercel SSO temporarily disabled for verification window, then re-enabled.
 - [ ] **GATE: ask user before merging**
 
 ### Chunk 9 — PR + report
-- [ ] Open PR from branch → main
-- [ ] Body = this status report + verification screenshots
-- [ ] **GATE: ask user before merging**
+- [x] Opened PR #67 from branch → main
+- [x] **GATE passed**: user approved merge
+- [x] Squash-merged to main as 74e7a20
+- [x] Production deploy auto-triggered, READY at `controlcenter.krishraja.com`
+- [x] Final live verification against production: 3 viewports × 11 tabs clean; **Cleo Transform completed end-to-end on prod** with real Sonnet output
+
+### Chunk 10 — Deferred polish (completed after user re-prompt)
+- [x] `ContentIdeaCardActionable.tsx`: Edit + External draft buttons hidden below 640px (≤mobile) to reduce mobile button density
+- [x] `MobileHome` + `DesktopHome` DecisionsWaitingPanel limit raised 4→12
+- [x] `DesktopHome` Cmd+K / Cmd+I keyboard hint added top-right (above MrrTicker)
+- [x] `MobileOrg`: Edit brief action added to agent DetailSheet (window.prompt + supabase patch + optimistic local update)
+- [x] `MobileIntel`: Create task + Add to bets buttons on signal DetailSheet (POST /api/task, /api/bets/)
+- [x] `MobileFlows`: Rerun button on workflow DetailSheet (POST /api/automations/:id/rerun)
+- [x] `DesktopFlows.WorkflowCard`: Rerun button inline on every workflow card
+- [x] `MobileCustomers`: Log call + Mark for outreach actions added (alongside Draft email); supabase imported; useCustomers.CustomerRow extended with audit-migration columns
+- [x] N8N `Agatha | Lead Deep Enrich` workflow patched: Patch Lead step now writes `enrichment_status='enriched'` so the UI optimistic pending state clears
+- [x] `npx tsc --noEmit` clean
 
 ## Decisions logged
 - Email path: Gmail Drafts via new N8N workflow (`Cleo | Email Draft`) using Krish's OAuth.

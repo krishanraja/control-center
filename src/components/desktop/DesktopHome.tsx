@@ -119,6 +119,11 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
       <CriticalAlertBanner />
 
+      <div className="flex items-center justify-end text-[10px] text-white/30 -mb-2 gap-3">
+        <span><kbd className="px-1 py-0.5 rounded bg-white/[0.05] border border-white/[0.08] text-white/55">⌘K</kbd> nav</span>
+        <span><kbd className="px-1 py-0.5 rounded bg-white/[0.05] border border-white/[0.08] text-white/55">⌘I</kbd> capture</span>
+      </div>
+
       {/* MONEY MACHINE — the only number that matters. */}
       <MrrTicker variant="desktop" />
 
@@ -142,7 +147,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       />
 
       {/* DECISIONS WAITING — compact preview, kind-routed. */}
-      <DecisionsWaitingPanel onNavigate={onNavigate} limit={4} />
+      <DecisionsWaitingPanel onNavigate={onNavigate} limit={12} />
 
       {/* DAILY BRIEF — non-blocking. Retro is a collapsible card. */}
       <DailyBriefBanner blocking={false} variant="desktop" />

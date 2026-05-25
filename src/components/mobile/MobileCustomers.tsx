@@ -3,6 +3,7 @@ import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
+import { supabase } from '../../lib/supabase'
 import {
   useCustomers, PRODUCT_LABEL, PRODUCT_ACCENT, KIND_LABEL, KIND_ACCENT,
   type CustomerRow, type CustomerProduct,
@@ -162,10 +163,10 @@ export function MobileCustomers() {
         docUrl={open?.stripe_customer_id
           ? `https://dashboard.stripe.com/customers/${open.stripe_customer_id}`
           : undefined}
-        actions={open && open.email ? [
-          {
+        actions={open ? [
+          ...(open.email ? [{
             label: 'Draft email',
-            variant: 'primary',
+            variant: 'primary' as const,
             onClick: async () => {
               h.heavy()
               try {
@@ -186,7 +187,48 @@ export function MobileCustomers() {
                 toast(`Could not draft email: ${e?.message || 'try again'}`, 'error')
               }
             },
+          }] : []),
+          {
+            label: 'Log call',
+            variant: 'secondary' as const,
+            onClick: async () => {
+              const summary = window.prompt('Brief summary of the call:')
+              if (!summary) return
+              h.heavy()
+              try {
+                const r = await fetch('/api/customer-contacts', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ customer_id: open.id, kind: 'call', summary }),
+                })
+                if (!r.ok) throw new Error(`HTTP ${r.status}`)
+                h.success()
+                toast('Call logged.', 'success')
+              } catch (e: any) {
+                h.error()
+                toast(`Could not log call: ${e?.message || 'try again'}`, 'error')
+              }
+            },
           },
+          ...(open.needs_outreach_at ? [] : [{
+            label: 'Mark for outreach',
+            variant: 'secondary' as const,
+            onClick: async () => {
+              h.heavy()
+              try {
+                const { error } = await supabase
+                  .from('customers')
+                  .update({ needs_outreach_at: new Date().toISOString() })
+                  .eq('id', open.id)
+                if (error) throw new Error(error.message)
+                h.success()
+                toast('Flagged for outreach.', 'success')
+              } catch (e: any) {
+                h.error()
+                toast(`Could not mark: ${e?.message || 'try again'}`, 'error')
+              }
+            },
+          }]),
         ] : []}
       />
     </MobileShellPrim>

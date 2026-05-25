@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, FeedCard, FeedRow, EmptyState } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
+import { useToast } from '../shared/Toast'
 import { supabase } from '../../lib/supabase'
 import { AskMarcus } from '../AskMarcus'
 
@@ -63,6 +64,7 @@ interface IntelState {
 
 export function MobileIntel() {
   const h = useHaptics()
+  const { toast } = useToast()
   const [state, setState] = useState<IntelState>({ signals: [], metrics: [], loading: true })
   const [openSignal, setOpenSignal] = useState<ExternalSignal | null>(null)
 
@@ -212,7 +214,63 @@ export function MobileIntel() {
         }
         agent="marcus"
         docUrl={openSignal?.source_url || undefined}
-        actions={[]}
+        actions={openSignal ? [
+          {
+            label: 'Create task',
+            variant: 'primary',
+            onClick: async () => {
+              h.heavy()
+              try {
+                const r = await fetch('/api/task', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    title: openSignal.recommended_action || openSignal.signal,
+                    description: [openSignal.signal, openSignal.relevance, openSignal.source_url].filter(Boolean).join('\n\n'),
+                    owner: 'krish',
+                    agent: 'marcus',
+                    status: 'todo',
+                    priority: openSignal.urgency === 'high' ? 'high' : 'medium',
+                    workstream: 'intel',
+                  }),
+                })
+                if (!r.ok) throw new Error(`HTTP ${r.status}`)
+                h.success()
+                toast('Task created.', 'success')
+                setOpenSignal(null)
+              } catch (e: any) {
+                h.error()
+                toast(`Could not create task: ${e?.message || 'try again'}`, 'error')
+              }
+            },
+          },
+          {
+            label: 'Add to bets',
+            variant: 'secondary',
+            onClick: async () => {
+              h.heavy()
+              try {
+                const r = await fetch('/api/bets/', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    hypothesis: openSignal.signal,
+                    wins_if: openSignal.recommended_action || 'Krish acts on this signal',
+                    kind: 'experiment',
+                    measure_by_days: 14,
+                  }),
+                })
+                if (!r.ok) throw new Error(`HTTP ${r.status}`)
+                h.success()
+                toast('Added to bets.', 'success')
+                setOpenSignal(null)
+              } catch (e: any) {
+                h.error()
+                toast(`Could not add: ${e?.message || 'try again'}`, 'error')
+              }
+            },
+          },
+        ] : []}
       />
     </MobileShellPrim>
   )
