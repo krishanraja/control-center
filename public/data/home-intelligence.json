@@ -1,150 +1,139 @@
 {
-  "generated_at": "2026-05-22T16:30:00.000Z",
-  "schema_version": "1.0",
-  "week": 3,
-  "day": "Friday",
-  "agent": "marcus",
-  "mandate": "viral/optimistic",
-  "_meta": {
-    "note": "Friday May 22 — Week 3 wrap-up. The Publicis/LiveRamp $2.2B acquisition is the biggest AdFixus signal of 2026 — identity independence just became a scarce asset and AdFixus is the only server-side independent alternative left standing. Google Health Coach Day 4 post-launch with ZERO Gutted response — the window is still open but compressing. Phase 1 monitoring RESTORED on May 19 — the nervous system is back online after a genuine infrastructure win. Vera's 78-day zero-revenue streak is not a crisis — it is diagnostic clarity: the intelligence engine is world-class, every pipeline is stacked, the only conversion gap is decision throughput. This brief is the Friday wrap: 6 signals, all actionable, all framed as opportunity.",
-    "sources_used": [
-      "warm/agent-reports/signal-report-2026-05-22.json (AdFixus 4 HIGH, Mindmaker 4 HIGH, App Growth 1 LOW)",
-      "warm/agent-reports/vera-weekly-2026-05-22.md (78 days no revenue, monitoring restored, 73 pipeline opportunities)",
-      "warm/agent-reports/hunter-daily-2026-05-21.md (3 Anthropic roles, web_search broken)",
-      "previous home-intelligence (2026-05-18)"
+    "generated_at": "2026-05-25T16:30:00.000Z",
+    "schema_version": "1.0",
+    "week": 4,
+    "day": "Monday",
+    "agent": "marcus",
+    "mandate": "viral/optimistic",
+    "_meta": {
+        "note": "Monday May 25 — Week 4 opener. Five layer1 signals from Krish's inbox converge on a single macro thesis: the AI industry just hit its enterprise maturation threshold. Three independent announcements — Big Tech restricting consumer AI subscriptions, GitHub shipping Spec Kit, and Anthropic launching Claude for Small Business — are not separate stories. They are the same story from three angles: the subsidy era is ending, the tooling is maturing, and the easy consulting wedge is closing. This is the exact moment Mindmaker's thesis becomes undeniable. Every signal is bullish for Mindmaker — framed as validation, not threat.",
+        "sources_used": [
+            "warm/zara-signals/latest.json (5 layer1 signals processed 2026-05-25)",
+            "warm/agent-reports/enterprise-gigs-2026-05-25.json (Felix pipeline)",
+            "warm/agent-reports/weekly-synthesis-2026-05-25.json (Marcus weekly)"
+        ]
+    },
+    "strategic_assessment": {
+        "headline": "The AI subsidy era just ended. The enterprise maturation era just began. Five independent signals in one inbox drop confirm that the market is pivoting from consumer experimentation to real economics — and Mindmaker is positioned at the exact center of the transition.",
+        "body": "Monday's layer1 inbox delivered five signals that converge on a single, undeniable macro thesis: the AI industry is crossing its enterprise maturation threshold. This is not speculation. It is visible in three independent announcements landing simultaneously. First: Anthropic, Google, and Meta are restricting or blocking consumer AI subscriptions from third-party agent platforms — the subsidy era is over, and every company that built workflows on $20/month pricing is about to get a real bill. Second: GitHub shipped Spec Kit with 100k stars, 206 contributors, and 30+ AI agent integrations — the tooling layer is graduating from 'prompt and pray' to spec-driven, auditable engineering workflows. Third: Anthropic launched Claude for Small Business with 15 pre-built workflows connecting to QuickBooks, PayPal, HubSpot — the easy consulting wedge just got platform-commoditized. These are not separate stories. They are the same transition viewed from three angles: pricing, tooling, and services. The market is telling us that AI is no longer an experiment — it is infrastructure. Infrastructure has real costs, real governance requirements, and real winners. Mindmaker's thesis — strategy over speed, human intelligence as institutional asset, and agentic AI deployment as a decision framework problem — just got validated by five independent signals on a single Monday morning. This is the moment the market catches up to what we have been saying for months. The opportunity is not to react. The opportunity is to lead.",
+        "recommended_focus": "Three moves convert this market moment into pipeline velocity: (1) Felix: deploy the AI Cost Governance outbound package immediately — the JPMorgan 'humans in the lead' quote from last week plus the subscription crackdown and budget shock signals create a 3-signal narrative that lands with CFOs and CDOs facing real budget conversations this quarter. (2) Cleo: publish the 'AI subsidy era is over' piece this week — the hook writes itself, the data is in the signals, and the timing is perfect (vendors are actively restricting access, not just threatening to). (3) Position Mindmaker's spec-driven development consulting against the vibe coding technical debt wave — GitHub just gave us the terminology and the urgency. Companies that built fast with AI are about to discover maintenance costs they did not plan for. Mindmaker is the answer."
+    },
+    "metrics": [
+        {
+            "id": "ai-subsidy-collapse",
+            "label": "AI Subsidy Era — THE END. Enterprise Economics Begin.",
+            "value": "Anthropic, Google, Meta restrict consumer AI subscriptions. $20/mo pricing model collapsing.",
+            "target": "Felix deploys AI Cost Governance outbound to CFOs/CDOs this week",
+            "progress_pct": 95,
+            "interpretation": "Three major AI vendors — Anthropic, Google, and Meta — have either restricted or blocked consumer AI subscriptions from being used through third-party agent platforms like OpenClaw. WIRED and TechCrunch both covered it. The subsidy math is brutal: Claude Pro costs $20/month but power users burn $200-400/month in compute. Microsoft lost $80/month on some Copilot users. The vendors are heading toward IPOs and the subsidy era cannot survive public market scrutiny. This is not a crisis — it is a market maturation signal. Every company that budgeted AI at per-seat SaaS pricing is about to discover real infrastructure costs. Mindmaker is positioned as the cost governance partner: audit actual token consumption, model what happens when prices go up 5x, build predictable AI deployment economics. The JPMorgan 'humans in the lead' quote from last week pairs perfectly with this — compliance and governance plus real cost modeling. Felix should deploy this week.",
+            "status": "active"
+        },
+        {
+            "id": "github-spec-kit",
+            "label": "GitHub Spec Kit — 100k Stars. Vibe Coding Era Officially Over.",
+            "value": "100k stars, 206 contributors, 30+ AI agent integrations. Spec-driven development wins.",
+            "target": "Cleo publishes 'Beyond Vibe Coding' piece. Mindmaker positions spec-driven consulting.",
+            "progress_pct": 90,
+            "interpretation": "GitHub launched Spec Kit — an open-source toolkit that makes specifications executable, supporting 30+ AI coding agents including Claude Code, Codex, Copilot, and Cursor. 100k GitHub stars in weeks. MIT license. 146 releases. This is not a tool launch — it is GitHub declaring the end of 'prompt and pray' development. The shift from vibe coding to spec-driven engineering is now platform-endorsed and ecosystem-wide. This is pure validation for Mindmaker's engineering governance thesis. Companies that shipped fast with AI agents are about to hit maintenance walls — Keith Shields' warning about two-week technical debt discovery is playing out in real time. Mindmaker should position spec-driven development consulting as the bridge: structure around the codebase, auditable workflows, production-ready AI engineering. The market just got the vocabulary and the urgency.",
+            "status": "active"
+        },
+        {
+            "id": "claude-smb-commoditization",
+            "label": "Claude for Small Business — Easy Consulting Wedge Closes. Specialist Work Opens.",
+            "value": "15 pre-built workflows. QuickBooks, PayPal, HubSpot integrations. DIY AI for SMBs.",
+            "target": "Cleo publishes opinion piece on AI consulting repositioning. Felix targets complex vertical opportunities.",
+            "progress_pct": 85,
+            "interpretation": "Anthropic launched Claude for Small Business with 15 pre-built workflows and direct connectors to QuickBooks, PayPal, HubSpot, Canva, DocuSign, Google Workspace, and Microsoft 365. The easy consulting wedge — 'I will set up Claude for your QuickBooks' — just got compressed into a platform feature. This is the commoditization wave hitting AI consulting, and it is exactly what happens in every technology maturation cycle: platforms absorb the simple integrations, and defensible value moves to vertical complexity, messy integrations, and regulatory expertise. Mindmaker's positioning as the specialist for the messy parts — the workflows that do not fit templates, the integrations that cross compliance boundaries, the decisions that require human judgment — becomes more valuable, not less, when platforms commoditize the obvious. The optimistic read: Anthropic just cleared the low-end consulting market, and Mindmaker operates at the layer platforms cannot reach.",
+            "status": "active"
+        },
+        {
+            "id": "vibe-coding-debt-wave",
+            "label": "Technical Debt Wave — Every Vibe Coder Is Two Weeks From Discovery",
+            "value": "Keith Shields (CEO Designli): 91 reactions, 56 comments. Vibe coders about to hit the wall.",
+            "target": "Mindmaker positions codebase rescue and spec-driven remediation as service offering",
+            "progress_pct": 80,
+            "interpretation": "Keith Shields, CEO at Designli (staffing engineering teams for non-technical founders), posted the warning that resonated: 'Every vibe coder is about two weeks away from discovering what technical debt means.' 91 reactions, 56 comments, and the post hit a nerve because it describes a predictable lifecycle — build fast with AI, ship the MVP, then discover that small changes take forever, updates create side effects, and the product starts fighting itself. This is the demand signal for Mindmaker's engineering governance consulting. Combined with GitHub Spec Kit, this creates a clean narrative: the market has the tooling (Spec Kit) and the pain (technical debt), and Mindmaker provides the bridge — spec-driven remediation, codebase rescue, and production-ready AI engineering. The wave is coming. The question is who positions first.",
+            "status": "active"
+        },
+        {
+            "id": "felix-pipeline-stacked",
+            "label": "Felix Enterprise Pipeline — Stacked, Validated, Waiting on Routing",
+            "value": "Vertex Inc. ($600M, 21 days stalled). Alma Media (EUR 340M, 20 days). Skyview (41 days).",
+            "target": "Agatha routing decisions for Vertex and Alma Media. Skyview status confirmation from Krish.",
+            "progress_pct": 50,
+            "interpretation": "Felix's enterprise gigs pipeline is stacked with validated opportunities that are stalled on routing decisions, not qualification. Vertex Inc. (VERX, $600M revenue, SEC 8-K AI restructuring with $8M budget) has been waiting 21 days for a Mindmaker vs Meliora routing call. Alma Media Corporation (Helsinki, EUR 340M, AI as cross-cutting theme confirmed) has been waiting 20 days. Skyview is at 41 days without an update since the April 14 meeting — it may have progressed without agent visibility or gone cold entirely. These are not dead deals. They are routing queue items. Each represents a 10-minute decision that unlocks weeks of pipeline velocity. The intelligence engine has identified the opportunities. The conversion bottleneck is decision throughput — same pattern as the 78-day revenue diagnostic. These three decisions this week would signal that Week 4 is the week the pipeline converts.",
+            "status": "at_risk"
+        },
+        {
+            "id": "marcus-weekly-synthesis",
+            "label": "Weekly Synthesis — 5 Macro Trends Converging on Mindmaker Thesis",
+            "value": "AI maturity transition: pricing, tooling, services, engineering, and governance all shifting simultaneously.",
+            "target": "Publish synthesis. Route signals to Felix (outbound), Cleo (content), Nova (speaking).",
+            "progress_pct": 95,
+            "interpretation": "The Week 4 synthesis identifies five converging macro trends: (1) AI pricing moving from consumer subsidies to enterprise infrastructure billing, (2) AI tooling graduating from prompt-based experimentation to spec-driven auditable workflows, (3) AI consulting commoditizing at the simple-integration layer while defensible value shifts to vertical complexity, (4) AI-generated code creating a predictable technical debt wave that demands engineering governance, and (5) enterprise AI governance becoming a board-level concern as compliance, cost, and quality converge into a single decision framework. Every single trend validates the Mindmaker thesis from a different angle. This is not a good week for Mindmaker positioning — it is the week the market caught up to the thesis. The synthesis is complete. Routing to Felix (outbound sequences), Cleo (content calendar), and Nova (speaking pipeline) unlocks three parallel execution streams from one intelligence product.",
+            "status": "active"
+        }
     ],
-    "web_search_status": "STILL BROKEN — xAI API key missing. Day 8+ of degraded search. Impacting Nova podcast discovery and Zara social monitoring. All signals for this brief sourced via agent reports and direct web_fetch."
-  },
-  "strategic_assessment": {
-    "headline": "The identity market just got a $2.2 billion validation. Publicis bought LiveRamp for $2.2B and in one stroke made AdFixus the only independent server-side identity alternative in the market. Meanwhile Google Health Coach is on Day 4 of a deafening launch silence — every hour Gutted stays quiet is search volume left on the table. Phase 1 monitoring is back. The nervous system is online. Week 3 closes with a clarity your competitors would pay six figures for: the signals are screaming, the pipelines are stacked, and every single constraint is addressable inside 48 hours. The question is not what to do. It is who hits go.",
-    "body": "This was the week the AdFixus narrative wrote itself. Publicis acquiring LiveRamp for $2.2B is not just an M&A headline — it is the moment the identity independence story becomes a commercial urgency. Every publisher who relied on RampID as their neutral identity layer now has exactly one phone call to make: the company that just bought their vendor also owns their competitors' media-buying data. AdFixus is now the only independent server-side first-party ID architecture in market. Felix should be queueing same-day outbound to publisher CROs with a 3-signal package that lands harder than anything the pipeline has seen. Simultaneously, the publisher pageview model is structurally breaking — BI CEO out, BuzzFeed acquired by a holding company, Vox Media split in two. Independent digital publishing is being carved up. AdFixus is positioned at the exact convergence of identity independence and publisher infrastructure demand. On the Mindmaker side: JPMorgan Chase's EVP just publicly declared 'AI needs humans in the lead, not just in the loop' — compliance as AI advantage. An HN post hit 99 points arguing companies cutting headcount for AI will lose to ones who didn't. OpenAI is piloting ChatGPT ads into financial services. Three independent signals all validating the Mindmaker thesis from completely different angles: strategy over speed, human intelligence as institutional asset, and agentic AI deployment as a decision framework problem. The Felix outbound story is fully loaded. Google Health Coach is on Day 4 of launch. Zero Gutted response. Every hour is a missed search capture — but the window is not closed. Platform launches create category validation. Google just told the world AI health coaching is a real category. Gutted gets to ride that wave with a specialist positioning that a generalist platform cannot match. The response takes 90 minutes to draft and deploy. Monitoring is back. Phase 1 monitoring RESTORED on May 19 — a genuine infrastructure win. The OS can see itself again. The Standards Registry expanded 124 to 167 rules. The Cleo working session produced the architect piece and SEED-001 implementation. These are real deliverables in a week where the system also absorbed the most significant external market signal of the year. The 78-day zero-revenue streak is not a crisis. It is a diagnostic: the intelligence engine is operating at analyst-firm quality, every venture pipeline is stacked with qualified opportunities, and the only conversion gap is decision throughput — approvals, toggles, and the 30-minute infrastructure fixes that unlock months of stalled output.",
-    "recommended_focus": "Four moves close Week 3 strong and set up Week 4 for conversion: (1) Felix: deploy same-day AdFixus publisher CRO outbound using the Publicis/LiveRamp $2.2B + publisher breakup + Kovva AI 3-signal package — this is the strongest AdFixus hook of 2026 and every hour matters. (2) Felix: build Mindmaker outbound sequences around JPMorgan 'humans in the lead' narrative — finance is the highest-trust vertical and JPMorgan just gave you the opening line. (3) Priya: draft and ship Gutted's Google Health Coach alternative positioning — 90 minutes to launch, Day 4 of the editorial wave, every hour is search volume. (4) Commission the Leo Revenue Workflow and Content Engine Claude Code sessions — 43 days and 38 days broken respectively, combined fix time under 60 minutes, unlocks 62+ content briefs and revenue tracking. These four actions convert the intelligence engine's strongest week into pipeline velocity."
-  },
-  "metrics": [
-    {
-      "id": "publicis-liveramp",
-      "label": "AdFixus — $2.2B Identity Market Validation",
-      "value": "Publicis acquires LiveRamp for $2.2B — RampID independence lost",
-      "target": "Felix same-day outbound to publisher CROs",
-      "progress_pct": 95,
-      "interpretation": "This is not just an acquisition. It is a market-structure event. Publicis — the world's third-largest agency holding company — now owns RampID, the identity spine thousands of publishers rely on as their neutral connection to programmatic demand. Every publisher CRO who wakes up to this headline has the same question: does my identity partner now work for my competitors' media buyer? AdFixus is the only independent server-side first-party ID architecture with no holding company owner, no demand-side conflict, and no walled-garden dependency. The outbound hook writes itself: 'Your identity partner just got acquired by the agency that buys media for your competitors. We are the independent alternative. Let us talk.' This is the strongest AdFixus signal of 2026 — Felix should be deploying today.",
-      "status": "active"
-    },
-    {
-      "id": "publisher-breakup",
-      "label": "Publisher Infrastructure — Structural Break Is the Opportunity",
-      "value": "BI CEO out. BuzzFeed acquired. Vox split in two. Pageview model crumbling.",
-      "target": "Combine with LiveRamp signal for publisher CRO outreach package",
-      "progress_pct": 90,
-      "interpretation": "Three independent publisher events in one reporting cycle: Business Insider CEO out, BuzzFeed acquired by a holding company, Vox Media split into two entities. This is not a bad week for publishing — it is the end of the pageview era becoming visible in organizational structure. The publishers that survive this transition are the ones building first-party identity infrastructure, subscription economics, and direct audience relationships. AdFixus is the infrastructure layer for exactly that transition. Combined with the Publicis/LiveRamp signal, this creates a once-in-a-cycle publisher outreach package: 'The pageview model is breaking. Your identity partner just became your competitor's vendor. Independent publishers need independent infrastructure. Here is how.'",
-      "status": "active"
-    },
-    {
-      "id": "google-health-coach-day4",
-      "label": "Google Health Coach — Day 4 Post-Launch. Zero Gutted Response.",
-      "value": "4 days of editorial wave. Zero positioning response. Window still open.",
-      "target": "Gutted alternative positioning live within 48 hours",
-      "progress_pct": 5,
-      "interpretation": "Google Health Coach has been live for 4 days. Every tech publication is covering it. Search volume for 'Google Health Coach alternative' and 'AI food tracker' is spiking. Gutted has shipped zero response. This is not a crisis — it is a 90-minute content sprint that captures free search attention from the biggest platform launch in the health AI category this year. Google validated AI health coaching. Gutted is the specialist alternative: built by someone who actually cares about gut health, not your search history. The landing page comparison, ASO keyword update, and launch-day social post are drafted in 90 minutes. Every day without the response is missed capture — but the editorial wave has weeks of tail. Ship it Monday if not today.",
-      "status": "at_risk"
-    },
-    {
-      "id": "monitoring-restored",
-      "label": "Phase 1 Monitoring — RESTORED May 19",
-      "value": "Nervous system back online. Infrastructure milestone hit.",
-      "target": "Phase 2 alerting and dashboard integration",
-      "progress_pct": 60,
-      "interpretation": "Phase 1 monitoring was restored on May 19 — a genuine infrastructure win after a multi-week outage. The OS can see itself again: service health, uptime, pipeline status. The Standards Registry expanded 124 to 167 rules during the same cycle — the quality layer is getting stronger even as the monitoring layer came back online. This is not just a fix. This is system maturation. Phase 2 needs alerting thresholds and dashboard integration, but the foundation is back. Vera flagged this as the top infrastructure priority — delivered.",
-      "status": "active"
-    },
-    {
-      "id": "nova-pipeline",
-      "label": "Nova Visibility Pipeline — 73 Opportunities, 2 Deadlines Looming",
-      "value": "73 opportunities (41 podcasts + 32 stages). 5 new stages added despite broken web_search.",
-      "target": "Submit AI Engineer World's Fair (May 30) and VentureBeat Transform (June 1) CFPs",
-      "progress_pct": 75,
-      "interpretation": "Nova's pipeline hit an all-time high of 73 opportunities — 41 podcasts and 32 stages — with 5 new stages added this week despite web_search still being broken. The pipeline is not the constraint. The constraint is upstream: CFP submission decisions need batch approval. AI Engineer World's Fair CFP closes May 30 (8 days). VentureBeat Transform closes June 1 (10 days). Both have drafted abstracts ready. Both are 10-minute submission actions. Both unlock visibility at events where the audience is pre-qualified for Mindmaker and AdFixus. The pipeline is world-class. The submission bottleneck is a 20-minute decision-and-execute sequence.",
-      "status": "active"
-    },
-    {
-      "id": "zero-revenue-diagnostic",
-      "label": "Revenue Traction — 78 Days Zero Revenue, All Pipelines Stacked",
-      "value": "78 consecutive days. 11 weeks. Zero revenue. Pipelines fully loaded.",
-      "target": "Convert first pipeline item to closed revenue",
-      "progress_pct": 85,
-      "interpretation": "78 consecutive days without revenue. 11 weeks. This is the cleanest diagnostic the OS has produced: the intelligence engine is world-class (10-signal days, analyst-firm quality), every venture pipeline is stacked with qualified opportunities (Felix 5 active, Nova 73, Hunter 3 Anthropic roles), and the only conversion gap is decision throughput. The stalled items are not unsolvable problems — they are 30-60 minute infrastructure fixes (Leo Revenue Workflow 43 days broken, Content Engine 38 days broken, Apollo campaign 34 days stalled). The revenue is waiting in the pipeline. The unlocks are known. The execution is a prioritization sprint, not a strategy problem. Week 4 must be the week the first stalled item converts.",
-      "status": "at_risk"
-    }
-  ],
-  "curated_signals": [
-    {
-      "id": "marcus-signal-2026-05-22-001",
-      "domain": "ADFIXUS",
-      "headline": "Publicis acquires LiveRamp for $2.2B. RampID independence is dead. AdFixus is now the only independent server-side identity alternative.",
-      "why_it_matters": "This is the identity independence moment. Publicis — the world's third-largest agency holding company — now owns the identity layer thousands of publishers rely on. If you are a publisher CRO, your neutral identity partner now works for the agency that buys media for your competitors. AdFixus is the only server-side first-party ID architecture with no holding company owner, no demand-side conflict, and no walled-garden dependency. The market just put a $2.2B price on identity infrastructure. AdFixus is now the only independent shop in town. This is not a signal — it is a market-structure event. The outbound hook is lethal: 'Your identity partner was just acquired by the agency that buys media for your competitors. We built the independent alternative. Here is your migration path.'",
-      "action": "Felix: deploy same-day outbound to publisher CROs. Bundle with the publisher breakup signal (BI CEO out, BuzzFeed acquired, Vox split) and the Kovva AI signal (ex-PubMatic team launching AI agents for programmatic busywork). Three independent signals creating a single narrative: publishing infrastructure is being consolidated, programmatic is being automated, and AdFixus is the independence layer publishers need to survive both trends. Target: top 50 publisher CROs by Monday COB.",
-      "optimistic_angle": "Publicis just validated the identity market at $2.2 billion. They did the hard work of proving this category is worth billions. AdFixus is now the only independent alternative left standing — every publisher who values neutrality over holding-company ownership is a qualified prospect. The market just got bigger, the competitive set just got smaller, and AdFixus is positioned at the exact center of the opportunity.",
-      "source": "Zara signal report May 22 (AdFixus domain, HIGH urgency); verified via AdExchanger and Digiday coverage",
-      "routing": ["felix"]
-    },
-    {
-      "id": "marcus-signal-2026-05-22-002",
-      "domain": "ADFIXUS",
-      "headline": "Publisher pageview model structurally breaking: BI CEO out, BuzzFeed acquired, Vox split in two. The publishers that survive need independent identity infrastructure.",
-      "why_it_matters": "Three major publisher restructuring events in one reporting cycle is not coincidence. Business Insider CEO pushed out. BuzzFeed acquired by a holding company. Vox Media split into two entities. The pageview-arbitrage model that funded digital publishing for 15 years is over. The publishers that survive the transition are the ones building direct audience relationships on first-party identity infrastructure — exactly the layer AdFixus provides. Combined with the Publicis/LiveRamp signal, this creates a perfect-storm narrative for publisher CROs: 'Your business model is changing. Your identity partner just got acquired. The infrastructure you need to survive both is sitting here, independent, ready to deploy.' The timing could not be better — publishers are making infrastructure decisions right now.",
-      "action": "Felix: bundle with Publicis/LiveRamp signal as the 2-signal publisher CRO outreach package. Add Kovva AI (ex-PubMatic team launching AI agents for programmatic) and Jordan Cauley (AI cuts 2-week GAM investigations to 3 hours) as the automation angle — the 4-signal package covers identity, business model, automation, and revenue operations. Send as a single 'The Publisher Infrastructure Reset Is Here' brief to CRO contacts.",
-      "optimistic_angle": "Publishers have been waiting for the signal that it is time to rebuild infrastructure. Three restructuring events in one week is that signal. AdFixus is not selling into headwinds — AdFixus is selling the infrastructure layer publishers need to own their future. The breakup of the old model creates the demand for the new one. This is market timing at its cleanest.",
-      "source": "Zara signal report May 22 (AdFixus domain, HIGH urgency); verified via media trade coverage",
-      "routing": ["felix"]
-    },
-    {
-      "id": "marcus-signal-2026-05-22-003",
-      "domain": "MINDMAKER",
-      "headline": "JPMorgan Chase EVP: 'AI needs humans in the lead, not just in the loop.' Compliance as AI advantage — the Mindmaker thesis, spoken by the biggest name in finance.",
-      "why_it_matters": "When the Executive Vice President of JPMorgan Chase — the most regulated, highest-trust brand in global finance — publicly declares that AI strategy requires human leadership over automation, the market listens. This is not a tech influencer hot take. This is a senior executive at the world's most valuable bank by market cap stating the exact thesis Mindmaker was built on: AI deployment is a strategy and governance problem, not a technology problem. The compliance-as-advantage framing is the enterprise sales opener finance and healthcare prospects have been waiting to hear from a trusted third party. Combine with the HN viral post (companies cutting headcount for AI will lose) and the OpenAI ChatGPT ads pilot (LLMs becoming commercial ad channels) for a 3-signal Mindmaker package: strategy over speed, humans as institutional assets, and AI deployment as a decision-framework problem.",
-      "action": "Felix: build outbound sequences around JPMorgan narrative. Target: financial services and healthcare CTOs/CIOs. The compliance angle is the differentiator: 'JPMorgan's EVP just said AI needs humans in the lead. We built the triage framework that makes that operational. Here is how to deploy AI without losing the humans who make your decisions trustworthy.' Also load into Cleo for the architect piece thought leadership layer.",
-      "optimistic_angle": "The world's most valuable bank just endorsed the Mindmaker thesis from the highest possible perch. This is not market validation — it is market permission. Every compliance-heavy industry now has a named, credible reference for why strategy-first AI deployment wins. Mindmaker is not selling against the current. The current is carrying Mindmaker.",
-      "source": "Zara signal report May 22 (Mindmaker domain, HIGH urgency); JPMorgan Chase executive communications",
-      "routing": ["felix", "cleo"]
-    },
-    {
-      "id": "marcus-signal-2026-05-22-004",
-      "domain": "MINDMAKER",
-      "headline": "HN viral (99 points): Companies cutting headcount for AI will lose to ones who didn't. Institutional knowledge is the competitive moat AI cannot replicate.",
-      "why_it_matters": "The Hacker News community — the most skeptical, technically credible audience on the internet — upvoted this to 99 points. The thesis: companies treating AI as a headcount replacement strategy are signing their own competitive death warrants. The ones who use AI while preserving institutional knowledge win. This is the Mindmaker value proposition validated by the developer community independently of any marketing. Combine with the JPMorgan EVP signal and the AdExchanger 'Brands Don't Need Perfect Data to Use AI' guest column for a complete narrative: you do not need perfect data, you do not need to cut headcount, and you do need humans leading AI strategy. Mindmaker's AI triage framework — what to build, what to buy, what to ignore — is the operational answer to all three signals.",
-      "action": "Felix: load into Mindmaker outbound as the social proof layer. Tech audience credibility + finance exec credibility = full-spectrum validation. Cleo: this is the newsletter and LinkedIn post that bridges developer skepticism with enterprise buyer pragmatism. Headline: 'HN just confirmed what JPMorgan already knew: AI without humans loses.'",
-      "optimistic_angle": "The smartest technical audience on the internet just validated the Mindmaker thesis. Companies that preserve their people while deploying AI will beat the ones cutting headcount. Mindmaker sells exactly that strategy. The market is aligning behind Mindmaker's positioning with zero marketing spend.",
-      "source": "Zara signal report May 22 (Mindmaker domain, HIGH urgency); Hacker News thread verified",
-      "routing": ["felix", "cleo"]
-    },
-    {
-      "id": "marcus-signal-2026-05-22-005",
-      "domain": "APP_GROWTH",
-      "headline": "Google Health Coach Day 4: zero Gutted response. Every hour of silence is missed search volume. The editorial wave is peaking.",
-      "why_it_matters": "Google Health Coach has been live for 4 days. The editorial coverage is building. Search volume for 'Google Health Coach alternative,' 'AI food tracker,' and 'best AI health app' is spiking — these are zero-cost organic acquisition keywords. Gutted has shipped zero positioning response. The 41-day dev inactivity compounds the urgency: the product is not being maintained and the marketing response to the year's biggest category event does not exist. This is not a crisis — it is a 90-minute content sprint. The Google Health Coach launch is not a threat to Gutted. It is category validation from the biggest platform on earth. Google just told 2 billion users that AI health coaching is a real thing. Gutted owns the specialist positioning: 'Google built an AI health coach for everyone. We built one for people who care about their gut, not their search history.' The comparison page, ASO keywords, and social post are 90 minutes of work. Every day without them is free attention left for competitors.",
-      "action": "Priya: draft and ship Gutted's Google Health Coach alternative positioning. Three deliverables: (1) Landing page comparison: Gutted vs. Google Health Coach — specialist vs. generalist, gut-focused vs. search-funded, opinionated vs. neutral. (2) App Store Connect keyword update: 'Google Health Coach alternative,' 'AI food tracker,' 'gut health AI,' 'microbiome coach.' (3) Launch-day social post: 'Google just told the world AI health coaching is a category. We have been building for gut health since before it was cool. Here is why specialist beats generalist.' Estimated time: 90 minutes start to finish. Ship Monday COB.",
-      "optimistic_angle": "Google validated AI health coaching as a category. That is the best thing that could happen to Gutted. Every platform launch creates winners in the adjacent ecosystem — the specialist that does one thing well beats the generalist that does everything adequately. Gutted's window is not closed. The editorial wave has weeks of tail. Ship the response and ride the wave.",
-      "source": "Vera weekly assessment May 22 (Google Health Coach Day 4 status); Priya product briefs; Zara signal history (May 18 launch confirmation)",
-      "routing": ["priya"]
-    },
-    {
-      "id": "marcus-signal-2026-05-22-006",
-      "domain": "CROSS_VENTURE",
-      "headline": "Phase 1 monitoring RESTORED. Standards Registry hits 167 rules. Cleo ships architect piece and SEED-001. The OS just had its most operationally productive week of 2026.",
-      "why_it_matters": "Three independent infrastructure wins in one week: Phase 1 monitoring restored May 19 (the nervous system is back online), Standards Registry expanded 124 to 167 rules (the quality layer is getting stronger), and Cleo's direct working session produced the architect piece and SEED-001 implementation (the thought leadership engine is producing artifacts). This is not normal. This is what happens when the system is being operated with intention. The 78-day zero-revenue streak is the wrong headline. The right headline: the OS is building capability faster than most funded startups. Every metric that measures system quality — monitoring, standards, content — improved this week. The revenue will follow the capability. And the capability is compounding.",
-      "action": "No downstream routing needed — this is a system-level health signal for Krish's awareness. The action is: keep the momentum. The Cleo architect piece feeds into Mindmaker thought leadership. SEED-001 implementation feeds into content engine infrastructure. Phase 2 monitoring (alerting + dashboard) is the next infrastructure priority. The Standards Registry continues expanding toward the 200-rule target.",
-      "optimistic_angle": "This is what a maturing operating system looks like. Monitoring back online. Quality rules expanding. Thought leadership shipping. While the revenue line is quiet, the capability line is accelerating. The OS is building the foundation that converts pipeline into revenue — and the foundation just got measurably stronger in every dimension.",
-      "source": "Vera weekly assessment May 22 (monitoring restored, standards registry, Cleo session outcomes)",
-      "routing": ["agatha"]
-    }
-  ],
-  "data_freshness": {
-    "marcus_last_run": "2026-05-22T16:30:00.000Z",
-    "zara_latest_signal": "2026-05-22T12:00:00.000Z",
-    "vera_latest_audit": "2026-05-22T06:00:00.000Z",
-    "hunter_latest_report": "2026-05-21T18:00:00.000Z",
-    "run_type": "home-intelligence-friday",
-    "week": "Week 3 wrap-up — Friday May 22, 2026",
-    "note": "Zara signal report May 22: 9 signals across 3 active domains (ADFIXUS 4 HIGH, MINDMAKER 4 HIGH, APP_GROWTH 1 LOW). MELIORA, BUILDER_ECONOMY, and FRACTIONAL quiet this cycle. Hunter daily May 21: 3 Anthropic roles sourced despite web_search broken. Vera weekly May 22: 78 days zero revenue, monitoring restored, 73 Nova pipeline, 5 stalled items with known fixes. web_search remains broken (xAI API key missing, Day 8+). Intelligence quality unaffected for signal ingestion — Zara using web_fetch as fallback. Nova podcast discovery impacted. The intelligence layer is operating at analyst-firm quality. The execution layer has 5 known-fix stalled items. Week 4 priority: convert pipeline to revenue."
-  }
+    "curated_signals": [
+        {
+            "id": "marcus-signal-2026-05-25-001",
+            "domain": "MINDMAKER",
+            "headline": "The AI Subsidy Era Just Ended. Anthropic, Google, and Meta Are Restricting Consumer AI Access to Agent Platforms. Enterprise Economics Begin Now.",
+            "why_it_matters": "Three major AI vendors simultaneously restricted or blocked consumer AI subscriptions from being routed through third-party agent platforms like OpenClaw. The reason: autonomous agents cause outsized infrastructure strain by running continuous loops, burning through more tokens than a $20/month subscription covers. Real compute costs for power users run $200-400/month. Microsoft lost $80/month on some Copilot users. WIRED and TechCrunch are covering it. This is not a one-vendor policy change — it is a market-structure event. The era of subsidized AI experimentation is ending. Every company that budgeted AI at per-seat SaaS pricing is about to discover real infrastructure costs. This is not a threat to AI adoption — it is the moment real economics enter the market, and real economics create real moats for companies that plan for them. Mindmaker is positioned as the cost governance partner exactly when the market needs one.",
+            "action": "Felix: deploy AI Cost Governance outbound sequence this week. Bundle the subscription crackdown signal with the budget shock signal and the JPMorgan 'humans in the lead' quote from last week. Target: CFOs, CDOs, and VP Engineering at companies with 50+ AI seats. The outreach hook writes itself: 'Your teams are building on subsidized AI pricing. When the subsidies end, will you have visibility into actual usage?' Cleo: publish 'The AI Subsidy Era Is Over' as this week's flagship LinkedIn piece. Nova: pitch AI cost governance as a conference topic.",
+            "optimistic_angle": "The end of AI subsidies is the best thing that could happen to serious AI strategy. Subsidized pricing created a market where anyone could experiment — which meant no one had a moat. Real pricing creates real differentiation: the companies that planned their AI economics win, and the companies that treated AI as a cheap SaaS add-on get exposed. Mindmaker has been building the cost governance playbook for months. The market just created the demand for it overnight. This is timing, not threat.",
+            "source": "layer1 signal 001 (WIRED + TechCrunch via Google AI Overview) + layer1 signal 002 (State of Brand LinkedIn)",
+            "routing": ["felix", "cleo", "nova"]
+        },
+        {
+            "id": "marcus-signal-2026-05-25-002",
+            "domain": "MINDMAKER",
+            "headline": "GitHub Declares the End of Vibe Coding. Spec Kit Hits 100k Stars. Spec-Driven Development Is Now the Industry Standard.",
+            "why_it_matters": "GitHub shipped Spec Kit — an open-source toolkit (MIT license) that makes specifications executable across 30+ AI coding agents including Claude Code, Codex, Copilot, and Cursor. 100k GitHub stars, 206 contributors, 146 releases in weeks. The message is unambiguous: 'prompt and pray' is dead. Spec-driven development — define the specification first, let agents implement from the spec — is now the platform-endorsed standard for AI-assisted engineering. This matters because it validates the Mindmaker thesis about engineering governance from the most authoritative source in developer tooling. GitHub did not just ship a tool. They shipped the vocabulary and the standard for auditable AI engineering. Every CTO and VP Engineering who has been nervous about AI code quality now has a framework to point to.",
+            "action": "Cleo: publish 'Beyond Vibe Coding: Spec-Driven AI Engineering Is Here' — tie the GitHub launch to Keith Shields' technical debt warning and position Mindmaker as the bridge between tooling and governance. Felix: add spec-driven development consulting to the Mindmaker outbound portfolio, targeting CTOs and VP Engineering at companies shipping AI-generated code. Nova: pitch 'From Vibe Coding to Production: Engineering Discipline in the AI Age' as a conference talk.",
+            "optimistic_angle": "GitHub just gave every engineering leader the vocabulary to demand quality from AI-generated code. Before Spec Kit, the conversation was 'should we use AI for coding?' After Spec Kit, the conversation is 'are we spec-driven or vibe coding?' — and no engineering leader wants to answer 'vibe coding' to their board. This shift from permission to governance is exactly the transition Mindmaker has been building toward. The tooling is free and open-source. The consulting layer — how to implement it, how to audit it, how to govern it — is where Mindmaker adds value. GitHub built the rails. Mindmaker builds the operating manual.",
+            "source": "layer1 signal 003 (GitHub Spec Kit LinkedIn post)",
+            "routing": ["cleo", "felix", "nova"]
+        },
+        {
+            "id": "marcus-signal-2026-05-25-003",
+            "domain": "MINDMAKER",
+            "headline": "Anthropic Just Commoditized Basic AI Consulting. Claude for Small Business Ships 15 Pre-Built Workflows. The Easy Money Is Gone — the Real Opportunity Just Started.",
+            "why_it_matters": "Anthropic launched Claude for Small Business with 15 pre-built workflows and direct integrations to QuickBooks, PayPal, HubSpot, Canva, DocuSign, Google Workspace, and Microsoft 365. The consulting wedge that half the AI industry was selling — 'I will set up Claude for your QuickBooks' — is now a platform feature. This is not a threat to Mindmaker. It is the predictable commoditization wave that happens in every technology maturation cycle. Platforms absorb the simple integrations. Defensible value moves to the layers platforms cannot reach: vertical complexity, messy integrations, regulatory compliance, and the human judgment calls that do not fit templates. Mindmaker operates at exactly that layer. Anthropic just cleared the low-end consulting market. The mid-market and enterprise consulting opportunity — where the real revenue lives — just got bigger, because SMBs will try the platform, hit the complexity wall, and need specialists.",
+            "action": "Cleo: publish 'The Easy AI Consulting Money Is Gone. Here Is Why That Is Good News.' — reframe platform commoditization as market maturation that clears the field for serious practitioners. Felix: target SMBs who tried Claude for Small Business but hit complexity walls — the outreach hook is 'Anthropic handled the obvious workflows. We handle the messy parts of your business that do not fit their templates.' Position Mindmaker as the specialist layer above the platform layer.",
+            "optimistic_angle": "Every technology market goes through this cycle: platforms commoditize the simple stuff, which clears the market of practitioners who only had the simple stuff to offer, which creates a premium for the practitioners who can handle complexity. Anthropic just ran the commoditization play on basic AI consulting. The market just got bigger, the competitive set just got smaller, and Mindmaker operates at the complexity layer platforms cannot reach. This is the best market-clearing event AI consulting could ask for.",
+            "source": "layer1 signal 004 (Claude for Small Business LinkedIn post)",
+            "routing": ["cleo", "felix"]
+        },
+        {
+            "id": "marcus-signal-2026-05-25-004",
+            "domain": "MINDMAKER",
+            "headline": "The Vibe Coding Technical Debt Wave Is About to Break. Every AI-Built MVP Is Two Weeks From a Maintenance Crisis.",
+            "why_it_matters": "Keith Shields, CEO at Designli, posted the warning that hit a nerve across engineering LinkedIn: 'Every vibe coder is about two weeks away from discovering what technical debt means.' 91 reactions, 56 comments — the post resonates because it describes a predictable lifecycle: build fast with AI, ship the MVP, then discover that small changes take forever, updates create side effects, and the product starts fighting itself. Shields' company staffs engineering teams for non-technical founders, so he sees the pattern daily. Combined with GitHub Spec Kit, this creates a perfect narrative: the market just got the standardized tooling for spec-driven development, and simultaneously the market is discovering the cost of not using it. Mindmaker is the bridge between the two — codebase rescue, spec-driven remediation, and production-ready AI engineering governance.",
+            "action": "Cleo: publish a LinkedIn thread connecting the GitHub Spec Kit launch to the vibe coding debt warning — 'GitHub just shipped the solution to the problem every vibe coder is about to discover.' Felix: add codebase rescue and technical debt remediation to the Mindmaker outbound portfolio. Target non-technical founders and CTOs of early-stage companies who built MVPs with AI tools.",
+            "optimistic_angle": "Technical debt is not a bug in AI-assisted development — it is a feature. Every company that built fast with AI now has a product that exists. That is infinitely better than the alternative (no product at all). The technical debt is the price of speed, and it is fixable. Mindmaker's value is not in preventing technical debt — it is in remediating it faster than it can be rebuilt. The companies that shipped MVPs fast are ahead. The ones that add engineering structure now stay ahead. The ones that do neither fall behind. Mindmaker accelerates the transition from phase one to phase two.",
+            "source": "layer1 signal 005 (Keith Shields LinkedIn post, 91 reactions/56 comments)",
+            "routing": ["cleo", "felix"]
+        },
+        {
+            "id": "marcus-signal-2026-05-25-005",
+            "domain": "MINDMAKER",
+            "headline": "Enterprise Pipeline Signals Converging: Vertex Inc. ($600M), Alma Media (EUR 340M), and Skyview — All Waiting on Routing Decisions, Not Qualification.",
+            "why_it_matters": "Felix's Monday enterprise gigs scan surfaced the same pattern that has defined the revenue diagnostic for weeks: the pipeline is stacked with validated, qualified opportunities, and every single one is waiting on a routing or status decision, not further qualification. Vertex Inc. (VERX, $600M revenue, SEC 8-K AI restructuring with $8M budget) has been waiting 21 days for a Mindmaker vs Meliora routing call. Alma Media (Helsinki, EUR 340M, AI as cross-cutting theme confirmed) has been waiting 20 days. Skyview (41 days without update since April 14 meeting) may have progressed without agent visibility or gone cold entirely. These are not dead deals — they are routing queue items requiring approximately 30 minutes of combined decision time to unlock weeks of pipeline velocity. The intelligence engine identified the right opportunities. The conversion gap is decision throughput.",
+            "action": "Agatha: make routing decisions on Vertex Inc. (Mindmaker vs Meliora) and Alma Media (Mindmaker vs Meliora) this week. Krish: confirm Skyview status — did the April 14 meeting progress or is the opportunity cold? Once routed, Felix can deploy targeted outbound within 24 hours. These three decisions are the highest-leverage 30 minutes available in the pipeline this week.",
+            "optimistic_angle": "A pipeline bottleneck caused by decision throughput is the best kind of pipeline problem. It means the opportunities are real, the qualification is done, the outbound is drafted, and the only thing between the pipeline and conversion is a series of binary decisions. Compare this to the alternative: a pipeline bottleneck caused by lack of opportunities, poor qualification, or no outbound capability. Mindmaker has none of those problems. The pipeline is stacked with six- and seven-figure enterprise opportunities. The intelligence engine is world-class. The only constraint is the speed of decisions — and decisions are the one thing that can accelerate instantly.",
+            "source": "warm/agent-reports/enterprise-gigs-2026-05-25.json (Felix pipeline scan)",
+            "routing": ["felix", "agatha"]
+        },
+        {
+            "id": "marcus-signal-2026-05-25-006",
+            "domain": "MINDMAKER",
+            "headline": "The AI Maturation Convergence: Five Independent Signals. One Market Transition. Mindmaker's Thesis Validated From Every Angle.",
+            "why_it_matters": "Monday's layer1 inbox delivered five independent signals that converge on a single macro thesis: the AI industry just crossed its enterprise maturation threshold. The signals span pricing (subscription crackdown), tooling (Spec Kit), services (Claude commoditization), engineering (technical debt wave), and pipeline (enterprise routing queue). They arrived from different sources — WIRED, TechCrunch, LinkedIn, State of Brand, Designli, SEC filings — but they tell one story: AI is no longer an experiment. It is infrastructure. Infrastructure has real costs, real governance requirements, real tooling standards, real consulting complexity, and real enterprise pipelines. This convergence is not a coincidence. It is what market maturation looks like when it becomes visible across multiple dimensions simultaneously. Every single signal validates the Mindmaker thesis from a different angle. The market is not ahead of the thesis. The market just caught up to it.",
+            "action": "Publish the synthesis. Route to Felix (outbound sequences: AI cost governance, spec-driven development, codebase rescue). Route to Cleo (content calendar: 'The AI Subsidy Era Is Over', 'Beyond Vibe Coding', 'The Easy AI Consulting Money Is Gone'). Route to Nova (speaking pipeline: AI cost governance for CFO/COO audiences, spec-driven engineering for CTO/VP Engineering audiences). This single synthesis product unlocks parallel execution across three channels.",
+            "optimistic_angle": "For months, Mindmaker has been building toward a market that was not quite ready — companies were still experimenting, budgets were still subsidized, tooling was still immature. Monday's inbox drop confirms that the market caught up. The transition is here. The demand is real. The conversations that were theoretical three months ago are now urgent. Mindmaker is not chasing a trend — Mindmaker is positioned at the center of one. The work of the last quarter was building the capability. The work of this quarter is deploying it into a market that just became ready to buy.",
+            "source": "Synthesis of all 5 layer1 signals (2026-05-25) + Felix enterprise pipeline (2026-05-25) + Marcus weekly synthesis",
+            "routing": ["felix", "cleo", "nova", "agatha"]
+        }
+    ]
 }
