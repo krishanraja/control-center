@@ -188,6 +188,26 @@ export function MobileOrg() {
                   variant: 'primary',
                   onClick: () => triggerAgent(open.name),
                 },
+                {
+                  label: 'Edit brief',
+                  variant: 'secondary',
+                  onClick: async () => {
+                    const next = window.prompt('Edit brief:', open.brief_content || '')
+                    if (next == null || next === open.brief_content) return
+                    h.heavy()
+                    try {
+                      const { error } = await supabase
+                        .from('agents')
+                        .update({ brief_content: next, brief_updated_at: new Date().toISOString() })
+                        .eq('id', open.id)
+                      if (error) throw new Error(error.message)
+                      h.success()
+                      setAgents(prev => prev.map(x => x.id === open.id ? { ...x, brief_content: next } : x))
+                    } catch (e: any) {
+                      h.error()
+                    }
+                  },
+                },
               ]
             : []
         }

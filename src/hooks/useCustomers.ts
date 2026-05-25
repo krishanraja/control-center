@@ -35,6 +35,11 @@ export interface CustomerRow {
   attribution_task_id?: string | null
   attribution_channel?: string | null
   attribution_confidence?: string | null
+  // Outreach surface (added 2026-05-25 pedantic audit migration)
+  needs_outreach_at?: string | null
+  last_emailed_at?: string | null
+  last_email_draft_id?: string | null
+  last_email_draft_url?: string | null
 }
 
 export interface ProductBucket {

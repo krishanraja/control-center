@@ -309,7 +309,7 @@ export function ContentIdeaCardActionable({ idea: i, expanded, onClose }: Props)
           type="button"
           onClick={(e) => { e.stopPropagation(); setEditing(o => !o); setActiveTab('idea'); setOpen(true) }}
           disabled={busy !== null}
-          className="flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40 transition-colors min-h-[44px]"
+          className="hidden sm:flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40 transition-colors min-h-[44px]"
         >
           <PenLine size={11} /> {editing ? 'Stop edit' : 'Edit'}
         </button>
@@ -325,7 +325,7 @@ export function ContentIdeaCardActionable({ idea: i, expanded, onClose }: Props)
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors min-h-[44px]"
+            className="hidden sm:flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors min-h-[44px]"
           >
             <ExternalLink size={11} /> External draft
           </a>

@@ -63,7 +63,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       />
 
       {/* DECISIONS WAITING — compact, kind-routed. */}
-      <DecisionsWaitingPanel onNavigate={onNavigate} limit={4} />
+      <DecisionsWaitingPanel onNavigate={onNavigate} limit={12} />
 
       {/* DAILY BRIEF — non-blocking. Retro is a collapsible card. */}
       <DailyBriefBanner blocking={false} variant="mobile" />

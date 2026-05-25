@@ -280,6 +280,17 @@ function WorkflowCard({ w }: { w: GroupedRun }) {
       <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/[0.04] text-[11px] font-mono tabular-nums">
         <span className="text-white/50">{w.runCount} <span className="text-white/30">runs</span></span>
         {w.errorCount > 0 && <span className="text-rose-400 font-semibold">{w.errorCount} errors</span>}
+        <button
+          onClick={async () => {
+            const r = await fetch(`/api/automations/${w.workflow_id}/rerun`, { method: 'POST' })
+            const body = await r.json().catch(() => ({}))
+            if (!r.ok) alert(`Rerun failed: ${body?.error || r.status}`)
+          }}
+          className="ml-auto text-[10px] px-2 py-0.5 rounded border border-white/15 text-white/60 hover:text-white hover:border-white/35 transition-colors"
+          title="Trigger a manual run of this workflow"
+        >
+          Rerun
+        </button>
       </div>
     </div>
   )
