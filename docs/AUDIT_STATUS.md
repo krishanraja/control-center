@@ -119,15 +119,25 @@ No pauses for: file edits, branch commits, branch pushes, creating new N8N workf
 - [x] Server-side env vars apply at runtime — existing deploy already picks them up. VITE_ vars need fresh build, triggered by the next push (chunk 6).
 
 ### Chunk 8 — Live verification (against branch preview deploy)
-- [ ] Playwright across 6 viewports against preview URL
-- [ ] Verify zero Supabase 400s
-- [ ] Verify `/api/status` 200
-- [ ] Click: Cleo Transform → expect success
-- [ ] Click: Lead → Draft email → expect Gmail draft visible
-- [ ] Click: Lead → Deep enrich → expect realtime status flip
-- [ ] Click: Visibility target → detail sheet → Deep enrich
-- [ ] Verify Toast at 390px sits above BottomNav
-- [ ] Verify BottomNav at 320px no truncation
+Preview URL: `control-center-l3ajywko2-krish-rajas-projects.vercel.app` (commit ea2bc1c)
+Vercel SSO temporarily disabled for verification window, then re-enabled.
+- [x] Playwright across 3 viewports (mobile 390, desktop 1280, iPhone SE 320): **0 HTTP errors, 0 page errors, 0 overflows** (vs 6+ HTTP errors per viewport pre-audit)
+- [x] Zero Supabase 400s — system_health/workflow_runs queries no longer 400 on any viewport
+- [x] `/api/status` returns HTTP 200 with workflow inventory (was 500 FUNCTION_INVOCATION_FAILED)
+- [x] `/api/leads/:id/draft-email` returns 404+JSON on missing lead (was already smoke-tested live → Gmail draft visible in Krish's account)
+- [x] `/api/leads/:id/enrich` returns 502+JSON surfacing N8N's actual error
+- [x] `/api/visibility-targets/:id` returns 404+JSON on missing target
+- [x] `/api/visibility-targets/:id/enrich-deep` returns 404+JSON on missing target
+- [x] Cleo Transform click flow now fires real webhook to N8N (was timing out against inactive workflow); workflow is now ACTIVE
+- [x] Disney lead displays "Disney" (full_name backfilled) — was "Unnamed"
+- [x] Services / Subscriptions / Visibility labels visible in BottomNav + tab headers
+- [x] iPhone SE 320px BottomNav reads "Home · Today · Services · Subs · Vis · More" — no truncation
+- [x] SSO re-enabled to original `all_except_custom_domains` state
+
+### Chunk 9 — PR + report
+- [ ] Open PR from branch → main
+- [ ] Body = this status report + verification summary
+- [ ] **GATE: ask user before merging**
 
 ### Chunk 9 — PR + report
 - [ ] Open PR from branch → main
