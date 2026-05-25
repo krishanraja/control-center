@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
+import { useToast } from '../shared/Toast'
 import {
   useCustomers, PRODUCT_LABEL, PRODUCT_ACCENT, KIND_LABEL, KIND_ACCENT,
   type CustomerRow, type CustomerProduct,
@@ -13,6 +14,7 @@ import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
 
 export function MobileCustomers() {
   const h = useHaptics()
+  const { toast } = useToast()
   const { customers, buckets, totals, loading, error } = useCustomers()
   const [openId, setOpenId] = useState<string | null>(null)
 
@@ -38,7 +40,7 @@ export function MobileCustomers() {
     <MobileShellPrim
       header={
         <TabHeader
-          title="Customers"
+          title="Subscriptions"
           subtitle={
             loading
               ? 'Loading…'
@@ -160,7 +162,32 @@ export function MobileCustomers() {
         docUrl={open?.stripe_customer_id
           ? `https://dashboard.stripe.com/customers/${open.stripe_customer_id}`
           : undefined}
-        actions={[]}
+        actions={open && open.email ? [
+          {
+            label: 'Draft email',
+            variant: 'primary',
+            onClick: async () => {
+              h.heavy()
+              try {
+                const r = await fetch(`/api/customers/${open.id}/draft-email`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ intent: 'check_in' }),
+                })
+                const body = await r.json().catch(() => ({}))
+                if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
+                h.success()
+                toast('Draft created in Gmail.', 'success')
+                if (body?.draft_url) {
+                  try { window.open(body.draft_url, '_blank', 'noreferrer,noopener') } catch {}
+                }
+              } catch (e: any) {
+                h.error()
+                toast(`Could not draft email: ${e?.message || 'try again'}`, 'error')
+              }
+            },
+          },
+        ] : []}
       />
     </MobileShellPrim>
   )

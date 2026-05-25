@@ -123,14 +123,23 @@ export function ContentIdeaCardActionable({ idea: i, expanded, onClose }: Props)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idea_id: i.id, target_format }),
       })
-      if (!res.ok) throw new Error(String(res.status))
+      if (!res.ok) {
+        let detail = `HTTP ${res.status}`
+        try {
+          const body = await res.json()
+          detail = body?.error || body?.message || body?.error_text || JSON.stringify(body).slice(0, 200)
+        } catch {
+          try { detail = (await res.text()).slice(0, 200) || detail } catch {}
+        }
+        throw new Error(detail)
+      }
       h.success()
       const verb = target_format === 'expand' ? 'Long-form draft incoming' : `${FORMAT_LABEL[target_format]} variant queued`
       toast(`${verb}. Realtime will refresh when ready.`, 'success')
       setActiveTab(target_format === 'expand' ? 'idea' : target_format)
-    } catch {
+    } catch (e: any) {
       h.error()
-      toast('Cleo transform failed. Check N8N logs.', 'error')
+      toast(`Cleo transform failed: ${e?.message || 'unknown error'}`, 'error')
     } finally {
       setBusy(null)
     }

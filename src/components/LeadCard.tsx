@@ -36,7 +36,7 @@ interface Props {
  * Status changes write through /api/leads/:id which updates Supabase; the
  * realtime subscription animates the card to its new lane.
  */
-type LeadActionState = LeadStatus | 'promote' | 'reassign' | 'follow_up' | 'deep_enrich'
+type LeadActionState = LeadStatus | 'promote' | 'reassign' | 'follow_up' | 'deep_enrich' | 'draft_email'
 
 export function LeadCard({ lead: l, onOpen }: Props) {
   const { toast } = useToast()
@@ -135,23 +135,54 @@ export function LeadCard({ lead: l, onOpen }: Props) {
     h.heavy()
     setBusy('deep_enrich')
     try {
-      const r = await fetch('/webhook/lead-deep-enrich', {
+      const r = await fetch(`/api/leads/${l.id}/enrich`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lead_id: l.id }),
       })
-      if (!r.ok) throw new Error(String(r.status))
+      if (!r.ok) {
+        let detail = `HTTP ${r.status}`
+        try { const b = await r.json(); detail = b?.error || detail } catch {}
+        throw new Error(detail)
+      }
       h.success()
       toast('Agatha is enriching — refresh in ~30s.', 'success')
-    } catch {
+    } catch (e: any) {
       h.error()
-      toast('Could not trigger enrichment — try again.', 'error')
+      toast(`Could not trigger enrichment: ${e?.message || 'try again'}`, 'error')
     } finally {
       setBusy(null)
     }
   }
 
-  const fullName = l.full_name || (l.email ? l.email.split('@')[0] : 'Unnamed')
+  const draftEmail = async () => {
+    h.heavy()
+    setBusy('draft_email')
+    try {
+      const r = await fetch(`/api/leads/${l.id}/draft-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intent: 'introduction' }),
+      })
+      const body = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
+      h.success()
+      const url = body?.draft_url
+      toast(
+        url ? `Draft created in Gmail · ${url}` : 'Draft created in Gmail.',
+        'success',
+      )
+      if (url && typeof window !== 'undefined') {
+        try { window.open(url, '_blank', 'noreferrer,noopener') } catch {}
+      }
+    } catch (e: any) {
+      h.error()
+      toast(`Could not draft email: ${e?.message || 'try again'}`, 'error')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const fullName = l.full_name || l.company || (l.email ? l.email.split('@')[0] : 'New lead')
   const subtitleParts = [l.title, l.company].filter(Boolean) as string[]
   const subtitle = subtitleParts.join(' · ')
 
@@ -371,14 +402,27 @@ export function LeadCard({ lead: l, onOpen }: Props) {
           </a>
         )}
         {l.email && (
-          <a
-            href={`mailto:${l.email}`}
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
-          >
-            <Mail size={11} />
-            Email
-          </a>
+          <>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); draftEmail() }}
+              disabled={busy !== null}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 disabled:opacity-40 transition-colors"
+              title="Draft an email via Cleo (lands in your Gmail Drafts)"
+            >
+              <Mail size={11} />
+              {busy === 'draft_email' ? 'Drafting…' : 'Draft email'}
+            </button>
+            <a
+              href={`mailto:${l.email}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+              title="Open mailto in default client"
+            >
+              <ExternalLink size={11} />
+              mailto
+            </a>
+          </>
         )}
         {l.source_url && (
           <a

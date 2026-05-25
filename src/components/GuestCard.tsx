@@ -158,14 +158,35 @@ export function GuestCard({ guest: g, onOpen }: Props) {
           </a>
         )}
         {g.email && (
-          <a
-            href={`mailto:${g.email}`}
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.stopPropagation()
+              h.heavy()
+              try {
+                const r = await fetch(`/api/guests/${g.id}/draft-email`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ intent: 'podcast_invite' }),
+                })
+                const body = await r.json().catch(() => ({}))
+                if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
+                h.success()
+                toast('Draft created in Gmail.', 'success')
+                if (body?.draft_url) {
+                  try { window.open(body.draft_url, '_blank', 'noreferrer,noopener') } catch {}
+                }
+              } catch (err: any) {
+                h.error()
+                toast(`Could not draft email: ${err?.message || 'try again'}`, 'error')
+              }
+            }}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 transition-colors"
+            title="Draft an email via Cleo (lands in your Gmail Drafts)"
           >
             <Mail size={11} />
-            Email
-          </a>
+            Draft email
+          </button>
         )}
         {g.personal_url && (
           <a

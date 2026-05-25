@@ -27,7 +27,7 @@ function fitDot(fit?: number | null): string {
 }
 
 function leadName(l: LeadRow): string {
-  return l.full_name || (l.email ? l.email.split('@')[0] : 'Unnamed')
+  return l.full_name || l.company || (l.email ? l.email.split('@')[0] : 'New lead')
 }
 
 function leadSubtitle(l: LeadRow): string {
@@ -117,7 +117,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
     <MobileShellPrim
       header={
         <TabHeader
-          title="Leads"
+          title="Services"
           subtitle={loading ? 'Loading…' : `${total} active across ${ventureCount} ventures`}
           trailing={
             <button
@@ -201,7 +201,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
         status={openLead?.status}
         meta={openLead?.fit_score != null ? `Fit ${openLead.fit_score}/10` : undefined}
         docUrl={openLead?.source_url || undefined}
-        actions={openLead ? buildActions(openLead, setStatus, h) : []}
+        actions={openLead ? buildActions(openLead, setStatus, h, toast) : []}
       />
     </MobileShellPrim>
   )
@@ -211,13 +211,61 @@ function buildActions(
   l: LeadRow,
   setStatus: (id: string, next: LeadStatus) => Promise<void>,
   h: ReturnType<typeof useHaptics>,
+  toast: (msg: string, variant?: 'success' | 'error' | 'info') => void,
 ) {
   const acts: { label: string; variant?: 'primary' | 'secondary' | 'danger'; onClick: () => void }[] = []
+
+  if (l.email) {
+    acts.push({
+      label: 'Draft email',
+      variant: 'primary',
+      onClick: async () => {
+        h.heavy()
+        try {
+          const r = await fetch(`/api/leads/${l.id}/draft-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ intent: 'introduction' }),
+          })
+          const body = await r.json().catch(() => ({}))
+          if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
+          h.success()
+          toast('Draft created in Gmail.', 'success')
+          if (body?.draft_url) {
+            try { window.open(body.draft_url, '_blank', 'noreferrer,noopener') } catch {}
+          }
+        } catch (e: any) {
+          h.error()
+          toast(`Could not draft email: ${e?.message || 'try again'}`, 'error')
+        }
+      },
+    })
+  }
+
+  if (!l.deep_enriched_at) {
+    acts.push({
+      label: 'Deep enrich',
+      variant: 'secondary',
+      onClick: async () => {
+        h.heavy()
+        try {
+          const r = await fetch(`/api/leads/${l.id}/enrich`, { method: 'POST' })
+          const body = await r.json().catch(() => ({}))
+          if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
+          h.success()
+          toast('Agatha is enriching — refresh in ~30s.', 'success')
+        } catch (e: any) {
+          h.error()
+          toast(`Could not enrich: ${e?.message || 'try again'}`, 'error')
+        }
+      },
+    })
+  }
 
   if (l.status !== 'contacted' && l.status !== 'conversation') {
     acts.push({
       label: 'Mark contacted',
-      variant: 'primary',
+      variant: 'secondary',
       onClick: () => setStatus(l.id, 'contacted'),
     })
   }
@@ -226,13 +274,6 @@ function buildActions(
       label: 'Open LinkedIn',
       variant: 'secondary',
       onClick: () => { h.tap(); window.open(l.linkedin_url!, '_blank', 'noreferrer,noopener') },
-    })
-  }
-  if (l.email) {
-    acts.push({
-      label: 'Email',
-      variant: 'secondary',
-      onClick: () => { h.tap(); window.location.href = `mailto:${l.email}` },
     })
   }
   acts.push({

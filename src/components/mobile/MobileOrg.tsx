@@ -49,7 +49,7 @@ export function MobileOrg() {
     ;(async () => {
       const [a, r] = await Promise.all([
         supabase.from('agents').select('*').eq('active', true),
-        supabase.from('workflow_runs').select('id,agent_id,agent,status,run_at').order('run_at', { ascending: false }).limit(200),
+        supabase.from('workflow_runs').select('id,agent_id,status,run_at').order('run_at', { ascending: false }).limit(200),
       ])
       if (cancelled) return
       setAgents((a.data as Agent[]) || [])
@@ -64,9 +64,7 @@ export function MobileOrg() {
     const out = new Map<string, { lastRunAt?: string; recent: RunRow[]; errorCount: number }>()
     for (const a of agents) {
       const matchTokens = [a.id, a.id?.toLowerCase(), a.name, a.name?.toLowerCase()].filter(Boolean) as string[]
-      const own = runs.filter(r =>
-        matchTokens.includes(r.agent_id || '') || matchTokens.includes(r.agent || '')
-      ).slice(0, 5)
+      const own = runs.filter(r => matchTokens.includes(r.agent_id || '')).slice(0, 5)
       const errorCount = own.filter(r => r.status === 'error' || r.status === 'failed').length
       out.set(a.id, { lastRunAt: own[0]?.run_at, recent: own, errorCount })
     }

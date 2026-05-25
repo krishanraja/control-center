@@ -1,16 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from './_supabase.js'
 
-const N8N_BASE = process.env.N8N_API_BASE_URL
-const N8N_KEY = process.env.N8N_API_KEY || ''
-
-if (!N8N_BASE) {
-  throw new Error('Missing N8N_API_BASE_URL environment variable')
-}
-
-async function fetchN8N(path: string) {
-  const res = await fetch(`${N8N_BASE}${path}`, {
-    headers: { 'X-N8N-API-KEY': N8N_KEY }
+async function fetchN8N(base: string, key: string, path: string) {
+  const res = await fetch(`${base}${path}`, {
+    headers: { 'X-N8N-API-KEY': key }
   })
   if (!res.ok) throw new Error(`N8N ${path}: ${res.status}`)
   return res.json()
@@ -35,10 +28,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Cache-Control', 'no-store, max-age=0')
 
+  const N8N_BASE = process.env.N8N_API_BASE_URL
+  const N8N_KEY = process.env.N8N_API_KEY || ''
+  if (!N8N_BASE) {
+    return res.status(503).json({
+      ok: false,
+      error: 'N8N_API_BASE_URL not configured',
+      fetched_at: new Date().toISOString(),
+    })
+  }
+
   try {
     const [workflows, executions, wfMap] = await Promise.all([
-      fetchN8N('/workflows?limit=50'),
-      fetchN8N('/executions?limit=100'),
+      fetchN8N(N8N_BASE, N8N_KEY, '/workflows?limit=50'),
+      fetchN8N(N8N_BASE, N8N_KEY, '/executions?limit=100'),
       loadWorkflowNames(),
     ])
 

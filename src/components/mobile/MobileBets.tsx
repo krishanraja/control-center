@@ -93,7 +93,7 @@ export function MobileBets() {
             placeholder="Wins if — measurable in N days. (e.g. '5+ paid signups from this campaign')"
             className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-[14px] text-white p-3 placeholder:text-white/30 focus:outline-none focus:border-white/[0.18]"
           />
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <select
               value={draft.kind}
               onChange={e => setDraft(d => ({ ...d, kind: e.target.value as BetKind }))}

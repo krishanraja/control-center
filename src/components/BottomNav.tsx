@@ -8,9 +8,25 @@ interface Props {
   onChange: (tab: string) => void
 }
 
+function useNarrowViewport(maxWidth: number) {
+  const get = () => typeof window !== 'undefined' && window.innerWidth < maxWidth
+  const [narrow, setNarrow] = useState<boolean>(get)
+  React.useEffect(() => {
+    const onResize = () => setNarrow(get())
+    window.addEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+    }
+  }, [maxWidth])
+  return narrow
+}
+
 export function BottomNav({ active, onChange }: Props) {
   const h = useHaptics()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const ultraNarrow = useNarrowViewport(360)
 
   return (
     <>
@@ -22,6 +38,7 @@ export function BottomNav({ active, onChange }: Props) {
               key={tab.id}
               tab={tab}
               active={active === tab.id}
+              ultraNarrow={ultraNarrow}
               onClick={() => { h.select(); onChange(tab.id) }}
             />
           ))}
@@ -49,8 +66,9 @@ export function BottomNav({ active, onChange }: Props) {
   )
 }
 
-function NavButton({ tab, active, onClick }: { tab: TabDef; active: boolean; onClick: () => void }) {
+function NavButton({ tab, active, ultraNarrow, onClick }: { tab: TabDef; active: boolean; ultraNarrow?: boolean; onClick: () => void }) {
   const Icon: LucideIcon = tab.mobileIcon
+  const label = ultraNarrow && tab.mobileShortLabel ? tab.mobileShortLabel : tab.label
   return (
     <button
       onClick={onClick}
@@ -69,7 +87,7 @@ function NavButton({ tab, active, onClick }: { tab: TabDef; active: boolean; onC
         />
       </div>
       <span className={`w-full text-center text-[10px] sm:text-[11px] font-medium leading-none tracking-tight truncate transition-colors ${active ? 'text-violet-200' : ''}`}>
-        {tab.label}
+        {label}
       </span>
       {active && (
         <span aria-hidden className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-gradient-to-r from-transparent via-violet-400 to-transparent rounded-full" />
