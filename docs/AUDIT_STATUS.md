@@ -41,11 +41,11 @@ No pauses for: file edits, branch commits, branch pushes, creating new N8N workf
 - [ ] Push
 
 ### Chunk 2 — `/api/status` hardening + Supabase migration file
-- [ ] `api/status.ts:7-9` — move env-var check inside handler; return JSON 503 instead of module-load throw
-- [ ] Write `supabase/migrations/20260525_pedantic_audit.sql` (additive only; uses real `audit_log` columns)
-- [ ] **GATE: ask user before applying migration**
-- [ ] Apply migration via Supabase Management API (or psql via service role)
-- [ ] Re-introspect schemas to confirm
+- [x] `api/status.ts:7-9` — moved env-var check inside handler; returns JSON 503 instead of module-load throw
+- [x] Wrote `supabase/migrations/20260525090000_pedantic_audit.sql` (129 lines, additive only, real audit_log cols)
+- [x] **GATE passed** — user approved apply via service-role
+- [x] Applied via Supabase Management API `/v1/projects/.../database/query` (HTTP 201; needed User-Agent header to bypass CF rule 1010)
+- [x] Verified: all new cols on leads/customers/guests/visibility_targets queryable; email_drafts table created; RPC `mark_entity_emailed` callable (HTTP 204); Disney lead backfilled (`full_name="Disney"`)
 - [ ] Commit: `feat: /api/status hardening; supabase migration for email-draft + visibility schemas`
 - [ ] Push
 
