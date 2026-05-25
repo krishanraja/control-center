@@ -31,7 +31,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
+      <div
+        className="fixed right-4 min-[900px]:right-6 bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] min-[900px]:bottom-6 z-50 flex flex-col gap-2 pointer-events-none"
+      >
         {toasts.map(t => {
           const v = VARIANT_STYLE[t.variant] || VARIANT_STYLE.info
           const Icon = v.icon

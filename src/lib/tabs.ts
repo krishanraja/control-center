@@ -7,6 +7,8 @@ import {
 export interface TabDef {
   id: string
   label: string
+  /** Optional shorter label used when the BottomNav can't fit the full label (sub-360px viewports). */
+  mobileShortLabel?: string
   desktopIcon: LucideIcon
   mobileIcon: LucideIcon
   desktopPriority: 'primary' | 'drawer'
@@ -20,8 +22,8 @@ export const TABS: TabDef[] = [
   { id: 'home',      label: 'Home',          desktopIcon: LayoutDashboard, mobileIcon: Home,       desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'today',     label: 'Today',         desktopIcon: Calendar,        mobileIcon: Clock,      desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'leads',     label: 'Services',      desktopIcon: UserPlus,        mobileIcon: UserPlus,   desktopPriority: 'primary', mobilePriority: 'primary' },
-  { id: 'customers', label: 'Subscriptions', desktopIcon: DollarSign,      mobileIcon: DollarSign, desktopPriority: 'primary', mobilePriority: 'primary' },
-  { id: 'guests',    label: 'Visibility',    desktopIcon: Mic,             mobileIcon: Mic,        desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'guests',    label: 'Visibility',    mobileShortLabel: 'Vis',  desktopIcon: Mic,        mobileIcon: Mic,        desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'content',   label: 'Content',       desktopIcon: FileText,        mobileIcon: FileText,   desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'bets',      label: 'Bets',          desktopIcon: Target,          mobileIcon: Target,     desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'org',       label: 'Org',           desktopIcon: Users,           mobileIcon: GitBranch,  desktopPriority: 'primary', mobilePriority: 'drawer'  },

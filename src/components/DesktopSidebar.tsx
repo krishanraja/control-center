@@ -19,17 +19,21 @@ export function DesktopSidebar({ active, onChange }: Props) {
 
   useEffect(() => {
     const loadSys = async () => {
-      const { data } = await supabase.from('system_health').select('metric,value,status')
-      if (!data) return
-      const mrrRow = data.find((r: any) => r.metric === 'mrr')
-      if (mrrRow) setMrr(mrrRow.value)
-      const unhealthy = data.filter((r: any) => r.status === 'critical' || r.status === 'warning').length
-      setUnhealthyCount(unhealthy)
+      const [healthRes, custRes] = await Promise.all([
+        supabase.from('system_health').select('status'),
+        supabase.from('customers').select('mrr_usd,churned_at'),
+      ])
+      const health = (healthRes.data as Array<{ status?: string }> | null) || []
+      setUnhealthyCount(health.filter(r => r.status === 'critical' || r.status === 'warning').length)
+      const customers = (custRes.data as Array<{ mrr_usd?: number | null; churned_at?: string | null }> | null) || []
+      const active = customers.filter(c => !c.churned_at).reduce((sum, c) => sum + (Number(c.mrr_usd) || 0), 0)
+      setMrr(active > 0 ? `$${Math.round(active).toLocaleString()}/mo` : null)
     }
     loadSys()
     const ch = supabase
       .channel('sidebar-health')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'system_health' }, loadSys)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, loadSys)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [])

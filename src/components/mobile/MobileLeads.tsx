@@ -27,7 +27,7 @@ function fitDot(fit?: number | null): string {
 }
 
 function leadName(l: LeadRow): string {
-  return l.full_name || (l.email ? l.email.split('@')[0] : 'Unnamed')
+  return l.full_name || l.company || (l.email ? l.email.split('@')[0] : 'New lead')
 }
 
 function leadSubtitle(l: LeadRow): string {

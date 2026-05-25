@@ -72,8 +72,8 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
         </section>
       )}
 
-      <div className="grid grid-cols-1 lg:[grid-template-columns:1fr_2fr] gap-5">
-        <aside className="space-y-4">
+      <div className="grid grid-cols-1 lg:[grid-template-columns:minmax(0,1fr)_minmax(0,2fr)] gap-5">
+        <aside className="space-y-4 min-w-0">
           <section>
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
               Import
@@ -105,7 +105,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
           </section>
         </aside>
 
-        <div className="space-y-3">
+        <div className="space-y-3 min-w-0">
           {ventures.map(v => (
             <LeadVentureLane
               key={v.slug}

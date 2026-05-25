@@ -151,7 +151,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
     }
   }
 
-  const fullName = l.full_name || (l.email ? l.email.split('@')[0] : 'Unnamed')
+  const fullName = l.full_name || l.company || (l.email ? l.email.split('@')[0] : 'New lead')
   const subtitleParts = [l.title, l.company].filter(Boolean) as string[]
   const subtitle = subtitleParts.join(' · ')
 

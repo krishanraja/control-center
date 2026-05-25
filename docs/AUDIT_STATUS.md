@@ -24,18 +24,19 @@ No pauses for: file edits, branch commits, branch pushes, creating new N8N workf
 - [x] Verify credentials work
 - [x] Locate Vercel project (control-center / prj_ymGIPNZzWx5gSuxv1kqppexR60Ac)
 - [x] Write this tracker
-- [ ] Commit + push
+- [x] Commit + push (commit 32cba78)
 
 ### Chunk 1 — Foundations (frontend-only, ship-safe)
-- [ ] `index.html:8` — viewport `initial-scale=2.13` → `1.0`, add `viewport-fit=cover`
-- [ ] `src/components/shared/Toast.tsx:34` — responsive safe-area bottom (lift above BottomNav at <900px)
-- [ ] `src/components/mobile/MobileLeads.tsx:29-31` — fallback chain: full_name → company → email-prefix → "New lead"
-- [ ] `src/components/LeadCard.tsx:154` — same fallback chain
-- [ ] `src/components/DesktopSidebar.tsx:22-25` — drop `system_health.select('metric,value,status')`; compute MRR from `customers.mrr_usd` sum where `churned_at IS NULL`
-- [ ] `src/components/mobile/MobileOrg.tsx:52` — drop ghost `agent` column from select; line 67-68 remove dead matching branch
-- [ ] `src/components/desktop/DesktopOrg.tsx:165` — fix same bug, drop the defensive catch
-- [ ] `src/components/mobile/BottomNav.tsx` — labels truncate at 320px; use shorter labels or icon-only below 360px
-- [ ] `src/components/desktop/DesktopLeads.tsx` — 1280px-specific horizontal overflow on venture lanes
+- [x] `index.html:8` — viewport `initial-scale=2.13` → `1.0`, add `viewport-fit=cover`
+- [x] `src/components/shared/Toast.tsx:34` — responsive safe-area bottom (lift above BottomNav at <900px)
+- [x] `src/components/mobile/MobileLeads.tsx:29-31` — fallback chain: full_name → company → email-prefix → "New lead"
+- [x] `src/components/LeadCard.tsx:154` — same fallback chain
+- [x] `src/components/DesktopSidebar.tsx:22-35` — dropped ghost `system_health.metric/value`; MRR now sums `customers.mrr_usd` where `churned_at IS NULL`
+- [x] `src/components/mobile/MobileOrg.tsx:52,67-68` — dropped ghost `agent` column + dead matching branch
+- [x] `src/components/desktop/DesktopOrg.tsx:161-171` — dropped legacy `.in('agent', tokens)` query + its defensive catch
+- [x] `src/lib/tabs.ts` + `src/components/BottomNav.tsx` — added `mobileShortLabel`; Subscriptions→"Subs", Visibility→"Vis" below 360px
+- [x] `src/components/desktop/DesktopLeads.tsx:75,108` — grid `minmax(0,...)` + `min-w-0` on both children for 1280px overflow
+- [x] `npx tsc --noEmit` clean
 - [ ] Commit: `fix: viewport, toast safe-area, naming fallbacks, supabase select bugs`
 - [ ] Push
 
