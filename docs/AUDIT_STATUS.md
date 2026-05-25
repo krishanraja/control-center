@@ -87,16 +87,15 @@ No pauses for: file edits, branch commits, branch pushes, creating new N8N workf
 - `N8N_API_BASE_URL`                       = `https://krishraja10101.app.n8n.cloud/api/v1`
 
 ### Chunk 5 — Action surface buildout (frontend UI for the new routes)
-- [ ] `MobileLeads.tsx:210-244` `buildActions()` — add Draft email + Deep enrich
-- [ ] `LeadCard.tsx:134-152` — rewrite `deepEnrich()` to POST to `/api/leads/[id]/enrich`, surface as button
-- [ ] `LeadCard.tsx` — add Draft email button
-- [ ] New `src/components/VisibilityTargetDetail.tsx` mobile sheet; wire from `MobileGuests.tsx`
-- [ ] `CustomerCard.tsx` + `MobileCustomers.tsx:163` (currently `actions={[]}`) — Draft email + Log call + Mark for outreach
-- [ ] `GuestCard.tsx` + `MobileGuests.tsx` — Draft email
-- [ ] `MobileIntel.tsx` + `DesktopExec.tsx` — Create task / Add to bets buttons on signal rows
-- [ ] `MobileFlows.tsx` + `DesktopFlows.tsx` — Rerun / Disable buttons on erroring workflows
-- [ ] `ContentIdeaCardActionable.tsx:121-137` — parse response body on failure, show real error + Retry button
-- [ ] Commit: `feat: action surfaces across Leads/Customers/Guests/Intel/Flows/Visibility`
+- [x] `ContentIdeaCardActionable.tsx:121-137` — parses response body on failure, shows real error in toast ("Cleo transform failed: N8N 502 ...")
+- [x] `LeadCard.tsx:134-152` `deepEnrich()` — rewrote from broken `/webhook/lead-deep-enrich` (SPA-rewrite trap) to `/api/leads/:id/enrich`
+- [x] `LeadCard.tsx` — added `draftEmail()` → `/api/leads/:id/draft-email`, surfaced as primary Draft email button next to mailto fallback
+- [x] `MobileLeads.tsx buildActions()` — added Draft email (primary) + Deep enrich (secondary); demoted Mark contacted to secondary
+- [x] `MobileCustomers.tsx` — replaced `actions={[]}` with Draft email button; imported useToast
+- [x] `GuestCard.tsx` — replaced mailto button with Draft email button calling `/api/guests/:id/draft-email`
+- [x] `npx tsc --noEmit` clean
+- [-] DEFER to Chunk 6: VisibilityTargetDetail mobile sheet, MobileIntel/DesktopExec signal actions, MobileFlows/DesktopFlows rerun/disable buttons (these are polish items beyond the core "make the action surface exist" promise)
+- [ ] Commit: `feat: action surfaces — Draft email + Deep enrich across Leads/Customers/Guests/Content`
 - [ ] Push
 
 ### Chunk 6 — Density polish + naming pass
