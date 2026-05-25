@@ -3,13 +3,19 @@
 > **Scope.** The data contracts, control flows, and global deployment facts
 > of the Control Center repo. Dictates **what** the UI is allowed to do,
 > not how it looks. UI-level surface specs live in [`PRODUCT.md`](./PRODUCT.md);
-> schema details live in [`DATABASE.md`](./DATABASE.md); broader-OS
-> architecture (agent fleet, cron topology, self-healing tiers) lives in
-> the canonical `MINDMAKER_OS_ARCHITECTURE.md` on the VPS workspace root.
+> schema details live in [`DATABASE.md`](./DATABASE.md).
+>
+> **OS-wide architecture lives elsewhere.** For the canonical description of
+> the entire Mindmaker OS — agent fleet, cron topology, Supabase taxonomy,
+> N8N workflow inventory, four-tier self-healing, data flows end-to-end,
+> aspirational targets — read [`MINDMAKER_OS_ARCHITECTURE.md`](./MINDMAKER_OS_ARCHITECTURE.md)
+> (mirror of the VPS canonical at `/root/.openclaw/workspace/MINDMAKER_OS_ARCHITECTURE.md`
+> and the "Infrastructure" Google Drive folder). That doc is the source of
+> truth all AI tools align to; this doc is its repo-scoped subset.
 >
 > **Update protocol.** This document describes the Control Center *as it
-> exists today*. If you are tempted to describe the OS as a whole, edit the
-> canonical OS doc instead and link out from here.
+> exists today*. If you are tempted to describe the OS as a whole, edit
+> `MINDMAKER_OS_ARCHITECTURE.md` instead and link out from here.
 
 ## 1. The OS in one paragraph
 
