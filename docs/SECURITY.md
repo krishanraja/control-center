@@ -34,8 +34,12 @@ Every secret used by the system, where it lives, and what it grants.
 | `VITE_SUPABASE_ANON_KEY` | Platform | Vercel env; `.env` locally | Anonymous client access subject to RLS. Embeddable in the browser bundle. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Platform | Vercel env (server-only); never in client bundle | Bypasses RLS. Used by `api/_supabase.ts`. **Most sensitive secret in the system.** |
 | `SYNC_SECRET` | Platform | Vercel env; VPS sync pipeline env | Authenticates `POST /api/sync` requests. If absent, sync auth is disabled (acceptable in dev). |
-| N8N webhook tokens | Each agent's N8N workflow | N8N credential vault | Authenticate Supabase → N8N webhook delivery. Rotated per agent. |
-| Google Drive OAuth refresh token | Drive sync worker | Worker host secret store | Read-only access to brief Docs. |
+| `N8N_API_KEY` | Platform | Vercel env (server-only) | Auth for `/api/status` calls against the N8N API |
+| `N8N_FEEDBACK_URL` | Platform | Vercel env | Server-side mirror of the feedback webhook URL |
+| `OPENAI_API_KEY` | Platform | Vercel env (server-only) | Skill Forge endpoints (`/api/skills/*`) |
+| `SKILL_DELIVERY_WEBHOOK_URL` | Platform | Vercel env (server-only) | Where Skill Forge ships generated skills |
+| N8N webhook tokens (X-Agatha-Secret, etc.) | Each workflow | N8N credential vault | Authenticate Supabase → N8N webhook delivery. Rotated per agent. |
+| Google Drive OAuth refresh token | Drive sync worker on VPS | Worker host secret store | Read-only access to brief Docs. |
 | Vercel deploy hooks | Platform | Vercel UI | Trigger redeploys. Treat as low-sensitivity but still scoped. |
 
 **Rule.** Any new secret must land in this table in the same PR that

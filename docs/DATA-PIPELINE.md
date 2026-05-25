@@ -1,231 +1,480 @@
 # Data Pipeline
 
+> **Scope.** How data moves through Control Center — from a Krish click in
+> the UI, through Supabase, through the N8N Orchestrator, back into
+> Supabase, and onto the screen via Realtime. The mechanics of the
+> event-driven loop the dashboard sits inside.
+>
+> **Not in this document.** Per-tab data contracts live in
+> [`PRODUCT.md`](./PRODUCT.md). Schema details live in
+> [`DATABASE.md`](./DATABASE.md). Agent roster + slug-as-key rules live in
+> [`AGENTS.md`](./AGENTS.md). Broader-OS cron topology lives in
+> `MINDMAKER_OS_ARCHITECTURE.md` §8 on the VPS workspace root.
+
 ## Event-Driven Architecture
 
-Control Center is the UI layer of MindMaker OS v3's event-driven architecture. Data flows through a pipeline of:
+Control Center is the dashboard slice of Mindmaker OS. Data flows through
+this loop:
 
 ```
-Human Action → Supabase → Webhooks → N8N Agents → Supabase → UI
+Krish Action (UI)
+    ↓
+Supabase (table mutation, anon or service-role)
+    ↓
+pg_net trigger OR explicit /api/* webhook
+    ↓
+N8N Orchestrator (u0kIULJBJL4dGcuR, /webhook/mindmaker-orchestrator)
+    ↓
+Downstream agent workflow (executes, calls LLM, calls external APIs)
+    ↓
+Supabase (writes result back)
+    ↓
+Postgres Realtime (postgres_changes)
+    ↓
+UI (one realtime tick later, the affected component re-renders)
 ```
 
-## The Event Loop
+The dashboard never talks to N8N or the VPS directly. Every cross-system
+communication goes through Supabase.
 
-### 1. Human Input (Control Center)
+## The Event Loop, step by step
 
-User takes an action in the UI:
-- Approves a task
-- Adds notes
-- Changes status
-- Reviews a proposal
+### 1. Krish takes an action in the UI
 
-### 2. Supabase Update
+Examples: approve a task, promote a lead, confirm a guest, place a bet,
+deep-enrich a visibility target.
 
-The UI writes directly to Supabase:
+### 2. Supabase mutation
+
+The UI writes to the relevant row. Low-stakes mutations use the anon key
++ RLS:
 
 ```typescript
 await supabase
   .from('tasks')
   .update({
-    status: 'active',
+    status: 'in_progress',
     krish_reviewed: true,
     updated_at: new Date().toISOString()
   })
   .eq('id', taskId)
 ```
 
-### 3. Webhook Trigger (pg_net)
+Mutations that need service-role context (bypass RLS, fire a webhook with
+a service-role secret) route through `/api/*`:
 
-Supabase database triggers fire webhooks via `pg_net`:
+```typescript
+await fetch('/api/leads/promote', {
+  method: 'POST',
+  body: JSON.stringify({ leadId })
+})
+```
+
+Every Krish action also writes an `audit_log` row with `actor='krish'`
+and a meaningful `event_type` (standard: action provenance).
+
+### 3. Webhook trigger
+
+Two mechanisms fire downstream work:
+
+**`pg_net` triggers** for routine row changes that should fan out
+automatically (task status changes, lead enrichment completions). The
+trigger calls the Orchestrator with the changed row in the payload:
 
 ```sql
-CREATE OR REPLACE FUNCTION notify_task_update()
+CREATE OR REPLACE FUNCTION notify_orchestrator()
 RETURNS TRIGGER AS $$
 BEGIN
   PERFORM net.http_post(
-    url := 'https://n8n.example.com/webhook/task-update',
+    url := 'https://krishraja10101.app.n8n.cloud/webhook/mindmaker-orchestrator',
     body := jsonb_build_object(
+      'event_type', 'task_status_changed',
       'id', NEW.id,
-      'status', NEW.status,
-      'agent', NEW.agent,
-      'old_status', OLD.status
+      'old_status', OLD.status,
+      'new_status', NEW.status,
+      'agent', NEW.agent
     )
   );
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
-CREATE TRIGGER task_update_webhook
-AFTER UPDATE ON tasks
-FOR EACH ROW
-EXECUTE FUNCTION notify_task_update();
 ```
 
-### 4. N8N Agent Processing
+**Explicit `/api/*` webhook POSTs** for actions that need a specific
+endpoint (deep enrich, guest confirm cascade). The `/api/*` function calls
+the Orchestrator directly with a service-role secret in the
+`X-Agatha-Secret` header.
 
-N8N workflow receives the webhook and:
-- Validates the payload
-- Routes to appropriate sub-workflow
-- Executes agent logic
-- Updates Supabase with results
+### 4. Orchestrator routing
 
-### 5. UI Realtime Update
+The Orchestrator (`u0kIULJBJL4dGcuR`) is a single N8N workflow with a
+Switch node that routes by `event_type`:
 
-Control Center receives the update via `postgres_changes`:
+| `event_type` | Routed to |
+|---|---|
+| `approve` (content) | Krish Approval Callback → Cleo LinkedIn Distribution |
+| `deep_enrich_lead` | Agatha Lead Deep Enrich |
+| `deep_enrich_guest` | Nell Guest Pitch Draft (canonicalised in PR #60) |
+| `deep_enrich_visibility` | Nova Visibility Deep Enrich |
+| `confirm_guest` | Nell Guest Confirmed Cascade |
+| `task_status_changed` (waiting → in_progress) | Agent-specific workflow for the owning agent |
+| `idea_capture` | Cleo Content Idea Capture (Sonnet 4.6 extractor) |
+
+### 5. Agent execution
+
+The downstream workflow runs:
+- Loads its agent brief and Krish voice rules from Supabase.
+- Calls the appropriate LLM tier (Sonnet 4.6 for substance, Haiku 4.5 for
+  classification, no Opus in N8N — standard MT-003).
+- Calls any external APIs it needs (Apollo, Brave Search, Perplexity,
+  etc.).
+- Writes results back to Supabase.
+- Writes one row to `workflow_runs` with `status`, `cost_usd`,
+  `duration_ms`.
+- Writes one or more rows to `audit_log` describing what it did.
+
+### 6. UI realtime update
+
+Control Center's hooks subscribe to `postgres_changes` on one shared
+channel per table (ADR-002):
 
 ```typescript
-supabase
-  .channel('tasks-rt-1')
+const channel = supabase
+  .channel('tasks-rt-shared')  // open once per browser session
   .on('postgres_changes', {
     event: '*',
     schema: 'public',
     table: 'tasks'
   }, (payload) => {
-    // Refetch or update local state
-    fetchAll()
+    // payload.eventType: 'INSERT' | 'UPDATE' | 'DELETE'
+    // payload.new: new row data
+    // payload.old: old row data (for UPDATE/DELETE)
+    refresh()
   })
   .subscribe()
 ```
 
-## Agent Types
+The component re-renders within a tick. Total round-trip from click to
+visible update is typically < 2 seconds.
 
-### Executive Agents
+## Agent fleet at a glance
 
-| Agent | Role | Triggers |
-|-------|------|----------|
-| Agatha | Chief Operating Officer | Task approvals, strategic decisions |
-| Marcus | Business Development Intelligence | Market signals, opportunity analysis |
+The 14 production agents that drive workflows in the system. Slugs are
+authoritative; see [`AGENTS.md`](./AGENTS.md) for the full taxonomy.
 
-### Operations Agents
+### Executive
 
-| Agent | Role | Triggers |
-|-------|------|----------|
-| Arlo | Technical Operations & Infrastructure | System health, deployments |
-| Vera | Chief of Staff & Quality Assurance | Audits, compliance |
-| Leo | Chief Revenue Officer | Revenue tracking, pipeline |
-| Priya | Product Strategy | Feature requests, roadmap |
-| Kai | Technical Architecture | Code reviews, architecture |
+| Agent | Role | Schedule |
+|---|---|---|
+| `agatha` | Chief Operating Officer | Chat (Telegram + Discord) |
+| `marcus` | Business Development Intelligence / Synthesis | 4×/day (Mon/Wed/Fri synthesis + Sunday deep; Daily Brief 06:30, Friday Retro 17:00, Monday Pre-mortem 08:00) |
 
-### Growth Agents
+### Operations
 
-| Agent | Role | Triggers |
-|-------|------|----------|
-| Cleo | Content Production | Content calendar, drafts |
-| Maya | Customer Acquisition | Outreach, campaigns |
-| Hunter | Job Sourcing | Recruitment, hiring |
-| Nova | Community | Engagement, support |
-| Felix | Finance | Invoicing, expenses |
-| Nell | Networking | Relationships, introductions |
-| Zara | BD Signals | Market monitoring |
+| Agent | Role | Schedule |
+|---|---|---|
+| `vera` | Chief of Staff & Quality | 2×/day + Fri deep + Sun feedback agg + Sun failure-pattern sweep |
+| `leo` | Chief Revenue Officer | Weekly Fri 16:00 |
+| `priya` | Product Strategy | Daily |
+| `arlo` | Technical Operations & Infrastructure | Sun 03:00 + on-demand |
+| `kai` | Technical Architecture / Integrations | Every 4h (Dependency Mapper + Credential Health) |
 
-## Webhook Payloads
+### Growth
 
-### Task Update
+| Agent | Role | Schedule |
+|---|---|---|
+| `cleo` | Content Production & Voice (Coordinator) | Webhook only (Krish-triggered) |
+| `felix` | Enterprise Sales Pipeline | Mon-Fri 11:00 + 4 other ticks |
+| `maya` | Customer Acquisition (Marketing/SEO) | 7×/day (incl. nightly Customer Acquisition Sweeper + Churn → Exit Interview Task) |
+| `nell` | Outbound + Podcast Guest Booking | 3×/day |
+| `nova` | Visibility & Speaking | Tue/Fri 09:00 + Mon 11:00 Visibility Sweeper |
+| `zara` | Signal Intelligence & Market Research | Mon-Fri 10:00 + 4 other ticks |
+| `hunter` | Job Sourcing & Application Specialist | Daily 08:00 UTC + on-demand |
+
+## Webhook payloads
+
+### Task status change
 
 ```json
 {
+  "event_type": "task_status_changed",
   "id": "uuid",
   "title": "Task title",
-  "status": "active",
   "old_status": "waiting",
-  "agent": "arlo",
+  "new_status": "in_progress",
+  "agent": "cleo",
   "owner": "krish",
   "krish_reviewed": true,
   "krish_notes": "Approved with changes",
-  "updated_at": "2026-04-14T21:30:00Z"
+  "updated_at": "2026-05-25T21:30:00Z"
 }
 ```
 
-### Task Create
+### Lead deep enrich
 
 ```json
 {
-  "id": "uuid",
-  "title": "New task",
-  "status": "active",
-  "agent": "agatha",
-  "created": "2026-04-14T21:30:00Z"
+  "event_type": "deep_enrich_lead",
+  "lead_id": "uuid",
+  "primary_venture": "mindmaker",
+  "tags": ["mindmaker_buyer"],
+  "assignee_agent": "felix"
 }
 ```
 
-## N8N Workflow Patterns
+### Guest confirmed cascade
 
-### Task Router
-
-```
-Webhook → Switch (by agent) → Agent-specific workflow → Supabase update
-```
-
-### Scheduled Audits
-
-```
-Cron (hourly) → Query Supabase → Analyze → Create audit_log entry → Update system_health
+```json
+{
+  "event_type": "confirm_guest",
+  "guest_id": "uuid",
+  "podcast_target": "signal-and-noise",
+  "name": "Guest Name",
+  "email": "guest@example.com"
+}
 ```
 
-### BD Signal Processing
+### Idea capture
+
+```json
+{
+  "source_type": "agatha_chat",
+  "source_ref": "<telegram_message_id>",
+  "source_url": "<telegram deep link>",
+  "source_snippet": "<the message body>",
+  "raw_text": "<the message body>",
+  "captured_at": "2026-05-25T21:30:00Z"
+}
+```
+
+The Cleo Content Idea Capture workflow returns:
+
+```json
+{
+  "is_idea": true,
+  "idea": "Concrete one-line idea",
+  "thesis": "Sharp POV",
+  "distribution": ["linkedin", "newsletter"],
+  "confidence": 0.85,
+  "quality_score": "green",
+  "rejection_reason": null
+}
+```
+
+Hard contract for insert into `content_ideas`: `is_idea=true` and
+`confidence >= 0.5`. Below bar → skip insert, write `audit_log` row
+`cleo_idea_capture_skipped` with `skip_reason`.
+
+## N8N workflow patterns
+
+### Orchestrator routing (entry point)
 
 ```
-RSS/API Poll → Filter relevance → Create signal → Create task for review
+Webhook /webhook/mindmaker-orchestrator
+    ↓
+Switch (by event_type)
+    ↓
+Per-event downstream workflow
+    ↓
+Supabase: write result back
+    ↓
+Telegram notify (where relevant)
+    ↓
+workflow_runs heartbeat
 ```
 
-## Monitoring
+### Deep enrich pattern (leads / guests / visibility)
 
-### Workflow Runs Table
+```
+Webhook /webhook/{lead,guest,visibility}-deep-enrich
+    ↓
+Supabase: fetch the row
+    ↓
+External research (Brave Search / Perplexity / Apollo)
+    ↓
+Sonnet 4.6: synthesise structured enrichment
+    ↓
+Parse + validate JSON shape
+    ↓
+Supabase: PATCH the row (sets deep_enriched_at + status='enriched')
+    ↓
+Telegram notify Krish
+    ↓
+workflow_runs heartbeat
+```
 
-Every N8N execution logs to `workflow_runs`:
+### Confirmed cascade (guests)
+
+```
+Webhook /webhook/guest-confirmed-cascade
+    ↓
+Supabase: fetch the guest
+    ↓
+Insert 3 tasks (prep / recording / 72h follow-up)
+    ↓
+Sonnet 4.6: draft 3 promo posts
+    ↓
+Insert 3 content_ideas (status='pending')
+    ↓
+Gmail: draft thank-you (if email present)
+    ↓
+Supabase: upsert contacted_persons
+    ↓
+Supabase: stamp guests.cascade_fired_at
+```
+
+The cascade is idempotent — re-confirming a guest re-fires it (useful
+when a transient failure left tasks missing).
+
+## Self-healing pattern (four tiers)
+
+The OS's hardest class of failure is a workflow that "succeeds" (writes
+`workflow_runs.status='success'`) but produces no actual value. Four
+tiers catch it. Control Center surfaces the output but does not run these
+itself.
+
+| Tier | Detector | Cadence | What it catches |
+|---|---|---|---|
+| 1 | `completeness_contracts` row per workflow_id, checked by the workflow's terminal node | Real-time per execution | "Did this workflow write at least `expected_min_rows` rows with `expected_columns` populated within `freshness_window_hours`?" |
+| 2 | Silent Success Detector (N8N system workflow) | Every 4h | For each (workflow_id, ok=true) run, checks downstream effects (rows inserted in the target table). Zero effects → `silent_failures` row, tier=2. |
+| 3 | Critical Infrastructure Monitor (N8N system workflow) | Every 5m | Watches `credential_health`, `system_health`, RLS denials in `audit_log`. Critical issues → `silent_failures` row, tier=3. Surfaced on Home as `CriticalAlertBanner`. |
+| 4 | Vera Failure Pattern Sweep | Weekly (Sun 07:00 UTC) | Groups `silent_failures` over the last 7 days by pattern. ≥3 matching failures in same workflow class → `corrections` row → Agatha turns it into a brief edit or standards-registry rule. |
+
+The promise: same silent failure doesn't survive a week.
+
+## Self-improvement loop
+
+```
+Krish rejects output in Control Center (FeedbackButton with reason)
+    ↓
+feedback_queue row
+    ↓
+Vera Feedback Aggregation (Sun 06:00 UTC)
+    ↓
+Groups unconsumed rejections by agent + pattern
+    ↓
+>= 3 matches & confidence > 0.8 → corrections row
+    ↓
+Agatha reviews corrections weekly
+    ↓
+Proposes edit to agents.brief_content OR new standards_registry rule
+    ↓
+render-identity.py (every 15 min) re-renders SKILL.md
+OR
+regenerate-standards-digest.py (2:30 AM UTC) re-renders standards-digest.md
+    ↓
+Next agent session wake loads the new rule
+```
+
+The promise: same Krish-rejected mistake doesn't survive four occurrences.
+
+The FeedbackButton surfaces: `tasks`, `leads`, `guests`,
+`visibility_targets`, `content_ideas`. Each surface routes the feedback
+to the right agent and the right standards subset.
+
+## Monitoring writes
+
+### `workflow_runs`
+
+Every N8N execution writes a row (one per execution, success or failure):
 
 ```sql
 INSERT INTO workflow_runs (
   workflow_id,
   workflow_name,
-  agent,
-  status,
-  cost,
-  started_at,
-  finished_at
+  agent_id,        -- lowercase slug, must match agents.id
+  status,          -- 'running' | 'success' | 'error'
+  outcome,         -- optional tag
+  cost_usd,
+  quality_score,
+  duration_ms,
+  run_at,
+  error_message    -- populated when status='error'
 ) VALUES (...);
 ```
 
-### Audit Log
+> **Legacy columns.** Pre-2026-04-15 rows used `agent` / `started_at` /
+> `cost` (renamed to `agent_id` / `run_at` / `cost_usd`). UI queries read
+> the new names first and fall back to the legacy names. See ADR-004 for
+> the migration story.
 
-All significant events log to `audit_log`:
+### `audit_log`
+
+Every significant event writes a row:
 
 ```sql
 INSERT INTO audit_log (
-  event_type,
-  agent,
-  details
+  event_type,           -- snake_case, present-tense verb-first
+  actor,                -- slug | 'krish' | 'system' | 'vps-pipeline'
+  target,               -- optional human-readable subject
+  details               -- jsonb or text
 ) VALUES (
   'task_approved',
-  'arlo',
-  '{"task_id": "...", "approved_by": "krish"}'
+  'krish',
+  'Cleo LinkedIn draft',
+  '{"task_id": "...", "krish_notes": "..."}'
 );
 ```
 
-## Error Handling
+## Error handling
 
-### N8N Errors
+### N8N execution errors
 
-1. Workflow catches error
-2. Logs to `workflow_runs` with `status: 'error'`
-3. Updates `system_health` if critical
-4. Sends alert to ops-bot
+1. Workflow catches the error in a try/catch node or surfaces it via
+   N8N's automatic error workflow.
+2. Logs to `workflow_runs` with `status='error'` and the error message.
+3. Workflow Monitor (system workflow `ceWoxAIadebfpxvh`) auto-rolls back
+   recently deployed proposals that failed.
+4. If the failure crosses the silent-success threshold, a tier-2
+   `silent_failures` row gets written.
+5. If critical, Telegram alert fires to Krish via Agatha bot.
 
-### Webhook Failures
+### Webhook failures (pg_net)
 
-1. pg_net retries 3 times
-2. Failed webhooks log to `webhook_failures` table
-3. Arlo monitors and alerts
+1. pg_net retries the webhook automatically (configurable per trigger).
+2. Persistent failures write to `audit_log` with `event_type='webhook_failure'`.
+3. Kai's Credential Health workflow surfaces patterns of failure linked
+   to a specific credential.
 
-## Performance Considerations
+### Realtime drops
 
-### Debouncing
+1. The Supabase JS client auto-reconnects on network blip.
+2. Hooks re-fetch on `visibilitychange` to backfill anything missed
+   during a tab freeze.
+3. A stuck channel is a known failure mode — soft reload picks it up.
 
-Multiple rapid updates should be debounced in N8N to prevent cascading workflows.
+## Performance considerations
 
 ### Idempotency
 
-Webhooks should be idempotent — processing the same event twice should not cause issues.
+Webhooks should be idempotent — processing the same event twice should
+not corrupt state. Key patterns:
 
-### Rate Limiting
+- **Upserts on natural keys.** `customers` dedupes on
+  `(customer_product, stripe_customer_id)` and
+  `(customer_product, lower(email))`.
+- **Idempotent timestamps.** `cascade_fired_at`, `deep_enriched_at`,
+  `promoted_task_id` — set on first run, no-op on subsequent runs.
+- **Conditional update guards.** "Set status to enriched only if status
+  is new" → avoids cascading state transitions on replay.
 
-N8N workflows should respect external API rate limits (OpenAI, Google, etc.).
+### Rate limiting
+
+External API rate limits are enforced inside N8N workflows (Apollo, Brave
+Search, Perplexity, Anthropic, OpenAI). Known quirks live in
+`system_config.known_quirks` and Kai maintains them.
+
+### Realtime channel reuse
+
+One channel per table per browser session. Reusing the channel is a
+performance constraint, not a stylistic preference — Supabase Realtime
+charges per concurrent connection and the dashboard hits limits if
+careless. See ADR-002.
+
+### Deterministic > LLM for numbers
+
+When an N8N node asks an LLM to count things (revenue MTD, lead counts,
+follow-ups due), the LLM will produce *plausible* zeros without DB tool
+access. Pattern: fetch the data with a small HTTP node before the LLM
+call, OR compute deterministically after parsing. Marcus's
+Write-to-Supabase node is the reference implementation.
