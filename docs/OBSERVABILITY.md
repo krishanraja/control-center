@@ -20,11 +20,29 @@
 | Component health | `system_health` (one row per tracked component) | Systems tab |
 | Aggregate health | `GET /api/health` (derived live, not stored) | Sidebar status indicator, external monitors |
 | Agent freshness | `agents.last_run` vs `agents.expected_runs_per_day` | Derived inside `/api/health` |
-| Credential health | `credential_health` table | Derived inside `/api/health` |
+| Credential health | `credential_health` table | Derived inside `/api/health`, Systems tab |
+| Silent failures | `silent_failures` table (tiered 1-4) | Home → CriticalAlertBanner (tier 3), Systems tab (all tiers) |
 | Drive sync runs | `audit_log` rows with `actor = 'system'` and `event_type` matching `drive_sync*` | Home → Live Activity |
 
 If a system action does not write at least one of these, it is invisible.
 **Invisible work is treated as not-done.**
+
+### The silent-failure tier model (PR #54)
+
+A workflow that "succeeds" (writes `workflow_runs.status='success'`) but
+produces no actual value is the hardest class of failure. Four tiers
+catch it:
+
+| Tier | Detector | Cadence | What it catches |
+|---|---|---|---|
+| 1 | `completeness_contracts` row per workflow_id, gated by the workflow's terminal node | Real-time per execution | "Did this workflow write at least `expected_min_rows` rows with `expected_columns` populated within `freshness_window_hours`?" |
+| 2 | Silent Success Detector (N8N system workflow) | Every 4h | For each (workflow_id, ok=true) run, checks downstream effects. Zero effects → tier-2 row. |
+| 3 | Critical Infrastructure Monitor (N8N system workflow) | Every 5m | Watches `credential_health`, `system_health`, RLS denials. Critical issues → tier-3 row. **Anchors Home `CriticalAlertBanner` via `useCriticalAlerts`.** |
+| 4 | Vera Failure Pattern Sweep (N8N) | Weekly (Sun 07:00 UTC) | Groups tier-1/2/3 over the last 7 days; ≥3 matching failures → `corrections` row → Agatha brief edit. |
+
+The promise: **same silent failure does not survive a week.** Control
+Center surfaces the output but does not run these — they live in the OS
+infrastructure (see `MINDMAKER_OS_ARCHITECTURE.md` §7.7).
 
 ---
 
@@ -94,10 +112,11 @@ There is no intermediate colour. Inventing one is a bug.
 ### Currently emitted alerts
 
 - `supabase-connection` failure → critical
-- `agent-freshness` stale (1–2) → warning
+- `agent-freshness` stale (1-2) → warning
 - `agent-freshness` stale (≥ 3) → critical
 - `workflow-runs` < 60% success → critical
 - `credentials` failing → critical
+- `silent_failures` tier-3 critical row inserted → critical (surfaces as `CriticalAlertBanner` on Home, independent of `/api/health`)
 - Health check meta-failure → critical (with component `health-check`)
 
 ---
@@ -162,12 +181,13 @@ Until ADR-005 says otherwise:
 |---|---|
 | `audit_log` | indefinite |
 | `workflow_runs` | indefinite |
+| `silent_failures` | indefinite (rows are cheap; trend analysis matters) |
 | `system_health` | latest row per component (overwrite) |
 | `credential_health` | latest row per credential (overwrite) |
 
 Retention is cheap because volumes are small. When monthly inserts cross
 ~1M rows in any of the unbounded tables, revisit per
-[`DATA-RECOMMENDATIONS.md §3.3`](./DATA-RECOMMENDATIONS.md).
+[`DATA-RECOMMENDATIONS.md`](./DATA-RECOMMENDATIONS.md) §3.
 
 ---
 

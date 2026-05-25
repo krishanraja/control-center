@@ -1,238 +1,167 @@
-# Data Pipeline & Supabase Improvement Recommendations
+# Data Recommendations
 
-> Recommendations for enhancing the Control Center data infrastructure to unlock additional BI capabilities and improve operational efficiency.
+> **Status.** A rolling list of data-side improvements worth doing.
+> Replaces the 2026-04 version, most of which has shipped (Stripe
+> revenue pipeline, database indexes, `customers` table + attribution,
+> `customer_contacts`, `bets`, anti-busywork rating, deep enrich retry
+> sweep, four-tier self-healing, `decisions_waiting` view, weekly plan
+> refresh). What remains is below.
+>
+> **Where shipped work is documented.** [`DATABASE.md`](./DATABASE.md) for
+> the post-rebuild tables, [`DATA-PIPELINE.md`](./DATA-PIPELINE.md) for
+> the event loop, [`pr-*.md`](./) for the rebuild changelog.
 
-## Priority 1: Critical Data Gaps
+## Priority 1 — Close the loop on what's already wired
 
-### 1.1 Populate `venture_id` on Tasks
+### 1.1 Lead → customer attribution coverage
 
-**Current State**: The `venture_id` field exists but is rarely populated, preventing venture-based filtering and health tracking.
+**Shipped:** PR #43 added the four `attribution_*` columns on `customers`,
+populated by Stripe webhooks + a one-shot backfill.
 
-**Recommendation**:
-- Add `venture_id` to task creation workflows in N8N
-- Create a migration script to backfill existing tasks based on title/group_label patterns
-- Add a venture dropdown in the task detail UI for manual assignment
+**Gap:** Attribution confidence is high only for cold-email and podcast
+channels (where the matching key is explicit). Content-attributed
+conversions still fall into `attribution_channel='unknown'` more often
+than they should.
 
-**Impact**: Enables Venture Health cards, venture filtering in Plans, and venture-based reporting.
+**Recommendation:** Add a lightweight UTM ingestion path on the marketing
+sites (Mindmaker, Builder Economy, Signal & Noise) and an `/api/*`
+endpoint that lands UTM events into a `marketing_touches` table. Match
+during the Stripe webhook step.
 
-```sql
--- Backfill example
-UPDATE tasks 
-SET venture_id = 'mindmaker' 
-WHERE title ILIKE '%mindmaker%' OR group_label ILIKE '%mindmaker%';
-```
+### 1.2 `venture_id` on tasks is still optional
 
-### 1.2 Add `source_url` to BD Signals
+`tasks.venture_id` is rarely populated. The Leads tab solved its
+venture-attribution problem via `primary_venture`; tasks didn't get the
+same treatment.
 
-**Current State**: BD signals (tasks from `bd-agent` or `zara`) don't consistently have source URLs.
+**Recommendation:** Default `venture_id` from the agent's primary venture
+(stored on `agents`) at task-creation time in N8N. Backfill via title /
+group_label heuristics for the historical tail.
 
-**Recommendation**:
-- Ensure all BD signal creation workflows include `link_primary` with the source URL
-- Add `source_type` field (`linkedin`, `news`, `job_board`, `twitter`, etc.)
-- Store raw scraped content in `evidence` field
+### 1.3 Goal-task linkage
 
-**Impact**: Enables "Read Source" links in Market Signals feed.
+Goals on Home show a progress bar but progress is hand-edited. No way to
+auto-derive progress from completed tasks.
 
-### 1.3 Revenue Data Pipeline
-
-**Current State**: `home_intelligence` table exists but has no revenue data.
-
-**Recommendation**:
-- Create N8N workflow to pull MRR from Stripe/payment provider
-- Store daily snapshots in `home_intelligence` with `type: 'revenue_pulse'`
-- Include breakdown by product/venture
-
-**Schema Addition**:
-```sql
-INSERT INTO home_intelligence (type, headline, summary, data) VALUES (
-  'revenue_pulse',
-  '$12,450 MRR',
-  'Up 8% from last month. MindMaker Leaders driving growth.',
-  '{"mrr": 12450, "growth_pct": 8, "by_product": {"leaders": 8200, "sprints": 4250}}'
-);
-```
-
-## Priority 2: Enhanced Analytics
-
-### 2.1 Task Velocity Metrics
-
-**Current State**: No tracking of task completion velocity.
-
-**Recommendation**:
-- Add `started_at` timestamp to tasks (when moved to `in_progress`)
-- Calculate cycle time: `completed_at - started_at`
-- Calculate lead time: `completed_at - created`
-- Store weekly aggregates in a `metrics` table
-
-**New Table**:
-```sql
-CREATE TABLE task_metrics (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  period_start date NOT NULL,
-  period_end date NOT NULL,
-  tasks_created int,
-  tasks_completed int,
-  avg_cycle_time_hours decimal,
-  avg_lead_time_hours decimal,
-  by_agent jsonb,
-  by_status jsonb
-);
-```
-
-### 2.2 Agent Performance Scoring
-
-**Current State**: Agent workloads visible but no performance metrics.
-
-**Recommendation**:
-- Track tasks completed per agent per week
-- Track average response time (time from `waiting` to action)
-- Track error rate from `workflow_runs`
-- Create agent scorecards
-
-**New Table**:
-```sql
-CREATE TABLE agent_performance (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  agent text NOT NULL,
-  week_start date NOT NULL,
-  tasks_completed int,
-  avg_response_hours decimal,
-  workflow_runs int,
-  workflow_errors int,
-  total_cost decimal,
-  UNIQUE(agent, week_start)
-);
-```
-
-### 2.3 Blocker Analysis
-
-**Current State**: Aging blockers shown but no root cause analysis.
-
-**Recommendation**:
-- Add `blocked_reason` field to tasks
-- Categorize blockers: `waiting_on_external`, `waiting_on_krish`, `technical_issue`, `dependency`
-- Track blocker resolution time
-- Create blocker trends report
-
-### 2.4 Goal Progress Automation
-
-**Current State**: Goal progress is manually updated.
-
-**Recommendation**:
-- Link goals to tasks via `goal_id` field
-- Auto-calculate progress based on linked task completion
-- Create goal-task relationship table
+**Recommendation:** Add a `goal_tasks` join table; auto-compute
+`goals.progress` from the linked task completions weighted by an explicit
+`weight`. Surface goal progress as a derived field, not a stored one.
 
 ```sql
 CREATE TABLE goal_tasks (
   goal_id uuid REFERENCES goals(id),
   task_id uuid REFERENCES tasks(id),
-  weight decimal DEFAULT 1.0,
+  weight numeric DEFAULT 1.0,
   PRIMARY KEY (goal_id, task_id)
 );
 ```
 
-## Priority 3: Infrastructure Improvements
+## Priority 2 — Observability
 
-### 3.1 Realtime Channel Optimization — ✅ Resolved
+### 2.1 Realtime delivery SLI
 
-`useRealtimeTasks` now maintains a single module-level Supabase channel
-(`tasks-rt-shared`) and a shared task cache. All consumers subscribe through
-the cache and filter client-side, so there is at most one `tasks` channel per
-browser session regardless of how many components mount the hook. See
-`src/hooks/useRealtimeTasks.ts`.
+The OBSERVABILITY doc lists "≥ 99% of `tasks` writes visible in UI within
+2s" as an SLI but flags it as "no automated metric yet."
 
-### 3.2 Database Indexes
+**Recommendation:** Add a `realtime_latency` table; client emits a ping
+on `INSERT` arrival; compare against `updated_at` on the row. Roll up
+weekly into `audit_log` `event_type='sli_realtime_latency'`.
 
-**Current State**: Unknown index coverage.
+### 2.2 Webhook failure surfacing
 
-**Recommendation**:
-```sql
--- High-impact indexes
-CREATE INDEX idx_tasks_status_updated ON tasks(status, updated_at DESC);
-CREATE INDEX idx_tasks_agent_status ON tasks(agent, status);
-CREATE INDEX idx_tasks_venture_status ON tasks(venture_id, status);
-CREATE INDEX idx_audit_log_agent_created ON audit_log(agent, created_at DESC);
-CREATE INDEX idx_workflow_runs_agent_started ON workflow_runs(agent, started_at DESC);
-```
+`pg_net` retries silently. If a webhook to the Orchestrator fails three
+times, the row never gets processed — and the only visible symptom is
+that the downstream effect never happens.
 
-### 3.3 Data Retention Policy
+**Recommendation:** Add a `webhook_failures` table populated by pg_net's
+failure callback. Add a tier-3 `silent_failures` detector that watches
+for stuck rows (e.g. `leads` with `status='new'` for more than the
+hourly Deep Enrich Retry Sweep window).
 
-**Current State**: All data retained indefinitely.
+### 2.3 Action-latency SLI
 
-**Recommendation**:
-- Archive `audit_log` entries older than 90 days to cold storage
-- Archive completed tasks older than 6 months
-- Keep `workflow_runs` for 30 days, aggregate older data
+Currently observed, not measured. Inline actions feel snappy but no
+automated check.
 
-```sql
--- Archive old audit logs
-INSERT INTO audit_log_archive 
-SELECT * FROM audit_log WHERE created_at < NOW() - INTERVAL '90 days';
+**Recommendation:** Browser side, wrap mutations in a perf timer and
+emit a debounced metric to an `audit_log` row. Alert on a 7-day
+rolling p95 above 1.5s.
 
-DELETE FROM audit_log WHERE created_at < NOW() - INTERVAL '90 days';
-```
+## Priority 3 — Retention and aggregation
 
-### 3.4 Materialized Views for Dashboards
+### 3.1 Audit log retention
 
-**Current State**: Dashboard queries run against raw tables.
+`audit_log` is unbounded. Cheap today, but cardinality grows linearly.
 
-**Recommendation**:
-```sql
-CREATE MATERIALIZED VIEW dashboard_summary AS
-SELECT 
-  COUNT(*) FILTER (WHERE status = 'active') as active_tasks,
-  COUNT(*) FILTER (WHERE status = 'blocked') as blocked_tasks,
-  COUNT(*) FILTER (WHERE status = 'waiting') as waiting_tasks,
-  COUNT(*) FILTER (WHERE status = 'done' AND completed_at > NOW() - INTERVAL '7 days') as completed_this_week,
-  COUNT(DISTINCT agent) as active_agents
-FROM tasks
-WHERE status != 'done' OR completed_at > NOW() - INTERVAL '7 days';
+**Recommendation:** When monthly inserts cross ~1M rows, archive entries
+older than 90 days to a cold-storage table and drop from hot. ADR-005
+already established the pipeline-first home; an ADR for retention should
+follow.
 
--- Refresh every 5 minutes
-CREATE EXTENSION IF NOT EXISTS pg_cron;
-SELECT cron.schedule('refresh-dashboard', '*/5 * * * *', 'REFRESH MATERIALIZED VIEW dashboard_summary');
-```
+### 3.2 Workflow_runs aggregation
 
-## Priority 4: New Data Sources
+Same as above. The Intel cost chart re-aggregates on every load; the
+Flows tab paginates over a full scan.
 
-### 4.1 External Integrations
+**Recommendation:** A nightly cron computes `workflow_runs_daily`
+roll-ups (per workflow, per agent, per day) — cost, runs, errors, p95
+duration. UI reads from the rollup; cold table is for forensics.
 
-| Source | Data | Use Case |
-|--------|------|----------|
-| Stripe | MRR, churn, LTV | Revenue Pulse |
-| Google Analytics | Traffic, conversions | Growth metrics |
-| Calendly | Meeting volume | Leo's KPIs |
-| GitHub | Commits, PRs | Arlo's velocity |
-| N8N API | Workflow stats | Agent economics |
+### 3.3 Materialized view for Home
 
-### 4.2 Sentiment Analysis
+`decisions_waiting` is a UNION view; it's fast enough today but will
+slow as the source tables grow.
 
-**Recommendation**:
-- Run sentiment analysis on `feedback_text` and `krish_notes`
-- Store sentiment scores for trend analysis
-- Alert on negative sentiment patterns
+**Recommendation:** Refresh into a materialized view on a 30s cron via
+`pg_cron`. Subscribe to the materialized view from the UI; refresh is
+cheap because the underlying queries are well-indexed.
 
-### 4.3 Time Tracking
+## Priority 4 — New surfaces
 
-**Recommendation**:
-- Add `time_spent_minutes` to tasks
-- Track via N8N workflow execution time
-- Enable cost-per-task analysis
+### 4.1 Sentiment on Krish notes + feedback
 
-## Implementation Roadmap
+`feedback_text` and `krish_notes` carry strong signal about what's
+frustrating Krish, but they're not analysed.
 
-| Phase | Items | Timeline |
-|-------|-------|----------|
-| 1 | Venture ID backfill, BD signal source URLs | Week 1 |
-| 2 | Revenue pipeline, database indexes | Week 2 |
-| 3 | Task velocity metrics, agent performance | Week 3-4 |
-| 4 | Materialized views, data retention | Week 5 |
-| 5 | External integrations | Ongoing |
+**Recommendation:** Run Sonnet 4.6 sentiment + theme extraction on every
+new row; store in `feedback_themes`. Surface a weekly digest on Intel
+("This week Krish was frustrated by: X / Y / Z").
 
-## Monitoring Recommendations
+### 4.2 Time spent per task
 
-1. **Query Performance**: Enable `pg_stat_statements` to identify slow queries
-2. **Realtime Load**: Monitor Supabase realtime connection count
-3. **Webhook Reliability**: Track webhook success/failure rates
-4. **Data Freshness**: Alert if `system_health` hasn't updated in 2 hours
+No time tracking today. Workflow cost-per-task is approximated from
+`workflow_runs.cost_usd` but doesn't include Krish's review time.
+
+**Recommendation:** Optional `time_spent_minutes` on tasks, populated
+automatically when a task is opened and closed in the UI (low-friction
+auto-timer, not a manual log).
+
+### 4.3 External integrations not yet wired into the dashboard
+
+The Mindmaker OS has the following sources but Control Center surfaces
+only a subset:
+
+| Source | Already in OS? | In Control Center? | Gap |
+|---|---|---|---|
+| Stripe (6 products) | Yes — alerts + customer upsert | Yes — MRR + attribution | None |
+| Google Analytics | No | No | Growth-side blind spot |
+| Calendly | No (manual) | No | Bookings-per-week unknown |
+| GitHub commits / PRs | No | No | Arlo/Krish velocity untracked |
+| N8N API workflow stats | Yes via Kai | Partial (Flows tab) | Cost-per-agent rollup is approximate |
+
+**Recommendation:** Prioritise GA + Calendly first — they directly answer
+"is the top of the funnel growing?" which the dashboard cannot answer
+today.
+
+## Priority 5 — Not yet
+
+These have been considered and rejected for now. Listed so they don't
+keep getting re-proposed.
+
+- **Multi-tenant org_id / RLS partitioning.** Single-operator product;
+  premature. Will revisit if the dashboard ever opens up to staff.
+- **Per-row Postgres triggers writing to `audit_log`.** Tried in PR #?,
+  reverted — too much noise, hard to filter. Audit-log writes belong
+  in workflow logic, not DB triggers.
+- **Full-text search on every table.** Premature; current usage is
+  narrow.

@@ -19,6 +19,8 @@
 | [002](./002-shared-realtime-channel.md) | Single shared realtime channel for tasks | Accepted |
 | [003](./003-slug-as-agent-key.md) | Lowercase slug as the canonical agent join key | Accepted |
 | [004](./004-agent-id-rename.md) | Renaming `workflow_runs.agent` → `agent_id` and `started_at` → `run_at` | Accepted |
+| [005](./005-pipeline-first-home.md) | Pipeline-first Home | Accepted |
+| [006](./006-leads-and-ideas-inbox.md) | Leads tab + Content Ideas inbox | Accepted |
 
 ---
 
