@@ -117,7 +117,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
     <MobileShellPrim
       header={
         <TabHeader
-          title="Leads"
+          title="Services"
           subtitle={loading ? 'Loading…' : `${total} active across ${ventureCount} ventures`}
           trailing={
             <button

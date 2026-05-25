@@ -42,7 +42,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
         <div>
           <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
             <Users size={20} className="text-emerald-300" />
-            Leads
+            Services
           </h1>
           <p className="text-[13px] text-white/55 mt-1">
             Grouped by venture. One lead can surface in multiple lanes when it qualifies for more than one.

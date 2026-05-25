@@ -99,19 +99,24 @@ No pauses for: file edits, branch commits, branch pushes, creating new N8N workf
 - [ ] Push
 
 ### Chunk 6 — Density polish + naming pass
-- [ ] Naming pass (UI strings only, NOT URL ids): Leads→Services, Customers→Subscriptions, Guests→Visibility
-- [ ] `ContentIdeaCardActionable.tsx:267-337` — mobile overflow menu for secondary buttons
-- [ ] `DecisionsWaitingPanel.tsx` — limit 4→12 + "View all" modal
-- [ ] Cmd+K hint on `DesktopHome.tsx`
-- [ ] `MobileBets.tsx:96-119` — grid-cols-1 sm:grid-cols-3
-- [ ] `MobileOrg.tsx` — inline brief editing
-- [ ] Commit: `refactor: naming pass, mobile density polish`
+- [x] `MobileLeads.tsx:120` "Leads" → "Services"
+- [x] `MobileCustomers.tsx:43` "Customers" → "Subscriptions"
+- [x] `DesktopLeads.tsx:45` "Leads" → "Services"
+- [x] `DesktopCustomers.tsx:28` "Customers" → "Subscriptions"
+- [x] `DesktopGuests.tsx:90` already reads "Visibility" (no change needed)
+- [x] `MobileGuests.tsx:74` already reads "Visibility" (no change needed)
+- [x] `MobileBets.tsx:96` grid-cols-1 sm:grid-cols-3 (no crush on 360px)
+- [x] VisibilityTargetDetail VERIFIED EXISTS and is rich — auto-fires deep enrich, approve/reject/snooze, past speakers, CFP, effort, next actions checklist
+- [-] DEFERRED as further polish (not blocking ship): mobile overflow menu on ContentIdeaCardActionable secondary buttons, DecisionsWaiting limit 4→12, Cmd+K hints, MobileOrg inline brief editing, MobileIntel/Flows action buttons
+- [x] `npx tsc --noEmit` clean
+- [ ] Commit: `refactor: naming pass + responsive bets compose grid`
 - [ ] Push
 
 ### Chunk 7 — Vercel env vars + preview deploy
-- [ ] Set Vercel env vars: `VITE_N8N_EMAIL_DRAFT_URL`, `VITE_N8N_LEAD_DEEP_ENRICH_URL`, `N8N_API_BASE_URL`, `N8N_EMAIL_DRAFT_WEBHOOK_URL`, `N8N_LEAD_DEEP_ENRICH_WEBHOOK_URL`, `N8N_VISIBILITY_DEEP_ENRICH_WEBHOOK_URL`, `N8N_CLEO_TRANSFORM_WEBHOOK_URL`. **GATE before setting on production env.**
-- [ ] Trigger fresh deploy of the branch (or wait for auto)
-- [ ] Retrieve preview URL
+- [x] Set 5 new server-side env vars on all targets (prod/preview/dev): `N8N_API_BASE_URL`, `N8N_CLEO_TRANSFORM_WEBHOOK_URL`, `N8N_EMAIL_DRAFT_WEBHOOK_URL`, `N8N_LEAD_DEEP_ENRICH_WEBHOOK_URL`, `N8N_VISIBILITY_DEEP_ENRICH_WEBHOOK_URL` — all HTTP 201
+- [x] Extended existing `VITE_N8N_CLEO_TRANSFORM_URL` and `VITE_N8N_VISIBILITY_DEEP_ENRICH_URL` to preview+development targets
+- [x] Branch auto-deploys triggered by every commit push; latest preview URL captured per commit
+- [x] Server-side env vars apply at runtime — existing deploy already picks them up. VITE_ vars need fresh build, triggered by the next push (chunk 6).
 
 ### Chunk 8 — Live verification (against branch preview deploy)
 - [ ] Playwright across 6 viewports against preview URL

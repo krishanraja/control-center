@@ -40,7 +40,7 @@ export function MobileCustomers() {
     <MobileShellPrim
       header={
         <TabHeader
-          title="Customers"
+          title="Subscriptions"
           subtitle={
             loading
               ? 'Loading…'

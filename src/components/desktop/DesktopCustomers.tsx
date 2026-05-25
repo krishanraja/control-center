@@ -25,7 +25,7 @@ export function DesktopCustomers() {
       <CustomerSourcesPanel />
       <div>
         <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">
-          Customers
+          Subscriptions
         </h1>
         <p className="text-xs md:text-[13px] text-white/50 mt-0.5">
           {loading
