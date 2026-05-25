@@ -75,7 +75,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
       onMouseLeave={() => { setExpanded(false); setDrawerOpen(false) }}
     >
       <div className="h-14 flex items-center gap-3 px-4 border-b border-white/[0.07]">
-        <img src="/favicon.png" alt="" className="w-7 h-7 rounded-md object-cover flex-shrink-0" />
+        <img src="/icon-192.png" alt="" className="w-7 h-7 rounded-md object-cover flex-shrink-0 ring-1 ring-white/10" />
         {expanded && (
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-[13px] font-semibold text-white/85 truncate">Mindmaker OS</span>

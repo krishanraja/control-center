@@ -37,7 +37,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
   return (
     <MobileShellPrim
-      header={<TabHeader title="Mindmaker" subtitle="Decisions, not admin" leading={<Logomark size={36} />} />}
+      header={<TabHeader subtitle="Decisions, not admin" leading={<Logomark size={56} />} />}
     >
       <CriticalAlertBanner />
 

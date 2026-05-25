@@ -34,6 +34,8 @@ export function MobileShell({
   )
 }
 
+import { Logomark } from './Logomark'
+
 /** Large nav title — iOS Large Title + Display Small scale. */
 export function TabHeader({
   title,
@@ -41,18 +43,21 @@ export function TabHeader({
   leading,
   trailing,
 }: {
-  title: string
+  title?: string
   subtitle?: string
   leading?: React.ReactNode
   trailing?: React.ReactNode
 }) {
+  const resolvedLeading = leading === undefined ? <Logomark size={40} /> : leading
   return (
     <div className="flex items-end justify-between gap-3">
-      {leading && <div className="flex-shrink-0 self-start mt-1">{leading}</div>}
+      {resolvedLeading && <div className="flex-shrink-0 self-start mt-1">{resolvedLeading}</div>}
       <div className="min-w-0 flex-1">
-        <h1 className="text-[44px] font-bold text-white leading-[1.02] tracking-tight">
-          {title}
-        </h1>
+        {title && (
+          <h1 className="text-[44px] font-bold text-white leading-[1.02] tracking-tight">
+            {title}
+          </h1>
+        )}
         {subtitle && (
           <p className="text-[19px] text-white/55 mt-2 truncate">{subtitle}</p>
         )}
