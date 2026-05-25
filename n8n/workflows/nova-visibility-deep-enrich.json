@@ -1,0 +1,317 @@
+{
+  "id": "kbHAHuxfzQLLlysG",
+  "name": "Nova | Mindmaker OS | Visibility Deep Enrich",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        280
+      ],
+      "parameters": {
+        "path": "visibility-deep-enrich",
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      },
+      "id": "wh-vis-deep-enrich-01",
+      "webhookId": "ccbe78f2-b79a-4f98-b405-fbae303b5aae"
+    },
+    {
+      "name": "Fetch Target",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        500,
+        280
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/visibility_targets?id=eq.{{ $json.body.target_id }}&select=*",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "fetch-target-01"
+    },
+    {
+      "name": "Brave Past Speakers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        760,
+        280
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.search.brave.com/res/v1/web/search?q={{ encodeURIComponent(($json.title || '') + ' past speakers ' + ($json.type || 'conference')) }}&count=5",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "iZ4rGHcvsTUEPmy6",
+          "name": "Brave Search API"
+        }
+      },
+      "notes": "Brave Search httpHeaderAuth credential with X-Subscription-Token header.",
+      "id": "brave-speakers-01",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "name": "Brave Audience CFP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1020,
+        280
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.search.brave.com/res/v1/web/search?q={{ encodeURIComponent(($('Fetch Target').item.json.title || '') + ' attendees audience cfp requirements') }}&count=5",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "iZ4rGHcvsTUEPmy6",
+          "name": "Brave Search API"
+        }
+      },
+      "notes": "Second Brave query for audience profile and CFP details.",
+      "id": "brave-audience-01",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "name": "Fetch Ventures",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1280,
+        280
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/ventures?select=slug,name,one_liner,positioning&status=eq.active",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "fetch-ventures-01",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "name": "Compile Research",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        280
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const target = $('Fetch Target').item.json || {};\nconst speakers = $('Brave Past Speakers').item.json?.web?.results || [];\nconst audience = $('Brave Audience CFP').item.json?.web?.results || [];\nlet ventures = [];\ntry { ventures = $('Fetch Ventures').item.json || []; } catch (e) { ventures = []; }\nif (!Array.isArray(ventures)) ventures = [ventures];\nconst research = {\n  target,\n  ventures,\n  brave_past_speakers: speakers.slice(0, 5).map(r => ({ title: r.title, desc: r.description, url: r.url })),\n  brave_audience_cfp: audience.slice(0, 5).map(r => ({ title: r.title, desc: r.description, url: r.url })),\n};\nreturn [{ json: research }];"
+      },
+      "id": "compile-research-01"
+    },
+    {
+      "name": "Sonnet Enrich",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1800,
+        280
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 3500, system: 'You are enriching a visibility opportunity for Krish Raja. Krish runs Mindmaker (AI advisory), AdFixus (publisher identity / open web infrastructure), Meliora (AI for legacy media), and co-hosts Signal Noise. He is selective. Give him enough context to decide in 30 seconds whether to invest preparation time. Return ONE JSON object with keys: organizer, organizer_reputation, audience_sector, audience_seniority, audience (string), audience_size (int or null), past_speakers (array of {name, role, talk_title}), cfp_requirements ({needs_bio, needs_headshot, needs_video, abstract_max_words, talk_length_min, additional_notes}), proposed_talk ({title, abstract 120-180 words, format, length_min}), strategic_value (2-3 sentences naming which venture this serves), angle (2-3 sentences referencing specifics: 14-agent AI OS in production, BBC/Microsoft, AdFixus, Techonomic, Signal Noise), effort_estimate ({prep_hours, travel_days, cost_usd_low, cost_usd_high}), risk_notes, next_actions (4-7 ordered imperative steps), relevance_score (0-100), quality_score (green/amber/red), why_relevant (1 sentence), suggested_talk_title (same as proposed_talk.title), recommended_next_step (first next_action). Rules: NO em dashes ANYWHERE. No filler. If research is thin, lower quality_score and say so honestly, do NOT fabricate. Match Krish voice: direct, declarative, dry, specific. Return only JSON, no prose.', messages: [{ role: 'user', content: JSON.stringify($json) }] }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "w8sWwz8EfYc1JA7G",
+          "name": "Anthropic Header 2026-05-21"
+        }
+      },
+      "id": "sonnet-enrich-01"
+    },
+    {
+      "name": "Parse + Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2060,
+        280
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const item = $input.first();\nconst blocks = item.json.content || [];\nconst text = blocks.map(b => b.text || '').join('\\n').trim();\nlet parsed = null;\ntry {\n  const a = text.indexOf('{');\n  const b = text.lastIndexOf('}');\n  if (a >= 0 && b > a) parsed = JSON.parse(text.slice(a, b + 1));\n} catch (e) { parsed = null; }\nif (!parsed) {\n  return [{ json: { error: 'Sonnet returned no parseable JSON', raw: text.slice(0, 500) } }];\n}\nconst src = $('Fetch Target').item.json;\nconst prev = src.enrichment_version || 0;\nconst clean = s => typeof s === 'string' ? s.replace(/\\u2014|\\u2013/g, ',') : s;\nfor (const k of Object.keys(parsed)) {\n  if (typeof parsed[k] === 'string') parsed[k] = clean(parsed[k]);\n}\nif (parsed.proposed_talk?.abstract) parsed.proposed_talk.abstract = clean(parsed.proposed_talk.abstract);\nif (parsed.proposed_talk?.title) parsed.proposed_talk.title = clean(parsed.proposed_talk.title);\nif (parsed.strategic_value) parsed.strategic_value = clean(parsed.strategic_value);\nif (parsed.angle) parsed.angle = clean(parsed.angle);\nif (parsed.risk_notes) parsed.risk_notes = clean(parsed.risk_notes);\nif (Array.isArray(parsed.next_actions)) parsed.next_actions = parsed.next_actions.map(a => typeof a === 'string' ? clean(a) : a);\nreturn [{ json: { id: src.id, enrichment_version: prev + 1, ...parsed } }];"
+      },
+      "id": "parse-validate-01"
+    },
+    {
+      "name": "Patch Target",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2320,
+        280
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/visibility_targets?id=eq.{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ organizer: $json.organizer ?? null, organizer_reputation: $json.organizer_reputation ?? null, audience_sector: $json.audience_sector ?? null, audience_seniority: $json.audience_seniority ?? null, audience: $json.audience ?? null, audience_size: $json.audience_size ?? null, past_speakers: $json.past_speakers ?? null, cfp_requirements: $json.cfp_requirements ?? null, proposed_talk: $json.proposed_talk ?? null, strategic_value: $json.strategic_value ?? null, angle: $json.angle ?? null, effort_estimate: $json.effort_estimate ?? null, risk_notes: $json.risk_notes ?? null, next_actions: $json.next_actions ?? null, relevance_score: $json.relevance_score ?? null, quality_score: $json.quality_score ?? null, why_relevant: $json.why_relevant ?? null, suggested_talk_title: $json.suggested_talk_title ?? null, recommended_next_step: $json.recommended_next_step ?? null, status: 'queued', deep_enriched_at: new Date().toISOString(), enrichment_version: $json.enrichment_version }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "patch-target-01"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Target",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Target": {
+      "main": [
+        [
+          {
+            "node": "Brave Past Speakers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brave Past Speakers": {
+      "main": [
+        [
+          {
+            "node": "Brave Audience CFP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brave Audience CFP": {
+      "main": [
+        [
+          {
+            "node": "Fetch Ventures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Ventures": {
+      "main": [
+        [
+          {
+            "node": "Compile Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Research": {
+      "main": [
+        [
+          {
+            "node": "Sonnet Enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet Enrich": {
+      "main": [
+        [
+          {
+            "node": "Parse + Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse + Validate": {
+      "main": [
+        [
+          {
+            "node": "Patch Target",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "availableInMCP": true
+  },
+  "triggerCount": 1
+}

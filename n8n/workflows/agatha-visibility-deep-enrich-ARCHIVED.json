@@ -1,0 +1,327 @@
+{
+  "id": "Kq5CQ96yVcbOBHdP",
+  "name": "ZZ ARCHIVED Agatha | Visibility Deep Enrich (duplicate of Nova)",
+  "active": false,
+  "nodes": [
+    {
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        280
+      ],
+      "webhookId": "visibility-deep-enrich",
+      "parameters": {
+        "path": "visibility-deep-enrich",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "4f36d47c-b7f9-41a0-af2b-b561f9788387"
+    },
+    {
+      "name": "Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        280
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst id = body.visibility_target_id || body.target_id || body.id;\nif (!id) throw new Error('visibility_target_id required');\nreturn [{ json: { visibility_target_id: id } }];"
+      },
+      "id": "4a523f07-090f-43e3-93ce-f5e7f4cb3d1e"
+    },
+    {
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        144
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, visibility_target_id: $json.visibility_target_id }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "3f71ddb2-cba4-4e11-955c-bd402a0f8812"
+    },
+    {
+      "name": "Fetch Target",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        280
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/visibility_targets?id=eq.{{ $json.visibility_target_id }}&select=id,title,type,event_url,cfp_url,event_start_at,deadline_at,audience_size,why_relevant,quality_score,enrichment_version,deep_enriched_at",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "d65748f6-3d6d-41f8-b8b1-81bd3a4f0682"
+    },
+    {
+      "name": "Brave Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        280
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.search.brave.com/res/v1/web/search?q={{ encodeURIComponent([$json[0]?.title, $json[0]?.type, 'speakers audience'].filter(Boolean).join(' ').trim()) }}&count=4",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bIpgw4efk6vHrFEG",
+          "name": "Apollo"
+        }
+      },
+      "id": "3bdbe853-8408-4c40-886a-3d4e86aa25af"
+    },
+    {
+      "name": "Sonnet Enrich",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        280
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: 'You re-score a Mindmaker visibility target (CFP, podcast, summit, panel) given fresh public context. Return ONLY a JSON object with keys: relevance_score (int 0-10), audience_size (int or null), quality_score (one of: green, amber, red), why_relevant (1 sentence, opinionated, no em dashes), recommended_angle (1 sentence, suggested talk hook), next_step (action verb + object). Krish Raja is a senior advisor on AI literacy for media + advertising + commerce executives. Not academic, not motivational. Skip events with no senior decision-makers in the room.', messages: [{ role: 'user', content: 'Target: ' + JSON.stringify($('Fetch Target').item.json[0]) + '\\n\\nBrave results:\\n' + JSON.stringify(($json.web?.results || []).slice(0,4)) }] }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bIpgw4efk6vHrFEG",
+          "name": "Apollo"
+        }
+      },
+      "id": "326b58ae-d66a-4f4d-9fc7-6f7d94ac7139"
+    },
+    {
+      "name": "Parse Sonnet",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        280
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const item = $input.first();\nconst blocks = item.json.content || [];\nconst text = blocks.map(b => b.text || '').join('\\n').trim();\nlet parsed = null;\ntry {\n  const a = text.indexOf('{');\n  const b = text.lastIndexOf('}');\n  if (a >= 0 && b > a) parsed = JSON.parse(text.slice(a, b + 1));\n} catch (e) { parsed = null; }\nconst src = $('Fetch Target').item.json[0] || {};\nconst nextVersion = ((src.enrichment_version || 0) | 0) + 1;\nreturn [{ json: { id: src.id, enrichment_version: nextVersion, ...(parsed || {}) } }];"
+      },
+      "id": "b4186415-f11e-4846-9955-c57466312c31"
+    },
+    {
+      "name": "Patch Target",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        280
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/visibility_targets?id=eq.{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ relevance_score: $json.relevance_score ?? null, audience_size: $json.audience_size ?? null, quality_score: $json.quality_score ?? null, why_relevant: $json.why_relevant ?? null, recommended_angle: $json.recommended_angle ?? null, next_step: $json.next_step ?? null, deep_enriched_at: new Date().toISOString(), enrichment_version: $json.enrichment_version }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "6812e327-e9ca-4d7f-9aaa-bb80d7179617"
+    },
+    {
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        280
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'agatha_visibility_deep_enrich', actor: 'agatha', target: $('Validate').item.json.visibility_target_id, details: { enrichment_version: $json.enrichment_version, quality_score: $json.quality_score } }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "0709b176-b75c-45d5-a23d-4c486965a876"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Target",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Target": {
+      "main": [
+        [
+          {
+            "node": "Brave Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brave Search": {
+      "main": [
+        [
+          {
+            "node": "Sonnet Enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet Enrich": {
+      "main": [
+        [
+          {
+            "node": "Parse Sonnet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Sonnet": {
+      "main": [
+        [
+          {
+            "node": "Patch Target",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Patch Target": {
+      "main": [
+        [
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "availableInMCP": true
+  },
+  "triggerCount": 0
+}

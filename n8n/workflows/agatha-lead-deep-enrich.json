@@ -1,0 +1,232 @@
+{
+  "id": "YPKjTnB2P6mqe4kG",
+  "name": "Agatha | Lead Deep Enrich",
+  "active": true,
+  "nodes": [
+    {
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        280
+      ],
+      "parameters": {
+        "path": "lead-deep-enrich",
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      },
+      "id": "caf1339c-84eb-4bff-8ac9-2caee53b44f1",
+      "webhookId": "dd57c3bc-0317-48ac-8317-c251fff98907"
+    },
+    {
+      "name": "Fetch Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        500,
+        280
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?id=eq.{{ $json.body.lead_id }}&select=id,full_name,email,company,title,linkedin_url,why_relevant,primary_tension,assignee_agent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "3ff57433-c0ac-46fa-b0c5-454b2ffcf330"
+    },
+    {
+      "name": "Brave Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        760,
+        280
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.search.brave.com/res/v1/web/search?q={{ encodeURIComponent(($json.full_name || '') + ' ' + ($json.company || '') + ' role LinkedIn') }}&count=3",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "notes": "Brave Search httpHeaderAuth credential with X-Subscription-Token header.",
+      "id": "d1842748-4632-4830-994d-10aae7d40010",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Z0C5gLxjyf7T02j3",
+          "name": "Brave API 2026-05-25"
+        }
+      }
+    },
+    {
+      "name": "Sonnet Enrich",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1020,
+        280
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: 'You re-score a Mindmaker sales lead given fresh public context. Return ONLY a JSON object with keys: fit_score (int 0-10), icp_score (int 0-10), attainability_score (int 0-10), why_relevant (string, 1 sentence), primary_tension (string, 1 sentence), next_step (string, action verb + object). Buyer profile: senior leaders at mid/large media + advertising + commerce orgs.', messages: [{ role: 'user', content: 'Lead: ' + JSON.stringify((Array.isArray($('Fetch Lead').item.json) ? $('Fetch Lead').item.json[0] : $('Fetch Lead').item.json)) + '\\n\\nBrave results:\\n' + JSON.stringify(($json.web?.results || []).slice(0,3)) }] }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "w8sWwz8EfYc1JA7G",
+          "name": "Anthropic Header 2026-05-21"
+        }
+      },
+      "id": "0b963e87-d4cf-4b66-8a62-5f3707db92e7"
+    },
+    {
+      "name": "Parse Sonnet",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        280
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const item = $input.first();\nconst blocks = item.json.content || [];\nconst text = blocks.map(b => b.text || '').join('\\n').trim();\nlet parsed = null;\ntry {\n  const a = text.indexOf('{');\n  const b = text.lastIndexOf('}');\n  if (a >= 0 && b > a) parsed = JSON.parse(text.slice(a, b + 1));\n} catch (e) { parsed = null; }\nconst fl = $('Fetch Lead').item.json; const src = Array.isArray(fl) ? fl[0] : fl;\nreturn [{ json: { id: src.id, ...(parsed || {}) } }];"
+      },
+      "id": "bd3753c3-281f-4b9a-b4c3-ddaf911f582c"
+    },
+    {
+      "name": "Patch Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1540,
+        280
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?id=eq.{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fit_score: $json.fit_score ?? null, icp_score: $json.icp_score ?? null, attainability_score: $json.attainability_score ?? null, why_relevant: $json.why_relevant ?? null, primary_tension: $json.primary_tension ?? null, next_step: $json.next_step ?? null, deep_enriched_at: new Date().toISOString(), enrichment_status: 'enriched' }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "GG97LVY7cTl2zFMn",
+          "name": "Supabase account"
+        }
+      },
+      "id": "7b2fb772-5b96-44d2-8609-0655542dfc0a"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Lead": {
+      "main": [
+        [
+          {
+            "node": "Brave Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brave Search": {
+      "main": [
+        [
+          {
+            "node": "Sonnet Enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet Enrich": {
+      "main": [
+        [
+          {
+            "node": "Parse Sonnet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Sonnet": {
+      "main": [
+        [
+          {
+            "node": "Patch Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "availableInMCP": true
+  },
+  "triggerCount": 1
+}

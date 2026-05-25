@@ -157,6 +157,37 @@ Vercel SSO temporarily disabled for verification window, then re-enabled.
 - [x] `MobileCustomers`: Log call + Mark for outreach actions added (alongside Draft email); supabase imported; useCustomers.CustomerRow extended with audit-migration columns
 - [x] N8N `Agatha | Lead Deep Enrich` workflow patched: Patch Lead step now writes `enrichment_status='enriched'` so the UI optimistic pending state clears
 - [x] `npx tsc --noEmit` clean
+- [x] Merged via PR #68
+
+### Chunk 11 — Live verification + bugs surfaced
+After PR #68 merged, ran a definitive verification sweep against `controlcenter.krishraja.com`. Six bugs surfaced — five pre-existing in the n8n setup (not caused by my patches), one introduced by my chunk 3 code.
+
+Pre-existing n8n bugs in `Agatha | Lead Deep Enrich` (`YPKjTnB2P6mqe4kG`), all fixed live + snapshotted in `n8n/workflows/`:
+- [x] Brave credential's subscription token was expired — replaced with the correct one (user-provided), stored as new credential `Brave API 2026-05-25` (id `Z0C5gLxjyf7T02j3`)
+- [x] Brave Search URL expression `$json[0].full_name` → `$json.full_name` (Fetch Lead returns single object, not array, so `[0]` was producing empty `q=`)
+- [x] Brave Search: explicit `Accept: application/json` header added (Brave 422s the default n8n multi-format Accept)
+- [x] Sonnet Enrich credential was wired to the **Apollo** credential by mistake; relinked to `Anthropic Header 2026-05-21` (`w8sWwz8EfYc1JA7G`)
+- [x] Sonnet Enrich jsonBody had same `Fetch Lead .json[0]` shape bug — fixed with `Array.isArray(...) ? ...[0] : ...`
+- [x] Parse Sonnet code had same shape bug — fixed
+
+Self-introduced bug from chunk 3, fixed via PR #69:
+- [x] `/api/automations/:id/rerun` used `POST /workflows/:id/run` which n8n returns 405 for (endpoint doesn't exist). Rewrote to fetch the workflow, find a webhook trigger node, POST to its webhook URL; return 422 with guidance for schedule-only workflows.
+
+Final verification (after all fixes, against prod):
+- [x] 6 viewports × 11 tabs: 0 HTTP errors, 0 page errors, 0 overflows
+- [x] All 8 new `/api/*` proxy routes: correct status codes on missing-id + real-id inputs
+- [x] `POST /api/automations/<schedule>/rerun` → 422 with helpful message
+- [x] `POST /api/automations/<webhook-wf>/rerun` → 202 + fires the webhook
+- [x] `POST /api/leads/<test>/draft-email` → 200 + real Gmail draft `r6827848582574950084`
+- [x] **UI click flow end-to-end**: opened Audit Test Lead card → DetailSheet → Draft email button click → 200 → Gmail draft visible
+- [x] `POST /api/leads/<test>/enrich` → 202 + Sonnet ran end-to-end, wrote `enrichment_status='enriched'`, `fit_score`, `icp_score`, `why_relevant`, `primary_tension`, `next_step` back to the lead
+- [x] Cleo Content Transform regression: still works on prod (Sonnet generated a fresh LinkedIn variant for a real idea)
+- [x] Test lead cleaned up (HTTP 204)
+
+### Chunk 12 — N8N workflow snapshots + audit closure
+- [x] Exported the 5 modified/created workflows to `n8n/workflows/*.json` for version control + recovery
+- [x] Added `n8n/workflows/README.md` with snapshot timestamp, inventory table, and full audit CHANGELOG
+- [ ] Commit + push + open final PR
 
 ## Decisions logged
 - Email path: Gmail Drafts via new N8N workflow (`Cleo | Email Draft`) using Krish's OAuth.
