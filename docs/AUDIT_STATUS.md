@@ -66,17 +66,25 @@ No pauses for: file edits, branch commits, branch pushes, creating new N8N workf
 - [ ] Push
 
 ### Chunk 4 — N8N workflows (all 4 MCP-enabled per user)
-- [ ] Inspect Cleo Content Transform (`5cACYr3eR4vzwiTt`) node-by-node
-- [ ] Inspect Agatha Lead Deep Enrich (`YPKjTnB2P6mqe4kG`) — confirm webhook path + payload shape
-- [ ] Inspect Nova Visibility Deep Enrich (`kbHAHuxfzQLLlysG`) — confirm webhook path + payload shape
-- [ ] **GATE: ask user before activating Cleo Content Transform** (never executed in prod)
-- [ ] Activate Cleo Content Transform if user approves
-- [ ] **GATE: ask user before archiving Agatha Visibility Deep Enrich** (`Kq5CQ96yVcbOBHdP`)
-- [ ] Archive duplicate Agatha Visibility Deep Enrich if user approves
-- [ ] Create new `Cleo | Email Draft` workflow (Gmail Drafts via existing OAuth)
-- [ ] Create new `System | Execution Error Monitor` workflow (writes to silent_failures)
-- [ ] Update agent briefs in `agents.brief_content` via Supabase service-role (Cleo, Agatha, Nell, Nova, Marcus)
-- [ ] Capture webhook URLs of new workflows for Chunk 7
+- [x] Inspected Cleo Content Transform (`5cACYr3eR4vzwiTt`) — structure solid (webhook→validate→fetch idea→Sonnet→parse→merge with existing transformed_outputs→patch→audit→respond)
+- [x] Inspected Agatha Lead Deep Enrich (`YPKjTnB2P6mqe4kG`) — webhook `/webhook/lead-deep-enrich`, body `{lead_id: uuid}` — matches new /api/leads/:id/enrich payload exactly
+- [x] Inspected Nova Visibility Deep Enrich (`kbHAHuxfzQLLlysG`) — webhook `/webhook/visibility-deep-enrich`, body `{target_id: uuid}` — matches /api/visibility-targets/:id/enrich-deep payload
+- [x] Inspected Agatha Visibility Deep Enrich (`Kq5CQ96yVcbOBHdP`) — duplicate of Nova's, uses SAME webhook path (would conflict if activated)
+- [x] **GATE passed**: user approved activating Cleo Content Transform
+- [x] Activated Cleo Content Transform — was never executed since 2026-05-23 creation
+- [x] **GATE passed**: user chose rename (not archive) of duplicate
+- [x] Renamed `Kq5CQ96yVcbOBHdP` to "ZZ ARCHIVED Agatha | Visibility Deep Enrich (duplicate of Nova)"
+- [x] Created new `Cleo | Email Draft` workflow (id `wztp6KoiO5EuFQEB`, active=true, webhook `/webhook/cleo/email-draft`)
+- [x] **Live smoke-tested** Cleo Email Draft end-to-end: webhook returned `{ok:true, draft_id:"r6132928408781060430"}`, Gmail draft created, `email_drafts` ledger row written, `mark_entity_emailed` RPC fired correctly. Sonnet wrote subject "Quick check on the audit session"
+- [x] SKIP new Execution Error Monitor workflow — existing System | Workflow Monitor + Critical Infrastructure Monitor + Silent Success Detector + Vera | Failure Pattern Sweep already cover this surface
+- [x] Updated agent briefs in `agents.brief_content` via service-role: cleo (+894), agatha (+630), nell (+323), nova (+565), marcus (+311). All HTTP 204.
+
+**Webhook URLs captured for chunk 7 (Vercel env vars):**
+- `N8N_CLEO_TRANSFORM_WEBHOOK_URL`         = `https://krishraja10101.app.n8n.cloud/webhook/cleo/transform`
+- `N8N_EMAIL_DRAFT_WEBHOOK_URL`            = `https://krishraja10101.app.n8n.cloud/webhook/cleo/email-draft`
+- `N8N_LEAD_DEEP_ENRICH_WEBHOOK_URL`       = `https://krishraja10101.app.n8n.cloud/webhook/lead-deep-enrich`
+- `N8N_VISIBILITY_DEEP_ENRICH_WEBHOOK_URL` = `https://krishraja10101.app.n8n.cloud/webhook/visibility-deep-enrich`
+- `N8N_API_BASE_URL`                       = `https://krishraja10101.app.n8n.cloud/api/v1`
 
 ### Chunk 5 — Action surface buildout (frontend UI for the new routes)
 - [ ] `MobileLeads.tsx:210-244` `buildActions()` — add Draft email + Deep enrich
