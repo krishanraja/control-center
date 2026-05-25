@@ -1,4 +1,5 @@
 import React from 'react'
+import { Logomark } from './Logomark'
 
 interface Props {
   title: string
@@ -12,10 +13,11 @@ interface Props {
  * trailing slot for action buttons (More, filter, etc.).
  */
 export function TabHeader({ title, subtitle, leading, trailing }: Props) {
+  const resolvedLeading = leading === undefined ? <Logomark size={32} /> : leading
   return (
     <header className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        {leading}
+        {resolvedLeading}
         <div className="min-w-0">
           <h1 className="text-2xl md:text-3xl font-bold text-white leading-[1.1] tracking-tight truncate">
             {title}

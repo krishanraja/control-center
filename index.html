@@ -2,15 +2,70 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/favicon.png" />
-    <meta property="og:image" content="/favicon.png" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Mindmaker" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta property="og:image" content="/icon-512.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Mission Control — Autonomous OS</title>
-    <meta name="description" content="Real-time command center for autonomous organization operations" />
+    <title>Mindmaker</title>
+    <meta name="description" content="Decisions, not admin — autonomous operations command center." />
+    <style>
+      html, body { background: #0a0a0b; }
+      #brand-splash {
+        position: fixed;
+        inset: 0;
+        background: #0a0a0b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2147483647;
+        transition: opacity 240ms ease-out;
+      }
+      #brand-splash img {
+        width: 96px;
+        height: 96px;
+        border-radius: 22px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+        animation: brand-pulse 1.6s ease-in-out infinite;
+      }
+      @keyframes brand-pulse {
+        0%, 100% { opacity: 0.85; transform: scale(1); }
+        50%      { opacity: 1;    transform: scale(1.04); }
+      }
+      #brand-splash.fade { opacity: 0; pointer-events: none; }
+    </style>
   </head>
   <body class="bg-command-bg text-command-text">
+    <div id="brand-splash"><img src="/icon-192.png" alt="Mindmaker" /></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Hide splash once React has mounted into #root (or after a hard timeout).
+      (function () {
+        var splash = document.getElementById('brand-splash');
+        var root = document.getElementById('root');
+        if (!splash || !root) return;
+        var hide = function () {
+          splash.classList.add('fade');
+          setTimeout(function () { splash.remove(); }, 280);
+        };
+        var observer = new MutationObserver(function () {
+          if (root.childElementCount > 0) {
+            observer.disconnect();
+            hide();
+          }
+        });
+        observer.observe(root, { childList: true });
+        // Safety net so a render error never leaves the splash on screen.
+        setTimeout(function () { observer.disconnect(); hide(); }, 6000);
+      })();
+    </script>
   </body>
 </html>
