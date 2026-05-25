@@ -1,0 +1,253 @@
+{
+  "id": "wztp6KoiO5EuFQEB",
+  "name": "Cleo | Email Draft",
+  "active": true,
+  "nodes": [
+    {
+      "id": "webhook-email-draft",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "cleo-email-draft-2026-05-25",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cleo/email-draft",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "build-prompt",
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const b = $json.body || {};\nconst required = ['entity_type','entity_id','recipient_email'];\nfor (const k of required) { if (!b[k]) throw new Error(`${k} is required`); }\nconst allowed = new Set(['lead','customer','guest']);\nif (!allowed.has(b.entity_type)) throw new Error('entity_type must be lead|customer|guest');\nconst intentLabel = {\n  introduction: 'Open a real conversation \u2014 no pitch.',\n  check_in: 'Casual touch-base referencing what they recently shipped or wrote.',\n  podcast_invite: 'Pitch them as a guest on Signal Noise. Be specific about the angle.',\n  follow_up: 'Follow up on a prior thread (Krish will fill in the thread context separately).',\n}[b.intent || 'introduction'] || 'Open a real conversation \u2014 no pitch.';\nconst ctx = [\n  `Recipient name: ${b.recipient_name || '(unknown)'}`,\n  `Recipient title: ${b.recipient_title || '(unknown)'}`,\n  `Recipient company: ${b.recipient_company || '(unknown)'}`,\n  `Why-relevant: ${b.context || '(none provided)'}`,\n  b.source_url ? `Source: ${b.source_url}` : null,\n  b.linkedin_url ? `LinkedIn: ${b.linkedin_url}` : null,\n].filter(Boolean).join('\\n');\nconst userMsg = `Intent: ${intentLabel}\\n\\nContext:\\n${ctx}\\n\\nReturn ONLY a JSON object {\"subject\": string, \"body\": string}. No preamble.`;\nreturn [{ json: {\n  entity_type: b.entity_type, entity_id: b.entity_id, recipient_email: b.recipient_email,\n  recipient_name: b.recipient_name || null,\n  prompt: userMsg,\n} }];\n"
+      }
+    },
+    {
+      "id": "sonnet-compose",
+      "name": "Sonnet Compose",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "w8sWwz8EfYc1JA7G",
+          "name": "Anthropic Header 2026-05-21"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 800, system: 'You write short, direct emails in Krish Raja\\'s voice. Senior peer-to-peer register. Open with one verifiable specific observation. No filler (\"I hope this finds you well\"). No emojis. No em dashes. 80-160 words for body. Subject line: 4-8 words, no clickbait, no colons. Return ONLY a JSON object {\"subject\": string, \"body\": string} \u2014 no preamble, no markdown fence.', messages: [{ role: 'user', content: $json.prompt }] }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      }
+    },
+    {
+      "id": "parse-draft",
+      "name": "Parse Draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const blocks = $json.content || [];\nconst text = blocks.map(b => b.text || '').join('').trim();\nconst cleaned = text.replace(/```json\\s*|\\s*```/g, '').trim();\nlet parsed = null;\ntry {\n  const a = cleaned.indexOf('{');\n  const b = cleaned.lastIndexOf('}');\n  parsed = JSON.parse(cleaned.slice(a, b + 1));\n} catch (e) { throw new Error('Sonnet returned non-JSON: ' + text.slice(0, 200)); }\nif (!parsed.subject || !parsed.body) throw new Error('Missing subject or body');\nconst src = $('Build Prompt').item.json;\nreturn [{ json: {\n  entity_type: src.entity_type,\n  entity_id: src.entity_id,\n  recipient_email: src.recipient_email,\n  subject: parsed.subject,\n  body: parsed.body,\n} }];\n"
+      }
+    },
+    {
+      "id": "gmail-draft",
+      "name": "Create Gmail Draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        300
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "lHiqteKckU5IUxQ6",
+          "name": "Gmail account"
+        }
+      },
+      "parameters": {
+        "resource": "draft",
+        "operation": "create",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "emailType": "text",
+        "options": {
+          "sendTo": "={{ $json.recipient_email }}"
+        }
+      },
+      "webhookId": "e95788f9-8278-493f-a1bd-4bf0b28ce287"
+    },
+    {
+      "id": "mark-emailed",
+      "name": "Mark Entity Emailed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "UJMKZRU1aZhYrSgH",
+          "name": "Supabase OS"
+        }
+      },
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/rpc/mark_entity_emailed",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_entity_type: $('Parse Draft').item.json.entity_type, p_entity_id: $('Parse Draft').item.json.entity_id, p_draft_id: $json.id, p_draft_url: 'https://mail.google.com/mail/u/0/#drafts?compose=' + $json.id, p_subject: $('Parse Draft').item.json.subject, p_body_preview: $('Parse Draft').item.json.body.slice(0, 200) }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, draft_id: $('Create Gmail Draft').item.json.id, draft_url: 'https://mail.google.com/mail/u/0/#drafts?compose=' + $('Create Gmail Draft').item.json.id, subject: $('Parse Draft').item.json.subject }) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "Sonnet Compose",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet Compose": {
+      "main": [
+        [
+          {
+            "node": "Parse Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Draft": {
+      "main": [
+        [
+          {
+            "node": "Create Gmail Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Gmail Draft": {
+      "main": [
+        [
+          {
+            "node": "Mark Entity Emailed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Entity Emailed": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all"
+  },
+  "triggerCount": 1
+}
