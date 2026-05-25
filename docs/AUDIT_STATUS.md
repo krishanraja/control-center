@@ -50,15 +50,18 @@ No pauses for: file edits, branch commits, branch pushes, creating new N8N workf
 - [ ] Push
 
 ### Chunk 3 — New `/api/*` proxy routes
-- [ ] `api/leads/[id]/draft-email.ts` — POST → N8N Cleo email-draft webhook
-- [ ] `api/leads/[id]/enrich.ts` — POST → N8N Agatha Lead Deep Enrich webhook
-- [ ] `api/visibility-targets/[id]/index.ts` — GET + PATCH
-- [ ] `api/visibility-targets/[id]/enrich-deep.ts` — POST → Nova Visibility Deep Enrich
-- [ ] `api/visibility-targets/[id]/apply.ts` — POST → status='applied' + audit_log + create Nova task
-- [ ] `api/customers/[id]/draft-email.ts`
-- [ ] `api/guests/[id]/draft-email.ts`
-- [ ] `api/automations/[workflow_id]/rerun.ts` — POST → N8N API to re-run last execution
-- [ ] Add new server-side env vars to `.env.example`: `N8N_EMAIL_DRAFT_WEBHOOK_URL`, `N8N_LEAD_DEEP_ENRICH_WEBHOOK_URL`, `N8N_VISIBILITY_DEEP_ENRICH_WEBHOOK_URL`, `N8N_CLEO_TRANSFORM_WEBHOOK_URL`
+- [x] Converted `api/leads/[id].ts` → `api/leads/[id]/index.ts` (keeps git history)
+- [x] `api/leads/[id]/draft-email.ts` — POST → N8N Cleo email-draft webhook
+- [x] `api/leads/[id]/enrich.ts` — POST → N8N Agatha Lead Deep Enrich, optimistically sets enrichment_status
+- [x] `api/visibility-targets/[id]/index.ts` — GET + PATCH (allowed fields whitelist)
+- [x] `api/visibility-targets/[id]/enrich-deep.ts` — POST → Nova Visibility Deep Enrich
+- [x] `api/visibility-targets/[id]/apply.ts` — POST → status='applied' + creates Nova task + audit_log entry
+- [x] `api/customers/[id]/draft-email.ts`
+- [x] `api/guests/[id]/draft-email.ts`
+- [x] Converted `api/automations.ts` → `api/automations/index.ts` so we can add `[workflow_id]` sub-route
+- [x] `api/automations/[workflow_id]/rerun.ts` — POST → N8N `/workflows/:id/run`
+- [x] Added 4 server-side env vars to `.env.example`
+- [x] `npx tsc --noEmit` clean
 - [ ] Commit: `feat: new /api proxy routes for email-draft, enrich, visibility, rerun`
 - [ ] Push
 
