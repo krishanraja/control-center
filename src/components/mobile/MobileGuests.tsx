@@ -12,6 +12,7 @@ import { DecisionDetail } from '../DecisionDetail'
 import { navigateDecision } from '../../lib/routeDecision'
 import { useHaptics } from '../../hooks/useHaptics'
 
+import { FeedbackButton } from '../shared/FeedbackButton'
 type Lane = 'inbound' | 'outbound'
 
 const ACTIVE_STATUSES: GuestStatus[] = ['scouted', 'enriched', 'pitched', 'responded', 'scheduled', 'confirmed', 'recorded']

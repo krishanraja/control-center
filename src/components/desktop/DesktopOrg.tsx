@@ -112,6 +112,29 @@ function podOf(pod?: string): PodDef {
 export function DesktopOrg() {
   const [agents, setAgents] = useState<Agent[]>([])
   const pendingCorrections = usePendingCorrections(5)
+
+  // CLO-005 (audit 2026-05-26): react to ?correction=:id in hash. If a
+  // matching pending correction exists, scroll its row into view and
+  // outline it for 4s so user sees what the route surfaced.
+  React.useEffect(() => {
+    const params = new URLSearchParams((typeof window !== 'undefined' ? window.location.hash : '').split('?')[1] || '')
+    const cid = params.get('correction')
+    if (!cid) return
+    const tryFocus = () => {
+      const el = document.querySelector(`[data-correction-id="${cid}"]`) as HTMLElement | null
+      if (!el) return false
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.style.outline = '2px solid rgba(139, 92, 246, 0.7)'
+      el.style.outlineOffset = '4px'
+      el.style.borderRadius = '8px'
+      setTimeout(() => { el.style.outline = ''; el.style.outlineOffset = '' }, 4000)
+      return true
+    }
+    // panel may mount async — retry briefly
+    let tries = 0
+    const iv = setInterval(() => { tries++; if (tryFocus() || tries > 10) clearInterval(iv) }, 200)
+    return () => clearInterval(iv)
+  }, [pendingCorrections.data?.length])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<{ tasks: any[]; runs: any[] }>({ tasks: [], runs: [] })
   const [flagTarget, setFlagTarget] = useState<{ id: string; name: string } | null>(null)
@@ -694,7 +717,7 @@ function PendingCorrectionsPanel({
         {corrections.map(c => {
           const state = busy[c.id] || 'idle'
           return (
-            <div key={c.id} className="rounded-lg border border-amber-500/20 bg-white/[0.02] p-3">
+            <div key={c.id} data-correction-id={c.id} className="rounded-lg border border-amber-500/20 bg-white/[0.02] p-3">
               <div className="flex items-start gap-2 mb-2">
                 <AgentAvatar agent={c.agent_id} size="sm" />
                 <div className="flex-1 min-w-0">

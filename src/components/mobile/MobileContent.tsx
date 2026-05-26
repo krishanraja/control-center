@@ -5,6 +5,7 @@ import { TabHeader } from './TabHeader'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 
+import { FeedbackButton } from '../shared/FeedbackButton'
 const ACTIVE_STATES: IdeaState[] = ['seeded', 'researching', 'drafting', 'review', 'approved']
 const STATE_LABEL: Record<IdeaState, string> = {
   seeded: 'Seeded',
