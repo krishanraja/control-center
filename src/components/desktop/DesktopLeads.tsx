@@ -24,6 +24,27 @@ interface DesktopLeadsProps {
 }
 
 export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavigate }: DesktopLeadsProps = {}) {
+  // CLO-018 (audit 2026-05-26): Lead Auto-Enrich toggle. Off by default so
+  // Apollo credits are only burned on explicit Krish action.
+  const [autoEnrich, setAutoEnrich] = React.useState<boolean | null>(null)
+  React.useEffect(() => {
+    let alive = true
+    fetch('/api/config/lead-auto-enrich')
+      .then(r => r.json())
+      .then(j => { if (alive && j.ok) setAutoEnrich(!!j.enabled) })
+      .catch(() => { if (alive) setAutoEnrich(false) })
+    return () => { alive = false }
+  }, [])
+  const toggleAutoEnrich = async () => {
+    const next = !autoEnrich
+    setAutoEnrich(next)
+    await fetch('/api/config/lead-auto-enrich', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: next }),
+    }).catch(() => setAutoEnrich(!next))
+  }
+
   const { leads, loading } = useRealtimeLeads({
     statusIn: ['new', 'enriching', 'ready', 'contacted', 'conversation'],
   })
@@ -41,6 +62,25 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
       <header className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+      <div className="flex items-center gap-3 ml-auto" data-clo018-toggle>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <span className="text-[11px] uppercase tracking-[0.14em] text-white/55">Auto-enrich</span>
+          <input
+            type="checkbox"
+            checked={autoEnrich === true}
+            disabled={autoEnrich === null}
+            onChange={toggleAutoEnrich}
+            className="sr-only peer"
+          />
+          <span
+            title="When on, newly ingested leads are auto-enriched via Apollo. When off, only your explicit Enrich clicks burn credits."
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${autoEnrich === true ? 'bg-emerald-500/70' : 'bg-white/[0.10]'}`}
+          >
+            <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${autoEnrich === true ? 'translate-x-5' : 'translate-x-1'}`} />
+          </span>
+        </label>
+      </div>
+
             <Users size={20} className="text-emerald-300" />
             Services
           </h1>
