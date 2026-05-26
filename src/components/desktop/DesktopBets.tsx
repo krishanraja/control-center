@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Plus, Target, AlertOctagon } from 'lucide-react'
 import { useBets, BET_KIND_LABEL, type BetKind } from '../../hooks/useBets'
 import { BetCard } from '../BetCard'
 import { useToast } from '../shared/Toast'
+import { NextActionStrip } from '../shared/NextActionStrip'
 
 export function DesktopBets() {
   const { live, decided, overdueLive, hitRates, loading } = useBets()
@@ -19,6 +20,37 @@ export function DesktopBets() {
   })
 
   const overall = hitRates.find(r => r.kind === 'all')
+
+  // Next action picks the oldest overdue bet, else the highest-impact live
+  // bet to keep momentum on the decided/won/lost loop.
+  const nextBet = useMemo(() => {
+    if (overdueLive.length > 0) {
+      return [...overdueLive].sort((a, b) => {
+        const aStart = a.started_at ? new Date(a.started_at).getTime() : 0
+        const bStart = b.started_at ? new Date(b.started_at).getTime() : 0
+        return aStart - bStart
+      })[0]
+    }
+    return [...live].sort((a, b) => (b.est_mrr_impact_usd || 0) - (a.est_mrr_impact_usd || 0))[0] || null
+  }, [overdueLive, live])
+
+  const insight = overdueLive.length > 0
+    ? `${overdueLive.length} bet${overdueLive.length === 1 ? '' : 's'} past their time-box — decide won, lost, or extend`
+    : live.length > 0
+      ? `${live.length} live · hit-rate ${overall && overall.total > 0 ? `${overall.pct.toFixed(0)}% over 90d` : 'no decided bets yet'}`
+      : 'No live bets — place one to start the loop.'
+
+  const focusBetCard = () => {
+    if (!nextBet) return
+    const el = document.querySelector(`[data-bet-id="${nextBet.id}"]`) as HTMLElement | null
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.style.outline = '2px solid rgba(244, 63, 94, 0.7)'
+      el.style.outlineOffset = '4px'
+      el.style.borderRadius = '12px'
+      setTimeout(() => { el.style.outline = ''; el.style.outlineOffset = '' }, 3500)
+    }
+  }
 
   const submit = async () => {
     if (!draft.hypothesis.trim() || !draft.success_criterion.trim()) {
@@ -63,6 +95,17 @@ export function DesktopBets() {
           <Plus size={12} className="inline mr-1" /> Place bet
         </button>
       </header>
+
+      <NextActionStrip
+        headline={overdueLive.length > 0 ? overdueLive.length : live.length}
+        headlineLabel={overdueLive.length > 0 ? 'overdue' : 'live'}
+        insight={insight}
+        ctaLabel={overdueLive.length > 0 ? 'Decide bet' : 'Place bet'}
+        onCta={() => (overdueLive.length > 0 && nextBet) ? focusBetCard() : setComposing(true)}
+        icon={overdueLive.length > 0 ? AlertOctagon : Target}
+        accent={overdueLive.length > 0 ? 'text-rose-300' : 'text-violet-300'}
+        disabled={false}
+      />
 
       {composing && (
         <div className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-4 space-y-3">

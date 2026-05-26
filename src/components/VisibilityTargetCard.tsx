@@ -1,9 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   ExternalLink, Calendar, Users, MapPin, DollarSign, Globe2, Sparkles, Mic, Newspaper, Megaphone,
+  Check, X, Loader2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { FeedbackButton } from './shared/FeedbackButton'
+import { useToast } from './shared/Toast'
 import type { VisibilityTargetRow, VisibilityTargetType } from '../hooks/useVisibilityTargets'
 
 interface Props {
@@ -26,9 +28,34 @@ const TYPE_META: Record<VisibilityTargetType, { label: string; Icon: LucideIcon 
  * deadline + audience + why_relevant + suggested_talk_title on every row.
  */
 export function VisibilityTargetCard({ target: t, onOpen }: Props) {
+  const { toast } = useToast()
+  const [busy, setBusy] = useState<null | 'apply' | 'pass'>(null)
   const daysToDeadline = t.deadline_at
     ? Math.ceil((new Date(t.deadline_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
     : null
+
+  // Decision pair only renders for `queued` rows (Nova-enriched, awaiting
+  // Krish's apply/pass call). Mirrors the per-lead Enrich/Skip pattern.
+  const decisionPair = t.status === 'queued'
+
+  const decide = async (e: React.MouseEvent, next: 'applied' | 'dropped') => {
+    e.stopPropagation()
+    if (busy) return
+    setBusy(next === 'applied' ? 'apply' : 'pass')
+    try {
+      const r = await fetch(`/api/visibility-targets/${t.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: next }),
+      })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      toast(next === 'applied' ? 'Marked applied — track the reply.' : 'Passed. Vera will learn.', 'success')
+    } catch (err: any) {
+      toast(`Could not update: ${err?.message || 'try again'}`, 'error')
+    } finally {
+      setBusy(null)
+    }
+  }
 
   const deadlineTone =
     daysToDeadline === null ? '' :
@@ -154,6 +181,34 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
         <p className="text-[12px] text-violet-200/85 mt-2 leading-snug">
           → {t.recommended_next_step}
         </p>
+      )}
+
+      {decisionPair && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-500/[0.04] p-2">
+          <button
+            type="button"
+            onClick={(e) => decide(e, 'applied')}
+            disabled={busy !== null}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-amber-500/90 text-black hover:bg-amber-400 disabled:opacity-40 transition-colors"
+            title="Mark applied — moves to Applied lane"
+          >
+            {busy === 'apply' ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+            Apply
+          </button>
+          <button
+            type="button"
+            onClick={(e) => decide(e, 'dropped')}
+            disabled={busy !== null}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+            title="Pass — Vera learns from the drop"
+          >
+            {busy === 'pass' ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+            Pass
+          </button>
+          <span className="text-[10px] text-white/45 ml-auto">
+            Nova enriched it — your call.
+          </span>
+        </div>
       )}
 
       <div className="flex items-center gap-1.5 mt-3 flex-wrap">

@@ -6,6 +6,7 @@ import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { humanize } from '../shared/tokens'
 import { FlagAgentModal } from '../FlagAgentModal'
+import { NextActionStrip } from '../shared/NextActionStrip'
 import { usePendingCorrections, type PendingCorrection } from '../../hooks/usePendingCorrections'
 
 interface Agent {
@@ -277,6 +278,20 @@ export function DesktopOrg() {
     return [...knownKeys, ...extraKeys].map(k => ({ pod: podOf(k), members: map.get(k)! }))
   }, [agents])
 
+  const correctionsCount = pendingCorrections.data.length
+  const topCorrection = pendingCorrections.data[0] || null
+  const focusFirstCorrection = () => {
+    if (!topCorrection) return
+    const el = document.querySelector(`[data-correction-id="${topCorrection.id}"]`) as HTMLElement | null
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.style.outline = '2px solid rgba(245, 158, 11, 0.7)'
+      el.style.outlineOffset = '4px'
+      el.style.borderRadius = '8px'
+      setTimeout(() => { el.style.outline = ''; el.style.outlineOffset = '' }, 3500)
+    }
+  }
+
   const list = (
     <div className="space-y-5 pr-2">
       <div className="flex items-baseline justify-between gap-3">
@@ -448,12 +463,24 @@ export function DesktopOrg() {
   ) : <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an agent</div>
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
+      <NextActionStrip
+        headline={correctionsCount}
+        headlineLabel="corrections"
+        insight={topCorrection
+          ? `Vera proposed a brief edit for ${topCorrection.agent_id}${topCorrection.pattern_reason_code ? ` (${topCorrection.pattern_reason_code})` : ''} — approve to ship`
+          : `${agents.length} agent${agents.length === 1 ? '' : 's'} active · no correction patterns waiting`}
+        ctaLabel={topCorrection ? 'Review correction' : 'View roster'}
+        onCta={() => topCorrection ? focusFirstCorrection() : null}
+        icon={AlertTriangle}
+        accent={correctionsCount > 0 ? 'text-amber-300' : 'text-violet-300'}
+        disabled={!topCorrection}
+      />
       <SplitPane left={list} right={rightPanel} hasSelection={!!selectedId} onBack={() => setSelectedId(null)} leftWidth="45%" />
       {flagTarget && (
         <FlagAgentModal agentId={flagTarget.id} agentDisplayName={flagTarget.name} onClose={() => setFlagTarget(null)} />
       )}
-    </>
+    </div>
   )
 }
 

@@ -79,7 +79,7 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
   }
 
   return (
-    <article className={`rounded-xl border ${toneClass} p-3 transition-colors`}>
+    <article data-bet-id={bet.id} className={`rounded-xl border ${toneClass} p-3 transition-colors`}>
       <header className="flex items-start gap-2 min-w-0">
         <span className={`w-2 h-2 rounded-full mt-1.5 ${BET_KIND_ACCENT[bet.kind]} flex-shrink-0`} />
         <div className="flex-1 min-w-0">
