@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Mic, Megaphone, X } from 'lucide-react'
+import { Mic, Megaphone, X, Calendar } from 'lucide-react'
 import { useRealtimeGuests, type GuestRow, type GuestStatus, type GuestPodcastTarget } from '../../hooks/useRealtimeGuests'
 import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'
 import { GuestImportDropzone } from '../GuestImportDropzone'
@@ -7,6 +7,7 @@ import { VisibilityImportDropzone } from '../VisibilityImportDropzone'
 import { GuestStatusLane } from './GuestStatusLane'
 import { VisibilityTargetLane } from './VisibilityTargetLane'
 import { DecisionDetail } from '../DecisionDetail'
+import { NextActionStrip } from '../shared/NextActionStrip'
 import { navigateDecision } from '../../lib/routeDecision'
 
 type Lane = 'inbound' | 'outbound'
@@ -81,6 +82,37 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   const handleOpenGuest = onOpenGuest || ((id: string) => navigateDecision(onNavigate || (() => {}), 'guest', id))
   const openTarget = onOpenTarget || ((id: string) => navigateDecision(onNavigate || (() => {}), 'visibility', id))
 
+  // Next action targets the most-urgent decision waiting.
+  // Inbound: scheduled guests awaiting confirmation (the "RSVP" moment).
+  // Outbound: queued visibility targets closest to deadline.
+  const inboundDecision = useMemo(() => {
+    const scheduled = guests.filter(g => g.status === 'scheduled')
+    return scheduled.sort((a, b) => {
+      const aSched = a.scheduled_at ? new Date(a.scheduled_at).getTime() : Infinity
+      const bSched = b.scheduled_at ? new Date(b.scheduled_at).getTime() : Infinity
+      return aSched - bSched
+    })[0] || null
+  }, [guests])
+
+  const outboundDecision = useMemo(() => {
+    const queued = targets.filter(t => t.status === 'queued')
+    return queued.sort((a, b) => {
+      const aDl = a.deadline_at ? new Date(a.deadline_at).getTime() : Infinity
+      const bDl = b.deadline_at ? new Date(b.deadline_at).getTime() : Infinity
+      return aDl - bDl
+    })[0] || null
+  }, [targets])
+
+  const scheduledCount = guests.filter(g => g.status === 'scheduled').length
+  const queuedCount = targets.filter(t => t.status === 'queued').length
+
+  const insightInbound = inboundDecision
+    ? `${scheduledCount} scheduled · top: ${inboundDecision.name || inboundDecision.email || 'unnamed'}`
+    : `${inboundActive} active · no scheduled guests awaiting confirmation`
+  const insightOutbound = outboundDecision
+    ? `${queuedCount} queued · top: ${outboundDecision.title}${outboundDecision.deadline_at ? ` (${daysUntil(outboundDecision.deadline_at)})` : ''}`
+    : `${outboundActive} active · no queued opportunities awaiting decision`
+
   return (
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-4">
@@ -106,6 +138,30 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
           Outbound <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{outboundActive}</span>
         </LaneTab>
       </div>
+
+      {lane === 'inbound' ? (
+        <NextActionStrip
+          headline={scheduledCount}
+          headlineLabel="to confirm"
+          insight={insightInbound}
+          ctaLabel={inboundDecision ? 'Open guest' : 'View inbound'}
+          onCta={() => inboundDecision && handleOpenGuest(inboundDecision.id)}
+          icon={Calendar}
+          accent={scheduledCount > 0 ? 'text-emerald-300' : 'text-violet-300'}
+          disabled={!inboundDecision}
+        />
+      ) : (
+        <NextActionStrip
+          headline={queuedCount}
+          headlineLabel="to decide"
+          insight={insightOutbound}
+          ctaLabel={outboundDecision ? 'Decide' : 'View outbound'}
+          onCta={() => outboundDecision && openTarget(outboundDecision.id)}
+          icon={Megaphone}
+          accent={queuedCount > 0 ? 'text-amber-300' : 'text-violet-300'}
+          disabled={!outboundDecision}
+        />
+      )}
 
       {detailDecision && (
         <section className="rounded-2xl border border-violet-400/30 bg-violet-500/[0.04] overflow-hidden">
@@ -235,6 +291,13 @@ function LaneTab({ active, onClick, children }: { active: boolean; onClick: () =
       {children}
     </button>
   )
+}
+
+function daysUntil(iso: string): string {
+  const days = Math.ceil((new Date(iso).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+  if (days < 0) return `${Math.abs(days)}d overdue`
+  if (days === 0) return 'today'
+  return `${days}d`
 }
 
 function groupByStatus(guests: GuestRow[]): Partial<Record<GuestStatus, GuestRow[]>> {

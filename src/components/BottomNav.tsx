@@ -66,9 +66,12 @@ export function BottomNav({ active, onChange }: Props) {
   )
 }
 
-function NavButton({ tab, active, ultraNarrow, onClick }: { tab: TabDef; active: boolean; ultraNarrow?: boolean; onClick: () => void }) {
+function NavButton({ tab, active, ultraNarrow: _ultraNarrow, onClick }: { tab: TabDef; active: boolean; ultraNarrow?: boolean; onClick: () => void }) {
   const Icon: LucideIcon = tab.mobileIcon
-  const label = ultraNarrow && tab.mobileShortLabel ? tab.mobileShortLabel : tab.label
+  // Always prefer mobileShortLabel when set: at the 5-tab + More layout, even
+  // a 390px iPhone truncates "Subscriptions" to "Subscripti...". The short
+  // label ("Subs") fits cleanly without truncation.
+  const label = tab.mobileShortLabel ?? tab.label
   return (
     <button
       onClick={onClick}

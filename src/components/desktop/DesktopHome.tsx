@@ -20,6 +20,9 @@ import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
 import { TopThreeCards } from '../TopThreeCards'
 import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
+import { NextActionStrip } from '../shared/NextActionStrip'
+import { Sparkles } from 'lucide-react'
+import { navigateDecision } from '../../lib/routeDecision'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -102,8 +105,9 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
     return () => { supabase.removeChannel(ch) }
   }, [])
 
-  const summary = intel.summary ?? {}
-  const recommendedFocus = (summary as any)?.recommended_focus
+  type HomeSummaryLike = { headline?: string; recommended_focus?: string }
+  const summary: HomeSummaryLike = intel.summary ?? {}
+  const recommendedFocus = summary.recommended_focus
 
   const handleSaveFocus = async (newFocus: string) => {
     await fetch(`${API}/api/goals`, {
@@ -118,6 +122,26 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
     <div className="flex flex-col gap-4 max-w-[1280px] mx-auto w-full">
 
       <CriticalAlertBanner />
+
+      {/* NEXT ACTION — Marcus's #1 play, surfaced as a single one-tap CTA so
+          the CEO doesn't have to scan the top-three to know what to do first. */}
+      <NextActionStrip
+        headline={intel.top_three.length}
+        headlineLabel="plays"
+        insight={intel.top_three[0]
+          ? `${intel.top_three[0].title} — ${intel.top_three[0].why_now}`
+          : summary.headline || 'Marcus is synthesizing. Check back after his next run.'}
+        ctaLabel={intel.top_three[0]?.action_label || 'Open today'}
+        onCta={() => {
+          const top = intel.top_three[0]
+          if (!top || !onNavigate) return
+          if (top.action_target_id) navigateDecision(onNavigate, top.action_kind, top.action_target_id)
+          else onNavigate('today')
+        }}
+        icon={Sparkles}
+        accent="text-violet-300"
+        disabled={!intel.top_three[0] && !onNavigate}
+      />
 
       <div className="flex items-center justify-end text-[10px] text-white/30 -mb-2 gap-3">
         <span><kbd className="px-1 py-0.5 rounded bg-white/[0.05] border border-white/[0.08] text-white/55">⌘K</kbd> nav</span>

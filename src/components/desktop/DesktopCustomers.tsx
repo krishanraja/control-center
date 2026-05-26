@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react'
-import { DollarSign, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { DollarSign, TrendingUp, AlertTriangle, CheckCircle2, Mail } from 'lucide-react'
 import { SplitPane } from '../SplitPane'
 import { CustomerCard } from '../CustomerCard'
 import {
@@ -10,6 +10,7 @@ import { MrrTicker } from '../MrrTicker'
 import { CustomerCouncilCard } from '../CustomerCouncilCard'
 import { ExpansionRadar } from '../ExpansionRadar'
 import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
+import { NextActionStrip } from '../shared/NextActionStrip'
 
 export function DesktopCustomers() {
   const { buckets, totals, customers, loading, error } = useCustomers()
@@ -17,12 +18,29 @@ export function DesktopCustomers() {
   const activeProducts = buckets.filter(b => b.total > 0)
   const current = (selected && buckets.find(b => b.product === selected)) || activeProducts[0] || null
 
+  // Expansion plays = paid customers whose Maya sweeper flagged them for
+  // outreach (`needs_outreach_at <= now`) AND we haven't emailed them recently.
+  // Ranked by MRR so the highest-leverage account is first.
+  const expansionPlays = useMemo(() => {
+    const now = Date.now()
+    return customers
+      .filter(c => c.kind === 'paid' && c.needs_outreach_at && new Date(c.needs_outreach_at).getTime() <= now)
+      .filter(c => {
+        if (!c.last_emailed_at) return true
+        const ageDays = (now - new Date(c.last_emailed_at).getTime()) / (24 * 60 * 60 * 1000)
+        return ageDays >= 7
+      })
+      .sort((a, b) => (b.mrr_usd || 0) - (a.mrr_usd || 0))
+  }, [customers])
+  const topExpansion = expansionPlays[0] || null
+
+  const scrollToExpansion = () => {
+    const el = document.getElementById('expansion-plays')
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   const left = (
     <div className="h-full overflow-y-auto p-4 space-y-4">
-      <MrrTicker variant="desktop" />
-      <CustomerCouncilCard />
-      <ExpansionRadar />
-      <CustomerSourcesPanel />
       <div>
         <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">
           Subscriptions
@@ -33,6 +51,37 @@ export function DesktopCustomers() {
             : `${totals.paid} paid · $${Math.round(totals.mrrUsd).toLocaleString()}/mo · ${totals.freeSignups} free · ${totals.waitlist} waitlist`}
         </p>
       </div>
+
+      {expansionPlays.length > 0 && (
+        <section id="expansion-plays" className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.04] p-3">
+          <header className="flex items-baseline gap-2 mb-2">
+            <Mail size={12} className="text-emerald-300" />
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300">Expansion plays</h2>
+            <span className="text-[10px] text-white/45 tabular-nums ml-auto">{expansionPlays.length}</span>
+          </header>
+          <p className="text-[10px] text-white/45 mb-2">
+            Paid accounts Maya flagged for outreach. Open each to draft an email.
+          </p>
+          <ul className="space-y-1.5">
+            {expansionPlays.slice(0, 5).map(c => (
+              <li key={c.id} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[12px] font-medium text-white truncate">{c.full_name || c.email || 'unnamed'}</span>
+                  {c.mrr_usd != null && (
+                    <span className="text-[10px] tabular-nums text-emerald-300 flex-shrink-0">${c.mrr_usd}/mo</span>
+                  )}
+                </div>
+                {c.email && <p className="text-[10px] text-white/45 truncate">{c.email}</p>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <MrrTicker variant="desktop" />
+      <CustomerCouncilCard />
+      <ExpansionRadar />
+      <CustomerSourcesPanel />
 
       {error && (
         <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-[12px] text-red-200">
@@ -136,7 +185,23 @@ export function DesktopCustomers() {
     </div>
   )
 
-  return <SplitPane left={left} right={right} hasSelection={current != null} onBack={() => setSelected(null)} />
+  return (
+    <div className="flex flex-col gap-4">
+      <NextActionStrip
+        headline={expansionPlays.length}
+        headlineLabel="plays"
+        insight={topExpansion
+          ? `${topExpansion.full_name || topExpansion.email || 'unnamed'}${topExpansion.mrr_usd ? ` ($${topExpansion.mrr_usd}/mo)` : ''} flagged for outreach`
+          : `$${Math.round(totals.mrrUsd).toLocaleString()}/mo MRR · no expansion plays waiting`}
+        ctaLabel={topExpansion ? 'Open plays' : 'View accounts'}
+        onCta={scrollToExpansion}
+        icon={TrendingUp}
+        accent={expansionPlays.length > 0 ? 'text-emerald-300' : 'text-violet-300'}
+        disabled={expansionPlays.length === 0}
+      />
+      <SplitPane left={left} right={right} hasSelection={current != null} onBack={() => setSelected(null)} />
+    </div>
+  )
 }
 
 function KpiTile({

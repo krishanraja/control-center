@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow, isToday, isPast, parseISO } from 'date-fns'
-import { ExternalLink, Archive, ChevronRight } from 'lucide-react'
+import { ExternalLink, Archive, ChevronRight, Clock } from 'lucide-react'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { InlineActions } from '../InlineActions'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { useToast } from '../shared/Toast'
+import { NextActionStrip } from '../shared/NextActionStrip'
 import { PipelineQueue, PIPELINE_WORKSTREAMS } from './PipelineQueue'
-import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
 import { DecisionDetail } from '../DecisionDetail'
 import { navigateDecision } from '../../lib/routeDecision'
 
@@ -132,13 +132,38 @@ export function DesktopToday({
   const items: TaskRow[] = [...today.due, ...today.waiting]
   const selected = tasks.find(t => t.id === selectedId) || items[0] || null
 
+  // Next action: the most overdue task (earliest due_date) if any are overdue,
+  // else the first due-today task, else nothing.
+  const nextActionTask = useMemo(() => {
+    const overdue = today.due
+      .filter(t => t.due_date && isPast(parseISO(t.due_date)) && !isToday(parseISO(t.due_date)))
+      .sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1))
+    return overdue[0] || today.due[0] || today.waiting[0] || null
+  }, [today.due, today.waiting])
+
+  const overdueCount = today.due.filter(t => t.due_date && isPast(parseISO(t.due_date)) && !isToday(parseISO(t.due_date))).length
+  const insight = nextActionTask
+    ? overdueCount > 0
+      ? `${today.due.length} due, ${overdueCount} overdue — start with "${nextActionTask.title}"`
+      : `${today.due.length} due today, ${today.waiting.length} waiting on you`
+    : 'Inbox zero for today. Pipeline below.'
+
   const list = (
     <div className="space-y-4 pr-2">
       <div>
         <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Today</h1>
-        <p className="text-xs md:text-[13px] text-white/50 mt-0.5">Everything that needs you.</p>
+        <p className="text-xs md:text-[13px] text-white/50 mt-0.5">Only what's due, waiting on you, or next in the pipeline. New inbound proposals live in Triage.</p>
       </div>
-      <DecisionsWaitingPanel onNavigate={onNavigate} filterable />
+      <NextActionStrip
+        headline={today.due.length}
+        headlineLabel="due"
+        insight={insight}
+        ctaLabel={nextActionTask ? 'Open' : 'All clear'}
+        onCta={() => nextActionTask && selectTask(nextActionTask.id)}
+        icon={Clock}
+        accent={overdueCount > 0 ? 'text-rose-300' : 'text-violet-300'}
+        disabled={!nextActionTask}
+      />
       {lane && (
         <div className="flex items-center gap-2 px-3 py-2 bg-violet-500/10 border border-violet-400/20 rounded-lg text-sm">
           <span className="text-violet-200">Filtered to {lane}</span>

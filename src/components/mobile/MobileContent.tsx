@@ -4,6 +4,7 @@ import { MobileShell } from './MobileShell'
 import { TabHeader } from './TabHeader'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
+import { NextActionStrip } from '../shared/NextActionStrip'
 
 const ACTIVE_STATES: IdeaState[] = ['seeded', 'researching', 'drafting', 'review', 'approved']
 const STATE_LABEL: Record<IdeaState, string> = {
@@ -39,11 +40,49 @@ export function MobileContent({ ideaId, onClearIdea }: Props = {}) {
     return out
   }, [ideas])
 
+  // Next action: oldest 'review' idea (blocking ship), else drafting backlog.
+  const nextDecisionIdea = useMemo(() => {
+    const inReview = ideas.filter(i => i.state === 'review')
+    if (inReview.length > 0) {
+      return [...inReview].sort((a, b) => (a.updated_at < b.updated_at ? -1 : 1))[0]
+    }
+    return ideas.filter(i => i.state === 'drafting')[0] || null
+  }, [ideas])
+  const reviewCount = (grouped.review || []).length
+  const draftCount = (grouped.drafting || []).length
+
+  const focusIdea = () => {
+    if (!nextDecisionIdea) return
+    const el = document.querySelector(`[data-content-idea-id="${nextDecisionIdea.id}"]`) as HTMLElement | null
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.style.outline = '2px solid rgba(245, 158, 11, 0.7)'
+      el.style.outlineOffset = '4px'
+      el.style.borderRadius = '12px'
+      setTimeout(() => { el.style.outline = ''; el.style.outlineOffset = '' }, 3500)
+    }
+  }
+
   return (
     <MobileShell
       header={<TabHeader title="Content" subtitle="Ideas to live, one lane" />}
     >
       <div className="px-3 pb-6 space-y-3">
+        <NextActionStrip
+          headline={reviewCount}
+          headlineLabel="in review"
+          insight={nextDecisionIdea
+            ? nextDecisionIdea.state === 'review'
+              ? `"${nextDecisionIdea.idea.slice(0, 70)}${nextDecisionIdea.idea.length > 70 ? '…' : ''}" awaiting your approval`
+              : `${draftCount} drafting · oldest: "${nextDecisionIdea.idea.slice(0, 60)}${nextDecisionIdea.idea.length > 60 ? '…' : ''}"`
+            : `${ideas.length} active · no drafts awaiting your read`}
+          ctaLabel={nextDecisionIdea ? 'Open' : 'View pipeline'}
+          onCta={focusIdea}
+          icon={FileText}
+          accent={reviewCount > 0 ? 'text-amber-300' : 'text-violet-300'}
+          disabled={!nextDecisionIdea}
+        />
+
         {detailIdea && (
           <section
             aria-label="Selected idea"

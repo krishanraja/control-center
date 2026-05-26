@@ -15,22 +15,29 @@ export interface TabDef {
   mobilePriority: 'primary' | 'drawer'
 }
 
-// Canonical 11-tab IA. URL ids preserved for bookmark compatibility; labels follow
+// Canonical 12-tab IA. URL ids preserved for bookmark compatibility; labels follow
 // the rename pass (Leads -> Services, Customers -> Subscriptions, Guests -> Visibility).
-// Content is the new tab.
+//
+// Mobile primary swap: Triage replaces Services in the bottom bar so the
+// phone-first action (approve/reject agent proposals) is one tap away. Services
+// (lane browsing) is harder to use on a phone and moves to the drawer.
+//
+// Desktop drawer demotions: Bets (read-mostly, low action density) and Intel
+// (insight-only, no action) move out of the primary sidebar to reduce IA load;
+// they remain accessible under the "More" drawer.
 export const TABS: TabDef[] = [
   { id: 'home',      label: 'Home',          desktopIcon: LayoutDashboard, mobileIcon: Home,       desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'today',     label: 'Today',         desktopIcon: Calendar,        mobileIcon: Clock,      desktopPriority: 'primary', mobilePriority: 'primary' },
-  { id: 'triage',    label: 'Triage',        desktopIcon: Inbox,           mobileIcon: ShieldQuestion, desktopPriority: 'primary', mobilePriority: 'drawer'  },
-  { id: 'leads',     label: 'Services',      desktopIcon: UserPlus,        mobileIcon: UserPlus,   desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'triage',    label: 'Triage',        desktopIcon: Inbox,           mobileIcon: ShieldQuestion, desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'leads',     label: 'Services',      desktopIcon: UserPlus,        mobileIcon: UserPlus,   desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'guests',    label: 'Visibility',    mobileShortLabel: 'Vis',  desktopIcon: Mic,        mobileIcon: Mic,        desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'content',   label: 'Content',       desktopIcon: FileText,        mobileIcon: FileText,   desktopPriority: 'primary', mobilePriority: 'drawer'  },
-  { id: 'bets',      label: 'Bets',          desktopIcon: Target,          mobileIcon: Target,     desktopPriority: 'primary', mobilePriority: 'drawer'  },
+  { id: 'bets',      label: 'Bets',          desktopIcon: Target,          mobileIcon: Target,     desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
   { id: 'org',       label: 'Org',           desktopIcon: Users,           mobileIcon: GitBranch,  desktopPriority: 'primary', mobilePriority: 'drawer'  },
-  { id: 'exec',      label: 'Intel',         desktopIcon: Brain,           mobileIcon: Activity,   desktopPriority: 'primary', mobilePriority: 'drawer'  },
-  { id: 'workflows', label: 'Flows',         desktopIcon: Workflow,        mobileIcon: Zap,        desktopPriority: 'primary', mobilePriority: 'drawer'  },
-  { id: 'systems',   label: 'Systems',       desktopIcon: Server,          mobileIcon: Server,     desktopPriority: 'primary', mobilePriority: 'drawer'  },
+  { id: 'exec',      label: 'Intel',         desktopIcon: Brain,           mobileIcon: Activity,   desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
+  { id: 'workflows', label: 'Flows',         desktopIcon: Workflow,        mobileIcon: Zap,        desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
+  { id: 'systems',   label: 'Systems',       desktopIcon: Server,          mobileIcon: Server,     desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
 ]
 
 export const DESKTOP_PRIMARY_TABS = TABS.filter(t => t.desktopPriority === 'primary')

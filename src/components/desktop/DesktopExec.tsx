@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Brain, Radio, Zap, ExternalLink } from 'lucide-react'
+import { Brain, Radio, Zap, ExternalLink, Target, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { AskMarcus } from '../AskMarcus'
+import { NextActionStrip } from '../shared/NextActionStrip'
+import { useToast } from '../shared/Toast'
 
 interface ZaraSignal {
   id: string
@@ -72,12 +74,48 @@ export function DesktopExec() {
     return signals.filter(s => (s.venture || '').toLowerCase() === ventureFilter)
   }, [signals, ventureFilter])
 
+  // Hot signals = score >= 8 and still 'received' (un-actioned). These are the
+  // ones worth turning into bets/tasks first. Surfaced in the NextActionStrip.
+  const hotSignals = useMemo(() => {
+    return filteredSignals.filter(s =>
+      (s.signal_score ?? 0) >= 8 &&
+      (s.status === 'received' || s.status === null),
+    )
+  }, [filteredSignals])
+  const topHot = hotSignals[0] || null
+
   return (
     <div className="space-y-5 md:space-y-6">
       <div>
         <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Intelligence</h1>
         <p className="text-xs md:text-[12px] text-white/40 mt-1">Strategic assessment, market signals, and external intelligence.</p>
       </div>
+
+      <NextActionStrip
+        headline={hotSignals.length}
+        headlineLabel="hot"
+        insight={topHot
+          ? `Top signal (${topHot.signal_score}): ${topHot.description?.slice(0, 80) || topHot.signal_type || 'unnamed'}${topHot.description && topHot.description.length > 80 ? '…' : ''}`
+          : signals.length > 0
+            ? `${signals.length} signals tracked — nothing scoring 8+ yet`
+            : 'Zara will surface signals on her next sweep.'}
+        ctaLabel={topHot ? 'Promote to bet' : 'View signals'}
+        onCta={() => {
+          if (!topHot) return
+          // Scroll the hot signal into view + outline it so user sees what they're acting on.
+          const el = document.querySelector(`[data-signal-id="${topHot.id}"]`) as HTMLElement | null
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            el.style.outline = '2px solid rgba(245, 158, 11, 0.7)'
+            el.style.outlineOffset = '4px'
+            el.style.borderRadius = '8px'
+            setTimeout(() => { el.style.outline = ''; el.style.outlineOffset = '' }, 3500)
+          }
+        }}
+        icon={Zap}
+        accent={hotSignals.length > 0 ? 'text-amber-300' : 'text-violet-300'}
+        disabled={!topHot && signals.length === 0}
+      />
 
       <AskMarcus />
 
@@ -166,7 +204,7 @@ export function DesktopExec() {
             ) : (
               <div className="divide-y divide-white/[0.04]">
                 {filteredSignals.map(s => (
-                  <div key={s.id} className="p-2.5 hover:bg-white/[0.015] transition-colors">
+                  <div key={s.id} data-signal-id={s.id} className="p-2.5 hover:bg-white/[0.015] transition-colors">
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 mt-0.5">
                         {s.signal_score !== null && s.signal_score !== undefined && s.signal_score > 0 ? (
@@ -202,6 +240,12 @@ export function DesktopExec() {
                             <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-violet-400/50 hover:text-violet-400">
                               <ExternalLink size={10} /> Source
                             </a>
+                          )}
+                          {s.status !== 'actioned' && (
+                            <PromoteSignalButton
+                              signal={s}
+                              onPromoted={(id) => setSignals(prev => prev.map(x => x.id === id ? { ...x, status: 'actioned' } : x))}
+                            />
                           )}
                         </div>
                       </div>
@@ -240,6 +284,52 @@ function LoadingTile() {
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-8 text-center">
       <p className="text-[12px] text-white/35">Loading…</p>
     </div>
+  )
+}
+
+function PromoteSignalButton({ signal, onPromoted }: { signal: ZaraSignal; onPromoted: (id: string) => void }) {
+  const { toast } = useToast()
+  const [busy, setBusy] = useState(false)
+  const promote = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (busy) return
+    setBusy(true)
+    try {
+      const hypothesis = signal.summary || signal.description || `Act on ${signal.signal_type || 'signal'}`
+      const r = await fetch('/api/bets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hypothesis: hypothesis.slice(0, 240),
+          success_criterion: 'Define measurable outcome within the time-box.',
+          kind: 'experiment',
+          time_box_days: 14,
+          agent_owner: 'krish',
+          source_signal_id: signal.id,
+        }),
+      })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      // Mark signal actioned so it falls out of the hot queue.
+      await supabase.from('zara_signals').update({ status: 'actioned' }).eq('id', signal.id)
+      onPromoted(signal.id)
+      toast('Promoted to bet. Open Bets to finalize the success criterion.', 'success')
+    } catch (err: any) {
+      toast(`Could not promote: ${err?.message || 'try again'}`, 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={promote}
+      disabled={busy}
+      title="Create a bet from this signal — opens in Bets tab"
+      className="inline-flex items-center gap-1 text-violet-300/70 hover:text-violet-200 transition-colors disabled:opacity-40"
+    >
+      {busy ? <Loader2 size={10} className="animate-spin" /> : <Target size={10} />}
+      Promote
+    </button>
   )
 }
 

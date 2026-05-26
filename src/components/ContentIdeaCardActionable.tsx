@@ -160,7 +160,7 @@ export function ContentIdeaCardActionable({ idea: i, expanded, onClose }: Props)
   const bodyToShow = (tabsBody[activeTab] as string | null | undefined) || null
 
   return (
-    <article className="rounded-xl border border-rose-500/15 bg-rose-500/[0.03] p-3 hover:border-rose-500/25 transition-colors">
+    <article data-content-idea-id={i.id} className="rounded-xl border border-rose-500/15 bg-rose-500/[0.03] p-3 hover:border-rose-500/25 transition-colors">
       <header className="flex items-center gap-1.5 flex-wrap text-[10px] mb-2">
         <span className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-200 uppercase tracking-[0.1em] font-semibold">
           {i.state}

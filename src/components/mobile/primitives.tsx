@@ -55,7 +55,20 @@ export function TabHeader({
       {resolvedLeading && <div className="flex-shrink-0 self-start mt-1">{resolvedLeading}</div>}
       <div className="min-w-0 flex-1">
         {title && (
-          <h1 className="text-[44px] font-bold text-white leading-[1.02] tracking-tight">
+          // 44px overflowed 390px viewports for longer titles ("Subscriptions",
+          // "Organisation", "Intelligence") and even short titles ("Services")
+          // wrapped when a trailing element ate horizontal space. Step the size
+          // down by character count and truncate as a final safety net so
+          // titles always sit on one line.
+          <h1
+            className={`font-bold text-white leading-[1.05] tracking-tight truncate ${
+              title.length >= 13
+                ? 'text-[28px]'
+                : title.length >= 10
+                  ? 'text-[32px]'
+                  : 'text-[36px]'
+            }`}
+          >
             {title}
           </h1>
         )}
@@ -159,7 +172,7 @@ export function StatPill({
       <p className={`text-[52px] font-bold leading-none font-mono tracking-tight ${color}`}>
         {value}
       </p>
-      <p className="text-[14px] font-semibold uppercase tracking-[0.14em] text-white/55 mt-3.5 truncate">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/55 mt-3.5 truncate">
         {label}
       </p>
       {sub && <p className="text-[12px] text-white/35 mt-1 truncate">{sub}</p>}

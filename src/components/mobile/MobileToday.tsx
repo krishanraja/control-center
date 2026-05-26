@@ -8,7 +8,6 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { humanAge } from '../../lib/ageHelpers'
-import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
 import { DecisionDetail } from '../DecisionDetail'
 import { navigateDecision } from '../../lib/routeDecision'
 
@@ -170,9 +169,6 @@ export function MobileToday({
           </button>
         </div>
       )}
-      <div className="px-3">
-        <DecisionsWaitingPanel onNavigate={onNavigate} filterable />
-      </div>
       {hero && (
         <HeroCard
           eyebrow={hero.agent ? `Needs you · ${hero.agent}` : 'Needs you'}

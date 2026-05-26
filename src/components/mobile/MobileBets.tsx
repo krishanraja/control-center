@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
-import { Plus } from 'lucide-react'
+import React, { useMemo, useState } from 'react'
+import { Plus, AlertOctagon, Target } from 'lucide-react'
 import { MobileShell as MobileShellPrim, TabHeader, FeedCard, EmptyState } from './primitives'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useBets, BET_KIND_LABEL, type BetKind } from '../../hooks/useBets'
 import { BetCard } from '../BetCard'
 import { useToast } from '../shared/Toast'
+import { NextActionStrip } from '../shared/NextActionStrip'
 
 export function MobileBets() {
   const h = useHaptics()
@@ -22,6 +23,38 @@ export function MobileBets() {
   const [busy, setBusy] = useState(false)
 
   const overall = hitRates.find(r => r.kind === 'all')
+
+  // Mirrors DesktopBets next action: overdue first (decision pressure), then
+  // highest est-MRR live bet. CTA scrolls the bet card into view.
+  const nextBet = useMemo(() => {
+    if (overdueLive.length > 0) {
+      return [...overdueLive].sort((a, b) => {
+        const aStart = a.started_at ? new Date(a.started_at).getTime() : 0
+        const bStart = b.started_at ? new Date(b.started_at).getTime() : 0
+        return aStart - bStart
+      })[0]
+    }
+    return [...live].sort((a, b) => (b.est_mrr_impact_usd || 0) - (a.est_mrr_impact_usd || 0))[0] || null
+  }, [overdueLive, live])
+
+  const insight = overdueLive.length > 0
+    ? `${overdueLive.length} past their time-box — decide won, lost, or extend`
+    : live.length > 0
+      ? `${live.length} live · hit-rate ${overall && overall.total > 0 ? `${overall.pct.toFixed(0)}% over 90d` : 'no decided bets yet'}`
+      : 'No live bets — place one to start the loop.'
+
+  const focusBetCard = () => {
+    if (!nextBet) { h.tap(); setComposing(true); return }
+    h.select()
+    const el = document.querySelector(`[data-bet-id="${nextBet.id}"]`) as HTMLElement | null
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.style.outline = '2px solid rgba(244, 63, 94, 0.7)'
+      el.style.outlineOffset = '4px'
+      el.style.borderRadius = '12px'
+      setTimeout(() => { el.style.outline = ''; el.style.outlineOffset = '' }, 3500)
+    }
+  }
 
   const submit = async () => {
     if (!draft.hypothesis.trim() || !draft.success_criterion.trim()) {
@@ -76,6 +109,16 @@ export function MobileBets() {
         />
       }
     >
+      <NextActionStrip
+        headline={overdueLive.length > 0 ? overdueLive.length : live.length}
+        headlineLabel={overdueLive.length > 0 ? 'overdue' : 'live'}
+        insight={insight}
+        ctaLabel={overdueLive.length > 0 ? 'Decide bet' : nextBet ? 'Review' : 'Place bet'}
+        onCta={focusBetCard}
+        icon={overdueLive.length > 0 ? AlertOctagon : Target}
+        accent={overdueLive.length > 0 ? 'text-rose-300' : 'text-violet-300'}
+      />
+
       {composing && (
         <div className="rounded-2xl border border-violet-500/20 bg-violet-500/[0.05] p-4 space-y-3">
           <p className="text-[14px] font-semibold text-white">New bet</p>

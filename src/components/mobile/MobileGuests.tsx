@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Mic, Megaphone } from 'lucide-react'
+import { Mic, Megaphone, Calendar } from 'lucide-react'
 import { MobileShell } from './MobileShell'
 import { TabHeader } from './TabHeader'
+import { NextActionStrip } from '../shared/NextActionStrip'
 import { BottomSheet } from './BottomSheet'
 import { useRealtimeGuests, type GuestStatus, type GuestRow } from '../../hooks/useRealtimeGuests'
 import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'
@@ -69,6 +70,30 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
   const inboundCount = guests.length
   const outboundCount = targets.filter(t => t.status !== 'done' && t.status !== 'dropped').length
 
+  // Per-lane next-action: scheduled guests awaiting confirmation (inbound),
+  // queued targets closest to deadline (outbound). Matches DesktopGuests.
+  const inboundDecision = useMemo(() => {
+    const scheduled = guests.filter(g => g.status === 'scheduled')
+    return scheduled.sort((a, b) => {
+      const aSched = a.scheduled_at ? new Date(a.scheduled_at).getTime() : Infinity
+      const bSched = b.scheduled_at ? new Date(b.scheduled_at).getTime() : Infinity
+      return aSched - bSched
+    })[0] || null
+  }, [guests])
+  const outboundDecision = useMemo(() => {
+    const queued = targets.filter(t => t.status === 'queued')
+    return queued.sort((a, b) => {
+      const aDl = a.deadline_at ? new Date(a.deadline_at).getTime() : Infinity
+      const bDl = b.deadline_at ? new Date(b.deadline_at).getTime() : Infinity
+      return aDl - bDl
+    })[0] || null
+  }, [targets])
+  const scheduledCount = guests.filter(g => g.status === 'scheduled').length
+  const queuedCount = targets.filter(t => t.status === 'queued').length
+
+  const openGuest = (id: string) => { h.select(); navigateDecision(onNavigate, 'guest', id) }
+  const openTarget = (id: string) => { h.select(); navigateDecision(onNavigate, 'visibility', id) }
+
   return (
     <MobileShell
       header={<TabHeader title="Visibility" subtitle="Inbound guests + outbound speaking" />}
@@ -84,6 +109,34 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
             Outbound <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{outboundCount}</span>
           </LaneTab>
         </div>
+
+        {lane === 'inbound' ? (
+          <NextActionStrip
+            headline={scheduledCount}
+            headlineLabel="to confirm"
+            insight={inboundDecision
+              ? `${scheduledCount} scheduled · top: ${inboundDecision.name || inboundDecision.email || 'unnamed'}`
+              : `${inboundCount} active · no scheduled guests awaiting confirmation`}
+            ctaLabel={inboundDecision ? 'Open' : 'View inbound'}
+            onCta={() => { if (inboundDecision) openGuest(inboundDecision.id) }}
+            icon={Calendar}
+            accent={scheduledCount > 0 ? 'text-emerald-300' : 'text-violet-300'}
+            disabled={!inboundDecision}
+          />
+        ) : (
+          <NextActionStrip
+            headline={queuedCount}
+            headlineLabel="to decide"
+            insight={outboundDecision
+              ? `${queuedCount} queued · top: ${outboundDecision.title}`
+              : `${outboundCount} active · no queued opportunities awaiting decision`}
+            ctaLabel={outboundDecision ? 'Decide' : 'View outbound'}
+            onCta={() => { if (outboundDecision) openTarget(outboundDecision.id) }}
+            icon={Megaphone}
+            accent={queuedCount > 0 ? 'text-amber-300' : 'text-violet-300'}
+            disabled={!outboundDecision}
+          />
+        )}
 
         {lane === 'inbound' ? (
           <>

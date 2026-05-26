@@ -88,7 +88,7 @@ export function QuickCaptureIdea() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-30 flex items-center gap-2 px-3 py-2 rounded-full border border-rose-500/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 shadow-lg backdrop-blur transition-colors"
+        className="fixed right-4 min-[900px]:right-5 bottom-[calc(env(safe-area-inset-bottom,0px)+84px)] min-[900px]:bottom-5 z-30 flex items-center gap-2 px-3 py-2 rounded-full border border-rose-500/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 shadow-lg backdrop-blur transition-colors"
         title="Capture content idea (⌘+I)"
       >
         <Sparkles size={14} />

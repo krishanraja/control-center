@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Users, Linkedin, Mail, ExternalLink, X, ThumbsUp } from 'lucide-react'
+import { Users, Linkedin, Mail, ExternalLink, X, ThumbsUp, Sparkles } from 'lucide-react'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
+import { NextActionStrip } from '../shared/NextActionStrip'
 import { DetailSheet } from './DetailSheet'
 import { LeadImportDropzone } from '../LeadImportDropzone'
 import { useRealtimeLeads, type LeadRow, type LeadSourceType, type LeadStatus } from '../../hooks/useRealtimeLeads'
@@ -113,6 +114,24 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
 
   const openLead = openId ? leads.find(l => l.id === openId) ?? null : null
 
+  // Mirrors DesktopLeads: surface un-enriched candidates so the CEO can
+  // decide per-lead whether to spend Apollo credits. Top candidate is the
+  // one with the highest ICP score across ventures.
+  const candidates = useMemo(() => {
+    return leads
+      .filter(l => l.status === 'new' && !l.deep_enriched_at)
+      .map(l => {
+        const scores = l.icp_scores ? Object.values(l.icp_scores).map(Number).filter(Number.isFinite) : []
+        const maxIcp = scores.length > 0 ? Math.max(...scores) : (l.icp_score ?? 0)
+        return { lead: l, maxIcp }
+      })
+      .sort((a, b) => b.maxIcp - a.maxIcp)
+  }, [leads])
+  const topCandidate = candidates[0]?.lead || null
+  const candidateInsight = topCandidate
+    ? `Top fit: ${topCandidate.full_name || topCandidate.company || 'unnamed'}${topCandidate.primary_venture ? ` (${topCandidate.primary_venture.replace(/_/g, ' ')})` : ''}`
+    : 'No candidates waiting — credits only spent on explicit Enrich.'
+
   return (
     <MobileShellPrim
       header={
@@ -130,6 +149,17 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
         />
       }
     >
+      <NextActionStrip
+        headline={candidates.length}
+        headlineLabel="to decide"
+        insight={candidateInsight}
+        ctaLabel={topCandidate ? 'Open next' : 'View leads'}
+        onCta={() => { if (topCandidate) openLeadFromRow(topCandidate.id) }}
+        icon={Sparkles}
+        accent={candidates.length > 0 ? 'text-emerald-300' : 'text-violet-300'}
+        disabled={!topCandidate}
+      />
+
       {showImport && (
         <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 flex-shrink-0">
           <LeadImportDropzone />
@@ -243,7 +273,57 @@ function buildActions(
     })
   }
 
-  if (!l.deep_enriched_at) {
+  // Candidate (status='new', un-enriched) leads get the Enrich/Skip pair as
+  // primary actions, mirroring the desktop LeadCard decision strip. Cost chip
+  // surfaces in the label so the spend is legible. Skip writes the same
+  // feedback row Vera consumes from triage rejects.
+  const isCandidate = !l.deep_enriched_at && (l.status === 'new' || l.status === 'enriching')
+  if (isCandidate) {
+    acts.push({
+      label: 'Enrich (~$0.50)',
+      variant: 'primary',
+      onClick: async () => {
+        h.heavy()
+        try {
+          const r = await fetch(`/api/leads/${l.id}/enrich`, { method: 'POST' })
+          const body = await r.json().catch(() => ({}))
+          if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
+          h.success()
+          toast('Agatha is enriching — refresh in ~30s.', 'success')
+        } catch (e: any) {
+          h.error()
+          toast(`Could not enrich: ${e?.message || 'try again'}`, 'error')
+        }
+      },
+    })
+    acts.push({
+      label: 'Skip',
+      variant: 'secondary',
+      onClick: async () => {
+        h.heavy()
+        try {
+          const r = await fetch('/api/triage/reject', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              source_table: 'leads',
+              source_id: l.id,
+              agent: l.assignee_agent || 'felix',
+              reason_code: 'lead_other',
+            }),
+          })
+          if (!r.ok) throw new Error(String(r.status))
+          h.success()
+          toast('Skipped. Vera will learn from this.', 'success')
+        } catch (e: any) {
+          h.error()
+          toast(`Could not skip: ${e?.message || 'try again'}`, 'error')
+        }
+      },
+    })
+  } else if (!l.deep_enriched_at) {
+    // Already-contacted / non-candidate leads still get a manual enrich path
+    // (less prominent) for cases where Krish wants to force enrichment.
     acts.push({
       label: 'Deep enrich',
       variant: 'secondary',

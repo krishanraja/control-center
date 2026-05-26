@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { AlertTriangle } from 'lucide-react'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, FeedCard, FeedRow, EmptyState } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
+import { usePendingCorrections } from '../../hooks/usePendingCorrections'
+import { NextActionStrip } from '../shared/NextActionStrip'
 
 interface Agent {
   id: string
@@ -92,6 +95,23 @@ export function MobileOrg() {
 
   const open = openId ? agents.find(a => a.id === openId) ?? null : null
 
+  // Pending corrections from Vera — same surface as desktop. CTA navigates
+  // through to the desktop Org route which carries the approve/reject UI; on
+  // mobile we open the agent detail sheet which surfaces the same brief.
+  const pendingCorrections = usePendingCorrections(5)
+  const topCorrection = pendingCorrections.data[0] || null
+  const correctionsCount = pendingCorrections.data.length
+
+  const openCorrection = () => {
+    if (!topCorrection) return
+    h.select()
+    // Jump to the desktop-shaped route by hash; the same Org tab on desktop
+    // scrolls and outlines the correction row.
+    if (typeof window !== 'undefined') {
+      window.location.hash = `#/org?correction=${topCorrection.id}`
+    }
+  }
+
   const triggerAgent = async (name: string) => {
     h.heavy()
     setTriggering(prev => ({ ...prev, [name]: 'loading' }))
@@ -119,6 +139,19 @@ export function MobileOrg() {
         />
       }
     >
+      <NextActionStrip
+        headline={correctionsCount}
+        headlineLabel="corrections"
+        insight={topCorrection
+          ? `Vera proposed an edit for ${topCorrection.agent_id}${topCorrection.pattern_reason_code ? ` (${topCorrection.pattern_reason_code})` : ''} — approve to ship`
+          : `${agents.length} agent${agents.length === 1 ? '' : 's'} active · no correction patterns waiting`}
+        ctaLabel={topCorrection ? 'Review' : 'View roster'}
+        onCta={openCorrection}
+        icon={AlertTriangle}
+        accent={correctionsCount > 0 ? 'text-amber-300' : 'text-violet-300'}
+        disabled={!topCorrection}
+      />
+
       {heroErr && (
         <HeroCard
           eyebrow="Most errors recently"
