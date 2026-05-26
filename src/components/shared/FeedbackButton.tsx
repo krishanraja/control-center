@@ -9,6 +9,11 @@ export type FeedbackSurface =
   | 'nova_target_conferences'
   | 'visibility_targets'
   | 'guests'
+  | 'tasks'
+  | 'customers'
+  | 'bets'
+  | 'opportunities'
+  | 'corrections'
 
 interface ReasonOption {
   code: string
@@ -51,6 +56,35 @@ const REASON_OPTIONS: Record<FeedbackSurface, ReasonOption[]> = {
     { code: 'guest_not_a_builder',      label: 'Not actually a builder/operator' },
     { code: 'guest_recently_appeared',  label: 'Recently appeared elsewhere' },
     { code: 'guest_other',              label: 'Other' },
+  ],
+  tasks: [
+    { code: 'task_not_a_priority',      label: 'Not a real priority' },
+    { code: 'task_wrong_framing',       label: 'Wrong framing of the job' },
+    { code: 'task_outdated_context',    label: 'Context is outdated' },
+    { code: 'task_already_done',        label: 'Already done elsewhere' },
+    { code: 'task_other',               label: 'Other' },
+  ],
+  customers: [
+    { code: 'customer_wrong_segment',   label: 'Wrong segment classification' },
+    { code: 'customer_missing_context', label: 'Missing context about this customer' },
+    { code: 'customer_other',           label: 'Other' },
+  ],
+  bets: [
+    { code: 'bet_not_falsifiable',      label: 'Not actually falsifiable' },
+    { code: 'bet_wrong_hypothesis',     label: 'Wrong hypothesis to bet on' },
+    { code: 'bet_wrong_size',           label: 'Size is wrong (too big/small)' },
+    { code: 'bet_other',                label: 'Other' },
+  ],
+  opportunities: [
+    { code: 'opp_no_revenue_path',      label: 'No clear revenue path' },
+    { code: 'opp_wrong_ICP',            label: 'Wrong ICP' },
+    { code: 'opp_too_low_signal',       label: 'Signal too low' },
+    { code: 'opp_other',                label: 'Other' },
+  ],
+  corrections: [
+    { code: 'correction_no_action',     label: 'No action needed' },
+    { code: 'correction_wrong_pattern', label: 'Pattern is wrong' },
+    { code: 'correction_other',         label: 'Other' },
   ],
 }
 

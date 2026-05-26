@@ -78,19 +78,21 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       message: `${sysHealth?.length || 0} services tracked, ${failingComponents.length} failing`,
     }
 
-    // 4. Agent freshness (last_run vs expected_runs_per_day)
-    const { data: freshnessRows } = await supabase
-      .from('agents')
-      .select('id, name, last_run, expected_runs_per_day')
-      .eq('active', true)
+    // 4. Agent freshness — read from agent_plans.last_rendered_at (the
+    // cron-maintained source). agents.last_run is unmaintained for most
+    // agents and produces always-red dashboards (audit 2026-05-26 F10).
+    const { data: planRows } = await supabase
+      .from('agent_plans')
+      .select('agent_id, last_rendered_at')
+    const FRESH_THRESHOLD_HOURS = 30
 
     const stale: string[] = []
-    for (const a of freshnessRows || []) {
-      if (a.expected_runs_per_day == null || a.expected_runs_per_day <= 0) continue
-      const intervalSec = 86400 / Number(a.expected_runs_per_day)
-      const lastMs = a.last_run ? new Date(a.last_run).getTime() : 0
-      const ageSec = (now.getTime() - lastMs) / 1000
-      if (!a.last_run || ageSec > 2 * intervalSec) stale.push(a.name || a.id)
+    for (const p of planRows || []) {
+      const lastMs = p.last_rendered_at ? new Date(p.last_rendered_at).getTime() : 0
+      const ageHours = (now.getTime() - lastMs) / 3600000
+      if (!p.last_rendered_at || ageHours > FRESH_THRESHOLD_HOURS) {
+        stale.push(p.agent_id || 'unknown')
+      }
     }
     const freshStatus: Level = stale.length === 0 ? 'healthy' : stale.length <= 2 ? 'degraded' : 'failed'
     health.components['agent-freshness'] = {

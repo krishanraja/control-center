@@ -205,6 +205,7 @@ export function MobileToday({
               detail={t.next_step || undefined}
               trailing={<span className="text-[14px] text-white/40">{humanDue(t.due_date)}</span>}
               onClick={() => { h.select(); setOpenId(t.id) }}
+              feedback={{ sourceTable: "tasks", sourceId: t.id, agentId: t.agent || t.owner }}
             />
           ))}
         </FeedCard>
@@ -220,6 +221,7 @@ export function MobileToday({
               detail={t.next_step || undefined}
               trailing={<span className="text-[14px] text-white/35 tabular-nums">{humanAge(t.updated_at)}</span>}
               onClick={() => { h.select(); setOpenId(t.id) }}
+              feedback={{ sourceTable: "tasks", sourceId: t.id, agentId: t.agent || t.owner }}
             />
           ))}
         </FeedCard>
@@ -235,6 +237,7 @@ export function MobileToday({
               detail={t.agent ? `${t.agent}${t.next_step ? ' · ' + t.next_step : ''}` : t.next_step || undefined}
               trailing={<span className="text-[14px] text-white/35 tabular-nums">{humanAge(t.updated_at)}</span>}
               onClick={() => { h.select(); setOpenId(t.id) }}
+              feedback={{ sourceTable: "tasks", sourceId: t.id, agentId: t.agent || t.owner }}
             />
           ))}
         </FeedCard>
@@ -267,6 +270,7 @@ export function MobileToday({
                 </button>
               }
               onClick={() => { h.select(); setOpenId(t.id) }}
+              feedback={{ sourceTable: "tasks", sourceId: t.id, agentId: t.agent || t.owner }}
             />
           ))}
         </FeedCard>
