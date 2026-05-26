@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { TrendingUp } from 'lucide-react'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -12,6 +13,7 @@ import { MrrTicker } from '../MrrTicker'
 import { CustomerCouncilCard } from '../CustomerCouncilCard'
 import { ExpansionRadar } from '../ExpansionRadar'
 import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
+import { NextActionStrip } from '../shared/NextActionStrip'
 
 export function MobileCustomers() {
   const h = useHaptics()
@@ -37,6 +39,20 @@ export function MobileCustomers() {
 
   const open = openId ? customers.find(c => c.id === openId) ?? null : null
 
+  // Mirrors DesktopCustomers expansion-plays selection.
+  const expansionPlays = useMemo(() => {
+    const now = Date.now()
+    return customers
+      .filter(c => c.kind === 'paid' && c.needs_outreach_at && new Date(c.needs_outreach_at).getTime() <= now)
+      .filter(c => {
+        if (!c.last_emailed_at) return true
+        const ageDays = (now - new Date(c.last_emailed_at).getTime()) / (24 * 60 * 60 * 1000)
+        return ageDays >= 7
+      })
+      .sort((a, b) => (b.mrr_usd || 0) - (a.mrr_usd || 0))
+  }, [customers])
+  const topExpansion = expansionPlays[0] || null
+
   return (
     <MobileShellPrim
       header={
@@ -52,6 +68,19 @@ export function MobileCustomers() {
         />
       }
     >
+      <NextActionStrip
+        headline={expansionPlays.length}
+        headlineLabel="plays"
+        insight={topExpansion
+          ? `${topExpansion.full_name || topExpansion.email || 'unnamed'}${topExpansion.mrr_usd ? ` ($${topExpansion.mrr_usd}/mo)` : ''} flagged for outreach`
+          : `$${Math.round(totals.mrrUsd).toLocaleString()}/mo MRR · no expansion plays waiting`}
+        ctaLabel={topExpansion ? 'Open' : 'View accounts'}
+        onCta={() => { if (topExpansion) { h.select(); setOpenId(topExpansion.id) } }}
+        icon={TrendingUp}
+        accent={expansionPlays.length > 0 ? 'text-emerald-300' : 'text-violet-300'}
+        disabled={!topExpansion}
+      />
+
       <MrrTicker variant="mobile" />
       <CustomerCouncilCard />
       <ExpansionRadar />
