@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { TrendingUp, TrendingDown, Clock, AlertOctagon, Check, X, Pause } from 'lucide-react'
 import { useToast } from './shared/Toast'
+import { FeedbackButton } from './shared/FeedbackButton'
 import { useHaptics } from '../hooks/useHaptics'
 import {
   elapsedPct, isOverdue,
@@ -177,6 +178,11 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
           <span className="text-white/35">Learning: </span>{bet.learning}
         </p>
       )}
+
+      {/* Audit 2026-05-26: FB so Krish can thumb-down a bet (e.g. wrong hypothesis, wrong size). */}
+      <div className="flex items-center justify-end gap-1 mt-2 pt-2 border-t border-white/[0.04]">
+        <FeedbackButton sourceTable="bets" sourceId={bet.id} agentId={null} compact />
+      </div>
 
       {/* Forced decision modal */}
       {modal && (

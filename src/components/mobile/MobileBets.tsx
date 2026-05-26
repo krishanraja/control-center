@@ -6,7 +6,6 @@ import { useBets, BET_KIND_LABEL, type BetKind } from '../../hooks/useBets'
 import { BetCard } from '../BetCard'
 import { useToast } from '../shared/Toast'
 
-import { FeedbackButton } from '../shared/FeedbackButton'
 export function MobileBets() {
   const h = useHaptics()
   const { toast } = useToast()

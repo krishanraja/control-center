@@ -201,6 +201,18 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             )}
           </button>
         </div>
+        {l.linkedin_url && (
+          <a
+            href={l.linkedin_url}
+            target="_blank"
+            rel="noreferrer noopener"
+            onClick={(e) => e.stopPropagation()}
+            title="LinkedIn profile"
+            className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-white/35 hover:text-sky-300 hover:bg-sky-500/10 transition-colors"
+          >
+            <Linkedin size={11} />
+          </a>
+        )}
         <span className="text-[10px] tabular-nums text-white/35 flex-shrink-0">
           {humanAge(l.updated_at)}
         </span>
