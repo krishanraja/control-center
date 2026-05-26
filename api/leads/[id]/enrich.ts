@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const r = await fetch(webhook, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lead_id: id }),
+      body: JSON.stringify({ manual_trigger: true, lead_id: id  }),
     })
     const body = await r.text()
     if (!r.ok) {

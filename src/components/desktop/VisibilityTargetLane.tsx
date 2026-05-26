@@ -13,6 +13,8 @@ interface Props {
 
 export function VisibilityTargetLane({ status, title, description, targets, onOpen }: Props) {
   const [collapsed, setCollapsed] = React.useState(status === 'dropped' || status === 'done')
+  // CLO-009 (audit 2026-05-26): allow showing all rows when user clicks '+N more'.
+  const [showAll, setShowAll] = React.useState(false)
 
   if (targets.length === 0) {
     return (
@@ -26,7 +28,7 @@ export function VisibilityTargetLane({ status, title, description, targets, onOp
     )
   }
 
-  const top = collapsed ? [] : targets.slice(0, 6)
+  const top = collapsed ? [] : (showAll ? targets : targets.slice(0, 6))
   const remaining = targets.length - top.length
 
   return (
@@ -56,7 +58,13 @@ export function VisibilityTargetLane({ status, title, description, targets, onOp
             <VisibilityTargetCard key={t.id} target={t} onOpen={onOpen} />
           ))}
           {remaining > 0 && (
-            <div className="text-[11px] text-white/40 text-center py-1">+{remaining} more</div>
+            <button
+              type="button"
+              onClick={() => setShowAll(true)}
+              className="w-full text-[11px] text-violet-300/80 hover:text-violet-200 text-center py-2 hover:bg-white/[0.025] rounded transition-colors"
+            >
+              Show {remaining} more
+            </button>
           )}
         </div>
       )}

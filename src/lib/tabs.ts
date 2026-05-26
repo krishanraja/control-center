@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Home, Calendar, Clock, UserPlus, DollarSign, Mic, Target, FileText,
-  Users, GitBranch, Brain, Activity, Workflow, Zap, Server,
+  Users, GitBranch, Brain, Activity, Workflow, Zap, Server, Inbox, ShieldQuestion,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -21,6 +21,7 @@ export interface TabDef {
 export const TABS: TabDef[] = [
   { id: 'home',      label: 'Home',          desktopIcon: LayoutDashboard, mobileIcon: Home,       desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'today',     label: 'Today',         desktopIcon: Calendar,        mobileIcon: Clock,      desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'triage',    label: 'Triage',        desktopIcon: Inbox,           mobileIcon: ShieldQuestion, desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'leads',     label: 'Services',      desktopIcon: UserPlus,        mobileIcon: UserPlus,   desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'guests',    label: 'Visibility',    mobileShortLabel: 'Vis',  desktopIcon: Mic,        mobileIcon: Mic,        desktopPriority: 'primary', mobilePriority: 'primary' },

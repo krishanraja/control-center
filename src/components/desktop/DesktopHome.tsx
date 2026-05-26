@@ -147,7 +147,6 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       />
 
       {/* DECISIONS WAITING — compact preview, kind-routed. */}
-      <DecisionsWaitingPanel onNavigate={onNavigate} limit={12} />
 
       {/* DAILY BRIEF — non-blocking. Retro is a collapsible card. */}
       <DailyBriefBanner blocking={false} variant="desktop" />
