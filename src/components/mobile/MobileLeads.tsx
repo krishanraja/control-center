@@ -180,6 +180,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
                   <span className="text-[14px] text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>
                 }
                 onClick={() => openLeadFromRow(l.id)}
+                feedback={{ sourceTable: "leads", sourceId: l.id, agentId: l.assignee_agent }}
               />
             ))}
             {rows.length > 8 && (

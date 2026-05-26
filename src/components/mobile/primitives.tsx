@@ -1,4 +1,5 @@
 import React from 'react'
+import { FeedbackButton, type FeedbackSurface } from '../shared/FeedbackButton'
 
 /**
  * Mobile-native primitives — thumb-scale, fills the viewport.
@@ -208,12 +209,14 @@ export function FeedRow({
   detail,
   trailing,
   onClick,
+  feedback,
 }: {
   dotColor?: string
   title: string
   detail?: string
   trailing?: React.ReactNode
   onClick?: () => void
+  feedback?: { sourceTable: FeedbackSurface; sourceId: string; agentId?: string | null }
 }) {
   const Wrapper: any = onClick ? 'button' : 'div'
   return (
@@ -236,6 +239,11 @@ export function FeedRow({
         )}
       </div>
       {trailing && <div className="flex-shrink-0 ml-3 self-center">{trailing}</div>}
+      {feedback && (
+        <div className="flex-shrink-0 ml-2 self-center" onClick={(e) => e.stopPropagation()}>
+          <FeedbackButton sourceTable={feedback.sourceTable} sourceId={feedback.sourceId} agentId={feedback.agentId} compact />
+        </div>
+      )}
     </Wrapper>
   )
 }

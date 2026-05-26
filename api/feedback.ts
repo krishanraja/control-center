@@ -16,6 +16,11 @@ const ALLOWED_TABLES = new Set([
   'nova_target_conferences',
   'visibility_targets',
   'guests',
+  'tasks',
+  'customers',
+  'bets',
+  'opportunities',
+  'corrections',
 ])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
