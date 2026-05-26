@@ -28,6 +28,8 @@ export function routeDecision(kind: DecisionKind | string, id: string | null | u
       return { tab: 'guests', params: safeId ? { target: safeId } : {} }
     case 'lead':
       return { tab: 'leads', params: safeId ? { lead: safeId } : {} }
+    case 'correction':
+      return { tab: 'org', params: safeId ? { correction: safeId } : {} }
     default:
       return { tab: 'today', params: {} }
   }

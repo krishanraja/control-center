@@ -25,6 +25,7 @@ const KIND_TO_TABLE: Record<DecisionKind, string> = {
   idea: 'content_ideas',
   lead: 'leads',
   visibility: 'visibility_targets',
+  correction: 'corrections',
 }
 
 function parseDecisionParam(raw: string): { kind: DecisionKind; id: string } | null {

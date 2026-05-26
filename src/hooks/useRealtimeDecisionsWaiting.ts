@@ -3,7 +3,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
 export interface DecisionRow {
-  kind: 'task' | 'guest' | 'idea' | 'lead' | 'visibility'
+  kind: 'task' | 'guest' | 'idea' | 'lead' | 'visibility' | 'correction'
   id: string
   title: string
   description: string | null
@@ -23,7 +23,7 @@ let loaded = false
 let inflight: Promise<void> | null = null
 const listeners = new Set<() => void>()
 
-const SOURCE_TABLES = ['tasks', 'guests', 'content_ideas', 'leads', 'visibility_targets']
+const SOURCE_TABLES = ['tasks', 'guests', 'content_ideas', 'leads', 'visibility_targets', 'corrections']
 let channels: RealtimeChannel[] = []
 
 function notify() { for (const l of listeners) l() }
