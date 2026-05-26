@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
-import { ThumbsUp, ThumbsDown, ExternalLink, Mic, UserPlus, FileText, Target } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from 'react'
+import { ThumbsUp, ThumbsDown, ExternalLink, Mic, UserPlus, FileText, Target, Inbox } from 'lucide-react'
+import { formatDistanceToNow, parseISO } from 'date-fns'
 import { useTriageQueue, type TriageRow, type TriageKind } from '../hooks/useTriageQueue'
 import { useHaptics } from '../hooks/useHaptics'
 import { useToast } from './shared/Toast'
+import { NextActionStrip } from './shared/NextActionStrip'
 
 const KIND_ICON: Record<TriageKind, typeof Mic> = {
   content_idea: FileText,
@@ -57,6 +59,53 @@ export function TriagePanel({ onNavigate }: Props) {
   const [busy, setBusy] = useState<string | null>(null)
   const [openReason, setOpenReason] = useState<string | null>(null)
   const [reasonText, setReasonText] = useState('')
+  const [focusedId, setFocusedId] = useState<string | null>(null)
+
+  // Default focus to the oldest item once rows arrive.
+  useEffect(() => {
+    if (!focusedId && rows.length > 0) setFocusedId(rows[0].id)
+  }, [rows, focusedId])
+
+  // Memoized ordered list (matches render order: by kind, then sort_at).
+  const orderedRows = useMemo(() => {
+    const order: TriageKind[] = ['content_idea', 'lead', 'visibility', 'guest']
+    const byKindLocal: Record<string, TriageRow[]> = {}
+    for (const r of rows) {
+      byKindLocal[r.kind] = byKindLocal[r.kind] || []
+      byKindLocal[r.kind].push(r)
+    }
+    return order.flatMap(k => byKindLocal[k] || [])
+  }, [rows])
+
+  // Keyboard shortcuts: j/k navigate, y/n approve/reject. Ignored while typing
+  // in a text input (rejection note) or while a button has focus inside a popup.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (orderedRows.length === 0) return
+      const idx = Math.max(0, orderedRows.findIndex(r => r.id === focusedId))
+      const cur = orderedRows[idx]
+      if (e.key === 'j' || e.key === 'ArrowDown') {
+        e.preventDefault()
+        const next = orderedRows[Math.min(orderedRows.length - 1, idx + 1)]
+        if (next) setFocusedId(next.id)
+      } else if (e.key === 'k' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        const prev = orderedRows[Math.max(0, idx - 1)]
+        if (prev) setFocusedId(prev.id)
+      } else if (e.key === 'y' && cur && !busy) {
+        e.preventDefault()
+        promote(cur)
+      } else if (e.key === 'n' && cur && !busy) {
+        e.preventDefault()
+        setOpenReason(cur.id)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [orderedRows, focusedId, busy])
 
   const promote = async (row: TriageRow) => {
     if (busy) return
@@ -132,17 +181,34 @@ export function TriagePanel({ onNavigate }: Props) {
     return acc
   }, {})
 
+  // Oldest item drives "what to triage next"
+  const oldest = rows[0]
+  const oldestAgeLabel = oldest?.sort_at
+    ? formatDistanceToNow(parseISO(oldest.sort_at), { addSuffix: false })
+    : ''
+
   return (
     <div className="space-y-6">
       <header className="flex items-baseline justify-between">
         <div>
           <h1 className="text-[24px] font-bold text-white">Triage</h1>
           <p className="text-[12px] text-white/45 mt-1">
-            Agent suggestions waiting for your call. Thumb-up to add to Today; thumb-down with a reason so Vera learns.
+            Agent suggestions waiting for your call. Thumb-up (or <kbd className="px-1 py-0.5 rounded bg-white/[0.08] text-white/65">Y</kbd>) to add to Today; thumb-down (<kbd className="px-1 py-0.5 rounded bg-white/[0.08] text-white/65">N</kbd>) with a reason so Vera learns. <kbd className="px-1 py-0.5 rounded bg-white/[0.08] text-white/65">J</kbd>/<kbd className="px-1 py-0.5 rounded bg-white/[0.08] text-white/65">K</kbd> to move between items.
           </p>
         </div>
         <span className="text-[14px] tabular-nums text-white/55">{rows.length}</span>
       </header>
+
+      <NextActionStrip
+        headline={rows.length}
+        headlineLabel="pending"
+        insight={oldest ? `Oldest is ${oldestAgeLabel} old — "${oldest.title}"` : 'No pending items.'}
+        ctaLabel="Triage next"
+        onCta={() => setFocusedId(oldest?.id || null)}
+        icon={Inbox}
+        accent="text-violet-300"
+        disabled={!oldest}
+      />
 
       {(['content_idea', 'lead', 'visibility', 'guest'] as TriageKind[]).map(k => {
         const list = byKind[k] || []
@@ -159,8 +225,13 @@ export function TriagePanel({ onNavigate }: Props) {
               {list.map(row => (
                 <div
                   key={`${row.kind}-${row.id}`}
-                  className="rounded-lg border border-white/[0.05] bg-white/[0.015] p-3 hover:border-white/[0.10] transition-colors"
+                  className={`rounded-lg border p-3 transition-colors ${
+                    focusedId === row.id
+                      ? 'border-violet-400/50 bg-violet-500/[0.06]'
+                      : 'border-white/[0.05] bg-white/[0.015] hover:border-white/[0.10]'
+                  }`}
                   data-triage-id={row.id}
+                  onMouseEnter={() => setFocusedId(row.id)}
                 >
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">

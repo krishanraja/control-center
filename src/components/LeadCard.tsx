@@ -9,6 +9,18 @@ import type { LeadRow, LeadStatus } from '../hooks/useRealtimeLeads'
 
 const ASSIGNEE_OPTIONS = ['felix', 'maya', 'nell', 'krish'] as const
 
+// Apollo deep-enrich cost surfaced on the per-lead Enrich CTA so spending is
+// legible. Update if the upstream pricing changes.
+const ENRICH_COST_LABEL = '~$0.50'
+
+const SKIP_REASONS: ReadonlyArray<{ code: string; label: string }> = [
+  { code: 'lead_wrong_seniority', label: 'Wrong seniority' },
+  { code: 'lead_wrong_company_size', label: 'Wrong company size' },
+  { code: 'lead_no_budget_signal', label: 'No real budget signal' },
+  { code: 'lead_already_contacted', label: 'Already contacted' },
+  { code: 'lead_other', label: 'Other' },
+]
+
 function plusDaysIso(days: number): string {
   const d = new Date()
   d.setDate(d.getDate() + days)
@@ -36,7 +48,7 @@ interface Props {
  * Status changes write through /api/leads/:id which updates Supabase; the
  * realtime subscription animates the card to its new lane.
  */
-type LeadActionState = LeadStatus | 'promote' | 'reassign' | 'follow_up' | 'deep_enrich' | 'draft_email'
+type LeadActionState = LeadStatus | 'promote' | 'reassign' | 'follow_up' | 'deep_enrich' | 'draft_email' | 'skip'
 
 export function LeadCard({ lead: l, onOpen }: Props) {
   const { toast } = useToast()
@@ -44,6 +56,13 @@ export function LeadCard({ lead: l, onOpen }: Props) {
   const [busy, setBusy] = useState<null | LeadActionState>(null)
   const [reassignOpen, setReassignOpen] = useState(false)
   const [followUpOpen, setFollowUpOpen] = useState(false)
+  const [skipOpen, setSkipOpen] = useState(false)
+
+  // A "candidate" lead is one Krish hasn't yet decided on: not deep-enriched
+  // AND still in the new/enriching funnel. The card surfaces a prominent
+  // Enrich/Skip pair on candidates so Apollo credits are only spent on
+  // explicit approval. Once enriched, the regular action row takes over.
+  const isCandidate = !l.deep_enriched_at && (l.status === 'new' || l.status === 'enriching')
 
   const setStatus = async (next: LeadStatus) => {
     h.heavy()
@@ -149,6 +168,32 @@ export function LeadCard({ lead: l, onOpen }: Props) {
     } catch (e: any) {
       h.error()
       toast(`Could not trigger enrichment: ${e?.message || 'try again'}`, 'error')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const skipLead = async (reasonCode: string) => {
+    h.heavy()
+    setBusy('skip')
+    setSkipOpen(false)
+    try {
+      const r = await fetch('/api/triage/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source_table: 'leads',
+          source_id: l.id,
+          agent: l.assignee_agent || 'felix',
+          reason_code: reasonCode,
+        }),
+      })
+      if (!r.ok) throw new Error(String(r.status))
+      h.success()
+      toast('Skipped. Vera will learn from this.', 'success')
+    } catch {
+      h.error()
+      toast('Could not skip — try again.', 'error')
     } finally {
       setBusy(null)
     }
@@ -317,6 +362,57 @@ export function LeadCard({ lead: l, onOpen }: Props) {
         </p>
       )}
 
+      {/* Primary decision strip for candidate leads: Enrich (spend) or Skip
+          (drop + feedback). Replaces the old global AUTO-ENRICH toggle so the
+          decision is made per-lead, with the cost visible up-front. */}
+      {isCandidate && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-500/[0.04] p-2">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); deepEnrich() }}
+            disabled={busy !== null}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-emerald-500/90 text-black hover:bg-emerald-400 disabled:opacity-40 transition-colors"
+            title="Send to Agatha for deep enrichment via Apollo"
+          >
+            <Sparkles size={12} />
+            {busy === 'deep_enrich' ? 'Enriching…' : 'Enrich'}
+            <span className="text-[10px] font-normal opacity-70 tabular-nums">{ENRICH_COST_LABEL}</span>
+          </button>
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => setSkipOpen(o => !o)}
+              disabled={busy !== null}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+              title="Skip this lead — Vera learns from the reason"
+            >
+              <X size={12} />
+              {busy === 'skip' ? 'Skipping…' : 'Skip'}
+            </button>
+            {skipOpen && (
+              <div className="absolute z-30 mt-1 left-0 rounded-md border border-white/10 bg-[#141416] shadow-2xl p-1 flex flex-col min-w-[180px]">
+                <span className="px-2 pt-1 pb-0.5 text-[9px] uppercase tracking-[0.14em] text-white/40">
+                  Why skip?
+                </span>
+                {SKIP_REASONS.map(r => (
+                  <button
+                    key={r.code}
+                    type="button"
+                    onClick={() => skipLead(r.code)}
+                    className="text-left px-2 py-1 rounded text-[11px] text-white/75 hover:bg-white/[0.06]"
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <span className="text-[10px] text-white/45 ml-auto">
+            Decide once per lead — credits are only spent on Enrich.
+          </span>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
         {l.status !== 'contacted' && (
@@ -391,16 +487,18 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             </div>
           )}
         </div>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); deepEnrich() }}
-          disabled={busy !== null || l.deep_enriched_at != null}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-amber-500/30 text-amber-200 hover:bg-amber-500/15 disabled:opacity-40 transition-colors"
-          title={l.deep_enriched_at ? 'Already deep-enriched' : 'Send to Agatha for deeper enrichment'}
-        >
-          <Sparkles size={11} />
-          {busy === 'deep_enrich' ? 'Enriching…' : 'Deep enrich'}
-        </button>
+        {!isCandidate && !l.deep_enriched_at && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); deepEnrich() }}
+            disabled={busy !== null}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-amber-500/30 text-amber-200 hover:bg-amber-500/15 disabled:opacity-40 transition-colors"
+            title="Send to Agatha for deeper enrichment"
+          >
+            <Sparkles size={11} />
+            {busy === 'deep_enrich' ? 'Enriching…' : 'Deep enrich'}
+          </button>
+        )}
         {l.linkedin_url && (
           <a
             href={l.linkedin_url}
