@@ -76,10 +76,10 @@ export function MobileCustomers() {
       )}
 
       <div className="flex gap-3 flex-shrink-0">
-        <StatPill label="Paid"     value={totals.paid}                color={totals.paid > 0 ? 'text-emerald-300' : 'text-white/45'} />
-        <StatPill label="MRR / mo" value={`$${Math.round(totals.mrrUsd).toLocaleString()}`} color={totals.mrrUsd > 0 ? 'text-emerald-300' : 'text-white/45'} />
-        <StatPill label="Signups"  value={totals.freeSignups}         color={totals.freeSignups > 0 ? 'text-violet-300' : 'text-white/45'} />
-        <StatPill label="Waitlist" value={totals.waitlist}            color={totals.waitlist > 0 ? 'text-amber-300' : 'text-white/45'} />
+        <StatPill label="Paid"  value={totals.paid}                                       color={totals.paid > 0 ? 'text-emerald-300' : 'text-white/45'} />
+        <StatPill label="MRR"   value={`$${Math.round(totals.mrrUsd).toLocaleString()}`}  color={totals.mrrUsd > 0 ? 'text-emerald-300' : 'text-white/45'} />
+        <StatPill label="Free"  value={totals.freeSignups}                                color={totals.freeSignups > 0 ? 'text-violet-300' : 'text-white/45'} />
+        <StatPill label="Wait"  value={totals.waitlist}                                   color={totals.waitlist > 0 ? 'text-amber-300' : 'text-white/45'} />
       </div>
 
       {error && (

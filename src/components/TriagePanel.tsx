@@ -50,9 +50,12 @@ const REASON_OPTS: Record<TriageKind, Array<{ code: string; label: string }>> = 
 
 interface Props {
   onNavigate?: (tab: string, params?: Record<string, string>) => void
+  /** When true, suppress the panel's own header — the host already shows one
+   *  (used by MobileTriage which renders its own TabHeader). */
+  hideHeader?: boolean
 }
 
-export function TriagePanel({ onNavigate }: Props) {
+export function TriagePanel({ onNavigate, hideHeader = false }: Props) {
   const { rows, loading } = useTriageQueue()
   const { toast } = useToast()
   const h = useHaptics()
@@ -189,15 +192,21 @@ export function TriagePanel({ onNavigate }: Props) {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-baseline justify-between">
-        <div>
-          <h1 className="text-[24px] font-bold text-white">Triage</h1>
-          <p className="text-[12px] text-white/45 mt-1">
-            Agent suggestions waiting for your call. Thumb-up (or <kbd className="px-1 py-0.5 rounded bg-white/[0.08] text-white/65">Y</kbd>) to add to Today; thumb-down (<kbd className="px-1 py-0.5 rounded bg-white/[0.08] text-white/65">N</kbd>) with a reason so Vera learns. <kbd className="px-1 py-0.5 rounded bg-white/[0.08] text-white/65">J</kbd>/<kbd className="px-1 py-0.5 rounded bg-white/[0.08] text-white/65">K</kbd> to move between items.
-          </p>
-        </div>
-        <span className="text-[14px] tabular-nums text-white/55">{rows.length}</span>
-      </header>
+      {!hideHeader && (
+        <header className="flex items-baseline justify-between">
+          <div>
+            <h1 className="text-[24px] font-bold text-white">Triage</h1>
+            <p className="text-[12px] text-white/45 mt-1">
+              Agent suggestions waiting for your call. Thumb-up to add to Today; thumb-down with a reason so Vera learns.
+              <span className="hidden md:inline">
+                {' '}<kbd className="px-1 py-0.5 rounded bg-white/[0.08] text-white/65">J</kbd>/<kbd className="px-1 py-0.5 rounded bg-white/[0.08] text-white/65">K</kbd> to move,
+                {' '}<kbd className="px-1 py-0.5 rounded bg-white/[0.08] text-white/65">Y</kbd>/<kbd className="px-1 py-0.5 rounded bg-white/[0.08] text-white/65">N</kbd> to approve/reject.
+              </span>
+            </p>
+          </div>
+          <span className="text-[14px] tabular-nums text-white/55">{rows.length}</span>
+        </header>
+      )}
 
       <NextActionStrip
         headline={rows.length}

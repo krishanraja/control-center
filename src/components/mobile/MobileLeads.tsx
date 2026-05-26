@@ -243,7 +243,57 @@ function buildActions(
     })
   }
 
-  if (!l.deep_enriched_at) {
+  // Candidate (status='new', un-enriched) leads get the Enrich/Skip pair as
+  // primary actions, mirroring the desktop LeadCard decision strip. Cost chip
+  // surfaces in the label so the spend is legible. Skip writes the same
+  // feedback row Vera consumes from triage rejects.
+  const isCandidate = !l.deep_enriched_at && (l.status === 'new' || l.status === 'enriching')
+  if (isCandidate) {
+    acts.push({
+      label: 'Enrich (~$0.50)',
+      variant: 'primary',
+      onClick: async () => {
+        h.heavy()
+        try {
+          const r = await fetch(`/api/leads/${l.id}/enrich`, { method: 'POST' })
+          const body = await r.json().catch(() => ({}))
+          if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
+          h.success()
+          toast('Agatha is enriching — refresh in ~30s.', 'success')
+        } catch (e: any) {
+          h.error()
+          toast(`Could not enrich: ${e?.message || 'try again'}`, 'error')
+        }
+      },
+    })
+    acts.push({
+      label: 'Skip',
+      variant: 'secondary',
+      onClick: async () => {
+        h.heavy()
+        try {
+          const r = await fetch('/api/triage/reject', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              source_table: 'leads',
+              source_id: l.id,
+              agent: l.assignee_agent || 'felix',
+              reason_code: 'lead_other',
+            }),
+          })
+          if (!r.ok) throw new Error(String(r.status))
+          h.success()
+          toast('Skipped. Vera will learn from this.', 'success')
+        } catch (e: any) {
+          h.error()
+          toast(`Could not skip: ${e?.message || 'try again'}`, 'error')
+        }
+      },
+    })
+  } else if (!l.deep_enriched_at) {
+    // Already-contacted / non-candidate leads still get a manual enrich path
+    // (less prominent) for cases where Krish wants to force enrichment.
     acts.push({
       label: 'Deep enrich',
       variant: 'secondary',
