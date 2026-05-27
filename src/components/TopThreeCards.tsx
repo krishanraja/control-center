@@ -1,8 +1,9 @@
-import React from 'react'
-import { TrendingUp, Sparkles, AlertTriangle, ArrowRight } from 'lucide-react'
+import React, { useState } from 'react'
+import { TrendingUp, Sparkles, AlertTriangle, ArrowRight, Replace, Check, X } from 'lucide-react'
 import type { TopThreeCard } from '../hooks/useHomeIntelligence'
 import { navigateDecision } from '../lib/routeDecision'
 import { useHaptics } from '../hooks/useHaptics'
+import { useToast } from './shared/Toast'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -56,6 +57,12 @@ const KIND_ORDER: TopThreeCard['kind'][] = ['revenue', 'growth', 'risk']
  * risk order so the layout never reflows when Marcus reranks; if a kind
  * is missing we still render the slot empty rather than collapsing the
  * grid (predictable mental model).
+ *
+ * Each card also carries a swap affordance. When Marcus's pick is off,
+ * Krish hits the swap icon, optionally types what he would have picked
+ * instead, and submits. That writes a feedback_queue row with
+ * reason_code='marcus_priority_override'. Marcus's daily synthesis loads
+ * the last 14 days of those overrides and adjusts today's picks.
  */
 export function TopThreeCards({ cards, onNavigate, variant = 'desktop', generatedAt }: Props) {
   const h = useHaptics()
@@ -84,45 +91,188 @@ export function TopThreeCards({ cards, onNavigate, variant = 'desktop', generate
         )}
       </header>
       <div className={`grid gap-2.5 ${variant === 'mobile' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'}`}>
-        {ordered.map(card => (
-          <Card key={card.kind} card={card} onActivate={() => handle(card)} />
+        {ordered.map((card, i) => (
+          <Card
+            key={card.kind}
+            card={card}
+            slotIndex={i}
+            onActivate={() => handle(card)}
+          />
         ))}
       </div>
     </section>
   )
 }
 
-function Card({ card, onActivate }: { card: TopThreeCard; onActivate: () => void }) {
+type SwapPhase = 'idle' | 'open' | 'submitting' | 'captured'
+
+function Card({
+  card,
+  slotIndex,
+  onActivate,
+}: {
+  card: TopThreeCard
+  slotIndex: number
+  onActivate: () => void
+}) {
   const meta = KIND_META[card.kind]
   const Icon = meta.Icon
-  return (
-    <button
-      type="button"
-      onClick={onActivate}
-      className={`group text-left rounded-2xl border ${meta.border} ${meta.bg} p-4 transition-colors min-h-[44px] flex flex-col`}
-    >
-      <header className="flex items-center gap-1.5 mb-2">
-        <Icon size={12} className={meta.accent} />
-        <span className={`text-[10px] font-bold uppercase tracking-[0.16em] ${meta.accent}`}>
-          {meta.label}
-        </span>
-        <span className={`ml-auto w-1.5 h-1.5 rounded-full ${meta.dot} opacity-70`} />
-      </header>
-      <p className="text-[14px] font-semibold text-white leading-snug mb-1.5 break-words">
-        {card.title}
-      </p>
-      {card.why_now && (
-        <p className="text-[12px] text-white/60 leading-snug mb-3 line-clamp-2 break-words">
-          {card.why_now}
-        </p>
-      )}
-      <span
-        className={`mt-auto inline-flex items-center gap-1 text-[12px] font-semibold ${meta.accent} group-hover:gap-1.5 transition-all`}
+  const h = useHaptics()
+  const { toast } = useToast()
+  const [phase, setPhase] = useState<SwapPhase>('idle')
+  const [replacement, setReplacement] = useState('')
+
+  const submitOverride = async () => {
+    if (phase === 'submitting') return
+    setPhase('submitting')
+    h.tap()
+    try {
+      const trimmed = replacement.trim()
+      const r = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source_table: 'home_intelligence',
+          source_id: String(slotIndex),
+          agent_id: 'marcus',
+          vote: -1,
+          reason_code: 'marcus_priority_override',
+          reason_text: trimmed || null,
+          meta: {
+            original_pick_title: card.title,
+            original_pick_meta: card,
+            replaced_with_text: trimmed || null,
+            captured_at: new Date().toISOString(),
+          },
+        }),
+      })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const payload = await r.json().catch(() => ({}))
+      if (!payload.ok) throw new Error(payload.error || 'unknown error')
+      h.success()
+      setPhase('captured')
+    } catch (e) {
+      h.error()
+      toast(`Could not capture override: ${(e as Error).message}`, 'error')
+      setPhase('open')
+    }
+  }
+
+  // Once captured, the card morphs into a calm confirmation. The fade and
+  // height transitions are CSS so we don't pull in a motion library just
+  // for this surface.
+  if (phase === 'captured') {
+    return (
+      <div
+        className={`rounded-2xl border ${meta.border} ${meta.bg} p-4 transition-all duration-500 opacity-80`}
+        role="status"
+        aria-live="polite"
       >
-        {card.action_label}
-        <ArrowRight size={11} />
-      </span>
-    </button>
+        <header className="flex items-center gap-1.5 mb-2">
+          <Icon size={12} className={`${meta.accent} opacity-50`} />
+          <span className={`text-[10px] font-bold uppercase tracking-[0.16em] ${meta.accent} opacity-50`}>
+            {meta.label}
+          </span>
+        </header>
+        <p className="text-[14px] font-semibold text-white/40 leading-snug mb-1.5 break-words line-through">
+          {card.title}
+        </p>
+        <p className="text-[12px] text-white/55 leading-snug">
+          Override captured. Marcus will learn.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className={`group relative rounded-2xl border ${meta.border} ${meta.bg} transition-colors`}
+    >
+      <button
+        type="button"
+        onClick={onActivate}
+        className="w-full text-left p-4 min-h-[44px] flex flex-col"
+      >
+        <header className="flex items-center gap-1.5 mb-2">
+          <Icon size={12} className={meta.accent} />
+          <span className={`text-[10px] font-bold uppercase tracking-[0.16em] ${meta.accent}`}>
+            {meta.label}
+          </span>
+          <span className={`ml-auto w-1.5 h-1.5 rounded-full ${meta.dot} opacity-70`} aria-hidden="true" />
+        </header>
+        <p className="text-[14px] font-semibold text-white leading-snug mb-1.5 break-words">
+          {card.title}
+        </p>
+        {card.why_now && (
+          <p className="text-[12px] text-white/60 leading-snug mb-3 line-clamp-2 break-words">
+            {card.why_now}
+          </p>
+        )}
+        <span
+          className={`mt-auto inline-flex items-center gap-1 text-[12px] font-semibold ${meta.accent} group-hover:gap-1.5 transition-all`}
+        >
+          {card.action_label}
+          <ArrowRight size={11} />
+        </span>
+      </button>
+
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          h.tap()
+          setPhase(phase === 'open' ? 'idle' : 'open')
+        }}
+        aria-label="Swap this pick"
+        title="Swap this pick"
+        className="absolute top-2 right-2 p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-white/5 transition-colors"
+      >
+        <Replace size={12} />
+      </button>
+
+      {phase === 'open' || phase === 'submitting' ? (
+        <div
+          className="border-t border-white/[0.06] px-4 py-3 bg-black/20 rounded-b-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <label className="block text-[10px] uppercase tracking-[0.16em] text-white/45 mb-1.5">
+            What would you have picked instead? (optional)
+          </label>
+          <textarea
+            value={replacement}
+            onChange={(e) => setReplacement(e.target.value)}
+            disabled={phase === 'submitting'}
+            rows={2}
+            placeholder="Leave blank to just flag this pick as off"
+            className="w-full text-[12px] bg-black/30 border border-white/[0.08] rounded-md px-2 py-1.5 text-white/85 placeholder:text-white/25 focus:border-white/25 focus:outline-none resize-none disabled:opacity-60"
+          />
+          <div className="mt-2 flex items-center gap-2 justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                h.tap()
+                setPhase('idle')
+                setReplacement('')
+              }}
+              disabled={phase === 'submitting'}
+              className="inline-flex items-center gap-1 text-[11px] text-white/50 hover:text-white/80 px-2 py-1 rounded disabled:opacity-60"
+            >
+              <X size={11} />
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={submitOverride}
+              disabled={phase === 'submitting'}
+              className={`inline-flex items-center gap-1 text-[11px] font-semibold ${meta.accent} hover:text-white px-2.5 py-1 rounded bg-white/[0.04] hover:bg-white/10 disabled:opacity-60`}
+            >
+              <Check size={11} />
+              {phase === 'submitting' ? 'Submitting...' : 'Submit override'}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
   )
 }
 
