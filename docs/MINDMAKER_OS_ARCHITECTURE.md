@@ -224,8 +224,9 @@ Every piece of OS state lives in one of these tables. Categorised by change rate
 | `workstreams`, `workstream_contexts` | Workstream definitions + rolling context |
 | `opportunities`, `sequences`, `contacted_persons` | Deal pipeline + outbound sequences + CRM log |
 | `leads` | Sales pipeline unit. CHECK constraint `leads_status_check` permits exactly: `new`, `enriching`, `ready`, `contacted`, `conversation`, `closed_won`, `closed_lost`, `superseded`. Columns include `assignee_agent`, `fit_score`, `attainability_score`, `icp_score` (legacy), `icp_scores` (jsonb, per-venture), `tags` (text[]), `primary_venture` (FK → venture_registry), `tier`, `why_relevant`, `primary_tension`, `next_step`, `follow_up_at`, `promoted_task_id`, `deep_enriched_at`, **`enrichment_status`**, **`last_emailed_at`**, **`last_email_draft_id`**, **`last_email_draft_url`** (last four added in audit 2026-05-25), plus **`concept_id text`** (new Day 1 Stream 1, indexed) |
-| `guests` | Podcast guests for Builder Economy + Signal & Noise. Columns: `podcast_target` (`builder-economy`/`signal-and-noise`), `status` (`new`/`enriched`/`confirmed`/`skipped`/`done`), `pitch_draft`, `suggested_angles` (jsonb), `scheduled_task_id`, `skipped_at`, `deep_enriched_at`, `cascade_fired_at`, **`last_outreach_at`** (audit 2026-05-25). **`concept_id` extension scheduled for Day 2.** |
-| `visibility_targets` | Speaking + PR opportunities. Written by Nova Visibility Sweeper (Mon 11:00 UTC) + deep-enrich endpoint. **`concept_id` extension scheduled for Day 2.** |
+| `guests` | Podcast guests for Builder Economy + Signal & Noise. Columns: `podcast_target` (`builder_economy`/`signal_noise` — underscore form, not hyphen), `status` (allowed: `scouted`/`enriched`/`pitched`/`responded`/`scheduled`/`confirmed`/`recorded`/`published`/`dropped`), `target_type` (`podcast_guest`/`press_target`/`dual`, added PR #76 2026-05-26), `pitch_draft`, `suggested_angles` (jsonb), `scheduled_task_id`, `deep_enriched_at`, `cascade_fired_at`, **`last_outreach_at`** (audit 2026-05-25). `source` constrained to `'manual'/'sheet_import'/'nell_outbound'/'referral'/'migration'`. **`concept_id` extension scheduled for Day 2.** |
+| `visibility_targets` | Speaking, CFP, press, and PR opportunities. Columns: `title` (not `name`), `type` (allowed: `cfp`/`conference`/`podcast`/`newsletter`/`guest_appearance`/`press_relationship`/`speaking`/`other` — last two added PR #76 2026-05-26), `status` (allowed: `sourced`/`queued`/`applied`/`accepted`/`rejected`/`done`/`dropped`), URL fields `source_url` + `event_url` + `cfp_url`, deep enrichment fields (`organizer`, `audience_*`, `past_speakers`, `cfp_requirements`, `proposed_talk`, `strategic_value`, `angle`, `effort_estimate`, `risk_notes`, `next_actions`), `applied_at`, `rejected_at`. Written by Nova Visibility Sweeper (Mon 11:00 UTC) for events, by Nell Guest Scout router for press_relationship rows, and by Nova Visibility Deep Enrich for URL+enrichment on retry sweep. **`concept_id` extension scheduled for Day 2.** |
+| `nell_rejected` (new, PR #76 2026-05-26) | Silent-skip audit log for Nell's editorial-bar quality gate. Columns: `name`, `source_url`, `source`, `reason`, `raw_data`, `created_at`. RLS on (anon read, service write). Records every candidate Nell rejects — HN-username pattern, no-contact, below-bar — so the bar is observable without surfacing junk to Triage |
 | `content_ideas` | Cleo's idea backlog — written by Capture Idea + Layer 1 Signal Inbox + Guest Confirmed Cascade. **`concept_id` extension scheduled for Day 2.** |
 
 ### 4.3 Customers, revenue, bets
@@ -623,12 +624,25 @@ Krish clicks "Close concept" (Day 2)
 ### 8.2 Guest flow — from sheet drop to confirmed guest to promo drafts
 
 ```
-Krish uploads/pastes guest list via Control Center GuestImportDropzone
-    → POST /webhook/guest-doc-ingest  (Nell Guest Sheet Bulk Import)
-        → Anthropic Sonnet 4.6 extract → Parse + Validate
-            → Fetch existing guests → dedupe by email/name
-                → Insert guests (status='new')
-                    → visible in Guests tab
+Two ingress paths:
+
+  A. Sheet drop (curated bulk import)
+     Krish uploads/pastes guest list via Control Center GuestImportDropzone
+        → POST /webhook/guest-doc-ingest  (Nell Guest Sheet Bulk Import)
+            → Anthropic Sonnet 4.6 extract → Parse + Validate
+                → Fetch existing guests → dedupe by email/name
+                    → Insert guests (status='enriched', target_type='podcast_guest')
+
+  B. Outbound scout (Mon/Wed/Fri ET, Nell Guest Scout `8DlMfyTYsbnQGYR2`)
+     Polls Product Hunt + HN Show HN + Digiday/Rebooting/NiemanLab RSS
+        → Dedup against existing guests
+            → Anthropic editorial-bar classifier emits target_type +
+              fit/attainability scores + skip_reason
+                → Insert router (PR #77, 2026-05-26-fix):
+                    target_type='podcast_guest' AND bar passes → guests
+                    target_type='press_target'                 → visibility_targets (type='press_relationship')
+                    target_type='dual'                          → both
+                    skip_reason set                             → nell_rejected (silent audit)
 
 Hourly: Deep Enrich Retry Sweep finds guests with status='new'
     → POST /webhook/guest-deep-enrich  (Nell Guest Pitch Draft)
@@ -652,27 +666,52 @@ Krish clicks "Draft email" on a GuestCard
 
 Krish clicks "Skip" / "Close concept" on a GuestCard (Day 2)
     → close_concept('concept:guest:<slug>', '<reason>', 'krish-via-control-center')
-    → cascade: guest → skipped; any tagged tasks → superseded
+    → cascade: guest → dropped; any tagged tasks → superseded
 ```
+
+`guests.target_type` (added 2026-05-26, PR #76) discriminates podcast guests from press relationships. `'podcast_guest'` is the default. `'press_target'` rows do not normally live in `guests` — Nell's scout router sends them into `visibility_targets` directly. The dropped-on-2026-05-22 `nell_candidates` table is gone; `guests` is the only insertion target now. `guests.status` allowed values are `'scouted','enriched','pitched','responded','scheduled','confirmed','recorded','published','dropped'`.
 
 ### 8.3 Visibility flow (speaking + PR)
 
 ```
-Nova Visibility Sweeper (Mon 11:00 UTC weekly)
-    → Perplexity sonar-pro scrapes new conferences/podcasts/PR opps
-        → Anthropic Sonnet 4.6 normalises
-            → Parse + Validate → dedupe → Insert visibility_targets (status='new')
+Two ingress paths into visibility_targets:
 
-Hourly: Deep Enrich Retry Sweep finds visibility_targets with status='new'
-    → POST /api/visibility-targets/:id/enrich-deep
-        → Sonnet 4.6 generates fit_score + why_relevant + suggested_angle
-            → PATCH visibility_targets (status='enriched', deep_enriched_at)
+  A. Nova Visibility Sweeper (Mon 11:00 UTC weekly, `SIDlCqURzTVsVt70`)
+     Perplexity sonar-pro scrapes new conferences / podcasts / CFPs
+        → Anthropic Sonnet 4.6 normalises into typed rows (event_url set)
+            → Parse + Validate → dedupe → Insert visibility_targets
+                (type='conference' typically, status='queued', source_url + event_url)
+
+  B. Nell Guest Scout router (Mon/Wed/Fri ET, see §8.2)
+     When the editorial-bar classifier emits target_type='press_target'
+        → Insert into visibility_targets with type='press_relationship',
+          source_url=LinkedIn/personal site, status='queued'
+
+Hourly retry sweep (inside Nova Visibility Sweeper) finds rows with
+deep_enriched_at IS NULL (LIMIT 10)
+    → POST /webhook/visibility-deep-enrich   (Nova Visibility Deep Enrich)
+        → Brave research → Sonnet 4.6 generates fit_score + why_relevant +
+          suggested_angle + organizer + audience + past_speakers + URLs
+            → PATCH visibility_targets (URLs preserved + enrichment fields +
+              deep_enriched_at)
                 → surfaces in decisions_waiting + Visibility tab
 
-Krish approves / declines via VisibilityTargetCard;
-"Apply" flow → POST /api/visibility-targets/:id/apply
-"Decline" flow (Day 2+) → close_concept('concept:vis:<slug>', ...)
+VisibilityTargetCard (from PR #78, 2026-05-26):
+  - Renders Open CFP / Open event / View source / Open profile link by type,
+    falling back through cfp_url → event_url → source_url
+  - For stub rows (no deep_enriched_at or migration-stub text), the
+    Apply button is replaced with an inline Enrich button that fires
+    POST /api/visibility-targets/:id/enrich-deep directly from the card
+  - Apply / Pass pair otherwise
+
+Krish approves / declines via VisibilityTargetCard
+  Apply  → PATCH /api/visibility-targets/:id  status='applied'
+  Pass   → PATCH /api/visibility-targets/:id  status='dropped'
+  Enrich → POST  /api/visibility-targets/:id/enrich-deep  (fires webhook)
+  Close concept (Day 2+) → close_concept('concept:vis:<slug>', ...)
 ```
+
+`visibility_targets.type` allowed values (widened 2026-05-26 by PR #76): `'cfp', 'conference', 'podcast', 'newsletter', 'guest_appearance', 'press_relationship', 'speaking', 'other'`. `status` allowed values: `'sourced','queued','applied','accepted','rejected','done','dropped'`. URL fields: `source_url` (canonical), `event_url`, `cfp_url`. Every live row should have at least one URL — verified 32/32 after the 2026-05-26 backfill.
 
 ### 8.4 Customer flow — Stripe webhook to Customers tab to email draft
 
@@ -1392,6 +1431,20 @@ docs/audits/                                                 # Closure architect
 ## 20. Recent architectural changes — rolling changelog
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
+
+### 2026-05-26 (later) — Visibility classification + Builder Economy scouting fix (PRs #75 → #80)
+
+Five PRs cleaning up two intertwined problems Krish flagged: press journalists were getting routed into `guests` as Signal & Noise podcast candidates instead of into `visibility_targets` as press relationships, and the entire Builder Economy guest pile was HN-username trash with no contact info. Plus a Visibility tab UX pass (inline Enrich + clickable source URL + disabled Apply on stub rows).
+
+- **PR #75 — Audit (`docs/audits/2026-05-26-visibility-classification-audit.md`).** Schema reality check, quantified mess (20/20 builder_economy guests were HN handles with no email; 16/16 signal_noise guests were journalists; 4 visibility_targets stuck as migration stubs, 4 more enriched without URLs), workflow inspection, broken `/api/visibility-targets/[id]/enrich-deep` endpoint (selecting nonexistent `name` column) flagged.
+- **PR #76 — Schema (`fix/visibility-schema-classification`).** Added `guests.target_type` (`podcast_guest` | `press_target` | `dual`) with CHECK constraint, default `'podcast_guest'`. Widened `visibility_targets.type` CHECK to include `'press_relationship'` and `'speaking'`. New `nell_rejected` table (RLS on, anon read + service write) for the new editorial-bar quality gate's silent skips. Backfilled `target_type='press_target'` on 13 guests matching the journalist heuristic.
+- **PR #77 — Nell scout (`fix/nell-scout-routing-and-quality-gate`).** Live n8n workflow `8DlMfyTYsbnQGYR2` (Nell Guest Scout) patched in-place. Four nodes rewritten: scoring prompt now emits `target_type` + `skip_reason` + `contact_method`; parser buckets into qualified_guests / qualified_press / rejected; insert step does all three inserts via fetch; the broken `Store Qualified` node (which had been silently writing to the dropped `nell_candidates` table since 2026-05-22) was defanged. Editorial bar: HN-username skip, single-Show-HN-post skip, no-contact skip, per-show fit floors (6 builder_economy, 7 signal_noise). Live-tested against 10 fixtures: 4 of 5 journalists routed to press_target, both HN usernames correctly skipped, all 3 founder fixtures landed in guests with high fit. Companion v2 patch maps upstream source labels into the `guests_source_check` allowed vocabulary (`'nell_outbound'`) and preserves the original label in `raw_data.upstream_source`.
+- **PR #78 — Visibility UX (`fix/visibility-card-inline-enrich-and-link`).** `VisibilityTargetCard` gains an inline `Enrich` button when the row looks like a stub (no `deep_enriched_at` or `why_relevant` starts with the migration text); `Apply` is replaced with `Enrich` on stubs so users can't file an application before Nova has produced context. Primary link button falls back to `source_url` when `event_url` and `cfp_url` are null, with label adapting per `type`. `VisibilityTargetType` widened to include `press_relationship` and `speaking`. Fixed `api/visibility-targets/[id]/enrich-deep.ts` selecting nonexistent `name` column → real `title` column. `tsc` + `vite build` clean.
+- **PR #79 — Backfill + Nova URL persistence (`fix/backfill-visibility-migration-stubs`).** One-shot script `scripts/backfill-visibility-stubs.ts` walks migration-stub rows, runs targeted Brave queries, picks event-domain URLs, patches `source_url`+`event_url`. Companion patch to Nova Visibility Deep Enrich workflow (`kbHAHuxfzQLLlysG`): `Patch Target` body now writes `event_url`/`cfp_url`/`source_url`; Sonnet prompt wrapped with `URL_FIELDS_INSTRUCTION` requiring URLs to be grounded in Brave research (no hallucination). After both runs every visibility_targets row has a URL.
+- **PR #80 — Triage existing pile (`fix/triage-existing-guest-mess`).** `scripts/triage-existing-guests.ts` moved 13 press_target guests into `visibility_targets` as `press_relationship` (with LinkedIn / personal / Twitter URL as `source_url`), then dropped them from guests. Dropped all 20 HN-sourced builder_economy guests. Discovered `guests_status_check` only allows `'scouted','enriched','pitched','responded','scheduled','confirmed','recorded','published','dropped'` (no `'skipped'` despite DATABASE.md implying it); script uses `'dropped'` as the drop-status.
+- **Post-merge.** All 20 dropped builder_economy guests permanently deleted from Supabase per Krish's call. Curated seed of 12 verified AI builders (Karpathy, Howard, Chase, Masad, Srinivas, Kilpatrick, Troynikov, Tey, Patel, Chintala, Staniszewski, Rauch) classified through the new editorial-bar prompt and inserted as fresh `enriched` builder_economy guests — every one with verifiable LinkedIn/Twitter, fit_score 7–10. URL-less press_relationship rows backfilled with LinkedIn URLs via Brave.
+
+**New columns/tables:** `guests.target_type`, `nell_rejected`. **Widened CHECK:** `visibility_targets.type` includes `press_relationship` + `speaking`. **Fixed endpoint:** `/api/visibility-targets/[id]/enrich-deep`. **Workflow patches:** Nell Guest Scout (`8DlMfyTYsbnQGYR2`), Nova Visibility Deep Enrich (`kbHAHuxfzQLLlysG`). **Audit:** `docs/audits/2026-05-26-visibility-classification-audit.md` + final report `docs/audits/2026-05-26-visibility-classification-fix-complete.md`.
 
 ### 2026-05-25 (later) — Closure Architecture Day 1 (Streams 1 + 2, both complete)
 
