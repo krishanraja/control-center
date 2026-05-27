@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-export type VisibilityTargetType = 'cfp' | 'conference' | 'podcast' | 'newsletter' | 'guest_appearance' | 'other'
+export type VisibilityTargetType =
+  | 'cfp'
+  | 'conference'
+  | 'podcast'
+  | 'newsletter'
+  | 'guest_appearance'
+  | 'press_relationship'
+  | 'speaking'
+  | 'other'
 
 export type VisibilityTargetStatus =
   | 'sourced'
@@ -34,6 +42,7 @@ export interface VisibilityTargetRow {
   location: string | null
   ticket_price_usd: number | null
   source: string
+  source_url: string | null
   created_at: string
   updated_at: string
   // Deep enrichment fields (migration 2026-05-22-visibility-deep-enrichment).

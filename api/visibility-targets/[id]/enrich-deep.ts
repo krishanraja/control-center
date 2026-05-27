@@ -24,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data: target, error } = await supabase
     .from('visibility_targets')
-    .select('id, name, source_url, raw_data')
+    .select('id, title, source_url, raw_data')
     .eq('id', id)
     .single()
   if (error || !target) return res.status(404).json({ ok: false, error: 'target not found' })
@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const r = await fetch(webhook, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ target_id: target.id, name: target.name, source_url: target.source_url }),
+      body: JSON.stringify({ target_id: target.id, title: target.title, source_url: target.source_url }),
     })
     const body = await r.text()
     if (!r.ok) return res.status(502).json({ ok: false, error: `N8N ${r.status}`, body: body.slice(0, 300) })

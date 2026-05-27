@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   ExternalLink, Calendar, Users, MapPin, DollarSign, Globe2, Sparkles, Mic, Newspaper, Megaphone,
-  Check, X, Loader2,
+  Check, X, Loader2, Wand2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { FeedbackButton } from './shared/FeedbackButton'
@@ -13,13 +13,21 @@ interface Props {
   onOpen?: (id: string) => void
 }
 
-const TYPE_META: Record<VisibilityTargetType, { label: string; Icon: LucideIcon }> = {
-  cfp:               { label: 'CFP',          Icon: Megaphone },
-  conference:        { label: 'Conference',   Icon: Globe2 },
-  podcast:           { label: 'Podcast',      Icon: Mic },
-  newsletter:        { label: 'Newsletter',   Icon: Newspaper },
-  guest_appearance:  { label: 'Appearance',   Icon: Mic },
-  other:             { label: 'Other',        Icon: Globe2 },
+const TYPE_META: Record<string, { label: string; Icon: LucideIcon }> = {
+  cfp:                { label: 'CFP',                Icon: Megaphone },
+  conference:         { label: 'Conference',         Icon: Globe2 },
+  podcast:            { label: 'Podcast',            Icon: Mic },
+  newsletter:         { label: 'Newsletter',         Icon: Newspaper },
+  guest_appearance:   { label: 'Appearance',         Icon: Mic },
+  press_relationship: { label: 'Press relationship', Icon: Newspaper },
+  speaking:           { label: 'Speaking',           Icon: Mic },
+  other:              { label: 'Other',              Icon: Globe2 },
+}
+
+function isStubTarget(t: VisibilityTargetRow): boolean {
+  if (!t.deep_enriched_at) return true
+  const why = t.why_relevant || ''
+  return why.startsWith('Migrated from tasks row')
 }
 
 /**
@@ -29,11 +37,12 @@ const TYPE_META: Record<VisibilityTargetType, { label: string; Icon: LucideIcon 
  */
 export function VisibilityTargetCard({ target: t, onOpen }: Props) {
   const { toast } = useToast()
-  const [busy, setBusy] = useState<null | 'apply' | 'pass'>(null)
+  const [busy, setBusy] = useState<null | 'apply' | 'pass' | 'enrich'>(null)
   const daysToDeadline = t.deadline_at
     ? Math.ceil((new Date(t.deadline_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
     : null
 
+  const stub = isStubTarget(t)
   // Decision pair only renders for `queued` rows (Nova-enriched, awaiting
   // Krish's apply/pass call). Mirrors the per-lead Enrich/Skip pattern.
   const decisionPair = t.status === 'queued'
@@ -57,6 +66,23 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
     }
   }
 
+  const enrich = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (busy) return
+    setBusy('enrich')
+    try {
+      const r = await fetch(`/api/visibility-targets/${t.id}/enrich-deep`, { method: 'POST' })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      toast('Enrich queued — Nova will refresh the card.', 'success')
+    } catch (err: any) {
+      toast(`Could not enrich: ${err?.message || 'try again'}`, 'error')
+    } finally {
+      // Realtime + 60s poll will refresh; keep the spinner visible briefly
+      // so the user knows the click registered.
+      setTimeout(() => setBusy(null), 4000)
+    }
+  }
+
   const deadlineTone =
     daysToDeadline === null ? '' :
     daysToDeadline < 0 ? 'text-rose-300 bg-rose-500/10 border-rose-500/30' :
@@ -75,7 +101,14 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
     online: 'online',
   }
 
-  const primaryCta = t.cfp_url || t.event_url || null
+  const primaryCta = t.cfp_url || t.event_url || t.source_url || null
+  const primaryCtaLabel = t.cfp_url
+    ? 'Open CFP'
+    : t.event_url
+      ? 'Open event'
+      : t.type === 'press_relationship'
+        ? 'Open profile'
+        : 'View source'
   const meta = TYPE_META[t.type] || TYPE_META.other
   const TypeIcon = meta.Icon
 
@@ -185,16 +218,29 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
 
       {decisionPair && (
         <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-500/[0.04] p-2">
-          <button
-            type="button"
-            onClick={(e) => decide(e, 'applied')}
-            disabled={busy !== null}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-amber-500/90 text-black hover:bg-amber-400 disabled:opacity-40 transition-colors"
-            title="Mark applied — moves to Applied lane"
-          >
-            {busy === 'apply' ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-            Apply
-          </button>
+          {stub ? (
+            <button
+              type="button"
+              onClick={enrich}
+              disabled={busy !== null}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-violet-500/90 text-white hover:bg-violet-400 disabled:opacity-40 transition-colors"
+              title="Fire Nova deep enrich — pulls organizer, audience, past speakers, CFP details"
+            >
+              {busy === 'enrich' ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+              Enrich
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => decide(e, 'applied')}
+              disabled={busy !== null}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-amber-500/90 text-black hover:bg-amber-400 disabled:opacity-40 transition-colors"
+              title="Mark applied — moves to Applied lane"
+            >
+              {busy === 'apply' ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              Apply
+            </button>
+          )}
           <button
             type="button"
             onClick={(e) => decide(e, 'dropped')}
@@ -206,7 +252,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
             Pass
           </button>
           <span className="text-[10px] text-white/45 ml-auto">
-            Nova enriched it — your call.
+            {stub ? 'Enrich first to see context.' : 'Nova enriched it — your call.'}
           </span>
         </div>
       )}
@@ -221,7 +267,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
             className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 transition-colors"
           >
             <ExternalLink size={11} />
-            {t.cfp_url ? 'Open CFP' : 'Open event'}
+            {primaryCtaLabel}
           </a>
         )}
         {t.cfp_url && t.event_url && t.event_url !== t.cfp_url && (
