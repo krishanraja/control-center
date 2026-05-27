@@ -1,0 +1,57 @@
+{
+  "name": "Krish | Mindmaker OS | Inbox Router",
+  "active": true,
+  "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
+  "nodes": [
+    {
+      "name": "POST /webhook/idea-route",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 280],
+      "parameters": { "httpMethod": "POST", "path": "idea-route", "responseMode": "responseNode", "options": {} },
+      "id": "ir-webhook-001"
+    },
+    {
+      "name": "Route + persist",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 280],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Phase 2: route a classified inbox row to its target table.\nconst __helpers = this.helpers;\nasync function __req(opts) { return __helpers.httpRequest({ ...opts, returnFullResponse: false }); }\nconst input = $input.first().json;\nconst body = input.body || input;\nconst inbox_id = body.inbox_id;\nif (!inbox_id) throw new Error('inbox_id required');\n\nconst SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc';\nconst H = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };\nconst Hrep = { ...H, 'Prefer': 'return=representation' };\nconst Hmin = { ...H, 'Prefer': 'return=minimal' };\n\nconst rows = await __req({ method: 'GET', url: `${SUPA}/rest/v1/tasks_inbox?id=eq.${inbox_id}&select=*`, headers: H, json: true });\nconst row = (rows || [])[0];\nif (!row) throw new Error('inbox row not found');\nconst cls = row.classification || {};\nconst rawText = row.raw_text || '';\nconst firstAction = cls.first_action || rawText.slice(0, 200);\nconst agent = cls.primary_agent || 'agatha';\nconst targetTable = cls.target_table || 'tasks';\n\n// Compute concept_id via RPC.\nasync function conceptSlug(text) {\n  try {\n    const r = await __req({ method: 'POST', url: `${SUPA}/rest/v1/rpc/compute_concept_slug`, headers: H, body: { p_text: text }, json: true });\n    return typeof r === 'string' ? r : (r && r.compute_concept_slug) || null;\n  } catch { return null; }\n}\nconst concept_id = cls.suggested_concept_id || await conceptSlug(firstAction);\n\nfunction firstWord(t) { return (t || '').trim().split(/\\s+/)[0] || ''; }\nfunction headTitle(t) { return (t || '').replace(/\\s+/g, ' ').trim().slice(0, 80); }\n\nlet target_id = null;\nlet target_table = targetTable;\nlet routed_to_agent = agent;\nlet failure = null;\n\ntry {\n  if (targetTable === 'leads') {\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/leads`, headers: Hrep, body: {\n      full_name: headTitle(rawText), status: 'new', assignee_agent: agent,\n      why_relevant: firstAction, source: 'inbox',\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n  } else if (targetTable === 'visibility_targets') {\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/visibility_targets`, headers: Hrep, body: {\n      title: headTitle(firstAction), status: 'queued', type: 'speaking',\n      why_relevant: firstAction,\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n    routed_to_agent = 'nova';\n  } else if (targetTable === 'guests') {\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/guests`, headers: Hrep, body: {\n      name: headTitle(rawText), status: 'scouted', one_liner: firstAction,\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n    routed_to_agent = 'nell';\n  } else if (targetTable === 'content_ideas') {\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/content_ideas`, headers: Hrep, body: {\n      idea: headTitle(firstAction), source_snippet: rawText, source_url: null,\n      state: 'seeded', source_type: 'inspiration_sweep',\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n    routed_to_agent = 'cleo';\n  } else if (targetTable === 'bets') {\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/bets`, headers: Hrep, body: {\n      title: headTitle(firstAction), hypothesis: rawText, status: 'live', kind: 'general',\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n    routed_to_agent = 'marcus';\n  } else if (targetTable === 'customers') {\n    // No direct customer create. Create a task linked back via raw_text.\n    target_table = 'tasks';\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/tasks`, headers: Hrep, body: {\n      title: 'Customer follow-up: ' + headTitle(firstAction), agent, status: 'waiting',\n      workstream: 'customer_acquisition', description: rawText, krish_reviewed: false,\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n  } else {\n    // tasks (and the unknown-bucket fallthrough)\n    target_table = 'tasks';\n    const ins = await __req({ method: 'POST', url: `${SUPA}/rest/v1/tasks`, headers: Hrep, body: {\n      title: headTitle(firstAction), agent, status: 'waiting',\n      workstream: cls.task_type === 'content_idea' ? 'content' : 'general',\n      description: rawText, krish_reviewed: false,\n    }, json: true });\n    target_id = (ins && ins[0] && ins[0].id) || null;\n  }\n} catch (e) { failure = (e.message || String(e)).slice(0, 250); }\n\nconst patch = failure ? {\n  status: 'failed', archive_reason: 'classifier_failed', archived_at: new Date().toISOString(),\n} : {\n  status: 'in_flight', target_table, target_id, routed_to_agent, concept_id,\n};\nawait __req({ method: 'PATCH', url: `${SUPA}/rest/v1/tasks_inbox?id=eq.${inbox_id}`, headers: Hmin, body: patch, json: true });\n\nconst telegram_text = failure\n  ? `Inbox router failed: ${failure}`\n  : `Inbox routed to ${routed_to_agent}. \"${headTitle(firstAction)}\". Will return when it needs you.`;\n\nreturn [{ json: { ok: !failure, inbox_id, target_table, target_id, routed_to_agent, telegram_text } }];"
+      },
+      "id": "ir-route-002"
+    },
+    {
+      "name": "Telegram push",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
+        "sendBody": true, "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: '6773796504', text: $json.telegram_text }) }}",
+        "options": { "timeout": 15000 }
+      },
+      "onError": "continueRegularOutput",
+      "id": "ir-telegram-003"
+    },
+    {
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 360],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: $json.ok, inbox_id: $json.inbox_id, target_table: $json.target_table, target_id: $json.target_id }) }}",
+        "options": {}
+      },
+      "id": "ir-respond-004"
+    }
+  ],
+  "connections": {
+    "POST /webhook/idea-route": { "main": [[{ "node": "Route + persist", "type": "main", "index": 0 }]] },
+    "Route + persist":          { "main": [[{ "node": "Telegram push", "type": "main", "index": 0 }, { "node": "Respond OK", "type": "main", "index": 0 }]] }
+  }
+}

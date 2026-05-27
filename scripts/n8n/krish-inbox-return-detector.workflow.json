@@ -1,0 +1,29 @@
+{
+  "name": "Krish | Mindmaker OS | Inbox Return Detector",
+  "active": true,
+  "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
+  "nodes": [
+    {
+      "name": "Every 15 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 280],
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 15 }] } },
+      "id": "rd-trigger-001"
+    },
+    {
+      "name": "Scan + flip",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 280],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Phase 2: for every in_flight inbox row, check if the routed row has\n// reached a state where Krish needs to look at it. If yes, flip the\n// inbox row to needs_krish (the decisions_waiting view surfaces it).\nconst __helpers = this.helpers;\nasync function __req(opts) { return __helpers.httpRequest({ ...opts, returnFullResponse: false }); }\nconst SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc';\nconst H = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };\nconst Hmin = { ...H, 'Prefer': 'return=minimal' };\n\nconst inflight = await __req({\n  method: 'GET',\n  url: `${SUPA}/rest/v1/tasks_inbox?status=eq.in_flight&select=id,target_table,target_id,updated_at,raw_text,routed_to_agent`,\n  headers: H, json: true,\n});\n\nlet flipped = 0; let stale = 0;\nconst sevenDaysAgoMs = Date.now() - 7 * 86400000;\n\nfor (const r of (inflight || [])) {\n  const target_table = r.target_table;\n  const target_id    = r.target_id;\n  if (!target_table || !target_id) continue;\n  const refIso = r.updated_at;\n  let needs = false;\n  try {\n    if (target_table === 'tasks') {\n      const rs = await __req({ method: 'GET', url: `${SUPA}/rest/v1/tasks?id=eq.${target_id}&select=status,updated_at`, headers: H, json: true });\n      const t = (rs || [])[0]; if (!t) continue;\n      needs = ['waiting','pending-agatha-review','pending-review','blocked'].includes(t.status) && t.updated_at && t.updated_at > refIso;\n    } else if (target_table === 'leads') {\n      const rs = await __req({ method: 'GET', url: `${SUPA}/rest/v1/leads?id=eq.${target_id}&select=deep_enriched_at,promoted_task_id`, headers: H, json: true });\n      const t = (rs || [])[0]; if (!t) continue;\n      needs = !!t.deep_enriched_at && !t.promoted_task_id;\n    } else if (target_table === 'visibility_targets') {\n      const rs = await __req({ method: 'GET', url: `${SUPA}/rest/v1/visibility_targets?id=eq.${target_id}&select=status,deep_enriched_at`, headers: H, json: true });\n      const t = (rs || [])[0]; if (!t) continue;\n      needs = t.status === 'enriched' || !!t.deep_enriched_at;\n    } else if (target_table === 'guests') {\n      const rs = await __req({ method: 'GET', url: `${SUPA}/rest/v1/guests?id=eq.${target_id}&select=status,pitch_draft`, headers: H, json: true });\n      const t = (rs || [])[0]; if (!t) continue;\n      needs = t.status === 'enriched' || !!t.pitch_draft;\n    } else if (target_table === 'content_ideas') {\n      const rs = await __req({ method: 'GET', url: `${SUPA}/rest/v1/content_ideas?id=eq.${target_id}&select=state`, headers: H, json: true });\n      const t = (rs || [])[0]; if (!t) continue;\n      needs = ['review','seeded'].includes(t.state);\n    } else if (target_table === 'bets') {\n      const rs = await __req({ method: 'GET', url: `${SUPA}/rest/v1/bets?id=eq.${target_id}&select=status,est_mrr_impact_usd`, headers: H, json: true });\n      const t = (rs || [])[0]; if (!t) continue;\n      needs = t.status === 'live' && t.est_mrr_impact_usd == null;\n    }\n  } catch { needs = false; }\n\n  // Time-out branch: 7 days in_flight without movement → mark failed.\n  const ageMs = Date.now() - new Date(r.updated_at).getTime();\n  if (!needs && ageMs > 7 * 86400000) {\n    await __req({ method: 'PATCH', url: `${SUPA}/rest/v1/tasks_inbox?id=eq.${r.id}`, headers: Hmin, body: {\n      status: 'failed', archive_reason: 'classifier_failed', archived_at: new Date().toISOString(),\n    }, json: true }).catch(() => {});\n    stale += 1;\n    continue;\n  }\n  if (needs) {\n    await __req({ method: 'PATCH', url: `${SUPA}/rest/v1/tasks_inbox?id=eq.${r.id}`, headers: Hmin, body: {\n      status: 'needs_krish',\n    }, json: true }).catch(() => {});\n    flipped += 1;\n  }\n}\n\nreturn [{ json: { ok: true, scanned: (inflight || []).length, flipped, stale, at: new Date().toISOString() } }];"
+      },
+      "id": "rd-scan-002"
+    }
+  ],
+  "connections": {
+    "Every 15 min": { "main": [[{ "node": "Scan + flip", "type": "main", "index": 0 }]] }
+  }
+}

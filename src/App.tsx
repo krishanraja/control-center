@@ -31,6 +31,8 @@ import { MobileContent } from './components/mobile/MobileContent'
 import { AgentsProvider } from './contexts/AgentsContext'
 import { PendingFlagModal } from './components/PendingFlagModal'
 import { QuickCaptureIdea } from './components/QuickCaptureIdea'
+import { IdeaCaptureModal, isInboxEnabled } from './components/inbox/IdeaCaptureModal'
+import { IdeaCaptureFAB } from './components/inbox/IdeaCaptureFAB'
 import { useHashRoute } from './hooks/useHashRoute'
 
 type TabId = 'home' | 'today' | 'triage' | 'leads' | 'customers' | 'guests' | 'content' | 'bets' | 'org' | 'exec' | 'workflows' | 'systems'
@@ -47,6 +49,7 @@ export default function App() {
   const tab: TabId = (VALID_TABS as string[]).includes(rawTab) ? (rawTab as TabId) : 'home'
   const [narrow, setNarrow] = useState(detectIsNarrow)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [inboxOpen, setInboxOpen] = useState(false)
 
   useEffect(() => {
     const onResize = () => setNarrow(detectIsNarrow())
@@ -63,8 +66,12 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         setPaletteOpen(o => !o)
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j' && isInboxEnabled()) {
+        e.preventDefault()
+        setInboxOpen(o => !o)
       } else if (e.key === 'Escape') {
         setPaletteOpen(false)
+        setInboxOpen(false)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -119,6 +126,8 @@ export default function App() {
           <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onTab={handleTab} />
           <PendingFlagModal />
           <QuickCaptureIdea />
+          <IdeaCaptureModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
+          <IdeaCaptureFAB />
         </div>
       </AgentsProvider>
     </ToastProvider>
