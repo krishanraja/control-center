@@ -7,8 +7,11 @@ import { supabase } from '../_supabase.js'
 //   returns { ok, row_id } immediately. Also double-writes a feedback_queue
 //   row per swap so Vera's weekly aggregation sees the override.
 
-const N8N_BASE = (process.env.N8N_API_BASE_URL || 'https://krishraja10101.app.n8n.cloud').replace(/\/+$/, '')
-const CALIBRATE_WEBHOOK = `${N8N_BASE}/webhook/focus-calibrate`
+// n8n webhook origin is constant (per-instance, not per-environment).
+// N8N_API_BASE_URL in Vercel includes /api/v1 for management calls;
+// webhooks live at /webhook/<path> on the same host.
+const N8N_WEBHOOK_ORIGIN = 'https://krishraja10101.app.n8n.cloud'
+const CALIBRATE_WEBHOOK = `${N8N_WEBHOOK_ORIGIN}/webhook/focus-calibrate`
 
 type Source = 'marcus_nominated' | 'krish_swapped' | 'krish_added'
 
