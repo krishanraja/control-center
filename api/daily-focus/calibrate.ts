@@ -101,26 +101,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await supabase.from('feedback_queue').insert(overrideRows)
   }
 
-  // Fire the calibrator webhook but don't await. The webhook does the
-  // semantic match against the candidate pool and writes back
-  // relevance_index + status='calibrated'.
-  fetch(CALIBRATE_WEBHOOK, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      date: body.date,
-      row_id,
-      targets: body.targets.map((t, i) => ({
-        text: t.text.trim(),
-        slot: i + 1,
-        source: t.source,
-        concept_id: t.concept_id || null,
-        replaced_marcus_pick: t.replaced_marcus_pick || null,
-      })),
-    }),
-  }).catch((e) => {
-    console.warn('focus-calibrate webhook fire-and-forget failed:', (e as Error).message)
-  })
+  // Await the calibrator webhook so the row is calibrated by the time
+  // the UI's spinner clears. Vercel functions can't fire-and-forget
+  // without waitUntil; awaiting is simpler and the webhook usually
+  // returns inside 15s (Sonnet 4.6 call dominates the wall time).
+  const ctrl = new AbortController()
+  const tid = setTimeout(() => ctrl.abort('calibrate_timeout'), 90_000)
+  let webhook_ok = false
+  let webhook_detail: string | null = null
+  try {
+    const r = await fetch(CALIBRATE_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: body.date,
+        row_id,
+        targets: body.targets.map((t, i) => ({
+          text: t.text.trim(),
+          slot: i + 1,
+          source: t.source,
+          concept_id: t.concept_id || null,
+          replaced_marcus_pick: t.replaced_marcus_pick || null,
+        })),
+      }),
+      signal: ctrl.signal,
+    })
+    webhook_ok = r.ok
+    webhook_detail = r.ok ? null : `webhook ${r.status}`
+  } catch (e) {
+    webhook_detail = (e as Error).message || 'webhook_error'
+  } finally {
+    clearTimeout(tid)
+  }
 
-  return res.json({ ok: true, row_id })
+  return res.json({ ok: true, row_id, webhook_ok, webhook_detail })
 }
