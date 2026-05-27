@@ -5,6 +5,7 @@ export interface StreakSnapshot {
   customer_contacts: number
   content_shipped:   number
   sales_touches:     number
+  three_for_three:   number   // consecutive days daily_focus.status='complete'
   daily_lock_done:   boolean   // any lever_score>=7 task marked done today?
   loading: boolean
 }
@@ -39,6 +40,7 @@ function consecutiveDaysWithEvent(timestamps: string[]): number {
 export function useStreaks() {
   const [state, setState] = useState<StreakSnapshot>({
     customer_contacts: 0, content_shipped: 0, sales_touches: 0,
+    three_for_three: 0,
     daily_lock_done: false, loading: true,
   })
 
@@ -54,11 +56,12 @@ export function useStreaks() {
         .in('key', ['daily_lock_threshold','daily_lock_enabled'])
       const threshold = Number(cfgRes.data?.find(r => r.key === 'daily_lock_threshold')?.value) || 7
 
-      const [contactsRes, contentRes, salesRes, leverRes] = await Promise.all([
+      const [contactsRes, contentRes, salesRes, leverRes, focusRes] = await Promise.all([
         supabase.from('customer_contacts').select('contacted_at').gte('contacted_at', since30d).limit(500),
         supabase.from('tasks').select('completed_at').eq('workstream', 'content').eq('status', 'done').gte('completed_at', since30d).limit(500),
         supabase.from('tasks').select('updated_at').in('workstream', ['advisory_sales','outreach','customer_acquisition']).gte('updated_at', since30d).limit(500),
         supabase.from('tasks').select('id').eq('status', 'done').gte('lever_score', threshold).gte('completed_at', todayStart.toISOString()).limit(1),
+        supabase.from('daily_focus').select('focus_date,status,completed_at').eq('status','complete').gte('focus_date', since30d.slice(0,10)).order('focus_date', { ascending: false }).limit(45),
       ])
 
       if (cancelled) return
@@ -66,6 +69,7 @@ export function useStreaks() {
         customer_contacts: consecutiveDaysWithEvent((contactsRes.data || []).map(r => r.contacted_at).filter(Boolean) as string[]),
         content_shipped:   consecutiveDaysWithEvent((contentRes.data  || []).map(r => r.completed_at).filter(Boolean) as string[]),
         sales_touches:     consecutiveDaysWithEvent((salesRes.data    || []).map(r => r.updated_at).filter(Boolean) as string[]),
+        three_for_three:   consecutiveDaysWithEvent((focusRes.data    || []).map(r => (r as { completed_at?: string }).completed_at || (r as { focus_date?: string }).focus_date || '').filter(Boolean) as string[]),
         daily_lock_done:   (leverRes.data || []).length > 0,
         loading: false,
       })

@@ -16,6 +16,9 @@ import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
 import { StreakPills } from '../StreakPills'
 import { TopThreeCards } from '../TopThreeCards'
+import { FocusCalibrator } from '../focus/FocusCalibrator'
+import { FocusBar } from '../focus/FocusBar'
+import { CarryOverPrompt } from '../focus/CarryOverPrompt'
 import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
 
@@ -43,6 +46,11 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
       {/* MONEY MACHINE — live pulse with sparkline. */}
       <MrrTicker variant="mobile" />
+
+      {/* DAILY FOCUS (feature flag gated). */}
+      <CarryOverPrompt />
+      <FocusBar />
+      <FocusCalibrator />
 
       {/* TOP THREE — Marcus's three plays for today. */}
       <TopThreeCards
