@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const [intelRes, decRes] = await Promise.all([
     supabase.from('home_intelligence').select('top_three').eq('id', 'current').maybeSingle(),
-    supabase.from('decisions_waiting').select('*').order('age_hours', { ascending: false }).limit(20),
+    supabase.from('decisions_waiting').select('*').order('sort_at', { ascending: true }).limit(20),
   ])
 
   if (intelRes.error && intelRes.error.code !== 'PGRST116') {
