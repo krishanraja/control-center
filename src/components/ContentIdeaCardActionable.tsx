@@ -7,6 +7,7 @@ import { useHaptics } from '../hooks/useHaptics'
 import { FeedbackButton } from './shared/FeedbackButton'
 import { supabase } from '../lib/supabase'
 import type { ContentIdeaRow, IdeaState, TransformedOutputs } from '../hooks/useRealtimeContentIdeas'
+import { useContentPillars, pillarTone } from '../hooks/useContentPillars'
 
 interface Props {
   idea: ContentIdeaRow
@@ -45,11 +46,20 @@ const TRANSFORM_OPTIONS: TransformFormat[] = [
 export function ContentIdeaCardActionable({ idea: i, expanded, onClose }: Props) {
   const { toast } = useToast()
   const h = useHaptics()
+  const { pillars } = useContentPillars()
   const [busy, setBusy] = useState<null | IdeaState | TransformFormat | 'edit'>(null)
   const [editing, setEditing] = useState(false)
   const [bodyDraft, setBodyDraft] = useState<string>(i.body || '')
   const [activeTab, setActiveTab] = useState<TransformFormat | 'idea'>(i.body ? 'idea' : 'idea')
   const [open, setOpen] = useState(!!expanded)
+  const pillar = useMemo(() => pillars.find(p => p.id === i.pillar_id) || null, [pillars, i.pillar_id])
+  const pTone = pillarTone(i.pillar_id)
+  const isSynthesis = i.source_type === 'synthesis_hypothesis'
+  const meta = i.meta || {}
+  const contrarian = meta.contrarian || null
+  const adjacent = Array.isArray(meta.adjacent_stories) ? meta.adjacent_stories : []
+  const connectedThreads = Array.isArray(meta.connected_threads) ? meta.connected_threads : []
+  const falsifiableTest = meta.falsifiable_test || null
 
   const transformedKeys = useMemo<TransformFormat[]>(() => {
     const t = i.transformed_outputs || {}
@@ -166,6 +176,24 @@ export function ContentIdeaCardActionable({ idea: i, expanded, onClose }: Props)
           {i.state}
         </span>
         <LeadSourcePill source={i.source_type} href={i.source_url || null} />
+        {pillar && (
+          <span
+            className={`px-1.5 py-0.5 rounded border ${pTone.bg} ${pTone.text} ${pTone.border} uppercase tracking-[0.08em]`}
+            title={pillar.description}
+          >
+            {pillar.name}
+          </span>
+        )}
+        {isSynthesis && (
+          <span className="px-1.5 py-0.5 rounded border border-violet-400/40 bg-violet-500/15 text-violet-100 uppercase tracking-[0.08em] font-semibold">
+            Synthesis
+          </span>
+        )}
+        {typeof i.brand_fit_score === 'number' && (
+          <span className="px-1.5 py-0.5 rounded bg-white/[0.06] text-white/65 tabular-nums" title="Brand fit score (1-10)">
+            Fit {i.brand_fit_score}
+          </span>
+        )}
         <span className="text-white/35 tabular-nums ml-auto">{humanAge(i.updated_at)}</span>
         {onClose && (
           <button
@@ -192,6 +220,45 @@ export function ContentIdeaCardActionable({ idea: i, expanded, onClose }: Props)
         <p className="text-[11px] text-white/65 leading-snug mt-1.5">
           <span className="text-white/35">Thesis: </span>{i.thesis}
         </p>
+      )}
+
+      {isSynthesis && falsifiableTest && (
+        <p className="text-[11px] text-violet-200/80 leading-snug mt-1.5">
+          <span className="text-violet-300/55">Falsifiable: </span>{falsifiableTest}
+        </p>
+      )}
+
+      {isSynthesis && connectedThreads.length > 0 && (
+        <div className="flex items-center gap-1 mt-2 flex-wrap">
+          <span className="text-[10px] text-white/35">connects:</span>
+          {connectedThreads.slice(0, 6).map((t, idx) => (
+            <span key={idx} className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200/85" title={t.title || t.name || ''}>
+              {t.type === 'content_idea' ? 'idea' : t.type === 'zara_signal' ? 'signal' : 'doc'}
+            </span>
+          ))}
+          {connectedThreads.length > 6 && (
+            <span className="text-[10px] text-white/40">+{connectedThreads.length - 6}</span>
+          )}
+        </div>
+      )}
+
+      {!isSynthesis && contrarian && (
+        <details className="mt-2">
+          <summary className="text-[10px] text-amber-300/70 cursor-pointer hover:text-amber-200 transition-colors">
+            Contrarian view
+          </summary>
+          <p className="text-[11px] text-amber-200/80 italic mt-1 leading-snug">{contrarian}</p>
+          {adjacent.length > 0 && (
+            <ul className="mt-1 space-y-0.5">
+              {adjacent.slice(0, 3).map((s, idx) => (
+                <li key={idx} className="text-[10px] text-white/55 leading-snug">
+                  <a href={s.url} target="_blank" rel="noreferrer noopener" className="text-white/70 hover:text-white">{s.title}</a>
+                  {s.why_relevant && <span className="text-white/40"> — {s.why_relevant}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </details>
       )}
 
       {distribution.length > 0 && (

@@ -9,6 +9,8 @@ export type IdeaSourceType =
   | 'openclaw_workspace'
   | 'zara_signal'
   | 'manual'
+  | 'inspiration_sweep'
+  | 'synthesis_hypothesis'
 
 export type IdeaState =
   | 'seeded'
@@ -58,9 +60,22 @@ export interface ContentIdeaRow {
   published_at?: string | null
   published_url?: string | null
   confidence?: number | null
+  brand_fit_score?: number | null
+  quality_score?: 'green' | 'amber' | 'red' | null
+  pillar_id?: string | null
   related_idea_ids?: string[] | null
   /** Cleo's per-format derivatives. Empty until Transform is fired. */
   transformed_outputs?: TransformedOutputs | null
+  meta?: {
+    contrarian?: string | null
+    adjacent_stories?: Array<{ title: string; url: string; published_date_iso?: string; why_relevant?: string }> | null
+    evidence_present?: string[] | null
+    source_label?: string | null
+    connected_threads?: Array<{ type: 'content_idea' | 'zara_signal' | 'inspiration_doc'; id?: string; name?: string; title?: string }> | null
+    falsifiable_test?: string | null
+    named_entities?: string[] | null
+    why_non_obvious?: string | null
+  } | null
   created_at: string
   updated_at: string
 }

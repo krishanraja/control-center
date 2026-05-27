@@ -806,6 +806,120 @@ Krish rejects output in Control Center (via FeedbackButton with reason_code)
 
 **The promise: same mistake doesn't survive four occurrences.** FeedbackButton surfaces: `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`.
 
+### 8.7.1 Marcus top_three override capture (Phase 0)
+
+The `FeedbackButton` thumbs-down is the lightweight rejection signal. For Marcus's daily `top_three` picks on the Home tab, there is also a higher-effort signal: the swap affordance.
+
+```
+Krish hits the Replace icon on a top_three card
+    → optional textarea: "What would you have picked instead?"
+        → POST /api/feedback with shape:
+            { source_table: 'home_intelligence',
+              source_id: '<slot index, 0/1/2>',
+              agent_id: 'marcus',
+              vote: -1,
+              reason_code: 'marcus_priority_override',
+              reason_text: '<Krish replacement, or null>',
+              meta: { original_pick_title, original_pick_meta,
+                      replaced_with_text, captured_at } }
+            → feedback_queue row
+
+Marcus | Daily Brief 06:30 (next tick)
+    → Pull live data node fetches feedback_queue rows where
+      reason_code='marcus_priority_override' AND created_at >= now() - 14d
+    → Sonnet 4.6 prompt receives the RECENT OVERRIDES block plus the
+      Krish-overrides interpretation rules (system prompt)
+    → top_three is reranked using the override pattern, if any
+
+In parallel, the standard §8.7 self-improvement loop still applies:
+    → Vera Feedback Aggregation (Sun 06:00 UTC) groups
+      marcus_priority_override rows with ≥3 matches
+        → corrections row with proposed_brief_edit
+            → Agatha surfaces, Krish approves
+                → Persistent edit to agents.brief_content for marcus
+```
+
+The swap is intentionally higher-friction than the thumbs-down: it asks Krish to articulate what he would have picked, which is the signal Marcus needs to learn the pattern. The thumbs-down is "this was bad"; the swap is "this was wrong AND here is what was right."
+
+Carrier file: `scripts/n8n/marcus-daily-brief.workflow.json` (live workflow id `d2sHSeyXMmu8Xe0C`). The Pull live data node grows a 12th parallel fetch from `feedback_queue` (idempotent: `.catch(() => [])` on transport failure). The Sonnet brief system prompt grows a Krish-overrides paragraph; the user content appends the RECENT OVERRIDES JSON.
+
+
+### 8.7.2 Daily Focus Picker (Phase 1)
+
+Krish locks 3 daily focus targets on Home. Marcus nominates 3 via `home_intelligence.top_three`; Krish accepts, swaps, or adds his own; Lock posts to `/api/daily-focus/calibrate`. The whole Home re-ranks into 3 lanes plus a Muted lane.
+
+```
+Lock today's 3 → POST /api/daily-focus/calibrate { date, targets[3] }
+    → upsert daily_focus row (status='pending')
+    → double-write feedback_queue rows for any krish_swapped/krish_added target
+      (reason_code='marcus_priority_override', meta.source_phase='phase1_calibrate')
+    → await POST https://krishraja10101.app.n8n.cloud/webhook/focus-calibrate
+        → Krish | Mindmaker OS | Focus Calibrator (workflow id zEA4wGECQdqBpDmO)
+            → fetch candidate pool from 6 tables in parallel
+              (decisions_waiting + tasks + bets + leads + visibility_targets + customers)
+            → Sonnet 4.6 via /api/internal/sonnet-proxy assigns
+              <table:id> → { target: 1|2|3|null, score: 0.0-1.0 }
+            → PATCH daily_focus.relevance_index, status='calibrated', calibrated_at
+            → workflow_runs heartbeat + Telegram lane sizes
+    → client gets { ok, row_id, webhook_ok }
+
+useFocusFiltered(rows, table) → lane-tags any list
+DecisionsWaitingPanel renders Lane 1 / 2 / 3 + Muted when status='calibrated'
+StreakPills gains "3-for-3" pill (consecutive days with status='complete')
+```
+
+Carrier files: `supabase/migrations/20260527190000_daily_focus_phase1.sql`, `api/daily-focus/*` (5 routes), `api/_whisper.ts` (shared Whisper helper), `api/internal/sonnet-proxy.ts` (internal Anthropic proxy used by workflows that cannot inherit credential scope), `scripts/n8n/krish-focus-calibrator.workflow.json`, `src/components/focus/{FocusCalibrator,FocusBar,CarryOverPrompt}.tsx`, `src/hooks/{useDailyFocus,useFocusFiltered}.ts`.
+
+Critical alerts (silent_failures severity='critical') are never muted by lanes.
+
+Feature flag: `VITE_DAILY_FOCUS_ENABLED`. Default false; flip in Vercel to roll out.
+
+### 8.7.3 Tasks Inbox (Phase 2)
+
+Cmd+J (desktop) or floating Inbox button (mobile) opens `IdeaCaptureModal`. Krish types or speaks any raw task. The OS classifies, routes, runs it as far as it can, returns it to Krish only when he is needed again.
+
+```
+Drop a task → POST /api/tasks-inbox { raw_text, source }
+    → INSERT tasks_inbox row (status='raw')
+    → await POST /webhook/idea-classify
+        → Krish | Mindmaker OS | Inbox Classifier (K8GJw4T2NFjXFXXC)
+            → Sonnet 4.6 via internal sonnet-proxy decides
+              { task_type, primary_agent, target_table, first_action,
+                expected_completion_state, needs_clarification[],
+                suggested_concept_id, confidence }
+            → status='needs_clarification' → Telegram-Krish questions
+            → status='routing' → fire /webhook/idea-route
+                → Krish | Mindmaker OS | Inbox Router (GVnJkvJm9vmLG4Jp)
+                    → INSERT into one of tasks / leads /
+                      visibility_targets / guests / content_ideas /
+                      bets (customers route insert a linked task)
+                    → compute_concept_slug(first_action) → concept_id
+                    → status='in_flight', target_table, target_id
+
+Krish | Mindmaker OS | Inbox Return Detector (2d4iKtsM28IrtvNW)
+    every 15 min → scan in_flight rows
+        → for each, peek at target row
+            → if target reached a needs-Krish state, flip
+              tasks_inbox.status='needs_krish'
+        → decisions_waiting view exposes it as kind='inbox_returned'
+        → 7-day stale → status='failed', archive_reason='classifier_failed'
+
+VPS crontab 08:00 UTC daily → /root/.openclaw/cron/inbox-decay.sh
+    → POST rpc/archive_stale_inbox_ideas
+        → archives any row still in raw/classifying/needs_clarification
+          captured > 14d ago, archive_reason='auto_decay_14d'
+
+Krish | Mindmaker OS | Inbox Digest (tDkmZl2oLU43BHkm)
+    Sun 17:00 UTC → GET /api/tasks-inbox/digest → Telegram-Krish
+```
+
+Carrier files: `supabase/migrations/20260527200000_tasks_inbox_phase2.sql` (table + decay RPC + decisions_waiting 7-branch extension), `api/tasks-inbox/*` (5 routes), `scripts/n8n/krish-inbox-{classifier,router,return-detector,digest}.workflow.json`, `src/components/inbox/{IdeaCaptureModal,IdeaCaptureFAB}.tsx`, `/root/.openclaw/cron/inbox-decay.sh`.
+
+Feature flag: `VITE_TASKS_INBOX_ENABLED`. Default false.
+
+`decisions_waiting` view is now 7-branch: task, guest, idea, lead, visibility, correction, inbox_returned.
+
+
 ### 8.8 Self-healing — four-tier silent-failure system
 
 The OS's hardest class of failure is a workflow that "succeeds" (writes `workflow_runs` ok=true) but produces no actual value. Four tiers catch it:
@@ -1446,6 +1560,37 @@ Five PRs cleaning up two intertwined problems Krish flagged: press journalists w
 
 **New columns/tables:** `guests.target_type`, `nell_rejected`. **Widened CHECK:** `visibility_targets.type` includes `press_relationship` + `speaking`. **Fixed endpoint:** `/api/visibility-targets/[id]/enrich-deep`. **Workflow patches:** Nell Guest Scout (`8DlMfyTYsbnQGYR2`), Nova Visibility Deep Enrich (`kbHAHuxfzQLLlysG`). **Audit:** `docs/audits/2026-05-26-visibility-classification-audit.md` + final report `docs/audits/2026-05-26-visibility-classification-fix-complete.md`.
 
+### 2026-05-27 — Cleo content inspiration pipeline + Vera-dormancy finding
+
+Two new Cleo workflows shipped from Web Claude brief (Mindmaker OS content inspiration pipeline), executed by Claude Code on local Windows machine via the Supabase Management API + n8n MCP. Migration source-of-truth: `supabase/migrations/20260527160000_content_inspiration_pipeline_001.sql` in `krishanraja/control-center`.
+
+- **New workflow `Cleo | Mindmaker OS | Inspiration Sweep`** (`D4W5TF1sP9lE828c`, 35 nodes, daily 06:00 UTC) — reads Gmail label `AI Newsletters` (full bodies, not snippets), exports Drive inspiration folder contents, loads `content_pillars` + cleo brief + thresholds, Sonnet 4.6 extracts publish-ready seeds against pillar bar (anti_patterns + evidence_required), Perplexity sonar-pro adds contrarian + adjacent stories per survivor, inserts `content_ideas` with `source_type=inspiration_sweep`. Zero rows is a valid output. Gemini 2.5 Pro fallback on Anthropic error.
+- **New workflow `Cleo | Mindmaker OS | Synthesis Engine`** (`ES32WlTsgnr63qO3`, 28 nodes, Wed + Sun 12:00 UTC) — reads 14d of content_ideas + zara_signals + inspiration folder, Opus 4.7 hypothesizes 0-3 non-obvious angles connecting 3+ threads. Six-rule hard filter: 3+ threads, non-obvious, falsifiable, pillar-linked, confidence>=0.85, 3+ named entities. Inserts as `source_type=synthesis_hypothesis`. Zero rows is valid.
+- **Both workflows INACTIVE pending credential binding** in n8n UI (Gmail, Google Drive, Supabase account, Anthropic, Gemini, Perplexity API).
+- **Old `Cleo | Mindmaker OS | Newsletter Sweep`** (`ZICpbmlXil11qMjs`) flagged for archive after 7 days of clean Inspiration Sweep runs. Was a triggerCount=0 sub-workflow with metadata-only Gmail reads (no bodies), name-only Drive reads (no contents), no pillar awareness, output went to Set node never to Supabase. Rename to `ZZ ARCHIVED | Cleo | Newsletter Sweep`.
+
+**New table:** `content_pillars` (5 seeded — agentic_ops, open_web_econ, builder_economy, ai_decision_making, portfolio_operating). Each pillar carries `good_looks_like` jsonb, `anti_patterns` jsonb array, `evidence_required` jsonb array. Loaded at runtime by both workflows. RLS: anon SELECT, service_role ALL.
+**New columns on `content_ideas`:** `pillar_id text REFERENCES content_pillars(id)`, `brand_fit_score int CHECK 1-10`, `meta jsonb DEFAULT empty`, `body text`, `concept_id text` (Day 2 closure scope, added now to minimize churn).
+**CHECK expanded:** `content_ideas_source_type_check` now permits `inspiration_sweep` + `synthesis_hypothesis`.
+**New system_config keys (11):** `cleo_inspiration_min_brand_fit`=6, `cleo_inspiration_gmail_label`=`AI Newsletters`, `cleo_inspiration_gmail_lookback_days`=7, `cleo_inspiration_drive_lookback_days`=14, `cleo_inspiration_max_emails_per_run`=20, `cleo_inspiration_max_docs_per_run`=15, `cleo_synthesis_min_confidence`=0.85, `cleo_synthesis_min_threads`=3, `cleo_synthesis_min_named_entities`=3, `cleo_synthesis_lookback_days`=14. Plus repaired `cleo_inspiration_folder_id`=`1FNztJOU82M8zb6IIbUAbvuI6Kr0pF5Hu` (was stale `1zspGabjdCcVTs037EsgnmPHTix9UOMsJ`).
+**Control Center:** `ContentIdeaCardActionable` now renders pillar chip (color-coded), brand_fit chip, Synthesis chip, falsifiable_test line for synthesis cards, connected_threads chips, contrarian + adjacent_stories disclosure for inspiration-sweep cards. New hook `useContentPillars`. Type drift fixed on `ContentIdeaRow` (+ brand_fit_score, quality_score, pillar_id, meta). `LeadSourcePill` extended with two new source labels.
+**Live bug fixed silently:** `content_ideas.body` column did not exist before this migration, despite `ContentIdeaCardActionable.saveBody()` writing to it and `Cleo Content Transform` expecting it. The ALTER ADD COLUMN restores the broken Save/Expand flow.
+
+**CRITICAL FINDING — VERA LEARNING LOOP IS DORMANT.**
+
+Empirical verification on 2026-05-27 by Claude Code (test feedback rows submitted via `/api/feedback`, verified in `feedback_queue`, then cleaned up):
+
+- `Vera | Mindmaker OS | Feedback Aggregation` (`FZBDYXXfT1MBrAF6`) — zero rows in `workflow_runs` ever. Workflow is marked active but has never executed (or has never written a heartbeat — both equally broken from an observability standpoint).
+- `Vera | Mindmaker OS | Behavioural Auditor` (`l0nujD2PBYGeEtXx`) — same. Zero runs ever.
+- `feedback_queue` was completely empty for 90 days before the test. Total ever consumed by Vera = 0.
+- Only 2 `corrections` rows exist in the last 90 days; both originated from `krish_correction_2026-05-12` (direct insert) and `realtime_session` (manual) — neither from the feedback loop. Both still pending approval.
+
+Outcome O-4 ("same mistake doesn't survive four occurrences") is **not currently being met**. The self-improving promise of the OS exists in design but not in execution. Fix surface: investigate the Vera cron trigger and heartbeat node. Until Vera runs, content_ideas + visibility_targets quality cannot improve from Krish's thumbs-downs no matter how many rejections accumulate.
+
+**Output quality snapshot** (informational, 2026-05-27):
+- `visibility_targets` last 30d: 20 total, 17 (85%) are stubs (no deep_enriched_at / suggested_talk_title / audience_size). Deep Enrich Retry Sweep mentioned in section 13 is not draining the backlog.
+- `content_ideas` last 60d: 5 total. None have pillar_id (predate migration). 3 of 5 missing source_url (CLO-006 violation). Two would auto-reject under the new pillar bar (anti-pattern framing: "AI's role in reshaping...", "rise of AI-driven decision-making..."). The new workflows target 0-4 high-bar ideas/week to replace this weak baseline.
+
 ### 2026-05-25 (later) — Closure Architecture Day 1 (Streams 1 + 2, both complete)
 
 Two parallel streams, both landed the same day. Stream 1 (Supabase) ran on a local Claude Code session; Stream 2 (VPS workspace audit) ran on the VPS. Both reports live under `docs/audits/2026-05-25-closure-day1-stream{1,2}-*.md` in `krishanraja/control-center`. Companion Agatha-inbox note at `hot/agatha-inbox/2026-05-25-closure-day1-stream2.md` summarises the headline findings.
@@ -1558,6 +1703,7 @@ When you edit one, sync the other two. The repo is the easiest place to PR and r
 | P2-5 | Workflow naming normalization — rename 9 non-canonical strays + workflow_runs.workflow_name backfill in same SQL tx | ~30 min |
 | P2-6 | +5 completeness contracts (Marcus Daily Brief, Cleo Email Draft, Agatha Lead Deep Enrich, Felix Pipeline, Maya CAC) | ~45 min |
 | P2-7 | Rotate `sbp_d44...` Supabase Management token (pasted in chat ×2 in 30 days) | 2 min |
+| P2-8 | Marcus override-capture burn-in shipped 2026-05-27. Watch `feedback_queue` rows where `reason_code='marcus_priority_override'`. Phase 1 (Daily Focus Picker) and Phase 2 (Tasks Inbox) also shipped 2026-05-27 behind feature flags (`VITE_DAILY_FOCUS_ENABLED`, `VITE_TASKS_INBOX_ENABLED`, both default false). Brief gated Phase 1/2 on burn-ins; Krish overrode both. Flip flags when ready to dogfood. | 14 days |
 
 ### 22.5 What this section ASSUMES, document elsewhere if false
 
