@@ -4,11 +4,16 @@ import { supabase } from './_supabase.js'
 // PR 3 of os-rebuild: thumbs-up/down feedback endpoint.
 //
 // POST /api/feedback
-//   body: { source_table, source_id, agent_id?, vote: 1 | -1, reason_code?, reason_text? }
+//   body: { source_table, source_id, agent_id?, vote: 1 | -1, reason_code?, reason_text?, meta? }
 //
 // Writes to feedback_queue. Vera's weekly audit (PR 5 cron) consumes
 // unconsumed rows where vote=-1 with the same (agent_id, reason_code)
 // and proposes a corrections row when count >= 3.
+//
+// `meta` is optional structured context. For marcus_priority_override
+// (Phase 0 of the focus brief) the swap UI on Home posts an override of
+// one of Marcus's top_three picks and packs the original pick + Krish's
+// replacement into meta so Vera's aggregation has the full pattern.
 
 const ALLOWED_TABLES = new Set([
   'leads',
@@ -21,6 +26,7 @@ const ALLOWED_TABLES = new Set([
   'bets',
   'opportunities',
   'corrections',
+  'home_intelligence',
 ])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -38,6 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     vote?: number
     reason_code?: string | null
     reason_text?: string | null
+    meta?: Record<string, unknown> | null
   }
 
   if (!body.source_table || !ALLOWED_TABLES.has(body.source_table)) {
@@ -48,6 +55,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   if (body.vote !== 1 && body.vote !== -1) {
     return res.status(400).json({ ok: false, error: 'vote must be 1 or -1' })
+  }
+  if (body.meta != null && (typeof body.meta !== 'object' || Array.isArray(body.meta))) {
+    return res.status(400).json({ ok: false, error: 'meta must be an object' })
   }
 
   const { data, error } = await supabase
@@ -61,6 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       vote: body.vote,
       reason_code: body.reason_code || null,
       reason_text: body.reason_text || null,
+      meta: body.meta || {},
       status: 'pending',
     })
     .select()
