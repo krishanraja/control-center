@@ -5,8 +5,10 @@ import {
   Mic,
   PenLine,
   Radar,
+  Sparkles,
   UploadCloud,
   Users,
+  Wand2,
   type LucideIcon,
 } from 'lucide-react'
 import type { LeadSourceType } from '../hooks/useRealtimeLeads'
@@ -28,6 +30,8 @@ const META: Record<AnySource, { label: string; icon: LucideIcon; tone: string }>
   agatha_chat:        { label: 'Agatha chat',        icon: MessageSquare, tone: 'text-violet-300 bg-violet-500/10 border-violet-500/20' },
   openclaw_workspace: { label: 'Workspace note',     icon: FileText,    tone: 'text-amber-300 bg-amber-500/10 border-amber-500/20' },
   zara_signal:        { label: 'Zara signal',        icon: Radar,       tone: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20' },
+  inspiration_sweep:    { label: 'Inspiration sweep',    icon: Sparkles, tone: 'text-rose-300 bg-rose-500/10 border-rose-500/20' },
+  synthesis_hypothesis: { label: 'Synthesis hypothesis', icon: Wand2,    tone: 'text-violet-300 bg-violet-500/10 border-violet-500/20' },
 }
 
 interface Props {
