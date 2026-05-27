@@ -1,0 +1,89 @@
+{
+  "name": "Krish | Mindmaker OS | Inbox Classifier",
+  "active": true,
+  "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
+  "nodes": [
+    {
+      "name": "POST /webhook/idea-classify",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 280],
+      "parameters": { "httpMethod": "POST", "path": "idea-classify", "responseMode": "responseNode", "options": {} },
+      "id": "ic-webhook-001"
+    },
+    {
+      "name": "Load + classify",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 280],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Phase 2 of focus + tasks inbox brief: classify a raw inbox row.\nconst __helpers = this.helpers;\nasync function __req(opts) { return __helpers.httpRequest({ ...opts, returnFullResponse: false }); }\nconst input = $input.first().json;\nconst body = input.body || input;\nconst inbox_id = body.inbox_id;\nif (!inbox_id) throw new Error('inbox_id required');\n\nconst SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc';\nconst H = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' };\n\n// Mark as classifying.\nawait __req({ method: 'PATCH', url: `${SUPA}/rest/v1/tasks_inbox?id=eq.${inbox_id}`, headers: H, body: { status: 'classifying', classified_at: new Date().toISOString() }, json: true });\n\n// Fetch the row.\nconst rows = await __req({ method: 'GET', url: `${SUPA}/rest/v1/tasks_inbox?id=eq.${inbox_id}&select=raw_text,clarification_thread`, headers: H, json: true });\nconst row = (rows || [])[0];\nif (!row) throw new Error('inbox row not found');\n\n// Fetch active agent list for routing constraints.\nconst agents = await __req({ method: 'GET', url: `${SUPA}/rest/v1/agents?active=eq.true&select=id,role,pod`, headers: H, json: true }).catch(() => []);\nconst agentList = (agents || []).map(a => `${a.id} (${a.pod}/${a.role})`).join('; ');\n\nconst system = [\n  'You route a raw task Krish dropped into his inbox to the right OS surface. Output strict JSON.',\n  'Pick exactly ONE primary_agent from the active fleet (' + agentList + ').',\n  'Pick exactly ONE target_table from: tasks, leads, visibility_targets, guests, content_ideas, bets, customers.',\n  'Common mappings:',\n  '  follow-up / personal todo / decision deferred -> tasks (any agent)',\n  '  warm contact discovered -> leads (felix or nell)',\n  '  speaking gig / press / podcast pitch -> visibility_targets (nova) or guests (nell)',\n  '  content angle / hot take / quote -> content_ideas (cleo)',\n  '  hypothesis with falsifiable outcome -> bets (marcus)',\n  '  customer save / churn risk / expansion -> customers (maya) routed as a task',\n  'task_type is one of: lead_signal, content_idea, task, customer_followup, visibility_target, guest_idea, bet_hypothesis, infra_change, random_thought.',\n  'first_action is one short sentence describing what the agent does first.',\n  'expected_completion_state is one short sentence describing what state would make Krish need to look at this again.',\n  'If you cannot pick a primary_agent with confidence >= 0.7, populate needs_clarification with up to 2 short questions (one sentence each).',\n  'suggested_concept_id should be of the form concept:<type>:<short-slug>.',\n  'Output ONLY a JSON object matching this shape, no markdown:',\n  '{\"task_type\":\"...\",\"primary_agent\":\"agatha|arlo|cleo|felix|hunter|kai|leo|marcus|maya|nell|nova|priya|vera|zara\",\"target_table\":\"tasks|leads|visibility_targets|guests|content_ideas|bets|customers\",\"first_action\":\"...\",\"expected_completion_state\":\"...\",\"needs_clarification\":[],\"suggested_concept_id\":\"concept:type:slug\",\"confidence\":0.0}'\n].join('\\n');\n\nconst thread = Array.isArray(row.clarification_thread) ? row.clarification_thread : [];\nconst threadStr = thread.length === 0 ? '(no clarifications yet)' : thread.map(t => `[${t.by}] ${t.text}`).join('\\n');\n\nconst user = `RAW INPUT:\\n${row.raw_text}\\n\\nCLARIFICATION THREAD:\\n${threadStr}`;\n\nreturn [{ json: {\n  inbox_id,\n  raw_text: row.raw_text,\n  anthropic_body: {\n    model: 'claude-sonnet-4-6', max_tokens: 700,\n    system, messages: [{ role: 'user', content: user }],\n  },\n} }];"
+      },
+      "id": "ic-validate-002"
+    },
+    {
+      "name": "Sonnet classify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "https://controlcenter.krishraja.com/api/internal/sonnet-proxy",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [
+          { "name": "X-Internal-Caller", "value": "inbox-classifier" },
+          { "name": "content-type", "value": "application/json" }
+        ]},
+        "sendBody": true, "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.anthropic_body) }}",
+        "options": { "timeout": 60000 }
+      },
+      "id": "ic-sonnet-003"
+    },
+    {
+      "name": "Persist + route?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 280],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const __helpers = this.helpers;\nasync function __req(opts) { return __helpers.httpRequest({ ...opts, returnFullResponse: false }); }\nconst carry = $('Load + classify').first().json;\nconst raw = $input.first().json;\nconst blocks = raw.content || [];\nconst text = blocks.map(b => b.text || '').join('').trim();\n\nlet cls = null;\ntry { const a = text.indexOf('{'); const b = text.lastIndexOf('}'); if (a >= 0 && b > a) cls = JSON.parse(text.slice(a, b + 1)); } catch { cls = null; }\nif (!cls) cls = { needs_clarification: ['Classifier could not parse. Try rephrasing the inbox item.'], confidence: 0 };\n\nconst SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co';\nconst SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc';\nconst H = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };\n\nconst needsClarification = Array.isArray(cls.needs_clarification) && cls.needs_clarification.length > 0;\nconst nextStatus = needsClarification ? 'needs_clarification' : 'routing';\n\nawait __req({\n  method: 'PATCH',\n  url: `${SUPA}/rest/v1/tasks_inbox?id=eq.${carry.inbox_id}`,\n  headers: H,\n  body: { classification: cls, status: nextStatus, classified_at: new Date().toISOString() },\n  json: true,\n});\n\nlet telegram_text = null;\nif (needsClarification) {\n  telegram_text = `Inbox needs you: \"${(carry.raw_text || '').slice(0, 80)}\". Questions: ${cls.needs_clarification.slice(0, 2).join(' | ')}`;\n} else {\n  // Fire router webhook.\n  try {\n    await __req({\n      method: 'POST',\n      url: 'https://krishraja10101.app.n8n.cloud/webhook/idea-route',\n      headers: { 'Content-Type': 'application/json' },\n      body: { inbox_id: carry.inbox_id }, json: true,\n    });\n  } catch (e) {\n    telegram_text = `Inbox router failed for \"${(carry.raw_text || '').slice(0, 80)}\": ${(e.message || 'error').slice(0, 80)}`;\n  }\n}\n\nreturn [{ json: { ok: true, inbox_id: carry.inbox_id, needs_clarification: needsClarification, classification: cls, telegram_text } }];"
+      },
+      "id": "ic-persist-004"
+    },
+    {
+      "name": "Telegram (clarification)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1160, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
+        "sendBody": true, "specifyBody": "json",
+        "jsonBody": "={{ $json.telegram_text ? JSON.stringify({ chat_id: '6773796504', text: $json.telegram_text }) : '{}' }}",
+        "options": { "timeout": 15000 }
+      },
+      "onError": "continueRegularOutput",
+      "id": "ic-telegram-005"
+    },
+    {
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1160, 360],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, inbox_id: $json.inbox_id, needs_clarification: $json.needs_clarification }) }}",
+        "options": {}
+      },
+      "id": "ic-respond-006"
+    }
+  ],
+  "connections": {
+    "POST /webhook/idea-classify": { "main": [[{ "node": "Load + classify", "type": "main", "index": 0 }]] },
+    "Load + classify":             { "main": [[{ "node": "Sonnet classify", "type": "main", "index": 0 }]] },
+    "Sonnet classify":             { "main": [[{ "node": "Persist + route?", "type": "main", "index": 0 }]] },
+    "Persist + route?":            { "main": [[{ "node": "Telegram (clarification)", "type": "main", "index": 0 }, { "node": "Respond OK", "type": "main", "index": 0 }]] }
+  }
+}

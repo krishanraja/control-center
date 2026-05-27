@@ -1,0 +1,45 @@
+{
+  "name": "Krish | Mindmaker OS | Inbox Digest",
+  "active": true,
+  "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
+  "nodes": [
+    {
+      "name": "Sun 17:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 280],
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 17 * * 0" }] } },
+      "id": "id-trigger-001"
+    },
+    {
+      "name": "Fetch digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 280],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const __helpers = this.helpers;\nasync function __req(opts) { return __helpers.httpRequest({ ...opts, returnFullResponse: false }); }\nconst digest = await __req({ method: 'GET', url: 'https://controlcenter.krishraja.com/api/tasks-inbox/digest', json: true });\nconst counts = (digest && digest.counts) || {};\nconst total = digest && digest.total || 0;\nconst lines = [\n  `Inbox digest (last 7d): ${total} dropped.`,\n  `  routed: ${counts.in_flight || 0}, needs_krish: ${counts.needs_krish || 0}, done: ${counts.done || 0}`,\n  `  raw/classifying: ${(counts.raw || 0) + (counts.classifying || 0)}, needs_clarification: ${counts.needs_clarification || 0}`,\n  `  archived: ${counts.archived || 0}, failed: ${counts.failed || 0}`,\n].join('\\n');\nreturn [{ json: { ok: true, telegram_text: lines, total, counts } }];"
+      },
+      "id": "id-fetch-002"
+    },
+    {
+      "name": "Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
+        "sendBody": true, "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: '6773796504', text: $json.telegram_text }) }}",
+        "options": { "timeout": 15000 }
+      },
+      "onError": "continueRegularOutput",
+      "id": "id-telegram-003"
+    }
+  ],
+  "connections": {
+    "Sun 17:00 UTC": { "main": [[{ "node": "Fetch digest", "type": "main", "index": 0 }]] },
+    "Fetch digest":  { "main": [[{ "node": "Telegram", "type": "main", "index": 0 }]] }
+  }
+}
