@@ -80,9 +80,10 @@
         "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ chat_id: '5712840770', text: $json.telegram_text }) }}",
+        "jsonBody": "={{ JSON.stringify({ chat_id: '6773796504', text: $json.telegram_text }) }}",
         "options": { "timeout": 15000 }
       },
+      "onError": "continueRegularOutput",
       "id": "fc-telegram-005"
     },
     {
