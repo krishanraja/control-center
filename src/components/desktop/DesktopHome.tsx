@@ -18,6 +18,9 @@ import { StreakPills } from '../StreakPills'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
 import { TopThreeCards } from '../TopThreeCards'
+import { FocusCalibrator } from '../focus/FocusCalibrator'
+import { FocusBar } from '../focus/FocusBar'
+import { CarryOverPrompt } from '../focus/CarryOverPrompt'
 import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
 import { NextActionStrip } from '../shared/NextActionStrip'
@@ -150,6 +153,11 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
       {/* MONEY MACHINE — the only number that matters. */}
       <MrrTicker variant="desktop" />
+
+      {/* DAILY FOCUS — calibrator / bar / carry-over (feature flag gated). */}
+      <CarryOverPrompt />
+      <FocusBar />
+      <FocusCalibrator />
 
       {/* TOP THREE — Marcus's ranked plays for today. */}
       <TopThreeCards

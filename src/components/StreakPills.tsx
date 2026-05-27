@@ -1,6 +1,7 @@
 import React from 'react'
-import { Flame, MessageSquare, PenSquare, Phone } from 'lucide-react'
+import { Flame, MessageSquare, PenSquare, Phone, Target } from 'lucide-react'
 import { useStreaks } from '../hooks/useStreaks'
+import { isFocusEnabled } from '../hooks/useDailyFocus'
 
 interface Props {
   variant?: 'mobile' | 'desktop'
@@ -10,16 +11,22 @@ export function StreakPills({ variant = 'mobile' }: Props) {
   const s = useStreaks()
   if (s.loading) return null
 
-  const pills = [
+  const basePills = [
     { label: 'Customer talks', value: s.customer_contacts, icon: Phone },
     { label: 'Content shipped', value: s.content_shipped,  icon: PenSquare },
     { label: 'Sales touches',  value: s.sales_touches,    icon: MessageSquare },
   ]
+  const pills = isFocusEnabled()
+    ? [...basePills, { label: '3-for-3', value: s.three_for_three, icon: Target }]
+    : basePills
 
   const isMobile = variant === 'mobile'
+  const cols = pills.length === 4
+    ? (isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-4 gap-3')
+    : (isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-3 gap-3')
 
   return (
-    <div className={`grid ${isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-3 gap-3'} flex-shrink-0`}>
+    <div className={`grid ${cols} flex-shrink-0`}>
       {pills.map(p => {
         const lit = p.value > 0
         const accent =
