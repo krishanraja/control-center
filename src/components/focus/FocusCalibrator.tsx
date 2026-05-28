@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
-  Mic, Square, Loader2, Check, X, ChevronDown, Plus,
+  Mic, Square, Loader2, Check, X, ChevronDown, Plus, ThumbsDown,
   TrendingUp, Sparkles as SparkleIcon, AlertTriangle,
 } from 'lucide-react'
 import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
@@ -88,6 +88,13 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
   })
   const [picks, setPicks] = useState<Pick[]>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  // Marcus suggestion keys Krish has thumbs-downed this session. Dim + lock
+  // the bubble so he can't accidentally pick something he just rejected.
+  const [unsuitable, setUnsuitable] = useState<Set<string>>(new Set())
+  // Which row is currently composing a thumbs-down reason (only one at a
+  // time — opens the expanded panel with a reason textarea).
+  const [composingDownFor, setComposingDownFor] = useState<string | null>(null)
+  const [submittingDownFor, setSubmittingDownFor] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const h = useHaptics()
   const { toast } = useToast()
@@ -130,6 +137,7 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
   const canLock = picks.length === 3 && picks.every(p => p.text.trim().length > 0) && !submitting
 
   const toggleMarcus = (s: Suggestion, key: string) => {
+    if (unsuitable.has(key)) return // Row is locked after thumbs-down.
     setPicks(prev => {
       const existing = prev.findIndex(p => p.kind === 'marcus' && p.suggestion && suggestionKey(p.suggestion, -1) === key)
       if (existing >= 0) {
@@ -146,6 +154,66 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
       h.tap()
       return [...prev, { kind: 'marcus', suggestion: s, text: s.title, id: key }]
     })
+  }
+
+  const startComposeDown = (key: string) => {
+    if (unsuitable.has(key)) return
+    h.tap()
+    // Opening the reason composer also expands the row so the textarea has room.
+    setExpanded(prev => { const next = new Set(prev); next.add(key); return next })
+    setComposingDownFor(key)
+  }
+
+  const cancelComposeDown = () => {
+    h.tap()
+    setComposingDownFor(null)
+  }
+
+  const submitThumbsDown = async (s: Suggestion, key: string, reason: string) => {
+    const trimmed = reason.trim()
+    if (!trimmed) {
+      toast('Add a quick reason so Marcus learns the pattern.', 'error')
+      return
+    }
+    setSubmittingDownFor(key)
+    h.tap()
+    try {
+      const r = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source_table: 'home_intelligence',
+          source_id: s.action_target_id || key,
+          agent_id: 'marcus',
+          vote: -1,
+          reason_code: 'marcus_suggestion_unsuitable',
+          reason_text: trimmed,
+          meta: {
+            pick_kind: s.kind || null,
+            pick_title: s.title,
+            pick_action_kind: s.action_kind || null,
+            leverage_score: typeof s.leverage_score === 'number' ? s.leverage_score : null,
+            reasoning: s.reasoning || null,
+            captured_at: new Date().toISOString(),
+            picker_phase: 'pre_lock',
+          },
+        }),
+      })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.error || 'unknown')
+      // Un-pick this card if it was selected — you don't want it ghosting in Today's 3.
+      setPicks(prev => prev.filter(p => !(p.kind === 'marcus' && p.suggestion && suggestionKey(p.suggestion, -1) === key)))
+      setUnsuitable(prev => { const next = new Set(prev); next.add(key); return next })
+      setComposingDownFor(null)
+      h.success()
+      toast('Marked unsuitable. Marcus will learn.', 'success')
+    } catch (e) {
+      h.error()
+      toast(`Could not capture feedback: ${(e as Error).message}`, 'error')
+    } finally {
+      setSubmittingDownFor(null)
+    }
   }
 
   const toggleExpand = (key: string) => {
@@ -250,8 +318,14 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
                 slotIndex={marcusPickIndex.get(key) || null}
                 expanded={expanded.has(key)}
                 dim={tier === 'alternate'}
+                unsuitable={unsuitable.has(key)}
+                composing={composingDownFor === key}
+                submittingDown={submittingDownFor === key}
                 onToggle={() => toggleMarcus(s, key)}
                 onToggleExpand={() => toggleExpand(key)}
+                onStartThumbsDown={() => startComposeDown(key)}
+                onCancelThumbsDown={cancelComposeDown}
+                onSubmitThumbsDown={(reason) => submitThumbsDown(s, key, reason)}
               />
             ))}
           </div>
@@ -313,14 +387,21 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
 }
 
 function MarcusPickRow({
-  pick, slotIndex, expanded, dim, onToggle, onToggleExpand,
+  pick, slotIndex, expanded, dim, unsuitable, composing, submittingDown,
+  onToggle, onToggleExpand, onStartThumbsDown, onCancelThumbsDown, onSubmitThumbsDown,
 }: {
   pick: Suggestion
   slotIndex: number | null
   expanded: boolean
   dim: boolean
+  unsuitable: boolean
+  composing: boolean
+  submittingDown: boolean
   onToggle: () => void
   onToggleExpand: () => void
+  onStartThumbsDown: () => void
+  onCancelThumbsDown: () => void
+  onSubmitThumbsDown: (reason: string) => void
 }) {
   const kind = (pick.kind || '').toLowerCase()
   const meta = KIND_META[kind] || { label: pick.kind || 'pick', bg: 'bg-white/10', text: 'text-white/70', Icon: SparkleIcon }
@@ -328,44 +409,56 @@ function MarcusPickRow({
   const score = typeof pick.leverage_score === 'number' ? pick.leverage_score : null
   const isFallback = score === 0
   const picked = slotIndex != null
+  const [reason, setReason] = useState('')
+
+  // Reset the local draft if the composer closes (cancel or successful submit).
+  useEffect(() => { if (!composing) setReason('') }, [composing])
 
   return (
     <div
       className={`rounded-lg border transition-colors ${
-        picked
-          ? 'border-violet-400/45 bg-violet-500/[0.07]'
-          : dim
-            ? 'border-white/[0.06] bg-white/[0.02]'
-            : 'border-white/[0.08] bg-white/[0.04]'
+        unsuitable
+          ? 'border-white/[0.05] bg-white/[0.015] opacity-55'
+          : picked
+            ? 'border-violet-400/45 bg-violet-500/[0.07]'
+            : dim
+              ? 'border-white/[0.06] bg-white/[0.02]'
+              : 'border-white/[0.08] bg-white/[0.04]'
       }`}
     >
       <div className="flex items-center gap-2 px-2.5 py-2">
-        {/* Selection bubble */}
+        {/* Selection bubble — disabled when row is marked unsuitable */}
         <button
           type="button"
           onClick={onToggle}
-          aria-label={picked ? `Un-pick (slot ${slotIndex})` : 'Pick this'}
+          disabled={unsuitable}
+          aria-label={
+            unsuitable ? 'Marked unsuitable' : picked ? `Un-pick (slot ${slotIndex})` : 'Pick this'
+          }
           className={`flex-shrink-0 w-7 h-7 rounded-full border inline-flex items-center justify-center text-[12px] font-bold tabular-nums transition-colors ${
-            picked
-              ? 'bg-violet-500/80 border-violet-300/60 text-white'
-              : 'border-white/[0.20] text-white/30 hover:border-white/40 hover:text-white/60'
+            unsuitable
+              ? 'border-white/[0.10] text-white/20 cursor-not-allowed'
+              : picked
+                ? 'bg-violet-500/80 border-violet-300/60 text-white'
+                : 'border-white/[0.20] text-white/30 hover:border-white/40 hover:text-white/60'
           }`}
         >
-          {picked ? slotIndex : '○'}
+          {picked ? slotIndex : unsuitable ? <ThumbsDown size={11} /> : '○'}
         </button>
 
-        {/* Main row body — tappable to toggle pick */}
+        {/* Main row body — tappable to toggle pick (or no-op if unsuitable) */}
         <button
           type="button"
           onClick={onToggle}
-          className="flex-1 min-w-0 text-left"
+          disabled={unsuitable}
+          className="flex-1 min-w-0 text-left disabled:cursor-not-allowed"
         >
           <div className="flex items-center gap-2 min-w-0">
             <span className={`flex-shrink-0 inline-flex items-center gap-1 rounded ${meta.bg} ${meta.text} text-[9px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5`}>
               <Icon size={9} />
               {meta.label}
             </span>
-            <span className={`text-[12px] font-semibold truncate ${dim ? 'text-white/85' : 'text-white'}`}>
+            <span className={`text-[12px] font-semibold truncate ${dim ? 'text-white/85' : 'text-white'} ${unsuitable ? 'line-through' : ''}`}>
               {pick.title}
             </span>
           </div>
@@ -380,6 +473,22 @@ function MarcusPickRow({
           </span>
         )}
 
+        {/* Thumbs-down — opens an inline reason composer */}
+        <button
+          type="button"
+          onClick={onStartThumbsDown}
+          disabled={unsuitable || composing}
+          aria-label={unsuitable ? 'Already marked unsuitable' : 'Mark unsuitable'}
+          title="Mark unsuitable"
+          className={`flex-shrink-0 w-7 h-7 inline-flex items-center justify-center transition-colors ${
+            unsuitable
+              ? 'text-rose-300/60'
+              : 'text-white/35 hover:text-rose-300'
+          } disabled:cursor-not-allowed`}
+        >
+          <ThumbsDown size={13} />
+        </button>
+
         {/* Chevron */}
         <button
           type="button"
@@ -391,7 +500,63 @@ function MarcusPickRow({
         </button>
       </div>
 
-      {expanded && (pick.why_now || pick.reasoning) && (
+      {/* Unsuitable label — replaces the body when row is marked. */}
+      {unsuitable && !composing && (
+        <div className="border-t border-white/[0.06] px-3 py-2 text-[10px] text-rose-200/70 italic">
+          Marked unsuitable — Marcus will learn.
+        </div>
+      )}
+
+      {/* Reason composer for thumbs-down */}
+      {composing && !unsuitable && (
+        <div className="border-t border-rose-400/20 px-3 py-2.5 space-y-2 bg-rose-500/[0.04]">
+          <label className="block text-[10px] uppercase tracking-[0.14em] text-rose-200/80">
+            Why is this unsuitable?
+          </label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault()
+                onSubmitThumbsDown(reason)
+              } else if (e.key === 'Escape') {
+                e.preventDefault()
+                onCancelThumbsDown()
+              }
+            }}
+            disabled={submittingDown}
+            rows={2}
+            autoFocus
+            placeholder="e.g. wrong category, already shipping, low ROI on this lead profile…"
+            className="w-full bg-black/30 border border-white/[0.10] rounded-md px-2.5 py-1.5 text-[12px] text-white placeholder:text-white/25 focus:border-rose-400/40 focus:outline-none resize-none disabled:opacity-60"
+          />
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onCancelThumbsDown}
+              disabled={submittingDown}
+              className="inline-flex items-center gap-1 text-[11px] text-white/55 hover:text-white/85 px-2 py-1 rounded disabled:opacity-60"
+            >
+              <X size={11} />
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => onSubmitThumbsDown(reason)}
+              disabled={submittingDown || !reason.trim()}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-100 bg-rose-500/25 hover:bg-rose-500/40 border border-rose-400/40 rounded-md px-2.5 py-1 disabled:opacity-50"
+            >
+              {submittingDown ? <Loader2 size={11} className="animate-spin" /> : <ThumbsDown size={11} />}
+              {submittingDown ? 'Sending…' : 'Mark unsuitable'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Default expansion — why_now + reasoning. Hidden while composing so
+          the textarea doesn't compete for attention. */}
+      {expanded && !composing && !unsuitable && (pick.why_now || pick.reasoning) && (
         <div className="border-t border-white/[0.06] px-3 py-2.5 space-y-1.5">
           {pick.why_now && <p className="text-[11px] text-white/65 leading-snug">{pick.why_now}</p>}
           {pick.reasoning && <p className="text-[10px] text-white/45 italic leading-snug">{pick.reasoning}</p>}
