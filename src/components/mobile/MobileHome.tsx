@@ -9,6 +9,7 @@ import {
 import { DetailSheet } from './DetailSheet'
 import { Logomark } from './Logomark'
 import { useHaptics } from '../../hooks/useHaptics'
+import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
 import { useHomeIntelligence, type ExternalSignal } from '../../hooks/useHomeIntelligence'
 import { MrrTicker } from '../MrrTicker'
 import { DailyBriefBanner } from '../DailyBriefBanner'
@@ -33,10 +34,17 @@ type NavigateFn = (tab: string, params?: Record<string, string>) => void
 export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const h = useHaptics()
   const { intel } = useHomeIntelligence()
+  const { today: dailyFocusToday } = useDailyFocus()
   const [openSignal, setOpenSignal] = useState<ExternalSignal | null>(null)
 
   const signals = intel.external_signals
   const topThree = intel.top_three
+
+  // While Krish is in the FocusCalibrator (no daily_focus row yet), TopThreeCards
+  // would render Marcus's same picks a second time — confusing because the
+  // calibrator above is the actionable copy. Hide it until lock; FocusCalibrator
+  // owns the Marcus-picks surface until then.
+  const showTopThree = !isFocusEnabled() || !!dailyFocusToday
 
   return (
     <MobileShellPrim
@@ -52,13 +60,17 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       <FocusBar />
       <FocusCalibrator />
 
-      {/* TOP THREE — Marcus's three plays for today. */}
-      <TopThreeCards
-        cards={topThree}
-        onNavigate={onNavigate}
-        variant="mobile"
-        generatedAt={intel.top_three_at ?? intel.generated_at}
-      />
+      {/* TOP THREE — Marcus's three plays for today. Hidden while the
+          calibrator is open so Marcus's picks appear once, where they're
+          actionable. Re-appears as informational context after lock. */}
+      {showTopThree && (
+        <TopThreeCards
+          cards={topThree}
+          onNavigate={onNavigate}
+          variant="mobile"
+          generatedAt={intel.top_three_at ?? intel.generated_at}
+        />
+      )}
 
       {/* ROOM PREVIEWS — Content / Visibility / Leads, stacked. */}
       <RoomPreviews onNavigate={onNavigate} variant="mobile" />
