@@ -9,12 +9,15 @@ import { FeedbackButton, type FeedbackSurface } from '../shared/FeedbackButton'
  * without squinting. All tap targets ≥ 48dp (rows 84dp, pills 140dp).
  */
 
-// BottomNav is ~96-104px tall including safe area.
-const BOTTOM_NAV_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+104px)]'
+// BottomNav is ~96-108px tall including safe area. Exported so the second
+// shell (MobileShell.tsx, with pull-to-refresh) reserves identical space.
+export const BOTTOM_NAV_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+108px)]'
 
 /**
  * h-[100dvh] column. Content area is a flex column with gap-5 so fill={true}
- * children actually grow (margin-based space-y-* defeats flex-1).
+ * children actually grow (margin-based space-y-* defeats flex-1). Cards run
+ * flush to the viewport edge — section labels and prose carry their own
+ * horizontal padding when they need a gutter.
  */
 export function MobileShell({
   header,
@@ -27,7 +30,7 @@ export function MobileShell({
     <div className="flex flex-col h-[100dvh]">
       {header && <div className="px-5 pt-7 pb-5 flex-shrink-0">{header}</div>}
       <div
-        className={`flex-1 min-h-0 overflow-y-auto px-5 flex flex-col gap-5 scrollbar-hide ${BOTTOM_NAV_PAD}`}
+        className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 scrollbar-hide ${BOTTOM_NAV_PAD}`}
       >
         {children}
       </div>
