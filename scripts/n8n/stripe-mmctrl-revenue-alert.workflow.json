@@ -62,7 +62,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
+        "url": "https://api.telegram.org/bot8761660894:AAGynEklqqJ1YqwkmrSCXYJi8fgBHKmfhXk/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ chat_id: '6773796504', text: '💰 mm-ctrl: ' + ($json.body?.type || 'event') + ' — ' + ($json.body?.data?.object?.customer_email || $json.body?.data?.object?.customer || 'unknown') }) }}"
