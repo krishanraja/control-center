@@ -147,6 +147,9 @@ export const BET_KIND_LABEL: Record<BetKind, string> = {
   other: 'Other',
 }
 
+/** Common time-box lengths offered as one-tap chips in the bet composer. */
+export const BET_TIME_BOX_OPTIONS = [7, 14, 30, 60] as const
+
 export const BET_KIND_ACCENT: Record<BetKind, string> = {
   content: 'bg-rose-400',
   outreach: 'bg-emerald-400',
