@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { Plus, AlertOctagon, Target } from 'lucide-react'
 import { MobileShell as MobileShellPrim, TabHeader, FeedCard, EmptyState } from './primitives'
 import { useHaptics } from '../../hooks/useHaptics'
-import { useBets, BET_KIND_LABEL, type BetKind } from '../../hooks/useBets'
+import { useBets, BET_KIND_LABEL, BET_TIME_BOX_OPTIONS, type BetKind } from '../../hooks/useBets'
 import { BetCard } from '../BetCard'
 import { useToast } from '../shared/Toast'
 import { NextActionStrip } from '../shared/NextActionStrip'
@@ -120,60 +120,104 @@ export function MobileBets() {
       />
 
       {composing && (
-        <div className="rounded-2xl border border-violet-500/20 bg-violet-500/[0.05] p-4 space-y-3">
+        <div className="rounded-2xl border border-violet-500/20 bg-violet-500/[0.05] p-4 space-y-4">
           <p className="text-[14px] font-semibold text-white">New bet</p>
-          <textarea
-            value={draft.hypothesis}
-            onChange={e => setDraft(d => ({ ...d, hypothesis: e.target.value }))}
-            rows={2}
-            placeholder="Hypothesis (one sentence) — what will happen if you do this?"
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-[14px] text-white p-3 placeholder:text-white/30 focus:outline-none focus:border-white/[0.18]"
-          />
-          <textarea
-            value={draft.success_criterion}
-            onChange={e => setDraft(d => ({ ...d, success_criterion: e.target.value }))}
-            rows={2}
-            placeholder="Wins if — measurable in N days. (e.g. '5+ paid signups from this campaign')"
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-[14px] text-white p-3 placeholder:text-white/30 focus:outline-none focus:border-white/[0.18]"
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+
+          {/* 16px fonts keep iOS from auto-zooming the viewport on focus. */}
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">
+              Hypothesis
+            </label>
+            <textarea
+              value={draft.hypothesis}
+              onChange={e => setDraft(d => ({ ...d, hypothesis: e.target.value }))}
+              rows={2}
+              placeholder="What will happen if you do this? (one sentence)"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-[16px] text-white p-3 placeholder:text-white/30 focus:outline-none focus:border-violet-400/40"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">
+              Wins if
+            </label>
+            <textarea
+              value={draft.success_criterion}
+              onChange={e => setDraft(d => ({ ...d, success_criterion: e.target.value }))}
+              rows={2}
+              placeholder="Measurable outcome — e.g. '5+ paid signups from this campaign'"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-[16px] text-white p-3 placeholder:text-white/30 focus:outline-none focus:border-violet-400/40"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">
+              Category
+            </label>
             <select
               value={draft.kind}
               onChange={e => setDraft(d => ({ ...d, kind: e.target.value as BetKind }))}
-              className="bg-white/[0.04] border border-white/[0.08] rounded text-[13px] text-white p-2"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-[16px] text-white px-3 min-h-[48px] focus:outline-none focus:border-violet-400/40"
             >
               {(Object.keys(BET_KIND_LABEL) as BetKind[]).map(k => (
                 <option key={k} value={k}>{BET_KIND_LABEL[k]}</option>
               ))}
             </select>
-            <input
-              type="number"
-              value={draft.time_box_days}
-              onChange={e => setDraft(d => ({ ...d, time_box_days: Number(e.target.value) || 14 }))}
-              placeholder="Days"
-              className="bg-white/[0.04] border border-white/[0.08] rounded text-[13px] text-white p-2"
-            />
-            <input
-              type="number"
-              value={draft.est_mrr_impact_usd}
-              onChange={e => setDraft(d => ({ ...d, est_mrr_impact_usd: e.target.value }))}
-              placeholder="Est. MRR $"
-              className="bg-white/[0.04] border border-white/[0.08] rounded text-[13px] text-white p-2"
-            />
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* One-tap chips replace a fiddly number stepper for the time-box. */}
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">
+              Decide in
+            </label>
+            <div className="flex gap-2">
+              {BET_TIME_BOX_OPTIONS.map(d => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => { h.select(); setDraft(dr => ({ ...dr, time_box_days: d })) }}
+                  className={`flex-1 min-h-[44px] rounded-lg border text-[14px] font-semibold tabular-nums transition-colors ${
+                    draft.time_box_days === d
+                      ? 'bg-violet-500/30 border-violet-400/50 text-white'
+                      : 'bg-white/[0.04] border-white/[0.08] text-white/60'
+                  }`}
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">
+              Est. MRR impact <span className="font-normal normal-case tracking-normal text-white/30">· optional</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[16px] text-white/40">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={draft.est_mrr_impact_usd}
+                onChange={e => setDraft(d => ({ ...d, est_mrr_impact_usd: e.target.value.replace(/[^0-9]/g, '') }))}
+                placeholder="0"
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-[16px] text-white pl-7 pr-3 min-h-[48px] placeholder:text-white/30 focus:outline-none focus:border-violet-400/40"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
             <button
               type="button"
               onClick={submit}
               disabled={busy}
-              className="px-4 py-2 rounded-md text-[13px] font-semibold bg-violet-500/30 border border-violet-500/40 text-violet-100 hover:bg-violet-500/40 disabled:opacity-40 inline-flex items-center min-h-[44px]"
+              className="flex-1 px-4 rounded-lg text-[15px] font-semibold bg-violet-500 text-white hover:bg-violet-400 disabled:opacity-40 inline-flex items-center justify-center min-h-[48px] active:scale-[0.99] transition-transform"
             >
               {busy ? 'Saving…' : 'Place bet'}
             </button>
             <button
               type="button"
-              onClick={() => setComposing(false)}
-              className="px-3 py-2 rounded-md text-[13px] font-medium text-white/55 inline-flex items-center min-h-[44px]"
+              onClick={() => { h.tap(); setComposing(false) }}
+              className="px-4 rounded-lg text-[14px] font-medium text-white/55 inline-flex items-center min-h-[48px]"
             >
               Cancel
             </button>

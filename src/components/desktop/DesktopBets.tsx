@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Plus, Target, AlertOctagon } from 'lucide-react'
-import { useBets, BET_KIND_LABEL, type BetKind } from '../../hooks/useBets'
+import { useBets, BET_KIND_LABEL, BET_TIME_BOX_OPTIONS, type BetKind } from '../../hooks/useBets'
 import { BetCard } from '../BetCard'
 import { useToast } from '../shared/Toast'
 import { NextActionStrip } from '../shared/NextActionStrip'
@@ -123,34 +123,56 @@ export function DesktopBets() {
             placeholder="Wins if — measurable in N days"
             className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-[13px] text-white p-2 placeholder:text-white/30 focus:outline-none focus:border-white/[0.18]"
           />
-          <div className="grid grid-cols-4 gap-2">
-            <select
-              value={draft.kind}
-              onChange={e => setDraft(d => ({ ...d, kind: e.target.value as BetKind }))}
-              className="bg-white/[0.04] border border-white/[0.08] rounded text-[12px] text-white p-2"
-            >
-              {(Object.keys(BET_KIND_LABEL) as BetKind[]).map(k => (
-                <option key={k} value={k}>{BET_KIND_LABEL[k]}</option>
-              ))}
-            </select>
-            <input
-              type="number" value={draft.time_box_days}
-              onChange={e => setDraft(d => ({ ...d, time_box_days: Number(e.target.value) || 14 }))}
-              placeholder="Days"
-              className="bg-white/[0.04] border border-white/[0.08] rounded text-[12px] text-white p-2"
-            />
-            <input
-              type="text" value={draft.agent_owner}
-              onChange={e => setDraft(d => ({ ...d, agent_owner: e.target.value }))}
-              placeholder="Owner"
-              className="bg-white/[0.04] border border-white/[0.08] rounded text-[12px] text-white p-2"
-            />
-            <input
-              type="number" value={draft.est_mrr_impact_usd}
-              onChange={e => setDraft(d => ({ ...d, est_mrr_impact_usd: e.target.value }))}
-              placeholder="Est. MRR $"
-              className="bg-white/[0.04] border border-white/[0.08] rounded text-[12px] text-white p-2"
-            />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Category</span>
+              <select
+                value={draft.kind}
+                onChange={e => setDraft(d => ({ ...d, kind: e.target.value as BetKind }))}
+                className="bg-white/[0.04] border border-white/[0.08] rounded text-[12px] text-white p-2"
+              >
+                {(Object.keys(BET_KIND_LABEL) as BetKind[]).map(k => (
+                  <option key={k} value={k}>{BET_KIND_LABEL[k]}</option>
+                ))}
+              </select>
+            </label>
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Decide in</span>
+              <div className="flex gap-1.5">
+                {BET_TIME_BOX_OPTIONS.map(d => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setDraft(dr => ({ ...dr, time_box_days: d }))}
+                    className={`flex-1 rounded text-[12px] font-semibold tabular-nums py-1.5 border transition-colors ${
+                      draft.time_box_days === d
+                        ? 'bg-violet-500/30 border-violet-400/50 text-white'
+                        : 'bg-white/[0.04] border-white/[0.08] text-white/55 hover:text-white/80'
+                    }`}
+                  >
+                    {d}d
+                  </button>
+                ))}
+              </div>
+            </div>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Owner</span>
+              <input
+                type="text" value={draft.agent_owner}
+                onChange={e => setDraft(d => ({ ...d, agent_owner: e.target.value }))}
+                placeholder="Owner"
+                className="bg-white/[0.04] border border-white/[0.08] rounded text-[12px] text-white p-2 placeholder:text-white/30"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">Est. MRR $</span>
+              <input
+                type="text" inputMode="numeric" value={draft.est_mrr_impact_usd}
+                onChange={e => setDraft(d => ({ ...d, est_mrr_impact_usd: e.target.value.replace(/[^0-9]/g, '') }))}
+                placeholder="0"
+                className="bg-white/[0.04] border border-white/[0.08] rounded text-[12px] text-white p-2 placeholder:text-white/30"
+              />
+            </label>
           </div>
           <div className="flex items-center gap-2">
             <button
