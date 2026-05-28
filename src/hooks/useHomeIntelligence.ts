@@ -27,6 +27,12 @@ export interface TopThreeCard {
   action_kind: DecisionKind
   action_target_id: string | null
   expires_at?: string | null
+  // Synthesis upgrade (2026-05-28): Marcus rates leverage + explains the
+  // cross-source frame so the UI can show "why this beats the alternates".
+  // Optional — pre-upgrade rows in home_intelligence won't have these.
+  leverage_score?: number
+  reasoning?: string
+  beats?: string[]
 }
 
 export interface MomentumPayload {
@@ -74,6 +80,8 @@ export interface HomeIntelligence {
   weekly_retro_ack_at: string | null
   external_signals: ExternalSignal[]
   top_three: TopThreeCard[]
+  top_three_alternates: TopThreeCard[]
+  top_three_reasoning: string | null
   top_three_at: string | null
   momentum: MomentumPayload | null
   momentum_at: string | null
@@ -89,6 +97,8 @@ const EMPTY: HomeIntelligence = {
   weekly_retro_ack_at: null,
   external_signals: [],
   top_three: [],
+  top_three_alternates: [],
+  top_three_reasoning: null,
   top_three_at: null,
   momentum: null,
   momentum_at: null,
@@ -136,7 +146,7 @@ async function fetchOne(): Promise<void> {
         daily_brief, daily_brief_at,
         weekly_retro, weekly_retro_at, weekly_retro_ack_at,
         external_signals,
-        top_three, top_three_at,
+        top_three, top_three_alternates, top_three_reasoning, top_three_at,
         momentum, momentum_at,
         generated_at
       `)
@@ -161,6 +171,10 @@ async function fetchOne(): Promise<void> {
         weekly_retro_ack_at: (data as any).weekly_retro_ack_at ?? null,
         external_signals: Array.isArray(external) ? external : [],
         top_three: parseTopThree((data as any).top_three),
+        top_three_alternates: parseTopThree((data as any).top_three_alternates),
+        top_three_reasoning: typeof (data as any).top_three_reasoning === 'string'
+          ? (data as any).top_three_reasoning
+          : null,
         top_three_at: (data as any).top_three_at ?? null,
         momentum: parseJson<MomentumPayload | null>((data as any).momentum, null),
         momentum_at: (data as any).momentum_at ?? null,

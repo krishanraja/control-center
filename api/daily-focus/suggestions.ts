@@ -2,10 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 
 // GET /api/daily-focus/suggestions
-//   Returns { marcus_top_three, additional_candidates }.
-//   marcus_top_three is the 3 cards Marcus produced on home_intelligence.
-//   additional_candidates is the next 4 rows from decisions_waiting,
-//   ordered by age_hours desc.
+//   Returns { marcus_top_three, marcus_alternates, marcus_reasoning }.
+//   All three pulled from home_intelligence — the alternates are now
+//   also Marcus's synthesis, not a raw decisions_waiting slice.
 
 interface TopThreeCard {
   kind: string
@@ -15,12 +14,27 @@ interface TopThreeCard {
   action_kind?: string
   action_target_id?: string | null
   expires_at?: string | null
+  leverage_score?: number
+  reasoning?: string
+  beats?: string[]
 }
 
 function parseJson<T>(raw: unknown, fallback: T): T {
   if (raw == null) return fallback
   if (typeof raw === 'object') return raw as T
   try { return JSON.parse(raw as string) as T } catch { return fallback }
+}
+
+function parseCards(raw: unknown, limit: number): TopThreeCard[] {
+  const arr = parseJson<unknown[]>(raw, [])
+  if (!Array.isArray(arr)) return []
+  return arr
+    .filter((c): c is TopThreeCard =>
+      !!c
+      && typeof (c as TopThreeCard).kind === 'string'
+      && typeof (c as TopThreeCard).title === 'string',
+    )
+    .slice(0, limit)
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -31,30 +45,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'GET')     return res.status(405).json({ ok: false, error: 'Method not allowed' })
 
-  const [intelRes, decRes] = await Promise.all([
-    supabase.from('home_intelligence').select('top_three').eq('id', 'current').maybeSingle(),
-    supabase.from('decisions_waiting').select('*').order('sort_at', { ascending: true }).limit(20),
-  ])
+  const { data, error } = await supabase
+    .from('home_intelligence')
+    .select('top_three, top_three_alternates, top_three_reasoning, top_three_at')
+    .eq('id', 'current')
+    .maybeSingle()
 
-  if (intelRes.error && intelRes.error.code !== 'PGRST116') {
-    return res.status(500).json({ ok: false, error: intelRes.error.message })
-  }
-  if (decRes.error) {
-    return res.status(500).json({ ok: false, error: decRes.error.message })
+  if (error && error.code !== 'PGRST116') {
+    return res.status(500).json({ ok: false, error: error.message })
   }
 
-  const topRaw = (intelRes.data as { top_three?: unknown } | null)?.top_three
-  const topArr = parseJson<TopThreeCard[]>(topRaw, [])
-  const marcus_top_three = Array.isArray(topArr)
-    ? topArr.filter(c => c && typeof c.kind === 'string' && typeof c.title === 'string').slice(0, 3)
-    : []
+  const row = data as {
+    top_three?: unknown
+    top_three_alternates?: unknown
+    top_three_reasoning?: unknown
+    top_three_at?: string | null
+  } | null
 
-  // Skip anything already in marcus_top_three by title to keep the picker
-  // free of duplicates.
-  const usedTitles = new Set(marcus_top_three.map(c => (c.title || '').toLowerCase()))
-  const additional_candidates = (decRes.data || [])
-    .filter(r => !usedTitles.has((r.title || '').toLowerCase()))
-    .slice(0, 4)
+  const marcus_top_three = parseCards(row?.top_three, 3)
+  const marcus_alternates = parseCards(row?.top_three_alternates, 4)
+  const marcus_reasoning = typeof row?.top_three_reasoning === 'string'
+    ? row.top_three_reasoning
+    : null
 
-  return res.json({ ok: true, marcus_top_three, additional_candidates })
+  return res.json({
+    ok: true,
+    marcus_top_three,
+    marcus_alternates,
+    marcus_reasoning,
+    generated_at: row?.top_three_at ?? null,
+  })
 }
