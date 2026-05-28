@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react'
-
-const BOTTOM_NAV_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+100px)]'
+import { BOTTOM_NAV_PAD } from './primitives'
 
 interface Props {
   header?: React.ReactNode
@@ -61,7 +60,7 @@ export function MobileShell({ header, children, onRefresh }: Props) {
 
   return (
     <main className="flex flex-col h-[100dvh] relative">
-      {header && <div className="px-5 pt-5 pb-3 flex-shrink-0">{header}</div>}
+      {header && <div className="px-5 pt-7 pb-5 flex-shrink-0">{header}</div>}
 
       {/* Pull-to-refresh indicator */}
       {(pullDist > 0 || refreshing) && (
@@ -85,7 +84,7 @@ export function MobileShell({ header, children, onRefresh }: Props) {
 
       <section
         ref={ref}
-        className={`flex-1 min-h-0 overflow-y-auto px-5 flex flex-col gap-4 scrollbar-hide ${BOTTOM_NAV_PAD}`}
+        className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 scrollbar-hide ${BOTTOM_NAV_PAD}`}
         style={{
           transform: pullDist > 0 ? `translateY(${pullDist}px)` : undefined,
           transition: startY.current == null ? 'transform 180ms ease' : 'none',

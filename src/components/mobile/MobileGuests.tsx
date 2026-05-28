@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Mic, Megaphone, Calendar } from 'lucide-react'
 import { MobileShell } from './MobileShell'
-import { TabHeader } from './TabHeader'
+import { TabHeader } from './primitives'
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { BottomSheet } from './BottomSheet'
 import { useRealtimeGuests, type GuestStatus, type GuestRow } from '../../hooks/useRealtimeGuests'
@@ -98,7 +98,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
     <MobileShell
       header={<TabHeader title="Visibility" subtitle="Inbound guests + outbound speaking" />}
     >
-      <div className="px-3 pb-6 space-y-4">
+      <div className="pb-6 space-y-4">
         <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.015] p-1 self-start">
           <LaneTab active={lane === 'inbound'} onClick={() => { h.select(); setLane('inbound') }}>
             <Mic size={11} className="inline mr-1" />

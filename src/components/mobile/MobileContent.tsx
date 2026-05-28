@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react'
 import { FileText } from 'lucide-react'
 import { MobileShell } from './MobileShell'
-import { TabHeader } from './TabHeader'
+import { TabHeader } from './primitives'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 import { NextActionStrip } from '../shared/NextActionStrip'
@@ -67,7 +67,7 @@ export function MobileContent({ ideaId, onClearIdea }: Props = {}) {
     <MobileShell
       header={<TabHeader title="Content" subtitle="Ideas to live, one lane" />}
     >
-      <div className="px-3 pb-6 space-y-3">
+      <div className="pb-6 space-y-3">
         <NextActionStrip
           headline={reviewCount}
           headlineLabel="in review"

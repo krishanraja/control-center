@@ -80,7 +80,7 @@ export function TopThreeCards({ cards, onNavigate, variant = 'desktop', generate
 
   return (
     <section aria-label="Today's three priorities">
-      <header className="flex items-baseline justify-between mb-2 px-0.5">
+      <header className="flex items-baseline justify-between mb-2 px-5">
         <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
           Three things that move the needle
         </h2>

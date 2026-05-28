@@ -117,5 +117,5 @@ export function useDailyFocus() {
 }
 
 export function isFocusEnabled(): boolean {
-  return import.meta.env.VITE_DAILY_FOCUS_ENABLED === 'true'
+  return import.meta.env.VITE_DAILY_FOCUS_ENABLED !== 'false'
 }

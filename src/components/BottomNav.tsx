@@ -46,10 +46,10 @@ export function BottomNav({ active, onChange }: Props) {
             <button
               onClick={() => { h.select(); setDrawerOpen(true) }}
               aria-label="More"
-              className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[56px] sm:min-h-[64px] text-white/45"
+              className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[64px] sm:min-h-[68px] text-white/45"
             >
-              <MoreHorizontal className="w-[22px] h-[22px] sm:w-6 sm:h-6" strokeWidth={1.8} />
-              <span className="text-[10px] sm:text-[11px] font-medium leading-none tracking-tight">More</span>
+              <MoreHorizontal className="w-6 h-6" strokeWidth={1.8} />
+              <span className="text-[11px] font-medium leading-none tracking-tight">More</span>
             </button>
           )}
         </div>
@@ -76,7 +76,7 @@ function NavButton({ tab, active, ultraNarrow: _ultraNarrow, onClick }: { tab: T
     <button
       onClick={onClick}
       aria-label={tab.label}
-      className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[56px] sm:min-h-[64px] ${
+      className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[64px] sm:min-h-[68px] ${
         active ? 'text-white' : 'text-white/45'
       }`}
     >
@@ -85,11 +85,11 @@ function NavButton({ tab, active, ultraNarrow: _ultraNarrow, onClick }: { tab: T
           <span aria-hidden className="absolute inset-0 rounded-full bg-violet-500/30 blur-md scale-[1.7]" />
         )}
         <Icon
-          className={`relative w-[22px] h-[22px] sm:w-6 sm:h-6 transition-colors ${active ? 'text-violet-200' : ''}`}
+          className={`relative w-6 h-6 transition-colors ${active ? 'text-violet-200' : ''}`}
           strokeWidth={active ? 2.3 : 1.8}
         />
       </div>
-      <span className={`w-full text-center text-[10px] sm:text-[11px] font-medium leading-none tracking-tight truncate transition-colors ${active ? 'text-violet-200' : ''}`}>
+      <span className={`w-full text-center text-[11px] font-medium leading-none tracking-tight truncate transition-colors ${active ? 'text-violet-200' : ''}`}>
         {label}
       </span>
       {active && (

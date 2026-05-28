@@ -9,7 +9,7 @@ import { useToast } from '../shared/Toast'
 // to decisions_waiting when the agent needs his input again.
 
 export function isInboxEnabled(): boolean {
-  return import.meta.env.VITE_TASKS_INBOX_ENABLED === 'true'
+  return import.meta.env.VITE_TASKS_INBOX_ENABLED !== 'false'
 }
 
 interface Props {
