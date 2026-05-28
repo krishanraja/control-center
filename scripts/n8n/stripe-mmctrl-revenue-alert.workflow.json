@@ -65,7 +65,7 @@
         "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ chat_id: '5712840770', text: '💰 mm-ctrl: ' + ($json.body?.type || 'event') + ' — ' + ($json.body?.data?.object?.customer_email || $json.body?.data?.object?.customer || 'unknown') }) }}"
+        "jsonBody": "={{ JSON.stringify({ chat_id: '6773796504', text: '💰 mm-ctrl: ' + ($json.body?.type || 'event') + ' — ' + ($json.body?.data?.object?.customer_email || $json.body?.data?.object?.customer || 'unknown') }) }}"
       },
       "notes": "Replace chat_id with the Telegram chat you want. Currently using the existing bot.",
       "id": "591dec78-e623-4ec8-b662-8e38009b7600"
