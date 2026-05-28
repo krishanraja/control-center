@@ -82,7 +82,7 @@ export function TopThreeCards({ cards, onNavigate, variant = 'desktop', generate
     <section aria-label="Today's three priorities">
       <header className="flex items-baseline justify-between mb-2 px-5">
         <h2 className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">
-          Three things that move the needle
+          Marcus's leverage picks
         </h2>
         {generatedAt && (
           <span className="text-[10px] text-white/30 tabular-nums">
@@ -198,14 +198,34 @@ function Card({
           <span className={`text-[10px] font-bold uppercase tracking-[0.16em] ${meta.accent}`}>
             {meta.label}
           </span>
-          <span className={`ml-auto w-1.5 h-1.5 rounded-full ${meta.dot} opacity-70`} aria-hidden="true" />
+          {typeof card.leverage_score === 'number' && (
+            <span className={`ml-auto text-[10px] tabular-nums ${
+              card.leverage_score === 0
+                ? 'text-amber-300'
+                : card.leverage_score >= 80
+                  ? 'text-emerald-300'
+                  : card.leverage_score >= 60
+                    ? 'text-white/55'
+                    : 'text-white/35'
+            }`}>
+              {card.leverage_score === 0 ? 'fallback' : `lev ${card.leverage_score}`}
+            </span>
+          )}
+          {typeof card.leverage_score !== 'number' && (
+            <span className={`ml-auto w-1.5 h-1.5 rounded-full ${meta.dot} opacity-70`} aria-hidden="true" />
+          )}
         </header>
         <p className="text-[14px] font-semibold text-white leading-snug mb-1.5 break-words">
           {card.title}
         </p>
         {card.why_now && (
-          <p className="text-[12px] text-white/60 leading-snug mb-3 line-clamp-2 break-words">
+          <p className="text-[12px] text-white/60 leading-snug mb-1.5 line-clamp-2 break-words">
             {card.why_now}
+          </p>
+        )}
+        {card.reasoning && (
+          <p className="text-[11px] text-white/45 italic leading-snug mb-3 line-clamp-2 break-words">
+            {card.reasoning}
           </p>
         )}
         <span

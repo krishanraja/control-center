@@ -16,11 +16,15 @@ interface Suggestion {
   action_label?: string
   action_kind?: string
   action_target_id?: string | null
+  leverage_score?: number | null
+  reasoning?: string | null
+  beats?: string[]
 }
 
 interface SuggestionsPayload {
   marcus_top_three: Suggestion[]
-  additional_candidates: Suggestion[]
+  marcus_alternates: Suggestion[]
+  marcus_reasoning: string | null
 }
 
 interface CalibrateBody {
@@ -51,8 +55,7 @@ function browserCanRecord(): boolean {
 
 export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
   const { today, carry_over, loading } = useDailyFocus()
-  const [suggestions, setSuggestions] = useState<SuggestionsPayload>({ marcus_top_three: [], additional_candidates: [] })
-  const [showMore, setShowMore]   = useState(false)
+  const [suggestions, setSuggestions] = useState<SuggestionsPayload>({ marcus_top_three: [], marcus_alternates: [], marcus_reasoning: null })
   const [slots, setSlots] = useState<SlotState[]>([
     { text: '', source: null, replaced_marcus_pick: null },
     { text: '', source: null, replaced_marcus_pick: null },
@@ -70,7 +73,8 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
           const j = await r.json()
           if (j.ok) setSuggestions({
             marcus_top_three: j.marcus_top_three || [],
-            additional_candidates: j.additional_candidates || [],
+            marcus_alternates: j.marcus_alternates || [],
+            marcus_reasoning: typeof j.marcus_reasoning === 'string' ? j.marcus_reasoning : null,
           })
         }
       } catch { /* leave empty */ }
@@ -149,45 +153,26 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
         </p>
       </header>
 
-      {suggestions.marcus_top_three.length > 0 && (
+      {(suggestions.marcus_top_three.length > 0 || suggestions.marcus_alternates.length > 0) && (
         <div className="mb-4">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-white/45 mb-2">Marcus suggests</div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-white/45 mb-2">Marcus's leverage picks</div>
+          {suggestions.marcus_reasoning && (
+            <p className="text-[11px] text-white/55 italic mb-3 leading-snug">{suggestions.marcus_reasoning}</p>
+          )}
+          <div className="flex flex-col gap-2">
             {suggestions.marcus_top_three.map((s, i) => (
-              <button
-                key={`m-${i}`}
-                type="button"
-                onClick={() => { h.tap(); fillSlot(s.title, 'marcus_nominated', s) }}
-                className="text-left bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg px-3 py-2 max-w-[280px] transition-colors"
-              >
-                <div className="text-[10px] uppercase tracking-wider text-violet-300">{s.kind || 'pick'}</div>
-                <div className="text-[12px] font-semibold text-white truncate">{s.title}</div>
-                {s.why_now && <div className="text-[11px] text-white/55 truncate">{s.why_now}</div>}
-              </button>
+              <SuggestionChip key={`m-${i}`} s={s} onPick={() => { h.tap(); fillSlot(s.title, 'marcus_nominated', s) }} dim={false} />
             ))}
-            {suggestions.additional_candidates.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowMore(v => !v)}
-                className="text-[11px] text-white/55 hover:text-white/85 px-2"
-              >
-                {showMore ? 'less' : `+${suggestions.additional_candidates.length} more`}
-              </button>
-            )}
           </div>
-          {showMore && (
-            <div className="flex gap-2 flex-wrap mt-2 opacity-75">
-              {suggestions.additional_candidates.map((s, i) => (
-                <button
-                  key={`a-${i}`}
-                  type="button"
-                  onClick={() => { h.tap(); fillSlot(s.title, 'marcus_nominated', s) }}
-                  className="text-left bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.06] rounded-md px-2.5 py-1.5 max-w-[260px]"
-                >
-                  <div className="text-[11px] text-white/85 truncate">{s.title}</div>
-                </button>
-              ))}
-            </div>
+          {suggestions.marcus_alternates.length > 0 && (
+            <>
+              <div className="text-[10px] uppercase tracking-[0.16em] text-white/35 mt-3 mb-2">Alternates</div>
+              <div className="flex flex-col gap-2">
+                {suggestions.marcus_alternates.map((s, i) => (
+                  <SuggestionChip key={`a-${i}`} s={s} onPick={() => { h.tap(); fillSlot(s.title, 'marcus_nominated', s) }} dim={true} />
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}
@@ -216,6 +201,36 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
         </button>
       </div>
     </section>
+  )
+}
+
+function SuggestionChip({ s, onPick, dim }: { s: Suggestion; onPick: () => void; dim: boolean }) {
+  const score = typeof s.leverage_score === 'number' ? s.leverage_score : null
+  const isFallback = score === 0
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      className={`w-full text-left rounded-lg border transition-colors px-3 py-2 ${
+        dim
+          ? 'bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.06]'
+          : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.08]'
+      }`}
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="text-[10px] uppercase tracking-wider text-violet-300">{s.kind || 'pick'}</div>
+        {score != null && (
+          <div className={`text-[10px] tabular-nums ${
+            isFallback ? 'text-amber-300' : score >= 80 ? 'text-emerald-300' : score >= 60 ? 'text-white/55' : 'text-white/35'
+          }`}>
+            {isFallback ? 'fallback' : `leverage ${score}`}
+          </div>
+        )}
+      </div>
+      <div className={`text-[12px] font-semibold ${dim ? 'text-white/85' : 'text-white'} mt-0.5`}>{s.title}</div>
+      {s.why_now && <div className="text-[11px] text-white/55 mt-0.5 leading-snug">{s.why_now}</div>}
+      {s.reasoning && <div className="text-[10px] text-white/45 mt-1 italic leading-snug">{s.reasoning}</div>}
+    </button>
   )
 }
 
