@@ -69,10 +69,10 @@
       "position": [1280, 280],
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
+        "url": "https://api.telegram.org/bot8761660894:AAGynEklqqJ1YqwkmrSCXYJi8fgBHKmfhXk/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ chat_id: '5712840770', text: '⚠️ Churn: ' + ($('Per churn — already tasked?').item.json.full_name || $('Per churn — already tasked?').item.json.email || 'customer') + ' — Maya task created. Exit interview within 7d.' }) }}"
+        "jsonBody": "={{ JSON.stringify({ chat_id: '6773796504', text: '⚠️ Churn: ' + ($('Per churn — already tasked?').item.json.full_name || $('Per churn — already tasked?').item.json.email || 'customer') + ' — Maya task created. Exit interview within 7d.' }) }}"
       }
     }
   ],

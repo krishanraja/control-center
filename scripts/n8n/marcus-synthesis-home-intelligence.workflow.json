@@ -487,7 +487,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot8761660894:AAGSEKkJBr7hxM4cN9jxi6UiCjhRY5cMJ8I/sendMessage",
+        "url": "https://api.telegram.org/bot8761660894:AAGynEklqqJ1YqwkmrSCXYJi8fgBHKmfhXk/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ { chat_id: '6773796504', parse_mode: 'Markdown', text: ($json.mode === 'deep' ? '*Marcus weekly synthesis* ready for Agatha\\nweek_of ' + $json.week_of + '\\nmodel ' + $json.model_used + '\\ncost $' + $json.cost_estimate_usd + '\\n\\n' + ($json.insights || []).map(function(x, i) { return (i+1) + '. ' + x; }).join('\\n\\n') + '\\n\\nFOCUS: ' + $json.org_focus + '\\nCLEO: ' + $json.cleo_recommendation : '🧠 *Marcus*: Home Intelligence updated.\\n\\n' + ($json.home_summary ? $json.home_summary.headline : '') + '\\n\\nDive deeper: https://controlcenter.krishraja.com') } }}",
