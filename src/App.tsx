@@ -32,7 +32,7 @@ import { AgentsProvider } from './contexts/AgentsContext'
 import { PendingFlagModal } from './components/PendingFlagModal'
 import { QuickCaptureIdea } from './components/QuickCaptureIdea'
 import { IdeaCaptureModal, isInboxEnabled } from './components/inbox/IdeaCaptureModal'
-import { IdeaCaptureFAB } from './components/inbox/IdeaCaptureFAB'
+import { CaptureSpeedDial } from './components/CaptureSpeedDial'
 import { useHashRoute } from './hooks/useHashRoute'
 
 type TabId = 'home' | 'today' | 'triage' | 'leads' | 'customers' | 'guests' | 'content' | 'bets' | 'org' | 'exec' | 'workflows' | 'systems'
@@ -127,7 +127,7 @@ export default function App() {
           <PendingFlagModal />
           <QuickCaptureIdea />
           <IdeaCaptureModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
-          <IdeaCaptureFAB />
+          <CaptureSpeedDial />
         </div>
       </AgentsProvider>
     </ToastProvider>
