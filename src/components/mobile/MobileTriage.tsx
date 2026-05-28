@@ -13,7 +13,7 @@ export function MobileTriage({ onNavigate }: Props) {
   return (
     <MobileShellPrim>
       <TabHeader title="Triage" subtitle="Suggestions for your call" />
-      <div className="px-4 pb-8">
+      <div className="pb-6">
         <TriagePanel onNavigate={onNavigate} hideHeader />
       </div>
     </MobileShellPrim>
