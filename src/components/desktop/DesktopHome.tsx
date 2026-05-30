@@ -17,15 +17,10 @@ import { DailyBriefBanner } from '../DailyBriefBanner'
 import { StreakPills } from '../StreakPills'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
-import { TopThreeCards } from '../TopThreeCards'
-import { FocusCalibrator } from '../focus/FocusCalibrator'
-import { FocusBar } from '../focus/FocusBar'
-import { CarryOverPrompt } from '../focus/CarryOverPrompt'
 import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
-import { NextActionStrip } from '../shared/NextActionStrip'
-import { Sparkles } from 'lucide-react'
-import { navigateDecision } from '../../lib/routeDecision'
+import { ObjectivesPanel } from '../objectives/ObjectivesPanel'
+import { DailyDriver } from '../focus/DailyDriver'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -126,26 +121,6 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
       <CriticalAlertBanner />
 
-      {/* NEXT ACTION — Marcus's #1 play, surfaced as a single one-tap CTA so
-          the CEO doesn't have to scan the top-three to know what to do first. */}
-      <NextActionStrip
-        headline={intel.top_three.length}
-        headlineLabel="plays"
-        insight={intel.top_three[0]
-          ? `${intel.top_three[0].title} — ${intel.top_three[0].why_now}`
-          : summary.headline || 'Marcus is synthesizing. Check back after his next run.'}
-        ctaLabel={intel.top_three[0]?.action_label || 'Open today'}
-        onCta={() => {
-          const top = intel.top_three[0]
-          if (!top || !onNavigate) return
-          if (top.action_target_id) navigateDecision(onNavigate, top.action_kind, top.action_target_id)
-          else onNavigate('today')
-        }}
-        icon={Sparkles}
-        accent="text-violet-300"
-        disabled={!intel.top_three[0] && !onNavigate}
-      />
-
       <div className="flex items-center justify-end text-[10px] text-white/30 -mb-2 gap-3">
         <span><kbd className="px-1 py-0.5 rounded bg-white/[0.05] border border-white/[0.08] text-white/55">⌘K</kbd> nav</span>
         <span><kbd className="px-1 py-0.5 rounded bg-white/[0.05] border border-white/[0.08] text-white/55">⌘I</kbd> capture</span>
@@ -154,18 +129,14 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       {/* MONEY MACHINE — the only number that matters. */}
       <MrrTicker variant="desktop" />
 
-      {/* DAILY FOCUS — calibrator / bar / carry-over (feature flag gated). */}
-      <CarryOverPrompt />
-      <FocusBar />
-      <FocusCalibrator />
+      {/* OBJECTIVE LAYER: Krish's multi-week unlocks. The week sits structurally
+          above the day, so the daily spine below ladders up to it. */}
+      <ObjectivesPanel variant="desktop" />
 
-      {/* TOP THREE — Marcus's ranked plays for today. */}
-      <TopThreeCards
-        cards={intel.top_three}
-        onNavigate={onNavigate}
-        variant="desktop"
-        generatedAt={intel.top_three_at ?? intel.generated_at}
-      />
+      {/* DAILY SPINE — one journey: frame the day, lock 3, track, close.
+          Replaces the old NextAction / carry-over / bar / calibrator / top-three
+          pile-up with a single phase-driven orchestrator. */}
+      <DailyDriver />
 
       {/* ROOM PREVIEWS — Content / Visibility / Leads. Two items per room,
           one tap into the right detail. Replaces PipelineLanes. */}
@@ -177,11 +148,6 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         generatedAt={intel.momentum_at ?? intel.generated_at}
         variant="desktop"
       />
-
-      {/* DECISIONS WAITING — compact preview, kind-routed. */}
-
-      {/* DAILY BRIEF — non-blocking. Retro is a collapsible card. */}
-      <DailyBriefBanner blocking={false} variant="desktop" />
 
       <StreakPills variant="desktop" />
 
@@ -206,6 +172,10 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
           onDataLoaded={setGoalsData}
         />
       </div>
+
+      {/* WEEKLY RETRO — below the fold, retro-only. The brief now lives in the
+          daily spine's ContextHeader, so this surface carries only the Friday retro. */}
+      <DailyBriefBanner blocking={false} variant="desktop" retroOnly />
 
       <ActivityTail events={events} />
     </div>

@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
-import { TrendingUp, Sparkles, AlertTriangle, ArrowRight, Replace, Check, X } from 'lucide-react'
+import React, { useMemo, useState } from 'react'
+import { TrendingUp, Sparkles, AlertTriangle, ArrowRight, Replace, Check, X, Target } from 'lucide-react'
 import type { TopThreeCard } from '../hooks/useHomeIntelligence'
 import { navigateDecision } from '../lib/routeDecision'
 import { useHaptics } from '../hooks/useHaptics'
 import { useToast } from './shared/Toast'
+import { useTaskParentObjectives } from '../hooks/useTaskParentObjectives'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -66,6 +67,14 @@ const KIND_ORDER: TopThreeCard['kind'][] = ['revenue', 'growth', 'risk']
  */
 export function TopThreeCards({ cards, onNavigate, variant = 'desktop', generatedAt }: Props) {
   const h = useHaptics()
+  // Hook calls must precede any early return per react-hooks/rules-of-hooks.
+  // useTaskParentObjectives (promoted to src/hooks) enriches each task card with
+  // its parent portfolio objective ("ladders up to: X") via the shared lookup.
+  const taskIds = useMemo(
+    () => (cards || []).filter(c => c.action_kind === 'task' && c.action_target_id).map(c => c.action_target_id as string),
+    [cards],
+  )
+  const parentObjectives = useTaskParentObjectives(taskIds)
   if (!cards || cards.length === 0) return null
 
   const byKind = new Map<TopThreeCard['kind'], TopThreeCard>()
@@ -96,6 +105,7 @@ export function TopThreeCards({ cards, onNavigate, variant = 'desktop', generate
             key={card.kind}
             card={card}
             slotIndex={i}
+            parentObjective={card.action_kind === 'task' && card.action_target_id ? parentObjectives[card.action_target_id] : undefined}
             onActivate={() => handle(card)}
           />
         ))}
@@ -109,10 +119,12 @@ type SwapPhase = 'idle' | 'open' | 'submitting' | 'captured'
 function Card({
   card,
   slotIndex,
+  parentObjective,
   onActivate,
 }: {
   card: TopThreeCard
   slotIndex: number
+  parentObjective?: string
   onActivate: () => void
 }) {
   const meta = KIND_META[card.kind]
@@ -226,6 +238,14 @@ function Card({
         {card.reasoning && (
           <p className="text-[11px] text-white/45 italic leading-snug mb-3 line-clamp-2 break-words">
             {card.reasoning}
+          </p>
+        )}
+        {parentObjective && (
+          <p className="text-[10px] text-white/45 leading-snug mb-2 inline-flex items-start gap-1 break-words">
+            <Target size={9} className="mt-[2px] flex-shrink-0 opacity-60" />
+            <span>
+              Ladders up to: <span className="text-white/65">{parentObjective}</span>
+            </span>
           </p>
         )}
         <span

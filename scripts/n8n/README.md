@@ -104,6 +104,10 @@ jobs:
 The audit will fail the build if the repo and cloud disagree, forcing the
 team to either commit the cloud version or push the repo version.
 
+## Recent additions
+
+- `krish-objective-milestone-proposer.workflow.json` (Phase 3, 2026-05-29). Marcus's milestone proposer for the portfolio-objective layer. Webhook at `/webhook/propose-milestones` accepts `{ goal_id }`; daily Schedule at 06:00 UTC picks the first eligible active objective with no proposed milestones. Sonnet 4.6 proposes 2 to 5 milestones grounded in Marcus's live brief; idempotency via a pre-insert race check on `milestones.status='proposed'`. Audit log event: `objective_milestone_proposer`. Live workflow id: `uL8DLpHbT11eqBAW`.
+
 ## Known limitations
 
 - Webhook URLs in the canonical JSON include the cloud tenant

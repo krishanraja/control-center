@@ -7,8 +7,10 @@ import { supabase } from './_supabase.js'
 //   body: { source_table, source_id, agent_id?, vote: 1 | -1, reason_code?, reason_text?, meta? }
 //
 // Writes to feedback_queue. Vera's weekly audit (PR 5 cron) consumes
-// unconsumed rows where vote=-1 with the same (agent_id, reason_code)
-// and proposes a corrections row when count >= 3.
+// unconsumed rows where vote=-1 with the same (agent_id, source_table, reason_code)
+// and proposes a corrections row when count >= 3 (or >= 2 when a recognized
+// reason_code is set). Grouping by reason_code is what keeps the three Marcus
+// altitudes distinct: daily, milestone, and objective.
 //
 // `meta` is optional structured context. For marcus_priority_override
 // (Phase 0 of the focus brief) the swap UI on Home posts an override of
@@ -27,6 +29,30 @@ const ALLOWED_TABLES = new Set([
   'opportunities',
   'corrections',
   'home_intelligence',
+  // Objective Layer, Phase 3 (2026-05-29). goals and milestones become
+  // feedback targets so Krish can reject Marcus-nominated objectives at the
+  // objective altitude (marcus_objective_nomination_rejected) and reject or
+  // tweak proposed milestones at the milestone altitude (marcus_milestone_override).
+  'goals',
+  'milestones',
+])
+
+// Canonical reason codes for the three Marcus feedback altitudes plus the
+// preexisting callers. Documentation, not strict enforcement: the field
+// stays open so unknown codes still write through (Vera handles them as
+// 'other'), but typos and divergence are surfaced via a 1-line warn log
+// in the response payload. Adding a code here is how you canonize it.
+const REASON_OPTIONS = new Set([
+  // Marcus three altitudes (Objective Layer, Phase 3).
+  'marcus_priority_override',          // daily: wrong task to elevate today.
+  'marcus_milestone_override',         // milestone: right work, wrong week-sized chunk.
+  'marcus_objective_nomination_rejected', // objective: whole objective is wrong shape.
+  // Preexisting codes already in use across the app.
+  'marcus_suggestion_unsuitable',
+  'triage_promote',
+  'lead_other',
+  // Daily spine close (Phase 1): end-of-day reflection + tomorrow seed.
+  'daily_reflection',
 ])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -60,6 +86,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ ok: false, error: 'meta must be an object' })
   }
 
+  const unknownReasonCode = body.reason_code && !REASON_OPTIONS.has(body.reason_code)
+    ? body.reason_code
+    : null
+
   const { data, error } = await supabase
     .from('feedback_queue')
     .insert({
@@ -80,5 +110,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (error) {
     return res.status(500).json({ ok: false, error: error.message })
   }
-  return res.json({ ok: true, feedback: data })
+  return res.json({
+    ok: true,
+    feedback: data,
+    ...(unknownReasonCode
+      ? { warning: `reason_code '${unknownReasonCode}' is not in REASON_OPTIONS; Vera will cluster it as 'other'. Add to REASON_OPTIONS to canonize.` }
+      : {}),
+  })
 }

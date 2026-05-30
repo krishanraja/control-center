@@ -10,7 +10,7 @@
 >
 > **Canonical location.** `/root/.openclaw/workspace/MINDMAKER_OS_ARCHITECTURE.md` on the VPS. Mirror in `docs/MINDMAKER_OS_ARCHITECTURE.md` in the `control-center` repo and in Google Drive folder `Infrastructure` (`1y4dncntB8WsKgLjTzC-YZ3KgWXyfwIt5`). Anything else describing "the OS" or "the architecture" anywhere in the workspace is stale and should be archived to `cold/`.
 >
-> **Last verified against live state.** 2026-05-26, after audit close (C+F batch shipped to main, plus Closure Architecture Day 1 from 2026-05-25). Empirical reconciliation: 14/14 agents action.md fresh; 66 tables + 2 views (`decisions_waiting` now 6-branch with corrections; `standards_efficacy` view live); 75 active N8N workflows; RLS restored on `visibility_targets` + `guests`; Vera Feedback Aggregation auth-bug fixed (learning loop re-armed); Stripe heartbeats live across all 6 product workflows; live SPA at sha f60181f8c904.
+> **Last verified against live state.** 2026-05-29, after the Objective Layer build shipped (PRs #97, #98, #99, #100, #101 in sequence). Empirical reconciliation: 14/14 agents action.md fresh; 67 tables (added `milestones`, `goal_agent_contributions`, `goals_archive_2026_04`; `goals` repurposed from a chore graveyard into the portfolio-objective layer); 76+ active N8N workflows (added `Krish | Mindmaker OS | Objective Milestone Proposer`, live id `uL8DLpHbT11eqBAW`); 6 active portfolio objectives with 6 agents linked via `agent_plans.weekly_goal_id`; 9 proposed Marcus-drafted milestones; CLAUDE.md Step 3b loads parent objective + contribution on agent wake; three-altitude feedback wired in `/api/feedback` and Vera's `Cluster` node groups by `[agent_id, source_table, reason_code]` so the altitudes stay distinct. Live SPA at controlcenter.krishraja.com.
 
 ---
 
@@ -220,7 +220,9 @@ Every piece of OS state lives in one of these tables. Categorised by change rate
 |---|---|
 | `agent_plans` (14 rows) | One sprint plan per agent — `current_phase`, `objective`, `blockers`, `next_milestone`, `progress_pct`, `doc_link`, `last_rendered_at`. Refreshed weekly by `Agatha Weekly Plan Refresh` (Mon 09:00 UTC) via `refresh_agent_plans()` RPC + Sonnet 4.6 |
 | `tasks` | The unit of action — `id`, `title`, `agent`, `status` (`waiting`/`active`/`in_progress`/`blocked`/`done`/`pending-agatha-review`/`pending-review`/`paused`/`superseded`), `workstream`, `created`, plus `lever_score` + `est_hours_to_revenue` (from PR #47), plus **`concept_id text`** (new Day 1 Stream 1; backfilled for `Outreach:%` titles, indexed). CHECK constraint `tasks_status_check` enumerates the status values |
-| `goals` | Strategic goals (per-quarter) |
+| `goals` | **Portfolio objectives** (repurposed 2026-05-29 from the old weekly-goals graveyard). Multi-week unlocks scoped to a venture (`venture` column), with status (`proposed`/`active`/`paused`/`done`/`dropped`), priority, definition_of_done, why_now, target_horizon, primary/secondary KPI, `is_auto` (Agatha auto-decomposes), `source` (`krish_declared`/`marcus_nominated`/`agatha_decomposed`). The 8 April chore rows live in `goals_archive_2026_04`. FK from `agent_plans.weekly_goal_id` makes this the parent objective every agent loads on wake (CLAUDE.md Step 3b) |
+| `milestones` (new 2026-05-29) | Week-sized chunks of an objective. FK to `goals(id)` ON DELETE CASCADE. Status (`proposed`/`accepted`/`active`/`done`/`dropped`), source (`marcus_proposed`/`krish_authored`/`krish_tweaked`/`agatha_decomposed`), `sequence` (order within objective), `est_deep_work_hours`, `marcus_reasoning`. Marcus proposes for non-auto objectives; Krish accepts/tweaks/replaces/rejects; Agatha auto-creates for `is_auto=true` objectives. Tasks attach upward via `tasks.milestone_id` (nullable; null is legitimate for tactical work) |
+| `goal_agent_contributions` (new 2026-05-29) | M:n bridge: an objective lists which agents contribute and what each contributes (`contribution_note`). Complements the 1:1 `agent_plans.weekly_goal_id` pointer with the many side |
 | `workstreams`, `workstream_contexts` | Workstream definitions + rolling context |
 | `opportunities`, `sequences`, `contacted_persons` | Deal pipeline + outbound sequences + CRM log |
 | `leads` | Sales pipeline unit. CHECK constraint `leads_status_check` permits exactly: `new`, `enriching`, `ready`, `contacted`, `conversation`, `closed_won`, `closed_lost`, `superseded`. Columns include `assignee_agent`, `fit_score`, `attainability_score`, `icp_score` (legacy), `icp_scores` (jsonb, per-venture), `tags` (text[]), `primary_venture` (FK → venture_registry), `tier`, `why_relevant`, `primary_tension`, `next_step`, `follow_up_at`, `promoted_task_id`, `deep_enriched_at`, **`enrichment_status`**, **`last_emailed_at`**, **`last_email_draft_id`**, **`last_email_draft_url`** (last four added in audit 2026-05-25), plus **`concept_id text`** (new Day 1 Stream 1, indexed) |
@@ -348,7 +350,7 @@ SELECT set_config('app.source',     '<source>',  true); -- e.g. 'telegram', 'con
 
 | Tab | What it shows | Tables / views read |
 |---|---|---|
-| **Home** | CriticalAlertBanner → DailyBriefBanner → MrrTicker → StreakPills → Marcus headline + Signals + Needs-you → **DecisionsWaitingPanel** (unified across tasks/leads/guests/visibility/ideas) → KillListModal | `home_intelligence`, `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, `customers`, `bets`, `silent_failures`, `decisions_waiting` |
+| **Home** | CriticalAlertBanner → MrrTicker → CarryOverPrompt → FocusBar → FocusCalibrator → **ObjectivesPanel** (new 2026-05-29 Phase 4: NominationTray + soft-cap warning + DeepWorkBlock + active objectives strip with inline MilestoneCalibrator) → TopThreeCards (each task card labels its parent portfolio objective when one applies) → RoomPreviews → MomentumStrip → DailyBriefBanner → StreakPills → ActivityTail | `home_intelligence`, `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, `customers`, `bets`, `silent_failures`, `decisions_waiting`, **`goals`**, **`milestones`**, **`goal_agent_contributions`** |
 | **Today** | Tasks marked active/in_progress/blocked, drift badges on stale rows | `tasks` |
 | **Leads (Services)** | Per-venture lanes (mindmaker / signal_noise / builder_economy) with LeadCards: Promote / Reassign / Schedule follow-up / Deep enrich / **Draft email** / **Close concept (planned Day 2)** | `leads`, `venture_registry` |
 | **Guests (Visibility)** | GuestImportDropzone, GuestCard: Confirm / Skip / Deep enrich / Edit pitch / **Draft email** | `guests` |
@@ -498,6 +500,8 @@ Hard fail if SKILL.md missing → Telegram-Krish: "brief not rendered, run `rend
 
 **Graduated stale handling.** If `agent_plans.last_rendered_at > 72h`, enter READ-ONLY mode — reads/research OK, sends/commits/Supabase-writes blocked. Telegram-Krish: "off-sprint, plan render stale ({age})". The `Agatha Weekly Plan Refresh` workflow (Mon 09:00 UTC) keeps every plan inside the 72h window in normal operation.
 
+**Step 3b: Load Krish's portfolio objective (added 2026-05-29, Phase 2).** If `agent_plans.weekly_goal_id` is non-null, load the corresponding `goals` row (the parent portfolio objective) plus any `goal_agent_contributions` rows where `agent_id = MY_AGENT_ID`. Present them in the loaded context as "Krish's portfolio objective you serve: {title} (venture, status, priority, target_horizon). Your contribution: {note}". The agent's own `agent_plans.objective` (from Step 3) is the slice of work the agent contributes to the visible portfolio objective. If `weekly_goal_id` is null, the agent has no portfolio parent yet and acts on its `agent_plans.objective` alone; clusters of unparented tasks should be surfaced to Marcus for objective nomination.
+
 **Step 4 — Memory.**
 7. `MEMORY.md` — **only** in direct Krish chats. Never in shared contexts (Discord, group chats).
 
@@ -509,6 +513,7 @@ Hard fail if SKILL.md missing → Telegram-Krish: "brief not rendered, run `rend
 
 - **Identity** = static. Lives in SKILL.md / IDENTITY.md / ORG.md / `agents.brief_content`. Rare changes.
 - **Plan** = dynamic. Lives in `agent_plans` + Action Doc body + `active/${MY_AGENT_ID}-action.md`. Weekly changes.
+- **Objective** = durable strategic record (added 2026-05-29, Phase 2). Lives in `goals` (portfolio objectives, multi-week, Krish owns) plus `milestones` (week-sized chunks of an objective). Same lexical tier as Decision: rare, load-bearing, never silently rewritten. NOT a synonym for Plan. Never call a milestone or an objective a "plan."
 - **Decision** = durable. Lives in `concept_decisions` keyed by `concept_id`. Captures every closure / kill / pause / reopen Krish makes. Never deleted; reopens supersede rather than overwrite.
 - **Banned forever.** "Master Brief," "Tactical Plan," "Action Plan," "Execution Brief."
 - New file proposals must declare which side they fall on. No middle ground.
@@ -804,7 +809,19 @@ Krish rejects output in Control Center (via FeedbackButton with reason_code)
                                 → Next session wake loads the new rule
 ```
 
-**The promise: same mistake doesn't survive four occurrences.** FeedbackButton surfaces: `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`.
+**The promise: same mistake doesn't survive four occurrences.** FeedbackButton surfaces: `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, **`goals`** (Objective Layer Phase 3), **`milestones`** (Objective Layer Phase 3).
+
+### 8.7.0 Three altitudes (added 2026-05-29, Phase 3)
+
+The Objective Layer introduces three feedback altitudes, each with a canonical `reason_code` and a distinct lesson Vera teaches Marcus. The whole point of splitting them is that a single rejection at the wrong altitude was previously mud: Marcus could not tell whether Krish meant "wrong task today," "right task wrong week," or "this whole objective is dead." Three completely different lessons.
+
+| Altitude | `reason_code` | Posted from | What it teaches Marcus |
+|---|---|---|---|
+| Daily | `marcus_priority_override` | Home swap affordance on a top_three card; FocusCalibrator pre-lock swap; `/api/daily-focus/calibrate` double-write | This was the wrong task to elevate today. Re-weight leverage features for this signal class. |
+| Milestone | `marcus_milestone_override` | MilestoneCalibrator reject button (DELETE `/api/milestones/:id`) | Right work, wrong week-sized chunk or wrong decomposition. Adjust the decomposition heuristic for this objective shape. |
+| Objective | `marcus_objective_nomination_rejected` | NominationTray reject button (POST `/api/objectives/:id/nominate-reject`) | This whole objective is the wrong shape. Tighten cluster detection; raise the theme bar before nominating. |
+
+Vera's `Cluster` node groups by `[agent_id, source_table, reason_code]`, so each altitude rolls up into its own bucket in `corrections` and Marcus's brief evolves on the right axis instead of wobbling.
 
 ### 8.7.1 Marcus top_three override capture (Phase 0)
 
@@ -958,6 +975,68 @@ TIER 4 (weekly):
 ```
 
 **The promise: same silent failure doesn't survive a week.**
+
+### 8.8.5 Objective layer flow (added 2026-05-29, Phases 1 through 5)
+
+Krish's daily work now has a visible spine: every tactical task ladders up through a weekly milestone to a multi-week portfolio objective he owns.
+
+```
+KRISH DECLARES OBJECTIVE (top-down strategic call, source=krish_declared)
+    POST /api/objectives  ->  insert into goals (status=active)
+        |
+        +-- agent_plans.weekly_goal_id set per agent  (the rail Step 3b reads on wake)
+        +-- goal_agent_contributions row per contributing agent
+        |
+PROPOSE MILESTONES
+    Krish clicks "Have Marcus propose milestones" in MilestoneCalibrator
+        -> POST /api/objectives/propose-milestones { goal_id }
+            -> proxy to n8n webhook (uL8DLpHbT11eqBAW)
+                -> Sonnet 4.6 with Marcus's live brief embedded
+                    -> insert 2 to 5 milestones (source=marcus_proposed, status=proposed,
+                       marcus_reasoning per row)
+                    -> idempotent: skipped if any proposed exists for goal_id
+                    -> audit_log: objective_milestone_proposer
+        ALTERNATE: Krish hand-writes via POST /api/objectives/:id/milestones
+                   (source=krish_authored, status=accepted)
+        |
+ACCEPT / TWEAK / REJECT / COMPLETE (per milestone)
+    PATCH /api/milestones/:id { action: accept | tweak | complete | reorder }
+        -> status transitions, source=krish_tweaked on tweak
+    DELETE /api/milestones/:id
+        -> status=dropped
+        -> feedback_queue row: reason_code=marcus_milestone_override (milestone altitude)
+        |
+MARCUS NOMINATES OBJECTIVES (cluster detection on unparented tasks, Phase 3 brief)
+    Daily synthesis detects 3+ tasks with milestone_id IS NULL sharing a theme
+        -> insert into goals (status=proposed, source=marcus_nominated)
+            -> NominationTray on Home
+                -> Krish Accept: POST /api/objectives/:id/nominate-accept
+                    -> status=active, activated_at=now()
+                -> Krish Reject: POST /api/objectives/:id/nominate-reject
+                    -> status=dropped
+                    -> feedback_queue: reason_code=marcus_objective_nomination_rejected
+                       (objective altitude)
+        |
+AUTO OBJECTIVES (is_auto=true, Agatha's domain per Phase 2 brief)
+    Agatha wake-time check: any active is_auto=true objective with zero milestones
+        -> generate milestone sequence (source=agatha_decomposed, status=accepted)
+        -> generate tasks under each milestone, assigned to the right agent
+        -> upsert goal_agent_contributions per assigned agent
+        |
+HOME RENDERING
+    ObjectivesPanel  (DesktopHome + MobileHome, above TopThreeCards)
+        -> NominationTray   (only renders when source=marcus_nominated rows exist)
+        -> Soft-cap warning (when count_active_objectives() > 10)
+        -> DeepWorkBlock    (highest-priority objective's active/accepted milestone)
+        -> Active strip     (click row -> inline MilestoneCalibrator)
+    TopThreeCards
+        -> each task card with non-null tasks.milestone_id renders
+           "Ladders up to: {parent objective title}" via client-side join
+```
+
+**Realtime.** A single channel `objectives-rt-shared` covers both `goals` and `milestones` (ADR-002 single-channel-per-table-set pattern, ref-counted attach/detach in `useObjectives.ts`).
+
+**The promise: tactical work always shows its strategic parent, and deep-work commitments survive the daily leverage contest because they sit structurally above the tactical picks.**
 
 ### 8.9 Marcus synthesis — Home Intelligence feed
 
@@ -1296,8 +1375,8 @@ The OS actively tracks 8 ventures (`ventures` table, all `status='active'`).
 ### 15.1 Supabase is canonical, files are derived
 Local JSON for state is banned. SKILL.md, standards-digest.md, action.md are **output-only** — rendered from Supabase on a schedule, never edited in place.
 
-### 15.2 Identity vs Plan vs Decision is a hard trichotomy
-If you propose a new file or table, declare which of the three it falls on: static (Identity, lives in `agents.brief_content`, rare changes), dynamic (Plan, lives in `agent_plans` and Action Doc body, refreshed weekly), or durable (Decision, lives in `concept_decisions`, captures durable choices that should never be reversed silently). Anything else becomes a maintenance liability.
+### 15.2 Identity vs Plan vs Objective vs Decision is a hard quadtomy
+If you propose a new file or table, declare which of the four it falls on: static (Identity, lives in `agents.brief_content`, rare changes), dynamic (Plan, lives in `agent_plans` and Action Doc body, refreshed weekly), durable strategic record (Objective, lives in `goals` and `milestones`, multi-week unlocks Krish owns, added 2026-05-29 Phase 2), or durable closure (Decision, lives in `concept_decisions`, captures choices that should never be reversed silently). Anything else becomes a maintenance liability.
 
 ### 15.3 Approval is a wall, not a step
 No content publishes without Krish's explicit approval. The LinkedIn Distribution endpoint is guarded by `X-Agatha-Secret`; only the Krish Approval Callback workflow has the header. **The email-draft path is a deliberate exception because Gmail Drafts don't publish anything** — Krish still hits send.

@@ -14,12 +14,18 @@ import { CustomerCouncilCard } from '../CustomerCouncilCard'
 import { ExpansionRadar } from '../ExpansionRadar'
 import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
 import { NextActionStrip } from '../shared/NextActionStrip'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
+import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 
 export function MobileCustomers() {
   const h = useHaptics()
   const { toast } = useToast()
   const { customers, buckets, totals, loading, error } = useCustomers()
   const [openId, setOpenId] = useState<string | null>(null)
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
 
   // Hero priority: newest paid customer in the last 7 days (celebration)
   // → newest churn in last 7 days (alert) → null.
@@ -52,6 +58,35 @@ export function MobileCustomers() {
       .sort((a, b) => (b.mrr_usd || 0) - (a.mrr_usd || 0))
   }, [customers])
   const topExpansion = expansionPlays[0] || null
+
+  // Full Focus Mode (Phase 3): when enabled and the day is calibrated, the
+  // product-grouped roster regroups into the 3 daily-target lanes via
+  // relevance_index (table 'customers'). visibleCustomers is the same flat set
+  // of rows the grouped FeedCards render (each bucket's `recent`), and one
+  // uniform row renderer feeds both the lanes and the muted set.
+  const visibleCustomers = useMemo<CustomerRow[]>(() => {
+    return buckets
+      .filter(b => b.total > 0)
+      .sort((a, b) => b.paid - a.paid || b.total - a.total)
+      .flatMap(b => b.recent)
+  }, [buckets])
+
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+  const renderCustomerRow = (c: CustomerRow) => (
+    <FeedRow
+      dotColor={KIND_ACCENT[c.kind]}
+      title={c.full_name || c.email || 'Customer'}
+      detail={[KIND_LABEL[c.kind], c.plan].filter(Boolean).join(' · ')}
+      trailing={
+        typeof c.mrr_usd === 'number' && c.mrr_usd > 0 ? (
+          <span className="text-[14px] tabular-nums text-emerald-300">
+            ${Math.round(c.mrr_usd)}
+          </span>
+        ) : null
+      }
+      onClick={() => { h.select(); setOpenId(c.id) }}
+    />
+  )
 
   return (
     <MobileShellPrim
@@ -121,7 +156,25 @@ export function MobileCustomers() {
         <EmptyState label="No customers yet. Apply the customers migration and activate the Maya sweeper." />
       )}
 
-      {buckets
+      {isFocusModeEnabled() && calibrated && (
+        <div className="flex items-center justify-end -mt-1">
+          <FocusModeToggle mode={mode} onChange={setMode} />
+        </div>
+      )}
+
+      {showFocus ? (
+        <FeedCard title="Subscriptions, by focus">
+          <FocusLanes
+            rows={visibleCustomers}
+            table="customers"
+            keyOf={c => String(c.id)}
+            renderItem={renderCustomerRow}
+            fallback={null}
+            mutedLabel="Off focus"
+          />
+        </FeedCard>
+      ) : (
+        buckets
         .filter(b => b.total > 0)
         .sort((a, b) => b.paid - a.paid || b.total - a.total)
         .map(b => (
@@ -167,7 +220,8 @@ export function MobileCustomers() {
               />
             ))}
           </FeedCard>
-        ))}
+        ))
+      )}
 
       <DetailSheet
         open={open != null}

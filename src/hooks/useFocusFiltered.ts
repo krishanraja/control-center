@@ -25,7 +25,7 @@ export function useFocusFiltered<T extends MinimalRow>(
   const { today } = useDailyFocus()
 
   return useMemo(() => {
-    const calibrated = today && today.status === 'calibrated' || today?.status === 'complete'
+    const calibrated = (today?.status === 'calibrated') || (today?.status === 'complete')
     const idx = today?.relevance_index || {}
     return {
       active: !!calibrated,
