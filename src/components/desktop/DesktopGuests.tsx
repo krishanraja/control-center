@@ -9,6 +9,11 @@ import { VisibilityTargetLane } from './VisibilityTargetLane'
 import { DecisionDetail } from '../DecisionDetail'
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { navigateDecision } from '../../lib/routeDecision'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
+import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
+import { GuestCard } from '../GuestCard'
+import { VisibilityTargetCard } from '../VisibilityTargetCard'
 
 type Lane = 'inbound' | 'outbound'
 
@@ -57,6 +62,9 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   const [lane, setLane] = useState<Lane>('inbound')
   const { guests, loading: guestsLoading } = useRealtimeGuests()
   const { targets, loading: targetsLoading } = useVisibilityTargets({ includeArchived: false })
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
 
   useEffect(() => {
     if (guestId) setLane('inbound')
@@ -113,6 +121,14 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
     ? `${queuedCount} queued · top: ${outboundDecision.title}${outboundDecision.deadline_at ? ` (${daysUntil(outboundDecision.deadline_at)})` : ''}`
     : `${outboundActive} active · no queued opportunities awaiting decision`
 
+  // Focus Mode (Phase 3): when enabled and the day is calibrated, the active
+  // lane's list regroups into the 3 daily-target lanes via relevance_index.
+  // Inbound keys off 'guests' (not yet pooled, so lanes may be empty until then),
+  // outbound off 'visibility_targets' (already pooled by the calibrator).
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+  const renderGuestRow = (g: GuestRow) => <GuestCard guest={g} onOpen={handleOpenGuest} />
+  const renderTargetRow = (t: VisibilityTargetRow) => <VisibilityTargetCard target={t} onOpen={openTarget} />
+
   return (
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-4">
@@ -125,9 +141,14 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
             Inbound podcast guests and outbound conference / CFP / newsletter appearances, side by side.
           </p>
         </div>
-        <span className="text-[11px] text-white/55 tabular-nums">
-          {loading ? '…' : `${activeCount} active`}
-        </span>
+        <div className="flex items-center gap-3">
+          {isFocusModeEnabled() && calibrated && (
+            <FocusModeToggle mode={mode} onChange={setMode} />
+          )}
+          <span className="text-[11px] text-white/55 tabular-nums">
+            {loading ? '…' : `${activeCount} active`}
+          </span>
+        </div>
       </header>
 
       <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.015] p-1">
@@ -211,16 +232,27 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
           </aside>
 
           <div className="space-y-3">
-            {PRIMARY_STATUSES.map(s => (
-              <GuestStatusLane
-                key={s}
-                status={s}
-                title={STATUS_META[s].title}
-                description={STATUS_META[s].description}
-                guests={byStatus[s] || []}
-                onOpen={handleOpenGuest}
+            {showFocus ? (
+              <FocusLanes
+                rows={guests}
+                table="guests"
+                keyOf={(r) => String(r.id)}
+                renderItem={renderGuestRow}
+                fallback={null}
+                mutedLabel="Off focus"
               />
-            ))}
+            ) : (
+              PRIMARY_STATUSES.map(s => (
+                <GuestStatusLane
+                  key={s}
+                  status={s}
+                  title={STATUS_META[s].title}
+                  description={STATUS_META[s].description}
+                  guests={byStatus[s] || []}
+                  onOpen={handleOpenGuest}
+                />
+              ))
+            )}
           </div>
         </div>
       ) : (
@@ -259,16 +291,27 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
           </aside>
 
           <div className="space-y-3">
-            {VIS_STATUSES.map(s => (
-              <VisibilityTargetLane
-                key={s}
-                status={s}
-                title={VIS_STATUS_META[s].title}
-                description={VIS_STATUS_META[s].description}
-                targets={byVisStatus[s] || []}
-                onOpen={openTarget}
+            {showFocus ? (
+              <FocusLanes
+                rows={targets}
+                table="visibility_targets"
+                keyOf={(r) => String(r.id)}
+                renderItem={renderTargetRow}
+                fallback={null}
+                mutedLabel="Off focus"
               />
-            ))}
+            ) : (
+              VIS_STATUSES.map(s => (
+                <VisibilityTargetLane
+                  key={s}
+                  status={s}
+                  title={VIS_STATUS_META[s].title}
+                  description={VIS_STATUS_META[s].description}
+                  targets={byVisStatus[s] || []}
+                  onOpen={openTarget}
+                />
+              ))
+            )}
           </div>
         </div>
       )}

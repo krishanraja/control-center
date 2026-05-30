@@ -1,13 +1,19 @@
 import { useMemo, useState } from 'react'
 import { Plus, Target, AlertOctagon } from 'lucide-react'
-import { useBets, BET_KIND_LABEL, BET_TIME_BOX_OPTIONS, type BetKind } from '../../hooks/useBets'
+import { useBets, BET_KIND_LABEL, BET_TIME_BOX_OPTIONS, type BetKind, type BetRow } from '../../hooks/useBets'
 import { BetCard } from '../BetCard'
 import { useToast } from '../shared/Toast'
 import { NextActionStrip } from '../shared/NextActionStrip'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
+import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 
 export function DesktopBets() {
   const { live, decided, overdueLive, hitRates, loading } = useBets()
   const { toast } = useToast()
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
   const [composing, setComposing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [draft, setDraft] = useState({
@@ -20,6 +26,17 @@ export function DesktopBets() {
   })
 
   const overall = hitRates.find(r => r.kind === 'all')
+
+  // Focus Mode (Phase 3): when enabled and the day is calibrated, the live-bets
+  // list regroups into the 3 daily-target lanes via relevance_index (table
+  // 'bets'). Flat array mirrors the normal visible order (overdue first), and
+  // one uniform row renderer preserves each card's decide behavior.
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+  const liveBets = useMemo<BetRow[]>(
+    () => [...overdueLive, ...live.filter(b => !overdueLive.includes(b))],
+    [overdueLive, live],
+  )
+  const renderBetRow = (b: BetRow) => <BetCard bet={b} forceDecide={overdueLive.includes(b)} />
 
   // Next action picks the oldest overdue bet, else the highest-impact live
   // bet to keep momentum on the decided/won/lost loop.
@@ -88,12 +105,17 @@ export function DesktopBets() {
                 : `${live.length} live · ${decided.length} decided`}
           </p>
         </div>
-        <button
-          onClick={() => setComposing(c => !c)}
-          className="rounded-md bg-violet-500/20 border border-violet-500/30 px-3 py-1.5 text-[12px] font-medium text-violet-100 hover:bg-violet-500/30"
-        >
-          <Plus size={12} className="inline mr-1" /> Place bet
-        </button>
+        <div className="flex items-center gap-2">
+          {isFocusModeEnabled() && calibrated && (
+            <FocusModeToggle mode={mode} onChange={setMode} />
+          )}
+          <button
+            onClick={() => setComposing(c => !c)}
+            className="rounded-md bg-violet-500/20 border border-violet-500/30 px-3 py-1.5 text-[12px] font-medium text-violet-100 hover:bg-violet-500/30"
+          >
+            <Plus size={12} className="inline mr-1" /> Place bet
+          </button>
+        </div>
       </header>
 
       <NextActionStrip
@@ -202,10 +224,23 @@ export function DesktopBets() {
             </h2>
           </header>
           <div className="p-3 space-y-2">
-            {overdueLive.map(b => <BetCard key={b.id} bet={b} forceDecide />)}
-            {live.filter(b => !overdueLive.includes(b)).map(b => <BetCard key={b.id} bet={b} />)}
-            {live.length === 0 && !loading && (
-              <p className="text-[11px] text-white/35 px-2 py-3 text-center">No live bets.</p>
+            {showFocus ? (
+              <FocusLanes
+                rows={liveBets}
+                table="bets"
+                keyOf={b => String(b.id)}
+                renderItem={renderBetRow}
+                fallback={null}
+                mutedLabel="Off focus"
+              />
+            ) : (
+              <>
+                {overdueLive.map(b => <BetCard key={b.id} bet={b} forceDecide />)}
+                {live.filter(b => !overdueLive.includes(b)).map(b => <BetCard key={b.id} bet={b} />)}
+                {live.length === 0 && !loading && (
+                  <p className="text-[11px] text-white/35 px-2 py-3 text-center">No live bets.</p>
+                )}
+              </>
             )}
           </div>
         </section>

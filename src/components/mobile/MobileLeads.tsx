@@ -10,6 +10,9 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { humanAge } from '../../lib/ageHelpers'
 import { navigateDecision } from '../../lib/routeDecision'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
+import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 
 const SOURCE_TITLE: Record<LeadSourceType, string> = {
   podcast_audience: 'Podcast audiences',
@@ -132,6 +135,26 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
     ? `Top fit: ${topCandidate.full_name || topCandidate.company || 'unnamed'}${topCandidate.primary_venture ? ` (${topCandidate.primary_venture.replace(/_/g, ' ')})` : ''}`
     : 'No candidates waiting — credits only spent on explicit Enrich.'
 
+  // Focus Mode (Phase 3): when enabled and today is calibrated, the venture
+  // feed cards regroup into the 3 daily-target lanes via relevance_index (table
+  // 'leads'). The visible set is every active lead the tab already lists, fed
+  // through one uniform FeedRow renderer that preserves the existing tap-to-open
+  // and feedback behavior.
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+  const renderLeadRow = (l: LeadRow) => (
+    <FeedRow
+      dotColor={fitDot(l.fit_score)}
+      title={leadName(l)}
+      detail={l.why_relevant || leadSubtitle(l) || undefined}
+      trailing={<span className="text-[14px] text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>}
+      onClick={() => openLeadFromRow(l.id)}
+      feedback={{ sourceTable: 'leads', sourceId: l.id, agentId: l.assignee_agent }}
+    />
+  )
+
   return (
     <MobileShellPrim
       header={
@@ -185,42 +208,61 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
         <StatPill label="New 24h" value={newToday} color={newToday > 0 ? 'text-amber-300' : 'text-white/45'} />
       </div>
 
+      {isFocusModeEnabled() && calibrated && (
+        <div className="flex items-center justify-end -mt-1">
+          <FocusModeToggle mode={mode} onChange={setMode} />
+        </div>
+      )}
+
       {total === 0 && !loading && (
         <EmptyState label="No active leads. Tap Import to drop a Google Drive file." />
       )}
 
-      {[
-        ...ventures.map(v => ({ slug: v.slug, title: v.display_name })),
-        { slug: '__other', title: 'Other' },
-      ].map(({ slug, title }) => {
-        const rows = groupedByVenture[slug] || []
-        if (rows.length === 0) return null
-        return (
-          <FeedCard
-            key={slug}
-            title={`${title} · ${rows.length}`}
-          >
-            {rows.slice(0, 8).map(l => (
-              <FeedRow
-                key={l.id}
-                dotColor={fitDot(l.fit_score)}
-                title={leadName(l)}
-                detail={l.why_relevant || leadSubtitle(l) || undefined}
-                trailing={
-                  <span className="text-[14px] text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>
-                }
-                onClick={() => openLeadFromRow(l.id)}
-                feedback={{ sourceTable: "leads", sourceId: l.id, agentId: l.assignee_agent }}
-              />
-            ))}
-            {rows.length > 8 && (
-              <div className="px-7 py-4 text-[14px] text-white/35 text-center">
-                +{rows.length - 8} more
-              </div>
-            )}
-          </FeedCard>
-        )
-      })}
+      {showFocus ? (
+        <FeedCard title="Services, by focus">
+          <FocusLanes
+            rows={leads}
+            table="leads"
+            keyOf={l => String(l.id)}
+            renderItem={renderLeadRow}
+            fallback={null}
+            mutedLabel="Off focus"
+          />
+        </FeedCard>
+      ) : (
+        [
+          ...ventures.map(v => ({ slug: v.slug, title: v.display_name })),
+          { slug: '__other', title: 'Other' },
+        ].map(({ slug, title }) => {
+          const rows = groupedByVenture[slug] || []
+          if (rows.length === 0) return null
+          return (
+            <FeedCard
+              key={slug}
+              title={`${title} · ${rows.length}`}
+            >
+              {rows.slice(0, 8).map(l => (
+                <FeedRow
+                  key={l.id}
+                  dotColor={fitDot(l.fit_score)}
+                  title={leadName(l)}
+                  detail={l.why_relevant || leadSubtitle(l) || undefined}
+                  trailing={
+                    <span className="text-[14px] text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>
+                  }
+                  onClick={() => openLeadFromRow(l.id)}
+                  feedback={{ sourceTable: "leads", sourceId: l.id, agentId: l.assignee_agent }}
+                />
+              ))}
+              {rows.length > 8 && (
+                <div className="px-7 py-4 text-[14px] text-white/35 text-center">
+                  +{rows.length - 8} more
+                </div>
+              )}
+            </FeedCard>
+          )
+        })
+      )}
 
       <DetailSheet
         open={openLead != null}
