@@ -51,6 +51,8 @@ const REASON_OPTIONS = new Set([
   'marcus_suggestion_unsuitable',
   'triage_promote',
   'lead_other',
+  // Daily spine close (Phase 1): end-of-day reflection + tomorrow seed.
+  'daily_reflection',
 ])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

@@ -11,6 +11,13 @@ interface Props {
    */
   blocking?: boolean
   variant?: 'desktop' | 'mobile'
+  /**
+   * When true, render only the Friday retro and never the daily brief. The
+   * daily spine's ContextHeader now owns the brief at the top of Home, so Home
+   * passes retroOnly to keep the retro as a below-fold weekly surface without
+   * double-rendering the brief.
+   */
+  retroOnly?: boolean
 }
 
 /**
@@ -21,7 +28,7 @@ interface Props {
  *
  * All data flows through `useHomeIntelligence`, the canonical reader.
  */
-export function DailyBriefBanner({ blocking = false, variant = 'desktop' }: Props = {}) {
+export function DailyBriefBanner({ blocking = false, variant = 'desktop', retroOnly = false }: Props = {}) {
   const { intel, ackRetro } = useHomeIntelligence()
   const [acking, setAcking] = useState(false)
   const [retroOpen, setRetroOpen] = useState(false)
@@ -68,6 +75,7 @@ export function DailyBriefBanner({ blocking = false, variant = 'desktop' }: Prop
     )
   }
 
+  if (retroOnly && !showRetro) return null
   if (!brief && !showRetro) return null
 
   const delta = brief?.yesterday_mrr_delta_usd ?? 0
@@ -75,7 +83,7 @@ export function DailyBriefBanner({ blocking = false, variant = 'desktop' }: Prop
 
   return (
     <div className="flex flex-col gap-3 min-w-0">
-      {brief && (
+      {brief && !retroOnly && (
         <section
           className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.06] to-violet-500/[0.01] p-4 sm:p-5 min-w-0 overflow-hidden break-words"
           aria-label="Marcus daily brief"

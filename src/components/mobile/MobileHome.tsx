@@ -9,20 +9,16 @@ import {
 import { DetailSheet } from './DetailSheet'
 import { Logomark } from './Logomark'
 import { useHaptics } from '../../hooks/useHaptics'
-import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
 import { useHomeIntelligence, type ExternalSignal } from '../../hooks/useHomeIntelligence'
 import { MrrTicker } from '../MrrTicker'
 import { DailyBriefBanner } from '../DailyBriefBanner'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
 import { StreakPills } from '../StreakPills'
-import { TopThreeCards } from '../TopThreeCards'
-import { FocusCalibrator } from '../focus/FocusCalibrator'
-import { FocusBar } from '../focus/FocusBar'
-import { CarryOverPrompt } from '../focus/CarryOverPrompt'
 import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
 import { ObjectivesPanel } from '../objectives/ObjectivesPanel'
+import { DailyDriver } from '../focus/DailyDriver'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -35,17 +31,10 @@ type NavigateFn = (tab: string, params?: Record<string, string>) => void
 export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const h = useHaptics()
   const { intel } = useHomeIntelligence()
-  const { today: dailyFocusToday } = useDailyFocus()
   const [openSignal, setOpenSignal] = useState<ExternalSignal | null>(null)
 
   const signals = intel.external_signals
   const topThree = intel.top_three
-
-  // While Krish is in the FocusCalibrator (no daily_focus row yet), TopThreeCards
-  // would render Marcus's same picks a second time — confusing because the
-  // calibrator above is the actionable copy. Hide it until lock; FocusCalibrator
-  // owns the Marcus-picks surface until then.
-  const showTopThree = !isFocusEnabled() || !!dailyFocusToday
 
   return (
     <MobileShellPrim
@@ -56,25 +45,11 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       {/* MONEY MACHINE — live pulse with sparkline. */}
       <MrrTicker variant="mobile" />
 
-      {/* DAILY FOCUS (feature flag gated). */}
-      <CarryOverPrompt />
-      <FocusBar />
-      <FocusCalibrator />
-
-      {/* OBJECTIVE LAYER: Krish's multi-week unlocks (Phase 4, 2026-05-29). */}
+      {/* OBJECTIVE LAYER: Krish's multi-week unlocks. The week frames the day. */}
       <ObjectivesPanel variant="mobile" />
 
-      {/* TOP THREE — Marcus's three plays for today. Hidden while the
-          calibrator is open so Marcus's picks appear once, where they're
-          actionable. Re-appears as informational context after lock. */}
-      {showTopThree && (
-        <TopThreeCards
-          cards={topThree}
-          onNavigate={onNavigate}
-          variant="mobile"
-          generatedAt={intel.top_three_at ?? intel.generated_at}
-        />
-      )}
+      {/* DAILY SPINE — one journey: frame, lock 3, track, close. */}
+      <DailyDriver />
 
       {/* ROOM PREVIEWS — Content / Visibility / Leads, stacked. */}
       <RoomPreviews onNavigate={onNavigate} variant="mobile" />
@@ -86,12 +61,10 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         variant="mobile"
       />
 
-      {/* DECISIONS WAITING — compact, kind-routed. */}
-
-      {/* DAILY BRIEF — non-blocking. Retro is a collapsible card. */}
-      <DailyBriefBanner blocking={false} variant="mobile" />
-
       <StreakPills variant="mobile" />
+
+      {/* WEEKLY RETRO — retro-only; the brief now lives in the daily spine. */}
+      <DailyBriefBanner blocking={false} variant="mobile" retroOnly />
 
       {/* External signals — secondary surface, only render when present. */}
       {signals.length > 0 && (

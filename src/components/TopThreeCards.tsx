@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { TrendingUp, Sparkles, AlertTriangle, ArrowRight, Replace, Check, X, Target } from 'lucide-react'
 import type { TopThreeCard } from '../hooks/useHomeIntelligence'
 import { navigateDecision } from '../lib/routeDecision'
 import { useHaptics } from '../hooks/useHaptics'
 import { useToast } from './shared/Toast'
-import { supabase } from '../lib/supabase'
+import { useTaskParentObjectives } from '../hooks/useTaskParentObjectives'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -65,68 +65,16 @@ const KIND_ORDER: TopThreeCard['kind'][] = ['revenue', 'growth', 'risk']
  * reason_code='marcus_priority_override'. Marcus's daily synthesis loads
  * the last 14 days of those overrides and adjusts today's picks.
  */
-// Phase 4: enrich task cards with their parent portfolio objective so each
-// tactical pick can show "ladders up to: X". Marcus's daily synthesis will
-// eventually write parent_objective into top_three directly (per his brief);
-// until then we look it up client-side via tasks.milestone_id ->
-// milestones.goal_id -> goals.title.
-function useTaskParentObjectives(cards: TopThreeCard[]): Record<string, string> {
-  const taskIds = useMemo(
-    () => cards.filter(c => c.action_kind === 'task' && c.action_target_id).map(c => c.action_target_id as string),
-    [cards],
-  )
-  const key = taskIds.slice().sort().join('|')
-  const [parents, setParents] = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    if (taskIds.length === 0) { setParents({}); return }
-    let cancelled = false
-    void (async () => {
-      try {
-        const { data: tasks } = await supabase
-          .from('tasks')
-          .select('id, milestone_id')
-          .in('id', taskIds)
-        const milestoneIds = (tasks || []).map(t => t.milestone_id).filter(Boolean) as string[]
-        if (milestoneIds.length === 0) { if (!cancelled) setParents({}); return }
-        const { data: milestones } = await supabase
-          .from('milestones')
-          .select('id, goal_id')
-          .in('id', milestoneIds)
-        const goalIds = Array.from(new Set((milestones || []).map(m => m.goal_id).filter(Boolean) as string[]))
-        if (goalIds.length === 0) { if (!cancelled) setParents({}); return }
-        const { data: goals } = await supabase
-          .from('goals')
-          .select('id, title')
-          .in('id', goalIds)
-        const goalTitle = new Map<string, string>((goals || []).map(g => [g.id as string, g.title as string]))
-        const milestoneGoal = new Map<string, string>((milestones || []).map(m => [m.id as string, m.goal_id as string]))
-        const taskMilestone = new Map<string, string>((tasks || []).map(t => [t.id as string, t.milestone_id as string]))
-        const next: Record<string, string> = {}
-        for (const tid of taskIds) {
-          const mid = taskMilestone.get(tid)
-          if (!mid) continue
-          const gid = milestoneGoal.get(mid)
-          if (!gid) continue
-          const title = goalTitle.get(gid)
-          if (title) next[tid] = title
-        }
-        if (!cancelled) setParents(next)
-      } catch {
-        if (!cancelled) setParents({})
-      }
-    })()
-    return () => { cancelled = true }
-  }, [key, taskIds])
-
-  return parents
-}
-
 export function TopThreeCards({ cards, onNavigate, variant = 'desktop', generatedAt }: Props) {
   const h = useHaptics()
   // Hook calls must precede any early return per react-hooks/rules-of-hooks.
-  // The hook handles empty/non-task cards internally.
-  const parentObjectives = useTaskParentObjectives(cards || [])
+  // useTaskParentObjectives (promoted to src/hooks) enriches each task card with
+  // its parent portfolio objective ("ladders up to: X") via the shared lookup.
+  const taskIds = useMemo(
+    () => (cards || []).filter(c => c.action_kind === 'task' && c.action_target_id).map(c => c.action_target_id as string),
+    [cards],
+  )
+  const parentObjectives = useTaskParentObjectives(taskIds)
   if (!cards || cards.length === 0) return null
 
   const byKind = new Map<TopThreeCard['kind'], TopThreeCard>()
