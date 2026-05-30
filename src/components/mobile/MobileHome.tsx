@@ -61,7 +61,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       <FocusBar />
       <FocusCalibrator />
 
-      {/* OBJECTIVE LAYER — Krish's multi-week unlocks (Phase 4, 2026-05-29). */}
+      {/* OBJECTIVE LAYER: Krish's multi-week unlocks (Phase 4, 2026-05-29). */}
       <ObjectivesPanel variant="mobile" />
 
       {/* TOP THREE — Marcus's three plays for today. Hidden while the

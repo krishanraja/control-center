@@ -160,7 +160,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       <FocusBar />
       <FocusCalibrator />
 
-      {/* OBJECTIVE LAYER — Krish's multi-week unlocks (Phase 4, 2026-05-29).
+      {/* OBJECTIVE LAYER: Krish's multi-week unlocks (Phase 4, 2026-05-29).
           Renders above the tactical top-three so the deep-work commitment
           sits structurally above the day's tactical picks. Each tactical
           pick below now labels its parent objective when one applies. */}
