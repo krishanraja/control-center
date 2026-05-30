@@ -33,6 +33,7 @@ import { PendingFlagModal } from './components/PendingFlagModal'
 import { QuickCaptureIdea } from './components/QuickCaptureIdea'
 import { IdeaCaptureModal, isInboxEnabled } from './components/inbox/IdeaCaptureModal'
 import { CaptureSpeedDial } from './components/CaptureSpeedDial'
+import { WeeklyFocusTakeover } from './components/objectives/WeeklyFocusTakeover'
 import { useHashRoute } from './hooks/useHashRoute'
 
 type TabId = 'home' | 'today' | 'triage' | 'leads' | 'customers' | 'guests' | 'content' | 'bets' | 'org' | 'exec' | 'workflows' | 'systems'
@@ -128,6 +129,9 @@ export default function App() {
           <QuickCaptureIdea />
           <IdeaCaptureModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
           <CaptureSpeedDial />
+          {/* Weekly Focus Takeover: self-gates to Home + a new uncommitted week.
+              Mounted once here so it z-stacks above both shells. */}
+          <WeeklyFocusTakeover narrow={narrow} tab={tab} />
         </div>
       </AgentsProvider>
     </ToastProvider>
