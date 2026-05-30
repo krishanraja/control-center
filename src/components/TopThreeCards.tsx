@@ -124,14 +124,15 @@ function useTaskParentObjectives(cards: TopThreeCard[]): Record<string, string> 
 
 export function TopThreeCards({ cards, onNavigate, variant = 'desktop', generatedAt }: Props) {
   const h = useHaptics()
+  // Hook calls must precede any early return per react-hooks/rules-of-hooks.
+  // The hook handles empty/non-task cards internally.
+  const parentObjectives = useTaskParentObjectives(cards || [])
   if (!cards || cards.length === 0) return null
 
   const byKind = new Map<TopThreeCard['kind'], TopThreeCard>()
   for (const c of cards) if (!byKind.has(c.kind)) byKind.set(c.kind, c)
   const ordered = KIND_ORDER.map(k => byKind.get(k)).filter((c): c is TopThreeCard => !!c)
   if (ordered.length === 0) return null
-
-  const parentObjectives = useTaskParentObjectives(ordered)
 
   const handle = (c: TopThreeCard) => {
     h.select()
