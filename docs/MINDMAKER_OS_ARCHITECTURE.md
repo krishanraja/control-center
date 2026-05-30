@@ -10,7 +10,7 @@
 >
 > **Canonical location.** `/root/.openclaw/workspace/MINDMAKER_OS_ARCHITECTURE.md` on the VPS. Mirror in `docs/MINDMAKER_OS_ARCHITECTURE.md` in the `control-center` repo and in Google Drive folder `Infrastructure` (`1y4dncntB8WsKgLjTzC-YZ3KgWXyfwIt5`). Anything else describing "the OS" or "the architecture" anywhere in the workspace is stale and should be archived to `cold/`.
 >
-> **Last verified against live state.** 2026-05-26, after audit close (C+F batch shipped to main, plus Closure Architecture Day 1 from 2026-05-25). Empirical reconciliation: 14/14 agents action.md fresh; 66 tables + 2 views (`decisions_waiting` now 6-branch with corrections; `standards_efficacy` view live); 75 active N8N workflows; RLS restored on `visibility_targets` + `guests`; Vera Feedback Aggregation auth-bug fixed (learning loop re-armed); Stripe heartbeats live across all 6 product workflows; live SPA at sha f60181f8c904.
+> **Last verified against live state.** 2026-05-29, after the Objective Layer build shipped (PRs #97, #98, #99, #100, #101 in sequence). Empirical reconciliation: 14/14 agents action.md fresh; 67 tables (added `milestones`, `goal_agent_contributions`, `goals_archive_2026_04`; `goals` repurposed from a chore graveyard into the portfolio-objective layer); 76+ active N8N workflows (added `Krish | Mindmaker OS | Objective Milestone Proposer`, live id `uL8DLpHbT11eqBAW`); 6 active portfolio objectives with 6 agents linked via `agent_plans.weekly_goal_id`; 9 proposed Marcus-drafted milestones; CLAUDE.md Step 3b loads parent objective + contribution on agent wake; three-altitude feedback wired in `/api/feedback` and Vera's `Cluster` node groups by `[agent_id, source_table, reason_code]` so the altitudes stay distinct. Live SPA at controlcenter.krishraja.com.
 
 ---
 
@@ -350,7 +350,7 @@ SELECT set_config('app.source',     '<source>',  true); -- e.g. 'telegram', 'con
 
 | Tab | What it shows | Tables / views read |
 |---|---|---|
-| **Home** | CriticalAlertBanner → DailyBriefBanner → MrrTicker → StreakPills → Marcus headline + Signals + Needs-you → **DecisionsWaitingPanel** (unified across tasks/leads/guests/visibility/ideas) → KillListModal | `home_intelligence`, `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, `customers`, `bets`, `silent_failures`, `decisions_waiting` |
+| **Home** | CriticalAlertBanner → MrrTicker → CarryOverPrompt → FocusBar → FocusCalibrator → **ObjectivesPanel** (new 2026-05-29 Phase 4: NominationTray + soft-cap warning + DeepWorkBlock + active objectives strip with inline MilestoneCalibrator) → TopThreeCards (each task card labels its parent portfolio objective when one applies) → RoomPreviews → MomentumStrip → DailyBriefBanner → StreakPills → ActivityTail | `home_intelligence`, `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, `customers`, `bets`, `silent_failures`, `decisions_waiting`, **`goals`**, **`milestones`**, **`goal_agent_contributions`** |
 | **Today** | Tasks marked active/in_progress/blocked, drift badges on stale rows | `tasks` |
 | **Leads (Services)** | Per-venture lanes (mindmaker / signal_noise / builder_economy) with LeadCards: Promote / Reassign / Schedule follow-up / Deep enrich / **Draft email** / **Close concept (planned Day 2)** | `leads`, `venture_registry` |
 | **Guests (Visibility)** | GuestImportDropzone, GuestCard: Confirm / Skip / Deep enrich / Edit pitch / **Draft email** | `guests` |
@@ -809,7 +809,19 @@ Krish rejects output in Control Center (via FeedbackButton with reason_code)
                                 → Next session wake loads the new rule
 ```
 
-**The promise: same mistake doesn't survive four occurrences.** FeedbackButton surfaces: `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`.
+**The promise: same mistake doesn't survive four occurrences.** FeedbackButton surfaces: `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, **`goals`** (Objective Layer Phase 3), **`milestones`** (Objective Layer Phase 3).
+
+### 8.7.0 Three altitudes (added 2026-05-29, Phase 3)
+
+The Objective Layer introduces three feedback altitudes, each with a canonical `reason_code` and a distinct lesson Vera teaches Marcus. The whole point of splitting them is that a single rejection at the wrong altitude was previously mud: Marcus could not tell whether Krish meant "wrong task today," "right task wrong week," or "this whole objective is dead." Three completely different lessons.
+
+| Altitude | `reason_code` | Posted from | What it teaches Marcus |
+|---|---|---|---|
+| Daily | `marcus_priority_override` | Home swap affordance on a top_three card; FocusCalibrator pre-lock swap; `/api/daily-focus/calibrate` double-write | This was the wrong task to elevate today. Re-weight leverage features for this signal class. |
+| Milestone | `marcus_milestone_override` | MilestoneCalibrator reject button (DELETE `/api/milestones/:id`) | Right work, wrong week-sized chunk or wrong decomposition. Adjust the decomposition heuristic for this objective shape. |
+| Objective | `marcus_objective_nomination_rejected` | NominationTray reject button (POST `/api/objectives/:id/nominate-reject`) | This whole objective is the wrong shape. Tighten cluster detection; raise the theme bar before nominating. |
+
+Vera's `Cluster` node groups by `[agent_id, source_table, reason_code]`, so each altitude rolls up into its own bucket in `corrections` and Marcus's brief evolves on the right axis instead of wobbling.
 
 ### 8.7.1 Marcus top_three override capture (Phase 0)
 
@@ -963,6 +975,68 @@ TIER 4 (weekly):
 ```
 
 **The promise: same silent failure doesn't survive a week.**
+
+### 8.8.5 Objective layer flow (added 2026-05-29, Phases 1 through 5)
+
+Krish's daily work now has a visible spine: every tactical task ladders up through a weekly milestone to a multi-week portfolio objective he owns.
+
+```
+KRISH DECLARES OBJECTIVE (top-down strategic call, source=krish_declared)
+    POST /api/objectives  ->  insert into goals (status=active)
+        |
+        +-- agent_plans.weekly_goal_id set per agent  (the rail Step 3b reads on wake)
+        +-- goal_agent_contributions row per contributing agent
+        |
+PROPOSE MILESTONES
+    Krish clicks "Have Marcus propose milestones" in MilestoneCalibrator
+        -> POST /api/objectives/propose-milestones { goal_id }
+            -> proxy to n8n webhook (uL8DLpHbT11eqBAW)
+                -> Sonnet 4.6 with Marcus's live brief embedded
+                    -> insert 2 to 5 milestones (source=marcus_proposed, status=proposed,
+                       marcus_reasoning per row)
+                    -> idempotent: skipped if any proposed exists for goal_id
+                    -> audit_log: objective_milestone_proposer
+        ALTERNATE: Krish hand-writes via POST /api/objectives/:id/milestones
+                   (source=krish_authored, status=accepted)
+        |
+ACCEPT / TWEAK / REJECT / COMPLETE (per milestone)
+    PATCH /api/milestones/:id { action: accept | tweak | complete | reorder }
+        -> status transitions, source=krish_tweaked on tweak
+    DELETE /api/milestones/:id
+        -> status=dropped
+        -> feedback_queue row: reason_code=marcus_milestone_override (milestone altitude)
+        |
+MARCUS NOMINATES OBJECTIVES (cluster detection on unparented tasks, Phase 3 brief)
+    Daily synthesis detects 3+ tasks with milestone_id IS NULL sharing a theme
+        -> insert into goals (status=proposed, source=marcus_nominated)
+            -> NominationTray on Home
+                -> Krish Accept: POST /api/objectives/:id/nominate-accept
+                    -> status=active, activated_at=now()
+                -> Krish Reject: POST /api/objectives/:id/nominate-reject
+                    -> status=dropped
+                    -> feedback_queue: reason_code=marcus_objective_nomination_rejected
+                       (objective altitude)
+        |
+AUTO OBJECTIVES (is_auto=true, Agatha's domain per Phase 2 brief)
+    Agatha wake-time check: any active is_auto=true objective with zero milestones
+        -> generate milestone sequence (source=agatha_decomposed, status=accepted)
+        -> generate tasks under each milestone, assigned to the right agent
+        -> upsert goal_agent_contributions per assigned agent
+        |
+HOME RENDERING
+    ObjectivesPanel  (DesktopHome + MobileHome, above TopThreeCards)
+        -> NominationTray   (only renders when source=marcus_nominated rows exist)
+        -> Soft-cap warning (when count_active_objectives() > 10)
+        -> DeepWorkBlock    (highest-priority objective's active/accepted milestone)
+        -> Active strip     (click row -> inline MilestoneCalibrator)
+    TopThreeCards
+        -> each task card with non-null tasks.milestone_id renders
+           "Ladders up to: {parent objective title}" via client-side join
+```
+
+**Realtime.** A single channel `objectives-rt-shared` covers both `goals` and `milestones` (ADR-002 single-channel-per-table-set pattern, ref-counted attach/detach in `useObjectives.ts`).
+
+**The promise: tactical work always shows its strategic parent, and deep-work commitments survive the daily leverage contest because they sit structurally above the tactical picks.**
 
 ### 8.9 Marcus synthesis — Home Intelligence feed
 
