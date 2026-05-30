@@ -22,6 +22,7 @@ import { FocusBar } from '../focus/FocusBar'
 import { CarryOverPrompt } from '../focus/CarryOverPrompt'
 import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
+import { ObjectivesPanel } from '../objectives/ObjectivesPanel'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -59,6 +60,9 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       <CarryOverPrompt />
       <FocusBar />
       <FocusCalibrator />
+
+      {/* OBJECTIVE LAYER — Krish's multi-week unlocks (Phase 4, 2026-05-29). */}
+      <ObjectivesPanel variant="mobile" />
 
       {/* TOP THREE — Marcus's three plays for today. Hidden while the
           calibrator is open so Marcus's picks appear once, where they're

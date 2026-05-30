@@ -23,6 +23,7 @@ import { FocusBar } from '../focus/FocusBar'
 import { CarryOverPrompt } from '../focus/CarryOverPrompt'
 import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
+import { ObjectivesPanel } from '../objectives/ObjectivesPanel'
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { Sparkles } from 'lucide-react'
 import { navigateDecision } from '../../lib/routeDecision'
@@ -158,6 +159,12 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       <CarryOverPrompt />
       <FocusBar />
       <FocusCalibrator />
+
+      {/* OBJECTIVE LAYER — Krish's multi-week unlocks (Phase 4, 2026-05-29).
+          Renders above the tactical top-three so the deep-work commitment
+          sits structurally above the day's tactical picks. Each tactical
+          pick below now labels its parent objective when one applies. */}
+      <ObjectivesPanel variant="desktop" />
 
       {/* TOP THREE — Marcus's ranked plays for today. */}
       <TopThreeCards
