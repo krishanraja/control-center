@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   Sparkles, Check, Loader2, Target, Clock, ArrowLeft, ArrowRight,
-  CheckCircle2, Inbox,
+  CheckCircle2, Inbox, Flame,
 } from 'lucide-react'
 import { useAltitudes, type AltitudeId } from '../../hooks/useAltitudes'
 import { useObjectives } from '../../hooks/useObjectives'
 import { useWeeklyFocus } from '../../hooks/useWeeklyFocus'
-import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
+import { useStreaks } from '../../hooks/useStreaks'
 import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
@@ -73,6 +74,9 @@ export function FocusRitual({
   const total = stepIds.length
   const current = stepIds[Math.min(stepIdx, total - 1)]
   const isLast = stepIdx >= total - 1
+  // Bounded budget: ~1 minute per remaining decision step (summary excluded), so
+  // the promise stays small and the avoidance reflex never fires.
+  const minsLeft = Math.max(0, (total - 1) - stepIdx)
 
   const goNext = () => {
     h.tap()
@@ -94,7 +98,7 @@ export function FocusRitual({
       <Sparkles size={15} className="text-violet-300 flex-shrink-0" />
       <h2 className="text-[15px] font-semibold text-white">{STEP_TITLE[current]}</h2>
       <span className="ml-auto text-[10px] text-white/45 tabular-nums uppercase tracking-[0.12em]">
-        Step {Math.min(stepIdx + 1, total)} of {total}
+        Step {Math.min(stepIdx + 1, total)} of {total}{!isLast && minsLeft > 0 ? ` · ~${minsLeft} min` : ''}
       </span>
     </div>
   )
@@ -407,14 +411,23 @@ function DailyStep({ onLocked }: { onLocked: () => void }) {
 function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose: () => void }) {
   const { altitudes } = useAltitudes()
   const { decisions } = useRealtimeDecisionsWaiting()
+  const streaks = useStreaks()
   const h = useHaptics()
   const waiting = decisions.length
+  // Reinforce the chain at the close: the real 3-for-3 streak (consecutive days
+  // daily_focus shipped). Display-only — the streak is earned on the board, not here.
+  const streak = streaks.three_for_three
 
   return (
     <div className="space-y-4 py-2">
       <div className="flex items-center gap-2">
         <CheckCircle2 size={18} className="text-emerald-400" />
         <p className="text-[15px] font-semibold text-white">You're set for today.</p>
+        {isFocusEnabled() && !streaks.loading && streak > 0 && (
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/[0.06] px-2 py-0.5 text-[11px] font-semibold text-amber-300 tabular-nums">
+            <Flame size={11} /> {streak}-day 3-for-3
+          </span>
+        )}
       </div>
       <ul className="space-y-2">
         {altitudes.map(a => (
