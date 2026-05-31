@@ -27,6 +27,10 @@ export interface Objective {
   completed_at: string | null
   created_at: string
   updated_at: string
+  // Count of Marcus-proposed milestones still awaiting Krish's accept/reject,
+  // supplied by GET /api/objectives so the altitude spine can flag Portfolio
+  // without a per-objective tree fetch. Absent on older payloads → treat as 0.
+  proposed_milestone_count?: number
 }
 
 interface State {

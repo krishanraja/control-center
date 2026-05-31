@@ -66,7 +66,9 @@ export function useAltitudes(): AltitudesResult {
   const noms = obj.nominations.length
   const noActive = obj.active_count === 0
   const overCap = obj.active_count > obj.soft_cap
-  const portfolioNeeds = noms > 0 || noActive || overCap
+  // Marcus-proposed milestones across the active board still awaiting accept/reject.
+  const proposedMilestones = obj.active.reduce((s, o) => s + (o.proposed_milestone_count || 0), 0)
+  const portfolioNeeds = noms > 0 || noActive || overCap || proposedMilestones > 0
   const portfolio: Altitude = {
     id: 'portfolio',
     label: 'Portfolio',
@@ -76,10 +78,12 @@ export function useAltitudes(): AltitudesResult {
       ? 'No active objectives'
       : noms > 0
         ? `${noms} proposed to review`
-        : overCap
-          ? `${obj.active_count} active · over cap`
-          : `${obj.active_count} active objective${obj.active_count === 1 ? '' : 's'}`,
-    count: noms,
+        : proposedMilestones > 0
+          ? `${proposedMilestones} milestone${proposedMilestones === 1 ? '' : 's'} to review`
+          : overCap
+            ? `${obj.active_count} active · over cap`
+            : `${obj.active_count} active objective${obj.active_count === 1 ? '' : 's'}`,
+    count: noms + proposedMilestones,
   }
 
   // ── Weekly ─────────────────────────────────────────────────────────────────
