@@ -344,7 +344,7 @@ export function MobileToday({
         ariaLabel="Decision detail"
       >
         {decision && (
-          <DecisionDetail decision={decision} onClose={() => onClearDecision?.()} />
+          <DecisionDetail decision={decision} onClose={() => onClearDecision?.()} actionsEnabled />
         )}
       </BottomSheet>
     </MobileShellPrim>

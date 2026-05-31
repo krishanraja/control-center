@@ -85,16 +85,30 @@ export function buildDecisionActions(
             'Draft created in Gmail.', { openUrlFrom: 'draft_url' }),
         })
       }
-      if (!row.promoted_task_id) {
+      // Un-enriched candidates get the Enrich/Skip pair (Apollo spend is a
+      // per-lead decision); already-enriched leads get a quieter manual enrich.
+      const isCandidate = !row.deep_enriched_at && (row.status === 'new' || row.status === 'enriching')
+      if (isCandidate) {
         acts.push({
-          label: 'Promote',
+          label: 'Enrich (~$0.50)',
           variant: acts.length === 0 ? 'primary' : 'secondary',
-          onClick: () => run('Promote',
-            () => json('/api/leads/promote', { lead_id: row.id }),
-            'Promoted to an active task.', { terminal: true }),
+          onClick: () => run('Enrich',
+            () => fetch(`/api/leads/${row.id}/enrich`, { method: 'POST' }),
+            'Agatha is enriching — refresh in ~30s.'),
         })
-      }
-      if (!row.deep_enriched_at) {
+        acts.push({
+          label: 'Skip',
+          variant: 'secondary',
+          onClick: () => run('Skip',
+            () => json('/api/triage/reject', {
+              source_table: 'leads',
+              source_id: row.id,
+              agent: row.assignee_agent || 'felix',
+              reason_code: 'lead_other',
+            }),
+            'Skipped. Vera will learn from this.', { terminal: true }),
+        })
+      } else if (!row.deep_enriched_at) {
         acts.push({
           label: 'Deep enrich',
           variant: 'secondary',
@@ -103,13 +117,38 @@ export function buildDecisionActions(
             'Agatha is enriching — refresh in ~30s.'),
         })
       }
+      if (!row.promoted_task_id) {
+        acts.push({
+          label: 'Promote',
+          variant: 'secondary',
+          onClick: () => run('Promote',
+            () => json('/api/leads/promote', { lead_id: row.id }),
+            'Promoted to an active task.', { terminal: true }),
+        })
+      }
+      if (row.status !== 'contacted' && row.status !== 'conversation') {
+        acts.push({
+          label: 'Mark contacted',
+          variant: 'secondary',
+          onClick: () => run('Mark contacted',
+            () => json(`/api/leads/${row.id}`, { status: 'contacted' }, 'PATCH'),
+            'Marked contacted.', { terminal: true }),
+        })
+      }
+      if (row.linkedin_url) {
+        acts.push({
+          label: 'Open LinkedIn',
+          variant: 'secondary',
+          onClick: () => { h.tap(); try { window.open(row.linkedin_url, '_blank', 'noreferrer,noopener') } catch { /* blocked */ } },
+        })
+      }
       pushClose(acts, row, run, json)
       acts.push({
         label: 'Drop',
         variant: 'danger',
         onClick: () => run('Drop',
           () => json(`/api/leads/${row.id}`, { status: 'superseded' }, 'PATCH'),
-          'Lead dropped.', { terminal: true }),
+          'Dropped.', { terminal: true }),
       })
       break
     }

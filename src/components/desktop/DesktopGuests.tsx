@@ -198,7 +198,7 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
             </button>
           </div>
           <div className="max-h-[60vh] overflow-y-auto">
-            <DecisionDetail decision={detailDecision} />
+            <DecisionDetail decision={detailDecision} actionsEnabled />
           </div>
         </section>
       )}
