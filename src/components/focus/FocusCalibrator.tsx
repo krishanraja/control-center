@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
   Mic, Square, Loader2, Check, X, ChevronDown, Plus, ThumbsDown,
-  TrendingUp, Sparkles as SparkleIcon, AlertTriangle,
+  TrendingUp, Sparkles as SparkleIcon, AlertTriangle, Target,
 } from 'lucide-react'
 import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -23,6 +23,9 @@ interface Suggestion {
   leverage_score?: number | null
   reasoning?: string | null
   beats?: string[]
+  // Weekly linkage (Phase 2): set when this pick's task advances a milestone
+  // Krish committed for the current week. Populated by /api/daily-focus/suggestions.
+  serves_milestone?: { id: string; title: string; goal_id: string; goal_title: string | null } | null
 }
 
 interface SuggestionsPayload {
@@ -499,6 +502,15 @@ function MarcusPickRow({
           <ChevronDown size={14} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
         </button>
       </div>
+
+      {/* Weekly linkage: this pick advances a milestone committed this week. */}
+      {pick.serves_milestone && !unsuitable && (
+        <div className="px-3 pb-2 -mt-0.5">
+          <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-violet-200/85 bg-violet-500/15 border border-violet-400/20 rounded px-1.5 py-0.5">
+            <Target size={9} /> Serves this week: {pick.serves_milestone.title}
+          </span>
+        </div>
+      )}
 
       {/* Unsuitable label — replaces the body when row is marked. */}
       {unsuitable && !composing && (

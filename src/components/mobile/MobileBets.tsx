@@ -2,15 +2,21 @@ import React, { useMemo, useState } from 'react'
 import { Plus, AlertOctagon, Target } from 'lucide-react'
 import { MobileShell as MobileShellPrim, TabHeader, FeedCard, EmptyState } from './primitives'
 import { useHaptics } from '../../hooks/useHaptics'
-import { useBets, BET_KIND_LABEL, BET_TIME_BOX_OPTIONS, type BetKind } from '../../hooks/useBets'
+import { useBets, BET_KIND_LABEL, BET_TIME_BOX_OPTIONS, type BetKind, type BetRow } from '../../hooks/useBets'
 import { BetCard } from '../BetCard'
 import { useToast } from '../shared/Toast'
 import { NextActionStrip } from '../shared/NextActionStrip'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
+import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 
 export function MobileBets() {
   const h = useHaptics()
   const { toast } = useToast()
   const { live, decided, overdueLive, hitRates, loading } = useBets()
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
   const [composing, setComposing] = useState(false)
   const [draft, setDraft] = useState({
     hypothesis: '',
@@ -23,6 +29,17 @@ export function MobileBets() {
   const [busy, setBusy] = useState(false)
 
   const overall = hitRates.find(r => r.kind === 'all')
+
+  // Focus Mode (Phase 3): when enabled and the day is calibrated, the live-bets
+  // list regroups into the 3 daily-target lanes via relevance_index (table
+  // 'bets'). Flat array mirrors the normal visible order (overdue first), and
+  // one uniform row renderer preserves each card's decide behavior.
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+  const liveBets = useMemo<BetRow[]>(
+    () => [...overdueLive, ...live.filter(b => !overdueLive.includes(b))],
+    [overdueLive, live],
+  )
+  const renderBetRow = (b: BetRow) => <BetCard bet={b} forceDecide={overdueLive.includes(b)} />
 
   // Mirrors DesktopBets next action: overdue first (decision pressure), then
   // highest est-MRR live bet. CTA scrolls the bet card into view.
@@ -98,13 +115,18 @@ export function MobileBets() {
               : `${live.length} live · ${decided.length} decided`
           }
           trailing={
-            <button
-              onClick={() => { h.tap(); setComposing(c => !c) }}
-              className="rounded-full bg-violet-500/20 border border-violet-500/30 px-4 py-2 text-[13px] font-medium text-violet-100 inline-flex items-center min-h-[44px]"
-            >
-              <Plus size={14} className="inline mr-1" />
-              Place bet
-            </button>
+            <div className="flex items-center gap-2">
+              {isFocusModeEnabled() && calibrated && (
+                <FocusModeToggle mode={mode} onChange={setMode} />
+              )}
+              <button
+                onClick={() => { h.tap(); setComposing(c => !c) }}
+                className="rounded-full bg-violet-500/20 border border-violet-500/30 px-4 py-2 text-[13px] font-medium text-violet-100 inline-flex items-center min-h-[44px]"
+              >
+                <Plus size={14} className="inline mr-1" />
+                Place bet
+              </button>
+            </div>
           }
         />
       }
@@ -225,27 +247,44 @@ export function MobileBets() {
         </div>
       )}
 
-      {overdueLive.length > 0 && (
-        <FeedCard title={`Overdue · ${overdueLive.length}`}>
-          <div className="px-7 py-2 text-[13px] text-red-200">
-            These bets passed their time-box. Won, Lost, or Extend (with reason).
-          </div>
-          <div className="px-5 pb-3 space-y-2">
-            {overdueLive.map(b => (
-              <BetCard key={b.id} bet={b} forceDecide />
-            ))}
+      {showFocus ? (
+        <FeedCard title="Live, by focus">
+          <div className="px-5 py-3">
+            <FocusLanes
+              rows={liveBets}
+              table="bets"
+              keyOf={b => String(b.id)}
+              renderItem={renderBetRow}
+              fallback={null}
+              mutedLabel="Off focus"
+            />
           </div>
         </FeedCard>
-      )}
+      ) : (
+        <>
+          {overdueLive.length > 0 && (
+            <FeedCard title={`Overdue · ${overdueLive.length}`}>
+              <div className="px-7 py-2 text-[13px] text-red-200">
+                These bets passed their time-box. Won, Lost, or Extend (with reason).
+              </div>
+              <div className="px-5 pb-3 space-y-2">
+                {overdueLive.map(b => (
+                  <BetCard key={b.id} bet={b} forceDecide />
+                ))}
+              </div>
+            </FeedCard>
+          )}
 
-      {live.length > overdueLive.length && (
-        <FeedCard title={`Live · ${live.length - overdueLive.length}`}>
-          <div className="px-5 py-3 space-y-2">
-            {live.filter(b => !overdueLive.includes(b)).map(b => (
-              <BetCard key={b.id} bet={b} />
-            ))}
-          </div>
-        </FeedCard>
+          {live.length > overdueLive.length && (
+            <FeedCard title={`Live · ${live.length - overdueLive.length}`}>
+              <div className="px-5 py-3 space-y-2">
+                {live.filter(b => !overdueLive.includes(b)).map(b => (
+                  <BetCard key={b.id} bet={b} />
+                ))}
+              </div>
+            </FeedCard>
+          )}
+        </>
       )}
 
       {hitRates.length > 0 && (

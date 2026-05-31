@@ -4,9 +4,13 @@ import { useRealtimeLeads, type LeadSourceType, type LeadRow } from '../../hooks
 import { useVentureRegistry, type VentureRow } from '../../hooks/useVentureRegistry'
 import { LeadImportDropzone } from '../LeadImportDropzone'
 import { LeadVentureLane } from './LeadVentureLane'
+import { LeadCard } from '../LeadCard'
 import { DecisionDetail } from '../DecisionDetail'
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { navigateDecision } from '../../lib/routeDecision'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
+import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 
 /**
  * Leads tab — venture-grouped lanes.
@@ -59,6 +63,17 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
 
   const handleOpen = onOpenLead || ((id: string) => navigateDecision(onNavigate || (() => {}), 'lead', id))
 
+  // Focus Mode (Phase 3): when enabled and today is calibrated, the venture
+  // lanes regroup into the 3 daily-target lanes via relevance_index (table
+  // 'leads'). The visible set is every active lead the tab already lists, fed
+  // through one uniform renderer that reuses LeadCard so select/open behavior
+  // is identical to the normal view.
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+  const renderLeadRow = (lead: LeadRow) => <LeadCard lead={lead} onOpen={handleOpen} />
+
   return (
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-4">
@@ -71,9 +86,14 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
             Grouped by venture. One lead can surface in multiple lanes when it qualifies for more than one.
           </p>
         </div>
-        <span className="text-[11px] text-white/55 tabular-nums">
-          {loading ? '…' : `${totalActive} active`}
-        </span>
+        <div className="flex items-center gap-3">
+          {isFocusModeEnabled() && calibrated && (
+            <FocusModeToggle mode={mode} onChange={setMode} />
+          )}
+          <span className="text-[11px] text-white/55 tabular-nums">
+            {loading ? '…' : `${totalActive} active`}
+          </span>
+        </div>
       </header>
 
       <NextActionStrip
@@ -140,20 +160,33 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
         </aside>
 
         <div className="space-y-3 min-w-0">
-          {ventures.map(v => (
-            <LeadVentureLane
-              key={v.slug}
-              venture={v}
-              leads={byVenture[v.slug] || []}
-              onOpen={handleOpen}
+          {showFocus ? (
+            <FocusLanes
+              rows={leads}
+              table="leads"
+              keyOf={l => String(l.id)}
+              renderItem={renderLeadRow}
+              fallback={null}
+              mutedLabel="Off focus"
             />
-          ))}
-          <LeadVentureLane
-            venture={null}
-            fallbackTitle="Other"
-            leads={byVenture.__other || []}
-            onOpen={handleOpen}
-          />
+          ) : (
+            <>
+              {ventures.map(v => (
+                <LeadVentureLane
+                  key={v.slug}
+                  venture={v}
+                  leads={byVenture[v.slug] || []}
+                  onOpen={handleOpen}
+                />
+              ))}
+              <LeadVentureLane
+                venture={null}
+                fallbackTitle="Other"
+                leads={byVenture.__other || []}
+                onOpen={handleOpen}
+              />
+            </>
+          )}
         </div>
       </div>
     </div>

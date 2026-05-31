@@ -68,11 +68,70 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ? row.top_three_reasoning
     : null
 
+  // Advisory weekly linkage (Phase 2): attach serves_milestone to any task card
+  // that advances a milestone Krish committed for the current week. Failures
+  // here never break the daily picker; the chip just does not show.
+  const servesByTask = await buildServesByTask([...marcus_top_three, ...marcus_alternates])
+  const attach = (c: TopThreeCard) => ({
+    ...c,
+    serves_milestone: (c.action_kind === 'task' && c.action_target_id)
+      ? (servesByTask[c.action_target_id] || null)
+      : null,
+  })
+
   return res.json({
     ok: true,
-    marcus_top_three,
-    marcus_alternates,
+    marcus_top_three: marcus_top_three.map(attach),
+    marcus_alternates: marcus_alternates.map(attach),
     marcus_reasoning,
     generated_at: row?.top_three_at ?? null,
   })
+}
+
+interface ServesMilestone { id: string; title: string; goal_id: string; goal_title: string | null }
+
+// Monday (Europe/London) of the week containing `now`, matching the client's
+// weekOfLondon so the chip lines up with what the takeover committed.
+function mondayLondon(now: Date): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+  }).formatToParts(now)
+  const get = (t: string) => parts.find(p => p.type === t)?.value || ''
+  const dow: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }
+  const base = new Date(Date.UTC(Number(get('year')), Number(get('month')) - 1, Number(get('day')), 12))
+  base.setUTCDate(base.getUTCDate() - (dow[get('weekday')] ?? 0))
+  return base.toISOString().slice(0, 10)
+}
+
+async function buildServesByTask(cards: TopThreeCard[]): Promise<Record<string, ServesMilestone>> {
+  const out: Record<string, ServesMilestone> = {}
+  try {
+    const taskIds = Array.from(new Set(
+      cards.filter(c => c.action_kind === 'task' && c.action_target_id).map(c => c.action_target_id as string),
+    ))
+    if (taskIds.length === 0) return out
+    const week = mondayLondon(new Date())
+    const { data: committed } = await supabase
+      .from('weekly_focus_milestones')
+      .select('milestone_id, goal_id')
+      .eq('week_of', week)
+    const committedMs = (committed || []) as Array<{ milestone_id: string; goal_id: string }>
+    if (committedMs.length === 0) return out
+    const msIds = committedMs.map(c => c.milestone_id)
+    const { data: tasks } = await supabase.from('tasks').select('id, milestone_id').in('id', taskIds)
+    const relevant = (tasks || []).filter(t => t.milestone_id && msIds.includes(t.milestone_id as string))
+    if (relevant.length === 0) return out
+    const { data: ms } = await supabase.from('milestones').select('id, title, goal_id').in('id', msIds)
+    const { data: goals } = await supabase.from('goals').select('id, title').in('id', committedMs.map(c => c.goal_id))
+    const msById = new Map((ms || []).map(m => [m.id as string, m as { id: string; title: string; goal_id: string }]))
+    const goalTitle = new Map((goals || []).map(g => [g.id as string, g.title as string]))
+    for (const t of relevant) {
+      const m = msById.get(t.milestone_id as string)
+      if (!m) continue
+      out[t.id as string] = { id: m.id, title: m.title, goal_id: m.goal_id, goal_title: goalTitle.get(m.goal_id) ?? null }
+    }
+  } catch {
+    return out
+  }
+  return out
 }

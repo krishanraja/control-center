@@ -11,6 +11,9 @@ import { NextActionStrip } from '../shared/NextActionStrip'
 import { PipelineQueue, PIPELINE_WORKSTREAMS } from './PipelineQueue'
 import { DecisionDetail } from '../DecisionDetail'
 import { navigateDecision } from '../../lib/routeDecision'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
+import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 
 const PIPELINE_WORKSTREAM_SET = new Set<string>(PIPELINE_WORKSTREAMS as readonly string[])
 
@@ -132,6 +135,20 @@ export function DesktopToday({
   const items: TaskRow[] = [...today.due, ...today.waiting]
   const selected = tasks.find(t => t.id === selectedId) || items[0] || null
 
+  // Focus Mode (Phase 3): when enabled and the day is calibrated, the grouped
+  // list regroups into the 3 daily-target lanes via relevance_index (table
+  // 'tasks'). One uniform row renderer feeds both the lanes and the muted set,
+  // reusing DayRow and selectTask so a lane row selects the task in the detail
+  // pane exactly like the normal list.
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+  const visibleTasks: TaskRow[] = [...today.due, ...today.waiting]
+  const renderTaskRow = (t: TaskRow) => (
+    <DayRow task={t} selected={selected?.id === t.id} onClick={() => selectTask(t.id)} />
+  )
+
   // Next action: the most overdue task (earliest due_date) if any are overdue,
   // else the first due-today task, else nothing.
   const nextActionTask = useMemo(() => {
@@ -150,9 +167,14 @@ export function DesktopToday({
 
   const list = (
     <div className="space-y-4 pr-2">
-      <div>
-        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Today</h1>
-        <p className="text-xs md:text-[13px] text-white/50 mt-0.5">Only what's due, waiting on you, or next in the pipeline. New inbound proposals live in Triage.</p>
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Today</h1>
+          <p className="text-xs md:text-[13px] text-white/50 mt-0.5">Only what's due, waiting on you, or next in the pipeline. New inbound proposals live in Triage.</p>
+        </div>
+        {isFocusModeEnabled() && calibrated && (
+          <FocusModeToggle mode={mode} onChange={setMode} />
+        )}
       </div>
       <NextActionStrip
         headline={today.due.length}
@@ -177,35 +199,48 @@ export function DesktopToday({
       )}
       {loading && <p className="text-[12px] text-white/30">Loading…</p>}
 
-      {today.due.length > 0 && (
-        <Group title="Due" count={today.due.length} accent="text-rose-400">
-          {today.due.map(t => <DayRow key={t.id} task={t} selected={selected?.id === t.id} onClick={() => selectTask(t.id)} />)}
-        </Group>
-      )}
+      {showFocus ? (
+        <FocusLanes
+          rows={visibleTasks}
+          table="tasks"
+          keyOf={t => String(t.id)}
+          renderItem={renderTaskRow}
+          fallback={null}
+          mutedLabel="Off focus"
+        />
+      ) : (
+        <>
+          {today.due.length > 0 && (
+            <Group title="Due" count={today.due.length} accent="text-rose-400">
+              {today.due.map(t => <DayRow key={t.id} task={t} selected={selected?.id === t.id} onClick={() => selectTask(t.id)} />)}
+            </Group>
+          )}
 
-      {today.waiting.length > 0 && (
-        <Group title="Waiting on You" count={today.waiting.length} accent="text-amber-400">
-          {today.waiting.map(t => <DayRow key={t.id} task={t} selected={selected?.id === t.id} onClick={() => selectTask(t.id)} />)}
-        </Group>
-      )}
+          {today.waiting.length > 0 && (
+            <Group title="Waiting on You" count={today.waiting.length} accent="text-amber-400">
+              {today.waiting.map(t => <DayRow key={t.id} task={t} selected={selected?.id === t.id} onClick={() => selectTask(t.id)} />)}
+            </Group>
+          )}
 
-      <PipelineQueue />
+          <PipelineQueue />
 
-      {today.stale.length > 0 && (
-        <StaleDisclosure tasks={today.stale} onSelectTask={selectTask} selectedId={selected?.id || null} />
-      )}
+          {today.stale.length > 0 && (
+            <StaleDisclosure tasks={today.stale} onSelectTask={selectTask} selectedId={selected?.id || null} />
+          )}
 
-      {items.length === 0 && !loading && (
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
-          <p className="text-sm md:text-[14px] text-white/55 font-medium">Nothing scheduled for today.</p>
-          <p className="text-xs md:text-[12px] text-white/30 mt-1">Clear mind.</p>
-        </div>
+          {items.length === 0 && !loading && (
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
+              <p className="text-sm md:text-[14px] text-white/55 font-medium">Nothing scheduled for today.</p>
+              <p className="text-xs md:text-[12px] text-white/30 mt-1">Clear mind.</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
 
   const detail = decision
-    ? <DecisionDetail key={decision} decision={decision} onClose={onClearDecision} />
+    ? <DecisionDetail key={decision} decision={decision} onClose={onClearDecision} actionsEnabled />
     : selected
       ? <TodayDetail key={selected.id} task={selected} />
       : <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an item from your day</div>

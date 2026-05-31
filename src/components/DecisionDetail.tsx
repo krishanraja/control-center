@@ -3,6 +3,9 @@ import { ExternalLink, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../hooks/useRealtimeDecisionsWaiting'
 import { VisibilityTargetDetail } from './VisibilityTargetDetail'
+import { buildDecisionActions } from '../lib/decisionActions'
+import { useHaptics } from '../hooks/useHaptics'
+import { useToast } from './shared/Toast'
 
 export type DecisionKind = DecisionRow['kind']
 
@@ -10,6 +13,12 @@ interface Props {
   /** Composite key as kind:id (the format the panel emits). */
   decision: string
   onClose?: () => void
+  /** Render a one-tap actions footer (shared buildDecisionActions registry).
+   *  Off by default so read-only usages are unchanged. `visibility` is always
+   *  suppressed — VisibilityTargetDetail owns its own action bar. */
+  actionsEnabled?: boolean
+  /** Kind-aware navigator for the registry's "Open full detail" floor. */
+  onNavigate?: (tab: string, params?: Record<string, string>) => void
 }
 
 interface ResolvedDecision {
@@ -91,12 +100,27 @@ function toRowShape(d: DecisionRow): Record<string, any> {
   }
 }
 
-export function DecisionDetail({ decision, onClose }: Props) {
+export function DecisionDetail({ decision, onClose, actionsEnabled = false, onNavigate }: Props) {
   const resolved = useResolvedDecision(decision)
+  const h = useHaptics()
+  const { toast } = useToast()
 
   if (!decision || resolved.id === '') {
     return null
   }
+
+  // visibility keeps its own action bar (VisibilityTargetDetail); every other
+  // kind can render the shared one-tap registry footer when opted in.
+  const showActions =
+    actionsEnabled && !resolved.loading && !!resolved.row && resolved.kind !== 'visibility'
+  const actions = showActions
+    ? buildDecisionActions(resolved.kind, resolved.row as Record<string, any>, {
+        navigate: onNavigate,
+        toast,
+        haptics: h,
+        onDone: onClose,
+      })
+    : []
 
   return (
     <section className="h-full flex flex-col">
@@ -127,6 +151,26 @@ export function DecisionDetail({ decision, onClose }: Props) {
           <DecisionBody kind={resolved.kind} row={resolved.row} />
         )}
       </div>
+
+      {actions.length > 0 && (
+        <div className="border-t border-white/[0.06] p-4 space-y-2.5 flex-shrink-0">
+          {actions.map((a, i) => (
+            <button
+              key={i}
+              onClick={a.onClick}
+              className={`w-full rounded-2xl py-3 text-[15px] font-semibold transition-colors ${
+                a.variant === 'primary'
+                  ? 'bg-violet-500 text-white active:bg-violet-400'
+                  : a.variant === 'danger'
+                  ? 'bg-red-500/15 text-red-300 active:bg-red-500/25'
+                  : 'bg-white/[0.07] text-white active:bg-white/[0.12]'
+              }`}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   )
 }

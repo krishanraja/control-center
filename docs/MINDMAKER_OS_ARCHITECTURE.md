@@ -10,7 +10,7 @@
 >
 > **Canonical location.** `/root/.openclaw/workspace/MINDMAKER_OS_ARCHITECTURE.md` on the VPS. Mirror in `docs/MINDMAKER_OS_ARCHITECTURE.md` in the `control-center` repo and in Google Drive folder `Infrastructure` (`1y4dncntB8WsKgLjTzC-YZ3KgWXyfwIt5`). Anything else describing "the OS" or "the architecture" anywhere in the workspace is stale and should be archived to `cold/`.
 >
-> **Last verified against live state.** 2026-05-26, after audit close (C+F batch shipped to main, plus Closure Architecture Day 1 from 2026-05-25). Empirical reconciliation: 14/14 agents action.md fresh; 66 tables + 2 views (`decisions_waiting` now 6-branch with corrections; `standards_efficacy` view live); 75 active N8N workflows; RLS restored on `visibility_targets` + `guests`; Vera Feedback Aggregation auth-bug fixed (learning loop re-armed); Stripe heartbeats live across all 6 product workflows; live SPA at sha f60181f8c904.
+> **Last verified against live state.** 2026-05-30, after the Focus System shipped (PR #102: daily spine + weekly takeover + full focus mode, which also merged the Objective Layer PRs #97-101 to main). See 5.6 and the 2026-05-30 changelog entry for that build.  Prior verification 2026-05-29, after the Objective Layer build shipped (PRs #97, #98, #99, #100, #101 in sequence). Empirical reconciliation: 14/14 agents action.md fresh; 67 tables (added `milestones`, `goal_agent_contributions`, `goals_archive_2026_04`; `goals` repurposed from a chore graveyard into the portfolio-objective layer); 76+ active N8N workflows (added `Krish | Mindmaker OS | Objective Milestone Proposer`, live id `uL8DLpHbT11eqBAW`); 6 active portfolio objectives with 6 agents linked via `agent_plans.weekly_goal_id`; 9 proposed Marcus-drafted milestones; CLAUDE.md Step 3b loads parent objective + contribution on agent wake; three-altitude feedback wired in `/api/feedback` and Vera's `Cluster` node groups by `[agent_id, source_table, reason_code]` so the altitudes stay distinct. Live SPA at controlcenter.krishraja.com.
 
 ---
 
@@ -220,7 +220,9 @@ Every piece of OS state lives in one of these tables. Categorised by change rate
 |---|---|
 | `agent_plans` (14 rows) | One sprint plan per agent — `current_phase`, `objective`, `blockers`, `next_milestone`, `progress_pct`, `doc_link`, `last_rendered_at`. Refreshed weekly by `Agatha Weekly Plan Refresh` (Mon 09:00 UTC) via `refresh_agent_plans()` RPC + Sonnet 4.6 |
 | `tasks` | The unit of action — `id`, `title`, `agent`, `status` (`waiting`/`active`/`in_progress`/`blocked`/`done`/`pending-agatha-review`/`pending-review`/`paused`/`superseded`), `workstream`, `created`, plus `lever_score` + `est_hours_to_revenue` (from PR #47), plus **`concept_id text`** (new Day 1 Stream 1; backfilled for `Outreach:%` titles, indexed). CHECK constraint `tasks_status_check` enumerates the status values |
-| `goals` | Strategic goals (per-quarter) |
+| `goals` | **Portfolio objectives** (repurposed 2026-05-29 from the old weekly-goals graveyard). Multi-week unlocks scoped to a venture (`venture` column), with status (`proposed`/`active`/`paused`/`done`/`dropped`), priority, definition_of_done, why_now, target_horizon, primary/secondary KPI, `is_auto` (Agatha auto-decomposes), `source` (`krish_declared`/`marcus_nominated`/`agatha_decomposed`). The 8 April chore rows live in `goals_archive_2026_04`. FK from `agent_plans.weekly_goal_id` makes this the parent objective every agent loads on wake (CLAUDE.md Step 3b) |
+| `milestones` (new 2026-05-29) | Week-sized chunks of an objective. FK to `goals(id)` ON DELETE CASCADE. Status (`proposed`/`accepted`/`active`/`done`/`dropped`), source (`marcus_proposed`/`krish_authored`/`krish_tweaked`/`agatha_decomposed`), `sequence` (order within objective), `est_deep_work_hours`, `marcus_reasoning`. Marcus proposes for non-auto objectives; Krish accepts/tweaks/replaces/rejects; Agatha auto-creates for `is_auto=true` objectives. Tasks attach upward via `tasks.milestone_id` (nullable; null is legitimate for tactical work) |
+| `goal_agent_contributions` (new 2026-05-29) | M:n bridge: an objective lists which agents contribute and what each contributes (`contribution_note`). Complements the 1:1 `agent_plans.weekly_goal_id` pointer with the many side |
 | `workstreams`, `workstream_contexts` | Workstream definitions + rolling context |
 | `opportunities`, `sequences`, `contacted_persons` | Deal pipeline + outbound sequences + CRM log |
 | `leads` | Sales pipeline unit. CHECK constraint `leads_status_check` permits exactly: `new`, `enriching`, `ready`, `contacted`, `conversation`, `closed_won`, `closed_lost`, `superseded`. Columns include `assignee_agent`, `fit_score`, `attainability_score`, `icp_score` (legacy), `icp_scores` (jsonb, per-venture), `tags` (text[]), `primary_venture` (FK → venture_registry), `tier`, `why_relevant`, `primary_tension`, `next_step`, `follow_up_at`, `promoted_task_id`, `deep_enriched_at`, **`enrichment_status`**, **`last_emailed_at`**, **`last_email_draft_id`**, **`last_email_draft_url`** (last four added in audit 2026-05-25), plus **`concept_id text`** (new Day 1 Stream 1, indexed) |
@@ -348,8 +350,8 @@ SELECT set_config('app.source',     '<source>',  true); -- e.g. 'telegram', 'con
 
 | Tab | What it shows | Tables / views read |
 |---|---|---|
-| **Home** | CriticalAlertBanner → DailyBriefBanner → MrrTicker → StreakPills → Marcus headline + Signals + Needs-you → **DecisionsWaitingPanel** (unified across tasks/leads/guests/visibility/ideas) → KillListModal | `home_intelligence`, `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, `customers`, `bets`, `silent_failures`, `decisions_waiting` |
-| **Today** | Tasks marked active/in_progress/blocked, drift badges on stale rows | `tasks` |
+| **Home** | CriticalAlertBanner → MrrTicker → **ObjectivesPanel** (objective layer: NominationTray + soft-cap + DeepWorkBlock + active objectives with inline MilestoneCalibrator) → **DailyDriver** (the daily spine, 2026-05-30, see 5.6: one phase-driven journey replacing the old NextActionStrip / FocusBar / FocusCalibrator / TopThreeCards pile-up) → RoomPreviews → MomentumStrip → StreakPills → DailyBriefBanner (retro-only, below the fold) → ActivityTail. A once-weekly **WeeklyFocusTakeover** overlays Home on a new week (Monday-insist). | `home_intelligence`, `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, `customers`, `bets`, `silent_failures`, `decisions_waiting`, **`goals`**, **`milestones`**, **`goal_agent_contributions`**, **`weekly_focus`**, **`weekly_focus_milestones`** |
+| **Today** | Tasks marked active/in_progress/blocked, drift badges on stale rows. Gains a Focus/All toggle (5.6): in Focus mode the list regroups into the 3 daily-target lanes. | `tasks` |
 | **Leads (Services)** | Per-venture lanes (mindmaker / signal_noise / builder_economy) with LeadCards: Promote / Reassign / Schedule follow-up / Deep enrich / **Draft email** / **Close concept (planned Day 2)** | `leads`, `venture_registry` |
 | **Guests (Visibility)** | GuestImportDropzone, GuestCard: Confirm / Skip / Deep enrich / Edit pitch / **Draft email** | `guests` |
 | **Visibility (events)** | VisibilityTargetCard: deep-enrich + edit + approve/reject/snooze + past speakers + CFP details + effort + next actions checklist | `visibility_targets` |
@@ -421,6 +423,31 @@ The dashboard subscribes to Postgres Realtime via `@supabase/supabase-js`. Hot s
 - `cc-task-router.sh` — routes ad-hoc instructions from chat into `tasks`.
 - `poll_sync_queue.py` — every 5 min, drains `sync_queue` (cross-system reconciliation).
 - `Control Center Live Sync` (N8N) — auxiliary realtime layer.
+
+### 5.6 The Focus System — one spine from objective to today (shipped 2026-05-30, PR #102)
+
+**Strategic intent.** Before this, "what should I do?" was answered by five overlapping Home surfaces, and the daily `top_three` always elevated atomic tasks, so multi-week objectives never won daily airtime. The Focus System makes one spine run from a weekly commitment down to the work on every tab: PORTFOLIO OBJECTIVE → MILESTONE (the weekly unit) → TASK → DAILY TOP 3 → every tab's list. One commitment a week sets the milestones; one commitment a day picks the 3; everything else reorganizes behind those two choices. It is engineered around behavioral psychology (fresh-start effect, peak-end, implementation intentions, commitment-and-consistency, goal-gradient, Zeigarnik, Hick's law, loss aversion) and information retention.
+
+**Surface 1: the daily spine (`DailyDriver`, `src/components/focus/`).** One orchestrator that derives a phase from `daily_focus.status` and renders exactly one thing at a time, replacing NextActionStrip + FocusBar + FocusCalibrator + TopThreeCards + the brief banner:
+- `context` (no row): `ContextHeader` shows a three-line frame from the brief (one_bet / one_customer / one_anti_action) to prime the pick.
+- `commit` (no row): `FocusCalibrator` (reused) picks, edits, and locks today's 3.
+- `mapping` (`status='pending'`): `TrackStep` shows a labor-illusion banner while the calibrator webhook computes `relevance_index`; completion is live immediately so a slow or failed webhook never traps the user.
+- `track` (`status='calibrated'`): completion circles + endowed-progress bar + goal-gradient copy + the brief's anti-action pinned as a guardrail + "ladders up to {objective}" labels.
+- `close` (all 3 done): `CloseStep`, a peak-end reflection that writes a `daily_reflection` feedback row and seeds tomorrow.
+
+**Surface 2: the weekly takeover (`WeeklyFocusTakeover`, `src/components/objectives/`).** Once a week the Home is overlaid by a four-step wizard: review last week (peak-end, from `weekly_retro`) → confirm objectives (reuses `NominationTray`) → shape milestones (reuses `MilestoneCalibrator`) → commit up to 3. Gating is "Monday-insist, soften after": Monday's first view has no dismiss (fresh-start effect); the rest of the week offers one "set later today" snooze. The only way to stop it for the week is to commit. Committed milestones bias the daily picker: `/api/daily-focus/suggestions` attaches `serves_milestone` to any pick whose task advances a committed milestone, shown as a violet "serves this week" chip in the calibrator.
+
+**Surface 3: Full Focus Mode (`FocusLanes` + `useFocusMode` + `FocusModeToggle`, `src/components/focus/`).** Every work-item tab (Today, Services, Subscriptions, Visibility, Content, Bets — desktop + mobile) gains a Focus/All toggle. In Focus mode, when the day is calibrated, the tab's primary list regroups into the 3 daily-target lanes plus a dimmed Muted set, falling back to its normal view otherwise. This activates the previously-dormant `useFocusFiltered` hook across the whole app.
+
+**The `relevance_index` contract (load-bearing).** The n8n Focus Calibrator (`zEA4wGECQdqBpDmO`) keys every candidate as `<table>:<id>` and writes them to `daily_focus.relevance_index`. `useFocusFiltered(rows, table)` looks up `<table>:<id>` per row → lane 1/2/3 or muted (critical-severity rows never mute). Each tab MUST pass its own source table. Pooled tables: `decisions_waiting`, `tasks`, `bets`, `leads`, `visibility_targets`, `customers`, and (added 2026-05-30) `content_ideas` + `guests`.
+
+**Data model.**
+- `daily_focus` (one row per `focus_date`): `target_1..3_text/_source/_concept_id/_completed_at`, `status` (pending → calibrated → complete), `relevance_index` jsonb, `calibrated_at`. Hook `useDailyFocus` (channel `daily-focus-rt-shared`).
+- `weekly_focus` (one row per `week_of`, the Monday in Europe/London, UNIQUE): `status` (committed/superseded), `committed_at`, `retro_ack`. `weekly_focus_milestones` bridge: `weekly_focus_id` FK CASCADE, `week_of`, `milestone_id` FK CASCADE, `goal_id` FK CASCADE, `last_served_at`, UNIQUE(week_of, milestone_id). Hook `useWeeklyFocus` (channel `weekly-focus-rt-shared`) with a London-Monday week key and localStorage gating fallbacks. RLS anon-SELECT + service_role-ALL on both. Migration `scripts/migrations/2026-05-30-weekly-focus-takeover.sql`.
+
+**API routes.** `/api/daily-focus/{suggestions,calibrate,complete}` (existing; `suggestions` extended with the `serves_milestone` read-join). `/api/weekly-focus/commit` (new: upserts `weekly_focus` on `week_of`, replaces the bridge rows, caps at 3). `/api/feedback` (extended: `daily_reflection` reason code).
+
+**Feature flags.** `VITE_DAILY_FOCUS_ENABLED` (on) gates the daily spine. `VITE_WEEKLY_FOCUS_ENABLED` and `VITE_FOCUS_MODE_ENABLED` gate the weekly takeover and Full Focus Mode respectively (default off; add to Vercel env = true and redeploy to dogfood, since these are build-time Vite vars).
 
 ---
 
@@ -498,6 +525,8 @@ Hard fail if SKILL.md missing → Telegram-Krish: "brief not rendered, run `rend
 
 **Graduated stale handling.** If `agent_plans.last_rendered_at > 72h`, enter READ-ONLY mode — reads/research OK, sends/commits/Supabase-writes blocked. Telegram-Krish: "off-sprint, plan render stale ({age})". The `Agatha Weekly Plan Refresh` workflow (Mon 09:00 UTC) keeps every plan inside the 72h window in normal operation.
 
+**Step 3b: Load Krish's portfolio objective (added 2026-05-29, Phase 2).** If `agent_plans.weekly_goal_id` is non-null, load the corresponding `goals` row (the parent portfolio objective) plus any `goal_agent_contributions` rows where `agent_id = MY_AGENT_ID`. Present them in the loaded context as "Krish's portfolio objective you serve: {title} (venture, status, priority, target_horizon). Your contribution: {note}". The agent's own `agent_plans.objective` (from Step 3) is the slice of work the agent contributes to the visible portfolio objective. If `weekly_goal_id` is null, the agent has no portfolio parent yet and acts on its `agent_plans.objective` alone; clusters of unparented tasks should be surfaced to Marcus for objective nomination.
+
 **Step 4 — Memory.**
 7. `MEMORY.md` — **only** in direct Krish chats. Never in shared contexts (Discord, group chats).
 
@@ -509,6 +538,7 @@ Hard fail if SKILL.md missing → Telegram-Krish: "brief not rendered, run `rend
 
 - **Identity** = static. Lives in SKILL.md / IDENTITY.md / ORG.md / `agents.brief_content`. Rare changes.
 - **Plan** = dynamic. Lives in `agent_plans` + Action Doc body + `active/${MY_AGENT_ID}-action.md`. Weekly changes.
+- **Objective** = durable strategic record (added 2026-05-29, Phase 2). Lives in `goals` (portfolio objectives, multi-week, Krish owns) plus `milestones` (week-sized chunks of an objective). Same lexical tier as Decision: rare, load-bearing, never silently rewritten. NOT a synonym for Plan. Never call a milestone or an objective a "plan."
 - **Decision** = durable. Lives in `concept_decisions` keyed by `concept_id`. Captures every closure / kill / pause / reopen Krish makes. Never deleted; reopens supersede rather than overwrite.
 - **Banned forever.** "Master Brief," "Tactical Plan," "Action Plan," "Execution Brief."
 - New file proposals must declare which side they fall on. No middle ground.
@@ -804,7 +834,19 @@ Krish rejects output in Control Center (via FeedbackButton with reason_code)
                                 → Next session wake loads the new rule
 ```
 
-**The promise: same mistake doesn't survive four occurrences.** FeedbackButton surfaces: `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`.
+**The promise: same mistake doesn't survive four occurrences.** FeedbackButton surfaces: `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, **`goals`** (Objective Layer Phase 3), **`milestones`** (Objective Layer Phase 3).
+
+### 8.7.0 Three altitudes (added 2026-05-29, Phase 3)
+
+The Objective Layer introduces three feedback altitudes, each with a canonical `reason_code` and a distinct lesson Vera teaches Marcus. The whole point of splitting them is that a single rejection at the wrong altitude was previously mud: Marcus could not tell whether Krish meant "wrong task today," "right task wrong week," or "this whole objective is dead." Three completely different lessons.
+
+| Altitude | `reason_code` | Posted from | What it teaches Marcus |
+|---|---|---|---|
+| Daily | `marcus_priority_override` | Home swap affordance on a top_three card; FocusCalibrator pre-lock swap; `/api/daily-focus/calibrate` double-write | This was the wrong task to elevate today. Re-weight leverage features for this signal class. |
+| Milestone | `marcus_milestone_override` | MilestoneCalibrator reject button (DELETE `/api/milestones/:id`) | Right work, wrong week-sized chunk or wrong decomposition. Adjust the decomposition heuristic for this objective shape. |
+| Objective | `marcus_objective_nomination_rejected` | NominationTray reject button (POST `/api/objectives/:id/nominate-reject`) | This whole objective is the wrong shape. Tighten cluster detection; raise the theme bar before nominating. |
+
+Vera's `Cluster` node groups by `[agent_id, source_table, reason_code]`, so each altitude rolls up into its own bucket in `corrections` and Marcus's brief evolves on the right axis instead of wobbling.
 
 ### 8.7.1 Marcus top_three override capture (Phase 0)
 
@@ -958,6 +1000,68 @@ TIER 4 (weekly):
 ```
 
 **The promise: same silent failure doesn't survive a week.**
+
+### 8.8.5 Objective layer flow (added 2026-05-29, Phases 1 through 5)
+
+Krish's daily work now has a visible spine: every tactical task ladders up through a weekly milestone to a multi-week portfolio objective he owns.
+
+```
+KRISH DECLARES OBJECTIVE (top-down strategic call, source=krish_declared)
+    POST /api/objectives  ->  insert into goals (status=active)
+        |
+        +-- agent_plans.weekly_goal_id set per agent  (the rail Step 3b reads on wake)
+        +-- goal_agent_contributions row per contributing agent
+        |
+PROPOSE MILESTONES
+    Krish clicks "Have Marcus propose milestones" in MilestoneCalibrator
+        -> POST /api/objectives/propose-milestones { goal_id }
+            -> proxy to n8n webhook (uL8DLpHbT11eqBAW)
+                -> Sonnet 4.6 with Marcus's live brief embedded
+                    -> insert 2 to 5 milestones (source=marcus_proposed, status=proposed,
+                       marcus_reasoning per row)
+                    -> idempotent: skipped if any proposed exists for goal_id
+                    -> audit_log: objective_milestone_proposer
+        ALTERNATE: Krish hand-writes via POST /api/objectives/:id/milestones
+                   (source=krish_authored, status=accepted)
+        |
+ACCEPT / TWEAK / REJECT / COMPLETE (per milestone)
+    PATCH /api/milestones/:id { action: accept | tweak | complete | reorder }
+        -> status transitions, source=krish_tweaked on tweak
+    DELETE /api/milestones/:id
+        -> status=dropped
+        -> feedback_queue row: reason_code=marcus_milestone_override (milestone altitude)
+        |
+MARCUS NOMINATES OBJECTIVES (cluster detection on unparented tasks, Phase 3 brief)
+    Daily synthesis detects 3+ tasks with milestone_id IS NULL sharing a theme
+        -> insert into goals (status=proposed, source=marcus_nominated)
+            -> NominationTray on Home
+                -> Krish Accept: POST /api/objectives/:id/nominate-accept
+                    -> status=active, activated_at=now()
+                -> Krish Reject: POST /api/objectives/:id/nominate-reject
+                    -> status=dropped
+                    -> feedback_queue: reason_code=marcus_objective_nomination_rejected
+                       (objective altitude)
+        |
+AUTO OBJECTIVES (is_auto=true, Agatha's domain per Phase 2 brief)
+    Agatha wake-time check: any active is_auto=true objective with zero milestones
+        -> generate milestone sequence (source=agatha_decomposed, status=accepted)
+        -> generate tasks under each milestone, assigned to the right agent
+        -> upsert goal_agent_contributions per assigned agent
+        |
+HOME RENDERING
+    ObjectivesPanel  (DesktopHome + MobileHome, above TopThreeCards)
+        -> NominationTray   (only renders when source=marcus_nominated rows exist)
+        -> Soft-cap warning (when count_active_objectives() > 10)
+        -> DeepWorkBlock    (highest-priority objective's active/accepted milestone)
+        -> Active strip     (click row -> inline MilestoneCalibrator)
+    TopThreeCards
+        -> each task card with non-null tasks.milestone_id renders
+           "Ladders up to: {parent objective title}" via client-side join
+```
+
+**Realtime.** A single channel `objectives-rt-shared` covers both `goals` and `milestones` (ADR-002 single-channel-per-table-set pattern, ref-counted attach/detach in `useObjectives.ts`).
+
+**The promise: tactical work always shows its strategic parent, and deep-work commitments survive the daily leverage contest because they sit structurally above the tactical picks.**
 
 ### 8.9 Marcus synthesis — Home Intelligence feed
 
@@ -1340,8 +1444,8 @@ Env-var names differ per app and MUST match each app's code: CTRL reads `WAREHOU
 ### 15.1 Supabase is canonical, files are derived
 Local JSON for state is banned. SKILL.md, standards-digest.md, action.md are **output-only** — rendered from Supabase on a schedule, never edited in place.
 
-### 15.2 Identity vs Plan vs Decision is a hard trichotomy
-If you propose a new file or table, declare which of the three it falls on: static (Identity, lives in `agents.brief_content`, rare changes), dynamic (Plan, lives in `agent_plans` and Action Doc body, refreshed weekly), or durable (Decision, lives in `concept_decisions`, captures durable choices that should never be reversed silently). Anything else becomes a maintenance liability.
+### 15.2 Identity vs Plan vs Objective vs Decision is a hard quadtomy
+If you propose a new file or table, declare which of the four it falls on: static (Identity, lives in `agents.brief_content`, rare changes), dynamic (Plan, lives in `agent_plans` and Action Doc body, refreshed weekly), durable strategic record (Objective, lives in `goals` and `milestones`, multi-week unlocks Krish owns, added 2026-05-29 Phase 2), or durable closure (Decision, lives in `concept_decisions`, captures choices that should never be reversed silently). Anything else becomes a maintenance liability.
 
 ### 15.3 Approval is a wall, not a step
 No content publishes without Krish's explicit approval. The LinkedIn Distribution endpoint is guarded by `X-Agatha-Secret`; only the Krish Approval Callback workflow has the header. **The email-draft path is a deliberate exception because Gmail Drafts don't publish anything** — Krish still hits send.
@@ -1600,6 +1704,17 @@ All six builder products (Circle, Pulse, CTRL, Gutted, Merciless, OnAlert) are n
 - **New OS objects:** `public.product_truth` cache (6 apps populated), `public.attribution_app_health` view, n8n `Fleet | Attribution & Product-Truth Health` monitor (daily, active).
 - **Pending (Krish):** OnAlert Stripe events (needs the Stripe key); credential rotation; Circle/Merciless OAuth scopes; live single-card purchase tests.
 
+### 2026-05-30 — Focus System: daily spine + weekly takeover + full focus mode (PR #102)
+
+One coherent spine from objective to today (full architecture in 5.6). PR #102 also landed the objective layer (the former stacked PRs #97-101) to `main` as part of the same merge. The daily spine is live (`VITE_DAILY_FOCUS_ENABLED` is on); the weekly takeover and Full Focus Mode are merged but gated off (`VITE_WEEKLY_FOCUS_ENABLED`, `VITE_FOCUS_MODE_ENABLED`) pending dogfood.
+
+- **Daily spine.** New `DailyDriver` + `ContextHeader` / `TrackStep` / `CloseStep` collapse five overlapping Home surfaces into one phase machine (context → commit → track + mapping banner → close). `useTaskParentObjectives` promoted to a shared hook. Brief reframed as the pre-commit frame; the Friday retro moved below the fold (retro-only `DailyBriefBanner`); new end-of-day reflection writes a `daily_reflection` feedback row and seeds tomorrow. No new tables; reuses the daily-focus APIs.
+- **Weekly takeover.** New `weekly_focus` + `weekly_focus_milestones` tables (migration applied + verified live, RLS + realtime). New `useWeeklyFocus` hook (London-Monday week key, localStorage gating), `/api/weekly-focus/commit`, and `WeeklyFocusTakeover` (Monday-insist four-step wizard reusing `NominationTray` + `MilestoneCalibrator`, capped at 3). Committed milestones bias the daily picker via a `serves_milestone` read-join on `/api/daily-focus/suggestions`.
+- **Full Focus Mode.** New `FocusLanes` + `useFocusMode` + `FocusModeToggle`, wired into Today / Services / Subscriptions / Visibility / Content / Bets (desktop + mobile): each tab regroups its list into the 3 daily-target lanes. Activates the dormant `useFocusFiltered`.
+- **n8n.** Focus Calibrator (`zEA4wGECQdqBpDmO`) candidate pool extended to `content_ideas` + `guests` (pushed live + mirrored in `scripts/n8n/krish-focus-calibrator.workflow.json`) so those tabs' focus lanes populate.
+
+**New tables:** `weekly_focus`, `weekly_focus_milestones`. **New routes:** `/api/weekly-focus/commit`. **New reason code:** `daily_reflection`. **New realtime channel:** `weekly-focus-rt-shared`. **New flags:** `VITE_WEEKLY_FOCUS_ENABLED`, `VITE_FOCUS_MODE_ENABLED` (both default off). **Workflow patch:** Focus Calibrator pool. **PRs superseded:** #99, #100, #101 (content merged via #102; left open, content is on main).
+
 ### 2026-05-26 (later) — Visibility classification + Builder Economy scouting fix (PRs #75 → #80)
 
 Five PRs cleaning up two intertwined problems Krish flagged: press journalists were getting routed into `guests` as Signal & Noise podcast candidates instead of into `visibility_targets` as press relationships, and the entire Builder Economy guest pile was HN-username trash with no contact info. Plus a Visibility tab UX pass (inline Enrich + clickable source URL + disabled Apply on stub rows).
@@ -1698,12 +1813,16 @@ Edit this file when the architecture *genuinely* changes: new agent, new pillar,
 
 **Anti-duplication rule.** This is the only OS architecture document. If you're tempted to write a sibling — "OS-2026-XX.md", "Mindmaker Architecture v2.txt", "complete-os-reference.md" — anywhere in the workspace, edit this file instead. Multiple architecture docs drift; one canonical file does not.
 
-**Sync rule.** Three locations should always match:
-1. VPS: `/root/.openclaw/workspace/MINDMAKER_OS_ARCHITECTURE.md` (canonical)
-2. Repo: `docs/MINDMAKER_OS_ARCHITECTURE.md`
-3. Drive: Infrastructure folder
+**Canonical mirror locations (the inventory).** This document is mirrored to the locations below. When you update one, update all of them. Krish refers agents to this doc at the start of any OS update, so this list is the single source of truth for "where does this doc live" — you do not need to be told the locations again.
 
-When you edit one, sync the other two. The repo is the easiest place to PR and review; the VPS is what agents actually read on session wake; Drive is what humans share.
+1. **Repo (easiest to PR and review).** `krishanraja/control-center` → `docs/MINDMAKER_OS_ARCHITECTURE.md`. Locally on Krish's Windows machine: `C:\Users\krish\control-center\docs\MINDMAKER_OS_ARCHITECTURE.md`.
+2. **VPS (what agents read on session wake).** `/root/.openclaw/workspace/MINDMAKER_OS_ARCHITECTURE.md`. Per-agent workspaces (`workspace-cleo`, `workspace-ops`, ...) symlink to this canonical copy.
+3. **`mindmaker-os` skill, Claude Code.** `C:\Users\krish\.claude\skills\mindmaker-os\SKILL.md` (YAML frontmatter + this body).
+4. **`mindmaker-os` skill, Cursor.** `C:\Users\krish\.cursor\skills-cursor\mindmaker-os\SKILL.md` (same body as #3).
+5. **`mindmaker-os` skill on the VPS.** `/root/.openclaw/skills/mindmaker-os/SKILL.md` (rendered/synced copy that skill-aware agents on the VPS load).
+6. **Google Drive (human-readable mirror).** Infrastructure folder, file id `1F0srFZSS-Nvg2RlUG84zVSvuiN9o8zDc`. The Drive MCP exposes no file-content update, so this one is updated manually: Krish drag-drops the latest `docs/MINDMAKER_OS_ARCHITECTURE.md` into the folder to replace the body, or uses Drive's "manage versions".
+
+The document BODY (everything below the YAML frontmatter) must be byte-identical across locations 1 through 5. Location 6 (Drive) lags until Krish manually replaces it. The repo is for PR and review; the VPS is what agents actually read on wake; the two skill copies are what Claude Code and Cursor load; Drive is what humans share.
 
 ---
 
