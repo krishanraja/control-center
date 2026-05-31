@@ -21,7 +21,7 @@ import { DailyDriver } from '../focus/DailyDriver'
 import { GlanceHeader } from '../home/GlanceHeader'
 import { DecisionsInbox } from '../home/DecisionsInbox'
 import { PulseGroup } from '../home/PulseGroup'
-import { AltitudeSpine } from '../home/AltitudeSpine'
+import { AltitudeSpine, StaleHeaderCue } from '../home/AltitudeSpine'
 import { BoardDaily } from '../home/BoardDaily'
 import { isHomeV2Enabled, isFocusRitualEnabled } from '../../lib/homeV2'
 
@@ -97,11 +97,12 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   // and keeps the passive pulse below.
   if (ritualOn) {
     return (
-      <MobileShellPrim header={<TabHeader leading={<Logomark size={56} />} />}>
+      <MobileShellPrim header={<TabHeader leading={<Logomark size={56} />} trailing={<StaleHeaderCue />} />}>
         <CriticalAlertBanner />
 
-        {/* SPINE — portfolio / week / today at a glance + one button to set what's stale. */}
-        <AltitudeSpine variant="mobile" onNavigate={onNavigate} />
+        {/* SPINE — portfolio / week / today as the hero cards. "Set what's stale"
+            now lives in the header (StaleHeaderCue) so the cards own the screen. */}
+        <AltitudeSpine variant="mobile" onNavigate={onNavigate} showStaleCta={false} />
 
         {/* THE DAY — track today's 3 and close; the picker lives in the ritual. */}
         <BoardDaily />
