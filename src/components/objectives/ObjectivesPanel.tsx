@@ -15,9 +15,30 @@ import { NominationTray } from './NominationTray'
 //
 // Realtime: a single shared channel covers both goals and milestones; see
 // useObjectives.ts (one connection per browser session, ADR-002 pattern).
-export function ObjectivesPanel({ variant = 'desktop' }: { variant?: 'desktop' | 'mobile' }) {
-  const { active, active_count, soft_cap, loading } = useObjectives()
+export function ObjectivesPanel({
+  variant = 'desktop',
+  collapsible = false,
+}: {
+  variant?: 'desktop' | 'mobile'
+  /** When true, render a one-line summary card that expands into the full panel
+   *  on tap (mobile Home — keeps the week from eating the top of every open). */
+  collapsible?: boolean
+}) {
+  const { active, nominations, active_count, soft_cap, loading } = useObjectives()
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [collapsed, setCollapsed] = useState(collapsible)
+
+  if (collapsible && collapsed && active.length > 0) {
+    return (
+      <ObjectivesSummary
+        firstActiveId={active[0].id}
+        firstActiveTitle={active[0].title}
+        activeCount={active_count}
+        nominationCount={nominations.length}
+        onExpand={() => setCollapsed(false)}
+      />
+    )
+  }
 
   if (loading && active.length === 0) {
     return (
@@ -87,6 +108,51 @@ export function ObjectivesPanel({ variant = 'desktop' }: { variant?: 'desktop' |
         </ul>
       </div>
     </section>
+  )
+}
+
+// Collapsed summary for mobile Home: the deep-work milestone (or top objective)
+// on one line, with active + proposed counts. Tap expands to the full panel.
+function ObjectivesSummary({
+  firstActiveId, firstActiveTitle, activeCount, nominationCount, onExpand,
+}: {
+  firstActiveId: string
+  firstActiveTitle: string
+  activeCount: number
+  nominationCount: number
+  onExpand: () => void
+}) {
+  const { tree } = useObjectiveTree(firstActiveId)
+  const milestones = tree?.milestones || []
+  const deepWork =
+    milestones.find(m => m.status === 'active') ||
+    milestones.find(m => m.status === 'accepted')
+  const headline = deepWork?.title || firstActiveTitle
+
+  return (
+    <button
+      type="button"
+      onClick={onExpand}
+      className="w-full text-left rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.06] to-transparent p-4 active:bg-violet-500/[0.10] transition-colors"
+    >
+      <div className="flex items-center gap-2 mb-1.5">
+        <Target size={13} className="text-violet-300" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-violet-200/80">This week</span>
+        <span className="ml-auto inline-flex items-center gap-2 text-[10px] text-white/45 tabular-nums">
+          {activeCount} active
+          {nominationCount > 0 && (
+            <span className="rounded-full bg-amber-400/15 text-amber-300 px-1.5 py-0.5">{nominationCount} proposed</span>
+          )}
+          <ChevronRight size={12} className="text-white/40" />
+        </span>
+      </div>
+      <p className="text-[14px] font-semibold text-white leading-snug line-clamp-2">{headline}</p>
+      {tree?.objective && deepWork && (
+        <p className="text-[10px] text-white/45 mt-1">
+          Ladders up to: <span className="text-white/65">{tree.objective.title}</span>
+        </p>
+      )}
+    </button>
   )
 }
 

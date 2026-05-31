@@ -16,11 +16,13 @@ import { MrrTicker } from '../MrrTicker'
 import { DailyBriefBanner } from '../DailyBriefBanner'
 import { StreakPills } from '../StreakPills'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
-import { DecisionsWaitingPanel } from '../DecisionsWaitingPanel'
 import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
 import { ObjectivesPanel } from '../objectives/ObjectivesPanel'
 import { DailyDriver } from '../focus/DailyDriver'
+import { GlanceHeader } from '../home/GlanceHeader'
+import { DecisionsInbox } from '../home/DecisionsInbox'
+import { isHomeV2Enabled } from '../../lib/homeV2'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -70,6 +72,7 @@ const hasRenderableMessage = (ev: AuditEvent) => resolveMessage(ev) !== null
  * Below the fold: OsMissionHero + WeeklyGoals + ActivityTail.
  */
 export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
+  const v2 = isHomeV2Enabled()
   const { intel } = useHomeIntelligence()
   const [events, setEvents] = useState<AuditEvent[]>([])
   const [goalsData, setGoalsData] = useState<GoalsData | null>(null)
@@ -126,6 +129,9 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         <span><kbd className="px-1 py-0.5 rounded bg-white/[0.05] border border-white/[0.08] text-white/55">⌘I</kbd> capture</span>
       </div>
 
+      {/* GLANCE — money / today / waiting in one strip (HomeV2). */}
+      {v2 && <GlanceHeader variant="desktop" onNavigate={onNavigate} />}
+
       {/* MONEY MACHINE — the only number that matters. */}
       <MrrTicker variant="desktop" />
 
@@ -136,7 +142,13 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       {/* DAILY SPINE — one journey: frame the day, lock 3, track, close.
           Replaces the old NextAction / carry-over / bar / calibrator / top-three
           pile-up with a single phase-driven orchestrator. */}
-      <DailyDriver />
+      <div id="daily-driver" className="scroll-mt-4">
+        <DailyDriver />
+      </div>
+
+      {/* ACTION INBOX — what's waiting on you, acted on in one tap (HomeV2).
+          Re-introduces decisions_waiting to Home, now with inline actions. */}
+      {v2 && <DecisionsInbox onNavigate={onNavigate} />}
 
       {/* ROOM PREVIEWS — Content / Visibility / Leads. Two items per room,
           one tap into the right detail. Replaces PipelineLanes. */}

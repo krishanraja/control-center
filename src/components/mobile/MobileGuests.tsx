@@ -261,7 +261,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
 
       <BottomSheet open={!!detailDecision} onClose={() => onClearDetail?.()}>
         {detailDecision && (
-          <DecisionDetail decision={detailDecision} onClose={() => onClearDetail?.()} />
+          <DecisionDetail decision={detailDecision} onClose={() => onClearDetail?.()} actionsEnabled />
         )}
       </BottomSheet>
     </MobileShell>

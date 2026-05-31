@@ -4,12 +4,13 @@ import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { DetailSheet } from './DetailSheet'
 import { LeadImportDropzone } from '../LeadImportDropzone'
-import { useRealtimeLeads, type LeadRow, type LeadSourceType, type LeadStatus } from '../../hooks/useRealtimeLeads'
+import { useRealtimeLeads, type LeadRow, type LeadSourceType } from '../../hooks/useRealtimeLeads'
 import { useVentureRegistry } from '../../hooks/useVentureRegistry'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { humanAge } from '../../lib/ageHelpers'
 import { navigateDecision } from '../../lib/routeDecision'
+import { buildDecisionActions } from '../../lib/decisionActions'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
@@ -91,29 +92,6 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
     return ageMs < 24 * 60 * 60 * 1000
   }).length
   const contacted = leads.filter(l => l.status === 'contacted' || l.status === 'conversation').length
-
-  const setStatus = async (id: string, next: LeadStatus) => {
-    h.heavy()
-    try {
-      const r = await fetch(`/api/leads/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: next }),
-      })
-      if (!r.ok) throw new Error(String(r.status))
-      const labels: Partial<Record<LeadStatus, string>> = {
-        contacted: 'Marked contacted.',
-        superseded: 'Dropped.',
-        ready: 'Marked ready.',
-      }
-      h.success()
-      toast(labels[next] || 'Updated.', 'success')
-      closeDetail()
-    } catch {
-      h.error()
-      toast('Could not update lead — try again.', 'error')
-    }
-  }
 
   const openLead = openId ? leads.find(l => l.id === openId) ?? null : null
 
@@ -274,137 +252,10 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
         status={openLead?.status}
         meta={openLead?.fit_score != null ? `Fit ${openLead.fit_score}/10` : undefined}
         docUrl={openLead?.source_url || undefined}
-        actions={openLead ? buildActions(openLead, setStatus, h, toast) : []}
+        actions={openLead ? buildDecisionActions('lead', openLead, { toast, haptics: h, onDone: closeDetail }) : []}
       />
     </MobileShellPrim>
   )
-}
-
-function buildActions(
-  l: LeadRow,
-  setStatus: (id: string, next: LeadStatus) => Promise<void>,
-  h: ReturnType<typeof useHaptics>,
-  toast: (msg: string, variant?: 'success' | 'error' | 'info') => void,
-) {
-  const acts: { label: string; variant?: 'primary' | 'secondary' | 'danger'; onClick: () => void }[] = []
-
-  if (l.email) {
-    acts.push({
-      label: 'Draft email',
-      variant: 'primary',
-      onClick: async () => {
-        h.heavy()
-        try {
-          const r = await fetch(`/api/leads/${l.id}/draft-email`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ intent: 'introduction' }),
-          })
-          const body = await r.json().catch(() => ({}))
-          if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
-          h.success()
-          toast('Draft created in Gmail.', 'success')
-          if (body?.draft_url) {
-            try { window.open(body.draft_url, '_blank', 'noreferrer,noopener') } catch {}
-          }
-        } catch (e: any) {
-          h.error()
-          toast(`Could not draft email: ${e?.message || 'try again'}`, 'error')
-        }
-      },
-    })
-  }
-
-  // Candidate (status='new', un-enriched) leads get the Enrich/Skip pair as
-  // primary actions, mirroring the desktop LeadCard decision strip. Cost chip
-  // surfaces in the label so the spend is legible. Skip writes the same
-  // feedback row Vera consumes from triage rejects.
-  const isCandidate = !l.deep_enriched_at && (l.status === 'new' || l.status === 'enriching')
-  if (isCandidate) {
-    acts.push({
-      label: 'Enrich (~$0.50)',
-      variant: 'primary',
-      onClick: async () => {
-        h.heavy()
-        try {
-          const r = await fetch(`/api/leads/${l.id}/enrich`, { method: 'POST' })
-          const body = await r.json().catch(() => ({}))
-          if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
-          h.success()
-          toast('Agatha is enriching — refresh in ~30s.', 'success')
-        } catch (e: any) {
-          h.error()
-          toast(`Could not enrich: ${e?.message || 'try again'}`, 'error')
-        }
-      },
-    })
-    acts.push({
-      label: 'Skip',
-      variant: 'secondary',
-      onClick: async () => {
-        h.heavy()
-        try {
-          const r = await fetch('/api/triage/reject', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              source_table: 'leads',
-              source_id: l.id,
-              agent: l.assignee_agent || 'felix',
-              reason_code: 'lead_other',
-            }),
-          })
-          if (!r.ok) throw new Error(String(r.status))
-          h.success()
-          toast('Skipped. Vera will learn from this.', 'success')
-        } catch (e: any) {
-          h.error()
-          toast(`Could not skip: ${e?.message || 'try again'}`, 'error')
-        }
-      },
-    })
-  } else if (!l.deep_enriched_at) {
-    // Already-contacted / non-candidate leads still get a manual enrich path
-    // (less prominent) for cases where Krish wants to force enrichment.
-    acts.push({
-      label: 'Deep enrich',
-      variant: 'secondary',
-      onClick: async () => {
-        h.heavy()
-        try {
-          const r = await fetch(`/api/leads/${l.id}/enrich`, { method: 'POST' })
-          const body = await r.json().catch(() => ({}))
-          if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
-          h.success()
-          toast('Agatha is enriching — refresh in ~30s.', 'success')
-        } catch (e: any) {
-          h.error()
-          toast(`Could not enrich: ${e?.message || 'try again'}`, 'error')
-        }
-      },
-    })
-  }
-
-  if (l.status !== 'contacted' && l.status !== 'conversation') {
-    acts.push({
-      label: 'Mark contacted',
-      variant: 'secondary',
-      onClick: () => setStatus(l.id, 'contacted'),
-    })
-  }
-  if (l.linkedin_url) {
-    acts.push({
-      label: 'Open LinkedIn',
-      variant: 'secondary',
-      onClick: () => { h.tap(); window.open(l.linkedin_url!, '_blank', 'noreferrer,noopener') },
-    })
-  }
-  acts.push({
-    label: 'Drop',
-    variant: 'danger',
-    onClick: () => setStatus(l.id, 'superseded'),
-  })
-  return acts
 }
 
 function pickFeatured(leads: LeadRow[]): LeadRow | null {

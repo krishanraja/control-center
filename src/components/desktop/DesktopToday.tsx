@@ -240,7 +240,7 @@ export function DesktopToday({
   )
 
   const detail = decision
-    ? <DecisionDetail key={decision} decision={decision} onClose={onClearDecision} />
+    ? <DecisionDetail key={decision} decision={decision} onClose={onClearDecision} actionsEnabled />
     : selected
       ? <TodayDetail key={selected.id} task={selected} />
       : <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an item from your day</div>

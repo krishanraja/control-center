@@ -42,14 +42,17 @@ export function RoomPreviews({ onNavigate, variant = 'desktop' }: Props) {
         ideas={ideas}
         guests={guests}
         onNavigate={onNavigate}
+        variant={variant}
       />
       <VisibilityRoom
         targets={targets}
         onNavigate={onNavigate}
+        variant={variant}
       />
       <LeadsRoom
         leads={leads}
         onNavigate={onNavigate}
+        variant={variant}
       />
     </section>
   )
@@ -58,11 +61,12 @@ export function RoomPreviews({ onNavigate, variant = 'desktop' }: Props) {
 // ── Content room ────────────────────────────────────────────────────────────
 
 function ContentRoom({
-  ideas, guests, onNavigate,
+  ideas, guests, onNavigate, variant = 'desktop',
 }: {
   ideas: ContentIdeaRow[]
   guests: GuestRow[]
   onNavigate?: NavigateFn
+  variant?: 'desktop' | 'mobile'
 }) {
   const top = useMemo(() => {
     return [...ideas]
@@ -107,6 +111,7 @@ function ContentRoom({
           detail={i.thesis ?? undefined}
           metaRight={i.state === 'review' ? 'review' : undefined}
           onClick={() => onNavigate?.('content', { idea: i.id })}
+          variant={variant}
         />
       ))}
       {remaining > 0 && (
@@ -121,10 +126,11 @@ function ContentRoom({
 // ── Visibility room ─────────────────────────────────────────────────────────
 
 function VisibilityRoom({
-  targets, onNavigate,
+  targets, onNavigate, variant = 'desktop',
 }: {
   targets: VisibilityTargetRow[]
   onNavigate?: NavigateFn
+  variant?: 'desktop' | 'mobile'
 }) {
   const top = useMemo(() => {
     return [...targets]
@@ -157,6 +163,7 @@ function VisibilityRoom({
           detail={t.why_relevant ?? t.audience ?? undefined}
           metaRight={t.deadline_at ? formatDeadline(t.deadline_at) : t.quality_score ?? undefined}
           onClick={() => onNavigate?.('guests', { target: t.id })}
+          variant={variant}
         />
       ))}
       {remaining > 0 && (
@@ -171,10 +178,11 @@ function VisibilityRoom({
 // ── Leads room ─────────────────────────────────────────────────────────────
 
 function LeadsRoom({
-  leads, onNavigate,
+  leads, onNavigate, variant = 'desktop',
 }: {
   leads: LeadRow[]
   onNavigate?: NavigateFn
+  variant?: 'desktop' | 'mobile'
 }) {
   const top = useMemo(() => {
     return [...leads]
@@ -211,6 +219,7 @@ function LeadsRoom({
           detail={l.title || l.company || l.why_relevant || undefined}
           metaRight={typeof l.icp_score === 'number' && l.icp_score > 0 ? `ICP ${l.icp_score}` : l.tier ?? undefined}
           onClick={() => onNavigate?.('leads', { lead: l.id })}
+          variant={variant}
         />
       ))}
       {remaining > 0 && (
@@ -270,32 +279,36 @@ function Room({
 }
 
 function PreviewRow({
-  dotColor, title, detail, metaRight, onClick,
+  dotColor, title, detail, metaRight, onClick, variant = 'desktop',
 }: {
   dotColor: string
   title: string
   detail?: string
   metaRight?: string
   onClick?: () => void
+  variant?: 'desktop' | 'mobile'
 }) {
   const h = useHaptics()
+  const mobile = variant === 'mobile'
   return (
     <button
       type="button"
       onClick={() => { h.select(); onClick?.() }}
-      className="w-full text-left px-2 py-2 rounded-lg hover:bg-white/[0.04] transition-colors flex items-start gap-2 min-h-[44px] sm:min-h-0 min-w-0"
+      className={`w-full text-left rounded-lg hover:bg-white/[0.04] active:bg-white/[0.05] transition-colors flex items-start gap-2.5 min-w-0 ${
+        mobile ? 'px-3 py-3 min-h-[56px]' : 'px-2 py-2 min-h-[44px] sm:min-h-0'
+      }`}
     >
-      <span className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
+      <span className={`${mobile ? 'mt-2 w-2 h-2' : 'mt-1.5 w-1.5 h-1.5'} rounded-full flex-shrink-0 ${dotColor}`} />
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] text-white/90 leading-snug truncate">{title}</p>
+        <p className={`text-white/90 leading-snug truncate ${mobile ? 'text-[15px] font-medium' : 'text-[13px]'}`}>{title}</p>
         {detail && (
-          <p className="text-[11px] text-white/45 leading-snug line-clamp-2 break-words mt-0.5">
+          <p className={`text-white/50 leading-snug line-clamp-2 break-words mt-0.5 ${mobile ? 'text-[13px]' : 'text-[11px]'}`}>
             {detail}
           </p>
         )}
       </div>
       {metaRight && (
-        <span className="text-[10px] tabular-nums uppercase tracking-[0.1em] text-white/40 flex-shrink-0 mt-1">
+        <span className={`tabular-nums uppercase tracking-[0.1em] text-white/40 flex-shrink-0 mt-1 ${mobile ? 'text-[11px]' : 'text-[10px]'}`}>
           {metaRight}
         </span>
       )}
