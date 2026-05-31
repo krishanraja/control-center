@@ -21,7 +21,9 @@ import { DailyDriver } from '../focus/DailyDriver'
 import { GlanceHeader } from '../home/GlanceHeader'
 import { DecisionsInbox } from '../home/DecisionsInbox'
 import { PulseGroup } from '../home/PulseGroup'
-import { isHomeV2Enabled } from '../../lib/homeV2'
+import { AltitudeSpine } from '../home/AltitudeSpine'
+import { BoardDaily } from '../home/BoardDaily'
+import { isHomeV2Enabled, isFocusRitualEnabled } from '../../lib/homeV2'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -44,6 +46,8 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const signals = intel.external_signals
   const topThree = intel.top_three
   const v2 = isHomeV2Enabled()
+
+  const ritualOn = isFocusRitualEnabled()
 
   const signalsCard = signals.length > 0 && (
     <FeedCard title={`Signals · ${signals.length}`}>
@@ -87,6 +91,42 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       }
     />
   )
+
+  // ── Focus Ritual: the unified spine + read-only board. Deciding lives in the
+  // ritual (mounted at App level); the board only tracks, surfaces what's waiting,
+  // and keeps the passive pulse below.
+  if (ritualOn) {
+    return (
+      <MobileShellPrim header={<TabHeader leading={<Logomark size={56} />} />}>
+        <CriticalAlertBanner />
+
+        {/* SPINE — portfolio / week / today at a glance + one button to set what's stale. */}
+        <AltitudeSpine variant="mobile" onNavigate={onNavigate} />
+
+        {/* THE DAY — track today's 3 and close; the picker lives in the ritual. */}
+        <BoardDaily />
+
+        {/* ACTION INBOX — what's waiting on you, acted on in one tap. */}
+        <DecisionsInbox onNavigate={onNavigate} />
+
+        {/* PULSE — money / pipeline / momentum, collapsed below the loop. */}
+        <PulseGroup>
+          <MrrTicker variant="mobile" />
+          <RoomPreviews onNavigate={onNavigate} variant="mobile" />
+          <MomentumStrip
+            momentum={intel.momentum}
+            generatedAt={intel.momentum_at ?? intel.generated_at}
+            variant="mobile"
+          />
+          <StreakPills variant="mobile" />
+          <DailyBriefBanner blocking={false} variant="mobile" retroOnly />
+          {signalsCard}
+        </PulseGroup>
+
+        {signalSheet}
+      </MobileShellPrim>
+    )
+  }
 
   if (v2) {
     return (
