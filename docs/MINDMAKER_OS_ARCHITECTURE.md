@@ -1302,6 +1302,8 @@ The OS actively tracks 8 ventures (`ventures` table, all `status='active'`).
 | **Gutted** | www.gutted.app | `gutted` | Profiles sweep + revenue alert |
 | **Merciless** | merciless.app | `merciless` | user_subscriptions sweep + revenue alert |
 
+*Each builder product also emits lifecycle + revenue events to the shared fleet attribution warehouse and publishes a machine-readable product-truth surface the fleet sells from — see **11.4**.*
+
 ### 11.3 Creator / content
 
 | Brand | Domain | OS surface |
@@ -1310,6 +1312,48 @@ The OS actively tracks 8 ventures (`ventures` table, all `status='active'`).
 | **Signal & Noise** | (podcast) | AI in media; co-founded with Rio Longacre + Brett House. Nell Guest Scout feeds candidates. Tagged `signal_noise` |
 | **Techonomic** | techonomic.co | Krish's strategic writing platform |
 | **Personal Brand** | (LinkedIn / X) | Cleo's content engine target #1 |
+
+### 11.4 Fleet attribution warehouse + autonomous app commerce (NEW 2026-05-30)
+
+The six builder products were rebuilt this cycle into agent-native, self-selling surfaces and wired to one shared attribution warehouse, so the OS runs their sales + marketing autonomously. All six emit lifecycle + revenue events into the warehouse, and the growth agents read the resulting funnel/revenue views + each app's product-truth surface. Per-app detail lives in each repo's `AGENT_BRIEFING.md` / fleet-wiring doc and in `Downloads/app OS summaries/*.md`.
+
+**The warehouse (OS-owned).** One `attribution` schema on the OS Supabase `gojpffsrxybbpbdzzrvs`, fronted by a single secret-gated edge function `ingest-attribution` (validates `x-attribution-secret`, rate-limits, idempotent upsert into `attribution.events` on `dedupe_key` via the `public.ingest_attribution_event` RPC). As of 2026-05-30 the function **normalizes both documented envelopes**: the canonical shape (`event` / `dedupe_key` / flat `utm_*` / `amount_cents`) and gutted's `attribution.events/1` shape (`event_name` / `idempotency_key` / nested `utm{}` / `value_cents`). Two service-role-only read views:
+
+- `attribution.funnel_by_campaign` — landed → signed_up → activated → purchased by app / utm_source / utm_medium / utm_campaign / agent, plus `uniques`. **Maya** reads this for CAC.
+- `attribution.revenue_by_campaign` — purchases / gross_cents / refunded_cents / churns, keyed on `(stripe_account, app, stripe_customer_id, stripe_subscription_id)` so the two Stripe accounts never cross-attribute. **Leo** reads this for revenue.
+
+Plus `public.attribution_app_health` (per-app last_event_at + 24h/7d event counts + 30d purchases, for monitoring + the Control Center) and `public.product_truth` (a daily-refreshable cache of each app's product-truth payload, RLS anon-read).
+
+**Ownership boundary (do not blur).** The OS repo is the sole migrator of the `attribution` schema + the `ingest-attribution` function; provenance is committed to `control-center` under `warehouse/` (schema migration + function source). Each app holds ONLY `ATTRIBUTION_INGEST_SECRET` (one shared value across all six apps + the warehouse; in TOOLS.md / system_config), never the OS service-role key. Ingest URL: `https://gojpffsrxybbpbdzzrvs.supabase.co/functions/v1/ingest-attribution`.
+
+**Canonical event contract:** `app`, `event` (`landed`/`signed_up`/`activated`/`purchased`/`refunded`/`churned`), `stripe_account`, `occurred_at`, `anonymous_id`, `user_id` (opaque Supabase uuid — never PHI; gutted ships a deny-by-default allowlist serializer), `email`, the five `utm_*` fields, `campaign_id`, `agent`, `referrer`, `landing_path`, `stripe_customer_id`, `stripe_subscription_id`, `amount_cents`, `currency`, `metadata`, `dedupe_key`. Lifecycle events fire client-side; revenue events fire from each app's signature-verified Stripe webhook.
+
+**Per-app wiring status** (live-verified end-to-end 2026-05-30):
+
+| App | `stripe_account` | Product-truth URL (fetch at runtime) | Emit |
+|---|---|---|---|
+| **Circle** | `fractionl_ai` | `circle.fractionl.ai/agent.json` | LIVE |
+| **Pulse** | `fractionl_ai` | `pulse.fractionl.ai/product-truth.json` (+ MCP + `/fwi-api/current`) | LIVE (Supabase secrets + `VITE_ATTRIBUTION_EMIT_URL`) |
+| **CTRL** | `mindmaker_llc` | `ctrl.themindmaker.ai/.well-known/product.json` | LIVE (`WAREHOUSE_INGEST_URL` + secret) |
+| **Gutted** | `mindmaker_llc` | `www.gutted.app/api/product-truth` | LIVE (Vercel env + ingest normalization) |
+| **Merciless** | `mindmaker_llc` | `merciless.app/offer.json` (+ live `offer`) | LIVE |
+| **OnAlert** | `mindmaker_llc` | `onalert.app/.well-known/product-truth.json` | LIVE (Supabase secrets + `VITE_ATTRIBUTION_ENABLED`) |
+
+Env-var names differ per app and MUST match each app's code: CTRL reads `WAREHOUSE_INGEST_URL`; Gutted/OnAlert/Pulse read `ATTRIBUTION_INGEST_URL`. Gutted holds its secret in Vercel (Next.js server-side); CTRL/OnAlert/Pulse hold theirs in Supabase edge secrets. Pulse emits through its own `emit-event` proxy (pure client SPA, so the secret stays server-side).
+
+**Product-truth — the single sell-from source.** Every app publishes a machine-readable truth doc the fleet MUST fetch at use time (PRODTRUTH-001), carrying pricing, ICP, live-vs-roadmap capability status, and a voice / `do_not_say` / `never_claim` array. Agents MUST honor capability status (never sell a non-live feature) and the per-app voice rules (no em dashes; app-specific never-say) before any autonomous post. Cached daily into `public.product_truth`.
+
+**Merciless writable offer genome.** Maya can ship a price arm or headline framing on Merciless with no deploy: `POST .../offer-admin` with `x-fleet-secret: <FLEET_ADMIN_SECRET>`; read the attributed delta from the warehouse views; promote the winner inside the guardrail. Pulse + Circle share `fractionl_ai` and Pulse is Circle's funnel, so the warehouse shows Pulse-sourced revenue landing in Circle (separable by `app` + `stripe_account`).
+
+**Agent bindings (the autonomous loop, wired into `brief_content` 2026-05-30):** Maya → `funnel_by_campaign` + runtime product-truth + Merciless `offer-admin`; Leo → `revenue_by_campaign` weekly; Cleo / Nell / Nova / Felix / Hunter / Zara → fetch product-truth + repo `AGENT_BRIEFING.md` before composing, tag every app link per ATTR-001, honor each app's `do_not_say` / voice rules; Marcus → folds warehouse funnel + revenue signal into `home_intelligence`.
+
+**Standards:** **ATTR-001** (every fleet app link carries `utm_source/medium/campaign/content/term` + `agent` + `campaign_id`) and **PRODTRUTH-001** (fetch product-truth at runtime; honor capability + voice guardrails). Both active in `standards_registry`.
+
+**Monitoring:** `Fleet | Attribution & Product-Truth Health` (n8n `Zz0nvhXNELQH0zFy`, daily 06:15 UTC) probes all six product-truth surfaces and Telegram-alerts ops if any goes down. `attribution_app_health` surfaces per-app emit freshness.
+
+**Outcome trace.** Moves O-2 (revenue — now attributed per app/campaign), O-3 (one person running 15-30), O-7 (decision lag — Maya/Leo act on attributed signal, not guesswork).
+
+**Pending (Krish-blocked):** add `charge.refunded` + `charge.dispute.created` to OnAlert's Stripe endpoint (needs the `mindmaker_llc` Stripe key); rotate the leaked `sbp_` token + GitHub PATs + the session-pasted tokens; rotate OnAlert's service-role JWT (paired with a Vercel `VITE_SUPABASE_ANON_KEY` update); Circle + Merciless OAuth scopes; Merciless Resend domain; live single-card purchase tests to arm Pulse checkout.
 
 ---
 
@@ -1649,6 +1693,16 @@ docs/audits/                                                 # Closure architect
 ## 20. Recent architectural changes — rolling changelog
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
+
+### 2026-05-30 (later) — Fleet attribution warehouse + six-app autonomous commerce wiring
+
+All six builder products (Circle, Pulse, CTRL, Gutted, Merciless, OnAlert) are now live-emitting lifecycle + revenue events into one shared `attribution` warehouse on `gojpffsrxybbpbdzzrvs`, and the growth agents read the resulting funnel/revenue views + each app's product-truth surface. The OS now runs the six apps' attribution-driven sales + marketing autonomously. Full contract in **11.4**.
+
+- **Switched on the 4 dormant apps:** CTRL/OnAlert/Pulse warehouse secrets set; Gutted/OnAlert/Pulse Vercel env + redeploy; Circle + Merciless were already live. Each verified end-to-end (test event → `attribution.events` → `funnel_by_campaign`, then cleaned up).
+- **Warehouse robustness fix:** `ingest-attribution` now normalizes gutted's `attribution.events/1` envelope (`event_name`/`idempotency_key`/nested `utm`/`value_cents`) as well as the canonical shape — gutted's events had been silently rejected ("bad event"). Provenance committed to `control-center/warehouse/`.
+- **Agents wired:** `brief_content` updated for Maya, Leo, Cleo, Nell, Nova, Felix, Hunter, Zara, Marcus. New standards **ATTR-001** (link tagging) + **PRODTRUTH-001** (fetch-don't-hardcode).
+- **New OS objects:** `public.product_truth` cache (6 apps populated), `public.attribution_app_health` view, n8n `Fleet | Attribution & Product-Truth Health` monitor (daily, active).
+- **Pending (Krish):** OnAlert Stripe events (needs the Stripe key); credential rotation; Circle/Merciless OAuth scopes; live single-card purchase tests.
 
 ### 2026-05-30 — Focus System: daily spine + weekly takeover + full focus mode (PR #102)
 
