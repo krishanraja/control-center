@@ -22,7 +22,9 @@ import { ObjectivesPanel } from '../objectives/ObjectivesPanel'
 import { DailyDriver } from '../focus/DailyDriver'
 import { GlanceHeader } from '../home/GlanceHeader'
 import { DecisionsInbox } from '../home/DecisionsInbox'
-import { isHomeV2Enabled } from '../../lib/homeV2'
+import { AltitudeSpine } from '../home/AltitudeSpine'
+import { BoardDaily } from '../home/BoardDaily'
+import { isHomeV2Enabled, isFocusRitualEnabled } from '../../lib/homeV2'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -117,6 +119,52 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       body: JSON.stringify({ team_focus: newFocus }),
     })
     setGoalsData(prev => prev ? { ...prev, team_focus: newFocus } : prev)
+  }
+
+  // ── Focus Ritual: unified spine + read-only board. Deciding (pick the 3, shape
+  // the week, ratify objectives) lives in the ritual mounted at App level; Home
+  // only tracks, surfaces what's waiting, and keeps the context below the fold.
+  if (isFocusRitualEnabled()) {
+    return (
+      <div className="flex flex-col gap-4 max-w-[1280px] mx-auto w-full">
+        <CriticalAlertBanner />
+
+        {/* SPINE — portfolio / week / today + one button to set what's stale. */}
+        <AltitudeSpine variant="desktop" onNavigate={onNavigate} />
+
+        {/* THE DAY — track and close; the picker lives in the ritual. */}
+        <BoardDaily />
+
+        <DecisionsInbox onNavigate={onNavigate} />
+
+        <RoomPreviews onNavigate={onNavigate} variant="desktop" />
+
+        <MomentumStrip
+          momentum={intel.momentum}
+          generatedAt={intel.momentum_at ?? intel.generated_at}
+          variant="desktop"
+        />
+
+        <StreakPills variant="desktop" />
+
+        <OsHealthStrip onNavigate={onNavigate} approvalCount={waiting.length} live={live} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
+          <OsMissionHero
+            northStar={goalsData?.north_star}
+            teamFocus={goalsData?.team_focus}
+            weekOf={goalsData?.week_of}
+            recommendedFocus={recommendedFocus}
+            onSaveFocus={handleSaveFocus}
+          />
+          <WeeklyGoals variant="compact" onDataLoaded={setGoalsData} />
+        </div>
+
+        <DailyBriefBanner blocking={false} variant="desktop" retroOnly />
+
+        <ActivityTail events={events} />
+      </div>
+    )
   }
 
   return (

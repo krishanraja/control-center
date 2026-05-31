@@ -1,6 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { londonParts, weekOfLondon, isMondayLondon } from '../lib/londonDate'
+
+// Re-exported for callers that imported these from here historically.
+export { weekOfLondon, isMondayLondon }
 
 // Weekly focus gate + reader (Phase 2 of the focus spine). Mirrors
 // useDailyFocus: one shared realtime channel on weekly_focus per session
@@ -23,33 +27,6 @@ export interface WeeklyFocusRow {
 
 const SET_WEEK_KEY = 'weekly_focus_set_week'
 const SNOOZE_DATE_KEY = 'weekly_focus_snoozed_date'
-
-// Civil date parts in Europe/London regardless of the device timezone, so the
-// week boundary lands on Krish's Monday morning rather than a UTC midnight.
-function londonParts(now: Date): { ymd: string; weekday: string } {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
-  }).formatToParts(now)
-  const get = (t: string) => parts.find(p => p.type === t)?.value || ''
-  return { ymd: `${get('year')}-${get('month')}-${get('day')}`, weekday: get('weekday') }
-}
-
-const DOW: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }
-
-// Monday (Europe/London) of the week containing `now`, as YYYY-MM-DD. Built at
-// noon UTC off the London civil date so DST never shifts the date.
-export function weekOfLondon(now: Date): string {
-  const { ymd, weekday } = londonParts(now)
-  const [y, m, d] = ymd.split('-').map(Number)
-  const offset = DOW[weekday] ?? 0
-  const base = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
-  base.setUTCDate(base.getUTCDate() - offset)
-  return base.toISOString().slice(0, 10)
-}
-
-export function isMondayLondon(now: Date): boolean {
-  return londonParts(now).weekday === 'Mon'
-}
 
 // Default OFF in production until verified. Daily focus defaults on; the weekly
 // takeover and Full Focus Mode opt in explicitly.

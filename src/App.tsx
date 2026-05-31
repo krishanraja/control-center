@@ -34,6 +34,8 @@ import { QuickCaptureIdea } from './components/QuickCaptureIdea'
 import { IdeaCaptureModal, isInboxEnabled } from './components/inbox/IdeaCaptureModal'
 import { CaptureSpeedDial } from './components/CaptureSpeedDial'
 import { WeeklyFocusTakeover } from './components/objectives/WeeklyFocusTakeover'
+import { FocusRitual } from './components/home/FocusRitual'
+import { isFocusRitualEnabled } from './lib/homeV2'
 import { useHashRoute } from './hooks/useHashRoute'
 
 type TabId = 'home' | 'today' | 'triage' | 'leads' | 'customers' | 'guests' | 'content' | 'bets' | 'org' | 'exec' | 'workflows' | 'systems'
@@ -129,9 +131,14 @@ export default function App() {
           <QuickCaptureIdea />
           <IdeaCaptureModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
           <CaptureSpeedDial />
-          {/* Weekly Focus Takeover: self-gates to Home + a new uncommitted week.
-              Mounted once here so it z-stacks above both shells. */}
-          <WeeklyFocusTakeover narrow={narrow} tab={tab} />
+          {/* Focus Ritual (unified): one guided stepper across portfolio / week /
+              today, mounted once so it z-stacks above both shells. It subsumes the
+              standalone WeeklyFocusTakeover, so the two are mutually exclusive. */}
+          {isFocusRitualEnabled() ? (
+            <FocusRitual narrow={narrow} tab={tab} onNavigate={navigate} />
+          ) : (
+            <WeeklyFocusTakeover narrow={narrow} tab={tab} />
+          )}
         </div>
       </AgentsProvider>
     </ToastProvider>
