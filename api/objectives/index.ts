@@ -62,7 +62,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: countData } = await supabase.rpc('count_active_objectives')
     const active_count = typeof countData === 'number' ? countData : null
 
-    return res.json({ ok: true, objectives: rows || [], active_count, soft_cap: 10 })
+    // Attach the count of Marcus-proposed (unratified) milestones per objective so
+    // the Home altitude spine can flag Portfolio as needing attention without a
+    // per-objective tree fetch. One grouped read over the returned goal ids.
+    const ids = (rows || []).map(r => r.id)
+    const proposedByGoal: Record<string, number> = {}
+    if (ids.length > 0) {
+      const { data: ms } = await supabase
+        .from('milestones')
+        .select('goal_id')
+        .eq('status', 'proposed')
+        .in('goal_id', ids)
+      for (const m of ms || []) {
+        const gid = (m as { goal_id: string }).goal_id
+        proposedByGoal[gid] = (proposedByGoal[gid] || 0) + 1
+      }
+    }
+    const objectives = (rows || []).map(r => ({
+      ...r,
+      proposed_milestone_count: proposedByGoal[r.id] || 0,
+    }))
+
+    return res.json({ ok: true, objectives, active_count, soft_cap: 10 })
   }
 
   if (req.method === 'POST') {

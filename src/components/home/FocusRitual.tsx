@@ -221,14 +221,34 @@ function PortfolioStep() {
           </ul>
         )}
       </div>
+
+      {/* Marcus-proposed milestones awaiting accept/reject — shaping the
+          milestone set is portfolio-level work (the weekly step only commits
+          from what's already accepted). */}
+      {active.some(o => (o.proposed_milestone_count || 0) > 0) && (
+        <div className="space-y-3">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-amber-300/80 font-semibold">Milestones to review</p>
+          {active.filter(o => (o.proposed_milestone_count || 0) > 0).map(o => (
+            <div key={o.id}>
+              <div className="flex items-center gap-2 mb-1.5 px-1">
+                <span className="text-[11px] font-semibold text-white/80 break-words">{o.title}</span>
+                <span className="text-[10px] text-amber-300/70 tabular-nums">{o.proposed_milestone_count} proposed</span>
+              </div>
+              <MilestoneCalibrator goalId={o.id} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
 // ── Weekly step ──────────────────────────────────────────────────────────────
-// Shape this week's milestones (MilestoneCalibrator per objective), then commit
-// up to 3 as the week's moves. Active-pick: nothing is pre-checked (unlike the
-// old WeeklyFocusTakeover endowment). Commit hits /api/weekly-focus/commit.
+// Commit up to 3 already-accepted milestones as this week's moves. Shaping the
+// milestone set (accept/reject Marcus's proposals) is portfolio-level work, so it
+// lives in the Portfolio step — this step only commits. Active-pick: nothing is
+// pre-checked (unlike the old WeeklyFocusTakeover endowment). Commit hits
+// /api/weekly-focus/commit.
 interface PoolMilestone { id: string; title: string; goal_id: string; goal_title: string; hours: number | null }
 
 function WeeklyStep({ onCommitted }: { onCommitted: () => void }) {
@@ -313,19 +333,8 @@ function WeeklyStep({ onCommitted }: { onCommitted: () => void }) {
   return (
     <div className="space-y-3">
       <p className="text-[12px] text-white/55 leading-snug">
-        Shape each objective's milestones, then pick up to 3 to commit. These become the moves your days ladder up to.
+        Pick up to 3 accepted milestones to commit this week — these become the moves your days ladder up to. Shape the milestone set itself in the Portfolio step.
       </p>
-      <div className="space-y-3">
-        {active.map(o => (
-          <div key={o.id}>
-            <div className="flex items-center gap-2 mb-1.5 px-1">
-              <span className="text-[11px] font-semibold text-white/80 break-words">{o.title}</span>
-              {o.venture && <span className="text-[10px] text-white/40 uppercase tracking-[0.12em]">{o.venture}</span>}
-            </div>
-            <MilestoneCalibrator goalId={o.id} />
-          </div>
-        ))}
-      </div>
 
       <div className="rounded-xl border border-violet-500/15 bg-violet-500/[0.04] p-3">
         <p className="text-[10px] uppercase tracking-[0.14em] text-violet-200/80 font-semibold mb-2">Commit up to 3 for the week</p>
