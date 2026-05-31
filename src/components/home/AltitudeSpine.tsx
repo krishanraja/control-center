@@ -19,9 +19,13 @@ type NavigateFn = (tab: string, params?: Record<string, string>) => void
 export function AltitudeSpine({
   variant = 'mobile',
   onNavigate,
+  showStaleCta = true,
 }: {
   variant?: 'mobile' | 'desktop'
   onNavigate?: NavigateFn
+  // When false, the inline "set what's stale" banner is omitted — used on
+  // mobile, where the cue is relocated into the header (see StaleHeaderCue).
+  showStaleCta?: boolean
 }) {
   const h = useHaptics()
   const { altitudes, pending, allSet, loading } = useAltitudes()
@@ -39,7 +43,7 @@ export function AltitudeSpine({
   return (
     <section className={`flex flex-col gap-2.5 ${variant === 'mobile' ? 'px-1' : ''}`} aria-label="Altitudes">
       {/* CTA / set-state banner */}
-      {!loading && (pending.length > 0 ? (
+      {showStaleCta && !loading && (pending.length > 0 ? (
         <button
           type="button"
           onClick={() => open(null)}
@@ -112,6 +116,39 @@ export function AltitudeSpine({
   )
 }
 
+/**
+ * Compact "set what's stale" cue for the mobile header — the relocated, glanceable
+ * twin of the inline banner. Sits beside the logo so the altitude cards below it
+ * own the screen. One tap opens the ritual at the first stale altitude.
+ */
+export function StaleHeaderCue() {
+  const h = useHaptics()
+  const { pending, loading } = useAltitudes()
+
+  if (loading) return null
+
+  if (pending.length === 0) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/[0.08] px-3 py-1.5 text-[12px] font-semibold text-emerald-100">
+        <CheckCircle2 size={13} className="text-emerald-400 flex-shrink-0" />
+        Set
+      </span>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => { h.select(); openFocusRitual(null) }}
+      aria-label={`Set what's stale, ${pending.length} pending`}
+      className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/40 bg-violet-500/[0.18] px-3 py-1.5 text-[12px] font-semibold text-violet-100 active:bg-violet-500/30 transition-colors animate-neon-pulse-violet"
+    >
+      <span className="whitespace-nowrap">Set stale · {pending.length}</span>
+      <ArrowRight size={13} className="flex-shrink-0" />
+    </button>
+  )
+}
+
 const DOT: Record<Altitude['state'], string> = {
   set: 'bg-emerald-400',
   stale: 'bg-amber-400',
@@ -119,23 +156,28 @@ const DOT: Record<Altitude['state'], string> = {
 }
 
 function AltitudePill({ altitude, onOpen }: { altitude: Altitude; onOpen: () => void }) {
-  const { label, state, summary, needsAttention } = altitude
+  const { label, state, summary, needsAttention, count } = altitude
   return (
     <button
       type="button"
       onClick={onOpen}
-      className={`flex flex-col items-start gap-1 rounded-2xl border px-3 py-2.5 text-left transition-colors min-h-[58px] ${
+      className={`relative overflow-hidden flex flex-col items-start gap-1.5 rounded-2xl border px-3.5 py-3.5 text-left transition-colors min-h-[78px] ${
         needsAttention
-          ? 'border-amber-400/30 bg-amber-500/[0.06] active:bg-amber-500/[0.10]'
+          ? 'border-amber-400/40 bg-amber-500/[0.08] active:bg-amber-500/[0.12] animate-neon-pulse shimmer-sweep'
           : 'border-white/[0.08] bg-white/[0.04] active:bg-white/[0.07]'
       }`}
     >
       <div className="flex items-center gap-1.5 w-full">
-        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${DOT[state]}`} />
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${DOT[state]} ${needsAttention ? 'animate-pulse' : ''}`} />
         <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/60">{label}</span>
-        <ChevronRight size={11} className="ml-auto text-white/30 flex-shrink-0" />
+        {needsAttention && count > 0 && (
+          <span className="ml-1 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-amber-400/20 text-amber-200 text-[10px] font-bold tabular-nums leading-none">
+            {count}
+          </span>
+        )}
+        <ChevronRight size={12} className="ml-auto text-white/30 flex-shrink-0" />
       </div>
-      <span className="text-[11px] text-white/70 leading-snug line-clamp-2">{summary}</span>
+      <span className={`text-[13px] leading-snug line-clamp-2 ${needsAttention ? 'text-amber-50/90 font-medium' : 'text-white/70'}`}>{summary}</span>
     </button>
   )
 }
