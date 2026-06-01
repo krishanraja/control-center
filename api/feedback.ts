@@ -47,6 +47,7 @@ const REASON_OPTIONS = new Set([
   'marcus_priority_override',          // daily: wrong task to elevate today.
   'marcus_milestone_override',         // milestone: right work, wrong week-sized chunk.
   'marcus_objective_nomination_rejected', // objective: whole objective is wrong shape.
+  'marcus_objective_amended',          // objective: right objective, Krish reshaped its title.
   // Preexisting codes already in use across the app.
   'marcus_suggestion_unsuitable',
   'triage_promote',
