@@ -16,12 +16,11 @@ import { supabase } from '../_supabase.js'
 //   - Taste signal: a move Krish hand-wrote (the slate missed it) or explicitly
 //     dismissed becomes a weekly-altitude feedback_queue row
 //     (reason_code=marcus_weekly_slate_override) so Marcus's slate learns.
-//   - Ladder-down: after committing, fire (best-effort, non-blocking) the
-//     milestone-ladder-down webhook so each committed milestone spawns its
-//     agent-assigned tasks, immediately feeding the daily picker's
-//     serves_milestone join. A missing/slow webhook never fails the commit.
-
-const LADDER_DOWN_WEBHOOK = 'https://krishraja10101.app.n8n.cloud/webhook/milestone-ladder-down'
+//   - Ladder-down: after committing, each committed milestone spawns one task
+//     per contributing agent (deterministic, idempotent on (milestone_id,
+//     agent) in the objective-ladder workstream), immediately feeding the daily
+//     picker's serves_milestone join. Best-effort: a failure here never fails
+//     the commit.
 
 interface InMilestone {
   milestone_id?: string
@@ -146,27 +145,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await supabase.from('feedback_queue').insert(taste).then(() => undefined, () => undefined)
   }
 
-  // 4. Ladder-down (best-effort, short timeout). Each committed milestone gets
-  //    its agent-assigned tasks generated so the daily picker has serves_milestone
-  //    candidates. Missing/slow webhook is swallowed.
-  let ladder_down_ok = false
+  // 4. Ladder-down: each committed milestone spawns one task per contributing
+  //    agent so the daily picker immediately has serves_milestone candidates.
+  //    Deterministic + idempotent on (milestone_id, agent) within the
+  //    objective-ladder workstream. Best-effort: failures don't fail the commit.
+  let tasks_created = 0
   if (milestones.length > 0) {
-    const ctrl = new AbortController()
-    const tid = setTimeout(() => ctrl.abort('ladder_timeout'), 6_000)
     try {
-      const lr = await fetch(LADDER_DOWN_WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          week_of: body.week_of,
-          weekly_focus_id,
-          milestones: milestones.map(m => ({ milestone_id: m.milestone_id, goal_id: m.goal_id })),
-        }),
-        signal: ctrl.signal,
-      })
-      ladder_down_ok = lr.ok
-    } catch { /* best-effort */ } finally { clearTimeout(tid) }
+      const mids = milestones.map(m => m.milestone_id as string)
+      const gids = Array.from(new Set(milestones.map(m => m.goal_id as string)))
+
+      const [{ data: mrows }, { data: crows }, { data: existing }] = await Promise.all([
+        supabase.from('milestones').select('id, title').in('id', mids),
+        supabase.from('goal_agent_contributions').select('goal_id, agent_id, contribution_note').in('goal_id', gids),
+        supabase.from('tasks').select('milestone_id, agent').in('milestone_id', mids).eq('workstream', 'objective-ladder'),
+      ])
+
+      const titleById = new Map((mrows || []).map(r => [r.id as string, r.title as string]))
+      const contribByGoal = new Map<string, Array<{ agent_id: string | null; contribution_note: string | null }>>()
+      for (const c of (crows || []) as Array<{ goal_id: string; agent_id: string | null; contribution_note: string | null }>) {
+        const arr = contribByGoal.get(c.goal_id) || []
+        arr.push({ agent_id: c.agent_id, contribution_note: c.contribution_note })
+        contribByGoal.set(c.goal_id, arr)
+      }
+      const seen = new Set(
+        ((existing || []) as Array<{ milestone_id: string; agent: string | null }>).map(t => `${t.milestone_id}::${t.agent || ''}`),
+      )
+
+      const now = new Date().toISOString()
+      const newTasks: Array<Record<string, unknown>> = []
+      for (const m of milestones) {
+        const title = titleById.get(m.milestone_id as string) || 'Milestone work'
+        const owners = contribByGoal.get(m.goal_id as string) || []
+        const list = owners.length > 0
+          ? owners.map(o => ({ agent: o.agent_id, note: o.contribution_note }))
+          : [{ agent: null as string | null, note: null as string | null }]
+        for (const o of list) {
+          const key = `${m.milestone_id}::${o.agent || ''}`
+          if (seen.has(key)) continue
+          seen.add(key)
+          newTasks.push({
+            title,
+            status: 'waiting',
+            agent: o.agent,
+            goal_id: m.goal_id,
+            milestone_id: m.milestone_id,
+            workstream: 'objective-ladder',
+            next_step: o.note,
+            created: now,
+          })
+        }
+      }
+      if (newTasks.length > 0) {
+        const { data: ins } = await supabase.from('tasks').insert(newTasks).select('id')
+        tasks_created = (ins || []).length
+      }
+    } catch { /* ladder-down is best-effort */ }
   }
 
-  return res.json({ ok: true, week_of: body.week_of, weekly_focus_id, count: milestones.length, ladder_down_ok })
+  return res.json({ ok: true, week_of: body.week_of, weekly_focus_id, count: milestones.length, tasks_created })
 }
