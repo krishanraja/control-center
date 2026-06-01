@@ -1714,6 +1714,42 @@ docs/audits/                                                 # Closure architect
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
 
+### **2026-06-01 — LLM cost-runaway fix: Gemini-fallback storm killed, model routing hardened, daily spend alert added**
+
+A ~$900 Gemini + ~$900 Anthropic bill spike was traced to one mechanism. The OpenClaw agent **fallback ladder** ran `... -> anthropic/claude-sonnet-4-6 -> ... -> google/gemini-3.1-pro-preview`, and the Anthropic API key stored in n8n was dead (401 "invalid x-api-key"). Failing Anthropic-tier calls therefore **cascaded down to Gemini 3.1 Pro**, and full agent-session crons loaded 67K-250K tokens of workspace context into Gemini on every run. Worst offender: the **`Arlo - Hourly Feedback Pickup`** cron (broken for weeks, 1,237 runs, ~$96 of Gemini, hunting a `pickup_feedback.py` that does not exist).
+
+**Load-bearing billing fact:** the gateway's Anthropic auth is OAuth `token` (Claude **subscription**, flat fee), NOT the per-token API bill. Google uses an `api_key` (per-token). So interactive Agatha/Opus is on the subscription, and **Gemini was the real per-token leak.** Source-side logs (OpenClaw trajectories + `cron/runs/*.jsonl` + n8n executions) accounted for only ~$150 of the Gemini; the remainder was not in any tracked system, pointing to accumulation over a longer window or **third-party abuse of leaked keys** (every key had been pasted into chats; see Pending).
+
+**Fixed (all live + verified):**
+
+* Disabled the `Hourly Feedback Pickup` cron (`openclaw cron disable`).
+* Rerouted **every** gateway fallback ladder Gemini -> DeepSeek (`deepseek-v4-flash`); removed all `google/*` fallbacks. Primary stays `deepseek-v4-pro`. (`agents.defaults.model.fallbacks` + per-agent `agents.list[*].model.fallbacks`.)
+* n8n: deactivated `Sonnet | Task Lever Rater` (was wrongly bound to the `Apollo` credential and ran every 5 min), then rewrote it + `Nell | Lead Document Ingest` to **DeepSeek** (cred `DeepSeek account` = `UnCSUB5l0zz2BYa0`, type `deepSeekApi`; OpenAI-format body; parse `choices[0].message.content`); Task Lever Rater cadence 5min -> 2h.
+* Fixed MT-003 violation: `Cleo | Synthesis Engine` Opus 4.7 -> Sonnet 4.6.
+* Added a deterministic **daily spend alert**: `/root/.openclaw/workspace-ops/scripts/token-spend-alert.sh` (VPS crontab `0 14 * * *`) runs `openclaw gateway usage-cost`, posts a digest to Krish's Telegram, and prefixes a ⚠️ if the latest day exceeds $75. Zero LLM cost.
+
+**Runbook - if LLM costs spike again (any tool reading this: do these in order):**
+
+1. `openclaw gateway usage-cost` - authoritative OpenClaw spend by day (the daily Telegram alert surfaces this).
+2. Rank cron spend: aggregate `/root/.openclaw/cron/runs/*.jsonl` (`action:finished` lines carry `model`/`provider`/`usage`) grouped by job. Catches broken crons that re-run forever for nothing.
+3. n8n: `GET /api/v1/executions` -> find high-count or all-error workflows; pull one execution with `includeData=true` to see the failing node and whether an LLM node billed *before* the error (an error after a successful LLM call still costs money; a 401 before it does not).
+4. Validate keys cheaply (0-token GET probes): `GET https://api.anthropic.com/v1/models` (x-api-key header) and `GET https://generativelanguage.googleapis.com/v1beta/models?key=...`. A dead Anthropic key is the classic trigger for a Gemini-fallback storm.
+5. Provider consoles are the only source for usage-by-key (Anthropic Console -> Usage; Google Cloud -> Generative Language API -> Metrics). If the pattern does not match OS jobs, suspect leaked-key abuse and rotate.
+
+**New standing rules:**
+
+* **CFG-COST-001 - No premium models in background fallback ladders.** Cron/agent fallbacks route to DeepSeek (`deepseek-v4-flash`), never `google/gemini-*-pro` or `claude-opus-*`. Premium models are opt-in per task, not a fallback default.
+* **CFG-COST-002 - A dead/invalid primary key must be fixed, not absorbed.** If an Anthropic-tier credential 401s, repair the credential; never let the ladder silently soak the failure into Gemini/Opus.
+* **CFG-COST-003 - Model tiering by job nature (extends MT-003):** writing/synthesis -> Sonnet; classification/extraction/scoring/admin -> DeepSeek (`deepseek-chat`) or Haiku; never Opus in n8n.
+* **N8N-COST-004 - Prompt caching is for repeated calls only.** Do NOT add `cache_control` to once-per-run cron LLM nodes: with a 5-minute cache TTL and a single call per run it is a net cost *increase* (cache-write premium, zero reads). Caching belongs to the interactive gateway agents, where it is already on.
+
+**Gotchas (for future edits to this OS):**
+
+* openclaw.json changes need a clean restart via `sudo XDG_RUNTIME_DIR=/run/user/0 systemctl --user restart openclaw-gateway.service`. The `openclaw gateway restart` CLI does NOT see the systemd `--user` unit (`openclaw-gateway.service`) and is effectively a no-op; `config.reload.mode` is `off`.
+* `agents.defaults.models` is the **curated model-picker catalog** (keys = `provider/model` IDs; allowed per-model keys are `alias`/`params`/`streaming`). A stray `cost` key makes the whole config schema-invalid and blocks the CLI; fix by stripping `cost`, NOT by deleting the block - deleting it makes the picker fall back to the full merged catalog (hundreds of models).
+* n8n public API `PUT /workflows/{id}` rejects `settings` keys outside its allowlist (`availableInMCP`, `binaryMode` fail). Send only `{executionOrder, saveDataErrorExecution, saveDataSuccessExecution, saveExecutionProgress, saveManualExecutions, executionTimeout, errorWorkflow, timezone}`.
+
+
 ### 2026-05-30 (later) — Fleet attribution warehouse + six-app autonomous commerce wiring
 
 All six builder products (Circle, Pulse, CTRL, Gutted, Merciless, OnAlert) are now live-emitting lifecycle + revenue events into one shared `attribution` warehouse on `gojpffsrxybbpbdzzrvs`, and the growth agents read the resulting funnel/revenue views + each app's product-truth surface. The OS now runs the six apps' attribution-driven sales + marketing autonomously. Full contract in **11.4**.
