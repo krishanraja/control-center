@@ -43,24 +43,27 @@ function inferMime(contentType: string | undefined): { mime: string; ext: string
   return { mime: 'audio/webm', ext: 'webm' }
 }
 
-export async function handleWhisper(req: VercelRequest, res: VercelResponse): Promise<void> {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-  res.setHeader('Cache-Control', 'no-store')
-  if (req.method === 'OPTIONS') { res.status(200).end(); return }
-  if (req.method !== 'POST')    { res.status(405).json({ ok: false, fallback: 'text', reason: 'method_not_allowed' }); return }
+export interface TranscribeOutcome {
+  status: number
+  result: WhisperResult
+}
 
+// Core transcription: read the audio body, call Whisper, return the result and
+// the HTTP status the caller should use. Never throws. Shared by handleWhisper
+// (the pass-through voice endpoints) and routes that need the transcript before
+// doing more work (e.g. /api/objectives/voice, which then asks Marcus to
+// interpret it).
+export async function transcribeRequest(req: VercelRequest): Promise<TranscribeOutcome> {
   const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) { res.status(503).json({ ok: false, fallback: 'text', reason: 'missing_openai_key' }); return }
+  if (!apiKey) return { status: 503, result: { ok: false, fallback: 'text', reason: 'missing_openai_key' } }
 
   let body: Buffer
   try {
     body = await readRawBody(req)
-  } catch (e) {
-    res.status(400).json({ ok: false, fallback: 'text', reason: 'cannot_read_body' }); return
+  } catch {
+    return { status: 400, result: { ok: false, fallback: 'text', reason: 'cannot_read_body' } }
   }
-  if (body.length === 0) { res.status(400).json({ ok: false, fallback: 'text', reason: 'empty_body' }); return }
+  if (body.length === 0) return { status: 400, result: { ok: false, fallback: 'text', reason: 'empty_body' } }
 
   const { mime, ext } = inferMime(req.headers['content-type'] as string | undefined)
 
@@ -78,20 +81,30 @@ export async function handleWhisper(req: VercelRequest, res: VercelResponse): Pr
       signal: ctrl.signal,
     })
     if (!r.ok) {
-      const txt = await r.text().catch(() => '')
-      res.status(502).json({ ok: false, fallback: 'text', reason: `whisper_${r.status}`, detail: txt.slice(0, 200) })
-      return
+      return { status: 502, result: { ok: false, fallback: 'text', reason: `whisper_${r.status}` } }
     }
     const j = (await r.json()) as { text?: string }
     const text = (j.text || '').trim()
-    if (!text) { res.status(502).json({ ok: false, fallback: 'text', reason: 'whisper_empty' }); return }
-    res.status(200).json({ ok: true, text })
+    if (!text) return { status: 502, result: { ok: false, fallback: 'text', reason: 'whisper_empty' } }
+    return { status: 200, result: { ok: true, text } }
   } catch (e: unknown) {
     const reason = (e as Error)?.name === 'AbortError' ? 'whisper_timeout' : 'whisper_error'
-    res.status(502).json({ ok: false, fallback: 'text', reason })
+    return { status: 502, result: { ok: false, fallback: 'text', reason } }
   } finally {
     clearTimeout(tid)
   }
+}
+
+export async function handleWhisper(req: VercelRequest, res: VercelResponse): Promise<void> {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Cache-Control', 'no-store')
+  if (req.method === 'OPTIONS') { res.status(200).end(); return }
+  if (req.method !== 'POST')    { res.status(405).json({ ok: false, fallback: 'text', reason: 'method_not_allowed' }); return }
+
+  const { status, result } = await transcribeRequest(req)
+  res.status(status).json(result)
 }
 
 export const config = {

@@ -3,6 +3,13 @@ import { useEffect, useState, useCallback } from 'react'
 export type MilestoneStatus = 'proposed' | 'accepted' | 'active' | 'done' | 'dropped'
 export type MilestoneSource = 'marcus_proposed' | 'krish_authored' | 'krish_tweaked' | 'agatha_decomposed'
 
+// The OS-vs-you split Marcus fills per milestone (Phase 6): what the agent fleet
+// can drive unattended vs the steps that need Krish himself.
+export interface OwnerSplit {
+  os?: Array<{ agent: string; does: string }>
+  krish?: string[]
+}
+
 export interface Milestone {
   id: string
   title: string
@@ -20,6 +27,15 @@ export interface Milestone {
   updated_at: string
   task_count?: number
   tasks_done?: number
+  // Phase 6 OS-vs-you fields.
+  owner_split?: OwnerSplit | null
+  is_accomplishment?: boolean
+  auto_executable_pct?: number | null
+}
+
+export interface AgentContribution {
+  agent_id: string
+  contribution_note: string | null
 }
 
 export interface ObjectiveNode {
@@ -41,6 +57,9 @@ export interface ObjectiveNode {
 export interface ObjectiveTree {
   objective: ObjectiveNode | null
   milestones: Milestone[]
+  // Phase 6: which agents contribute to this objective (populated since Phase 1e,
+  // surfaced by get_objective_tree only now). Drives the OS-vs-you line.
+  contributions?: AgentContribution[]
 }
 
 export function useObjectiveTree(goalId: string | null) {

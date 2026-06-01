@@ -35,6 +35,10 @@ const ALLOWED_TABLES = new Set([
   // tweak proposed milestones at the milestone altitude (marcus_milestone_override).
   'goals',
   'milestones',
+  // Weekly altitude (Phase 6): which candidate moves Krish picks, writes himself,
+  // or dismisses teaches Marcus's weekly slate. source_id is the milestone id (or
+  // a week-scoped synthetic id for a custom move).
+  'weekly_slate',
 ])
 
 // Canonical reason codes for the three Marcus feedback altitudes plus the
@@ -48,6 +52,8 @@ const REASON_OPTIONS = new Set([
   'marcus_milestone_override',         // milestone: right work, wrong week-sized chunk.
   'marcus_objective_nomination_rejected', // objective: whole objective is wrong shape.
   'marcus_objective_amended',          // objective: right objective, Krish reshaped its title.
+  'marcus_objective_releveled',        // objective: mis-leveled — promoted a parent / demoted to a milestone.
+  'marcus_weekly_slate_override',      // weekly: the slate missed this move (Krish wrote his own) or he dismissed one.
   // Preexisting codes already in use across the app.
   'marcus_suggestion_unsuitable',
   'triage_promote',
