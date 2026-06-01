@@ -101,6 +101,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (body.goalId) {
+      // Pre-fetch so we can detect an *amendment* to one of Marcus's nominated
+      // goals: we need the prior title to compare against and the goal's source
+      // (provenance survives acceptance — see api/objectives/[id]/nominate-accept.ts).
+      const { data: existing } = await supabase
+        .from('goals')
+        .select('title, current, source, venture, objective_kind')
+        .eq('id', body.goalId)
+        .single()
+
       const updates: any = { updated_at: new Date().toISOString() }
       if (body.title !== undefined) updates.title = body.title
       if (body.current !== undefined) updates.current = body.current
@@ -109,6 +118,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { error } = await supabase.from('goals').update(updates).eq('id', body.goalId)
       if (error) {
         return res.status(500).json({ ok: false, error: error.message })
+      }
+
+      // Amendment-as-feedback: reshaping the *title* of a Marcus-nominated goal
+      // is an objective-altitude override that should feed his learning loop.
+      // Mirrors the override shape in api/objectives/[id]/nominate-reject.ts so
+      // Vera's weekly aggregation clusters it (reason_code != 'other' => >= 2
+      // threshold). Progress/notes/current edits and edits to krish_declared
+      // goals write nothing: those self-authored goals reach Marcus via synthesis
+      // grounding, not the correction loop. Best-effort (matches calibrate.ts):
+      // the goal edit already succeeded, so a feedback-write hiccup is swallowed.
+      const newTitle = typeof body.title === 'string' ? body.title.trim() : ''
+      if (existing && existing.source === 'marcus_nominated' && newTitle.length > 0 && newTitle !== (existing.title || '')) {
+        await supabase.from('feedback_queue').insert({
+          source_table: 'goals',
+          source_id: body.goalId,
+          agent_id: 'marcus',
+          original_agent: 'marcus',
+          original_item_id: body.goalId,
+          vote: -1,
+          reason_code: 'marcus_objective_amended',
+          reason_text: newTitle,
+          meta: {
+            original_title: existing.title || null,
+            new_title: newTitle,
+            current: existing.current || null,
+            venture: existing.venture || null,
+            objective_kind: existing.objective_kind || null,
+            source: existing.source,
+            captured_at: new Date().toISOString(),
+          },
+          status: 'pending',
+        })
       }
     }
 
