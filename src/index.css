@@ -81,3 +81,56 @@
   0%, 100% { opacity: 0.5; }
   50%       { opacity: 1; }
 }
+
+/* Attention treatment for altitude cards that need completing.
+   A breathing amber neon ring (matches the needsAttention border) pulls the
+   eye toward the one thing to enrich; a slow shimmer sweep keeps it alive. */
+@keyframes neon-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.30), 0 0 10px 0 rgba(251, 191, 36, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.70), 0 0 22px 2px rgba(251, 191, 36, 0.32);
+  }
+}
+.animate-neon-pulse {
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+/* Violet variant for the in-header "set what's stale" cue. */
+@keyframes neon-pulse-violet {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.30), 0 0 8px 0 rgba(167, 139, 250, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.65), 0 0 16px 1px rgba(167, 139, 250, 0.30);
+  }
+}
+.animate-neon-pulse-violet {
+  animation: neon-pulse-violet 2s ease-in-out infinite;
+}
+
+@keyframes shimmer-sweep {
+  0%   { transform: translateX(-150%); }
+  100% { transform: translateX(150%); }
+}
+.shimmer-sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.12) 50%, transparent 70%);
+  transform: translateX(-150%);
+  animation: shimmer-sweep 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-neon-pulse,
+  .animate-neon-pulse-violet {
+    animation: none;
+  }
+  .shimmer-sweep::after {
+    animation: none;
+    display: none;
+  }
+}

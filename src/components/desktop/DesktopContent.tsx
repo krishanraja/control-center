@@ -4,6 +4,9 @@ import { formatDistanceToNow } from 'date-fns'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 import { NextActionStrip } from '../shared/NextActionStrip'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
+import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 
 const STATE_ORDER: IdeaState[] = ['seeded', 'researching', 'drafting', 'review', 'approved', 'published', 'dropped']
 
@@ -42,6 +45,26 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
   }, [ideas])
   const reviewCount = (byState.review || []).length
   const draftCount = (byState.drafting || []).length
+
+  // Focus Mode (Phase 3): when enabled and the day is calibrated, the lanes
+  // view regroups the visible ideas into the 3 daily-target lanes via
+  // relevance_index (table 'content_ideas'). Calendar view is left untouched.
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+
+  // Flat, state-ordered array of the ideas the lanes view would normally show.
+  const visibleIdeas = useMemo(
+    () => STATE_ORDER.flatMap(s => byState[s] || []),
+    [byState],
+  )
+
+  // Uniform row renderer mirroring the normal lane card + its select behavior.
+  const renderIdeaRow = (idea: ContentIdeaRow) =>
+    idea.id === (ideaId || null)
+      ? <ContentIdeaRowDisplay idea={idea} muted />
+      : <ContentIdeaCardActionable idea={idea} />
 
   // If a deep-link was provided, scroll the lane into view once data lands.
   useEffect(() => {
@@ -93,25 +116,30 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
         disabled={!nextDecisionIdea}
       />
 
-      <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.015] p-1">
-        <button
-          type="button"
-          onClick={() => setView('lanes')}
-          className={`px-3 py-1.5 text-[12px] rounded-md transition-colors inline-flex items-center gap-1.5 ${
-            view === 'lanes' ? 'bg-violet-500/20 border border-violet-400/40 text-violet-100' : 'border border-transparent text-white/60 hover:text-white/85'
-          }`}
-        >
-          <List size={12} /> Lanes
-        </button>
-        <button
-          type="button"
-          onClick={() => setView('calendar')}
-          className={`px-3 py-1.5 text-[12px] rounded-md transition-colors inline-flex items-center gap-1.5 ${
-            view === 'calendar' ? 'bg-violet-500/20 border border-violet-400/40 text-violet-100' : 'border border-transparent text-white/60 hover:text-white/85'
-          }`}
-        >
-          <CalendarIcon size={12} /> Calendar
-        </button>
+      <div className="flex items-center gap-3">
+        <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.015] p-1">
+          <button
+            type="button"
+            onClick={() => setView('lanes')}
+            className={`px-3 py-1.5 text-[12px] rounded-md transition-colors inline-flex items-center gap-1.5 ${
+              view === 'lanes' ? 'bg-violet-500/20 border border-violet-400/40 text-violet-100' : 'border border-transparent text-white/60 hover:text-white/85'
+            }`}
+          >
+            <List size={12} /> Lanes
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('calendar')}
+            className={`px-3 py-1.5 text-[12px] rounded-md transition-colors inline-flex items-center gap-1.5 ${
+              view === 'calendar' ? 'bg-violet-500/20 border border-violet-400/40 text-violet-100' : 'border border-transparent text-white/60 hover:text-white/85'
+            }`}
+          >
+            <CalendarIcon size={12} /> Calendar
+          </button>
+        </div>
+        {view === 'lanes' && isFocusModeEnabled() && calibrated && (
+          <FocusModeToggle mode={mode} onChange={setMode} />
+        )}
       </div>
 
       {detailIdea && (
@@ -145,14 +173,27 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
           </aside>
 
           <div className="space-y-3">
-            {STATE_ORDER.map(s => (
-              <ContentStateLane
-                key={s}
-                state={s}
-                ideas={byState[s] || []}
-                selectedId={ideaId || null}
-              />
-            ))}
+            {showFocus ? (
+              <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-3">
+                <FocusLanes
+                  rows={visibleIdeas}
+                  table="content_ideas"
+                  keyOf={i => String(i.id)}
+                  renderItem={renderIdeaRow}
+                  fallback={null}
+                  mutedLabel="Off focus"
+                />
+              </section>
+            ) : (
+              STATE_ORDER.map(s => (
+                <ContentStateLane
+                  key={s}
+                  state={s}
+                  ideas={byState[s] || []}
+                  selectedId={ideaId || null}
+                />
+              ))
+            )}
           </div>
         </div>
       ) : (

@@ -6,6 +6,7 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { supabase } from '../../lib/supabase'
 import { AskMarcus } from '../AskMarcus'
+import { FleetFunnelPanel } from '../FleetFunnelPanel'
 import { NextActionStrip } from '../shared/NextActionStrip'
 
 type SignalUrgency = 'critical' | 'high' | 'medium' | 'low'
@@ -217,6 +218,8 @@ export function MobileIntel() {
       {!hero && state.metrics.length === 0 && !state.loading && (
         <EmptyState label="No fresh intelligence yet — Marcus runs Mon/Wed/Fri." />
       )}
+
+      <FleetFunnelPanel />
 
       <DetailSheet
         open={openSignal != null}

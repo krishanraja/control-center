@@ -1,0 +1,286 @@
+{
+  "name": "Krish | Mindmaker OS | Objective Milestone Proposer",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "nodes": [
+    {
+      "id": "Webhook",
+      "name": "Webhook propose-milestones",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        200
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "propose-milestones",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "propose-milestones"
+    },
+    {
+      "id": "Schedule",
+      "name": "Schedule 06:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        420
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "Resolve_goal_id",
+      "name": "Resolve goal_id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Two trigger paths merge here. Webhook carries { goal_id } in body;\n// schedule carries no body and we pick the first active objective that\n// has zero proposed milestones (FIFO by priority, then created_at).\n// If nothing eligible, emit { skip: true, reason: 'no_eligible_objective' }\n// and downstream nodes short-circuit via the Continue if not skipped guard.\nconst SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1';\nconst SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc';\nconst hdr = { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` };\n\nconst input = $input.first().json || {};\nconst body = input.body || input;\nlet goalId = body && typeof body.goal_id === 'string' ? body.goal_id.trim() : '';\nconst mode = body && body.mode === 'recalibrate' ? 'recalibrate' : 'propose';\nconst krishContext = body && typeof body.krish_context === 'string' ? body.krish_context.slice(0, 4000) : '';\nlet trigger = goalId ? 'webhook' : 'schedule';\n\nif (!goalId) {\n  // Schedule path: find first active objective with no proposed milestones.\n  const goals = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `${SUPA}/goals?status=eq.active&select=id,priority,created_at&order=priority.asc.nullslast,created_at.asc&limit=20`,\n    headers: hdr,\n    json: true,\n  });\n  for (const g of (goals || [])) {\n    const existing = await this.helpers.httpRequest({\n      method: 'GET',\n      url: `${SUPA}/milestones?goal_id=eq.${encodeURIComponent(g.id)}&status=eq.proposed&select=id&limit=1`,\n      headers: hdr,\n      json: true,\n    });\n    if (!Array.isArray(existing) || existing.length === 0) {\n      goalId = g.id;\n      break;\n    }\n  }\n  if (!goalId) {\n    return [{ json: { skip: true, reason: 'no_eligible_objective', trigger } }];\n  }\n}\n\nreturn [{ json: { goal_id: goalId, trigger, skip: false, mode, krish_context: krishContext } }];"
+      }
+    },
+    {
+      "id": "Fetch_context",
+      "name": "Fetch context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Fetch goal row, any existing milestones (for idempotency + sequencing),\n// Marcus's brief (so the LLM proposal is grounded in his actual identity),\n// and Krish's voice rules. Run in parallel.\nconst input = $input.first().json || {};\nif (input.skip) {\n  return [{ json: { skip: true, reason: input.reason || 'skipped_upstream' } }];\n}\nconst goalId = input.goal_id;\nif (!goalId) {\n  return [{ json: { skip: true, reason: 'missing_goal_id' } }];\n}\nconst mode = input.mode === 'recalibrate' ? 'recalibrate' : 'propose';\n\nconst SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1';\nconst SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc';\nconst hdr = { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` };\nconst hdrWrite = { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json' };\n\nconst [goalArr, milestonesArr, marcusArr, voiceArr, contribArr] = await Promise.all([\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/goals?id=eq.${encodeURIComponent(goalId)}&select=*`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/milestones?goal_id=eq.${encodeURIComponent(goalId)}&select=id,title,status,sequence&order=sequence.asc`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/agents?id=eq.marcus&select=brief_content`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/system_config?key=eq.krish_voice_rules&select=value`, headers: hdr, json: true }).catch(() => []),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/goal_agent_contributions?goal_id=eq.${encodeURIComponent(goalId)}&select=agent_id,contribution_note`, headers: hdr, json: true }).catch(() => []),\n]);\n\nconst goal = Array.isArray(goalArr) && goalArr.length > 0 ? goalArr[0] : null;\nif (!goal) {\n  return [{ json: { skip: true, reason: 'goal_not_found', goal_id: goalId } }];\n}\n\nlet milestones = Array.isArray(milestonesArr) ? milestonesArr : [];\nconst alreadyProposed = milestones.some(m => m.status === 'proposed');\nif (alreadyProposed) {\n  if (mode !== 'recalibrate') {\n    return [{ json: { skip: true, reason: 'already_has_proposed_milestones', goal_id: goalId, count: milestones.length } }];\n  }\n  await this.helpers.httpRequest({ method: 'PATCH', url: `${SUPA}/milestones?goal_id=eq.${encodeURIComponent(goalId)}&status=eq.proposed`, headers: hdrWrite, body: { status: 'dropped' }, json: true }).catch(() => null);\n  milestones = milestones.filter(m => m.status !== 'proposed');\n}\n\nconst marcusBrief = Array.isArray(marcusArr) && marcusArr.length > 0 ? marcusArr[0].brief_content : '';\nconst voiceRules = Array.isArray(voiceArr) && voiceArr.length > 0 ? voiceArr[0].value : null;\nconst contributions = Array.isArray(contribArr) ? contribArr : [];\nconst nextSequence = (milestones.reduce((m, x) => Math.max(m, x.sequence || 0), 0)) + 1;\n\nreturn [{ json: {\n  skip: false,\n  goal_id: goalId,\n  trigger: input.trigger || 'unknown',\n  mode,\n  krish_context: input.krish_context || '',\n  goal,\n  existing_milestones: milestones,\n  contributions,\n  next_sequence: nextSequence,\n  marcus_brief: marcusBrief,\n  voice_rules: voiceRules,\n} }];"
+      }
+    },
+    {
+      "id": "If_skip",
+      "name": "If skip",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "skip_check",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "Sonnet_propose",
+      "name": "Sonnet propose milestones",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        420
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "options": {
+          "timeout": 120000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: 'claude-sonnet-4-6',\n  max_tokens: 2400,\n  temperature: 0.3,\n  system: 'You are Marcus, the Mindmaker OS strategic COO. You are proposing the milestone sequence for ONE portfolio objective. A milestone is the week-sized chunk Krish blocks deep-work time for: roughly 4 to 12 hours of agent or operator work. Propose 2 to 5 milestones that cover the objective end to end. Each milestone has: title (concise, action-oriented, no em dashes, max 80 chars), description (1 to 2 sentences, why this is the right week-sized chunk), sequence (1..N in execution order), est_deep_work_hours (your honest 4-12 estimate), marcus_reasoning (1 sentence, why this milestone earns its place in the sequence). owner_split is an object { \"os\": [ { \"agent\": string, \"does\": short phrase } ], \"krish\": [ short phrases ] }: os lists what the contributing agents can drive unattended and each agent MUST be one of the CONTRIBUTING AGENT ids given below, krish lists only the steps that genuinely need Krish himself (the actual sales or relationship conversation, final approval before anything is sent or published, recording, the strategic call). is_accomplishment is true for a real weekly accomplishment and false when this is really a task that belongs at the task layer, not a week of focus. auto_executable_pct is your honest 0 to 100 estimate of how much of this milestone the OS can do without Krish. Return ONLY a JSON object: { \"milestones\": [ { \"title\":string, \"description\":string, \"sequence\":number, \"est_deep_work_hours\":number, \"marcus_reasoning\":string, \"owner_split\":{ \"os\":[{ \"agent\":string, \"does\":string }], \"krish\":[string] }, \"is_accomplishment\":boolean, \"auto_executable_pct\":number } ] }. No prose, no code fences. Zero em dashes anywhere. Use commas, colons, parentheses, periods, or the words \"to\" and \"and\". You are grounded in your own brief below.',\n  messages: [{\n    role: 'user',\n    content: 'MY BRIEF (excerpt of Marcus identity that the OS render pipeline injected):\\n' + ($json.marcus_brief || '').slice(0, 12000) + '\\n\\nKRISH VOICE RULES:\\n' + JSON.stringify($json.voice_rules || {}) + '\\n\\nCONTRIBUTING AGENTS (use these ids in owner_split.os):\\n' + JSON.stringify($json.contributions || []) + '\\n\\nKRISH CONTEXT (his own steer, if any; weight it heavily):\\n' + (($json.krish_context || '').slice(0, 4000) || '(none)') + '\\n\\nOBJECTIVE TO DECOMPOSE:\\n' + JSON.stringify({\n      id: $json.goal.id,\n      title: $json.goal.title,\n      venture: $json.goal.venture,\n      objective_kind: $json.goal.objective_kind,\n      definition_of_done: $json.goal.definition_of_done,\n      why_now: $json.goal.why_now,\n      target_horizon: $json.goal.target_horizon,\n      primary_kpi: $json.goal.primary_kpi,\n      secondary_kpi: $json.goal.secondary_kpi,\n      is_auto: $json.goal.is_auto,\n      source: $json.goal.source\n    }) + '\\n\\nEXISTING MILESTONES (do not duplicate; pick up after sequence ' + ($json.next_sequence || 1) + '):\\n' + JSON.stringify($json.existing_milestones || []) + '\\n\\nReturn the JSON now.'\n  }]\n}) }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "w8sWwz8EfYc1JA7G",
+          "name": "Anthropic Header 2026-05-21"
+        }
+      }
+    },
+    {
+      "id": "Parse_and_insert",
+      "name": "Parse and insert milestones",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        420
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Parse Sonnet output, validate shape, insert into milestones table\n// with source=marcus_proposed status=proposed proposed_at=now().\n// Idempotency: if any 'proposed' row exists for this goal_id by the time\n// we get here (race with another execution), skip the insert.\nconst SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1';\nconst SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvanBmZnNyeHliYnBiZHp6cnZzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjE3NzA2MywiZXhwIjoyMDkxNzUzMDYzfQ.QU6yz1uhH01U-Dcomd4DoPsGZmxYHh29K4bCOmfAKZc';\nconst hdr = { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' };\n\nconst llmResp = $input.first().json || {};\nconst blocks = llmResp.content || [];\nconst rawText = blocks.map(b => (b && b.text) || '').join('').trim();\nlet textForParse = rawText;\nif (textForParse.startsWith('```')) {\n  textForParse = textForParse.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\n}\nlet parsed;\ntry { parsed = JSON.parse(textForParse); }\ncatch (e) {\n  return [{ json: { ok: false, reason: 'invalid_llm_json', raw: textForParse.slice(0, 2000), error: String(e) } }];\n}\n\nconst ctx = $('Fetch context').first().json;\nconst goalId = ctx.goal_id;\nconst baseSeq = ctx.next_sequence || 1;\n\nconst proposed = Array.isArray(parsed.milestones) ? parsed.milestones : [];\nconst clean = [];\nfor (let i = 0; i < proposed.length && i < 5; i++) {\n  const m = proposed[i] || {};\n  const title = String(m.title || '').trim();\n  if (!title) continue;\n  if (title.includes('\\u2014') || title.includes('\\u2013')) continue; // em or en dash filter\n  const description = String(m.description || '').trim();\n  if (description.includes('\\u2014') || description.includes('\\u2013')) continue;\n  const reasoning = String(m.marcus_reasoning || '').trim();\n  const seq = Number.isInteger(m.sequence) && m.sequence > 0 ? m.sequence : (baseSeq + i);\n  const hrs = Number.isFinite(m.est_deep_work_hours) ? Math.max(1, Math.min(40, Math.round(m.est_deep_work_hours))) : null;\n  clean.push({\n    goal_id: goalId,\n    title: title.slice(0, 200),\n    description: description.slice(0, 2000),\n    sequence: seq,\n    status: 'proposed',\n    source: 'marcus_proposed',\n    est_deep_work_hours: hrs,\n    marcus_reasoning: reasoning.slice(0, 2000),\n    owner_split: (m.owner_split && typeof m.owner_split === 'object' && !Array.isArray(m.owner_split)) ? m.owner_split : null,\n    is_accomplishment: m.is_accomplishment === false ? false : true,\n    auto_executable_pct: Number.isFinite(m.auto_executable_pct) ? Math.max(0, Math.min(100, Math.round(m.auto_executable_pct))) : null,\n    proposed_at: new Date().toISOString(),\n  });\n}\n\nif (clean.length < 2) {\n  return [{ json: { ok: false, reason: 'too_few_valid_milestones', count: clean.length, raw: textForParse.slice(0, 2000) } }];\n}\n\n// Race-condition idempotency: re-check there are no proposed milestones now.\nconst raceCheck = await this.helpers.httpRequest({\n  method: 'GET',\n  url: `${SUPA}/milestones?goal_id=eq.${encodeURIComponent(goalId)}&status=eq.proposed&select=id&limit=1`,\n  headers: hdr,\n  json: true,\n});\nif (Array.isArray(raceCheck) && raceCheck.length > 0) {\n  return [{ json: { ok: false, reason: 'lost_race_already_proposed', goal_id: goalId } }];\n}\n\nconst inserted = await this.helpers.httpRequest({\n  method: 'POST',\n  url: `${SUPA}/milestones`,\n  headers: hdr,\n  body: clean,\n  json: true,\n});\n\nawait this.helpers.httpRequest({\n  method: 'POST',\n  url: `${SUPA}/audit_log`,\n  headers: hdr,\n  body: {\n    event_type: 'objective_milestone_proposer',\n    actor: 'marcus',\n    target: 'milestones',\n    details: JSON.stringify({ goal_id: goalId, trigger: ctx.trigger, inserted_count: Array.isArray(inserted) ? inserted.length : 0, base_sequence: baseSeq }),\n  },\n  json: true,\n}).catch(() => null);\n\nreturn [{ json: { ok: true, goal_id: goalId, trigger: ctx.trigger, inserted_count: Array.isArray(inserted) ? inserted.length : 0, milestones: inserted } }];"
+      }
+    },
+    {
+      "id": "Respond_ok",
+      "name": "Respond ok",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        420
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "Respond_skip",
+      "name": "Respond skip",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        180
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, skipped: true, reason: $json.reason || 'unknown', goal_id: $json.goal_id || null }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook propose-milestones": {
+      "main": [
+        [
+          {
+            "node": "Resolve goal_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule 06:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Resolve goal_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve goal_id": {
+      "main": [
+        [
+          {
+            "node": "Fetch context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch context": {
+      "main": [
+        [
+          {
+            "node": "If skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If skip": {
+      "main": [
+        [
+          {
+            "node": "Respond skip",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sonnet propose milestones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet propose milestones": {
+      "main": [
+        [
+          {
+            "node": "Parse and insert milestones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse and insert milestones": {
+      "main": [
+        [
+          {
+            "node": "Respond ok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

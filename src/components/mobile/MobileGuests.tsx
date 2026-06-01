@@ -12,6 +12,9 @@ import { VisibilityTargetCard } from '../VisibilityTargetCard'
 import { DecisionDetail } from '../DecisionDetail'
 import { navigateDecision } from '../../lib/routeDecision'
 import { useHaptics } from '../../hooks/useHaptics'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
+import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 
 type Lane = 'inbound' | 'outbound'
 
@@ -52,6 +55,9 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
   const { guests, loading: guestsLoading } = useRealtimeGuests({ statusIn: ACTIVE_STATUSES })
   const { targets, loading: targetsLoading } = useVisibilityTargets({ includeArchived: false })
   const h = useHaptics()
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
 
   useEffect(() => {
     if (guestId) setLane('inbound')
@@ -94,6 +100,14 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
   const openGuest = (id: string) => { h.select(); navigateDecision(onNavigate, 'guest', id) }
   const openTarget = (id: string) => { h.select(); navigateDecision(onNavigate, 'visibility', id) }
 
+  // Focus Mode (Phase 3): when enabled and the day is calibrated, the active
+  // lane's list regroups into the 3 daily-target lanes via relevance_index.
+  // Inbound keys off 'guests' (not yet pooled, so lanes may be empty until then),
+  // outbound off 'visibility_targets' (already pooled by the calibrator).
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+  const renderGuestRow = (g: GuestRow) => <GuestCard guest={g} onOpen={openGuest} />
+  const renderTargetRow = (t: VisibilityTargetRow) => <VisibilityTargetCard target={t} onOpen={openTarget} />
+
   return (
     <MobileShell
       header={<TabHeader title="Visibility" subtitle="Inbound guests + outbound speaking" />}
@@ -109,6 +123,12 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
             Outbound <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{outboundCount}</span>
           </LaneTab>
         </div>
+
+        {isFocusModeEnabled() && calibrated && (
+          <div className="flex items-center justify-end -mt-1">
+            <FocusModeToggle mode={mode} onChange={setMode} />
+          </div>
+        )}
 
         {lane === 'inbound' ? (
           <NextActionStrip
@@ -159,26 +179,37 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
               </div>
             )}
 
-            {ACTIVE_STATUSES.map(s => {
-              const rows = groupedGuests[s] || []
-              if (rows.length === 0) return null
-              return (
-                <section key={s}>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2 px-1">
-                    {STATUS_LABEL[s]} <span className="text-white/30 tabular-nums">({rows.length})</span>
-                  </h3>
-                  <div className="space-y-2">
-                    {rows.slice(0, 8).map(g => (
-                      <GuestCard
-                        key={g.id}
-                        guest={g}
-                        onOpen={(id) => { h.select(); navigateDecision(onNavigate || (() => {}), 'guest', id) }}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )
-            })}
+            {showFocus ? (
+              <FocusLanes
+                rows={guests}
+                table="guests"
+                keyOf={(r) => String(r.id)}
+                renderItem={renderGuestRow}
+                fallback={null}
+                mutedLabel="Off focus"
+              />
+            ) : (
+              ACTIVE_STATUSES.map(s => {
+                const rows = groupedGuests[s] || []
+                if (rows.length === 0) return null
+                return (
+                  <section key={s}>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2 px-1">
+                      {STATUS_LABEL[s]} <span className="text-white/30 tabular-nums">({rows.length})</span>
+                    </h3>
+                    <div className="space-y-2">
+                      {rows.slice(0, 8).map(g => (
+                        <GuestCard
+                          key={g.id}
+                          guest={g}
+                          onOpen={(id) => { h.select(); navigateDecision(onNavigate || (() => {}), 'guest', id) }}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )
+              })
+            )}
           </>
         ) : (
           <>
@@ -193,33 +224,44 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
               </div>
             )}
 
-            {ACTIVE_VIS_STATUSES.map(s => {
-              const rows = groupedTargets[s] || []
-              if (rows.length === 0) return null
-              return (
-                <section key={s}>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2 px-1">
-                    {VIS_STATUS_LABEL[s]} <span className="text-white/30 tabular-nums">({rows.length})</span>
-                  </h3>
-                  <div className="space-y-2">
-                    {rows.slice(0, 8).map(t => (
-                      <VisibilityTargetCard
-                        key={t.id}
-                        target={t}
-                        onOpen={(id) => { h.select(); navigateDecision(onNavigate || (() => {}), 'visibility', id) }}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )
-            })}
+            {showFocus ? (
+              <FocusLanes
+                rows={targets}
+                table="visibility_targets"
+                keyOf={(r) => String(r.id)}
+                renderItem={renderTargetRow}
+                fallback={null}
+                mutedLabel="Off focus"
+              />
+            ) : (
+              ACTIVE_VIS_STATUSES.map(s => {
+                const rows = groupedTargets[s] || []
+                if (rows.length === 0) return null
+                return (
+                  <section key={s}>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2 px-1">
+                      {VIS_STATUS_LABEL[s]} <span className="text-white/30 tabular-nums">({rows.length})</span>
+                    </h3>
+                    <div className="space-y-2">
+                      {rows.slice(0, 8).map(t => (
+                        <VisibilityTargetCard
+                          key={t.id}
+                          target={t}
+                          onOpen={(id) => { h.select(); navigateDecision(onNavigate || (() => {}), 'visibility', id) }}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )
+              })
+            )}
           </>
         )}
       </div>
 
       <BottomSheet open={!!detailDecision} onClose={() => onClearDetail?.()}>
         {detailDecision && (
-          <DecisionDetail decision={detailDecision} onClose={() => onClearDetail?.()} />
+          <DecisionDetail decision={detailDecision} onClose={() => onClearDetail?.()} actionsEnabled />
         )}
       </BottomSheet>
     </MobileShell>

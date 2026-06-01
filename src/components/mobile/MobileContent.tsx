@@ -5,6 +5,9 @@ import { TabHeader } from './primitives'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 import { NextActionStrip } from '../shared/NextActionStrip'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
+import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 
 const ACTIVE_STATES: IdeaState[] = ['seeded', 'researching', 'drafting', 'review', 'approved']
 const STATE_LABEL: Record<IdeaState, string> = {
@@ -50,6 +53,24 @@ export function MobileContent({ ideaId, onClearIdea }: Props = {}) {
   }, [ideas])
   const reviewCount = (grouped.review || []).length
   const draftCount = (grouped.drafting || []).length
+
+  // Focus Mode (Phase 3): when enabled and the day is calibrated, the state
+  // sections regroup into the 3 daily-target lanes via relevance_index (table
+  // 'content_ideas'). One uniform row renderer feeds both lanes and the muted set.
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+
+  // Flat, state-ordered array of the ideas the normal sections would show.
+  const visibleIdeas = useMemo(
+    () => ACTIVE_STATES.flatMap(s => grouped[s] || []),
+    [grouped],
+  )
+
+  // Uniform row renderer mirroring the normal section card + its select behavior.
+  const renderIdeaRow = (idea: ContentIdeaRow) =>
+    idea.id === (ideaId || null) ? null : <ContentIdeaCardActionable idea={idea} />
 
   const focusIdea = () => {
     if (!nextDecisionIdea) return
@@ -104,25 +125,44 @@ export function MobileContent({ ideaId, onClearIdea }: Props = {}) {
           </div>
         )}
 
-        {ACTIVE_STATES.map(state => {
-          const rows = grouped[state] || []
-          if (rows.length === 0) return null
-          return (
-            <section key={state} className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-3">
-              <h3 className="text-[11px] uppercase tracking-[0.14em] text-violet-300 mb-2 flex items-baseline gap-2">
-                {STATE_LABEL[state]} <span className="text-white/45 tabular-nums">{rows.length}</span>
-              </h3>
-              <ul className="space-y-2.5">
-                {rows.map(i => (
-                  <li key={i.id}>
-                    {/* Hide the inline card if it's already pinned at the top as the detail. */}
-                    {i.id !== (ideaId || null) && <ContentIdeaCardActionable idea={i} />}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )
-        })}
+        {isFocusModeEnabled() && calibrated && (
+          <div className="flex items-center justify-end">
+            <FocusModeToggle mode={mode} onChange={setMode} />
+          </div>
+        )}
+
+        {showFocus ? (
+          <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-3">
+            <FocusLanes
+              rows={visibleIdeas}
+              table="content_ideas"
+              keyOf={i => String(i.id)}
+              renderItem={renderIdeaRow}
+              fallback={null}
+              mutedLabel="Off focus"
+            />
+          </section>
+        ) : (
+          ACTIVE_STATES.map(state => {
+            const rows = grouped[state] || []
+            if (rows.length === 0) return null
+            return (
+              <section key={state} className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-3">
+                <h3 className="text-[11px] uppercase tracking-[0.14em] text-violet-300 mb-2 flex items-baseline gap-2">
+                  {STATE_LABEL[state]} <span className="text-white/45 tabular-nums">{rows.length}</span>
+                </h3>
+                <ul className="space-y-2.5">
+                  {rows.map(i => (
+                    <li key={i.id}>
+                      {/* Hide the inline card if it's already pinned at the top as the detail. */}
+                      {i.id !== (ideaId || null) && <ContentIdeaCardActionable idea={i} />}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )
+          })
+        )}
       </div>
     </MobileShell>
   )

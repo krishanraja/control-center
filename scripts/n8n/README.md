@@ -104,6 +104,12 @@ jobs:
 The audit will fail the build if the repo and cloud disagree, forcing the
 team to either commit the cloud version or push the repo version.
 
+## Recent additions
+
+- `krish-objective-milestone-proposer.workflow.json` (Phase 3, 2026-05-29). Marcus's milestone proposer for the portfolio-objective layer. Webhook at `/webhook/propose-milestones` accepts `{ goal_id }`; daily Schedule at 06:00 UTC picks the first eligible active objective with no proposed milestones. Sonnet 4.6 proposes 2 to 5 milestones grounded in Marcus's live brief; idempotency via a pre-insert race check on `milestones.status='proposed'`. Audit log event: `objective_milestone_proposer`. Live workflow id: `uL8DLpHbT11eqBAW`.
+  - **Phase 6 enrichment (2026-06-01, PR #111), pending re-import.** The webhook now also accepts `mode` (`propose`|`recalibrate`) and `krish_context` (Krish's narration). In `recalibrate` mode it drops stale `proposed` milestones first; the Sonnet prompt is grounded in `goal_agent_contributions` and now emits `owner_split`, `is_accomplishment`, and `auto_executable_pct` per milestone. This workflow has `availableInMCP=false`, so the canonical JSON was edited directly here and must be **re-imported to n8n Cloud** to take effect (the cron stays backward-compatible until then).
+- **Ladder-down is NOT an n8n workflow.** Committing a week (`POST /api/weekly-focus/commit`) spawns one task per contributing agent for each committed milestone, implemented inline in the Vercel route with the service-role client (deterministic, idempotent, no inlined secret). Kept out of n8n on purpose — it is a pure DB fan-out that needs no LLM and no separate runtime.
+
 ## Known limitations
 
 - Webhook URLs in the canonical JSON include the cloud tenant

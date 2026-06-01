@@ -10,6 +10,9 @@ import { supabase, logKrishAction } from '../../lib/supabase'
 import { humanAge } from '../../lib/ageHelpers'
 import { DecisionDetail } from '../DecisionDetail'
 import { navigateDecision } from '../../lib/routeDecision'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
+import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 
 // Mirrors the desktop noise/stale filters in DesktopToday so the two surfaces
 // agree on what counts as "today".
@@ -89,8 +92,11 @@ export function MobileToday({
   )
   const [openId, setOpenId] = useState<string | null>(null)
   const [showStale, setShowStale] = useState(false)
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
 
-  const { due, waiting, pipeline, stale, hero } = useMemo(() => {
+  const { due, waiting, pipeline, stale, hero, visible } = useMemo(() => {
     const visible: TaskRow[] = []
     const staleArr: TaskRow[] = []
     for (const t of tasks) {
@@ -116,10 +122,29 @@ export function MobileToday({
       pipeline[0] ||
       null
 
-    return { due, waiting, pipeline, stale: staleArr, hero }
+    return { due, waiting, pipeline, stale: staleArr, hero, visible }
   }, [tasks])
 
   const open = openId ? tasks.find(t => t.id === openId) ?? null : null
+
+  // Focus Mode (Phase 3): when enabled and the day is calibrated, the lists
+  // below regroup into the 3 daily-target lanes via relevance_index (table
+  // 'tasks'). One uniform row renderer feeds both the lanes and the muted set.
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+  const renderTaskRow = (t: TaskRow) => {
+    const accent = urgencyAccent(t)
+    const dot = accent === 'red' ? 'bg-red-400' : accent === 'amber' ? 'bg-amber-400' : accent === 'violet' ? 'bg-violet-400' : 'bg-white/30'
+    return (
+      <FeedRow
+        dotColor={dot}
+        title={t.title}
+        detail={t.next_step || t.agent || undefined}
+        trailing={<span className="text-[14px] text-white/35 tabular-nums">{t.due_date ? humanDue(t.due_date) : humanAge(t.updated_at)}</span>}
+        onClick={() => { h.select(); setOpenId(t.id) }}
+        feedback={{ sourceTable: 'tasks', sourceId: t.id, agentId: t.agent || t.owner }}
+      />
+    )
+  }
 
   const supersede = async (id: string) => {
     h.heavy()
@@ -187,56 +212,77 @@ export function MobileToday({
         <StatPill label="Pipeline" value={pipeline.length} color="text-white/85" />
       </div>
 
+      {isFocusModeEnabled() && calibrated && (
+        <div className="flex items-center justify-end -mt-1">
+          <FocusModeToggle mode={mode} onChange={setMode} />
+        </div>
+      )}
+
       {due.length === 0 && waiting.length === 0 && pipeline.length === 0 && !loading && (
         <EmptyState label="Inbox zero. Nothing needs you right now." />
       )}
 
-      {due.length > 0 && (
-        <FeedCard title={`Due today · ${due.length}`}>
-          {due.slice(0, 6).map(t => (
-            <FeedRow
-              key={t.id}
-              dotColor="bg-red-400"
-              title={t.title}
-              detail={t.next_step || undefined}
-              trailing={<span className="text-[14px] text-white/40">{humanDue(t.due_date)}</span>}
-              onClick={() => { h.select(); setOpenId(t.id) }}
-              feedback={{ sourceTable: "tasks", sourceId: t.id, agentId: t.agent || t.owner }}
-            />
-          ))}
+      {showFocus ? (
+        <FeedCard title="Today, by focus">
+          <FocusLanes
+            rows={visible}
+            table="tasks"
+            keyOf={(t) => String(t.id)}
+            renderItem={renderTaskRow}
+            fallback={null}
+            mutedLabel="Off focus"
+          />
         </FeedCard>
-      )}
+      ) : (
+        <>
+          {due.length > 0 && (
+            <FeedCard title={`Due today · ${due.length}`}>
+              {due.slice(0, 6).map(t => (
+                <FeedRow
+                  key={t.id}
+                  dotColor="bg-red-400"
+                  title={t.title}
+                  detail={t.next_step || undefined}
+                  trailing={<span className="text-[14px] text-white/40">{humanDue(t.due_date)}</span>}
+                  onClick={() => { h.select(); setOpenId(t.id) }}
+                  feedback={{ sourceTable: "tasks", sourceId: t.id, agentId: t.agent || t.owner }}
+                />
+              ))}
+            </FeedCard>
+          )}
 
-      {waiting.length > 0 && (
-        <FeedCard title={`Waiting on you · ${waiting.length}`}>
-          {waiting.slice(0, 8).map(t => (
-            <FeedRow
-              key={t.id}
-              dotColor="bg-amber-400"
-              title={t.title}
-              detail={t.next_step || undefined}
-              trailing={<span className="text-[14px] text-white/35 tabular-nums">{humanAge(t.updated_at)}</span>}
-              onClick={() => { h.select(); setOpenId(t.id) }}
-              feedback={{ sourceTable: "tasks", sourceId: t.id, agentId: t.agent || t.owner }}
-            />
-          ))}
-        </FeedCard>
-      )}
+          {waiting.length > 0 && (
+            <FeedCard title={`Waiting on you · ${waiting.length}`}>
+              {waiting.slice(0, 8).map(t => (
+                <FeedRow
+                  key={t.id}
+                  dotColor="bg-amber-400"
+                  title={t.title}
+                  detail={t.next_step || undefined}
+                  trailing={<span className="text-[14px] text-white/35 tabular-nums">{humanAge(t.updated_at)}</span>}
+                  onClick={() => { h.select(); setOpenId(t.id) }}
+                  feedback={{ sourceTable: "tasks", sourceId: t.id, agentId: t.agent || t.owner }}
+                />
+              ))}
+            </FeedCard>
+          )}
 
-      {pipeline.length > 0 && (
-        <FeedCard title={`In flight · ${pipeline.length}`}>
-          {pipeline.slice(0, 6).map(t => (
-            <FeedRow
-              key={t.id}
-              dotColor="bg-violet-400"
-              title={t.title}
-              detail={t.agent ? `${t.agent}${t.next_step ? ' · ' + t.next_step : ''}` : t.next_step || undefined}
-              trailing={<span className="text-[14px] text-white/35 tabular-nums">{humanAge(t.updated_at)}</span>}
-              onClick={() => { h.select(); setOpenId(t.id) }}
-              feedback={{ sourceTable: "tasks", sourceId: t.id, agentId: t.agent || t.owner }}
-            />
-          ))}
-        </FeedCard>
+          {pipeline.length > 0 && (
+            <FeedCard title={`In flight · ${pipeline.length}`}>
+              {pipeline.slice(0, 6).map(t => (
+                <FeedRow
+                  key={t.id}
+                  dotColor="bg-violet-400"
+                  title={t.title}
+                  detail={t.agent ? `${t.agent}${t.next_step ? ' · ' + t.next_step : ''}` : t.next_step || undefined}
+                  trailing={<span className="text-[14px] text-white/35 tabular-nums">{humanAge(t.updated_at)}</span>}
+                  onClick={() => { h.select(); setOpenId(t.id) }}
+                  feedback={{ sourceTable: "tasks", sourceId: t.id, agentId: t.agent || t.owner }}
+                />
+              ))}
+            </FeedCard>
+          )}
+        </>
       )}
 
       {stale.length > 0 && (
@@ -298,7 +344,7 @@ export function MobileToday({
         ariaLabel="Decision detail"
       >
         {decision && (
-          <DecisionDetail decision={decision} onClose={() => onClearDecision?.()} />
+          <DecisionDetail decision={decision} onClose={() => onClearDecision?.()} actionsEnabled />
         )}
       </BottomSheet>
     </MobileShellPrim>

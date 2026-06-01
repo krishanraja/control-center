@@ -11,10 +11,16 @@ import { CustomerCouncilCard } from '../CustomerCouncilCard'
 import { ExpansionRadar } from '../ExpansionRadar'
 import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
 import { NextActionStrip } from '../shared/NextActionStrip'
+import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 
 export function DesktopCustomers() {
   const { buckets, totals, customers, loading, error } = useCustomers()
   const [selected, setSelected] = useState<CustomerProduct | null>(null)
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
   const activeProducts = buckets.filter(b => b.total > 0)
   const current = (selected && buckets.find(b => b.product === selected)) || activeProducts[0] || null
 
@@ -33,6 +39,23 @@ export function DesktopCustomers() {
       .sort((a, b) => (b.mrr_usd || 0) - (a.mrr_usd || 0))
   }, [customers])
   const topExpansion = expansionPlays[0] || null
+
+  // Full Focus Mode (Phase 3): when enabled and the day is calibrated, the
+  // expansion-plays list regroups into the 3 daily-target lanes via
+  // relevance_index (table 'customers'). One uniform row renderer feeds both
+  // the lanes and the muted set.
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+  const renderExpansionRow = (c: typeof expansionPlays[number]) => (
+    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[12px] font-medium text-white truncate">{c.full_name || c.email || 'unnamed'}</span>
+        {c.mrr_usd != null && (
+          <span className="text-[10px] tabular-nums text-emerald-300 flex-shrink-0">${c.mrr_usd}/mo</span>
+        )}
+      </div>
+      {c.email && <p className="text-[10px] text-white/45 truncate">{c.email}</p>}
+    </div>
+  )
 
   const scrollToExpansion = () => {
     const el = document.getElementById('expansion-plays')
@@ -57,24 +80,38 @@ export function DesktopCustomers() {
           <header className="flex items-baseline gap-2 mb-2">
             <Mail size={12} className="text-emerald-300" />
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300">Expansion plays</h2>
-            <span className="text-[10px] text-white/45 tabular-nums ml-auto">{expansionPlays.length}</span>
+            {isFocusModeEnabled() && calibrated && (
+              <span className="ml-auto"><FocusModeToggle mode={mode} onChange={setMode} /></span>
+            )}
+            <span className={`text-[10px] text-white/45 tabular-nums ${isFocusModeEnabled() && calibrated ? '' : 'ml-auto'}`}>{expansionPlays.length}</span>
           </header>
           <p className="text-[10px] text-white/45 mb-2">
             Paid accounts Maya flagged for outreach. Open each to draft an email.
           </p>
-          <ul className="space-y-1.5">
-            {expansionPlays.slice(0, 5).map(c => (
-              <li key={c.id} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[12px] font-medium text-white truncate">{c.full_name || c.email || 'unnamed'}</span>
-                  {c.mrr_usd != null && (
-                    <span className="text-[10px] tabular-nums text-emerald-300 flex-shrink-0">${c.mrr_usd}/mo</span>
-                  )}
-                </div>
-                {c.email && <p className="text-[10px] text-white/45 truncate">{c.email}</p>}
-              </li>
-            ))}
-          </ul>
+          {showFocus ? (
+            <FocusLanes
+              rows={expansionPlays}
+              table="customers"
+              keyOf={c => String(c.id)}
+              renderItem={renderExpansionRow}
+              fallback={null}
+              mutedLabel="Off focus"
+            />
+          ) : (
+            <ul className="space-y-1.5">
+              {expansionPlays.slice(0, 5).map(c => (
+                <li key={c.id} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[12px] font-medium text-white truncate">{c.full_name || c.email || 'unnamed'}</span>
+                    {c.mrr_usd != null && (
+                      <span className="text-[10px] tabular-nums text-emerald-300 flex-shrink-0">${c.mrr_usd}/mo</span>
+                    )}
+                  </div>
+                  {c.email && <p className="text-[10px] text-white/45 truncate">{c.email}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
 

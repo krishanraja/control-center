@@ -4,6 +4,7 @@ import { Brain, Radio, Zap, ExternalLink, Target, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { AskMarcus } from '../AskMarcus'
+import { FleetFunnelPanel } from '../FleetFunnelPanel'
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { useToast } from '../shared/Toast'
 
@@ -118,6 +119,8 @@ export function DesktopExec() {
       />
 
       <AskMarcus />
+
+      <FleetFunnelPanel />
 
       <div className="grid grid-cols-12 gap-4 md:gap-5">
 

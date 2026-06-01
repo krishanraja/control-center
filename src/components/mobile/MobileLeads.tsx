@@ -4,12 +4,16 @@ import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { DetailSheet } from './DetailSheet'
 import { LeadImportDropzone } from '../LeadImportDropzone'
-import { useRealtimeLeads, type LeadRow, type LeadSourceType, type LeadStatus } from '../../hooks/useRealtimeLeads'
+import { useRealtimeLeads, type LeadRow, type LeadSourceType } from '../../hooks/useRealtimeLeads'
 import { useVentureRegistry } from '../../hooks/useVentureRegistry'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { humanAge } from '../../lib/ageHelpers'
 import { navigateDecision } from '../../lib/routeDecision'
+import { buildDecisionActions } from '../../lib/decisionActions'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
+import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
+import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 
 const SOURCE_TITLE: Record<LeadSourceType, string> = {
   podcast_audience: 'Podcast audiences',
@@ -89,29 +93,6 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
   }).length
   const contacted = leads.filter(l => l.status === 'contacted' || l.status === 'conversation').length
 
-  const setStatus = async (id: string, next: LeadStatus) => {
-    h.heavy()
-    try {
-      const r = await fetch(`/api/leads/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: next }),
-      })
-      if (!r.ok) throw new Error(String(r.status))
-      const labels: Partial<Record<LeadStatus, string>> = {
-        contacted: 'Marked contacted.',
-        superseded: 'Dropped.',
-        ready: 'Marked ready.',
-      }
-      h.success()
-      toast(labels[next] || 'Updated.', 'success')
-      closeDetail()
-    } catch {
-      h.error()
-      toast('Could not update lead — try again.', 'error')
-    }
-  }
-
   const openLead = openId ? leads.find(l => l.id === openId) ?? null : null
 
   // Mirrors DesktopLeads: surface un-enriched candidates so the CEO can
@@ -131,6 +112,26 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
   const candidateInsight = topCandidate
     ? `Top fit: ${topCandidate.full_name || topCandidate.company || 'unnamed'}${topCandidate.primary_venture ? ` (${topCandidate.primary_venture.replace(/_/g, ' ')})` : ''}`
     : 'No candidates waiting — credits only spent on explicit Enrich.'
+
+  // Focus Mode (Phase 3): when enabled and today is calibrated, the venture
+  // feed cards regroup into the 3 daily-target lanes via relevance_index (table
+  // 'leads'). The visible set is every active lead the tab already lists, fed
+  // through one uniform FeedRow renderer that preserves the existing tap-to-open
+  // and feedback behavior.
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+  const renderLeadRow = (l: LeadRow) => (
+    <FeedRow
+      dotColor={fitDot(l.fit_score)}
+      title={leadName(l)}
+      detail={l.why_relevant || leadSubtitle(l) || undefined}
+      trailing={<span className="text-[14px] text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>}
+      onClick={() => openLeadFromRow(l.id)}
+      feedback={{ sourceTable: 'leads', sourceId: l.id, agentId: l.assignee_agent }}
+    />
+  )
 
   return (
     <MobileShellPrim
@@ -185,42 +186,61 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
         <StatPill label="New 24h" value={newToday} color={newToday > 0 ? 'text-amber-300' : 'text-white/45'} />
       </div>
 
+      {isFocusModeEnabled() && calibrated && (
+        <div className="flex items-center justify-end -mt-1">
+          <FocusModeToggle mode={mode} onChange={setMode} />
+        </div>
+      )}
+
       {total === 0 && !loading && (
         <EmptyState label="No active leads. Tap Import to drop a Google Drive file." />
       )}
 
-      {[
-        ...ventures.map(v => ({ slug: v.slug, title: v.display_name })),
-        { slug: '__other', title: 'Other' },
-      ].map(({ slug, title }) => {
-        const rows = groupedByVenture[slug] || []
-        if (rows.length === 0) return null
-        return (
-          <FeedCard
-            key={slug}
-            title={`${title} · ${rows.length}`}
-          >
-            {rows.slice(0, 8).map(l => (
-              <FeedRow
-                key={l.id}
-                dotColor={fitDot(l.fit_score)}
-                title={leadName(l)}
-                detail={l.why_relevant || leadSubtitle(l) || undefined}
-                trailing={
-                  <span className="text-[14px] text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>
-                }
-                onClick={() => openLeadFromRow(l.id)}
-                feedback={{ sourceTable: "leads", sourceId: l.id, agentId: l.assignee_agent }}
-              />
-            ))}
-            {rows.length > 8 && (
-              <div className="px-7 py-4 text-[14px] text-white/35 text-center">
-                +{rows.length - 8} more
-              </div>
-            )}
-          </FeedCard>
-        )
-      })}
+      {showFocus ? (
+        <FeedCard title="Services, by focus">
+          <FocusLanes
+            rows={leads}
+            table="leads"
+            keyOf={l => String(l.id)}
+            renderItem={renderLeadRow}
+            fallback={null}
+            mutedLabel="Off focus"
+          />
+        </FeedCard>
+      ) : (
+        [
+          ...ventures.map(v => ({ slug: v.slug, title: v.display_name })),
+          { slug: '__other', title: 'Other' },
+        ].map(({ slug, title }) => {
+          const rows = groupedByVenture[slug] || []
+          if (rows.length === 0) return null
+          return (
+            <FeedCard
+              key={slug}
+              title={`${title} · ${rows.length}`}
+            >
+              {rows.slice(0, 8).map(l => (
+                <FeedRow
+                  key={l.id}
+                  dotColor={fitDot(l.fit_score)}
+                  title={leadName(l)}
+                  detail={l.why_relevant || leadSubtitle(l) || undefined}
+                  trailing={
+                    <span className="text-[14px] text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>
+                  }
+                  onClick={() => openLeadFromRow(l.id)}
+                  feedback={{ sourceTable: "leads", sourceId: l.id, agentId: l.assignee_agent }}
+                />
+              ))}
+              {rows.length > 8 && (
+                <div className="px-7 py-4 text-[14px] text-white/35 text-center">
+                  +{rows.length - 8} more
+                </div>
+              )}
+            </FeedCard>
+          )
+        })
+      )}
 
       <DetailSheet
         open={openLead != null}
@@ -232,137 +252,10 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
         status={openLead?.status}
         meta={openLead?.fit_score != null ? `Fit ${openLead.fit_score}/10` : undefined}
         docUrl={openLead?.source_url || undefined}
-        actions={openLead ? buildActions(openLead, setStatus, h, toast) : []}
+        actions={openLead ? buildDecisionActions('lead', openLead, { toast, haptics: h, onDone: closeDetail }) : []}
       />
     </MobileShellPrim>
   )
-}
-
-function buildActions(
-  l: LeadRow,
-  setStatus: (id: string, next: LeadStatus) => Promise<void>,
-  h: ReturnType<typeof useHaptics>,
-  toast: (msg: string, variant?: 'success' | 'error' | 'info') => void,
-) {
-  const acts: { label: string; variant?: 'primary' | 'secondary' | 'danger'; onClick: () => void }[] = []
-
-  if (l.email) {
-    acts.push({
-      label: 'Draft email',
-      variant: 'primary',
-      onClick: async () => {
-        h.heavy()
-        try {
-          const r = await fetch(`/api/leads/${l.id}/draft-email`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ intent: 'introduction' }),
-          })
-          const body = await r.json().catch(() => ({}))
-          if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
-          h.success()
-          toast('Draft created in Gmail.', 'success')
-          if (body?.draft_url) {
-            try { window.open(body.draft_url, '_blank', 'noreferrer,noopener') } catch {}
-          }
-        } catch (e: any) {
-          h.error()
-          toast(`Could not draft email: ${e?.message || 'try again'}`, 'error')
-        }
-      },
-    })
-  }
-
-  // Candidate (status='new', un-enriched) leads get the Enrich/Skip pair as
-  // primary actions, mirroring the desktop LeadCard decision strip. Cost chip
-  // surfaces in the label so the spend is legible. Skip writes the same
-  // feedback row Vera consumes from triage rejects.
-  const isCandidate = !l.deep_enriched_at && (l.status === 'new' || l.status === 'enriching')
-  if (isCandidate) {
-    acts.push({
-      label: 'Enrich (~$0.50)',
-      variant: 'primary',
-      onClick: async () => {
-        h.heavy()
-        try {
-          const r = await fetch(`/api/leads/${l.id}/enrich`, { method: 'POST' })
-          const body = await r.json().catch(() => ({}))
-          if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
-          h.success()
-          toast('Agatha is enriching — refresh in ~30s.', 'success')
-        } catch (e: any) {
-          h.error()
-          toast(`Could not enrich: ${e?.message || 'try again'}`, 'error')
-        }
-      },
-    })
-    acts.push({
-      label: 'Skip',
-      variant: 'secondary',
-      onClick: async () => {
-        h.heavy()
-        try {
-          const r = await fetch('/api/triage/reject', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              source_table: 'leads',
-              source_id: l.id,
-              agent: l.assignee_agent || 'felix',
-              reason_code: 'lead_other',
-            }),
-          })
-          if (!r.ok) throw new Error(String(r.status))
-          h.success()
-          toast('Skipped. Vera will learn from this.', 'success')
-        } catch (e: any) {
-          h.error()
-          toast(`Could not skip: ${e?.message || 'try again'}`, 'error')
-        }
-      },
-    })
-  } else if (!l.deep_enriched_at) {
-    // Already-contacted / non-candidate leads still get a manual enrich path
-    // (less prominent) for cases where Krish wants to force enrichment.
-    acts.push({
-      label: 'Deep enrich',
-      variant: 'secondary',
-      onClick: async () => {
-        h.heavy()
-        try {
-          const r = await fetch(`/api/leads/${l.id}/enrich`, { method: 'POST' })
-          const body = await r.json().catch(() => ({}))
-          if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
-          h.success()
-          toast('Agatha is enriching — refresh in ~30s.', 'success')
-        } catch (e: any) {
-          h.error()
-          toast(`Could not enrich: ${e?.message || 'try again'}`, 'error')
-        }
-      },
-    })
-  }
-
-  if (l.status !== 'contacted' && l.status !== 'conversation') {
-    acts.push({
-      label: 'Mark contacted',
-      variant: 'secondary',
-      onClick: () => setStatus(l.id, 'contacted'),
-    })
-  }
-  if (l.linkedin_url) {
-    acts.push({
-      label: 'Open LinkedIn',
-      variant: 'secondary',
-      onClick: () => { h.tap(); window.open(l.linkedin_url!, '_blank', 'noreferrer,noopener') },
-    })
-  }
-  acts.push({
-    label: 'Drop',
-    variant: 'danger',
-    onClick: () => setStatus(l.id, 'superseded'),
-  })
-  return acts
 }
 
 function pickFeatured(leads: LeadRow[]): LeadRow | null {
