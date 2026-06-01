@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
   Sparkles, Check, Loader2, Target, Clock, ArrowLeft, ArrowRight,
-  CheckCircle2, Inbox, Flame,
+  CheckCircle2, Inbox, Flame, Plus, X,
 } from 'lucide-react'
 import { useAltitudes, type AltitudeId } from '../../hooks/useAltitudes'
-import { useObjectives } from '../../hooks/useObjectives'
+import { useObjectives, reorderObjectives } from '../../hooks/useObjectives'
 import { useWeeklyFocus } from '../../hooks/useWeeklyFocus'
 import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
 import { useStreaks } from '../../hooks/useStreaks'
@@ -13,7 +13,11 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { BottomSheet } from '../mobile/BottomSheet'
 import { NominationTray } from '../objectives/NominationTray'
-import { MilestoneCalibrator } from '../objectives/MilestoneCalibrator'
+import { ObjectiveReviewCard } from '../objectives/ObjectiveReviewCard'
+import { ObjectiveProposalReview, type ObjectiveProposal } from '../objectives/ObjectiveProposalReview'
+import { OwnerSplit } from '../objectives/OwnerSplit'
+import type { OwnerSplit as OwnerSplitData, AgentContribution } from '../../hooks/useObjectiveTree'
+import { MicButton } from '../shared/VoiceCapture'
 import { ContextHeader } from '../focus/ContextHeader'
 import { CarryOverPrompt } from '../focus/CarryOverPrompt'
 import { FocusCalibrator } from '../focus/FocusCalibrator'
@@ -191,51 +195,73 @@ const NEXT_LABEL: Record<StepId, string> = {
 }
 
 // ── Portfolio step ───────────────────────────────────────────────────────────
-// Ratify the objective board: accept/reject Marcus's nominations inline, then
-// confirm the active set. Advancing (footer "These are my objectives") is the
-// ratification — nominations left untouched simply persist for later.
+// Review the objective board at the OBJECTIVE altitude: reorder priority, edit
+// wording / KPI / definition, or narrate a reaction and let Marcus turn it into a
+// confirmable change set that recalibrates the milestones beneath. Accept/reject
+// Marcus's objective nominations inline. Milestone shaping is demoted to a
+// per-card disclosure — it is no longer what this step is about.
 function PortfolioStep() {
-  const { active, active_count, soft_cap } = useObjectives()
+  const { active, active_count, soft_cap, refresh } = useObjectives()
+  const { toast } = useToast()
   const overCap = active_count > soft_cap
+  const [proposal, setProposal] = useState<{ p: ObjectiveProposal; transcript: string } | null>(null)
+
+  const move = async (idx: number, dir: 'up' | 'down') => {
+    const order = active.map(o => o.id)
+    const swap = dir === 'up' ? idx - 1 : idx + 1
+    if (swap < 0 || swap >= order.length) return
+    const tmp = order[idx]; order[idx] = order[swap]; order[swap] = tmp
+    await reorderObjectives(active, order)
+    refresh()
+  }
+
   return (
     <div className="space-y-3">
-      <p className="text-[12px] text-white/55 leading-snug">
-        Confirm the objectives you're running. Accept or reject anything Marcus proposed, then move on.
-      </p>
-      <NominationTray />
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-white/45 font-semibold">Active objectives ({active_count})</p>
-          {overCap && <span className="text-[10px] text-amber-300/85 font-semibold">Over soft cap ({soft_cap})</span>}
-        </div>
-        {active.length === 0 ? (
-          <p className="text-[12px] text-white/45">No active objectives yet. Accept one of Marcus's proposals above to give the OS a multi-week unlock.</p>
-        ) : (
-          <ul className="space-y-1.5">
-            {active.map(o => (
-              <li key={o.id} className="flex items-start gap-2 text-[12px] text-white/80">
-                <Target size={11} className="text-violet-300/70 mt-0.5 flex-shrink-0" />
-                <span className="break-words">{o.title}{o.venture ? <span className="text-white/40"> · {o.venture}</span> : null}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="flex items-start gap-2">
+        <p className="text-[12px] text-white/55 leading-snug flex-1">
+          Do these objectives — and this order — look right? Reorder, edit, or just talk. Marcus recalibrates the milestones beneath.
+        </p>
+        <MicButton
+          endpoint="/api/objectives/voice"
+          label="Narrate"
+          onJson={(j) => {
+            if (j.proposal) setProposal({ p: j.proposal as ObjectiveProposal, transcript: (j.transcript as string) || '' })
+            else toast('Heard you, but no clear change — edit a card directly.', 'info' as 'success')
+          }}
+          onError={() => toast('Voice unavailable. Edit directly.', 'error')}
+        />
       </div>
 
-      {/* Marcus-proposed milestones awaiting accept/reject — shaping the
-          milestone set is portfolio-level work (the weekly step only commits
-          from what's already accepted). */}
-      {active.some(o => (o.proposed_milestone_count || 0) > 0) && (
-        <div className="space-y-3">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-amber-300/80 font-semibold">Milestones to review</p>
-          {active.filter(o => (o.proposed_milestone_count || 0) > 0).map(o => (
-            <div key={o.id}>
-              <div className="flex items-center gap-2 mb-1.5 px-1">
-                <span className="text-[11px] font-semibold text-white/80 break-words">{o.title}</span>
-                <span className="text-[10px] text-amber-300/70 tabular-nums">{o.proposed_milestone_count} proposed</span>
-              </div>
-              <MilestoneCalibrator goalId={o.id} />
-            </div>
+      {proposal && (
+        <ObjectiveProposalReview
+          proposal={proposal.p}
+          transcript={proposal.transcript}
+          objectives={active}
+          onApplied={() => { setProposal(null); refresh() }}
+          onDismiss={() => setProposal(null)}
+        />
+      )}
+
+      <NominationTray />
+
+      <div className="flex items-center justify-between px-1">
+        <p className="text-[10px] uppercase tracking-[0.14em] text-white/45 font-semibold">Active objectives ({active_count})</p>
+        {overCap && <span className="text-[10px] text-amber-300/85 font-semibold">Over soft cap ({soft_cap})</span>}
+      </div>
+
+      {active.length === 0 ? (
+        <p className="text-[12px] text-white/45">No active objectives yet. Accept one of Marcus's proposals above to give the OS a multi-week unlock.</p>
+      ) : (
+        <div className="space-y-2">
+          {active.map((o, i) => (
+            <ObjectiveReviewCard
+              key={o.id}
+              objective={o}
+              isFirst={i === 0}
+              isLast={i === active.length - 1}
+              onMove={(dir) => move(i, dir)}
+              onChanged={refresh}
+            />
           ))}
         </div>
       )}
@@ -244,12 +270,28 @@ function PortfolioStep() {
 }
 
 // ── Weekly step ──────────────────────────────────────────────────────────────
-// Commit up to 3 already-accepted milestones as this week's moves. Shaping the
-// milestone set (accept/reject Marcus's proposals) is portfolio-level work, so it
-// lives in the Portfolio step — this step only commits. Active-pick: nothing is
-// pre-checked (unlike the old WeeklyFocusTakeover endowment). Commit hits
-// /api/weekly-focus/commit.
-interface PoolMilestone { id: string; title: string; goal_id: string; goal_title: string; hours: number | null }
+// Commit up to 3 of this week's moves. The candidate slate comes from
+// /api/weekly-focus/slate: accomplishment-altitude milestones across ALL active
+// objectives (not just the 2 that happened to be 'accepted'), each laddering up
+// to its objective and showing the OS-vs-you split. Krish can also write/speak
+// his own move — that creates a krish_authored milestone and teaches the slate
+// (marcus_weekly_slate_override). Commit hits /api/weekly-focus/commit, which
+// ladders the committed milestones down into agent-assigned tasks.
+interface SlateItem {
+  milestone_id: string
+  title: string
+  goal_id: string
+  goal_title: string
+  goal_priority: number | null
+  venture: string | null
+  status: string
+  source: string
+  blessed: boolean
+  est_deep_work_hours: number | null
+  owner_split: OwnerSplitData | null
+  auto_executable_pct: number | null
+  contributions: AgentContribution[]
+}
 
 function WeeklyStep({ onCommitted }: { onCommitted: () => void }) {
   const { active } = useObjectives()
@@ -257,48 +299,56 @@ function WeeklyStep({ onCommitted }: { onCommitted: () => void }) {
   const h = useHaptics()
   const { toast } = useToast()
 
-  const [pool, setPool] = useState<PoolMilestone[]>([])
-  const [poolLoading, setPoolLoading] = useState(true)
+  const [slate, setSlate] = useState<SlateItem[]>([])
+  const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [committing, setCommitting] = useState(false)
+  const [customs, setCustoms] = useState<Array<{ title: string; goal_id: string }>>([])
+  const [customText, setCustomText] = useState('')
+  const [customGoal, setCustomGoal] = useState('')
 
-  // Gather accepted/active milestones across objectives so the commit checklist
-  // reflects whatever shaping just happened above. Re-runs when the objective set
-  // changes (realtime after an accept).
   useEffect(() => {
     let cancelled = false
-    setPoolLoading(true)
+    setLoading(true)
     void (async () => {
       try {
-        const results = await Promise.all(active.map(async (o) => {
-          const r = await fetch(`/api/objectives/${encodeURIComponent(o.id)}`)
-          const j = await r.json().catch(() => ({}))
-          const ms = (j?.tree?.milestones || []) as Array<{ id: string; title: string; status: string; est_deep_work_hours: number | null }>
-          return ms
-            .filter(m => m.status === 'accepted' || m.status === 'active')
-            .map(m => ({ id: m.id, title: m.title, goal_id: o.id, goal_title: o.title, hours: typeof m.est_deep_work_hours === 'number' ? m.est_deep_work_hours : null }))
-        }))
-        if (cancelled) return
-        setPool(results.flat())
+        const r = await fetch('/api/weekly-focus/slate')
+        const j = await r.json().catch(() => ({}))
+        if (!cancelled) setSlate(j.ok ? (j.slate || []) : [])
       } catch {
-        if (!cancelled) setPool([])
+        if (!cancelled) setSlate([])
       } finally {
-        if (!cancelled) setPoolLoading(false)
+        if (!cancelled) setLoading(false)
       }
     })()
     return () => { cancelled = true }
-  }, [active])
+  }, [])
 
-  const selectedPool = useMemo(() => pool.filter(m => selected.has(m.id)).slice(0, 3), [pool, selected])
-  const totalHours = useMemo(() => selectedPool.reduce((s, m) => s + (m.hours || 0), 0), [selectedPool])
+  useEffect(() => { if (!customGoal && active.length > 0) setCustomGoal(active[0].id) }, [active, customGoal])
+
+  const totalPicked = selected.size + customs.length
+  const totalHours = useMemo(
+    () => slate.filter(m => selected.has(m.milestone_id)).reduce((s, m) => s + (m.est_deep_work_hours || 0), 0),
+    [slate, selected],
+  )
 
   const toggle = (id: string) => {
     setSelected(prev => {
       const next = new Set(prev)
       if (next.has(id)) { next.delete(id); h.tap(); return next }
-      if (next.size >= 3) { toast('Three is the week. Uncheck one to add another.', 'error'); h.error(); return prev }
+      if (totalPicked >= 3) { toast('Three is the week. Drop one to add another.', 'error'); h.error(); return prev }
       next.add(id); h.tap(); return next
     })
+  }
+
+  const addCustom = () => {
+    const t = customText.trim()
+    if (!t) return
+    if (totalPicked >= 3) { toast('Three is the week.', 'error'); h.error(); return }
+    if (!customGoal) { toast('Pick which objective it serves.', 'error'); return }
+    setCustoms(c => [...c, { title: t.slice(0, 200), goal_id: customGoal }])
+    setCustomText('')
+    h.tap()
   }
 
   const commit = async () => {
@@ -306,20 +356,29 @@ function WeeklyStep({ onCommitted }: { onCommitted: () => void }) {
     setCommitting(true)
     h.tap()
     try {
+      // Custom moves become krish_authored milestones first, then commit.
+      const created: Array<{ milestone_id: string; goal_id: string; title: string }> = []
+      for (const c of customs) {
+        const r = await fetch(`/api/objectives/${encodeURIComponent(c.goal_id)}/milestones`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: c.title }),
+        })
+        const j = await r.json().catch(() => ({}))
+        if (j.ok && j.milestone?.id) created.push({ milestone_id: j.milestone.id, goal_id: c.goal_id, title: c.title })
+      }
+      const slatePicks = slate.filter(m => selected.has(m.milestone_id)).map(m => ({ milestone_id: m.milestone_id, goal_id: m.goal_id }))
+      const committed = [...slatePicks, ...created.map(c => ({ milestone_id: c.milestone_id, goal_id: c.goal_id }))].slice(0, 3)
       const r = await fetch('/api/weekly-focus/commit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          week_of: wf.currentWeekOf,
-          milestones: selectedPool.map(m => ({ milestone_id: m.id, goal_id: m.goal_id })),
-          retro_ack: true,
-        }),
+        body: JSON.stringify({ week_of: wf.currentWeekOf, milestones: committed, retro_ack: true, custom_added: created }),
       })
       const j = await r.json().catch(() => ({}))
       if (!j.ok) throw new Error(j.error || `HTTP ${r.status}`)
       wf.markSetWeek()
       h.success()
-      toast('Locked. Marcus will shape your week around these.', 'success')
+      toast('Locked. Marcus is laddering these down into tasks.', 'success')
       wf.refresh()
       onCommitted()
     } catch (e) {
@@ -333,24 +392,27 @@ function WeeklyStep({ onCommitted }: { onCommitted: () => void }) {
   return (
     <div className="space-y-3">
       <p className="text-[12px] text-white/55 leading-snug">
-        Pick up to 3 accepted milestones to commit this week — these become the moves your days ladder up to. Shape the milestone set itself in the Portfolio step.
+        Pick up to 3 moves for the week — each ladders up to an objective and shows what the OS will drive vs what needs you. Or write your own.
       </p>
 
-      <div className="rounded-xl border border-violet-500/15 bg-violet-500/[0.04] p-3">
-        <p className="text-[10px] uppercase tracking-[0.14em] text-violet-200/80 font-semibold mb-2">Commit up to 3 for the week</p>
-        {poolLoading ? (
-          <div className="text-[12px] text-white/45"><Loader2 size={12} className="animate-spin inline mr-2" />Gathering accepted milestones…</div>
-        ) : pool.length === 0 ? (
-          <p className="text-[12px] text-white/45">No accepted milestones yet. Accept at least one of Marcus's proposals above, or commit zero and run pure execution this week.</p>
+      <div className="rounded-xl border border-violet-500/15 bg-violet-500/[0.04] p-3 space-y-2">
+        <p className="text-[10px] uppercase tracking-[0.14em] text-violet-200/80 font-semibold">
+          Commit up to 3 · {totalPicked}/3 picked
+        </p>
+
+        {loading ? (
+          <div className="text-[12px] text-white/45"><Loader2 size={12} className="animate-spin inline mr-2" />Marcus is assembling the slate…</div>
+        ) : slate.length === 0 && customs.length === 0 ? (
+          <p className="text-[12px] text-white/45">No candidate moves yet. Accept milestones in the Objectives step, or write your own below.</p>
         ) : (
           <ul className="space-y-1.5">
-            {pool.map(m => {
-              const on = selected.has(m.id)
+            {slate.map(m => {
+              const on = selected.has(m.milestone_id)
               return (
-                <li key={m.id}>
+                <li key={m.milestone_id}>
                   <button
                     type="button"
-                    onClick={() => toggle(m.id)}
+                    onClick={() => toggle(m.milestone_id)}
                     className={`w-full text-left flex items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors ${on ? 'border-violet-400/45 bg-violet-500/[0.08]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'}`}
                   >
                     <span className={`mt-0.5 w-5 h-5 rounded-md border flex-shrink-0 inline-flex items-center justify-center ${on ? 'bg-violet-500/80 border-violet-300/60 text-white' : 'border-white/25 text-transparent'}`}>
@@ -358,9 +420,13 @@ function WeeklyStep({ onCommitted }: { onCommitted: () => void }) {
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="block text-[13px] text-white/90 leading-snug break-words">{m.title}</span>
-                      <span className="mt-0.5 flex items-center gap-2 text-[10px] text-white/45">
+                      <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-white/45">
                         <span className="inline-flex items-center gap-1"><Target size={9} className="opacity-60" />{m.goal_title}</span>
-                        {typeof m.hours === 'number' && <span className="inline-flex items-center gap-0.5"><Clock size={9} />{m.hours}h</span>}
+                        {typeof m.est_deep_work_hours === 'number' && <span className="inline-flex items-center gap-0.5"><Clock size={9} />{m.est_deep_work_hours}h</span>}
+                        {!m.blessed && <span className="text-amber-300/70">proposed</span>}
+                      </span>
+                      <span className="mt-1 block">
+                        <OwnerSplit ownerSplit={m.owner_split} contributions={m.contributions} autoPct={m.auto_executable_pct} compact />
                       </span>
                     </span>
                   </button>
@@ -369,14 +435,69 @@ function WeeklyStep({ onCommitted }: { onCommitted: () => void }) {
             })}
           </ul>
         )}
+
+        {/* Custom moves Krish has added this turn. */}
+        {customs.length > 0 && (
+          <ul className="space-y-1">
+            {customs.map((c, i) => (
+              <li key={`c-${i}`} className="flex items-center gap-2 rounded-lg border border-emerald-400/25 bg-emerald-500/[0.05] px-3 py-2">
+                <Check size={12} className="text-emerald-300 flex-shrink-0" />
+                <span className="flex-1 min-w-0 text-[12px] text-white/85 break-words">{c.title}</span>
+                <button type="button" onClick={() => setCustoms(list => list.filter((_, j) => j !== i))} className="text-white/40 hover:text-white/70" aria-label="Remove">
+                  <X size={12} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Write / speak your own move. */}
+        <div className="rounded-lg border border-white/[0.06] bg-black/20 p-2 space-y-2">
+          <div className="relative">
+            <textarea
+              value={customText}
+              onChange={e => setCustomText(e.target.value)}
+              placeholder="Write your own move for the week…"
+              rows={2}
+              className="w-full bg-black/30 border border-white/[0.08] rounded px-2.5 py-2 pr-10 text-[12px] text-white placeholder:text-white/30 focus:border-violet-400/40 focus:outline-none resize-none"
+            />
+            <div className="absolute top-1.5 right-1.5">
+              <MicButton
+                endpoint="/api/daily-focus/voice"
+                onJson={(j) => { const t = (j.text as string) || ''; if (t) setCustomText(v => (v ? `${v} ${t}` : t)) }}
+                onError={() => toast('Voice unavailable. Type instead.', 'error')}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {active.length > 0 && (
+              <select
+                value={customGoal}
+                onChange={e => setCustomGoal(e.target.value)}
+                className="flex-1 min-w-0 bg-black/30 border border-white/[0.08] rounded px-2 py-1.5 text-[11px] text-white/80 focus:outline-none"
+              >
+                {active.map(o => <option key={o.id} value={o.id}>{o.title}</option>)}
+              </select>
+            )}
+            <button
+              type="button"
+              onClick={addCustom}
+              disabled={!customText.trim() || totalPicked >= 3}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-white/70 hover:text-white border border-white/[0.10] hover:border-white/25 rounded px-2.5 py-1.5 disabled:opacity-40"
+            >
+              <Plus size={11} /> Add move
+            </button>
+          </div>
+        </div>
+
         <button
           type="button"
           onClick={commit}
           disabled={committing}
-          className="mt-3 w-full inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-4 py-2 disabled:opacity-50"
+          className="mt-1 w-full inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-4 py-2 disabled:opacity-50"
         >
           {committing ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
-          {committing ? 'Locking…' : selectedPool.length > 0 ? `Commit ${selectedPool.length} for the week${totalHours > 0 ? ` · ~${totalHours}h` : ''}` : 'Commit zero — run execution'}
+          {committing ? 'Locking…' : totalPicked > 0 ? `Commit ${totalPicked} for the week${totalHours > 0 ? ` · ~${totalHours}h` : ''}` : 'Commit zero — run execution'}
         </button>
       </div>
     </div>

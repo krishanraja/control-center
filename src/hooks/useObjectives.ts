@@ -93,6 +93,51 @@ function detachIfIdle() {
   channel = null
 }
 
+// ── Objective mutations (Phase 6) ────────────────────────────────────────────
+// The objective altitude is now editable. These hit PATCH /api/objectives/:id.
+// Callers refresh() afterwards (or rely on the realtime channel).
+
+export interface ObjectivePatch {
+  action?: 'reorder' | 'edit'
+  title?: string
+  priority?: number | null
+  definition_of_done?: string | null
+  why_now?: string | null
+  target_horizon?: string | null
+  primary_kpi?: string | null
+  secondary_kpi?: string | null
+  status?: ObjectiveStatus
+  is_auto?: boolean
+  objective_kind?: string | null
+  feedback?: { reason_code?: string; reason_text?: string | null; meta?: Record<string, unknown> }
+}
+
+export async function patchObjective(id: string, body: ObjectivePatch): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const r = await fetch(`/api/objectives/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const j = await r.json().catch(() => ({}))
+    return j?.ok ? { ok: true } : { ok: false, error: j?.error || `HTTP ${r.status}` }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+// Normalize the whole active set to 1..N priorities in the given order. Robust to
+// null/duplicate priorities; only PATCHes rows whose priority actually changes.
+export async function reorderObjectives(current: Objective[], orderedIds: string[]): Promise<void> {
+  const priorityById = new Map(current.map(o => [o.id, o.priority]))
+  await Promise.all(
+    orderedIds.map((id, i) => {
+      const want = i + 1
+      return priorityById.get(id) === want ? Promise.resolve({ ok: true }) : patchObjective(id, { action: 'reorder', priority: want })
+    }),
+  )
+}
+
 export function useObjectives() {
   const [, setV] = useState(0)
   useEffect(() => {

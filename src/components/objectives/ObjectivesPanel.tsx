@@ -4,6 +4,7 @@ import { useObjectives, type Objective } from '../../hooks/useObjectives'
 import { useObjectiveTree } from '../../hooks/useObjectiveTree'
 import { MilestoneCalibrator } from './MilestoneCalibrator'
 import { NominationTray } from './NominationTray'
+import { OwnerSplit } from './OwnerSplit'
 
 // The objective layer surface on Home.
 //   1. Soft-cap warning when active count is over 10.
@@ -200,7 +201,12 @@ function ObjectiveRow({
       </button>
 
       {expanded && (
-        <div className="border-t border-white/[0.04] p-2">
+        <div className="border-t border-white/[0.04] p-2 space-y-2">
+          {tree?.contributions && tree.contributions.length > 0 && (
+            <div className="px-1">
+              <OwnerSplit contributions={tree.contributions} compact />
+            </div>
+          )}
           <MilestoneCalibrator goalId={objective.id} />
         </div>
       )}
@@ -252,6 +258,9 @@ function DeepWorkBlock({ objectiveId, variant }: { objectiveId: string; variant:
           Ladders up to: <span className="text-white/65">{tree.objective.title}</span>
         </p>
       )}
+      <div className="mt-2">
+        <OwnerSplit ownerSplit={candidate.owner_split} contributions={tree.contributions} autoPct={candidate.auto_executable_pct ?? null} compact />
+      </div>
     </div>
   )
 }
