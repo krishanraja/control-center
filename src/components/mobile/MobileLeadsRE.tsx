@@ -6,6 +6,7 @@ import { ventureDisplayName } from '../ContactSourcePill'
 import { humanAge } from '../../lib/ageHelpers'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useRealtimeContacts, type ContactRow } from '../../hooks/useRealtimeContacts'
+import { isHandQueue } from '../../lib/contactTriage'
 
 const VENTURES: Array<{ slug: string; label: string }> = [
   { slug: 'mindmaker', label: 'Mindmaker' },
@@ -58,9 +59,7 @@ export function MobileLeadsRE(_props: Props = {}) {
     const hand: ContactRow[] = []
     const rest: ContactRow[] = []
     for (const c of contacts) {
-      const isHand =
-        c.consent_tier === 'warm' || c.consent_tier === 'customer' || (c.heat_score ?? 0) >= 75
-      if (isHand) hand.push(c)
+      if (isHandQueue(c)) hand.push(c)
       else rest.push(c)
     }
     const byHeat = (a: ContactRow, b: ContactRow) => (b.heat_score ?? 0) - (a.heat_score ?? 0)
@@ -141,7 +140,7 @@ export function MobileLeadsRE(_props: Props = {}) {
                 </span>
               }
               onClick={() => h.select()}
-              feedback={{ sourceTable: 'opportunities', sourceId: c.id, agentId: c.owner_agent }}
+              feedback={{ sourceTable: 'contacts', sourceId: c.id, agentId: c.owner_agent }}
             />
           ))}
         </FeedCard>
@@ -158,6 +157,7 @@ export function MobileLeadsRE(_props: Props = {}) {
               detail={contactSubtitle(c) || c.origin_campaign || undefined}
               trailing={<span className="text-[13px] text-white/40 tabular-nums">{humanAge(c.updated_at)}</span>}
               onClick={() => h.select()}
+              feedback={{ sourceTable: 'contacts', sourceId: c.id, agentId: c.owner_agent }}
             />
           ))}
           {feed.length > 40 && (

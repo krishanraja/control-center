@@ -5,6 +5,7 @@ import { useHaptics } from '../../hooks/useHaptics'
 
 export type FeedbackSurface =
   | 'leads'
+  | 'contacts'
   | 'content_ideas'
   | 'nova_target_conferences'
   | 'visibility_targets'
@@ -28,6 +29,14 @@ const REASON_OPTIONS: Record<FeedbackSurface, ReasonOption[]> = {
     { code: 'lead_already_contacted',   label: 'Already contacted' },
     { code: 'lead_wrong_venture_tag',   label: 'Wrong venture tag' },
     { code: 'lead_other',               label: 'Other' },
+  ],
+  contacts: [
+    { code: 'contact_already_engaged',  label: 'Already engaged (S&N / podcast)' },
+    { code: 'contact_not_a_fit',        label: 'Not actually a fit' },
+    { code: 'contact_wrong_venture',    label: 'Wrong venture / play' },
+    { code: 'contact_no_budget_signal', label: 'No real budget signal' },
+    { code: 'contact_bad_timing',       label: 'Bad timing' },
+    { code: 'contact_other',            label: 'Other' },
   ],
   content_ideas: [
     { code: 'content_too_generic',      label: 'Too generic' },
@@ -101,6 +110,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
   const [showReasons, setShowReasons] = useState(false)
   const [vote, setVote] = useState<1 | -1 | null>(null)
   const [busy, setBusy] = useState(false)
+  const [reasonText, setReasonText] = useState('')
 
   const submit = async (v: 1 | -1, reasonCode?: string) => {
     if (busy) return
@@ -116,6 +126,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
           agent_id: agentId || null,
           vote: v,
           reason_code: reasonCode || null,
+          reason_text: reasonText.trim() || null,
         }),
       })
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
@@ -164,18 +175,22 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
       </button>
       {showReasons && (
         <div
-          className="absolute right-0 top-full mt-1 z-30 bg-[#0f0f17] border border-white/[0.08] rounded-lg shadow-2xl py-1 min-w-[220px]"
+          className="absolute right-0 top-full mt-1 z-30 bg-[#0f0f17] border border-white/[0.08] rounded-lg shadow-2xl py-1 min-w-[240px]"
           onMouseLeave={() => setShowReasons(false)}
         >
           <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-white/40 border-b border-white/[0.06]">
             Why? (optional)
           </div>
-          <button
-            onClick={() => submit(-1)}
-            className="w-full text-left px-3 py-2 text-[12px] text-white/60 hover:bg-white/5"
-          >
-            Skip and just downvote
-          </button>
+          <div className="px-2 pt-2">
+            <textarea
+              value={reasonText}
+              onChange={(e) => setReasonText(e.target.value)}
+              placeholder="Add a short reason…"
+              rows={2}
+              className="w-full resize-none rounded-md border border-white/[0.1] bg-white/[0.03] px-2 py-1.5 text-[12px] text-white/85 placeholder:text-white/30 focus:border-violet-400/40 focus:outline-none"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
           {reasons.map(r => (
             <button
               key={r.code}
@@ -185,6 +200,14 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
               {r.label}
             </button>
           ))}
+          <div className="border-t border-white/[0.06] mt-1 pt-1">
+            <button
+              onClick={() => submit(-1)}
+              className="w-full text-left px-3 py-2 text-[12px] text-white/55 hover:bg-white/5"
+            >
+              {reasonText.trim() ? 'Submit reason' : 'Skip and just downvote'}
+            </button>
+          </div>
         </div>
       )}
     </div>
