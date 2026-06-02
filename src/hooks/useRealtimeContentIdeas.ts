@@ -75,6 +75,8 @@ export interface ContentIdeaRow {
   lane?: ContentLane | null
   /** Sub-cadence within a lane. Mindmaker: 'roundup' | 'field_learning'. Null elsewhere. */
   lane_slot?: string | null
+  /** Parent idea this row was transformed from (Transform §5.5). Null for parents. */
+  parent_idea_id?: string | null
   /** Denormalized next-due timestamp from the cadence ledger (sort key on the All view). */
   cadence_due_at?: string | null
   /** Cleo's per-format derivatives. Empty until Transform is fired. */
