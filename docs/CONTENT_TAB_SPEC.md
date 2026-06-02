@@ -1,7 +1,15 @@
 # Content Tab Upgrade — Lanes Spec
 
-**Status:** Draft for Krish review · 2026-06-02
+**Status:** SHIPPED · 2026-06-02 · all phases live on `main`
 **Author:** Claude (Opus 4.8) on behalf of Krish
+
+> **Build status (2026-06-02):** All phases shipped & deployed.
+> - Phase 1 (schema + backfill + `content_cadence` + `recompute_content_cadence()`) — live; migrations `scripts/migrations/2026-06-02-*.sql`.
+> - Phase 2 (lane toggle + CadenceBar, desktop + mobile) — PR #114, merged.
+> - Phase 3 (industrialized Transform, §5.5) — PR #115: `/api/content-ideas/:id/transform`, parent→child rows, per-lane krish-voice contracts in `system_config.content_lane_*`.
+> - Phase 4 (per-lane Perplexity sourcing) — `Cleo | Content Lane Sourcing` n8n (`rRAyEUs7NsY06hFy`), active daily; all 4 lanes seeded with real drafts.
+> - §4.3a (research panel + dive-deeper) — PR #115: `/api/content-ideas/:id/dive-deeper` (scoped Perplexity) + `ResearchAndTransform` in the expanded card.
+> Publish stays manual per lane (S&N→Wix, BE→IG); nothing auto-publishes.
 
 ---
 
