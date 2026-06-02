@@ -8,6 +8,7 @@ import { FeedbackButton } from './shared/FeedbackButton'
 import { supabase } from '../lib/supabase'
 import type { ContentIdeaRow, IdeaState, TransformedOutputs } from '../hooks/useRealtimeContentIdeas'
 import { useContentPillars, pillarTone } from '../hooks/useContentPillars'
+import { ResearchAndTransform } from './content/ResearchAndTransform'
 
 interface Props {
   idea: ContentIdeaRow
@@ -330,6 +331,8 @@ export function ContentIdeaCardActionable({ idea: i, expanded, onClose }: Props)
               </p>
             )}
           </div>
+
+          <ResearchAndTransform idea={i} />
         </>
       )}
 
