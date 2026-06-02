@@ -3,6 +3,7 @@ import { FileText, ExternalLink, Calendar as CalendarIcon, List } from 'lucide-r
 import { formatDistanceToNow } from 'date-fns'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
+import { LaneToggle, CadenceBar, type LaneFilter } from '../content/LaneControls'
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
@@ -28,21 +29,28 @@ interface Props {
 export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
   const { ideas, loading } = useRealtimeContentIdeas()
   const [view, setView] = useState<'lanes' | 'calendar'>('lanes')
+  const [laneFilter, setLaneFilter] = useState<LaneFilter>('all')
 
-  const byState = useMemo(() => groupByState(ideas), [ideas])
-  const activeCount = ideas.filter(i => i.state !== 'dropped' && i.state !== 'published').length
+  // Everything below the lane toggle operates on the selected lane's slice.
+  const laneIdeas = useMemo(
+    () => (laneFilter === 'all' ? ideas : ideas.filter(i => i.lane === laneFilter)),
+    [ideas, laneFilter],
+  )
+
+  const byState = useMemo(() => groupByState(laneIdeas), [laneIdeas])
+  const activeCount = laneIdeas.filter(i => i.state !== 'dropped' && i.state !== 'published').length
   const detailIdea = useMemo(() => (ideaId ? ideas.find(i => i.id === ideaId) || null : null), [ideaId, ideas])
 
   // Next action: the oldest idea in `review` state — that's the one blocking
   // Krish's approval to ship. Falls back to drafting backlog if no reviews.
   const nextDecisionIdea = useMemo(() => {
-    const inReview = ideas.filter(i => i.state === 'review')
+    const inReview = laneIdeas.filter(i => i.state === 'review')
     if (inReview.length > 0) {
       return [...inReview].sort((a, b) => (a.updated_at < b.updated_at ? -1 : 1))[0]
     }
-    const inDraft = ideas.filter(i => i.state === 'drafting')
+    const inDraft = laneIdeas.filter(i => i.state === 'drafting')
     return inDraft[0] || null
-  }, [ideas])
+  }, [laneIdeas])
   const reviewCount = (byState.review || []).length
   const draftCount = (byState.drafting || []).length
 
@@ -90,6 +98,9 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
           {loading ? '…' : `${activeCount} active`}
         </span>
       </header>
+
+      <LaneToggle value={laneFilter} onChange={setLaneFilter} ideas={ideas} />
+      {laneFilter !== 'all' && <CadenceBar lane={laneFilter} ideas={ideas} />}
 
       <NextActionStrip
         headline={reviewCount}
@@ -197,7 +208,7 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
           </div>
         </div>
       ) : (
-        <ContentCalendar ideas={ideas} />
+        <ContentCalendar ideas={laneIdeas} />
       )}
     </div>
   )

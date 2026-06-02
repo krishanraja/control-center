@@ -21,6 +21,13 @@ export type IdeaState =
   | 'published'
   | 'dropped'
 
+/** The four brand lanes on the Content tab (destinations, not themes — pillars are the theme layer). */
+export type ContentLane =
+  | 'signal_noise'
+  | 'mindmaker'
+  | 'techonomic'
+  | 'builder_economy_ig'
+
 /**
  * Container for Cleo's derivative outputs keyed by target format. Cleo's
  * transform webhook (`POST /webhook/cleo/transform`) writes the long-form
@@ -64,6 +71,12 @@ export interface ContentIdeaRow {
   quality_score?: 'green' | 'amber' | 'red' | null
   pillar_id?: string | null
   related_idea_ids?: string[] | null
+  /** Brand lane this piece is committed to (signal_noise | mindmaker | techonomic | builder_economy_ig). */
+  lane?: ContentLane | null
+  /** Sub-cadence within a lane. Mindmaker: 'roundup' | 'field_learning'. Null elsewhere. */
+  lane_slot?: string | null
+  /** Denormalized next-due timestamp from the cadence ledger (sort key on the All view). */
+  cadence_due_at?: string | null
   /** Cleo's per-format derivatives. Empty until Transform is fired. */
   transformed_outputs?: TransformedOutputs | null
   meta?: {

@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { FileText } from 'lucide-react'
 import { MobileShell } from './MobileShell'
 import { TabHeader } from './primitives'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
+import { LaneToggle, CadenceBar, type LaneFilter } from '../content/LaneControls'
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
@@ -27,6 +28,13 @@ interface Props {
 
 export function MobileContent({ ideaId, onClearIdea }: Props = {}) {
   const { ideas, loading } = useRealtimeContentIdeas({ stateIn: ACTIVE_STATES })
+  const [laneFilter, setLaneFilter] = useState<LaneFilter>('all')
+
+  // Active ideas in the selected lane (the sections below operate on this slice).
+  const laneIdeas = useMemo(
+    () => ideas.filter(i => ACTIVE_STATES.includes(i.state) && (laneFilter === 'all' || i.lane === laneFilter)),
+    [ideas, laneFilter],
+  )
 
   const detailIdea = useMemo(() => (ideaId ? ideas.find(i => i.id === ideaId) || null : null), [ideaId, ideas])
 
@@ -36,21 +44,21 @@ export function MobileContent({ ideaId, onClearIdea }: Props = {}) {
 
   const grouped = useMemo(() => {
     const out: Partial<Record<IdeaState, ContentIdeaRow[]>> = {}
-    for (const i of ideas) {
+    for (const i of laneIdeas) {
       const arr = out[i.state] || (out[i.state] = [])
       arr.push(i)
     }
     return out
-  }, [ideas])
+  }, [laneIdeas])
 
   // Next action: oldest 'review' idea (blocking ship), else drafting backlog.
   const nextDecisionIdea = useMemo(() => {
-    const inReview = ideas.filter(i => i.state === 'review')
+    const inReview = laneIdeas.filter(i => i.state === 'review')
     if (inReview.length > 0) {
       return [...inReview].sort((a, b) => (a.updated_at < b.updated_at ? -1 : 1))[0]
     }
-    return ideas.filter(i => i.state === 'drafting')[0] || null
-  }, [ideas])
+    return laneIdeas.filter(i => i.state === 'drafting')[0] || null
+  }, [laneIdeas])
   const reviewCount = (grouped.review || []).length
   const draftCount = (grouped.drafting || []).length
 
@@ -89,6 +97,9 @@ export function MobileContent({ ideaId, onClearIdea }: Props = {}) {
       header={<TabHeader title="Content" subtitle="Ideas to live, one lane" />}
     >
       <div className="pb-6 space-y-3">
+        <LaneToggle value={laneFilter} onChange={setLaneFilter} ideas={ideas} />
+        {laneFilter !== 'all' && <CadenceBar lane={laneFilter} ideas={ideas} />}
+
         <NextActionStrip
           headline={reviewCount}
           headlineLabel="in review"
@@ -96,7 +107,7 @@ export function MobileContent({ ideaId, onClearIdea }: Props = {}) {
             ? nextDecisionIdea.state === 'review'
               ? `"${nextDecisionIdea.idea.slice(0, 70)}${nextDecisionIdea.idea.length > 70 ? '…' : ''}" awaiting your approval`
               : `${draftCount} drafting · oldest: "${nextDecisionIdea.idea.slice(0, 60)}${nextDecisionIdea.idea.length > 60 ? '…' : ''}"`
-            : `${ideas.length} active · no drafts awaiting your read`}
+            : `${laneIdeas.length} active · no drafts awaiting your read`}
           ctaLabel={nextDecisionIdea ? 'Open' : 'View pipeline'}
           onCta={focusIdea}
           icon={FileText}
@@ -117,10 +128,10 @@ export function MobileContent({ ideaId, onClearIdea }: Props = {}) {
           <div className="text-[12px] text-white/45 text-center py-4">Loading…</div>
         )}
 
-        {!loading && ideas.length === 0 && (
+        {!loading && laneIdeas.length === 0 && (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-6 text-center">
             <FileText size={18} className="text-white/30 mx-auto mb-2" />
-            <p className="text-[12px] text-white/55">No active content ideas.</p>
+            <p className="text-[12px] text-white/55">No active content ideas in this lane.</p>
             <p className="text-[11px] text-white/35 mt-1">Quick-capture an idea or wait for Cleo&rsquo;s next sweep.</p>
           </div>
         )}
