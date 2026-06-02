@@ -2,6 +2,7 @@ import React from 'react'
 import { Linkedin, Mail, Flame, UserCircle2 } from 'lucide-react'
 import { humanAge } from '../lib/ageHelpers'
 import { ContactSourcePill, ConsentTierBadge, ventureDisplayName } from './ContactSourcePill'
+import { FeedbackButton } from './shared/FeedbackButton'
 import type { ContactRow } from '../hooks/useRealtimeContacts'
 
 interface Props {
@@ -116,6 +117,9 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
       <div className="flex items-center gap-2 mt-2 flex-wrap">
         <ConsentTierBadge tier={c.consent_tier} />
         <HeatMeter score={heat} />
+        <div className="ml-auto" onClick={(e) => e.stopPropagation()}>
+          <FeedbackButton sourceTable="contacts" sourceId={c.id} agentId={c.owner_agent} compact />
+        </div>
       </div>
 
       {/* Provenance row — where they came from / how to speak to them */}

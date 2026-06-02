@@ -5,6 +5,7 @@ import {
   type ContactRow,
   type ConsentTier,
 } from '../../hooks/useRealtimeContacts'
+import { isHandQueue } from '../../lib/contactTriage'
 import { ContactCard } from '../ContactCard'
 import { ContactImportDropzone } from '../ContactImportDropzone'
 import { useToast } from '../shared/Toast'
@@ -65,11 +66,7 @@ export function DesktopLeadsRE(_props: Props = {}) {
     const hand: ContactRow[] = []
     const review: ContactRow[] = []
     for (const c of contacts) {
-      const isHand =
-        c.consent_tier === 'warm' ||
-        c.consent_tier === 'customer' ||
-        (c.heat_score ?? 0) >= 75
-      if (isHand) hand.push(c)
+      if (isHandQueue(c)) hand.push(c)
       else review.push(c)
     }
     hand.sort(heatDesc)

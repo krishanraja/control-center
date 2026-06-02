@@ -19,6 +19,9 @@ import { supabase } from './_supabase.js'
 
 const ALLOWED_TABLES = new Set([
   'leads',
+  // Relationship Engine contact spine (backs the "Leads" tab). A thumbs-down here
+  // also suppresses the contact from the warm queue — see the post-insert step below.
+  'contacts',
   'content_ideas',
   'nova_target_conferences',
   'visibility_targets',
@@ -58,6 +61,13 @@ const REASON_OPTIONS = new Set([
   'marcus_suggestion_unsuitable',
   'triage_promote',
   'lead_other',
+  // Relationship Engine contact reasons (Leads tab thumbs-down).
+  'contact_already_engaged',
+  'contact_not_a_fit',
+  'contact_wrong_venture',
+  'contact_no_budget_signal',
+  'contact_bad_timing',
+  'contact_other',
   // Daily spine close (Phase 1): end-of-day reflection + tomorrow seed.
   'daily_reflection',
 ])
@@ -117,9 +127,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (error) {
     return res.status(500).json({ ok: false, error: error.message })
   }
+
+  // Immediate-effect loop: a thumbs-down on a Relationship Engine contact also
+  // suppresses it from the warm/triaged surfaces right away (triage_status =
+  // 'skipped'), so "taken into account on the next run" is true instantly — not
+  // only after Vera's weekly aggregation. The feedback_queue row still feeds Vera
+  // so a repeated pattern can still teach the scout's brief. Best-effort: a
+  // failure here does not fail the feedback write.
+  let suppressed = false
+  if (body.source_table === 'contacts' && body.vote === -1) {
+    const { error: supErr } = await supabase
+      .from('contacts')
+      .update({ triage_status: 'skipped', triaged_at: new Date().toISOString() })
+      .eq('id', body.source_id)
+    suppressed = !supErr
+  }
+
   return res.json({
     ok: true,
     feedback: data,
+    ...(suppressed ? { suppressed: true } : {}),
     ...(unknownReasonCode
       ? { warning: `reason_code '${unknownReasonCode}' is not in REASON_OPTIONS; Vera will cluster it as 'other'. Add to REASON_OPTIONS to canonize.` }
       : {}),
