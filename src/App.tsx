@@ -9,6 +9,7 @@ import { DesktopHome } from './components/desktop/DesktopHome'
 import { DesktopTriage } from './components/desktop/DesktopTriage'
 import { DesktopToday } from './components/desktop/DesktopToday'
 import { DesktopLeads } from './components/desktop/DesktopLeads'
+import { DesktopLeadsRE } from './components/desktop/DesktopLeadsRE'
 import { DesktopOrg } from './components/desktop/DesktopOrg'
 import { DesktopExec } from './components/desktop/DesktopExec'
 import { DesktopFlows } from './components/desktop/DesktopFlows'
@@ -20,6 +21,7 @@ import { MobileHome } from './components/mobile/MobileHome'
 import { MobileTriage } from './components/mobile/MobileTriage'
 import { MobileToday } from './components/mobile/MobileToday'
 import { MobileLeads } from './components/mobile/MobileLeads'
+import { MobileLeadsRE } from './components/mobile/MobileLeadsRE'
 import { MobileIntel } from './components/mobile/MobileIntel'
 import { MobileOrg } from './components/mobile/MobileOrg'
 import { MobileFlows } from './components/mobile/MobileFlows'
@@ -38,8 +40,8 @@ import { FocusRitual } from './components/home/FocusRitual'
 import { isFocusRitualEnabled } from './lib/homeV2'
 import { useHashRoute } from './hooks/useHashRoute'
 
-type TabId = 'home' | 'today' | 'triage' | 'leads' | 'customers' | 'guests' | 'content' | 'bets' | 'org' | 'exec' | 'workflows' | 'systems'
-const VALID_TABS: TabId[] = ['home', 'today', 'triage', 'leads', 'customers', 'guests', 'content', 'bets', 'org', 'exec', 'workflows', 'systems']
+type TabId = 'home' | 'today' | 'triage' | 'leads' | 'relationships' | 'customers' | 'guests' | 'content' | 'bets' | 'org' | 'exec' | 'workflows' | 'systems'
+const VALID_TABS: TabId[] = ['home', 'today', 'triage', 'leads', 'relationships', 'customers', 'guests', 'content', 'bets', 'org', 'exec', 'workflows', 'systems']
 
 function detectIsNarrow() {
   if (typeof window === 'undefined') return false
@@ -99,6 +101,7 @@ export default function App() {
                 {tab === 'today'     && <ErrorBoundary label="Today"><MobileToday lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
                 {tab === 'triage'    && <ErrorBoundary label="Triage"><MobileTriage onNavigate={navigate} /></ErrorBoundary>}
                 {tab === 'leads'     && <ErrorBoundary label="Leads"><MobileLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
+                {tab === 'relationships' && <ErrorBoundary label="Leads"><MobileLeadsRE onNavigate={navigate} /></ErrorBoundary>}
                 {tab === 'customers' && <ErrorBoundary label="Customers"><MobileCustomers /></ErrorBoundary>}
                 {tab === 'guests'    && <ErrorBoundary label="Visibility"><MobileGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
                 {tab === 'content'   && <ErrorBoundary label="Content"><MobileContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>}
@@ -114,6 +117,7 @@ export default function App() {
                 {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday selectedTaskId={route.params.task || null} onSelectTask={(id) => navigate('today', id ? { task: id } : {})} lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
                 {tab === 'triage'    && <ErrorBoundary label="Triage"><DesktopTriage onNavigate={navigate} /></ErrorBoundary>}
                 {tab === 'leads'     && <ErrorBoundary label="Leads"><DesktopLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
+                {tab === 'relationships' && <ErrorBoundary label="Leads"><DesktopLeadsRE onNavigate={navigate} /></ErrorBoundary>}
                 {tab === 'customers' && <ErrorBoundary label="Customers"><DesktopCustomers /></ErrorBoundary>}
                 {tab === 'guests'    && <ErrorBoundary label="Visibility"><DesktopGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
                 {tab === 'content'   && <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>}
