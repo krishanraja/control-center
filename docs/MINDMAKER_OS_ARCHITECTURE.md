@@ -345,6 +345,27 @@ SELECT set_config('app.source',     '<source>',  true); -- e.g. 'telegram', 'con
 
 ---
 
+### 4.11 Unified audience pipeline (new — 2026-06-03)
+
+Every Mindmaker property now feeds one audience list, and that list flows into the Control Center with a hard paid-vs-free rule. Two databases are involved: the **Mindmaker AI app DB** (`bkyuxvschuwngtcdhsyg`) where capture happens, and this **OS DB** (`gojpffsrxybbpbdzzrvs`) where the Control Center reads. They are different projects, so a bridge carries capture into the OS.
+
+**Capture (app DB `audience_contacts`, enum `lead_source`).** CTRL signups (`track-event` edge fn → `source='ctrl'`), the marketing site (all five capture edge functions via a shared `recordSiteAudienceContact` helper → `source='mindmaker_site'`), the Builder Economy (`NotifyForm` → `source='builder_economy'`), and Mindmaker Live (Substack CSV import → `source='mindmaker_live'`). Each row carries `metadata` (capture type, attribution, and `paid` for Substack). A `synced_to_os_at` watermark marks rows the bridge has processed.
+
+**The bridge (OS pulls from the app DB).** The app DB has no outbound HTTP (`pg_net`/`http` absent), so the OS pulls. `pull_audience_contacts(limit)` uses the `http` extension (app DB service key in **Vault**, not `system_config`) to fetch unsynced rows, routes each through `sync_audience_contact(email, name, source, metadata)`, then stamps `synced_to_os_at` back. Scheduling is the **`audience-tick`** OS edge function (verify_jwt=false, `AUDIENCE_TICK_SECRET`-gated) hit by n8n workflow **`System | Mindmaker OS | Audience Pipeline`** (`7sYzU1FidUo2w1Lh`): `action=sync` every 15 min, `action=reconcile` daily 07:30. n8n holds no DB credential; the edge function uses the platform-injected service role.
+
+**Routing rule — payment is the only switch, never both.** `sync_audience_contact`:
+- `metadata.paid=true` → upsert a paid `customers` row (product `mm_ctrl` / `mindmaker_live` / `mindmaker`) → **Subscriptions**.
+- already a paid customer (guard) → no lead.
+- otherwise → upsert a `leads` row with `source_type='audience'`, collapsed by `lower(email)` (the existing `leads_email_dedupe` index), accumulating `audience_sources[]`; `mindmaker_site` high-intent captures are `warm`, the rest `watch`.
+
+**Mover (DB trigger).** `trg_enforce_audience_invariant` on `customers` (after insert/update of `kind`): on `paid`, supersede any audience lead for that email; on `churned`, mark a clearly-tagged `status='churned'` lead (`churned_at` set) for re-engagement. This makes never-both self-enforcing regardless of who writes `customers` (Stripe, n8n, manual).
+
+**Reconciler.** `reconcile_audience_invariant()` finds any email that is both a paying customer and an active lead, supersedes the lead, returns counts. Runs daily via the reconcile tick.
+
+**Schema additions.** `leads`: `audience_sources text[]`, `churned_at`, `audience_synced_at`; `leads_status_check` gains `churned`; `leads_source_type_check` gains `audience`. `customer_product` gains `mindmaker` + `mindmaker_live`. New RPCs: `sync_audience_contact`, `pull_audience_contacts`, `reconcile_audience_invariant`, `audience_import_proxy` (Substack CSV → app DB importer via http + Vault secret, then sync). Control Center renders audience leads with an 'Audience' source pill, capture-source chips, a Churned badge, and a Substack CSV dropzone (`/api/audience/import-substack` → `audience_import_proxy`).
+
+---
+
 ## 5. The Control Center — single pane of glass
 
 - **URL.** `controlcenter.krishraja.com` (Vercel); repo `krishanraja/control-center`.
@@ -1701,6 +1722,10 @@ docs/audits/                                                 # Closure architect
 ## 20. Recent architectural changes — rolling changelog
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
+
+### **2026-06-03 — Unified audience pipeline: all four Mindmaker properties → Control Center, paid-vs-free enforced**
+
+Closed the gap between the canonical "one audience list" design and live state. CTRL, the marketing site (five capture edge functions), Builder Economy, and Mindmaker Live (Substack CSV) now all write the app DB `audience_contacts` table. A cross-DB bridge carries that into this OS DB: `pull_audience_contacts()` (http extension + Vault-held app key) routes each contact through `sync_audience_contact()`, scheduled by the `audience-tick` edge function via n8n `System | Mindmaker OS | Audience Pipeline` (`7sYzU1FidUo2w1Lh`, sync 15 min / reconcile daily). Rule: **payment is the only switch, never both** — paid → `customers` (Subscriptions), free → `leads` with `source_type='audience'` collapsed by email; a `customers` trigger (`trg_enforce_audience_invariant`) moves people on payment and tags churned leads `status='churned'`; `reconcile_audience_invariant()` is the backstop. New schema: `leads.audience_sources/churned_at/audience_synced_at`, `churned` + `audience` added to the status/source checks, `customer_product` gains `mindmaker`/`mindmaker_live`. Control Center renders an Audience pill, source chips, Churned badge, and a Substack CSV dropzone. See §4.11. Capture edge functions shipped via `mm-ctrl#129`, `mindmaker#109/#110`; UI via `control-center#116`.
 
 ### **2026-06-01 — LLM cost-runaway fix: Gemini-fallback storm killed, model routing hardened, daily spend alert added**
 
