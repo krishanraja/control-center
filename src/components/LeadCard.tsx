@@ -9,6 +9,18 @@ import type { LeadRow, LeadStatus } from '../hooks/useRealtimeLeads'
 
 const ASSIGNEE_OPTIONS = ['felix', 'maya', 'nell', 'krish'] as const
 
+// Friendly labels for unified-audience capture sources (audience_sources[]).
+const AUDIENCE_SOURCE_LABELS: Record<string, string> = {
+  ctrl: 'CTRL',
+  mindmaker_site: 'Site',
+  mindmaker_live: 'Substack',
+  builder_economy: 'Builder Economy',
+}
+function audienceSourceLabel(s: string): string {
+  if (s.startsWith('churn:')) return 'ex ' + (AUDIENCE_SOURCE_LABELS[s.slice(6)] || s.slice(6).replace(/_/g, ' '))
+  return AUDIENCE_SOURCE_LABELS[s] || s.replace(/_/g, ' ')
+}
+
 // Apollo deep-enrich cost surfaced on the per-lead Enrich CTA so spending is
 // legible. Update if the upstream pricing changes.
 const ENRICH_COST_LABEL = '~$0.50'
@@ -266,6 +278,20 @@ export function LeadCard({ lead: l, onOpen }: Props) {
       {/* Provenance row */}
       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
         <LeadSourcePill source={l.source_type} href={l.source_url || null} />
+        {l.status === 'churned' && (
+          <span
+            className="text-[9px] px-1.5 py-0.5 rounded border border-rose-500/30 bg-rose-500/10 text-rose-300 uppercase tracking-[0.1em] font-semibold"
+            title={l.churned_at ? `Churned ${humanAge(l.churned_at)}` : 'Churned customer — re-engagement target'}
+          >
+            Churned
+          </span>
+        )}
+        {/* Which capture sources this person came from (collapsed by email). */}
+        {(l.audience_sources || []).map(s => (
+          <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-teal-500/10 text-teal-200 border border-teal-500/20">
+            {audienceSourceLabel(s)}
+          </span>
+        ))}
         {l.source_document_name && (
           <span className="text-[10px] text-white/45 truncate max-w-[160px]" title={l.source_document_name}>
             {l.source_document_name}

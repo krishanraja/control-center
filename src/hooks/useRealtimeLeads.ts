@@ -9,6 +9,7 @@ export type LeadSourceType =
   | 'apollo'
   | 'nell_candidate'
   | 'signal_inbox'
+  | 'audience'
 
 export type LeadStatus =
   | 'new'
@@ -19,6 +20,7 @@ export type LeadStatus =
   | 'closed_won'
   | 'closed_lost'
   | 'superseded'
+  | 'churned'
 
 export interface LeadRow {
   id: string
@@ -54,6 +56,11 @@ export interface LeadRow {
   tags?: string[] | null
   icp_scores?: Record<string, number> | null
   primary_venture?: string | null
+  // Unified audience pipeline (source_type='audience'): which capture sources
+  // this person came from, and churn marking when a paid customer cancels.
+  audience_sources?: string[] | null
+  churned_at?: string | null
+  audience_synced_at?: string | null
 }
 
 interface Options {

@@ -3,6 +3,7 @@ import { Users, X, Sparkles } from 'lucide-react'
 import { useRealtimeLeads, type LeadSourceType, type LeadRow } from '../../hooks/useRealtimeLeads'
 import { useVentureRegistry, type VentureRow } from '../../hooks/useVentureRegistry'
 import { LeadImportDropzone } from '../LeadImportDropzone'
+import { SubstackImportDropzone } from '../SubstackImportDropzone'
 import { LeadVentureLane } from './LeadVentureLane'
 import { LeadCard } from '../LeadCard'
 import { DecisionDetail } from '../DecisionDetail'
@@ -133,6 +134,9 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
               Import
             </h2>
             <LeadImportDropzone />
+            <div className="mt-3">
+              <SubstackImportDropzone />
+            </div>
           </section>
 
           <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
@@ -199,6 +203,7 @@ const SOURCE_META: Record<LeadSourceType, { title: string; description: string }
   apollo: { title: 'Apollo / outbound', description: 'Enriched contacts from Apollo + Instantly sequences.' },
   nell_candidate: { title: 'Nell candidates', description: 'Auto-surfaced contacts from Nell\'s daily scout.' },
   signal_inbox: { title: 'Signal Inbox', description: 'Drive Signal Inbox folder, processed by Layer 1.' },
+  audience: { title: 'Audience', description: 'Inbound signups from CTRL, the site, Substack, and Builder Economy.' },
   manual: { title: 'Manual', description: 'Anything you added by hand.' },
 }
 
