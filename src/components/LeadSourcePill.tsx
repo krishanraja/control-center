@@ -24,6 +24,7 @@ const META: Record<AnySource, { label: string; icon: LucideIcon; tone: string }>
   apollo:             { label: 'Apollo',             icon: Users,       tone: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' },
   nell_candidate:     { label: 'Nell candidate',     icon: Radar,       tone: 'text-violet-300 bg-violet-500/10 border-violet-500/20' },
   signal_inbox:       { label: 'Signal Inbox',       icon: FileText,    tone: 'text-amber-300 bg-amber-500/10 border-amber-500/20' },
+  audience:           { label: 'Audience',           icon: Users,       tone: 'text-teal-300 bg-teal-500/10 border-teal-500/20' },
 
   // idea-only sources
   cleo_chat:          { label: 'Cleo chat',          icon: MessageSquare, tone: 'text-rose-300 bg-rose-500/10 border-rose-500/20' },

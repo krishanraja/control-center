@@ -21,6 +21,7 @@ const SOURCE_TITLE: Record<LeadSourceType, string> = {
   apollo:           'Apollo / outbound',
   nell_candidate:   'Nell candidates',
   signal_inbox:     'Signal Inbox',
+  audience:         'Audience',
   manual:           'Manual',
 }
 
