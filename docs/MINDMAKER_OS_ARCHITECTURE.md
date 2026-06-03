@@ -8,7 +8,15 @@
 >
 > **Secrets rule.** This file contains NO credentials. Every key, token, webhook URL, and API endpoint lives in `TOOLS.md` (workspace root) and Supabase `system_config`. When something here says "fetch the X key", that means "look it up in TOOLS.md".
 >
-> **Canonical location.** `/root/.openclaw/workspace/MINDMAKER_OS_ARCHITECTURE.md` on the VPS. Mirror in `docs/MINDMAKER_OS_ARCHITECTURE.md` in the `control-center` repo and in Google Drive folder `Infrastructure` (`1y4dncntB8WsKgLjTzC-YZ3KgWXyfwIt5`). Anything else describing "the OS" or "the architecture" anywhere in the workspace is stale and should be archived to `cold/`.
+> **Canonical location & full copy inventory.** This document lives in EXACTLY these five places, kept in sync together. No copy may exist anywhere else (Google Drive, local disk, Downloads, OneDrive, scratch repo clones) — any other "OS architecture" file is stale; delete it, never maintain it.
+>
+> 1. **VPS — source of truth:** `/root/.openclaw/workspace/MINDMAKER_OS_ARCHITECTURE.md`
+> 2. **control-center GitHub repo:** `docs/MINDMAKER_OS_ARCHITECTURE.md` (local clone mirrors this).
+> 3. **Google Drive:** the `MINDMAKER_OS_ARCHITECTURE.md` markdown file in the `Infrastructure` folder (`1y4dncntB8WsKgLjTzC-YZ3KgWXyfwIt5`) — one copy only, no Google-Doc duplicate.
+> 4. **Claude skill (local):** `~/.claude/skills/mindmaker-os/SKILL.md` — the `mindmaker-os` frontmatter followed by this exact body.
+> 5. **Cursor skill (local):** `~/.cursor/skills-cursor/mindmaker-os/SKILL.md` — same frontmatter + body.
+>
+> **Manual step (Krish only):** after each update, copy the Claude-skill version into Claude **browser** skills by hand — that surface has no automated sync. Everything else above is synced together programmatically; the two skill copies keep their frontmatter, the body is byte-identical everywhere.
 >
 > **Last verified against live state.** 2026-05-30, after the Focus System shipped (PR #102: daily spine + weekly takeover + full focus mode, which also merged the Objective Layer PRs #97-101 to main). See 5.6 and the 2026-05-30 changelog entry for that build.  Prior verification 2026-05-29, after the Objective Layer build shipped (PRs #97, #98, #99, #100, #101 in sequence). Empirical reconciliation: 14/14 agents action.md fresh; 67 tables (added `milestones`, `goal_agent_contributions`, `goals_archive_2026_04`; `goals` repurposed from a chore graveyard into the portfolio-objective layer); 76+ active N8N workflows (added `Krish | Mindmaker OS | Objective Milestone Proposer`, live id `uL8DLpHbT11eqBAW`); 6 active portfolio objectives with 6 agents linked via `agent_plans.weekly_goal_id`; 9 proposed Marcus-drafted milestones; CLAUDE.md Step 3b loads parent objective + contribution on agent wake; three-altitude feedback wired in `/api/feedback` and Vera's `Cluster` node groups by `[agent_id, source_table, reason_code]` so the altitudes stay distinct. Live SPA at controlcenter.krishraja.com.
 
