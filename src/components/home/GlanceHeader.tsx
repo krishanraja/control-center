@@ -39,7 +39,7 @@ export function GlanceHeader({
   }
 
   const mobile = variant === 'mobile'
-  const valueSize = mobile ? 'text-[20px]' : 'text-[18px]'
+  const valueSize = mobile ? 'text-[22px]' : 'text-[18px]'
   const labelSize = mobile ? 'text-[10px]' : 'text-[9px]'
 
   return (

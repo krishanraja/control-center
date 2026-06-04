@@ -9,9 +9,10 @@ import { FeedbackButton, type FeedbackSurface } from '../shared/FeedbackButton'
  * All tap targets stay ≥ 48dp.
  */
 
-// BottomNav is ~96-108px tall including safe area. Exported so the second
-// shell (MobileShell.tsx, with pull-to-refresh) reserves identical space.
-export const BOTTOM_NAV_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+108px)]'
+// BottomNav is ~108-120px tall including safe area (taller buttons for thumb
+// reach). Exported so the second shell (MobileShell.tsx, with pull-to-refresh)
+// reserves identical space.
+export const BOTTOM_NAV_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+120px)]'
 
 /**
  * h-[100dvh] column. Content area is a flex column with gap-5 so fill={true}
@@ -204,7 +205,7 @@ export function FeedCard({
   )
 }
 
-/** 72dp row, 15px title. */
+/** 76dp row, 16px title. */
 export function FeedRow({
   dotColor,
   title,
@@ -225,17 +226,17 @@ export function FeedRow({
     <Wrapper
       onClick={onClick}
       className={`w-full text-left px-5 py-4 flex items-start gap-3 ${onClick ? 'active:bg-white/[0.05] transition-colors' : ''}`}
-      style={{ minHeight: 72 }}
+      style={{ minHeight: 76 }}
     >
       {dotColor && (
         <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5 ${dotColor}`} />
       )}
       <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-semibold text-white leading-snug line-clamp-2">
+        <p className="text-[16px] font-semibold text-white leading-snug line-clamp-2">
           {title}
         </p>
         {detail && (
-          <p className="text-[13px] text-white/55 mt-1 leading-[1.45] line-clamp-2">
+          <p className="text-[14px] text-white/55 mt-1 leading-[1.45] line-clamp-2">
             {detail}
           </p>
         )}

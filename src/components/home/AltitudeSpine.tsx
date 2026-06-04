@@ -87,7 +87,7 @@ export function AltitudeSpine({
             : <TrendingDown size={13} className="text-rose-400 flex-shrink-0" />}
           <span className="min-w-0">
             <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-white/55">MRR</span>
-            <span className="block text-[15px] font-bold font-mono tabular-nums text-white leading-tight">
+            <span className="block text-[16px] font-bold font-mono tabular-nums text-white leading-tight">
               {revLoading ? '—' : `$${Math.round(liveMrr).toLocaleString()}`}
             </span>
           </span>
@@ -105,7 +105,7 @@ export function AltitudeSpine({
           <Inbox size={13} className={waiting > 0 ? 'text-amber-400 flex-shrink-0' : 'text-white/40 flex-shrink-0'} />
           <span className="min-w-0">
             <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-white/55">Waiting</span>
-            <span className="block text-[15px] font-bold font-mono tabular-nums text-white leading-tight">{waiting}</span>
+            <span className="block text-[16px] font-bold font-mono tabular-nums text-white leading-tight">{waiting}</span>
           </span>
           <span className={`ml-auto text-[10px] ${waiting > 0 ? 'text-amber-400/80' : 'text-white/45'}`}>
             {waiting === 0 ? 'inbox zero' : 'on you'}
@@ -161,7 +161,7 @@ function AltitudePill({ altitude, onOpen }: { altitude: Altitude; onOpen: () => 
     <button
       type="button"
       onClick={onOpen}
-      className={`relative overflow-hidden flex flex-col items-start gap-1.5 rounded-2xl border px-3.5 py-3.5 text-left transition-colors min-h-[78px] ${
+      className={`relative overflow-hidden flex flex-col items-start gap-1.5 rounded-2xl border px-3.5 py-3.5 text-left transition-colors min-h-[84px] ${
         needsAttention
           ? 'border-amber-400/40 bg-amber-500/[0.08] active:bg-amber-500/[0.12] animate-neon-pulse shimmer-sweep'
           : 'border-white/[0.08] bg-white/[0.04] active:bg-white/[0.07]'
@@ -169,7 +169,7 @@ function AltitudePill({ altitude, onOpen }: { altitude: Altitude; onOpen: () => 
     >
       <div className="flex items-center gap-1.5 w-full">
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${DOT[state]} ${needsAttention ? 'animate-pulse' : ''}`} />
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/60">{label}</span>
+        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/60">{label}</span>
         {needsAttention && count > 0 && (
           <span className="ml-1 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-amber-400/20 text-amber-200 text-[10px] font-bold tabular-nums leading-none">
             {count}
@@ -177,7 +177,7 @@ function AltitudePill({ altitude, onOpen }: { altitude: Altitude; onOpen: () => 
         )}
         <ChevronRight size={12} className="ml-auto text-white/30 flex-shrink-0" />
       </div>
-      <span className={`text-[13px] leading-snug line-clamp-2 ${needsAttention ? 'text-amber-50/90 font-medium' : 'text-white/70'}`}>{summary}</span>
+      <span className={`text-[14px] leading-snug line-clamp-2 ${needsAttention ? 'text-amber-50/90 font-medium' : 'text-white/70'}`}>{summary}</span>
     </button>
   )
 }

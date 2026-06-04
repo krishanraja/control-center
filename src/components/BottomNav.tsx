@@ -46,10 +46,10 @@ export function BottomNav({ active, onChange }: Props) {
             <button
               onClick={() => { h.select(); setDrawerOpen(true) }}
               aria-label="More"
-              className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[64px] sm:min-h-[68px] text-white/45"
+              className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[72px] sm:min-h-[76px] text-white/45"
             >
-              <MoreHorizontal className="w-6 h-6" strokeWidth={1.8} />
-              <span className="text-[11px] font-medium leading-none tracking-tight">More</span>
+              <MoreHorizontal className="w-7 h-7" strokeWidth={1.8} />
+              <span className="text-[12px] font-medium leading-none tracking-tight">More</span>
             </button>
           )}
         </div>
@@ -76,7 +76,7 @@ function NavButton({ tab, active, ultraNarrow: _ultraNarrow, onClick }: { tab: T
     <button
       onClick={onClick}
       aria-label={tab.label}
-      className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[64px] sm:min-h-[68px] ${
+      className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[72px] sm:min-h-[76px] ${
         active ? 'text-white' : 'text-white/45'
       }`}
     >
@@ -85,15 +85,15 @@ function NavButton({ tab, active, ultraNarrow: _ultraNarrow, onClick }: { tab: T
           <span aria-hidden className="absolute inset-0 rounded-full bg-violet-500/30 blur-md scale-[1.7]" />
         )}
         <Icon
-          className={`relative w-6 h-6 transition-colors ${active ? 'text-violet-200' : ''}`}
+          className={`relative w-7 h-7 transition-colors ${active ? 'text-violet-200' : ''}`}
           strokeWidth={active ? 2.3 : 1.8}
         />
       </div>
-      <span className={`w-full text-center text-[11px] font-medium leading-none tracking-tight truncate transition-colors ${active ? 'text-violet-200' : ''}`}>
+      <span className={`w-full text-center text-[12px] font-medium leading-none tracking-tight truncate transition-colors ${active ? 'text-violet-200' : ''}`}>
         {label}
       </span>
       {active && (
-        <span aria-hidden className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-gradient-to-r from-transparent via-violet-400 to-transparent rounded-full" />
+        <span aria-hidden className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[2px] bg-gradient-to-r from-transparent via-violet-400 to-transparent rounded-full" />
       )}
     </button>
   )
@@ -125,8 +125,8 @@ function MobileMoreDrawer({
                   : 'border-white/[0.06] text-white/70 hover:bg-white/[0.04]'
               }`}
             >
-              <Icon className="w-6 h-6" strokeWidth={1.8} />
-              <span className="text-xs font-medium">{label}</span>
+              <Icon className="w-7 h-7" strokeWidth={1.8} />
+              <span className="text-[13px] font-medium">{label}</span>
             </button>
           ))}
         </div>
