@@ -44,7 +44,7 @@ export function CaptureSpeedDial() {
         {dialOpen && (
           <div
             className="fixed right-4 z-40 flex flex-col items-end gap-3"
-            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 164px)' }}
+            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 172px)' }}
           >
             {inboxEnabled && (
               <SubAction
@@ -75,7 +75,7 @@ export function CaptureSpeedDial() {
               ? 'bg-white/15 border-white/30 backdrop-blur'
               : 'bg-violet-500/90 hover:bg-violet-500 border-violet-300/40'
           }`}
-          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)' }}
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 92px)' }}
         >
           <span
             className="inline-flex items-center justify-center transition-transform duration-200"

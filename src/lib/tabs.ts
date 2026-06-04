@@ -19,22 +19,25 @@ export interface TabDef {
 // Canonical 12-tab IA. URL ids preserved for bookmark compatibility; labels follow
 // the rename pass (Leads -> Services, Customers -> Subscriptions, Guests -> Visibility).
 //
-// Mobile primary swap: Triage replaces Services in the bottom bar so the
-// phone-first action (approve/reject agent proposals) is one tap away. Services
-// (lane browsing) is harder to use on a phone and moves to the drawer.
+// Mobile primary set: Home + the three high-value sections the phone is actually
+// used for — Content, Visibility, Leads (relationships). Everything else (Today,
+// Triage, Services, Subscriptions, Bets, Org, Intel, Flows, Systems) lives in the
+// "More" drawer. Fewer primary tabs (4 + More) gives each thumb target more room.
+// The bottom-bar order is set explicitly via MOBILE_PRIMARY_ORDER below so it can
+// differ from the desktop sidebar order without disturbing it.
 //
 // Desktop drawer demotions: Bets (read-mostly, low action density) and Intel
 // (insight-only, no action) move out of the primary sidebar to reduce IA load;
 // they remain accessible under the "More" drawer.
 export const TABS: TabDef[] = [
   { id: 'home',      label: 'Home',          desktopIcon: LayoutDashboard, mobileIcon: Home,       desktopPriority: 'primary', mobilePriority: 'primary' },
-  { id: 'today',     label: 'Today',         desktopIcon: Calendar,        mobileIcon: Clock,      desktopPriority: 'primary', mobilePriority: 'primary' },
-  { id: 'triage',    label: 'Triage',        desktopIcon: Inbox,           mobileIcon: ShieldQuestion, desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'today',     label: 'Today',         desktopIcon: Calendar,        mobileIcon: Clock,      desktopPriority: 'primary', mobilePriority: 'drawer'  },
+  { id: 'triage',    label: 'Triage',        desktopIcon: Inbox,           mobileIcon: ShieldQuestion, desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'leads',     label: 'Services',      desktopIcon: UserPlus,        mobileIcon: UserPlus,   desktopPriority: 'primary', mobilePriority: 'drawer'  },
-  { id: 'relationships', label: 'Leads',     desktopIcon: HeartHandshake,  mobileIcon: HeartHandshake, desktopPriority: 'primary', mobilePriority: 'drawer'  },
-  { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'relationships', label: 'Leads',     desktopIcon: HeartHandshake,  mobileIcon: HeartHandshake, desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'guests',    label: 'Visibility',    mobileShortLabel: 'Vis',  desktopIcon: Mic,        mobileIcon: Mic,        desktopPriority: 'primary', mobilePriority: 'primary' },
-  { id: 'content',   label: 'Content',       desktopIcon: FileText,        mobileIcon: FileText,   desktopPriority: 'primary', mobilePriority: 'drawer'  },
+  { id: 'content',   label: 'Content',       desktopIcon: FileText,        mobileIcon: FileText,   desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'bets',      label: 'Bets',          desktopIcon: Target,          mobileIcon: Target,     desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
   { id: 'org',       label: 'Org',           desktopIcon: Users,           mobileIcon: GitBranch,  desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'exec',      label: 'Intel',         desktopIcon: Brain,           mobileIcon: Activity,   desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
@@ -42,9 +45,14 @@ export const TABS: TabDef[] = [
   { id: 'systems',   label: 'Systems',       desktopIcon: Server,          mobileIcon: Server,     desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
 ]
 
+// Explicit bottom-bar order: Home first, then the three sections in the order the
+// user reads them. Decoupled from the TABS array order so the desktop sidebar is
+// untouched. Keep in sync with the `mobilePriority: 'primary'` flags above.
+const MOBILE_PRIMARY_ORDER = ['home', 'content', 'guests', 'relationships'] as const
+
 export const DESKTOP_PRIMARY_TABS = TABS.filter(t => t.desktopPriority === 'primary')
 export const DESKTOP_DRAWER_TABS  = TABS.filter(t => t.desktopPriority === 'drawer')
-export const MOBILE_PRIMARY_TABS  = TABS.filter(t => t.mobilePriority === 'primary')
-export const MOBILE_DRAWER_TABS   = TABS.filter(t => t.mobilePriority === 'drawer')
+export const MOBILE_PRIMARY_TABS  = MOBILE_PRIMARY_ORDER.map(id => TABS.find(t => t.id === id)!)
+export const MOBILE_DRAWER_TABS   = TABS.filter(t => !MOBILE_PRIMARY_ORDER.includes(t.id as typeof MOBILE_PRIMARY_ORDER[number]))
 
 export const VALID_TAB_IDS = new Set(TABS.map(t => t.id))
