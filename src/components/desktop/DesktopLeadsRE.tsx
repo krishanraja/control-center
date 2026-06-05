@@ -8,6 +8,8 @@ import {
 import { isHandQueue } from '../../lib/contactTriage'
 import { ContactCard } from '../ContactCard'
 import { ContactImportDropzone } from '../ContactImportDropzone'
+import { OutreachDraftSheet, type DraftTarget } from '../OutreachDraftSheet'
+import { LeadSheet } from '../LeadSheet'
 import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 
@@ -52,6 +54,14 @@ export function DesktopLeadsRE(_props: Props = {}) {
   const [showImport, setShowImport] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState(false)
+  const [draftTarget, setDraftTarget] = useState<DraftTarget | null>(null)
+  const [leadContact, setLeadContact] = useState<ContactRow | null>(null)
+
+  const openDraft = (c: ContactRow) => {
+    const name = c.full_name || c.company || (c.email ? c.email.split('@')[0] : '—')
+    const subtitle = [c.title, c.company].filter(Boolean).join(' @ ')
+    setDraftTarget({ id: c.id, name, subtitle: subtitle || null, email: c.email, venture: c.primary_venture })
+  }
 
   const { contacts, loading } = useRealtimeContacts({
     ventureIn: ventureIn.length ? ventureIn : undefined,
@@ -233,7 +243,7 @@ export function DesktopLeadsRE(_props: Props = {}) {
           ) : (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
               {handQueue.map(c => (
-                <ContactCard key={c.id} contact={c} onOpen={() => {}} />
+                <ContactCard key={c.id} contact={c} onOpen={() => setLeadContact(c)} />
               ))}
             </div>
           )}
@@ -268,7 +278,7 @@ export function DesktopLeadsRE(_props: Props = {}) {
                   contact={c}
                   selected={selected.has(c.id)}
                   onToggleSelect={toggleSelect}
-                  onOpen={() => {}}
+                  onOpen={() => setLeadContact(c)}
                 />
               ))}
             </div>
@@ -285,6 +295,13 @@ export function DesktopLeadsRE(_props: Props = {}) {
           onAction={runBulk}
         />
       )}
+
+      <LeadSheet
+        contact={leadContact}
+        onClose={() => setLeadContact(null)}
+        onDraft={(c) => { setLeadContact(null); openDraft(c) }}
+      />
+      <OutreachDraftSheet target={draftTarget} onClose={() => setDraftTarget(null)} />
     </div>
   )
 }

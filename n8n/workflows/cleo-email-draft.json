@@ -1,6 +1,6 @@
 {
   "id": "wztp6KoiO5EuFQEB",
-  "name": "Cleo | Email Draft",
+  "name": "Cleo | Mindmaker OS | Email Draft",
   "active": true,
   "nodes": [
     {
@@ -31,7 +31,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "const b = $json.body || {};\nconst required = ['entity_type','entity_id','recipient_email'];\nfor (const k of required) { if (!b[k]) throw new Error(`${k} is required`); }\nconst allowed = new Set(['lead','customer','guest']);\nif (!allowed.has(b.entity_type)) throw new Error('entity_type must be lead|customer|guest');\nconst intentLabel = {\n  introduction: 'Open a real conversation \u2014 no pitch.',\n  check_in: 'Casual touch-base referencing what they recently shipped or wrote.',\n  podcast_invite: 'Pitch them as a guest on Signal Noise. Be specific about the angle.',\n  follow_up: 'Follow up on a prior thread (Krish will fill in the thread context separately).',\n}[b.intent || 'introduction'] || 'Open a real conversation \u2014 no pitch.';\nconst ctx = [\n  `Recipient name: ${b.recipient_name || '(unknown)'}`,\n  `Recipient title: ${b.recipient_title || '(unknown)'}`,\n  `Recipient company: ${b.recipient_company || '(unknown)'}`,\n  `Why-relevant: ${b.context || '(none provided)'}`,\n  b.source_url ? `Source: ${b.source_url}` : null,\n  b.linkedin_url ? `LinkedIn: ${b.linkedin_url}` : null,\n].filter(Boolean).join('\\n');\nconst userMsg = `Intent: ${intentLabel}\\n\\nContext:\\n${ctx}\\n\\nReturn ONLY a JSON object {\"subject\": string, \"body\": string}. No preamble.`;\nreturn [{ json: {\n  entity_type: b.entity_type, entity_id: b.entity_id, recipient_email: b.recipient_email,\n  recipient_name: b.recipient_name || null,\n  prompt: userMsg,\n} }];\n"
+        "jsCode": "const b = $json.body || {};\nconst required = ['entity_type','entity_id','recipient_email'];\nfor (const k of required) { if (!b[k]) throw new Error(`${k} is required`); }\nconst allowed = new Set(['lead','customer','guest','contact']);\nif (!allowed.has(b.entity_type)) throw new Error('entity_type must be lead|customer|guest|contact');\nconst intentLabel = {\n  introduction: 'Open a real conversation. Earn a reply, do not pitch hard.',\n  check_in: 'Casual touch-base referencing what they recently shipped or wrote.',\n  podcast_invite: 'Invite them as a guest. Be specific about the angle and why them.',\n  follow_up: 'Follow up on a prior thread.',\n}[b.intent || 'introduction'] || 'Open a real conversation.';\nconst voice = b.voice_rules ? `VOICE RULES (follow exactly):\\n${b.voice_rules}\\n\\n` : '';\nconst ctx = [\n  `Recipient name: ${b.recipient_name || '(unknown)'}`,\n  `Recipient title: ${b.recipient_title || '(unknown)'}`,\n  `Recipient company: ${b.recipient_company || '(unknown)'}`,\n  b.linkedin_url ? `LinkedIn: ${b.linkedin_url}` : null,\n  '',\n  b.context || '(no extra context provided)',\n].filter(x => x !== null).join('\\n');\nconst userMsg = `${voice}INTENT: ${intentLabel}\\n\\nRESEARCH + CONTEXT:\\n${ctx}\\n\\nRULES: Ground every specific claim (company facts, numbers, events, what they said) only in the RESEARCH above. Never invent specifics about them or their company. If shared history is noted, open as a continuation, not a cold intro. One concrete, true opening line. No \"I hope this finds you well\", no flattery. End with one clear, low-friction ask.\\n\\nReturn ONLY a JSON object {\"subject\": string, \"body\": string}. No preamble, no markdown fence.`;\nreturn [{ json: {\n  entity_type: b.entity_type, entity_id: b.entity_id, recipient_email: b.recipient_email,\n  recipient_name: b.recipient_name || null,\n  prompt: userMsg,\n} }];\n"
       }
     },
     {
@@ -69,7 +69,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 800, system: 'You write short, direct emails in Krish Raja\\'s voice. Senior peer-to-peer register. Open with one verifiable specific observation. No filler (\"I hope this finds you well\"). No emojis. No em dashes. 80-160 words for body. Subject line: 4-8 words, no clickbait, no colons. Return ONLY a JSON object {\"subject\": string, \"body\": string} \u2014 no preamble, no markdown fence.', messages: [{ role: 'user', content: $json.prompt }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 800, system: 'You are writing an outbound email AS Krish Raja, a founder-practitioner who has built the thing, not a commentator. Follow the VOICE RULES in the user message exactly when present. Direct, casual, no warm-up, never bury the lede. Drop subject pronouns where natural (Saw you shipped, not I saw you shipped). Use a Not-X-but-Y clarifier when it sharpens a point. No em dashes. No exclamation marks. No emojis. Never fabricate facts about the recipient; use only the sanctioned research provided, and if none is provided keep claims about them general and true. BANNED words: excited, thrilled, unlock, seamless, empower, leverage, harness, supercharge, journey, landscape, ecosystem, game-changer, revolutionary, robust, deep dive, delve, unpack, moreover, furthermore. Hard cap 120 words for the body; honor any tighter LENGTH instruction. Subject line: 4-8 words, lowercase feel, no colons, no clickbait. Return ONLY a JSON object {\"subject\": string, \"body\": string} with no preamble and no markdown fence.', messages: [{ role: 'user', content: $json.prompt }] }) }}",
         "options": {
           "timeout": 60000
         }
@@ -247,7 +247,8 @@
   "settings": {
     "executionOrder": "v1",
     "saveExecutionProgress": true,
-    "saveDataErrorExecution": "all"
+    "saveDataErrorExecution": "all",
+    "availableInMCP": true
   },
   "triggerCount": 1
 }

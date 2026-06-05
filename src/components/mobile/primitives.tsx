@@ -221,33 +221,41 @@ export function FeedRow({
   onClick?: () => void
   feedback?: { sourceTable: FeedbackSurface; sourceId: string; agentId?: string | null }
 }) {
-  const Wrapper: any = onClick ? 'button' : 'div'
+  // The tappable area and the feedback control must be SIBLINGS, never nested.
+  // A <button> (FeedbackButton's thumbs) inside a row <button> is invalid HTML;
+  // browsers auto-correct the DOM on mobile and the inner thumbs stop receiving
+  // taps — which reads to the user as "I can't take any actions on a lead".
+  const Tappable: any = onClick ? 'button' : 'div'
   return (
-    <Wrapper
-      onClick={onClick}
-      className={`w-full text-left px-5 py-4 flex items-start gap-3 ${onClick ? 'active:bg-white/[0.05] transition-colors' : ''}`}
+    <div
+      className="w-full px-5 py-4 flex items-start gap-3"
       style={{ minHeight: 76 }}
     >
-      {dotColor && (
-        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5 ${dotColor}`} />
-      )}
-      <div className="flex-1 min-w-0">
-        <p className="text-[16px] font-semibold text-white leading-snug line-clamp-2">
-          {title}
-        </p>
-        {detail && (
-          <p className="text-[14px] text-white/55 mt-1 leading-[1.45] line-clamp-2">
-            {detail}
-          </p>
+      <Tappable
+        onClick={onClick}
+        className={`flex-1 min-w-0 text-left flex items-start gap-3 ${onClick ? 'active:bg-white/[0.05] transition-colors' : ''}`}
+      >
+        {dotColor && (
+          <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5 ${dotColor}`} />
         )}
-      </div>
-      {trailing && <div className="flex-shrink-0 ml-3 self-center">{trailing}</div>}
+        <div className="flex-1 min-w-0">
+          <p className="text-[16px] font-semibold text-white leading-snug line-clamp-2">
+            {title}
+          </p>
+          {detail && (
+            <p className="text-[14px] text-white/55 mt-1 leading-[1.45] line-clamp-2">
+              {detail}
+            </p>
+          )}
+        </div>
+        {trailing && <div className="flex-shrink-0 ml-3 self-center">{trailing}</div>}
+      </Tappable>
       {feedback && (
-        <div className="flex-shrink-0 ml-2 self-center" onClick={(e) => e.stopPropagation()}>
+        <div className="flex-shrink-0 ml-2 self-center">
           <FeedbackButton sourceTable={feedback.sourceTable} sourceId={feedback.sourceId} agentId={feedback.agentId} compact />
         </div>
       )}
-    </Wrapper>
+    </div>
   )
 }
 
