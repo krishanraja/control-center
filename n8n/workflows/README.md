@@ -16,6 +16,26 @@ All five files captured 2026-05-25 during the pedantic CEO audit's final verific
 | `cleo-email-draft.json` | `wztp6KoiO5EuFQEB` | ✓ | **NEW** in this audit. Webhook → fetch entity (lead/customer/guest) → Sonnet drafts subject+body → `gmail.drafts.create` via OAuth → patch `email_drafts` ledger + `mark_entity_emailed` RPC. |
 | `visibility-deep-enrich.json` | — | — | Pre-existing checked-in file. Older snapshot; see `nova-visibility-deep-enrich.json` for current state. |
 
+## CHANGELOG — outreach quality pass 2026-06-05
+
+### `cleo-email-draft.json` (`wztp6KoiO5EuFQEB`) — DEPLOYED live via the n8n API
+- **Build Prompt**: now injects `voice_rules` (passed from the endpoint, sourced
+  from `system_config.krish_voice_rules`) and a hard anti-fabrication rule —
+  ground every specific only in the supplied research, acknowledge shared history
+  instead of cold-opening, one true opening line, one low-friction ask.
+- **Sonnet Compose**: system prompt upgraded from a thin one-liner to the real
+  krish-voice (founder-practitioner, drop subject pronouns, Not-X-Y clarifier, no
+  em dashes / exclamations, full banned-words list, 120-word cap).
+- **Endpoint** (`/api/contacts/:id/draft-email`): now extracts the rich
+  `RE Dossier Engine v1` passes — `pass5_meeting_weapon` (who_they_are /
+  shared_history / the_one_move), `pass4_cross_venture` (per-venture
+  opening_wedge + why_this_person), `pass2_public_voice`, `pass1_resolve` facts —
+  and passes them as sanctioned research. When a contact is NOT enriched it says
+  so explicitly so the model stays honest instead of inventing specifics.
+- Verified end-to-end on a real enriched contact: the draft opened on genuine
+  shared history, used real dossier facts, proposed a specific angle, and stayed
+  in voice with no fabrication.
+
 ## CHANGELOG — contacts outreach 2026-06-05
 
 ### `cleo-email-draft.json` (`wztp6KoiO5EuFQEB`)
