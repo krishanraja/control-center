@@ -26,13 +26,17 @@ All five files captured 2026-05-25 during the pedantic CEO audit's final verific
 - **Why**: new `POST /api/contacts/:id/draft-email` endpoint sends
   `entity_type: 'contact'` with a rich, venture-aware `context` block ("how we
   could work together"), plus `intent`, length and tone guidance.
-- **DEPLOY (manual, ~30s)**: this snapshot is not auto-synced and the live
-  workflow has `availableInMCP: false`, so the change must be applied by hand —
-  open `Cleo | Mindmaker OS | Email Draft` in n8n → **Build Prompt** node → change
-  the one `allowed` line to include `'contact'` (or ⋯ → Import from File using this
-  snapshot). Until then the endpoint self-heals by falling back to `entity_type:
-  'lead'`, so drafts still get created; the only difference is the `email_drafts`
-  ledger row is typed `lead` instead of `contact` for those pre-deploy drafts.
+- **DEPLOYED 2026-06-05** to the live workflow via the n8n public API
+  (`PUT /api/v1/workflows/wztp6KoiO5EuFQEB`) — only the Build Prompt `jsCode`
+  changed; all three credential bindings (Anthropic `httpHeaderAuth`, Gmail
+  `gmailOAuth2`, Supabase `supabaseApi`) verified intact and the workflow is
+  still `active`. Confirmed end-to-end: a `contact` payload composed an email and
+  created a Gmail draft. The endpoint's `'lead'` fallback is now dormant.
+- **Known follow-up**: `mark_entity_emailed` + the `email_drafts.entity_type`
+  CHECK still only model `lead|customer|guest`, so contact drafts are logged as
+  `lead` and `contacts` rows aren't stamped with `last_emailed_at`. Closing that
+  needs a DB migration (add `contact` to the CHECK, teach the RPC to stamp
+  `contacts`, add `last_email*` columns to `contacts`).
 
 ## CHANGELOG — audit fixes 2026-05-25
 
