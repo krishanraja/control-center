@@ -16,6 +16,24 @@ All five files captured 2026-05-25 during the pedantic CEO audit's final verific
 | `cleo-email-draft.json` | `wztp6KoiO5EuFQEB` | ✓ | **NEW** in this audit. Webhook → fetch entity (lead/customer/guest) → Sonnet drafts subject+body → `gmail.drafts.create` via OAuth → patch `email_drafts` ledger + `mark_entity_emailed` RPC. |
 | `visibility-deep-enrich.json` | — | — | Pre-existing checked-in file. Older snapshot; see `nova-visibility-deep-enrich.json` for current state. |
 
+## CHANGELOG — contacts outreach 2026-06-05
+
+### `cleo-email-draft.json` (`wztp6KoiO5EuFQEB`)
+- **Build Prompt**: allowed `entity_type` set widened from `lead|customer|guest` to
+  `lead|customer|guest|contact` so the Relationship Engine "Leads" tab (backed by
+  the `contacts` table) can draft outreach. This is the only change; all other
+  nodes/credentials are untouched.
+- **Why**: new `POST /api/contacts/:id/draft-email` endpoint sends
+  `entity_type: 'contact'` with a rich, venture-aware `context` block ("how we
+  could work together"), plus `intent`, length and tone guidance.
+- **DEPLOY (manual, ~30s)**: this snapshot is not auto-synced and the live
+  workflow has `availableInMCP: false`, so the change must be applied by hand —
+  open `Cleo | Mindmaker OS | Email Draft` in n8n → **Build Prompt** node → change
+  the one `allowed` line to include `'contact'` (or ⋯ → Import from File using this
+  snapshot). Until then the endpoint self-heals by falling back to `entity_type:
+  'lead'`, so drafts still get created; the only difference is the `email_drafts`
+  ledger row is typed `lead` instead of `contact` for those pre-deploy drafts.
+
 ## CHANGELOG — audit fixes 2026-05-25
 
 ### `agatha-lead-deep-enrich.json` (`YPKjTnB2P6mqe4kG`)

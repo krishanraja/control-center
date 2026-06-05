@@ -7,6 +7,7 @@ import { humanAge } from '../../lib/ageHelpers'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useRealtimeContacts, type ContactRow } from '../../hooks/useRealtimeContacts'
 import { isHandQueue } from '../../lib/contactTriage'
+import { OutreachDraftSheet, type DraftTarget } from '../OutreachDraftSheet'
 
 const VENTURES: Array<{ slug: string; label: string }> = [
   { slug: 'mindmaker', label: 'Mindmaker' },
@@ -49,6 +50,18 @@ export function MobileLeadsRE(_props: Props = {}) {
   const [venture, setVenture] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [showImport, setShowImport] = useState(false)
+  const [draftTarget, setDraftTarget] = useState<DraftTarget | null>(null)
+
+  const openDraft = (c: ContactRow) => {
+    h.select()
+    setDraftTarget({
+      id: c.id,
+      name: contactName(c),
+      subtitle: contactSubtitle(c) || ventureDisplayName(c.primary_venture),
+      email: c.email,
+      venture: c.primary_venture,
+    })
+  }
 
   const { contacts, loading } = useRealtimeContacts({
     ventureIn: venture ? [venture] : undefined,
@@ -139,7 +152,7 @@ export function MobileLeadsRE(_props: Props = {}) {
                   {c.heat_score ?? 0}
                 </span>
               }
-              onClick={() => h.select()}
+              onClick={() => openDraft(c)}
               feedback={{ sourceTable: 'contacts', sourceId: c.id, agentId: c.owner_agent }}
             />
           ))}
@@ -156,7 +169,7 @@ export function MobileLeadsRE(_props: Props = {}) {
               title={contactName(c)}
               detail={contactSubtitle(c) || c.origin_campaign || undefined}
               trailing={<span className="text-[13px] text-white/40 tabular-nums">{humanAge(c.updated_at)}</span>}
-              onClick={() => h.select()}
+              onClick={() => openDraft(c)}
               feedback={{ sourceTable: 'contacts', sourceId: c.id, agentId: c.owner_agent }}
             />
           ))}
@@ -167,6 +180,8 @@ export function MobileLeadsRE(_props: Props = {}) {
           )}
         </FeedCard>
       )}
+
+      <OutreachDraftSheet target={draftTarget} onClose={() => setDraftTarget(null)} />
     </MobileShell>
   )
 }
