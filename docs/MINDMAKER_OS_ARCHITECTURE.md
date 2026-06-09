@@ -8,17 +8,18 @@
 >
 > **Secrets rule.** This file contains NO credentials. Every key, token, webhook URL, and API endpoint lives in `TOOLS.md` (workspace root) and Supabase `system_config`. When something here says "fetch the X key", that means "look it up in TOOLS.md".
 >
-> **Canonical location & full copy inventory.** This document lives in EXACTLY these five places, kept in sync together. No copy may exist anywhere else (Google Drive, local disk, Downloads, OneDrive, scratch repo clones) — any other "OS architecture" file is stale; delete it, never maintain it.
+> **Canonical location & full copy inventory.** This document lives in EXACTLY these six places, kept in sync together. No copy may exist anywhere else (local disk, Downloads, OneDrive, scratch repo clones) — any other "OS architecture" file is stale; delete it, never maintain it. The body is byte-identical across locations 1–5; the Google Drive copy (6) is updated manually by Krish and lags the rest.
 >
 > 1. **VPS — source of truth:** `/root/.openclaw/workspace/MINDMAKER_OS_ARCHITECTURE.md`
 > 2. **control-center GitHub repo:** `docs/MINDMAKER_OS_ARCHITECTURE.md` (local clone mirrors this).
-> 3. **Google Drive:** the `MINDMAKER_OS_ARCHITECTURE.md` markdown file in the `Infrastructure` folder (`1y4dncntB8WsKgLjTzC-YZ3KgWXyfwIt5`) — one copy only, no Google-Doc duplicate.
-> 4. **Claude skill (local):** `~/.claude/skills/mindmaker-os/SKILL.md` — the `mindmaker-os` frontmatter followed by this exact body.
-> 5. **Cursor skill (local):** `~/.cursor/skills-cursor/mindmaker-os/SKILL.md` — same frontmatter + body.
+> 3. **Claude skill:** `~/.claude/skills/mindmaker-os/SKILL.md` — the `mindmaker-os` frontmatter followed by this exact body.
+> 4. **Cursor skill:** `~/.cursor/skills-cursor/mindmaker-os/SKILL.md` — same frontmatter + body.
+> 5. **VPS skill:** `/root/.openclaw/skills/mindmaker-os/SKILL.md` — rendered/synced copy that skill-aware agents on the VPS load.
+> 6. **Google Drive:** the `MINDMAKER_OS_ARCHITECTURE.md` markdown file in the `Infrastructure` folder, file id `1F0srFZSS-Nvg2RlUG84zVSvuiN9o8zDc` — updated manually by Krish, lags the rest.
 >
-> **Manual step (Krish only):** after each update, copy the Claude-skill version into Claude **browser** skills by hand — that surface has no automated sync. Everything else above is synced together programmatically; the two skill copies keep their frontmatter, the body is byte-identical everywhere.
+> **Manual step (Krish only):** after each update, copy the Claude-skill version into Claude **browser** skills by hand — that surface has no automated sync. Everything in 1–5 is synced together programmatically and is byte-identical (these copies carry no YAML frontmatter — the skill registers off the H1 title).
 >
-> **Last verified against live state.** 2026-05-30, after the Focus System shipped (PR #102: daily spine + weekly takeover + full focus mode, which also merged the Objective Layer PRs #97-101 to main). See 5.6 and the 2026-05-30 changelog entry for that build.  Prior verification 2026-05-29, after the Objective Layer build shipped (PRs #97, #98, #99, #100, #101 in sequence). Empirical reconciliation: 14/14 agents action.md fresh; 67 tables (added `milestones`, `goal_agent_contributions`, `goals_archive_2026_04`; `goals` repurposed from a chore graveyard into the portfolio-objective layer); 76+ active N8N workflows (added `Krish | Mindmaker OS | Objective Milestone Proposer`, live id `uL8DLpHbT11eqBAW`); 6 active portfolio objectives with 6 agents linked via `agent_plans.weekly_goal_id`; 9 proposed Marcus-drafted milestones; CLAUDE.md Step 3b loads parent objective + contribution on agent wake; three-altitude feedback wired in `/api/feedback` and Vera's `Cluster` node groups by `[agent_id, source_table, reason_code]` so the altitudes stay distinct. Live SPA at controlcenter.krishraja.com.
+> **Last reconciled against live state.** 2026-06-09. Snapshot: 14 production agents (executive / growth / ops pods) plus 4 personal-life agents; ~80 n8n workflows (~75 active); ~67 Supabase tables/views; ~108 shared skills; ~170 standards; Control Center live at controlcenter.krishraja.com.
 
 ---
 
@@ -26,9 +27,9 @@
 
 1. **Mindmaker OS is a fleet of AI agents that runs Krish Raja's business portfolio** — consulting (Mindmaker, Meliora, AdFixus), builder products (Fractionl, OnAlert, Gutted, Merciless, mm-ctrl), and content brands (Builder Economy, Signal & Noise, Techonomic) — so Krish spends his hours on decisions, not admin.
 2. **Supabase is the single source of truth.** Every piece of state — agent identity, sprint plans, tasks, leads, guests, customers, bets, standards, audit log, completeness contracts, silent failures, email drafts, **concept decisions** — lives in one Postgres database (~67 tables). Local JSON for state is banned.
-3. **Agents come in two shapes.** *Claude Code agents* (7 — Agatha, Cleo, Arlo, plus four personal-life agents) run inside OpenClaw on a VPS with workspace files, Telegram bots, and full conversational capability. *N8N workflow agents* (~81 workflows across 14 production roles) run on cron or webhook, do one thing, and write the result back to Supabase.
+3. **Agents come in two shapes.** *Claude Code agents* (7 — Agatha, Cleo, Arlo, plus four personal-life agents) run inside OpenClaw on a VPS with workspace files, Telegram bots, and full conversational capability. *N8N workflow agents* (~80 workflows, ~75 active, across 14 production roles) run on cron or webhook, do one thing, and write the result back to Supabase.
 4. **The Control Center (`controlcenter.krishraja.com`) is the single pane of glass.** It reads Supabase via Postgres Realtime; Krish's clicks (approve, reject, promote, deep enrich, schedule, kill, **draft email**, **close concept**) write back to Supabase and fire webhooks to the Orchestrator, which routes them to the right agent. The Home tab is anchored by a unified `decisions_waiting` view that surfaces every kind of thing currently waiting on Krish.
-5. **The OS learns, self-heals, and remembers its own closures.** Krish's rejections go to `feedback_queue`; Vera groups them into `corrections`; Agatha turns those into edits on `agents.brief_content` or `standards_registry`. The four-tier silent-failure system (completeness contracts → Silent Success Detector → Critical Infrastructure Monitor → Failure Pattern Sweep) catches workflows that fail without errors. **A new closure architecture (`concept_decisions` + `concept_id` cascading via `close_concept`) makes Krish's "we're done with this" decisions durable at the *concept* level instead of the row level, so the same closed concept stops resurfacing across rows, generators, and synthesis surfaces.** Same mistake doesn't survive four occurrences; same silent failure doesn't survive a week; **same concept doesn't get closed twice.**
+5. **The OS learns, self-heals, and remembers its own closures.** Krish's rejections go to `feedback_queue`; Vera groups them into `corrections`; Agatha turns those into edits on `agents.brief_content` or `standards_registry`. The four-tier silent-failure system (completeness contracts → Silent Success Detector → Critical Infrastructure Monitor → Failure Pattern Sweep) catches workflows that fail without errors. **The closure architecture (`concept_decisions` + `concept_id` cascading via `close_concept`) makes Krish's "we're done with this" decisions durable at the *concept* level instead of the row level, so the same closed concept stops resurfacing across rows, generators, and synthesis surfaces.** Same mistake doesn't survive four occurrences; same silent failure doesn't survive a week; **same concept doesn't get closed twice.**
 
 If a section below contradicts this five-sentence model, the model is right and the section is stale. File an issue.
 
@@ -42,12 +43,12 @@ The OS is judged by these outcomes, not by activity. Everything in this doc — 
 |---|---|---|---|
 | **O-1** | Krish under 2 hrs/day on ops | Time logged + `decisions_waiting` count under 10 | Target: under 10. Live: tracked on Home as the unified panel badge. |
 | **O-2** | $20K/month consulting revenue inside 60 days of audit close | Stripe Mindmaker + Meliora + AdFixus revenue, MTD | Tracked by MrrTicker + Leo Weekly Report. |
-| **O-3** | One person running what traditionally takes 15-30 | Active workflows × success rate × outputs landed | 75 active workflows. Vera scores fleet health weekly. |
+| **O-3** | One person running what traditionally takes 15-30 | Active workflows × success rate × outputs landed | ~75 active workflows. Vera scores fleet health weekly. |
 | **O-4** | Same mistake doesn't survive four occurrences | `feedback_queue` → `corrections` → brief edit cycle time | Vera Feedback Aggregation runs Sun 06:00 UTC. |
 | **O-5** | Same silent failure doesn't survive a week | `silent_failures` → `corrections` via Failure Pattern Sweep | Vera Failure Pattern Sweep runs Sun 07:00 UTC. |
 | **O-6** | Zero content published without Krish approval | Standards PUB-001 / PUB-005; audit_log review | Enforced in workflow graph; `X-Agatha-Secret` gates the LinkedIn distribution endpoint. |
 | **O-7** | Decision lag under 24h on enriched surfaces | `decisions_waiting.age_hours` p50 | Lead/guest/visibility targets surface enriched with rich previews so Krish answers in seconds. |
-| **O-8** | Same closed concept doesn't resurface | `audit_log` events of type `concept_closed`; zero reopens within 30d unless intentional | NEW (Day 1 Closure Architecture). Stream 1 landed `concept_id`, `concept_decisions`, `close_concept`. Days 2-5 expand to remaining tables and wire generator guards. |
+| **O-8** | Same closed concept doesn't resurface | `audit_log` events of type `concept_closed`; zero reopens within 30d unless intentional | `concept_id`, `concept_decisions`, `close_concept` live. Conversational close path and generator guards not yet built (see §17.7). |
 
 When a section of this doc describes a workflow, table, or surface, it should be possible to trace back to one of these outcomes in one sentence. If not, that section is suspect.
 
@@ -62,7 +63,7 @@ When a section of this doc describes a workflow, table, or surface, it should be
 | VPS (Ubuntu 22.04) | Hosts OpenClaw, every workspace, system crontab, helper scripts | `/root/.openclaw/` |
 | OpenClaw | Agent framework — sessions, cron, Telegram/Discord routing, gateway | `/root/.openclaw/openclaw.json` |
 | Supabase | Postgres database (state SSOT), PostgREST API, edge functions, auth, realtime | Project `gojpffsrxybbpbdzzrvs` |
-| N8N Cloud | ~81 workflows running on cron/webhook — orchestrator, agent jobs, integrations | `krishraja10101.app.n8n.cloud` |
+| N8N Cloud | ~80 workflows (~75 active) running on cron/webhook — orchestrator, agent jobs, integrations | `krishraja10101.app.n8n.cloud` |
 | Vercel | Hosts Control Center (React + Vite + TS) + `/api/*` proxy functions | Project `control-center` |
 | GitHub | Source for Control Center + checked-in N8N workflow snapshots + this doc | `krishanraja/control-center` |
 | Google Workspace | Docs, Sheets, Drive, Gmail — output + collaboration + email drafts via OAuth | `krish@themindmaker.ai` |
@@ -124,7 +125,7 @@ These are the agents the OS itself tracks via `agents.brief_content` (identity) 
 | Agent | Role | Trigger | KPI focus |
 |---|---|---|---|
 | **Agatha** | Chief Operating Officer | chat (Telegram + Discord) | Decision throughput, blocked-on-Krish under 5, closure-intent translated correctly from chat to `close_concept` |
-| **Marcus** | Business Development Intelligence + COO synthesis | scheduled (4×/day) | Synthesis quality, customer + market signal density, respects `concept_decisions` (Day 3 wiring) |
+| **Marcus** | Business Development Intelligence + COO synthesis | scheduled (4×/day) | Synthesis quality, customer + market signal density; synthesis-time `concept_decisions` JOIN not yet wired (see §17.7) |
 
 #### Growth pod
 
@@ -161,16 +162,16 @@ The roster lives in three places that must agree: Supabase `agents` (authoritati
 
 **Hard rule.** `laurenkthermos@gmail.com` is Lauren's, not Krish's. NEVER use it for Drive/Docs/Gmail outside `loz` workspace.
 
-### 3.4 N8N workflow inventory (~81 workflows, ~75 active)
+### 3.4 N8N workflow inventory (~80 workflows, ~75 active)
 
-Live counts as of 2026-05-25 via `GET /api/v1/workflows`. Grouped by name prefix:
+Live inventory, grouped by name prefix:
 
 | Prefix | Count | Role |
 |---|---|---|
 | **System** | 20 | Orchestrator, Control Center Live Sync, Morning Brief, Error Monitor, Workflow Monitor, Cost Advisor, Status Board API, Krish Approval Callback, Monthly All Hands, Apify Registry Keeper, Truth Reconciler, Silent Success Detector, Critical Infrastructure Monitor, Status Update Receiver, Product Proposal → GitHub Issue, Proposal Executor, Competitor Health Scan, Workflow Optimizer (inactive), Deep Enrich Retry Sweep, etc. |
-| **Cleo** | 8 | Omnichannel Content Factory, Draft Post on Demand, LinkedIn Distribution, Log Content Performance, Newsletter Sweep, Content Idea Capture (Sonnet 4.6), Capture Idea Webhook, **Cleo | Email Draft (new)** — Gmail OAuth draft creation for leads/customers/guests |
-| **Nell** | 8 | Guest Scout, Apollo Contact Enrichment, Draft Outbound Messages (LinkedIn DMs + Telegram), Lead Document Ingest (venture-aware, multi-tag), Guest Sheet Bulk Import, Guest Confirmed Cascade, Guest Pitch Draft (Sonnet 4.6, 36/36 backfilled) |
-| **Agatha** | 8 | Content Angle Approval, Portfolio Pipeline Triage/Dispatch/Analytics, Product Proposal Review, State of Union Weekly, **Lead Deep Enrich (repaired 2026-05-25 — fixed credential bindings + URL shape bugs)**, Weekly Plan Refresh (Mon 09:00 UTC). **Day 2 will add Closure Intent Receiver here.** |
+| **Cleo** | 8 | Omnichannel Content Factory, Draft Post on Demand, LinkedIn Distribution, Log Content Performance, Newsletter Sweep, Content Idea Capture (Sonnet 4.6), Capture Idea Webhook, **Cleo | Email Draft** — Gmail OAuth draft creation for leads/customers/guests |
+| **Nell** | 8 | Guest Scout, Apollo Contact Enrichment, Draft Outbound Messages (LinkedIn DMs + Telegram), Lead Document Ingest (venture-aware, multi-tag), Guest Sheet Bulk Import, Guest Confirmed Cascade, Guest Pitch Draft (Sonnet 4.6) |
+| **Agatha** | 8 | Content Angle Approval, Portfolio Pipeline Triage/Dispatch/Analytics, Product Proposal Review, State of Union Weekly, **Lead Deep Enrich**, Weekly Plan Refresh (Mon 09:00 UTC). The conversational Closure Intent Receiver is planned (see §17.7). |
 | **Stripe** | 6 | Revenue alerts: Merciless, OnAlert, Gutted, Fractionl, mm-ctrl, Mindmaker OS Payment Alert |
 | **Feedback** | 5 | Weekly per product (Fractionl Circle, Fractionl Pulse, Gutted, Merciless, OnAlert) |
 | **Nova** | 4 | Closed-Loop PR Engine, Visibility Sweeper (Mon 11:00 UTC), enrich endpoints |
@@ -184,12 +185,12 @@ Live counts as of 2026-05-25 via `GET /api/v1/workflows`. Grouped by name prefix
 | **Leo** | 1 | Revenue Weekly Report (Friday) |
 | **Hunter** | 1 | Job Sweep (Mon + Thu) |
 | **Felix** | 1 | Opportunity Pipeline Tracker (Mon–Fri) |
-| **ZZ ARCHIVED Agatha** | 1 | Duplicate Visibility Deep Enrich (archived during 2026-05-25 audit) — kept for history, inactive |
+| **ZZ ARCHIVED Agatha** | 1 | Duplicate Visibility Deep Enrich — archived, kept for history, inactive |
 | **Other** | 2 | Misc/legacy |
 
 A point-in-time snapshot of the five workflows most central to the audit is checked into the repo at `n8n/workflows/*.json`. See that folder's README for inventory + a per-workflow audit changelog. Canonical state still lives in the N8N runtime; the JSON files are for diff review, recovery, and historical record.
 
-**Workflow trigger limitation (discovered Day 1 Stream 1).** The legacy `n8n-nodes-base.cron` trigger node is **not** executable via either the n8n public REST API (`POST /workflows/{id}/execute` returns 405) or the MCP `execute_workflow` tool (which only accepts Schedule/Webhook/Form/Chat/Manual triggers). Day 2-5 workflow additions must use `Schedule Trigger`, not `cron`, if a manual-trigger path is needed for testing.
+**Workflow trigger limitation.** The legacy `n8n-nodes-base.cron` trigger node is **not** executable via either the n8n public REST API (`POST /workflows/{id}/execute` returns 405) or the MCP `execute_workflow` tool (which only accepts Schedule/Webhook/Form/Chat/Manual triggers). New workflows must use `Schedule Trigger`, not `cron`, if a manual-trigger path is needed for testing.
 
 ### 3.5 Telegram bot → agent binding
 
@@ -217,7 +218,7 @@ Every piece of OS state lives in one of these tables. Categorised by change rate
 |---|---|---|
 | `agents` (14 rows) | Per-agent identity + brief_content + KPIs | `brief_content` is the canonical operating manual — rendered to `skills/agent-{id}/SKILL.md` every 15 min |
 | `agent_capabilities`, `api_registry`, `api_endpoints`, `apify_actor_registry` | What agents can do, what APIs exist, registered scrapers | |
-| `standards_registry` (~167 rows) | Behavioural rules enforced fleet-wide (V-001, GIT-001, MT-003, PUB-001, …) | Rendered nightly to `hot/standards-digest.md` |
+| `standards_registry` (~170 rows) | Behavioural rules enforced fleet-wide (V-001, GIT-001, MT-003, PUB-001, …) | Rendered nightly to `hot/standards-digest.md` |
 | `ventures` (8 active) | Portfolio metadata | See §11 |
 | `venture_registry` (3 rows) | Active venture surfaces for multi-tag leads/guests (`mindmaker`, `signal_noise`, `builder_economy`) | Drives per-venture lanes in the Leads tab and the venture chip on LeadCard |
 | `completeness_contracts` (6 seeds) | Per-workflow output contracts — Tier 1 of the self-healing system | Shape: `{workflow_id, expected_min_rows, expected_columns, freshness_window_hours}` |
@@ -227,23 +228,23 @@ Every piece of OS state lives in one of these tables. Categorised by change rate
 | Table | Purpose |
 |---|---|
 | `agent_plans` (14 rows) | One sprint plan per agent — `current_phase`, `objective`, `blockers`, `next_milestone`, `progress_pct`, `doc_link`, `last_rendered_at`. Refreshed weekly by `Agatha Weekly Plan Refresh` (Mon 09:00 UTC) via `refresh_agent_plans()` RPC + Sonnet 4.6 |
-| `tasks` | The unit of action — `id`, `title`, `agent`, `status` (`waiting`/`active`/`in_progress`/`blocked`/`done`/`pending-agatha-review`/`pending-review`/`paused`/`superseded`), `workstream`, `created`, plus `lever_score` + `est_hours_to_revenue` (from PR #47), plus **`concept_id text`** (new Day 1 Stream 1; backfilled for `Outreach:%` titles, indexed). CHECK constraint `tasks_status_check` enumerates the status values |
-| `goals` | **Portfolio objectives** (repurposed 2026-05-29 from the old weekly-goals graveyard). Multi-week unlocks scoped to a venture (`venture` column), with status (`proposed`/`active`/`paused`/`done`/`dropped`), priority, definition_of_done, why_now, target_horizon, primary/secondary KPI, `is_auto` (Agatha auto-decomposes), `source` (`krish_declared`/`marcus_nominated`/`agatha_decomposed`). The 8 April chore rows live in `goals_archive_2026_04`. FK from `agent_plans.weekly_goal_id` makes this the parent objective every agent loads on wake (CLAUDE.md Step 3b) |
-| `milestones` (new 2026-05-29) | Week-sized chunks of an objective. FK to `goals(id)` ON DELETE CASCADE. Status (`proposed`/`accepted`/`active`/`done`/`dropped`), source (`marcus_proposed`/`krish_authored`/`krish_tweaked`/`agatha_decomposed`), `sequence` (order within objective), `est_deep_work_hours`, `marcus_reasoning`. Marcus proposes for non-auto objectives; Krish accepts/tweaks/replaces/rejects; Agatha auto-creates for `is_auto=true` objectives. Tasks attach upward via `tasks.milestone_id` (nullable; null is legitimate for tactical work) |
-| `goal_agent_contributions` (new 2026-05-29) | M:n bridge: an objective lists which agents contribute and what each contributes (`contribution_note`). Complements the 1:1 `agent_plans.weekly_goal_id` pointer with the many side |
+| `tasks` | The unit of action — `id`, `title`, `agent`, `status` (`waiting`/`active`/`in_progress`/`blocked`/`done`/`pending-agatha-review`/`pending-review`/`paused`/`superseded`), `workstream`, `created`, plus `lever_score` + `est_hours_to_revenue`, plus **`concept_id text`** (backfilled for `Outreach:%` titles, indexed). CHECK constraint `tasks_status_check` enumerates the status values |
+| `goals` | **Portfolio objectives** (repurposed from the old weekly-goals graveyard). Multi-week unlocks scoped to a venture (`venture` column), with status (`proposed`/`active`/`paused`/`done`/`dropped`), priority, definition_of_done, why_now, target_horizon, primary/secondary KPI, `is_auto` (Agatha auto-decomposes), `source` (`krish_declared`/`marcus_nominated`/`agatha_decomposed`). The 8 April chore rows live in `goals_archive_2026_04`. FK from `agent_plans.weekly_goal_id` makes this the parent objective every agent loads on wake (CLAUDE.md Step 3b) |
+| `milestones` | Week-sized chunks of an objective. FK to `goals(id)` ON DELETE CASCADE. Status (`proposed`/`accepted`/`active`/`done`/`dropped`), source (`marcus_proposed`/`krish_authored`/`krish_tweaked`/`agatha_decomposed`), `sequence` (order within objective), `est_deep_work_hours`, `marcus_reasoning`. Marcus proposes for non-auto objectives; Krish accepts/tweaks/replaces/rejects; Agatha auto-creates for `is_auto=true` objectives. Tasks attach upward via `tasks.milestone_id` (nullable; null is legitimate for tactical work) |
+| `goal_agent_contributions` | M:n bridge: an objective lists which agents contribute and what each contributes (`contribution_note`). Complements the 1:1 `agent_plans.weekly_goal_id` pointer with the many side |
 | `workstreams`, `workstream_contexts` | Workstream definitions + rolling context |
 | `opportunities`, `sequences`, `contacted_persons` | Deal pipeline + outbound sequences + CRM log |
-| `leads` | Sales pipeline unit. CHECK constraint `leads_status_check` permits exactly: `new`, `enriching`, `ready`, `contacted`, `conversation`, `closed_won`, `closed_lost`, `superseded`. Columns include `assignee_agent`, `fit_score`, `attainability_score`, `icp_score` (legacy), `icp_scores` (jsonb, per-venture), `tags` (text[]), `primary_venture` (FK → venture_registry), `tier`, `why_relevant`, `primary_tension`, `next_step`, `follow_up_at`, `promoted_task_id`, `deep_enriched_at`, **`enrichment_status`**, **`last_emailed_at`**, **`last_email_draft_id`**, **`last_email_draft_url`** (last four added in audit 2026-05-25), plus **`concept_id text`** (new Day 1 Stream 1, indexed) |
-| `guests` | Podcast guests for Builder Economy + Signal & Noise. Columns: `podcast_target` (`builder_economy`/`signal_noise` — underscore form, not hyphen), `status` (allowed: `scouted`/`enriched`/`pitched`/`responded`/`scheduled`/`confirmed`/`recorded`/`published`/`dropped`), `target_type` (`podcast_guest`/`press_target`/`dual`, added PR #76 2026-05-26), `pitch_draft`, `suggested_angles` (jsonb), `scheduled_task_id`, `deep_enriched_at`, `cascade_fired_at`, **`last_outreach_at`** (audit 2026-05-25). `source` constrained to `'manual'/'sheet_import'/'nell_outbound'/'referral'/'migration'`. **`concept_id` extension scheduled for Day 2.** |
-| `visibility_targets` | Speaking, CFP, press, and PR opportunities. Columns: `title` (not `name`), `type` (allowed: `cfp`/`conference`/`podcast`/`newsletter`/`guest_appearance`/`press_relationship`/`speaking`/`other` — last two added PR #76 2026-05-26), `status` (allowed: `sourced`/`queued`/`applied`/`accepted`/`rejected`/`done`/`dropped`), URL fields `source_url` + `event_url` + `cfp_url`, deep enrichment fields (`organizer`, `audience_*`, `past_speakers`, `cfp_requirements`, `proposed_talk`, `strategic_value`, `angle`, `effort_estimate`, `risk_notes`, `next_actions`), `applied_at`, `rejected_at`. Written by Nova Visibility Sweeper (Mon 11:00 UTC) for events, by Nell Guest Scout router for press_relationship rows, and by Nova Visibility Deep Enrich for URL+enrichment on retry sweep. **`concept_id` extension scheduled for Day 2.** |
-| `nell_rejected` (new, PR #76 2026-05-26) | Silent-skip audit log for Nell's editorial-bar quality gate. Columns: `name`, `source_url`, `source`, `reason`, `raw_data`, `created_at`. RLS on (anon read, service write). Records every candidate Nell rejects — HN-username pattern, no-contact, below-bar — so the bar is observable without surfacing junk to Triage |
-| `content_ideas` | Cleo's idea backlog — written by Capture Idea + Layer 1 Signal Inbox + Guest Confirmed Cascade. **`concept_id` extension scheduled for Day 2.** |
+| `leads` | Sales pipeline unit. CHECK constraint `leads_status_check` permits exactly: `new`, `enriching`, `ready`, `contacted`, `conversation`, `closed_won`, `closed_lost`, `superseded`, plus `churned`. Columns include `assignee_agent`, `fit_score`, `attainability_score`, `icp_score` (legacy), `icp_scores` (jsonb, per-venture), `tags` (text[]), `primary_venture` (FK → venture_registry), `tier`, `why_relevant`, `primary_tension`, `next_step`, `follow_up_at`, `promoted_task_id`, `deep_enriched_at`, **`enrichment_status`**, **`last_emailed_at`**, **`last_email_draft_id`**, **`last_email_draft_url`**, **`concept_id text`** (indexed), plus the audience-pipeline columns `audience_sources` (text[]), `churned_at`, `audience_synced_at`, and `source_type` (which now also permits `audience`) — see §4.11 |
+| `guests` | Podcast guests for Builder Economy + Signal & Noise. Columns: `podcast_target` (`builder_economy`/`signal_noise` — underscore form, not hyphen), `status` (allowed: `scouted`/`enriched`/`pitched`/`responded`/`scheduled`/`confirmed`/`recorded`/`published`/`dropped`), `target_type` (`podcast_guest`/`press_target`/`dual`), `pitch_draft`, `suggested_angles` (jsonb), `scheduled_task_id`, `deep_enriched_at`, `cascade_fired_at`, **`last_outreach_at`**, **`concept_id text`** (indexed). `source` constrained to `'manual'/'sheet_import'/'nell_outbound'/'referral'/'migration'`. |
+| `visibility_targets` | Speaking, CFP, press, and PR opportunities. Columns: `title` (not `name`), `type` (allowed: `cfp`/`conference`/`podcast`/`newsletter`/`guest_appearance`/`press_relationship`/`speaking`/`other`), `status` (allowed: `sourced`/`queued`/`applied`/`accepted`/`rejected`/`done`/`dropped`), URL fields `source_url` + `event_url` + `cfp_url`, deep enrichment fields (`organizer`, `audience_*`, `past_speakers`, `cfp_requirements`, `proposed_talk`, `strategic_value`, `angle`, `effort_estimate`, `risk_notes`, `next_actions`), `applied_at`, `rejected_at`, **`concept_id text`** (indexed, non-partial unique). Written by Nova Visibility Sweeper (Mon 11:00 UTC) for events, by Nell Guest Scout router for press_relationship rows, and by Nova Visibility Deep Enrich for URL+enrichment on retry sweep. |
+| `nell_rejected` | Silent-skip audit log for Nell's editorial-bar quality gate. Columns: `name`, `source_url`, `source`, `reason`, `raw_data`, `created_at`. RLS on (anon read, service write). Records every candidate Nell rejects — HN-username pattern, no-contact, below-bar — so the bar is observable without surfacing junk to Triage |
+| `content_ideas` | Cleo's idea backlog — written by Capture Idea + Layer 1 Signal Inbox + Guest Confirmed Cascade + the Inspiration/Synthesis pipelines + lane sourcing. Carries `concept_id text`, `pillar_id`, `lane`/`lane_slot`/`cadence_due_at`, `parent_idea_id`, `source_url`, `body`, `brand_fit_score`, `meta` (jsonb) |
 
 ### 4.3 Customers, revenue, bets
 
 | Table | Purpose |
 |---|---|
-| `customers` | Cross-product customer ledger. `customer_kind` enum (`paid`/`free_signup`/`trial`/`waitlist`/`churned`), `customer_product` enum (6 products), `mrr_usd`, `stripe_customer_id`, dedupe indexes. Plus 4 attribution columns (`attribution_lead_id`, `attribution_task_id`, `attribution_channel`, `attribution_confidence`). Plus **`needs_outreach_at`**, **`last_emailed_at`**, **`last_email_draft_id`**, **`last_email_draft_url`** (audit 2026-05-25). **`concept_id` extension scheduled for Day 2.** |
+| `customers` | Cross-product customer ledger. `customer_kind` enum (`paid`/`free_signup`/`trial`/`waitlist`/`churned`), `customer_product` enum (now includes `mindmaker` + `mindmaker_live` alongside the builder products — see §4.11), `mrr_usd`, `stripe_customer_id`, dedupe indexes. Plus 4 attribution columns (`attribution_lead_id`, `attribution_task_id`, `attribution_channel`, `attribution_confidence`). Plus **`needs_outreach_at`**, **`last_emailed_at`**, **`last_email_draft_id`**, **`last_email_draft_url`**. The `trg_enforce_audience_invariant` trigger fires on insert/update of `kind` (see §4.11). |
 | `customer_contacts` | One row per customer conversation. Mined by Marcus for `customer_voice` themes from the last 7 days. Drives the Customer Council card on the Customers tab |
 | `bets` | Falsifiable business hypotheses — `title`, `hypothesis`, `time_box_days`, `est_mrr_impact_usd`, `status` (`live`/`won`/`lost`/`partial`), `learning`, `actual_mrr_impact_usd`. 90-day hit-rate computed in the Bets tab |
 | `business_metrics` | Revenue MTD, pipeline value, content metrics |
@@ -253,7 +254,7 @@ Every piece of OS state lives in one of these tables. Categorised by change rate
 | Table | Purpose |
 |---|---|
 | `workflow_runs` | Every N8N workflow writes a heartbeat per execution — primary fleet-health signal |
-| `audit_log` | Append-only audit trail of agent runs + Krish actions. **New event types as of Day 1 Stream 1: `concept_closed`, `concept_reopened`.** Pre-Day-1 had zero `status_change` events out of 1,432 rows; the `status_change_log` table (§4.10) is the dedicated channel for those going forward |
+| `audit_log` | Append-only audit trail of agent runs + Krish actions. Event types include `concept_closed` and `concept_reopened`. The `status_change_log` table (§4.10) is the dedicated channel for row-level status transitions |
 | `feedback_queue` | Krish's rejections + comments — fuel for the learning loop (consumed by Vera Feedback Aggregation Sun 06:00 UTC) |
 | `corrections` | Patterns Vera extracts from `feedback_queue` (≥3 matches, confidence > 0.85) AND from `silent_failures` via Failure Pattern Sweep |
 | `silent_failures` | Tier 1–4 of the self-healing system. Rows written by completeness gates + Silent Success Detector + Critical Infrastructure Monitor; resolved by humans or grouped into `corrections` by Vera |
@@ -261,13 +262,13 @@ Every piece of OS state lives in one of these tables. Categorised by change rate
 | `standards_efficacy` | How well each standard is being followed |
 | `system_health` | Per-component infra signals |
 | `home_intelligence` | The Control Center home feed — `summary`, `metrics`, `external_signals`, `customer_signals`, `customer_voice`, plus Marcus-COO surfaces (`daily_brief`, `weekly_retro`, `monday_premortem` + their `*_at` and `*_ack_at` timestamps). All structured fields are JSONB |
-| **`email_drafts`** | **New in audit 2026-05-25.** One row per Gmail draft created via the Cleo Email Draft workflow. Columns: `id`, `entity_type` (`lead`/`customer`/`guest`), `entity_id`, `gmail_draft_id`, `gmail_draft_url`, `subject`, `body_html`, `recipient_email`, `intent`, `created_at`, `sent_at` (null until manually sent). Idempotency on `(entity_type, entity_id, intent)` within 24h. |
+| **`email_drafts`** | One row per Gmail draft created via the Cleo Email Draft workflow. Columns: `id`, `entity_type` (`lead`/`customer`/`guest`), `entity_id`, `gmail_draft_id`, `gmail_draft_url`, `subject`, `body_html`, `recipient_email`, `intent`, `created_at`, `sent_at` (null until manually sent). Idempotency on `(entity_type, entity_id, intent)` within 24h. |
 
 ### 4.5 Agent-specific scratchpads
 
 `marcus_synthesis`, `maya_budget_state`, `maya_competitive_changes`, `maya_reddit_accounts`, `maya_striking_distance`, `hunter_search_urls`, `hunter_seen_roles`, `kai_workflow_snapshots`, `vera_audit`, `zara_signals`, `product_health`, `competitor_health`.
 
-(`nova_target_conferences` and `nell_candidates` were DROPPED in PR #56 after data migrated to `visibility_targets` and `guests`. References in any doc, brief, or workflow are stale.)
+(`nova_target_conferences` and `nell_candidates` were dropped after their data migrated to `visibility_targets` and `guests`. References in any doc, brief, or workflow are stale.)
 
 ### 4.6 System & sync plumbing
 
@@ -275,7 +276,7 @@ Every piece of OS state lives in one of these tables. Categorised by change rate
 
 ### 4.7 The `decisions_waiting` view
 
-Postgres view defined in PR #55. Unions five source tables into a single uniform shape (`{kind, id, title, agent, age_hours, link, meta}`) so the Control Center Home tab can render one panel covering every kind of thing waiting on Krish:
+Postgres view. Unions five source tables into a single uniform shape (`{kind, id, title, agent, age_hours, link, meta}`) so the Control Center Home tab can render one panel covering every kind of thing waiting on Krish:
 
 | `kind` | Source | What it surfaces |
 |---|---|---|
@@ -287,7 +288,7 @@ Postgres view defined in PR #55. Unions five source tables into a single uniform
 
 The `meta` JSONB carries the per-kind enrichment (pitch_draft preview, suggested_angles, tier, fit_score, etc.) so the panel renders rich previews without a join.
 
-**Aspirational (Day 3+).** Every UNION branch will additionally `LEFT JOIN concept_decisions cd ON cd.concept_id = src.concept_id` and filter `WHERE cd.concept_id IS NULL OR cd.superseded_at IS NOT NULL`. Without this, the view can surface rows whose concepts Krish has already closed. Until that wiring lands, `close_concept` works at the row-status level (setting tasks to `superseded`, leads to `closed_lost`), which removes them from the underlying source filters indirectly. The JOIN is the belt-and-braces layer for cases where a generator inserts a NEW row for an already-closed concept.
+A synthesis-time `LEFT JOIN concept_decisions` on each UNION branch (to hide rows whose concepts Krish has already closed) is not yet wired — see §17.7. Today `close_concept` works at the row-status level (tasks → `superseded`, leads → `closed_lost`), which removes them from the underlying source filters indirectly.
 
 ### 4.8 RPCs worth knowing
 
@@ -297,27 +298,27 @@ The `meta` JSONB carries the per-kind enrichment (pitch_draft preview, suggested
 | `audit_silent_failures()` | Used by Silent Success Detector (4h cron) to detect ok-but-empty runs |
 | `audit_critical_infra()` | Used by Critical Infrastructure Monitor (5m cron) to detect credential/RLS failures |
 | `audit_failure_patterns()` | Used by Vera Failure Pattern Sweep (Sun 07:00 UTC) to cluster silent_failures into corrections |
-| **`mark_entity_emailed(entity_type, entity_id, draft_id, draft_url)`** | **New in audit 2026-05-25.** Idempotent helper called by the Cleo Email Draft workflow to stamp `last_emailed_at`, `last_email_draft_id`, `last_email_draft_url` on the relevant entity (lead/customer/guest) atomically |
-| **`compute_concept_slug(p_name text) → text`** | **New Day 1 Stream 1.** Deterministic slugifier (lowercase, btrim, collapse non-alphanumeric to `-`). Used by the leads/tasks backfill and by any future generator that needs to assign `concept_id`. IMMUTABLE so the planner can use it in expression indexes if needed |
-| **`close_concept(p_concept_id text, p_reason text, p_decided_by text DEFAULT 'krish') → jsonb`** | **New Day 1 Stream 1.** Upserts a `concept_decisions` row with `decision='closed'`, cascades status updates across tagged rows (tasks → `superseded`, leads → `closed_lost`), records an `audit_log` event of type `concept_closed`, and propagates `app.changed_by` + `app.source='rpc:close_concept'` into the trigger-emitted `status_change_log` rows so every cascading status change is attributed. Returns `{ok, concept_id, tasks_closed, leads_closed, decided_at}`. Re-runnable: ON CONFLICT (concept_id) updates the decision and clears `superseded_at`; already-terminal rows are not re-stamped |
-| **`reopen_concept(p_concept_id text, p_reason text, p_decided_by text DEFAULT 'krish') → jsonb`** | **New Day 1 Stream 1.** Marks the live `concept_decisions` row as `superseded_at = now()`, writes an `audit_log` event of type `concept_reopened`. Does NOT flip terminal rows back to non-terminal — history is preserved; to re-engage, a Day 2 workflow creates a NEW row with the same `concept_id` and the ledger records the concept is once again open |
-| **`log_status_change()` (trigger function)** | **New Day 1 Stream 1.** Internal — fires AFTER UPDATE OF status on tasks and leads. Reads `current_setting('app.changed_by', true)` and `current_setting('app.source', true)` so any caller (RPC, edge function, agent code) that sets those before its UPDATE gets proper attribution. Falls back to `'system' / 'direct_update'` |
+| **`mark_entity_emailed(entity_type, entity_id, draft_id, draft_url)`** | Idempotent helper called by the Cleo Email Draft workflow to stamp `last_emailed_at`, `last_email_draft_id`, `last_email_draft_url` on the relevant entity (lead/customer/guest) atomically |
+| **`compute_concept_slug(p_name text) → text`** | Deterministic slugifier (lowercase, btrim, collapse non-alphanumeric to `-`). Used by the leads/tasks backfill and by any generator that needs to assign `concept_id`. IMMUTABLE so the planner can use it in expression indexes if needed |
+| **`close_concept(p_concept_id text, p_reason text, p_decided_by text DEFAULT 'krish') → jsonb`** | Upserts a `concept_decisions` row with `decision='closed'`, cascades status updates across tagged rows (tasks → `superseded`, leads → `closed_lost`), records an `audit_log` event of type `concept_closed`, and propagates `app.changed_by` + `app.source='rpc:close_concept'` into the trigger-emitted `status_change_log` rows so every cascading status change is attributed. Returns `{ok, concept_id, tasks_closed, leads_closed, decided_at}`. Re-runnable: ON CONFLICT (concept_id) updates the decision and clears `superseded_at`; already-terminal rows are not re-stamped |
+| **`reopen_concept(p_concept_id text, p_reason text, p_decided_by text DEFAULT 'krish') → jsonb`** | Marks the live `concept_decisions` row as `superseded_at = now()`, writes an `audit_log` event of type `concept_reopened`. Does NOT flip terminal rows back to non-terminal — history is preserved; to re-engage, write a NEW row with the same `concept_id` and the ledger records the concept is once again open |
+| **`log_status_change()` (trigger function)** | Internal — fires AFTER UPDATE OF status on tasks and leads. Reads `current_setting('app.changed_by', true)` and `current_setting('app.source', true)` so any caller (RPC, edge function, agent code) that sets those before its UPDATE gets proper attribution. Falls back to `'system' / 'direct_update'` |
 
 ### 4.9 RLS posture
 
-Every table has RLS enabled. Pattern: `anon` reads (for Control Center dashboards) + `service_role` writes (for agents). N8N agents authenticate as `service_role` through the `Supabase account 2` credential. Adding a table without RLS will fail Vera's audit. The new `concept_decisions` and `status_change_log` tables inherit the same posture.
+Every table has RLS enabled. Pattern: `anon` reads (for Control Center dashboards) + `service_role` writes (for agents). N8N agents authenticate as `service_role` through the `Supabase account 2` credential. Adding a table without RLS will fail Vera's audit. The `concept_decisions` and `status_change_log` tables follow the same posture.
 
-### 4.10 Closure architecture (new — Day 1 Stream 1, 2026-05-25)
+### 4.10 Closure architecture
 
-**Motivation.** Pre-Day-1, closing a row killed the row but not the concept. Disney existed as both a `tasks` row (`superseded`) and a `leads` row (`ready`); closing the task did nothing to the lead, and Marcus's daily brief kept surfacing Disney as the top revenue card from the lead. Same conceptual work, two surfaces, no shared identity, no durable "Krish decided this is done" record.
+**Motivation.** Before this, closing a row killed the row but not the concept. Disney existed as both a `tasks` row (`superseded`) and a `leads` row (`ready`); closing the task did nothing to the lead, and Marcus's daily brief kept surfacing Disney as the top revenue card from the lead. Same conceptual work, two surfaces, no shared identity, no durable "Krish decided this is done" record. (For what is live versus not-yet-built across this architecture, see §17.7.)
 
 The architecture has four parts:
 
 | Part | Where | What it does |
 |---|---|---|
-| 1. **Concept identity** | `tasks.concept_id text`, `leads.concept_id text` (indexed) | A stable, human-readable slug like `concept:org:disney` that ties rows representing the same conceptual work across tables. Backfilled for all four outreach concepts (Disney, Marketbridge, Vertex Inc., Alma Media Corp) on Day 1; extension to `guests`, `visibility_targets`, `content_ideas`, `customers`, `opportunities` scheduled for Day 2 |
+| 1. **Concept identity** | `concept_id text` on `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas` (all indexed; backfilled) | A stable, human-readable slug like `concept:org:disney` that ties rows representing the same conceptual work across tables. Extension to `customers` and `opportunities` is not yet done (see §17.7) |
 | 2. **Decision ledger** | `concept_decisions` table (PK = concept_id) | Durable record of every concept-level decision Krish has made. Columns: `concept_id`, `decision` (`closed`/`killed`/`paused`/`reopened`/`completed`), `decided_at`, `decided_by`, `reason`, `superseded_at`, `superseded_by_decision_id`. ON CONFLICT (concept_id) DO UPDATE: re-running `close_concept` for the same concept replaces the prior decision (with reason and timestamp), and clears `superseded_at` if previously reopened. Reopens preserve history via `superseded_at` |
-| 3. **Status-change audit trail** | `status_change_log` table (bigserial PK) + AFTER UPDATE triggers on tasks and leads | Every status transition is logged with `(table_name, row_id, concept_id, old_status, new_status, changed_at, changed_by, source)`. Pre-Day-1 the OS had zero such audit entries; from Day 1 forward, every transition is captured. Attribution comes from `current_setting('app.changed_by')` and `current_setting('app.source')` — RPCs set these before their UPDATE; direct UPDATEs fall back to `'system' / 'direct_update'` |
+| 3. **Status-change audit trail** | `status_change_log` table (bigserial PK) + AFTER UPDATE triggers on tasks and leads | Every status transition is logged with `(table_name, row_id, concept_id, old_status, new_status, changed_at, changed_by, source)`. Attribution comes from `current_setting('app.changed_by')` and `current_setting('app.source')` — RPCs set these before their UPDATE; direct UPDATEs fall back to `'system' / 'direct_update'` |
 | 4. **Cascading-closure RPC** | `close_concept(concept_id, reason, decided_by)` | Single entry point for "this concept is done." Upserts the ledger row, cascades terminal status to every tagged row, writes the audit_log event, and (via triggers) emits the status_change_log entries. `reopen_concept` is the inverse for the "we changed our mind" case |
 
 **Terminal status convention.** Concept closure cascades to **terminal status values that are already in the live CHECK constraints**, not to runbook-imagined values:
@@ -325,7 +326,7 @@ The architecture has four parts:
 - `tasks` → `'superseded'` (skipping rows already in `{'done','superseded','killed','archived','completed'}`)
 - `leads` → `'closed_lost'` (skipping rows already in `{'closed_won','closed_lost','superseded'}`)
 
-The original closure-architecture runbook used `'dead'` for leads and skipped `('dead','customer','unsubscribed','archived')`. None of those tokens exist in `leads_status_check`. Stream 1 substituted `'closed_lost'` because it is already in the constraint's permitted set and presumably already used elsewhere in the codebase. Day 2 housekeeping decides whether to ALTER the constraint or canonicalize on `'closed_lost'`; the current recommendation is the latter (lower blast radius, vocabulary already established).
+The original closure-architecture runbook used `'dead'` for leads and skipped `('dead','customer','unsubscribed','archived')`. None of those tokens exist in `leads_status_check`, so the architecture canonicalizes on `'closed_lost'` instead — it is already in the constraint's permitted set (lower blast radius, vocabulary already established).
 
 **Attribution convention.** Any caller that wants its identity recorded on the status_change_log entry must:
 
@@ -335,19 +336,17 @@ SELECT set_config('app.source',     '<source>',  true); -- e.g. 'telegram', 'con
 -- ...then UPDATE...
 ```
 
-`close_concept` does this internally with `('krish' or whoever, 'rpc:close_concept')`. Day 2's Closure Intent Receiver workflow will do the same with `('agatha-closure-receiver', 'telegram-intent')` or similar.
+`close_concept` does this internally with `('krish' or whoever, 'rpc:close_concept')`. The planned Closure Intent Receiver workflow (see §17.7) will do the same with `('agatha-closure-receiver', 'telegram-intent')` or similar.
 
 **Idempotency.** Calling `close_concept` twice for the same concept is safe. First call inserts the decision row and cascades. Second call updates `decided_at`/`reason`, finds the rows already terminal (per the skip-list), and returns `{tasks_closed: 0, leads_closed: 0}` with `ok: true`. The audit_log entry is emitted each time, so re-runs are detectable.
 
-**At-risk batch (Day 2 candidates, identified Day 1).** Marketbridge, Vertex Inc., Alma Media Corp — same structural pattern Disney had (lead still non-terminal, outreach task already superseded, no shared identity until concept_id was backfilled). Day 2 closes these as the batch test.
-
-**Day 1 canary.** Disney: `concept_id = 'concept:org:disney'` on both rows; `close_concept('concept:org:disney', 'Day 1 canary test 2026-05-25', 'krish')` returned `{tasks_closed: 0, leads_closed: 1}` (task was already `superseded`). The lead transitioned `ready → closed_lost`; `concept_decisions` and `status_change_log` rows both materialised; an `audit_log` event of type `concept_closed` was emitted. `marcus_daily_pull()` now returns zero Disney mentions across all arrays (leads, hot_leads, stale_tasks); the next 06:30 UTC Marcus run will produce a Disney-free `top_three` by construction.
+**Canary illustration.** Disney: `concept_id = 'concept:org:disney'` on both rows; `close_concept('concept:org:disney', '...', 'krish')` returned `{tasks_closed: 0, leads_closed: 1}` (task was already `superseded`). The lead transitioned `ready → closed_lost`; `concept_decisions` and `status_change_log` rows both materialised; an `audit_log` event of type `concept_closed` was emitted. `marcus_daily_pull()` then returns zero Disney mentions across all arrays (leads, hot_leads, stale_tasks), so the next Marcus run produces a Disney-free `top_three` by construction.
 
 ---
 
-### 4.11 Unified audience pipeline (new — 2026-06-03)
+### 4.11 Unified audience pipeline
 
-Every Mindmaker property now feeds one audience list, and that list flows into the Control Center with a hard paid-vs-free rule. Two databases are involved: the **Mindmaker AI app DB** (`bkyuxvschuwngtcdhsyg`) where capture happens, and this **OS DB** (`gojpffsrxybbpbdzzrvs`) where the Control Center reads. They are different projects, so a bridge carries capture into the OS.
+Every Mindmaker property feeds one audience list, and that list flows into the Control Center with a hard paid-vs-free rule. Two databases are involved: the **Mindmaker AI app DB** (`bkyuxvschuwngtcdhsyg`) where capture happens, and this **OS DB** (`gojpffsrxybbpbdzzrvs`) where the Control Center reads. They are different projects, so a bridge carries capture into the OS.
 
 **Capture (app DB `audience_contacts`, enum `lead_source`).** CTRL signups (`track-event` edge fn → `source='ctrl'`), the marketing site (all five capture edge functions via a shared `recordSiteAudienceContact` helper → `source='mindmaker_site'`), the Builder Economy (`NotifyForm` → `source='builder_economy'`), and Mindmaker Live (Substack CSV import → `source='mindmaker_live'`). Each row carries `metadata` (capture type, attribution, and `paid` for Substack). A `synced_to_os_at` watermark marks rows the bridge has processed.
 
@@ -362,7 +361,7 @@ Every Mindmaker property now feeds one audience list, and that list flows into t
 
 **Reconciler.** `reconcile_audience_invariant()` finds any email that is both a paying customer and an active lead, supersedes the lead, returns counts. Runs daily via the reconcile tick.
 
-**Schema additions.** `leads`: `audience_sources text[]`, `churned_at`, `audience_synced_at`; `leads_status_check` gains `churned`; `leads_source_type_check` gains `audience`. `customer_product` gains `mindmaker` + `mindmaker_live`. New RPCs: `sync_audience_contact`, `pull_audience_contacts`, `reconcile_audience_invariant`, `audience_import_proxy` (Substack CSV → app DB importer via http + Vault secret, then sync). Control Center renders audience leads with an 'Audience' source pill, capture-source chips, a Churned badge, and a Substack CSV dropzone (`/api/audience/import-substack` → `audience_import_proxy`).
+**Schema additions.** `leads`: `audience_sources text[]`, `churned_at`, `audience_synced_at`; `leads_status_check` gains `churned`; `leads_source_type_check` gains `audience`. `customer_product` gains `mindmaker` + `mindmaker_live`. RPCs: `sync_audience_contact`, `pull_audience_contacts`, `reconcile_audience_invariant`, `audience_import_proxy` (Substack CSV → app DB importer via http + Vault secret, then sync). Control Center renders audience leads with an 'Audience' source pill, capture-source chips, a Churned badge, and a Substack CSV dropzone (`/api/audience/import-substack` → `audience_import_proxy`).
 
 ---
 
@@ -379,9 +378,9 @@ Every Mindmaker property now feeds one audience list, and that list flows into t
 
 | Tab | What it shows | Tables / views read |
 |---|---|---|
-| **Home** | CriticalAlertBanner → MrrTicker → **ObjectivesPanel** (objective layer: NominationTray + soft-cap + DeepWorkBlock + active objectives with inline MilestoneCalibrator) → **DailyDriver** (the daily spine, 2026-05-30, see 5.6: one phase-driven journey replacing the old NextActionStrip / FocusBar / FocusCalibrator / TopThreeCards pile-up) → RoomPreviews → MomentumStrip → StreakPills → DailyBriefBanner (retro-only, below the fold) → ActivityTail. A once-weekly **WeeklyFocusTakeover** overlays Home on a new week (Monday-insist). | `home_intelligence`, `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, `customers`, `bets`, `silent_failures`, `decisions_waiting`, **`goals`**, **`milestones`**, **`goal_agent_contributions`**, **`weekly_focus`**, **`weekly_focus_milestones`** |
-| **Today** | Tasks marked active/in_progress/blocked, drift badges on stale rows. Gains a Focus/All toggle (5.6): in Focus mode the list regroups into the 3 daily-target lanes. | `tasks` |
-| **Leads (Services)** | Per-venture lanes (mindmaker / signal_noise / builder_economy) with LeadCards: Promote / Reassign / Schedule follow-up / Deep enrich / **Draft email** / **Close concept (planned Day 2)** | `leads`, `venture_registry` |
+| **Home** | CriticalAlertBanner → MrrTicker → **ObjectivesPanel** (objective layer: NominationTray + soft-cap + DeepWorkBlock + active objectives with inline MilestoneCalibrator) → **DailyDriver** (the daily spine, see 5.6: one phase-driven journey replacing the old NextActionStrip / FocusBar / FocusCalibrator / TopThreeCards pile-up) → RoomPreviews → MomentumStrip → StreakPills → DailyBriefBanner (retro-only, below the fold) → ActivityTail. A once-weekly **WeeklyFocusTakeover** overlays Home on a new week (Monday-insist). | `home_intelligence`, `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, `customers`, `bets`, `silent_failures`, `decisions_waiting`, **`goals`**, **`milestones`**, **`goal_agent_contributions`**, **`weekly_focus`**, **`weekly_focus_milestones`** |
+| **Today** | Tasks marked active/in_progress/blocked, drift badges on stale rows. Has a Focus/All toggle (5.6): in Focus mode the list regroups into the 3 daily-target lanes. Triage keeps the focused row in view on action. | `tasks` |
+| **Leads (Services)** | Per-venture lanes (mindmaker / signal_noise / builder_economy) with LeadCards: Promote / Reassign / Schedule follow-up / Deep enrich / **Draft email** / **Close concept**. Renders audience leads with an Audience source pill, capture-source chips, and a Churned badge (see §4.11). "Draft email" opens an outreach sheet (angle / venture / tone). | `leads`, `venture_registry` |
 | **Guests (Visibility)** | GuestImportDropzone, GuestCard: Confirm / Skip / Deep enrich / Edit pitch / **Draft email** | `guests` |
 | **Visibility (events)** | VisibilityTargetCard: deep-enrich + edit + approve/reject/snooze + past speakers + CFP details + effort + next actions checklist | `visibility_targets` |
 | **Customers (Subscriptions)** | MrrTicker + CustomerSourcesPanel + CustomerCouncilCard + ExpansionRadar + per-product FeedCards + per-customer **Draft email** / Log call / Mark for outreach | `customers`, `customer_contacts`, `home_intelligence` |
@@ -391,9 +390,11 @@ Every Mindmaker property now feeds one audience list, and that list flows into t
 | **Flows / Systems** | N8N workflow health, credential health, silent_failures by tier; **Rerun button per workflow card** | `workflow_runs`, `credential_health`, `kai_workflow_snapshots`, `silent_failures` |
 | **Intel** | Marcus headline + AskMarcus chat (`/api/ask-marcus`) + Zara signals + deep-research outputs + Create task / Add to bets buttons on signals | `zara_signals`, `marcus_synthesis`, `home_intelligence`, `customers`, `leads`, `bets` |
 
+Live interaction details across these tabs: Home surfaces "waiting-on-you" composition chips with per-kind batch review; the content calendar supports click-to-schedule a draft; Services "Draft email" opens an outreach sheet (angle / venture / tone); the Customers (Subscriptions) tab carries a Substack CSV dropzone (`/api/audience/import-substack` → `audience_import_proxy`, see §4.11); sheets and overlays close on `Esc`; lists show loading skeletons; date glyphs never render as `∞d`.
+
 ### 5.2 `/api/*` proxy routes
 
-Every action that needs service-role context OR fires an N8N webhook routes through a Vercel function in `api/`. Inventory as of audit close 2026-05-25:
+Every action that needs service-role context OR fires an N8N webhook routes through a Vercel function in `api/`. Inventory:
 
 | Route | Method | Purpose |
 |---|---|---|
@@ -412,10 +413,11 @@ Every action that needs service-role context OR fires an N8N webhook routes thro
 | **`/api/visibility-targets/:id/enrich-deep`** | POST | Fire visibility deep-enrich |
 | **`/api/visibility-targets/:id/apply`** | POST | Apply CFP / mark applied |
 | **`/api/automations/:id/rerun`** | POST | Find the workflow's webhook trigger and POST to it; 422 with guidance for schedule-only workflows |
-| *`/api/concepts/:concept_id/close`* | POST | **Planned Day 2.** Thin proxy that calls `close_concept(concept_id, reason, decided_by)` with service-role context. The UI hook for "Close concept" buttons on Cards and DetailSheets |
-| *`/api/concepts/:concept_id/reopen`* | POST | **Planned Day 2.** Inverse of the above |
+| `/api/concepts/:concept_id/close` | POST | **LIVE.** Thin proxy that calls `close_concept(concept_id, reason, decided_by)` with service-role context |
+| *`/api/concepts/:concept_id/reopen`* | POST | Planned — inverse of the above (see §17.7) |
+| `/api/audience/import-substack` | POST | Substack CSV import → `audience_import_proxy` (see §4.11) |
 
-(Bold rows added during the 2026-05-25 audit. Italic rows scheduled for Day 2. Full implementation specs in `docs/API.md`.)
+(Italic rows are planned, not yet built — see §17.7. Full implementation specs in `docs/API.md`.)
 
 ### 5.3 Mutation control flow (Krish acts → OS reacts)
 
@@ -441,7 +443,7 @@ The dashboard subscribes to Postgres Realtime via `@supabase/supabase-js`. Hot s
 | `useCustomers` | `customers` | `customers-rt-shared` |
 | `useRealtimeDecisionsWaiting` | `decisions_waiting` | `decisions-rt-shared` |
 | `useCriticalAlerts` | `silent_failures` filtered to tier 3 | `critical-alerts` |
-| `useRealtimeConcepts` (planned Day 3) | `concept_decisions` | `concepts-rt-shared` |
+| `useRealtimeConcepts` (planned, see §17.7) | `concept_decisions` | `concepts-rt-shared` |
 
 **Hard rule.** One channel per table per browser session, fanned out via context/hooks. Opening a second channel for the same table is a performance bug. See ADR-002.
 
@@ -453,7 +455,7 @@ The dashboard subscribes to Postgres Realtime via `@supabase/supabase-js`. Hot s
 - `poll_sync_queue.py` — every 5 min, drains `sync_queue` (cross-system reconciliation).
 - `Control Center Live Sync` (N8N) — auxiliary realtime layer.
 
-### 5.6 The Focus System — one spine from objective to today (shipped 2026-05-30, PR #102)
+### 5.6 The Focus System — one spine from objective to today
 
 **Strategic intent.** Before this, "what should I do?" was answered by five overlapping Home surfaces, and the daily `top_three` always elevated atomic tasks, so multi-week objectives never won daily airtime. The Focus System makes one spine run from a weekly commitment down to the work on every tab: PORTFOLIO OBJECTIVE → MILESTONE (the weekly unit) → TASK → DAILY TOP 3 → every tab's list. One commitment a week sets the milestones; one commitment a day picks the 3; everything else reorganizes behind those two choices. It is engineered around behavioral psychology (fresh-start effect, peak-end, implementation intentions, commitment-and-consistency, goal-gradient, Zeigarnik, Hick's law, loss aversion) and information retention.
 
@@ -468,7 +470,7 @@ The dashboard subscribes to Postgres Realtime via `@supabase/supabase-js`. Hot s
 
 **Surface 3: Full Focus Mode (`FocusLanes` + `useFocusMode` + `FocusModeToggle`, `src/components/focus/`).** Every work-item tab (Today, Services, Subscriptions, Visibility, Content, Bets — desktop + mobile) gains a Focus/All toggle. In Focus mode, when the day is calibrated, the tab's primary list regroups into the 3 daily-target lanes plus a dimmed Muted set, falling back to its normal view otherwise. This activates the previously-dormant `useFocusFiltered` hook across the whole app.
 
-**The `relevance_index` contract (load-bearing).** The n8n Focus Calibrator (`zEA4wGECQdqBpDmO`) keys every candidate as `<table>:<id>` and writes them to `daily_focus.relevance_index`. `useFocusFiltered(rows, table)` looks up `<table>:<id>` per row → lane 1/2/3 or muted (critical-severity rows never mute). Each tab MUST pass its own source table. Pooled tables: `decisions_waiting`, `tasks`, `bets`, `leads`, `visibility_targets`, `customers`, and (added 2026-05-30) `content_ideas` + `guests`.
+**The `relevance_index` contract (load-bearing).** The n8n Focus Calibrator (`zEA4wGECQdqBpDmO`) keys every candidate as `<table>:<id>` and writes them to `daily_focus.relevance_index`. `useFocusFiltered(rows, table)` looks up `<table>:<id>` per row → lane 1/2/3 or muted (critical-severity rows never mute). Each tab MUST pass its own source table. Pooled tables: `decisions_waiting`, `tasks`, `bets`, `leads`, `visibility_targets`, `customers`, `content_ideas`, `guests`.
 
 **Data model.**
 - `daily_focus` (one row per `focus_date`): `target_1..3_text/_source/_concept_id/_completed_at`, `status` (pending → calibrated → complete), `relevance_index` jsonb, `calibrated_at`. Hook `useDailyFocus` (channel `daily-focus-rt-shared`).
@@ -516,12 +518,13 @@ workspace/
 
 ### 6.3 Shared skills library
 
-Path: `/root/.openclaw/skills/`, ~107 skills. Loaded by absolute path from any workspace.
+Path: `/root/.openclaw/skills/`, ~108 skills. Loaded by absolute path from any workspace.
 
 | Skill | Purpose |
 |---|---|
 | `agent-{id}/SKILL.md` | Per-agent operating manual — rendered from `agents.brief_content` every 15 min. **Edit the DB, not the file.** |
-| `krish-voice/SKILL.md` | Krish's writing voice — **mandatory before any outbound content or email draft** (rules V-001..V-007) |
+| `krish-voice/SKILL.md` | Krish's writing voice — **mandatory before any outbound content or email draft** (rules V-001..V-007). The *how*. |
+| `content-corpus/SKILL.md` | The channel corpus — **mandatory companion to krish-voice for any named channel or outbound**. The *what, who, and how-good*: per-channel mandate (Techonomic / Builder Economy / Signal & Noise / Mindmaker Live), the lead + visibility overlay, and the Five Standards gate (undeniably unique, well-researched, thoughtful, kind, helpful) |
 | `brand/SKILL.md` | Mindmaker brand positioning |
 | `google-docs-api/SKILL.md`, `google-sheets-api/SKILL.md`, `google-slides-api/SKILL.md` | Formatting standards for each surface |
 | `knowledge-system/SKILL.md` | Where polished output lands in Drive |
@@ -554,20 +557,20 @@ Hard fail if SKILL.md missing → Telegram-Krish: "brief not rendered, run `rend
 
 **Graduated stale handling.** If `agent_plans.last_rendered_at > 72h`, enter READ-ONLY mode — reads/research OK, sends/commits/Supabase-writes blocked. Telegram-Krish: "off-sprint, plan render stale ({age})". The `Agatha Weekly Plan Refresh` workflow (Mon 09:00 UTC) keeps every plan inside the 72h window in normal operation.
 
-**Step 3b: Load Krish's portfolio objective (added 2026-05-29, Phase 2).** If `agent_plans.weekly_goal_id` is non-null, load the corresponding `goals` row (the parent portfolio objective) plus any `goal_agent_contributions` rows where `agent_id = MY_AGENT_ID`. Present them in the loaded context as "Krish's portfolio objective you serve: {title} (venture, status, priority, target_horizon). Your contribution: {note}". The agent's own `agent_plans.objective` (from Step 3) is the slice of work the agent contributes to the visible portfolio objective. If `weekly_goal_id` is null, the agent has no portfolio parent yet and acts on its `agent_plans.objective` alone; clusters of unparented tasks should be surfaced to Marcus for objective nomination.
+**Step 3b: Load Krish's portfolio objective.** If `agent_plans.weekly_goal_id` is non-null, load the corresponding `goals` row (the parent portfolio objective) plus any `goal_agent_contributions` rows where `agent_id = MY_AGENT_ID`. Present them in the loaded context as "Krish's portfolio objective you serve: {title} (venture, status, priority, target_horizon). Your contribution: {note}". The agent's own `agent_plans.objective` (from Step 3) is the slice of work the agent contributes to the visible portfolio objective. If `weekly_goal_id` is null, the agent has no portfolio parent yet and acts on its `agent_plans.objective` alone; clusters of unparented tasks should be surfaced to Marcus for objective nomination.
 
 **Step 4 — Memory.**
 7. `MEMORY.md` — **only** in direct Krish chats. Never in shared contexts (Discord, group chats).
 
 **Step 5 — Workstream detection.** `detect_workstream(MY_AGENT_ID, first_user_message)` → continue / ask / new.
 
-**Step 5b (Day 3 wiring).** For synthesis-oriented agents (Marcus, Vera, Agatha, Priya), before treating a memory-file or warm-report concept reference as live work, query `concept_decisions WHERE concept_id = $1 AND superseded_at IS NULL`. If a `closed` decision is returned, the reference is historical context only.
+**Step 5b — concept-decision check (synthesis paths).** For synthesis-oriented agents (Marcus, Vera, Agatha, Priya), before treating a memory-file or warm-report concept reference as live work, query `concept_decisions WHERE concept_id = $1 AND superseded_at IS NULL`. If a `closed` decision is returned, the reference is historical context only. (The automatic synthesis-time JOIN that would enforce this fleet-wide is not yet wired — see §17.7.)
 
 ### 7.2 Lexicon discipline
 
 - **Identity** = static. Lives in SKILL.md / IDENTITY.md / ORG.md / `agents.brief_content`. Rare changes.
 - **Plan** = dynamic. Lives in `agent_plans` + Action Doc body + `active/${MY_AGENT_ID}-action.md`. Weekly changes.
-- **Objective** = durable strategic record (added 2026-05-29, Phase 2). Lives in `goals` (portfolio objectives, multi-week, Krish owns) plus `milestones` (week-sized chunks of an objective). Same lexical tier as Decision: rare, load-bearing, never silently rewritten. NOT a synonym for Plan. Never call a milestone or an objective a "plan."
+- **Objective** = durable strategic record. Lives in `goals` (portfolio objectives, multi-week, Krish owns) plus `milestones` (week-sized chunks of an objective). Same lexical tier as Decision: rare, load-bearing, never silently rewritten. NOT a synonym for Plan. Never call a milestone or an objective a "plan."
 - **Decision** = durable. Lives in `concept_decisions` keyed by `concept_id`. Captures every closure / kill / pause / reopen Krish makes. Never deleted; reopens supersede rather than overwrite.
 - **Banned forever.** "Master Brief," "Tactical Plan," "Action Plan," "Execution Brief."
 - New file proposals must declare which side they fall on. No middle ground.
@@ -616,7 +619,7 @@ update_workstream_context(context_id,
 - Log errors before fixing them.
 - **Closures are concept-level, not row-level.** When Krish says "we're done with X" in any context, the correct action is `close_concept('concept:org:X-slug', '<reason>', '<actor>')`, not a row-level status PATCH. The cascading-closure path is the only path that produces a durable ledger entry.
 
-### 7.7 Closure-intent translation (Agatha-specific, Day 1+)
+### 7.7 Closure-intent translation (Agatha-specific)
 
 When Krish indicates a concept is closed in conversation (Telegram, Discord, Control Center chat), Agatha:
 
@@ -625,7 +628,7 @@ When Krish indicates a concept is closed in conversation (Telegram, Discord, Con
 3. Acknowledges with the RPC's return payload: "Closed concept `concept:org:X`. Affected: N tasks, M leads."
 4. Updates her memory file for the day with the closure note (Krish-facing context, not a row update).
 
-**Banned:** silent acknowledgement that does not call `close_concept`. Pre-Day-1 behaviour where Agatha sometimes patched a single row and sometimes wrote a memory note and sometimes did nothing is the bug this architecture fixes. Day 2 builds the Closure Intent Receiver N8N workflow so the receiver path is durable across Agatha sessions.
+**Banned:** silent acknowledgement that does not call `close_concept`. The old behaviour where Agatha sometimes patched a single row and sometimes wrote a memory note and sometimes did nothing is the bug this architecture fixes. A dedicated Closure Intent Receiver N8N workflow that would make the receiver path durable across Agatha sessions is not yet built (see §17.7); today Agatha calls the live `close_concept` RPC directly.
 
 ---
 
@@ -673,7 +676,7 @@ Krish clicks "Schedule follow-up (1d/3d/7d/14d)"
         → Marcus's next synthesis surfaces it in external_signals[]
             with urgency='high'
 
-Krish clicks "Close concept" (Day 2)
+Krish clicks "Close concept"
     → POST /api/concepts/:concept_id/close
         → close_concept(concept_id, reason, 'krish-via-control-center')
         → cascade: lead → closed_lost; any tagged tasks → superseded
@@ -697,7 +700,7 @@ Two ingress paths:
         → Dedup against existing guests
             → Anthropic editorial-bar classifier emits target_type +
               fit/attainability scores + skip_reason
-                → Insert router (PR #77, 2026-05-26-fix):
+                → Insert router:
                     target_type='podcast_guest' AND bar passes → guests
                     target_type='press_target'                 → visibility_targets (type='press_relationship')
                     target_type='dual'                          → both
@@ -723,12 +726,12 @@ Krish clicks "Confirm" on a GuestCard
 Krish clicks "Draft email" on a GuestCard
     → same email-draft path as §8.1, scoped to guests
 
-Krish clicks "Skip" / "Close concept" on a GuestCard (Day 2)
+Krish clicks "Skip" / "Close concept" on a GuestCard
     → close_concept('concept:guest:<slug>', '<reason>', 'krish-via-control-center')
     → cascade: guest → dropped; any tagged tasks → superseded
 ```
 
-`guests.target_type` (added 2026-05-26, PR #76) discriminates podcast guests from press relationships. `'podcast_guest'` is the default. `'press_target'` rows do not normally live in `guests` — Nell's scout router sends them into `visibility_targets` directly. The dropped-on-2026-05-22 `nell_candidates` table is gone; `guests` is the only insertion target now. `guests.status` allowed values are `'scouted','enriched','pitched','responded','scheduled','confirmed','recorded','published','dropped'`.
+`guests.target_type` discriminates podcast guests from press relationships. `'podcast_guest'` is the default. `'press_target'` rows do not normally live in `guests` — Nell's scout router sends them into `visibility_targets` directly. The legacy `nell_candidates` table is gone; `guests` is the only insertion target now. `guests.status` allowed values are `'scouted','enriched','pitched','responded','scheduled','confirmed','recorded','published','dropped'`.
 
 ### 8.3 Visibility flow (speaking + PR)
 
@@ -755,7 +758,7 @@ deep_enriched_at IS NULL (LIMIT 10)
               deep_enriched_at)
                 → surfaces in decisions_waiting + Visibility tab
 
-VisibilityTargetCard (from PR #78, 2026-05-26):
+VisibilityTargetCard:
   - Renders Open CFP / Open event / View source / Open profile link by type,
     falling back through cfp_url → event_url → source_url
   - For stub rows (no deep_enriched_at or migration-stub text), the
@@ -767,10 +770,10 @@ Krish approves / declines via VisibilityTargetCard
   Apply  → PATCH /api/visibility-targets/:id  status='applied'
   Pass   → PATCH /api/visibility-targets/:id  status='dropped'
   Enrich → POST  /api/visibility-targets/:id/enrich-deep  (fires webhook)
-  Close concept (Day 2+) → close_concept('concept:vis:<slug>', ...)
+  Close concept → close_concept('concept:vis:<slug>', ...)
 ```
 
-`visibility_targets.type` allowed values (widened 2026-05-26 by PR #76): `'cfp', 'conference', 'podcast', 'newsletter', 'guest_appearance', 'press_relationship', 'speaking', 'other'`. `status` allowed values: `'sourced','queued','applied','accepted','rejected','done','dropped'`. URL fields: `source_url` (canonical), `event_url`, `cfp_url`. Every live row should have at least one URL — verified 32/32 after the 2026-05-26 backfill.
+`visibility_targets.type` allowed values: `'cfp', 'conference', 'podcast', 'newsletter', 'guest_appearance', 'press_relationship', 'speaking', 'other'`. `status` allowed values: `'sourced','queued','applied','accepted','rejected','done','dropped'`. URL fields: `source_url` (canonical), `event_url`, `cfp_url`. Every live row should have at least one URL.
 
 ### 8.4 Customer flow — Stripe webhook to Customers tab to email draft
 
@@ -797,8 +800,8 @@ Krish clicks "Draft email" on a CustomerCard
 
 Stripe fires customer.subscription.deleted (churn)
     → existing Maya | Churn → Exit Interview Task workflow creates a task
-    → Day 5+: Stripe webhook also calls close_concept on the customer's
-      concept_id (lifecycle event, not a Krish action)
+    → planned: Stripe webhook also calls close_concept on the customer's
+      concept_id as a lifecycle event (not a Krish action) — see §17.7
 ```
 
 ### 8.5 Email-draft flow (canonical, all entities)
@@ -838,13 +841,15 @@ Zara | Signal Sweep  →  zara_signals + warm/zara-signals/latest.json
                           (guarded by X-Agatha-Secret header)
                             → Cleo | Log Content Performance
 
-Cleo | Content Transform (activated during 2026-05-25 audit)
+Cleo | Content Transform
     → idea_id + target format (linkedin/newsletter/x/podcast)
         → Sonnet 4.6 produces channel-specific variant
             → PATCH content_ideas.transformed_outputs (jsonb)
 ```
 
 **Hard rule (PUB-001 / PUB-005).** No content leaves the system without explicit Krish approval. **The email-draft path is exempt because nothing is sent** — Gmail Drafts only.
+
+**Channel discipline.** Before Cleo (or any content agent) drafts for a named channel, it loads `skills/content-corpus/SKILL.md` alongside `krish-voice`. The corpus routes the signal to the right instrument (a single Zara signal becomes a *different angle* per channel, never the same words reposted) and gates every draft on the Five Standards: undeniably unique, well-researched, thoughtful, kind, helpful. `krish-voice` governs mechanics; `content-corpus` governs channel mandate.
 
 ### 8.7 Self-improvement loop — Krish corrects, OS adapts
 
@@ -863,9 +868,9 @@ Krish rejects output in Control Center (via FeedbackButton with reason_code)
                                 → Next session wake loads the new rule
 ```
 
-**The promise: same mistake doesn't survive four occurrences.** FeedbackButton surfaces: `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, **`goals`** (Objective Layer Phase 3), **`milestones`** (Objective Layer Phase 3).
+**The promise: same mistake doesn't survive four occurrences.** FeedbackButton surfaces: `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, **`goals`**, **`milestones`**, plus `customers`, `bets`, `opportunities`, `corrections`, and `contacts` (the `/api/feedback` ALLOWED_TABLES set covers 10+ surfaces).
 
-### 8.7.0 Three altitudes (added 2026-05-29, Phase 3)
+### 8.7.0 Three altitudes
 
 The Objective Layer introduces three feedback altitudes, each with a canonical `reason_code` and a distinct lesson Vera teaches Marcus. The whole point of splitting them is that a single rejection at the wrong altitude was previously mud: Marcus could not tell whether Krish meant "wrong task today," "right task wrong week," or "this whole objective is dead." Three completely different lessons.
 
@@ -877,7 +882,7 @@ The Objective Layer introduces three feedback altitudes, each with a canonical `
 
 Vera's `Cluster` node groups by `[agent_id, source_table, reason_code]`, so each altitude rolls up into its own bucket in `corrections` and Marcus's brief evolves on the right axis instead of wobbling.
 
-### 8.7.1 Marcus top_three override capture (Phase 0)
+### 8.7.1 Marcus top_three override capture
 
 The `FeedbackButton` thumbs-down is the lightweight rejection signal. For Marcus's daily `top_three` picks on the Home tab, there is also a higher-effort signal: the swap affordance.
 
@@ -915,7 +920,7 @@ The swap is intentionally higher-friction than the thumbs-down: it asks Krish to
 Carrier file: `scripts/n8n/marcus-daily-brief.workflow.json` (live workflow id `d2sHSeyXMmu8Xe0C`). The Pull live data node grows a 12th parallel fetch from `feedback_queue` (idempotent: `.catch(() => [])` on transport failure). The Sonnet brief system prompt grows a Krish-overrides paragraph; the user content appends the RECENT OVERRIDES JSON.
 
 
-### 8.7.2 Daily Focus Picker (Phase 1)
+### 8.7.2 Daily Focus Picker
 
 Krish locks 3 daily focus targets on Home. Marcus nominates 3 via `home_intelligence.top_three`; Krish accepts, swaps, or adds his own; Lock posts to `/api/daily-focus/calibrate`. The whole Home re-ranks into 3 lanes plus a Muted lane.
 
@@ -945,7 +950,7 @@ Critical alerts (silent_failures severity='critical') are never muted by lanes.
 
 Feature flag: `VITE_DAILY_FOCUS_ENABLED`. Default false; flip in Vercel to roll out.
 
-### 8.7.3 Tasks Inbox (Phase 2)
+### 8.7.3 Tasks Inbox
 
 Cmd+J (desktop) or floating Inbox button (mobile) opens `IdeaCaptureModal`. Krish types or speaks any raw task. The OS classifies, routes, runs it as far as it can, returns it to Krish only when he is needed again.
 
@@ -1030,7 +1035,7 @@ TIER 4 (weekly):
 
 **The promise: same silent failure doesn't survive a week.**
 
-### 8.8.5 Objective layer flow (added 2026-05-29, Phases 1 through 5)
+### 8.8.5 Objective layer flow
 
 Krish's daily work now has a visible spine: every tactical task ladders up through a weekly milestone to a multi-week portfolio objective he owns.
 
@@ -1060,7 +1065,7 @@ ACCEPT / TWEAK / REJECT / COMPLETE (per milestone)
         -> status=dropped
         -> feedback_queue row: reason_code=marcus_milestone_override (milestone altitude)
         |
-MARCUS NOMINATES OBJECTIVES (cluster detection on unparented tasks, Phase 3 brief)
+MARCUS NOMINATES OBJECTIVES (cluster detection on unparented tasks)
     Daily synthesis detects 3+ tasks with milestone_id IS NULL sharing a theme
         -> insert into goals (status=proposed, source=marcus_nominated)
             -> NominationTray on Home
@@ -1071,7 +1076,7 @@ MARCUS NOMINATES OBJECTIVES (cluster detection on unparented tasks, Phase 3 brie
                     -> feedback_queue: reason_code=marcus_objective_nomination_rejected
                        (objective altitude)
         |
-AUTO OBJECTIVES (is_auto=true, Agatha's domain per Phase 2 brief)
+AUTO OBJECTIVES (is_auto=true, Agatha's domain)
     Agatha wake-time check: any active is_auto=true objective with zero milestones
         -> generate milestone sequence (source=agatha_decomposed, status=accepted)
         -> generate tasks under each milestone, assigned to the right agent
@@ -1123,9 +1128,9 @@ Marcus | Monday Pre-mortem 08:00 (Mondays)
     → home_intelligence.monday_premortem + monday_premortem_at
 ```
 
-**Day 1 Stream 1 verification.** After `close_concept('concept:org:disney', ...)` ran, `marcus_daily_pull()` returns zero Disney mentions across all arrays (leads, hot_leads, stale_tasks, open_visibility, bets, customers, council). The deterministic data path is therefore Disney-free; only the cached `home_intelligence.top_three` from the morning's run still shows Disney, and it refreshes on the next cron tick. The `marcus_daily_pull()` RPC filters leads on `status IN ('ready','contacted','conversation')`, so any lead-side closure (closed_lost/closed_won/superseded) drops out automatically. The `hot_leads` filter additionally requires `quality_score='green'` — leads without that score never appear there. Day 3+ aspirational: each deterministic fetch gets a `LEFT JOIN concept_decisions` to also exclude closed-concept rows that somehow remain in a non-terminal status.
+**Closure interaction.** After `close_concept('concept:org:disney', ...)` runs, `marcus_daily_pull()` returns zero Disney mentions across all arrays (leads, hot_leads, stale_tasks, open_visibility, bets, customers, council). The deterministic data path is therefore Disney-free; only the cached `home_intelligence.top_three` from the morning's run still shows Disney, and it refreshes on the next cron tick. The `marcus_daily_pull()` RPC filters leads on `status IN ('ready','contacted','conversation')`, so any lead-side closure (closed_lost/closed_won/superseded) drops out automatically. The `hot_leads` filter additionally requires `quality_score='green'` — leads without that score never appear there. Not yet wired (see §17.7): a `LEFT JOIN concept_decisions` on each deterministic fetch to also exclude closed-concept rows that somehow remain in a non-terminal status.
 
-**Manual-trigger limitation (carry-forward for Days 2-5).** The Marcus | Daily Brief workflow uses the legacy `n8n-nodes-base.cron` trigger node, which is **not** executable via the n8n public REST API or the MCP `execute_workflow` tool. If a manual trigger is needed (e.g. force-refresh after a closure), the only paths are: wait for the next scheduled tick, swap the cron node for a Schedule Trigger (modern equivalent), or add an auxiliary webhook trigger.
+**Manual-trigger limitation.** The Marcus | Daily Brief workflow uses the legacy `n8n-nodes-base.cron` trigger node, which is **not** executable via the n8n public REST API or the MCP `execute_workflow` tool. If a manual trigger is needed (e.g. force-refresh after a closure), the only paths are: wait for the next scheduled tick, swap the cron node for a Schedule Trigger (modern equivalent), or add an auxiliary webhook trigger.
 
 ### 8.10 Living `agent_plans` (weekly refresh)
 
@@ -1153,10 +1158,10 @@ Krish (or Agatha, or Vera) edits agents.brief_content in Supabase
 
 ### 8.12 Concept closure — Krish says done, OS records and cascades
 
-The new flow that Day 1 Stream 1 lands and Day 2 wires further:
+The two live paths today are the direct RPC (Path A) and the Control Center "Close concept" button (which proxies to the same RPC). The conversational and real-event paths are planned, not built — see §17.7.
 
 ```
-Path A (Day 1, manual): direct RPC call
+Path A (manual): direct RPC call
     → SELECT close_concept('concept:<type>:<slug>',
                            '<one-sentence reason>',
                            '<actor>')
@@ -1173,44 +1178,15 @@ Path A (Day 1, manual): direct RPC call
     → INSERT audit_log (event_type='concept_closed', actor, target=concept_id, changes jsonb, display_message)
     → returns {ok, concept_id, tasks_closed, leads_closed, decided_at}
 
-Path B (Day 2, conversational): Agatha receives intent → Closure Intent Receiver workflow
-    Krish in Telegram/Discord: "we're done with marketbridge"
-    → Agatha resolves referent → 'concept:org:marketbridge'
-    → Agatha invokes Closure Intent Receiver (new N8N workflow,
-                                              Schedule Trigger NOT cron node)
-        → POST /webhook/closure-intent
-            → Validate concept_id exists or can be created from a referent
-            → Call close_concept(concept_id, reason, 'agatha-via-telegram')
-            → Telegram-reply with the RPC's return payload
-
-Path C (Day 2, UI): Control Center "Close concept" button
-    → POST /api/concepts/:concept_id/close
-        → close_concept(concept_id, reason, 'krish-via-control-center')
-        → Realtime echo updates affected cards in the same tick
-
-Path D (Day 5, real-event): Stripe / Gmail / Instantly lifecycle event
-    → Stripe customer.subscription.created      → close_concept on the lead concept
-    → Gmail draft sent (detected via watch)     → close_concept on the email_drafts concept
-    → Instantly campaign start                  → close_concept on the outbound-task concept
+UI path (live): Control Center "Close concept" button
+    → POST /api/concepts/:concept_id/close → close_concept(...) → Realtime echo updates affected cards
 ```
 
-All four paths funnel through the same RPC, so the ledger has a single shape and the audit_log has a single event type per closure regardless of trigger.
+Planned (see §17.7): a conversational receiver (Agatha chat → `close_concept`) and real-event auto-closure (Stripe / Gmail / Instantly lifecycle events → `close_concept`). All paths funnel through the same RPC, so the ledger has a single shape and the audit_log has a single event type per closure regardless of trigger.
 
-### 8.13 Self-improvement, extended (Day 5 aspirational)
+### 8.13 Self-improvement, extended (planned, see §17.7)
 
-Once `concept_decisions` is mature, the loop closes further:
-
-```
-Krish reopens a concept (e.g. Disney three weeks later)
-    → reopen_concept('concept:org:disney', '<reason>', 'krish')
-        → concept_decisions.superseded_at = now()
-        → audit_log event_type='concept_reopened'
-        → Day 5 sweeper detects the reopen and writes a feedback_queue
-          row pointing at the original closure
-            → Vera Feedback Aggregation may extract a pattern:
-              "this concept class gets reopened often — closure criteria
-               are too aggressive" → corrections → standards update
-```
+Once a reopen-sweeper exists, the loop closes further: when Krish reopens a concept, `reopen_concept` supersedes the decision and writes a `concept_reopened` audit event; a sweeper would then write a `feedback_queue` row pointing at the original closure, and Vera Feedback Aggregation could extract a pattern ("this concept class gets reopened often — closure criteria too aggressive") → corrections → standards update. This sweeper is not yet built.
 
 ---
 
@@ -1260,7 +1236,7 @@ These run shell scripts and Python that never call an LLM. Cheapest possible cad
 
 ### 9.3 N8N cron (inside each workflow)
 
-N8N workflows carry their own `cron` / `schedule` nodes. The ~81 workflows together fire hundreds of times a day. See `workflow_runs` for the live cadence; Kai's Dependency Mapper rolls it up.
+N8N workflows carry their own `cron` / `schedule` nodes. The ~80 workflows together fire hundreds of times a day. See `workflow_runs` for the live cadence; Kai's Dependency Mapper rolls it up.
 
 Notable scheduled workflows:
 
@@ -1274,7 +1250,7 @@ Notable scheduled workflows:
 | Sun 06:00 UTC | Vera Feedback Aggregation | Weekly feedback_queue → corrections rollup |
 | Sun 07:00 UTC | Vera Failure Pattern Sweep | Tier 4 self-healing |
 
-**Day 2 additions.** `Agatha | Closure Intent Receiver` (webhook trigger only — no cron), and a Day-4 `Vera | Closure Audit` (Sunday, after Failure Pattern Sweep) that flags any concept that has been re-closed > 2 times in 30 days as a generator-misfire pattern.
+**Planned closure workflows (see §17.7).** `Agatha | Closure Intent Receiver` (webhook trigger only — no cron), and a weekly `Vera | Closure Audit` (Sunday, after Failure Pattern Sweep) that would flag any concept re-closed > 2 times in 30 days as a generator-misfire pattern.
 
 ### 9.4 Cost discipline
 
@@ -1342,11 +1318,13 @@ The OS actively tracks 8 ventures (`ventures` table, all `status='active'`).
 | **Techonomic** | techonomic.co | Krish's strategic writing platform |
 | **Personal Brand** | (LinkedIn / X) | Cleo's content engine target #1 |
 
-### 11.4 Fleet attribution warehouse + autonomous app commerce (NEW 2026-05-30)
+**Channel mandates** for all four content brands + the lead/visibility outbound overlay live in `/root/.openclaw/skills/content-corpus/SKILL.md` (companion to `krish-voice`). Cleo / Nell / Nova / Felix load it before composing for a named channel: it defines what each channel is *for* (Techonomic = investigate how the digital world gets paid for; Builder Economy = the why beneath the why; Signal & Noise = no-BS devil's-advocate; Mindmaker Live = weekly Headlines/Resources/Perspectives + why-it-matters) and the Five Standards gate every piece must clear.
 
-The six builder products were rebuilt this cycle into agent-native, self-selling surfaces and wired to one shared attribution warehouse, so the OS runs their sales + marketing autonomously. All six emit lifecycle + revenue events into the warehouse, and the growth agents read the resulting funnel/revenue views + each app's product-truth surface. Per-app detail lives in each repo's `AGENT_BRIEFING.md` / fleet-wiring doc and in `Downloads/app OS summaries/*.md`.
+### 11.4 Fleet attribution warehouse + autonomous app commerce
 
-**The warehouse (OS-owned).** One `attribution` schema on the OS Supabase `gojpffsrxybbpbdzzrvs`, fronted by a single secret-gated edge function `ingest-attribution` (validates `x-attribution-secret`, rate-limits, idempotent upsert into `attribution.events` on `dedupe_key` via the `public.ingest_attribution_event` RPC). As of 2026-05-30 the function **normalizes both documented envelopes**: the canonical shape (`event` / `dedupe_key` / flat `utm_*` / `amount_cents`) and gutted's `attribution.events/1` shape (`event_name` / `idempotency_key` / nested `utm{}` / `value_cents`). Two service-role-only read views:
+The six builder products are agent-native, self-selling surfaces wired to one shared attribution warehouse, so the OS runs their sales + marketing autonomously. All six emit lifecycle + revenue events into the warehouse, and the growth agents read the resulting funnel/revenue views + each app's product-truth surface. Per-app detail lives in each repo's `AGENT_BRIEFING.md` / fleet-wiring doc and in `Downloads/app OS summaries/*.md`.
+
+**The warehouse (OS-owned).** One `attribution` schema on the OS Supabase `gojpffsrxybbpbdzzrvs`, fronted by a single secret-gated edge function `ingest-attribution` (validates `x-attribution-secret`, rate-limits, idempotent upsert into `attribution.events` on `dedupe_key` via the `public.ingest_attribution_event` RPC). The function **normalizes both documented envelopes**: the canonical shape (`event` / `dedupe_key` / flat `utm_*` / `amount_cents`) and gutted's `attribution.events/1` shape (`event_name` / `idempotency_key` / nested `utm{}` / `value_cents`). Two service-role-only read views:
 
 - `attribution.funnel_by_campaign` — landed → signed_up → activated → purchased by app / utm_source / utm_medium / utm_campaign / agent, plus `uniques`. **Maya** reads this for CAC.
 - `attribution.revenue_by_campaign` — purchases / gross_cents / refunded_cents / churns, keyed on `(stripe_account, app, stripe_customer_id, stripe_subscription_id)` so the two Stripe accounts never cross-attribute. **Leo** reads this for revenue.
@@ -1357,7 +1335,7 @@ Plus `public.attribution_app_health` (per-app last_event_at + 24h/7d event count
 
 **Canonical event contract:** `app`, `event` (`landed`/`signed_up`/`activated`/`purchased`/`refunded`/`churned`), `stripe_account`, `occurred_at`, `anonymous_id`, `user_id` (opaque Supabase uuid — never PHI; gutted ships a deny-by-default allowlist serializer), `email`, the five `utm_*` fields, `campaign_id`, `agent`, `referrer`, `landing_path`, `stripe_customer_id`, `stripe_subscription_id`, `amount_cents`, `currency`, `metadata`, `dedupe_key`. Lifecycle events fire client-side; revenue events fire from each app's signature-verified Stripe webhook.
 
-**Per-app wiring status** (live-verified end-to-end 2026-05-30):
+**Per-app wiring status** (all live-verified end-to-end):
 
 | App | `stripe_account` | Product-truth URL (fetch at runtime) | Emit |
 |---|---|---|---|
@@ -1374,7 +1352,7 @@ Env-var names differ per app and MUST match each app's code: CTRL reads `WAREHOU
 
 **Merciless writable offer genome.** Maya can ship a price arm or headline framing on Merciless with no deploy: `POST .../offer-admin` with `x-fleet-secret: <FLEET_ADMIN_SECRET>`; read the attributed delta from the warehouse views; promote the winner inside the guardrail. Pulse + Circle share `fractionl_ai` and Pulse is Circle's funnel, so the warehouse shows Pulse-sourced revenue landing in Circle (separable by `app` + `stripe_account`).
 
-**Agent bindings (the autonomous loop, wired into `brief_content` 2026-05-30):** Maya → `funnel_by_campaign` + runtime product-truth + Merciless `offer-admin`; Leo → `revenue_by_campaign` weekly; Cleo / Nell / Nova / Felix / Hunter / Zara → fetch product-truth + repo `AGENT_BRIEFING.md` before composing, tag every app link per ATTR-001, honor each app's `do_not_say` / voice rules; Marcus → folds warehouse funnel + revenue signal into `home_intelligence`.
+**Agent bindings (the autonomous loop, wired into `brief_content`):** Maya → `funnel_by_campaign` + runtime product-truth + Merciless `offer-admin`; Leo → `revenue_by_campaign` weekly; Cleo / Nell / Nova / Felix / Hunter / Zara → fetch product-truth + repo `AGENT_BRIEFING.md` before composing, tag every app link per ATTR-001, honor each app's `do_not_say` / voice rules; Marcus → folds warehouse funnel + revenue signal into `home_intelligence`.
 
 **Standards:** **ATTR-001** (every fleet app link carries `utm_source/medium/campaign/content/term` + `agent` + `campaign_id`) and **PRODTRUTH-001** (fetch product-truth at runtime; honor capability + voice guardrails). Both active in `standards_registry`.
 
@@ -1388,7 +1366,7 @@ Env-var names differ per app and MUST match each app's code: CTRL reads `WAREHOU
 
 ## 12. Standards (the rulebook)
 
-`standards_registry` holds ~167 rules rendered nightly to `hot/standards-digest.md`. Categories:
+`standards_registry` holds ~170 rules rendered nightly to `hot/standards-digest.md`. Categories:
 
 | Family | Examples |
 |---|---|
@@ -1402,7 +1380,9 @@ Env-var names differ per app and MUST match each app's code: CTRL reads `WAREHOU
 | **Publishing** | PUB-001, PUB-005 — explicit Krish approval required (note: email-draft surface is drafts only, not publishing) |
 | **Model tiering** | MT-003 — Opus is Agatha-only |
 | **N8N** | N8N-002..006 — workflow JSON discipline, no `typeVersion: null`, no `$env` |
-| **Closure (NEW Day 1+)** | CLO-001 — concept closures use `close_concept`, never row-level patches. CLO-002 — terminal status values are the constraint-permitted vocabulary (`closed_lost` for leads, `superseded` for tasks), not runbook tokens (`dead`, etc.). CLO-003 — every closure caller sets `app.changed_by` and `app.source` for attribution |
+| **Closure** | CLO-001 — concept closures use `close_concept`, never row-level patches. CLO-002 — terminal status values are the constraint-permitted vocabulary (`closed_lost` for leads, `superseded` for tasks), not runbook tokens (`dead`, etc.). CLO-003 — every closure caller sets `app.changed_by` and `app.source` for attribution. CLO-004 — Marcus re-stamps `top_three.expires_at` to NOW+24h to defeat date hallucination. CLO-005, CLO-006 — content ideas are rejected if missing `source_url` |
+| **Cost discipline** | CFG-COST-001..003, N8N-COST-004 — no premium models in background fallback ladders; a dead primary key is fixed, not absorbed; model-tiering by job nature; prompt-cache only for repeated calls |
+| **Attribution** | ATTR-001 — every fleet app link carries UTM tags + `agent` + `campaign_id`. PRODTRUTH-001 — fetch product-truth at runtime; honor capability + voice guardrails |
 
 **Enforcement chain.** `standards_registry` → `regenerate-standards-digest.py` (2:30 AM UTC) → `hot/standards-digest.md` → loaded on session wake → `deliver_gate.py` runs before output → violations logged to `audit_log` → Vera audits compliance → repeat offenders become hard standards.
 
@@ -1428,9 +1408,9 @@ Env-var names differ per app and MUST match each app's code: CTRL reads `WAREHOU
 | Leads/guests stuck unenriched | `enrichment_status='new'` / `guests.status='new'` | Deep Enrich Retry Sweep hourly |
 | Email draft fails | `email_drafts` row missing for entity + Vercel function log | Re-click Draft email — idempotent on `(entity, intent, 24h)` |
 | Workflow Rerun returns 422 | Schedule-only workflow (no webhook trigger) | Trigger via n8n UI's Execute Workflow button (documented in `/api/automations/:id/rerun`) |
-| **Closed concept resurfaces in synthesis** | `concept_decisions` (row present?), then memory files + warm reports for stale references | Until Day 3 wiring lands (synthesis queries JOIN `concept_decisions`), the row-status cascade in `close_concept` removes the concept from the data path (e.g. Marcus's `marcus_daily_pull()` filters on `leads.status IN ('ready','contacted','conversation')`, so `closed_lost` drops out). Filesystem stale references are catalogued in the Stream 2 workspace-staleness audit report (`docs/audits/2026-05-25-closure-day1-stream2-filesystem-audit.md`); Day 3 wires the synthesis-time JOIN |
-| **Closed concept gets re-inserted by a generator** | `audit_log` `concept_closed` event + new row with same `concept_id` | Day 3 generator guards: every generator that inserts a new row queries `concept_decisions` first; if the concept has a live `closed` decision, skip the INSERT (or insert with a `bypassed_closure=true` flag for review) |
-| **Concept reopened unexpectedly** | `audit_log` `concept_reopened` events | Vera Closure Audit (Day 4) flags any concept reopened >2 times in 30 days as a closure-criteria misfire |
+| **Closed concept resurfaces in synthesis** | `concept_decisions` (row present?), then memory files + warm reports for stale references | The row-status cascade in `close_concept` removes the concept from the data path (e.g. Marcus's `marcus_daily_pull()` filters on `leads.status IN ('ready','contacted','conversation')`, so `closed_lost` drops out). The belt-and-braces synthesis-time JOIN `concept_decisions` is not yet wired (see §17.7) |
+| **Closed concept gets re-inserted by a generator** | `audit_log` `concept_closed` event + new row with same `concept_id` | Generator guards (every generator queries `concept_decisions` before insert and skips if the concept has a live `closed` decision) are not yet built — see §17.7 |
+| **Concept reopened unexpectedly** | `audit_log` `concept_reopened` events | The planned Vera Closure Audit would flag any concept reopened >2 times in 30 days as a closure-criteria misfire (see §17.7) |
 
 **Generic debugging playbook.**
 
@@ -1464,7 +1444,7 @@ Env-var names differ per app and MUST match each app's code: CTRL reads `WAREHOU
 | The N8N source-of-truth JSON for audited workflows | `n8n/workflows/*.json` in `control-center` repo |
 | The current schema | Supabase Studio OR `information_schema.tables` |
 | What changed last week | `git log` on `control-center` + `schema_migrations` table + recent PRs |
-| The Day 1 closure audit reports | `docs/audits/2026-05-25-closure-day1-stream{1,2}-*.md` in `control-center` |
+| The closure architecture audit reports | `docs/audits/2026-05-25-closure-day1-stream{1,2}-*.md` in `control-center` |
 
 ---
 
@@ -1474,7 +1454,7 @@ Env-var names differ per app and MUST match each app's code: CTRL reads `WAREHOU
 Local JSON for state is banned. SKILL.md, standards-digest.md, action.md are **output-only** — rendered from Supabase on a schedule, never edited in place.
 
 ### 15.2 Identity vs Plan vs Objective vs Decision is a hard quadtomy
-If you propose a new file or table, declare which of the four it falls on: static (Identity, lives in `agents.brief_content`, rare changes), dynamic (Plan, lives in `agent_plans` and Action Doc body, refreshed weekly), durable strategic record (Objective, lives in `goals` and `milestones`, multi-week unlocks Krish owns, added 2026-05-29 Phase 2), or durable closure (Decision, lives in `concept_decisions`, captures choices that should never be reversed silently). Anything else becomes a maintenance liability.
+If you propose a new file or table, declare which of the four it falls on: static (Identity, lives in `agents.brief_content`, rare changes), dynamic (Plan, lives in `agent_plans` and Action Doc body, refreshed weekly), durable strategic record (Objective, lives in `goals` and `milestones`, multi-week unlocks Krish owns), or durable closure (Decision, lives in `concept_decisions`, captures choices that should never be reversed silently). Anything else becomes a maintenance liability.
 
 ### 15.3 Approval is a wall, not a step
 No content publishes without Krish's explicit approval. The LinkedIn Distribution endpoint is guarded by `X-Agatha-Secret`; only the Krish Approval Callback workflow has the header. **The email-draft path is a deliberate exception because Gmail Drafts don't publish anything** — Krish still hits send.
@@ -1515,8 +1495,8 @@ Direct anon writes are fine when RLS permits. When service role is required, the
 ### 15.15 The viewport-fit invariant
 Every primary tab must fit at 1280×800 without page scroll; sub-panels scroll internally. Mobile viewport must not zoom on input focus (Toast positioning respects safe-area).
 
-### 15.16 Closure is concept-level, not row-level (NEW — Day 1 Stream 1)
-Rows record the *current* state of an entity. Concepts record the durable identity that survives across rows. Closing a row sets a terminal status; closing a concept records a decision in `concept_decisions` AND cascades terminal status across every row tagged with that concept_id, in every table that participates. Pre-Day-1, the OS only had row-level closure — that's how Disney existed twice (closed task, open lead) and resurfaced repeatedly. Going forward, "we're done with X" is always `close_concept('concept:<type>:<slug>', ...)`. Row-level status PATCHes are reserved for genuine row-level lifecycle (lead becomes contacted; task becomes in_progress); for "this conceptual work is done" the ledger entry is mandatory.
+### 15.16 Closure is concept-level, not row-level
+Rows record the *current* state of an entity. Concepts record the durable identity that survives across rows. Closing a row sets a terminal status; closing a concept records a decision in `concept_decisions` AND cascades terminal status across every row tagged with that concept_id, in every table that participates. Before this, the OS only had row-level closure — that's how Disney existed twice (closed task, open lead) and resurfaced repeatedly. "We're done with X" is always `close_concept('concept:<type>:<slug>', ...)`. Row-level status PATCHes are reserved for genuine row-level lifecycle (lead becomes contacted; task becomes in_progress); for "this conceptual work is done" the ledger entry is mandatory.
 
 **Sub-rules:**
 
@@ -1570,7 +1550,7 @@ Rows record the *current* state of an entity. Concepts record the durable identi
 - Tue–Thu: Zara signals, Felix pipeline, content drafts.
 - Wed: marketing-agent, newsletter-draft.
 - Fri: Leo revenue pulse, Vera deep audit, Marcus Friday Retro 17:00.
-- Sun: Vera Feedback Aggregation 06:00, Vera Failure Pattern Sweep 07:00, Vera Closure Audit (Day 4 addition) ~08:00, Truth Reconciler backstop.
+- Sun: Vera Feedback Aggregation 06:00, Vera Failure Pattern Sweep 07:00, Truth Reconciler backstop. (A weekly Vera Closure Audit is planned — see §17.7.)
 - Last day of month: monthly-all-hands.
 
 ---
@@ -1610,25 +1590,39 @@ And, with the closure architecture, every branch additionally filters via `LEFT 
 
 Current Truth Reconciler reports drift weekly. Aspirational: it proposes corrections automatically (e.g. "Cleo brief references a workflow_id that no longer exists; PR-edit the brief"). Krish approves in Org tab; render-identity picks up the patch within 15 min.
 
-### 17.5 Mobile-first action surface (delivered 2026-05-25, polish in flight)
+### 17.5 Mobile-first action surface
 
-Lead/Customer/Guest cards expose Draft email + Deep enrich on mobile DetailSheets. Aspirational: every Decision-Waiting row offers its primary action with a single tap, including from a 320px viewport, with haptic-style toast confirmations. Polish iterations track in `docs/AUDIT_STATUS.md`. Day 2+: every card also exposes **Close concept** as a primary action.
+Lead/Customer/Guest cards expose Draft email + Deep enrich on mobile DetailSheets. Aspirational: every Decision-Waiting row offers its primary action with a single tap, including from a 320px viewport, with haptic-style toast confirmations. Polish iterations track in `docs/AUDIT_STATUS.md`.
 
 ### 17.6 Outbound conversion attribution
 
 Today: customers have `attribution_channel`, `attribution_lead_id`, `attribution_task_id`. Aspirational: every `email_drafts.id` is joinable to the eventual `customers` row that closed, so Krish can see "this Mindmaker Strategy Day closed because of this draft Cleo wrote on this date." Closing this loop turns the email-draft surface into measurable revenue, not just convenience.
 
-### 17.7 Closure architecture, full surface (Day 2-5)
+### 17.7 Closure architecture — what's live and what's not yet built
 
-- **Day 1 (done):** `concept_id` on tasks + leads; `concept_decisions` + `status_change_log`; `close_concept` + `reopen_concept`; Disney canary.
-- **Day 2:** `concept_id` extension to `guests`, `visibility_targets`, `content_ideas`, `customers`, `opportunities`. New `Agatha | Closure Intent Receiver` N8N workflow (Schedule-Trigger-based — not legacy `cron` node, to preserve manual-trigger capability). Control Center `/api/concepts/:id/close` + `/reopen` routes. Constraint-vs-vocabulary decision (canonicalize on `closed_lost`, or ALTER constraint to add `'dead'`).
-- **Day 3:** Generator guards. Every workflow that inserts into `tasks`/`leads`/`guests`/`visibility_targets`/`content_ideas` queries `concept_decisions` first; skip insert (or flag) if the concept has a live `closed` decision. Marcus, Vera, Agatha synthesis paths add `LEFT JOIN concept_decisions` so the data they reason over excludes closed concepts. `decisions_waiting` view extended with the same JOIN.
-- **Day 4:** Batched triage. Marketbridge, Vertex Inc., Alma Media Corp closed (Day 1's identified at-risk batch). Workflow_proposals stuck-row decision. Vera Closure Audit workflow weekly.
-- **Day 5:** Real-event listeners — Stripe `customer.subscription.created` → `close_concept` on the lead concept; Gmail draft sent → `close_concept` on the email_drafts concept; Instantly campaign start → `close_concept` on the outbound-task concept. AGENTS.md updated with the new closure rules. Stream 2's filesystem-staleness audit recommendations actioned (memory file concept retirement footnotes OR synthesis-time `concept_decisions` lookup, depending on Krish's preference).
+This is the single consolidated home for the closure-architecture roadmap. The body above describes the **live** foundation; this section is the authoritative list of what is built versus planned.
 
-### 17.8 Closure-driven brief evolution (Day 5+ aspirational)
+**Live (current state).**
+- `concept_id text` on `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas` (all indexed, backfilled).
+- Tables `concept_decisions` and `status_change_log`.
+- RPCs `compute_concept_slug`, `close_concept`, `reopen_concept`; trigger fn `log_status_change` + AFTER UPDATE triggers on `tasks` and `leads`.
+- Standards CLO-001 / CLO-002 / CLO-003.
+- `audit_log` event types `concept_closed` / `concept_reopened`.
+- Control Center route `/api/concepts/[id]/close` (→ `close_concept`) and the "Close concept" action on Cards.
+- Constraint vocabulary canonicalized on `closed_lost` (leads) / `superseded` (tasks).
 
-If a particular concept class gets reopened > 30% of the time, that's a signal that closures are being made too aggressively (or, equivalently, the closure criteria are wrong for that class). Vera's Closure Audit will flag this and propose `corrections` rows targeted at the relevant agent brief, closing the self-improvement loop around closure quality itself.
+**Not yet built (planned).**
+- The conversational **Closure Intent Receiver** n8n workflow (Agatha chat → `close_concept`), Schedule-Trigger-based, not legacy `cron`.
+- The `/api/concepts/[id]/reopen` route and wiring of "Close concept" buttons across all remaining card UIs.
+- **Generator guards** — every generator that inserts into `tasks`/`leads`/`guests`/`visibility_targets`/`content_ideas` queries `concept_decisions` first and skips (or flags) if the concept has a live `closed` decision.
+- **Synthesis-time `LEFT JOIN concept_decisions`** in the Marcus / Vera / Agatha paths and the `decisions_waiting` view (the `decisions_waiting` branch JOIN, and the per-fetch JOINs in synthesis).
+- `concept_id` extension to `customers` and `opportunities`.
+- **Real-event auto-closure** — Stripe `customer.subscription.created` → `close_concept` on the lead concept; Gmail draft sent → `close_concept` on the email_drafts concept; Instantly campaign start → `close_concept` on the outbound-task concept.
+- The weekly **Vera Closure Audit** workflow (flags any concept reopened > 2 times in 30 days as a closure-criteria misfire) and the reopen-sweeper that feeds `feedback_queue` (§8.13).
+
+### 17.8 Closure-driven brief evolution (aspirational)
+
+If a particular concept class gets reopened > 30% of the time, that's a signal that closures are being made too aggressively (or the closure criteria are wrong for that class). The planned Vera Closure Audit would flag this and propose `corrections` rows targeted at the relevant agent brief, closing the self-improvement loop around closure quality itself.
 
 ---
 
@@ -1642,7 +1636,7 @@ If a particular concept class gets reopened > 30% of the time, that's a signal t
 | **Concept** | The durable identity of a piece of conceptual work — a company you're selling to, a guest you're booking, a visibility target you're pursuing. One concept can manifest as many rows across many tables (lead, task, opportunity, customer); the concept ties them together. Identified by a stable slug like `concept:org:disney`. |
 | **Decision** | A durable choice Krish has made about a concept (`closed`, `killed`, `paused`, `reopened`, `completed`). Lives in `concept_decisions`. Never deleted; reopens supersede rather than overwrite. |
 | **Orchestrator** | Central N8N webhook router (`u0kIULJBJL4dGcuR`) that dispatches Control Center events to agent workflows. |
-| **Standards Registry** | Supabase table of ~167 behavioural rules enforced fleet-wide. |
+| **Standards Registry** | Supabase table of ~170 behavioural rules enforced fleet-wide. |
 | **Deliver Gate** | `deliver_gate.py` — enforces standards before agent output leaves the workspace. |
 | **Brief Content** | Per-agent operating manual stored in `agents.brief_content`. Rendered to SKILL.md. |
 | **Heartbeat** | Periodic poll where agents check `HEARTBEAT.md` for pending tasks. |
@@ -1666,7 +1660,7 @@ If a particular concept class gets reopened > 30% of the time, that's a signal t
 | **reopen_concept** | The inverse RPC. Supersedes the live decision; preserves history. |
 | **log_status_change** | Trigger function. Internal — emits a `status_change_log` row whenever `status` changes on `tasks` or `leads`. |
 | **closed_lost** | The canonical terminal status for leads when a concept is closed (per the existing `leads_status_check` constraint vocabulary). The runbook called for `dead` but the constraint rejects it; `closed_lost` is the substitute. |
-| **concept_closed / concept_reopened** | New `audit_log.event_type` values, emitted by `close_concept` and `reopen_concept` respectively. |
+| **concept_closed / concept_reopened** | `audit_log.event_type` values emitted by `close_concept` and `reopen_concept` respectively. |
 
 ---
 
@@ -1689,9 +1683,10 @@ If a particular concept class gets reopened > 30% of the time, that's a signal t
 /root/.openclaw/workspace-finno/                             # Finno
 /root/.openclaw/workspace-maa/                               # Devi
 
-# Shared skills (~107 of them)
+# Shared skills (~108 of them)
 /root/.openclaw/skills/agent-{name}/SKILL.md                 # Per-agent rendered identity
-/root/.openclaw/skills/krish-voice/SKILL.md                  # Mandatory for outbound + email drafts
+/root/.openclaw/skills/krish-voice/SKILL.md                  # Mandatory for outbound + email drafts (the HOW)
+/root/.openclaw/skills/content-corpus/SKILL.md               # Channel corpus — mandatory companion (the WHAT/WHO per channel + Five Standards gate)
 /root/.openclaw/skills/n8n/SKILL.md                          # Mandatory before editing N8N JSON
 /root/.openclaw/skills/supabase-edge/SKILL.md                # Edge function patterns
 
@@ -1714,7 +1709,7 @@ If a particular concept class gets reopened > 30% of the time, that's a signal t
 ~/Projects/control-center/                                   # Control Center repo (PRs land here)
 n8n/workflows/                                               # Versioned snapshots of audited workflows
 docs/MINDMAKER_OS_ARCHITECTURE.md                            # Repo mirror of this file
-docs/audits/                                                 # Closure architecture Day 1 reports here
+docs/audits/                                                 # Closure architecture audit reports here
 ```
 
 ---
@@ -1723,9 +1718,40 @@ docs/audits/                                                 # Closure architect
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
 
-### **2026-06-03 — Unified audience pipeline: all four Mindmaker properties → Control Center, paid-vs-free enforced**
+### 2026-06-09 — Control Center UX tiers (PRs #121–125) + doc reconciled to live state
+Control Center shipped a CEO-audit polish pass and four UX tiers. #121: killed the `∞d` date glyph, made `Esc` close sheets/overlays, added loading skeletons. #122: triage keeps the focused row in view on action + content-calendar empty state. #123: Home "waiting-on-you" composition chips + per-kind batch review. #124: content calendar click-to-schedule a draft. #125: Services "Draft email" opens the outreach sheet (angle / venture / tone). This architecture doc was also reconciled against live state: merged §4.11 (unified audience pipeline) and the content-corpus references that had diverged across the five byte-identical copies, de-historicized section headers, collapsed the scattered closure-architecture "Day 2–5" roadmap into a single §17.7, and retired the stale §22 audit-reconciliation section (its still-true facts already live in the body).
 
+### 2026-06-09 — Content channel corpus added (`skills/content-corpus`)
+New shared skill `/root/.openclaw/skills/content-corpus/SKILL.md`, the channel companion to `krish-voice`. Voice was the *how*; the corpus is the *what/who/how-good* per channel. Defines mandates, audience, register/gear, format, opening/closing moves, antagonist, source-artifact preference, commercial mechanic, and a per-channel uniqueness + kind/helpful check for the four content brands — **Techonomic** (investigate how the digital world gets paid for; interrogative essay, Gear A), **The Builder Economy** (the why beneath the why; inspiring podcast + IG, Gear B), **Signal & Noise** (no-BS devil's-advocate/what-if; dialogic audio, Gear B), **Mindmaker Live** (weekly Headlines/Resources/Perspectives, each with a why-it-matters so-what; teaching digest, Gear A) — plus the **lead + visibility outbound overlay** (strategic intent on top of `krish-voice` mechanics; Cleo Email Draft / Nell / Nova / Felix). Central to it is the **Five Standards gate** every piece must clear: undeniably unique (artifact > listening > research), well-researched (sourced or owned, never invented), thoughtful, kind (warm to people, sharp on ideas, never cruel), helpful (reader leaves with something usable). Linked from §6.3, §8.6, §11.3, §19. Content agents load it alongside `krish-voice` before composing.
+
+### 2026-06-03 — Unified audience pipeline: all four Mindmaker properties → Control Center, paid-vs-free enforced
 Closed the gap between the canonical "one audience list" design and live state. CTRL, the marketing site (five capture edge functions), Builder Economy, and Mindmaker Live (Substack CSV) now all write the app DB `audience_contacts` table. A cross-DB bridge carries that into this OS DB: `pull_audience_contacts()` (http extension + Vault-held app key) routes each contact through `sync_audience_contact()`, scheduled by the `audience-tick` edge function via n8n `System | Mindmaker OS | Audience Pipeline` (`7sYzU1FidUo2w1Lh`, sync 15 min / reconcile daily). Rule: **payment is the only switch, never both** — paid → `customers` (Subscriptions), free → `leads` with `source_type='audience'` collapsed by email; a `customers` trigger (`trg_enforce_audience_invariant`) moves people on payment and tags churned leads `status='churned'`; `reconcile_audience_invariant()` is the backstop. New schema: `leads.audience_sources/churned_at/audience_synced_at`, `churned` + `audience` added to the status/source checks, `customer_product` gains `mindmaker`/`mindmaker_live`. Control Center renders an Audience pill, source chips, Churned badge, and a Substack CSV dropzone. See §4.11. Capture edge functions shipped via `mm-ctrl#129`, `mindmaker#109/#110`; UI via `control-center#116`.
+
+### **2026-06-02 — Engagement ledger + RE feedback + Podchaser visibility surfacing**
+
+Five-part build addressing leads-feedback, S&N guest re-surfacing, Podchaser podcast discovery, and visibility-event targeting. Root cause across three of the four: no identity-keyed "already engaged" memory that generators consult.
+
+- **Engagement-ledger spine.** Extended `concept_id` (+ index) to `guests` and `visibility_targets` (previously only on `leads`/`contacts`/`tasks`). Backfilled all rows via `compute_concept_slug`. Added a non-partial unique index on `visibility_targets(concept_id)` for idempotent upserts.
+- **S&N "already-interviewed" memory.** Ingested 30 past guests from Podchaser episode history (show id 6164314) as `published`, plus 44 POSSIBLE-2026 contacts from Krish's schedule sheet as `recorded`/`dropped`. `guests` SN rows now 90 (86 engaged). This is the memory the scout dedups against.
+- **Guest Scout dedup bug FIXED (`8DlMfyTYsbnQGYR2`).** `Supabase: Get Existing` was querying the dropped `nell_candidates` table → existing-set always empty → every candidate treated as new. Repointed to `guests` (all statuses) and rewrote `Dedup Candidates` to match on normalized name+email, source-agnostic.
+- **Podchaser → Visibility.** Closed-Loop PR Engine (`hCbvRXoGWaqG1Znx`) found podcasts but never wrote them to `visibility_targets` — and searched with `sort: LATEST_EPISODE` which returns music/noise, not relevance. Fixed the search to default relevance; surfaced 10 exec-audience podcasts into `visibility_targets` (type=`podcast`). FOLLOW-UP: make the PR Engine write discovered podcasts to `visibility_targets` for approval before auto-pitching.
+- **Visibility Sweeper retargeted (`SIDlCqURzTVsVt70`).** Perplexity + Anthropic prompts now gate on non-technical business-leader audiences and hard-exclude developer/ML/practitioner events. Purged 19 stale conferences; repopulated with 5 business-leader events.
+- **RE feedback (Control Center PR #113, not yet merged).** The Relationship Engine "Leads" tab (`contacts`) shipped with no FeedbackButton (and a mobile control mis-pointed at `opportunities`). Added the `contacts` feedback surface + free-text reason; a 👎 now sets `triage_status='skipped'` (immediate suppression) while still feeding Vera. Added `contactTriage.isHandQueue()`: an already-engaged S&N contact only enters the warm queue if they score highly for a different venture.
+- FOLLOW-UPS: Builder Economy episode history not yet ingested (not found on Podchaser — needs its RSS/feed); TOOLS.md has a copy-paste corruption (OpenAI/Instantly/Fireflies/Brandfetch wrongly list Podchaser's token-mint as their auth).
+
+### **2026-06-02 (later) — Content tab: brand lanes + sourcing engine + Transform config**
+
+The Content tab moves from one pillar-tagged stream to **four brand lanes** (destinations), each a publishing commitment. Pillars remain the orthogonal theme layer.
+
+- **Lanes:** `signal_noise` (written, ~biweekly, AI×monetization in media/adtech/martech), `mindmaker` (2/wk: `roundup` slot + `field_learning` slot), `techonomic` (weekly investigative, Perplexity-led), `builder_economy_ig` (daily, upbeat "built with AI", Krish posts manually to @the_builder_economy). BE *podcast* stays in the guest pipeline; this lane is Instagram only.
+- **Schema (live + migration):** `content_ideas.lane/lane_slot/cadence_due_at`; `content_cadence` ledger (5 rows, RLS); `recompute_content_cadence()` fn. Migrations in `scripts/migrations/2026-06-02-*.sql`. 81 ideas backfilled (38 mindmaker / 37 techonomic / 6 signal_noise).
+- **UI (PR #114, merged):** lane toggle + per-lane CadenceBar (status dot, last-shipped, next-due, krish-voice gear) on desktop + mobile; client-side cadence so it works pre-cron.
+- **Voice contracts:** `system_config.content_lane_*` (5 keys) hold per-lane research_prompt + draft_system, built on krish-voice (Gear A for S&N/MM-roundup/Techonomic; Gear B for MM-field/BE-IG; open-web-monetization posture, banned-words list).
+- **Sourcing engine:** `Cleo | Content Lane Sourcing` (n8n rRAyEUs7NsY06hFy, daily) recomputes cadence, finds due lanes, runs Perplexity research → Sonnet draft (lane voice) → `content_ideas` draft with sources in `meta.research`. Publish stays manual (S&N→Wix, BE→IG, all approval-gated; nothing auto-publishes).
+- **RE feedback (PR #113, merged):** feedback on the Relationship Engine "Leads" (contacts) surface + free-text reason + 👎→triage_status='skipped' + `isHandQueue()` warm-lead rule.
+- **Also:** Podchaser→Visibility workflow (PIjxpuLXdDrRoBin) active; PR Engine + Podchaser search fixed (relevance sort); TOOLS.md auth corruption fixed.
+
+> **Update 2026-06-02 (same day):** the "FOLLOW-UP (not built)" items above are now SHIPPED — `/api/content-ideas/:id/transform` (industrialized Transform, parent→child lane rows) and `/api/content-ideas/:id/dive-deeper` (scoped Perplexity), plus the `ResearchAndTransform` panel in the expanded card (PR #115, merged + deployed + endpoint-tested live). `PERPLEXITY_API_KEY` added to Vercel; `content_ideas.parent_idea_id` migrated. The full `docs/CONTENT_TAB_SPEC.md` is implemented. Residual: the lane-sourcing n8n workflow lacks a `workflow_runs` heartbeat and its first scheduled run is its first n8n-level test (logic validated out-of-band; writes drafts only).
 
 ### **2026-06-01 — LLM cost-runaway fix: Gemini-fallback storm killed, model routing hardened, daily spend alert added**
 
@@ -1893,90 +1919,3 @@ Edit this file when the architecture *genuinely* changes: new agent, new pillar,
 
 The document BODY (everything below the YAML frontmatter) must be byte-identical across locations 1 through 5. Location 6 (Drive) lags until Krish manually replaces it. The repo is for PR and review; the VPS is what agents actually read on wake; the two skill copies are what Claude Code and Cursor load; Drive is what humans share.
 
----
-
-## 22. Audit reconciliation — 2026-05-26
-
-> **Status.** This section captures every fix that landed in the 2026-05-25 → 2026-05-26 audit remediation pass. Anything below describes the **current live state**, not the audit's *findings* (those live in `audits/2026-05-25-os-e2e-audit.md` for archaeology). When the doc above contradicts this section, this section wins.
-
-### 22.1 P0 (4 fires extinguished)
-
-| ID | What broke | What's live now |
-|---|---|---|
-| A1 | Marcus Daily Brief Telegram chat_id `5712840770` → `chat not found` | chat_id = `6773796504`. First validated cron tick: 06:30 UTC next cycle. |
-| A2 | Self-healing tier workers all 401 (Silent Success Detector + Critical Infra Monitor + Vera Failure Pattern Sweep) | All 3 HTTP nodes now `authentication=predefinedCredentialType, nodeCredentialType=httpHeaderAuth`. Critical Infra Monitor 5-min ticks all success. |
-| A3 | Agatha Lead Deep Enrich Brave Search 422 (`$json[0]` undefined + wrong Accept header) | Brave URL uses `$json.full_name`, Accept: `application/json`. Webhook executions succeeding. |
-| A4 | Kai Dependency Mapper OOM crashes every 4h | Stop-gap v5: `Fetch Current Workflows` URL has `?active=true&excludePinnedData=true` (trims 2.4MB payload). **Real fix (sub-workflow refactor) deferred to Phase 2.** |
-
-### 22.2 P1 reconciled (8 items)
-
-| ID | Change |
-|---|---|
-| B | Architecture doc reconciliation — this section. §4 column-drift items still pending auto-generation. |
-| C1 | Priya Daily Health Scan: `Map Task to Goal` jsCode prepended with **CLO-001 guard** — no task on `broken=0 AND stale=0`. 7 historical Priya noise tasks closed via `concept:priya:health-alert-noop`. |
-| C2 | `render-plan.py` `CANONICAL_AGENTS` now includes `arlo`. `active/arlo-action.md` refreshes on the Mon 02:30 UTC tick. |
-| C3 | Dead route `api/nell-candidates/[id]/schedule.ts` removed from control-center. |
-| C4 | Status Update Receiver `Validate & Normalise` enforces workflow_id+workflow_name (**CLO-002**). DB layer no longer accepts anonymous heartbeats (4 pre-fix rows remain as historical). |
-| C5 | `decisions_waiting` view now 6-branch (added `kind='correction'`). Frontend: hook + panel + routeDecision + DecisionDetail + DesktopOrg `?correction=:id` hash effect + `data-correction-id={c.id}` row anchor. Two stuck corrections (arlo 42d, agatha 13d) now surface in unified queue. |
-| C6 | 6 Stripe workflows each have `Write Heartbeat` HTTP node off the entry webhook. Uses existing `httpHeaderAuth` credential — no embedded JWT. |
-| F1 | `/api/health` agent-freshness now reads `agent_plans.last_rendered_at` (cron-maintained) instead of `agents.last_run` (unmaintained). Home dashboard no longer perma-red. |
-
-### 22.3 P1 deeper fixes shipped in second batch (5 items)
-
-| ID | Change |
-|---|---|
-| F2 | `<meta name="build-sha">` + `<meta name="build-time">` injected by vite plugin. Every SPA load attributable to a commit. |
-| F3 | Cleo Content Idea Capture (`nu7nQGZ3Pc3mEaoH`) → **CLO-006** guard: rejects seeded ideas missing `source_url`. Ends the "AI-generated content idea with no external link" class. |
-| F4 | Critical Infrastructure Monitor adds `Write system_health heartbeat` HTTP node every 5 min — upserts `system_health.N8N Cloud` row. Fixes the "system_health 40-day stale" finding. |
-| F5 | Vera Feedback Aggregation (`FZBDYXXfT1MBrAF6`) — 5 HTTP nodes (Fetch Unconsumed Feedback, Anthropic Propose Brief Edits, Write Corrections, Mark Feedback Consumed, Audit Log) all had the same A2 auth bug. Patched. **Learning loop now closes**: feedback_queue → corrections → agent briefs. |
-| F6 | Mobile FeedbackButton: FeedRow primitive now accepts `feedback={{ sourceTable, sourceId, agentId }}` prop. MobileLeads (1) + MobileToday (4) wired. **Mobile coverage went 0 → 48 FB buttons** across critical surfaces. |
-| F7 | `/api/feedback` ALLOWED_TABLES expanded from 5 to 10 surfaces (tasks, customers, bets, opportunities, corrections added). REASON_OPTIONS expanded to match. Krish can now thumb-down a Marcus top_three item. |
-| F8 | Marcus Daily Brief — Parse + stamp node appended with **CLO-004** guard: re-stamps every `top_three.expires_at` to NOW+24h to defeat Sonnet's year-2025 hallucination. |
-| F9 | RLS restored on `visibility_targets` + `guests` (both had RLS=on, 0 policies → empty UI). Added anon-SELECT and service_role-ALL policies matching every peer table. Visibility + Guests tabs now populated. |
-
-### 22.4 Phase 2 — open items
-
-| # | Item | Effort |
-|---|---|---|
-| P2-1 | Kai sub-workflow refactor (split `Fetch Current Workflows` into a child workflow so runData isn't carried through main) | ~45 min |
-| P2-2 | §4 Supabase schema section auto-generated from `information_schema.columns` (kills the 6-table column-name drift) | ~1 h |
-| P2-3 | Mobile FeedbackButton JSX wire on MobileContent / MobileGuests / MobileBets (imports present, render pending) + MobileCustomers / MobileOrg / MobileIntel / MobileFlows hand-wire | ~45 min |
-| P2-4 | DesktopLeads — surface `lead.linkedin_url` as an external link chip per row | ~15 min |
-| P2-5 | Workflow naming normalization — rename 9 non-canonical strays + workflow_runs.workflow_name backfill in same SQL tx | ~30 min |
-| P2-6 | +5 completeness contracts (Marcus Daily Brief, Cleo Email Draft, Agatha Lead Deep Enrich, Felix Pipeline, Maya CAC) | ~45 min |
-| P2-7 | Rotate `sbp_d44...` Supabase Management token (pasted in chat ×2 in 30 days) | 2 min |
-| P2-8 | Marcus override-capture burn-in shipped 2026-05-27. Watch `feedback_queue` rows where `reason_code='marcus_priority_override'`. Phase 1 (Daily Focus Picker) and Phase 2 (Tasks Inbox) also shipped 2026-05-27 behind feature flags (`VITE_DAILY_FOCUS_ENABLED`, `VITE_TASKS_INBOX_ENABLED`, both default false). Brief gated Phase 1/2 on burn-ins; Krish overrode both. Flip flags when ready to dogfood. | 14 days |
-
-### 22.5 What this section ASSUMES, document elsewhere if false
-
-- `/api/health` returns degraded if **more than 2** agents' `agent_plans.last_rendered_at` is older than 30h. The threshold was chosen to absorb the weekly Plan Refresh slot (Mon 02:30 UTC) plus jitter; revisit if Plan Refresh moves to daily or sub-weekly.
-- Stripe heartbeat row in `workflow_runs` does NOT capture which Stripe event type fired — just that the webhook was hit. Per-event-type breakdown lives in the existing `Log to Supabase` node downstream of `Payment?`.
-- C5's `corrections` branch only surfaces `status='analyzed' AND approval_state='pending'` rows. Approved/rejected corrections do NOT appear in `decisions_waiting` — they're terminal states.
-- CLO-005 hash-param effect retries 10× at 200ms intervals. If `pendingCorrections` takes >2s to mount, the highlight is missed silently (no error).
-### **2026-06-02 — Engagement ledger + RE feedback + Podchaser visibility surfacing**
-
-Five-part build addressing leads-feedback, S&N guest re-surfacing, Podchaser podcast discovery, and visibility-event targeting. Root cause across three of the four: no identity-keyed "already engaged" memory that generators consult.
-
-- **Engagement-ledger spine.** Extended `concept_id` (+ index) to `guests` and `visibility_targets` (previously only on `leads`/`contacts`/`tasks`). Backfilled all rows via `compute_concept_slug`. Added a non-partial unique index on `visibility_targets(concept_id)` for idempotent upserts.
-- **S&N "already-interviewed" memory.** Ingested 30 past guests from Podchaser episode history (show id 6164314) as `published`, plus 44 POSSIBLE-2026 contacts from Krish's schedule sheet as `recorded`/`dropped`. `guests` SN rows now 90 (86 engaged). This is the memory the scout dedups against.
-- **Guest Scout dedup bug FIXED (`8DlMfyTYsbnQGYR2`).** `Supabase: Get Existing` was querying the dropped `nell_candidates` table → existing-set always empty → every candidate treated as new. Repointed to `guests` (all statuses) and rewrote `Dedup Candidates` to match on normalized name+email, source-agnostic.
-- **Podchaser → Visibility.** Closed-Loop PR Engine (`hCbvRXoGWaqG1Znx`) found podcasts but never wrote them to `visibility_targets` — and searched with `sort: LATEST_EPISODE` which returns music/noise, not relevance. Fixed the search to default relevance; surfaced 10 exec-audience podcasts into `visibility_targets` (type=`podcast`). FOLLOW-UP: make the PR Engine write discovered podcasts to `visibility_targets` for approval before auto-pitching.
-- **Visibility Sweeper retargeted (`SIDlCqURzTVsVt70`).** Perplexity + Anthropic prompts now gate on non-technical business-leader audiences and hard-exclude developer/ML/practitioner events. Purged 19 stale conferences; repopulated with 5 business-leader events.
-- **RE feedback (Control Center PR #113, not yet merged).** The Relationship Engine "Leads" tab (`contacts`) shipped with no FeedbackButton (and a mobile control mis-pointed at `opportunities`). Added the `contacts` feedback surface + free-text reason; a 👎 now sets `triage_status='skipped'` (immediate suppression) while still feeding Vera. Added `contactTriage.isHandQueue()`: an already-engaged S&N contact only enters the warm queue if they score highly for a different venture.
-- FOLLOW-UPS: Builder Economy episode history not yet ingested (not found on Podchaser — needs its RSS/feed); TOOLS.md has a copy-paste corruption (OpenAI/Instantly/Fireflies/Brandfetch wrongly list Podchaser's token-mint as their auth).
-
-### **2026-06-02 (later) — Content tab: brand lanes + sourcing engine + Transform config**
-
-The Content tab moves from one pillar-tagged stream to **four brand lanes** (destinations), each a publishing commitment. Pillars remain the orthogonal theme layer.
-
-- **Lanes:** `signal_noise` (written, ~biweekly, AI×monetization in media/adtech/martech), `mindmaker` (2/wk: `roundup` slot + `field_learning` slot), `techonomic` (weekly investigative, Perplexity-led), `builder_economy_ig` (daily, upbeat "built with AI", Krish posts manually to @the_builder_economy). BE *podcast* stays in the guest pipeline; this lane is Instagram only.
-- **Schema (live + migration):** `content_ideas.lane/lane_slot/cadence_due_at`; `content_cadence` ledger (5 rows, RLS); `recompute_content_cadence()` fn. Migrations in `scripts/migrations/2026-06-02-*.sql`. 81 ideas backfilled (38 mindmaker / 37 techonomic / 6 signal_noise).
-- **UI (PR #114, merged):** lane toggle + per-lane CadenceBar (status dot, last-shipped, next-due, krish-voice gear) on desktop + mobile; client-side cadence so it works pre-cron.
-- **Voice contracts:** `system_config.content_lane_*` (5 keys) hold per-lane research_prompt + draft_system, built on krish-voice (Gear A for S&N/MM-roundup/Techonomic; Gear B for MM-field/BE-IG; open-web-monetization posture, banned-words list).
-- **Sourcing engine:** `Cleo | Content Lane Sourcing` (n8n rRAyEUs7NsY06hFy, daily) recomputes cadence, finds due lanes, runs Perplexity research → Sonnet draft (lane voice) → `content_ideas` draft with sources in `meta.research`. Publish stays manual (S&N→Wix, BE→IG, all approval-gated; nothing auto-publishes).
-- **RE feedback (PR #113, merged):** feedback on the Relationship Engine "Leads" (contacts) surface + free-text reason + 👎→triage_status='skipped' + `isHandQueue()` warm-lead rule.
-- **Also:** Podchaser→Visibility workflow (PIjxpuLXdDrRoBin) active; PR Engine + Podchaser search fixed (relevance sort); TOOLS.md auth corruption fixed.
-
-FOLLOW-UP (spec'd, not built): industrialized Transform parent→child output rows + research-panel/dive-deeper UI (`docs/CONTENT_TAB_SPEC.md` §4.3a, §5.5). Lane sourcing workflow's first live run is its first n8n-level test (logic validated out-of-band; drafts-only, nothing publishes).
-
-> **Update 2026-06-02 (same day):** the "FOLLOW-UP (not built)" items above are now SHIPPED — `/api/content-ideas/:id/transform` (industrialized Transform, parent→child lane rows) and `/api/content-ideas/:id/dive-deeper` (scoped Perplexity), plus the `ResearchAndTransform` panel in the expanded card (PR #115, merged + deployed + endpoint-tested live). `PERPLEXITY_API_KEY` added to Vercel; `content_ideas.parent_idea_id` migrated. The full `docs/CONTENT_TAB_SPEC.md` is implemented. Residual: the lane-sourcing n8n workflow lacks a `workflow_runs` heartbeat and its first scheduled run is its first n8n-level test (logic validated out-of-band; writes drafts only).
