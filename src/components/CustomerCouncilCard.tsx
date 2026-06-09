@@ -54,8 +54,23 @@ export function CustomerCouncilCard() {
 
   if (loading) {
     return (
-      <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
-        <p className="text-[11px] text-white/40">Loading council…</p>
+      <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden animate-pulse">
+        <header className="px-4 py-3 border-b border-white/[0.05] flex items-center justify-between">
+          <div>
+            <div className="h-2.5 w-32 bg-white/[0.08] rounded" />
+            <div className="h-2 w-24 bg-white/[0.05] rounded mt-2" />
+          </div>
+          <div className="h-2.5 w-10 bg-white/[0.06] rounded" />
+        </header>
+        <ul className="divide-y divide-white/[0.04]">
+          {[0, 1, 2].map(i => (
+            <li key={i} className="px-4 py-3 border-l-2 border-white/10">
+              <div className="h-2 w-20 bg-white/[0.06] rounded" />
+              <div className="h-2.5 w-40 bg-white/[0.08] rounded mt-2" />
+              <div className="h-2 w-28 bg-white/[0.05] rounded mt-2" />
+            </li>
+          ))}
+        </ul>
       </section>
     )
   }

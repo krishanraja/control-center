@@ -73,6 +73,22 @@ export function FocusRitual({
     setStepIdx(i => Math.min(i, Math.max(0, stepIds.length - 1)))
   }, [stepIds.length])
 
+  // Escape dismisses the ritual, mirroring a backdrop click (soft "set later"
+  // snooze). Brings the modal in line with every other dialog in the app
+  // (Capture, IdeaCapture, FocusCalibrator) which all close on Escape.
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        alt.dismissToday()
+        closeFocusRitual()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, alt])
+
   if (tab !== 'home' || !isFocusRitualEnabled() || !open) return null
 
   const total = stepIds.length

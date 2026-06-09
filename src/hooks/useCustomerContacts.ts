@@ -126,7 +126,7 @@ export function useCustomerContacts() {
         entries.push({
           customer: cust,
           priority: 'high_value_check_in',
-          reason: `$${Math.round(mrr)}/mo · last contact ${daysSinceContact ?? '∞'}d ago`,
+          reason: `$${Math.round(mrr)}/mo · ${daysSinceContact == null ? 'never contacted' : `last contact ${daysSinceContact}d ago`}`,
           days_since_contact: daysSinceContact,
           suggested_action: 'check_in',
         })
@@ -138,7 +138,7 @@ export function useCustomerContacts() {
         entries.push({
           customer: cust,
           priority: 'long_tenure_expansion',
-          reason: `Paid ${paidFor}d · last contact ${daysSinceContact ?? '∞'}d ago — expansion check`,
+          reason: `Paid ${paidFor}d · ${daysSinceContact == null ? 'never contacted' : `last contact ${daysSinceContact}d ago`} — expansion check`,
           days_since_contact: daysSinceContact,
           suggested_action: 'expansion',
         })
@@ -150,7 +150,7 @@ export function useCustomerContacts() {
         entries.push({
           customer: cust,
           priority: 'stale_check_in',
-          reason: `No contact in ${daysSinceContact ?? '∞'}d`,
+          reason: daysSinceContact == null ? 'Never contacted' : `No contact in ${daysSinceContact}d`,
           days_since_contact: daysSinceContact,
           suggested_action: 'check_in',
         })
