@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../../hooks/useRealtimeDecisionsWaiting'
@@ -22,6 +22,13 @@ const KIND_TO_TABLE: Record<DecisionRow['kind'], string> = {
 const KIND_DOT: Record<DecisionRow['kind'], string> = {
   task: 'bg-violet-400', guest: 'bg-rose-400', idea: 'bg-rose-300',
   lead: 'bg-emerald-400', visibility: 'bg-amber-400', correction: 'bg-red-400',
+}
+// Which tab's focused queue each kind batch-reviews into.
+const KIND_TO_TAB: Record<DecisionRow['kind'], string> = {
+  task: 'today', guest: 'guests', idea: 'content', lead: 'leads', visibility: 'guests', correction: 'org',
+}
+const KIND_LABEL_PLURAL: Record<DecisionRow['kind'], string> = {
+  task: 'Tasks', guest: 'Guests', idea: 'Ideas', lead: 'Leads', visibility: 'Visibility', correction: 'Corrections',
 }
 
 /**
@@ -47,6 +54,18 @@ export function DecisionsInbox({
 
   const visible = decisions.slice(0, limit)
   const more = Math.max(0, decisions.length - visible.length)
+
+  // Composition of the whole queue by kind, biggest first. The visible top-N is
+  // priority-sorted and tends to be monotone (one kind dominates), which hides
+  // how much of everything else is waiting — these chips restore that picture
+  // and double as a one-tap batch-review entry into each kind's queue.
+  const kindCounts = useMemo(() => {
+    const counts = new Map<DecisionRow['kind'], number>()
+    for (const d of decisions) counts.set(d.kind, (counts.get(d.kind) ?? 0) + 1)
+    return [...counts.entries()]
+      .map(([kind, count]) => ({ kind, count }))
+      .sort((a, b) => b.count - a.count)
+  }, [decisions])
 
   const select = async (d: DecisionRow) => {
     h.select()
@@ -82,6 +101,23 @@ export function DecisionsInbox({
           <EmptyState label="Inbox zero. Nothing waiting on you." />
         ) : (
           <>
+            {kindCounts.length > 1 && (
+              <div className="flex flex-wrap gap-1.5 px-1 pb-2.5 mb-1 border-b border-white/[0.05]">
+                {kindCounts.map(({ kind, count }) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    onClick={() => { h.tap(); onNavigate?.(KIND_TO_TAB[kind]) }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11px] text-white/70 hover:bg-white/[0.07] hover:text-white/90 transition-colors"
+                    title={`Review ${count} ${count === 1 ? KIND_LABEL[kind] : KIND_LABEL_PLURAL[kind]}`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${KIND_DOT[kind]}`} />
+                    <span className="tabular-nums font-semibold text-white/85">{count}</span>
+                    {count === 1 ? KIND_LABEL[kind] : KIND_LABEL_PLURAL[kind]}
+                  </button>
+                ))}
+              </div>
+            )}
             {visible.map(d => {
               const Icon = KIND_ICON[d.kind] || Mail
               const priorityChip =
