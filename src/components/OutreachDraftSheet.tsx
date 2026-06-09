@@ -74,7 +74,17 @@ function Section({ label, children }: { label: string; children: React.ReactNode
  * The Cleo Email Draft workflow composes the email in Krish's voice and drops it
  * into his Gmail as a draft. Nothing sends; he reviews and sends manually.
  */
-export function OutreachDraftSheet({ target, onClose }: { target: DraftTarget | null; onClose: () => void }) {
+export function OutreachDraftSheet({
+  target,
+  onClose,
+  endpoint,
+}: {
+  target: DraftTarget | null
+  onClose: () => void
+  /** Override the draft endpoint (defaults to the contacts route). Services
+   *  leads pass `/api/leads/:id/draft-email`; both proxy the same Cleo workflow. */
+  endpoint?: string
+}) {
   const { toast } = useToast()
   const h = useHaptics()
 
@@ -113,7 +123,7 @@ export function OutreachDraftSheet({ target, onClose }: { target: DraftTarget | 
     h.heavy()
     setBusy(true)
     try {
-      const r = await fetch(`/api/contacts/${target.id}/draft-email`, {
+      const r = await fetch(endpoint || `/api/contacts/${target.id}/draft-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ intent, venture, length, tone, note: note.trim() || undefined }),

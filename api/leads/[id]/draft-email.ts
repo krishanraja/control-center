@@ -31,7 +31,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (error || !lead) return res.status(404).json({ ok: false, error: 'lead not found' })
   if (!lead.email) return res.status(422).json({ ok: false, error: 'lead has no email address' })
 
-  const intent = (req.body && typeof req.body.intent === 'string') ? req.body.intent : 'introduction'
+  const reqBody = (req.body || {}) as Record<string, unknown>
+  const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
+  const intent = str(reqBody.intent) || 'introduction'
+  // Framing controls forwarded from OutreachDraftSheet (Services + Leads tabs
+  // now share the same sheet). The Cleo Email Draft workflow already reads these
+  // from the contacts path; forwarding them here makes the chips real instead of
+  // silently dropped.
+  const venture = str(reqBody.venture)
+  const length = str(reqBody.length)
+  const tone = str(reqBody.tone)
+  const note = str(reqBody.note)
 
   try {
     const r = await fetch(webhook, {
@@ -48,6 +58,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         linkedin_url: lead.linkedin_url || null,
         source_url: lead.source_url || null,
         intent,
+        venture,
+        length,
+        tone,
+        note,
       }),
     })
     const body = await r.text()

@@ -5,6 +5,7 @@ import { LeadSourcePill } from './LeadSourcePill'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import { FeedbackButton } from './shared/FeedbackButton'
+import { OutreachDraftSheet, type DraftTarget } from './OutreachDraftSheet'
 import type { LeadRow, LeadStatus } from '../hooks/useRealtimeLeads'
 
 const ASSIGNEE_OPTIONS = ['felix', 'maya', 'nell', 'krish'] as const
@@ -211,37 +212,26 @@ export function LeadCard({ lead: l, onOpen }: Props) {
     }
   }
 
-  const draftEmail = async () => {
-    h.heavy()
-    setBusy('draft_email')
-    try {
-      const r = await fetch(`/api/leads/${l.id}/draft-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intent: 'introduction' }),
-      })
-      const body = await r.json().catch(() => ({}))
-      if (!r.ok) throw new Error(body?.error || `HTTP ${r.status}`)
-      h.success()
-      const url = body?.draft_url
-      toast(
-        url ? `Draft created in Gmail · ${url}` : 'Draft created in Gmail.',
-        'success',
-      )
-      if (url && typeof window !== 'undefined') {
-        try { window.open(url, '_blank', 'noreferrer,noopener') } catch {}
-      }
-    } catch (e: any) {
-      h.error()
-      toast(`Could not draft email: ${e?.message || 'try again'}`, 'error')
-    } finally {
-      setBusy(null)
-    }
-  }
+  // Draft email now opens the OutreachDraftSheet (choose angle / venture / tone
+  // before drafting) instead of firing a fixed-intent draft blind — matching the
+  // Leads tab and giving Krish control over framing. The draft still lands in
+  // Gmail; in-app review/edit of the draft body lands with the content engine.
+  const [draftTarget, setDraftTarget] = useState<DraftTarget | null>(null)
 
   const fullName = l.full_name || l.company || (l.email ? l.email.split('@')[0] : 'New lead')
   const subtitleParts = [l.title, l.company].filter(Boolean) as string[]
   const subtitle = subtitleParts.join(' · ')
+
+  const openDraft = () => {
+    h.tap()
+    setDraftTarget({
+      id: l.id,
+      name: fullName,
+      subtitle: subtitleParts.join(' @ ') || null,
+      email: l.email,
+      venture: l.primary_venture || null,
+    })
+  }
 
   return (
     <article className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 hover:border-white/[0.12] transition-colors">
@@ -541,13 +531,13 @@ export function LeadCard({ lead: l, onOpen }: Props) {
           <>
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); draftEmail() }}
+              onClick={(e) => { e.stopPropagation(); openDraft() }}
               disabled={busy !== null}
               className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 disabled:opacity-40 transition-colors"
-              title="Draft an email via Cleo (lands in your Gmail Drafts)"
+              title="Draft an email via Cleo — pick the angle, lands in your Gmail Drafts"
             >
               <Mail size={11} />
-              {busy === 'draft_email' ? 'Drafting…' : 'Draft email'}
+              Draft email
             </button>
             <a
               href={`mailto:${l.email}`}
@@ -590,6 +580,12 @@ export function LeadCard({ lead: l, onOpen }: Props) {
           </button>
         </div>
       </div>
+
+      <OutreachDraftSheet
+        target={draftTarget}
+        endpoint={draftTarget ? `/api/leads/${draftTarget.id}/draft-email` : undefined}
+        onClose={() => setDraftTarget(null)}
+      />
     </article>
   )
 }
