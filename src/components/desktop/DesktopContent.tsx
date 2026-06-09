@@ -277,6 +277,14 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
     return d.getFullYear() === year && d.getMonth() === month
   }), [ideas, year, month])
 
+  // In-flight ideas with no scheduled/published date — the pool that could be
+  // planned onto the calendar. Powers the empty-state hint so a blank grid
+  // explains itself instead of reading as "nothing to do".
+  const unscheduled = useMemo(
+    () => ideas.filter(i => !i.scheduled_for && !i.published_at && i.state !== 'dropped').length,
+    [ideas],
+  )
+
   const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
   const stepMonth = (delta: number) => setCursor(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1))
@@ -310,6 +318,15 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
         </button>
         <span className="ml-auto text-[11px] text-white/45 tabular-nums">{monthIdeas.length} scheduled this month</span>
       </header>
+
+      {monthIdeas.length === 0 && (
+        <div className="mb-3 rounded-md border border-dashed border-white/[0.10] bg-white/[0.01] px-3 py-2.5 text-[11px] text-white/55">
+          Nothing scheduled in {monthLabel}.{' '}
+          {unscheduled > 0
+            ? `Your ${unscheduled} in-flight idea${unscheduled === 1 ? '' : 's'} live in the Lanes view — give one a publish date to plan your month here.`
+            : 'Ideas with a publish date will appear here.'}
+        </div>
+      )}
 
       <div className="grid grid-cols-7 gap-1 mb-1">
         {dayHeaders.map(h => (
