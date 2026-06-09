@@ -69,6 +69,16 @@ export function TriagePanel({ onNavigate, hideHeader = false }: Props) {
     if (!focusedId && rows.length > 0) setFocusedId(rows[0].id)
   }, [rows, focusedId])
 
+  // Keep the focused row on screen. Without this, j/k navigation and the
+  // "Triage next" jump-to-oldest move focus to a row that may be far down the
+  // list, so the action looks like it did nothing. `block: 'nearest'` is a
+  // no-op when the row is already visible (e.g. on hover-to-focus).
+  useEffect(() => {
+    if (!focusedId) return
+    const el = document.querySelector(`[data-triage-id="${focusedId}"]`)
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [focusedId])
+
   // Memoized ordered list (matches render order: by kind, then sort_at).
   const orderedRows = useMemo(() => {
     const order: TriageKind[] = ['content_idea', 'lead', 'visibility', 'guest']
