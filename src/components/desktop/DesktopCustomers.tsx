@@ -68,11 +68,13 @@ export function DesktopCustomers() {
         <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">
           Subscriptions
         </h1>
-        <p className="text-xs md:text-[13px] text-white/50 mt-0.5">
-          {loading
-            ? 'Loading…'
-            : `${totals.paid} paid · $${Math.round(totals.mrrUsd).toLocaleString()}/mo · ${totals.freeSignups} free · ${totals.waitlist} waitlist`}
-        </p>
+        {loading ? (
+          <div className="h-3 w-64 bg-white/[0.07] rounded mt-1.5 animate-pulse" />
+        ) : (
+          <p className="text-xs md:text-[13px] text-white/50 mt-0.5">
+            {`${totals.paid} paid · $${Math.round(totals.mrrUsd).toLocaleString()}/mo · ${totals.freeSignups} free · ${totals.waitlist} waitlist`}
+          </p>
+        )}
       </div>
 
       {expansionPlays.length > 0 && (

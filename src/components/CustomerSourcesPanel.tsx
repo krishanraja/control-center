@@ -12,9 +12,23 @@ export function CustomerSourcesPanel() {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-        <p className="text-[11px] text-white/40">Computing attribution…</p>
-      </div>
+      <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden animate-pulse">
+        <header className="px-4 py-3 border-b border-white/[0.05]">
+          <div className="h-2.5 w-28 bg-white/[0.08] rounded" />
+          <div className="h-2 w-40 bg-white/[0.05] rounded mt-2" />
+        </header>
+        <ul className="divide-y divide-white/[0.04]">
+          {[68, 44, 30].map((w, i) => (
+            <li key={i} className="px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="h-2.5 bg-white/[0.07] rounded" style={{ width: `${w}%` }} />
+                <div className="h-2.5 w-12 bg-white/[0.06] rounded flex-shrink-0" />
+              </div>
+              <div className="mt-2 h-1 bg-white/[0.05] rounded-full" />
+            </li>
+          ))}
+        </ul>
+      </section>
     )
   }
 
