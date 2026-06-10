@@ -19,7 +19,7 @@
 >
 > **Manual step (Krish only):** after each update, copy the Claude-skill version into Claude **browser** skills by hand — that surface has no automated sync. Everything in 1–5 is synced together programmatically and is byte-identical (these copies carry no YAML frontmatter — the skill registers off the H1 title).
 >
-> **Last reconciled against live state.** 2026-06-09. Snapshot: 14 production agents (executive / growth / ops pods) plus 4 personal-life agents; ~80 n8n workflows (~75 active); ~67 Supabase tables/views; ~108 shared skills; ~170 standards; Control Center live at controlcenter.krishraja.com.
+> **Last reconciled against live state.** 2026-06-10. Snapshot: 14 production agents (executive / growth / ops pods) plus 4 personal-life agents; ~80 n8n workflows (~75 active); ~67 Supabase tables/views; ~108 shared skills; ~170 standards; Control Center live at controlcenter.krishraja.com. Autonomous OS diagnostics live (§8.8.6); first OS cleanliness pass complete (8 stale tasks closed, workspace restructure committed, cron-payload secrets migrated).
 
 ---
 
@@ -1097,6 +1097,16 @@ HOME RENDERING
 
 **The promise: tactical work always shows its strategic parent, and deep-work commitments survive the daily leverage contest because they sit structurally above the tactical picks.**
 
+### 8.8.6 Autonomous OS diagnostics (Arlo's mechanical-liveness sentinel)
+
+The four-tier system above watches *workflow outputs*. A complementary deterministic, non-destructive pass watches the *OS machinery itself* — paths, crons, processes, git, and cross-system reachability. It never repairs production; it writes evidence and escalates heavyweight cross-system problems instead of self-healing.
+
+- **Script.** `scripts/os-autonomous-diagnostics.py` (`--mode quick|full`). Checks: critical workspace/script paths exist; active templates carry no *live* `tasks.json` / flat Control-Center-state instructions — with a benign-marker allowlist (`deprecated`, `must not`, `do not`, `never`, `no step`, ``not `tasks.json` ``) so correct *prohibitions* are never flagged; root crontab has no missing paths and exactly one Vera N8N audit entry; active OpenClaw cron payloads carry no architecture drift; no orphaned dashboard process / stray `localhost:8080` listener; git-tree deletion risk; (full mode) Supabase stalled-active-task scan, N8N executions reachability, Control Center homepage reachability.
+- **Evidence.** Writes `audits/os-diagnostics/latest.{md,json}` every run; `status` ∈ `OK` / `ATTENTION` / `URGENT`.
+- **Escalation, not silent repair.** A heavyweight cross-system `CRITICAL` writes an **Urgent Claude Code CLI Repair Alert** to `hot/urgent-claude-code-repair-alerts/` carrying a full Claude-CLI prompt, evidence, constraints, and validation gates. Resolved alerts move to that folder's `resolved/` subdir with a resolution banner. A *stale* diagnostic snapshot is not truth — every finding must be re-verified against live state before any action.
+- **Sentinels.** Root crontab runs `--mode quick` every 30 min (`>> /var/log/os-autonomous-diagnostics.log`, suffixed `|| true` so a diagnostic fault can never wedge cron). OpenClaw job **Arlo Autonomous OS Diagnostics Sentinel** (`3cd5afa9-13cd-4a59-8383-cff50195cc0a`) runs every 6h, silent unless an urgent alert is generated.
+- **Ownership.** Arlo owns mechanical liveness (paths/crons/process/git/sync evidence); Kai owns integration viability (credentials, webhook reachability, N8N/Supabase/Vercel); Vera owns semantic correctness and silent-success detection.
+
 ### 8.9 Marcus synthesis — Home Intelligence feed
 
 ```
@@ -1717,6 +1727,10 @@ docs/audits/                                                 # Closure architect
 ## 20. Recent architectural changes — rolling changelog
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
+
+### 2026-06-10 — Autonomous OS diagnostics live + first OS cleanliness pass
+
+Arlo installed deterministic OS diagnostics (`scripts/os-autonomous-diagnostics.py`) with a 30-min VPS sentinel and a 6-hourly OpenClaw sentinel that escalates cross-system criticals as **Urgent Claude Code CLI Repair Alerts** rather than silently repairing (see §8.8.6). The first Claude Code CLI cleanliness pass then, against live state: (1) found the template-drift urgent alert was a **stale false positive** — it fired ~5 min before Arlo's own template remediation; a live full re-run shows zero template findings — and archived it to `resolved/`; (2) closed **8 stale active tasks** (3 Marcus-synthesis review pings, 2 superseded content drafts, 1 stale follow-up, plus the May-12 content FIX + MANDATE rows, now superseded by the live `Cleo | Mindmaker OS` content pipeline) → `superseded`; (3) committed the long-pending workspace restructure (purge of checked-in `node_modules`, the deprecated `active/*.json` flat-state files, and `cold/`+`recycling/` archives; no live file lost); (4) migrated the Fireflies + Loz-news-briefing cron-payload tokens to `credentials/*.env` (chmod 600) references (Krish to rotate both); (5) reconciled this doc across all copies — the control-center repo copy had drifted ~1 day and is now realigned — and normalized the canonical to LF.
 
 ### 2026-06-09 — Control Center UX tiers (PRs #121–125) + doc reconciled to live state
 Control Center shipped a CEO-audit polish pass and four UX tiers. #121: killed the `∞d` date glyph, made `Esc` close sheets/overlays, added loading skeletons. #122: triage keeps the focused row in view on action + content-calendar empty state. #123: Home "waiting-on-you" composition chips + per-kind batch review. #124: content calendar click-to-schedule a draft. #125: Services "Draft email" opens the outreach sheet (angle / venture / tone). This architecture doc was also reconciled against live state: merged §4.11 (unified audience pipeline) and the content-corpus references that had diverged across the five byte-identical copies, de-historicized section headers, collapsed the scattered closure-architecture "Day 2–5" roadmap into a single §17.7, and retired the stale §22 audit-reconciliation section (its still-true facts already live in the body).
