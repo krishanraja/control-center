@@ -36,6 +36,8 @@ const ALLOWED_SOURCE = new Set([
   'agatha_chat',
   'openclaw_workspace',
   'zara_signal',
+  'customer_voice',
+  'crm_opportunity',
   'manual',
 ])
 
