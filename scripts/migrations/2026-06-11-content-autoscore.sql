@@ -35,3 +35,9 @@ drop trigger if exists trg_autoscore_content_idea on public.content_ideas;
 create trigger trg_autoscore_content_idea
   after insert or update of body on public.content_ideas
   for each row execute function public.autoscore_content_idea();
+
+-- Harden: the SECURITY DEFINER function is otherwise exposed by PostgREST as a
+-- callable RPC to anon. Trigger functions fire under the owner context regardless
+-- of EXECUTE grants, so revoking removes the API exposure without affecting the
+-- trigger (Supabase linter 0028_anon_security_definer_function_executable).
+revoke execute on function public.autoscore_content_idea() from anon, authenticated, public;
