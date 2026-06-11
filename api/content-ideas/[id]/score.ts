@@ -26,6 +26,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const draft = (((req.body || {}) as any).source_text || idea.body || '').trim()
   if (!draft) return res.status(400).json({ ok: false, error: 'no draft to score (source_text or body required)' })
 
+  // Tier: manual scoring uses Sonnet (sharper judgment); the auto-score trigger
+  // (Postgres → pg_net) passes model:'haiku' to stay MT-003 cost-safe.
+  const model = ((req.body || {}) as any).model === 'haiku' ? 'claude-haiku-4-5-20251001' : undefined
+
   const corpus = await loadCorpus()
   const meta = (idea.meta || {}) as any
   const hasArtifact = !!(meta.source_label || idea.source_type === 'openclaw_workspace' || idea.source_type === 'cleo_chat')
@@ -40,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   let parsed: any
   try {
-    parsed = robustJson(await callClaude({ system, user, maxTokens: 1200, temperature: 0.3 }))
+    parsed = robustJson(await callClaude({ system, user, maxTokens: 1200, temperature: 0.3, model }))
   } catch (e: any) {
     return res.status(502).json({ ok: false, error: String(e?.message || e) })
   }

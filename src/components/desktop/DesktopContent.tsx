@@ -6,6 +6,8 @@ import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 import { LaneToggle, CadenceBar, type LaneFilter } from '../content/LaneControls'
+import { ContentSeedRail } from '../content/ContentSeedRail'
+import { contentEngineEnabled } from '../../lib/contentEngine'
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
@@ -103,6 +105,8 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
 
       <LaneToggle value={laneFilter} onChange={setLaneFilter} ideas={ideas} />
       {laneFilter !== 'all' && <CadenceBar lane={laneFilter} ideas={ideas} />}
+
+      {contentEngineEnabled() && <ContentSeedRail />}
 
       <NextActionStrip
         headline={reviewCount}
