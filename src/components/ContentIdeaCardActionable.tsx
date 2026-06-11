@@ -9,6 +9,8 @@ import { supabase } from '../lib/supabase'
 import type { ContentIdeaRow, IdeaState, TransformedOutputs } from '../hooks/useRealtimeContentIdeas'
 import { useContentPillars, pillarTone } from '../hooks/useContentPillars'
 import { ResearchAndTransform } from './content/ResearchAndTransform'
+import { ContentEnginePanel } from './content/ContentEnginePanel'
+import { contentEngineEnabled } from '../lib/contentEngine'
 
 interface Props {
   idea: ContentIdeaRow
@@ -333,6 +335,8 @@ export function ContentIdeaCardActionable({ idea: i, expanded, onClose }: Props)
           </div>
 
           <ResearchAndTransform idea={i} />
+
+          {contentEngineEnabled() && <ContentEnginePanel idea={i} />}
         </>
       )}
 

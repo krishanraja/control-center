@@ -90,6 +90,28 @@ export interface ContentIdeaRow {
     falsifiable_test?: string | null
     named_entities?: string[] | null
     why_non_obvious?: string | null
+    // Research + enrichment (dive-deeper / challenge / transform).
+    research?: string[] | null
+    sources?: string[] | null
+    deep_dives?: Array<{ query: string; findings: string; citations?: string[]; at: string }> | null
+    visual_suggestion?: string | null
+    generated_by?: 'transform' | null
+    // Content Engine layer (revise / challenge / score / push-to-cleo).
+    revisions?: Array<{ mode: string; value?: string | null; instruction?: string | null; at: string; chars?: number }> | null
+    challenges?: Array<{
+      mode: string; steelman?: string; counter?: string; sharper_take?: string
+      commercial_hook?: string | null; gaps?: string | null
+      citations?: string[]; news?: string[]; at: string
+    }> | null
+    standards?: {
+      scores: Record<'unique' | 'researched' | 'thoughtful' | 'kind' | 'helpful', number>
+      failing: string[]
+      notes?: Record<string, string>
+      verdict?: string | null
+      artifact_sourced?: boolean
+      scored_at: string
+    } | null
+    cleo_pushes?: Array<{ channel: string; at: string }> | null
   } | null
   created_at: string
   updated_at: string

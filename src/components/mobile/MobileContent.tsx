@@ -5,6 +5,8 @@ import { TabHeader } from './primitives'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 import { LaneToggle, CadenceBar, type LaneFilter } from '../content/LaneControls'
+import { ContentSeedRail } from '../content/ContentSeedRail'
+import { contentEngineEnabled } from '../../lib/contentEngine'
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
@@ -99,6 +101,8 @@ export function MobileContent({ ideaId, onClearIdea }: Props = {}) {
       <div className="pb-6 space-y-3">
         <LaneToggle value={laneFilter} onChange={setLaneFilter} ideas={ideas} />
         {laneFilter !== 'all' && <CadenceBar lane={laneFilter} ideas={ideas} />}
+
+        {contentEngineEnabled() && <ContentSeedRail />}
 
         <NextActionStrip
           headline={reviewCount}
