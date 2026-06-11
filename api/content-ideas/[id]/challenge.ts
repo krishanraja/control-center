@@ -44,6 +44,52 @@ async function newsapi(key: string, q: string): Promise<string[]> {
   } catch { return [] }
 }
 
+// Apify run-sync: run an actor and get its dataset items in one call. Actor slug
+// `user/name` maps to the URL form `user~name`. Bounded by `timeout` seconds so
+// /challenge stays responsive; any failure degrades to the Perplexity pass.
+async function apifyRun(token: string, slug: string, input: any, timeoutS = 40): Promise<any[]> {
+  const path = slug.replace('/', '~')
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), (timeoutS + 8) * 1000)
+  try {
+    const r = await fetch(
+      `https://api.apify.com/v2/acts/${path}/run-sync-get-dataset-items?token=${token}&timeout=${timeoutS}&maxItems=15`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input), signal: ctrl.signal },
+    )
+    if (!r.ok) return []
+    const j = await r.json().catch(() => [])
+    return Array.isArray(j) ? j : []
+  } catch { return [] }
+  finally { clearTimeout(t) }
+}
+
+// Pull real practitioner takes from Reddit (and optionally LinkedIn) via Apify.
+// Returns a digest + the post URLs. Best-effort; empty when unconfigured.
+async function apifyCommunity(token: string, query: string): Promise<{ text: string; links: string[] }> {
+  const redditActor = process.env.APIFY_REDDIT_ACTOR || 'automation-lab/reddit-scraper'
+  const linkedinActor = process.env.APIFY_LINKEDIN_ACTOR // optional; input shape varies
+  const [reddit, linkedin] = await Promise.all([
+    apifyRun(token, redditActor, { searches: [query], searchPosts: true, skipComments: true, maxItems: 12, sort: 'relevance' }),
+    linkedinActor ? apifyRun(token, linkedinActor, { keywords: query, maxItems: 8 }) : Promise.resolve([]),
+  ])
+  const lines: string[] = []
+  const links: string[] = []
+  for (const p of reddit.slice(0, 12)) {
+    const title = p.title || p.text || p.body || ''
+    const url = p.url || p.link || p.permalink
+    const up = p.upVotes ?? p.score ?? p.numberOfVotes
+    if (title) lines.push(`[Reddit${up != null ? ` ↑${up}` : ''}] ${String(title).slice(0, 220)}`)
+    if (url) links.push(String(url))
+  }
+  for (const p of (linkedin as any[]).slice(0, 8)) {
+    const text = p.text || p.content || p.title || ''
+    const url = p.url || p.postUrl || p.link
+    if (text) lines.push(`[LinkedIn] ${String(text).slice(0, 220)}`)
+    if (url) links.push(String(url))
+  }
+  return { text: lines.join('\n'), links: Array.from(new Set(links)) }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (preamble(req, res)) return
   const id = pathId(req)
@@ -62,8 +108,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const topic = `${idea.idea}${idea.thesis ? ` — thesis: ${idea.thesis}` : ''}`
   const draft = (b.source_text || idea.body || '').slice(0, 2000)
 
-  // Tier 1 + 2: gather counter-evidence and community read in parallel.
-  const [counter, community, news] = await Promise.all([
+  // Tier 1-3: counter-evidence (Perplexity), community read (real Apify Reddit/
+  // LinkedIn when configured, else Perplexity forum pass), and dated news.
+  const apifyToken = process.env.APIFY_TOKEN
+  const [counter, pplxCommunity, news, apifyComm] = await Promise.all([
     perplexity(pplxKey,
       'You are a sharp research analyst building the strongest possible case AGAINST a claim. Cite urls. Named facts, figures, dated events only.',
       `Build the strongest evidence-based counter-argument to this take: "${topic}". What would a smart skeptic cite? Give named companies, figures, and dated counter-examples.`),
@@ -71,8 +119,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'You surface what practitioners actually say on Reddit, Hacker News, and professional forums. Cite urls. Report real positions, including disagreement.',
       `On forums (Reddit, HN, LinkedIn discussions), what do operators and builders actually say about: "${topic}"? Surface the strongest dissenting and supporting practitioner takes, with links.`),
     process.env.NEWSAPI_KEY ? newsapi(process.env.NEWSAPI_KEY, idea.idea) : Promise.resolve([]),
+    apifyToken ? apifyCommunity(apifyToken, idea.idea) : Promise.resolve({ text: '', links: [] }),
   ])
 
+  // Real scraped community takes lead; the Perplexity forum pass supplements.
+  const community = {
+    text: [apifyComm.text ? `REAL COMMUNITY POSTS (Apify):\n${apifyComm.text}` : '', pplxCommunity.text].filter(Boolean).join('\n\n'),
+    citations: [...apifyComm.links, ...pplxCommunity.citations],
+  }
   const citations = Array.from(new Set([...counter.citations, ...community.citations].filter(Boolean)))
 
   if (mode === 'sources') {

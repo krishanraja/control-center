@@ -24,6 +24,7 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
   const [preview, setPreview] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [feedback, setFeedback] = useState('')
+  const [sel, setSel] = useState('')
   const [openSection, setOpenSection] = useState<null | 'edit' | 'standards' | 'challenge' | 'variants' | 'cleo'>(null)
 
   React.useEffect(() => { setWorking(i.body || ''); setPreview(null) }, [i.body])
@@ -39,19 +40,28 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
   const lastPush = Array.isArray(meta.cleo_pushes) ? meta.cleo_pushes[0] : null
 
   // ── revise (transform axes + iterate) ──────────────────────────────────
-  const revise = async (mode: string, value: string, hint?: string, instruction?: string) => {
+  // `selection` (optional) scopes the rewrite to just that substring of the draft
+  // (paragraph/sentence-level). The API returns the full draft with the span swapped.
+  const revise = async (mode: string, value: string, hint?: string, instruction?: string, selection?: string) => {
     if (!draftOnScreen.trim()) { toast('Nothing to revise yet — Expand or write a draft first.', 'error'); return }
     h.heavy(); setBusy(`${mode}:${value}`)
     try {
       const r = await fetch(`/api/content-ideas/${i.id}/revise`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, value, hint, instruction, source_text: draftOnScreen }),
+        body: JSON.stringify({ mode, value, hint, instruction, selection, source_text: draftOnScreen }),
       })
       const j = await r.json()
       if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
       setPreview(j.revised); h.success()
+      if (selection) { setSel(''); toast('Revised just that passage.', 'success') }
     } catch (e: any) { h.error(); toast(`Revise failed: ${e?.message || 'error'}`, 'error') }
     finally { setBusy(null) }
+  }
+
+  // Capture a text selection made inside a draft block so it can be revised alone.
+  const captureSelection = () => {
+    const s = typeof window !== 'undefined' ? window.getSelection()?.toString().trim() : ''
+    if (s && s.length >= 8 && draftOnScreen.includes(s)) setSel(s)
   }
 
   const acceptPreview = async () => {
@@ -132,6 +142,36 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
         )}
       </div>
 
+      {/* Working draft — select any sentence to revise just that part */}
+      {preview == null && working.trim() && (
+        <div className="rounded-md border border-white/[0.06] bg-black/20 p-2">
+          <div className="text-[9px] text-white/30 uppercase tracking-wide mb-1">Working draft · select a sentence to refine just it</div>
+          <p onMouseUp={captureSelection} className="text-[11px] text-white/70 leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto cursor-text select-text">{working}</p>
+        </div>
+      )}
+
+      {/* Selection-scoped revise toolbar */}
+      {sel && (
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/[0.06] p-2 space-y-1.5">
+          <div className="flex items-center gap-1.5 text-[10px] text-amber-200/80">
+            <span className="flex-1 truncate">Selected: "{sel.slice(0, 60)}{sel.length > 60 ? '…' : ''}"</span>
+            <button type="button" onClick={() => setSel('')} className="text-white/40 hover:text-white/70"><X size={11} /></button>
+          </div>
+          <div className="flex items-center gap-1 flex-wrap">
+            {[
+              ...TONE_PRESETS.map(o => ({ o, mode: 'tone' })),
+              ...ITERATE_CHIPS.slice(0, 2).map(o => ({ o, mode: 'feedback' })),
+            ].map(({ o, mode }) => (
+              <button key={o.value} type="button" title={o.hint} disabled={busy !== null}
+                onClick={() => revise(mode, o.value, o.hint, undefined, sel)}
+                className="text-[10px] px-2 py-1 rounded-md border border-amber-500/30 text-amber-100 hover:bg-amber-500/15 disabled:opacity-40 min-h-[32px]">
+                {busy === `${mode}:${o.value}` ? '…' : o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Transform axes */}
       <div className="space-y-1.5">
         <div className="flex items-center gap-1 flex-wrap">
@@ -177,7 +217,7 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
           <div className="flex items-center gap-1.5 text-[9px] text-violet-200/70 uppercase tracking-wide">
             <Sparkles size={10} /> Revised preview
           </div>
-          <p className="text-[12px] text-white/85 leading-relaxed whitespace-pre-wrap max-h-64 overflow-y-auto">{preview}</p>
+          <p onMouseUp={captureSelection} className="text-[12px] text-white/85 leading-relaxed whitespace-pre-wrap max-h-64 overflow-y-auto cursor-text select-text">{preview}</p>
           <div className="flex items-center gap-1.5">
             <button type="button" onClick={acceptPreview} disabled={busy !== null}
               className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-violet-500/30 text-white hover:bg-violet-500/40 disabled:opacity-40 min-h-[36px]">

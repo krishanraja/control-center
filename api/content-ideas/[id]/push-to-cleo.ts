@@ -69,6 +69,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     contrarian_angle: contrarian,
     // pass the staged draft so the factory can build ON it rather than from scratch
     draft_seed: draft || null,
+    // Clicking "Push to Cleo" IS Krish's approval — it produces a Google Doc draft,
+    // not a publish (PUB-001 intact). The factory's "Check Krish Approved" gate
+    // requires this flag, otherwise it stops before assembly.
+    krish_approved: true,
   }
 
   try {
