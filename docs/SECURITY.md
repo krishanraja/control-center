@@ -33,6 +33,7 @@ Every secret used by the system, where it lives, and what it grants.
 | `VITE_SUPABASE_URL` | Platform | Vercel env (Production/Preview/Development); `.env` locally | Public Supabase project URL. Not sensitive on its own but pairs with the anon key. |
 | `VITE_SUPABASE_ANON_KEY` | Platform | Vercel env; `.env` locally | Anonymous client access subject to RLS. Embeddable in the browser bundle. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Platform | Vercel env (server-only); never in client bundle | Bypasses RLS. Used by `api/_supabase.ts`. **Most sensitive secret in the system.** |
+| `ACCESS_CODE` | Platform | Vercel env (server-only); never in client bundle | Shared access code for the edge gate (`middleware.ts`). Keeps the web UI from being publicly browsable. Low-sensitivity: it is a curtain, not real auth — the data layer still relies on the anon key + RLS. |
 | `SYNC_SECRET` | Platform | Vercel env; VPS sync pipeline env | Authenticates `POST /api/sync` requests. If absent, sync auth is disabled (acceptable in dev). |
 | `N8N_API_KEY` | Platform | Vercel env (server-only) | Auth for `/api/status` calls against the N8N API |
 | `N8N_FEEDBACK_URL` | Platform | Vercel env | Server-side mirror of the feedback webhook URL |
@@ -72,7 +73,8 @@ incident.
 
 | Surface | Auth |
 |---|---|
-| Web UI | None. Single-operator product. |
+| Web UI | Edge gate: HTTP Basic Auth via `middleware.ts`, checking the shared `ACCESS_CODE`. A curtain against casual/public access, **not** real authentication — a technical visitor can still reach the Supabase data layer directly (anon key + RLS). Fails open if `ACCESS_CODE` is unset. |
+| `/api/*` | Not gated by the edge middleware (see `matcher` in `middleware.ts`); each endpoint keeps its own model below. |
 | `/api/sync` | Shared-secret header `x-sync-secret` (optional in dev when `SYNC_SECRET` is unset). |
 | `/api/trigger-agent` | None today. |
 | `/api/health` | None today (intentionally — used by external monitors). |
