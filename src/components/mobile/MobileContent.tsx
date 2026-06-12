@@ -1,18 +1,21 @@
 import { useMemo } from 'react'
-import { ChevronRight, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { ChevronRight, Clock, AlertTriangle, CheckCircle2, Layers } from 'lucide-react'
 import { MobileShell } from './MobileShell'
 import { TabHeader } from './primitives'
-import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
-import { useHaptics } from '../../hooks/useHaptics'
+import { type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
+import { useContentTriage } from '../../hooks/useContentTriage'
+import { TriageDeck } from '../content/TriageDeck'
 
-// MobileContent — the "Ready for you" deck.
+// MobileContent — two modes, driven by useContentTriage:
 //
-// A phone is for reviewing what's next or urgent, making a quick magic
-// adjustment, and pushing — not deep work. So mobile shows ONLY the pieces that
-// are genuinely next in line (awaiting Krish's sign-off = `review`, or ready to
-// ship = `approved`) or urgent (scheduled today / overdue / cadence-due).
-// Everything upstream (seeded / researching / drafting) is desk work and hidden
-// here. Tapping a card opens the review-first composer.
+// • TRIAGE (backlog > 30): a one-card-at-a-time swipe deck over the WHOLE active
+//   backlog. Left = drop, right = advance, tap = open. This is how you clear a
+//   pile of 200 from your phone without a wall of cards.
+// • ACTION (backlog <= 30): the "ready for you" surface — what's awaiting your
+//   sign-off or due, PLUS your drafts (previously invisible), PLUS a count of
+//   what's still upstream. The old build only showed review/approved, so with 0
+//   of each it rendered a false "You're clear" over 25 hidden drafts. That can no
+//   longer happen: the all-clear state is gated on activeCount === 0.
 
 interface Props { ideaId?: string | null; onClearIdea?: () => void }
 
@@ -36,77 +39,148 @@ function urgencyOf(i: ContentIdeaRow): Urgency {
 }
 
 const URGENCY_RANK: Record<string, number> = { overdue: 0, today: 1, due: 2 }
+const DRAFT_CAP = 12
 
-export function MobileContent(_props: Props = {}) {
-  const { ideas, loading } = useRealtimeContentIdeas()
-  const h = useHaptics()
+export function MobileContent({ ideaId }: Props = {}) {
+  const triage = useContentTriage()
+  const { active, activeCount, counts, loading, mode } = triage
 
-  const deck = useMemo(() => {
-    const rows = ideas
-      .filter(i => i.state !== 'dropped' && i.state !== 'published')
+  // tier 1 — genuinely next or urgent: review / approved / scheduled-today-or-overdue.
+  const readyDeck = useMemo(() => {
+    const rows = active
       .map(i => ({ i, urg: urgencyOf(i) }))
-      // next in line (review/approved) OR urgent
       .filter(({ i, urg }) => i.state === 'review' || i.state === 'approved' || urg !== null)
-
     return rows.sort((a, b) => {
-      // urgent first, ranked by severity
       const ua = a.urg ? URGENCY_RANK[a.urg] : 9
       const ub = b.urg ? URGENCY_RANK[b.urg] : 9
       if (ua !== ub) return ua - ub
-      // then review before approved (review is waiting on you)
       const sa = a.i.state === 'review' ? 0 : a.i.state === 'approved' ? 1 : 2
       const sb = b.i.state === 'review' ? 0 : b.i.state === 'approved' ? 1 : 2
       if (sa !== sb) return sa - sb
-      // oldest first (longest waiting)
       return (a.i.updated_at || '') < (b.i.updated_at || '') ? -1 : 1
     })
-  }, [ideas])
+  }, [active])
 
-  const open = (id: string) => { h.tap(); window.location.hash = `#/content?idea=${id}` }
+  // tier 2 — the drafts that were invisible before. Oldest first, capped.
+  const drafts = useMemo(() => {
+    return active
+      .filter(i => i.state === 'drafting')
+      .sort((a, b) => (a.updated_at || '') < (b.updated_at || '') ? -1 : 1)
+      .slice(0, DRAFT_CAP)
+  }, [active])
+
+  const open = (id: string) => { window.location.hash = `#/content?idea=${id}` }
+
+  // ── Triage mode: the swipe deck owns the screen.
+  if (mode === 'triage') {
+    return (
+      <MobileShell
+        scroll="none"
+        header={<TabHeader title="Clear the pile" subtitle={`${activeCount} in the backlog · swipe to clear`} />}
+      >
+        <TriageDeck triage={triage} narrow paused={!!ideaId} />
+      </MobileShell>
+    )
+  }
+
+  // ── Action mode: ready-for-you + drafts + upstream count.
+  const draftTotal = counts.drafting
 
   return (
-    <MobileShell header={<TabHeader title="Ready for you" subtitle="What's next or urgent. Review, adjust, push." />}>
-      <div className="pb-6 space-y-2.5">
+    <MobileShell header={<TabHeader title="Content" subtitle="What's next, your drafts, and the backlog." />}>
+      <div className="px-4 pb-6 space-y-2.5">
         {loading && <div className="text-[12px] text-white/45 text-center py-8">Loading…</div>}
 
-        {!loading && deck.length === 0 && (
+        {!loading && activeCount === 0 && (
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-8 text-center mt-4">
             <CheckCircle2 size={22} className="text-emerald-400/70 mx-auto mb-2" />
             <p className="text-[13px] text-white/70">You're clear.</p>
-            <p className="text-[11px] text-white/40 mt-1">Nothing is waiting on your sign-off or due right now. New work shows up here when it's ready for you.</p>
+            <p className="text-[11px] text-white/40 mt-1">Nothing in flight. New work shows up here when it's ready.</p>
           </div>
         )}
 
-        {!loading && deck.map(({ i, urg }) => (
-          <button
-            key={i.id}
-            type="button"
-            onClick={() => open(i.id)}
-            className="w-full text-left rounded-2xl border border-white/[0.08] bg-white/[0.02] active:bg-white/[0.05] p-3.5 transition-colors"
-          >
-            <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-              <StateChip state={i.state} />
-              {urg && <UrgencyChip urg={urg} />}
-              {i.lane && <span className="text-[10px] uppercase tracking-[0.1em] text-white/40">{i.lane.replace(/_/g, ' ')}</span>}
-              <ChevronRight size={15} className="text-white/30 ml-auto" />
-            </div>
-            <p className="text-[14px] font-semibold text-white leading-snug">{i.idea}</p>
-            {(i.body || i.thesis) && (
-              <p className="text-[12px] text-white/55 leading-snug mt-1 line-clamp-2">
-                {(i.body || i.thesis || '').slice(0, 180)}
-              </p>
+        {!loading && activeCount > 0 && (
+          <>
+            {/* tier 1 — ready for you */}
+            {readyDeck.length > 0 && (
+              <div className="mb-1.5 mt-1 text-[11px] uppercase tracking-[0.12em] text-white/40">Ready for you</div>
             )}
-            <div className="flex items-center gap-2 mt-2">
-              {!i.body?.trim() && <span className="text-[10px] text-amber-200/70">no draft yet</span>}
-              {i.body?.includes('—') && (
-                <span className="text-[10px] text-rose-200/80 inline-flex items-center gap-0.5"><AlertTriangle size={10} /> em dash</span>
-              )}
-              <span className="ml-auto text-[11px] text-violet-300/90">Review →</span>
-            </div>
-          </button>
-        ))}
+            {readyDeck.map(({ i, urg }) => (
+              <IdeaButton key={i.id} i={i} urg={urg} onClick={() => open(i.id)} />
+            ))}
+
+            {/* tier 2 — drafts (the previously hidden 25) */}
+            {drafts.length > 0 && (
+              <div className="flex items-center gap-2 mb-1.5 mt-4">
+                <span className="text-[11px] uppercase tracking-[0.12em] text-white/40">Drafts waiting on you</span>
+                <span className="text-[11px] text-white/30 tabular-nums">{draftTotal}</span>
+              </div>
+            )}
+            {drafts.map(i => (
+              <IdeaButton key={i.id} i={i} urg={null} onClick={() => open(i.id)} />
+            ))}
+            {draftTotal > drafts.length && (
+              <p className="text-[11px] text-white/35 px-1 mt-1">+{draftTotal - drafts.length} more drafts</p>
+            )}
+
+            {/* readyDeck + drafts can both be empty even with active>0 — everything
+                upstream. Surface it instead of a false all-clear. */}
+            {readyDeck.length === 0 && drafts.length === 0 && (
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-6 text-center mt-2">
+                <p className="text-[13px] text-white/70">Nothing awaiting your sign-off yet.</p>
+                <p className="text-[11px] text-white/40 mt-1">Everything in flight is still upstream (research / seeds).</p>
+              </div>
+            )}
+
+            {/* upstream count + triage entry */}
+            {counts.upstream > 0 && (
+              <button
+                type="button"
+                onClick={triage.forceTriage}
+                className="w-full mt-4 flex items-center gap-2.5 rounded-2xl border border-violet-400/30 bg-violet-500/10 active:bg-violet-500/20 p-3.5 text-left transition-colors"
+              >
+                <Layers size={18} className="text-violet-300 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-violet-100">{counts.upstream} upstream to triage</p>
+                  <p className="text-[11px] text-white/45">Seeds &amp; research piling up — swipe to clear them fast.</p>
+                </div>
+                <ChevronRight size={16} className="text-violet-300/70 ml-auto flex-shrink-0" />
+              </button>
+            )}
+          </>
+        )}
       </div>
     </MobileShell>
+  )
+}
+
+function IdeaButton({ i, urg, onClick }: { i: ContentIdeaRow; urg: Urgency; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left rounded-2xl border border-white/[0.08] bg-white/[0.02] active:bg-white/[0.05] p-3.5 transition-colors"
+    >
+      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+        <StateChip state={i.state} />
+        {urg && <UrgencyChip urg={urg} />}
+        {i.lane && <span className="text-[10px] uppercase tracking-[0.1em] text-white/40">{i.lane.replace(/_/g, ' ')}</span>}
+        <ChevronRight size={15} className="text-white/30 ml-auto" />
+      </div>
+      <p className="text-[14px] font-semibold text-white leading-snug">{i.idea}</p>
+      {(i.body || i.thesis) && (
+        <p className="text-[12px] text-white/55 leading-snug mt-1 line-clamp-2">
+          {(i.body || i.thesis || '').slice(0, 180)}
+        </p>
+      )}
+      <div className="flex items-center gap-2 mt-2">
+        {!i.body?.trim() && <span className="text-[10px] text-amber-200/70">no draft yet</span>}
+        {i.body?.includes('—') && (
+          <span className="text-[10px] text-rose-200/80 inline-flex items-center gap-0.5"><AlertTriangle size={10} /> em dash</span>
+        )}
+        <span className="ml-auto text-[11px] text-violet-300/90">Open →</span>
+      </div>
+    </button>
   )
 }
 
@@ -114,6 +188,7 @@ function StateChip({ state }: { state: ContentIdeaRow['state'] }) {
   const map: Record<string, { label: string; cls: string }> = {
     review: { label: 'Awaiting you', cls: 'bg-amber-500/15 text-amber-200' },
     approved: { label: 'Ready to ship', cls: 'bg-emerald-500/15 text-emerald-200' },
+    drafting: { label: 'Drafting', cls: 'bg-violet-500/15 text-violet-200' },
   }
   const m = map[state] || { label: state, cls: 'bg-white/[0.08] text-white/70' }
   return <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.08em] font-semibold ${m.cls}`}>{m.label}</span>

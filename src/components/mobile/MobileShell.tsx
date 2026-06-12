@@ -6,13 +6,21 @@ interface Props {
   children: React.ReactNode
   /** Callback fired when the user pulls down from the top. No-op if absent. */
   onRefresh?: () => Promise<void> | void
+  /**
+   * 'auto' (default): the body scrolls internally. 'none': the body is a fixed
+   * stage (e.g. a triage card deck) — no scroll, no nav padding (use `footer`).
+   */
+  scroll?: 'auto' | 'none'
+  /** Fixed region pinned above the BottomNav (e.g. a triage control bar). */
+  footer?: React.ReactNode
 }
 
 /**
  * Fixed-viewport column. h-[100dvh]. Content scrolls *inside*; page never scrolls.
- * Includes pull-to-refresh gesture when onRefresh is provided.
+ * Includes pull-to-refresh gesture when onRefresh is provided (scroll='auto' only).
  */
-export function MobileShell({ header, children, onRefresh }: Props) {
+export function MobileShell({ header, children, onRefresh, scroll = 'auto', footer }: Props) {
+  const noScroll = scroll === 'none'
   const ref = useRef<HTMLDivElement>(null)
   const [pullDist, setPullDist] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
@@ -20,7 +28,7 @@ export function MobileShell({ header, children, onRefresh }: Props) {
   const reduced = useReducedMotion()
 
   useEffect(() => {
-    if (!onRefresh) return
+    if (!onRefresh || noScroll) return
     const el = ref.current
     if (!el) return
     const THRESHOLD = 70
@@ -82,16 +90,27 @@ export function MobileShell({ header, children, onRefresh }: Props) {
         </div>
       )}
 
-      <section
-        ref={ref}
-        className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 scrollbar-hide ${BOTTOM_NAV_PAD}`}
-        style={{
-          transform: pullDist > 0 ? `translateY(${pullDist}px)` : undefined,
-          transition: startY.current == null ? 'transform 180ms ease' : 'none',
-        }}
-      >
-        {children}
-      </section>
+      {noScroll ? (
+        // Fixed stage: no inner scroll, no nav padding on the body. A `footer`
+        // (rendered below) reserves space above the BottomNav so pinned controls
+        // and the bottom card edge are never occluded.
+        <section ref={ref} className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          {children}
+        </section>
+      ) : (
+        <section
+          ref={ref}
+          className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 scrollbar-hide ${BOTTOM_NAV_PAD}`}
+          style={{
+            transform: pullDist > 0 ? `translateY(${pullDist}px)` : undefined,
+            transition: startY.current == null ? 'transform 180ms ease' : 'none',
+          }}
+        >
+          {children}
+        </section>
+      )}
+
+      {footer && <div className={`flex-shrink-0 ${BOTTOM_NAV_PAD}`}>{footer}</div>}
     </main>
   )
 }

@@ -1,14 +1,27 @@
-import React, { createContext, useCallback, useContext, useState } from 'react'
+import React, { createContext, useCallback, useContext, useRef, useState } from 'react'
 import { CheckCircle2, AlertCircle, Info } from 'lucide-react'
+
+interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
+interface ToastOptions {
+  /** Optional action button (e.g. Undo). Bumps default duration to 6s. */
+  action?: ToastAction
+  /** Override auto-dismiss in ms. */
+  duration?: number
+}
 
 interface Toast {
   id: string
   message: string
   variant: 'success' | 'error' | 'info'
+  action?: ToastAction
 }
 
 interface ToastContextValue {
-  toast: (message: string, variant?: 'success' | 'error' | 'info') => void
+  toast: (message: string, variant?: 'success' | 'error' | 'info', opts?: ToastOptions) => void
 }
 
 const ToastContext = createContext<ToastContextValue>({ toast: () => {} })
@@ -21,12 +34,24 @@ const VARIANT_STYLE: Record<string, { border: string; icon: typeof Info; iconCol
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
-  const toast = useCallback((message: string, variant: 'success' | 'error' | 'info' = 'info') => {
-    const id = Math.random().toString(36).slice(2)
-    setToasts(prev => [...prev, { id, message, variant }])
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000)
+  const dismiss = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+    const timer = timers.current[id]
+    if (timer) { clearTimeout(timer); delete timers.current[id] }
   }, [])
+
+  const toast = useCallback(
+    (message: string, variant: 'success' | 'error' | 'info' = 'info', opts: ToastOptions = {}) => {
+      const id = Math.random().toString(36).slice(2)
+      setToasts(prev => [...prev, { id, message, variant, action: opts.action }])
+      // Actions get a longer window so they're actually clickable; 3s otherwise.
+      const duration = opts.duration ?? (opts.action ? 6000 : 3000)
+      timers.current[id] = setTimeout(() => dismiss(id), duration)
+    },
+    [dismiss],
+  )
 
   return (
     <ToastContext.Provider value={{ toast }}>
@@ -44,6 +69,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             >
               <Icon size={14} className={v.iconColor} />
               <span className="text-[12px] text-white/80">{t.message}</span>
+              {t.action && (
+                <button
+                  type="button"
+                  onClick={() => { t.action!.onClick(); dismiss(t.id) }}
+                  className="ml-1.5 text-[12px] font-semibold text-violet-300 hover:text-violet-200 underline-offset-2 hover:underline"
+                >
+                  {t.action.label}
+                </button>
+              )}
             </div>
           )
         })}
