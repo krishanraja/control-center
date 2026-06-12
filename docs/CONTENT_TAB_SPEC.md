@@ -11,6 +11,8 @@
 > - §4.3a (research panel + dive-deeper) — PR #115: `/api/content-ideas/:id/dive-deeper` (scoped Perplexity) + `ResearchAndTransform` in the expanded card.
 > Publish stays manual per lane (S&N→Wix, BE→IG); nothing auto-publishes.
 
+> **Update (2026-06-11) — the inline card became a full-screen Composer.** The lane model below still holds (lanes, cadence, pillars, Transform engine), but the *production surface* changed. The inline `ContentIdeaCardActionable` that stacked the draft + `ResearchAndTransform` + the content engine into one scrolling column was replaced by a full-screen **Composer** (`src/components/content/ContentComposer.tsx`), opened by deep-linking `#/content?idea=<id>`. One piece per screen: draft canvas + a single-panel rail (**Cleo chat · Refine · Materials · Research · Standards**), one end CTA **Save Draft** (→ Google Doc in Drive + Telegram alert). New: a **Materials** store (`meta.materials[]`) so the research corpus is kept and grounds generation + the saved Doc; a **Cleo chat** writing partner; **Refine → Adapt to lane** replacing the duplicate "Transform into other lanes"; `sanitizeVoice()` stripping em dashes everywhere. **Mobile is review-first**: a "Ready for you" deck (only `review` / `approved` / urgent) → a read-mode composer with one-tap magic adjustments + sticky Save Draft. Also fixed a latent RLS bug (draft `body` was saved via the anon client, which RLS blocks → edits silently lost; now via the API). PRs #132 + #134. Full detail in `MINDMAKER_OS_ARCHITECTURE.md` §5.7.
+
 ---
 
 ## 1. The core shift

@@ -88,6 +88,10 @@ Tab roots should be *layout-only* — pull data from hooks, render presentationa
 do not own business logic. Hand mutations down via props or read them from
 a context (e.g. `AgentsContext` for agent lookups).
 
+### Content tab — composer + mobile deck
+
+The Content tab is the one tab whose detail surface is a **full-screen takeover**, not a master-detail panel. `ContentComposer` (`components/content/ContentComposer.tsx`) mounts as a fixed overlay from `App.tsx` whenever `tab === 'content'` and `route.params.idea` is set (cards open it by setting `#/content?idea=<id>`; Esc clears the param). It owns one piece of content: a draft canvas plus a single-panel rail (Cleo chat · Refine · Materials · Research · Standards), one **Save Draft** CTA, and draft autosave via the API (never the anon client — RLS blocks anon writes to `content_ideas`). Pipeline cards (`ContentIdeaCardActionable`) are light tiles that just open the composer; the retired `ContentEnginePanel` / `ResearchAndTransform` inline stack is gone. On `narrow`, the composer renders a **review-first** body (read mode + one-tap magic adjustments + sticky Save Draft), and `MobileContent` is a "Ready for you" deck showing only `review` / `approved` / urgent pieces. See `MINDMAKER_OS_ARCHITECTURE.md` §5.7.
+
 ## Hooks
 
 Realtime data hooks open one shared channel per table (ADR-002). Open it
