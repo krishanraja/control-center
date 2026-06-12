@@ -48,9 +48,11 @@ CREATE INDEX IF NOT EXISTS visibility_targets_buried_at_idx ON public.visibility
 CREATE INDEX IF NOT EXISTS content_ideas_buried_at_idx      ON public.content_ideas (buried_at)      WHERE buried_at IS NOT NULL;
 
 -- ── Backfill: recognizable user-originated rows ──────────────────────────────
+-- (tasks has no `source` column in prod; manual-trigger tasks are identified
+-- going forward by origin stamped at the API write path.)
 UPDATE public.content_ideas      SET origin = 'user' WHERE source_type = 'manual' AND origin <> 'user';
 UPDATE public.visibility_targets SET origin = 'user' WHERE source = 'manual_import' AND origin <> 'user';
-UPDATE public.tasks              SET origin = 'user' WHERE (source = 'manual' OR workstream = 'objective-ladder') AND origin <> 'user';
+UPDATE public.tasks              SET origin = 'user' WHERE workstream = 'objective-ladder' AND origin <> 'user';
 
 -- ── triage_queue: exclude buried rows ────────────────────────────────────────
 -- Canonical definition from scripts/migrations/2026-05-26-triage-queue-view.sql

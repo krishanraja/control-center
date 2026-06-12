@@ -33,7 +33,19 @@ export const DEFAULT_WEIGHTS: Record<Table, Record<string, number>> = {
   content_ideas: { confidence: 35, brand_fit: 4.5, quality: 1 },
 }
 
-export const DEFAULT_THRESHOLDS = { bury_below: 35, min_idle_days: 10 }
+// bury_below is a floor; when a table has >= adaptive_min_eligible items the
+// effective cutoff rises to the adaptive_percentile of that table's eligible
+// scores, so the sweep always trims the genuinely-worst tail of a big queue
+// (verified against prod data 2026-06-12: scores cluster 40-90, a fixed 35
+// would bury almost nothing while the queues sit at 200+). max_per_sweep
+// bounds the nightly blast radius.
+export const DEFAULT_THRESHOLDS = {
+  bury_below: 35,
+  min_idle_days: 10,
+  adaptive_percentile: 0.25,
+  adaptive_min_eligible: 50,
+  max_per_sweep: 50,
+}
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -44,8 +56,13 @@ export function q(quality: string | null | undefined): number {
   return 8
 }
 
+// Queue age, anchored on creation. Deliberately NOT updated_at: enrichment
+// sweeps and autoscore passes bump updated_at constantly (prod max
+// "idle-by-updated_at" was 9.7d while items had sat unactioned for months),
+// so agent touches must not reset the clock. Krish touches are covered by
+// the guards (krish_notes, status moves, protected_at).
 export function idleDays(row: any): number {
-  const ref = row.updated_at || row.created_at || row.created
+  const ref = row.created_at || row.created || row.updated_at
   if (!ref) return 0
   const ms = Date.now() - new Date(ref).getTime()
   return Number.isFinite(ms) && ms > 0 ? ms / DAY_MS : 0
@@ -136,7 +153,7 @@ export function titleOf(table: Table, row: any): string {
 }
 
 export function reasonOf(table: Table, row: any, s: number): string {
-  const idle = Math.round(idleDays(row))
+  const age = Math.round(idleDays(row))
   const bits: string[] = []
   const f = features(table, row)
   if ('fit' in f) bits.push(`fit ${f.fit}/10`)
@@ -145,8 +162,8 @@ export function reasonOf(table: Table, row: any, s: number): string {
   if ('confidence' in f) bits.push(`confidence ${Math.round(f.confidence * 100)}%`)
   if ('brand_fit' in f) bits.push(`brand fit ${f.brand_fit}/10`)
   if (row.quality_score) bits.push(`${row.quality_score} quality`)
-  bits.push(`idle ${idle}d`)
-  return `${bits.join(', ')} (score ${Math.round(s)})`
+  bits.push(`in queue ${age}d`)
+  return `${bits.join(', ')} (score ${Math.round(s)}, bottom of its queue)`
 }
 
 function parseVal(v: unknown): any {

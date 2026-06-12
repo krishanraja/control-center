@@ -40,14 +40,24 @@ async function runSweep(dryRun: boolean) {
 
   for (const table of TABLES) {
     const rows = await fetchEligible(table)
-    const toBury: BuryCandidate[] = []
-    for (const row of rows) {
-      if (guarded(table, row)) continue
-      if (idleDays(row) < thresholds.min_idle_days) continue
-      const s = score(table, row, weights[table])
-      if (s >= thresholds.bury_below) continue
-      toBury.push({ id: String(row.id), title: titleOf(table, row), score: Math.round(s), reason: reasonOf(table, row, s) })
+    const scored = rows
+      .filter(row => !guarded(table, row))
+      .map(row => ({ row, s: score(table, row, weights[table]), age: idleDays(row) }))
+
+    // Adaptive cutoff: on big queues the fixed floor barely fires (scores
+    // cluster well above it), so the effective bar rises to the bottom
+    // quartile of this table's eligible scores. Bounded by max_per_sweep.
+    let cutoff = thresholds.bury_below
+    if (scored.length >= thresholds.adaptive_min_eligible) {
+      const sorted = scored.map(x => x.s).sort((a, b) => a - b)
+      cutoff = Math.max(cutoff, sorted[Math.floor(sorted.length * thresholds.adaptive_percentile)])
     }
+
+    const toBury: BuryCandidate[] = scored
+      .filter(x => x.age >= thresholds.min_idle_days && x.s < cutoff)
+      .sort((a, b) => a.s - b.s)
+      .slice(0, thresholds.max_per_sweep)
+      .map(x => ({ id: String(x.row.id), title: titleOf(table, x.row), score: Math.round(x.s), reason: reasonOf(table, x.row, x.s) }))
 
     if (!dryRun && toBury.length > 0) {
       const now = new Date().toISOString()

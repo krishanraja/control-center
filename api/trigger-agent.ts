@@ -25,9 +25,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       agent: agentSlug,
       title: 'Manual trigger',
       status: 'active',
-      source: 'manual',
       origin: 'user',
-      created_at: now,
+      // tasks has `created`, not `created_at` — the previous payload
+      // (source/created_at) was rejected wholesale by PostgREST.
+      created: now,
       updated_at: now,
     })
     .select()
