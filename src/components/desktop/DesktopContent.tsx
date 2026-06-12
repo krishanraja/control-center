@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { FileText, ExternalLink, Calendar as CalendarIcon, List, Plus, Loader2 } from 'lucide-react'
+import { FileText, ExternalLink, Calendar as CalendarIcon, List, Plus, Loader2, Layers } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { useToast } from '../shared/Toast'
@@ -12,6 +12,15 @@ import { NextActionStrip } from '../shared/NextActionStrip'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
+import { AppFrame } from '../shared/AppFrame'
+import { useContentTriage } from '../../hooks/useContentTriage'
+import { TriageDeck } from '../content/TriageDeck'
+
+// Past this many cards a lane stops stacking and offers the triage deck instead —
+// the guard that makes it structurally impossible to mount 200 cards again.
+const LANE_CAP = 8
+// Safety net for the focus-mode path (which flattens all states into one list).
+const FOCUS_CAP = 40
 
 const STATE_ORDER: IdeaState[] = ['seeded', 'researching', 'drafting', 'review', 'approved', 'published', 'dropped']
 
@@ -32,6 +41,7 @@ interface Props {
 
 export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
   const { ideas, loading } = useRealtimeContentIdeas()
+  const triage = useContentTriage()
   const [view, setView] = useState<'lanes' | 'calendar'>('lanes')
   const [laneFilter, setLaneFilter] = useState<LaneFilter>('all')
 
@@ -86,9 +96,9 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
     }
   }, [detailIdea?.id])
 
-  return (
-    <div className="space-y-5">
-      <header className="flex items-end justify-between gap-4">
+  const header = (
+    <div className="px-6 pt-5 pb-3 border-b border-white/[0.05]">
+      <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
             <FileText size={20} className="text-violet-300" />
@@ -98,12 +108,39 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
             LinkedIn, newsletter, Signal &amp; Noise, Builder Economy. From idea to live, in one lane.
           </p>
         </div>
-        <span className="text-[11px] text-white/55 tabular-nums">
-          {loading ? '…' : `${activeCount} active`}
-        </span>
-      </header>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-white/55 tabular-nums">
+            {loading ? '…' : `${activeCount} active`}
+          </span>
+          {triage.mode === 'action' && activeCount > 0 && (
+            <button
+              type="button"
+              onClick={triage.forceTriage}
+              className="inline-flex items-center gap-1.5 text-[12px] font-medium text-violet-100 border border-violet-400/40 bg-violet-500/15 hover:bg-violet-500/25 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              <Layers size={13} /> Triage deck
+            </button>
+          )}
+        </div>
+      </div>
+      {triage.mode === 'action' && (
+        <div className="mt-3">
+          <LaneToggle value={laneFilter} onChange={setLaneFilter} ideas={ideas} />
+        </div>
+      )}
+    </div>
+  )
 
-      <LaneToggle value={laneFilter} onChange={setLaneFilter} ideas={ideas} />
+  return (
+    <AppFrame
+      header={header}
+      scroll={triage.mode === 'triage' ? 'none' : 'auto'}
+      padded={triage.mode !== 'triage'}
+    >
+      {triage.mode === 'triage' ? (
+        <TriageDeck triage={triage} narrow={false} paused={!!ideaId} />
+      ) : (
+        <div className="space-y-5">
       {laneFilter !== 'all' && <CadenceBar lane={laneFilter} ideas={ideas} />}
 
       {contentEngineEnabled() && <ContentSeedRail />}
@@ -193,7 +230,7 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
             {showFocus ? (
               <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-3">
                 <FocusLanes
-                  rows={visibleIdeas}
+                  rows={visibleIdeas.slice(0, FOCUS_CAP)}
                   table="content_ideas"
                   keyOf={i => String(i.id)}
                   renderItem={renderIdeaRow}
@@ -208,6 +245,8 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
                   state={s}
                   ideas={byState[s] || []}
                   selectedId={ideaId || null}
+                  cap={LANE_CAP}
+                  onOverflow={triage.forceTriage}
                 />
               ))
             )}
@@ -216,7 +255,9 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
       ) : (
         <ContentCalendar ideas={laneIdeas} />
       )}
-    </div>
+        </div>
+      )}
+    </AppFrame>
   )
 }
 
@@ -509,11 +550,14 @@ function isSameDay(a: Date, b: Date): boolean {
 }
 
 function ContentStateLane({
-  state, ideas, selectedId,
+  state, ideas, selectedId, cap, onOverflow,
 }: {
   state: IdeaState
   ideas: ContentIdeaRow[]
   selectedId: string | null
+  /** Max cards to render before deferring the rest to the triage deck. */
+  cap?: number
+  onOverflow?: () => void
 }) {
   const meta = STATE_META[state]
   if (ideas.length === 0) {
@@ -525,6 +569,10 @@ function ContentStateLane({
       </section>
     )
   }
+  // Never mount an unbounded list — that was the browser-crashing bug. Past `cap`
+  // we render the first slice and route the overflow into the triage deck.
+  const shown = cap != null ? ideas.slice(0, cap) : ideas
+  const overflow = ideas.length - shown.length
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-3">
       <header className="flex items-baseline justify-between mb-2">
@@ -534,7 +582,7 @@ function ContentStateLane({
         <span className="text-[10px] text-white/35">{meta.description}</span>
       </header>
       <ul className="space-y-2.5">
-        {ideas.map(i => (
+        {shown.map(i => (
           <li key={i.id}>
             {i.id === selectedId ? (
               // Detail card already shown at the top — render a compact placeholder here.
@@ -545,6 +593,15 @@ function ContentStateLane({
           </li>
         ))}
       </ul>
+      {overflow > 0 && (
+        <button
+          type="button"
+          onClick={onOverflow}
+          className="mt-2.5 w-full text-[12px] text-violet-200 border border-violet-400/30 bg-violet-500/10 hover:bg-violet-500/20 rounded-lg px-3 py-2 transition-colors"
+        >
+          +{overflow} more — clear in triage deck
+        </button>
+      )}
     </section>
   )
 }

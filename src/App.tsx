@@ -95,7 +95,10 @@ export default function App() {
       <AgentsProvider>
         <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-row">
           {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
-          <main className={`flex-1 overflow-y-auto min-w-0 ${narrow ? 'pb-20' : ''}`}>
+          {/* The Content tab is a fixed-height app frame (no window scroll); its
+              own AppFrame / MobileShell own the height and inner scrolling. Every
+              other tab keeps the existing window-scroll behavior untouched. */}
+          <main className={`flex-1 min-w-0 ${tab === 'content' ? 'overflow-hidden h-[100dvh]' : `overflow-y-auto ${narrow ? 'pb-20' : ''}`}`}>
             {narrow ? (
               <>
                 {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome onNavigate={navigate} /></ErrorBoundary>}
@@ -112,6 +115,8 @@ export default function App() {
                 {tab === 'workflows' && <ErrorBoundary label="Flows"><MobileFlows /></ErrorBoundary>}
                 {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
               </>
+            ) : tab === 'content' ? (
+              <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>
             ) : (
               <div className="px-6 py-6">
                 {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome onNavigate={navigate} /></ErrorBoundary>}
@@ -121,7 +126,6 @@ export default function App() {
                 {tab === 'relationships' && <ErrorBoundary label="Leads"><DesktopLeadsRE onNavigate={navigate} /></ErrorBoundary>}
                 {tab === 'customers' && <ErrorBoundary label="Customers"><DesktopCustomers /></ErrorBoundary>}
                 {tab === 'guests'    && <ErrorBoundary label="Visibility"><DesktopGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
-                {tab === 'content'   && <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>}
                 {tab === 'bets'      && <ErrorBoundary label="Bets"><DesktopBets /></ErrorBoundary>}
                 {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}
                 {tab === 'exec'      && <ErrorBoundary label="Intel"><DesktopExec /></ErrorBoundary>}
