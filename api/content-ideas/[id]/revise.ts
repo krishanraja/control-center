@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
-import { callClaude, loadVoiceBlock, pathId, preamble, VOICE_GUARDRAILS } from '../../_content.js'
+import { callClaude, loadVoiceBlock, materialsContext, pathId, preamble, readMaterials, sanitizeVoice, VOICE_GUARDRAILS } from '../../_content.js'
 
 // POST /api/content-ideas/:id/revise
 //   body: {
@@ -37,6 +37,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .from('content_ideas').select('idea,thesis,meta,lane').eq('id', id).single()
 
   const voice = await loadVoiceBlock()
+  const materials = readMaterials((idea as any)?.meta)
+  const materialsBlock = materials.length ? `\n\n${materialsContext(materials)}` : ''
 
   const inPlace = b.selection && sourceText.includes(b.selection)
   const target = inPlace ? (b.selection as string) : sourceText
@@ -53,6 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     voice ? `VOICE REFERENCE:\n${voice}` : '',
     '',
     VOICE_GUARDRAILS,
+    materialsBlock,
     '',
     'Return ONLY the rewritten text. No preamble, no explanation, no quotes around it.',
   ].filter(Boolean).join('\n')
@@ -75,7 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(502).json({ ok: false, error: String(e?.message || e) })
   }
   // Strip stray surrounding quotes / em dashes the model may have slipped in.
-  revisedFragment = revisedFragment.replace(/^["'`]+|["'`]+$/g, '').replace(/—/g, ', ')
+  revisedFragment = sanitizeVoice(revisedFragment.replace(/^["'`]+|["'`]+$/g, ''))
 
   const revised = inPlace ? sourceText.replace(b.selection as string, revisedFragment) : revisedFragment
 

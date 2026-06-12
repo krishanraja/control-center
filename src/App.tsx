@@ -30,6 +30,7 @@ import { MobileCustomers } from './components/mobile/MobileCustomers'
 import { MobileBets } from './components/mobile/MobileBets'
 import { MobileGuests } from './components/mobile/MobileGuests'
 import { MobileContent } from './components/mobile/MobileContent'
+import { ContentComposer } from './components/content/ContentComposer'
 import { AgentsProvider } from './contexts/AgentsContext'
 import { PendingFlagModal } from './components/PendingFlagModal'
 import { QuickCaptureIdea } from './components/QuickCaptureIdea'
@@ -130,6 +131,17 @@ export default function App() {
             )}
           </main>
           {narrow && <BottomNav active={tab} onChange={handleTab} />}
+          {/* Full-screen content composer — owns the screen for one piece when an
+              idea is deep-linked on the Content tab. Esc / back clears the param. */}
+          {tab === 'content' && route.params.idea && (
+            <ErrorBoundary label="Composer">
+              <ContentComposer
+                ideaId={route.params.idea}
+                narrow={narrow}
+                onClose={() => navigate('content')}
+              />
+            </ErrorBoundary>
+          )}
           <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onTab={handleTab} />
           <PendingFlagModal />
           <QuickCaptureIdea />

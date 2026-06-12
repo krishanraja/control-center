@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from './_supabase.js'
+import { sanitizeVoice } from './_content.js'
 
 // Content ideas inbox endpoint.
 //
@@ -133,11 +134,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data, error } = await supabase
       .from('content_ideas')
       .insert({
-        idea: rawText.slice(0, 500),
+        idea: sanitizeVoice(rawText.slice(0, 500)),
         source_type: sourceType,
         source_ref: body.source_ref || null,
         source_url: body.source_url || null,
-        source_snippet: body.source_snippet || rawText.slice(0, 280),
+        source_snippet: sanitizeVoice(body.source_snippet || rawText.slice(0, 280)),
         source_captured_at: new Date().toISOString(),
         state: 'seeded',
         confidence: 0,
@@ -157,6 +158,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const updates: Record<string, unknown> = {}
     if (typeof body.idea === 'string') updates.idea = body.idea
     if (typeof body.thesis === 'string') updates.thesis = body.thesis
+    if (typeof body.body === 'string') updates.body = sanitizeVoice(body.body)
     if (Array.isArray(body.distribution)) updates.distribution = body.distribution
     if (typeof body.draft_link === 'string') updates.draft_link = body.draft_link
     if (typeof body.assigned_to === 'string') updates.assigned_to = body.assigned_to

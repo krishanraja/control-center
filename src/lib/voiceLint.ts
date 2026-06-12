@@ -113,6 +113,25 @@ export function lintVoice(text: string): LintIssue[] {
   return issues.sort((a, b) => a.index - b.index)
 }
 
+/** Auto-fix the mechanical sins — em dashes (and lookalikes) anywhere — without
+ *  an LLM round-trip. Mirror of the server's sanitizeVoice so the client can
+ *  one-click clean a draft and stay in sync with what gets saved. Banned words /
+ *  AI tells are left for the human to judge (they need rewriting, not deleting). */
+export function autoFixVoice(input: string): string {
+  if (!input) return input
+  let t = String(input)
+  t = t.replace(/\s*[—―]\s*/g, ', ')
+  t = t.replace(/(\S)\s+--\s+(\S)/g, '$1, $2')
+  t = t.replace(/(\d)\s*–\s*(\d)/g, '$1-$2')
+  t = t.replace(/\s*–\s*/g, ', ')
+  t = t.replace(/(^|\n)\s*,\s*/g, '$1')
+  t = t.replace(/,\s*,/g, ',')
+  t = t.replace(/\s+,/g, ',')
+  t = t.replace(/,\s*([.!?;:])/g, '$1')
+  t = t.replace(/([.!?])\s*,\s+/g, '$1 ')
+  return t
+}
+
 /** Compact summary for badge display. */
 export function lintSummary(text: string): { errors: number; warns: number; issues: LintIssue[] } {
   const issues = lintVoice(text)
