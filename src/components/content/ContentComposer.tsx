@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ArrowLeft, Check, FileText, Link2, Loader2, MessageSquare, Paperclip, RotateCcw,
+  ArrowLeft, Check, FileText, Link2, Loader2, MessageSquare, Paperclip, PenLine, RotateCcw,
   Save, Search, Send, Sparkles, Trash2, Wand2, X, Gauge,
 } from 'lucide-react'
 import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
@@ -57,7 +57,6 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
   const h = useHaptics()
 
   const [tab, setTab] = useState<RailTab>('cleo')
-  const [sheetOpen, setSheetOpen] = useState(false) // mobile rail sheet
 
   // Draft canvas — local source of truth so realtime refreshes never jump the cursor.
   const [draft, setDraft] = useState('')
@@ -144,7 +143,7 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
     )
   }
 
-  const openRail = (t: RailTab) => { setTab(t); if (narrow) setSheetOpen(true) }
+  const openRail = (t: RailTab) => setTab(t)
 
   const railPanel = (
     <RailContent
@@ -194,39 +193,41 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
           <Check size={11} /> {emDashes ? `${emDashes} em dash` : warns ? `${warns} note` : 'voice ok'}
         </button>
 
-        <SaveDraftButton idea={idea} draft={draft} onSaved={onClose} />
+        {!narrow && <SaveDraftButton idea={idea} draft={draft} onSaved={onClose} />}
       </header>
 
       {/* Body */}
-      <div className="flex-1 min-h-0 flex flex-row">
-        {/* Canvas */}
-        <main className="flex-1 min-w-0 flex flex-col">
-          <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-5">
-            <div className="max-w-[720px] mx-auto">
-              {!draft.trim() && (
-                <EmptyCanvasHint idea={idea} onJump={() => openRail('cleo')} />
-              )}
-              <textarea
-                value={draft}
-                onChange={e => onDraftChange(e.target.value)}
-                placeholder="Write here, or ask Cleo to start. Paste your research in Materials so she has the full picture."
-                className="w-full min-h-[60vh] bg-transparent resize-none text-[15px] leading-relaxed text-white/90 placeholder:text-white/25 focus:outline-none"
-                spellCheck
-              />
+      {narrow ? (
+        <MobileComposerBody
+          idea={idea}
+          draft={draft}
+          emDashes={emDashes}
+          onApplyDraft={applyDraft}
+          onEditChange={onDraftChange}
+          onFixVoice={fixVoice}
+          onClose={onClose}
+        />
+      ) : (
+        <div className="flex-1 min-h-0 flex flex-row">
+          {/* Canvas */}
+          <main className="flex-1 min-w-0 flex flex-col">
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-5">
+              <div className="max-w-[720px] mx-auto">
+                {!draft.trim() && (
+                  <EmptyCanvasHint idea={idea} onJump={() => openRail('cleo')} />
+                )}
+                <textarea
+                  value={draft}
+                  onChange={e => onDraftChange(e.target.value)}
+                  placeholder="Write here, or ask Cleo to start. Paste your research in Materials so she has the full picture."
+                  className="w-full min-h-[60vh] bg-transparent resize-none text-[15px] leading-relaxed text-white/90 placeholder:text-white/25 focus:outline-none"
+                  spellCheck
+                />
+              </div>
             </div>
-          </div>
-          {emDashes > 0 && (
-            <button
-              type="button" onClick={fixVoice}
-              className="sm:hidden flex items-center justify-center gap-1 mx-4 mb-2 py-2 rounded-lg text-[12px] border border-rose-500/40 text-rose-200 bg-rose-500/10"
-            >
-              <Check size={12} /> Clear {emDashes} em dash{emDashes === 1 ? '' : 'es'}
-            </button>
-          )}
-        </main>
+          </main>
 
-        {/* Desktop rail */}
-        {!narrow && (
+          {/* Desktop rail */}
           <aside className="w-[380px] flex-shrink-0 border-l border-white/[0.08] flex flex-col min-h-0">
             <div className="flex items-center gap-0.5 px-2 pt-2 border-b border-white/[0.06] flex-shrink-0">
               {RAIL_TABS.map(t => (
@@ -243,40 +244,164 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto p-3">{railPanel}</div>
           </aside>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Mobile: review-first body ───────────────────────────────────────────────
+// On a phone Krish reviews, makes a quick magic adjustment, previews, and pushes.
+// Draft is read by default (no keyboard); one-tap adjustments preview inline;
+// Cleo / Materials / Research are secondary sheets; one big sticky Save Draft.
+
+const MAGIC: { key: string; label: string; mode: string; value: string; hint?: string; instruction?: string }[] = [
+  { key: 'tighten', label: 'Tighten', mode: 'feedback', value: 'shorter', hint: 'Cut at least a third. Keep the sharpest sentences, lose the connective tissue.' },
+  { key: 'hook', label: 'Sharper open', mode: 'feedback', value: 'sharper-hook', hint: 'Rewrite only the opening so the first sentence makes the reader feel mid-argument. No context-setting.' },
+  { key: 'ending', label: 'Harder ending', mode: 'feedback', value: 'harder-verdict', hint: 'Replace the ending with a hard, forward-looking verdict. No summary, no question, no CTA.' },
+  { key: 'ready', label: 'Make it ready', mode: 'feedback', value: 'custom', instruction: 'Final publish polish: tighten, sharpen the opening and the ending, strip any voice tells and em dashes. Stay true to the draft, never invent.' },
+]
+
+function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange, onFixVoice, onClose }: {
+  idea: ContentIdeaRow
+  draft: string
+  emDashes: number
+  onApplyDraft: (t: string) => void
+  onEditChange: (t: string) => void
+  onFixVoice: () => void
+  onClose: () => void
+}) {
+  const { toast } = useToast()
+  const h = useHaptics()
+  const [edit, setEdit] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [preview, setPreview] = useState<{ label: string; text: string } | null>(null)
+  const [sheet, setSheet] = useState<null | 'cleo' | 'materials' | 'research'>(null)
+
+  const runMagic = async (m: typeof MAGIC[number]) => {
+    if (!draft.trim()) { toast('Nothing to adjust yet — ask Cleo to draft it first.', 'error'); return }
+    h.heavy(); setBusy(m.key)
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/revise`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: m.mode, value: m.value, hint: m.hint, instruction: m.instruction, source_text: draft }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
+      setPreview({ label: m.label, text: j.revised }); h.success()
+    } catch (e: any) { h.error(); toast(`${m.label} failed: ${e?.message || 'error'}`, 'error') }
+    finally { setBusy(null) }
+  }
+
+  return (
+    <div className="flex-1 min-h-0 flex flex-col">
+      {/* Draft: read by default, edit on demand */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
+        {!draft.trim() ? (
+          <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
+            <div className="flex items-center gap-2 text-[13px] text-white/70 mb-1.5"><Sparkles size={14} className="text-violet-300" /> Nothing written yet</div>
+            {idea.thesis && <p className="text-[12px] text-white/55 leading-snug mb-2"><span className="text-white/35">Thesis: </span>{idea.thesis}</p>}
+            <p className="text-[12px] text-white/50 leading-snug">Tap <button type="button" onClick={() => setSheet('cleo')} className="text-violet-300 underline underline-offset-2">Ask Cleo</button> to draft it, or Edit to write.</p>
+          </div>
+        ) : edit ? (
+          <textarea
+            value={draft} onChange={e => onEditChange(e.target.value)} autoFocus
+            className="w-full min-h-[55vh] bg-transparent resize-none text-[15px] leading-relaxed text-white/90 focus:outline-none"
+            spellCheck
+          />
+        ) : (
+          <article className="text-[15px] leading-relaxed text-white/90 whitespace-pre-wrap">{draft}</article>
         )}
       </div>
 
-      {/* Mobile rail: bottom tab bar + sheet */}
-      {narrow && (
-        <>
-          <nav className="flex items-stretch border-t border-white/[0.08] flex-shrink-0">
-            {RAIL_TABS.map(t => (
+      {/* Magic adjust row */}
+      {draft.trim() && !edit && (
+        <div className="px-3 pt-2 border-t border-white/[0.06] flex-shrink-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 -mx-1 px-1">
+            {MAGIC.map(m => (
               <button
-                key={t.id} type="button" onClick={() => openRail(t.id)}
-                className="flex-1 flex flex-col items-center gap-0.5 py-2 text-white/55 active:bg-white/[0.06]"
+                key={m.key} type="button" disabled={busy !== null} onClick={() => runMagic(m)}
+                className={`flex items-center gap-1 whitespace-nowrap px-3 py-2 rounded-full text-[12px] border disabled:opacity-40 ${
+                  m.key === 'ready' ? 'border-violet-400/50 bg-violet-500/20 text-violet-100' : 'border-white/12 text-white/75 bg-white/[0.03]'
+                }`}
               >
-                {t.icon}<span className="text-[9px]">{t.label}</span>
+                {busy === m.key ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} {m.label}
               </button>
             ))}
-          </nav>
-          {sheetOpen && (
-            <div className="fixed inset-0 z-[95] flex flex-col justify-end">
-              <button aria-label="Close" onClick={() => setSheetOpen(false)} className="absolute inset-0 bg-black/60" />
-              <div className="relative bg-[#0f0f12] border-t border-white/[0.1] rounded-t-2xl max-h-[78vh] flex flex-col">
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
-                  <div className="flex items-center gap-1.5 text-[12px] text-white/80">
-                    {RAIL_TABS.find(t => t.id === tab)?.icon}
-                    {RAIL_TABS.find(t => t.id === tab)?.label}
-                  </div>
-                  <button onClick={() => setSheetOpen(false)} className="text-white/50 hover:text-white"><X size={16} /></button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-3">{railPanel}</div>
-              </div>
+          </div>
+        </div>
+      )}
+
+      {/* Secondary actions */}
+      <div className="px-3 pb-1 flex items-center gap-1.5 flex-shrink-0 text-white/60">
+        <MobileTool icon={<MessageSquare size={14} />} label="Cleo" onClick={() => setSheet('cleo')} />
+        <MobileTool icon={<Paperclip size={14} />} label="Materials" onClick={() => setSheet('materials')} />
+        <MobileTool icon={<Search size={14} />} label="Research" onClick={() => setSheet('research')} />
+        <MobileTool icon={<PenLine size={14} />} label={edit ? 'Done' : 'Edit'} onClick={() => setEdit(e => !e)} active={edit} />
+        {emDashes > 0 && (
+          <button type="button" onClick={onFixVoice} className="ml-auto flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] border border-rose-500/40 text-rose-200 bg-rose-500/10">
+            <Check size={12} /> Fix {emDashes}
+          </button>
+        )}
+      </div>
+
+      {/* Sticky push */}
+      <div className="px-3 py-2.5 border-t border-white/[0.08] flex-shrink-0 bg-[#0a0a0b]">
+        <SaveDraftButton idea={idea} draft={draft} onSaved={onClose} block />
+      </div>
+
+      {/* Magic preview sheet */}
+      {preview && (
+        <div className="fixed inset-0 z-[95] flex flex-col justify-end">
+          <button aria-label="Discard" onClick={() => setPreview(null)} className="absolute inset-0 bg-black/60" />
+          <div className="relative bg-[#0f0f12] border-t border-white/[0.1] rounded-t-2xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-white/[0.06] text-[12px] text-violet-200/80">
+              <Sparkles size={13} /> {preview.label} — preview
             </div>
-          )}
-        </>
+            <div className="flex-1 overflow-y-auto px-4 py-3">
+              <p className="text-[14px] leading-relaxed text-white/90 whitespace-pre-wrap">{preview.text}</p>
+            </div>
+            <div className="px-4 py-3 border-t border-white/[0.06] flex items-center gap-2">
+              <button type="button" onClick={() => { onApplyDraft(preview.text); setPreview(null); toast('Applied.', 'success') }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[13px] font-semibold bg-violet-500/90 text-white">
+                <Check size={15} /> Keep this
+              </button>
+              <button type="button" onClick={() => setPreview(null)}
+                className="px-4 py-3 rounded-xl text-[13px] border border-white/12 text-white/70">Discard</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cleo / Materials / Research sheets */}
+      {sheet && (
+        <div className="fixed inset-0 z-[95] flex flex-col justify-end">
+          <button aria-label="Close" onClick={() => setSheet(null)} className="absolute inset-0 bg-black/60" />
+          <div className="relative bg-[#0f0f12] border-t border-white/[0.1] rounded-t-2xl h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
+              <div className="flex items-center gap-1.5 text-[13px] text-white/85">
+                {sheet === 'cleo' ? <><MessageSquare size={14} /> Cleo</> : sheet === 'materials' ? <><Paperclip size={14} /> Materials</> : <><Search size={14} /> Research</>}
+              </div>
+              <button onClick={() => setSheet(null)} className="text-white/50 hover:text-white"><X size={18} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3">
+              {sheet === 'cleo' && <CleoChat idea={idea} draft={draft} onUseAsDraft={(t) => { onApplyDraft(t); setSheet(null) }} />}
+              {sheet === 'materials' && <MaterialsPanel idea={idea} />}
+              {sheet === 'research' && <ResearchPanel idea={idea} />}
+            </div>
+          </div>
+        </div>
       )}
     </div>
+  )
+}
+
+function MobileTool({ icon, label, onClick, active }: { icon: React.ReactNode; label: string; onClick: () => void; active?: boolean }) {
+  return (
+    <button type="button" onClick={onClick}
+      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] ${active ? 'bg-white/[0.08] text-white/90' : 'text-white/55 active:bg-white/[0.06]'}`}>
+      {icon} {label}
+    </button>
   )
 }
 
@@ -311,7 +436,7 @@ function TitleField({ idea }: { idea: ContentIdeaRow }) {
   )
 }
 
-function SaveDraftButton({ idea, draft, onSaved }: { idea: ContentIdeaRow; draft: string; onSaved: () => void }) {
+function SaveDraftButton({ idea, draft, onSaved, block }: { idea: ContentIdeaRow; draft: string; onSaved: () => void; block?: boolean }) {
   const { toast } = useToast()
   const h = useHaptics()
   const [busy, setBusy] = useState(false)
@@ -338,22 +463,26 @@ function SaveDraftButton({ idea, draft, onSaved }: { idea: ContentIdeaRow; draft
   }
 
   return (
-    <div className="relative flex items-center">
+    <div className={`relative flex items-center ${block ? 'w-full' : ''}`}>
       <button
         type="button" onClick={save} disabled={busy}
-        className="flex items-center gap-1.5 pl-3 pr-2.5 py-2 rounded-l-lg text-[12px] font-semibold bg-violet-500/90 text-white hover:bg-violet-500 disabled:opacity-50 transition-colors"
+        className={`flex items-center justify-center gap-1.5 font-semibold bg-violet-500/90 text-white hover:bg-violet-500 disabled:opacity-50 transition-colors ${
+          block ? 'flex-1 py-3 rounded-l-xl text-[14px]' : 'pl-3 pr-2.5 py-2 rounded-l-lg text-[12px]'
+        }`}
       >
-        {busy ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save Draft
+        {busy ? <Loader2 size={block ? 15 : 13} className="animate-spin" /> : <Save size={block ? 15 : 13} />} Save Draft
       </button>
       <button
         type="button" onClick={() => setMenu(m => !m)} disabled={busy}
         title="Choose channel" aria-label="Choose channel"
-        className="px-1.5 py-2 rounded-r-lg bg-violet-500/90 text-white hover:bg-violet-500 disabled:opacity-50 border-l border-violet-300/30 text-[10px]"
+        className={`bg-violet-500/90 text-white hover:bg-violet-500 disabled:opacity-50 border-l border-violet-300/30 text-[10px] ${
+          block ? 'px-3 py-3 rounded-r-xl' : 'px-1.5 py-2 rounded-r-lg'
+        }`}
       >
         ▾
       </button>
       {menu && (
-        <div className="absolute right-0 top-full mt-1 w-52 rounded-lg border border-white/10 bg-[#0c0c0e] shadow-xl z-40 overflow-hidden" onMouseLeave={() => setMenu(false)}>
+        <div className={`absolute ${block ? 'right-0 bottom-full mb-1' : 'right-0 top-full mt-1'} w-52 rounded-lg border border-white/10 bg-[#0c0c0e] shadow-xl z-40 overflow-hidden`} onMouseLeave={() => setMenu(false)}>
           <div className="px-3 py-1.5 text-[9px] uppercase tracking-wide text-white/35">Save as a draft for</div>
           {FACTORY_CHANNELS.map(c => (
             <button
