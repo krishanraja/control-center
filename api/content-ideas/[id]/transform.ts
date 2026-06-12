@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
+import { sanitizeVoice } from '../../_content.js'
 
 // POST /api/content-ideas/:id/transform
 //   body: { lanes: string[], slots?: Record<lane, slot> }
@@ -98,8 +99,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('parent_idea_id', parentId).eq('lane', lane).eq('meta->>generated_by', 'transform')
 
       const child = {
-        idea: d.title || `${parent.idea} (${lane})`,
-        body: d.body || '',
+        idea: sanitizeVoice(d.title || `${parent.idea} (${lane})`),
+        body: sanitizeVoice(d.body || ''),
         lane,
         lane_slot: slot || cfg.slot || null,
         state: 'drafting',

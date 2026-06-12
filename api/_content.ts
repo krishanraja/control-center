@@ -4,6 +4,61 @@
 
 import { supabase } from './_supabase.js'
 
+/** Strip the cardinal sin — em dashes (and their lookalikes) — anywhere,
+ *  replacing them with the comma/period Krish would actually use. Safe to run
+ *  on any draft before it is shown, saved, or sent to the factory. Leaves
+ *  hyphenated words and numeric en-dash ranges (2020–2024) intact. */
+export function sanitizeVoice(input: string): string {
+  if (!input) return input
+  let t = String(input)
+  // Em dash / horizontal bar / double-hyphen-as-dash -> comma.
+  t = t.replace(/\s*[—―]\s*/g, ', ')
+  t = t.replace(/(\S)\s+--\s+(\S)/g, '$1, $2')
+  // En dash: keep numeric ranges (2020–2024), otherwise treat as a dash.
+  t = t.replace(/(\d)\s*–\s*(\d)/g, '$1-$2')
+  t = t.replace(/\s*–\s*/g, ', ')
+  // Tidy the artefacts a comma swap can create.
+  t = t.replace(/(^|\n)\s*,\s*/g, '$1')   // no line starting with a comma
+  t = t.replace(/,\s*,/g, ',')
+  t = t.replace(/\s+,/g, ',')
+  t = t.replace(/,\s*([.!?;:])/g, '$1')   // ", ." -> "."
+  t = t.replace(/([.!?])\s*,\s+/g, '$1 ') // ". ," -> ". "
+  return t
+}
+
+export interface Material {
+  id: string
+  kind: 'paste' | 'link' | 'file'
+  title?: string | null
+  content?: string | null
+  url?: string | null
+  bytes?: number
+  at?: string
+}
+
+/** Read the materials a piece carries (lives in content_ideas.meta.materials). */
+export function readMaterials(meta: any): Material[] {
+  const m = meta && Array.isArray(meta.materials) ? meta.materials : []
+  return m.filter((x: any) => x && typeof x === 'object')
+}
+
+/** Compact the corpus into a grounding block for the model. Truncates each item
+ *  and the whole block so a large corpus never blows the context budget. */
+export function materialsContext(materials: Material[], perItem = 2400, total = 9000): string {
+  if (!materials.length) return ''
+  const parts: string[] = []
+  let used = 0
+  for (const m of materials) {
+    const head = m.title ? `### ${m.title}` : `### ${m.kind} material`
+    const bodyRaw = m.kind === 'link' ? (m.url || '') : (m.content || '')
+    const body = bodyRaw.slice(0, perItem)
+    const block = `${head}\n${body}`.trim()
+    if (used + block.length > total) { parts.push(`${head}\n[trimmed — ${bodyRaw.length} chars]`); break }
+    parts.push(block); used += block.length
+  }
+  return `BACKGROUND MATERIALS Krish provided (his own research — treat as primary source, ground claims in it, never invent beyond it):\n\n${parts.join('\n\n')}`
+}
+
 export function slug(s: string): string {
   return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 50)
 }
@@ -66,6 +121,36 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
       temperature: opts.temperature ?? 0.5,
       system: opts.system,
       messages: [{ role: 'user', content: opts.user }],
+    }),
+  })
+  const j: any = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(`anthropic_${r.status}:${(j?.error?.message || '').slice(0, 120)}`)
+  return j?.content?.[0]?.text || ''
+}
+
+export interface ChatTurn { role: 'user' | 'assistant'; content: string }
+
+/** Multi-turn Anthropic Messages call for the Cleo writing-assistant chat. */
+export async function callClaudeMessages(
+  system: string,
+  messages: ChatTurn[],
+  opts: { model?: string; maxTokens?: number; temperature?: number } = {},
+): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
+  const clean = messages
+    .filter(m => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+    .slice(-16)
+  if (!clean.length || clean[0].role !== 'user') clean.unshift({ role: 'user', content: 'Help me with this draft.' })
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: opts.model || 'claude-sonnet-4-6',
+      max_tokens: opts.maxTokens ?? 2000,
+      temperature: opts.temperature ?? 0.6,
+      system,
+      messages: clean,
     }),
   })
   const j: any = await r.json().catch(() => ({}))

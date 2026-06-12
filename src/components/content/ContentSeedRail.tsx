@@ -38,7 +38,15 @@ export function ContentSeedRail() {
   const [cands, setCands] = useState<SeedCandidate[] | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
-  const [collapsed, setCollapsed] = useState(false)
+  // Default collapsed so the rail never takes over the page on load — it's an
+  // opt-in "browse what's ready to seed", not the main event. Preference sticks.
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem('cc_seed_rail_open') !== '1' } catch { return true }
+  })
+  const setCollapsedPersist = (v: boolean) => {
+    setCollapsed(v)
+    try { localStorage.setItem('cc_seed_rail_open', v ? '0' : '1') } catch { /* noop */ }
+  }
 
   useEffect(() => {
     let alive = true
@@ -76,8 +84,16 @@ export function ContentSeedRail() {
       const j = await r.json().catch(() => ({}))
       if (!r.ok || j.ok === false) throw new Error(j.error || `HTTP ${r.status}`)
       h.success()
-      toast('Seeded into the Content pipeline.', 'success')
       setDismissed((prev) => new Set(prev).add(c.key))
+      // Open the new piece straight into the composer so seeding flows into
+      // deep work, not into a buried card the user has to hunt for.
+      const newId = j.id || (j.idea && j.idea.id) || null
+      if (newId) {
+        toast('Seeded — opening the composer.', 'success')
+        window.location.hash = `#/content?idea=${newId}`
+      } else {
+        toast('Seeded into the Content pipeline.', 'success')
+      }
     } catch (e) {
       h.error()
       toast(`Seed failed: ${e instanceof Error ? e.message : 'error'}`, 'error')
@@ -91,6 +107,37 @@ export function ContentSeedRail() {
 
   const visible = cands.filter((c) => !dismissed.has(c.key))
 
+  // Nothing to seed — stay quiet and small, never a dead block.
+  if (visible.length === 0) {
+    return (
+      <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] px-3 py-2" aria-label="Seed ideas from recent artifacts">
+        <p className="text-[11px] text-white/40 leading-snug">
+          No fresh artifacts to seed from right now. New customer signals, closed deals, and
+          market intelligence land here automatically, or capture an idea directly with{' '}
+          <kbd className="px-1 py-0.5 rounded bg-white/[0.06] text-white/55 text-[10px]">⌘I</kbd>.
+        </p>
+      </section>
+    )
+  }
+
+  // Collapsed (default) — a slim opt-in bar. One click to browse the queue.
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={() => setCollapsedPersist(false)}
+        aria-label="Browse ideas ready to seed"
+        className="w-full flex items-center gap-2 rounded-xl border border-violet-500/15 bg-violet-500/[0.03] px-3 py-2 hover:border-violet-500/30 hover:bg-violet-500/[0.06] transition-colors text-left"
+      >
+        <Sparkles size={13} className="text-violet-300 flex-shrink-0" />
+        <span className="text-[12px] text-white/75">
+          <span className="font-semibold text-violet-200/90 tabular-nums">{visible.length}</span> idea{visible.length === 1 ? '' : 's'} ready to seed from this week's artifacts
+        </span>
+        <span className="ml-auto text-[11px] text-violet-300/80">Browse →</span>
+      </button>
+    )
+  }
+
   return (
     <section
       className="rounded-xl border border-violet-500/15 bg-violet-500/[0.03] p-3"
@@ -102,26 +149,16 @@ export function ContentSeedRail() {
           Seed from recent artifacts
         </h2>
         <span className="text-[10px] text-white/35">{visible.length}</span>
-        {visible.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setCollapsed((c) => !c)}
-            className="ml-auto text-[10px] text-white/40 hover:text-white/70"
-          >
-            {collapsed ? 'Show' : 'Hide'}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setCollapsedPersist(true)}
+          className="ml-auto text-[10px] text-white/40 hover:text-white/70"
+        >
+          Hide
+        </button>
       </header>
 
-      {visible.length === 0 ? (
-        <p className="text-[11px] text-white/40 leading-snug">
-          No fresh artifacts to seed from right now. New customer signals, closed deals, and
-          market intelligence land here automatically — or capture an idea directly with{' '}
-          <kbd className="px-1 py-0.5 rounded bg-white/[0.06] text-white/55 text-[10px]">⌘I</kbd>.
-        </p>
-      ) : (
-        !collapsed && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {visible.map((c) => (
               <div
                 key={c.key}
@@ -159,9 +196,7 @@ export function ContentSeedRail() {
                 </div>
               </div>
             ))}
-          </div>
-        )
-      )}
+      </div>
     </section>
   )
 }

@@ -87,6 +87,43 @@ export const LANES: LaneDef[] = [
   { lane: 'builder_economy_ig', label: 'Builder Economy (IG)', gear: 'B', factoryChannel: 'builder_economy' },
 ]
 
+// ── Adapt-to-lane (composer Refine) ──────────────────────────────────────
+// Krish's note: "transforming into another lane should already come with a tone
+// change, a length change, and different zooms." So adapting to a lane is just a
+// rich revise of the CURRENT draft toward that lane's gear — one draft he keeps
+// iterating, not a scattered new card. Each preset bundles tone + length + zoom
+// into a single steer handed to /revise.
+
+export interface LaneAdapt { value: string; label: string; hint: string }
+
+export const LANE_ADAPTS: LaneAdapt[] = [
+  {
+    value: 'linkedin',
+    label: 'LinkedIn',
+    hint: 'Adapt this for LinkedIn. Compress to 150-250 words. Open on a scroll-stopping claim or scene, no context-setting. Builder-in-the-room voice (Gear B), one sharp angle, end on a hard verdict. No hashtags, no "thoughts?" closer.',
+  },
+  {
+    value: 'signal_noise',
+    label: 'Signal & Noise',
+    hint: 'Adapt this for the Signal & Noise audience. Exec-to-exec authority (Gear A), ~300-500 words, separate the durable signal from the noise, name what most people get wrong ("Not X, Y"), commercially grounded, hard verdict ending.',
+  },
+  {
+    value: 'mindmaker_live',
+    label: 'Mindmaker Live',
+    hint: 'Adapt this for Mindmaker Live. Teaching voice (Gear A), ~400-700 words, every paragraph advances the argument and carries a so-what, ground claims in the artifact, end on a forward verdict.',
+  },
+  {
+    value: 'techonomic',
+    label: 'Techonomic (essay)',
+    hint: 'Adapt this into a Techonomic essay. 600-1000 words, a slower structural open that earns the depth, investigate the mechanism, hold one genuine counterpoint, end on a hard verdict. No summary ending.',
+  },
+  {
+    value: 'builder_economy',
+    label: 'Builder Economy (IG)',
+    hint: 'Adapt this for Builder Economy on Instagram. Punchy, builder-in-the-room (Gear B), short stacked lines that read well on mobile, one idea, a concrete artifact, a verdict that lands. No corporate tone.',
+  },
+]
+
 /** Map a generated variant's lane (+slot) onto a content-factory channel. */
 export function laneToFactoryChannel(lane?: string | null, slot?: string | null): FactoryChannel {
   const hit = LANES.find(l => l.lane === lane && (l.slot || null) === (slot || null))
