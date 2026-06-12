@@ -24,14 +24,18 @@ interface Props {
  * inside Content (Krish hosting) not on Home as their own room.
  */
 export function RoomPreviews({ onNavigate, variant = 'desktop' }: Props) {
+  // Backburner-buried rows don't belong in the Home previews.
   const { ideas } = useRealtimeContentIdeas({
     stateIn: ['seeded', 'researching', 'drafting', 'review', 'approved'],
+    filter: i => !i.buried_at,
   })
   const { leads } = useRealtimeLeads({
     statusIn: ['new', 'enriching', 'ready', 'contacted', 'conversation'],
+    filter: l => !l.buried_at,
   })
-  const { targets } = useVisibilityTargets()
-  const { guests } = useRealtimeGuests({ statusIn: ['scouted', 'enriched'] })
+  const { targets: allTargets } = useVisibilityTargets()
+  const targets = useMemo(() => allTargets.filter(t => !t.buried_at), [allTargets])
+  const { guests } = useRealtimeGuests({ statusIn: ['scouted', 'enriched'], filter: g => !g.buried_at })
 
   return (
     <section
@@ -206,7 +210,7 @@ function LeadsRoom({
   return (
     <Room
       icon={<TrendingUp size={12} className="text-emerald-300" />}
-      label="Leads"
+      label="Pipeline"
       total={leads.length}
       onOpenAll={() => onNavigate?.('leads')}
       empty={top.length === 0 ? 'No active leads.' : undefined}

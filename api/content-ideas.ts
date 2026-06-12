@@ -84,6 +84,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           source_snippet: body.source_snippet || rawText.slice(0, 280),
           raw_text: rawText,
           captured_at: new Date().toISOString(),
+          origin: sourceType === 'manual' ? 'user' : 'agent',
         }),
       })
       if (r.ok) {
@@ -142,6 +143,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         source_captured_at: new Date().toISOString(),
         state: 'seeded',
         confidence: 0,
+        origin: sourceType === 'manual' ? 'user' : 'agent',
       })
       .select()
       .single()

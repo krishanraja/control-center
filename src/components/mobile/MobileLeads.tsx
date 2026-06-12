@@ -54,6 +54,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
 
   const { leads, loading } = useRealtimeLeads({
     statusIn: ['new', 'enriching', 'ready', 'contacted', 'conversation'],
+    filter: l => !l.buried_at,
   })
   const { ventures } = useVentureRegistry()
 
@@ -138,7 +139,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
     <MobileShellPrim
       header={
         <TabHeader
-          title="Services"
+          title="Pipeline"
           subtitle={loading ? 'Loading…' : `${total} active across ${ventureCount} ventures`}
           trailing={
             <button
@@ -198,7 +199,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
       )}
 
       {showFocus ? (
-        <FeedCard title="Services, by focus">
+        <FeedCard title="Pipeline, by focus">
           <FocusLanes
             rows={leads}
             table="leads"

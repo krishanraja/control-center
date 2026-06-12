@@ -113,6 +113,11 @@ export interface ContentIdeaRow {
     } | null
     cleo_pushes?: Array<{ channel: string; at: string }> | null
   } | null
+  /** 'user' rows are never auto-buried by the backburner sweep. */
+  origin?: 'user' | 'agent' | null
+  buried_at?: string | null
+  buried_reason?: string | null
+  protected_at?: string | null
   created_at: string
   updated_at: string
 }

@@ -57,6 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       agent,
       owner: 'krish',
       link_primary: null,
+      origin: 'user',
       updated_at: new Date().toISOString(),
     })
     .select('id')

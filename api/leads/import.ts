@@ -63,6 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         source_url: body.source_url || null,
         requested_by: 'krish',
         requested_at: new Date().toISOString(),
+        origin: 'user',
       }),
     })
 

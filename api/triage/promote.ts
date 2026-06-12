@@ -29,6 +29,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (body.source_table === 'leads') updatePayload = { status: 'ready', quality_score: 'amber' }
   if (body.source_table === 'visibility_targets') updatePayload = { status: 'applied', applied_at: new Date().toISOString() }
   if (body.source_table === 'guests') updatePayload = { status: 'pitched' }
+  // Explicit promotion is a kept signal: the backburner sweep must never
+  // auto-bury something Krish chose to pursue.
+  updatePayload.protected_at = new Date().toISOString()
 
   const { error: upErr } = await supabase
     .from(body.source_table)

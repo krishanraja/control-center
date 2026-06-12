@@ -192,6 +192,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             milestone_id: m.milestone_id,
             workstream: 'objective-ladder',
             next_step: o.note,
+            origin: 'user',
             created: now,
           })
         }

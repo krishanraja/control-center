@@ -147,7 +147,7 @@ export function DesktopLeadsRE(_props: Props = {}) {
         <div>
           <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
             <HeartHandshake size={20} className="text-rose-300" />
-            Leads
+            Network
           </h1>
           <p className="text-[13px] text-white/55 mt-1">
             The relationship spine — every contact, where they came from, and how warm they are.

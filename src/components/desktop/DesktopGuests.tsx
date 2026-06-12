@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Mic, Megaphone, X, Calendar } from 'lucide-react'
+import { Mic, Megaphone, Calendar } from 'lucide-react'
 import { useRealtimeGuests, type GuestRow, type GuestStatus, type GuestPodcastTarget } from '../../hooks/useRealtimeGuests'
 import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'
 import { GuestImportDropzone } from '../GuestImportDropzone'
@@ -8,6 +8,8 @@ import { GuestStatusLane } from './GuestStatusLane'
 import { VisibilityTargetLane } from './VisibilityTargetLane'
 import { DecisionDetail } from '../DecisionDetail'
 import { NextActionStrip } from '../shared/NextActionStrip'
+import { SlideOver } from '../shared/SlideOver'
+import { BackburnerSection } from '../shared/BackburnerSection'
 import { navigateDecision } from '../../lib/routeDecision'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
@@ -60,8 +62,12 @@ interface Props {
 
 export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, targetId, onClearDetail }: Props = {}) {
   const [lane, setLane] = useState<Lane>('inbound')
-  const { guests, loading: guestsLoading } = useRealtimeGuests()
-  const { targets, loading: targetsLoading } = useVisibilityTargets({ includeArchived: false })
+  const { guests: allGuests, loading: guestsLoading } = useRealtimeGuests()
+  const { targets: allTargets, loading: targetsLoading } = useVisibilityTargets({ includeArchived: false })
+  const guests = useMemo(() => allGuests.filter(g => !g.buried_at), [allGuests])
+  const targets = useMemo(() => allTargets.filter(t => !t.buried_at), [allTargets])
+  const buriedGuests = useMemo(() => allGuests.filter(g => g.buried_at), [allGuests])
+  const buriedTargets = useMemo(() => allTargets.filter(t => t.buried_at), [allTargets])
   const { mode, setMode } = useFocusMode()
   const { today: focusToday } = useDailyFocus()
   const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
@@ -184,24 +190,9 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
         />
       )}
 
-      {detailDecision && (
-        <section className="rounded-2xl border border-violet-400/30 bg-violet-500/[0.04] overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06]">
-            <span className="text-[11px] uppercase tracking-[0.16em] text-violet-300/85">Detail</span>
-            <button
-              type="button"
-              onClick={() => onClearDetail?.()}
-              className="text-white/50 hover:text-white/85 inline-flex items-center gap-1 text-[12px]"
-              aria-label="Close detail"
-            >
-              <X size={14} /> Close
-            </button>
-          </div>
-          <div className="max-h-[60vh] overflow-y-auto">
-            <DecisionDetail decision={detailDecision} actionsEnabled />
-          </div>
-        </section>
-      )}
+      <SlideOver open={!!detailDecision} onClose={() => onClearDetail?.()}>
+        {detailDecision && <DecisionDetail key={detailDecision} decision={detailDecision} actionsEnabled />}
+      </SlideOver>
 
       {lane === 'inbound' ? (
         <div className="grid grid-cols-1 lg:[grid-template-columns:1fr_2fr] gap-5">
@@ -253,6 +244,10 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
                 />
               ))
             )}
+            <BackburnerSection
+              table="guests"
+              items={buriedGuests.map(g => ({ id: g.id, title: g.name || '(unnamed)', buried_reason: g.buried_reason }))}
+            />
           </div>
         </div>
       ) : (
@@ -312,6 +307,10 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
                 />
               ))
             )}
+            <BackburnerSection
+              table="visibility_targets"
+              items={buriedTargets.map(t => ({ id: t.id, title: t.title || '(untitled)', buried_reason: t.buried_reason }))}
+            />
           </div>
         </div>
       )}

@@ -218,6 +218,17 @@ export function buildDecisionActions(
 
     case 'task': {
       acts.push({
+        label: 'Approve',
+        variant: 'primary',
+        onClick: () => run('Approve',
+          () => json('/api/tasks/update', {
+            id: row.id,
+            action: 'approve',
+            agent: row.agent || row.owner || 'agatha',
+          }),
+          'Approved.', { terminal: true }),
+      })
+      acts.push({
         label: 'Reject',
         variant: 'danger',
         onClick: () => run('Reject',

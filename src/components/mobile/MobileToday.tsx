@@ -6,7 +6,7 @@ import { BottomSheet } from './BottomSheet'
 import { useRealtimeTasks, type TaskRow } from '../../hooks/useRealtimeTasks'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
-import { supabase, logKrishAction } from '../../lib/supabase'
+import { BackburnerSection } from '../shared/BackburnerSection'
 import { humanAge } from '../../lib/ageHelpers'
 import { DecisionDetail } from '../DecisionDetail'
 import { navigateDecision } from '../../lib/routeDecision'
@@ -96,11 +96,13 @@ export function MobileToday({
   const { today: focusToday } = useDailyFocus()
   const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
 
-  const { due, waiting, pipeline, stale, hero, visible } = useMemo(() => {
+  const { due, waiting, pipeline, stale, buried, hero, visible } = useMemo(() => {
     const visible: TaskRow[] = []
     const staleArr: TaskRow[] = []
+    const buried: TaskRow[] = []
     for (const t of tasks) {
       if (isDoneish(t)) continue
+      if (t.buried_at) { buried.push(t); continue }
       if (isNoise(t)) continue
       if (isStale(t)) { staleArr.push(t); continue }
       visible.push(t)
@@ -122,7 +124,7 @@ export function MobileToday({
       pipeline[0] ||
       null
 
-    return { due, waiting, pipeline, stale: staleArr, hero, visible }
+    return { due, waiting, pipeline, stale: staleArr, buried, hero, visible }
   }, [tasks])
 
   const open = openId ? tasks.find(t => t.id === openId) ?? null : null
@@ -146,33 +148,36 @@ export function MobileToday({
     )
   }
 
-  const supersede = async (id: string) => {
+  // Task writes go through service-role APIs — the anon client can't update
+  // tasks under RLS (matches 0 rows without erroring, so the old direct
+  // updates flashed success while the item stayed put).
+  const taskAction = async (url: string, payload: Record<string, any>, okMsg: string, failMsg: string) => {
     h.heavy()
     try {
-      await supabase.from('tasks').update({ status: 'superseded' }).eq('id', id)
-      await logKrishAction(id, 'superseded')
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`)
       h.success()
-      toast('Dismissed.', 'success')
+      toast(okMsg, 'success')
       setOpenId(null)
     } catch {
       h.error()
-      toast('Could not dismiss.', 'error')
+      toast(failMsg, 'error')
     }
   }
 
-  const markDone = async (id: string, agent?: string) => {
-    h.heavy()
-    try {
-      await supabase.from('tasks').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', id)
-      await logKrishAction(id, 'done', agent)
-      h.success()
-      toast('Done.', 'success')
-      setOpenId(null)
-    } catch {
-      h.error()
-      toast('Could not mark done.', 'error')
-    }
-  }
+  const supersede = (id: string, agent?: string) =>
+    taskAction('/api/tasks/update', { id, action: 'dismiss_superseded', agent }, 'Dismissed.', 'Could not dismiss.')
+  const markDone = (id: string, agent?: string) =>
+    taskAction('/api/tasks/update', { id, action: 'done', agent }, 'Done.', 'Could not mark done.')
+  const approve = (id: string, agent?: string) =>
+    taskAction('/api/tasks/update', { id, action: 'approve', agent }, 'Approved.', 'Could not approve.')
+  const rejectTask = (id: string, agent?: string) =>
+    taskAction('/api/triage/reject', { source_table: 'tasks', source_id: id, agent }, 'Rejected.', 'Could not reject.')
 
   return (
     <MobileShellPrim
@@ -318,6 +323,11 @@ export function MobileToday({
         </FeedCard>
       )}
 
+      <BackburnerSection
+        table="tasks"
+        items={buried.map(t => ({ id: t.id, title: t.title, buried_reason: t.buried_reason }))}
+      />
+
       <DetailSheet
         open={open != null}
         onClose={() => setOpenId(null)}
@@ -331,8 +341,10 @@ export function MobileToday({
         actions={
           open
             ? [
-                { label: 'Mark done', variant: 'primary', onClick: () => markDone(open.id, open.agent) },
-                { label: 'Dismiss as superseded', variant: 'danger', onClick: () => supersede(open.id) },
+                { label: 'Approve', variant: 'primary', onClick: () => approve(open.id, open.agent) },
+                { label: 'Mark done', variant: 'secondary', onClick: () => markDone(open.id, open.agent) },
+                { label: 'Reject', variant: 'danger', onClick: () => rejectTask(open.id, open.agent) },
+                { label: 'Dismiss as superseded', variant: 'danger', onClick: () => supersede(open.id, open.agent) },
               ]
             : []
         }

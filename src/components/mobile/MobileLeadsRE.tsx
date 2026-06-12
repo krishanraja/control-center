@@ -90,7 +90,7 @@ export function MobileLeadsRE(_props: Props = {}) {
     <MobileShell
       header={
         <TabHeader
-          title="Leads"
+          title="Network"
           subtitle={loading ? 'Loading…' : `${total} contacts`}
           trailing={
             <button
