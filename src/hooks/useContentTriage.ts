@@ -24,7 +24,7 @@ const STATE_PRIORITY: Record<string, number> = {
 }
 
 function isActive(i: ContentIdeaRow): boolean {
-  return i.state !== 'dropped' && i.state !== 'published'
+  return i.state !== 'dropped' && i.state !== 'published' && !i.buried_at
 }
 
 async function patchState(id: string, state: IdeaState): Promise<boolean> {

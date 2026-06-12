@@ -52,8 +52,10 @@ interface Props {
 
 export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: Props = {}) {
   const [lane, setLane] = useState<Lane>('inbound')
-  const { guests, loading: guestsLoading } = useRealtimeGuests({ statusIn: ACTIVE_STATUSES })
-  const { targets, loading: targetsLoading } = useVisibilityTargets({ includeArchived: false })
+  // Backburner-buried rows stay off the mobile lanes; restore lives on desktop.
+  const { guests, loading: guestsLoading } = useRealtimeGuests({ statusIn: ACTIVE_STATUSES, filter: g => !g.buried_at })
+  const { targets: allTargets, loading: targetsLoading } = useVisibilityTargets({ includeArchived: false })
+  const targets = useMemo(() => allTargets.filter(t => !t.buried_at), [allTargets])
   const h = useHaptics()
   const { mode, setMode } = useFocusMode()
   const { today: focusToday } = useDailyFocus()

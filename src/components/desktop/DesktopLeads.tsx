@@ -8,6 +8,7 @@ import { LeadVentureLane } from './LeadVentureLane'
 import { LeadCard } from '../LeadCard'
 import { DecisionDetail } from '../DecisionDetail'
 import { NextActionStrip } from '../shared/NextActionStrip'
+import { BackburnerSection } from '../shared/BackburnerSection'
 import { navigateDecision } from '../../lib/routeDecision'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
@@ -34,10 +35,12 @@ interface DesktopLeadsProps {
 }
 
 export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavigate }: DesktopLeadsProps = {}) {
-  const { leads, loading } = useRealtimeLeads({
+  const { leads: allLeads, loading } = useRealtimeLeads({
     statusIn: ['new', 'enriching', 'ready', 'contacted', 'conversation'],
   })
   const { ventures } = useVentureRegistry()
+  const leads = useMemo(() => allLeads.filter(l => !l.buried_at), [allLeads])
+  const buriedLeads = useMemo(() => allLeads.filter(l => l.buried_at), [allLeads])
 
   const byVenture = useMemo(() => groupByVenture(leads), [leads])
   const bySource = useMemo(() => groupBySource(leads), [leads])
@@ -81,7 +84,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
         <div>
           <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
             <Users size={20} className="text-emerald-300" />
-            Services
+            Pipeline
           </h1>
           <p className="text-[13px] text-white/55 mt-1">
             Grouped by venture. One lead can surface in multiple lanes when it qualifies for more than one.
@@ -191,6 +194,14 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
               />
             </>
           )}
+          <BackburnerSection
+            table="leads"
+            items={buriedLeads.map(l => ({
+              id: l.id,
+              title: [l.full_name, l.company].filter(Boolean).join(' · ') || '(unnamed)',
+              buried_reason: l.buried_reason,
+            }))}
+          />
         </div>
       </div>
     </div>

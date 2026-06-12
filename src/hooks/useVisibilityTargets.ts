@@ -43,6 +43,11 @@ export interface VisibilityTargetRow {
   ticket_price_usd: number | null
   source: string
   source_url: string | null
+  /** 'user' rows are never auto-buried by the backburner sweep. */
+  origin?: 'user' | 'agent' | null
+  buried_at?: string | null
+  buried_reason?: string | null
+  protected_at?: string | null
   created_at: string
   updated_at: string
   // Deep enrichment fields (migration 2026-05-22-visibility-deep-enrichment).

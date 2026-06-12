@@ -26,6 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       title: 'Manual trigger',
       status: 'active',
       source: 'manual',
+      origin: 'user',
       created_at: now,
       updated_at: now,
     })

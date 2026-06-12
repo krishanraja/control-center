@@ -62,6 +62,7 @@ export function VisibilityImportDropzone({ onIngested }: Props = {}) {
         format: r.format || null,
         status: 'sourced',
         source: 'manual_import',
+        origin: 'user',
       }))
       const { error } = await supabase.from('visibility_targets').insert(records)
       if (error) throw new Error(error.message)

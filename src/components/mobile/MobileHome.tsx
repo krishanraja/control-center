@@ -20,6 +20,8 @@ import { ObjectivesPanel } from '../objectives/ObjectivesPanel'
 import { DailyDriver } from '../focus/DailyDriver'
 import { GlanceHeader } from '../home/GlanceHeader'
 import { DecisionsInbox } from '../home/DecisionsInbox'
+import { BetsStrip } from '../home/BetsStrip'
+import { CalibrationCard } from '../home/CalibrationCard'
 import { PulseGroup } from '../home/PulseGroup'
 import { AltitudeSpine, StaleHeaderCue } from '../home/AltitudeSpine'
 import { BoardDaily } from '../home/BoardDaily'
@@ -114,6 +116,8 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         <PulseGroup>
           <MrrTicker variant="mobile" />
           <RoomPreviews onNavigate={onNavigate} variant="mobile" />
+          <CalibrationCard />
+          <BetsStrip />
           <MomentumStrip
             momentum={intel.momentum}
             generatedAt={intel.momentum_at ?? intel.generated_at}
@@ -152,6 +156,8 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         <PulseGroup>
           <MrrTicker variant="mobile" />
           <RoomPreviews onNavigate={onNavigate} variant="mobile" />
+          <CalibrationCard />
+          <BetsStrip />
           <MomentumStrip
             momentum={intel.momentum}
             generatedAt={intel.momentum_at ?? intel.generated_at}
@@ -185,6 +191,12 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
       {/* ROOM PREVIEWS — Content / Visibility / Leads, stacked. */}
       <RoomPreviews onNavigate={onNavigate} variant="mobile" />
+
+      {/* GRADER — one-time calibration prompt; hides once all domains are fitted. */}
+      <CalibrationCard />
+
+      {/* BETS — compact strip replacing the standalone Bets tab. */}
+      <BetsStrip />
 
       {/* MOMENTUM — 7-day mini-bars. */}
       <MomentumStrip

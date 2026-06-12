@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import { Check, ThumbsUp, X, MessageSquarePlus } from 'lucide-react'
-import { supabase, logKrishAction } from '../lib/supabase'
+import { ThumbsUp, X } from 'lucide-react'
 import { useHaptics } from '../hooks/useHaptics'
+import { useToast } from './shared/Toast'
 
 interface Props {
   taskId: string
@@ -11,43 +11,42 @@ interface Props {
   agent?: string
 }
 
-type ActionState = null | 'done' | 'approve' | 'reject' | 'note'
+type ActionState = null | 'approve' | 'reject'
 
+// Approve/Reject for agent tasks. Writes go through service-role APIs —
+// the anon client cannot update tasks under RLS (0 rows, no error), which
+// used to flash success while the item stayed in the queue.
 export function InlineActions({ taskId, onSuccess, compact, agent }: Props) {
   const h = useHaptics()
+  const { toast } = useToast()
   const [busy, setBusy] = useState<ActionState>(null)
   const [flash, setFlash] = useState<ActionState>(null)
-  const [noteOpen, setNoteOpen] = useState(false)
-  const [noteText, setNoteText] = useState('')
 
-  const patch = async (action: ActionState, payload: Record<string, any>, notes?: string) => {
+  const call = async (action: ActionState, url: string, payload: Record<string, any>) => {
     h.heavy()
     setBusy(action)
-    const { error } = await supabase.from('tasks').update({
-      ...payload,
-      updated_at: new Date().toISOString(),
-    }).eq('id', taskId)
-    setBusy(null)
-    if (!error) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`)
       h.success()
       setFlash(action)
       setTimeout(() => setFlash(null), 1200)
-      if (action) await logKrishAction(taskId, action, agent, notes)
       onSuccess?.()
-    } else {
+    } catch (err) {
       h.error()
+      toast(`Could not ${action} — ${err instanceof Error ? err.message : 'try again'}.`, 'error')
+    } finally {
+      setBusy(null)
     }
   }
 
-  const markDone   = () => patch('done',    { status: 'done',    krish_reviewed: true, completed_at: new Date().toISOString() })
-  const approve    = () => patch('approve', { status: 'active',  krish_reviewed: true })
-  const reject     = () => patch('reject',  { status: 'blocked', krish_reviewed: true })
-  const submitNote = async () => {
-    if (!noteText.trim()) { setNoteOpen(false); return }
-    await patch('note', { krish_notes: noteText.trim(), krish_reviewed: true }, noteText.trim())
-    setNoteText('')
-    setNoteOpen(false)
-  }
+  const approve = () => call('approve', '/api/tasks/update', { id: taskId, action: 'approve', agent })
+  const reject = () => call('reject', '/api/triage/reject', { source_table: 'tasks', source_id: taskId, agent })
 
   const btn = (action: ActionState, label: string, Icon: any, accent: string, onClick: () => void) => (
     <button
@@ -62,27 +61,8 @@ export function InlineActions({ taskId, onSuccess, compact, agent }: Props) {
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      {btn('done',    'Done',    Check,             'border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/10', markDone)}
-      {btn('approve', 'Approve', ThumbsUp,          'border-violet-500/25 text-violet-400 hover:bg-violet-500/10',   approve)}
-      {btn('reject',  'Reject',  X,                 'border-rose-500/25 text-rose-400 hover:bg-rose-500/10',         reject)}
-      {btn('note',    'Note',    MessageSquarePlus, 'border-white/10 text-white/60 hover:bg-white/[0.06]',           () => setNoteOpen(o => !o))}
-
-      {noteOpen && (
-        <div className="w-full mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
-          <input
-            autoFocus
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && submitNote()}
-            placeholder="Note for the team..."
-            className="flex-1 bg-white/[0.04] border border-white/10 rounded-lg px-3 py-1.5 text-[12px] text-white placeholder-white/25 focus:outline-none focus:border-violet-500/40"
-          />
-          <button
-            onClick={submitNote}
-            className="px-3 py-1.5 rounded-lg bg-violet-500/20 border border-violet-500/30 text-[11px] text-violet-300 hover:bg-violet-500/30"
-          >Save</button>
-        </div>
-      )}
+      {btn('approve', 'Approve', ThumbsUp, 'border-violet-500/25 text-violet-400 hover:bg-violet-500/10', approve)}
+      {btn('reject', 'Reject', X, 'border-rose-500/25 text-rose-400 hover:bg-rose-500/10', reject)}
     </div>
   )
 }

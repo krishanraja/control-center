@@ -18,6 +18,8 @@ import { StreakPills } from '../StreakPills'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
+import { BetsStrip } from '../home/BetsStrip'
+import { CalibrationCard } from '../home/CalibrationCard'
 import { ObjectivesPanel } from '../objectives/ObjectivesPanel'
 import { DailyDriver } from '../focus/DailyDriver'
 import { GlanceHeader } from '../home/GlanceHeader'
@@ -139,6 +141,12 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
         <RoomPreviews onNavigate={onNavigate} variant="desktop" />
 
+        {/* GRADER — one-time calibration prompt; hides once all domains are fitted. */}
+        <CalibrationCard />
+
+        {/* BETS — compact strip replacing the standalone Bets tab. */}
+        <BetsStrip />
+
         <MomentumStrip
           momentum={intel.momentum}
           generatedAt={intel.momentum_at ?? intel.generated_at}
@@ -201,6 +209,12 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       {/* ROOM PREVIEWS — Content / Visibility / Leads. Two items per room,
           one tap into the right detail. Replaces PipelineLanes. */}
       <RoomPreviews onNavigate={onNavigate} variant="desktop" />
+
+      {/* GRADER — one-time calibration prompt; hides once all domains are fitted. */}
+      <CalibrationCard />
+
+      {/* BETS — compact strip replacing the standalone Bets tab. */}
+      <BetsStrip />
 
       {/* MOMENTUM — 7-day pulse across MRR / leads / shipped / visibility. */}
       <MomentumStrip

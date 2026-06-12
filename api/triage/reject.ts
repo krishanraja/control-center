@@ -8,7 +8,7 @@ import { supabase } from '../_supabase.js'
  * Drops the suggestion: source row -> status 'superseded' (or equivalent terminal)
  * + writes feedback_queue vote=-1 so Vera's correction loop learns the pattern.
  */
-const ALLOWED = new Set(['content_ideas', 'leads', 'visibility_targets', 'guests'])
+const ALLOWED = new Set(['content_ideas', 'leads', 'visibility_targets', 'guests', 'tasks'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
@@ -27,6 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (body.source_table === 'leads') updatePayload = { status: 'closed_lost', quality_score: 'red' }
   if (body.source_table === 'visibility_targets') updatePayload = { status: 'dropped', rejected_at: new Date().toISOString() }
   if (body.source_table === 'guests') updatePayload = { status: 'skipped', skipped_at: new Date().toISOString() }
+  if (body.source_table === 'tasks') updatePayload = { status: 'superseded', krish_reviewed: true }
 
   const { error: upErr } = await supabase
     .from(body.source_table)

@@ -9,6 +9,7 @@ import { LaneToggle, CadenceBar, type LaneFilter } from '../content/LaneControls
 import { ContentSeedRail } from '../content/ContentSeedRail'
 import { contentEngineEnabled } from '../../lib/contentEngine'
 import { NextActionStrip } from '../shared/NextActionStrip'
+import { BackburnerSection } from '../shared/BackburnerSection'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
@@ -46,9 +47,15 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
   const [laneFilter, setLaneFilter] = useState<LaneFilter>('all')
 
   // Everything below the lane toggle operates on the selected lane's slice.
+  // Backburner-buried ideas drop out of the lanes and show in the collapsed
+  // section at the bottom instead.
   const laneIdeas = useMemo(
-    () => (laneFilter === 'all' ? ideas : ideas.filter(i => i.lane === laneFilter)),
+    () => (laneFilter === 'all' ? ideas : ideas.filter(i => i.lane === laneFilter)).filter(i => !i.buried_at),
     [ideas, laneFilter],
+  )
+  const buriedIdeas = useMemo(
+    () => ideas.filter(i => i.buried_at && i.state !== 'dropped' && i.state !== 'published'),
+    [ideas],
   )
 
   const byState = useMemo(() => groupByState(laneIdeas), [laneIdeas])
@@ -255,6 +262,11 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
       ) : (
         <ContentCalendar ideas={laneIdeas} />
       )}
+
+      <BackburnerSection
+        table="content_ideas"
+        items={buriedIdeas.map(i => ({ id: i.id, title: i.idea || '(untitled)', buried_reason: i.buried_reason }))}
+      />
         </div>
       )}
     </AppFrame>

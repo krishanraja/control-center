@@ -26,7 +26,7 @@ const SERIES: Series[] = [
   },
   {
     key: 'leads',
-    label: 'Leads',
+    label: 'Pipeline',
     format: (v) => `${Math.round(v)}`,
     accent: 'text-violet-300',
     bar: 'bg-violet-400/70',

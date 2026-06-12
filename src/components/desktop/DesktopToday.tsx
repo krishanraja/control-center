@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow, isToday, isPast, parseISO } from 'date-fns'
-import { ExternalLink, Archive, ChevronRight, Clock } from 'lucide-react'
-import { supabase, logKrishAction } from '../../lib/supabase'
+import { ExternalLink, Archive, ChevronRight, Clock, MoreHorizontal } from 'lucide-react'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { InlineActions } from '../InlineActions'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { useToast } from '../shared/Toast'
 import { NextActionStrip } from '../shared/NextActionStrip'
+import { BackburnerSection } from '../shared/BackburnerSection'
 import { PipelineQueue, PIPELINE_WORKSTREAMS } from './PipelineQueue'
 import { DecisionDetail } from '../DecisionDetail'
 import { navigateDecision } from '../../lib/routeDecision'
@@ -116,8 +116,10 @@ export function DesktopToday({
     // "Health alert: 0 down, 0 stale" (Marcus noise). This fixes both.
     const visible: TaskRow[] = []
     const stale: TaskRow[] = []
+    const buried: TaskRow[] = []
     for (const t of tasks) {
       if (isSupersededOrDone(t)) continue
+      if (t.buried_at) { buried.push(t); continue }
       if (isNoiseTask(t)) continue
       if (isStaleNoProgress(t)) { stale.push(t); continue }
       visible.push(t)
@@ -129,7 +131,7 @@ export function DesktopToday({
       && !due.find(d => d.id === t.id)
       && !(t.workstream && PIPELINE_WORKSTREAM_SET.has(t.workstream))
     )
-    return { due, waiting, stale }
+    return { due, waiting, stale, buried }
   }, [tasks])
 
   const items: TaskRow[] = [...today.due, ...today.waiting]
@@ -228,6 +230,11 @@ export function DesktopToday({
             <StaleDisclosure tasks={today.stale} onSelectTask={selectTask} selectedId={selected?.id || null} />
           )}
 
+          <BackburnerSection
+            table="tasks"
+            items={today.buried.map(t => ({ id: t.id, title: t.title, buried_reason: t.buried_reason }))}
+          />
+
           {items.length === 0 && !loading && (
             <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
               <p className="text-sm md:text-[14px] text-white/55 font-medium">Nothing scheduled for today.</p>
@@ -239,10 +246,18 @@ export function DesktopToday({
     </div>
   )
 
+  // After an action removes the selected item, advance to its neighbour so the
+  // user can keep triaging without re-clicking the list.
+  const selectNextAfter = (id: string) => {
+    const idx = items.findIndex(t => t.id === id)
+    const next = items[idx + 1] || items[idx - 1] || null
+    selectTask(next && next.id !== id ? next.id : null)
+  }
+
   const detail = decision
     ? <DecisionDetail key={decision} decision={decision} onClose={onClearDecision} actionsEnabled />
     : selected
-      ? <TodayDetail key={selected.id} task={selected} />
+      ? <TodayDetail key={selected.id} task={selected} onActioned={() => selectNextAfter(selected.id)} />
       : <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an item from your day</div>
 
   const onBack = () => {
@@ -299,40 +314,26 @@ function StaleDisclosure({
   const [open, setOpen] = useState(false)
   const { toast } = useToast()
 
-  const dismissAll = async () => {
+  const bulk = async (action: 'dismiss_superseded' | 'snooze_30d', failMsg: string, okMsg: (n: number) => string) => {
     const ids = tasks.map(t => t.id)
-    const { error } = await supabase
-      .from('tasks')
-      .update({ status: 'superseded', updated_at: new Date().toISOString() })
-      .in('id', ids)
-    if (error) {
-      toast('Could not bulk-dismiss — try again.', 'error')
-      return
+    try {
+      const res = await fetch('/api/tasks/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, action, notes: `Bulk: ${ids.length} stale (>${STALE_DAYS}d) items` }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`)
+      toast(okMsg(ids.length), 'success')
+    } catch {
+      toast(failMsg, 'error')
     }
-    for (const id of ids) {
-      await logKrishAction(id, 'dismiss_superseded', undefined, `Bulk-dismiss: ${tasks.length} stale (>${STALE_DAYS}d) items`)
-    }
-    toast(`Dismissed ${ids.length} stale items.`, 'success')
   }
 
+  const dismissAll = () => bulk('dismiss_superseded', 'Could not bulk-dismiss — try again.', n => `Dismissed ${n} stale items.`)
   // Inline snooze replaces what KillListModal used to ask weekly. Push due_date
   // out 30 days so the items fall off Today without losing their work history.
-  const snoozeAll = async () => {
-    const ids = tasks.map(t => t.id)
-    const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-    const { error } = await supabase
-      .from('tasks')
-      .update({ due_date: future, updated_at: new Date().toISOString() })
-      .in('id', ids)
-    if (error) {
-      toast('Could not snooze — try again.', 'error')
-      return
-    }
-    for (const id of ids) {
-      await logKrishAction(id, 'snooze_30d', undefined, `Bulk-snooze: ${tasks.length} stale items pushed 30d`)
-    }
-    toast(`Snoozed ${ids.length} for 30 days.`, 'success')
-  }
+  const snoozeAll = () => bulk('snooze_30d', 'Could not snooze — try again.', n => `Snoozed ${n} for 30 days.`)
 
   return (
     <div className="rounded-xl border border-white/[0.05] bg-white/[0.01]">
@@ -391,59 +392,90 @@ function StaleDisclosure({
   )
 }
 
-function TodayDetail({ task }: { task: TaskRow }) {
+function TodayDetail({ task, onActioned }: { task: TaskRow; onActioned?: () => void }) {
   const { toast } = useToast()
   const [notes, setNotes] = useState(task.krish_notes || '')
-  const [dismissing, setDismissing] = useState(false)
-  const saveNotes = async () => {
-    if (notes === (task.krish_notes || '')) return
-    await supabase.from('tasks').update({ krish_notes: notes, krish_reviewed: true, updated_at: new Date().toISOString() }).eq('id', task.id)
-    await logKrishAction(task.id, 'note', task.agent || task.owner, notes)
-  }
-  const pushTomorrow = async () => {
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    await supabase.from('tasks').update({ due_date: tomorrow.toISOString(), updated_at: new Date().toISOString() }).eq('id', task.id)
-    await logKrishAction(task.id, 'push_tomorrow', task.agent || task.owner)
-  }
-  const dismissSuperseded = async () => {
-    if (dismissing) return
-    setDismissing(true)
-    const { error } = await supabase
-      .from('tasks')
-      .update({ status: 'superseded', updated_at: new Date().toISOString() })
-      .eq('id', task.id)
-    if (error) {
-      toast('Could not dismiss — try again.', 'error')
-      setDismissing(false)
-      return
+  const [busy, setBusy] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const agentName = task.agent || task.owner || 'system'
+
+  const post = async (
+    action: string,
+    extra: Record<string, any> = {},
+    opts: { advance?: boolean; success?: string } = {},
+  ) => {
+    if (busy) return
+    setBusy(true)
+    setMoreOpen(false)
+    try {
+      const res = await fetch('/api/tasks/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: task.id, action, agent: agentName, ...extra }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`)
+      if (opts.success) toast(opts.success, 'success')
+      if (opts.advance) onActioned?.()
+    } catch (err) {
+      toast(`Could not save — ${err instanceof Error ? err.message : 'try again'}.`, 'error')
+    } finally {
+      setBusy(false)
     }
-    await logKrishAction(task.id, 'dismiss_superseded', task.agent || task.owner, 'Dismissed from Today as superseded')
-    toast('Dismissed as superseded.', 'success')
-    setDismissing(false)
   }
-  const submitRevision = async () => {
-    await supabase.from('corrections').insert({
-      agent_id: task.agent || task.owner,
-      original_output: task.next_step || task.title,
-      correction_instruction: notes || 'Needs revision',
-      detection_source: 'krish-control-center',
-      correction_type: 'revision_request',
-      status: 'pending',
-    })
-    await logKrishAction(task.id, 'revision', task.agent || task.owner, notes || 'Needs revision')
+
+  const saveNotes = () => {
+    if (notes === (task.krish_notes || '')) return
+    post('note', { notes })
   }
+
+  const moreItems: Array<{ label: string; danger?: boolean; run: () => void }> = [
+    { label: 'Mark Done', run: () => post('done', {}, { advance: true, success: 'Marked done.' }) },
+    { label: 'Needs Revision', run: () => post('revision', { notes: notes || 'Needs revision' }, { success: 'Revision requested.' }) },
+    { label: 'Add to Tomorrow', run: () => post('push_tomorrow', {}, { advance: true, success: 'Moved to tomorrow.' }) },
+    { label: 'Dismiss as superseded', danger: true, run: () => post('dismiss_superseded', {}, { advance: true, success: 'Dismissed as superseded.' }) },
+  ]
+
+  const hasWhy = !!(task.description || task.evidence || task.lever_score != null || task.tier || task.workstream)
 
   return (
     <div className="space-y-5 pb-6">
       <div>
         <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white leading-tight tracking-tight">{task.title}</h1>
         <div className="flex items-center gap-2 mt-2 text-[11px] text-white/45">
-          <AgentAvatar agent={task.agent || task.owner || 'system'} size="sm" />
-          <span className="text-white/70">{task.agent || task.owner}</span>
+          <AgentAvatar agent={agentName} size="sm" />
+          <span className="text-white/70">{agentName}</span>
           {task.updated_at && <span>· {formatDistanceToNow(new Date(task.updated_at), { addSuffix: true })}</span>}
         </div>
       </div>
+
+      {hasWhy && (
+        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
+          <p className="text-[10px] uppercase tracking-widest text-white/35">Why {agentName} flagged this</p>
+          {task.description && (
+            <p className="text-[13px] text-white/75 leading-relaxed whitespace-pre-wrap">{task.description}</p>
+          )}
+          {task.evidence && (
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-white/30 mb-1">Evidence</p>
+              <p className="text-[12px] text-white/60 leading-relaxed whitespace-pre-wrap">{task.evidence}</p>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {task.lever_score != null && <WhyChip label={`Lever ${task.lever_score}/10`} />}
+            {task.tier && <WhyChip label={`Tier ${task.tier}`} />}
+            {task.workstream && <WhyChip label={String(task.workstream)} />}
+            {task.priority && <WhyChip label={String(task.priority)} />}
+          </div>
+          {task.link_secondary && (
+            <a href={task.link_secondary} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[12px] text-violet-300 hover:text-violet-200">
+              <ExternalLink size={12} />
+              Source
+            </a>
+          )}
+        </div>
+      )}
 
       {task.next_step && (
         <div>
@@ -472,19 +504,46 @@ function TodayDetail({ task }: { task: TaskRow }) {
         />
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <InlineActions taskId={task.id} currentStatus={task.status} agent={task.agent || task.owner} />
-        <button onClick={submitRevision} className="px-2.5 py-1.5 rounded-lg border border-amber-500/25 text-amber-400 hover:bg-amber-500/10 text-[11px] font-medium">Needs Revision</button>
-        <button onClick={pushTomorrow} className="px-2.5 py-1.5 rounded-lg border border-white/10 text-white/60 hover:bg-white/[0.06] text-[11px] font-medium">Add to Tomorrow</button>
-        <button
-          onClick={dismissSuperseded}
-          disabled={dismissing}
-          className="px-2.5 py-1.5 rounded-lg border border-white/10 text-white/45 hover:text-white/75 hover:bg-white/[0.06] text-[11px] font-medium disabled:opacity-40 ml-auto"
-          title="Hide this task — the underlying need no longer exists (e.g. replaced tool)"
-        >
-          Dismiss as superseded
-        </button>
+      <div className="flex items-center gap-2">
+        <InlineActions taskId={task.id} currentStatus={task.status} agent={agentName} onSuccess={onActioned} />
+        <div className="relative">
+          <button
+            onClick={() => setMoreOpen(o => !o)}
+            disabled={busy}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 text-white/60 hover:bg-white/[0.06] text-[11px] font-medium disabled:opacity-40"
+          >
+            <MoreHorizontal size={11} />
+            More
+          </button>
+          {moreOpen && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setMoreOpen(false)} />
+              <div className="absolute left-0 bottom-full mb-1 z-40 w-52 rounded-lg border border-white/10 bg-[#141417] shadow-xl py-1">
+                {moreItems.map(item => (
+                  <button
+                    key={item.label}
+                    onClick={item.run}
+                    disabled={busy}
+                    className={`w-full text-left px-3 py-2 text-[12px] disabled:opacity-40 hover:bg-white/[0.06] ${
+                      item.danger ? 'text-rose-300' : 'text-white/75'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
+  )
+}
+
+function WhyChip({ label }: { label: string }) {
+  return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded border border-white/10 bg-white/[0.03] text-white/55 capitalize">
+      {label}
+    </span>
   )
 }

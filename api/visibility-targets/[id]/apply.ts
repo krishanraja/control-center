@@ -42,6 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     venture: 'mindmaker',
     workstream: 'visibility',
     link_primary: target.source_url || null,
+    origin: 'user',
     created: now,
   })
 

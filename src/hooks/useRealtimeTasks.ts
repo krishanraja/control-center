@@ -27,6 +27,11 @@ export interface TaskRow {
   link_secondary?: string
   evidence?: string
   venture_id?: string
+  /** 'user' rows are never auto-buried by the backburner sweep. */
+  origin?: 'user' | 'agent' | null
+  buried_at?: string | null
+  buried_reason?: string | null
+  protected_at?: string | null
   [key: string]: any
 }
 

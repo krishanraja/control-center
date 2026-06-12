@@ -61,6 +61,11 @@ export interface LeadRow {
   audience_sources?: string[] | null
   churned_at?: string | null
   audience_synced_at?: string | null
+  /** 'user' rows are never auto-buried by the backburner sweep. */
+  origin?: 'user' | 'agent' | null
+  buried_at?: string | null
+  buried_reason?: string | null
+  protected_at?: string | null
 }
 
 interface Options {
