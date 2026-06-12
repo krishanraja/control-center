@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ArrowLeft, Check, FileText, Link2, Loader2, MessageSquare, Paperclip, PenLine, RotateCcw,
+  ArrowLeft, BookOpen, Check, FileText, Link2, Loader2, MessageSquare, Paperclip, PenLine, RotateCcw,
   Save, Search, Send, Sparkles, Trash2, Wand2, X, Gauge,
 } from 'lucide-react'
+import { RichText } from './RichText'
 import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -25,7 +26,7 @@ type RailTab = 'cleo' | 'refine' | 'materials' | 'research' | 'standards'
 
 interface Material {
   id: string
-  kind: 'paste' | 'link' | 'file'
+  kind: 'paste' | 'link' | 'file' | 'research'
   title?: string | null
   content?: string | null
   url?: string | null
@@ -62,6 +63,9 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
   const [draft, setDraft] = useState('')
   const [dirty, setDirty] = useState(false)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+  // Desktop canvas: formatted reading view by default when a draft exists,
+  // straight into writing when the page is blank.
+  const [canvasMode, setCanvasMode] = useState<'read' | 'write'>('write')
   const seededRef = useRef<string | null>(null)
 
   // Adopt the row's body the first time we see this idea (and when not editing).
@@ -71,6 +75,7 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
       seededRef.current = idea.id
       setDraft(idea.body || '')
       setDirty(false)
+      setCanvasMode((idea.body || '').trim() ? 'read' : 'write')
     } else if (!dirty) {
       setDraft(idea.body || '')
     }
@@ -211,18 +216,46 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
         <div className="flex-1 min-h-0 flex flex-row">
           {/* Canvas */}
           <main className="flex-1 min-w-0 flex flex-col">
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-8 py-5">
-              <div className="max-w-[720px] mx-auto">
+            {draft.trim() && (
+              <div className="flex items-center justify-center pt-3 flex-shrink-0">
+                <div className="flex items-center gap-0.5 rounded-lg border border-white/[0.08] bg-white/[0.03] p-0.5">
+                  <button
+                    type="button" onClick={() => setCanvasMode('read')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] transition-colors ${
+                      canvasMode === 'read' ? 'bg-white/[0.09] text-white/90' : 'text-white/45 hover:text-white/75'
+                    }`}
+                  >
+                    <BookOpen size={12} /> Formatted
+                  </button>
+                  <button
+                    type="button" onClick={() => setCanvasMode('write')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] transition-colors ${
+                      canvasMode === 'write' ? 'bg-white/[0.09] text-white/90' : 'text-white/45 hover:text-white/75'
+                    }`}
+                  >
+                    <PenLine size={12} /> Write
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="max-w-[820px] mx-auto px-5 sm:px-10 py-6 pb-28">
                 {!draft.trim() && (
                   <EmptyCanvasHint idea={idea} onJump={() => openRail('cleo')} />
                 )}
-                <textarea
-                  value={draft}
-                  onChange={e => onDraftChange(e.target.value)}
-                  placeholder="Write here, or ask Cleo to start. Paste your research in Materials so she has the full picture."
-                  className="w-full min-h-[60vh] bg-transparent resize-none text-[15px] leading-relaxed text-white/90 placeholder:text-white/25 focus:outline-none"
-                  spellCheck
-                />
+                {canvasMode === 'read' && draft.trim() ? (
+                  <div onClick={() => setCanvasMode('write')} title="Click anywhere to edit" className="cursor-text">
+                    <RichText text={draft} className="text-[16px] leading-[1.8] text-white/90" />
+                  </div>
+                ) : (
+                  <GrowTextarea
+                    value={draft}
+                    onChange={onDraftChange}
+                    autoFocus={!!draft.trim()}
+                    placeholder="Write here, or ask Cleo to start. Paste your research in Materials so she has the full picture."
+                    className="w-full min-h-[55vh] bg-transparent resize-none text-[16px] leading-[1.8] text-white/90 placeholder:text-white/25 focus:outline-none"
+                  />
+                )}
               </div>
             </div>
           </main>
@@ -304,13 +337,12 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
             <p className="text-[12px] text-white/50 leading-snug">Tap <button type="button" onClick={() => setSheet('cleo')} className="text-violet-300 underline underline-offset-2">Ask Cleo</button> to draft it, or Edit to write.</p>
           </div>
         ) : edit ? (
-          <textarea
-            value={draft} onChange={e => onEditChange(e.target.value)} autoFocus
-            className="w-full min-h-[55vh] bg-transparent resize-none text-[15px] leading-relaxed text-white/90 focus:outline-none"
-            spellCheck
+          <GrowTextarea
+            value={draft} onChange={onEditChange} autoFocus
+            className="w-full min-h-[55vh] bg-transparent resize-none text-[16px] leading-[1.75] text-white/90 focus:outline-none"
           />
         ) : (
-          <article className="text-[15px] leading-relaxed text-white/90 whitespace-pre-wrap">{draft}</article>
+          <RichText text={draft} className="text-[16px] leading-[1.75] text-white/90" />
         )}
       </div>
 
@@ -346,28 +378,29 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
       </div>
 
       {/* Sticky push */}
-      <div className="px-3 py-2.5 border-t border-white/[0.08] flex-shrink-0 bg-[#0a0a0b]">
+      <div className="px-3 pt-2.5 pb-safe border-t border-white/[0.08] flex-shrink-0 bg-[#0a0a0b]">
         <SaveDraftButton idea={idea} draft={draft} onSaved={onClose} block />
       </div>
 
       {/* Magic preview sheet */}
       {preview && (
         <div className="fixed inset-0 z-[95] flex flex-col justify-end">
-          <button aria-label="Discard" onClick={() => setPreview(null)} className="absolute inset-0 bg-black/60" />
-          <div className="relative bg-[#0f0f12] border-t border-white/[0.1] rounded-t-2xl max-h-[80vh] flex flex-col">
-            <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-white/[0.06] text-[12px] text-violet-200/80">
-              <Sparkles size={13} /> {preview.label} — preview
+          <button aria-label="Discard" onClick={() => setPreview(null)} className="absolute inset-0 bg-black/60 animate-fade-in" />
+          <div className="relative bg-[#0f0f12] border-t border-white/[0.1] rounded-t-3xl max-h-[85dvh] flex flex-col animate-sheet-up">
+            <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
+            <div className="flex items-center gap-1.5 px-4 py-2 text-[13px] text-violet-200/80">
+              <Sparkles size={14} /> {preview.label} — preview
             </div>
-            <div className="flex-1 overflow-y-auto px-4 py-3">
-              <p className="text-[14px] leading-relaxed text-white/90 whitespace-pre-wrap">{preview.text}</p>
+            <div className="flex-1 overflow-y-auto px-4 py-2">
+              <RichText text={preview.text} className="text-[15px] leading-relaxed text-white/90" />
             </div>
-            <div className="px-4 py-3 border-t border-white/[0.06] flex items-center gap-2">
+            <div className="px-4 pt-3 pb-safe border-t border-white/[0.06] flex items-center gap-2">
               <button type="button" onClick={() => { onApplyDraft(preview.text); setPreview(null); toast('Applied.', 'success') }}
-                className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[13px] font-semibold bg-violet-500/90 text-white">
+                className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[14px] font-semibold bg-violet-500/90 text-white active:bg-violet-500">
                 <Check size={15} /> Keep this
               </button>
               <button type="button" onClick={() => setPreview(null)}
-                className="px-4 py-3 rounded-xl text-[13px] border border-white/12 text-white/70">Discard</button>
+                className="px-4 py-3 rounded-xl text-[14px] border border-white/12 text-white/70 active:bg-white/[0.06]">Discard</button>
             </div>
           </div>
         </div>
@@ -376,16 +409,17 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
       {/* Cleo / Materials / Research sheets */}
       {sheet && (
         <div className="fixed inset-0 z-[95] flex flex-col justify-end">
-          <button aria-label="Close" onClick={() => setSheet(null)} className="absolute inset-0 bg-black/60" />
-          <div className="relative bg-[#0f0f12] border-t border-white/[0.1] rounded-t-2xl h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
-              <div className="flex items-center gap-1.5 text-[13px] text-white/85">
-                {sheet === 'cleo' ? <><MessageSquare size={14} /> Cleo</> : sheet === 'materials' ? <><Paperclip size={14} /> Materials</> : <><Search size={14} /> Research</>}
+          <button aria-label="Close" onClick={() => setSheet(null)} className="absolute inset-0 bg-black/60 animate-fade-in" />
+          <div className="relative bg-[#0f0f12] border-t border-white/[0.1] rounded-t-3xl h-[85dvh] flex flex-col animate-sheet-up">
+            <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
+            <div className="flex items-center justify-between pl-4 pr-2 py-1.5 flex-shrink-0">
+              <div className="flex items-center gap-2 text-[15px] font-medium text-white/90">
+                {sheet === 'cleo' ? <><MessageSquare size={16} className="text-violet-300" /> Cleo</> : sheet === 'materials' ? <><Paperclip size={16} className="text-emerald-300" /> Materials</> : <><Search size={16} className="text-emerald-300" /> Research</>}
               </div>
-              <button onClick={() => setSheet(null)} className="text-white/50 hover:text-white"><X size={18} /></button>
+              <button onClick={() => setSheet(null)} aria-label="Close" className="flex items-center justify-center w-10 h-10 rounded-full text-white/50 active:bg-white/[0.08]"><X size={20} /></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-3">
-              {sheet === 'cleo' && <CleoChat idea={idea} draft={draft} onUseAsDraft={(t) => { onApplyDraft(t); setSheet(null) }} />}
+            <div className={`flex-1 min-h-0 px-4 pb-safe ${sheet === 'cleo' ? 'flex flex-col' : 'overflow-y-auto'}`}>
+              {sheet === 'cleo' && <CleoChat idea={idea} draft={draft} mobile onUseAsDraft={(t) => { onApplyDraft(t); setSheet(null) }} />}
               {sheet === 'materials' && <MaterialsPanel idea={idea} />}
               {sheet === 'research' && <ResearchPanel idea={idea} />}
             </div>
@@ -399,9 +433,44 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
 function MobileTool({ icon, label, onClick, active }: { icon: React.ReactNode; label: string; onClick: () => void; active?: boolean }) {
   return (
     <button type="button" onClick={onClick}
-      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] ${active ? 'bg-white/[0.08] text-white/90' : 'text-white/55 active:bg-white/[0.06]'}`}>
+      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] press-effect ${active ? 'bg-white/[0.08] text-white/90' : 'text-white/55 active:bg-white/[0.06]'}`}>
       {icon} {label}
     </button>
+  )
+}
+
+// Auto-growing textarea: the page scrolls, the textarea never does (no nested
+// scrollbar inside the canvas). Optionally capped for chat-style inputs.
+function GrowTextarea({ value, onChange, className, placeholder, autoFocus, maxPx, onKeyDown }: {
+  value: string
+  onChange: (t: string) => void
+  className?: string
+  placeholder?: string
+  autoFocus?: boolean
+  maxPx?: number
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void
+}) {
+  const ref = useRef<HTMLTextAreaElement | null>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    const h = maxPx ? Math.min(el.scrollHeight, maxPx) : el.scrollHeight
+    el.style.height = `${h}px`
+    el.style.overflowY = maxPx && el.scrollHeight > maxPx ? 'auto' : 'hidden'
+  }, [value, maxPx])
+  useEffect(() => {
+    const el = ref.current
+    if (autoFocus && el) {
+      el.focus()
+      el.setSelectionRange(el.value.length, el.value.length)
+    }
+  }, [])
+  return (
+    <textarea
+      ref={ref} value={value} onChange={e => onChange(e.target.value)} rows={1}
+      placeholder={placeholder} onKeyDown={onKeyDown} className={className} spellCheck
+    />
   )
 }
 
@@ -529,7 +598,7 @@ function RailContent({ tab, idea, draft, onApplyDraft }: {
 
 // ── Cleo chat ────────────────────────────────────────────────────────────
 
-function CleoChat({ idea, draft, onUseAsDraft }: { idea: ContentIdeaRow; draft: string; onUseAsDraft: (t: string) => void }) {
+function CleoChat({ idea, draft, onUseAsDraft, mobile }: { idea: ContentIdeaRow; draft: string; onUseAsDraft: (t: string) => void; mobile?: boolean }) {
   const { toast } = useToast()
   const h = useHaptics()
   const seed = useMemo<ChatMsg[]>(() => {
@@ -570,25 +639,37 @@ function CleoChat({ idea, draft, onUseAsDraft }: { idea: ContentIdeaRow; draft: 
   return (
     <div className="flex flex-col h-full">
       {msgs.length === 0 && (
-        <div className="text-[12px] text-white/50 leading-snug mb-3">
-          Talk to Cleo like a writing partner. She knows your voice, this draft, and your attached materials. Ask her to draft, sharpen, restructure, or push your thinking.
-        </div>
+        mobile ? (
+          <div className="flex flex-col items-center text-center gap-2.5 pt-10 pb-4 px-4">
+            <div className="w-14 h-14 rounded-2xl bg-violet-500/15 flex items-center justify-center">
+              <Sparkles size={24} className="text-violet-300" />
+            </div>
+            <div className="text-[16px] font-semibold text-white/90">Ask Cleo anything</div>
+            <p className="text-[13px] text-white/50 leading-snug max-w-[280px]">
+              She knows your voice, this draft, and your materials. Tap a suggestion below or just start typing.
+            </p>
+          </div>
+        ) : (
+          <div className="text-[12px] text-white/50 leading-snug mb-3">
+            Talk to Cleo like a writing partner. She knows your voice, this draft, and your attached materials. Ask her to draft, sharpen, restructure, or push your thinking.
+          </div>
+        )
       )}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
+      <div className={`flex-1 min-h-0 overflow-y-auto space-y-3 ${mobile ? 'py-1' : 'pr-1'}`}>
         {msgs.map((m, i) => (
           <div key={i} className={m.role === 'user' ? 'flex justify-end' : ''}>
-            <div className={`rounded-xl px-3 py-2 text-[12px] leading-relaxed whitespace-pre-wrap max-w-[92%] ${
-              m.role === 'user' ? 'bg-violet-500/20 text-white/90' : 'bg-white/[0.05] text-white/85'
+            <div className={`${mobile ? 'rounded-2xl px-3.5 py-2.5 text-[14px]' : 'rounded-xl px-3 py-2 text-[12px]'} leading-relaxed max-w-[92%] ${
+              m.role === 'user' ? 'bg-violet-500/20 text-white/90 whitespace-pre-wrap' : 'bg-white/[0.05] text-white/85'
             }`}>
-              {m.content}
+              {m.role === 'assistant' ? <RichText text={m.content} className="[&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0" /> : m.content}
               {m.role === 'assistant' && m.content.length > 120 && (
                 <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/[0.08]">
                   <button type="button" onClick={() => { onUseAsDraft(m.content); toast('Set as your draft.', 'success') }}
-                    className="text-[10px] px-2 py-1 rounded border border-violet-500/30 text-violet-200 hover:bg-violet-500/10">
+                    className={`${mobile ? 'text-[12px] px-3 py-1.5' : 'text-[10px] px-2 py-1'} rounded-md border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 active:bg-violet-500/15`}>
                     Use as draft
                   </button>
                   <button type="button" onClick={() => { navigator.clipboard?.writeText(m.content); toast('Copied.', 'success') }}
-                    className="text-[10px] px-2 py-1 rounded border border-white/10 text-white/60 hover:bg-white/[0.06]">
+                    className={`${mobile ? 'text-[12px] px-3 py-1.5' : 'text-[10px] px-2 py-1'} rounded-md border border-white/10 text-white/60 hover:bg-white/[0.06] active:bg-white/[0.08]`}>
                     Copy
                   </button>
                 </div>
@@ -596,28 +677,42 @@ function CleoChat({ idea, draft, onUseAsDraft }: { idea: ContentIdeaRow; draft: 
             </div>
           </div>
         ))}
-        {busy && <div className="flex items-center gap-1.5 text-[11px] text-white/45"><Loader2 size={12} className="animate-spin" /> Cleo is thinking…</div>}
+        {busy && <div className="flex items-center gap-1.5 text-[12px] text-white/45"><Loader2 size={13} className="animate-spin" /> Cleo is thinking…</div>}
         <div ref={endRef} />
       </div>
 
-      <div className="flex flex-wrap gap-1 mt-2 mb-1.5">
+      <div className={mobile
+        ? 'flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pt-2 pb-2 flex-shrink-0'
+        : 'flex flex-wrap gap-1 mt-2 mb-1.5'}>
         {quick.map(q => (
           <button key={q} type="button" disabled={busy} onClick={() => send(q)}
-            className="text-[10px] px-2 py-1 rounded-full border border-white/10 text-white/55 hover:bg-white/[0.06] disabled:opacity-40">
+            className={mobile
+              ? 'whitespace-nowrap text-[13px] px-3.5 py-2 rounded-full border border-white/12 bg-white/[0.04] text-white/70 active:bg-white/[0.1] disabled:opacity-40 press-effect'
+              : 'text-[10px] px-2 py-1 rounded-full border border-white/10 text-white/55 hover:bg-white/[0.06] disabled:opacity-40'}>
             {q}
           </button>
         ))}
       </div>
-      <div className="flex items-end gap-1.5">
-        <textarea
-          value={input} onChange={e => setInput(e.target.value)} rows={2}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
-          placeholder="Ask Cleo…  (Enter to send, Shift+Enter for a new line)"
-          className="flex-1 rounded-lg bg-black/40 border border-white/10 px-2.5 py-2 text-[12px] text-white/90 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40 resize-none"
-        />
+      <div className={`flex items-end gap-2 flex-shrink-0 ${mobile ? 'pb-1' : ''}`}>
+        {mobile ? (
+          <GrowTextarea
+            value={input} onChange={setInput} maxPx={132}
+            placeholder="Message Cleo…"
+            className="flex-1 rounded-2xl bg-black/40 border border-white/10 px-4 py-2.5 text-[16px] text-white/90 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40 resize-none"
+          />
+        ) : (
+          <textarea
+            value={input} onChange={e => setInput(e.target.value)} rows={2}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
+            placeholder="Ask Cleo…  (Enter to send, Shift+Enter for a new line)"
+            className="flex-1 rounded-lg bg-black/40 border border-white/10 px-2.5 py-2 text-[12px] text-white/90 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40 resize-none"
+          />
+        )}
         <button type="button" onClick={() => send(input)} disabled={busy || !input.trim()}
-          className="flex items-center justify-center w-9 h-9 rounded-lg bg-violet-500/80 text-white hover:bg-violet-500 disabled:opacity-40">
-          <Send size={14} />
+          className={`flex items-center justify-center bg-violet-500/80 text-white hover:bg-violet-500 disabled:opacity-40 ${
+            mobile ? 'w-11 h-11 rounded-full flex-shrink-0 press-effect' : 'w-9 h-9 rounded-lg'
+          }`}>
+          <Send size={mobile ? 18 : 14} />
         </button>
       </div>
     </div>
@@ -771,7 +866,7 @@ function MaterialsPanel({ idea }: { idea: ContentIdeaRow }) {
   return (
     <div className="space-y-3">
       <p className="text-[11px] text-white/45 leading-snug">
-        Your research lives here, safely. Paste the markdown corpus you used to bring to Cleo, or link a source. Everything you attach grounds Cleo's writing and rides into the Google Doc when you Save Draft.
+        Your research lives here, safely. Paste a corpus, link a source, or run a dive in the Research tab — those land here automatically. Everything attached grounds Cleo's writing and rides into the Google Doc when you Save Draft.
       </p>
 
       <div className="flex items-center gap-1">
@@ -797,20 +892,29 @@ function MaterialsPanel({ idea }: { idea: ContentIdeaRow }) {
       </div>
 
       <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-white/40 pt-1">
+          Attached{materials && materials.length ? ` (${materials.length})` : ''}
+        </div>
         {materials === null ? (
           <div className="text-[11px] text-white/40">Loading…</div>
         ) : materials.length === 0 ? (
           <div className="text-[11px] text-white/35 italic">No materials attached yet.</div>
         ) : materials.map(m => (
           <div key={m.id} className="flex items-start gap-2 rounded-md border border-white/[0.06] bg-white/[0.015] p-2">
-            {m.kind === 'link' ? <Link2 size={11} className="text-sky-300 mt-0.5 flex-shrink-0" /> : <FileText size={11} className="text-emerald-300 mt-0.5 flex-shrink-0" />}
+            {m.kind === 'link' ? <Link2 size={11} className="text-sky-300 mt-0.5 flex-shrink-0" />
+              : m.kind === 'research' ? <Search size={11} className="text-violet-300 mt-0.5 flex-shrink-0" />
+                : <FileText size={11} className="text-emerald-300 mt-0.5 flex-shrink-0" />}
             <div className="min-w-0 flex-1">
               {m.kind === 'link' && m.url ? (
                 <a href={m.url} target="_blank" rel="noreferrer noopener" className="text-[11px] text-sky-300/90 hover:text-sky-200 truncate block">{m.title || m.url}</a>
               ) : (
                 <div className="text-[11px] text-white/80 truncate">{m.title || 'Pasted material'}</div>
               )}
-              <div className="text-[9px] text-white/35">{m.kind}{typeof m.bytes === 'number' ? ` · ${formatBytes(m.bytes)}` : ''}</div>
+              <div className="text-[9px] text-white/35">
+                {m.kind === 'research' ? 'cleo research' : m.kind}
+                {typeof m.bytes === 'number' ? ` · ${formatBytes(m.bytes)}` : ''}
+                {m.at ? ` · ${shortDate(m.at)}` : ''}
+              </div>
             </div>
             <button type="button" onClick={() => remove(m.id)} className="text-white/30 hover:text-rose-300 flex-shrink-0"><Trash2 size={12} /></button>
           </div>
@@ -818,6 +922,10 @@ function MaterialsPanel({ idea }: { idea: ContentIdeaRow }) {
       </div>
     </div>
   )
+}
+
+function shortDate(iso: string): string {
+  try { return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) } catch { return '' }
 }
 
 function formatBytes(n: number): string {
@@ -837,30 +945,96 @@ function ResearchPanel({ idea }: { idea: ContentIdeaRow }) {
   const serverDives: any[] = Array.isArray(meta.deep_dives) ? meta.deep_dives : []
   const [localDives, setLocalDives] = useState<any[]>([])
   const [q, setQ] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [runningQ, setRunningQ] = useState<string | null>(null)
   const dives = [...serverDives, ...localDives]
+  const doneQueries = new Set(dives.map(d => d.query))
 
-  const dive = async () => {
-    const query = q.trim()
-    if (!query || busy) return
-    setBusy(true); h.tap()
+  // Cleo's proactive suggestions: generated once per piece the first time the
+  // panel opens, cached on the row, refreshable on demand.
+  const [sugs, setSugs] = useState<{ query: string; why?: string }[] | null>(
+    Array.isArray(meta.research_suggestions?.items) ? meta.research_suggestions.items : null
+  )
+  const [sugBusy, setSugBusy] = useState(false)
+
+  const suggest = useCallback(async (force = false) => {
+    setSugBusy(true)
     try {
       const r = await fetch(`/api/content-ideas/${idea.id}/dive-deeper`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suggest: true, force }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (r.ok && j.ok && Array.isArray(j.suggestions)) setSugs(j.suggestions)
+    } catch { /* manual research still works */ }
+    finally { setSugBusy(false) }
+  }, [idea.id])
+
+  useEffect(() => { if (!sugs) suggest() }, []) // arm the panel on first open
+
+  const dive = async (query: string) => {
+    const trimmed = query.trim()
+    if (!trimmed || runningQ) return
+    setRunningQ(trimmed); h.tap()
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/dive-deeper`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: trimmed }),
       })
       const j = await r.json().catch(() => ({}))
       if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
-      setLocalDives(d => [...d, j.entry]); setQ(''); h.success(); toast('Added to research.', 'success')
-    } catch (e: any) { h.error(); toast(`Dive failed: ${e?.message || 'error'}`, 'error') }
-    finally { setBusy(false) }
+      setLocalDives(d => [...d, j.entry]); setQ(''); h.success()
+      toast('Research done — attached to Materials.', 'success')
+    } catch (e: any) { h.error(); toast(`Research failed: ${e?.message || 'error'}`, 'error') }
+    finally { setRunningQ(null) }
   }
 
   return (
     <div className="space-y-3">
       <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-white/40">
+            <Sparkles size={10} className="text-violet-300" /> Cleo suggests
+          </div>
+          <button type="button" onClick={() => suggest(true)} disabled={sugBusy} title="Fresh suggestions" aria-label="Refresh suggestions"
+            className="flex items-center justify-center w-7 h-7 rounded-md text-white/35 hover:text-white/70 hover:bg-white/[0.06] disabled:opacity-40">
+            {sugBusy && sugs ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />}
+          </button>
+        </div>
+        {sugBusy && !sugs ? (
+          <div className="flex items-center gap-1.5 text-[11px] text-white/40">
+            <Loader2 size={12} className="animate-spin" /> Cleo is working out what research would strengthen this…
+          </div>
+        ) : !sugs?.length ? (
+          <p className="text-[11px] text-white/35 italic">No suggestions yet. Dig into a specific area below.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {sugs.map(s => {
+              const done = doneQueries.has(s.query)
+              return (
+                <div key={s.query} className="rounded-md border border-white/[0.06] bg-white/[0.015] p-2">
+                  <div className="text-[11px] text-white/80 leading-snug">{s.query}</div>
+                  {s.why && <div className="text-[10px] text-white/40 leading-snug mt-0.5">{s.why}</div>}
+                  <button
+                    type="button" onClick={() => dive(s.query)} disabled={!!runningQ || done}
+                    className={`mt-1.5 flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border min-h-[28px] ${
+                      done ? 'border-emerald-500/25 text-emerald-300/80'
+                        : 'border-emerald-500/25 text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-40'
+                    }`}
+                  >
+                    {done ? <><Check size={10} /> In materials</>
+                      : runningQ === s.query ? <><Loader2 size={10} className="animate-spin" /> Researching…</>
+                        : <><Search size={10} /> Research this</>}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="pt-1 border-t border-white/[0.06]">
         <div className="text-[10px] uppercase tracking-[0.14em] text-white/40 mb-1.5">Sources behind this</div>
         {links.length === 0 ? (
-          <p className="text-[11px] text-white/35 italic">No sources yet. Dive deeper below or attach materials.</p>
+          <p className="text-[11px] text-white/35 italic">No sources yet. Run a suggestion above or dig into a specific area.</p>
         ) : (
           <ul className="space-y-1">
             {links.slice(0, 12).map((u, i) => (
@@ -876,14 +1050,15 @@ function ResearchPanel({ idea }: { idea: ContentIdeaRow }) {
         </details>
       ))}
       <div className="flex items-center gap-1.5 pt-1 border-t border-white/[0.06]">
-        <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') dive() }}
+        <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') dive(q) }}
           placeholder="Dig into a specific area…"
           className="flex-1 rounded-md bg-black/40 border border-white/10 px-2 py-1.5 text-[11px] text-white/90 placeholder:text-white/30 focus:outline-none focus:border-emerald-500/40" />
-        <button type="button" onClick={dive} disabled={busy || !q.trim()}
-          className="flex items-center justify-center w-8 h-8 rounded-md bg-emerald-500/25 text-white hover:bg-emerald-500/35 disabled:opacity-40">
-          {busy ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
+        <button type="button" onClick={() => dive(q)} disabled={!!runningQ || !q.trim()}
+          className="flex items-center justify-center w-8 h-8 rounded-md bg-emerald-500/25 text-white hover:bg-emerald-500/35 disabled:opacity-40 flex-shrink-0">
+          {runningQ === q.trim() && q.trim() ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
         </button>
       </div>
+      <p className="text-[10px] text-white/30 leading-snug">Everything researched here is attached to Materials automatically, so Cleo writes from it.</p>
     </div>
   )
 }

@@ -25,6 +25,17 @@
     padding-bottom: env(safe-area-inset-bottom, 16px);
   }
 
+  /* Touch devices: inputs at 16px so the browser never auto-zooms on focus.
+     Anything below 16px makes mobile Chrome / Samsung Internet / iOS Safari
+     zoom the page when a text box is tapped. */
+  @media (pointer: coarse) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+
   /* Smooth momentum scrolling on iOS */
   .overflow-y-auto,
   .overflow-x-auto {
@@ -74,6 +85,22 @@
 
 .tab-content {
   animation: slideUp 0.22s ease-out;
+}
+
+/* Native-feel bottom sheets: slide up from the edge, backdrop fades in. */
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.animate-sheet-up {
+  animation: sheet-up 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
 }
 
 /* Glow effects */
@@ -126,7 +153,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-neon-pulse,
-  .animate-neon-pulse-violet {
+  .animate-neon-pulse-violet,
+  .animate-sheet-up,
+  .animate-fade-in {
     animation: none;
   }
   .shimmer-sweep::after {
