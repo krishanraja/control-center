@@ -53,6 +53,25 @@ detail view with a back button; desktop renders side-by-side.
 />
 ```
 
+### `AppFrame` — no-scroll app shell (2026-06-11)
+
+`components/shared/AppFrame.tsx`. The whole app is a fixed-viewport, **no-scroll**
+frame: the window never scrolls. `App.tsx` root is `h-[100dvh] overflow-hidden`
+and `main` is `flex-1 overflow-hidden`; chrome (sidebar / bottom nav / tab header)
+stays pinned and each tab owns its own inner scroll in a contained region. Desktop
+non-content tabs render in a `h-full overflow-y-auto px-6 py-6` wrapper; the Content
+tab uses `AppFrame` (fixed header / contained body / optional footer, `scroll='auto'|'none'`);
+mobile uses each tab's `h-[100dvh]` `MobileShell` (which gained `scroll='none'` + a
+`footer` slot for the triage deck). Do **not** reintroduce window scroll or `100vh`
+height math at the tab root — size children with `h-full` / `flex-1 min-h-0` inside
+the contained region.
+
+```tsx
+<AppFrame header={<TabHeader />} scroll="auto" padded>
+  {content}
+</AppFrame>
+```
+
 ### `ErrorBoundary`
 
 Per-tab catch-all. Renders an error icon + tab label + message + retry.
@@ -88,9 +107,14 @@ Tab roots should be *layout-only* — pull data from hooks, render presentationa
 do not own business logic. Hand mutations down via props or read them from
 a context (e.g. `AgentsContext` for agent lookups).
 
-### Content tab — composer + mobile deck
+### Content tab — triage deck + composer
 
-The Content tab is the one tab whose detail surface is a **full-screen takeover**, not a master-detail panel. `ContentComposer` (`components/content/ContentComposer.tsx`) mounts as a fixed overlay from `App.tsx` whenever `tab === 'content'` and `route.params.idea` is set (cards open it by setting `#/content?idea=<id>`; Esc clears the param). It owns one piece of content: a draft canvas plus a single-panel rail (Cleo chat · Refine · Materials · Research · Standards), one **Save Draft** CTA, and draft autosave via the API (never the anon client — RLS blocks anon writes to `content_ideas`). Pipeline cards (`ContentIdeaCardActionable`) are light tiles that just open the composer; the retired `ContentEnginePanel` / `ResearchAndTransform` inline stack is gone. On `narrow`, the composer renders a **review-first** body (read mode + one-tap magic adjustments + sticky Save Draft), and `MobileContent` is a "Ready for you" deck showing only `review` / `approved` / urgent pieces. See `MINDMAKER_OS_ARCHITECTURE.md` §5.7.
+The Content tab is **mode-switched by active backlog size** (`useContentTriage`, hysteresis: enter triage > 30, exit ≤ 25):
+
+- **Triage mode (> 30) —** `components/content/TriageDeck.tsx` + `TriageCard.tsx`: a one-card-at-a-time swipe deck over the whole active backlog. **Left = Drop** (undoable), **right = Advance one stage** (`seeded→researching→drafting→review`; `review`/`approved` open the Composer — human gates, never auto-crossed), **tap/↑ = open Composer**. Pointer swipe (`useCardDeck`, deferred capture so vertical scroll isn't hijacked) + on-screen buttons + arrow keys, identical on phone and desktop; only ~3 cards mount at once (the fix for the ~218-card crash). Drop is undoable (toast action + `U` key); commits are optimistic via a session committed-id set, keyed by `idea.id`.
+- **Action mode (≤ 30) —** desktop lanes (`ContentIdeaCardActionable`, **bounded** per state by `LANE_CAP`, overflow → triage); `MobileContent` shows a **Ready for you** tier + a **Drafts** tier + an **upstream count** entry; the all-clear empty state is gated on `activeCount === 0` (no more false "You're clear").
+
+The detail surface is a **full-screen takeover**, not a master-detail panel: `ContentComposer` (`components/content/ContentComposer.tsx`) mounts as a fixed overlay from `App.tsx` whenever `tab === 'content'` and `route.params.idea` is set (cards/deck open it by setting `#/content?idea=<id>`; Esc clears the param; the deck freezes its keyboard while the Composer is open). It owns one piece of content: a draft canvas plus a single-panel rail (Cleo chat · Refine · Materials · Research · Standards), one **Save Draft** CTA, and draft autosave via the API (never the anon client — RLS blocks anon writes to `content_ideas`). The retired `ContentEnginePanel` / `ResearchAndTransform` inline stack is gone. On `narrow`, the composer renders a **review-first** body (read mode + one-tap magic adjustments + sticky Save Draft). See `MINDMAKER_OS_ARCHITECTURE.md` §5.7.
 
 ## Hooks
 
@@ -117,7 +141,9 @@ once per browser session and fan out via context if needed.
 | `usePendingCorrections` | `corrections` | Polled |
 | `useRevenueAttribution` | `customers` aggregated | Derived |
 | `useStreaks` | `tasks` + `leads` + `content_ideas` | Derived |
-| `useSwipeActions` | — | Touch gesture handler |
+| `useSwipeActions` | — | Touch gesture handler (legacy, touch-only) |
+| `useCardDeck` | — | Pointer/keyboard swipe deck (touch+mouse+pen, deferred capture, fly-out) |
+| `useContentTriage` | `content_ideas` (via `useRealtimeContentIdeas`) | Content tab mode + triage deck state (advance/drop/undo) |
 | `useHaptics` | — | Mobile haptic feedback |
 | `useHashRoute` | `window.location.hash` | Router |
 
