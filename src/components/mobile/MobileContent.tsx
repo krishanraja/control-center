@@ -1,184 +1,130 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { FileText } from 'lucide-react'
+import { useMemo } from 'react'
+import { ChevronRight, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { MobileShell } from './MobileShell'
 import { TabHeader } from './primitives'
-import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
-import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
-import { LaneToggle, CadenceBar, type LaneFilter } from '../content/LaneControls'
-import { ContentSeedRail } from '../content/ContentSeedRail'
-import { contentEngineEnabled } from '../../lib/contentEngine'
-import { NextActionStrip } from '../shared/NextActionStrip'
-import { useDailyFocus } from '../../hooks/useDailyFocus'
-import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
-import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
+import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
+import { useHaptics } from '../../hooks/useHaptics'
 
-const ACTIVE_STATES: IdeaState[] = ['seeded', 'researching', 'drafting', 'review', 'approved']
-const STATE_LABEL: Record<IdeaState, string> = {
-  seeded: 'Seeded',
-  researching: 'Researching',
-  drafting: 'Drafting',
-  review: 'Review',
-  approved: 'Approved',
-  published: 'Published',
-  dropped: 'Dropped',
+// MobileContent — the "Ready for you" deck.
+//
+// A phone is for reviewing what's next or urgent, making a quick magic
+// adjustment, and pushing — not deep work. So mobile shows ONLY the pieces that
+// are genuinely next in line (awaiting Krish's sign-off = `review`, or ready to
+// ship = `approved`) or urgent (scheduled today / overdue / cadence-due).
+// Everything upstream (seeded / researching / drafting) is desk work and hidden
+// here. Tapping a card opens the review-first composer.
+
+interface Props { ideaId?: string | null; onClearIdea?: () => void }
+
+type Urgency = 'overdue' | 'today' | 'due' | null
+
+function todayYMD(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-interface Props {
-  ideaId?: string | null
-  onClearIdea?: () => void
-}
-
-export function MobileContent({ ideaId, onClearIdea }: Props = {}) {
-  const { ideas, loading } = useRealtimeContentIdeas({ stateIn: ACTIVE_STATES })
-  const [laneFilter, setLaneFilter] = useState<LaneFilter>('all')
-
-  // Active ideas in the selected lane (the sections below operate on this slice).
-  const laneIdeas = useMemo(
-    () => ideas.filter(i => ACTIVE_STATES.includes(i.state) && (laneFilter === 'all' || i.lane === laneFilter)),
-    [ideas, laneFilter],
-  )
-
-  const detailIdea = useMemo(() => (ideaId ? ideas.find(i => i.id === ideaId) || null : null), [ideaId, ideas])
-
-  useEffect(() => {
-    if (detailIdea) window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [detailIdea?.id])
-
-  const grouped = useMemo(() => {
-    const out: Partial<Record<IdeaState, ContentIdeaRow[]>> = {}
-    for (const i of laneIdeas) {
-      const arr = out[i.state] || (out[i.state] = [])
-      arr.push(i)
-    }
-    return out
-  }, [laneIdeas])
-
-  // Next action: oldest 'review' idea (blocking ship), else drafting backlog.
-  const nextDecisionIdea = useMemo(() => {
-    const inReview = laneIdeas.filter(i => i.state === 'review')
-    if (inReview.length > 0) {
-      return [...inReview].sort((a, b) => (a.updated_at < b.updated_at ? -1 : 1))[0]
-    }
-    return laneIdeas.filter(i => i.state === 'drafting')[0] || null
-  }, [laneIdeas])
-  const reviewCount = (grouped.review || []).length
-  const draftCount = (grouped.drafting || []).length
-
-  // Focus Mode (Phase 3): when enabled and the day is calibrated, the state
-  // sections regroup into the 3 daily-target lanes via relevance_index (table
-  // 'content_ideas'). One uniform row renderer feeds both lanes and the muted set.
-  const { mode, setMode } = useFocusMode()
-  const { today: focusToday } = useDailyFocus()
-  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
-  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
-
-  // Flat, state-ordered array of the ideas the normal sections would show.
-  const visibleIdeas = useMemo(
-    () => ACTIVE_STATES.flatMap(s => grouped[s] || []),
-    [grouped],
-  )
-
-  // Uniform row renderer mirroring the normal section card + its select behavior.
-  const renderIdeaRow = (idea: ContentIdeaRow) =>
-    idea.id === (ideaId || null) ? null : <ContentIdeaCardActionable idea={idea} />
-
-  const focusIdea = () => {
-    if (!nextDecisionIdea) return
-    const el = document.querySelector(`[data-content-idea-id="${nextDecisionIdea.id}"]`) as HTMLElement | null
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      el.style.outline = '2px solid rgba(245, 158, 11, 0.7)'
-      el.style.outlineOffset = '4px'
-      el.style.borderRadius = '12px'
-      setTimeout(() => { el.style.outline = ''; el.style.outlineOffset = '' }, 3500)
-    }
+function urgencyOf(i: ContentIdeaRow): Urgency {
+  const today = todayYMD()
+  if (i.scheduled_for) {
+    if (i.scheduled_for < today) return 'overdue'
+    if (i.scheduled_for === today) return 'today'
   }
+  if (i.cadence_due_at && !Number.isNaN(Date.parse(i.cadence_due_at))) {
+    if (new Date(i.cadence_due_at).getTime() <= Date.now()) return 'due'
+  }
+  return null
+}
+
+const URGENCY_RANK: Record<string, number> = { overdue: 0, today: 1, due: 2 }
+
+export function MobileContent(_props: Props = {}) {
+  const { ideas, loading } = useRealtimeContentIdeas()
+  const h = useHaptics()
+
+  const deck = useMemo(() => {
+    const rows = ideas
+      .filter(i => i.state !== 'dropped' && i.state !== 'published')
+      .map(i => ({ i, urg: urgencyOf(i) }))
+      // next in line (review/approved) OR urgent
+      .filter(({ i, urg }) => i.state === 'review' || i.state === 'approved' || urg !== null)
+
+    return rows.sort((a, b) => {
+      // urgent first, ranked by severity
+      const ua = a.urg ? URGENCY_RANK[a.urg] : 9
+      const ub = b.urg ? URGENCY_RANK[b.urg] : 9
+      if (ua !== ub) return ua - ub
+      // then review before approved (review is waiting on you)
+      const sa = a.i.state === 'review' ? 0 : a.i.state === 'approved' ? 1 : 2
+      const sb = b.i.state === 'review' ? 0 : b.i.state === 'approved' ? 1 : 2
+      if (sa !== sb) return sa - sb
+      // oldest first (longest waiting)
+      return (a.i.updated_at || '') < (b.i.updated_at || '') ? -1 : 1
+    })
+  }, [ideas])
+
+  const open = (id: string) => { h.tap(); window.location.hash = `#/content?idea=${id}` }
 
   return (
-    <MobileShell
-      header={<TabHeader title="Content" subtitle="Ideas to live, one lane" />}
-    >
-      <div className="pb-6 space-y-3">
-        <LaneToggle value={laneFilter} onChange={setLaneFilter} ideas={ideas} />
-        {laneFilter !== 'all' && <CadenceBar lane={laneFilter} ideas={ideas} />}
+    <MobileShell header={<TabHeader title="Ready for you" subtitle="What's next or urgent. Review, adjust, push." />}>
+      <div className="pb-6 space-y-2.5">
+        {loading && <div className="text-[12px] text-white/45 text-center py-8">Loading…</div>}
 
-        {contentEngineEnabled() && <ContentSeedRail />}
+        {!loading && deck.length === 0 && (
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-8 text-center mt-4">
+            <CheckCircle2 size={22} className="text-emerald-400/70 mx-auto mb-2" />
+            <p className="text-[13px] text-white/70">You're clear.</p>
+            <p className="text-[11px] text-white/40 mt-1">Nothing is waiting on your sign-off or due right now. New work shows up here when it's ready for you.</p>
+          </div>
+        )}
 
-        <NextActionStrip
-          headline={reviewCount}
-          headlineLabel="in review"
-          insight={nextDecisionIdea
-            ? nextDecisionIdea.state === 'review'
-              ? `"${nextDecisionIdea.idea.slice(0, 70)}${nextDecisionIdea.idea.length > 70 ? '…' : ''}" awaiting your approval`
-              : `${draftCount} drafting · oldest: "${nextDecisionIdea.idea.slice(0, 60)}${nextDecisionIdea.idea.length > 60 ? '…' : ''}"`
-            : `${laneIdeas.length} active · no drafts awaiting your read`}
-          ctaLabel={nextDecisionIdea ? 'Open' : 'View pipeline'}
-          onCta={focusIdea}
-          icon={FileText}
-          accent={reviewCount > 0 ? 'text-amber-300' : 'text-violet-300'}
-          disabled={!nextDecisionIdea}
-        />
-
-        {detailIdea && (
-          <section
-            aria-label="Selected idea"
-            className="rounded-2xl border border-violet-500/25 bg-violet-500/[0.04] p-1"
+        {!loading && deck.map(({ i, urg }) => (
+          <button
+            key={i.id}
+            type="button"
+            onClick={() => open(i.id)}
+            className="w-full text-left rounded-2xl border border-white/[0.08] bg-white/[0.02] active:bg-white/[0.05] p-3.5 transition-colors"
           >
-            <ContentIdeaCardActionable idea={detailIdea} expanded onClose={onClearIdea} />
-          </section>
-        )}
-
-        {loading && (
-          <div className="text-[12px] text-white/45 text-center py-4">Loading…</div>
-        )}
-
-        {!loading && laneIdeas.length === 0 && (
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-6 text-center">
-            <FileText size={18} className="text-white/30 mx-auto mb-2" />
-            <p className="text-[12px] text-white/55">No active content ideas in this lane.</p>
-            <p className="text-[11px] text-white/35 mt-1">Quick-capture an idea or wait for Cleo&rsquo;s next sweep.</p>
-          </div>
-        )}
-
-        {isFocusModeEnabled() && calibrated && (
-          <div className="flex items-center justify-end">
-            <FocusModeToggle mode={mode} onChange={setMode} />
-          </div>
-        )}
-
-        {showFocus ? (
-          <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-3">
-            <FocusLanes
-              rows={visibleIdeas}
-              table="content_ideas"
-              keyOf={i => String(i.id)}
-              renderItem={renderIdeaRow}
-              fallback={null}
-              mutedLabel="Off focus"
-            />
-          </section>
-        ) : (
-          ACTIVE_STATES.map(state => {
-            const rows = grouped[state] || []
-            if (rows.length === 0) return null
-            return (
-              <section key={state} className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-3">
-                <h3 className="text-[11px] uppercase tracking-[0.14em] text-violet-300 mb-2 flex items-baseline gap-2">
-                  {STATE_LABEL[state]} <span className="text-white/45 tabular-nums">{rows.length}</span>
-                </h3>
-                <ul className="space-y-2.5">
-                  {rows.map(i => (
-                    <li key={i.id}>
-                      {/* Hide the inline card if it's already pinned at the top as the detail. */}
-                      {i.id !== (ideaId || null) && <ContentIdeaCardActionable idea={i} />}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )
-          })
-        )}
+            <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+              <StateChip state={i.state} />
+              {urg && <UrgencyChip urg={urg} />}
+              {i.lane && <span className="text-[10px] uppercase tracking-[0.1em] text-white/40">{i.lane.replace(/_/g, ' ')}</span>}
+              <ChevronRight size={15} className="text-white/30 ml-auto" />
+            </div>
+            <p className="text-[14px] font-semibold text-white leading-snug">{i.idea}</p>
+            {(i.body || i.thesis) && (
+              <p className="text-[12px] text-white/55 leading-snug mt-1 line-clamp-2">
+                {(i.body || i.thesis || '').slice(0, 180)}
+              </p>
+            )}
+            <div className="flex items-center gap-2 mt-2">
+              {!i.body?.trim() && <span className="text-[10px] text-amber-200/70">no draft yet</span>}
+              {i.body?.includes('—') && (
+                <span className="text-[10px] text-rose-200/80 inline-flex items-center gap-0.5"><AlertTriangle size={10} /> em dash</span>
+              )}
+              <span className="ml-auto text-[11px] text-violet-300/90">Review →</span>
+            </div>
+          </button>
+        ))}
       </div>
     </MobileShell>
   )
+}
+
+function StateChip({ state }: { state: ContentIdeaRow['state'] }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    review: { label: 'Awaiting you', cls: 'bg-amber-500/15 text-amber-200' },
+    approved: { label: 'Ready to ship', cls: 'bg-emerald-500/15 text-emerald-200' },
+  }
+  const m = map[state] || { label: state, cls: 'bg-white/[0.08] text-white/70' }
+  return <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.08em] font-semibold ${m.cls}`}>{m.label}</span>
+}
+
+function UrgencyChip({ urg }: { urg: Exclude<Urgency, null> }) {
+  const map = {
+    overdue: { label: 'Overdue', cls: 'bg-rose-500/20 text-rose-200' },
+    today: { label: 'Today', cls: 'bg-orange-500/20 text-orange-200' },
+    due: { label: 'Due', cls: 'bg-orange-500/15 text-orange-200' },
+  } as const
+  const m = map[urg]
+  return <span className={`text-[10px] px-1.5 py-0.5 rounded inline-flex items-center gap-0.5 ${m.cls}`}><Clock size={9} /> {m.label}</span>
 }
