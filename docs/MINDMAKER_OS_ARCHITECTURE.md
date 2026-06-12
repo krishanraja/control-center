@@ -19,17 +19,17 @@
 >
 > **Manual step (Krish only):** after each update, copy the Claude-skill version into Claude **browser** skills by hand — that surface has no automated sync. Everything in 1–5 is synced together programmatically and is byte-identical (these copies carry no YAML frontmatter — the skill registers off the H1 title).
 >
-> **Last reconciled against live state.** 2026-06-11. Snapshot: 14 production agents (executive / growth / ops pods) plus 4 personal-life agents; ~80 n8n workflows (~75 active); ~67 Supabase tables/views; ~108 shared skills; ~170 standards; Control Center live at controlcenter.krishraja.com. Autonomous OS diagnostics live (§8.8.6); first OS cleanliness pass complete (8 stale tasks closed, workspace restructure committed, cron-payload secrets migrated). **Content Engine shipped on the Content tab (§5.7): transform axes, Challenge/enrich, channel variants, Five Standards gate, Push-to-Cleo, auto-seed + auto-score; gated behind `VITE_CONTENT_ENGINE_ENABLED`.**
+> **Last reconciled against live state.** 2026-06-12. Snapshot: 14 production agents (executive / growth / ops pods) plus 4 personal-life agents; ~81 n8n workflows (~76 active); ~68 Supabase tables/views; ~108 shared skills; ~170 standards; Control Center live at controlcenter.krishraja.com. Autonomous OS diagnostics live (§8.8.6); first OS cleanliness pass complete (8 stale tasks closed, workspace restructure committed, cron-payload secrets migrated). **Content Engine shipped on the Content tab (§5.7): transform axes, Challenge/enrich, channel variants, Five Standards gate, Push-to-Cleo, auto-seed + auto-score; gated behind `VITE_CONTENT_ENGINE_ENABLED`.** **Skill induction shipped (§8.7): the learning loop is now generative as well as corrective. Vera clusters repeated wins into `skill_proposals`, Krish approves, and the induced play appends to the agent brief. Self-gates until win density builds.**
 
 ---
 
 ## 0. Mental model in five sentences
 
 1. **Mindmaker OS is a fleet of AI agents that runs Krish Raja's business portfolio** — consulting (Mindmaker, Meliora, AdFixus), builder products (Fractionl, OnAlert, Gutted, Merciless, mm-ctrl), and content brands (Builder Economy, Signal & Noise, Techonomic) — so Krish spends his hours on decisions, not admin.
-2. **Supabase is the single source of truth.** Every piece of state — agent identity, sprint plans, tasks, leads, guests, customers, bets, standards, audit log, completeness contracts, silent failures, email drafts, **concept decisions** — lives in one Postgres database (~67 tables). Local JSON for state is banned.
-3. **Agents come in two shapes.** *Claude Code agents* (7 — Agatha, Cleo, Arlo, plus four personal-life agents) run inside OpenClaw on a VPS with workspace files, Telegram bots, and full conversational capability. *N8N workflow agents* (~80 workflows, ~75 active, across 14 production roles) run on cron or webhook, do one thing, and write the result back to Supabase.
+2. **Supabase is the single source of truth.** Every piece of state — agent identity, sprint plans, tasks, leads, guests, customers, bets, standards, audit log, completeness contracts, silent failures, email drafts, **concept decisions** — lives in one Postgres database (~68 tables). Local JSON for state is banned.
+3. **Agents come in two shapes.** *Claude Code agents* (7 — Agatha, Cleo, Arlo, plus four personal-life agents) run inside OpenClaw on a VPS with workspace files, Telegram bots, and full conversational capability. *N8N workflow agents* (~81 workflows, ~76 active, across 14 production roles) run on cron or webhook, do one thing, and write the result back to Supabase.
 4. **The Control Center (`controlcenter.krishraja.com`) is the single pane of glass.** It reads Supabase via Postgres Realtime; Krish's clicks (approve, reject, promote, deep enrich, schedule, kill, **draft email**, **close concept**) write back to Supabase and fire webhooks to the Orchestrator, which routes them to the right agent. The Home tab is anchored by a unified `decisions_waiting` view that surfaces every kind of thing currently waiting on Krish.
-5. **The OS learns, self-heals, and remembers its own closures.** Krish's rejections go to `feedback_queue`; Vera groups them into `corrections`; Agatha turns those into edits on `agents.brief_content` or `standards_registry`. The four-tier silent-failure system (completeness contracts → Silent Success Detector → Critical Infrastructure Monitor → Failure Pattern Sweep) catches workflows that fail without errors. **The closure architecture (`concept_decisions` + `concept_id` cascading via `close_concept`) makes Krish's "we're done with this" decisions durable at the *concept* level instead of the row level, so the same closed concept stops resurfacing across rows, generators, and synthesis surfaces.** Same mistake doesn't survive four occurrences; same silent failure doesn't survive a week; **same concept doesn't get closed twice.**
+5. **The OS learns, self-heals, and remembers its own closures.** Krish's rejections go to `feedback_queue`; Vera groups them into `corrections`; Agatha turns those into edits on `agents.brief_content` or `standards_registry`. The four-tier silent-failure system (completeness contracts → Silent Success Detector → Critical Infrastructure Monitor → Failure Pattern Sweep) catches workflows that fail without errors. **The closure architecture (`concept_decisions` + `concept_id` cascading via `close_concept`) makes Krish's "we're done with this" decisions durable at the *concept* level instead of the row level, so the same closed concept stops resurfacing across rows, generators, and synthesis surfaces.** Same mistake doesn't survive four occurrences; same silent failure doesn't survive a week; **same concept doesn't get closed twice.** The loop also runs forward: Vera clusters repeated wins into proposed skills that, once Krish approves, append to the agent brief, so a good pattern gets crystallized, not only a bad one corrected.
 
 If a section below contradicts this five-sentence model, the model is right and the section is stale. File an issue.
 
@@ -44,7 +44,7 @@ The OS is judged by these outcomes, not by activity. Everything in this doc — 
 | **O-1** | Krish under 2 hrs/day on ops | Time logged + `decisions_waiting` count under 10 | Target: under 10. Live: tracked on Home as the unified panel badge. |
 | **O-2** | $20K/month consulting revenue inside 60 days of audit close | Stripe Mindmaker + Meliora + AdFixus revenue, MTD | Tracked by MrrTicker + Leo Weekly Report. |
 | **O-3** | One person running what traditionally takes 15-30 | Active workflows × success rate × outputs landed | ~75 active workflows. Vera scores fleet health weekly. |
-| **O-4** | Same mistake doesn't survive four occurrences | `feedback_queue` → `corrections` → brief edit cycle time | Vera Feedback Aggregation runs Sun 06:00 UTC. |
+| **O-4** | Same mistake doesn't survive four occurrences, and a repeated win gets crystallized into a skill | `feedback_queue` → `corrections` → brief edit cycle time; plus clustered wins → `skill_proposals` → brief play | Vera Feedback Aggregation runs Sun 06:00 UTC; Vera Success Induction Sweep runs Sun 08:00 UTC (self-gates until win density builds). |
 | **O-5** | Same silent failure doesn't survive a week | `silent_failures` → `corrections` via Failure Pattern Sweep | Vera Failure Pattern Sweep runs Sun 07:00 UTC. |
 | **O-6** | Zero content published without Krish approval | Standards PUB-001 / PUB-005; audit_log review | Enforced in workflow graph; `X-Agatha-Secret` gates the LinkedIn distribution endpoint. |
 | **O-7** | Decision lag under 24h on enriched surfaces | `decisions_waiting.age_hours` p50 | Lead/guest/visibility targets surface enriched with rich previews so Krish answers in seconds. |
@@ -63,7 +63,7 @@ When a section of this doc describes a workflow, table, or surface, it should be
 | VPS (Ubuntu 22.04) | Hosts OpenClaw, every workspace, system crontab, helper scripts | `/root/.openclaw/` |
 | OpenClaw | Agent framework — sessions, cron, Telegram/Discord routing, gateway | `/root/.openclaw/openclaw.json` |
 | Supabase | Postgres database (state SSOT), PostgREST API, edge functions, auth, realtime | Project `gojpffsrxybbpbdzzrvs` |
-| N8N Cloud | ~80 workflows (~75 active) running on cron/webhook — orchestrator, agent jobs, integrations | `krishraja10101.app.n8n.cloud` |
+| N8N Cloud | ~81 workflows (~76 active) running on cron/webhook — orchestrator, agent jobs, integrations | `krishraja10101.app.n8n.cloud` |
 | Vercel | Hosts Control Center (React + Vite + TS) + `/api/*` proxy functions | Project `control-center` |
 | GitHub | Source for Control Center + checked-in N8N workflow snapshots + this doc | `krishanraja/control-center` |
 | Google Workspace | Docs, Sheets, Drive, Gmail — output + collaboration + email drafts via OAuth | `krish@themindmaker.ai` |
@@ -147,7 +147,7 @@ These are the agents the OS itself tracks via `agents.brief_content` (identity) 
 | **Kai** | Technical Architecture / Integrations | scheduled (6×/day) | Credential health, workflow health, dependency map currency |
 | **Leo** | Chief Revenue Officer | scheduled (weekly) | Revenue MTD, runway clarity, 3-venture funnel maps |
 | **Priya** | Product Strategy | scheduled (1×/day) | Per-product health score, weekly rollup |
-| **Vera** | Chief of Staff & Quality | scheduled (2×/day + Fri deep + Sun feedback + Sun failure-pattern sweep) | Standards compliance, drift detection, audit closure |
+| **Vera** | Chief of Staff & Quality | scheduled (2×/day + Fri deep + Sun feedback + Sun failure-pattern + Sun success-induction sweep) | Standards compliance, drift detection, audit closure, skills induced from wins |
 
 The roster lives in three places that must agree: Supabase `agents` (authoritative), `docs/AGENTS.md` in this repo, and `api/agents/[name].ts:available_agents` (fallback list). If the table grows or shrinks, all three change in the same commit.
 
@@ -162,7 +162,7 @@ The roster lives in three places that must agree: Supabase `agents` (authoritati
 
 **Hard rule.** `laurenkthermos@gmail.com` is Lauren's, not Krish's. NEVER use it for Drive/Docs/Gmail outside `loz` workspace.
 
-### 3.4 N8N workflow inventory (~80 workflows, ~75 active)
+### 3.4 N8N workflow inventory (~81 workflows, ~76 active)
 
 Live inventory, grouped by name prefix:
 
@@ -176,7 +176,7 @@ Live inventory, grouped by name prefix:
 | **Feedback** | 5 | Weekly per product (Fractionl Circle, Fractionl Pulse, Gutted, Merciless, OnAlert) |
 | **Nova** | 4 | Closed-Loop PR Engine, Visibility Sweeper (Mon 11:00 UTC), enrich endpoints |
 | **Marcus** | 4 | Synthesis + Home Intelligence, Daily Brief 06:30, Friday Retro 17:00, Monday Pre-mortem 08:00 |
-| **Vera** | 3 | Behavioural Auditor, Feedback Aggregation (Sun 06:00 UTC), Failure Pattern Sweep (Sun 07:00 UTC) |
+| **Vera** | 4 | Behavioural Auditor, Feedback Aggregation (Sun 06:00 UTC), Failure Pattern Sweep (Sun 07:00 UTC), Success Induction Sweep (Sun 08:00 UTC, generative arm) |
 | **Maya** | 3 | Closed-Loop Revenue Engine, Customer Acquisition Sweeper, Churn → Exit Interview Task |
 | **Zara** | 2 | Content Pipeline (Zara→Cleo→Maya), Layer 1 Signal Inbox (Drive watcher) |
 | **Priya** | 2 | Daily Health Scan, Weekly Product Rollup |
@@ -208,7 +208,7 @@ A point-in-time snapshot of the five workflows most central to the audit is chec
 
 ---
 
-## 4. Supabase — single source of truth (~67 tables/views)
+## 4. Supabase — single source of truth (~68 tables/views)
 
 Every piece of OS state lives in one of these tables. Categorised by change rate and role. Full schema in `docs/DATABASE.md`. RLS is enabled on every table.
 
@@ -258,7 +258,7 @@ Every piece of OS state lives in one of these tables. Categorised by change rate
 | `feedback_queue` | Krish's rejections + comments — fuel for the learning loop (consumed by Vera Feedback Aggregation Sun 06:00 UTC) |
 | `corrections` | Patterns Vera extracts from `feedback_queue` (≥3 matches, confidence > 0.85) AND from `silent_failures` via Failure Pattern Sweep |
 | `silent_failures` | Tier 1–4 of the self-healing system. Rows written by completeness gates + Silent Success Detector + Critical Infrastructure Monitor; resolved by humans or grouped into `corrections` by Vera |
-| `learning_events` | Self-improvement loop events |
+| `learning_events` | Self-improvement loop events, both directions: corrective (`violation`) and generative (`win` / `win_pattern`, written when Krish approves an induced skill) |
 | `standards_efficacy` | How well each standard is being followed |
 | `system_health` | Per-component infra signals |
 | `home_intelligence` | The Control Center home feed — `summary`, `metrics`, `external_signals`, `customer_signals`, `customer_voice`, plus Marcus-COO surfaces (`daily_brief`, `weekly_retro`, `monday_premortem` + their `*_at` and `*_ack_at` timestamps). All structured fields are JSONB |
@@ -272,21 +272,24 @@ Every piece of OS state lives in one of these tables. Categorised by change rate
 
 ### 4.6 System & sync plumbing
 
-`approvals`, `pending_flags`, `sync_queue`, `google_drive_sync`, `schema_migrations`, `system_improvements`, `system_config`, `crons`, `memory`, `plan_execution`, `skill_deliveries`, `workflow_proposals`, `credential_health`, `credential_expiry`, `fleet_drift_report`.
+`approvals`, `pending_flags`, `sync_queue`, `google_drive_sync`, `schema_migrations`, `system_improvements`, `system_config`, `crons`, `memory`, `plan_execution`, `skill_deliveries`, `workflow_proposals`, `skill_proposals` (the success-induction approval queue, see §8.7), `credential_health`, `credential_expiry`, `fleet_drift_report`.
 
 ### 4.7 The `decisions_waiting` view
 
-Postgres view. Unions five source tables into a single uniform shape (`{kind, id, title, agent, age_hours, link, meta}`) so the Control Center Home tab can render one panel covering every kind of thing waiting on Krish:
+Postgres view. Unions eight source tables into a single uniform shape (`{kind, id, title, description, agent, status, priority, sort_at, url, source_table, meta, route_target}`) so the Control Center Home tab can render one panel covering every kind of thing waiting on Krish:
 
 | `kind` | Source | What it surfaces |
 |---|---|---|
-| `task` | `tasks` where status ∈ (`waiting`, `pending-agatha-review`, `pending-review`, `blocked`) | Decisions on individual tasks |
-| `lead` | `leads` where `promoted_task_id IS NULL AND deep_enriched_at IS NOT NULL` | Enriched leads awaiting promote/reassign/draft-email |
-| `guest` | `guests` where `status='enriched'` | Guests with pitch_draft + suggested_angles ready for Krish review |
-| `visibility` | `visibility_targets` where `status='enriched'` | Speaking/PR targets ready for Krish review |
-| `idea` | `content_ideas` where `status='pending'` | Captured ideas awaiting greenlight |
+| `task` | `tasks` not yet krish-reviewed (`status ∈ waiting/in_progress/blocked/new`, not buried) | Decisions on individual tasks |
+| `lead` | `leads` (`status ∈ new/ready`, green/amber, not buried) | Enriched leads awaiting promote/reassign/draft-email |
+| `guest` | `guests` (`status ∈ scouted/researched/pitched/enriched`, not buried) | Guests with pitch_draft + suggested_angles ready for review |
+| `visibility` | `visibility_targets` (live, green/amber, not buried) | Speaking/PR targets ready for review |
+| `idea` | `content_ideas` (`state ∈ seeded/researching/drafting/review`, not buried) | Captured ideas awaiting greenlight |
+| `correction` | `corrections` where `status='analyzed' AND approval_state='pending'` | Vera's proposed brief edits (corrective loop) awaiting approve/reject |
+| `inbox_returned` | `tasks_inbox` where `status='needs_krish'` | Krish-captured inbox items routed back for a decision |
+| `skill_proposal` | `skill_proposals` where `status='proposed'` | Induced skills Vera drafted from clustered wins (generative loop) awaiting approve/reject |
 
-The `meta` JSONB carries the per-kind enrichment (pitch_draft preview, suggested_angles, tier, fit_score, etc.) so the panel renders rich previews without a join.
+The `meta` JSONB carries the per-kind enrichment (pitch_draft preview, suggested_angles, tier, fit_score, confidence, skill body preview, etc.) so the panel renders rich previews without a join. The `correction` and `skill_proposal` branches are the two arms of the learning loop (corrective and generative), both surfaced for one-tap approval in the same Home pane (see §8.7).
 
 A synthesis-time `LEFT JOIN concept_decisions` on each UNION branch (to hide rows whose concepts Krish has already closed) is not yet wired — see §17.7. Today `close_concept` works at the row-status level (tasks → `superseded`, leads → `closed_lost`), which removes them from the underlying source filters indirectly.
 
@@ -298,6 +301,9 @@ A synthesis-time `LEFT JOIN concept_decisions` on each UNION branch (to hide row
 | `audit_silent_failures()` | Used by Silent Success Detector (4h cron) to detect ok-but-empty runs |
 | `audit_critical_infra()` | Used by Critical Infrastructure Monitor (5m cron) to detect credential/RLS failures |
 | `audit_failure_patterns()` | Used by Vera Failure Pattern Sweep (Sun 07:00 UTC) to cluster silent_failures into corrections |
+| **`induct_skill_candidates()`** | Used by Vera Success Induction Sweep (Sun 08:00 UTC) to cluster evidence-backed task wins by [agent, task_type] and return clusters at/above the volume threshold (`system_config.skill_induction_min_cluster_size`, default 3) that do not already have a live or completed skill. Self-gating: returns zero rows until a real win corpus exists |
+| **`bump_skill_usage()`** | Marks a completed induced skill as used when its pattern produces a fresh win after go-live (the usage proxy for decay). Run weekly by the Success Induction Sweep |
+| **`flag_decayed_skills()`** | Flags completed skills unused for N days (`skill_induction_decay_days`, default 45) or followed by a same-pattern rejection, for pruning. Flags only: actual retirement stays approval-gated |
 | **`mark_entity_emailed(entity_type, entity_id, draft_id, draft_url)`** | Idempotent helper called by the Cleo Email Draft workflow to stamp `last_emailed_at`, `last_email_draft_id`, `last_email_draft_url` on the relevant entity (lead/customer/guest) atomically |
 | **`compute_concept_slug(p_name text) → text`** | Deterministic slugifier (lowercase, btrim, collapse non-alphanumeric to `-`). Used by the leads/tasks backfill and by any generator that needs to assign `concept_id`. IMMUTABLE so the planner can use it in expression indexes if needed |
 | **`close_concept(p_concept_id text, p_reason text, p_decided_by text DEFAULT 'krish') → jsonb`** | Upserts a `concept_decisions` row with `decision='closed'`, cascades status updates across tagged rows (tasks → `superseded`, leads → `closed_lost`), records an `audit_log` event of type `concept_closed`, and propagates `app.changed_by` + `app.source='rpc:close_concept'` into the trigger-emitted `status_change_log` rows so every cascading status change is attributed. Returns `{ok, concept_id, tasks_closed, leads_closed, decided_at}`. Re-runnable: ON CONFLICT (concept_id) updates the decision and clears `superseded_at`; already-terminal rows are not re-stamped |
@@ -919,6 +925,26 @@ Krish rejects output in Control Center (via FeedbackButton with reason_code)
 
 **The promise: same mistake doesn't survive four occurrences.** FeedbackButton surfaces: `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`, **`goals`**, **`milestones`**, plus `customers`, `bets`, `opportunities`, `corrections`, and `contacts` (the `/api/feedback` ALLOWED_TABLES set covers 10+ surfaces).
 
+**Generative arm (success induction).** The same loop runs forward. A thumbs-up on a completed task (the Recently Done section on the Today tab) writes a positive `feedback_queue` row (vote=1): the explicit win signal. Evidence-backed completions count too. Vera then crystallizes repeated wins into reusable skills, the mirror image of turning repeated rejections into corrections.
+
+```
+Krish thumbs-up a done task, or a task completes with substantive evidence
+    -> feedback_queue row (vote=1) / evidence-backed completion
+        -> Vera Success Induction Sweep (Sun 08:00 UTC weekly)
+            -> induct_skill_candidates() clusters wins by (agent, task_type)
+                -> If a cluster is at/above the volume threshold (default 3):
+                    -> Sonnet drafts a reusable play in Krish voice (no em dashes)
+                        -> skill_proposals row (status='proposed')
+                            -> Surfaces in the Org tab + decisions_waiting Home pane
+                                -> Krish approves
+                                    -> Append the "Learned play" block to agents.brief_content
+                                    -> learning_events row (event_type='win', classification='win_pattern')
+                                    -> render-identity.py picks up within 15 min
+                                    -> Next session wake loads the new skill
+```
+
+**The promise: a repeated win gets crystallized, not only a mistake corrected.** `skill_proposals` mirrors `workflow_proposals` (same state machine, same approval gate); the RPCs are `induct_skill_candidates` / `bump_skill_usage` / `flag_decayed_skills` (§4.8) and the surfacing branch is `decisions_waiting.skill_proposal` (§4.7). Decay is built in: `flag_decayed_skills()` flags an induced skill that goes unused for N days or is followed by a same-pattern rejection, for approval-gated pruning. Phase 1 is **agent-scope only** (the play lands in one agent's brief via the same render path corrections use); shared cross-fleet skills are a later phase. The whole arm **self-gates**: with no win density, `induct_skill_candidates()` returns nothing and the sweep writes only an audit heartbeat. Nothing an agent loads is written without Krish's approval.
+
 ### 8.7.0 Three altitudes
 
 The Objective Layer introduces three feedback altitudes, each with a canonical `reason_code` and a distinct lesson Vera teaches Marcus. The whole point of splitting them is that a single rejection at the wrong altitude was previously mud: Marcus could not tell whether Krish meant "wrong task today," "right task wrong week," or "this whole objective is dead." Three completely different lessons.
@@ -1042,7 +1068,7 @@ Carrier files: `supabase/migrations/20260527200000_tasks_inbox_phase2.sql` (tabl
 
 Feature flag: `VITE_TASKS_INBOX_ENABLED`. Default false.
 
-`decisions_waiting` view is now 7-branch: task, guest, idea, lead, visibility, correction, inbox_returned.
+`decisions_waiting` view is now 8-branch: task, guest, idea, lead, visibility, correction, inbox_returned, skill_proposal (see §4.7).
 
 
 ### 8.8 Self-healing — four-tier silent-failure system
@@ -1295,7 +1321,7 @@ These run shell scripts and Python that never call an LLM. Cheapest possible cad
 
 ### 9.3 N8N cron (inside each workflow)
 
-N8N workflows carry their own `cron` / `schedule` nodes. The ~80 workflows together fire hundreds of times a day. See `workflow_runs` for the live cadence; Kai's Dependency Mapper rolls it up.
+N8N workflows carry their own `cron` / `schedule` nodes. The ~81 workflows together fire hundreds of times a day. See `workflow_runs` for the live cadence; Kai's Dependency Mapper rolls it up.
 
 Notable scheduled workflows:
 
@@ -1308,6 +1334,7 @@ Notable scheduled workflows:
 | Mon 11:00 UTC | Nova Visibility Sweeper | Weekly Perplexity scrape → visibility_targets |
 | Sun 06:00 UTC | Vera Feedback Aggregation | Weekly feedback_queue → corrections rollup |
 | Sun 07:00 UTC | Vera Failure Pattern Sweep | Tier 4 self-healing |
+| Sun 08:00 UTC | Vera Success Induction Sweep | Generative learning: cluster wins into skill_proposals |
 
 **Planned closure workflows (see §17.7).** `Agatha | Closure Intent Receiver` (webhook trigger only — no cron), and a weekly `Vera | Closure Audit` (Sunday, after Failure Pattern Sweep) that would flag any concept re-closed > 2 times in 30 days as a generator-misfire pattern.
 
@@ -1597,7 +1624,7 @@ Rows record the *current* state of an entity. Concepts record the durable identi
 - Priya monitors product health.
 - Kai checks every credential + workflow every 4 hours.
 - Arlo syncs Control Center every 5 minutes.
-- Vera audits standards compliance daily, deep audit Fridays, feedback aggregation Sundays.
+- Vera audits standards compliance daily, deep audit Fridays, feedback aggregation and success induction Sundays.
 - Marcus refreshes Home Intelligence Mon/Wed/Fri + Sunday deep + Daily Brief weekdays. Marcus pulls leads with `status IN ('ready','contacted','conversation')`, so closed leads never resurface.
 - Critical Infrastructure Monitor watches credentials every 5 min.
 - Silent Success Detector watches downstream effects every 4 hours.
@@ -1609,7 +1636,7 @@ Rows record the *current* state of an entity. Concepts record the durable identi
 - Tue–Thu: Zara signals, Felix pipeline, content drafts.
 - Wed: marketing-agent, newsletter-draft.
 - Fri: Leo revenue pulse, Vera deep audit, Marcus Friday Retro 17:00.
-- Sun: Vera Feedback Aggregation 06:00, Vera Failure Pattern Sweep 07:00, Truth Reconciler backstop. (A weekly Vera Closure Audit is planned — see §17.7.)
+- Sun: Vera Feedback Aggregation 06:00, Vera Failure Pattern Sweep 07:00, Vera Success Induction Sweep 08:00, Truth Reconciler backstop. (A weekly Vera Closure Audit is planned — see §17.7.)
 - Last day of month: monthly-all-hands.
 
 ---
