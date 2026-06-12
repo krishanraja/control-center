@@ -8,6 +8,7 @@ import { humanize } from '../shared/tokens'
 import { FlagAgentModal } from '../FlagAgentModal'
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { usePendingCorrections, type PendingCorrection } from '../../hooks/usePendingCorrections'
+import { SkillProposalsPanel } from '../shared/SkillProposalsPanel'
 
 interface Agent {
   id: string
@@ -309,6 +310,8 @@ export function DesktopOrg() {
           onRefetch={pendingCorrections.refetch}
         />
       )}
+
+      <SkillProposalsPanel />
 
       {groups.length === 0 && (
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] py-10 md:py-12 text-center">

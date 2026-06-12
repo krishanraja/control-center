@@ -243,6 +243,24 @@ export function buildDecisionActions(
       break
     }
 
+    case 'skill_proposal': {
+      acts.push({
+        label: 'Approve',
+        variant: 'primary',
+        onClick: () => run('Approve',
+          () => json('/api/skill-proposals/approve', { skill_proposal_id: row.id }),
+          'Skill approved and taught to the agent.', { terminal: true }),
+      })
+      acts.push({
+        label: 'Reject',
+        variant: 'danger',
+        onClick: () => run('Reject',
+          () => json('/api/skill-proposals/reject', { skill_proposal_id: row.id }),
+          'Skill proposal dismissed.', { terminal: true }),
+      })
+      break
+    }
+
     default:
       break
   }

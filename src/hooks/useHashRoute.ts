@@ -50,7 +50,7 @@ export function useHashRoute() {
         const iv = setInterval(() => {
           tries++
           const el = document.querySelector(
-            `[data-target-id="${targetId}"], [data-task-id="${targetId}"], [data-lead-id="${targetId}"], [data-guest-id="${targetId}"], [data-idea-id="${targetId}"], [data-correction-id="${targetId}"]`
+            `[data-target-id="${targetId}"], [data-task-id="${targetId}"], [data-lead-id="${targetId}"], [data-guest-id="${targetId}"], [data-idea-id="${targetId}"], [data-correction-id="${targetId}"], [data-skill-proposal-id="${targetId}"]`
           ) as HTMLElement | null
           if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' })

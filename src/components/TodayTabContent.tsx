@@ -4,6 +4,7 @@ import {
   Pencil, Check, X, Loader2
 } from 'lucide-react'
 import { supabase, logKrishAction } from '../lib/supabase'
+import { FeedbackButton } from './shared/FeedbackButton'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -45,6 +46,7 @@ interface TodayItem {
   title: string
   detail?: string
   owner?: string
+  agent?: string
   status?: string
   priority?: number
   est?: string
@@ -295,10 +297,18 @@ export function TodayTabContent() {
   const [focusText, setFocusText] = useState('')
 
   const fetchAll = async () => {
-    const [blockedRes, goalsRes, todayRes] = await Promise.allSettled([
+    const [blockedRes, goalsRes, todayRes, doneRes] = await Promise.allSettled([
       fetch('/api/data', { cache: 'no-cache' }).then(r => r.json()),
       fetch('/api/goals', { cache: 'no-cache' }).then(r => r.json()),
       fetch('/api/today', { cache: 'no-cache' }).then(r => r.json()),
+      // /api/today hard-excludes done tasks, so source recently-completed work
+      // directly. Each gets a thumbs-up that feeds Vera the win signal.
+      supabase
+        .from('tasks')
+        .select('id, title, description, agent, owner, updated_at')
+        .eq('status', 'done')
+        .order('updated_at', { ascending: false })
+        .limit(12),
     ])
 
     if (blockedRes.status === 'fulfilled') {
@@ -309,7 +319,10 @@ export function TodayTabContent() {
     if (todayRes.status === 'fulfilled') {
       const items = (todayRes.value.items || []) as TodayItem[]
       setTodayItems(items.filter(i => i.status !== 'done'))
-      setDoneItems(items.filter(i => i.status === 'done'))
+    }
+    if (doneRes.status === 'fulfilled' && !doneRes.value.error) {
+      const rows = (doneRes.value.data || []) as Array<{ id: string; title: string; description?: string | null; agent?: string | null; owner?: string | null }>
+      setDoneItems(rows.map(r => ({ id: r.id, title: r.title, detail: r.description || undefined, agent: r.agent || r.owner || undefined, status: 'done' })))
     }
     setLoading(false)
   }
@@ -391,6 +404,31 @@ export function TodayTabContent() {
             </div>
           )}
         </section>
+
+        {/* Done today (thumbs-up here feeds Vera the win signal) */}
+        {doneItems.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-emerald-400" />
+              <h2 className="text-[11px] font-bold uppercase tracking-widest text-emerald-400">
+                Recently Done ({doneItems.length})
+              </h2>
+            </div>
+            <div className="space-y-2">
+              {doneItems.map(item => (
+                <div key={item.id} className="flex items-start gap-3 bg-white/[0.02] border border-white/[0.07] rounded-xl p-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-white/70 line-through decoration-white/20">{item.title}</p>
+                    {item.detail && <p className="text-[11px] text-white/35 mt-0.5 leading-relaxed">{item.detail}</p>}
+                  </div>
+                  <div className="flex-shrink-0 self-center" onClick={(e) => e.stopPropagation()}>
+                    <FeedbackButton sourceTable="tasks" sourceId={item.id} agentId={item.agent || item.owner || null} compact />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       {/* ── RIGHT: Goals ────────────────────────────────────── */}
