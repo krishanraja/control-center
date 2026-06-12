@@ -1,13 +1,17 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { randomUUID } from 'node:crypto'
 import { supabase } from '../../_supabase.js'
+import { callClaude, readMaterials, robustJson, type Material } from '../../_content.js'
 
 // POST /api/content-ideas/:id/dive-deeper
-//   body: { query: string }
+//   body: { query: string }            — scoped Perplexity follow-up on a sub-area
+//   body: { suggest: true, force? }    — Cleo proposes the research worth running
 //
-// Scoped Perplexity follow-up on a sub-area of an idea (CONTENT_TAB_SPEC §4.3a).
-// Appends {query, findings, citations, at} to meta.deep_dives and merges new
-// citations into meta.research, so the draft can be re-transformed with the
-// deeper material. Returns the new deep-dive entry.
+// Dives append {query, findings, citations, at} to meta.deep_dives, merge new
+// citations into meta.research, AND attach the findings to meta.materials, so
+// the corpus that grounds Cleo's writing (and rides into the Google Doc) picks
+// them up without re-pasting. Suggestions are cached on
+// meta.research_suggestions until refreshed with force.
 
 function uniq(arr: string[]): string[] {
   return Array.from(new Set(arr.filter(Boolean)))
@@ -25,14 +29,74 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const ideaId = Array.isArray(id) ? id[0] : id
   if (!ideaId) return res.status(400).json({ ok: false, error: 'id required' })
 
-  const q = String(((req.body || {}) as any).query || '').trim()
+  const body = (req.body || {}) as { query?: string; suggest?: boolean; force?: boolean }
+
+  const { data: idea, error: iErr } = await supabase
+    .from('content_ideas').select('id, idea, thesis, body, meta').eq('id', ideaId).single()
+  if (iErr || !idea) return res.status(404).json({ ok: false, error: 'idea not found' })
+
+  const meta = (idea.meta || {}) as any
+
+  // ── Suggest mode: Cleo arms the Research tab proactively ─────────────────
+  if (body.suggest) {
+    const cached = meta.research_suggestions
+    if (!body.force && Array.isArray(cached?.items) && cached.items.length) {
+      return res.status(200).json({ ok: true, suggestions: cached.items, cached: true })
+    }
+
+    const materials = readMaterials(meta)
+    const known = uniq([
+      ...(Array.isArray(meta.research) ? meta.research : []),
+      ...(Array.isArray(meta.sources) ? meta.sources : []),
+    ]).slice(0, 12)
+
+    const system = [
+      "You are Cleo, research director for Krish Raja's content. Propose the research that would most strengthen a piece with hard evidence: named companies, figures, dated events, primary sources.",
+      'Reply with JSON only, shape {"suggestions":[{"query":"…","why":"…"}]}. Exactly 4 suggestions.',
+      'Each query is a focused, searchable research question under 18 words. Each why is one short sentence on what it adds to THIS piece.',
+      'Never suggest something the existing sources or materials already cover.',
+    ].join('\n')
+    const user = [
+      `PIECE: ${idea.idea}`,
+      idea.thesis ? `THESIS: ${idea.thesis}` : '',
+      idea.body ? `DRAFT (excerpt):\n${String(idea.body).slice(0, 2200)}` : 'No draft yet.',
+      materials.length ? `MATERIALS ALREADY ATTACHED: ${materials.map(m => m.title || m.kind).join('; ').slice(0, 600)}` : '',
+      known.length ? `SOURCES ALREADY CITED:\n${known.join('\n')}` : '',
+    ].filter(Boolean).join('\n\n')
+
+    try {
+      const txt = await callClaude({ system, user, maxTokens: 700, temperature: 0.4 })
+      const parsed = robustJson(txt)
+      const items = Array.isArray(parsed?.suggestions)
+        ? parsed.suggestions
+            .filter((s: any) => s && typeof s.query === 'string' && s.query.trim())
+            .slice(0, 5)
+            .map((s: any) => ({
+              query: s.query.trim().slice(0, 200),
+              why: typeof s.why === 'string' ? s.why.trim().slice(0, 300) : '',
+            }))
+        : []
+      if (!items.length) return res.status(502).json({ ok: false, error: 'no_suggestions' })
+
+      const research_suggestions = { items, at: new Date().toISOString() }
+      const { error: uErr } = await supabase
+        .from('content_ideas')
+        .update({ meta: { ...meta, research_suggestions }, updated_at: new Date().toISOString() })
+        .eq('id', ideaId)
+      if (uErr) return res.status(500).json({ ok: false, error: uErr.message })
+
+      return res.status(200).json({ ok: true, suggestions: items })
+    } catch (e: any) {
+      return res.status(502).json({ ok: false, error: String(e?.message || e) })
+    }
+  }
+
+  // ── Dive mode: run the research and fold it into the piece ───────────────
+  const q = String(body.query || '').trim()
   if (!q) return res.status(400).json({ ok: false, error: 'query required' })
 
   const pplxKey = process.env.PERPLEXITY_API_KEY
   if (!pplxKey) return res.status(500).json({ ok: false, error: 'PERPLEXITY_API_KEY not configured' })
-
-  const { data: idea, error: iErr } = await supabase.from('content_ideas').select('id, idea, meta').eq('id', ideaId).single()
-  if (iErr || !idea) return res.status(404).json({ ok: false, error: 'idea not found' })
 
   try {
     const r = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -54,18 +118,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const findings = j?.choices?.[0]?.message?.content || ''
     const citations: string[] = Array.isArray(j?.citations) ? j.citations : []
 
-    const meta = (idea.meta || {}) as any
     const entry = { query: q, findings, citations, at: new Date().toISOString() }
     const deep_dives = [...(Array.isArray(meta.deep_dives) ? meta.deep_dives : []), entry]
     const research = uniq([...(Array.isArray(meta.research) ? meta.research : []), ...citations])
 
+    // Auto-attach the findings as a material so they ground Cleo's writing
+    // and show up in the Materials log without re-pasting.
+    let materials = readMaterials(meta)
+    let material: Material | null = null
+    if (findings.trim()) {
+      material = {
+        id: randomUUID(),
+        kind: 'research',
+        title: q.slice(0, 120),
+        content: citations.length ? `${findings}\n\nSources:\n${citations.join('\n')}` : findings,
+        url: null,
+        bytes: findings.length,
+        at: entry.at,
+      }
+      materials = [material, ...materials].slice(0, 40)
+    }
+
     const { error: uErr } = await supabase
       .from('content_ideas')
-      .update({ meta: { ...meta, deep_dives, research }, updated_at: new Date().toISOString() })
+      .update({ meta: { ...meta, deep_dives, research, materials }, updated_at: new Date().toISOString() })
       .eq('id', ideaId)
     if (uErr) return res.status(500).json({ ok: false, error: uErr.message })
 
-    return res.status(200).json({ ok: true, entry })
+    return res.status(200).json({ ok: true, entry, material })
   } catch (e: any) {
     return res.status(500).json({ ok: false, error: String(e?.message || e) })
   }

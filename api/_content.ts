@@ -28,7 +28,7 @@ export function sanitizeVoice(input: string): string {
 
 export interface Material {
   id: string
-  kind: 'paste' | 'link' | 'file'
+  kind: 'paste' | 'link' | 'file' | 'research'
   title?: string | null
   content?: string | null
   url?: string | null
