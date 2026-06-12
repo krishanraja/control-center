@@ -202,10 +202,19 @@ Guest Confirmed Cascade.
 | `distribution` | text[] | Channels (whitelist: `linkedin`, `newsletter`, `signal-noise-pod`, `builder-economy-pod`, `techonomic`, `x`) |
 | `confidence` | numeric | 0-1, hard contract `>= 0.5` for insert |
 | `quality_score` | text | `green` / `amber` / `red` |
-| `status` | text | `pending`, `accepted`, `rejected`, `published` |
+| `body` | text | Long-form draft (sanitized on save: no em dashes). Edited in the Composer; written via the API, never the anon client (RLS blocks anon writes) |
+| `lane` | text | `signal_noise` / `mindmaker` / `techonomic` / `builder_economy_ig` |
+| `lane_slot` | text | Mindmaker: `roundup` / `field_learning`; null elsewhere |
+| `state` | text | `seeded` → `researching` → `drafting` → `review` → `approved` → `published` / `dropped` |
+| `cadence_due_at` | timestamptz | Next-due for the lane/slot; drives mobile "urgent" + the All-view sort |
+| `meta` | jsonb | Engine + Composer state (see below) |
 | `source_type` | text | `agatha_chat`, `cleo_chat`, `signal_inbox`, etc. |
 | `source_ref` | text | Origin reference (telegram message id, doc id, etc.) |
 | `created_at` | timestamp | |
+
+**`meta` (jsonb) keys:** `revisions[]`, `challenges[]`, `standards`, `cleo_pushes[]`, `deep_dives[]`, `transformed_outputs` (also a top-level column), plus the Composer additions **`materials[]`** (attached research corpus — `{id,kind,title,content|url,bytes,at}`), **`cleo_chat[]`** (chat transcript), and **`saved_drafts[]`** (Save Draft stamps). No separate tables; `meta` is the durable home for engine + Composer state.
+
+**RLS:** anon `SELECT` only; `service_role` ALL. All writes go through `/api/*` (service role) — the Composer's draft autosave, materials, chat, and save-draft all PATCH/POST server-side for this reason.
 
 ---
 

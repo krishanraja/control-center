@@ -379,7 +379,11 @@ All `api/*` functions auto-deploy on push to `main`.
 | `/api/approvals/*` | Per-resource approval flows |
 | `/api/automations` | Workflow automation status |
 | `/api/bets/*` | Bet placement + close |
-| `/api/content-ideas` | Cleo idea backlog read + write |
+| `/api/content-ideas` | Cleo idea backlog read + write (`PATCH` incl. `body`, sanitized) |
+| `/api/content-ideas/:id/materials` | GET/POST/DELETE the piece's research corpus (`meta.materials[]`) |
+| `/api/content-ideas/:id/chat` | Cleo writing-partner chat (multi-turn, grounded in draft + materials) |
+| `/api/content-ideas/:id/save-draft` | Composer end CTA: sanitize + save body, fire content factory → Doc + Telegram, → `review` |
+| `/api/content-ideas/:id/{revise,challenge,score,dive-deeper,transform}` | Refine / enrich / Five-Standards / scoped research / lane variants |
 | `/api/corrections/*` | Correction-loop endpoints |
 | `/api/customer-contacts/*` | Customer conversation log |
 | `/api/data` | Aggregated dashboard payload |
