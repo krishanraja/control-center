@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert } from 'lucide-react'
+import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../../hooks/useRealtimeDecisionsWaiting'
 import { FeedCard, FeedRow, EmptyState } from '../mobile/primitives'
@@ -11,24 +11,24 @@ import { buildDecisionActions } from '../../lib/decisionActions'
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
 const KIND_ICON: Record<DecisionRow['kind'], typeof Mail> = {
-  task: Mail, guest: Mic, idea: FileText, lead: UserPlus, visibility: Target, correction: ShieldAlert,
+  task: Mail, guest: Mic, idea: FileText, lead: UserPlus, visibility: Target, correction: ShieldAlert, skill_proposal: Sparkles,
 }
 const KIND_LABEL: Record<DecisionRow['kind'], string> = {
-  task: 'Task', guest: 'Guest', idea: 'Idea', lead: 'Lead', visibility: 'Visibility', correction: 'Correction',
+  task: 'Task', guest: 'Guest', idea: 'Idea', lead: 'Lead', visibility: 'Visibility', correction: 'Correction', skill_proposal: 'Skill',
 }
 const KIND_TO_TABLE: Record<DecisionRow['kind'], string> = {
-  task: 'tasks', guest: 'guests', idea: 'content_ideas', lead: 'leads', visibility: 'visibility_targets', correction: 'corrections',
+  task: 'tasks', guest: 'guests', idea: 'content_ideas', lead: 'leads', visibility: 'visibility_targets', correction: 'corrections', skill_proposal: 'skill_proposals',
 }
 const KIND_DOT: Record<DecisionRow['kind'], string> = {
   task: 'bg-violet-400', guest: 'bg-rose-400', idea: 'bg-rose-300',
-  lead: 'bg-emerald-400', visibility: 'bg-amber-400', correction: 'bg-red-400',
+  lead: 'bg-emerald-400', visibility: 'bg-amber-400', correction: 'bg-red-400', skill_proposal: 'bg-violet-400',
 }
 // Which tab's focused queue each kind batch-reviews into.
 const KIND_TO_TAB: Record<DecisionRow['kind'], string> = {
-  task: 'today', guest: 'guests', idea: 'content', lead: 'leads', visibility: 'guests', correction: 'org',
+  task: 'today', guest: 'guests', idea: 'content', lead: 'leads', visibility: 'guests', correction: 'org', skill_proposal: 'org',
 }
 const KIND_LABEL_PLURAL: Record<DecisionRow['kind'], string> = {
-  task: 'Tasks', guest: 'Guests', idea: 'Ideas', lead: 'Leads', visibility: 'Visibility', correction: 'Corrections',
+  task: 'Tasks', guest: 'Guests', idea: 'Ideas', lead: 'Leads', visibility: 'Visibility', correction: 'Corrections', skill_proposal: 'Skills',
 }
 
 /**

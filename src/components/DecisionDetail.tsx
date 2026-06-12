@@ -35,6 +35,7 @@ const KIND_TO_TABLE: Record<DecisionKind, string> = {
   lead: 'leads',
   visibility: 'visibility_targets',
   correction: 'corrections',
+  skill_proposal: 'skill_proposals',
 }
 
 function parseDecisionParam(raw: string): { kind: DecisionKind; id: string } | null {
@@ -183,8 +184,8 @@ function DecisionBody({ kind, row }: { kind: DecisionKind; row: Record<string, a
 }
 
 function GenericDecisionBody({ kind, row }: { kind: DecisionKind; row: Record<string, any> }) {
-  const title = row.title || row.idea || row.name || row.company || `Untitled ${kind}`
-  const description = row.description || row.thesis || row.notes || row.body || null
+  const title = row.title || row.skill_title || row.idea || row.name || row.company || `Untitled ${kind}`
+  const description = row.description || row.skill_body || row.thesis || row.notes || row.body || null
   const externalUrl = row.url || row.source_url || row.draft_link || row.published_url || row.event_url || null
 
   return (

@@ -6,6 +6,7 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
 import { usePendingCorrections } from '../../hooks/usePendingCorrections'
 import { NextActionStrip } from '../shared/NextActionStrip'
+import { SkillProposalsPanel } from '../shared/SkillProposalsPanel'
 
 interface Agent {
   id: string
@@ -151,6 +152,8 @@ export function MobileOrg() {
         accent={correctionsCount > 0 ? 'text-amber-300' : 'text-violet-300'}
         disabled={!topCorrection}
       />
+
+      <SkillProposalsPanel />
 
       {heroErr && (
         <HeroCard

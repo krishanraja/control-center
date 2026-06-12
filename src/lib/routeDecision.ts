@@ -30,6 +30,8 @@ export function routeDecision(kind: DecisionKind | string, id: string | null | u
       return { tab: 'leads', params: safeId ? { lead: safeId } : {} }
     case 'correction':
       return { tab: 'org', params: safeId ? { correction: safeId } : {} }
+    case 'skill_proposal':
+      return { tab: 'org', params: safeId ? { skill_proposal: safeId } : {} }
     default:
       return { tab: 'today', params: {} }
   }
