@@ -93,12 +93,13 @@ export default function App() {
   return (
     <ToastProvider>
       <AgentsProvider>
-        <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-row">
+        <div className="h-[100dvh] overflow-hidden bg-[#0a0a0b] text-white flex flex-row">
           {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
-          {/* The Content tab is a fixed-height app frame (no window scroll); its
-              own AppFrame / MobileShell own the height and inner scrolling. Every
-              other tab keeps the existing window-scroll behavior untouched. */}
-          <main className={`flex-1 min-w-0 ${tab === 'content' ? 'overflow-hidden h-[100dvh]' : `overflow-y-auto ${narrow ? 'pb-20' : ''}`}`}>
+          {/* No-scroll app shell: the window never scrolls. main is a fixed,
+              non-scrolling region; each tab owns its inner scroll — mobile via its
+              h-[100dvh] MobileShell, desktop via a contained-scroll wrapper (or the
+              Content tab's AppFrame). Chrome (sidebar / bottom nav) stays put. */}
+          <main className="flex-1 min-w-0 overflow-hidden">
             {narrow ? (
               <>
                 {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome onNavigate={navigate} /></ErrorBoundary>}
@@ -118,7 +119,7 @@ export default function App() {
             ) : tab === 'content' ? (
               <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>
             ) : (
-              <div className="px-6 py-6">
+              <div className="h-full overflow-y-auto px-6 py-6">
                 {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome onNavigate={navigate} /></ErrorBoundary>}
                 {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday selectedTaskId={route.params.task || null} onSelectTask={(id) => navigate('today', id ? { task: id } : {})} lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
                 {tab === 'triage'    && <ErrorBoundary label="Triage"><DesktopTriage onNavigate={navigate} /></ErrorBoundary>}
