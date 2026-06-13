@@ -67,8 +67,8 @@ export function MobileShell({ header, children, onRefresh, scroll = 'auto', foot
   }, [onRefresh, pullDist, refreshing])
 
   return (
-    <main className="flex flex-col h-full relative">
-      {header && <div className="px-5 pt-7 pb-5 flex-shrink-0" style={{ zoom: 0.8, width: '125%' }}>{header}</div>}
+    <main className="flex flex-col h-[100dvh] relative">
+      {header && <div className="px-5 pt-7 pb-5 flex-shrink-0">{header}</div>}
 
       {/* Pull-to-refresh indicator */}
       {(pullDist > 0 || refreshing) && (

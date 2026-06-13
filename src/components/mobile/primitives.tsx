@@ -28,8 +28,8 @@ export function MobileShell({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col h-full">
-      {header && <div className="px-5 pt-7 pb-5 flex-shrink-0" style={{ zoom: 0.8, width: '125%' }}>{header}</div>}
+    <div className="flex flex-col h-[100dvh]">
+      {header && <div className="px-5 pt-7 pb-5 flex-shrink-0">{header}</div>}
       <div
         className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 scrollbar-hide ${BOTTOM_NAV_PAD}`}
       >

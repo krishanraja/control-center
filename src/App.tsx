@@ -43,34 +43,31 @@ type TabId = 'home' | 'today' | 'triage' | 'leads' | 'relationships' | 'customer
 const VALID_TABS: TabId[] = ['home', 'today', 'triage', 'leads', 'relationships', 'customers', 'guests', 'content', 'org', 'exec', 'workflows', 'systems']
 
 /**
- * Mobile magnification. The native-feel mobile design was rendering ~25% too
- * small on real phones, so we scale the entire mobile shell up by this factor.
- * `zoom` is the one knob that grows everything uniformly — px and rem text,
- * icons, gaps, the BottomNav — without rewriting hundreds of utility classes.
+ * Mobile vs desktop layout selection.
  *
- * The catch: `zoom` does NOT change what `100dvh` resolves to (it always means
- * the real viewport), so a zoomed `100dvh` element would render 25% too tall
- * and break the no-scroll app-shell invariant. We anchor the single root at
- * `calc(100dvh / SCALE)` — which renders back to exactly one viewport — and the
- * mobile shells inherit height via `h-full` rather than re-anchoring to dvh.
+ * We key off the *pointer type*, not the pixel width. A coarse primary pointer
+ * means a touch device (phone / tablet) — and crucially it is zoom-invariant:
+ * browser/page zoom changes `innerWidth` but never the pointer media, so a phone
+ * always gets the native mobile layout and never flips to the desktop shell when
+ * the user pinches or changes the browser zoom. The width check is only a
+ * fallback for desktop browsers dragged to a narrow window.
  */
-const MOBILE_SCALE = 1.25
-
-function detectIsNarrow() {
+function detectIsMobile() {
   if (typeof window === 'undefined') return false
-  return window.innerWidth < 900
+  const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false
+  return coarsePointer || window.innerWidth < 900
 }
 
 export default function App() {
   const { route, navigate } = useHashRoute()
   const rawTab = route.tab === 'execution' ? 'exec' : route.tab
   const tab: TabId = (VALID_TABS as string[]).includes(rawTab) ? (rawTab as TabId) : 'home'
-  const [narrow, setNarrow] = useState(detectIsNarrow)
+  const [narrow, setNarrow] = useState(detectIsMobile)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [inboxOpen, setInboxOpen] = useState(false)
 
   useEffect(() => {
-    const onResize = () => setNarrow(detectIsNarrow())
+    const onResize = () => setNarrow(detectIsMobile())
     window.addEventListener('resize', onResize)
     window.addEventListener('orientationchange', onResize)
     return () => {
@@ -105,14 +102,7 @@ export default function App() {
   return (
     <ToastProvider>
       <AgentsProvider>
-        <div
-          className="overflow-hidden bg-[#0a0a0b] text-white flex flex-row"
-          style={
-            narrow
-              ? { zoom: MOBILE_SCALE, height: `calc(100dvh / ${MOBILE_SCALE})` }
-              : { height: '100dvh' }
-          }
-        >
+        <div className="h-[100dvh] overflow-hidden bg-[#0a0a0b] text-white flex flex-row">
           {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
           {/* No-scroll app shell: the window never scrolls. main is a fixed,
               non-scrolling region; each tab owns its inner scroll — mobile via its
