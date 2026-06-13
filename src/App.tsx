@@ -42,6 +42,20 @@ import { useHashRoute } from './hooks/useHashRoute'
 type TabId = 'home' | 'today' | 'triage' | 'leads' | 'relationships' | 'customers' | 'guests' | 'content' | 'org' | 'exec' | 'workflows' | 'systems'
 const VALID_TABS: TabId[] = ['home', 'today', 'triage', 'leads', 'relationships', 'customers', 'guests', 'content', 'org', 'exec', 'workflows', 'systems']
 
+/**
+ * Mobile magnification. The native-feel mobile design was rendering ~25% too
+ * small on real phones, so we scale the entire mobile shell up by this factor.
+ * `zoom` is the one knob that grows everything uniformly — px and rem text,
+ * icons, gaps, the BottomNav — without rewriting hundreds of utility classes.
+ *
+ * The catch: `zoom` does NOT change what `100dvh` resolves to (it always means
+ * the real viewport), so a zoomed `100dvh` element would render 25% too tall
+ * and break the no-scroll app-shell invariant. We anchor the single root at
+ * `calc(100dvh / SCALE)` — which renders back to exactly one viewport — and the
+ * mobile shells inherit height via `h-full` rather than re-anchoring to dvh.
+ */
+const MOBILE_SCALE = 1.25
+
 function detectIsNarrow() {
   if (typeof window === 'undefined') return false
   return window.innerWidth < 900
@@ -91,7 +105,14 @@ export default function App() {
   return (
     <ToastProvider>
       <AgentsProvider>
-        <div className="h-[100dvh] overflow-hidden bg-[#0a0a0b] text-white flex flex-row">
+        <div
+          className="overflow-hidden bg-[#0a0a0b] text-white flex flex-row"
+          style={
+            narrow
+              ? { zoom: MOBILE_SCALE, height: `calc(100dvh / ${MOBILE_SCALE})` }
+              : { height: '100dvh' }
+          }
+        >
           {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
           {/* No-scroll app shell: the window never scrolls. main is a fixed,
               non-scrolling region; each tab owns its inner scroll — mobile via its
