@@ -19,7 +19,7 @@
 >
 > **Manual step (Krish only):** after each update, copy the Claude-skill version into Claude **browser** skills by hand — that surface has no automated sync. Everything in 1–5 is synced together programmatically and is byte-identical (these copies carry no YAML frontmatter — the skill registers off the H1 title).
 >
-> **Last reconciled against live state.** 2026-06-12. Snapshot: 14 production agents (executive / growth / ops pods) plus 4 personal-life agents; ~81 n8n workflows (~76 active); ~68 Supabase tables/views; ~108 shared skills; ~170 standards; Control Center live at controlcenter.krishraja.com. Autonomous OS diagnostics live (§8.8.6); first OS cleanliness pass complete (8 stale tasks closed, workspace restructure committed, cron-payload secrets migrated). **Content Engine shipped on the Content tab (§5.7): transform axes, Challenge/enrich, channel variants, Five Standards gate, Push-to-Cleo, auto-seed + auto-score; gated behind `VITE_CONTENT_ENGINE_ENABLED`.** **Skill induction shipped (§8.7): the learning loop is now generative as well as corrective. Vera clusters repeated wins into `skill_proposals`, Krish approves, and the induced play appends to the agent brief. Self-gates until win density builds.**
+> **Last reconciled against live state.** 2026-06-12. Snapshot: 14 production agents (executive / growth / ops pods) plus 4 personal-life agents; ~81 n8n workflows (~76 active); ~68 Supabase tables/views; ~108 shared skills; ~170 standards; Control Center live at controlcenter.krishraja.com. Autonomous OS diagnostics live (§8.8.6); first OS cleanliness pass complete (8 stale tasks closed, workspace restructure committed, cron-payload secrets migrated). **Content Engine shipped on the Content tab (§5.7): transform axes, Challenge/enrich, channel variants, Five Standards gate, Push-to-Cleo, auto-seed + auto-score; gated behind `VITE_CONTENT_ENGINE_ENABLED`.** **Skill induction shipped (§8.7): the learning loop is now generative as well as corrective. Vera clusters repeated wins into `skill_proposals`, Krish approves, and the induced play appends to the agent brief. Self-gates until win density builds.** **Vera gap closure loop shipped (§8.8.7): Vera's weekly behavioural-audit findings now route into owned, tracked tasks (`vera_gaps` ledger + `route_vera_gaps`/`reconcile_vera_gaps`), auto-close when resolved, and escalate to Krish after two unfixed cycles via a 9th `decisions_waiting` branch.**
 
 ---
 
@@ -272,11 +272,11 @@ Every piece of OS state lives in one of these tables. Categorised by change rate
 
 ### 4.6 System & sync plumbing
 
-`approvals`, `pending_flags`, `sync_queue`, `google_drive_sync`, `schema_migrations`, `system_improvements`, `system_config`, `crons`, `memory`, `plan_execution`, `skill_deliveries`, `workflow_proposals`, `skill_proposals` (the success-induction approval queue, see §8.7), `credential_health`, `credential_expiry`, `fleet_drift_report`.
+`approvals`, `pending_flags`, `sync_queue`, `google_drive_sync`, `schema_migrations`, `system_improvements`, `system_config`, `crons`, `memory`, `plan_execution`, `skill_deliveries`, `workflow_proposals`, `skill_proposals` (the success-induction approval queue, see §8.7), `credential_health`, `credential_expiry`, `fleet_drift_report`, `vera_gaps` (the Vera gap-closure ledger — weekly audit findings → owned tasks, see §8.8.7).
 
 ### 4.7 The `decisions_waiting` view
 
-Postgres view. Unions eight source tables into a single uniform shape (`{kind, id, title, description, agent, status, priority, sort_at, url, source_table, meta, route_target}`) so the Control Center Home tab can render one panel covering every kind of thing waiting on Krish:
+Postgres view. Unions nine source tables into a single uniform shape (`{kind, id, title, description, agent, status, priority, sort_at, url, source_table, meta, route_target}`) so the Control Center Home tab can render one panel covering every kind of thing waiting on Krish:
 
 | `kind` | Source | What it surfaces |
 |---|---|---|
@@ -288,6 +288,7 @@ Postgres view. Unions eight source tables into a single uniform shape (`{kind, i
 | `correction` | `corrections` where `status='analyzed' AND approval_state='pending'` | Vera's proposed brief edits (corrective loop) awaiting approve/reject |
 | `inbox_returned` | `tasks_inbox` where `status='needs_krish'` | Krish-captured inbox items routed back for a decision |
 | `skill_proposal` | `skill_proposals` where `status='proposed'` | Induced skills Vera drafted from clustered wins (generative loop) awaiting approve/reject |
+| `vera_gap` | `vera_gaps` where `status='open' AND cycles_open >= 2` | Workflow/quality gaps Vera flagged across ≥2 weekly audits without closure, escalated to Krish (see §8.8.7) |
 
 The `meta` JSONB carries the per-kind enrichment (pitch_draft preview, suggested_angles, tier, fit_score, confidence, skill body preview, etc.) so the panel renders rich previews without a join. The `correction` and `skill_proposal` branches are the two arms of the learning loop (corrective and generative), both surfaced for one-tap approval in the same Home pane (see §8.7).
 
@@ -307,6 +308,9 @@ A synthesis-time `LEFT JOIN concept_decisions` on each UNION branch (to hide row
 | **`mark_entity_emailed(entity_type, entity_id, draft_id, draft_url)`** | Idempotent helper called by the Cleo Email Draft workflow to stamp `last_emailed_at`, `last_email_draft_id`, `last_email_draft_url` on the relevant entity (lead/customer/guest) atomically |
 | **`compute_concept_slug(p_name text) → text`** | Deterministic slugifier (lowercase, btrim, collapse non-alphanumeric to `-`). Used by the leads/tasks backfill and by any generator that needs to assign `concept_id`. IMMUTABLE so the planner can use it in expression indexes if needed |
 | **`close_concept(p_concept_id text, p_reason text, p_decided_by text DEFAULT 'krish') → jsonb`** | Upserts a `concept_decisions` row with `decision='closed'`, cascades status updates across tagged rows (tasks → `superseded`, leads → `closed_lost`), records an `audit_log` event of type `concept_closed`, and propagates `app.changed_by` + `app.source='rpc:close_concept'` into the trigger-emitted `status_change_log` rows so every cascading status change is attributed. Returns `{ok, concept_id, tasks_closed, leads_closed, decided_at}`. Re-runnable: ON CONFLICT (concept_id) updates the decision and clears `superseded_at`; already-terminal rows are not re-stamped |
+| **`route_vera_gaps() → jsonb`** | Routes the latest weekly `vera_audit` findings (non-`errors` bands) into owned, tracked tasks. Dedupes by fingerprint `gap:<slug(subject)>:<band>`, derives owner via `vera_gap_owner` (cadence/liveness → arlo), upserts `vera_gaps`, creates `tasks` rows with `krish_reviewed=true` (kept out of the generic `decisions_waiting` task branch until escalated), increments `cycles_open` once per new weekly audit, reopens recurred gaps. See §8.8.7 |
+| **`reconcile_vera_gaps() → jsonb`** | Auto-closes `vera_gaps` the newest weekly audit no longer flags (task → `done`). Absorbs Vera false-positives (e.g. long-cadence workflows flagged as stalled). Runs right after `route_vera_gaps` each cycle |
+| **`vera_gap_owner(p_subject text, p_band text) → text`** | Band-aware owner derivation for gap routing. `cadence`/`errors` (liveness) bands → `arlo` (mechanical-liveness owner, §8.8.6); future quality/standards bands → the workflow's name-prefix agent, default `agatha` |
 | **`reopen_concept(p_concept_id text, p_reason text, p_decided_by text DEFAULT 'krish') → jsonb`** | Marks the live `concept_decisions` row as `superseded_at = now()`, writes an `audit_log` event of type `concept_reopened`. Does NOT flip terminal rows back to non-terminal — history is preserved; to re-engage, write a NEW row with the same `concept_id` and the ledger records the concept is once again open |
 | **`log_status_change()` (trigger function)** | Internal — fires AFTER UPDATE OF status on tasks and leads. Reads `current_setting('app.changed_by', true)` and `current_setting('app.source', true)` so any caller (RPC, edge function, agent code) that sets those before its UPDATE gets proper attribution. Falls back to `'system' / 'direct_update'` |
 
@@ -1068,7 +1072,7 @@ Carrier files: `supabase/migrations/20260527200000_tasks_inbox_phase2.sql` (tabl
 
 Feature flag: `VITE_TASKS_INBOX_ENABLED`. Default false.
 
-`decisions_waiting` view is now 8-branch: task, guest, idea, lead, visibility, correction, inbox_returned, skill_proposal (see §4.7).
+`decisions_waiting` view is now 9-branch: task, guest, idea, lead, visibility, correction, inbox_returned, skill_proposal, vera_gap (see §4.7).
 
 
 ### 8.8 Self-healing — four-tier silent-failure system
@@ -1181,6 +1185,37 @@ The four-tier system above watches *workflow outputs*. A complementary determini
 - **Escalation, not silent repair.** A heavyweight cross-system `CRITICAL` writes an **Urgent Claude Code CLI Repair Alert** to `hot/urgent-claude-code-repair-alerts/` carrying a full Claude-CLI prompt, evidence, constraints, and validation gates. Resolved alerts move to that folder's `resolved/` subdir with a resolution banner. A *stale* diagnostic snapshot is not truth — every finding must be re-verified against live state before any action.
 - **Sentinels.** Root crontab runs `--mode quick` every 30 min (`>> /var/log/os-autonomous-diagnostics.log`, suffixed `|| true` so a diagnostic fault can never wedge cron). OpenClaw job **Arlo Autonomous OS Diagnostics Sentinel** (`3cd5afa9-13cd-4a59-8383-cff50195cc0a`) runs every 6h, silent unless an urgent alert is generated.
 - **Ownership.** Arlo owns mechanical liveness (paths/crons/process/git/sync evidence); Kai owns integration viability (credentials, webhook reachability, N8N/Supabase/Vercel); Vera owns semantic correctness and silent-success detection.
+
+### 8.8.7 Vera gap closure loop (detection → owned task → escalation)
+
+The four-tier system (§8.8) and the autonomous diagnostics (§8.8.6) *detect*. Vera's behavioural auditor writes findings to `vera_audit.findings` (a jsonb array of `{band, severity, subject, reason}`), but those findings had no closure path — they accumulated in weekly reports and stopped there (empirically: 1,139 findings over 9 weeks against 2 stale `corrections` and 1 Vera-owned task). This loop is the routing path from "detected" to "owned and tracked": Vera detects, the router assigns an owner, the owning agent closes, the next audit re-checks, and chronic gaps escalate to Krish.
+
+```
+Friday 11:00 UTC  Vera weekly behavioural audit -> vera_audit.findings[]
+Friday 11:30 UTC  vera-gap-cycle.sh  (VPS crontab, zero-AI-cost)
+    -> route_vera_gaps()
+        - latest weekly audit; SKIP band='errors' (already healed by the four-tier system, §8.8)
+        - dedupe by fingerprint  gap:<slug(subject)>:<band>
+        - owner via vera_gap_owner(subject, band): cadence/liveness -> arlo;
+          future quality/standards bands -> name-prefix agent (default agatha)
+        - upsert vera_gaps ledger; create tasks row (origin='vera_gap_router',
+          workstream='os_quality_closure', krish_reviewed=true so it stays OUT of
+          the generic decisions_waiting task branch); cycles_open=1
+        - gap present in a NEW weekly audit -> cycles_open += 1
+        - resolved gap that recurs -> reopen
+    -> reconcile_vera_gaps()
+        - any open gap absent from the newest weekly audit -> status='resolved',
+          task -> done  (absorbs Vera false-positives, e.g. monthly workflows)
+
+decisions_waiting 9th branch 'vera_gap':  vera_gaps WHERE status='open' AND cycles_open >= 2
+    -> only gaps flagged across >=2 weekly audits without closure reach Krish's Home panel
+```
+
+**Owner model.** A `cadence`/`errors` finding is a *liveness* problem, and the architecture assigns mechanical liveness to Arlo (§8.8.6). So a workflow-not-firing gap routes to Arlo, not to the content agent whose name prefixes the workflow (Cleo cannot fix a cron). `vera_gap_owner` is band-aware, so genuine content/standards gaps route to the name-prefix agent when Vera starts emitting them.
+
+**Current reality.** Vera's auditor today emits only `cadence` and `errors` bands — no content/standards bands yet — so the routed set is workflow-liveness gaps owned by Arlo. The owner-map already handles quality bands for when they appear.
+
+**The promise: a detected gap does not die in a report. It becomes an owned task, auto-closes when fixed, and escalates to Krish if it survives two weeks.** Ledger: `vera_gaps` (§4.6). RPCs: `route_vera_gaps` / `reconcile_vera_gaps` / `vera_gap_owner` (§4.8). Surfacing branch: `decisions_waiting.vera_gap` (§4.7). Migrations: `vera_gap_closure_loop_core`, `decisions_waiting_vera_gap_branch`.
 
 ### 8.9 Marcus synthesis — Home Intelligence feed
 
@@ -1317,6 +1352,7 @@ These run shell scripts and Python that never call an LLM. Cheapest possible cad
 0    6   * * *   Download Cleo's DRAFTS.md from Google Doc
 0    8   * * *   vera-n8n-audit.js
 30   2   * * *   regenerate-standards-digest.py + vera-nightly-quality-loop.sh
+30   11  * * 5   vera-gap-cycle.sh                # Route weekly Vera audit findings -> tasks + auto-close (§8.8.7)
 ```
 
 ### 9.3 N8N cron (inside each workflow)
@@ -1803,6 +1839,10 @@ docs/audits/                                                 # Closure architect
 ## 20. Recent architectural changes — rolling changelog
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
+
+### 2026-06-12 — Vera gap closure loop: audit findings now route to owned tasks (the "fire department")
+
+Closed the structural gap Arlo's Execution Discipline report surfaced and live-verification confirmed: Vera's behavioural auditor had written 1,139 findings across 72 audits in 9 weeks, all with `status: null`, while only 2 (stale) `corrections` and 1 Vera-owned task ever existed — detection with no actuation ("a smoke detector with no fire department"). New `vera_gaps` ledger + `route_vera_gaps()` / `reconcile_vera_gaps()` / `vera_gap_owner()` RPCs + a 9th `decisions_waiting` branch (`vera_gap`) + a Friday-11:30-UTC VPS cron (`vera-gap-cycle.sh`, zero-AI-cost). The router dedupes the latest weekly audit's non-`errors` findings (errors are already healed by the §8.8 four-tier system) into owned, tracked tasks (`krish_reviewed=true` so they stay off Krish's Home panel until escalated), auto-closes resolved gaps, and escalates only gaps flagged across ≥2 weekly audits. First run routed 8 cadence-liveness gaps to Arlo; validated end-to-end (idempotent re-run, escalation branch fires at cycles_open>=2, no panel flood). Decisions locked: auto-create owned tasks; quality/behavioural scope (skip the error band). Caveat captured in §8.8.7: Vera currently emits only `cadence`/`errors` bands, so this routes workflow-liveness gaps today; `vera_gap_owner` already routes real quality bands to the name-prefix agent. Also fixed off the same report: the loz briefing, API-credit-monitor and breaking-news crons were on invalid or depleting models (kimi/deepseek-flash/`moonshot-v1-8k` primaries + dead dateless `anthropic/claude-haiku-4-5` fallbacks) — repaired to the allowlisted `anthropic/claude-haiku-4-5-20251001` with cross-provider fallbacks; the breaking-news monitor (built to catch exactly the missed-news incident) had been un-runnable because both its primary and only fallback were rejected by the gateway model allowlist. See §8.8.7.
 
 ### 2026-06-11 — Content tab rebuilt around a full-screen Cleo Composer (+ mobile review deck)
 The Content Engine's inline card (`ContentEnginePanel` stacked inside `ContentIdeaCardActionable`, with `ResearchAndTransform`) was replaced by a full-screen **Composer** (`src/components/content/ContentComposer.tsx`): one piece per screen, draft canvas + a single-panel rail (Cleo chat · Refine · Materials · Research · Standards), opened by deep-linking `#/content?idea=<id>`. New capabilities: a **Materials** store (`meta.materials[]`, `/materials` route) that keeps the research corpus Krish used to lose, grounds every generation, and rides into the Doc; a **Cleo chat** writing partner (`/chat`, `meta.cleo_chat`); **Save Draft** (`/save-draft`) as the one end CTA that sanitizes + saves the body, attaches materials, fires the content factory (Google Doc + Telegram via @krish_approvals_bot), and moves the piece to `review` (renamed from Push-to-Cleo); **Refine → Adapt to lane** folding the duplicate Transform into tone+length+zoom presets; and `sanitizeVoice()` killing em dashes on every generate / refine / chat / save / capture path. Mobile became **review-first**: `MobileContent` is a "Ready for you" deck (only `review` / `approved` / urgent), and the Composer's `narrow` body is read-mode + one-tap magic + sticky Save Draft. Fixed a latent bug: the old card saved `body` via the anon client, which RLS blocks, so inline draft edits silently never persisted, all writes now route through the API. PRs #132 + #134, merged to main, prod-verified (real factory fire confirmed: Doc in Drive + Telegram alert). See §5.7 + §8.6.
