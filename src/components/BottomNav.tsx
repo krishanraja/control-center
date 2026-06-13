@@ -30,7 +30,11 @@ export function BottomNav({ active, onChange }: Props) {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50">
+      {/* Local inverse-zoom: the shell is magnified 1.25× (App.tsx MOBILE_SCALE);
+          0.8 here returns the bar to its original size (1.25 × 0.8 = 1.0), 20%
+          smaller than the rest of the content. width:125% keeps it spanning the
+          full viewport edge-to-edge under the 0.8 zoom. */}
+      <nav className="fixed bottom-0 left-0 z-50" style={{ zoom: 0.8, width: '125%' }}>
         <div className="absolute inset-0 bg-[#0a0a0f]/85 backdrop-blur-2xl border-t border-white/[0.06]" />
         <div className="relative flex items-stretch pb-safe px-1">
           {MOBILE_PRIMARY_TABS.map(tab => (
