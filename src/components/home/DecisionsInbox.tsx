@@ -150,10 +150,10 @@ export function DecisionsInbox({
             {more > 0 && (
               <button
                 type="button"
-                onClick={() => { h.tap(); onNavigate?.('today') }}
+                onClick={() => { h.tap(); onNavigate?.('triage') }}
                 className="w-full text-center py-3 text-[13px] text-violet-300/80 active:text-violet-200"
               >
-                +{more} more in Today
+                +{more} more in Triage
               </button>
             )}
           </>
