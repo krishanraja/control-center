@@ -15,7 +15,7 @@ import { SwipeDeck } from '../shared/SwipeDeck'
 import { useSwipeTriage } from '../../hooks/useSwipeTriage'
 import { reasonsFor } from '../../lib/triageReasons'
 import { feedbackVote } from '../../lib/triageActions'
-import { topFit, dossierGist, dossierMove, ventureLabel } from '../../lib/contactSignals'
+import { topFit, dossierMove, contactRationale, ventureLabel } from '../../lib/contactSignals'
 
 const VENTURES: Array<{ slug: string; label: string }> = [
   { slug: 'mindmaker', label: 'Mindmaker' },
@@ -44,7 +44,7 @@ function contactName(c: ContactRow): string {
 // LeadSheet so a right-swipe is an informed call, not a blind one.
 function renderContactBody(c: ContactRow) {
   const fit = topFit(c.fit_scores)
-  const gist = dossierGist(c.dossier)
+  const why = contactRationale(c)   // best available: pass5 → pass4 → pass2 → pass1 → tags
   const move = dossierMove(c.dossier)
   return (
     <>
@@ -74,10 +74,10 @@ function renderContactBody(c: ContactRow) {
             <span><span className="text-white/45">Best fit: </span>{ventureLabel(fit.venture)} · {fit.score}</span>
           </p>
         )}
-        {gist && (
+        {why && (
           <p className="text-[13px] text-white/70 leading-relaxed mt-2">
             <Sparkles size={12} className="inline mr-1 text-violet-300" />
-            <span className="text-white/40">Who: </span>{gist}
+            <span className="text-white/40">{why.label}: </span>{why.text}
           </p>
         )}
         {move && (
@@ -85,7 +85,7 @@ function renderContactBody(c: ContactRow) {
             <span className="text-white/40">The move: </span>{move}
           </p>
         )}
-        {!gist && !move && (
+        {!why && !move && (
           <p className="text-[12.5px] text-white/45 leading-relaxed mt-2">
             Not researched yet — judge on heat {c.heat_score ?? 0}
             {fit ? `, ${ventureLabel(fit.venture)} fit ${fit.score}` : ''}

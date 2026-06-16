@@ -4,7 +4,7 @@ import { BottomSheet } from './mobile/BottomSheet'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import { humanAge } from '../lib/ageHelpers'
-import { VENTURE_LABEL, topFit, dossierGist, dossierMove } from '../lib/contactSignals'
+import { VENTURE_LABEL, topFit, dossierMove, contactRationale } from '../lib/contactSignals'
 import type { ContactRow } from '../hooks/useRealtimeContacts'
 
 const TIER_LABEL: Record<string, string> = {
@@ -49,7 +49,7 @@ export function LeadSheet({
   }, [contact?.id])
 
   const fit = useMemo(() => topFit(contact?.fit_scores), [contact?.fit_scores])
-  const gist = useMemo(() => dossierGist(contact?.dossier), [contact?.dossier])
+  const why = useMemo(() => (contact ? contactRationale(contact) : null), [contact?.id])
   const move = useMemo(() => dossierMove(contact?.dossier), [contact?.dossier])
   const enriched = !!contact?.dossier
 
@@ -149,9 +149,9 @@ export function LeadSheet({
               </div>
               {enriched ? (
                 <div className="flex flex-col gap-2">
-                  {gist && <p className="text-[13.5px] text-white/70 leading-relaxed">{gist}</p>}
+                  {why && <p className="text-[13.5px] text-white/70 leading-relaxed"><span className="text-white/45">{why.label}: </span>{why.text}</p>}
                   {move && <p className="text-[13px] text-violet-200/80 leading-relaxed"><span className="text-white/45">The move: </span>{move}</p>}
-                  {!gist && !move && <p className="text-[13px] text-white/45">Dossier on file.</p>}
+                  {!why && !move && <p className="text-[13px] text-white/45">Dossier on file.</p>}
                 </div>
               ) : (
                 <p className="text-[13px] text-white/50 leading-relaxed">
