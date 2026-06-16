@@ -4,44 +4,12 @@ import { BottomSheet } from './mobile/BottomSheet'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import { humanAge } from '../lib/ageHelpers'
+import { VENTURE_LABEL, topFit, dossierMove, contactRationale } from '../lib/contactSignals'
 import type { ContactRow } from '../hooks/useRealtimeContacts'
-
-const VENTURE_LABEL: Record<string, string> = {
-  mindmaker: 'Mindmaker', meliora: 'Meliora', adfixus: 'AdFixus', signal_noise: 'Signal & Noise',
-  builder_economy: 'Builder Economy', fractionl: 'Fractionl', investor: 'Investor',
-}
 
 const TIER_LABEL: Record<string, string> = {
   customer: 'Customer', warm: 'Warm', permissioned: 'Permissioned',
   cold_engaged: 'Cold · engaged', cold_scraped: 'Cold · scraped',
-}
-
-function topFit(fit?: Record<string, number> | null): { venture: string; score: number } | null {
-  if (!fit || typeof fit !== 'object') return null
-  let best: { venture: string; score: number } | null = null
-  for (const [k, v] of Object.entries(fit)) {
-    if (typeof v === 'number' && (!best || v > best.score)) best = { venture: k, score: v }
-  }
-  return best
-}
-
-/** First couple of sentences of the dossier's "who they are", for at-a-glance judging. */
-function dossierGist(dossier: any): string | null {
-  if (!dossier || typeof dossier !== 'object') return null
-  const who = dossier?.pass5_meeting_weapon?.who_they_are
-  if (typeof who === 'string' && who.trim()) {
-    const s = who.trim()
-    return s.length > 320 ? s.slice(0, 320).trimEnd() + '…' : s
-  }
-  return null
-}
-function dossierMove(dossier: any): string | null {
-  const m = dossier?.pass5_meeting_weapon?.the_one_move
-  if (typeof m === 'string' && m.trim()) {
-    const s = m.trim()
-    return s.length > 240 ? s.slice(0, 240).trimEnd() + '…' : s
-  }
-  return null
 }
 
 function Signal({ label, value, accent }: { label: string; value: React.ReactNode; accent?: string }) {
@@ -81,7 +49,7 @@ export function LeadSheet({
   }, [contact?.id])
 
   const fit = useMemo(() => topFit(contact?.fit_scores), [contact?.fit_scores])
-  const gist = useMemo(() => dossierGist(contact?.dossier), [contact?.dossier])
+  const why = useMemo(() => (contact ? contactRationale(contact) : null), [contact?.id])
   const move = useMemo(() => dossierMove(contact?.dossier), [contact?.dossier])
   const enriched = !!contact?.dossier
 
@@ -181,9 +149,9 @@ export function LeadSheet({
               </div>
               {enriched ? (
                 <div className="flex flex-col gap-2">
-                  {gist && <p className="text-[13.5px] text-white/70 leading-relaxed">{gist}</p>}
+                  {why && <p className="text-[13.5px] text-white/70 leading-relaxed"><span className="text-white/45">{why.label}: </span>{why.text}</p>}
                   {move && <p className="text-[13px] text-violet-200/80 leading-relaxed"><span className="text-white/45">The move: </span>{move}</p>}
-                  {!gist && !move && <p className="text-[13px] text-white/45">Dossier on file.</p>}
+                  {!why && !move && <p className="text-[13px] text-white/45">Dossier on file.</p>}
                 </div>
               ) : (
                 <p className="text-[13px] text-white/50 leading-relaxed">

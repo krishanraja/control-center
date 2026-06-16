@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react'
-import { Flame, Layers, ChevronRight } from 'lucide-react'
+import { Flame, Layers, ChevronRight, Target, Sparkles } from 'lucide-react'
 import { MobileShell, TabHeader, FeedCard, FeedRow, EmptyState } from './primitives'
 import { MobileShell as MobileStage } from './MobileShell'
 import { ContactImportDropzone } from '../ContactImportDropzone'
@@ -15,6 +15,7 @@ import { SwipeDeck } from '../shared/SwipeDeck'
 import { useSwipeTriage } from '../../hooks/useSwipeTriage'
 import { reasonsFor } from '../../lib/triageReasons'
 import { feedbackVote } from '../../lib/triageActions'
+import { topFit, dossierMove, contactRationale, ventureLabel } from '../../lib/contactSignals'
 
 const VENTURES: Array<{ slug: string; label: string }> = [
   { slug: 'mindmaker', label: 'Mindmaker' },
@@ -38,8 +39,13 @@ function contactName(c: ContactRow): string {
   return c.full_name || c.company || (c.email ? c.email.split('@')[0] : '—')
 }
 
-// Card interior for a contact in the swipe deck (no action buttons — the swipe is the action).
+// Card interior for a contact in the swipe deck (no action buttons — the swipe is
+// the action). Carries the same "why is this worth my time?" signal as the
+// LeadSheet so a right-swipe is an informed call, not a blind one.
 function renderContactBody(c: ContactRow) {
+  const fit = topFit(c.fit_scores)
+  const why = contactRationale(c)   // best available: pass5 → pass4 → pass2 → pass1 → tags
+  const move = dossierMove(c.dossier)
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap mb-3">
@@ -59,9 +65,34 @@ function renderContactBody(c: ContactRow) {
       {contactSubtitle(c) && (
         <p className="text-[14px] text-white/60 leading-relaxed mt-2">{contactSubtitle(c)}</p>
       )}
-      {c.origin_campaign && (
-        <p className="text-[12px] text-white/45 leading-relaxed mt-3 flex-1 min-h-0">via {c.origin_campaign}</p>
-      )}
+
+      {/* Why they're in your warm queue — the case for a right-swipe */}
+      <div className="mt-4 flex-1 min-h-0 overflow-hidden">
+        {fit && (
+          <p className="text-[13px] text-amber-200/90 leading-relaxed inline-flex items-start gap-1.5">
+            <Target size={13} className="mt-0.5 flex-shrink-0" />
+            <span><span className="text-white/45">Best fit: </span>{ventureLabel(fit.venture)} · {fit.score}</span>
+          </p>
+        )}
+        {why && (
+          <p className="text-[13px] text-white/70 leading-relaxed mt-2">
+            <Sparkles size={12} className="inline mr-1 text-violet-300" />
+            <span className="text-white/40">{why.label}: </span>{why.text}
+          </p>
+        )}
+        {move && (
+          <p className="text-[13px] text-violet-200/85 leading-relaxed mt-2">
+            <span className="text-white/40">The move: </span>{move}
+          </p>
+        )}
+        {!why && !move && (
+          <p className="text-[12.5px] text-white/45 leading-relaxed mt-2">
+            Not researched yet — judge on heat {c.heat_score ?? 0}
+            {fit ? `, ${ventureLabel(fit.venture)} fit ${fit.score}` : ''}
+            {c.origin_campaign ? `, via ${c.origin_campaign}` : ''}. Tap to open → Research for the full angle.
+          </p>
+        )}
+      </div>
     </>
   )
 }
