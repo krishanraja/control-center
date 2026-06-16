@@ -22,10 +22,13 @@ const KIND_LABEL: Record<TriageKind, string> = {
 
 const REASON_OPTS: Record<TriageKind, Array<{ code: string; label: string }>> = {
   content_idea: [
+    { code: 'content_too_negative', label: 'Too negative' },
     { code: 'content_too_generic', label: 'Too generic' },
     { code: 'content_not_my_voice', label: 'Not my voice' },
     { code: 'content_old_news', label: 'Old news' },
-    { code: 'content_wrong_venture', label: 'Wrong venture' },
+    { code: 'content_already_covered', label: 'Already covered' },
+    { code: 'content_too_promotional', label: 'Too promotional' },
+    { code: 'content_thin', label: 'Thin / not enough to say' },
     { code: 'content_other', label: 'Other' },
   ],
   lead: [
@@ -36,14 +39,22 @@ const REASON_OPTS: Record<TriageKind, Array<{ code: string; label: string }>> = 
     { code: 'lead_other', label: 'Other' },
   ],
   visibility: [
+    { code: 'visibility_wrong_location', label: 'Wrong location' },
     { code: 'visibility_wrong_audience', label: 'Wrong audience' },
-    { code: 'visibility_bad_timing', label: 'Bad timing' },
+    { code: 'visibility_unlikely_accepted', label: 'Unlikely to be accepted' },
     { code: 'visibility_too_low_tier', label: 'Too low tier' },
+    { code: 'visibility_bad_timing', label: 'Bad timing' },
+    { code: 'visibility_pay_to_play', label: 'Pay-to-play' },
+    { code: 'visibility_no_relevant_talk', label: 'No relevant talk' },
     { code: 'visibility_other', label: 'Other' },
   ],
   guest: [
-    { code: 'guest_wrong_show', label: 'Wrong show' },
-    { code: 'guest_not_a_builder', label: 'Not actually a builder/operator' },
+    { code: 'guest_too_high_profile', label: 'Too high-profile' },
+    { code: 'guest_too_technical', label: 'Too technical' },
+    { code: 'guest_wrong_profile', label: 'Wrong profile' },
+    { code: 'guest_recently_appeared', label: 'Recently appeared' },
+    { code: 'guest_low_reach', label: 'Low reach' },
+    { code: 'guest_no_hook', label: 'No clear hook' },
     { code: 'guest_other', label: 'Other' },
   ],
 }

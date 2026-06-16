@@ -31,6 +31,7 @@ const STATUS_META: Record<GuestStatus, { title: string; description: string }> =
   recorded: { title: 'Recorded', description: 'Episode in the can.' },
   published: { title: 'Published', description: 'Live in the feed.' },
   dropped: { title: 'Dropped', description: 'Not a fit, archived.' },
+  skipped: { title: 'Skipped', description: 'Passed during triage.' },
 }
 
 const TARGET_META: Record<GuestPodcastTarget, { title: string }> = {

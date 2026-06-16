@@ -14,6 +14,7 @@ export type GuestStatus =
   | 'recorded'
   | 'published'
   | 'dropped'
+  | 'skipped'
 
 export type GuestQualityScore = 'red' | 'amber' | 'green'
 
