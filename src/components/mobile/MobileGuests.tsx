@@ -36,6 +36,7 @@ const STATUS_LABEL: Record<GuestStatus, string> = {
   recorded: 'Recorded',
   published: 'Published',
   dropped: 'Dropped',
+  skipped: 'Skipped',
 }
 
 const VIS_STATUS_LABEL: Record<VisibilityTargetStatus, string> = {
