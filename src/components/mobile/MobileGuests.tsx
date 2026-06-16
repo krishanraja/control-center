@@ -115,13 +115,18 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
     return ok
   }, [toast])
 
+  // Visibility piles are an order of magnitude smaller than Content/Network, so the
+  // default enter>30 never fired (17 enriched guests sat in a list). Lower it so a
+  // pile worth swiping (≥8) flips into the deck on its own.
   const guestTriage = useSwipeTriage<GuestRow>({
     items: guestDeckItems, getId: g => g.id, loading: guestsLoading,
     onAccept: onAcceptGuest, onReject: onRejectGuest,
+    enterAt: 8, exitAt: 5,
   })
   const targetTriage = useSwipeTriage<VisibilityTargetRow>({
     items: targetDeckItems, getId: t => t.id, loading: targetsLoading,
     onAccept: onAcceptTarget, onReject: onRejectTarget,
+    enterAt: 8, exitAt: 5,
   })
 
   const inboundCount = guests.length

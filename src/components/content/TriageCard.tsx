@@ -52,7 +52,14 @@ export function TriageCard({
 
   const dropGhost = Math.max(0, Math.min(-dx / 110, 1))
   const rightGhost = Math.max(0, Math.min(dx / 110, 1))
-  const body = (i.body || i.thesis || '').trim()
+  const thesis = (i.thesis || '').trim()
+  const draft = (i.body || '').trim()
+  // The angle (thesis) is the case for the piece — what makes it worth advancing.
+  // Show it up top as the rationale; fall back to the draft body when there's no
+  // thesis so the card is never blank.
+  const why = thesis || draft
+  const context = thesis ? draft : ''
+  const hasDraft = !!draft
 
   return (
     <div
@@ -100,7 +107,7 @@ export function TriageCard({
           {typeof i.brand_fit_score === 'number' && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {i.brand_fit_score}</span>
           )}
-          {body && <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200/80">draft</span>}
+          {hasDraft && <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200/80">draft</span>}
           <span className="ml-auto text-[10px] text-white/35 tabular-nums">
             {i.updated_at && formatDistanceToNow(new Date(i.updated_at), { addSuffix: true })}
           </span>
@@ -108,14 +115,23 @@ export function TriageCard({
 
         <p className="text-[19px] font-semibold text-white leading-snug">{i.idea}</p>
 
-        {body && (
-          <p className="text-[13px] text-white/60 leading-relaxed mt-3 overflow-hidden flex-1 min-h-0">
-            {body.slice(0, 360)}{body.length > 360 ? '…' : ''}
-          </p>
-        )}
-        {!body && (
-          <p className="text-[12px] text-amber-200/70 mt-3 flex-1">No draft or thesis yet — raw seed.</p>
-        )}
+        <div className="mt-3 overflow-hidden flex-1 min-h-0">
+          {why ? (
+            <>
+              <p className="text-[13.5px] text-white/75 leading-relaxed">
+                <span className="text-violet-300/80 font-medium">{thesis ? 'Angle: ' : ''}</span>
+                {why.slice(0, 320)}{why.length > 320 ? '…' : ''}
+              </p>
+              {context && (
+                <p className="text-[12px] text-white/45 leading-relaxed mt-2">
+                  <span className="text-white/35">Draft: </span>{context.slice(0, 200)}{context.length > 200 ? '…' : ''}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-[12px] text-amber-200/70">No draft or thesis yet — raw seed. Swipe right to research it.</p>
+          )}
+        </div>
 
         {(i.draft_link || i.source_url) && (
           <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.06] flex-shrink-0">
