@@ -1,14 +1,20 @@
-import React, { useMemo, useState } from 'react'
-import { Flame } from 'lucide-react'
+import React, { useCallback, useMemo, useState } from 'react'
+import { Flame, Layers, ChevronRight } from 'lucide-react'
 import { MobileShell, TabHeader, FeedCard, FeedRow, EmptyState } from './primitives'
+import { MobileShell as MobileStage } from './MobileShell'
 import { ContactImportDropzone } from '../ContactImportDropzone'
 import { ventureDisplayName } from '../ContactSourcePill'
 import { humanAge } from '../../lib/ageHelpers'
 import { useHaptics } from '../../hooks/useHaptics'
+import { useToast } from '../shared/Toast'
 import { useRealtimeContacts, type ContactRow } from '../../hooks/useRealtimeContacts'
 import { isHandQueue } from '../../lib/contactTriage'
 import { OutreachDraftSheet, type DraftTarget } from '../OutreachDraftSheet'
 import { LeadSheet } from '../LeadSheet'
+import { SwipeDeck } from '../shared/SwipeDeck'
+import { useSwipeTriage } from '../../hooks/useSwipeTriage'
+import { reasonsFor } from '../../lib/triageReasons'
+import { feedbackVote } from '../../lib/triageActions'
 
 const VENTURES: Array<{ slug: string; label: string }> = [
   { slug: 'mindmaker', label: 'Mindmaker' },
@@ -32,6 +38,34 @@ function contactName(c: ContactRow): string {
   return c.full_name || c.company || (c.email ? c.email.split('@')[0] : '—')
 }
 
+// Card interior for a contact in the swipe deck (no action buttons — the swipe is the action).
+function renderContactBody(c: ContactRow) {
+  return (
+    <>
+      <div className="flex items-center gap-2 flex-wrap mb-3">
+        <span className="inline-flex items-center gap-1 text-[12px] text-white/55 tabular-nums">
+          <Flame size={12} className="text-rose-300" />{c.heat_score ?? 0}
+        </span>
+        {c.primary_venture && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] bg-white/[0.06] text-white/55">
+            {ventureDisplayName(c.primary_venture)}
+          </span>
+        )}
+        {c.consent_tier && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] bg-violet-500/10 text-violet-200">{c.consent_tier}</span>
+        )}
+      </div>
+      <p className="text-[20px] font-semibold text-white leading-snug">{contactName(c)}</p>
+      {contactSubtitle(c) && (
+        <p className="text-[14px] text-white/60 leading-relaxed mt-2">{contactSubtitle(c)}</p>
+      )}
+      {c.origin_campaign && (
+        <p className="text-[12px] text-white/45 leading-relaxed mt-3 flex-1 min-h-0">via {c.origin_campaign}</p>
+      )}
+    </>
+  )
+}
+
 function contactSubtitle(c: ContactRow): string {
   return [c.title, c.company].filter(Boolean).join(' @ ')
 }
@@ -48,6 +82,7 @@ interface Props {
  */
 export function MobileLeadsRE(_props: Props = {}) {
   const h = useHaptics()
+  const { toast } = useToast()
   const [venture, setVenture] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [showImport, setShowImport] = useState(false)
@@ -85,6 +120,54 @@ export function MobileLeadsRE(_props: Props = {}) {
   }, [contacts])
 
   const total = contacts.length
+
+  // ── Swipe-triage over the warm 1-by-1 queue. Right = keep (+1), left = skip
+  // (−1 → the contact is also suppressed from the warm queue server-side). Both
+  // write a feedback_queue vote Vera's scout brief learns from.
+  const onAccept = useCallback(async (c: ContactRow) => {
+    const ok = await feedbackVote('contacts', c.id, 1, c.owner_agent)
+    toast(ok ? 'Kept warm. Logged.' : 'Could not save — try again.', ok ? 'success' : 'error')
+    return ok
+  }, [toast])
+  const onReject = useCallback(async (c: ContactRow, code?: string) => {
+    const ok = await feedbackVote('contacts', c.id, -1, c.owner_agent, code)
+    toast(ok ? 'Skipped. Vera will learn.' : 'Could not save — try again.', ok ? 'success' : 'error')
+    return ok
+  }, [toast])
+
+  const triage = useSwipeTriage<ContactRow>({
+    items: handQueue, getId: c => c.id, loading,
+    onAccept, onReject,
+  })
+
+  if (triage.mode === 'deck') {
+    return (
+      <MobileStage scroll="none" header={<TabHeader title="Network" subtitle={`${handQueue.length} warm · swipe to triage`} />}>
+        <div className="flex-1 min-h-0 px-1">
+          <SwipeDeck<ContactRow>
+            deck={triage.deck}
+            getId={c => c.id}
+            renderBody={renderContactBody}
+            ariaLabel={c => `Contact: ${contactName(c)}`}
+            onAccept={triage.accept}
+            onReject={triage.reject}
+            onOpen={openLead}
+            leftLabel="Skip"
+            rightLabel="Keep"
+            pending={triage.pending}
+            reasonChips={() => reasonsFor('contacts')}
+            onChooseReason={triage.chooseReason}
+            onCancelPending={triage.cancelPending}
+            remaining={triage.remaining}
+            triagedCount={triage.triagedCount}
+            onExit={triage.exitDeck}
+            title="Handle 1-by-1"
+            narrow
+          />
+        </div>
+      </MobileStage>
+    )
+  }
 
   return (
     <MobileShell
@@ -138,6 +221,22 @@ export function MobileLeadsRE(_props: Props = {}) {
 
       {total === 0 && !loading && (
         <EmptyState label="No contacts in this filter. Tap Import to add a list." />
+      )}
+
+      {/* Swipe-triage entry for the warm queue */}
+      {handQueue.length > 0 && (
+        <button
+          type="button"
+          onClick={() => { h.tap(); triage.forceDeck() }}
+          className="w-full flex items-center gap-2.5 rounded-2xl border border-violet-400/30 bg-violet-500/10 active:bg-violet-500/20 p-3.5 text-left transition-colors"
+        >
+          <Layers size={18} className="text-violet-300 flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-violet-100">Swipe to triage · {handQueue.length}</p>
+            <p className="text-[11px] text-white/45">One card at a time — right keeps, left skips with a reason.</p>
+          </div>
+          <ChevronRight size={16} className="text-violet-300/70 ml-auto flex-shrink-0" />
+        </button>
       )}
 
       {/* 1-by-1 warm list */}

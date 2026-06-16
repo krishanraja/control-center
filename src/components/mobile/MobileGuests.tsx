@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { Mic, Megaphone, Calendar } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { Mic, Megaphone, Calendar, Layers, ChevronRight, Sparkles } from 'lucide-react'
 import { MobileShell } from './MobileShell'
 import { TabHeader } from './primitives'
 import { NextActionStrip } from '../shared/NextActionStrip'
@@ -12,9 +12,14 @@ import { VisibilityTargetCard } from '../VisibilityTargetCard'
 import { DecisionDetail } from '../DecisionDetail'
 import { navigateDecision } from '../../lib/routeDecision'
 import { useHaptics } from '../../hooks/useHaptics'
+import { useToast } from '../shared/Toast'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
+import { SwipeDeck } from '../shared/SwipeDeck'
+import { useSwipeTriage } from '../../hooks/useSwipeTriage'
+import { reasonsFor } from '../../lib/triageReasons'
+import { triagePromote, triageReject } from '../../lib/triageActions'
 
 type Lane = 'inbound' | 'outbound'
 
@@ -57,6 +62,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
   const { targets: allTargets, loading: targetsLoading } = useVisibilityTargets({ includeArchived: false })
   const targets = useMemo(() => allTargets.filter(t => !t.buried_at), [allTargets])
   const h = useHaptics()
+  const { toast } = useToast()
   const { mode, setMode } = useFocusMode()
   const { today: focusToday } = useDailyFocus()
   const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
@@ -74,6 +80,49 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
 
   const groupedGuests = useMemo(() => groupGuests(guests), [guests])
   const groupedTargets = useMemo(() => groupTargets(targets), [targets])
+
+  // ── Swipe-triage decks (one per lane). Items are the pre-decision rows: guests
+  // still scouted/enriched (accept → pitched +1, drop → skipped −1), targets still
+  // sourced/queued (accept → applied +1, drop → dropped −1). Every swipe writes a
+  // feedback_queue vote Vera learns from.
+  const guestDeckItems = useMemo(
+    () => guests.filter(g => g.status === 'scouted' || g.status === 'enriched'),
+    [guests],
+  )
+  const targetDeckItems = useMemo(
+    () => targets.filter(t => t.status === 'sourced' || t.status === 'queued'),
+    [targets],
+  )
+
+  const onAcceptGuest = useCallback(async (g: GuestRow) => {
+    const ok = await triagePromote('guests', g.id, 'nell')
+    toast(ok ? 'Pitched. Vera will learn.' : 'Could not update — try again.', ok ? 'success' : 'error')
+    return ok
+  }, [toast])
+  const onRejectGuest = useCallback(async (g: GuestRow, code?: string) => {
+    const ok = await triageReject('guests', g.id, 'nell', code)
+    toast(ok ? 'Skipped. Vera will learn.' : 'Could not update — try again.', ok ? 'success' : 'error')
+    return ok
+  }, [toast])
+  const onAcceptTarget = useCallback(async (t: VisibilityTargetRow) => {
+    const ok = await triagePromote('visibility_targets', t.id, 'nova')
+    toast(ok ? 'Applied. Vera will learn.' : 'Could not update — try again.', ok ? 'success' : 'error')
+    return ok
+  }, [toast])
+  const onRejectTarget = useCallback(async (t: VisibilityTargetRow, code?: string) => {
+    const ok = await triageReject('visibility_targets', t.id, 'nova', code)
+    toast(ok ? 'Passed. Vera will learn.' : 'Could not update — try again.', ok ? 'success' : 'error')
+    return ok
+  }, [toast])
+
+  const guestTriage = useSwipeTriage<GuestRow>({
+    items: guestDeckItems, getId: g => g.id, loading: guestsLoading,
+    onAccept: onAcceptGuest, onReject: onRejectGuest,
+  })
+  const targetTriage = useSwipeTriage<VisibilityTargetRow>({
+    items: targetDeckItems, getId: t => t.id, loading: targetsLoading,
+    onAccept: onAcceptTarget, onReject: onRejectTarget,
+  })
 
   const inboundCount = guests.length
   const outboundCount = targets.filter(t => t.status !== 'done' && t.status !== 'dropped').length
@@ -109,6 +158,73 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
   const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
   const renderGuestRow = (g: GuestRow) => <GuestCard guest={g} onOpen={openGuest} />
   const renderTargetRow = (t: VisibilityTargetRow) => <VisibilityTargetCard target={t} onOpen={openTarget} />
+
+  const laneTabs = (
+    <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.015] p-1">
+      <LaneTab active={lane === 'inbound'} onClick={() => { h.select(); setLane('inbound') }}>
+        <Mic size={11} className="inline mr-1" />Inbound
+      </LaneTab>
+      <LaneTab active={lane === 'outbound'} onClick={() => { h.select(); setLane('outbound') }}>
+        <Megaphone size={11} className="inline mr-1" />Outbound
+      </LaneTab>
+    </div>
+  )
+
+  // ── Deck mode: the active lane's swipe deck owns the screen (lane toggle stays
+  // so you can flip inbound/outbound without leaving triage).
+  const activeTriage = lane === 'inbound' ? guestTriage : targetTriage
+  if (activeTriage.mode === 'deck') {
+    return (
+      <MobileShell scroll="none" header={<TabHeader title="Visibility" subtitle="Swipe to clear the pile" />}>
+        <div className="px-4 pb-3 flex-shrink-0">{laneTabs}</div>
+        <div className="flex-1 min-h-0">
+          {lane === 'inbound' ? (
+            <SwipeDeck<GuestRow>
+              deck={guestTriage.deck}
+              getId={g => g.id}
+              renderBody={renderGuestBody}
+              ariaLabel={g => `Guest: ${g.name}`}
+              onAccept={guestTriage.accept}
+              onReject={guestTriage.reject}
+              onOpen={g => openGuest(g.id)}
+              leftLabel="Skip"
+              rightLabel="Pitch"
+              pending={guestTriage.pending}
+              reasonChips={() => reasonsFor('guests')}
+              onChooseReason={guestTriage.chooseReason}
+              onCancelPending={guestTriage.cancelPending}
+              remaining={guestTriage.remaining}
+              triagedCount={guestTriage.triagedCount}
+              onExit={guestTriage.exitDeck}
+              title="Guests to triage"
+              narrow
+            />
+          ) : (
+            <SwipeDeck<VisibilityTargetRow>
+              deck={targetTriage.deck}
+              getId={t => t.id}
+              renderBody={renderTargetBody}
+              ariaLabel={t => `Target: ${t.title}`}
+              onAccept={targetTriage.accept}
+              onReject={targetTriage.reject}
+              onOpen={t => openTarget(t.id)}
+              leftLabel="Pass"
+              rightLabel="Apply"
+              pending={targetTriage.pending}
+              reasonChips={() => reasonsFor('visibility_targets')}
+              onChooseReason={targetTriage.chooseReason}
+              onCancelPending={targetTriage.cancelPending}
+              remaining={targetTriage.remaining}
+              triagedCount={targetTriage.triagedCount}
+              onExit={targetTriage.exitDeck}
+              title="Targets to triage"
+              narrow
+            />
+          )}
+        </div>
+      </MobileShell>
+    )
+  }
 
   return (
     <MobileShell
@@ -162,6 +278,13 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
 
         {lane === 'inbound' ? (
           <>
+            {guestDeckItems.length > 0 && (
+              <TriageEntry
+                count={guestDeckItems.length}
+                label="Swipe to triage guests"
+                onClick={() => { h.tap(); guestTriage.forceDeck() }}
+              />
+            )}
             <section>
               <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2 px-1 flex items-center gap-1">
                 <Mic size={11} className="text-violet-300" />
@@ -215,6 +338,13 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
           </>
         ) : (
           <>
+            {targetDeckItems.length > 0 && (
+              <TriageEntry
+                count={targetDeckItems.length}
+                label="Swipe to triage targets"
+                onClick={() => { h.tap(); targetTriage.forceDeck() }}
+              />
+            )}
             {targetsLoading && (
               <div className="text-[12px] text-white/45 text-center py-4">Loading…</div>
             )}
@@ -267,6 +397,97 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
         )}
       </BottomSheet>
     </MobileShell>
+  )
+}
+
+// Shared "enter the swipe deck" button shown in list mode for each lane.
+function TriageEntry({ count, label, onClick }: { count: number; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-2.5 rounded-2xl border border-violet-400/30 bg-violet-500/10 active:bg-violet-500/20 p-3.5 text-left transition-colors"
+    >
+      <Layers size={18} className="text-violet-300 flex-shrink-0" />
+      <div className="min-w-0">
+        <p className="text-[13px] font-semibold text-violet-100">{label} · {count}</p>
+        <p className="text-[11px] text-white/45">One card at a time — right keeps, left drops with a reason.</p>
+      </div>
+      <ChevronRight size={16} className="text-violet-300/70 ml-auto flex-shrink-0" />
+    </button>
+  )
+}
+
+const GUEST_TARGET_LABEL: Record<GuestRow['podcast_target'], string> = {
+  signal_noise: 'Signal & Noise', builder_economy: 'Builder Economy', either: 'Either show',
+}
+
+// Card interior for a guest in the swipe deck (no action buttons — the swipe is the action).
+function renderGuestBody(g: GuestRow) {
+  return (
+    <>
+      <div className="flex items-center gap-1.5 flex-wrap mb-3">
+        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200">
+          <Mic size={9} />{GUEST_TARGET_LABEL[g.podcast_target]}
+        </span>
+        {g.quality_score && (
+          <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] ${
+            g.quality_score === 'green' ? 'bg-emerald-500/10 text-emerald-300' :
+            g.quality_score === 'amber' ? 'bg-amber-500/10 text-amber-300' : 'bg-rose-500/10 text-rose-300'}`}>
+            {g.quality_score}
+          </span>
+        )}
+        {typeof g.fit_score === 'number' && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {g.fit_score}</span>
+        )}
+        {typeof g.attainability_score === 'number' && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Reach {g.attainability_score}</span>
+        )}
+      </div>
+      <p className="text-[19px] font-semibold text-white leading-snug">{g.name}</p>
+      {g.one_liner && <p className="text-[13px] text-white/60 leading-relaxed mt-2">{g.one_liner}</p>}
+      {g.why_fit && (
+        <p className="text-[13px] text-white/65 leading-relaxed mt-3 overflow-hidden flex-1 min-h-0">
+          <span className="text-white/35">Why: </span>{g.why_fit.slice(0, 300)}{g.why_fit.length > 300 ? '…' : ''}
+        </p>
+      )}
+    </>
+  )
+}
+
+// Card interior for a visibility target in the swipe deck.
+function renderTargetBody(t: VisibilityTargetRow) {
+  const daysToDeadline = t.deadline_at
+    ? Math.ceil((new Date(t.deadline_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+    : null
+  return (
+    <>
+      <div className="flex items-center gap-1.5 flex-wrap mb-3">
+        <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] bg-violet-500/15 text-violet-200">{t.type.replace(/_/g, ' ')}</span>
+        {typeof t.relevance_score === 'number' && t.relevance_score > 0 && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {t.relevance_score}</span>
+        )}
+        {daysToDeadline !== null && (
+          <span className={`text-[10px] px-1.5 py-0.5 rounded tabular-nums ${
+            daysToDeadline < 0 ? 'bg-rose-500/10 text-rose-300' :
+            daysToDeadline <= 14 ? 'bg-amber-500/10 text-amber-300' : 'bg-white/[0.06] text-white/55'}`}>
+            {daysToDeadline < 0 ? `${Math.abs(daysToDeadline)}d ago` : daysToDeadline === 0 ? 'today' : `${daysToDeadline}d left`}
+          </span>
+        )}
+      </div>
+      <p className="text-[19px] font-semibold text-white leading-snug">{t.title}</p>
+      {t.why_relevant && (
+        <p className="text-[13px] text-white/65 leading-relaxed mt-3 overflow-hidden flex-1 min-h-0">
+          <Sparkles size={11} className="inline mr-1 text-violet-300" />
+          <span className="text-white/35">Why: </span>{t.why_relevant.slice(0, 280)}{t.why_relevant.length > 280 ? '…' : ''}
+        </p>
+      )}
+      {t.suggested_talk_title && (
+        <p className="text-[12px] text-white/80 leading-snug mt-2 flex-shrink-0">
+          <span className="text-white/40">Pitch: </span><span className="italic">{t.suggested_talk_title}</span>
+        </p>
+      )}
+    </>
   )
 }
 

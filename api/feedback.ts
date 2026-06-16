@@ -60,7 +60,32 @@ const REASON_OPTIONS = new Set([
   // Preexisting codes already in use across the app.
   'marcus_suggestion_unsuitable',
   'triage_promote',
+  // Mobile swipe-triage decks (2026-06): right-swipe advance on Content emits +1,
+  // left-swipe drop emits −1 with a per-surface reason chip. Most reject codes ride
+  // /api/triage/reject (which doesn't validate), but they're canonized here too so
+  // Vera clusters every feedback_queue row by a known code regardless of endpoint.
+  'content_advanced',
+  'content_too_generic',
+  'content_not_my_voice',
+  'content_old_news',
+  'content_wrong_venture',
+  'content_other',
+  'lead_wrong_seniority',
+  'lead_wrong_company_size',
+  'lead_no_budget_signal',
+  'lead_already_contacted',
+  'lead_wrong_venture_tag',
   'lead_other',
+  'visibility_wrong_audience',
+  'visibility_bad_timing',
+  'visibility_already_pitched',
+  'visibility_too_low_tier',
+  'visibility_other',
+  'guest_wrong_show',
+  'guest_too_inside_baseball',
+  'guest_not_a_builder',
+  'guest_recently_appeared',
+  'guest_other',
   // Relationship Engine contact reasons (Leads tab thumbs-down).
   'contact_already_engaged',
   'contact_not_a_fit',
