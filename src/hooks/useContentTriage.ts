@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from './useRealtimeContentIdeas'
 import { useToast } from '../components/shared/Toast'
 import { useHaptics } from './useHaptics'
+import { triageReject, feedbackVote } from '../lib/triageActions'
+import { DEFAULT_REASON } from '../lib/triageReasons'
 
 // Mode boundaries. Hysteresis (enter > 30, exit <= 25) keeps the very action that
 // crosses the boundary from remounting the view mid-gesture.
@@ -64,6 +66,13 @@ export function useContentTriage() {
   const [autoMode, setAutoMode] = useState<TriageMode>('action')
   const lastAction = useRef<{ id: string; prevState: IdeaState } | null>(null)
   const [canUndo, setCanUndo] = useState(false)
+  // Left-swipe drop now teaches Vera (−1). The reason is chosen AFTER the swipe
+  // via chips, so a dropped card parks here until a reason is picked (or the next
+  // gesture flushes it with the default code). Cancelling before then is a clean
+  // undo — no reject was ever sent.
+  const [pendingDrop, setPendingDrop] = useState<{ id: string; idea: ContentIdeaRow } | null>(null)
+  const pendingDropRef = useRef<{ id: string; idea: ContentIdeaRow } | null>(null)
+  pendingDropRef.current = pendingDrop
 
   const active = useMemo(() => ideas.filter(isActive), [ideas])
   const activeCount = active.length
@@ -112,6 +121,9 @@ export function useContentTriage() {
         toast('Could not update — try again.', 'error')
         return
       }
+      // Advancing a card is a positive signal: +1 so Vera's content loop learns
+      // what Krish keeps moving forward (fire-and-forget; never blocks the swipe).
+      void feedbackVote('content_ideas', id, 1, 'cleo', 'content_advanced')
       toast(label, 'success', {
         action: { label: 'Undo', onClick: () => undoById(id, prevState) },
       })
@@ -132,15 +144,62 @@ export function useContentTriage() {
     if (a) undoById(a.id, a.prevState)
   }, [undoById])
 
+  // Send the −1 reject for a parked drop (the actual state→dropped + feedback_queue
+  // vote). On failure the card is restored to the deck.
+  const resolveDrop = useCallback(async (p: { id: string; idea: ContentIdeaRow }, reasonCode?: string) => {
+    const ok = await triageReject('content_ideas', p.id, 'cleo', reasonCode ?? DEFAULT_REASON.content_ideas)
+    if (!ok) {
+      setCommitted(prev => { const n = new Set(prev); n.delete(p.id); return n })
+      h.error()
+      toast('Could not drop — try again.', 'error')
+      return
+    }
+    toast('Dropped. Vera will learn.', 'success')
+  }, [h, toast])
+
+  // Flush any parked drop with the default reason before the next gesture, so at
+  // most one drop is ever awaiting a reason.
+  const flushPendingDrop = useCallback(() => {
+    const p = pendingDropRef.current
+    if (!p) return
+    pendingDropRef.current = null
+    setPendingDrop(null)
+    void resolveDrop(p)
+  }, [resolveDrop])
+
   const advance = useCallback((idea: ContentIdeaRow) => {
+    flushPendingDrop()
     const next = ADVANCE_NEXT[idea.state]
     if (!next) { open(idea.id); return } // human gate (review → approve, approved → publish)
     commit(idea, next, `Advanced to ${next}.`)
-  }, [commit, open])
+  }, [commit, open, flushPendingDrop])
 
+  // Left swipe: optimistically remove the card and park a drop awaiting its reason.
   const drop = useCallback((idea: ContentIdeaRow) => {
-    commit(idea, 'dropped', 'Dropped.')
-  }, [commit])
+    flushPendingDrop()
+    const id = idea.id
+    h.heavy()
+    setCommitted(prev => { const n = new Set(prev); n.add(id); return n })
+    setPendingDrop({ id, idea })
+  }, [flushPendingDrop, h])
+
+  const chooseDropReason = useCallback((reasonCode?: string) => {
+    const p = pendingDropRef.current
+    if (!p) return
+    pendingDropRef.current = null
+    setPendingDrop(null)
+    h.select()
+    void resolveDrop(p, reasonCode)
+  }, [h, resolveDrop])
+
+  const cancelDrop = useCallback(() => {
+    const p = pendingDropRef.current
+    if (!p) return
+    pendingDropRef.current = null
+    setPendingDrop(null)
+    h.select()
+    setCommitted(prev => { const n = new Set(prev); n.delete(p.id); return n }) // clean undo — no reject sent
+  }, [h])
 
   // Does RIGHT on this card advance it, or open the composer at a human gate?
   const advanceIsGate = useCallback((state: IdeaState) => !ADVANCE_NEXT[state], [])
@@ -170,6 +229,9 @@ export function useContentTriage() {
     triagedCount: committed.size,
     advance,
     drop,
+    pendingDrop,
+    chooseDropReason,
+    cancelDrop,
     open,
     undo,
     canUndo,

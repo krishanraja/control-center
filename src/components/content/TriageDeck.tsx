@@ -3,6 +3,7 @@ import { X, ChevronRight, Maximize2, RotateCcw, CheckCircle2, Layers } from 'luc
 import { useCardDeck, type Dir } from '../../hooks/useCardDeck'
 import type { useContentTriage } from '../../hooks/useContentTriage'
 import { TriageCard } from './TriageCard'
+import { reasonsFor } from '../../lib/triageReasons'
 
 interface Props {
   triage: ReturnType<typeof useContentTriage>
@@ -24,9 +25,10 @@ const ADVANCE_LABEL: Record<string, string> = {
  * is what makes a 200+ pile cheap instead of browser-crashing.
  */
 export function TriageDeck({ triage, narrow, paused }: Props) {
-  const { deck, advance, drop, open, undo, canUndo, advanceIsGate, remaining, triagedCount, activeCount, exitTriage } = triage
+  const { deck, advance, drop, pendingDrop, chooseDropReason, cancelDrop, open, undo, canUndo, advanceIsGate, remaining, triagedCount, activeCount, exitTriage } = triage
   const top = deck[0] || null
   const containerRef = useRef<HTMLDivElement>(null)
+  const dropReasons = reasonsFor('content_ideas')
 
   const onCommit = useCallback((dir: Dir) => {
     if (!top) return
@@ -45,6 +47,20 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
     const t = e.target as HTMLElement
     if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable) return
     if (e.metaKey || e.ctrlKey || e.altKey) return
+
+    // While the drop reason bar is open, the keyboard drives the chips.
+    if (pendingDrop) {
+      if (e.key === 'Escape') { e.preventDefault(); cancelDrop() }
+      else if (e.key === 'Enter') { e.preventDefault(); chooseDropReason(undefined) }
+      else {
+        const n = parseInt(e.key, 10)
+        if (!Number.isNaN(n) && n >= 1 && n <= dropReasons.length) {
+          e.preventDefault(); chooseDropReason(dropReasons[n - 1].code)
+        }
+      }
+      return
+    }
+
     if (!top) return
     if (e.key === 'ArrowLeft') { e.preventDefault(); flyOut('left') }
     else if (e.key === 'ArrowRight') { e.preventDefault(); flyOut('right') }
@@ -118,42 +134,73 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
         )}
       </div>
 
-      {/* Control bar */}
-      {top && (
-        <div className="flex items-center justify-center gap-3 pt-4 flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => flyOut('left')}
-            aria-label="Drop this idea"
-            className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-rose-500/40 text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 transition"
-          >
-            <X size={22} />
-          </button>
-          <button
-            type="button"
-            onClick={() => open(top.id)}
-            aria-label="Open in composer"
-            className="flex items-center justify-center w-12 h-12 rounded-full border border-white/15 text-white/70 bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 transition"
-          >
-            <Maximize2 size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => flyOut('right')}
-            aria-label={gate ? 'Open to approve' : `Advance to ${rightLabel.toLowerCase()}`}
-            className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 transition"
-          >
-            <ChevronRight size={24} />
-          </button>
+      {/* Reason chip bar — pops after a LEFT swipe (drop); tap a chip to teach Vera */}
+      {pendingDrop ? (
+        <div className="pt-4 flex-shrink-0">
+          <div className="rounded-2xl border border-rose-400/25 bg-rose-500/[0.06] p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[11px] text-white/70 font-medium">Why drop it?</span>
+              <button type="button" onClick={cancelDrop}
+                className="ml-auto text-[11px] text-white/55 hover:text-white/90 px-2 py-1 rounded-md hover:bg-white/[0.06]">
+                Undo
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {dropReasons.map((c, i) => (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => chooseDropReason(c.code)}
+                  className="text-[12px] px-2.5 py-1.5 rounded-lg border border-white/[0.12] text-white/80 hover:border-white/[0.25] hover:bg-white/[0.05] transition-colors"
+                >
+                  <span className="hidden md:inline text-white/35 mr-1 tabular-nums">{i + 1}</span>{c.label}
+                </button>
+              ))}
+              <button type="button" onClick={() => chooseDropReason(undefined)}
+                className="text-[12px] px-2.5 py-1.5 rounded-lg text-white/50 hover:text-white/80">
+                Skip
+              </button>
+            </div>
+          </div>
         </div>
-      )}
+      ) : (
+        top && (
+          <>
+            {/* Control bar */}
+            <div className="flex items-center justify-center gap-3 pt-4 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => flyOut('left')}
+                aria-label="Drop this idea"
+                className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-rose-500/40 text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 transition"
+              >
+                <X size={22} />
+              </button>
+              <button
+                type="button"
+                onClick={() => open(top.id)}
+                aria-label="Open in composer"
+                className="flex items-center justify-center w-12 h-12 rounded-full border border-white/15 text-white/70 bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 transition"
+              >
+                <Maximize2 size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => flyOut('right')}
+                aria-label={gate ? 'Open to approve' : `Advance to ${rightLabel.toLowerCase()}`}
+                className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 transition"
+              >
+                <ChevronRight size={24} />
+              </button>
+            </div>
 
-      {top && (
-        <p className="text-center text-[11px] text-white/35 mt-2.5 flex-shrink-0">
-          {narrow
-            ? <>Swipe left to drop · right to {gate ? 'open' : rightLabel.toLowerCase()} · tap to open</>
-            : <>← drop · → {gate ? 'open' : rightLabel.toLowerCase()} · ↑ open · U undo</>}
-        </p>
+            <p className="text-center text-[11px] text-white/35 mt-2.5 flex-shrink-0">
+              {narrow
+                ? <>Swipe left to drop · right to {gate ? 'open' : rightLabel.toLowerCase()} · tap to open</>
+                : <>← drop · → {gate ? 'open' : rightLabel.toLowerCase()} · ↑ open · U undo</>}
+            </p>
+          </>
+        )
       )}
     </div>
   )
