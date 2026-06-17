@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react'
-import { X, ChevronRight, Maximize2, RotateCcw, CheckCircle2, Layers } from 'lucide-react'
+import { X, ChevronRight, Maximize2, FlaskConical, RotateCcw, CheckCircle2, Layers } from 'lucide-react'
 import { useCardDeck, type Dir } from '../../hooks/useCardDeck'
 import type { useContentTriage } from '../../hooks/useContentTriage'
 import { TriageCard } from './TriageCard'
@@ -18,14 +18,17 @@ const ADVANCE_LABEL: Record<string, string> = {
 }
 
 /**
- * TriageDeck — one card at a time over the active backlog. LEFT = Drop,
- * RIGHT = Advance one stage (or Open at a human gate), UP/TAP = Open the composer.
+ * TriageDeck — one card at a time over the active backlog. LEFT = Drop, TAP = Open.
+ * RIGHT depends on the card: on a SEEDED idea it RETAINS (buries it for later, the
+ * non-committal "keep"); on a card already in the pipeline it ADVANCES one stage
+ * (or Opens at a human gate). The middle button is Research on seeded cards (the
+ * deliberate "yes, dig in" promote) and Open elsewhere.
  * Pointer swipe + on-screen buttons + arrow keys all drive the same actions, so
  * it works identically on phone and desktop. Only ~3 cards mount at once, which
  * is what makes a 200+ pile cheap instead of browser-crashing.
  */
 export function TriageDeck({ triage, narrow, paused }: Props) {
-  const { deck, advance, drop, pendingDrop, chooseDropReason, cancelDrop, open, undo, canUndo, advanceIsGate, remaining, triagedCount, activeCount, exitTriage } = triage
+  const { deck, advance, drop, retain, pendingDrop, chooseDropReason, cancelDrop, open, undo, canUndo, advanceIsGate, remaining, triagedCount, activeCount, exitTriage } = triage
   const top = deck[0] || null
   const containerRef = useRef<HTMLDivElement>(null)
   const dropReasons = reasonsFor('content_ideas')
@@ -33,8 +36,9 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
   const onCommit = useCallback((dir: Dir) => {
     if (!top) return
     if (dir === 'left') drop(top)
+    else if (top.state === 'seeded') retain(top) // keep for later (Backburner)
     else advance(top) // gate states open the composer instead of advancing
-  }, [top, drop, advance])
+  }, [top, drop, advance, retain])
 
   const { bind, dx, phase, flyOut } = useCardDeck({ cardId: top?.id ?? null, onCommit, disabled: paused })
 
@@ -65,11 +69,14 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
     if (e.key === 'ArrowLeft') { e.preventDefault(); flyOut('left') }
     else if (e.key === 'ArrowRight') { e.preventDefault(); flyOut('right') }
     else if (e.key === 'ArrowUp' || e.key === 'Enter') { e.preventDefault(); open(top.id) }
+    else if ((e.key === 'r' || e.key === 'R') && top.state === 'seeded') { e.preventDefault(); advance(top) }
     else if (e.key === 'u' || e.key === 'U') { if (canUndo) { e.preventDefault(); undo() } }
   }
 
   const gate = top ? advanceIsGate(top.state) : false
-  const rightLabel = top ? (ADVANCE_LABEL[top.state] || 'Advance') : 'Advance'
+  const seeded = top?.state === 'seeded'
+  // On a seeded card RIGHT = Retain ("Keep"); otherwise it advances a stage.
+  const rightLabel = seeded ? 'Keep' : (top ? (ADVANCE_LABEL[top.state] || 'Advance') : 'Advance')
 
   return (
     <div
@@ -176,18 +183,29 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
               >
                 <X size={22} />
               </button>
-              <button
-                type="button"
-                onClick={() => open(top.id)}
-                aria-label="Open in composer"
-                className="flex items-center justify-center w-12 h-12 rounded-full border border-white/15 text-white/70 bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 transition"
-              >
-                <Maximize2 size={18} />
-              </button>
+              {seeded ? (
+                <button
+                  type="button"
+                  onClick={() => advance(top)}
+                  aria-label="Send to research"
+                  className="flex items-center justify-center w-12 h-12 rounded-full border border-sky-400/40 text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 active:scale-95 transition"
+                >
+                  <FlaskConical size={18} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => open(top.id)}
+                  aria-label="Open in composer"
+                  className="flex items-center justify-center w-12 h-12 rounded-full border border-white/15 text-white/70 bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 transition"
+                >
+                  <Maximize2 size={18} />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => flyOut('right')}
-                aria-label={gate ? 'Open to approve' : `Advance to ${rightLabel.toLowerCase()}`}
+                aria-label={seeded ? 'Retain for later' : gate ? 'Open to approve' : `Advance to ${rightLabel.toLowerCase()}`}
                 className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 transition"
               >
                 <ChevronRight size={24} />
@@ -195,9 +213,13 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
             </div>
 
             <p className="text-center text-[11px] text-white/35 mt-2.5 flex-shrink-0">
-              {narrow
-                ? <>Swipe left to drop · right to {gate ? 'open' : rightLabel.toLowerCase()} · tap to open</>
-                : <>← drop · → {gate ? 'open' : rightLabel.toLowerCase()} · ↑ open · U undo</>}
+              {seeded
+                ? (narrow
+                    ? <>Swipe left to drop · right to keep · tap to open · R research</>
+                    : <>← drop · → keep · ↑ open · R research · U undo</>)
+                : (narrow
+                    ? <>Swipe left to drop · right to {gate ? 'open' : rightLabel.toLowerCase()} · tap to open</>
+                    : <>← drop · → {gate ? 'open' : rightLabel.toLowerCase()} · ↑ open · U undo</>)}
             </p>
           </>
         )
