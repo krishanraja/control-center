@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Mic, Megaphone, Calendar, Layers, ChevronRight, Sparkles } from 'lucide-react'
+import { Mic, Megaphone, Calendar, Layers, ChevronRight, Sparkles, Linkedin, Twitter, Globe, Mail, ExternalLink, FileText } from 'lucide-react'
 import { MobileShell } from './MobileShell'
 import { TabHeader } from './primitives'
 import { NextActionStrip } from '../shared/NextActionStrip'
@@ -17,6 +17,7 @@ import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 import { SwipeDeck } from '../shared/SwipeDeck'
+import { QuickLinkRow, type QuickLink } from '../shared/QuickLinkRow'
 import { useSwipeTriage } from '../../hooks/useSwipeTriage'
 import { reasonsFor } from '../../lib/triageReasons'
 import { triagePromote, triageReject } from '../../lib/triageActions'
@@ -204,6 +205,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
               onExit={guestTriage.exitDeck}
               title="Guests to triage"
               narrow
+              paused={!!detailDecision}
             />
           ) : (
             <SwipeDeck<VisibilityTargetRow>
@@ -225,9 +227,19 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
               onExit={targetTriage.exitDeck}
               title="Targets to triage"
               narrow
+              paused={!!detailDecision}
             />
           )}
         </div>
+
+        {/* Tap / Maximize / ↑ on a deck card opens the full detail here too — the
+            list-mode sheet doesn't mount in deck mode, so without this, opening a
+            card from the deck silently did nothing. */}
+        <BottomSheet open={!!detailDecision} onClose={() => onClearDetail?.()}>
+          {detailDecision && (
+            <DecisionDetail decision={detailDecision} onClose={() => onClearDetail?.()} actionsEnabled />
+          )}
+        </BottomSheet>
       </MobileShell>
     )
   }
@@ -457,8 +469,20 @@ function renderGuestBody(g: GuestRow) {
           <span className="text-white/35">Why: </span>{g.why_fit.slice(0, 300)}{g.why_fit.length > 300 ? '…' : ''}
         </p>
       )}
+      <QuickLinkRow links={guestLinks(g)} />
     </>
   )
+}
+
+// Quick outbound links for a guest card — only what's present. Lets a swipe be an
+// informed call: open their LinkedIn / site / X / email without leaving the deck.
+function guestLinks(g: GuestRow): QuickLink[] {
+  const links: QuickLink[] = []
+  if (g.linkedin_url) links.push({ label: 'LinkedIn', href: g.linkedin_url, icon: <Linkedin size={11} /> })
+  if (g.twitter_handle) links.push({ label: 'X', href: `https://x.com/${g.twitter_handle.replace(/^@/, '')}`, icon: <Twitter size={11} /> })
+  if (g.personal_url) links.push({ label: 'Site', href: g.personal_url, icon: <Globe size={11} /> })
+  if (g.email) links.push({ label: 'Email', href: `mailto:${g.email}`, icon: <Mail size={11} /> })
+  return links
 }
 
 // Card interior for a visibility target in the swipe deck.
@@ -493,8 +517,20 @@ function renderTargetBody(t: VisibilityTargetRow) {
           <span className="text-white/40">Pitch: </span><span className="italic">{t.suggested_talk_title}</span>
         </p>
       )}
+      <QuickLinkRow links={targetLinks(t)} />
     </>
   )
+}
+
+// Quick outbound links for a target card — CFP / event / where it was sourced.
+function targetLinks(t: VisibilityTargetRow): QuickLink[] {
+  const links: QuickLink[] = []
+  if (t.cfp_url) links.push({ label: 'CFP', href: t.cfp_url, icon: <FileText size={11} /> })
+  if (t.event_url && t.event_url !== t.cfp_url) links.push({ label: 'Event', href: t.event_url, icon: <ExternalLink size={11} /> })
+  if (t.source_url && t.source_url !== t.event_url && t.source_url !== t.cfp_url) {
+    links.push({ label: 'Source', href: t.source_url, icon: <Globe size={11} /> })
+  }
+  return links
 }
 
 function LaneTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
