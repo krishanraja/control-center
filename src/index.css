@@ -16,8 +16,35 @@
     @apply font-sans antialiased;
     background: #08080e;
     overflow-x: hidden;
+    /* Geist reads cleaner with a hair of negative tracking and proper
+       optical kerning — gives the UI a refined, modern feel. */
+    letter-spacing: -0.011em;
+    text-rendering: optimizeLegibility;
     /* Prevent pull-to-refresh interfering with swipe gestures */
     overscroll-behavior-y: contain;
+  }
+
+  /* Tighter tracking on headings/labels where Geist's display cut shines. */
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.02em;
+  }
+
+  /* Numerals (tickers, metrics, counts) sit on a fixed grid so they don't
+     jitter as values change — a hallmark of a polished dashboard. */
+  .tabular-nums,
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Refine every Lucide icon to a single, lighter stroke weight. A
+     consistent 1.5px line reads as far more sophisticated than the
+     default heavier 2px, and removes the inconsistent per-icon weights.
+     We match both the `.lucide` class and Lucide's signature attribute
+     set, because passing a custom `className` (for sizing) drops the
+     class but always keeps fill="none" + round caps/joins. */
+  svg.lucide,
+  svg[fill='none'][stroke-linecap='round'][stroke-linejoin='round'] {
+    stroke-width: 1.5px;
   }
 
   /* Safe area support for iOS notch / Android gesture bar */

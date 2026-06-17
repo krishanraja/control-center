@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { User, Clock, ChevronUp, Plus, CheckCircle, Play, AlertCircle } from 'lucide-react'
+import { User, Bot, Clock, ChevronUp, Plus, CheckCircle, Play, AlertCircle } from 'lucide-react'
 
 interface TodayItem {
   id: string
@@ -239,9 +239,18 @@ export function TodayPanel() {
 
       <div className="text-xs text-gray-500 space-y-1">
         <div className="flex items-center gap-4">
-          <span>🟡 Your tasks: {krishItems.filter(i => i.status !== 'done').length}</span>
-          <span>🔵 Agent tasks: {agentItems.filter(i => i.status !== 'done').length}</span>
-          <span>✅ Completed: {data.items.filter(i => i.status === 'done').length}</span>
+          <span className="inline-flex items-center gap-1.5">
+            <User className="w-3.5 h-3.5 text-amber-400" />
+            Your tasks: {krishItems.filter(i => i.status !== 'done').length}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Bot className="w-3.5 h-3.5 text-blue-400" />
+            Agent tasks: {agentItems.filter(i => i.status !== 'done').length}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+            Completed: {data.items.filter(i => i.status === 'done').length}
+          </span>
         </div>
       </div>
     </div>

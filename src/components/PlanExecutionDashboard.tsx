@@ -171,7 +171,10 @@ function PlanCard({ plan }: { plan: Plan }) {
       {plan.critical_blockers.length > 0 && (
         <div className="px-4 pb-4">
           <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-            <p className="text-[10px] font-bold text-amber-400 mb-2 uppercase">⚠️ Critical Blockers</p>
+            <p className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400 mb-2 uppercase tracking-wide">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              Critical Blockers
+            </p>
             <ul className="space-y-1">
               {plan.critical_blockers.map((blocker, idx) => (
                 <li key={idx} className="text-[11px] text-amber-300">{blocker}</li>
