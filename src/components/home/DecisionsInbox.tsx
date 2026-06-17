@@ -53,7 +53,6 @@ export function DecisionsInbox({
   const [resolved, setResolved] = useState<Record<string, any> | null>(null)
 
   const visible = decisions.slice(0, limit)
-  const more = Math.max(0, decisions.length - visible.length)
 
   // Composition of the whole queue by kind, biggest first. The visible top-N is
   // priority-sorted and tends to be monotone (one kind dominates), which hides
@@ -147,15 +146,6 @@ export function DecisionsInbox({
                 />
               )
             })}
-            {more > 0 && (
-              <button
-                type="button"
-                onClick={() => { h.tap(); onNavigate?.('triage') }}
-                className="w-full text-center py-3 text-[13px] text-violet-300/80 active:text-violet-200"
-              >
-                +{more} more in Triage
-              </button>
-            )}
           </>
         )}
       </FeedCard>
