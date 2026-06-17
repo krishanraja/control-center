@@ -18,13 +18,16 @@ import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 import { SwipeDeck } from '../shared/SwipeDeck'
 import { QuickLinkRow, type QuickLink } from '../shared/QuickLinkRow'
+import { buildLookupLinks } from '../../lib/lookupLinks'
 import { useSwipeTriage } from '../../hooks/useSwipeTriage'
 import { reasonsFor } from '../../lib/triageReasons'
 import { triagePromote, triageReject } from '../../lib/triageActions'
 
 type Lane = 'inbound' | 'outbound'
 
-const ACTIVE_STATUSES: GuestStatus[] = ['scouted', 'enriched', 'pitched', 'responded', 'scheduled', 'confirmed', 'recorded']
+// Recorded/published guests leave Visibility — they're promoted into the Network
+// (contacts) as relationships, not opportunities. Active = still in the pitch funnel.
+const ACTIVE_STATUSES: GuestStatus[] = ['scouted', 'enriched', 'pitched', 'responded', 'scheduled', 'confirmed']
 const ACTIVE_VIS_STATUSES: VisibilityTargetStatus[] = ['sourced', 'queued', 'applied', 'accepted']
 
 const STATUS_LABEL: Record<GuestStatus, string> = {
@@ -474,15 +477,19 @@ function renderGuestBody(g: GuestRow) {
   )
 }
 
-// Quick outbound links for a guest card — only what's present. Lets a swipe be an
-// informed call: open their LinkedIn / site / X / email without leaving the deck.
+// Quick links for a guest card: real profile URLs when present, PLUS always-on
+// LinkedIn/Google/YouTube lookups so a scouted guest with no stored URLs is still
+// researchable ("hear them talk" before pitching). Real links win on label
+// collision (a real LinkedIn URL suppresses the LinkedIn search).
 function guestLinks(g: GuestRow): QuickLink[] {
-  const links: QuickLink[] = []
-  if (g.linkedin_url) links.push({ label: 'LinkedIn', href: g.linkedin_url, icon: <Linkedin size={11} /> })
-  if (g.twitter_handle) links.push({ label: 'X', href: `https://x.com/${g.twitter_handle.replace(/^@/, '')}`, icon: <Twitter size={11} /> })
-  if (g.personal_url) links.push({ label: 'Site', href: g.personal_url, icon: <Globe size={11} /> })
-  if (g.email) links.push({ label: 'Email', href: `mailto:${g.email}`, icon: <Mail size={11} /> })
-  return links
+  const real: QuickLink[] = []
+  if (g.linkedin_url) real.push({ label: 'LinkedIn', href: g.linkedin_url, icon: <Linkedin size={11} /> })
+  if (g.twitter_handle) real.push({ label: 'X', href: `https://x.com/${g.twitter_handle.replace(/^@/, '')}`, icon: <Twitter size={11} /> })
+  if (g.personal_url) real.push({ label: 'Site', href: g.personal_url, icon: <Globe size={11} /> })
+  if (g.email) real.push({ label: 'Email', href: `mailto:${g.email}`, icon: <Mail size={11} /> })
+  const have = new Set(real.map(l => l.label))
+  const lookups = buildLookupLinks(g.name).filter(l => !have.has(l.label))
+  return [...real, ...lookups]
 }
 
 // Card interior for a visibility target in the swipe deck.
