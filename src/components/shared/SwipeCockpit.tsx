@@ -50,7 +50,7 @@ export function SwipeCockpit<T>({ config, onExit, onNavigate }: Props<T>) {
   }, [triage.deck, focusId, config])
 
   const top = deck[0] ?? null
-  const detailDecision = top ? config.detailKey(top) : null
+  const detailDecision = top && config.detailKey ? config.detailKey(top) : null
   const currentStage = top && config.stageTrack ? config.stageTrack.current(top) : null
 
   return (
@@ -118,7 +118,9 @@ export function SwipeCockpit<T>({ config, onExit, onNavigate }: Props<T>) {
 
       {/* Right rail — docked detail + full action set */}
       <aside className="w-80 flex-shrink-0 rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
-        {detailDecision ? (
+        {top && config.renderDetail ? (
+          <div className="h-full overflow-y-auto">{config.renderDetail(top)}</div>
+        ) : detailDecision ? (
           <DecisionDetail key={detailDecision} decision={detailDecision} actionsEnabled onNavigate={onNavigate} />
         ) : (
           <div className="h-full flex items-center justify-center text-[12px] text-white/35 px-6 text-center">

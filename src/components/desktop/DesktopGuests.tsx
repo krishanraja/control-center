@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Mic, Megaphone, Calendar } from 'lucide-react'
+import { Mic, Megaphone, Calendar, Layers } from 'lucide-react'
 import { useRealtimeGuests, type GuestRow, type GuestStatus, type GuestPodcastTarget } from '../../hooks/useRealtimeGuests'
 import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'
+import { SwipeCockpit } from '../shared/SwipeCockpit'
+import { buildGuestsTriageConfig, buildVisibilityTargetsTriageConfig } from '../../lib/triageConfig'
+import { useToast } from '../shared/Toast'
 import { GuestImportDropzone } from '../GuestImportDropzone'
 import { VisibilityImportDropzone } from '../VisibilityImportDropzone'
 import { GuestStatusLane } from './GuestStatusLane'
@@ -63,6 +66,8 @@ interface Props {
 
 export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, targetId, onClearDetail }: Props = {}) {
   const [lane, setLane] = useState<Lane>('inbound')
+  const { toast } = useToast()
+  const [triageOpen, setTriageOpen] = useState(false)
   const { guests: allGuests, loading: guestsLoading } = useRealtimeGuests()
   const { targets: allTargets, loading: targetsLoading } = useVisibilityTargets({ includeArchived: false })
   const guests = useMemo(() => allGuests.filter(g => !g.buried_at), [allGuests])
@@ -93,6 +98,12 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
 
   const loading = lane === 'inbound' ? guestsLoading : targetsLoading
   const activeCount = lane === 'inbound' ? inboundActive : outboundActive
+
+  // Desktop triage cockpit — the active lane's untriaged queue (guests to pitch
+  // / targets to apply), same swipe grammar as mobile.
+  const guestConfig = useMemo(() => buildGuestsTriageConfig(guests, { toast }, guestsLoading), [guests, toast, guestsLoading])
+  const targetConfig = useMemo(() => buildVisibilityTargetsTriageConfig(targets, { toast }, targetsLoading), [targets, toast, targetsLoading])
+  const triageConfig = lane === 'inbound' ? guestConfig : targetConfig
 
   const handleOpenGuest = onOpenGuest || ((id: string) => navigateDecision(onNavigate || (() => {}), 'guest', id))
   const openTarget = onOpenTarget || ((id: string) => navigateDecision(onNavigate || (() => {}), 'visibility', id))
@@ -136,6 +147,27 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   const renderGuestRow = (g: GuestRow) => <GuestCard guest={g} onOpen={handleOpenGuest} />
   const renderTargetRow = (t: VisibilityTargetRow) => <VisibilityTargetCard target={t} onOpen={openTarget} />
 
+  if (triageOpen) {
+    return (
+      <div className="space-y-4">
+        <header className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+            {lane === 'inbound' ? <Mic size={20} className="text-violet-300" /> : <Megaphone size={20} className="text-violet-300" />}
+            Visibility · Triage
+          </h1>
+          <span className="text-[13px] text-white/45">
+            — {lane === 'inbound' ? 'right pitches, left skips' : 'right applies, left passes'} with a reason
+          </span>
+        </header>
+        {lane === 'inbound' ? (
+          <SwipeCockpit config={guestConfig} onExit={() => setTriageOpen(false)} onNavigate={onNavigate} />
+        ) : (
+          <SwipeCockpit config={targetConfig} onExit={() => setTriageOpen(false)} onNavigate={onNavigate} />
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-4">
@@ -151,6 +183,15 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
         <div className="flex items-center gap-3">
           {isFocusModeEnabled() && calibrated && (
             <FocusModeToggle mode={mode} onChange={setMode} />
+          )}
+          {triageConfig.items.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setTriageOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-violet-400/30 bg-violet-500/10 hover:bg-violet-500/20 px-3 py-1.5 text-[12px] font-semibold text-violet-100 transition-colors"
+            >
+              <Layers size={14} /> Handle 1-by-1 · {triageConfig.items.length}
+            </button>
           )}
           <span className="text-[11px] text-white/55 tabular-nums">
             {loading ? '…' : `${activeCount} active`}
