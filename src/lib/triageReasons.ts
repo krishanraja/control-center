@@ -9,6 +9,7 @@ export const REJECT_REASONS: Record<string, ReasonChip[]> = {
   content_ideas: [
     { code: 'content_too_negative',    label: 'Too negative' },
     { code: 'content_too_technical',   label: 'Too technical' },
+    { code: 'content_off_vertical',    label: 'Off-vertical' },
     { code: 'content_too_generic',     label: 'Too generic' },
     { code: 'content_not_my_voice',    label: 'Not my voice' },
     { code: 'content_old_news',        label: 'Old news' },
@@ -19,6 +20,7 @@ export const REJECT_REASONS: Record<string, ReasonChip[]> = {
   ],
   leads: [
     { code: 'lead_too_technical',      label: 'Too technical' },
+    { code: 'lead_off_vertical',       label: 'Off-vertical' },
     { code: 'lead_wrong_seniority',    label: 'Wrong seniority' },
     { code: 'lead_wrong_company_size', label: 'Wrong size' },
     { code: 'lead_no_budget_signal',   label: 'No budget signal' },
@@ -27,6 +29,7 @@ export const REJECT_REASONS: Record<string, ReasonChip[]> = {
   ],
   visibility_targets: [
     { code: 'visibility_too_technical',     label: 'Too technical' },
+    { code: 'visibility_off_vertical',      label: 'Off-vertical' },
     { code: 'visibility_wrong_location',    label: 'Wrong location' },
     { code: 'visibility_wrong_audience',    label: 'Wrong audience' },
     { code: 'visibility_unlikely_accepted', label: 'Unlikely to be accepted' },
@@ -39,6 +42,7 @@ export const REJECT_REASONS: Record<string, ReasonChip[]> = {
   guests: [
     { code: 'guest_too_high_profile',  label: 'Too high-profile' },
     { code: 'guest_too_technical',     label: 'Too technical' },
+    { code: 'guest_off_vertical',      label: 'Off-vertical' },
     { code: 'guest_wrong_profile',     label: 'Wrong profile' },
     { code: 'guest_recently_appeared', label: 'Recently appeared' },
     { code: 'guest_low_reach',         label: 'Low reach' },
@@ -47,6 +51,7 @@ export const REJECT_REASONS: Record<string, ReasonChip[]> = {
   ],
   contacts: [
     { code: 'contact_too_technical',    label: 'Too technical' },
+    { code: 'contact_off_vertical',     label: 'Off-vertical' },
     { code: 'contact_not_a_fit',        label: 'Not a fit' },
     { code: 'contact_already_engaged',  label: 'Already engaged' },
     { code: 'contact_wrong_seniority',  label: 'Wrong seniority' },

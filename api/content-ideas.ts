@@ -4,6 +4,7 @@ import { sanitizeVoice } from './_content.js'
 import { checkDuplicate, recordDuplicateSource } from './_dedup.js'
 import { embed, vectorLiteral } from './_embeddings.js'
 import { canonicalUrl, titleNorm, contentHash } from './_text.js'
+import { classifyRelevance, relevanceReasonCode } from './_relevance.js'
 
 // Content ideas inbox endpoint.
 //
@@ -105,6 +106,83 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         target: 'api/content-ideas',
         details: JSON.stringify({ error: String(e), raw_text_preview: rawText.slice(0, 100) }),
       })
+    }
+
+    // ── Relevance gate ─────────────────────────────────────────────────────
+    // Agent-sourced cards only (Krish's own ⌘+I captures never get auto-dropped
+    // at ingest). If the card classifies as off-vertical (muted vertical on its
+    // own terms, no AI angle) or too-technical (low-level infra/devops with no
+    // strategic angle) at high confidence, we land it already at state='dropped'
+    // and write the matching feedback_queue −1 vote so Vera clusters the
+    // pattern next aggregation. The dedup gate already ran above, so we won't
+    // re-classify the same story on every re-ingest.
+    if (sourceType !== 'manual' && process.env.ANTHROPIC_API_KEY) {
+      try {
+        const verdicts = await classifyRelevance(
+          [{ id: 'incoming', title: rawText.slice(0, 200), text: body.source_snippet || rawText.slice(0, 800) }],
+          { apiKey: process.env.ANTHROPIC_API_KEY, surface: 'content' },
+        )
+        const v = verdicts[0]
+        if (v && v.verdict !== 'keep' && v.confidence >= 0.85) {
+          const ideaText = sanitizeVoice(rawText.slice(0, 500))
+          const snippetText = sanitizeVoice(body.source_snippet || rawText.slice(0, 280))
+          const reasonCode = relevanceReasonCode('content', v.verdict)
+          const { data: dropped, error: dropErr } = await supabase
+            .from('content_ideas')
+            .insert({
+              idea: ideaText,
+              source_type: sourceType,
+              source_ref: body.source_ref || null,
+              source_url: body.source_url || null,
+              source_snippet: snippetText,
+              source_captured_at: new Date().toISOString(),
+              state: 'dropped',
+              origin: 'agent',
+              canonical_url: canonicalUrl(body.source_url || null),
+              title_norm: titleNorm(ideaText),
+              content_hash: contentHash(snippetText),
+              meta: {
+                auto_swept: true,
+                sweep: 'ingest_gate',
+                verdict: v.verdict,
+                vertical: v.vertical,
+                confidence: v.confidence,
+                rationale: v.rationale,
+              },
+            })
+            .select('id')
+            .single()
+          if (!dropErr && dropped?.id) {
+            await supabase.from('feedback_queue').insert({
+              source_table: 'content_ideas',
+              source_id: dropped.id,
+              agent_id: 'cleo',
+              original_agent: 'cleo',
+              original_item_id: dropped.id,
+              vote: -1,
+              reason_code: reasonCode,
+              reason_text: v.rationale || null,
+              meta: { auto_swept: true, sweep: 'ingest_gate', verdict: v.verdict, vertical: v.vertical, confidence: v.confidence },
+              status: 'pending',
+            })
+            return res.json({
+              ok: true,
+              via: 'ingest_gate',
+              id: dropped.id,
+              auto_dropped: { reason_code: reasonCode, verdict: v.verdict, vertical: v.vertical, confidence: v.confidence },
+            })
+          }
+        }
+      } catch (e) {
+        // Classifier failures are non-fatal — log and continue (fail-open: the
+        // card lands on the deck for human triage instead of being auto-dropped).
+        await supabase.from('audit_log').insert({
+          event_type: 'idea_capture_relevance_failure',
+          actor: 'control_center_api',
+          target: 'api/content-ideas',
+          details: JSON.stringify({ error: String(e), raw_text_preview: rawText.slice(0, 100) }),
+        })
+      }
     }
 
     // Try the N8N webhook first (extraction + enrichment — dedup already ran).

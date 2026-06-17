@@ -71,6 +71,10 @@ const REASON_OPTIONS = new Set([
   'content_wrong_venture',
   'content_too_negative',
   'content_too_technical',
+  // Off-vertical: card is about a muted vertical (finance/tax/law/crypto/
+  // healthcare/climate/real-estate/geopolitics) on its own terms, no AI angle.
+  // Emitted by the auto relevance sweep + ingest gate (api/_relevance.ts).
+  'content_off_vertical',
   'content_already_covered',
   'content_too_promotional',
   'content_thin',
@@ -81,6 +85,7 @@ const REASON_OPTIONS = new Set([
   'lead_already_contacted',
   'lead_wrong_venture_tag',
   'lead_too_technical',
+  'lead_off_vertical',
   'lead_other',
   'visibility_wrong_audience',
   'visibility_bad_timing',
@@ -91,6 +96,7 @@ const REASON_OPTIONS = new Set([
   'visibility_pay_to_play',
   'visibility_no_relevant_talk',
   'visibility_too_technical',
+  'visibility_off_vertical',
   'visibility_other',
   'guest_wrong_show',
   'guest_too_inside_baseball',
@@ -101,6 +107,7 @@ const REASON_OPTIONS = new Set([
   'guest_wrong_profile',
   'guest_low_reach',
   'guest_no_hook',
+  'guest_off_vertical',
   'guest_other',
   // Relationship Engine contact reasons (Leads tab thumbs-down).
   'contact_already_engaged',
@@ -109,6 +116,7 @@ const REASON_OPTIONS = new Set([
   'contact_no_budget_signal',
   'contact_bad_timing',
   'contact_too_technical',
+  'contact_off_vertical',
   'contact_wrong_seniority',
   'contact_cold',
   'contact_other',
