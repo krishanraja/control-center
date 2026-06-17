@@ -1,6 +1,9 @@
-import { useMemo } from 'react'
-import { Users, X, Sparkles } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Users, X, Sparkles, Layers } from 'lucide-react'
 import { useRealtimeLeads, type LeadSourceType, type LeadRow } from '../../hooks/useRealtimeLeads'
+import { SwipeCockpit } from '../shared/SwipeCockpit'
+import { buildLeadsTriageConfig } from '../../lib/triageConfig'
+import { useToast } from '../shared/Toast'
 import { useVentureRegistry, type VentureRow } from '../../hooks/useVentureRegistry'
 import { LeadImportDropzone } from '../LeadImportDropzone'
 import { SubstackImportDropzone } from '../SubstackImportDropzone'
@@ -39,8 +42,13 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
     statusIn: ['new', 'enriching', 'ready', 'contacted', 'conversation'],
   })
   const { ventures } = useVentureRegistry()
+  const { toast } = useToast()
+  const [triageOpen, setTriageOpen] = useState(false)
   const leads = useMemo(() => allLeads.filter(l => !l.buried_at), [allLeads])
   const buriedLeads = useMemo(() => allLeads.filter(l => l.buried_at), [allLeads])
+
+  // Desktop triage cockpit — same swipe grammar as mobile, laid out for landscape.
+  const triageConfig = useMemo(() => buildLeadsTriageConfig(leads, { toast }, loading), [leads, toast, loading])
 
   const byVenture = useMemo(() => groupByVenture(leads), [leads])
   const bySource = useMemo(() => groupBySource(leads), [leads])
@@ -78,6 +86,25 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
   const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
   const renderLeadRow = (lead: LeadRow) => <LeadCard lead={lead} onOpen={handleOpen} />
 
+  if (triageOpen) {
+    return (
+      <div className="space-y-4">
+        <header className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+            <Users size={20} className="text-emerald-300" />
+            Pipeline · Triage
+          </h1>
+          <span className="text-[13px] text-white/45">— right enriches or promotes, left drops with a reason</span>
+        </header>
+        <SwipeCockpit
+          config={triageConfig}
+          onExit={() => setTriageOpen(false)}
+          onNavigate={onNavigate}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-4">
@@ -93,6 +120,15 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
         <div className="flex items-center gap-3">
           {isFocusModeEnabled() && calibrated && (
             <FocusModeToggle mode={mode} onChange={setMode} />
+          )}
+          {triageConfig.items.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setTriageOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-500/10 hover:bg-violet-500/20 px-3 py-1.5 text-[12px] font-semibold text-violet-100 transition-colors"
+            >
+              <Layers size={14} /> Handle 1-by-1 · {triageConfig.items.length}
+            </button>
           )}
           <span className="text-[11px] text-white/55 tabular-nums">
             {loading ? '…' : `${totalActive} active`}

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { HeartHandshake, X, Search, UserCog, Tag, Ban, FileSearch, Flame } from 'lucide-react'
+import { HeartHandshake, X, Search, UserCog, Tag, Ban, FileSearch, Flame, Layers } from 'lucide-react'
 import {
   useRealtimeContacts,
   type ContactRow,
@@ -12,6 +12,8 @@ import { OutreachDraftSheet, type DraftTarget } from '../OutreachDraftSheet'
 import { LeadSheet } from '../LeadSheet'
 import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
+import { SwipeCockpit } from '../shared/SwipeCockpit'
+import { buildContactsTriageConfig } from '../../lib/triageConfig'
 
 const VENTURES: Array<{ slug: string; label: string }> = [
   { slug: 'mindmaker', label: 'Mindmaker' },
@@ -43,9 +45,10 @@ interface Props {
   onNavigate?: (tab: string, params?: Record<string, string>) => void
 }
 
-export function DesktopLeadsRE(_props: Props = {}) {
+export function DesktopLeadsRE({ onNavigate }: Props = {}) {
   const { toast } = useToast()
   const h = useHaptics()
+  const [triageOpen, setTriageOpen] = useState(false)
 
   const [ventureIn, setVentureIn] = useState<string[]>([])
   const [tierIn, setTierIn] = useState<ConsentTier[]>([])
@@ -83,6 +86,9 @@ export function DesktopLeadsRE(_props: Props = {}) {
     review.sort(heatDesc)
     return { handQueue: hand, reviewList: review }
   }, [contacts])
+
+  // Desktop triage cockpit over the warm hand-queue (same swipe grammar as mobile).
+  const triageConfig = useMemo(() => buildContactsTriageConfig(contacts, { toast }, loading), [contacts, toast, loading])
 
   const toggleVenture = (slug: string) =>
     setVentureIn(prev => (prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]))
@@ -140,6 +146,21 @@ export function DesktopLeadsRE(_props: Props = {}) {
         : 'border-white/10 text-white/60 hover:bg-white/[0.06]'
     }`
 
+  if (triageOpen) {
+    return (
+      <div className="space-y-4">
+        <header className="flex items-center gap-2">
+          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+            <HeartHandshake size={20} className="text-rose-300" />
+            Network · Triage
+          </h1>
+          <span className="text-[13px] text-white/45">— right keeps warm, left skips with a reason</span>
+        </header>
+        <SwipeCockpit config={triageConfig} onExit={() => setTriageOpen(false)} onNavigate={onNavigate} />
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-4 h-[calc(100vh-3rem)] min-h-0">
       {/* Header */}
@@ -157,6 +178,15 @@ export function DesktopLeadsRE(_props: Props = {}) {
           <span className="text-[11px] text-white/55 tabular-nums">
             {loading ? '…' : `${total} contacts`}
           </span>
+          {triageConfig.items.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setTriageOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-violet-400/30 bg-violet-500/10 hover:bg-violet-500/20 px-3 py-1.5 text-[12px] font-semibold text-violet-100 transition-colors"
+            >
+              <Layers size={14} /> Handle 1-by-1 · {triageConfig.items.length}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowImport(s => !s)}
