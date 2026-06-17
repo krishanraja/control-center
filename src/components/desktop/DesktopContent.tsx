@@ -15,7 +15,8 @@ import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 import { AppFrame } from '../shared/AppFrame'
 import { useContentTriage } from '../../hooks/useContentTriage'
-import { TriageDeck } from '../content/TriageDeck'
+import { SwipeCockpit } from '../shared/SwipeCockpit'
+import { buildContentTriageConfig } from '../../lib/triageConfig'
 
 // Past this many cards a lane stops stacking and offers the triage deck instead —
 // the guard that makes it structurally impossible to mount 200 cards again.
@@ -42,9 +43,13 @@ interface Props {
 
 export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
   const { ideas, loading } = useRealtimeContentIdeas()
+  const { toast } = useToast()
   const triage = useContentTriage()
   const [view, setView] = useState<'lanes' | 'calendar'>('lanes')
   const [laneFilter, setLaneFilter] = useState<LaneFilter>('all')
+
+  // Desktop triage cockpit config (same swipe grammar as the other surfaces).
+  const triageConfig = useMemo(() => buildContentTriageConfig(ideas, { toast }, loading), [ideas, toast, loading])
 
   // Everything below the lane toggle operates on the selected lane's slice.
   // Backburner-buried ideas drop out of the lanes and show in the collapsed
@@ -145,7 +150,7 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
       padded={triage.mode !== 'triage'}
     >
       {triage.mode === 'triage' ? (
-        <TriageDeck triage={triage} narrow={false} paused={!!ideaId} />
+        <SwipeCockpit config={triageConfig} onExit={triage.exitTriage} />
       ) : (
         <div className="space-y-5">
       {laneFilter !== 'all' && <CadenceBar lane={laneFilter} ideas={ideas} />}

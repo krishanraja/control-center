@@ -7,6 +7,7 @@ import type { LeadRow } from '../hooks/useRealtimeLeads'
 import type { ContactRow } from '../hooks/useRealtimeContacts'
 import type { GuestRow } from '../hooks/useRealtimeGuests'
 import type { VisibilityTargetRow } from '../hooks/useVisibilityTargets'
+import type { ContentIdeaRow, IdeaState } from '../hooks/useRealtimeContentIdeas'
 import { triageReject, triagePromote, feedbackVote } from './triageActions'
 import { isHandQueue } from './contactTriage'
 import { topFit, dossierMove, contactRationale, ventureLabel as contactVentureLabel } from './contactSignals'
@@ -562,6 +563,141 @@ export function buildVisibilityTargetsTriageConfig(
         <p className="text-[10.5px] text-white/40 truncate">
           {[t.type.replace(/_/g, ' '), typeof t.relevance_score === 'number' ? `fit ${t.relevance_score}` : null]
             .filter(Boolean).join(' · ')}
+        </p>
+      </div>
+    ),
+  }
+}
+
+// ── Content ideas ─────────────────────────────────────────────────────────
+
+// Linear advance map — mirrors useContentTriage. It STOPS before the human gates
+// (review/approved); those are decided in the docked detail rail (Greenlight /
+// Kill), never auto-advanced by a swipe. So the triage deck only holds backlog
+// states with a clear next step.
+const CONTENT_ADVANCE_NEXT: Partial<Record<IdeaState, IdeaState>> = {
+  seeded: 'researching',
+  researching: 'drafting',
+  drafting: 'review',
+}
+const CONTENT_RIGHT_LABEL: Partial<Record<IdeaState, string>> = {
+  seeded: 'Research',
+  researching: 'Draft',
+  drafting: 'Review',
+}
+const CONTENT_STATE_PRIORITY: Record<string, number> = { seeded: 0, researching: 1, drafting: 2 }
+
+async function patchIdeaState(id: string, state: IdeaState): Promise<boolean> {
+  try {
+    const r = await fetch('/api/content-ideas', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, state }),
+    })
+    return r.ok
+  } catch {
+    return false
+  }
+}
+
+function renderContentBody(i: ContentIdeaRow): React.ReactNode {
+  const thesis = (i.thesis || '').trim()
+  const draft = (i.body || '').trim()
+  const why = thesis || draft
+  return (
+    <>
+      <div className="flex items-center gap-2 flex-wrap mb-3">
+        <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] font-semibold bg-white/[0.08] text-white/65">{i.state}</span>
+        {i.lane && <span className="text-[10px] uppercase tracking-[0.1em] text-white/40">{i.lane.replace(/_/g, ' ')}</span>}
+        {typeof i.brand_fit_score === 'number' && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {i.brand_fit_score}</span>
+        )}
+        {draft && <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200/80">draft</span>}
+      </div>
+      <p className="text-[19px] font-semibold text-white leading-snug">{i.idea}</p>
+      <div className="mt-3 overflow-hidden flex-1 min-h-0">
+        {why ? (
+          <p className="text-[13.5px] text-white/75 leading-relaxed">
+            <span className="text-violet-300/80 font-medium">{thesis ? 'Angle: ' : ''}</span>
+            {why.slice(0, 320)}{why.length > 320 ? '…' : ''}
+          </p>
+        ) : (
+          <p className="text-[12px] text-amber-200/70">No draft or thesis yet — raw seed. Swipe right to research it.</p>
+        )}
+      </div>
+    </>
+  )
+}
+
+/**
+ * Build the Content triage config. Deck = active backlog with a clear next step
+ * (seeded/researching/drafting), worst-state first. RIGHT advances one stage;
+ * LEFT drops with the shared `content_ideas` reason chips. Human gates
+ * (review/approved) live in the docked detail rail, not the swipe.
+ */
+export function buildContentTriageConfig(
+  ideas: ContentIdeaRow[],
+  ctx: TriageConfigCtx,
+  loading?: boolean,
+): TriageConfig<ContentIdeaRow> {
+  const { toast } = ctx
+  const items = ideas
+    .filter(i => !i.buried_at && CONTENT_ADVANCE_NEXT[i.state] != null)
+    .sort((a, b) => {
+      const pa = CONTENT_STATE_PRIORITY[a.state] ?? 9
+      const pb = CONTENT_STATE_PRIORITY[b.state] ?? 9
+      if (pa !== pb) return pa - pb
+      return (a.updated_at || '') < (b.updated_at || '') ? -1 : 1
+    })
+
+  const onAccept = async (i: ContentIdeaRow): Promise<CommitResult> => {
+    const next = CONTENT_ADVANCE_NEXT[i.state]
+    if (!next) return false
+    const ok = await patchIdeaState(i.id, next)
+    if (ok) {
+      void feedbackVote('content_ideas', i.id, 1, 'cleo', 'content_advanced')
+      toast(`Advanced to ${next}.`, 'success')
+    } else {
+      toast('Could not update — try again.', 'error')
+    }
+    return ok
+  }
+  const onReject = async (i: ContentIdeaRow, code?: string): Promise<CommitResult> => {
+    const ok = await triageReject('content_ideas', i.id, 'cleo', code)
+    toast(ok ? 'Dropped. Vera will learn.' : 'Could not drop — try again.', ok ? 'success' : 'error')
+    return ok
+  }
+
+  return {
+    items,
+    loading,
+    getId: i => i.id,
+    title: 'Clear the pile',
+    reasonsTable: 'content_ideas',
+    renderBody: renderContentBody,
+    ariaLabel: i => `Content idea: ${i.idea}`,
+    leftLabel: 'Drop',
+    rightLabel: i => CONTENT_RIGHT_LABEL[i.state] ?? 'Advance',
+    rightIntent: () => 'advance',
+    onAccept,
+    onReject,
+    detailKind: 'idea',
+    detailKey: i => `idea:${i.id}`,
+    stageTrack: {
+      stages: [
+        { key: 'seeded', label: 'Seeded' },
+        { key: 'researching', label: 'Researching' },
+        { key: 'drafting', label: 'Drafting' },
+        { key: 'review', label: 'Review' },
+        { key: 'approved', label: 'Approved' },
+      ],
+      current: i => i.state,
+    },
+    renderRow: (i, active) => (
+      <div className="min-w-0">
+        <p className={`text-[12px] font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{i.idea}</p>
+        <p className="text-[10.5px] text-white/40 truncate">
+          {[i.state, i.lane ? i.lane.replace(/_/g, ' ') : null].filter(Boolean).join(' · ')}
         </p>
       </div>
     ),
