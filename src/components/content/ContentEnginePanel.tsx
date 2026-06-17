@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import {
-  Check, Flame, Gauge, MessageSquare, PenLine, RotateCcw, Save, Send, Sparkles, Swords, Wand2, X,
+  AlertTriangle, Check, Flame, Gauge, MessageSquare, PenLine, RotateCcw, Save, Send, Sparkles, Swords, Wand2, X,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../shared/Toast'
@@ -303,7 +303,7 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
               </div>
               {standards.verdict && <p className="text-[10px] text-white/55 italic">{standards.verdict}</p>}
               {standards.artifact_sourced === false && (
-                <p className="text-[10px] text-amber-200/70">⚠ No owned artifact detected — this may be commentary on a thing read. Reach for a builder-operator source.</p>
+                <p className="flex items-start gap-1.5 text-[10px] text-amber-200/70"><AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />No owned artifact detected — this may be commentary on a thing read. Reach for a builder-operator source.</p>
               )}
             </div>
           )}
@@ -314,7 +314,7 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
       {openSection === 'cleo' && (
         <div className="space-y-2">
           {!gatePasses(standards) && (
-            <p className="text-[10px] text-amber-200/80">⚠ Fails a watch standard ({standards?.failing.join(', ')}). You can still push — Cleo polishes, you stay the final word.</p>
+            <p className="flex items-start gap-1.5 text-[10px] text-amber-200/80"><AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />Fails a watch standard ({standards?.failing.join(', ')}). You can still push — Cleo polishes, you stay the final word.</p>
           )}
           <div className="flex items-center gap-1 flex-wrap">
             {FACTORY_CHANNELS.map(c => (
