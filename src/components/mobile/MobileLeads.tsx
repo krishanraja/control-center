@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Users, Linkedin, Mail, ExternalLink, X, ThumbsUp, Sparkles } from 'lucide-react'
+import { Users, Linkedin, Mail, ExternalLink, X, ThumbsUp, Sparkles, Layers, ChevronRight } from 'lucide-react'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
+import { MobileShell as MobileStage } from './MobileShell'
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { DetailSheet } from './DetailSheet'
 import { LeadImportDropzone } from '../LeadImportDropzone'
@@ -11,6 +12,10 @@ import { useToast } from '../shared/Toast'
 import { humanAge } from '../../lib/ageHelpers'
 import { navigateDecision } from '../../lib/routeDecision'
 import { buildDecisionActions } from '../../lib/decisionActions'
+import { SwipeDeck } from '../shared/SwipeDeck'
+import { useSwipeTriage } from '../../hooks/useSwipeTriage'
+import { reasonsFor } from '../../lib/triageReasons'
+import { buildLeadsTriageConfig } from '../../lib/triageConfig'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
@@ -115,6 +120,65 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
     ? `Top fit: ${topCandidate.full_name || topCandidate.company || 'unnamed'}${topCandidate.primary_venture ? ` (${topCandidate.primary_venture.replace(/_/g, ' ')})` : ''}`
     : 'No candidates waiting — credits only spent on explicit Enrich.'
 
+  // Swipe-triage over the decision queue (status new/ready). RIGHT is
+  // context-aware (Enrich a raw candidate, Promote a ready lead), LEFT drops
+  // with the shared `leads` reason chips — identical grammar to Network.
+  const triageConfig = useMemo(() => buildLeadsTriageConfig(leads, { toast }, loading), [leads, toast, loading])
+  const triage = useSwipeTriage<LeadRow>({
+    items: triageConfig.items,
+    getId: triageConfig.getId,
+    loading,
+    onAccept: triageConfig.onAccept,
+    onReject: triageConfig.onReject,
+  })
+
+  const detailSheet = (
+    <DetailSheet
+      open={openLead != null}
+      onClose={closeDetail}
+      eyebrow={openLead ? SOURCE_TITLE[openLead.source_type] : undefined}
+      title={openLead ? leadName(openLead) : ''}
+      body={openLead?.why_relevant || openLead?.primary_tension || leadSubtitle(openLead || ({} as LeadRow))}
+      agent={openLead?.assignee_agent || 'nell'}
+      status={openLead?.status}
+      meta={openLead?.fit_score != null ? `Fit ${openLead.fit_score}/10` : undefined}
+      docUrl={openLead?.source_url || undefined}
+      actions={openLead ? buildDecisionActions('lead', openLead, { toast, haptics: h, onDone: closeDetail }) : []}
+    />
+  )
+
+  if (triage.mode === 'deck') {
+    return (
+      <MobileStage scroll="none" header={<TabHeader title="Pipeline" subtitle={`${triageConfig.items.length} to triage · swipe to decide`} />}>
+        <div className="flex-1 min-h-0 px-1">
+          <SwipeDeck<LeadRow>
+            deck={triage.deck}
+            getId={triageConfig.getId}
+            renderBody={triageConfig.renderBody}
+            ariaLabel={triageConfig.ariaLabel}
+            onAccept={triage.accept}
+            onReject={triage.reject}
+            onOpen={l => openLeadFromRow(l.id)}
+            leftLabel={triageConfig.leftLabel}
+            rightLabel={triageConfig.rightLabel}
+            rightIntent={triageConfig.rightIntent}
+            pending={triage.pending}
+            reasonChips={() => reasonsFor(triageConfig.reasonsTable)}
+            onChooseReason={triage.chooseReason}
+            onCancelPending={triage.cancelPending}
+            remaining={triage.remaining}
+            triagedCount={triage.triagedCount}
+            onExit={triage.exitDeck}
+            title={triageConfig.title}
+            paused={openLead != null}
+            narrow
+          />
+        </div>
+        {detailSheet}
+      </MobileStage>
+    )
+  }
+
   // Focus Mode (Phase 3): when enabled and today is calibrated, the venture
   // feed cards regroup into the 3 daily-target lanes via relevance_index (table
   // 'leads'). The visible set is every active lead the tab already lists, fed
@@ -188,6 +252,22 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
         <StatPill label="New 24h" value={newToday} color={newToday > 0 ? 'text-amber-300' : 'text-white/45'} />
       </div>
 
+      {/* Swipe-triage entry for the decision queue */}
+      {triageConfig.items.length > 0 && (
+        <button
+          type="button"
+          onClick={() => { h.tap(); triage.forceDeck() }}
+          className="w-full flex items-center gap-2.5 rounded-2xl border border-violet-400/30 bg-violet-500/10 active:bg-violet-500/20 p-3.5 text-left transition-colors flex-shrink-0"
+        >
+          <Layers size={18} className="text-violet-300 flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-violet-100">Swipe to triage · {triageConfig.items.length}</p>
+            <p className="text-[11px] text-white/45">One card at a time — right enriches or promotes, left drops with a reason.</p>
+          </div>
+          <ChevronRight size={16} className="text-violet-300/70 ml-auto flex-shrink-0" />
+        </button>
+      )}
+
       {isFocusModeEnabled() && calibrated && (
         <div className="flex items-center justify-end -mt-1">
           <FocusModeToggle mode={mode} onChange={setMode} />
@@ -244,18 +324,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
         })
       )}
 
-      <DetailSheet
-        open={openLead != null}
-        onClose={closeDetail}
-        eyebrow={openLead ? SOURCE_TITLE[openLead.source_type] : undefined}
-        title={openLead ? leadName(openLead) : ''}
-        body={openLead?.why_relevant || openLead?.primary_tension || leadSubtitle(openLead || ({} as LeadRow))}
-        agent={openLead?.assignee_agent || 'nell'}
-        status={openLead?.status}
-        meta={openLead?.fit_score != null ? `Fit ${openLead.fit_score}/10` : undefined}
-        docUrl={openLead?.source_url || undefined}
-        actions={openLead ? buildDecisionActions('lead', openLead, { toast, haptics: h, onDone: closeDetail }) : []}
-      />
+      {detailSheet}
     </MobileShellPrim>
   )
 }

@@ -1,9 +1,20 @@
 import React, { useCallback, useEffect, useRef } from 'react'
-import { X, Check, Maximize2, CheckCircle2, Layers } from 'lucide-react'
+import { X, Check, ChevronRight, Maximize2, CheckCircle2 } from 'lucide-react'
 import { useCardDeck, type Dir } from '../../hooks/useCardDeck'
 import { SwipeCard } from './SwipeCard'
+import { ReasonChipBar } from './ReasonChipBar'
+import { DeckProgressStrip } from './DeckProgressStrip'
 
 export interface ReasonChip { code: string; label: string }
+
+/** A label that can vary per card (e.g. "Enrich ~$0.50" vs "Promote"). */
+export type CardLabel<T> = string | ((t: T) => string)
+
+/** What a RIGHT swipe means for this card — only affects the affordance icon. */
+export type RightIntent = 'keep' | 'advance' | 'open'
+
+/** Optional override for the middle control (default = Open detail). */
+export interface MiddleAction { icon: React.ReactNode; aria: string; onClick: () => void }
 
 interface Props<T> {
   deck: T[]
@@ -16,8 +27,13 @@ interface Props<T> {
   onReject: (t: T) => void
   onOpen?: (t: T) => void
 
-  leftLabel?: string
-  rightLabel?: string
+  /** Labels for the drag ghosts + control bar; may vary per card. */
+  leftLabel?: CardLabel<T>
+  rightLabel?: CardLabel<T>
+  /** Per-card RIGHT intent — picks the right-button icon (default 'keep' → ✓). */
+  rightIntent?: (t: T) => RightIntent
+  /** Replace the middle control (default = Open). Return null to fall back to Open. */
+  middleAction?: (t: T) => MiddleAction | null
 
   /** Left-swipe reason buffer (from useSwipeTriage). When set, the chip bar shows. */
   pending: { item: T } | null
@@ -28,6 +44,10 @@ interface Props<T> {
   remaining: number
   triagedCount: number
   onExit?: () => void
+  exitLabel?: string
+  /** Undo affordance in the progress strip (e.g. Content's stage undo). */
+  onUndo?: () => void
+  canUndo?: boolean
 
   /** Progress-strip headline, e.g. "Clear the pile". */
   title?: string
@@ -36,20 +56,29 @@ interface Props<T> {
   paused?: boolean
 }
 
+function resolveLabel<T>(label: CardLabel<T> | undefined, t: T | null, fallback: string): string {
+  if (t == null) return fallback
+  return typeof label === 'function' ? label(t) : (label ?? fallback)
+}
+
 /**
  * SwipeDeck — one card at a time over a pile. LEFT = reject (−1, opens a reason
- * bar), RIGHT = accept (+1), UP/TAP = open detail. Pointer swipe, on-screen
+ * bar), RIGHT = accept/advance (+1), UP/TAP = open detail. Pointer swipe, on-screen
  * buttons, and arrow keys all drive the same actions, so it works identically on
  * phone and desktop. Only ~3 cards mount at once, which is what makes a 200-deep
- * pile cheap instead of browser-crashing. Generalized from the Content tab's
- * TriageDeck so Triage, Visibility, Network, and Content share one deck.
+ * pile cheap instead of browser-crashing.
+ *
+ * The RIGHT action can be context-aware: the host's onAccept branches on the item
+ * (e.g. Enrich a raw lead vs Promote a ready one) and `rightLabel`/`rightIntent`
+ * may be functions of the top card so the affordance reads correctly. Generalized
+ * so Triage, Visibility, Network, Content, and Pipeline share one deck.
  */
 export function SwipeDeck<T>({
   deck, getId, renderBody, ariaLabel,
   onAccept, onReject, onOpen,
-  leftLabel = 'Skip', rightLabel = 'Keep',
+  leftLabel = 'Skip', rightLabel = 'Keep', rightIntent, middleAction,
   pending, reasonChips, onChooseReason, onCancelPending,
-  remaining, triagedCount, onExit,
+  remaining, triagedCount, onExit, exitLabel, onUndo, canUndo,
   title = 'Clear the pile', narrow, paused,
 }: Props<T>) {
   const top = deck[0] ?? null
@@ -94,7 +123,14 @@ export function SwipeDeck<T>({
     if (e.key === 'ArrowLeft') { e.preventDefault(); flyOut('left') }
     else if (e.key === 'ArrowRight') { e.preventDefault(); flyOut('right') }
     else if ((e.key === 'ArrowUp' || e.key === 'Enter') && onOpen) { e.preventDefault(); onOpen(top) }
+    else if ((e.key === 'u' || e.key === 'U') && canUndo && onUndo) { e.preventDefault(); onUndo() }
   }
+
+  const topLeft = resolveLabel(leftLabel, top, 'Skip')
+  const topRight = resolveLabel(rightLabel, top, 'Keep')
+  const topIntent: RightIntent = top && rightIntent ? rightIntent(top) : 'keep'
+  const topMiddle = top && middleAction ? middleAction(top) : null
+  const RightIcon = topIntent === 'keep' ? Check : ChevronRight
 
   return (
     <div
@@ -103,18 +139,15 @@ export function SwipeDeck<T>({
       onKeyDown={onKeyDown}
       className={`flex flex-col h-full outline-none ${narrow ? 'px-4 pb-[calc(env(safe-area-inset-bottom,0px)+120px)]' : 'px-0'}`}
     >
-      {/* Progress strip */}
-      <div className="flex items-center gap-2 pt-1 pb-3 flex-shrink-0">
-        <Layers size={14} className="text-violet-300" />
-        <span className="text-[12px] text-white/70 font-medium">{title}</span>
-        <span className="text-[12px] text-white/40 tabular-nums">· {remaining} left{triagedCount > 0 ? ` · ${triagedCount} cleared` : ''}</span>
-        {onExit && (
-          <button type="button" onClick={onExit}
-            className="ml-auto text-[11px] text-white/45 hover:text-white/80 px-2 py-1 rounded-md hover:bg-white/[0.06]">
-            Exit
-          </button>
-        )}
-      </div>
+      <DeckProgressStrip
+        title={title}
+        remaining={remaining}
+        triagedCount={triagedCount}
+        onExit={onExit}
+        exitLabel={exitLabel}
+        onUndo={onUndo}
+        canUndo={canUndo}
+      />
 
       {/* Card stage */}
       <div className="relative flex-1 min-h-0 mx-auto w-full max-w-md">
@@ -129,8 +162,8 @@ export function SwipeDeck<T>({
                 dx={isTop ? dx : 0}
                 dragging={isTop && phase === 'dragging'}
                 flyout={isTop && phase === 'flyout'}
-                leftLabel={leftLabel}
-                rightLabel={rightLabel}
+                leftLabel={isTop ? topLeft : resolveLabel(leftLabel, item, 'Skip')}
+                rightLabel={isTop ? topRight : resolveLabel(rightLabel, item, 'Keep')}
                 bind={isTop ? bind : undefined}
                 ariaLabel={ariaLabel ? ariaLabel(item) : undefined}
                 onClick={isTop && onOpen ? () => onOpen(item) : undefined}
@@ -159,36 +192,11 @@ export function SwipeDeck<T>({
 
       {/* Reason chip bar — pops after a LEFT swipe; tap a chip (or Skip) to teach */}
       {pending ? (
-        <div className="pt-4 flex-shrink-0">
-          <div className="rounded-2xl border border-rose-400/25 bg-rose-500/[0.06] p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[11px] text-white/70 font-medium">Why drop it?</span>
-              <button type="button" onClick={onCancelPending}
-                className="ml-auto text-[11px] text-white/55 hover:text-white/90 px-2 py-1 rounded-md hover:bg-white/[0.06]">
-                Undo
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {chips.map((c, i) => (
-                <button
-                  key={c.code}
-                  type="button"
-                  onClick={() => onChooseReason(c.code)}
-                  className="text-[12px] px-2.5 py-1.5 rounded-lg border border-white/[0.12] text-white/80 hover:border-white/[0.25] hover:bg-white/[0.05] transition-colors"
-                >
-                  <span className="hidden md:inline text-white/35 mr-1 tabular-nums">{i + 1}</span>{c.label}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => onChooseReason(undefined)}
-                className="text-[12px] px-2.5 py-1.5 rounded-lg text-white/50 hover:text-white/80"
-              >
-                Skip
-              </button>
-            </div>
-          </div>
-        </div>
+        <ReasonChipBar
+          chips={chips}
+          onChoose={onChooseReason}
+          onCancel={onCancelPending}
+        />
       ) : (
         top && (
           <>
@@ -197,12 +205,21 @@ export function SwipeDeck<T>({
               <button
                 type="button"
                 onClick={() => flyOut('left')}
-                aria-label={leftLabel}
+                aria-label={topLeft}
                 className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-rose-500/40 text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 transition"
               >
                 <X size={22} />
               </button>
-              {onOpen && (
+              {topMiddle ? (
+                <button
+                  type="button"
+                  onClick={topMiddle.onClick}
+                  aria-label={topMiddle.aria}
+                  className="flex items-center justify-center w-12 h-12 rounded-full border border-sky-400/40 text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 active:scale-95 transition"
+                >
+                  {topMiddle.icon}
+                </button>
+              ) : onOpen ? (
                 <button
                   type="button"
                   onClick={() => onOpen(top)}
@@ -211,20 +228,20 @@ export function SwipeDeck<T>({
                 >
                   <Maximize2 size={18} />
                 </button>
-              )}
+              ) : null}
               <button
                 type="button"
                 onClick={() => flyOut('right')}
-                aria-label={rightLabel}
+                aria-label={topRight}
                 className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 transition"
               >
-                <Check size={24} />
+                <RightIcon size={24} />
               </button>
             </div>
             <p className="text-center text-[11px] text-white/35 mt-2.5 flex-shrink-0">
               {narrow
-                ? <>Swipe left to {leftLabel.toLowerCase()} · right to {rightLabel.toLowerCase()}{onOpen ? ' · tap to open' : ''}</>
-                : <>← {leftLabel.toLowerCase()} · → {rightLabel.toLowerCase()}{onOpen ? ' · ↑ open' : ''}</>}
+                ? <>Swipe left to {topLeft.toLowerCase()} · right to {topRight.toLowerCase()}{onOpen ? ' · tap to open' : ''}</>
+                : <>← {topLeft.toLowerCase()} · → {topRight.toLowerCase()}{onOpen ? ' · ↑ open' : ''}{canUndo ? ' · U undo' : ''}</>}
             </p>
           </>
         )
