@@ -4,6 +4,7 @@ import { humanAge } from '../lib/ageHelpers'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import { FeedbackButton } from './shared/FeedbackButton'
+import { buildLookupLinks } from '../lib/lookupLinks'
 import type { GuestRow, GuestStatus } from '../hooks/useRealtimeGuests'
 
 const TARGET_LABEL: Record<GuestRow['podcast_target'], string> = {
@@ -299,6 +300,23 @@ export function GuestCard({ guest: g, onOpen }: Props) {
             Site
           </a>
         )}
+        {/* Always-on lookups so you can research them even with no stored URLs —
+            LinkedIn search suppressed when a real LinkedIn link is already shown. */}
+        {buildLookupLinks(g.name)
+          .filter(l => !(l.label === 'LinkedIn' && g.linkedin_url))
+          .map(l => (
+            <a
+              key={`lookup-${l.label}`}
+              href={l.href}
+              target="_blank"
+              rel="noreferrer noopener"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/55 hover:bg-white/[0.06] hover:text-white/80 transition-colors"
+            >
+              {l.icon}
+              {l.label}
+            </a>
+          ))}
         <div className="flex items-center gap-1 ml-auto" onClick={(e) => e.stopPropagation()}>
           <FeedbackButton
             sourceTable="guests"
