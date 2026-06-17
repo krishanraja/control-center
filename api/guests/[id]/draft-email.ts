@@ -22,9 +22,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = Array.isArray(idParam) ? idParam[0] : idParam
   if (!id) return res.status(400).json({ ok: false, error: 'id is required' })
 
+  // SELECT ONLY REAL COLUMNS. guests has no role/company/why_relevant columns;
+  // the equivalent signal lives in one_liner / why_fit (a dead-column bug that
+  // previously made this select error and 404 every guest).
   const { data: g, error } = await supabase
     .from('guests')
-    .select('id, name, email, role, company, personal_url, twitter_handle, why_relevant')
+    .select('id, name, email, one_liner, why_fit, personal_url, twitter_handle')
     .eq('id', id)
     .single()
   if (error || !g) return res.status(404).json({ ok: false, error: 'guest not found' })
@@ -41,9 +44,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         entity_id: g.id,
         recipient_email: g.email,
         recipient_name: g.name || null,
-        recipient_title: g.role || null,
-        recipient_company: g.company || null,
-        context: g.why_relevant || null,
+        recipient_title: g.one_liner || null,
+        recipient_company: null,
+        context: g.why_fit || g.one_liner || null,
         intent,
       }),
     })

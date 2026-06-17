@@ -18,6 +18,8 @@ export type GuestStatus =
 
 export type GuestQualityScore = 'red' | 'amber' | 'green'
 
+export type GuestBriefingStatus = 'none' | 'generating' | 'ready' | 'failed'
+
 export interface GuestRow {
   id: string
   name: string
@@ -34,6 +36,14 @@ export interface GuestRow {
   attainability_score: number | null
   quality_score: GuestQualityScore | null
   status: GuestStatus
+  /** Pre-spend triage signal (deterministic, $0). 0-100, higher = worth enriching/briefing. */
+  triage_score: number | null
+  triage_reason: string | null
+  /** Speaker Briefing generation lifecycle (rides guests-rt-shared). */
+  briefing_status: GuestBriefingStatus | null
+  briefing_doc_url: string | null
+  briefing_requested_at: string | null
+  briefing_generated_at: string | null
   scheduled_at: string | null
   recorded_at: string | null
   published_at: string | null

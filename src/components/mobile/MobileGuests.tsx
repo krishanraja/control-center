@@ -514,12 +514,18 @@ function LaneTab({ active, onClick, children }: { active: boolean; onClick: () =
   )
 }
 
+// Best-worth-it first: weak (low-triage) guests sink to the bottom of each group.
+function byTriageDesc(a: GuestRow, b: GuestRow): number {
+  return (b.triage_score ?? -1) - (a.triage_score ?? -1)
+}
+
 function groupGuests(guests: GuestRow[]): Partial<Record<GuestStatus, GuestRow[]>> {
   const out: Partial<Record<GuestStatus, GuestRow[]>> = {}
   for (const g of guests) {
     const arr = out[g.status] || (out[g.status] = [])
     arr.push(g)
   }
+  for (const k of Object.keys(out) as GuestStatus[]) out[k]!.sort(byTriageDesc)
   return out
 }
 
