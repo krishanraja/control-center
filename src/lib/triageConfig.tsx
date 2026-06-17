@@ -604,6 +604,8 @@ function renderContentBody(i: ContentIdeaRow): React.ReactNode {
   const thesis = (i.thesis || '').trim()
   const draft = (i.body || '').trim()
   const why = thesis || draft
+  const relatedCount = Array.isArray(i.related_idea_ids) ? i.related_idea_ids.length : 0
+  const clusterSummary = (i.meta as any)?.cluster_summary || null
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap mb-3">
@@ -613,8 +615,19 @@ function renderContentBody(i: ContentIdeaRow): React.ReactNode {
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {i.brand_fit_score}</span>
         )}
         {draft && <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200/80">draft</span>}
+        {relatedCount >= 2 && (
+          <span
+            className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 border border-violet-400/30 font-medium"
+            title="This card is part of an auto-discovered narrative cluster. Open it in the composer to synthesize the cluster into one piece."
+          >
+            +{relatedCount} related · narrative
+          </span>
+        )}
       </div>
       <p className="text-[19px] font-semibold text-white leading-snug">{i.idea}</p>
+      {clusterSummary && (
+        <p className="mt-2 text-[12px] text-violet-200/70 italic leading-snug">{clusterSummary}</p>
+      )}
       <div className="mt-3 overflow-hidden flex-1 min-h-0">
         {why ? (
           <p className="text-[13.5px] text-white/75 leading-relaxed">
@@ -693,13 +706,23 @@ export function buildContentTriageConfig(
       ],
       current: i => i.state,
     },
-    renderRow: (i, active) => (
-      <div className="min-w-0">
-        <p className={`text-[12px] font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{i.idea}</p>
-        <p className="text-[10.5px] text-white/40 truncate">
-          {[i.state, i.lane ? i.lane.replace(/_/g, ' ') : null].filter(Boolean).join(' · ')}
-        </p>
-      </div>
-    ),
+    renderRow: (i, active) => {
+      const relatedCount = Array.isArray(i.related_idea_ids) ? i.related_idea_ids.length : 0
+      return (
+        <div className="min-w-0">
+          <p className={`text-[12px] font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{i.idea}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-[10.5px] text-white/40 truncate">
+              {[i.state, i.lane ? i.lane.replace(/_/g, ' ') : null].filter(Boolean).join(' · ')}
+            </span>
+            {relatedCount >= 2 && (
+              <span className="text-[9.5px] text-violet-300/90 font-medium tabular-nums" title={`Part of a ${relatedCount + 1}-card narrative cluster`}>
+                +{relatedCount}
+              </span>
+            )}
+          </div>
+        </div>
+      )
+    },
   }
 }

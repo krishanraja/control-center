@@ -11,6 +11,8 @@ export type IdeaSourceType =
   | 'manual'
   | 'inspiration_sweep'
   | 'synthesis_hypothesis'
+  /** Output of /api/content-ideas/synthesize — a narrative drafted from N source cards. */
+  | 'synthesis'
 
 export type IdeaState =
   | 'seeded'
@@ -20,6 +22,10 @@ export type IdeaState =
   | 'approved'
   | 'published'
   | 'dropped'
+  /** Synthesis fold-in target — source cards flip to 'absorbed' after their
+   *  cluster is synthesized into a parent narrative draft. Carries a
+   *  meta.absorbed_into pointer. Excluded from the triage deck. */
+  | 'absorbed'
 
 /** The four brand lanes on the Content tab (destinations, not themes — pillars are the theme layer). */
 export type ContentLane =

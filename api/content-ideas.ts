@@ -1,13 +1,20 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from './_supabase.js'
 import { sanitizeVoice } from './_content.js'
+import { checkDuplicate, recordDuplicateSource } from './_dedup.js'
+import { embed, vectorLiteral } from './_embeddings.js'
+import { canonicalUrl, titleNorm, contentHash } from './_text.js'
 
 // Content ideas inbox endpoint.
 //
-//   POST   — quick-capture: Krish types an idea (⌘+I modal), we forward to
-//            the N8N `Cleo | Content Idea Capture` workflow for extraction
-//            + dedupe + insert. If the webhook is unavailable we fall back
-//            to a direct insert with the raw text so nothing is dropped.
+//   POST   — quick-capture: Krish types an idea (⌘+I modal). We FIRST run the
+//            tiered dedup check (canonical URL → title_norm → content_hash →
+//            embedding similarity) so the same story arriving via Gmail sweep,
+//            signal agents, and Cleo chat collapses to one row instead of
+//            three. On a hit we append provenance to meta.duplicate_sources
+//            and return the existing id. On a miss we forward to the N8N
+//            `Cleo | Content Idea Capture` workflow for extraction/enrichment,
+//            then fall back to a direct insert if the webhook is down.
 //   PATCH  — state transitions (seeded → drafting → published, etc.) and
 //            inline edits to idea/thesis/distribution/draft_link.
 //
@@ -66,7 +73,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? body.source_type
       : 'manual'
 
-    // Try the N8N webhook first (handles extraction + embedding dedupe).
+    // ── Dedup gate ──────────────────────────────────────────────────────────
+    // Single tiered check against canonical_url / title_norm / content_hash /
+    // embedding similarity. Runs BEFORE the N8N webhook so duplicates never
+    // even reach extraction. On a hit we attach the new source as provenance
+    // to the matched row and short-circuit with that id.
+    try {
+      const dedup = await checkDuplicate('content_ideas', {
+        url: body.source_url || null,
+        title: rawText.slice(0, 200),
+        text: body.source_snippet || rawText.slice(0, 2000),
+      })
+      if (dedup.is_duplicate && dedup.match_id) {
+        await recordDuplicateSource('content_ideas', dedup.match_id, {
+          source_type: sourceType,
+          source_ref: body.source_ref || null,
+          source_url: body.source_url || null,
+        })
+        return res.json({
+          ok: true,
+          via: 'dedup',
+          id: dedup.match_id,
+          duplicate: { reason: dedup.match_reason, similarity: dedup.similarity },
+        })
+      }
+    } catch (e) {
+      // Dedup failures are non-fatal — log and continue to the normal path.
+      await supabase.from('audit_log').insert({
+        event_type: 'idea_capture_dedup_failure',
+        actor: 'control_center_api',
+        target: 'api/content-ideas',
+        details: JSON.stringify({ error: String(e), raw_text_preview: rawText.slice(0, 100) }),
+      })
+    }
+
+    // Try the N8N webhook first (extraction + enrichment — dedup already ran).
     // PR 1 hardening: if the webhook returns 200 but did not actually persist
     // an idea (no id in payload), treat as silent failure and log to
     // audit_log so we never lose visibility into broken extraction.
@@ -132,18 +173,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Fallback: direct insert with the raw text as the idea, so nothing is
     // dropped if N8N is unavailable. State stays 'seeded' so the user can
     // edit / re-trigger enrichment later.
+    //
+    // We populate the dedup fingerprint columns here so subsequent ingests
+    // can match against this row. We deliberately re-derive the keys (rather
+    // than reusing the ones from the gate above) because the gate runs on a
+    // 200-char title prefix; the row stores the full normalization.
+    const ideaText = sanitizeVoice(rawText.slice(0, 500))
+    const snippetText = sanitizeVoice(body.source_snippet || rawText.slice(0, 280))
+    const canonical_url = canonicalUrl(body.source_url || null)
+    const title_norm = titleNorm(ideaText)
+    const content_hash = contentHash(snippetText)
+
+    let embedding: string | null = null
+    try {
+      const vec = await embed({ title: ideaText, body: snippetText })
+      if (vec) embedding = vectorLiteral(vec)
+    } catch { /* non-fatal */ }
+
     const { data, error } = await supabase
       .from('content_ideas')
       .insert({
-        idea: sanitizeVoice(rawText.slice(0, 500)),
+        idea: ideaText,
         source_type: sourceType,
         source_ref: body.source_ref || null,
         source_url: body.source_url || null,
-        source_snippet: sanitizeVoice(body.source_snippet || rawText.slice(0, 280)),
+        source_snippet: snippetText,
         source_captured_at: new Date().toISOString(),
         state: 'seeded',
         confidence: 0,
         origin: sourceType === 'manual' ? 'user' : 'agent',
+        canonical_url,
+        title_norm,
+        content_hash,
+        ...(embedding ? { embedding } : {}),
       })
       .select()
       .single()

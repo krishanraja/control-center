@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { FileText, ExternalLink, Calendar as CalendarIcon, List, Plus, Loader2, Layers } from 'lucide-react'
+import { FileText, ExternalLink, Calendar as CalendarIcon, List, Plus, Loader2, Layers, GitMerge, CheckSquare, Square } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { useToast } from '../shared/Toast'
@@ -17,6 +17,7 @@ import { AppFrame } from '../shared/AppFrame'
 import { useContentTriage } from '../../hooks/useContentTriage'
 import { SwipeCockpit } from '../shared/SwipeCockpit'
 import { buildContentTriageConfig } from '../../lib/triageConfig'
+import { SynthesisModal } from '../content/SynthesisModal'
 
 // Past this many cards a lane stops stacking and offers the triage deck instead —
 // the guard that makes it structurally impossible to mount 200 cards again.
@@ -34,6 +35,7 @@ const STATE_META: Record<IdeaState, { title: string; description: string; tone: 
   approved:    { title: 'Approved',    description: 'Cleared to ship. Awaiting distribution.',    tone: 'text-emerald-300' },
   published:   { title: 'Published',   description: 'Live. Watch for signal.',                    tone: 'text-emerald-400/80' },
   dropped:     { title: 'Dropped',     description: 'Killed before publish.',                     tone: 'text-white/30' },
+  absorbed:    { title: 'Absorbed',    description: 'Folded into a synthesized narrative.',       tone: 'text-violet-300/60' },
 }
 
 interface Props {
@@ -47,6 +49,25 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
   const triage = useContentTriage()
   const [view, setView] = useState<'lanes' | 'calendar'>('lanes')
   const [laneFilter, setLaneFilter] = useState<LaneFilter>('all')
+
+  // Multi-select for narrative synthesis (Workstream 2): Krish picks 2-25
+  // cards and folds them into one drafted narrative via /synthesize.
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [synthOpen, setSynthOpen] = useState(false)
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+  const clearSelection = () => { setSelectedIds(new Set()); setSelectMode(false) }
+  const selectedCards = useMemo(
+    () => ideas.filter(i => selectedIds.has(i.id)),
+    [ideas, selectedIds],
+  )
 
   // Desktop triage cockpit config (same swipe grammar as the other surfaces).
   const triageConfig = useMemo(() => buildContentTriageConfig(ideas, { toast }, loading), [ideas, toast, loading])
@@ -124,6 +145,18 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
           <span className="text-[11px] text-white/55 tabular-nums">
             {loading ? '…' : `${activeCount} active`}
           </span>
+          <button
+            type="button"
+            onClick={() => { setSelectMode(s => !s); if (selectMode) setSelectedIds(new Set()) }}
+            className={`inline-flex items-center gap-1.5 text-[12px] font-medium rounded-lg px-3 py-1.5 transition-colors border ${
+              selectMode
+                ? 'text-violet-100 border-violet-400/50 bg-violet-500/20'
+                : 'text-white/60 border-white/[0.08] hover:text-white/85 hover:bg-white/[0.04]'
+            }`}
+            title="Select multiple cards to synthesize into one narrative"
+          >
+            <GitMerge size={13} /> {selectMode ? `Synthesize · ${selectedIds.size}` : 'Synthesize'}
+          </button>
           {triage.mode === 'action' && activeCount > 0 && (
             <button
               type="button"
@@ -149,6 +182,21 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
       scroll={triage.mode === 'triage' ? 'none' : 'auto'}
       padded={triage.mode !== 'triage'}
     >
+      {selectMode && (
+        <MultiSelectBar
+          ideas={ideas.filter(i => !i.buried_at && i.state !== 'dropped' && i.state !== 'published' && i.state !== 'absorbed')}
+          selectedIds={selectedIds}
+          onToggle={toggleSelect}
+          onSynthesize={() => setSynthOpen(true)}
+          onCancel={clearSelection}
+        />
+      )}
+      <SynthesisModal
+        open={synthOpen}
+        onClose={() => setSynthOpen(false)}
+        selected={selectedCards}
+        onSynthesized={() => { clearSelection() }}
+      />
       {triage.mode === 'triage' ? (
         <SwipeCockpit config={triageConfig} onExit={triage.exitTriage} />
       ) : (
@@ -667,4 +715,97 @@ function groupByState(ideas: ContentIdeaRow[]): Partial<Record<IdeaState, Conten
     arr.push(i)
   }
   return out
+}
+
+/**
+ * MultiSelectBar — full-width strip that appears when select mode is on. Shows
+ * a scrollable list of active cards with checkboxes, a running selection
+ * count, and the launch button into the SynthesisModal.
+ */
+function MultiSelectBar({
+  ideas, selectedIds, onToggle, onSynthesize, onCancel,
+}: {
+  ideas: ContentIdeaRow[]
+  selectedIds: Set<string>
+  onToggle: (id: string) => void
+  onSynthesize: () => void
+  onCancel: () => void
+}) {
+  const selectedCount = selectedIds.size
+  // Prioritize cards with a related_idea_ids cluster — they're the most
+  // obvious candidates to fold together.
+  const sorted = useMemo(() => {
+    return ideas.slice().sort((a, b) => {
+      const ar = (a.related_idea_ids?.length || 0)
+      const br = (b.related_idea_ids?.length || 0)
+      if (ar !== br) return br - ar
+      return (b.updated_at || '').localeCompare(a.updated_at || '')
+    })
+  }, [ideas])
+
+  return (
+    <div className="sticky top-0 z-20 mb-3 -mx-6 px-6 py-3 bg-[#0c0c0f]/95 backdrop-blur border-b border-violet-400/20">
+      <div className="flex items-center gap-3 mb-2">
+        <GitMerge size={13} className="text-violet-300" />
+        <p className="text-[12px] font-medium text-white">
+          Select cards to fold into one narrative
+          {selectedCount > 0 && <span className="ml-2 text-violet-200 tabular-nums">· {selectedCount} chosen</span>}
+        </p>
+        <p className="text-[10.5px] text-white/40 hidden md:block">
+          Tip: cards with the violet <span className="text-violet-300">+N</span> badge are already auto-clustered.
+        </p>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-[12px] px-2.5 py-1 rounded text-white/60 hover:text-white/85 hover:bg-white/[0.04]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onSynthesize}
+            disabled={selectedCount < 2}
+            className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md border border-violet-500/40 bg-violet-500/20 text-violet-100 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Synthesize {selectedCount} → 1
+          </button>
+        </div>
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 [scrollbar-width:thin]">
+        {sorted.slice(0, 60).map(i => {
+          const checked = selectedIds.has(i.id)
+          const related = i.related_idea_ids?.length || 0
+          return (
+            <button
+              key={i.id}
+              type="button"
+              onClick={() => onToggle(i.id)}
+              className={`flex-shrink-0 flex items-start gap-2 max-w-[240px] px-2.5 py-1.5 rounded-md border text-left transition-colors ${
+                checked
+                  ? 'border-violet-400/50 bg-violet-500/15'
+                  : 'border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05]'
+              }`}
+            >
+              {checked
+                ? <CheckSquare size={12} className="text-violet-300 flex-shrink-0 mt-0.5" />
+                : <Square size={12} className="text-white/40 flex-shrink-0 mt-0.5" />}
+              <div className="min-w-0 flex-1">
+                <p className={`text-[11.5px] truncate ${checked ? 'text-white' : 'text-white/75'}`}>{i.idea}</p>
+                <p className="text-[10px] text-white/40 truncate">
+                  {[i.state, i.lane ? i.lane.replace(/_/g, ' ') : null].filter(Boolean).join(' · ')}
+                  {related >= 2 && <span className="ml-1.5 text-violet-300/90">+{related}</span>}
+                </p>
+              </div>
+            </button>
+          )
+        })}
+        {sorted.length > 60 && (
+          <div className="flex-shrink-0 flex items-center px-3 text-[11px] text-white/35">
+            …{sorted.length - 60} more (filter by lane to narrow)
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
