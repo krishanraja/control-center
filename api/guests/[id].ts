@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { promoteGuestToContact } from '../_guest-to-contact.js'
 
 // PATCH /api/guests/:id : update status, notes, scoring fields.
 
@@ -64,5 +65,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .single()
 
   if (error) return res.status(500).json({ ok: false, error: error.message })
-  return res.json({ ok: true, guest: data })
+
+  // Once recorded/published, the guest is a relationship, not an opportunity —
+  // promote it into the Network. Idempotent and best-effort: a promotion hiccup
+  // never fails the status update.
+  let promotion: Awaited<ReturnType<typeof promoteGuestToContact>> | undefined
+  if (updates.status === 'recorded' || updates.status === 'published') {
+    try { promotion = await promoteGuestToContact(id) } catch (e: any) { promotion = { ok: false, error: String(e?.message || e) } }
+  }
+
+  return res.json({ ok: true, guest: data, promotion })
 }

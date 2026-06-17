@@ -22,7 +22,9 @@ import { VisibilityTargetCard } from '../VisibilityTargetCard'
 
 type Lane = 'inbound' | 'outbound'
 
-const PRIMARY_STATUSES: GuestStatus[] = ['scouted', 'enriched', 'pitched', 'responded', 'scheduled', 'confirmed', 'recorded', 'published', 'dropped']
+// Recorded/published guests leave Visibility — they're promoted into the Network
+// (contacts) as relationships, not opportunities.
+const PRIMARY_STATUSES: GuestStatus[] = ['scouted', 'enriched', 'pitched', 'responded', 'scheduled', 'confirmed', 'dropped']
 
 const STATUS_META: Record<GuestStatus, { title: string; description: string }> = {
   scouted: { title: 'Scouted', description: 'Surfaced by Nell or imported, not yet enriched.' },
