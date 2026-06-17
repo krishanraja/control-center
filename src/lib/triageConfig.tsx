@@ -34,6 +34,11 @@ export interface TriageConfig<T> {
   detailKind: DecisionKind
   /** Composite `kind:id` key the desktop cockpit feeds to DecisionDetail. */
   detailKey: (t: T) => string
+  /** Compact row for the desktop "up next" rail (active = the focused card). */
+  renderRow?: (t: T, active: boolean) => React.ReactNode
+  /** Optional lifecycle track shown above the desktop focus card so RIGHT-swipe
+   *  "advance" is legible — the lead visibly walks its pipeline. */
+  stageTrack?: { stages: { key: string; label: string }[]; current: (t: T) => string }
 }
 
 type Toast = (msg: string, variant?: 'success' | 'error' | 'info', opts?: {
@@ -221,5 +226,24 @@ export function buildLeadsTriageConfig(
     onReject,
     detailKind: 'lead',
     detailKey: l => `lead:${l.id}`,
+    renderRow: (l, active) => (
+      <div className="min-w-0">
+        <p className={`text-[12px] font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{leadName(l)}</p>
+        <p className="text-[10.5px] text-white/40 truncate">
+          {[ventureLabel(l.primary_venture), maxIcp(l) > 0 ? `ICP ${maxIcp(l)}` : null, isLeadCandidate(l) ? 'candidate' : l.status]
+            .filter(Boolean).join(' · ')}
+        </p>
+      </div>
+    ),
+    stageTrack: {
+      stages: [
+        { key: 'new', label: 'New' },
+        { key: 'enriching', label: 'Enriching' },
+        { key: 'ready', label: 'Ready' },
+        { key: 'contacted', label: 'Contacted' },
+        { key: 'conversation', label: 'Conversation' },
+      ],
+      current: l => l.status || 'new',
+    },
   }
 }
