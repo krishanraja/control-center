@@ -39,6 +39,40 @@ function contactName(c: ContactRow): string {
   return c.full_name || c.company || (c.email ? c.email.split('@')[0] : '—')
 }
 
+// Network is slow-thinking, one-venture-at-a-time work, so the deck remembers the
+// last venture you triaged and opens locked onto it.
+const VENTURE_LS_KEY = 'network.triage.venture'
+function loadVenture(): string | null {
+  try { return localStorage.getItem(VENTURE_LS_KEY) || null } catch { return null }
+}
+function persistVenture(v: string | null) {
+  try { if (v) localStorage.setItem(VENTURE_LS_KEY, v); else localStorage.removeItem(VENTURE_LS_KEY) } catch { /* ignore */ }
+}
+
+// Horizontal venture filter chips, shared by the list and the swipe deck so you
+// can re-scope the pile without leaving triage.
+function VentureChips({ venture, onPick }: { venture: string | null; onPick: (slug: string | null) => void }) {
+  return (
+    <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+      <button
+        onClick={() => onPick(null)}
+        className={`px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${venture === null ? 'bg-white text-black' : 'bg-white/[0.06] text-white/70'}`}
+      >
+        All
+      </button>
+      {VENTURES.map(v => (
+        <button
+          key={v.slug}
+          onClick={() => onPick(v.slug)}
+          className={`px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${venture === v.slug ? 'bg-white text-black' : 'bg-white/[0.06] text-white/70'}`}
+        >
+          {v.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // Card interior for a contact in the swipe deck (no action buttons — the swipe is
 // the action). Carries the same "why is this worth my time?" signal as the
 // LeadSheet so a right-swipe is an informed call, not a blind one.
@@ -114,7 +148,8 @@ interface Props {
 export function MobileLeadsRE(_props: Props = {}) {
   const h = useHaptics()
   const { toast } = useToast()
-  const [venture, setVenture] = useState<string | null>(null)
+  const [venture, setVentureState] = useState<string | null>(loadVenture)
+  const setVenture = useCallback((v: string | null) => { setVentureState(v); persistVenture(v) }, [])
   const [search, setSearch] = useState('')
   const [showImport, setShowImport] = useState(false)
   const [draftTarget, setDraftTarget] = useState<DraftTarget | null>(null)
@@ -172,8 +207,12 @@ export function MobileLeadsRE(_props: Props = {}) {
   })
 
   if (triage.mode === 'deck') {
+    const scope = venture ? ventureLabel(venture) : 'warm'
     return (
-      <MobileStage scroll="none" header={<TabHeader title="Network" subtitle={`${handQueue.length} warm · swipe to triage`} />}>
+      <MobileStage scroll="none" header={<TabHeader title="Network" subtitle={`${handQueue.length} ${scope} · swipe to triage`} />}>
+        <div className="px-4 pb-2 flex-shrink-0">
+          <VentureChips venture={venture} onPick={(v) => { h.tap(); setVenture(v) }} />
+        </div>
         <div className="flex-1 min-h-0 px-1">
           <SwipeDeck<ContactRow>
             deck={triage.deck}
@@ -224,22 +263,8 @@ export function MobileLeadsRE(_props: Props = {}) {
       )}
 
       {/* Venture filter chips */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide flex-shrink-0 -mx-1 px-1">
-        <button
-          onClick={() => { h.tap(); setVenture(null) }}
-          className={`px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${venture === null ? 'bg-white text-black' : 'bg-white/[0.06] text-white/70'}`}
-        >
-          All
-        </button>
-        {VENTURES.map(v => (
-          <button
-            key={v.slug}
-            onClick={() => { h.tap(); setVenture(v.slug) }}
-            className={`px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${venture === v.slug ? 'bg-white text-black' : 'bg-white/[0.06] text-white/70'}`}
-          >
-            {v.label}
-          </button>
-        ))}
+      <div className="flex-shrink-0">
+        <VentureChips venture={venture} onPick={(v) => { h.tap(); setVenture(v) }} />
       </div>
 
       <input
