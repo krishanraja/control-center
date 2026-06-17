@@ -58,7 +58,7 @@ export async function promoteGuestToContact(guestId: string): Promise<PromoteRes
   const insert: Record<string, unknown> = {
     full_name: g.name || null,
     email: g.email || null,
-    email_normalized: en,
+    // email_normalized is a GENERATED column (lower(btrim(email))) — never write it.
     linkedin_url: g.linkedin_url || null,
     linkedin_url_norm: ln,
     twitter_handle: g.twitter_handle || null,
@@ -69,7 +69,8 @@ export async function promoteGuestToContact(guestId: string): Promise<PromoteRes
     consent_tier: 'warm',           // a recorded guest is a warm relationship
     triage_status: 'triaged',       // known to us — skip the cold triage pile
     status: 'active',
-    notes: g.one_liner || g.why_fit || null,
+    first_met_channel: 'podcast_guest',
+    first_met_context: g.one_liner || g.why_fit || null,  // contacts has no `notes` column
     tags: ['podcast_guest'],
     sources: [{ type: 'podcast_guest', guest_id: guestId, podcast: g.podcast_target, at: now }],
     source_guest_id: guestId,
