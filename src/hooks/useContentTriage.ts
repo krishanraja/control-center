@@ -61,6 +61,25 @@ function openComposer(id: string) {
   window.location.hash = `#/content?idea=${id}`
 }
 
+// Narrative clustering runs server-side and writes related_idea_ids, which the
+// draft-merge UI reads. The nightly cron keeps it fresh, but to avoid a stale
+// gap (and so a fresh draft pile groups without waiting for 4am) we nudge the
+// clusterer when the Content tab opens onto ≥2 drafts that nothing has grouped
+// yet. Throttled hard so realtime churn can't spam it.
+const CLUSTER_THROTTLE_MS = 15 * 60 * 1000
+const CLUSTER_LS_KEY = 'content.cluster.lastRun'
+function maybeTriggerClustering(drafts: ContentIdeaRow[]) {
+  if (drafts.length < 2) return
+  if (drafts.some(d => (d.related_idea_ids?.length ?? 0) > 0)) return // already grouped
+  try {
+    const last = Number(localStorage.getItem(CLUSTER_LS_KEY) || 0)
+    if (Date.now() - last < CLUSTER_THROTTLE_MS) return
+    localStorage.setItem(CLUSTER_LS_KEY, String(Date.now()))
+  } catch { /* ignore */ }
+  // Fire-and-forget; realtime repaints with clusters once it writes.
+  void fetch('/api/content-ideas/cluster', { method: 'POST' }).catch(() => {})
+}
+
 /**
  * useContentTriage — the brain behind the Content tab's two modes.
  *
@@ -258,6 +277,14 @@ export function useContentTriage() {
     () => ideas.filter(i => i.buried_at && i.state !== 'dropped' && i.state !== 'published'),
     [ideas],
   )
+
+  // Nudge the server clusterer when drafts are present but ungrouped, so the
+  // merge UI lights up without waiting for the nightly run. Throttled internally.
+  const drafts = useMemo(() => active.filter(i => i.state === 'drafting'), [active])
+  useEffect(() => {
+    if (loading) return
+    maybeTriggerClustering(drafts)
+  }, [loading, drafts])
 
   const counts = useMemo(() => {
     const byState: Record<string, number> = {}
