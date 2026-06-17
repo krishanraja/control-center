@@ -52,6 +52,50 @@
     },
     {
       "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CONTROL_CENTER_BASE_URL || 'https://control-center.vercel.app' }}/api/dedup/check",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-Agatha-Secret", "value": "={{ $env.AGATHA_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  table: 'content_ideas',\n  url: $json.source_url,\n  title: $json.idea,\n  text: $json.source_snippet,\n  record_provenance: true,\n  source_type: $json.source_type,\n  source_ref: $json.source_ref,\n  source_url: $json.source_url\n}) }}",
+        "options": { "response": { "response": { "responseFormat": "json" } } }
+      },
+      "id": "dedup-check",
+      "name": "Dedup: Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [980, 320],
+      "notes": "Tiered dedup (canonical URL → title_norm → content_hash → embedding cosine > 0.92). Returns is_duplicate=true on a hit and records the new source as provenance on the matched row. Without this the same story arriving via Gmail, Cleo chat, and signal agents would land as three separate triage cards."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "is-dup",
+              "leftValue": "={{ $json.is_duplicate }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "dedup-gate",
+      "name": "Dedup: Is duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1220, 320]
+    },
+    {
+      "parameters": {
         "operation": "create",
         "tableId": "content_ideas",
         "dataToSend": "autoMapInputData"
@@ -60,25 +104,30 @@
       "name": "Supabase: Insert idea",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [980, 320],
+      "position": [1460, 400],
       "credentials": { "supabaseApi": { "id": "supabase-os", "name": "Supabase (Mindmaker OS)" } }
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { ok: true, idea: $items('Supabase: Insert idea')[0]?.json } }}"
+        "responseBody": "={{ $('Dedup: Check').item.json.is_duplicate ? { ok: true, via: 'dedup', id: $('Dedup: Check').item.json.match_id, duplicate: { reason: $('Dedup: Check').item.json.match_reason, similarity: $('Dedup: Check').item.json.similarity } } : { ok: true, idea: $items('Supabase: Insert idea')[0]?.json } }}"
       },
       "id": "respond",
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1220, 320]
+      "position": [1700, 320]
     }
   ],
   "connections": {
     "Webhook":                 { "main": [[{ "node": "Claude: Extract Idea", "type": "main", "index": 0 }]] },
     "Claude: Extract Idea":    { "main": [[{ "node": "Shape row", "type": "main", "index": 0 }]] },
-    "Shape row":               { "main": [[{ "node": "Supabase: Insert idea", "type": "main", "index": 0 }]] },
+    "Shape row":               { "main": [[{ "node": "Dedup: Check", "type": "main", "index": 0 }]] },
+    "Dedup: Check":            { "main": [[{ "node": "Dedup: Is duplicate?", "type": "main", "index": 0 }]] },
+    "Dedup: Is duplicate?":    { "main": [
+      [{ "node": "Respond", "type": "main", "index": 0 }],
+      [{ "node": "Supabase: Insert idea", "type": "main", "index": 0 }]
+    ]},
     "Supabase: Insert idea":   { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
   },
   "settings": { "executionOrder": "v1" }

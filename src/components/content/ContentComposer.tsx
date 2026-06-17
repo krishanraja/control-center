@@ -240,6 +240,7 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
             )}
             <div className="flex-1 min-h-0 overflow-y-auto">
               <div className="max-w-[820px] mx-auto px-5 sm:px-10 py-6 pb-28">
+                <SynthesisCitationStrip idea={idea} />
                 {!draft.trim() && (
                   <EmptyCanvasHint idea={idea} onJump={() => openRail('cleo')} />
                 )}
@@ -562,6 +563,79 @@ function SaveDraftButton({ idea, draft, onSaved, block }: { idea: ContentIdeaRow
               {channel === c.value ? '✓ ' : ''}{c.label}{c.value === autoChannel ? ' (from lane)' : ''}
             </button>
           ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * SynthesisCitationStrip — banner shown above the canvas when the open idea
+ * is the output of /api/content-ideas/synthesize. Renders:
+ *   - cluster_summary (the narrative thread description)
+ *   - cohesion_confidence (warns if < 0.6)
+ *   - one row per source card with a deep-link back, so Krish can verify the
+ *     model isn't hallucinating connections.
+ */
+function SynthesisCitationStrip({ idea }: { idea: ContentIdeaRow }) {
+  const synth = (idea.meta as any)?.synthesis as
+    | undefined
+    | {
+        citation_strip?: Array<{ ref: number; id: string; title: string; source_url?: string | null; source_type?: string | null }>
+        cluster_summary?: string | null
+        cohesion_confidence?: number | null
+        sources_used?: string[]
+        sources_discarded?: string[]
+        discard_reasons?: string[]
+      }
+  if (!synth) return null
+
+  const strip = Array.isArray(synth.citation_strip) ? synth.citation_strip : []
+  const cohesion = typeof synth.cohesion_confidence === 'number' ? synth.cohesion_confidence : null
+  const weak = cohesion != null && cohesion < 0.6
+
+  return (
+    <div className={`mb-5 rounded-xl border p-4 ${weak ? 'border-amber-500/30 bg-amber-500/[0.04]' : 'border-violet-500/25 bg-violet-500/[0.04]'}`}>
+      <div className="flex items-start gap-2 mb-2">
+        <Sparkles size={13} className={weak ? 'text-amber-300 mt-0.5' : 'text-violet-300 mt-0.5'} />
+        <div className="min-w-0 flex-1">
+          <p className={`text-[11px] uppercase tracking-[0.12em] font-medium ${weak ? 'text-amber-300/90' : 'text-violet-300/90'}`}>
+            Synthesized from {strip.length} card{strip.length === 1 ? '' : 's'}
+            {cohesion != null && (
+              <span className={`ml-2 text-white/45 tabular-nums normal-case tracking-normal`}>
+                cohesion {Math.round(cohesion * 100)}%
+              </span>
+            )}
+          </p>
+          {synth.cluster_summary && (
+            <p className="mt-1 text-[12.5px] text-white/75 leading-snug">{synth.cluster_summary}</p>
+          )}
+          {weak && (
+            <p className="mt-1 text-[11px] text-amber-200/80">
+              Low cohesion — review the citations and consider dropping cards that don't earn a place.
+            </p>
+          )}
+        </div>
+      </div>
+      {strip.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {strip.map(c => {
+            const href = c.source_url || `#/content?idea=${c.id}`
+            const external = !!c.source_url
+            return (
+              <a
+                key={c.id}
+                href={href}
+                target={external ? '_blank' : undefined}
+                rel={external ? 'noreferrer noopener' : undefined}
+                title={c.title}
+                className="inline-flex items-center gap-1 max-w-[260px] px-2 py-1 rounded-md border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition-colors"
+              >
+                <span className="text-[10px] text-violet-300/80 font-mono tabular-nums flex-shrink-0">[{c.ref}]</span>
+                <span className="text-[11px] text-white/70 truncate">{c.title || c.id.slice(0, 8)}</span>
+              </a>
+            )
+          })}
         </div>
       )}
     </div>

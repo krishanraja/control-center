@@ -1,6 +1,7 @@
 import React from 'react'
 import {
   FileText,
+  GitMerge,
   MessageSquare,
   Mic,
   PenLine,
@@ -33,6 +34,7 @@ const META: Record<AnySource, { label: string; icon: LucideIcon; tone: string }>
   zara_signal:        { label: 'Zara signal',        icon: Radar,       tone: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20' },
   inspiration_sweep:    { label: 'Inspiration sweep',    icon: Sparkles, tone: 'text-rose-300 bg-rose-500/10 border-rose-500/20' },
   synthesis_hypothesis: { label: 'Synthesis hypothesis', icon: Wand2,    tone: 'text-violet-300 bg-violet-500/10 border-violet-500/20' },
+  synthesis:            { label: 'Synthesis',            icon: GitMerge, tone: 'text-violet-200 bg-violet-500/15 border-violet-400/30' },
 }
 
 interface Props {

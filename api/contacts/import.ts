@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { emailNorm, linkedinNorm } from '../_text.js'
 
 // POST /api/contacts/import — Relationship Engine CSV import with provenance.
 //
@@ -69,12 +70,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.json({ ok: true, inserted: 0, duplicates: 0, total: 0 })
   }
 
-  // Collect candidate keys for a single dedupe lookup.
+  // Collect candidate keys for a single dedupe lookup. Normalize through the
+  // shared helpers so the comparison matches the canonical columns the DB
+  // unique indexes guard.
   const emails = new Set<string>()
   const linkedins = new Set<string>()
   for (const r of parsed) {
-    if (r.email) emails.add(r.email)
-    if (r.linkedin_url) linkedins.add(r.linkedin_url)
+    const en = emailNorm(r.email)
+    const ln = linkedinNorm(r.linkedin_url)
+    if (en) emails.add(en)
+    if (ln) linkedins.add(ln)
   }
 
   const existingEmails = new Set<string>()
@@ -92,10 +97,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (linkedins.size > 0) {
       const { data } = await supabase
         .from('contacts')
-        .select('linkedin_url')
-        .in('linkedin_url', Array.from(linkedins))
+        .select('linkedin_url_norm')
+        .in('linkedin_url_norm', Array.from(linkedins))
       for (const row of data || []) {
-        if (row.linkedin_url) existingLinkedins.add(row.linkedin_url)
+        if (row.linkedin_url_norm) existingLinkedins.add(row.linkedin_url_norm)
       }
     }
   } catch (e: any) {
@@ -109,24 +114,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let duplicates = 0
 
   for (const r of parsed) {
+    const en = emailNorm(r.email)
+    const ln = linkedinNorm(r.linkedin_url)
     const dupExisting =
-      (r.email && existingEmails.has(r.email)) ||
-      (r.linkedin_url && existingLinkedins.has(r.linkedin_url))
+      (en && existingEmails.has(en)) ||
+      (ln && existingLinkedins.has(ln))
     const dupInBatch =
-      (r.email && seenEmails.has(r.email)) ||
-      (r.linkedin_url && seenLinkedins.has(r.linkedin_url))
+      (en && seenEmails.has(en)) ||
+      (ln && seenLinkedins.has(ln))
     if (dupExisting || dupInBatch) {
       duplicates++
       continue
     }
-    if (r.email) seenEmails.add(r.email)
-    if (r.linkedin_url) seenLinkedins.add(r.linkedin_url)
+    if (en) seenEmails.add(en)
+    if (ln) seenLinkedins.add(ln)
 
     toInsert.push({
       full_name: r.full_name || null,
       email: r.email || null,
-      email_normalized: r.email || null,
+      email_normalized: en,
       linkedin_url: r.linkedin_url || null,
+      linkedin_url_norm: ln,
       company: r.company || null,
       title: r.title || null,
       origin_channel: 'import',
