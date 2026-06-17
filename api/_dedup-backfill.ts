@@ -104,8 +104,10 @@ async function runContentIdeas(sb: SupabaseClient, args: BackfillArgs): Promise<
 
   // Embedding pass for what's left
   let embedded = 0
+  // embedBatch resolves the OpenAI key itself (deploy env → app_secrets fallback),
+  // so don't gate on process.env.OPENAI_API_KEY — the key lives in app_secrets.
   const unembedded = rows.filter(r => !r.embedding && !survivorOf.has(r.id))
-  if (unembedded.length > 0 && process.env.OPENAI_API_KEY) {
+  if (unembedded.length > 0) {
     const vecs = await embedBatch(unembedded.map(r => ({ title: r.idea, body: r.source_snippet || '' })))
     for (let i = 0; i < unembedded.length; i++) { unembedded[i]._tmp_vec = vecs[i]; if (vecs[i]) embedded++ }
   }

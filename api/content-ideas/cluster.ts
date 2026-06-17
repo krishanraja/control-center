@@ -63,8 +63,12 @@ async function runCluster() {
   if (rows.length < MIN_CLUSTER) return { rows: rows.length, clusters: 0, written: 0 }
 
   // Backfill embeddings for rows that lack one (n8n-inserted drafts often do).
+  // embedBatch resolves the OpenAI key itself (deploy env → app_secrets fallback),
+  // so we must NOT gate on process.env.OPENAI_API_KEY here — the key lives in the
+  // service-role-only app_secrets table, not the Vercel env. If no key resolves,
+  // embedBatch returns nulls and we simply skip those rows.
   const needs = rows.filter(r => !r.embedding)
-  if (needs.length && process.env.OPENAI_API_KEY) {
+  if (needs.length) {
     const vecs = await embedBatch(needs.map(r => ({ title: r.idea, body: r.thesis || r.source_snippet || '' })))
     for (let i = 0; i < needs.length; i++) {
       const v = vecs[i]
