@@ -1,11 +1,13 @@
-import { useMemo } from 'react'
-import { ChevronRight, Clock, AlertTriangle, CheckCircle2, Layers } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { ChevronRight, Clock, AlertTriangle, CheckCircle2, Layers, GitMerge, Sparkles } from 'lucide-react'
 import { MobileShell } from './MobileShell'
 import { TabHeader } from './primitives'
 import { type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { useContentTriage } from '../../hooks/useContentTriage'
 import { TriageDeck } from '../content/TriageDeck'
 import { BackburnerSection } from '../shared/BackburnerSection'
+import { SynthesisModal } from '../content/SynthesisModal'
+import { clusterDrafts, type DraftCluster } from '../../lib/draftClusters'
 
 // MobileContent — two modes, driven by useContentTriage:
 //
@@ -45,6 +47,9 @@ const DRAFT_CAP = 12
 export function MobileContent({ ideaId }: Props = {}) {
   const triage = useContentTriage()
   const { active, activeCount, counts, loading, mode, buried } = triage
+  // Drafts the user chose to merge — opens SynthesisModal (lane + optional angle),
+  // which calls /api/content-ideas/synthesize and deep-links into the new draft.
+  const [mergeSelection, setMergeSelection] = useState<ContentIdeaRow[] | null>(null)
 
   // tier 1 — genuinely next or urgent: review / approved / scheduled-today-or-overdue.
   const readyDeck = useMemo(() => {
@@ -62,13 +67,19 @@ export function MobileContent({ ideaId }: Props = {}) {
     })
   }, [active])
 
-  // tier 2 — the drafts that were invisible before. Oldest first, capped.
-  const drafts = useMemo(() => {
+  // tier 2 — drafts. Oldest first, then grouped into narrative clusters (via the
+  // nightly-written related_idea_ids) so the tab can act as an editor, not just a
+  // list: similar drafts cluster with a one-tap "merge into one narrative".
+  const draftAll = useMemo(() => {
     return active
       .filter(i => i.state === 'drafting')
       .sort((a, b) => (a.updated_at || '') < (b.updated_at || '') ? -1 : 1)
-      .slice(0, DRAFT_CAP)
   }, [active])
+  const { clusters, looseDrafts } = useMemo(() => {
+    const { clusters, loose } = clusterDrafts(draftAll)
+    return { clusters, looseDrafts: loose.slice(0, DRAFT_CAP) }
+  }, [draftAll])
+  const renderedDraftCount = clusters.reduce((n, c) => n + c.members.length, 0) + looseDrafts.length
 
   const open = (id: string) => { window.location.hash = `#/content?idea=${id}` }
 
@@ -110,23 +121,26 @@ export function MobileContent({ ideaId }: Props = {}) {
               <IdeaButton key={i.id} i={i} urg={urg} onClick={() => open(i.id)} />
             ))}
 
-            {/* tier 2 — drafts (the previously hidden 25) */}
-            {drafts.length > 0 && (
+            {/* tier 2 — drafts, narrative clusters first then loose */}
+            {(clusters.length > 0 || looseDrafts.length > 0) && (
               <div className="flex items-center gap-2 mb-1.5 mt-4">
                 <span className="text-[11px] uppercase tracking-[0.12em] text-white/40">Drafts waiting on you</span>
                 <span className="text-[11px] text-white/30 tabular-nums">{draftTotal}</span>
               </div>
             )}
-            {drafts.map(i => (
+            {clusters.map(c => (
+              <DraftClusterBlock key={c.key} cluster={c} onOpen={open} onMerge={() => setMergeSelection(c.members)} />
+            ))}
+            {looseDrafts.map(i => (
               <IdeaButton key={i.id} i={i} urg={null} onClick={() => open(i.id)} />
             ))}
-            {draftTotal > drafts.length && (
-              <p className="text-[11px] text-white/35 px-1 mt-1">+{draftTotal - drafts.length} more drafts</p>
+            {draftTotal > renderedDraftCount && (
+              <p className="text-[11px] text-white/35 px-1 mt-1">+{draftTotal - renderedDraftCount} more drafts</p>
             )}
 
             {/* readyDeck + drafts can both be empty even with active>0 — everything
                 upstream. Surface it instead of a false all-clear. */}
-            {readyDeck.length === 0 && drafts.length === 0 && (
+            {readyDeck.length === 0 && clusters.length === 0 && looseDrafts.length === 0 && (
               <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-6 text-center mt-2">
                 <p className="text-[13px] text-white/70">Nothing awaiting your sign-off yet.</p>
                 <p className="text-[11px] text-white/40 mt-1">Everything in flight is still upstream (research / seeds).</p>
@@ -162,7 +176,47 @@ export function MobileContent({ ideaId }: Props = {}) {
           </div>
         )}
       </div>
+
+      <SynthesisModal
+        open={!!mergeSelection}
+        selected={mergeSelection || []}
+        onClose={() => setMergeSelection(null)}
+      />
     </MobileShell>
+  )
+}
+
+// A group of drafts the nightly clustering flagged as one narrative thread. Shows
+// the members plus a one-tap merge that folds them into a single draft (keeping
+// every point + citations) via the existing synthesize flow.
+function DraftClusterBlock({ cluster, onOpen, onMerge }: { cluster: DraftCluster; onOpen: (id: string) => void; onMerge: () => void }) {
+  return (
+    <div className="rounded-2xl border border-violet-400/25 bg-violet-500/[0.06] p-2.5 space-y-2">
+      <div className="flex items-start gap-2 px-1 pt-0.5">
+        <GitMerge size={14} className="text-violet-300 mt-0.5 flex-shrink-0" />
+        <div className="min-w-0">
+          <p className="text-[12px] font-semibold text-violet-100">
+            {cluster.members.length} drafts share a narrative
+          </p>
+          {cluster.summary && (
+            <p className="text-[11px] text-white/55 leading-snug mt-0.5">{cluster.summary}</p>
+          )}
+        </div>
+      </div>
+      <div className="space-y-2">
+        {cluster.members.map(i => (
+          <IdeaButton key={i.id} i={i} urg={null} onClick={() => onOpen(i.id)} />
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={onMerge}
+        className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-violet-400/40 bg-violet-500/15 active:bg-violet-500/25 py-2.5 text-[12.5px] font-semibold text-violet-100 transition-colors"
+      >
+        <Sparkles size={13} />
+        Merge into one narrative
+      </button>
+    </div>
   )
 }
 

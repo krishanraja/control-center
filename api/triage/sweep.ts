@@ -32,6 +32,12 @@ import {
 const LEARN_STEP_CAP = 0.1 // max ±10% per coefficient per cycle
 const DAY_MS = 24 * 60 * 60 * 1000
 
+// Content backburner TTL: a content idea that's sat buried this long without a
+// restore is past saving — soft-drop it (state='dropped') so it leaves Content
+// and the backburner for good. Reversible (the row survives; Vera still learns
+// from it), and protected (restored) rows are never touched.
+const PURGE_AFTER_DAYS = 15
+
 interface BuryCandidate { id: string; title: string; score: number; reason: string }
 
 async function runSweep(dryRun: boolean) {
@@ -80,6 +86,42 @@ async function runSweep(dryRun: boolean) {
     })
   }
   return result
+}
+
+// Content backburner purge: content_ideas buried longer than PURGE_AFTER_DAYS,
+// not protected (restored), and not already terminal → state='dropped'. Soft, so
+// the row stays for Vera's learning and stays restorable from the audit trail.
+// Scoped to content_ideas by design (the other tabs keep their backburners).
+async function runPurge(dryRun: boolean) {
+  const cutoff = new Date(Date.now() - PURGE_AFTER_DAYS * DAY_MS).toISOString()
+  const { data, error } = await supabase
+    .from('content_ideas')
+    .select('id, idea, buried_at')
+    .lt('buried_at', cutoff)
+    .is('protected_at', null)
+    .not('buried_at', 'is', null)
+    .neq('state', 'dropped')
+  if (error) throw new Error(error.message)
+  const rows = data || []
+  const purged = rows.map(r => ({ id: String(r.id), title: (r as any).idea || '(untitled)' }))
+
+  if (!dryRun && purged.length > 0) {
+    const ids = purged.map(p => p.id)
+    for (let i = 0; i < ids.length; i += 50) {
+      const { error: upErr } = await supabase
+        .from('content_ideas')
+        .update({ state: 'dropped' })
+        .in('id', ids.slice(i, i + 50))
+      if (upErr) throw new Error(upErr.message)
+    }
+    await supabase.from('audit_log').insert({
+      event_type: 'backburner_purge',
+      actor: 'grader',
+      target: 'content_ideas',
+      details: JSON.stringify({ purged: purged.length, after_days: PURGE_AFTER_DAYS }),
+    })
+  }
+  return { eligible: purged.length, purged }
 }
 
 // States a content idea may be promoted into when restoring from the backburner.
@@ -217,9 +259,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!secret || auth !== `Bearer ${secret}`) return res.status(401).json({ ok: false, error: 'unauthorized' })
     try {
       const sweep = await runSweep(false)
+      const purge = await runPurge(false)
       const learn = await runLearn(false)
       const buried = Object.fromEntries(Object.entries(sweep).map(([t, r]) => [t, r.buried.length]))
-      return res.json({ ok: true, buried, learn })
+      return res.json({ ok: true, buried, purged: purge.purged.length, learn })
     } catch (e: any) {
       return res.status(500).json({ ok: false, error: String(e?.message || e) })
     }
@@ -242,6 +285,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!body.source_table || !body.source_id) return res.status(400).json({ ok: false, error: 'source_table and source_id required' })
       await restore(body.source_table, body.source_id, body.to_state)
       return res.json({ ok: true, restored: true })
+    }
+    if (body.action === 'purge') {
+      const result = await runPurge(!!body.dry_run)
+      return res.json({ ok: true, dry_run: !!body.dry_run, result })
     }
     if (body.action === 'learn') {
       const result = await runLearn(!!body.dry_run)
