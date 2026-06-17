@@ -10,6 +10,24 @@
 const EMBEDDING_MODEL = 'text-embedding-3-small'
 const EMBEDDING_DIM = 1536
 
+// Resolve the OpenAI key from the deploy env, falling back to the service-role-only
+// app_secrets table (so clustering/dedup work even when the key isn't in the Vercel
+// env). Cached per process. The anon client cannot read app_secrets (RLS), so this
+// is safe. Importing _supabase is fine — every embedding caller runs server-side.
+let cachedOpenAIKey: string | null | undefined
+async function getOpenAIKey(): Promise<string | null> {
+  if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY
+  if (cachedOpenAIKey !== undefined) return cachedOpenAIKey
+  try {
+    const { supabase } = await import('./_supabase.js')
+    const { data } = await supabase.from('app_secrets').select('value').eq('key', 'openai_api_key').maybeSingle()
+    cachedOpenAIKey = data && typeof (data as { value?: unknown }).value === 'string' ? (data as { value: string }).value : null
+  } catch {
+    cachedOpenAIKey = null
+  }
+  return cachedOpenAIKey
+}
+
 /** Truncate input so we never blow the model's context budget. The model
  *  itself accepts 8191 tokens but anything past ~1500 chars rarely adds
  *  semantic signal for the headline-and-snippet shape we feed it. */
@@ -41,7 +59,7 @@ function buildInputText(parts: EmbedInput): string {
  *  input is empty — callers should treat null as "skip the semantic tier" and
  *  fall back to exact-match dedup. */
 export async function embed(input: EmbedInput): Promise<number[] | null> {
-  const apiKey = process.env.OPENAI_API_KEY
+  const apiKey = await getOpenAIKey()
   if (!apiKey) return null
   const text = buildInputText(input)
   if (!text) return null
@@ -63,7 +81,7 @@ export async function embed(input: EmbedInput): Promise<number[] | null> {
 /** Batch embedding. Same shape, but pass an array. Returns a parallel array of
  *  embeddings (or null at positions where input was empty/invalid). */
 export async function embedBatch(inputs: EmbedInput[]): Promise<(number[] | null)[]> {
-  const apiKey = process.env.OPENAI_API_KEY
+  const apiKey = await getOpenAIKey()
   if (!apiKey) return inputs.map(() => null)
   const texts = inputs.map(buildInputText)
   // OpenAI accepts up to 2048 inputs per call. Chunk just in case.
