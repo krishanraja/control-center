@@ -8,6 +8,7 @@ export interface ReasonChip { code: string; label: string }
 export const REJECT_REASONS: Record<string, ReasonChip[]> = {
   content_ideas: [
     { code: 'content_too_negative',    label: 'Too negative' },
+    { code: 'content_too_technical',   label: 'Too technical' },
     { code: 'content_too_generic',     label: 'Too generic' },
     { code: 'content_not_my_voice',    label: 'Not my voice' },
     { code: 'content_old_news',        label: 'Old news' },
@@ -17,6 +18,7 @@ export const REJECT_REASONS: Record<string, ReasonChip[]> = {
     { code: 'content_other',           label: 'Other' },
   ],
   leads: [
+    { code: 'lead_too_technical',      label: 'Too technical' },
     { code: 'lead_wrong_seniority',    label: 'Wrong seniority' },
     { code: 'lead_wrong_company_size', label: 'Wrong size' },
     { code: 'lead_no_budget_signal',   label: 'No budget signal' },
@@ -24,6 +26,7 @@ export const REJECT_REASONS: Record<string, ReasonChip[]> = {
     { code: 'lead_other',              label: 'Other' },
   ],
   visibility_targets: [
+    { code: 'visibility_too_technical',     label: 'Too technical' },
     { code: 'visibility_wrong_location',    label: 'Wrong location' },
     { code: 'visibility_wrong_audience',    label: 'Wrong audience' },
     { code: 'visibility_unlikely_accepted', label: 'Unlikely to be accepted' },
