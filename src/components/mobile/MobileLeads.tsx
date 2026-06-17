@@ -147,6 +147,26 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
     />
   )
 
+  // Focus Mode (Phase 3): when enabled and today is calibrated, the venture
+  // feed cards regroup into the 3 daily-target lanes via relevance_index (table
+  // 'leads'). The visible set is every active lead the tab already lists, fed
+  // through one uniform FeedRow renderer that preserves the existing tap-to-open
+  // and feedback behavior.
+  const { mode, setMode } = useFocusMode()
+  const { today: focusToday } = useDailyFocus()
+  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
+  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
+  const renderLeadRow = (l: LeadRow) => (
+    <FeedRow
+      dotColor={fitDot(l.fit_score)}
+      title={leadName(l)}
+      detail={l.why_relevant || leadSubtitle(l) || undefined}
+      trailing={<span className="text-[14px] text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>}
+      onClick={() => openLeadFromRow(l.id)}
+      feedback={{ sourceTable: 'leads', sourceId: l.id, agentId: l.assignee_agent }}
+    />
+  )
+
   if (triage.mode === 'deck') {
     return (
       <MobileStage scroll="none" header={<TabHeader title="Pipeline" subtitle={`${triageConfig.items.length} to triage · swipe to decide`} />}>
@@ -178,26 +198,6 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
       </MobileStage>
     )
   }
-
-  // Focus Mode (Phase 3): when enabled and today is calibrated, the venture
-  // feed cards regroup into the 3 daily-target lanes via relevance_index (table
-  // 'leads'). The visible set is every active lead the tab already lists, fed
-  // through one uniform FeedRow renderer that preserves the existing tap-to-open
-  // and feedback behavior.
-  const { mode, setMode } = useFocusMode()
-  const { today: focusToday } = useDailyFocus()
-  const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
-  const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
-  const renderLeadRow = (l: LeadRow) => (
-    <FeedRow
-      dotColor={fitDot(l.fit_score)}
-      title={leadName(l)}
-      detail={l.why_relevant || leadSubtitle(l) || undefined}
-      trailing={<span className="text-[14px] text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>}
-      onClick={() => openLeadFromRow(l.id)}
-      feedback={{ sourceTable: 'leads', sourceId: l.id, agentId: l.assignee_agent }}
-    />
-  )
 
   return (
     <MobileShellPrim
