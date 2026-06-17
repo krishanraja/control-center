@@ -42,6 +42,21 @@ async function patchState(id: string, state: IdeaState): Promise<boolean> {
   }
 }
 
+// Retain = manually bury (set aside without dropping). Undo just un-buries.
+async function sweepAction(action: 'bury' | 'restore', id: string): Promise<boolean> {
+  try {
+    const r = await fetch('/api/triage/sweep', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, source_table: 'content_ideas', source_id: id }),
+    })
+    const j = await r.json().catch(() => ({}))
+    return r.ok && j.ok !== false
+  } catch {
+    return false
+  }
+}
+
 function openComposer(id: string) {
   window.location.hash = `#/content?idea=${id}`
 }
@@ -64,7 +79,7 @@ export function useContentTriage() {
   const [committed, setCommitted] = useState<Set<string>>(() => new Set())
   const [override, setOverride] = useState<TriageMode | null>(null)
   const [autoMode, setAutoMode] = useState<TriageMode>('action')
-  const lastAction = useRef<{ id: string; prevState: IdeaState } | null>(null)
+  const lastAction = useRef<{ id: string; prevState: IdeaState; kind?: 'state' | 'retain' } | null>(null)
   const [canUndo, setCanUndo] = useState(false)
   // Left-swipe drop now teaches Vera (−1). The reason is chosen AFTER the swipe
   // via chips, so a dropped card parks here until a reason is picked (or the next
@@ -139,10 +154,21 @@ export function useContentTriage() {
     if (!ok) { h.error(); toast('Undo failed — try again.', 'error') }
   }, [h, toast])
 
+  // Undo a retain: un-bury and un-commit (no state change was made).
+  const undoRetain = useCallback(async (id: string) => {
+    setCommitted(prev => { const n = new Set(prev); n.delete(id); return n })
+    if (lastAction.current?.id === id) { lastAction.current = null; setCanUndo(false) }
+    h.select()
+    const ok = await sweepAction('restore', id)
+    if (!ok) { h.error(); toast('Undo failed — try again.', 'error') }
+  }, [h, toast])
+
   const undo = useCallback(() => {
     const a = lastAction.current
-    if (a) undoById(a.id, a.prevState)
-  }, [undoById])
+    if (!a) return
+    if (a.kind === 'retain') undoRetain(a.id)
+    else undoById(a.id, a.prevState)
+  }, [undoById, undoRetain])
 
   // Send the −1 reject for a parked drop (the actual state→dropped + feedback_queue
   // vote). On failure the card is restored to the deck.
@@ -183,6 +209,29 @@ export function useContentTriage() {
     setPendingDrop({ id, idea })
   }, [flushPendingDrop, h])
 
+  // Right swipe on a SEEDED card: retain (bury) it for later instead of dropping
+  // or committing to research. Optimistic + undoable, mirroring commit().
+  const retain = useCallback(async (idea: ContentIdeaRow) => {
+    flushPendingDrop()
+    const id = idea.id
+    h.heavy()
+    setCommitted(prev => { const n = new Set(prev); n.add(id); return n })
+    lastAction.current = { id, prevState: idea.state, kind: 'retain' }
+    setCanUndo(true)
+
+    const ok = await sweepAction('bury', id)
+    if (!ok) {
+      setCommitted(prev => { const n = new Set(prev); n.delete(id); return n })
+      if (lastAction.current?.id === id) { lastAction.current = null; setCanUndo(false) }
+      h.error()
+      toast('Could not retain — try again.', 'error')
+      return
+    }
+    toast('Retained — find it in Backburner.', 'success', {
+      action: { label: 'Undo', onClick: () => undoRetain(id) },
+    })
+  }, [h, toast, flushPendingDrop, undoRetain])
+
   const chooseDropReason = useCallback((reasonCode?: string) => {
     const p = pendingDropRef.current
     if (!p) return
@@ -203,6 +252,12 @@ export function useContentTriage() {
 
   // Does RIGHT on this card advance it, or open the composer at a human gate?
   const advanceIsGate = useCallback((state: IdeaState) => !ADVANCE_NEXT[state], [])
+
+  // Retained (manually buried) + auto-buried ideas — the Backburner section.
+  const buried = useMemo(
+    () => ideas.filter(i => i.buried_at && i.state !== 'dropped' && i.state !== 'published'),
+    [ideas],
+  )
 
   const counts = useMemo(() => {
     const byState: Record<string, number> = {}
@@ -229,6 +284,8 @@ export function useContentTriage() {
     triagedCount: committed.size,
     advance,
     drop,
+    retain,
+    buried,
     pendingDrop,
     chooseDropReason,
     cancelDrop,

@@ -5,6 +5,7 @@ import { TabHeader } from './primitives'
 import { type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { useContentTriage } from '../../hooks/useContentTriage'
 import { TriageDeck } from '../content/TriageDeck'
+import { BackburnerSection } from '../shared/BackburnerSection'
 
 // MobileContent — two modes, driven by useContentTriage:
 //
@@ -43,7 +44,7 @@ const DRAFT_CAP = 12
 
 export function MobileContent({ ideaId }: Props = {}) {
   const triage = useContentTriage()
-  const { active, activeCount, counts, loading, mode } = triage
+  const { active, activeCount, counts, loading, mode, buried } = triage
 
   // tier 1 — genuinely next or urgent: review / approved / scheduled-today-or-overdue.
   const readyDeck = useMemo(() => {
@@ -148,6 +149,17 @@ export function MobileContent({ ideaId }: Props = {}) {
               </button>
             )}
           </>
+        )}
+
+        {/* Retained / auto-buried ideas — set aside, promote to research from here. */}
+        {!loading && buried.length > 0 && (
+          <div className="pt-2">
+            <BackburnerSection
+              table="content_ideas"
+              items={buried.map(i => ({ id: i.id, title: i.idea || '(untitled)', buried_reason: i.buried_reason }))}
+              promote={{ label: 'Research', toState: 'researching' }}
+            />
+          </div>
         )}
       </div>
     </MobileShell>

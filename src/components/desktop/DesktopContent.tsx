@@ -266,6 +266,7 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
       <BackburnerSection
         table="content_ideas"
         items={buriedIdeas.map(i => ({ id: i.id, title: i.idea || '(untitled)', buried_reason: i.buried_reason }))}
+        promote={{ label: 'Research', toState: 'researching' }}
       />
         </div>
       )}

@@ -82,18 +82,46 @@ async function runSweep(dryRun: boolean) {
   return result
 }
 
-async function restore(table: string, id: string) {
+// States a content idea may be promoted into when restoring from the backburner.
+const CONTENT_STATES = new Set(['seeded', 'researching', 'drafting', 'review', 'approved', 'published', 'dropped'])
+
+// Manual "Retain" — set a row aside without dropping it. Mirrors the nightly
+// sweep's bury, but user-driven (a stamped buried_reason distinguishes it).
+async function bury(table: string, id: string, reason?: string) {
   if (!TABLES.includes(table as Table)) throw new Error('invalid source_table')
   const { error } = await supabase
     .from(table)
-    .update({ buried_at: null, buried_reason: null, protected_at: new Date().toISOString() })
+    .update({ buried_at: new Date().toISOString(), buried_reason: reason || 'Retained for later' })
     .eq('id', id)
+  if (error) throw new Error(error.message)
+  await supabase.from('audit_log').insert({
+    event_type: 'backburner_manual_bury',
+    actor: 'krish',
+    target: id,
+    details: JSON.stringify({ source_table: table, reason: reason || 'Retained for later' }),
+  })
+}
+
+async function restore(table: string, id: string, toState?: string) {
+  if (!TABLES.includes(table as Table)) throw new Error('invalid source_table')
+  const updates: Record<string, unknown> = {
+    buried_at: null,
+    buried_reason: null,
+    protected_at: new Date().toISOString(),
+  }
+  // Optional atomic promote (content_ideas only): un-bury straight into a new
+  // pipeline state, e.g. retained → researching, instead of back to the pile.
+  if (toState) {
+    if (table !== 'content_ideas' || !CONTENT_STATES.has(toState)) throw new Error('invalid to_state')
+    updates.state = toState
+  }
+  const { error } = await supabase.from(table).update(updates).eq('id', id)
   if (error) throw new Error(error.message)
   await supabase.from('audit_log').insert({
     event_type: 'backburner_restore',
     actor: 'krish',
     target: id,
-    details: JSON.stringify({ source_table: table }),
+    details: JSON.stringify({ source_table: table, to_state: toState ?? null }),
   })
 }
 
@@ -199,15 +227,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'GET (cron) or POST only' })
 
-  const body = (req.body || {}) as { action?: string; dry_run?: boolean; source_table?: string; source_id?: string }
+  const body = (req.body || {}) as { action?: string; dry_run?: boolean; source_table?: string; source_id?: string; reason?: string; to_state?: string }
   try {
     if (body.action === 'sweep') {
       const result = await runSweep(!!body.dry_run)
       return res.json({ ok: true, dry_run: !!body.dry_run, result })
     }
+    if (body.action === 'bury') {
+      if (!body.source_table || !body.source_id) return res.status(400).json({ ok: false, error: 'source_table and source_id required' })
+      await bury(body.source_table, body.source_id, body.reason)
+      return res.json({ ok: true, buried: true })
+    }
     if (body.action === 'restore') {
       if (!body.source_table || !body.source_id) return res.status(400).json({ ok: false, error: 'source_table and source_id required' })
-      await restore(body.source_table, body.source_id)
+      await restore(body.source_table, body.source_id, body.to_state)
       return res.json({ ok: true, restored: true })
     }
     if (body.action === 'learn') {
