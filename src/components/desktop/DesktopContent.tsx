@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { FileText, ExternalLink, Calendar as CalendarIcon, List, Plus, Loader2, Layers, GitMerge, CheckSquare, Square } from 'lucide-react'
+import { FileText, ExternalLink, Calendar as CalendarIcon, List, Plus, Loader2, Layers, GitMerge, CheckSquare, Square, Sparkles, AlertTriangle } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { useToast } from '../shared/Toast'
@@ -157,6 +157,7 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
           >
             <GitMerge size={13} /> {selectMode ? `Synthesize · ${selectedIds.size}` : 'Synthesize'}
           </button>
+          {activeCount > 0 && <SweepTriageButton />}
           {triage.mode === 'action' && activeCount > 0 && (
             <button
               type="button"
@@ -715,6 +716,217 @@ function groupByState(ideas: ContentIdeaRow[]): Partial<Record<IdeaState, Conten
     arr.push(i)
   }
   return out
+}
+
+/**
+ * SweepTriageButton — preview-then-apply auto-cleanup that drops off-vertical /
+ * too-technical cards from the content triage deck, then trims the lowest-scoring
+ * survivors until the deck is at <30. Every drop replays a manual swipe-left
+ * (terminal state + feedback_queue −1 vote with reason_code), so Vera's weekly
+ * aggregation clusters the pattern and proposes brief edits to Cleo.
+ *
+ * Calls POST /api/triage/relevance-sweep with dry=true first to show counts +
+ * sample; only on Apply does it call with dry=false. Idempotent — re-clicking
+ * after a clean sweep reports 0 to drop.
+ */
+interface SweepSample {
+  id: string
+  title: string
+  reason_code: string
+  rationale: string
+  sweep: 'relevance' | 'volume_trim'
+  vertical?: string | null
+  confidence?: number
+}
+interface SweepReport {
+  loaded: number
+  protected: number
+  relevance: { ran: boolean; off_vertical: number; too_technical: number; by_vertical: Record<string, number> }
+  trim: number
+  total_dropped: number
+  remaining: number
+  target: number
+  sample: SweepSample[]
+  committed: boolean
+  feedback_inserted: number
+}
+
+function SweepTriageButton() {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [report, setReport] = useState<SweepReport | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [applied, setApplied] = useState(false)
+  const { toast } = useToast()
+
+  const fetchReport = async (dry: boolean): Promise<SweepReport | null> => {
+    setLoading(true); setError(null)
+    try {
+      const r = await fetch('/api/triage/relevance-sweep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: 'content_ideas', target: 30, dry }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || j.ok === false) { setError(j.error || `HTTP ${r.status}`); return null }
+      return j as SweepReport
+    } catch (e) {
+      setError(String((e as any)?.message || e)); return null
+    } finally { setLoading(false) }
+  }
+
+  const onOpen = async () => {
+    setOpen(true); setApplied(false); setReport(null)
+    const r = await fetchReport(true)
+    if (r) setReport(r)
+  }
+
+  const onApply = async () => {
+    const r = await fetchReport(false)
+    if (r) {
+      setReport(r)
+      setApplied(true)
+      toast(`Dropped ${r.total_dropped} cards. Vera will cluster these.`, 'success')
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="inline-flex items-center gap-1.5 text-[12px] font-medium text-white/60 border border-white/[0.08] hover:text-white/85 hover:bg-white/[0.04] rounded-lg px-3 py-1.5 transition-colors"
+        title="Auto-clear off-vertical and too-technical cards, then trim to 30"
+      >
+        <Sparkles size={13} /> Sweep
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Sweep triage">
+          <button aria-label="Cancel" onClick={() => setOpen(false)} className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div className="relative w-full max-w-2xl max-h-[85vh] bg-[#0f0f12] border border-white/[0.10] rounded-2xl shadow-2xl shadow-black/60 flex flex-col">
+            <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
+              <h3 className="text-[14px] font-semibold text-white flex items-center gap-2">
+                <Sparkles size={14} className="text-violet-300" /> Sweep triage to &lt;30
+              </h3>
+              <p className="text-[11px] text-white/45 mt-0.5">
+                Drops off-vertical and too-technical cards, then trims the lowest-scoring rest. Every drop teaches Vera (your hand-captured cards are never touched).
+              </p>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              {loading && !report && (
+                <div className="flex items-center gap-2 text-[12px] text-white/55">
+                  <Loader2 size={12} className="animate-spin" /> Classifying cards…
+                </div>
+              )}
+              {error && (
+                <div className="flex items-start gap-2 text-[12px] text-red-300 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
+                  <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+              {report && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-4 gap-2">
+                    <Stat label="Loaded" value={report.loaded} />
+                    <Stat label="Off-vertical" value={report.relevance.off_vertical} tone="violet" />
+                    <Stat label="Too technical" value={report.relevance.too_technical} tone="violet" />
+                    <Stat label="Volume trim" value={report.trim} tone="amber" />
+                  </div>
+                  <div className="flex items-baseline gap-3 text-[12px]">
+                    <span className="text-white/55">Will drop</span>
+                    <span className="text-white tabular-nums text-[18px] font-semibold">{report.total_dropped}</span>
+                    <span className="text-white/55">→ deck at</span>
+                    <span className="text-white tabular-nums">{report.remaining}</span>
+                    <span className="text-white/45">/ {report.target}</span>
+                    {report.protected > 0 && (
+                      <span className="ml-auto text-[10.5px] text-white/40">
+                        {report.protected} protected (in progress / your captures)
+                      </span>
+                    )}
+                  </div>
+                  {Object.keys(report.relevance.by_vertical).length > 0 && (
+                    <div className="text-[11px] text-white/55">
+                      <span className="text-white/35">By vertical: </span>
+                      {Object.entries(report.relevance.by_vertical)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([k, v]) => `${k.replace(/_/g, ' ')} ${v}`)
+                        .join(' · ')}
+                    </div>
+                  )}
+                  {report.sample.length > 0 && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-white/35 mb-2">
+                        Sample (first {report.sample.length} of {report.total_dropped})
+                      </p>
+                      <ul className="space-y-1 max-h-[34vh] overflow-y-auto pr-1">
+                        {report.sample.map(s => (
+                          <li key={s.id} className="text-[12px] flex items-start gap-2 py-1 border-b border-white/[0.04]">
+                            <span className={`text-[9.5px] uppercase tracking-[0.08em] font-medium flex-shrink-0 mt-1 ${
+                              s.sweep === 'relevance' ? 'text-violet-300/85' : 'text-amber-300/85'
+                            }`}>
+                              {s.reason_code.replace(/^[a-z]+_/, '')}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-white/85 truncate">{s.title}</p>
+                              <p className="text-[10.5px] text-white/40 truncate">{s.rationale}</p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {report.total_dropped === 0 && (
+                    <p className="text-[12px] text-white/55 py-4 text-center">
+                      Nothing to drop. The deck is already clean.
+                    </p>
+                  )}
+                  {applied && report.committed && (
+                    <div className="text-[12px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-md px-3 py-2">
+                      Done. Dropped {report.total_dropped} cards and wrote {report.feedback_inserted} feedback votes. Vera will cluster these on Sunday.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="px-5 py-3 border-t border-white/[0.06] flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-[12px] text-white/55 hover:text-white/85 px-3 py-1.5"
+              >
+                {applied ? 'Close' : 'Cancel'}
+              </button>
+              {report && report.total_dropped > 0 && !applied && (
+                <button
+                  type="button"
+                  onClick={onApply}
+                  disabled={loading}
+                  className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md border border-violet-500/40 bg-violet-500/20 text-violet-100 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                  Apply · drop {report.total_dropped}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+function Stat({ label, value, tone }: { label: string; value: number; tone?: 'violet' | 'amber' }) {
+  const valueColor = value === 0
+    ? 'text-white/30'
+    : tone === 'violet' ? 'text-violet-200'
+    : tone === 'amber' ? 'text-amber-200'
+    : 'text-white/85'
+  return (
+    <div className="rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+      <p className="text-[9.5px] uppercase tracking-[0.12em] text-white/40">{label}</p>
+      <p className={`text-[18px] font-semibold tabular-nums mt-0.5 ${valueColor}`}>{value}</p>
+    </div>
+  )
 }
 
 /**
