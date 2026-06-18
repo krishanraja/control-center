@@ -80,6 +80,9 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
         {typeof i.brand_fit_score === 'number' && (
           <span className="px-1.5 py-0.5 rounded bg-white/[0.06] text-white/65 tabular-nums" title="Brand fit score (1-10)">Fit {i.brand_fit_score}</span>
         )}
+        {typeof i.confidence === 'number' && i.confidence > 0 && i.confidence < 0.7 && (
+          <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-200/80 border border-amber-400/20" title="Cleo is not confident about this classification — open to confirm or correct">Cleo unsure</span>
+        )}
         {i.body && i.body.trim() && (
           <span className="px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200/80" title="Has a draft">draft</span>
         )}
