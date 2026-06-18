@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Users, X, Sparkles, Layers } from 'lucide-react'
 import { useRealtimeLeads, type LeadSourceType, type LeadRow } from '../../hooks/useRealtimeLeads'
+import { isTestRecord } from '../../lib/recordHygiene'
 import { SwipeCockpit } from '../shared/SwipeCockpit'
 import { buildLeadsTriageConfig } from '../../lib/triageConfig'
 import { useToast } from '../shared/Toast'
@@ -44,8 +45,10 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
   const { ventures } = useVentureRegistry()
   const { toast } = useToast()
   const [triageOpen, setTriageOpen] = useState(false)
-  const leads = useMemo(() => allLeads.filter(l => !l.buried_at), [allLeads])
-  const buriedLeads = useMemo(() => allLeads.filter(l => l.buried_at), [allLeads])
+  // Single consumption point — drop buried AND test/demo rows so every Pipeline
+  // view (lanes, deck, counts, by-source) is clean (Krish 2026-06-17).
+  const leads = useMemo(() => allLeads.filter(l => !l.buried_at && !isTestRecord(l)), [allLeads])
+  const buriedLeads = useMemo(() => allLeads.filter(l => l.buried_at && !isTestRecord(l)), [allLeads])
 
   // Desktop triage cockpit — same swipe grammar as mobile, laid out for landscape.
   const triageConfig = useMemo(() => buildLeadsTriageConfig(leads, { toast }, loading), [leads, toast, loading])

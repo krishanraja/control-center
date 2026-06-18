@@ -6,6 +6,7 @@ import { NextActionStrip } from '../shared/NextActionStrip'
 import { DetailSheet } from './DetailSheet'
 import { LeadImportDropzone } from '../LeadImportDropzone'
 import { useRealtimeLeads, type LeadRow, type LeadSourceType } from '../../hooks/useRealtimeLeads'
+import { isTestRecord } from '../../lib/recordHygiene'
 import { useVentureRegistry } from '../../hooks/useVentureRegistry'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
@@ -59,7 +60,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
 
   const { leads, loading } = useRealtimeLeads({
     statusIn: ['new', 'enriching', 'ready', 'contacted', 'conversation'],
-    filter: l => !l.buried_at,
+    filter: l => !l.buried_at && !isTestRecord(l),
   })
   const { ventures } = useVentureRegistry()
 

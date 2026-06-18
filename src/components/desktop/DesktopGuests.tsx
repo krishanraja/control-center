@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Mic, Megaphone, Calendar, Layers } from 'lucide-react'
+import { isTestRecord } from '../../lib/recordHygiene'
 import { useRealtimeGuests, type GuestRow, type GuestStatus, type GuestPodcastTarget } from '../../hooks/useRealtimeGuests'
 import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'
 import { SwipeCockpit } from '../shared/SwipeCockpit'
@@ -72,10 +73,10 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   const [triageOpen, setTriageOpen] = useState(false)
   const { guests: allGuests, loading: guestsLoading } = useRealtimeGuests()
   const { targets: allTargets, loading: targetsLoading } = useVisibilityTargets({ includeArchived: false })
-  const guests = useMemo(() => allGuests.filter(g => !g.buried_at), [allGuests])
-  const targets = useMemo(() => allTargets.filter(t => !t.buried_at), [allTargets])
-  const buriedGuests = useMemo(() => allGuests.filter(g => g.buried_at), [allGuests])
-  const buriedTargets = useMemo(() => allTargets.filter(t => t.buried_at), [allTargets])
+  const guests = useMemo(() => allGuests.filter(g => !g.buried_at && !isTestRecord(g)), [allGuests])
+  const targets = useMemo(() => allTargets.filter(t => !t.buried_at && !isTestRecord(t)), [allTargets])
+  const buriedGuests = useMemo(() => allGuests.filter(g => g.buried_at && !isTestRecord(g)), [allGuests])
+  const buriedTargets = useMemo(() => allTargets.filter(t => t.buried_at && !isTestRecord(t)), [allTargets])
   const { mode, setMode } = useFocusMode()
   const { today: focusToday } = useDailyFocus()
   const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'

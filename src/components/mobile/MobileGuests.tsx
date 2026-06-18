@@ -4,6 +4,7 @@ import { MobileShell } from './MobileShell'
 import { TabHeader } from './primitives'
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { BottomSheet } from './BottomSheet'
+import { isTestRecord } from '../../lib/recordHygiene'
 import { useRealtimeGuests, type GuestStatus, type GuestRow } from '../../hooks/useRealtimeGuests'
 import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'
 import { GuestImportDropzone } from '../GuestImportDropzone'
@@ -63,9 +64,9 @@ interface Props {
 export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: Props = {}) {
   const [lane, setLane] = useState<Lane>('inbound')
   // Backburner-buried rows stay off the mobile lanes; restore lives on desktop.
-  const { guests, loading: guestsLoading } = useRealtimeGuests({ statusIn: ACTIVE_STATUSES, filter: g => !g.buried_at })
+  const { guests, loading: guestsLoading } = useRealtimeGuests({ statusIn: ACTIVE_STATUSES, filter: g => !g.buried_at && !isTestRecord(g) })
   const { targets: allTargets, loading: targetsLoading } = useVisibilityTargets({ includeArchived: false })
-  const targets = useMemo(() => allTargets.filter(t => !t.buried_at), [allTargets])
+  const targets = useMemo(() => allTargets.filter(t => !t.buried_at && !isTestRecord(t)), [allTargets])
   const h = useHaptics()
   const { toast } = useToast()
   const { mode, setMode } = useFocusMode()
