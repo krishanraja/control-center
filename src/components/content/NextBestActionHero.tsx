@@ -41,9 +41,24 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
   const [busy, setBusy] = useState(false)
   const next = useMemo(() => nextBestAction(ideas), [ideas])
 
-  const open = (id: string, schedule?: boolean) => {
+  const open = (id: string) => {
     h.tap()
-    window.location.hash = `#/content?idea=${id}${schedule ? '&intent=schedule' : ''}`
+    window.location.hash = `#/content?idea=${id}`
+  }
+
+  const schedule = async (id: string, date: string) => {
+    if (!date) return
+    h.heavy(); setBusy(true)
+    try {
+      const r = await fetch(`/api/content-ideas/${id}/schedule`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date }),
+      })
+      if (!r.ok) throw new Error(String(r.status))
+      h.success(); toast('Scheduled.', 'success')
+    } catch {
+      h.error(); toast('Could not schedule — try again.', 'error')
+    } finally { setBusy(false) }
   }
 
   const approve = async (id: string) => {
@@ -71,10 +86,15 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
     const id = (next.idea as ContentIdeaRow).id
     switch (next.kind) {
       case 'approve': void approve(id); break
-      case 'schedule': open(id, true); break
+      case 'schedule': break // handled by the inline date input
       default: open(id)
     }
   }
+
+  const todayYMD = (() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })()
 
   const clear = next.kind === 'clear'
   const tone = clear
@@ -100,7 +120,24 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
         </p>
         <p className="text-[12px] text-white/55 leading-snug truncate">{next.sub}</p>
       </div>
-      {!clear && next.idea && (
+      {!clear && next.idea && next.kind === 'schedule' && (
+        // Inline date picker — pick a day right here, no detour (P-11 / P-22).
+        <label
+          className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors min-h-[44px] cursor-pointer bg-sky-500/20 border border-sky-400/40 text-sky-100 hover:bg-sky-500/30 text-[13px]"
+          title="Pick a day to ship it"
+        >
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <CalendarPlus size={14} />}
+          Schedule
+          <input
+            type="date"
+            min={todayYMD}
+            disabled={busy}
+            onChange={e => schedule((next.idea as ContentIdeaRow).id, e.target.value)}
+            className="sr-only"
+          />
+        </label>
+      )}
+      {!clear && next.idea && next.kind !== 'schedule' && (
         <button
           type="button"
           onClick={onAct}
