@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { withoutTestRecords } from './../lib/recordHygiene'
 
 export type CustomerKind    = 'paid' | 'free_signup' | 'trial' | 'waitlist' | 'churned'
 export type CustomerProduct =
@@ -84,7 +85,8 @@ export function useCustomers() {
         if (err.code !== 'PGRST205') setError(err.message)
         setRows([])
       } else {
-        setRows((data as CustomerRow[]) || [])
+        // Drop test/demo rows so MRR, counts, and "Recent" are all honest.
+        setRows(withoutTestRecords((data as CustomerRow[]) || []))
         setError(null)
       }
       setLoading(false)
