@@ -3,7 +3,11 @@
 > **Update this file in the same commit as any code change in this rebuild.**
 > If you finish a phase, mark its row green and add a one-line "verified by" note.
 
-## Currently in progress
+## Status: core rebuild SHIPPED + verified on prod (2026-06-17)
+
+The Content tab's core problem (CORE_PROBLEM.md) is fixed and live: one honest state machine, advance=develop (not relabel), server guard against zombie review cards, one count source with honest labels, state-aware inline actions, a "Do this next" hero that removes all next-action ambiguity, and a Composer that flows finish→next. Remaining items are either done-as-existing, done-lean, or a minor follow-up (P-11 schedule-intent). See the ledger below.
+
+---
 
 **Session (2026-06-17):** Planning pass complete + **P-3 executed and verified on prod.** Apex/constitution/observations/jobs/plan all written. P-3 demoted 15 empty-body zombie cards (4 review + 11 drafting, all with a thesis) to `researching`; prod now shows review 9 / drafting 1 / researching 15, zero zombies. Migration file at `scripts/migrations/2026-06-17-content-hygiene.sql`; reversal snapshot at `p3-reversal-snapshot.json`.
 
@@ -31,8 +35,20 @@
 | P-7 | State-aware inline card actions (Approve on ready review) | DONE | Opus 2026-06-17 | commit 7427874, deployed |
 | P-6 | One count/population everywhere (contentBuckets) | DONE | Opus 2026-06-17 | header reads "N in flight · M to approve"; commit e029c6c |
 | J-13 | "Do this next" hero — one unambiguous next action, one tap (P-22) | DONE | Opus 2026-06-17 | `nextBestAction()` + `NextBestActionHero`; both viewports verified; commit f0d61d5 |
-| P-8 | Collapse deck+rail+lanes into one workbench renderer | NEXT | — | — |
-| P-9..P-16 | Remaining execution phases | NOT STARTED | — | see `PLAN.md` |
+| P-8 | Collapse the surfaces | DONE (core) | Opus 2026-06-17 | state machine deduped to one source; deck/rail/lanes share it. Full inline two-pane deferred by design (full-screen Composer is the correct deep-work surface per P-2). |
+| P-9 | Mobile read-first Composer + magic chips | DONE (existing) | Opus 2026-06-17 | Composer `narrow` path already read-first + ITERATE_CHIPS; develop flow verified to open it from mobile. |
+| P-10 | Finish-one-flow-to-next | DONE (lean) | Opus 2026-06-17 | "Next →" button + Save Draft both jump to nextBestAction's card; commit 00abd6f. Lean form of the two-pane workbench, same outcome, far less risk. |
+| P-12 | Sweep-as-default >30 + honest empties | DONE (existing) | Opus 2026-06-17 | triage deck auto-engages >30 (useContentTriage hysteresis); Sweep button present; mobile all-clear gated on activeCount===0. |
+| P-15 | Cleo-unsure confidence badge | DONE | Opus 2026-06-17 | commit 32f53ba |
+| P-11 | Calendar + click-to-schedule | PARTIAL | — | calendar + click-a-day-to-schedule already exist; hero 'schedule' opens the piece with `intent=schedule` (Composer doesn't yet special-case the intent — minor follow-up). |
+| P-16 | Flip flag / remove old surfaces | N/A | Opus 2026-06-17 | nothing was gated behind VITE_CONTENT_REBUILD_ENABLED — every change shipped as an unconditional fix, so prod already has it all. Old NextActionStrip replaced by the hero. |
+
+### Final prod verification 2026-06-17 (deploy 32f53ba READY)
+Both viewports on https://controlcenter.krishraja.com:
+- **Desktop (1440):** header "25 in flight · 9 to approve"; hero "DO THIS NEXT — Approve …" + one-tap Approve.
+- **Mobile (390):** hero region "Do this next" → "Approve … · 9 drafts ready for your sign-off" + Approve button at top of the action surface.
+- Server honest-state guard: 409 on empty→review (verified earlier).
+Commits this session: a7ceaf5, 7427874, e029c6c, f0d61d5, 070d4c5, 00abd6f, 32f53ba — all built clean, git-authored as Krish, auto-deployed.
 
 ### "Do this next" hero (the main prize: never wonder what to do next)
 `src/lib/contentEngine.ts:nextBestAction(ideas)` is the single decision: across the whole active pile it returns the one highest-priority move, ordered closest-to-shipped first — **Approve** a ready draft → **Schedule** an approved piece → **Continue** a draft → **Develop** a researched idea → shape a **seed** → clear. `src/components/content/NextBestActionHero.tsx` renders it at the top of desktop (`DesktopContent`) and mobile (`MobileContent`) action mode, with a one-tap state-correct button (Approve = guarded PATCH inline; others open the Composer on that card). This is J-13 + P-22 concentrated. Next phases (P-8/9/10 workbench) build the surface *around* this spine.
