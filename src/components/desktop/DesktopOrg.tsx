@@ -6,7 +6,7 @@ import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { humanize } from '../shared/tokens'
 import { FlagAgentModal } from '../FlagAgentModal'
-import { NextActionStrip } from '../shared/NextActionStrip'
+import { NextOrgHero } from '../org/NextOrgHero'
 import { usePendingCorrections, type PendingCorrection } from '../../hooks/usePendingCorrections'
 import { SkillProposalsPanel } from '../shared/SkillProposalsPanel'
 
@@ -279,11 +279,8 @@ export function DesktopOrg() {
     return [...knownKeys, ...extraKeys].map(k => ({ pod: podOf(k), members: map.get(k)! }))
   }, [agents])
 
-  const correctionsCount = pendingCorrections.data.length
-  const topCorrection = pendingCorrections.data[0] || null
-  const focusFirstCorrection = () => {
-    if (!topCorrection) return
-    const el = document.querySelector(`[data-correction-id="${topCorrection.id}"]`) as HTMLElement | null
+  const focusCorrection = (correction: PendingCorrection) => {
+    const el = document.querySelector(`[data-correction-id="${correction.id}"]`) as HTMLElement | null
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' })
       el.style.outline = '2px solid rgba(245, 158, 11, 0.7)'
@@ -467,17 +464,10 @@ export function DesktopOrg() {
 
   return (
     <div className="flex flex-col gap-4">
-      <NextActionStrip
-        headline={correctionsCount}
-        headlineLabel="corrections"
-        insight={topCorrection
-          ? `Vera proposed a brief edit for ${topCorrection.agent_id}${topCorrection.pattern_reason_code ? ` (${topCorrection.pattern_reason_code})` : ''} — approve to ship`
-          : `${agents.length} agent${agents.length === 1 ? '' : 's'} active · no correction patterns waiting`}
-        ctaLabel={topCorrection ? 'Review correction' : 'View roster'}
-        onCta={() => topCorrection ? focusFirstCorrection() : null}
-        icon={AlertTriangle}
-        accent={correctionsCount > 0 ? 'text-amber-300' : 'text-violet-300'}
-        disabled={!topCorrection}
+      <NextOrgHero
+        corrections={pendingCorrections.data}
+        agentCount={agents.length}
+        onReview={focusCorrection}
       />
       <SplitPane left={list} right={rightPanel} hasSelection={!!selectedId} onBack={() => setSelectedId(null)} leftWidth="45%" />
       {flagTarget && (

@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { Zap } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, FeedCard, FeedRow, EmptyState } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -7,7 +6,7 @@ import { useToast } from '../shared/Toast'
 import { supabase } from '../../lib/supabase'
 import { AskMarcus } from '../AskMarcus'
 import { FleetFunnelPanel } from '../FleetFunnelPanel'
-import { NextActionStrip } from '../shared/NextActionStrip'
+import { NextIntelMobileHero } from '../intel/NextIntelMobileHero'
 
 type SignalUrgency = 'critical' | 'high' | 'medium' | 'low'
 
@@ -105,13 +104,6 @@ export function MobileIntel() {
   const hero = state.signals[0] || null
   const rest = state.signals.slice(1)
 
-  // "Hot" signals on mobile = urgency critical|high. Mirrors desktop's score>=8
-  // filter using the field that mobile's data source actually carries.
-  const hotSignals = useMemo(
-    () => state.signals.filter(s => s.urgency === 'critical' || s.urgency === 'high'),
-    [state.signals],
-  )
-
   return (
     <MobileShellPrim
       header={
@@ -125,19 +117,9 @@ export function MobileIntel() {
         />
       }
     >
-      <NextActionStrip
-        headline={hotSignals.length}
-        headlineLabel="hot"
-        insight={hero
-          ? `Top: ${hero.signal.slice(0, 90)}${hero.signal.length > 90 ? '…' : ''}`
-          : state.signals.length > 0
-            ? `${state.signals.length} signal${state.signals.length === 1 ? '' : 's'} tracked — nothing critical yet`
-            : 'Marcus is synthesizing. Check back after his next run.'}
-        ctaLabel={hero ? 'Open' : 'View signals'}
-        onCta={() => { if (hero) { h.select(); setOpenSignal(hero) } }}
-        icon={Zap}
-        accent={hotSignals.length > 0 ? 'text-amber-300' : 'text-violet-300'}
-        disabled={!hero}
+      <NextIntelMobileHero
+        signals={state.signals}
+        onOpen={(sig) => { h.select(); setOpenSignal(sig) }}
       />
 
       <AskMarcus />

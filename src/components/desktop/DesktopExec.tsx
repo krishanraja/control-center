@@ -5,21 +5,8 @@ import { supabase } from '../../lib/supabase'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { AskMarcus } from '../AskMarcus'
 import { FleetFunnelPanel } from '../FleetFunnelPanel'
-import { NextActionStrip } from '../shared/NextActionStrip'
+import { NextIntelDesktopHero, type ZaraSignal } from '../intel/NextIntelDesktopHero'
 import { useToast } from '../shared/Toast'
-
-interface ZaraSignal {
-  id: string
-  signal_type: string | null
-  venture: string | null
-  company_name: string | null
-  description: string | null
-  source_url: string | null
-  signal_score: number | null
-  status: string | null
-  surfaced_at: string | null
-  summary: string | null
-}
 
 interface MarcusSynthesis {
   id: string
@@ -75,16 +62,6 @@ export function DesktopExec() {
     return signals.filter(s => (s.venture || '').toLowerCase() === ventureFilter)
   }, [signals, ventureFilter])
 
-  // Hot signals = score >= 8 and still 'received' (un-actioned). These are the
-  // ones worth turning into bets/tasks first. Surfaced in the NextActionStrip.
-  const hotSignals = useMemo(() => {
-    return filteredSignals.filter(s =>
-      (s.signal_score ?? 0) >= 8 &&
-      (s.status === 'received' || s.status === null),
-    )
-  }, [filteredSignals])
-  const topHot = hotSignals[0] || null
-
   return (
     <div className="space-y-5 md:space-y-6">
       <div>
@@ -92,30 +69,9 @@ export function DesktopExec() {
         <p className="text-xs md:text-[12px] text-white/40 mt-1">Strategic assessment, market signals, and external intelligence.</p>
       </div>
 
-      <NextActionStrip
-        headline={hotSignals.length}
-        headlineLabel="hot"
-        insight={topHot
-          ? `Top signal (${topHot.signal_score}): ${topHot.description?.slice(0, 80) || topHot.signal_type || 'unnamed'}${topHot.description && topHot.description.length > 80 ? '…' : ''}`
-          : signals.length > 0
-            ? `${signals.length} signals tracked — nothing scoring 8+ yet`
-            : 'Zara will surface signals on her next sweep.'}
-        ctaLabel={topHot ? 'Promote to bet' : 'View signals'}
-        onCta={() => {
-          if (!topHot) return
-          // Scroll the hot signal into view + outline it so user sees what they're acting on.
-          const el = document.querySelector(`[data-signal-id="${topHot.id}"]`) as HTMLElement | null
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            el.style.outline = '2px solid rgba(245, 158, 11, 0.7)'
-            el.style.outlineOffset = '4px'
-            el.style.borderRadius = '8px'
-            setTimeout(() => { el.style.outline = ''; el.style.outlineOffset = '' }, 3500)
-          }
-        }}
-        icon={Zap}
-        accent={hotSignals.length > 0 ? 'text-amber-300' : 'text-violet-300'}
-        disabled={!topHot && signals.length === 0}
+      <NextIntelDesktopHero
+        signals={filteredSignals}
+        onPromoted={(id) => setSignals(prev => prev.map(x => x.id === id ? { ...x, status: 'actioned' } : x))}
       />
 
       <AskMarcus />

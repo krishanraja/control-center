@@ -8,7 +8,7 @@ import { CloseStep } from './CloseStep'
 
 // The daily spine. One orchestrator that walks a single linear journey driven
 // by daily_focus.status, replacing the five overlapping Home surfaces
-// (NextActionStrip, FocusBar, FocusCalibrator, TopThreeCards, the brief banner).
+// (next-action strip, FocusBar, FocusCalibrator, TopThreeCards, the brief banner).
 // Nothing renders out of phase, so the day reads as one decision at a time:
 //
 //   context + commit  (no daily_focus row)  -> frame the day, then lock 3

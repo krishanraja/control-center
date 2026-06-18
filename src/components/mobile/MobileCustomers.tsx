@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react'
-import { TrendingUp } from 'lucide-react'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -13,7 +12,7 @@ import { MrrTicker } from '../MrrTicker'
 import { CustomerCouncilCard } from '../CustomerCouncilCard'
 import { ExpansionRadar } from '../ExpansionRadar'
 import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
-import { NextActionStrip } from '../shared/NextActionStrip'
+import { SubscriptionsWatchHero } from '../customers/SubscriptionsWatchHero'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
@@ -57,7 +56,6 @@ export function MobileCustomers() {
       })
       .sort((a, b) => (b.mrr_usd || 0) - (a.mrr_usd || 0))
   }, [customers])
-  const topExpansion = expansionPlays[0] || null
 
   // Full Focus Mode (Phase 3): when enabled and the day is calibrated, the
   // product-grouped roster regroups into the 3 daily-target lanes via
@@ -103,17 +101,10 @@ export function MobileCustomers() {
         />
       }
     >
-      <NextActionStrip
-        headline={expansionPlays.length}
-        headlineLabel="plays"
-        insight={topExpansion
-          ? `${topExpansion.full_name || topExpansion.email || 'unnamed'}${topExpansion.mrr_usd ? ` ($${topExpansion.mrr_usd}/mo)` : ''} flagged for outreach`
-          : `$${Math.round(totals.mrrUsd).toLocaleString()}/mo MRR · no expansion plays waiting`}
-        ctaLabel={topExpansion ? 'Open' : 'View accounts'}
-        onCta={() => { if (topExpansion) { h.select(); setOpenId(topExpansion.id) } }}
-        icon={TrendingUp}
-        accent={expansionPlays.length > 0 ? 'text-emerald-300' : 'text-violet-300'}
-        disabled={!topExpansion}
+      <SubscriptionsWatchHero
+        expansionPlays={expansionPlays}
+        totals={{ mrrUsd: totals.mrrUsd, paid: totals.paid }}
+        onOpen={(c) => { h.select(); setOpenId(c.id) }}
       />
 
       <MrrTicker variant="mobile" />

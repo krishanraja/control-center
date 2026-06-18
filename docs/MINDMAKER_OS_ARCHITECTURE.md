@@ -1840,6 +1840,17 @@ docs/audits/                                                 # Closure architect
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
 
+### 2026-06-18 — All-tabs consistency rebuild: secondary tabs (Today / Intel / Org / Subscriptions) join the shared spine (LIVE)
+
+Closed out the all-tabs rebuild by porting the four secondary tabs that still leaned on the legacy `NextActionStrip` over to the shared `DoThisNextHero` (`docs/plans/all-tabs-rebuild/STATE.md` ledger updated; `NextActionStrip.tsx` deleted; `grep NextActionStrip src/` is clean). Every operational tab now renders through one hero with one grammar:
+- **Today** — `src/components/today/NextTaskHero.tsx`. Most-overdue task wins (amber "Start with X · Nd overdue"), then due-today (sky), then first waiting (violet "Unblock X"), then "Inbox zero" (clear). Action selects the task in the SplitPane.
+- **Intel (desktop)** — `src/components/intel/NextIntelDesktopHero.tsx`. Hot Zara signal (score ≥ 8, status received) → **"Promote to bet"** now does the real promote (POST `/api/bets` + flip `zara_signals.status='actioned'`). Previously this button only scrolled + outlined the row — a P-3 violation ("every click goes where the click promises"). When nothing's hot, the hero stays calm ("N signals tracked — nothing scoring 8+ yet").
+- **Intel (mobile)** — `src/components/intel/NextIntelMobileHero.tsx`. Ranks `home_intelligence.external_signals` by urgency × days_until, surfaces "Open {signal} · URGENCY · Nd"; the underlying `DetailSheet` carries Create-task / Add-to-bets.
+- **Org (Desktop + Mobile)** — `src/components/org/NextOrgHero.tsx`. Vera's pending corrections → "Review Vera's edit for {agent} · {N} downvotes · {pattern}". Desktop scrolls + outlines the correction row; mobile hands off to the desktop route by hash so the approve/reject UI is one tap away. Calm when the roster is tight.
+- **Subscriptions (Desktop + Mobile)** — `src/components/customers/SubscriptionsWatchHero.tsx`. Read-only watch by design (Krish 2026-06-17 outcome lock). Maya's expansion plays → "Reach out to {name} · ${mrr}/mo" (emerald); otherwise calm "Watching the revenue · $X/mo MRR · N paid · no expansion plays waiting" (no button, `clear` tone).
+
+Verified: `tsc --noEmit` clean, `vite build` green (1838 modules), no `NextActionStrip` references left in `src/`. Home keeps its existing Focus Ritual spine (AltitudeSpine + BoardDaily + DecisionsInbox) — intentionally not a single hero. Flows still has no next-action hero; needs Krish's outcome lock before building (open in `docs/plans/all-tabs-rebuild/STATE.md`).
+
 ### 2026-06-17 — All-tabs consistency rebuild: shared "Do this next" hero + test-data hygiene across Pipeline / Network / Visibility / Subscriptions (LIVE)
 
 Extended the Content-tab principles to the four priority decision tabs, with consistency made structural (one shared component, not per-tab clones). Krish's stated outcomes drove each (`docs/plans/all-tabs-rebuild/CHARTER.md`). All merged to main, prod-verified both viewports:

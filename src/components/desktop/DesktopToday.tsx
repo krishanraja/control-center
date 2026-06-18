@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow, isToday, isPast, parseISO } from 'date-fns'
-import { ExternalLink, Archive, ChevronRight, Clock, MoreHorizontal } from 'lucide-react'
+import { ExternalLink, Archive, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { InlineActions } from '../InlineActions'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { useToast } from '../shared/Toast'
-import { NextActionStrip } from '../shared/NextActionStrip'
+import { NextTaskHero } from '../today/NextTaskHero'
 import { BackburnerSection } from '../shared/BackburnerSection'
 import { PipelineQueue, PIPELINE_WORKSTREAMS } from './PipelineQueue'
 import { DecisionDetail } from '../DecisionDetail'
@@ -151,22 +151,6 @@ export function DesktopToday({
     <DayRow task={t} selected={selected?.id === t.id} onClick={() => selectTask(t.id)} />
   )
 
-  // Next action: the most overdue task (earliest due_date) if any are overdue,
-  // else the first due-today task, else nothing.
-  const nextActionTask = useMemo(() => {
-    const overdue = today.due
-      .filter(t => t.due_date && isPast(parseISO(t.due_date)) && !isToday(parseISO(t.due_date)))
-      .sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1))
-    return overdue[0] || today.due[0] || today.waiting[0] || null
-  }, [today.due, today.waiting])
-
-  const overdueCount = today.due.filter(t => t.due_date && isPast(parseISO(t.due_date)) && !isToday(parseISO(t.due_date))).length
-  const insight = nextActionTask
-    ? overdueCount > 0
-      ? `${today.due.length} due, ${overdueCount} overdue — start with "${nextActionTask.title}"`
-      : `${today.due.length} due today, ${today.waiting.length} waiting on you`
-    : 'Inbox zero for today. Pipeline below.'
-
   const list = (
     <div className="space-y-4 pr-2">
       <div className="flex items-start gap-3">
@@ -178,16 +162,7 @@ export function DesktopToday({
           <FocusModeToggle mode={mode} onChange={setMode} />
         )}
       </div>
-      <NextActionStrip
-        headline={today.due.length}
-        headlineLabel="due"
-        insight={insight}
-        ctaLabel={nextActionTask ? 'Open' : 'All clear'}
-        onCta={() => nextActionTask && selectTask(nextActionTask.id)}
-        icon={Clock}
-        accent={overdueCount > 0 ? 'text-rose-300' : 'text-violet-300'}
-        disabled={!nextActionTask}
-      />
+      <NextTaskHero due={today.due} waiting={today.waiting} onOpen={selectTask} />
       {lane && (
         <div className="flex items-center gap-2 px-3 py-2 bg-violet-500/10 border border-violet-400/20 rounded-lg text-sm">
           <span className="text-violet-200">Filtered to {lane}</span>

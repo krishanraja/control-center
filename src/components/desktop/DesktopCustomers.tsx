@@ -10,7 +10,7 @@ import { MrrTicker } from '../MrrTicker'
 import { CustomerCouncilCard } from '../CustomerCouncilCard'
 import { ExpansionRadar } from '../ExpansionRadar'
 import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
-import { NextActionStrip } from '../shared/NextActionStrip'
+import { SubscriptionsWatchHero } from '../customers/SubscriptionsWatchHero'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
@@ -38,7 +38,6 @@ export function DesktopCustomers() {
       })
       .sort((a, b) => (b.mrr_usd || 0) - (a.mrr_usd || 0))
   }, [customers])
-  const topExpansion = expansionPlays[0] || null
 
   // Full Focus Mode (Phase 3): when enabled and the day is calibrated, the
   // expansion-plays list regroups into the 3 daily-target lanes via
@@ -226,17 +225,10 @@ export function DesktopCustomers() {
 
   return (
     <div className="flex flex-col gap-4">
-      <NextActionStrip
-        headline={expansionPlays.length}
-        headlineLabel="plays"
-        insight={topExpansion
-          ? `${topExpansion.full_name || topExpansion.email || 'unnamed'}${topExpansion.mrr_usd ? ` ($${topExpansion.mrr_usd}/mo)` : ''} flagged for outreach`
-          : `$${Math.round(totals.mrrUsd).toLocaleString()}/mo MRR · no expansion plays waiting`}
-        ctaLabel={topExpansion ? 'Open plays' : 'View accounts'}
-        onCta={scrollToExpansion}
-        icon={TrendingUp}
-        accent={expansionPlays.length > 0 ? 'text-emerald-300' : 'text-violet-300'}
-        disabled={expansionPlays.length === 0}
+      <SubscriptionsWatchHero
+        expansionPlays={expansionPlays}
+        totals={{ mrrUsd: totals.mrrUsd, paid: totals.paid }}
+        onOpen={() => scrollToExpansion()}
       />
       <SplitPane left={left} right={right} hasSelection={current != null} onBack={() => setSelected(null)} />
     </div>
