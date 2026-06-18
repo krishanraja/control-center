@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ExternalLink, ThumbsUp, X, Linkedin, Mail, ArrowUpRight, Calendar, UserCog, Sparkles } from 'lucide-react'
+import { ExternalLink, ThumbsUp, X, Linkedin, Mail, ArrowUpRight, Calendar, UserCog, Sparkles, MoreHorizontal } from 'lucide-react'
 import { humanAge } from '../lib/ageHelpers'
 import { LeadSourcePill } from './LeadSourcePill'
 import { useToast } from './shared/Toast'
@@ -70,6 +70,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
   const [reassignOpen, setReassignOpen] = useState(false)
   const [followUpOpen, setFollowUpOpen] = useState(false)
   const [skipOpen, setSkipOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
 
   // A "candidate" lead is one Krish hasn't yet decided on: not deep-enriched
   // AND still in the new/enriching funnel. The card surfaces a prominent
@@ -232,6 +233,18 @@ export function LeadCard({ lead: l, onOpen }: Props) {
       venture: l.primary_venture || null,
     })
   }
+
+  // The ONE state-correct primary action (mirrors NextLeadHero's contact-fast
+  // ladder): reachable → Draft email; else not yet promoted → Promote; else
+  // Mark contacted. Everything else lives behind "More".
+  const primaryAction: { label: string; icon: React.ReactNode; onClick: () => void; cls: string } | null =
+    l.email
+      ? { label: 'Draft email', icon: <Mail size={11} />, onClick: openDraft, cls: 'border-violet-500/40 text-violet-100 bg-violet-500/15 hover:bg-violet-500/25' }
+      : !l.promoted_task_id
+        ? { label: busy === 'promote' ? 'Promoting…' : 'Promote', icon: <ArrowUpRight size={11} />, onClick: promote, cls: 'border-emerald-500/40 text-emerald-100 bg-emerald-500/15 hover:bg-emerald-500/25' }
+        : l.status !== 'contacted'
+          ? { label: 'Mark contacted', icon: <ThumbsUp size={11} />, onClick: () => setStatus('contacted'), cls: 'border-violet-500/40 text-violet-100 bg-violet-500/15 hover:bg-violet-500/25' }
+          : null
 
   return (
     <article className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 hover:border-white/[0.12] transition-colors">
@@ -429,8 +442,50 @@ export function LeadCard({ lead: l, onOpen }: Props) {
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+      {/* Actions — ONE primary (state-correct), rest behind "More", Drop stays a
+          quiet icon. Consistent card grammar across every tab (P-3/P-5/P-22).
+          Candidate leads use the Enrich/Skip strip above as their primary, so
+          here they only get More + Drop. */}
+      {!isCandidate && (
+        <div className="flex items-center gap-1.5 mt-2.5">
+          {primaryAction && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); primaryAction.onClick() }}
+              disabled={busy !== null}
+              className={`flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-semibold border disabled:opacity-40 transition-colors min-h-[34px] ${primaryAction.cls}`}
+            >
+              {primaryAction.icon}
+              {primaryAction.label}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setMoreOpen(o => !o) }}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/60 hover:bg-white/[0.06] transition-colors min-h-[34px]"
+            aria-expanded={moreOpen}
+          >
+            <MoreHorizontal size={13} /> More
+          </button>
+          <div className="flex items-center gap-1 ml-auto" onClick={(e) => e.stopPropagation()}>
+            <FeedbackButton sourceTable="leads" sourceId={l.id} agentId={l.assignee_agent || 'felix'} compact />
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setStatus('superseded') }}
+              disabled={busy !== null}
+              className="flex items-center justify-center w-8 h-8 rounded-md text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
+              title="Drop this lead"
+              aria-label="Drop this lead"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Secondary actions — revealed by More (or always for candidates' extras). */}
+      {(moreOpen) && (
+      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
         {l.status !== 'contacted' && (
           <button
             type="button"
@@ -562,24 +617,25 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             Source
           </a>
         )}
-        <div className="flex items-center gap-1 ml-auto" onClick={(e) => e.stopPropagation()}>
-          <FeedbackButton
-            sourceTable="leads"
-            sourceId={l.id}
-            agentId={l.assignee_agent || 'felix'}
-            compact
-          />
+      </div>
+      )}
+
+      {/* Candidates get a quiet feedback + drop (their primary is Enrich/Skip above). */}
+      {isCandidate && (
+        <div className="flex items-center gap-1 mt-2 ml-auto w-fit" onClick={(e) => e.stopPropagation()}>
+          <FeedbackButton sourceTable="leads" sourceId={l.id} agentId={l.assignee_agent || 'felix'} compact />
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setStatus('superseded') }}
             disabled={busy !== null}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
+            className="flex items-center justify-center w-8 h-8 rounded-md text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
             title="Drop this lead"
+            aria-label="Drop this lead"
           >
-            <X size={11} />
+            <X size={12} />
           </button>
         </div>
-      </div>
+      )}
 
       <OutreachDraftSheet
         target={draftTarget}
