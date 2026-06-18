@@ -19,7 +19,7 @@
 >
 > **Manual step (Krish only):** after each update, copy the Claude-skill version into Claude **browser** skills by hand — that surface has no automated sync. Everything in 1–5 is synced together programmatically and is byte-identical (these copies carry no YAML frontmatter — the skill registers off the H1 title).
 >
-> **Last reconciled against live state.** 2026-06-12. Snapshot: 14 production agents (executive / growth / ops pods) plus 4 personal-life agents; ~81 n8n workflows (~76 active); ~68 Supabase tables/views; ~108 shared skills; ~170 standards; Control Center live at controlcenter.krishraja.com. Autonomous OS diagnostics live (§8.8.6); first OS cleanliness pass complete (8 stale tasks closed, workspace restructure committed, cron-payload secrets migrated). **Content Engine shipped on the Content tab (§5.7): transform axes, Challenge/enrich, channel variants, Five Standards gate, Push-to-Cleo, auto-seed + auto-score; gated behind `VITE_CONTENT_ENGINE_ENABLED`.** **Skill induction shipped (§8.7): the learning loop is now generative as well as corrective. Vera clusters repeated wins into `skill_proposals`, Krish approves, and the induced play appends to the agent brief. Self-gates until win density builds.** **Vera gap closure loop shipped (§8.8.7): Vera's weekly behavioural-audit findings now route into owned, tracked tasks (`vera_gaps` ledger + `route_vera_gaps`/`reconcile_vera_gaps`), auto-close when resolved, and escalate to Krish after two unfixed cycles via a 9th `decisions_waiting` branch.**
+> **Last reconciled against live state.** 2026-06-12 (CTRL descriptor updated 2026-06-17). Snapshot: 14 production agents (executive / growth / ops pods) plus 4 personal-life agents; ~81 n8n workflows (~76 active); ~68 Supabase tables/views; ~108 shared skills; ~170 standards; Control Center live at controlcenter.krishraja.com. Autonomous OS diagnostics live (§8.8.6); first OS cleanliness pass complete (8 stale tasks closed, workspace restructure committed, cron-payload secrets migrated). **Content Engine shipped on the Content tab (§5.7): transform axes, Challenge/enrich, channel variants, Five Standards gate, Push-to-Cleo, auto-seed + auto-score; gated behind `VITE_CONTENT_ENGINE_ENABLED`.** **Skill induction shipped (§8.7): the learning loop is now generative as well as corrective. Vera clusters repeated wins into `skill_proposals`, Krish approves, and the induced play appends to the agent brief. Self-gates until win density builds.** **Vera gap closure loop shipped (§8.8.7): Vera's weekly behavioural-audit findings now route into owned, tracked tasks (`vera_gaps` ledger + `route_vera_gaps`/`reconcile_vera_gaps`), auto-close when resolved, and escalate to Krish after two unfixed cycles via a 9th `decisions_waiting` branch.**
 
 ---
 
@@ -1422,7 +1422,7 @@ The OS actively tracks 8 ventures (`ventures` table, all `status='active'`).
 
 | Product | Domain | Customer slug | OS surface |
 |---|---|---|---|
-| **mm-ctrl (CTRL)** | ctrl.themindmaker.ai | `mm_ctrl` | Memory Web / Edge / Daily Briefing surface for Mindmaker. Webhook `/webhook/mmctrl-stripe-revenue` |
+| **mm-ctrl (CTRL)** | ctrl.themindmaker.ai | `mm_ctrl` | AI decision-clarity product for leaders; live surfaces: decision spine, StoneRead, brain canvas, lesson-kit engine at `/kit`; forced-dark redesign live (PR #186). Webhook `/webhook/mmctrl-stripe-revenue` |
 | **Fractionl Circle** | circle.fractionl.ai | `fractionl_circle` | Subscriptions table sweep |
 | **Fractionl Pulse** | pulse.fractionl.ai | `fractionl_pulse` | Waitlist table sweep |
 | **OnAlert** | onalert.app | `onalert` | Profiles sweep + revenue alert |
@@ -1839,6 +1839,19 @@ docs/audits/                                                 # Closure architect
 ## 20. Recent architectural changes — rolling changelog
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
+
+### 2026-06-17 — Content tab honesty rebuild: one state machine, develop-not-relabel, "Do this next" hero (LIVE)
+
+Fixed the Content tab's core problem (Krish: "duplicated UI where buttons do nothing and the counts don't add up, and I can't just pick up a card and develop it"). Root cause, code-confirmed: the tab carried **four copies of one content state machine** (`DesktopContent` lanes, `triageConfig.buildContentTriageConfig` deck, `decisionActions` idea rail, `useContentTriage`) whose "advance" actions only **relabeled** a card's `state` without developing it — producing empty `review`/`drafting` cards, dead-end buttons, and a fabricated "Sent to Zara for research" toast (no Zara call ever existed). Shipped, all unconditional (not flag-gated), merged to main, prod-verified both viewports:
+- **Single source of truth** in `src/lib/contentEngine.ts`: `STATE_ORDER`, `ADVANCE_NEXT`, `STATE_PRIORITY`, `GATE_STATES`, `isActiveIdea`, `hasRealBody`, `advanceMode` (`relabel`/`develop`/`open`), `canEnterState`, `contentBuckets`, and `nextBestAction`. `useContentTriage` + `triageConfig` now import it — no copies.
+- **Advance = develop, not relabel:** `researching`/`drafting` RIGHT opens the Composer to write a real draft; only `seeded→researching` stays a pure relabel. The decision rail's relabel buttons became **"Open & develop"**; ready `review` cards lead with **Approve**.
+- **Server honest-state guard** (`api/content-ideas.ts` PATCH): a card cannot enter `review`/`approved` without a real body (≥200 chars or a live `cleo_chat`) → **409 `state_guard`**. Verified on prod. Zombie review/drafting cards can no longer be created. A one-off migration (`scripts/migrations/2026-06-17-content-hygiene.sql`) demoted 15 pre-existing empty-body zombies to `researching`.
+- **One count, honest labels** (`contentBuckets`): the header reads "N in flight · M to approve" instead of contradictory per-surface numbers.
+- **"Do this next" hero** (`src/components/content/NextBestActionHero.tsx` + `nextBestAction`): the single anti-confusion spine, on both desktop and mobile, surfacing the one highest-priority action (Approve → Schedule → Continue draft → Develop → seed → clear) with a one-tap state-correct button. Replaces the ambiguous `NextActionStrip`.
+- **Composer flows finish→next:** a "Next →" button + Save Draft jump straight to the next-best card (no list round-trip); the "voice ok" pill no longer shows on a blank page; a "Cleo unsure" badge surfaces low-confidence classifications.
+- **Em-dash-at-rest audit:** 0/309 stored bodies carried em/en dashes — `sanitizeVoice()` on write already keeps stored data clean; no backfill needed.
+
+Full planning + design harness lives at `docs/plans/content-tab-rebuild/` (CORE_PROBLEM, PRINCIPLES with 22 principles incl. P-22 "anticipate the next action", NIRVANA jobs, PLAN, OBSERVATIONS, STATE). Deferred by design: the literal inline two-pane workbench (the full-screen Composer is the correct deep-work surface per the device-mode principle; the "Next →" flow delivers the finish→next outcome without the high-risk embed). Minor follow-up: the hero's `intent=schedule` is passed but the Composer does not yet special-case it (calendar click-to-schedule already exists). See §5.7.
 
 ### 2026-06-15 — Guest pre-enrichment triage (LIVE) + Speaker Briefing generator (built; blocked on an n8n Cloud runner crash; UI in unmerged PR #147)
 
