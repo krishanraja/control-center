@@ -1840,6 +1840,18 @@ docs/audits/                                                 # Closure architect
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
 
+### 2026-06-17 — All-tabs consistency rebuild: shared "Do this next" hero + test-data hygiene across Pipeline / Network / Visibility / Subscriptions (LIVE)
+
+Extended the Content-tab principles to the four priority decision tabs, with consistency made structural (one shared component, not per-tab clones). Krish's stated outcomes drove each (`docs/plans/all-tabs-rebuild/CHARTER.md`). All merged to main, prod-verified both viewports:
+- **Shared `src/components/shared/DoThisNextHero.tsx`** — the ONE hero every tab renders through (kind/headline/sub/action/tone). Content's `NextBestActionHero` refactored onto it; Pipeline/Network/Visibility feed it tab-specific selectors. Consistent grammar, tones (emerald=approve, violet=act, sky=schedule/enrich, amber=time-sensitive), 44px targets.
+- **`src/lib/recordHygiene.ts`** (`isTestRecord`) — hides test/demo rows (`test-*`, timestamped ids, demo domains, `laurenkthermos`) from every live view (Pipeline, Network, Visibility, Subscriptions). View-only filter; data stays in the DB. Effect: Pipeline 30→5 active, Subscriptions dropped its test-only Gutted card, Network test rows gone.
+- **Pipeline** (outcome: contact fast): `NextLeadHero` does a real action — Draft email → Enrich → Promote → Follow up → clear. The ~10-button `LeadCard` collapsed to one state-correct primary + "More" overflow + quiet Drop.
+- **Network** (outcome: predictive score + venture segmentation + immediate action): `src/lib/networkScore.ts` `predictiveScore(contact, venture)` 0-100 = heat × venture-fit × tier × reachability, recency-decayed, scoped to the active venture filter. `NextNetworkHero` surfaces the top contact ("Reach out to X — 96/100 · heat 92 · fit 90 · warm"). The 1,000-contact unbounded grid (6,776 DOM nodes) is now ranked + **bounded** (HAND_CAP 12 / REVIEW_CAP 24; overflow → 1-by-1 deck) — verified 6,776→~205 nodes.
+- **Visibility** (outcome: one engine, inbound+outbound): `NextVisibilityHero` spans both — Confirm a replied guest → Apply to a CFP closing soon → Pitch an enriched guest → Apply to a queued stage.
+- **Subscriptions** (outcome: read-only watch): test-data filtered in `useCustomers` so MRR / counts / Recent are honest; kept read-only (no pushed action), honest empties intact.
+
+Plan + design harness: `docs/plans/all-tabs-rebuild/`. Secondary tabs (Home/Today/Org/Intel/Flows) not yet done. Commits b3b6df7 → 406f8e0.
+
 ### 2026-06-17 — Content tab honesty rebuild: one state machine, develop-not-relabel, "Do this next" hero (LIVE)
 
 Fixed the Content tab's core problem (Krish: "duplicated UI where buttons do nothing and the counts don't add up, and I can't just pick up a card and develop it"). Root cause, code-confirmed: the tab carried **four copies of one content state machine** (`DesktopContent` lanes, `triageConfig.buildContentTriageConfig` deck, `decisionActions` idea rail, `useContentTriage`) whose "advance" actions only **relabeled** a card's `state` without developing it — producing empty `review`/`drafting` cards, dead-end buttons, and a fabricated "Sent to Zara for research" toast (no Zara call ever existed). Shipped, all unconditional (not flag-gated), merged to main, prod-verified both viewports:
