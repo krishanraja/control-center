@@ -11,7 +11,7 @@ import { VisibilityImportDropzone } from '../VisibilityImportDropzone'
 import { GuestStatusLane } from './GuestStatusLane'
 import { VisibilityTargetLane } from './VisibilityTargetLane'
 import { DecisionDetail } from '../DecisionDetail'
-import { NextActionStrip } from '../shared/NextActionStrip'
+import { NextVisibilityHero } from '../guests/NextVisibilityHero'
 import { SlideOver } from '../shared/SlideOver'
 import { BackburnerSection } from '../shared/BackburnerSection'
 import { navigateDecision } from '../../lib/routeDecision'
@@ -211,29 +211,9 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
         </LaneTab>
       </div>
 
-      {lane === 'inbound' ? (
-        <NextActionStrip
-          headline={scheduledCount}
-          headlineLabel="to confirm"
-          insight={insightInbound}
-          ctaLabel={inboundDecision ? 'Open guest' : 'View inbound'}
-          onCta={() => inboundDecision && handleOpenGuest(inboundDecision.id)}
-          icon={Calendar}
-          accent={scheduledCount > 0 ? 'text-emerald-300' : 'text-violet-300'}
-          disabled={!inboundDecision}
-        />
-      ) : (
-        <NextActionStrip
-          headline={queuedCount}
-          headlineLabel="to decide"
-          insight={insightOutbound}
-          ctaLabel={outboundDecision ? 'Decide' : 'View outbound'}
-          onCta={() => outboundDecision && openTarget(outboundDecision.id)}
-          icon={Megaphone}
-          accent={queuedCount > 0 ? 'text-amber-300' : 'text-violet-300'}
-          disabled={!outboundDecision}
-        />
-      )}
+      {/* One visibility engine — same hero as every tab, spanning inbound guests
+          AND outbound stages (Krish: "both equally"). */}
+      <NextVisibilityHero guests={guests} targets={targets} />
 
       <SlideOver open={!!detailDecision} onClose={() => onClearDetail?.()}>
         {detailDecision && <DecisionDetail key={detailDecision} decision={detailDecision} actionsEnabled />}

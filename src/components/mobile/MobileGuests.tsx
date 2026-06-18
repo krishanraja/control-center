@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Mic, Megaphone, Calendar, Layers, ChevronRight, Sparkles, Linkedin, Twitter, Globe, Mail, ExternalLink, FileText } from 'lucide-react'
 import { MobileShell } from './MobileShell'
 import { TabHeader } from './primitives'
-import { NextActionStrip } from '../shared/NextActionStrip'
+import { NextVisibilityHero } from '../guests/NextVisibilityHero'
 import { BottomSheet } from './BottomSheet'
 import { isTestRecord } from '../../lib/recordHygiene'
 import { useRealtimeGuests, type GuestStatus, type GuestRow } from '../../hooks/useRealtimeGuests'
@@ -270,33 +270,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
           </div>
         )}
 
-        {lane === 'inbound' ? (
-          <NextActionStrip
-            headline={scheduledCount}
-            headlineLabel="to confirm"
-            insight={inboundDecision
-              ? `${scheduledCount} scheduled · top: ${inboundDecision.name || inboundDecision.email || 'unnamed'}`
-              : `${inboundCount} active · no scheduled guests awaiting confirmation`}
-            ctaLabel={inboundDecision ? 'Open' : 'View inbound'}
-            onCta={() => { if (inboundDecision) openGuest(inboundDecision.id) }}
-            icon={Calendar}
-            accent={scheduledCount > 0 ? 'text-emerald-300' : 'text-violet-300'}
-            disabled={!inboundDecision}
-          />
-        ) : (
-          <NextActionStrip
-            headline={queuedCount}
-            headlineLabel="to decide"
-            insight={outboundDecision
-              ? `${queuedCount} queued · top: ${outboundDecision.title}`
-              : `${outboundCount} active · no queued opportunities awaiting decision`}
-            ctaLabel={outboundDecision ? 'Decide' : 'View outbound'}
-            onCta={() => { if (outboundDecision) openTarget(outboundDecision.id) }}
-            icon={Megaphone}
-            accent={queuedCount > 0 ? 'text-amber-300' : 'text-violet-300'}
-            disabled={!outboundDecision}
-          />
-        )}
+        <NextVisibilityHero guests={guests} targets={targets} narrow />
 
         {lane === 'inbound' ? (
           <>
