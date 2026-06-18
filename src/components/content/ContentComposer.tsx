@@ -10,7 +10,7 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { lintVoice, autoFixVoice, type LintIssue } from '../../lib/voiceLint'
 import {
   FACTORY_CHANNELS, FIVE_STANDARDS, ITERATE_CHIPS, LANE_ADAPTS, LENGTH_PRESETS,
-  TONE_PRESETS, ZOOM_DEFAULT_HINT, laneToFactoryChannel,
+  TONE_PRESETS, ZOOM_DEFAULT_HINT, laneToFactoryChannel, nextBestAction,
 } from '../../lib/contentEngine'
 // ─────────────────────────────────────────────────────────────────────────
 // ContentComposer — the full-screen deep-work surface for ONE piece.
@@ -58,6 +58,20 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
   const h = useHaptics()
 
   const [tab, setTab] = useState<RailTab>('cleo')
+
+  // Flow to the next piece without a list round-trip (P-10 / P-22): jump straight
+  // to the next-best card, computed across the pile excluding this one. If nothing
+  // is left, just close back to the (now lighter) pipeline.
+  const goNext = useCallback(() => {
+    const rest = ideas.filter(i => i.id !== ideaId)
+    const nb = nextBestAction(rest)
+    if (nb.idea) { h.tap(); window.location.hash = `#/content?idea=${nb.idea.id}` }
+    else { onClose() }
+  }, [ideas, ideaId, h, onClose])
+  const nextPiece = useMemo(() => {
+    const nb = nextBestAction(ideas.filter(i => i.id !== ideaId))
+    return nb.idea ? nb : null
+  }, [ideas, ideaId])
 
   // Draft canvas — local source of truth so realtime refreshes never jump the cursor.
   const [draft, setDraft] = useState('')
@@ -185,20 +199,33 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
           </div>
         </div>
 
-        {/* Voice status + fix */}
-        <button
-          type="button" onClick={fixVoice}
-          title={emDashes ? `${emDashes} em dash${emDashes === 1 ? '' : 'es'} — click to fix` : warns ? `${warns} voice note${warns === 1 ? '' : 's'}` : 'Voice clean'}
-          className={`hidden sm:flex items-center gap-1 px-2 py-1 rounded-md text-[11px] border transition-colors ${
-            emDashes ? 'border-rose-500/40 text-rose-200 hover:bg-rose-500/10'
-              : warns ? 'border-amber-500/30 text-amber-200 hover:bg-amber-500/10'
-                : 'border-white/10 text-white/45'
-          }`}
-        >
-          <Check size={11} /> {emDashes ? `${emDashes} em dash` : warns ? `${warns} note` : 'voice ok'}
-        </button>
+        {/* Voice status + fix — only meaningful once there's a draft (no
+            "voice ok" on a blank page). */}
+        {draft.trim() && (
+          <button
+            type="button" onClick={fixVoice}
+            title={emDashes ? `${emDashes} em dash${emDashes === 1 ? '' : 'es'} — click to fix` : warns ? `${warns} voice note${warns === 1 ? '' : 's'}` : 'Voice clean'}
+            className={`hidden sm:flex items-center gap-1 px-2 py-1 rounded-md text-[11px] border transition-colors ${
+              emDashes ? 'border-rose-500/40 text-rose-200 hover:bg-rose-500/10'
+                : warns ? 'border-amber-500/30 text-amber-200 hover:bg-amber-500/10'
+                  : 'border-white/10 text-white/45'
+            }`}
+          >
+            <Check size={11} /> {emDashes ? `${emDashes} em dash` : warns ? `${warns} note` : 'voice ok'}
+          </button>
+        )}
 
-        {!narrow && <SaveDraftButton idea={idea} draft={draft} onSaved={onClose} />}
+        {!narrow && <SaveDraftButton idea={idea} draft={draft} onSaved={goNext} />}
+        {/* Finish one, flow to the next (P-10 / P-22). */}
+        {!narrow && nextPiece && (
+          <button
+            type="button" onClick={goNext}
+            title={`Next: ${nextPiece.headline}`}
+            className="flex items-center gap-1.5 px-3 h-9 rounded-lg text-[12px] font-medium border border-white/10 text-white/70 hover:text-white hover:bg-white/[0.06] transition-colors"
+          >
+            Next <ArrowLeft size={14} className="rotate-180" />
+          </button>
+        )}
       </header>
 
       {/* Body */}
