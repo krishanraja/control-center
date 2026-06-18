@@ -9,6 +9,7 @@ import type { GuestRow } from '../hooks/useRealtimeGuests'
 import type { VisibilityTargetRow } from '../hooks/useVisibilityTargets'
 import type { ContentIdeaRow, IdeaState } from '../hooks/useRealtimeContentIdeas'
 import { triageReject, triagePromote, feedbackVote } from './triageActions'
+import { ADVANCE_NEXT, STATE_PRIORITY, advanceMode, nextState as nextContentState } from './contentEngine'
 import { isHandQueue } from './contactTriage'
 import { topFit, dossierMove, contactRationale, ventureLabel as contactVentureLabel } from './contactSignals'
 import { ventureDisplayName } from '../components/ContactSourcePill'
@@ -570,22 +571,18 @@ export function buildVisibilityTargetsTriageConfig(
 }
 
 // ── Content ideas ─────────────────────────────────────────────────────────
+// State machine imported from the single source of truth (lib/contentEngine);
+// no local advance-map copy (the duplication was CORE_PROBLEM F-2).
 
-// Linear advance map — mirrors useContentTriage. It STOPS before the human gates
-// (review/approved); those are decided in the docked detail rail (Greenlight /
-// Kill), never auto-advanced by a swipe. So the triage deck only holds backlog
-// states with a clear next step.
-const CONTENT_ADVANCE_NEXT: Partial<Record<IdeaState, IdeaState>> = {
-  seeded: 'researching',
-  researching: 'drafting',
-  drafting: 'review',
-}
 const CONTENT_RIGHT_LABEL: Partial<Record<IdeaState, string>> = {
   seeded: 'Research',
   researching: 'Draft',
   drafting: 'Review',
 }
-const CONTENT_STATE_PRIORITY: Record<string, number> = { seeded: 0, researching: 1, drafting: 2 }
+
+function openIdeaComposer(id: string) {
+  try { window.location.hash = `#/content?idea=${id}` } catch { /* noop */ }
+}
 
 async function patchIdeaState(id: string, state: IdeaState): Promise<boolean> {
   try {
@@ -655,17 +652,24 @@ export function buildContentTriageConfig(
 ): TriageConfig<ContentIdeaRow> {
   const { toast } = ctx
   const items = ideas
-    .filter(i => !i.buried_at && CONTENT_ADVANCE_NEXT[i.state] != null)
+    .filter(i => !i.buried_at && ADVANCE_NEXT[i.state as keyof typeof ADVANCE_NEXT] != null)
     .sort((a, b) => {
-      const pa = CONTENT_STATE_PRIORITY[a.state] ?? 9
-      const pb = CONTENT_STATE_PRIORITY[b.state] ?? 9
+      const pa = STATE_PRIORITY[a.state] ?? 9
+      const pb = STATE_PRIORITY[b.state] ?? 9
       if (pa !== pb) return pa - pb
       return (a.updated_at || '') < (b.updated_at || '') ? -1 : 1
     })
 
   const onAccept = async (i: ContentIdeaRow): Promise<CommitResult> => {
-    const next = CONTENT_ADVANCE_NEXT[i.state]
-    if (!next) return false
+    // Anti-zombie (CORE_PROBLEM F-1): only seeded→researching is a pure relabel.
+    // researching/drafting RIGHT opens the Composer to develop a real draft —
+    // never a bare relabel into a content-bearing state.
+    if (advanceMode(i.state) !== 'relabel') {
+      openIdeaComposer(i.id)
+      return false // not terminal: the card stays until real content moves it
+    }
+    const next = nextContentState(i.state)
+    if (!next) { openIdeaComposer(i.id); return false }
     const ok = await patchIdeaState(i.id, next)
     if (ok) {
       void feedbackVote('content_ideas', i.id, 1, 'cleo', 'content_advanced')

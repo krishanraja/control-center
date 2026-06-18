@@ -10,6 +10,155 @@ export function contentEngineEnabled(): boolean {
   return String(import.meta.env.VITE_CONTENT_ENGINE_ENABLED) === 'true'
 }
 
+/** Content tab rebuild flag (see docs/plans/content-tab-rebuild). Default OFF. */
+export function contentRebuildEnabled(): boolean {
+  return String(import.meta.env.VITE_CONTENT_REBUILD_ENABLED) === 'true'
+}
+
+// ── The single source of truth for the content state machine ─────────────
+// Every surface (lanes list, triage deck, the right-rail decision actions, the
+// pipeline hook) imports from HERE. No surface may redefine the advance map,
+// the gates, the active predicate, or the "is this card real" test. This is the
+// fix for CORE_PROBLEM.md F-1/F-2: four copies of one state machine.
+
+export type ContentState =
+  | 'seeded' | 'researching' | 'drafting' | 'review' | 'approved' | 'published' | 'dropped' | 'absorbed'
+
+/** Pipeline order for sorting + the stage track. */
+export const STATE_ORDER: ContentState[] = [
+  'seeded', 'researching', 'drafting', 'review', 'approved', 'published',
+]
+
+/** States that count as "in flight" (shown, worked on, counted as active). */
+export const ACTIVE_STATES: ContentState[] = ['seeded', 'researching', 'drafting', 'review', 'approved']
+
+/** The two human gates. A fast swipe/relabel must NEVER auto-cross these. */
+export const GATE_STATES: ReadonlySet<ContentState> = new Set<ContentState>(['review', 'approved'])
+
+/** Minimum body length for a card to honestly be in `review` (J-01 / C-1). */
+export const REVIEW_MIN_BODY = 200
+
+/** Linear advance map. Stops before the gates — those open the Composer. */
+export const ADVANCE_NEXT: Partial<Record<ContentState, ContentState>> = {
+  seeded: 'researching',
+  researching: 'drafting',
+  drafting: 'review',
+}
+
+/** Sort priority — worst (most upstream) first, for the triage deck. */
+export const STATE_PRIORITY: Record<string, number> = {
+  seeded: 0, researching: 1, drafting: 2, review: 3, approved: 4,
+}
+
+interface IdeaLike {
+  state: string
+  body?: string | null
+  buried_at?: string | null
+  // Permissive — every content row shape (and the rich ContentIdeaRow.meta)
+  // satisfies this; we only ever read meta.cleo_chat.
+  meta?: Record<string, any> | null
+}
+
+export function bodyLen(row: { body?: string | null }): number {
+  return (row.body || '').trim().length
+}
+
+/** A card has "real" content if it has a substantial body or a live Cleo chat. */
+export function hasRealBody(row: IdeaLike): boolean {
+  if (bodyLen(row) >= REVIEW_MIN_BODY) return true
+  const chat = row.meta?.cleo_chat
+  return Array.isArray(chat) && chat.length > 0
+}
+
+/** Active = in flight, not buried, not terminal. The ONE active predicate. */
+export function isActiveIdea(row: IdeaLike): boolean {
+  return !row.buried_at && (ACTIVE_STATES as string[]).includes(row.state)
+}
+
+export function isGateState(state: string): boolean {
+  return GATE_STATES.has(state as ContentState)
+}
+
+/** Where RIGHT/advance takes this card, or null at a human gate (open Composer). */
+export function nextState(state: string): ContentState | null {
+  return ADVANCE_NEXT[state as ContentState] ?? null
+}
+
+const ADVANCE_LABELS: Partial<Record<ContentState, string>> = {
+  seeded: 'Research', researching: 'Draft', drafting: 'Review',
+}
+export function advanceLabel(state: string): string {
+  return ADVANCE_LABELS[state as ContentState] ?? 'Open'
+}
+
+/**
+ * How RIGHT/advance behaves for a state — the anti-zombie rule (CORE_PROBLEM F-1):
+ *  - 'relabel' : a safe pure state bump (only seeded → researching, a queue marker).
+ *  - 'develop' : opens the Composer so a real draft gets written; NEVER a bare
+ *                relabel into researching/drafting/review (that is how empty
+ *                "drafting"/"review" cards were created).
+ *  - 'open'    : a human gate (review/approved) — open the Composer to decide.
+ */
+export function advanceMode(state: string): 'relabel' | 'develop' | 'open' {
+  if (state === 'seeded') return 'relabel'
+  if (state === 'researching' || state === 'drafting') return 'develop'
+  return 'open'
+}
+
+/**
+ * Honest-state guard. Can this row legitimately ENTER `state`?
+ * The load-bearing rule: a card cannot enter `review` without a real body
+ * (this is the bug that filled the queue with empty "in review" cards).
+ */
+export function canEnterState(
+  state: string,
+  row: IdeaLike,
+): { ok: boolean; reason?: string } {
+  if (state === 'review' && !hasRealBody(row)) {
+    return { ok: false, reason: 'A card needs a real draft before it can go to review. Develop it first.' }
+  }
+  if (state === 'approved' && !hasRealBody(row)) {
+    return { ok: false, reason: 'Nothing to approve — this card has no draft yet.' }
+  }
+  return { ok: true }
+}
+
+// ── One population, one set of counts (CORE_PROBLEM F-3 / P-6) ────────────
+// Every counter on every surface derives from THIS. A card is in exactly one
+// bucket. No surface may compute its own pile filter.
+
+export interface ContentBuckets {
+  upstream: IdeaLike[]   // seeded + researching
+  drafting: IdeaLike[]
+  review: IdeaLike[]
+  approved: IdeaLike[]
+  active: IdeaLike[]     // all in-flight, not buried
+  buried: IdeaLike[]
+  deck: IdeaLike[]       // the triage population: active upstream + drafting (pre-gate)
+}
+
+export function contentBuckets<T extends IdeaLike>(ideas: T[]): {
+  upstream: T[]; drafting: T[]; review: T[]; approved: T[]
+  active: T[]; buried: T[]; deck: T[]
+  counts: { upstream: number; drafting: number; review: number; approved: number; active: number; buried: number; deck: number }
+} {
+  const active = ideas.filter(isActiveIdea)
+  const upstream = active.filter(i => i.state === 'seeded' || i.state === 'researching')
+  const drafting = active.filter(i => i.state === 'drafting')
+  const review = active.filter(i => i.state === 'review')
+  const approved = active.filter(i => i.state === 'approved')
+  const buried = ideas.filter(i => i.buried_at && i.state !== 'dropped' && i.state !== 'published')
+  // The deck is the pre-gate pile: everything with a clear next step.
+  const deck = active.filter(i => nextState(i.state) != null)
+  return {
+    upstream, drafting, review, approved, active, buried, deck,
+    counts: {
+      upstream: upstream.length, drafting: drafting.length, review: review.length,
+      approved: approved.length, active: active.length, buried: buried.length, deck: deck.length,
+    },
+  }
+}
+
 // ── Transform axes (Phase 1) ─────────────────────────────────────────────
 // One-click rewrites of the CURRENT draft. These never invent a new channel;
 // they bend tone, length, or angle on the text in front of you.

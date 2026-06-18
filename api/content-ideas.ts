@@ -316,6 +316,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ ok: false, error: 'no updatable fields supplied' })
     }
 
+    // ── Honest-state guard (CORE_PROBLEM F-1 / J-01) ─────────────────────────
+    // A card may not enter `review`/`approved` without a real body. This is the
+    // bug that filled the queue with empty "in review" cards. We resolve the
+    // body that WILL exist after this PATCH (incoming body wins, else current
+    // row), and check the gate. Returns 409 so the UI can explain, not 500.
+    if (updates.state === 'review' || updates.state === 'approved') {
+      const incomingBody = typeof updates.body === 'string' ? updates.body : undefined
+      let effectiveBody = incomingBody
+      let cleoChatLen = 0
+      if (effectiveBody === undefined) {
+        const { data: cur } = await supabase
+          .from('content_ideas')
+          .select('body, meta')
+          .eq('id', id)
+          .single()
+        effectiveBody = (cur?.body as string | null) || ''
+        const chat = (cur?.meta as { cleo_chat?: unknown[] } | null)?.cleo_chat
+        cleoChatLen = Array.isArray(chat) ? chat.length : 0
+      }
+      const hasRealBody = (effectiveBody || '').trim().length >= 200 || cleoChatLen > 0
+      if (!hasRealBody) {
+        return res.status(409).json({
+          ok: false,
+          reason: 'state_guard',
+          error: updates.state === 'review'
+            ? 'A card needs a real draft before it can go to review. Develop it first.'
+            : 'Nothing to approve — this card has no draft yet.',
+        })
+      }
+    }
+
     const { data, error } = await supabase
       .from('content_ideas')
       .update(updates)

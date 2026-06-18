@@ -1,0 +1,92 @@
+[
+    {
+        "id":  "ed8cf84c-6fe2-459e-8d86-834969923a38",
+        "from_state":  "review",
+        "to_state":  "researching",
+        "idea":  "The Persuasion Era Ended. The Prototype Era Started."
+    },
+    {
+        "id":  "123d5d8d-5261-4824-adf9-3870a441176a",
+        "from_state":  "review",
+        "to_state":  "researching",
+        "idea":  "AI prototyping doesn\u0027t just speed up what gets built. It changes what gets attempted."
+    },
+    {
+        "id":  "b14ae818-e5b8-47f2-b0f1-e2e5076bd880",
+        "from_state":  "review",
+        "to_state":  "researching",
+        "idea":  "The best AI workflow is adversarial: two AIs that do not trust each other"
+    },
+    {
+        "id":  "9baaa807-d58a-4664-8691-6db33e9a0161",
+        "from_state":  "drafting",
+        "to_state":  "researching",
+        "idea":  "The operators who survive the next model-recall cycle are not the ones with the best fallback model — they are the ones who built configuration artifacts that transfer across providers, because the durable asset was never the model."
+    },
+    {
+        "id":  "2f4a880e-4fa9-4691-9db7-d293425ced39",
+        "from_state":  "drafting",
+        "to_state":  "researching",
+        "idea":  "Perplexity\u0027s ambition-expansion finding plus the Hokkaido farmer plus Argentina\u0027s non-human corporation law are the same signal: the builder economy just jumped from bits to atoms to legal personhood in 18 months, faster than any investor thesis predicted."
+    },
+    {
+        "id":  "7824d304-7d78-431b-9144-375a663590df",
+        "from_state":  "drafting",
+        "to_state":  "researching",
+        "idea":  "The Publicis-LiveRamp deal and the bot-traffic crossover are not two adtech stories: they are the same structural event, and publishers are about to discover that their identity infrastructure and their traffic measurement broke in the same quarter."
+    },
+    {
+        "id":  "5cafc18a-73f1-4545-b175-d4362eddb8db",
+        "from_state":  "drafting",
+        "to_state":  "researching",
+        "idea":  "The 46x Cursor productivity gap and AWS AgentCore\u0027s Recommendations API are both symptoms of the same structural shift: configuration is becoming the new code, and the operators who treat agent briefs as IP artifacts will compound into a moat that model access cannot close."
+    },
+    {
+        "id":  "a5119caa-8b27-4afb-9b9d-60e433190971",
+        "from_state":  "drafting",
+        "to_state":  "researching",
+        "idea":  "The same week Anthropic\u0027s engineers stopped typing code and AWS shipped auto-refining agent prompts, the hardest unsolved problem in production AI fleets is not intelligence or infrastructure — it is verification, and the operators who build paranoid auditors before their competitors do will compound on everyone else\u0027s infrastructure investment."
+    },
+    {
+        "id":  "9367cabe-a41a-4d28-b40d-3a069d67c898",
+        "from_state":  "review",
+        "to_state":  "researching",
+        "idea":  "Publicis buying LiveRamp and bot traffic crossing human traffic in the same quarter is not a coincidence — it is the simultaneous collapse of the two assumptions that the entire publisher identity stack was built on, and most publishers will not see either failure until Q3 reporting."
+    },
+    {
+        "id":  "141753fa-b4c9-40c8-90af-7f2933b84218",
+        "from_state":  "drafting",
+        "to_state":  "researching",
+        "idea":  "Dario Amodei is the first founder in tech history to publicly propose regulation that could ground his own product the same week he files for IPO — and that contradiction tells you more about the actual risk profile of frontier AI than any benchmark."
+    },
+    {
+        "id":  "88d84a0b-c1b5-4b00-9875-9c2b51156258",
+        "from_state":  "drafting",
+        "to_state":  "researching",
+        "idea":  "Stripe ran a 50-million-line Ruby migration in one day. The two-month estimate was the old world."
+    },
+    {
+        "id":  "b5ce0c0c-8e41-4255-9e35-12fe9d4f8a0d",
+        "from_state":  "drafting",
+        "to_state":  "researching",
+        "idea":  "I run 14 agents. Half my ops pod exists to watch the other half. Nobody selling you a fleet tells you that."
+    },
+    {
+        "id":  "0c9c8e21-7980-48ba-8551-a3c077efd2a2",
+        "from_state":  "drafting",
+        "to_state":  "researching",
+        "idea":  "The harness gap is the real reason Uber burned its Claude Code budget by April — and every operator who skips context infrastructure before scaling agents will hit the same wall."
+    },
+    {
+        "id":  "80853ee1-888f-484a-b7c0-dbb2cf1f7aae",
+        "from_state":  "drafting",
+        "to_state":  "researching",
+        "idea":  "The government recalled Anthropic\u0027s best model 72 hours after launch. Your workflow is now a national security risk."
+    },
+    {
+        "id":  "5526e78c-f15c-4294-b6f4-a48c3d45ec6f",
+        "from_state":  "drafting",
+        "to_state":  "researching",
+        "idea":  "The US government recalled a frontier AI model 72 hours after launch. Your workflow is now a national security risk."
+    }
+]

@@ -4,6 +4,9 @@ import { useToast } from '../components/shared/Toast'
 import { useHaptics } from './useHaptics'
 import { triageReject, feedbackVote } from '../lib/triageActions'
 import { DEFAULT_REASON } from '../lib/triageReasons'
+import {
+  ADVANCE_NEXT, STATE_PRIORITY, isActiveIdea, advanceMode, nextState,
+} from '../lib/contentEngine'
 
 // Mode boundaries. Hysteresis (enter > 30, exit <= 25) keeps the very action that
 // crosses the boundary from remounting the view mid-gesture.
@@ -12,22 +15,10 @@ export const TRIAGE_EXIT = 25
 
 export type TriageMode = 'triage' | 'action'
 
-// Linear advance map. It STOPS at the two human gates: review (Krish's approval)
-// and approved (publish/distribution). A fast clear-the-pile swipe must never
-// silently approve or publish — so on those states RIGHT opens the composer.
-const ADVANCE_NEXT: Partial<Record<IdeaState, IdeaState>> = {
-  seeded: 'researching',
-  researching: 'drafting',
-  drafting: 'review',
-}
-
-const STATE_PRIORITY: Record<string, number> = {
-  seeded: 0, researching: 1, drafting: 2, review: 3, approved: 4,
-}
-
-function isActive(i: ContentIdeaRow): boolean {
-  return i.state !== 'dropped' && i.state !== 'published' && !i.buried_at
-}
+// State machine (ADVANCE_NEXT / STATE_PRIORITY / isActiveIdea) is imported from
+// the single source of truth in lib/contentEngine. No local copies (the old
+// duplication was the root of CORE_PROBLEM F-2).
+const isActive = isActiveIdea
 
 async function patchState(id: string, state: IdeaState): Promise<boolean> {
   try {
@@ -214,8 +205,12 @@ export function useContentTriage() {
 
   const advance = useCallback((idea: ContentIdeaRow) => {
     flushPendingDrop()
-    const next = ADVANCE_NEXT[idea.state]
-    if (!next) { open(idea.id); return } // human gate (review → approve, approved → publish)
+    const mode = advanceMode(idea.state)
+    // 'develop' and 'open' both go to the Composer — a card never gets relabeled
+    // into researching/drafting/review with no real content (CORE_PROBLEM F-1).
+    if (mode !== 'relabel') { open(idea.id); return }
+    const next = nextState(idea.state)
+    if (!next) { open(idea.id); return }
     commit(idea, next, `Advanced to ${next}.`)
   }, [commit, open, flushPendingDrop])
 
@@ -269,8 +264,9 @@ export function useContentTriage() {
     setCommitted(prev => { const n = new Set(prev); n.delete(p.id); return n }) // clean undo — no reject sent
   }, [h])
 
-  // Does RIGHT on this card advance it, or open the composer at a human gate?
-  const advanceIsGate = useCallback((state: IdeaState) => !ADVANCE_NEXT[state], [])
+  // Does RIGHT on this card open the Composer (develop/gate) rather than a pure
+  // relabel advance? True for researching/drafting/review/approved.
+  const advanceIsGate = useCallback((state: IdeaState) => advanceMode(state) !== 'relabel', [])
 
   // Retained (manually buried) + auto-buried ideas — the Backburner section.
   const buried = useMemo(

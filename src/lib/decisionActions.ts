@@ -173,20 +173,33 @@ export function buildDecisionActions(
     }
 
     case 'idea': {
-      acts.push({
-        label: 'Greenlight → drafting',
-        variant: 'primary',
-        onClick: () => run('Greenlight',
-          () => json('/api/content-ideas', { id: row.id, state: 'drafting' }, 'PATCH'),
-          'Promoted to drafting.', { terminal: true }),
-      })
-      acts.push({
-        label: 'Send to research',
-        variant: 'secondary',
-        onClick: () => run('Research',
-          () => json('/api/content-ideas', { id: row.id, state: 'researching' }, 'PATCH'),
-          'Sent to Zara for research.', { terminal: true }),
-      })
+      // Develop, never relabel (CORE_PROBLEM F-1). Opening the Composer is the
+      // only thing that moves a piece forward; state changes as a consequence
+      // of a real draft existing, not via a bare PATCH.
+      const openComposer = () => {
+        h.tap()
+        try { window.location.hash = `#/content?idea=${row.id}` } catch { /* noop */ }
+        navigateDecision(navigate, 'idea', row.id)
+        onDone?.()
+      }
+      const bodyLen = ((row.body as string | null) || '').trim().length
+      const chat = (row.meta as { cleo_chat?: unknown[] } | null)?.cleo_chat
+      const ready = bodyLen >= 200 || (Array.isArray(chat) && chat.length > 0)
+
+      if (row.state === 'review' && ready) {
+        // P-22: a ready review card's most-likely next action is Approve.
+        acts.push({
+          label: 'Approve',
+          variant: 'primary',
+          onClick: () => run('Approve',
+            () => json('/api/content-ideas', { id: row.id, state: 'approved' }, 'PATCH'),
+            'Approved — ready to ship.', { terminal: true }),
+        })
+        acts.push({ label: 'Open & refine', variant: 'secondary', onClick: openComposer })
+      } else {
+        // Everything pre-review: the next action is to develop it.
+        acts.push({ label: 'Open & develop', variant: 'primary', onClick: openComposer })
+      }
       acts.push({
         label: 'Kill',
         variant: 'danger',
