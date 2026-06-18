@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
+import { loadOutboundVoice } from '../../_voice.js'
 
 // POST /api/guests/:id/draft-email
 // Server-side proxy to the Cleo Email Draft N8N workflow for podcast guests.
@@ -35,6 +36,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const intent = (req.body && typeof req.body.intent === 'string') ? req.body.intent : 'podcast_invite'
 
+  // Ground the draft in the full krish-voice (content_voice_block), same as every
+  // other outbound surface.
+  const voiceRules = await loadOutboundVoice()
+
   try {
     const r = await fetch(webhook, {
       method: 'POST',
@@ -47,6 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         recipient_title: g.one_liner || null,
         recipient_company: null,
         context: g.why_fit || g.one_liner || null,
+        voice_rules: voiceRules || null,
         intent,
       }),
     })
