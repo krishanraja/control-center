@@ -6,7 +6,15 @@ import {
   type ConsentTier,
 } from '../../hooks/useRealtimeContacts'
 import { isHandQueue } from '../../lib/contactTriage'
+import { isTestRecord } from '../../lib/recordHygiene'
+import { predictiveScore } from '../../lib/networkScore'
+import { NextNetworkHero } from '../contacts/NextNetworkHero'
 import { ContactCard } from '../ContactCard'
+
+// Bound the render — never mount the whole 1,000-contact grid (the 6,776-node
+// crash risk). Past the cap, route the rest into the 1-by-1 triage deck.
+const HAND_CAP = 12
+const REVIEW_CAP = 24
 import { ContactImportDropzone } from '../ContactImportDropzone'
 import { OutreachDraftSheet, type DraftTarget } from '../OutreachDraftSheet'
 import { LeadSheet } from '../LeadSheet'
@@ -66,15 +74,20 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
     setDraftTarget({ id: c.id, name, subtitle: subtitle || null, email: c.email, venture: c.primary_venture })
   }
 
-  const { contacts, loading } = useRealtimeContacts({
+  const { contacts: rawContacts, loading } = useRealtimeContacts({
     ventureIn: ventureIn.length ? ventureIn : undefined,
     tierIn: tierIn.length ? tierIn : undefined,
     minHeat: minHeat > 0 ? minHeat : undefined,
     search: search || undefined,
   })
+  // Drop test/demo rows from every Network view (Krish 2026-06-17).
+  const contacts = useMemo(() => rawContacts.filter(c => !isTestRecord(c)), [rawContacts])
+  // The active venture (single selection) scopes the predictive score.
+  const scoreVenture = ventureIn.length === 1 ? ventureIn[0] : null
 
   // Split into the personal 1-by-1 queue (warm/customer OR heat ≥ 75) and the
-  // bulk review list (everything else). Both sorted hottest-first.
+  // bulk review list. Both ranked by the predictive reach-out score (heat × fit
+  // × tier × reachability × recency), so the right people surface first.
   const { handQueue, reviewList } = useMemo(() => {
     const hand: ContactRow[] = []
     const review: ContactRow[] = []
@@ -82,10 +95,11 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
       if (isHandQueue(c)) hand.push(c)
       else review.push(c)
     }
-    hand.sort(heatDesc)
-    review.sort(heatDesc)
+    const byScore = (a: ContactRow, b: ContactRow) => predictiveScore(b, scoreVenture) - predictiveScore(a, scoreVenture)
+    hand.sort(byScore)
+    review.sort(byScore)
     return { handQueue: hand, reviewList: review }
-  }, [contacts])
+  }, [contacts, scoreVenture])
 
   // Desktop triage cockpit over the warm hand-queue (same swipe grammar as mobile).
   const triageConfig = useMemo(() => buildContactsTriageConfig(contacts, { toast }, loading), [contacts, toast, loading])
@@ -197,6 +211,12 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
         </div>
       </header>
 
+      {/* The single anti-confusion spine — same hero as every tab, surfacing the
+          highest predicted-priority contact to reach out to now. */}
+      <div className="flex-shrink-0">
+        <NextNetworkHero contacts={contacts} venture={scoreVenture} onDraft={openDraft} />
+      </div>
+
       {/* Filter bar */}
       <div className="flex flex-col gap-2 rounded-xl border border-white/[0.06] bg-white/[0.015] p-3 flex-shrink-0">
         <div className="flex items-center gap-2 flex-wrap">
@@ -271,11 +291,22 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
           {handQueue.length === 0 ? (
             <p className="text-[12px] text-white/35 px-1 py-2">No warm or high-heat contacts in this filter.</p>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
-              {handQueue.map(c => (
-                <ContactCard key={c.id} contact={c} onOpen={() => setLeadContact(c)} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                {handQueue.slice(0, HAND_CAP).map(c => (
+                  <ContactCard key={c.id} contact={c} onOpen={() => setLeadContact(c)} />
+                ))}
+              </div>
+              {handQueue.length > HAND_CAP && (
+                <button
+                  type="button"
+                  onClick={() => setTriageOpen(true)}
+                  className="mt-2 w-full text-[12px] text-violet-200 border border-violet-400/30 bg-violet-500/10 hover:bg-violet-500/20 rounded-lg px-3 py-2 transition-colors"
+                >
+                  +{handQueue.length - HAND_CAP} more warm contacts — handle 1-by-1 in the deck
+                </button>
+              )}
+            </>
           )}
         </section>
 
@@ -301,17 +332,24 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
               {loading ? 'Loading contacts…' : 'Nothing else to review in this filter.'}
             </p>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
-              {reviewList.map(c => (
-                <ContactCard
-                  key={c.id}
-                  contact={c}
-                  selected={selected.has(c.id)}
-                  onToggleSelect={toggleSelect}
-                  onOpen={() => setLeadContact(c)}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                {reviewList.slice(0, REVIEW_CAP).map(c => (
+                  <ContactCard
+                    key={c.id}
+                    contact={c}
+                    selected={selected.has(c.id)}
+                    onToggleSelect={toggleSelect}
+                    onOpen={() => setLeadContact(c)}
+                  />
+                ))}
+              </div>
+              {reviewList.length > REVIEW_CAP && (
+                <p className="mt-2 text-[11px] text-white/40 px-1">
+                  Showing the top {REVIEW_CAP} by predicted priority. Narrow with filters or search to see the rest — {reviewList.length - REVIEW_CAP} more match this filter.
+                </p>
+              )}
+            </>
           )}
         </section>
       </div>

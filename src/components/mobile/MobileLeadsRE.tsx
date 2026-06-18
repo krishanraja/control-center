@@ -8,6 +8,9 @@ import { humanAge } from '../../lib/ageHelpers'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { useRealtimeContacts, type ContactRow } from '../../hooks/useRealtimeContacts'
+import { isTestRecord } from '../../lib/recordHygiene'
+import { predictiveScore } from '../../lib/networkScore'
+import { NextNetworkHero } from '../contacts/NextNetworkHero'
 import { isHandQueue } from '../../lib/contactTriage'
 import { OutreachDraftSheet, type DraftTarget } from '../OutreachDraftSheet'
 import { LeadSheet } from '../LeadSheet'
@@ -167,10 +170,11 @@ export function MobileLeadsRE(_props: Props = {}) {
     })
   }
 
-  const { contacts, loading } = useRealtimeContacts({
+  const { contacts: rawContacts, loading } = useRealtimeContacts({
     ventureIn: venture ? [venture] : undefined,
     search: search || undefined,
   })
+  const contacts = useMemo(() => rawContacts.filter(c => !isTestRecord(c)), [rawContacts])
 
   const { handQueue, feed } = useMemo(() => {
     const hand: ContactRow[] = []
@@ -179,11 +183,11 @@ export function MobileLeadsRE(_props: Props = {}) {
       if (isHandQueue(c)) hand.push(c)
       else rest.push(c)
     }
-    const byHeat = (a: ContactRow, b: ContactRow) => (b.heat_score ?? 0) - (a.heat_score ?? 0)
-    hand.sort(byHeat)
-    rest.sort(byHeat)
+    const byScore = (a: ContactRow, b: ContactRow) => predictiveScore(b, venture) - predictiveScore(a, venture)
+    hand.sort(byScore)
+    rest.sort(byScore)
     return { handQueue: hand, feed: rest }
-  }, [contacts])
+  }, [contacts, venture])
 
   const total = contacts.length
 
@@ -266,6 +270,13 @@ export function MobileLeadsRE(_props: Props = {}) {
       <div className="flex-shrink-0">
         <VentureChips venture={venture} onPick={(v) => { h.tap(); setVenture(v) }} />
       </div>
+
+      {/* The single anti-confusion spine — top contact to reach out to now. */}
+      {total > 0 && (
+        <div className="flex-shrink-0">
+          <NextNetworkHero contacts={contacts} venture={venture} onDraft={openDraft} narrow />
+        </div>
+      )}
 
       <input
         type="search"
