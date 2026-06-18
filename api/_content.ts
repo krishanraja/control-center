@@ -100,6 +100,88 @@ export async function loadCorpus(): Promise<string> {
   return typeof v === 'string' ? v : (v ? JSON.stringify(v) : '')
 }
 
+// ── Channel-aware corpus slicing ──────────────────────────────────────────
+// The corpus is one long markdown doc (the Five Standards + five channel
+// playbooks + cross-channel rules). Feeding the whole thing into every
+// drafting/revision call would blow the context budget, so for the iterative
+// surfaces (Cleo chat, Refine) we hand the model only the sections that bear on
+// the channel it is actually writing for: the Five Standards (always), the one
+// matching channel playbook, and the cross-channel rules. The score gate still
+// loads the full corpus — it is grading against every standard.
+
+/** lane (+slot) -> the corpus channel key whose playbook applies. */
+export function laneToCorpusChannel(lane?: string | null, slot?: string | null): string | null {
+  if (lane === 'techonomic') return 'techonomic'
+  if (lane === 'signal_noise') return 'signal_noise'
+  if (lane === 'mindmaker') return slot === 'field_learning' ? 'linkedin' : 'mindmaker_live'
+  if (lane === 'builder_economy_ig') return 'builder_economy'
+  return null
+}
+
+// channel key -> a matcher against the playbook heading text in the corpus.
+const CHANNEL_HEADING: Record<string, RegExp> = {
+  techonomic: /Techonomic/i,
+  signal_noise: /Signal\s*&?\s*Noise/i,
+  mindmaker_live: /Mindmaker Live/i,
+  builder_economy: /Builder Economy/i,
+  // Social cutdowns (LinkedIn / Builder Economy IG field-learning) ride the
+  // builder-economy register, so they borrow that playbook.
+  linkedin: /Builder Economy/i,
+  maven: /Maven Sales Surface/i,
+}
+
+/** Split markdown into level-1/2 sections (### stays inside its ## parent). */
+function sliceSections(md: string): Array<{ title: string; body: string }> {
+  const lines = md.split('\n')
+  const out: Array<{ title: string; body: string }> = []
+  let cur: { title: string; body: string } | null = null
+  for (const line of lines) {
+    const m = /^(#{1,2})\s+(.*)$/.exec(line)
+    if (m) {
+      if (cur) out.push(cur)
+      cur = { title: m[2].trim(), body: `${line}\n` }
+    } else if (cur) {
+      cur.body += `${line}\n`
+    }
+  }
+  if (cur) out.push(cur)
+  return out
+}
+
+/**
+ * Extract the corpus the model needs to write for ONE channel: the Five
+ * Standards gate, the matching channel playbook, and the cross-channel rules.
+ * Falls back to a trimmed slice of the whole corpus if it can't be parsed or the
+ * channel is unknown (e.g. a free 'dynamic' piece). Capped so it never dominates
+ * the prompt.
+ */
+export function corpusForChannel(corpus: string, channel?: string | null, cap = 6000): string {
+  if (!corpus) return ''
+  const sections = sliceSections(corpus)
+  if (!sections.length) return corpus.slice(0, cap)
+  const find = (re: RegExp) => sections.find(s => re.test(s.title))
+
+  const picked: string[] = []
+  const five = find(/Five Standards/i)
+  if (five) picked.push(five.body.trim())
+
+  const re = channel ? CHANNEL_HEADING[channel] : null
+  const play = re ? find(re) : null
+  if (play) picked.push(play.body.trim())
+  else {
+    // Unknown channel: hand over the tight one-paragraph synopsis instead of a
+    // single playbook so the model still has the whole map.
+    const onePara = find(/One-Paragraph Version/i)
+    if (onePara) picked.push(onePara.body.trim())
+  }
+
+  const cross = find(/Cross-Channel Rules/i)
+  if (cross) picked.push(cross.body.trim())
+
+  const joined = picked.join('\n\n').trim()
+  return (joined ? joined : corpus).slice(0, cap)
+}
+
 export interface ClaudeOpts {
   system: string
   user: string

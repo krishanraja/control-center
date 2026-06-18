@@ -309,6 +309,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ ok: false, error: `invalid state: ${body.state}` })
       }
       updates.state = body.state
+      // Closing the loop: stamp the publish time so the piece lands on the
+      // calendar's "live" track and drops out of the publish follow-up.
+      if (body.state === 'published') updates.published_at = new Date().toISOString()
     }
     if (typeof body.published_url === 'string') updates.published_url = body.published_url
 

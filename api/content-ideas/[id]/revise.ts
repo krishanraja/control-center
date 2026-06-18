@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
-import { callClaude, loadVoiceBlock, materialsContext, pathId, preamble, readMaterials, sanitizeVoice, VOICE_GUARDRAILS } from '../../_content.js'
+import { callClaude, corpusForChannel, laneToCorpusChannel, loadCorpus, loadVoiceBlock, materialsContext, pathId, preamble, readMaterials, sanitizeVoice, VOICE_GUARDRAILS } from '../../_content.js'
 
 // POST /api/content-ideas/:id/revise
 //   body: {
@@ -34,9 +34,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Grab the idea for context (thesis/angle) — best effort.
   const { data: idea } = await supabase
-    .from('content_ideas').select('idea,thesis,meta,lane').eq('id', id).single()
+    .from('content_ideas').select('idea,thesis,meta,lane,lane_slot').eq('id', id).single()
 
-  const voice = await loadVoiceBlock()
+  const [voice, corpus] = await Promise.all([loadVoiceBlock(), loadCorpus()])
+  // Adapt-to-lane (value 'adapt-<channel>') rewrites the draft FOR a different
+  // channel, so the corpus must follow the target, not the piece's current lane.
+  const adaptMatch = /^adapt-(.+)$/.exec(b.value || '')
+  const corpusChannel = adaptMatch ? adaptMatch[1] : laneToCorpusChannel((idea as any)?.lane, (idea as any)?.lane_slot)
+  const channelCorpus = corpusForChannel(corpus, corpusChannel)
+  const corpusBlock = channelCorpus
+    ? `\n\nCHANNEL CORPUS (the mandate, audience, and bar for this channel — bend the draft toward THIS, not a generic rewrite):\n${channelCorpus}`
+    : ''
   const materials = readMaterials((idea as any)?.meta)
   const materialsBlock = materials.length ? `\n\n${materialsContext(materials)}` : ''
 
@@ -53,6 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     'You are Cleo, rewriting a draft in Krish Raja\'s voice. Krish is a British-Australian founder-operator in Brooklyn who runs a production AI agent fleet. Founder-practitioner, two gears, compression, the "Not X, Y" clarifier, hard-verdict endings.',
     '',
     voice ? `VOICE REFERENCE:\n${voice}` : '',
+    corpusBlock,
     '',
     VOICE_GUARDRAILS,
     materialsBlock,

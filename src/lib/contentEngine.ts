@@ -142,7 +142,7 @@ export interface ContentBuckets {
 // so the tab never leaves Krish wondering what to do. Priority is ordered by
 // "closest to shipped value first" with loss-aversion on ready work.
 
-export type NextActionKind = 'approve' | 'schedule' | 'draft' | 'develop' | 'seed' | 'triage' | 'clear'
+export type NextActionKind = 'publish' | 'approve' | 'schedule' | 'draft' | 'develop' | 'seed' | 'triage' | 'clear'
 
 export interface NextBest<T> {
   kind: NextActionKind
@@ -161,6 +161,12 @@ interface NextIdeaLike extends IdeaLike {
   updated_at?: string | null
   scheduled_for?: string | null
   published_at?: string | null
+  published_url?: string | null
+}
+
+function todayYMD(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function oldestBy<T extends { updated_at?: string | null }>(rows: T[]): T {
@@ -174,6 +180,26 @@ function clip(s: string | null | undefined, n = 56): string {
 
 export function nextBestAction<T extends NextIdeaLike>(ideas: T[]): NextBest<T> {
   const b = contentBuckets(ideas)
+  const today = todayYMD()
+
+  // 0) Publish — an approved, scheduled piece whose ship date has arrived and
+  //    isn't live yet. A dated public commitment is the most time-critical thing
+  //    on the board, so it outranks everything. This is the platform following
+  //    Krish up on the last step: the Doc's built, now put it live and log the link.
+  const toPublish = b.approved.filter(i =>
+    !i.published_at && !i.published_url && i.scheduled_for && i.scheduled_for <= today,
+  )
+  if (toPublish.length) {
+    const i = [...toPublish].sort((a, c) => (a.scheduled_for || '') < (c.scheduled_for || '') ? -1 : 1)[0]
+    const overdue = (i.scheduled_for || '') < today
+    return {
+      kind: 'publish', idea: i, actionLabel: 'Mark published',
+      headline: `Publish "${clip(i.idea)}"`,
+      sub: toPublish.length > 1
+        ? `${toPublish.length} approved pieces are due to go live`
+        : overdue ? `Was due ${i.scheduled_for} — put it live and log the link` : 'Scheduled for today — put it live and log the link',
+    }
+  }
 
   // 1) Approve — ready drafts awaiting sign-off. Closest to shipped; never let
   //    finished work sit (loss aversion).

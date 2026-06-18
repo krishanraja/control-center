@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { ventureOffer } from '../../_venturePositioning.js'
+import { loadOutboundVoice } from '../../_voice.js'
 
 // POST /api/contacts/:id/draft-email
 // Server-side proxy to the Cleo Email Draft N8N workflow for Relationship Engine
@@ -123,23 +124,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const tone = typeof body.tone === 'string' && TONES.has(body.tone) ? body.tone : 'direct'
   const note = typeof body.note === 'string' ? body.note.trim().slice(0, 400) : ''
 
-  // Load the contact and Krish's canonical voice rules in parallel. The voice
-  // rules live in system_config.krish_voice_rules (same source the content lanes
-  // treat as canonical) so the email matches every other outbound surface.
-  const [{ data: contact, error }, voiceCfg] = await Promise.all([
+  // Load the contact and Krish's canonical voice in parallel. The voice is the
+  // full krish-voice skill (system_config.content_voice_block) — the same block
+  // the content composer grounds in — so the email matches every other outbound
+  // surface instead of a thin summary.
+  const [{ data: contact, error }, voiceRules] = await Promise.all([
     supabase
       .from('contacts')
       .select('id, full_name, first_name, email, company, title, primary_venture, origin_venture, origin_campaign, tags, linkedin_url, dossier, owner_agent')
       .eq('id', id)
       .single(),
-    supabase.from('system_config').select('value').eq('key', 'krish_voice_rules').maybeSingle(),
+    loadOutboundVoice(),
   ])
   if (error || !contact) return res.status(404).json({ ok: false, error: 'contact not found' })
   if (!contact.email) return res.status(422).json({ ok: false, error: 'contact has no email address' })
-
-  const voiceRules = typeof voiceCfg?.data?.value === 'string'
-    ? voiceCfg.data.value
-    : (voiceCfg?.data?.value ? JSON.stringify(voiceCfg.data.value) : '')
 
   // Anchor the "how we could work together" angle on the chosen venture, falling
   // back to the contact's primary/origin venture so the picker default is sensible.

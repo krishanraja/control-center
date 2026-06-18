@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ArrowLeft, BookOpen, Check, FileText, Link2, Loader2, MessageSquare, Paperclip, PenLine, RotateCcw,
+  ArrowLeft, BookOpen, Check, ExternalLink, FileText, Link2, Loader2, MessageSquare, Paperclip, PenLine, RotateCcw,
   Save, Search, Send, Sparkles, Trash2, Wand2, X, Gauge,
 } from 'lucide-react'
 import { RichText } from './RichText'
@@ -533,11 +533,14 @@ function TitleField({ idea }: { idea: ContentIdeaRow }) {
   )
 }
 
+interface SaveResult { docUrl: string | null; pending: boolean; channel: string }
+
 function SaveDraftButton({ idea, draft, onSaved, block }: { idea: ContentIdeaRow; draft: string; onSaved: () => void; block?: boolean }) {
   const { toast } = useToast()
   const h = useHaptics()
   const [busy, setBusy] = useState(false)
   const [menu, setMenu] = useState(false)
+  const [result, setResult] = useState<SaveResult | null>(null)
   const autoChannel = laneToFactoryChannel(idea.lane, idea.lane_slot)
   const [channel, setChannel] = useState<string>(autoChannel)
 
@@ -552,8 +555,8 @@ function SaveDraftButton({ idea, draft, onSaved, block }: { idea: ContentIdeaRow
       const j = await r.json().catch(() => ({}))
       if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
       h.success()
-      toast('Saving to Drive. Cleo will ping you on Telegram when the doc is ready.', 'success')
-      setTimeout(onSaved, 700)
+      // Don't auto-navigate — surface the Doc link so Krish can jump straight there.
+      setResult({ docUrl: j.doc_url || null, pending: !!j.doc_pending, channel: j.target_channel || channel })
     } catch (e: any) {
       h.error(); toast(`Save failed: ${e?.message || 'error'}`, 'error')
     } finally { setBusy(false) }
@@ -592,6 +595,72 @@ function SaveDraftButton({ idea, draft, onSaved, block }: { idea: ContentIdeaRow
           ))}
         </div>
       )}
+
+      {result && (
+        <SavedToDocsModal
+          result={result}
+          onClose={() => setResult(null)}
+          onDone={() => { setResult(null); onSaved() }}
+        />
+      )}
+    </div>
+  )
+}
+
+// The post-save popup. The Doc is logged to the pipeline (the card's "Doc" link
+// + calendar now point at it) and the piece sits in Review until Krish publishes,
+// so the platform keeps following him up. This is just the jump-straight-there
+// affordance Krish asked for, plus an honest line about what happens next.
+function SavedToDocsModal({ result, onClose, onDone }: { result: SaveResult; onClose: () => void; onDone: () => void }) {
+  const channelLabel = FACTORY_CHANNELS.find(c => c.value === result.channel)?.label || result.channel.replace(/_/g, ' ')
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Draft saved to Google Docs">
+      <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in" />
+      <div className="relative w-full max-w-md rounded-2xl border border-white/[0.1] bg-[#0f0f12] shadow-2xl shadow-black/60 p-5">
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+            <Check size={16} className="text-emerald-300" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-[15px] font-semibold text-white leading-tight">
+              {result.pending ? 'Building your Google Doc' : 'Saved to Google Docs'}
+            </h3>
+            <p className="text-[11px] text-white/45">{channelLabel} · logged to the pipeline</p>
+          </div>
+        </div>
+
+        {result.docUrl ? (
+          <a
+            href={result.docUrl} target="_blank" rel="noreferrer noopener"
+            className="mt-3 flex items-center justify-center gap-2 w-full py-3 rounded-xl text-[14px] font-semibold bg-violet-500/90 text-white hover:bg-violet-500 transition-colors"
+          >
+            <ExternalLink size={15} /> Open in Google Docs
+          </a>
+        ) : (
+          <p className="mt-3 text-[12.5px] text-white/65 leading-snug rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
+            Cleo is assembling the formatted doc now. The link will land here and she'll ping you on Telegram the moment it's ready.
+          </p>
+        )}
+
+        <p className="mt-3 text-[12px] text-white/55 leading-snug">
+          Next step's on you: review and publish. It stays in <span className="text-amber-200/90">Ready for you</span> until it's live, so it won't slip.
+        </p>
+
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 rounded-lg text-[13px] text-white/60 hover:text-white/85 hover:bg-white/[0.06] transition-colors">
+            Stay here
+          </button>
+          <button type="button" onClick={onDone} className="px-4 py-2 rounded-lg text-[13px] font-medium border border-white/12 text-white/80 hover:bg-white/[0.06] transition-colors">
+            Done
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

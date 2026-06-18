@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Check, ArrowRight, Sparkles, CheckCircle2, Loader2, CalendarPlus, PenLine } from 'lucide-react'
+import { Check, ArrowRight, Sparkles, CheckCircle2, Loader2, CalendarPlus, PenLine, Send } from 'lucide-react'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { nextBestAction, type NextActionKind } from '../../lib/contentEngine'
 import { useToast } from '../shared/Toast'
@@ -21,6 +21,7 @@ import { DoThisNextHero, type HeroTone } from '../shared/DoThisNextHero'
  * with a schedule-intent hash.
  */
 const KIND_ICON: Record<NextActionKind, React.ReactNode> = {
+  publish: <Send size={16} className="text-emerald-300" />,
   approve: <Check size={16} className="text-emerald-300" />,
   schedule: <CalendarPlus size={16} className="text-sky-300" />,
   draft: <PenLine size={16} className="text-violet-300" />,
@@ -40,6 +41,8 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
   const { toast } = useToast()
   const h = useHaptics()
   const [busy, setBusy] = useState(false)
+  const [pubOpen, setPubOpen] = useState(false)
+  const [pubUrl, setPubUrl] = useState('')
   const next = useMemo(() => nextBestAction(ideas), [ideas])
 
   const open = (id: string) => {
@@ -59,6 +62,24 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
       h.success(); toast('Scheduled.', 'success')
     } catch {
       h.error(); toast('Could not schedule — try again.', 'error')
+    } finally { setBusy(false) }
+  }
+
+  // Close the loop: mark an approved+due piece live, logging the public URL onto
+  // the row (calendar flips it to the "live" track, follow-up clears).
+  const markPublished = async (id: string, url: string) => {
+    h.heavy(); setBusy(true)
+    try {
+      const r = await fetch('/api/content-ideas', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, state: 'published', ...(url.trim() ? { published_url: url.trim() } : {}) }),
+      })
+      const body = await r.json().catch(() => ({} as any))
+      if (!r.ok || body?.ok === false) throw new Error(String(r.status))
+      h.success(); toast('Published. Logged it.', 'success')
+      setPubOpen(false); setPubUrl('')
+    } catch {
+      h.error(); toast('Could not mark published — try again.', 'error')
     } finally { setBusy(false) }
   }
 
@@ -88,6 +109,7 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
     switch (next.kind) {
       case 'approve': void approve(id); break
       case 'schedule': break // handled by the inline date input
+      case 'publish': setPubOpen(true); break // handled by the inline URL input
       default: open(id)
     }
   }
@@ -99,7 +121,7 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
 
   const clear = next.kind === 'clear'
   const TONE: Record<NextActionKind, HeroTone> = {
-    approve: 'emerald', schedule: 'sky', draft: 'violet', develop: 'violet',
+    publish: 'emerald', approve: 'emerald', schedule: 'sky', draft: 'violet', develop: 'violet',
     seed: 'violet', triage: 'violet', clear: 'neutral',
   }
 
@@ -119,6 +141,40 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
     </label>
   ) : undefined
 
+  // Publish uses an inline "mark live + log link" form as its action.
+  const publishSlot = next.kind === 'publish' && next.idea ? (
+    pubOpen ? (
+      <div className="flex-shrink-0 flex items-center gap-1.5">
+        <input
+          type="url" autoFocus value={pubUrl}
+          onChange={e => setPubUrl(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') markPublished((next.idea as ContentIdeaRow).id, pubUrl)
+            if (e.key === 'Escape') { setPubOpen(false); setPubUrl('') }
+          }}
+          placeholder="Live URL (optional)"
+          className="w-40 rounded-lg bg-black/40 border border-white/12 px-2.5 py-2 text-[12px] text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-400/40"
+        />
+        <button
+          type="button" disabled={busy}
+          onClick={() => markPublished((next.idea as ContentIdeaRow).id, pubUrl)}
+          title="Mark this piece live"
+          className="inline-flex items-center gap-1.5 rounded-xl px-3 font-semibold transition-colors disabled:opacity-50 min-h-[44px] text-[13px] border bg-emerald-500/20 border-emerald-400/40 text-emerald-100 hover:bg-emerald-500/30"
+        >
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Mark live
+        </button>
+      </div>
+    ) : (
+      <button
+        type="button"
+        onClick={() => { h.tap(); setPubOpen(true) }}
+        className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors min-h-[44px] text-[13px] border bg-emerald-500/20 border-emerald-400/40 text-emerald-100 hover:bg-emerald-500/30"
+      >
+        <Send size={14} /> Mark published
+      </button>
+    )
+  ) : undefined
+
   return (
     <DoThisNextHero
       descriptor={{
@@ -131,7 +187,7 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
       }}
       onAct={onAct}
       busy={busy}
-      actionSlot={scheduleSlot}
+      actionSlot={scheduleSlot || publishSlot}
       narrow={narrow}
     />
   )

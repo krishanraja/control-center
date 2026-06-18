@@ -39,6 +39,32 @@ function firstLine(s?: string | null): string {
   return (s.split('\n').map(x => x.trim()).find(Boolean) || '').slice(0, 280)
 }
 
+// The factory returns the Google Doc it built. Different n8n response shapes put
+// the link under different keys, so probe the common ones (and any nested
+// data/result envelope), preferring a real Google Docs/Drive URL.
+function extractDocUrl(payload: any, depth = 0): string | null {
+  if (!payload || typeof payload !== 'object' || depth > 4) return null
+  const KEYS = [
+    'doc_url', 'document_url', 'docUrl', 'documentUrl', 'google_doc_url', 'googleDocUrl',
+    'drive_url', 'driveUrl', 'webViewLink', 'doc_link', 'url', 'link',
+  ]
+  const candidates: string[] = []
+  for (const k of KEYS) {
+    const v = payload[k]
+    if (typeof v === 'string' && /^https?:\/\//.test(v)) candidates.push(v)
+  }
+  const google = candidates.find(u => /(docs|drive)\.google\.com/.test(u))
+  if (google) return google
+  if (candidates.length) return candidates[0]
+  // Recurse into common envelopes.
+  for (const k of ['data', 'result', 'doc', 'document', 'google_doc', 'drive', 'json', 'body']) {
+    const nested = payload[k]
+    const hit = extractDocUrl(nested, depth + 1)
+    if (hit) return hit
+  }
+  return null
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (preamble(req, res)) return
   const id = pathId(req)
@@ -100,31 +126,62 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     krish_approved: true,
   }
 
+  // Whatever the factory hands back — the Doc gets created either synchronously
+  // (link in the response) or asynchronously (Cleo pings Telegram when ready and
+  // the link lands later). Read the body once and try to lift the Doc URL.
+  let docUrl: string | null = null
   try {
     const r = await fetch(webhook, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
+    const raw = await r.text().catch(() => '')
     if (!r.ok) {
-      const t = await r.text().catch(() => '')
-      return res.status(502).json({ ok: false, error: `factory_${r.status}`, detail: t.slice(0, 200) })
+      return res.status(502).json({ ok: false, error: `factory_${r.status}`, detail: raw.slice(0, 200) })
+    }
+    let parsed: any = null
+    try { parsed = raw ? JSON.parse(raw) : null } catch { parsed = null }
+    docUrl = extractDocUrl(parsed)
+    if (!docUrl && raw) {
+      const m = raw.match(/https?:\/\/(?:docs|drive)\.google\.com\/[^\s"'<>)\]]+/)
+      if (m) docUrl = m[0]
     }
   } catch (e: any) {
     return res.status(502).json({ ok: false, error: String(e?.message || e) })
   }
 
+  const nowIso = new Date().toISOString()
   const saves = Array.isArray(meta.saved_drafts) ? meta.saved_drafts : []
-  saves.unshift({ channel, at: new Date().toISOString() })
-  const { error: upErr } = await supabase.from('content_ideas')
-    .update({
-      body: draft,
-      meta: { ...meta, saved_drafts: saves.slice(0, 12) },
-      state: idea.state === 'published' || idea.state === 'dropped' ? idea.state : 'review',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id)
+  saves.unshift({ channel, at: nowIso, doc_url: docUrl })
+
+  // Log the Doc on the pipeline row: draft_link powers the "Doc" button on the
+  // card + calendar; factory_doc carries the publish-follow-up flag so the piece
+  // keeps surfacing as "your move" until it's actually live.
+  const factory_doc = {
+    url: docUrl,
+    channel,
+    at: nowIso,
+    awaiting_publish: true,
+  }
+  const update: Record<string, any> = {
+    body: draft,
+    meta: { ...meta, saved_drafts: saves.slice(0, 12), factory_doc },
+    state: idea.state === 'published' || idea.state === 'dropped' ? idea.state : 'review',
+    updated_at: nowIso,
+  }
+  if (docUrl) update.draft_link = docUrl
+
+  const { error: upErr } = await supabase.from('content_ideas').update(update).eq('id', id)
   if (upErr) return res.status(500).json({ ok: false, error: upErr.message })
 
-  return res.status(200).json({ ok: true, queued: true, target_channel: channel })
+  return res.status(200).json({
+    ok: true,
+    queued: true,
+    target_channel: channel,
+    doc_url: docUrl,
+    // No link in the synchronous response → the factory is assembling it and
+    // will deliver via Telegram; the UI says so instead of showing a dead link.
+    doc_pending: !docUrl,
+  })
 }

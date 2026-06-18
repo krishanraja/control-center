@@ -16,6 +16,25 @@ All five files captured 2026-05-25 during the pedantic CEO audit's final verific
 | `cleo-email-draft.json` | `wztp6KoiO5EuFQEB` | ✓ | **NEW** in this audit. Webhook → fetch entity (lead/customer/guest) → Sonnet drafts subject+body → `gmail.drafts.create` via OAuth → patch `email_drafts` ledger + `mark_entity_emailed` RPC. |
 | `visibility-deep-enrich.json` | — | — | Pre-existing checked-in file. Older snapshot; see `nova-visibility-deep-enrich.json` for current state. |
 
+## CHANGELOG — outbound voice unification 2026-06-18
+
+### Endpoints (control-center repo, not the workflow) — voice source upgraded
+- All four `*/draft-email` endpoints (`contacts`, `leads`, `customers`, `guests`)
+  now pass `voice_rules` sourced from `system_config.content_voice_block` (the
+  **full** krish-voice skill, the same block the content composer grounds in) via
+  a shared `api/_voice.ts` → `loadOutboundVoice()` helper, with
+  `krish_voice_rules` (the old 279-char ruleset) kept only as an empty-row
+  fallback.
+- Previously only `contacts` passed voice (from `krish_voice_rules`);
+  `leads`/`customers`/`guests` passed none and relied solely on the Sonnet
+  Compose node's baked-in condensed prompt. Now every outbound surface writes in
+  the full voice.
+- **No workflow change required.** `Build Prompt` already injects `voice_rules`
+  as "VOICE RULES (follow exactly)" when present, and the node keeps its
+  email-specific scaffolding (120-word cap, subject shape) on top. The two
+  compose: full voice + format guardrails. `Create Gmail Draft` (gmail / draft /
+  create, via Krish's OAuth) is untouched — drafts only, nothing auto-sends.
+
 ## CHANGELOG — outreach quality pass 2026-06-05
 
 ### `cleo-email-draft.json` (`wztp6KoiO5EuFQEB`) — DEPLOYED live via the n8n API
