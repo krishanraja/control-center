@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { ExternalLink, Maximize2, Search, X } from 'lucide-react'
+import { Check, ExternalLink, Maximize2, Search, X } from 'lucide-react'
 import { humanAge } from '../lib/ageHelpers'
 import { LeadSourcePill } from './LeadSourcePill'
 import { useToast } from './shared/Toast'
@@ -7,6 +7,7 @@ import { useHaptics } from '../hooks/useHaptics'
 import { FeedbackButton } from './shared/FeedbackButton'
 import type { ContentIdeaRow, IdeaState } from '../hooks/useRealtimeContentIdeas'
 import { useContentPillars, pillarTone } from '../hooks/useContentPillars'
+import { hasRealBody } from '../lib/contentEngine'
 
 interface Props {
   idea: ContentIdeaRow
@@ -44,15 +45,26 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: i.id, state: next }),
       })
-      if (!r.ok) throw new Error(String(r.status))
+      const body = await r.json().catch(() => ({} as any))
+      if (!r.ok || body?.ok === false) {
+        // Honest-state guard (409): a card can't enter review/approved empty.
+        if (r.status === 409 && body?.reason === 'state_guard') {
+          h.error(); toast(body.error || 'Develop it first.', 'error'); return
+        }
+        throw new Error(String(r.status))
+      }
       const labels: Partial<Record<IdeaState, string>> = {
-        drafting: 'Promoted to drafting.', researching: 'Sent to Zara for research.', dropped: 'Dropped.',
+        drafting: 'Moved to drafting.', researching: 'Queued for research.',
+        approved: 'Approved — ready to ship.', dropped: 'Dropped.',
       }
       h.success(); toast(labels[next] || 'Updated.', 'success')
     } catch {
       h.error(); toast('Could not update idea — try again.', 'error')
     } finally { setBusy(null) }
   }
+
+  // Anticipate the next action (P-22): a ready review card leads with Approve.
+  const ready = hasRealBody(i)
 
   return (
     <article data-content-idea-id={i.id} data-idea-id={i.id} className="rounded-xl border border-rose-500/15 bg-rose-500/[0.03] p-3 hover:border-rose-500/30 transition-colors">
@@ -107,10 +119,25 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
       )}
 
       <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-        <button type="button" onClick={open}
-          className="flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-semibold border border-violet-500/40 text-violet-100 bg-violet-500/15 hover:bg-violet-500/25 transition-colors min-h-[44px]">
-          <Maximize2 size={11} /> Open
-        </button>
+        {/* P-22: review cards that are ready lead with Approve — the next thing
+            Krish wants. Everything pre-review leads with Develop (open Composer). */}
+        {i.state === 'review' && ready ? (
+          <>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setState('approved') }} disabled={busy !== null}
+              className="flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-semibold border border-emerald-500/40 text-emerald-100 bg-emerald-500/15 hover:bg-emerald-500/25 disabled:opacity-40 transition-colors min-h-[44px]">
+              <Check size={11} /> Approve
+            </button>
+            <button type="button" onClick={open}
+              className="flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors min-h-[44px]">
+              <Maximize2 size={11} /> Refine
+            </button>
+          </>
+        ) : (
+          <button type="button" onClick={open}
+            className="flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-semibold border border-violet-500/40 text-violet-100 bg-violet-500/15 hover:bg-violet-500/25 transition-colors min-h-[44px]">
+            <Maximize2 size={11} /> {i.state === 'seeded' || i.state === 'researching' ? 'Develop' : i.state === 'drafting' ? 'Continue draft' : 'Open'}
+          </button>
+        )}
 
         {i.state === 'seeded' && (
           <button type="button" onClick={(e) => { e.stopPropagation(); setState('researching') }} disabled={busy !== null}
