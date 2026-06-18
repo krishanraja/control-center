@@ -85,7 +85,7 @@ A nightly job (Cleo or a small workflow) recomputes `last_published_at` / `next_
 A segmented control / tab strip at the top: **Signal & Noise · Mindmaker · Techonomic · Builder Economy**, plus an **"All"** option. Mirrors the existing Focus/All and venture-chip patterns already in the app (so it's consistent and cheap to build). Selecting a lane filters the board to that lane's pipeline. Each lane chip shows a **status dot** (green on-pace / amber due-soon / red overdue) and a count.
 
 ### 4.2 Per-lane header — the commitment bar
-When a lane is selected, a compact **CadenceBar** (reusing the `NextActionStrip` pattern):
+When a lane is selected, a compact **CadenceBar** (reusing the shared `DoThisNextHero` pattern — the legacy `NextActionStrip` it originally cited was retired 2026-06-18):
 > **Signal & Noise** — 1 every 2 weeks · last shipped **11 days ago** · **next due in 3 days** · 🔥 4 on-time in a row · *[Start the next one]*
 
 For Mindmaker (two slots) the bar splits: `Roundup — due Mon` / `Field learning — due Thu`. For Builder Economy: `Daily — today's post not drafted` with a 7-dot week tracker.
