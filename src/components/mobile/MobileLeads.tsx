@@ -7,6 +7,7 @@ import { DetailSheet } from './DetailSheet'
 import { LeadImportDropzone } from '../LeadImportDropzone'
 import { useRealtimeLeads, type LeadRow, type LeadSourceType } from '../../hooks/useRealtimeLeads'
 import { isTestRecord } from '../../lib/recordHygiene'
+import { NextLeadHero } from '../leads/NextLeadHero'
 import { useVentureRegistry } from '../../hooks/useVentureRegistry'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
@@ -217,16 +218,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
         />
       }
     >
-      <NextActionStrip
-        headline={candidates.length}
-        headlineLabel="to decide"
-        insight={candidateInsight}
-        ctaLabel={topCandidate ? 'Open next' : 'View leads'}
-        onCta={() => { if (topCandidate) openLeadFromRow(topCandidate.id) }}
-        icon={Sparkles}
-        accent={candidates.length > 0 ? 'text-emerald-300' : 'text-violet-300'}
-        disabled={!topCandidate}
-      />
+      <NextLeadHero leads={leads} narrow />
 
       {showImport && (
         <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 flex-shrink-0">

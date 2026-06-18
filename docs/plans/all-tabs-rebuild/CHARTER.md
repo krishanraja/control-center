@@ -44,7 +44,27 @@
 - **Test data:** `test-1712243000`, `laurenkthermos` in Gutted "Recent".
 - Outcome lens: **watch** — keep it honest, hide test data, do NOT over-build. Surface the one real expansion play (Expansion radar already shows "Fractionl Circle · ready for upsell").
 
-## Guardrails (same as Content)
+## Consistency mandate (Krish 2026-06-17: "everything feels consistent UI/UX when done")
+
+Consistency must be **structural, not aspirational** — every tab renders through the SAME shared components, fed by tab-specific data. No per-tab clones of the same idea.
+
+| Concern | One shared component every tab uses | Source of truth |
+|---|---|---|
+| "Do this next" hero | `src/components/shared/DoThisNextHero.tsx` (generic: kind/headline/sub/action) | per-tab `nextBest*()` selector |
+| Card action row | `DoThisNextHero` + a shared primary/secondary/overflow action grammar (lead with THE one action, ≤2 visible, rest in overflow) | per-tab action map |
+| Count labels | verb-labeled "N in flight · M to {verb}" pattern (from Content P-6) | per-tab buckets fn |
+| Empty states | shared "caught up" / "nothing waiting" affordance with a next-step CTA (P-16) | — |
+| Test-data filter | `src/lib/recordHygiene.ts` | one helper |
+| Triage deck | existing `SwipeCockpit` + `triageConfig` (already shared) | — |
+
+Shared visual grammar (applies everywhere):
+- **Hero tones:** emerald = approve/ready/positive-terminal; violet = develop/act/primary; sky = schedule/time; neutral = clear/none.
+- **One primary action** per surface, leading, color-coded by tone; secondary is quiet; destructive (Drop/Kill) is a small icon in an overflow, never co-equal.
+- **44px min touch targets** on mobile; labeled icons everywhere (no bare icon buttons).
+- **Same header shape** across tabs: title + one-line purpose + "N {noun} · M to {verb}" count.
+- No surface shows > the lane cap of cards; overflow → deck.
+
+When a tab is "done" it must pass a consistency check: its hero, card actions, counts, and empty states are visually and behaviorally indistinguishable in *grammar* from Content's (only the nouns/verbs differ).
 
 - One PR per tab-phase; build green (`tsc` + `vite build`); test both viewports; commit + push (Vercel auto-deploys); STATE.md updated in the same commit.
 - Reuse `src/lib/contentEngine.ts` patterns; put shared helpers in a neutral lib (`src/lib/recordHygiene.ts` for `isTestRecord`).

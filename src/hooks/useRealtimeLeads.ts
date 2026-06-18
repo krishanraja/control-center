@@ -52,6 +52,8 @@ export interface LeadRow {
   follow_up_at?: string | null
   promoted_task_id?: string | null
   deep_enriched_at?: string | null
+  last_emailed_at?: string | null
+  last_email_draft_url?: string | null
   quality_score?: string | null
   tags?: string[] | null
   icp_scores?: Record<string, number> | null

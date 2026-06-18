@@ -4,6 +4,7 @@ import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { nextBestAction, type NextActionKind } from '../../lib/contentEngine'
 import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
+import { DoThisNextHero, type HeroTone } from '../shared/DoThisNextHero'
 
 /**
  * The "Do this next" hero — the single anti-confusion spine (P-13 / P-22).
@@ -97,61 +98,41 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
   })()
 
   const clear = next.kind === 'clear'
-  const tone = clear
-    ? 'border-emerald-500/20 bg-emerald-500/[0.04]'
-    : next.kind === 'approve'
-      ? 'border-emerald-500/30 bg-emerald-500/[0.06]'
-      : 'border-violet-500/25 bg-violet-500/[0.06]'
+  const TONE: Record<NextActionKind, HeroTone> = {
+    approve: 'emerald', schedule: 'sky', draft: 'violet', develop: 'violet',
+    seed: 'violet', triage: 'violet', clear: 'neutral',
+  }
+
+  // Schedule uses an inline date picker as its action; everything else is a button.
+  const scheduleSlot = next.kind === 'schedule' && next.idea ? (
+    <label
+      className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors min-h-[44px] cursor-pointer bg-sky-500/20 border border-sky-400/40 text-sky-100 hover:bg-sky-500/30 text-[13px]"
+      title="Pick a day to ship it"
+    >
+      {busy ? <Loader2 size={14} className="animate-spin" /> : <CalendarPlus size={14} />}
+      Schedule
+      <input
+        type="date" min={todayYMD} disabled={busy}
+        onChange={e => schedule((next.idea as ContentIdeaRow).id, e.target.value)}
+        className="sr-only"
+      />
+    </label>
+  ) : undefined
 
   return (
-    <section
-      aria-label="Do this next"
-      className={`rounded-2xl border ${tone} ${narrow ? 'p-3.5' : 'px-5 py-4'} flex items-center gap-3`}
-    >
-      <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
-        {KIND_ICON[next.kind]}
-      </div>
-      <div className="min-w-0 flex-1">
-        {!clear && (
-          <p className="text-[10px] uppercase tracking-[0.16em] text-white/40 mb-0.5">Do this next</p>
-        )}
-        <p className={`${narrow ? 'text-[14px]' : 'text-[15px]'} font-semibold text-white leading-snug truncate`}>
-          {next.headline}
-        </p>
-        <p className="text-[12px] text-white/55 leading-snug truncate">{next.sub}</p>
-      </div>
-      {!clear && next.idea && next.kind === 'schedule' && (
-        // Inline date picker — pick a day right here, no detour (P-11 / P-22).
-        <label
-          className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors min-h-[44px] cursor-pointer bg-sky-500/20 border border-sky-400/40 text-sky-100 hover:bg-sky-500/30 text-[13px]"
-          title="Pick a day to ship it"
-        >
-          {busy ? <Loader2 size={14} className="animate-spin" /> : <CalendarPlus size={14} />}
-          Schedule
-          <input
-            type="date"
-            min={todayYMD}
-            disabled={busy}
-            onChange={e => schedule((next.idea as ContentIdeaRow).id, e.target.value)}
-            className="sr-only"
-          />
-        </label>
-      )}
-      {!clear && next.idea && next.kind !== 'schedule' && (
-        <button
-          type="button"
-          onClick={onAct}
-          disabled={busy}
-          className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors disabled:opacity-50 min-h-[44px] ${
-            next.kind === 'approve'
-              ? 'bg-emerald-500/20 border border-emerald-400/40 text-emerald-100 hover:bg-emerald-500/30'
-              : 'bg-violet-500/20 border border-violet-400/40 text-violet-100 hover:bg-violet-500/30'
-          } ${narrow ? 'text-[13px]' : 'text-[13px]'}`}
-        >
-          {busy ? <Loader2 size={14} className="animate-spin" /> : KIND_ICON[next.kind]}
-          {next.actionLabel}
-        </button>
-      )}
-    </section>
+    <DoThisNextHero
+      descriptor={{
+        headline: next.headline,
+        sub: next.sub,
+        actionLabel: clear ? undefined : next.actionLabel,
+        icon: KIND_ICON[next.kind],
+        tone: TONE[next.kind],
+        clear,
+      }}
+      onAct={onAct}
+      busy={busy}
+      actionSlot={scheduleSlot}
+      narrow={narrow}
+    />
   )
 }

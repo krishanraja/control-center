@@ -11,7 +11,7 @@ import { SubstackImportDropzone } from '../SubstackImportDropzone'
 import { LeadVentureLane } from './LeadVentureLane'
 import { LeadCard } from '../LeadCard'
 import { DecisionDetail } from '../DecisionDetail'
-import { NextActionStrip } from '../shared/NextActionStrip'
+import { NextLeadHero } from '../leads/NextLeadHero'
 import { BackburnerSection } from '../shared/BackburnerSection'
 import { navigateDecision } from '../../lib/routeDecision'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
@@ -57,24 +57,6 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
   const bySource = useMemo(() => groupBySource(leads), [leads])
 
   const totalActive = leads.length
-
-  // Surface the highest-priority un-enriched lead so the CEO can decide once
-  // per visit. "Candidates" are status='new' (no enrichment cost spent yet);
-  // rank by ICP score (max across ventures) so the best one bubbles up.
-  const candidates = useMemo(() => {
-    return leads
-      .filter(l => l.status === 'new' && !l.deep_enriched_at)
-      .map(l => {
-        const scores = l.icp_scores ? Object.values(l.icp_scores).map(Number).filter(Number.isFinite) : []
-        const maxIcp = scores.length > 0 ? Math.max(...scores) : (l.icp_score ?? 0)
-        return { lead: l, maxIcp }
-      })
-      .sort((a, b) => b.maxIcp - a.maxIcp)
-  }, [leads])
-  const topCandidate = candidates[0]?.lead || null
-  const candidateInsight = topCandidate
-    ? `${candidates.length} un-enriched · top fit: ${topCandidate.full_name || topCandidate.company || 'unnamed'}${topCandidate.primary_venture ? ` (${topCandidate.primary_venture.replace(/_/g, ' ')})` : ''}`
-    : 'No candidates waiting — credits only spent on explicit Enrich.'
 
   const handleOpen = onOpenLead || ((id: string) => navigateDecision(onNavigate || (() => {}), 'lead', id))
 
@@ -139,16 +121,9 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
         </div>
       </header>
 
-      <NextActionStrip
-        headline={candidates.length}
-        headlineLabel="to decide"
-        insight={candidateInsight}
-        ctaLabel="Open next"
-        onCta={() => topCandidate && handleOpen(topCandidate.id)}
-        icon={Sparkles}
-        accent="text-emerald-300"
-        disabled={!topCandidate}
-      />
+      {/* The single anti-confusion spine — same hero as every tab, tuned to
+          "contact fast": it DOES the action (draft email / enrich), not "open". */}
+      <NextLeadHero leads={leads} />
 
       {leadId && (
         <section className="rounded-2xl border border-emerald-400/30 bg-emerald-500/[0.04] overflow-hidden">
