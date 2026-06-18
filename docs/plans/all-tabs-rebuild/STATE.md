@@ -10,11 +10,19 @@ Extends `docs/plans/content-tab-rebuild/` to the other tabs. Outcomes per tab ar
 | Foundation: `isTestRecord` view filter | DONE (commit b3b6df7) | `src/lib/recordHygiene.ts`; applied to Pipeline (Desktop+Mobile) + Visibility (Desktop+Mobile). Network + Subscriptions test-filtering pending their phases (aggregate hooks). |
 | **Shared `DoThisNextHero`** (consistency made structural) | DONE (commit a780d3c) | `src/components/shared/DoThisNextHero.tsx` — the ONE hero every tab renders through. Content refactored onto it. |
 | **Pipeline hero** (real action, desktop+mobile) | DONE (commit a780d3c) | `NextLeadHero`: Draft email → Enrich → Promote → Follow up → clear. Verified: header 30→5 active (test filter), hero "Enrich Lionsgate". |
-| **Pipeline**: collapse the ~10-button card wall to 1 primary + overflow | NEXT | the LeadCard still shows ~10 co-equal buttons (P-3/P-5/P-22). |
-| **Network**: venture segmentation + predictive scoring rubric + bounded render + immediate action | NOT STARTED | biggest rethink (1,000 contacts, 6,776 DOM nodes today). |
-| **Visibility**: unified "Do this next" across inbound guests + outbound stages | NOT STARTED | tab is already healthy; needs the directive spine. |
-| **Subscriptions**: hide test data in `useCustomers` aggregates + honest empties (read-only) | NOT STARTED | light touch; lowest priority. |
+| **Pipeline**: collapse the ~10-button card wall to 1 primary + overflow | DONE (1f3361a) | LeadCard: one state-correct primary + "More" overflow + quiet Drop. |
+| **Network**: venture segmentation + predictive scoring rubric + bounded render + immediate action | DONE (aa62226) | `networkScore.ts` rubric, `NextNetworkHero`, ranked + bounded render (HAND_CAP/REVIEW_CAP), test-filtered. |
+| **Visibility**: unified "Do this next" across inbound guests + outbound stages | DONE (adeeea8) | `NextVisibilityHero` spans both; replaced the two NextActionStrips. |
+| **Subscriptions**: hide test data in `useCustomers` aggregates (read-only) | DONE (ff53f06) | test rows dropped at fetch → honest MRR/counts/recent. Kept read-only per Krish. |
 | Secondary tabs (Home/Today/Org/Intel/Flows) | NOT STARTED | after the priority 4. |
+
+### Priority-4 complete (2026-06-17)
+All four prioritised tabs now share the one `DoThisNextHero` (consistent grammar/tones/actions), have test/demo data filtered from live views, and lead with a real one-tap next action tuned to Krish's stated outcome:
+- **Pipeline** → "Draft email / Enrich" (contact fast); card wall collapsed.
+- **Network** → "Reach out to {name} — {score}/100" (predictive rubric); render bounded.
+- **Visibility** → "Confirm / Pitch / Apply" (one engine, inbound+outbound).
+- **Subscriptions** → honest read-only watch.
+Commits: b3b6df7 (hygiene) → 7838fdd → a780d3c (shared hero + Pipeline) → 1f3361a (card) → adeeea8 (Visibility) → aa62226 (Network) → ff53f06 (Subscriptions). All built green, pushed, auto-deployed.
 
 ## Reusable primitives (from the Content rebuild)
 - `src/lib/contentEngine.ts` — pattern for `nextBestAction`, `contentBuckets`, honest-state guard, `advanceMode`.
