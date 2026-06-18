@@ -26,9 +26,16 @@
 | P-1d | `PLAN.md` filled with 16 sequenced PR-sized phases, each citing principles + jobs | DONE | Opus session 2026-06-17 | phases P-3..P-16 specced with DONE WHEN |
 | P-2 | Krish confirms apex + constitution + jobs (proceeding without blocking per Krish "move on") | ACK-OPTIONAL | — | — |
 | **P-3** | **DB hygiene migration** (demote 15 zombie rows to honest states) | DONE | Opus 2026-06-17 | 15 empty-body review/drafting → researching; verified 0 zombies remain; em-dash backfill found unnecessary (0 in 309 rows) |
-| P-4 | One pipeline + honest state guard | NEXT | — | the structural refactor — collapse the 4 surfaces |
-| P-5 | Advance = develop, not relabel | NOT STARTED | — | — |
-| P-6..P-16 | Remaining execution phases | NOT STARTED | — | see `PLAN.md` |
+| P-4 | One state-machine source + server honest-state guard | DONE | Opus 2026-06-17 | single source in contentEngine.ts; guard verified on prod (409 empty→review, 200 with body); commit a7ceaf5 |
+| P-5 | Advance = develop, not relabel; kill fake research toast | DONE | Opus 2026-06-17 | rail shows "Open & develop"/"Approve"; verified opens Composer; commit a7ceaf5 |
+| P-7 | State-aware inline card actions (Approve on ready review) | DONE | Opus 2026-06-17 | commit 7427874, deployed |
+| P-6 | One count/population everywhere (contentBuckets) | IN PROGRESS | — | helpers built; wiring into surfaces |
+| P-8..P-16 | Remaining execution phases | NOT STARTED | — | see `PLAN.md` |
+
+### Verified on prod (controlcenter.krishraja.com) 2026-06-17
+- Honest-state guard: `PATCH {state:'review'}` on an empty card → **409 `state_guard`** with the message "A card needs a real draft before it can go to review." A card WITH a body (≥200) → **200**. Zombie review/drafting cards can no longer be created.
+- Rail "Open & develop" deep-links to the Composer (develops); the fabricated "Sent to Zara for research" toast and the "Greenlight → drafting" relabel are gone.
+- Build green, deploys a7ceaf5 + 7427874 READY.
 
 ## Hard blocks for next session
 

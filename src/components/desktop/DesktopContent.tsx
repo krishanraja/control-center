@@ -7,7 +7,7 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 import { LaneToggle, CadenceBar, type LaneFilter } from '../content/LaneControls'
 import { ContentSeedRail } from '../content/ContentSeedRail'
-import { contentEngineEnabled } from '../../lib/contentEngine'
+import { contentEngineEnabled, contentBuckets } from '../../lib/contentEngine'
 import { NextActionStrip } from '../shared/NextActionStrip'
 import { BackburnerSection } from '../shared/BackburnerSection'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
@@ -85,7 +85,9 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
   )
 
   const byState = useMemo(() => groupByState(laneIdeas), [laneIdeas])
-  const activeCount = laneIdeas.filter(i => i.state !== 'dropped' && i.state !== 'published').length
+  // Single source of truth for every count on this tab (P-6 / CORE_PROBLEM F-3).
+  const buckets = useMemo(() => contentBuckets(laneIdeas), [laneIdeas])
+  const activeCount = buckets.counts.active
   const detailIdea = useMemo(() => (ideaId ? ideas.find(i => i.id === ideaId) || null : null), [ideaId, ideas])
 
   // Next action: the oldest idea in `review` state — that's the one blocking
@@ -98,8 +100,8 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
     const inDraft = laneIdeas.filter(i => i.state === 'drafting')
     return inDraft[0] || null
   }, [laneIdeas])
-  const reviewCount = (byState.review || []).length
-  const draftCount = (byState.drafting || []).length
+  const reviewCount = buckets.counts.review
+  const draftCount = buckets.counts.drafting
 
   // Focus Mode (Phase 3): when enabled and the day is calibrated, the lanes
   // view regroups the visible ideas into the 3 daily-target lanes via
@@ -142,8 +144,8 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-white/55 tabular-nums">
-            {loading ? '…' : `${activeCount} active`}
+          <span className="text-[11px] text-white/55 tabular-nums" title="In flight: seeded + researching + drafting + review + approved (excludes dropped/published/buried)">
+            {loading ? '…' : `${activeCount} in flight${reviewCount > 0 ? ` · ${reviewCount} to approve` : ''}`}
           </span>
           <button
             type="button"
