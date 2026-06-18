@@ -8,7 +8,7 @@ import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 import { LaneToggle, CadenceBar, type LaneFilter } from '../content/LaneControls'
 import { ContentSeedRail } from '../content/ContentSeedRail'
 import { contentEngineEnabled, contentBuckets } from '../../lib/contentEngine'
-import { NextActionStrip } from '../shared/NextActionStrip'
+import { NextBestActionHero } from '../content/NextBestActionHero'
 import { BackburnerSection } from '../shared/BackburnerSection'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
@@ -90,18 +90,7 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
   const activeCount = buckets.counts.active
   const detailIdea = useMemo(() => (ideaId ? ideas.find(i => i.id === ideaId) || null : null), [ideaId, ideas])
 
-  // Next action: the oldest idea in `review` state — that's the one blocking
-  // Krish's approval to ship. Falls back to drafting backlog if no reviews.
-  const nextDecisionIdea = useMemo(() => {
-    const inReview = laneIdeas.filter(i => i.state === 'review')
-    if (inReview.length > 0) {
-      return [...inReview].sort((a, b) => (a.updated_at < b.updated_at ? -1 : 1))[0]
-    }
-    const inDraft = laneIdeas.filter(i => i.state === 'drafting')
-    return inDraft[0] || null
-  }, [laneIdeas])
   const reviewCount = buckets.counts.review
-  const draftCount = buckets.counts.drafting
 
   // Focus Mode (Phase 3): when enabled and the day is calibrated, the lanes
   // view regroups the visible ideas into the 3 daily-target lanes via
@@ -208,30 +197,8 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
 
       {contentEngineEnabled() && <ContentSeedRail />}
 
-      <NextActionStrip
-        headline={reviewCount}
-        headlineLabel="in review"
-        insight={nextDecisionIdea
-          ? nextDecisionIdea.state === 'review'
-            ? `"${nextDecisionIdea.idea.slice(0, 70)}${nextDecisionIdea.idea.length > 70 ? '…' : ''}" awaiting your approval`
-            : `${draftCount} drafting · oldest: "${nextDecisionIdea.idea.slice(0, 60)}${nextDecisionIdea.idea.length > 60 ? '…' : ''}"`
-          : `${activeCount} active · no drafts awaiting your read`}
-        ctaLabel={nextDecisionIdea ? 'Open idea' : 'View pipeline'}
-        onCta={() => {
-          if (!nextDecisionIdea) return
-          const el = document.querySelector(`[data-content-idea-id="${nextDecisionIdea.id}"]`) as HTMLElement | null
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            el.style.outline = '2px solid rgba(245, 158, 11, 0.7)'
-            el.style.outlineOffset = '4px'
-            el.style.borderRadius = '12px'
-            setTimeout(() => { el.style.outline = ''; el.style.outlineOffset = '' }, 3500)
-          }
-        }}
-        icon={FileText}
-        accent={reviewCount > 0 ? 'text-amber-300' : 'text-violet-300'}
-        disabled={!nextDecisionIdea}
-      />
+      {/* The single anti-confusion spine: what to do next, one tap away (P-22). */}
+      <NextBestActionHero ideas={laneIdeas} />
 
       <div className="flex items-center gap-3">
         <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.015] p-1">

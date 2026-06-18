@@ -7,6 +7,7 @@ import { useContentTriage } from '../../hooks/useContentTriage'
 import { TriageDeck } from '../content/TriageDeck'
 import { BackburnerSection } from '../shared/BackburnerSection'
 import { SynthesisModal } from '../content/SynthesisModal'
+import { NextBestActionHero } from '../content/NextBestActionHero'
 import { clusterDrafts, type DraftCluster } from '../../lib/draftClusters'
 
 // MobileContent — two modes, driven by useContentTriage:
@@ -113,9 +114,12 @@ export function MobileContent({ ideaId }: Props = {}) {
 
         {!loading && activeCount > 0 && (
           <>
+            {/* The single anti-confusion spine: what to do next, one tap (P-22). */}
+            <NextBestActionHero ideas={active} narrow />
+
             {/* tier 1 — ready for you */}
             {readyDeck.length > 0 && (
-              <div className="mb-1.5 mt-1 text-[11px] uppercase tracking-[0.12em] text-white/40">Ready for you</div>
+              <div className="mb-1.5 mt-3 text-[11px] uppercase tracking-[0.12em] text-white/40">Ready for you</div>
             )}
             {readyDeck.map(({ i, urg }) => (
               <IdeaButton key={i.id} i={i} urg={urg} onClick={() => open(i.id)} />

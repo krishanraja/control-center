@@ -137,6 +137,103 @@ export interface ContentBuckets {
   deck: IdeaLike[]       // the triage population: active upstream + drafting (pre-gate)
 }
 
+// ── The single "what do I do next" answer (P-22 / J-13) ──────────────────
+// One function decides the highest-priority next action across the whole pile,
+// so the tab never leaves Krish wondering what to do. Priority is ordered by
+// "closest to shipped value first" with loss-aversion on ready work.
+
+export type NextActionKind = 'approve' | 'schedule' | 'draft' | 'develop' | 'seed' | 'triage' | 'clear'
+
+export interface NextBest<T> {
+  kind: NextActionKind
+  idea?: T
+  /** Plain-language instruction — what to do. */
+  headline: string
+  /** Why / how many — the supporting line. */
+  sub: string
+  /** The label for the one-tap primary button (empty for 'clear'). */
+  actionLabel: string
+}
+
+interface NextIdeaLike extends IdeaLike {
+  id: string
+  idea?: string | null
+  updated_at?: string | null
+  scheduled_for?: string | null
+  published_at?: string | null
+}
+
+function oldestBy<T extends { updated_at?: string | null }>(rows: T[]): T {
+  return [...rows].sort((a, b) => (a.updated_at || '') < (b.updated_at || '') ? -1 : 1)[0]
+}
+
+function clip(s: string | null | undefined, n = 56): string {
+  const t = (s || '').trim()
+  return t.length > n ? `${t.slice(0, n)}…` : t
+}
+
+export function nextBestAction<T extends NextIdeaLike>(ideas: T[]): NextBest<T> {
+  const b = contentBuckets(ideas)
+
+  // 1) Approve — ready drafts awaiting sign-off. Closest to shipped; never let
+  //    finished work sit (loss aversion).
+  const reviewReady = b.review.filter(hasRealBody)
+  if (reviewReady.length) {
+    const i = oldestBy(reviewReady)
+    return {
+      kind: 'approve', idea: i, actionLabel: 'Approve',
+      headline: `Approve "${clip(i.idea)}"`,
+      sub: reviewReady.length > 1 ? `${reviewReady.length} drafts ready for your sign-off` : 'Ready for your sign-off',
+    }
+  }
+
+  // 2) Schedule — approved but not yet scheduled.
+  const approvedUnsched = b.approved.filter(i => !i.scheduled_for && !i.published_at)
+  if (approvedUnsched.length) {
+    const i = oldestBy(approvedUnsched)
+    return {
+      kind: 'schedule', idea: i, actionLabel: 'Schedule',
+      headline: `Schedule "${clip(i.idea)}"`,
+      sub: approvedUnsched.length > 1 ? `${approvedUnsched.length} approved and waiting for a date` : 'Approved — pick a day to ship it',
+    }
+  }
+
+  // 3) Finish a draft in progress.
+  if (b.drafting.length) {
+    const i = oldestBy(b.drafting)
+    return {
+      kind: 'draft', idea: i, actionLabel: 'Continue draft',
+      headline: `Finish the draft "${clip(i.idea)}"`,
+      sub: b.drafting.length > 1 ? `${b.drafting.length} drafts in progress` : 'Pick up where you left off',
+    }
+  }
+
+  // 4) Develop a researched idea into a draft.
+  const researching = b.upstream.filter(i => i.state === 'researching')
+  if (researching.length) {
+    const i = oldestBy(researching)
+    return {
+      kind: 'develop', idea: i, actionLabel: 'Develop',
+      headline: `Develop "${clip(i.idea)}"`,
+      sub: researching.length > 1 ? `${researching.length} researched ideas ready to write` : 'Researched and ready to write',
+    }
+  }
+
+  // 5) Turn a raw seed into something.
+  const seeded = b.upstream.filter(i => i.state === 'seeded')
+  if (seeded.length) {
+    const i = oldestBy(seeded)
+    return {
+      kind: 'seed', idea: i, actionLabel: 'Open',
+      headline: `Develop a seed: "${clip(i.idea)}"`,
+      sub: seeded.length > 1 ? `${seeded.length} raw seeds waiting` : 'A raw idea waiting to be shaped',
+    }
+  }
+
+  // 6) Nothing in flight.
+  return { kind: 'clear', actionLabel: '', headline: "You're clear", sub: 'Nothing waiting on you. New work lands here when it is ready.' }
+}
+
 export function contentBuckets<T extends IdeaLike>(ideas: T[]): {
   upstream: T[]; drafting: T[]; review: T[]; approved: T[]
   active: T[]; buried: T[]; deck: T[]
