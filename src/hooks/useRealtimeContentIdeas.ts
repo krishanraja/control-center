@@ -118,6 +118,16 @@ export interface ContentIdeaRow {
       scored_at: string
     } | null
     cleo_pushes?: Array<{ channel: string; at: string }> | null
+    /** Each Save Draft → factory run (channel + when + the Google Doc it built). */
+    saved_drafts?: Array<{ channel: string; at: string; doc_url?: string | null }> | null
+    /** The latest factory Google Doc + the publish-follow-up flag. */
+    factory_doc?: {
+      url: string | null
+      channel: string
+      at: string
+      /** True until Krish actually publishes — keeps the piece in "your move". */
+      awaiting_publish?: boolean
+    } | null
   } | null
   /** 'user' rows are never auto-buried by the backburner sweep. */
   origin?: 'user' | 'agent' | null

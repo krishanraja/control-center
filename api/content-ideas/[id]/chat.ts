@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import {
-  callClaudeMessages, loadVoiceBlock, materialsContext, pathId, preamble,
-  readMaterials, sanitizeVoice, VOICE_GUARDRAILS, type ChatTurn,
+  callClaudeMessages, corpusForChannel, laneToCorpusChannel, loadCorpus, loadVoiceBlock,
+  materialsContext, pathId, preamble, readMaterials, sanitizeVoice, VOICE_GUARDRAILS, type ChatTurn,
 } from '../../_content.js'
 
 // POST /api/content-ideas/:id/chat
@@ -25,7 +25,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: idea } = await supabase
     .from('content_ideas').select('idea,thesis,meta,lane,lane_slot,body').eq('id', id).single()
 
-  const voice = await loadVoiceBlock()
+  const [voice, corpus] = await Promise.all([loadVoiceBlock(), loadCorpus()])
+  const channel = laneToCorpusChannel(idea?.lane, idea?.lane_slot)
+  const channelCorpus = corpusForChannel(corpus, channel)
   const materials = readMaterials(idea?.meta)
   const draft = (b.draft || idea?.body || '').trim()
   const meta = (idea?.meta || {}) as any
@@ -34,7 +36,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     "You are Cleo, Krish Raja's content partner. Krish is a British-Australian founder-operator in Brooklyn running a production AI agent fleet. You write and think in his voice: founder-practitioner, two gears (exec-to-exec authority / builder-in-the-room), compression, the \"Not X, Y\" clarifier, hard-verdict endings.",
     'You are in a working chat next to a draft. Be a real collaborator: think out loud briefly, then give him something usable. When he asks you to write or rewrite, return the prose itself (no preamble like "Sure, here is"). When he is thinking, push his thinking, surface the sharper angle, name what is missing. Keep replies tight; he hates padding.',
     '',
-    voice ? `VOICE REFERENCE:\n${voice}` : '',
+    voice ? `VOICE REFERENCE (how Krish writes):\n${voice}` : '',
+    '',
+    channelCorpus ? `CHANNEL CORPUS (what this channel is for, who it serves, the bar it clears — write to THIS mandate, not a generic post):\n${channelCorpus}` : '',
     '',
     VOICE_GUARDRAILS,
     '',
