@@ -8,7 +8,9 @@ Extends `docs/plans/content-tab-rebuild/` to the other tabs. Outcomes per tab ar
 |---|---|---|
 | Diagnosis (Pipeline/Network/Visibility/Subscriptions, prod 1440) | DONE | screenshots in `.scratch/diag-*.png`; core problem per tab in CHARTER |
 | Foundation: `isTestRecord` view filter | DONE (commit b3b6df7) | `src/lib/recordHygiene.ts`; applied to Pipeline (Desktop+Mobile) + Visibility (Desktop+Mobile). Network + Subscriptions test-filtering pending their phases (aggregate hooks). |
-| **Pipeline**: real-immediate-action hero + collapse the ~10-button card wall | NEXT | outcome = contact fast. Hero must DO the action (Draft email / Enrich), not open a deck. |
+| **Shared `DoThisNextHero`** (consistency made structural) | DONE (commit a780d3c) | `src/components/shared/DoThisNextHero.tsx` — the ONE hero every tab renders through. Content refactored onto it. |
+| **Pipeline hero** (real action, desktop+mobile) | DONE (commit a780d3c) | `NextLeadHero`: Draft email → Enrich → Promote → Follow up → clear. Verified: header 30→5 active (test filter), hero "Enrich Lionsgate". |
+| **Pipeline**: collapse the ~10-button card wall to 1 primary + overflow | NEXT | the LeadCard still shows ~10 co-equal buttons (P-3/P-5/P-22). |
 | **Network**: venture segmentation + predictive scoring rubric + bounded render + immediate action | NOT STARTED | biggest rethink (1,000 contacts, 6,776 DOM nodes today). |
 | **Visibility**: unified "Do this next" across inbound guests + outbound stages | NOT STARTED | tab is already healthy; needs the directive spine. |
 | **Subscriptions**: hide test data in `useCustomers` aggregates + honest empties (read-only) | NOT STARTED | light touch; lowest priority. |
