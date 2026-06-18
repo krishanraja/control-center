@@ -29,8 +29,13 @@
 | P-4 | One state-machine source + server honest-state guard | DONE | Opus 2026-06-17 | single source in contentEngine.ts; guard verified on prod (409 empty→review, 200 with body); commit a7ceaf5 |
 | P-5 | Advance = develop, not relabel; kill fake research toast | DONE | Opus 2026-06-17 | rail shows "Open & develop"/"Approve"; verified opens Composer; commit a7ceaf5 |
 | P-7 | State-aware inline card actions (Approve on ready review) | DONE | Opus 2026-06-17 | commit 7427874, deployed |
-| P-6 | One count/population everywhere (contentBuckets) | IN PROGRESS | — | helpers built; wiring into surfaces |
-| P-8..P-16 | Remaining execution phases | NOT STARTED | — | see `PLAN.md` |
+| P-6 | One count/population everywhere (contentBuckets) | DONE | Opus 2026-06-17 | header reads "N in flight · M to approve"; commit e029c6c |
+| J-13 | "Do this next" hero — one unambiguous next action, one tap (P-22) | DONE | Opus 2026-06-17 | `nextBestAction()` + `NextBestActionHero`; both viewports verified; commit f0d61d5 |
+| P-8 | Collapse deck+rail+lanes into one workbench renderer | NEXT | — | — |
+| P-9..P-16 | Remaining execution phases | NOT STARTED | — | see `PLAN.md` |
+
+### "Do this next" hero (the main prize: never wonder what to do next)
+`src/lib/contentEngine.ts:nextBestAction(ideas)` is the single decision: across the whole active pile it returns the one highest-priority move, ordered closest-to-shipped first — **Approve** a ready draft → **Schedule** an approved piece → **Continue** a draft → **Develop** a researched idea → shape a **seed** → clear. `src/components/content/NextBestActionHero.tsx` renders it at the top of desktop (`DesktopContent`) and mobile (`MobileContent`) action mode, with a one-tap state-correct button (Approve = guarded PATCH inline; others open the Composer on that card). This is J-13 + P-22 concentrated. Next phases (P-8/9/10 workbench) build the surface *around* this spine.
 
 ### Verified on prod (controlcenter.krishraja.com) 2026-06-17
 - Honest-state guard: `PATCH {state:'review'}` on an empty card → **409 `state_guard`** with the message "A card needs a real draft before it can go to review." A card WITH a body (≥200) → **200**. Zombie review/drafting cards can no longer be created.
