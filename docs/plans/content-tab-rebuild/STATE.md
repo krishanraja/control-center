@@ -5,7 +5,7 @@
 
 ## Status: core rebuild SHIPPED + verified on prod (2026-06-17)
 
-The Content tab's core problem (CORE_PROBLEM.md) is fixed and live: one honest state machine, advance=develop (not relabel), server guard against zombie review cards, one count source with honest labels, state-aware inline actions, a "Do this next" hero that removes all next-action ambiguity, and a Composer that flows finish→next. Remaining items are either done-as-existing, done-lean, or a minor follow-up (P-11 schedule-intent). See the ledger below.
+The Content tab's core problem (CORE_PROBLEM.md) is fixed and live: one honest state machine, advance=develop (not relabel), server guard against zombie review cards, one count source with honest labels, state-aware inline actions, a "Do this next" hero (with inline schedule) that removes all next-action ambiguity, and a Composer that flows finish→next. **All planned phases (P-3..P-16) are now DONE, done-as-existing, or done-lean.** Canonical architecture doc §changelog updated (2026-06-17 entry). Everything merged to main and prod-verified (render + server guard). The only thing NOT exercised on prod is the mutating click-through of Approve/Schedule on real content — left for Krish, since those are real content decisions.
 
 ---
 
@@ -40,7 +40,7 @@ The Content tab's core problem (CORE_PROBLEM.md) is fixed and live: one honest s
 | P-10 | Finish-one-flow-to-next | DONE (lean) | Opus 2026-06-17 | "Next →" button + Save Draft both jump to nextBestAction's card; commit 00abd6f. Lean form of the two-pane workbench, same outcome, far less risk. |
 | P-12 | Sweep-as-default >30 + honest empties | DONE (existing) | Opus 2026-06-17 | triage deck auto-engages >30 (useContentTriage hysteresis); Sweep button present; mobile all-clear gated on activeCount===0. |
 | P-15 | Cleo-unsure confidence badge | DONE | Opus 2026-06-17 | commit 32f53ba |
-| P-11 | Calendar + click-to-schedule | PARTIAL | — | calendar + click-a-day-to-schedule already exist; hero 'schedule' opens the piece with `intent=schedule` (Composer doesn't yet special-case the intent — minor follow-up). |
+| P-11 | Calendar + click-to-schedule | DONE | Opus 2026-06-17 | calendar click-a-day exists; hero now schedules inline via a one-tap date picker (`/api/content-ideas/:id/schedule`); commit db921ca |
 | P-16 | Flip flag / remove old surfaces | N/A | Opus 2026-06-17 | nothing was gated behind VITE_CONTENT_REBUILD_ENABLED — every change shipped as an unconditional fix, so prod already has it all. Old NextActionStrip replaced by the hero. |
 
 ### Final prod verification 2026-06-17 (deploy 32f53ba READY)
