@@ -19,7 +19,7 @@
 >
 > **Manual step (Krish only):** after each update, copy the Claude-skill version into Claude **browser** skills by hand — that surface has no automated sync. Everything in 1–5 is synced together programmatically and is byte-identical (these copies carry no YAML frontmatter — the skill registers off the H1 title).
 >
-> **Last reconciled against live state.** 2026-06-12 (CTRL descriptor updated 2026-06-17). Snapshot: 14 production agents (executive / growth / ops pods) plus 4 personal-life agents; ~81 n8n workflows (~76 active); ~68 Supabase tables/views; ~108 shared skills; ~170 standards; Control Center live at controlcenter.krishraja.com. Autonomous OS diagnostics live (§8.8.6); first OS cleanliness pass complete (8 stale tasks closed, workspace restructure committed, cron-payload secrets migrated). **Content Engine shipped on the Content tab (§5.7): transform axes, Challenge/enrich, channel variants, Five Standards gate, Push-to-Cleo, auto-seed + auto-score; gated behind `VITE_CONTENT_ENGINE_ENABLED`.** **Skill induction shipped (§8.7): the learning loop is now generative as well as corrective. Vera clusters repeated wins into `skill_proposals`, Krish approves, and the induced play appends to the agent brief. Self-gates until win density builds.** **Vera gap closure loop shipped (§8.8.7): Vera's weekly behavioural-audit findings now route into owned, tracked tasks (`vera_gaps` ledger + `route_vera_gaps`/`reconcile_vera_gaps`), auto-close when resolved, and escalate to Krish after two unfixed cycles via a 9th `decisions_waiting` branch.**
+> **Last reconciled against live state.** 2026-06-12 (CTRL descriptor updated 2026-06-17; n8n schedules right-sized 2026-06-19). Snapshot: 14 production agents (executive / growth / ops pods) plus 4 personal-life agents; ~81 n8n workflows (~76 active); ~68 Supabase tables/views; ~108 shared skills; ~170 standards; Control Center live at controlcenter.krishraja.com. Autonomous OS diagnostics live (§8.8.6); first OS cleanliness pass complete (8 stale tasks closed, workspace restructure committed, cron-payload secrets migrated). **Content Engine shipped on the Content tab (§5.7): transform axes, Challenge/enrich, channel variants, Five Standards gate, Push-to-Cleo, auto-seed + auto-score; gated behind `VITE_CONTENT_ENGINE_ENABLED`.** **Skill induction shipped (§8.7): the learning loop is now generative as well as corrective. Vera clusters repeated wins into `skill_proposals`, Krish approves, and the induced play appends to the agent brief. Self-gates until win density builds.** **Vera gap closure loop shipped (§8.8.7): Vera's weekly behavioural-audit findings now route into owned, tracked tasks (`vera_gaps` ledger + `route_vera_gaps`/`reconcile_vera_gaps`), auto-close when resolved, and escalate to Krish after two unfixed cycles via a 9th `decisions_waiting` branch.**
 
 ---
 
@@ -299,8 +299,8 @@ A synthesis-time `LEFT JOIN concept_decisions` on each UNION branch (to hide row
 | RPC | Purpose |
 |---|---|
 | `refresh_agent_plans()` | Refreshes all 14 `agent_plans` rows. Called weekly by Agatha Weekly Plan Refresh |
-| `audit_silent_failures()` | Used by Silent Success Detector (4h cron) to detect ok-but-empty runs |
-| `audit_critical_infra()` | Used by Critical Infrastructure Monitor (5m cron) to detect credential/RLS failures |
+| `audit_silent_failures()` | Used by Silent Success Detector (8h cron) to detect ok-but-empty runs |
+| `audit_critical_infra()` | Used by Critical Infrastructure Monitor (3h cron) to detect credential/RLS failures |
 | `audit_failure_patterns()` | Used by Vera Failure Pattern Sweep (Sun 07:00 UTC) to cluster silent_failures into corrections |
 | **`induct_skill_candidates()`** | Used by Vera Success Induction Sweep (Sun 08:00 UTC) to cluster evidence-backed task wins by [agent, task_type] and return clusters at/above the volume threshold (`system_config.skill_induction_min_cluster_size`, default 3) that do not already have a live or completed skill. Self-gating: returns zero rows until a real win corpus exists |
 | **`bump_skill_usage()`** | Marks a completed induced skill as used when its pattern produces a fresh win after go-live (the usage proxy for decay). Run weekly by the Success Induction Sweep |
@@ -360,7 +360,7 @@ Every Mindmaker property feeds one audience list, and that list flows into the C
 
 **Capture (app DB `audience_contacts`, enum `lead_source`).** CTRL signups (`track-event` edge fn → `source='ctrl'`), the marketing site (all five capture edge functions via a shared `recordSiteAudienceContact` helper → `source='mindmaker_site'`), the Builder Economy (`NotifyForm` → `source='builder_economy'`), and Mindmaker Live (Substack CSV import → `source='mindmaker_live'`). Each row carries `metadata` (capture type, attribution, and `paid` for Substack). A `synced_to_os_at` watermark marks rows the bridge has processed.
 
-**The bridge (OS pulls from the app DB).** The app DB has no outbound HTTP (`pg_net`/`http` absent), so the OS pulls. `pull_audience_contacts(limit)` uses the `http` extension (app DB service key in **Vault**, not `system_config`) to fetch unsynced rows, routes each through `sync_audience_contact(email, name, source, metadata)`, then stamps `synced_to_os_at` back. Scheduling is the **`audience-tick`** OS edge function (verify_jwt=false, `AUDIENCE_TICK_SECRET`-gated) hit by n8n workflow **`System | Mindmaker OS | Audience Pipeline`** (`7sYzU1FidUo2w1Lh`): `action=sync` every 15 min, `action=reconcile` daily 07:30. n8n holds no DB credential; the edge function uses the platform-injected service role.
+**The bridge (OS pulls from the app DB).** The app DB has no outbound HTTP (`pg_net`/`http` absent), so the OS pulls. `pull_audience_contacts(limit)` uses the `http` extension (app DB service key in **Vault**, not `system_config`) to fetch unsynced rows, routes each through `sync_audience_contact(email, name, source, metadata)`, then stamps `synced_to_os_at` back. Scheduling is the **`audience-tick`** OS edge function (verify_jwt=false, `AUDIENCE_TICK_SECRET`-gated) hit by n8n workflow **`System | Mindmaker OS | Audience Pipeline`** (`7sYzU1FidUo2w1Lh`): `action=sync` every 3h, `action=reconcile` daily 07:30. n8n holds no DB credential; the edge function uses the platform-injected service role.
 
 **Routing rule — payment is the only switch, never both.** `sync_audience_contact`:
 - `metadata.paid=true` → upsert a paid `customers` row (product `mm_ctrl` / `mindmaker_live` / `mindmaker`) → **Subscriptions**.
@@ -801,7 +801,7 @@ Two ingress paths into visibility_targets:
         → Insert into visibility_targets with type='press_relationship',
           source_url=LinkedIn/personal site, status='queued'
 
-Hourly retry sweep (inside Nova Visibility Sweeper) finds rows with
+Every-12h retry sweep (inside Nova Visibility Sweeper) finds rows with
 deep_enriched_at IS NULL (LIMIT 10)
     → POST /webhook/visibility-deep-enrich   (Nova Visibility Deep Enrich)
         → Brave research → Sonnet 4.6 generates fit_score + why_relevant +
@@ -1364,8 +1364,8 @@ Notable scheduled workflows:
 | Cadence | Workflow | Role |
 |---|---|---|
 | Every hour | Deep Enrich Retry Sweep | Picks up `status='new'` leads/guests/visibility, re-fires the appropriate enrich endpoint |
-| Every 5 min | Critical Infrastructure Monitor | Tier 3 self-healing |
-| Every 4 hours | Silent Success Detector | Tier 2 self-healing |
+| Every 3 hours | Critical Infrastructure Monitor | Tier 3 self-healing |
+| Every 8 hours | Silent Success Detector | Tier 2 self-healing |
 | Mon 09:00 UTC | Agatha Weekly Plan Refresh | Refreshes all 14 agent_plans via Sonnet 4.6 |
 | Mon 11:00 UTC | Nova Visibility Sweeper | Weekly Perplexity scrape → visibility_targets |
 | Sun 06:00 UTC | Vera Feedback Aggregation | Weekly feedback_queue → corrections rollup |
@@ -1514,9 +1514,9 @@ Env-var names differ per app and MUST match each app's code: CTRL reads `WAREHOU
 
 | Symptom | First place to look | Healer |
 |---|---|---|
-| Workflow silently stops firing | `workflow_runs` (per-workflow last entry) | Workflow Monitor + Kai every 4h |
-| Workflow runs but produces no output | `silent_failures` (tier 1 or 2) | Tier 1 completeness gate + Silent Success Detector (4h) |
-| Credential expired / RLS denying writes | `silent_failures` (tier 3), `credential_health` | Critical Infrastructure Monitor (5m) → CriticalAlertBanner |
+| Workflow silently stops firing | `workflow_runs` (per-workflow last entry) | Workflow Monitor (6h) + Kai (4h) |
+| Workflow runs but produces no output | `silent_failures` (tier 1 or 2) | Tier 1 completeness gate + Silent Success Detector (8h) |
+| Credential expired / RLS denying writes | `silent_failures` (tier 3), `credential_health` | Critical Infrastructure Monitor (3h) → CriticalAlertBanner |
 | Control Center build broken | Vercel project deployments | Arlo Vercel Build Health Check |
 | Agent giving wrong-shape output | `feedback_queue` after rejection | Vera Feedback Aggregation Sun 06:00 → corrections → brief edit |
 | Pattern of silent failures across workflows | `silent_failures` over last 7d | Vera Failure Pattern Sweep Sun 07:00 → corrections |
@@ -1662,8 +1662,8 @@ Rows record the *current* state of an entity. Concepts record the durable identi
 - Arlo syncs Control Center every 5 minutes.
 - Vera audits standards compliance daily, deep audit Fridays, feedback aggregation and success induction Sundays.
 - Marcus refreshes Home Intelligence Mon/Wed/Fri + Sunday deep + Daily Brief weekdays. Marcus pulls leads with `status IN ('ready','contacted','conversation')`, so closed leads never resurface.
-- Critical Infrastructure Monitor watches credentials every 5 min.
-- Silent Success Detector watches downstream effects every 4 hours.
+- Critical Infrastructure Monitor watches credentials every 3 hours.
+- Silent Success Detector watches downstream effects every 8 hours.
 - Deep Enrich Retry Sweep picks up unenriched leads/guests/visibility every hour.
 
 **Weekly cadence:**
@@ -1864,6 +1864,20 @@ Fixed the Content tab's core problem (Krish: "duplicated UI where buttons do not
 - **Em-dash-at-rest audit:** 0/309 stored bodies carried em/en dashes — `sanitizeVoice()` on write already keeps stored data clean; no backfill needed.
 
 Full planning + design harness lives at `docs/plans/content-tab-rebuild/` (CORE_PROBLEM, PRINCIPLES with 22 principles incl. P-22 "anticipate the next action", NIRVANA jobs, PLAN, OBSERVATIONS, STATE). Deferred by design: the literal inline two-pane workbench (the full-screen Composer is the correct deep-work surface per the device-mode principle; the "Next →" flow delivers the finish→next outcome without the high-risk embed). Minor follow-up: the hero's `intent=schedule` is passed but the Composer does not yet special-case it (calendar click-to-schedule already exists). See §5.7.
+
+### 2026-06-19: n8n execution budget right-sized to stay under the 2,500/mo cap
+
+The n8n Cloud instance was projecting ~6,200 executions/month against a 2,500/month plan cap (a single 15-min poll, `Nell | Briefing Stuck-Generating Sweep`, was ~2,920/mo by itself). Because ~93% of executions are cron-triggered, the monthly total is deterministic, so the fix was to right-size the heaviest schedules, not the logic. Seven triggers were cut and republished (n8n saves edits as a draft until `publish_workflow` promotes them to the active version):
+
+- `Nell | Briefing Stuck-Generating Sweep` (`sad7ffZPVEE469Gg`): every 15 min -> every 4h. It only catches rare hard crashes; normal failures already self-resolve to `ready` via the generator, so a high-frequency poll was waste.
+- `System | Mindmaker OS | Audience Pipeline` (`7sYzU1FidUo2w1Lh`) sync tick: hourly -> every 3h (daily 07:30 reconcile unchanged).
+- `System | Mindmaker OS | Critical Infrastructure Monitor` (`SXdHes0WwIovjPAB`): every 2h -> every 3h (the node name had long read '5m'; the live runtime was every 2h).
+- `Mindmaker OS | RE Dossier Engine` (`aXvyxnTHAT1jjPet`): every 2h -> every 6h.
+- `System | Mindmaker OS | Workflow Monitor` (`ceWoxAIadebfpxvh`): every 4h -> every 6h.
+- `System | Mindmaker OS | Silent Success Detector` (`F6srw1yE9uH67q14`): every 4h -> every 8h.
+- `Nova | Mindmaker OS | Visibility Sweeper` (`SIDlCqURzTVsVt70`) retry sub-trigger: every 6h -> every 12h (the weekly Mon 11:00 UTC sweep unchanged).
+
+Projected steady state after the cuts: ~2,135 executions/month, under the cap with ~365 headroom. Monitoring cadence was kept healthy (Critical Infra still every 3h). Re-measure the 7-day actual to confirm. Open follow-up: make the generator (`4RfAKh6U5guCmTrc`) stamp `briefing_status='failed'` on its own error via an Error Workflow, so the Stuck-Generating poll can drop to a daily backstop or be retired.
 
 ### 2026-06-15 — Guest pre-enrichment triage (LIVE) + Speaker Briefing generator (built; blocked on an n8n Cloud runner crash; UI in unmerged PR #147)
 
