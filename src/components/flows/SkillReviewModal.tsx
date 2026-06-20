@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { X, Check, AlertTriangle, Loader2, RefreshCw, Send } from 'lucide-react'
+import { X, Check, AlertTriangle, Loader2, RefreshCw, Send, Wand2, RotateCcw } from 'lucide-react'
 import type { SkillData, QualityGateResult } from './types'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
+import { useToast } from '../shared/Toast'
+
+const API = import.meta.env.VITE_API_URL ?? ''
 
 const EMPTY_SKILL: SkillData = {
   name: '', description: '', body: '', references: [], test_prompts: [], gotchas: [], archetype: '',
@@ -15,16 +18,24 @@ interface Props {
   regenerating: boolean
   onClose: () => void
   onChange: (skills: SkillData[]) => void
+  onGateChange: (gate: QualityGateResult[]) => void
   onRegenerate: () => void
   onShip: (skills: SkillData[]) => void
+  clientName?: string
 }
 
 export function SkillReviewModal({
   isOpen, skills, qualityGate, clientEmail, regenerating,
-  onClose, onChange, onRegenerate, onShip,
+  onClose, onChange, onGateChange, onRegenerate, onShip, clientName,
 }: Props) {
+  const { toast } = useToast()
   const [activeIdx, setActiveIdx] = useState(0)
   const [shipping, setShipping] = useState(false)
+  // AI refine-with-undo for the active skill — mirrors the content composer's
+  // Adjust: a targeted instruction, applied with a one-click revert.
+  const [refineInput, setRefineInput] = useState('')
+  const [refining, setRefining] = useState(false)
+  const [undo, setUndo] = useState<{ skills: SkillData[]; gate: QualityGateResult[] } | null>(null)
 
   useEffect(() => {
     if (activeIdx >= skills.length) setActiveIdx(0)
@@ -43,6 +54,38 @@ export function SkillReviewModal({
     onChange(next)
   }
 
+  const runRefine = async () => {
+    const instruction = refineInput.trim()
+    if (!instruction || refining) return
+    setRefining(true)
+    try {
+      const r = await fetch(`${API}/api/skills/revise`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill: active, instruction, client_name: clientName }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`)
+      // Snapshot for undo, then apply the revised skill + its fresh gate.
+      setUndo({ skills: skills.slice(), gate: qualityGate.slice() })
+      const nextSkills = skills.slice(); nextSkills[activeIdx] = j.skill
+      const nextGate = qualityGate.slice(); if (j.quality_gate) nextGate[activeIdx] = j.quality_gate
+      onChange(nextSkills); onGateChange(nextGate)
+      setRefineInput('')
+      toast('Refined — Undo if it missed.', 'success')
+    } catch (e: any) {
+      toast(`Refine failed: ${e?.message || 'error'}`, 'error')
+    } finally {
+      setRefining(false)
+    }
+  }
+
+  const undoRefine = () => {
+    if (!undo) return
+    onChange(undo.skills); onGateChange(undo.gate); setUndo(null)
+    toast('Reverted.', 'success')
+  }
+
   const handleShip = async () => {
     if (!clientEmail.trim()) return
     setShipping(true)
@@ -55,7 +98,7 @@ export function SkillReviewModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      {(shipping || regenerating) && <ProcessingOverlay label={shipping ? 'Shipping skills' : 'Regenerating skills'} sub={shipping ? 'Saving and emailing the client' : 'Cleo is rebuilding them'} />}
+      {(shipping || regenerating || refining) && <ProcessingOverlay label={shipping ? 'Shipping skills' : refining ? 'Refining this skill' : 'Regenerating skills'} sub={shipping ? 'Saving and emailing the client' : refining ? 'Applying your instruction' : 'Cleo is rebuilding them'} />}
       <div className="relative w-full max-w-6xl max-h-[92vh] rounded-2xl border border-white/[0.08] bg-[#111114] shadow-2xl flex flex-col overflow-hidden">
 
         {/* Header */}
@@ -99,6 +142,30 @@ export function SkillReviewModal({
           {/* Editor (60%) */}
           <div className="lg:col-span-3 flex flex-col min-h-0 border-r border-white/[0.04]">
             <div className="px-5 py-3 space-y-3 overflow-y-auto">
+              {/* AI refine bar — targeted change to this skill, with undo. */}
+              <div className="rounded-lg border border-violet-500/25 bg-violet-500/[0.04] p-2">
+                <div className="flex items-center gap-1.5">
+                  <Wand2 size={13} className="text-violet-300 flex-shrink-0" />
+                  <input
+                    value={refineInput}
+                    onChange={e => setRefineInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') runRefine() }}
+                    placeholder="Tell Cleo what to change about this skill…"
+                    className="flex-1 bg-transparent text-[12px] text-white/85 placeholder:text-white/30 focus:outline-none"
+                  />
+                  {undo && (
+                    <button type="button" onClick={undoRefine} title="Undo last refine"
+                      className="inline-flex items-center gap-1 text-[11px] text-white/55 hover:text-white/90 px-2 py-1 rounded-md hover:bg-white/[0.06]">
+                      <RotateCcw size={11} /> Undo
+                    </button>
+                  )}
+                  <button type="button" onClick={runRefine} disabled={refining || !refineInput.trim()}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 disabled:opacity-40">
+                    {refining ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />} Refine
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40 mb-1">Name</label>
                 <input

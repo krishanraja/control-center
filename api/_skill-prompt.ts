@@ -610,6 +610,65 @@ export async function callSkillLLM(input: {
   }
 }
 
+// Incremental, targeted revision of a SINGLE already-generated skill — the
+// "refine with preview/undo" loop, mirroring the content composer's Adjust. Keeps
+// the skill's structure intact and only changes what the instruction asks for.
+const SKILL_REVISE_SYSTEM_PROMPT = `You revise ONE existing Agent Skill per a specific instruction.
+Keep the same JSON structure and every field. Change only what the instruction asks; preserve everything else verbatim.
+Never break the SKILL.md format. Keep the description trigger-rich and under 1024 chars.
+Return ONLY JSON: {"skill": { "name", "description", "body", "references":[{"filename","content"}], "test_prompts":[], "gotchas":[], "archetype" }}.`
+
+export async function reviseSkill(input: {
+  skill: SkillData
+  instruction: string
+  client_name?: string
+}): Promise<SkillData> {
+  const key = process.env.OPENAI_API_KEY
+  const userMsg = [
+    input.client_name ? `CLIENT_NAME: ${input.client_name}` : '',
+    'INSTRUCTION:',
+    input.instruction,
+    '',
+    'CURRENT_SKILL (JSON):',
+    JSON.stringify(input.skill),
+  ].filter(Boolean).join('\n')
+
+  // No key in local dev → echo the skill back unchanged so the UI still flows.
+  if (!key) return input.skill
+
+  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+      messages: [
+        { role: 'system', content: SKILL_REVISE_SYSTEM_PROMPT },
+        { role: 'user', content: userMsg },
+      ],
+    }),
+  })
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '')
+    throw new Error(`OpenAI ${resp.status}: ${text.slice(0, 300)}`)
+  }
+  const json: any = await resp.json()
+  const content = json?.choices?.[0]?.message?.content
+  if (!content) throw new Error('OpenAI returned empty content')
+  let parsed: any
+  try { parsed = JSON.parse(content) } catch { throw new Error('Model did not return valid JSON') }
+  const revised = parsed?.skill || parsed
+  // Merge defensively so a partial model response can never drop fields.
+  return {
+    ...input.skill,
+    ...revised,
+    references: Array.isArray(revised?.references) ? revised.references : input.skill.references,
+    test_prompts: Array.isArray(revised?.test_prompts) ? revised.test_prompts : input.skill.test_prompts,
+    gotchas: Array.isArray(revised?.gotchas) ? revised.gotchas : input.skill.gotchas,
+  }
+}
+
 function stubResponse(input: { transcript: string; client_name: string }): GenerateResponse {
   const name = 'sample-skill-' + (Date.now() % 1000)
   const skill: SkillData = {

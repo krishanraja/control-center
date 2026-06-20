@@ -295,6 +295,8 @@ export function SkillForge() {
           onRegenerate={handleRegenerate}
           onShip={handleShip}
           onChange={setSkills}
+          onGateChange={setQualityGate}
+          clientName={clientName.trim()}
         />
       )}
     </div>
