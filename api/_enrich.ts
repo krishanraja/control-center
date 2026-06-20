@@ -80,38 +80,115 @@ async function apolloPerson(input: BriefInput): Promise<{ context: string; linke
   }
 }
 
-/** Build a grounded research brief. Uses Apollo for structured B2B data (people)
- *  and Perplexity for web facts when their keys are set, then Claude to
- *  synthesize. Degrades to a Claude-only summary from known context otherwise. */
-export async function researchBrief(input: BriefInput): Promise<BriefResult> {
+// People Data Labs person enrichment — a second structured source alongside
+// Apollo (catches people Apollo misses). Gated on PEOPLE_DATA_LABS_API_KEY.
+async function peopleDataLabs(input: BriefInput): Promise<string> {
+  const key = process.env.PEOPLE_DATA_LABS_API_KEY
+  if (!key) return ''
+  const params = new URLSearchParams({ min_likelihood: '6' })
+  if (input.email) params.set('email', input.email)
+  if (input.url && /linkedin\.com/i.test(input.url)) params.set('profile', input.url)
+  if (input.name) params.set('name', input.name)
+  if (input.company) params.set('company', input.company)
+  if (!params.has('email') && !params.has('profile') && !(params.has('name') && params.has('company'))) return ''
+  try {
+    const r = await fetch(`https://api.peopledatalabs.com/v5/person/enrich?${params}`, {
+      headers: { 'X-Api-Key': key },
+    })
+    const j: any = await r.json().catch(() => ({}))
+    const d = j?.data
+    if (!r.ok || !d) return ''
+    const lines = [
+      d.job_title ? `Title: ${d.job_title}` : '',
+      d.job_company_name ? `Company: ${d.job_company_name}${d.job_company_industry ? ` (${d.job_company_industry})` : ''}` : '',
+      d.job_company_size ? `Company size: ${d.job_company_size}` : '',
+      d.location_name ? `Location: ${d.location_name}` : '',
+      Array.isArray(d.experience) && d.experience.length
+        ? `Career: ${d.experience.slice(0, 4).map((e: any) => `${e?.title?.name || ''}${e?.company?.name ? ` @ ${e.company.name}` : ''}`).filter((s: string) => s.trim()).join('; ')}`
+        : '',
+      Array.isArray(d.skills) && d.skills.length ? `Skills: ${d.skills.slice(0, 8).join(', ')}` : '',
+    ].filter(Boolean)
+    return lines.length ? `PEOPLE DATA LABS:\n${lines.join('\n')}` : ''
+  } catch {
+    return ''
+  }
+}
+
+async function exaSearch(query: string): Promise<{ text: string; sources: string[] }> {
+  const key = process.env.EXA_API_KEY
+  if (!key) return { text: '', sources: [] }
+  try {
+    const r = await fetch('https://api.exa.ai/search', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, numResults: 4, contents: { text: { maxCharacters: 900 } } }),
+    })
+    const j: any = await r.json().catch(() => ({}))
+    const results = Array.isArray(j?.results) ? j.results : []
+    if (!r.ok || !results.length) return { text: '', sources: [] }
+    const text = results.map((x: any) => `- ${x.title || ''}: ${(x.text || '').replace(/\s+/g, ' ').slice(0, 400)}`).join('\n')
+    return { text, sources: results.map((x: any) => x.url).filter(Boolean) }
+  } catch {
+    return { text: '', sources: [] }
+  }
+}
+
+async function braveSearch(query: string): Promise<{ text: string; sources: string[] }> {
+  const key = process.env.BRAVE_API_KEY
+  if (!key) return { text: '', sources: [] }
+  try {
+    const r = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`, {
+      headers: { 'X-Subscription-Token': key, Accept: 'application/json' },
+    })
+    const j: any = await r.json().catch(() => ({}))
+    const results = Array.isArray(j?.web?.results) ? j.web.results : []
+    if (!r.ok || !results.length) return { text: '', sources: [] }
+    const text = results.map((x: any) => `- ${x.title || ''}: ${(x.description || '').replace(/\s+/g, ' ').slice(0, 300)}`).join('\n')
+    return { text, sources: results.map((x: any) => x.url).filter(Boolean) }
+  } catch {
+    return { text: '', sources: [] }
+  }
+}
+
+// Web research, cost-aware: prefer Perplexity (synthesized + cited); fall back to
+// Exa, then Brave, only when the prior source is unavailable/empty.
+async function webResearch(query: string): Promise<{ text: string; sources: string[] }> {
   const pplxKey = process.env.PERPLEXITY_API_KEY
+  if (pplxKey) {
+    const r = await perplexity(pplxKey, 'You are a precise research assistant. Be factual, cite sources, never speculate.', query)
+    if (r.text) return { text: r.text, sources: r.citations }
+  }
+  const exa = await exaSearch(query)
+  if (exa.text) return exa
+  return braveSearch(query)
+}
 
-  // Structured + web research in parallel.
-  const apolloP = input.kind === 'person' ? apolloPerson(input) : Promise.resolve({ context: '' as string, linkedin: undefined as string | undefined })
-  const pplxP: Promise<{ text: string; citations: string[] }> = pplxKey
-    ? perplexity(
-        pplxKey,
-        'You are a precise research assistant. Be factual, cite sources, never speculate.',
-        input.kind === 'event'
-          ? `Research this event/visibility opportunity for a prospective speaker: "${input.name}"${input.url ? ` (${input.url})` : ''}. Who organises it, the audience and size, dates/deadlines, how to get on stage, and why it would matter. Cite sources.`
-          : `Research this person: ${input.name}${input.title ? `, ${input.title}` : ''}${input.company ? ` at ${input.company}` : ''}${input.url ? ` (${input.url})` : ''}. What they work on now, recent public activity, and what they care about. Cite sources.`,
-      )
-    : Promise.resolve({ text: '', citations: [] })
+/** Build a grounded research brief. Combines structured B2B data (Apollo +
+ *  People Data Labs) with web research (Perplexity → Exa → Brave), then Claude
+ *  to synthesize. Every source is independently gated on its key; with none set
+ *  it degrades to a Claude-only summary from known context. */
+export async function researchBrief(input: BriefInput): Promise<BriefResult> {
+  const query = input.kind === 'event'
+    ? `Research this event/visibility opportunity for a prospective speaker: "${input.name}"${input.url ? ` (${input.url})` : ''}. Who organises it, the audience and size, dates/deadlines, how to get on stage, and why it would matter.`
+    : `Research this person: ${input.name}${input.title ? `, ${input.title}` : ''}${input.company ? ` at ${input.company}` : ''}${input.url ? ` (${input.url})` : ''}. What they work on now, recent public activity, and what they care about.`
 
-  const [apollo, pplx] = await Promise.all([apolloP, pplxP])
-  const sources = pplx.citations
+  // Structured (people only) + web research in parallel.
+  const structuredP = input.kind === 'person'
+    ? Promise.all([apolloPerson(input), peopleDataLabs(input)]).then(([a, pdl]) => [a.context, pdl].filter(Boolean).join('\n\n'))
+    : Promise.resolve('')
+  const [structured, web] = await Promise.all([structuredP, webResearch(query)])
 
-  const system = 'You write a tight research brief an operator can act on immediately. 4–7 sentences, concrete and specific. Prefer the structured Apollo data for facts; use the web findings for recent/contextual colour. If the facts are thin, say so plainly rather than inventing anything.'
+  const system = 'You write a tight research brief an operator can act on immediately. 4–7 sentences, concrete and specific. Prefer the structured data (Apollo / People Data Labs) for hard facts; use the web findings for recent/contextual colour. If the facts are thin, say so plainly rather than inventing anything.'
   const user = [
     input.kind === 'event' ? `EVENT: ${input.name}` : `PERSON: ${input.name}`,
     input.company ? `Company: ${input.company}` : '',
     input.title ? `Title: ${input.title}` : '',
     input.extra ? `Known context: ${input.extra}` : '',
-    apollo.context || '',
-    pplx.text ? `WEB FINDINGS:\n${pplx.text}` : '',
-    (!apollo.context && !pplx.text) ? '(no external research available — use only the known context above and stay honest about gaps)' : '',
+    structured || '',
+    web.text ? `WEB FINDINGS:\n${web.text}` : '',
+    (!structured && !web.text) ? '(no external research available — use only the known context above and stay honest about gaps)' : '',
   ].filter(Boolean).join('\n')
 
   const summary = (await callClaude({ system, user, maxTokens: 600, temperature: 0.4 })).trim()
-  return { summary, sources }
+  return { summary, sources: web.sources }
 }
