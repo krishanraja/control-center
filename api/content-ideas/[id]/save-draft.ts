@@ -25,6 +25,19 @@ const FACTORY_CHANNELS = new Set([
   'builder_economy', 'vertical_video', 'dynamic',
 ])
 
+// The Final Pass decision Krish shipped with (Q14 learning loop): what Cleo
+// flagged, what he accepted, what he dismissed and overrode. Logged so each
+// venture's rubric can tune to his real taste over time.
+interface FinalPassShip {
+  venture?: string
+  verdict?: string
+  ran?: boolean
+  accepted?: number
+  dismissed?: Array<{ dimension?: string; issue?: string }>
+  shipped_with_open?: Array<{ dimension?: string; issue?: string }>
+  lenses_demanded?: string[]
+}
+
 // lane (+slot) -> factory channel. Mirrors src/lib/contentEngine.ts LANES.
 function laneToChannel(lane?: string | null, slot?: string | null): string {
   if (lane === 'techonomic') return 'techonomic'
@@ -70,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = pathId(req)
   if (!id) return res.status(400).json({ ok: false, error: 'id required' })
 
-  const b = (req.body || {}) as { channel?: string; source_text?: string }
+  const b = (req.body || {}) as { channel?: string; source_text?: string; final_pass?: FinalPassShip }
 
   const webhook = process.env.N8N_CONTENT_FACTORY_WEBHOOK_URL
   if (!webhook) return res.status(500).json({ ok: false, error: 'N8N_CONTENT_FACTORY_WEBHOOK_URL not configured' })
@@ -164,9 +177,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     at: nowIso,
     awaiting_publish: true,
   }
+  // Q14 learning loop: append the Final Pass decision (what Cleo flagged, what
+  // Krish accepted, what he dismissed/overrode) so each venture's rubric can be
+  // tuned to his real taste later. Capped to the last 30 ships.
+  const fp = b.final_pass
+  const overrides = Array.isArray(meta.final_pass_overrides) ? meta.final_pass_overrides : []
+  if (fp && fp.ran) {
+    overrides.unshift({
+      at: nowIso,
+      channel,
+      venture: fp.venture || null,
+      verdict: fp.verdict || null,
+      accepted: fp.accepted ?? 0,
+      dismissed: Array.isArray(fp.dismissed) ? fp.dismissed.slice(0, 20) : [],
+      shipped_with_open: Array.isArray(fp.shipped_with_open) ? fp.shipped_with_open.slice(0, 20) : [],
+      lenses_demanded: Array.isArray(fp.lenses_demanded) ? fp.lenses_demanded : [],
+    })
+  }
+
   const update: Record<string, any> = {
     body: draft,
-    meta: { ...meta, saved_drafts: saves.slice(0, 12), factory_doc },
+    meta: {
+      ...meta, saved_drafts: saves.slice(0, 12), factory_doc,
+      ...(fp && fp.ran ? { final_pass_overrides: overrides.slice(0, 30) } : {}),
+    },
     state: idea.state === 'published' || idea.state === 'dropped' ? idea.state : 'review',
     updated_at: nowIso,
   }

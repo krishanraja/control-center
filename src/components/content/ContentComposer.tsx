@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ArrowLeft, BookOpen, Check, ExternalLink, FileText, Link2, Loader2, MessageSquare, Paperclip, PenLine, RotateCcw,
-  Save, Search, Send, Sparkles, Trash2, Wand2, X, Gauge,
+  AlertTriangle, ArrowLeft, BookOpen, Check, ExternalLink, FileText, Link2, Loader2, MessageSquare, Paperclip, PenLine, RotateCcw,
+  Save, Search, Send, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Wand2, X, Gauge,
 } from 'lucide-react'
 import { RichText } from './RichText'
 import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
@@ -215,7 +215,7 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
           </button>
         )}
 
-        {!narrow && <SaveDraftButton idea={idea} draft={draft} onSaved={goNext} />}
+        {!narrow && <SaveDraftButton idea={idea} draft={draft} onApplyDraft={applyDraft} onSaved={goNext} />}
         {/* Finish one, flow to the next (P-10 / P-22). */}
         {!narrow && nextPiece && (
           <button
@@ -407,7 +407,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
 
       {/* Sticky push */}
       <div className="px-3 pt-2.5 pb-safe border-t border-white/[0.08] flex-shrink-0 bg-[#0a0a0b]">
-        <SaveDraftButton idea={idea} draft={draft} onSaved={onClose} block />
+        <SaveDraftButton idea={idea} draft={draft} onApplyDraft={onApplyDraft} onSaved={onClose} block />
       </div>
 
       {/* Magic preview sheet */}
@@ -535,42 +535,59 @@ function TitleField({ idea }: { idea: ContentIdeaRow }) {
 
 interface SaveResult { docUrl: string | null; pending: boolean; channel: string }
 
-function SaveDraftButton({ idea, draft, onSaved, block }: { idea: ContentIdeaRow; draft: string; onSaved: () => void; block?: boolean }) {
+function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: ContentIdeaRow; draft: string; onApplyDraft: (t: string) => void; onSaved: () => void; block?: boolean }) {
   const { toast } = useToast()
   const h = useHaptics()
-  const [busy, setBusy] = useState(false)
+  const [running, setRunning] = useState(false)   // Final Pass running
   const [menu, setMenu] = useState(false)
+  const [pass, setPass] = useState<FinalPassData | null>(null) // review gate open
   const [result, setResult] = useState<SaveResult | null>(null)
   const autoChannel = laneToFactoryChannel(idea.lane, idea.lane_slot)
   const [channel, setChannel] = useState<string>(autoChannel)
 
-  const save = async () => {
+  // Save Draft now runs Cleo's Final Pass first (Krish, Q1/Q3): the ship-moment
+  // editor reads the whole piece against the venture rubric, then the review gate
+  // lets him accept/dismiss and ship. Nothing reaches the factory until Ship.
+  const runPass = async () => {
     if (!draft.trim()) { toast('Write or expand a draft first.', 'error'); return }
-    h.heavy(); setBusy(true)
+    h.heavy(); setRunning(true)
     try {
-      const r = await fetch(`/api/content-ideas/${idea.id}/save-draft`, {
+      const r = await fetch(`/api/content-ideas/${idea.id}/final-pass`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channel, source_text: draft }),
+        body: JSON.stringify({ source_text: draft }),
       })
       const j = await r.json().catch(() => ({}))
       if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
-      h.success()
-      // Don't auto-navigate — surface the Doc link so Krish can jump straight there.
-      setResult({ docUrl: j.doc_url || null, pending: !!j.doc_pending, channel: j.target_channel || channel })
+      h.success(); setPass(j as FinalPassData)
     } catch (e: any) {
-      h.error(); toast(`Save failed: ${e?.message || 'error'}`, 'error')
-    } finally { setBusy(false) }
+      h.error(); toast(`Final pass failed: ${e?.message || 'error'}`, 'error')
+    } finally { setRunning(false) }
+  }
+
+  // The actual ship: fires the factory and logs the override decision (Q14).
+  const ship = async (finalText: string, override: FinalPassShipPayload) => {
+    const r = await fetch(`/api/content-ideas/${idea.id}/save-draft`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel, source_text: finalText, final_pass: override }),
+    })
+    const j = await r.json().catch(() => ({}))
+    if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
+    h.success()
+    onApplyDraft(finalText) // keep the canvas == what shipped
+    setPass(null)
+    setResult({ docUrl: j.doc_url || null, pending: !!j.doc_pending, channel: j.target_channel || channel })
   }
 
   return (
     <div className={`relative flex items-center ${block ? 'w-full' : ''}`}>
       <button
-        type="button" onClick={save} disabled={busy}
+        type="button" onClick={runPass} disabled={running}
+        title="Run Cleo's final pass, then ship to Google Docs"
         className={`flex items-center justify-center gap-1.5 font-semibold bg-violet-500/90 text-white hover:bg-violet-500 disabled:opacity-50 transition-colors ${
           block ? 'flex-1 py-3 rounded-l-xl text-[14px]' : 'pl-3 pr-2.5 py-2 rounded-l-lg text-[12px]'
         }`}
       >
-        {busy ? <Loader2 size={block ? 15 : 13} className="animate-spin" /> : <Save size={block ? 15 : 13} />} Save Draft
+        {running ? <Loader2 size={block ? 15 : 13} className="animate-spin" /> : <Save size={block ? 15 : 13} />} Save Draft
       </button>
       <button
         type="button" onClick={() => setMenu(m => !m)} disabled={busy}
@@ -596,6 +613,26 @@ function SaveDraftButton({ idea, draft, onSaved, block }: { idea: ContentIdeaRow
         </div>
       )}
 
+      {pass && (
+        <FinalPassReview
+          pass={pass}
+          original={draft}
+          channelLabel={FACTORY_CHANNELS.find(c => c.value === channel)?.label || channel}
+          onShip={ship}
+          onApplyDraft={onApplyDraft}
+          onClose={() => setPass(null)}
+          onRerun={async (lenses) => {
+            const r = await fetch(`/api/content-ideas/${idea.id}/final-pass`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ source_text: draft, lenses }),
+            })
+            const j = await r.json().catch(() => ({}))
+            if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
+            return j as FinalPassData
+          }}
+        />
+      )}
+
       {result && (
         <SavedToDocsModal
           result={result}
@@ -603,6 +640,291 @@ function SaveDraftButton({ idea, draft, onSaved, block }: { idea: ContentIdeaRow
           onDone={() => { setResult(null); onSaved() }}
         />
       )}
+    </div>
+  )
+}
+
+// ── Final Pass: the ship-moment review gate ─────────────────────────────────
+// Cleo's last read against the venture rubric. Auto-fixed errors are already
+// folded into pass.cleaned_text; here Krish accepts/dismisses content
+// suggestions, dials Techonomic lenses, eyeballs [VERIFY] flags and the Five
+// Standards, then ships. An instant-fail hard-blocks the ship (Q1). What he
+// dismisses or overrides is logged so the rubric tunes to his taste (Q14).
+
+interface PassSuggestionUI {
+  id: string; dimension: string; severity: 'high' | 'med' | 'low'
+  quote: string; issue: string; suggestion: string; rewrite?: string | null
+}
+interface FinalPassData {
+  venture: string; venture_label: string; has_lenses: boolean
+  cleaned_text: string; changed: boolean
+  instant_fail: { failed: boolean; reasons: string[] }
+  autofixes: { kind: string; before: string; after: string; note?: string }[]
+  suggestions: PassSuggestionUI[]
+  lenses: { key: string; label: string; present: boolean; note?: string }[]
+  verify: { quote: string; claim: string; why: string }[]
+  standards: Record<string, { score: number; note: string }>
+  verdict: string
+}
+interface FinalPassShipPayload {
+  venture: string; verdict: string; ran: boolean; accepted: number
+  dismissed: { dimension: string; issue: string }[]
+  shipped_with_open: { dimension: string; issue: string }[]
+  lenses_demanded: string[]
+}
+
+const DIM_LABEL: Record<string, string> = {
+  clarity: 'Clearer', evidence: 'Evidenced', narration: 'Narrated', harden: 'Hardened',
+  soften: 'Softened', impact: 'More impactful', structure: 'Structure', factual: 'Factual risk',
+  voice: 'Voice', kind: 'Kindness',
+}
+const SEV_STYLE: Record<string, string> = {
+  high: 'border-rose-500/40 text-rose-200',
+  med: 'border-amber-500/30 text-amber-200',
+  low: 'border-white/12 text-white/55',
+}
+
+function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, onClose, onRerun }: {
+  pass: FinalPassData
+  original: string
+  channelLabel: string
+  onShip: (finalText: string, override: FinalPassShipPayload) => Promise<void>
+  onApplyDraft: (t: string) => void
+  onClose: () => void
+  onRerun: (lenses: string[]) => Promise<FinalPassData>
+}) {
+  const { toast } = useToast()
+  const h = useHaptics()
+  const [data, setData] = useState<FinalPassData>(pass)
+  const [working, setWorking] = useState<string>(pass.cleaned_text)
+  const [autofixed, setAutofixed] = useState<boolean>(pass.autofixes.length > 0)
+  const [handled, setHandled] = useState<Record<string, 'accepted' | 'dismissed'>>({})
+  const [lensSel, setLensSel] = useState<Set<string>>(new Set(pass.lenses.map(l => l.key)))
+  const [rerunning, setRerunning] = useState(false)
+  const [shipping, setShipping] = useState(false)
+
+  // Re-seed when a re-run swaps the data.
+  const reseed = (d: FinalPassData) => {
+    setData(d); setWorking(d.cleaned_text); setAutofixed(d.autofixes.length > 0)
+    setHandled({}); setLensSel(new Set(d.lenses.map(l => l.key)))
+  }
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const blocked = data.instant_fail.failed
+  const open = data.suggestions.filter(s => !handled[s.id])
+  const acceptedCount = Object.values(handled).filter(v => v === 'accepted').length
+
+  const applySuggestion = (s: PassSuggestionUI) => {
+    if (!s.rewrite) return
+    if (!working.includes(s.quote)) { toast('That passage has changed, dismiss and edit by hand.', 'error'); return }
+    setWorking(working.replace(s.quote, s.rewrite)); setHandled(h2 => ({ ...h2, [s.id]: 'accepted' })); h.tap()
+  }
+  const dismiss = (s: PassSuggestionUI) => { setHandled(h2 => ({ ...h2, [s.id]: 'dismissed' })); h.tap() }
+
+  const revertAutofixes = () => { setWorking(original); setAutofixed(false); toast('Reverted to your exact words.', 'success') }
+
+  const toggleLens = (k: string) => setLensSel(s => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n })
+  const rerun = async () => {
+    setRerunning(true)
+    try { reseed(await onRerun([...lensSel])); h.success() }
+    catch (e: any) { h.error(); toast(`Re-run failed: ${e?.message || 'error'}`, 'error') }
+    finally { setRerunning(false) }
+  }
+
+  const doShip = async () => {
+    if (blocked) return
+    setShipping(true)
+    try {
+      const dismissed = data.suggestions.filter(s => handled[s.id] === 'dismissed').map(s => ({ dimension: s.dimension, issue: s.issue }))
+      const openNow = data.suggestions.filter(s => !handled[s.id]).map(s => ({ dimension: s.dimension, issue: s.issue }))
+      await onShip(working, {
+        venture: data.venture, verdict: data.verdict, ran: true, accepted: acceptedCount,
+        dismissed, shipped_with_open: openNow, lenses_demanded: [...lensSel],
+      })
+    } catch (e: any) { h.error(); toast(`Ship failed: ${e?.message || 'error'}`, 'error'); setShipping(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-label="Final pass review">
+      <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-fade-in" />
+      <div className="relative w-full max-w-lg max-h-[92dvh] flex flex-col rounded-2xl border border-white/[0.1] bg-[#0f0f12] shadow-2xl shadow-black/60">
+        {/* Header */}
+        <div className="flex items-start gap-2.5 p-4 pb-3 border-b border-white/[0.07] flex-shrink-0">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${blocked ? 'bg-rose-500/15' : 'bg-violet-500/15'}`}>
+            {blocked ? <ShieldAlert size={16} className="text-rose-300" /> : <ShieldCheck size={16} className="text-violet-300" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[15px] font-semibold text-white leading-tight">Final pass · {data.venture_label}</h3>
+            {data.verdict && <p className="text-[12px] text-white/55 leading-snug mt-0.5">{data.verdict}</p>}
+          </div>
+          <button onClick={onClose} aria-label="Close" className="flex items-center justify-center w-8 h-8 rounded-lg text-white/45 hover:text-white hover:bg-white/[0.06] flex-shrink-0"><X size={18} /></button>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3.5">
+          {/* Instant-fail block */}
+          {blocked && (
+            <div className="rounded-xl border border-rose-500/40 bg-rose-500/[0.07] p-3">
+              <div className="flex items-center gap-1.5 text-[12px] font-semibold text-rose-200 mb-1.5">
+                <AlertTriangle size={13} /> Can't ship yet, {data.venture_label} instant-fail
+              </div>
+              <ul className="space-y-1">
+                {data.instant_fail.reasons.map((r, i) => (
+                  <li key={i} className="text-[12px] text-rose-100/85 leading-snug flex gap-1.5"><span className="text-rose-300/70">·</span>{r}</li>
+                ))}
+              </ul>
+              <p className="text-[11px] text-rose-200/60 mt-2 leading-snug">Fix these in the draft, then Save Draft again to re-run the pass.</p>
+            </div>
+          )}
+
+          {/* Auto-fixed errors */}
+          {data.autofixes.length > 0 && (
+            <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.04] p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-[12px] font-medium text-emerald-200">
+                  <Check size={13} /> Cleaned {data.autofixes.length} error{data.autofixes.length === 1 ? '' : 's'} {autofixed ? 'automatically' : '(reverted)'}
+                </div>
+                <button type="button" onClick={autofixed ? revertAutofixes : () => { setWorking(data.cleaned_text); setAutofixed(true) }}
+                  className="text-[10px] px-2 py-1 rounded-md border border-white/12 text-white/55 hover:bg-white/[0.06]">
+                  {autofixed ? 'Revert' : 'Re-apply'}
+                </button>
+              </div>
+              {autofixed && (
+                <div className="mt-2 space-y-1">
+                  {data.autofixes.slice(0, 5).map((f, i) => (
+                    <div key={i} className="text-[11px] text-white/55 leading-snug">
+                      <span className="line-through text-white/35">{f.before.slice(0, 60)}</span>{' → '}
+                      <span className="text-emerald-200/80">{f.after.slice(0, 60)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Techonomic lenses (dial-able) */}
+          {data.has_lenses && data.lenses.length > 0 && (
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
+              <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-white/45 mb-2">
+                <SlidersHorizontal size={12} /> Investigative lenses
+              </div>
+              <div className="space-y-1.5">
+                {data.lenses.map(l => {
+                  const demanded = lensSel.has(l.key)
+                  return (
+                    <div key={l.key} className="flex items-center gap-2">
+                      <button type="button" onClick={() => toggleLens(l.key)}
+                        className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md border transition-colors ${
+                          demanded ? 'border-violet-500/40 text-violet-100 bg-violet-500/15' : 'border-white/10 text-white/45'
+                        }`}>
+                        {demanded ? <Check size={11} /> : <span className="w-[11px]" />}{l.label}
+                      </button>
+                      <span className={`text-[11px] flex items-center gap-1 ${l.present ? 'text-emerald-300/80' : 'text-amber-300/80'}`}>
+                        {l.present ? <><Check size={11} /> present</> : <><AlertTriangle size={11} /> missing</>}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+              <button type="button" onClick={rerun} disabled={rerunning}
+                className="mt-2.5 flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-md border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 disabled:opacity-40">
+                {rerunning ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />} Re-run with these lenses
+              </button>
+            </div>
+          )}
+
+          {/* Suggestions */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] uppercase tracking-[0.12em] text-white/45">Suggestions{open.length ? ` (${open.length})` : ''}</span>
+              {acceptedCount > 0 && <span className="text-[10px] text-emerald-300/70">{acceptedCount} applied</span>}
+            </div>
+            {data.suggestions.length === 0 ? (
+              <p className="text-[12px] text-white/45 italic">Nothing to flag. Clean as it stands.</p>
+            ) : (
+              <div className="space-y-2">
+                {data.suggestions.map(s => {
+                  const state = handled[s.id]
+                  return (
+                    <div key={s.id} className={`rounded-xl border p-2.5 transition-opacity ${state ? 'opacity-45 border-white/[0.06] bg-transparent' : 'border-white/[0.08] bg-white/[0.02]'}`}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded border ${SEV_STYLE[s.severity]}`}>{DIM_LABEL[s.dimension] || s.dimension}</span>
+                        {state && <span className="text-[9px] text-white/40">{state === 'accepted' ? '✓ applied' : 'dismissed'}</span>}
+                      </div>
+                      {s.quote && <p className="text-[11px] text-white/40 italic leading-snug mb-1 line-clamp-2">"{s.quote}"</p>}
+                      <p className="text-[12px] text-white/80 leading-snug">{s.issue}</p>
+                      {s.suggestion && <p className="text-[11.5px] text-white/55 leading-snug mt-0.5">{s.suggestion}</p>}
+                      {!state && (
+                        <div className="flex items-center gap-1.5 mt-2">
+                          {s.rewrite && (
+                            <button type="button" onClick={() => applySuggestion(s)}
+                              className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md bg-violet-500/25 text-white hover:bg-violet-500/40">
+                              <Check size={11} /> Apply
+                            </button>
+                          )}
+                          <button type="button" onClick={() => dismiss(s)}
+                            className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-white/10 text-white/50 hover:bg-white/[0.06]">
+                            Dismiss
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Verify flags */}
+          {data.verify.length > 0 && (
+            <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.04] p-3">
+              <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-amber-300/80 mb-1.5">
+                <Search size={12} /> Verify before publishing
+              </div>
+              <div className="space-y-1.5">
+                {data.verify.map((v, i) => (
+                  <div key={i}>
+                    <p className="text-[12px] text-amber-100/85 leading-snug">{v.claim || v.quote}</p>
+                    {v.why && <p className="text-[10.5px] text-amber-200/55 leading-snug">{v.why}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Five standards */}
+          <div className="flex flex-wrap gap-1.5">
+            {FIVE_STANDARDS.map(st => {
+              const v = data.standards?.[st.key]?.score ?? 0
+              if (!v) return null
+              const bad = v < 3
+              return (
+                <span key={st.key} title={data.standards?.[st.key]?.note || st.label}
+                  className={`text-[9px] px-1.5 py-0.5 rounded tabular-nums ${bad ? (st.watch ? 'bg-rose-500/20 text-rose-200' : 'bg-amber-500/15 text-amber-200') : 'bg-emerald-500/15 text-emerald-200'}`}>
+                  {st.label.split(' ')[0]} {v}/5
+                </span>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center gap-2 p-3.5 border-t border-white/[0.07] flex-shrink-0">
+          <button type="button" onClick={onClose} className="px-3 py-2.5 rounded-xl text-[13px] text-white/65 hover:text-white hover:bg-white/[0.06]">
+            Back to editing
+          </button>
+          <button type="button" onClick={doShip} disabled={blocked || shipping}
+            title={blocked ? 'Resolve the instant-fail first' : `Ship to ${channelLabel} Google Doc`}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[14px] font-semibold bg-violet-500/90 text-white hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            {shipping ? <Loader2 size={15} className="animate-spin" /> : <ExternalLink size={15} />}
+            {blocked ? 'Blocked' : open.length ? `Ship anyway (${open.length} open)` : 'Ship to Google Docs'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1257,7 +1579,7 @@ function StandardsPanel({ idea, draft }: { idea: ContentIdeaRow; draft: string }
 
   return (
     <div className="space-y-2.5">
-      <p className="text-[11px] text-white/45 leading-snug">The five standards a piece must clear before it ships. A gut-check, never a blocker.</p>
+      <p className="text-[11px] text-white/45 leading-snug">A quick gut-check mid-draft against the five standards. The full per-venture Final Pass runs automatically when you Save Draft, this is the same rubric, earlier.</p>
       <button type="button" onClick={score} disabled={busy}
         className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] border border-emerald-500/25 text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-40 min-h-[32px]">
         {busy ? <Loader2 size={11} className="animate-spin" /> : <Gauge size={11} />} Score the five standards
