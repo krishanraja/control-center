@@ -6,6 +6,7 @@ import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import { FeedbackButton } from './shared/FeedbackButton'
 import { OutreachDraftSheet, type DraftTarget } from './OutreachDraftSheet'
+import { EnrichSheet, type EnrichTarget } from './EnrichSheet'
 import type { LeadRow, LeadStatus } from '../hooks/useRealtimeLeads'
 
 const ASSIGNEE_OPTIONS = ['felix', 'maya', 'nell', 'krish'] as const
@@ -218,10 +219,25 @@ export function LeadCard({ lead: l, onOpen }: Props) {
   // Leads tab and giving Krish control over framing. The draft still lands in
   // Gmail; in-app review/edit of the draft body lands with the content engine.
   const [draftTarget, setDraftTarget] = useState<DraftTarget | null>(null)
+  const [enrichTarget, setEnrichTarget] = useState<EnrichTarget | null>(null)
 
   const fullName = l.full_name || l.company || (l.email ? l.email.split('@')[0] : 'New lead')
   const subtitleParts = [l.title, l.company].filter(Boolean) as string[]
   const subtitle = subtitleParts.join(' · ')
+
+  // Open the unified enrichment sheet (n8n queue or Direct research) instead of
+  // firing the workflow blind, so the angle/mode and the resulting brief are visible.
+  const openEnrich = () => {
+    h.tap()
+    setEnrichTarget({
+      id: l.id,
+      name: fullName,
+      subtitle: subtitle || null,
+      kind: 'person',
+      endpoint: `/api/leads/${l.id}/enrich`,
+      existingBrief: ((l.raw_extraction as any)?.direct_research?.summary as string) || null,
+    })
+  }
 
   const openDraft = () => {
     h.tap()
@@ -398,10 +414,10 @@ export function LeadCard({ lead: l, onOpen }: Props) {
         <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-500/[0.04] p-2">
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); deepEnrich() }}
+            onClick={(e) => { e.stopPropagation(); openEnrich() }}
             disabled={busy !== null}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-emerald-500/90 text-black hover:bg-emerald-400 disabled:opacity-40 transition-colors"
-            title="Send to Agatha for deep enrichment via Apollo"
+            title="Research this lead — n8n deep enrich or direct (Apollo + web)"
           >
             <Sparkles size={12} />
             {busy === 'deep_enrich' ? 'Enriching…' : 'Enrich'}
@@ -561,10 +577,10 @@ export function LeadCard({ lead: l, onOpen }: Props) {
         {!isCandidate && !l.deep_enriched_at && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); deepEnrich() }}
+            onClick={(e) => { e.stopPropagation(); openEnrich() }}
             disabled={busy !== null}
             className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-amber-500/30 text-amber-200 hover:bg-amber-500/15 disabled:opacity-40 transition-colors"
-            title="Send to Agatha for deeper enrichment"
+            title="Research this lead — n8n deep enrich or direct (Apollo + web)"
           >
             <Sparkles size={11} />
             {busy === 'deep_enrich' ? 'Enriching…' : 'Deep enrich'}
@@ -642,6 +658,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
         endpoint={draftTarget ? `/api/leads/${draftTarget.id}/draft-email` : undefined}
         onClose={() => setDraftTarget(null)}
       />
+      <EnrichSheet target={enrichTarget} onClose={() => setEnrichTarget(null)} />
     </article>
   )
 }

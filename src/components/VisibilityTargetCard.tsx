@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { FeedbackButton } from './shared/FeedbackButton'
+import { EnrichSheet, type EnrichTarget } from './EnrichSheet'
 import { useToast } from './shared/Toast'
 import type { VisibilityTargetRow, VisibilityTargetType } from '../hooks/useVisibilityTargets'
 
@@ -38,6 +39,19 @@ function isStubTarget(t: VisibilityTargetRow): boolean {
 export function VisibilityTargetCard({ target: t, onOpen }: Props) {
   const { toast } = useToast()
   const [busy, setBusy] = useState<null | 'apply' | 'pass' | 'enrich'>(null)
+  const [enrichTarget, setEnrichTarget] = useState<EnrichTarget | null>(null)
+
+  const openEnrich = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEnrichTarget({
+      id: t.id,
+      name: t.title,
+      subtitle: [t.type?.replace(/_/g, ' '), t.location].filter(Boolean).join(' · ') || null,
+      kind: 'event',
+      endpoint: `/api/visibility-targets/${t.id}/enrich-deep`,
+      existingBrief: ((t as any).raw_data?.direct_research?.summary as string) || null,
+    })
+  }
   const daysToDeadline = t.deadline_at
     ? Math.ceil((new Date(t.deadline_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
     : null
@@ -221,10 +235,10 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
           {stub ? (
             <button
               type="button"
-              onClick={enrich}
+              onClick={openEnrich}
               disabled={busy !== null}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-violet-500/90 text-white hover:bg-violet-400 disabled:opacity-40 transition-colors"
-              title="Fire Nova deep enrich — pulls organizer, audience, past speakers, CFP details"
+              title="Research this — Nova deep enrich (n8n) or direct (web + Cleo)"
             >
               {busy === 'enrich' ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
               Enrich
@@ -291,6 +305,8 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
           />
         </div>
       </div>
+
+      <EnrichSheet target={enrichTarget} onClose={() => setEnrichTarget(null)} />
     </article>
   )
 }
