@@ -100,12 +100,17 @@ export async function createDriveDoc(input: { name: string; content: string }): 
   const token = await googleAccessToken(['https://www.googleapis.com/auth/drive.file'])
   if (!token) return null
   const boundary = `cc${Date.now()}${Math.random().toString(16).slice(2)}`
-  const metadata = { name: input.name, mimeType: 'application/vnd.google-apps.document' }
+  // Service accounts have no personal Drive quota: docs must land either in the
+  // impersonated user's Drive (domain-wide delegation) or in a Shared Drive
+  // (GOOGLE_DRIVE_FOLDER_ID). Set a folder parent when provided.
+  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID
+  const metadata: Record<string, any> = { name: input.name, mimeType: 'application/vnd.google-apps.document' }
+  if (folderId) metadata.parents = [folderId]
   const body =
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
     `--${boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${input.content}\r\n--${boundary}--`
   try {
-    const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+    const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,webViewLink', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
       body,
