@@ -403,3 +403,16 @@ All `api/*` functions auto-deploy on push to `main`.
 | `/api/task` | Task CRUD |
 | `/api/today` | Today-tab payload |
 | `/api/trigger-agent` | Manual agent trigger (inserts a task, pg_net fires N8N) |
+
+**Direct (non-n8n) mode.** The enrich/draft/briefing actions normally proxy to
+n8n, but accept a `{ "mode": "direct" }` body to bypass n8n and run server-side
+(active while n8n is down until ~Jul 1). Direct paths:
+
+| Endpoint | Direct behavior |
+|---|---|
+| `POST /api/{leads,contacts}/:id/enrich` | Apollo + PDL + web → Claude research brief into `raw_extraction.direct_research`; auto-falls back to direct if the n8n webhook errors |
+| `POST /api/{leads,guests,contacts,customers}/:id/draft-email` | Composes a Gmail **draft** via `api/_google.ts` (service-account DWD, `krish@themindmaker.ai`); never sends |
+| `POST /api/guests/:id/briefing` | Generates a Google Doc briefing; sets `briefing_doc_url` + `briefing_status='ready'` |
+
+Apollo lead **search + bulk reveal** (not exposed as an API route) runs via
+`scripts/apollo/burn.ts` — see `docs/APOLLO_CREDIT_BURNDOWN.md`.

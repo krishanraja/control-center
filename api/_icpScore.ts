@@ -1,0 +1,162 @@
+// _icpScore — the executable copy of docs/APOLLO_ICP_RUBRIC.md.
+//
+// Given an Apollo-enriched record, ask Claude to score every dimension of every
+// lane (0-100), then compute lane scores, tier, primary_venture, tags and the
+// insert decision DETERMINISTICALLY in code (per architecture rule 15.5:
+// numbers are computed, never LLM-emitted). The model judges fit; code does math.
+
+import { callClaude } from './_content.js'
+import type { ApolloEnriched } from './_apollo.js'
+
+// Lane definitions. `key` is the icp_scores jsonb key (registry slug where one
+// exists, else the tag). `primaryVenture` is the FK we set when this is the best
+// lane. `dims` weights sum to 1.0 and match docs/APOLLO_ICP_RUBRIC.md §3.
+export interface Lane {
+  key: string
+  tag: string
+  primaryVenture: 'mindmaker' | 'signal_noise' | 'builder_economy'
+  dims: Record<string, number>
+}
+
+export const LANES: Lane[] = [
+  { key: 'mindmaker', tag: 'mindmaker_buyer', primaryVenture: 'mindmaker',
+    dims: { role_fit: 0.30, intent_signals: 0.25, ai_fluency_gap: 0.20, budget_signal: 0.15, audience_overlap: 0.10 } },
+  { key: 'fractional_network', tag: 'fractional_network', primaryVenture: 'mindmaker',
+    dims: { role_fit: 0.30, referral_reach: 0.25, ai_delivery_fit: 0.20, independence_signal: 0.15, audience_overlap: 0.10 } },
+  { key: 'signal_noise', tag: 'signal_noise_guest', primaryVenture: 'signal_noise',
+    dims: { narrative_strength: 0.35, novelty: 0.25, audience_pull: 0.20, availability_signal: 0.10, krish_curiosity: 0.10 } },
+  { key: 'builder_economy', tag: 'builder_economy_guest', primaryVenture: 'builder_economy',
+    dims: { leverage_score: 0.35, ship_cadence: 0.25, infra_thesis: 0.20, audience_pull: 0.10, krish_curiosity: 0.10 } },
+  { key: 'mm_ctrl_buyer', tag: 'mm_ctrl_buyer', primaryVenture: 'mindmaker',
+    dims: { decision_load: 0.30, seniority_fit: 0.25, ai_curiosity: 0.20, budget_signal: 0.15, reachability: 0.10 } },
+  { key: 'ecosystem_partner', tag: 'ecosystem_partner', primaryVenture: 'mindmaker',
+    dims: { channel_leverage: 0.35, audience_overlap: 0.25, collaboration_fit: 0.20, reachability: 0.10, krish_curiosity: 0.10 } },
+]
+
+// Cross-lane tier thresholds on the best lane score (docs §5).
+const TIER_A = 80
+const TIER_B = 60
+const TIER_C = 40
+// A lead is only inserted if its best lane clears this (docs §6 — the "10/10" gate).
+export const INSERT_THRESHOLD = 70
+// Reachability hard cap: no email AND no LinkedIn → can't act on them (docs §3).
+const UNREACHABLE_CAP = 55
+
+export interface IcpScoreResult {
+  icp_scores: Record<string, number>
+  best_lane: string
+  best_score: number
+  tier: 'A' | 'B' | 'C'
+  icp_score: number
+  primary_venture: 'mindmaker' | 'signal_noise' | 'builder_economy'
+  tags: string[]
+  why_relevant: string
+  dimension_breakdown: Record<string, Record<string, number>>
+  insert: boolean
+}
+
+function recordContext(p: ApolloEnriched): string {
+  return [
+    `Name: ${p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || '(unknown)'}`,
+    p.title ? `Title: ${p.title}` : '',
+    p.headline ? `Headline: ${p.headline}` : '',
+    p.organization_name ? `Company: ${p.organization_name}${p.organization_industry ? ` (${p.organization_industry})` : ''}` : '',
+    p.organization_num_employees ? `Company size: ~${p.organization_num_employees} employees` : '',
+    p.organization_website ? `Company site: ${p.organization_website}` : '',
+    [p.city, p.state, p.country].filter(Boolean).length ? `Location: ${[p.city, p.state, p.country].filter(Boolean).join(', ')}` : '',
+    p.email ? `Email: verified on file` : 'Email: not revealed',
+    p.linkedin_url ? `LinkedIn: ${p.linkedin_url}` : '',
+    p.employment_history?.length
+      ? `Career: ${p.employment_history.map(e => `${e.title || ''}${e.organization_name ? ` @ ${e.organization_name}` : ''}`).filter(s => s.trim()).join('; ')}`
+      : '',
+  ].filter(Boolean).join('\n')
+}
+
+function buildScoringPrompt(p: ApolloEnriched): { system: string; user: string } {
+  const laneSpec = LANES.map(l => `- ${l.key}: dimensions [${Object.keys(l.dims).join(', ')}]`).join('\n')
+  const system = [
+    'You are an ICP analyst for Krish Raja\'s Mindmaker portfolio (AI consulting, builder products, and two podcasts).',
+    'Score one prospect against every lane. For EACH lane, score EACH listed dimension 0-100 strictly from the record below.',
+    'Be conservative: if a signal is absent from the record, that dimension is LOW (10-30), never invented. High scores (80+) require explicit evidence.',
+    'Lanes: mindmaker = AI consulting sprint BUYERS (founders/operators serious about adopting AI). fractional_network = fractional execs / independent advisors / boutique AI consultancies (referral + co-delivery + buyers). signal_noise = podcast GUESTS on AI-in-media. builder_economy = podcast GUESTS who are AI builders / indie hackers. mm_ctrl_buyer = senior leaders who would buy a decision-clarity product. ecosystem_partner = accelerators / communities / agencies / VC platform leads who can channel many buyers or guests.',
+    'Return ONLY strict JSON, no prose, no code fences.',
+  ].join(' ')
+  const user = [
+    'PROSPECT RECORD:',
+    recordContext(p),
+    '',
+    'LANES AND THEIR DIMENSIONS:',
+    laneSpec,
+    '',
+    'Return JSON of exactly this shape:',
+    '{',
+    '  "scores": { "<lane>": { "<dimension>": <0-100>, ... }, ... },',
+    '  "why_relevant": "<one concrete sentence grounded in the record, naming the strongest lane>"',
+    '}',
+  ].join('\n')
+  return { system, user }
+}
+
+function parseJson(text: string): any {
+  let t = (text || '').trim()
+  if (t.startsWith('```')) t = t.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
+  const a = t.indexOf('{'); const b = t.lastIndexOf('}')
+  if (a >= 0 && b > a) t = t.slice(a, b + 1)
+  return JSON.parse(t)
+}
+
+/** Score one enriched prospect against the rubric. Returns per-lane scores, the
+ *  insert decision, and everything needed to write a leads row. */
+export async function scoreProspect(p: ApolloEnriched): Promise<IcpScoreResult> {
+  const { system, user } = buildScoringPrompt(p)
+  const raw = await callClaude({ system, user, model: 'claude-sonnet-4-6', maxTokens: 900, temperature: 0.2 })
+  const parsed = parseJson(raw)
+  const modelScores: Record<string, Record<string, number>> = parsed?.scores || {}
+  const why = String(parsed?.why_relevant || '').trim()
+
+  const reachable = !!(p.email || p.linkedin_url)
+
+  const icp_scores: Record<string, number> = {}
+  const dimension_breakdown: Record<string, Record<string, number>> = {}
+  for (const lane of LANES) {
+    const dims = modelScores[lane.key] || {}
+    let sum = 0
+    const brk: Record<string, number> = {}
+    for (const [dim, w] of Object.entries(lane.dims)) {
+      const v = clamp(Number(dims[dim])) // missing/NaN → 0
+      brk[dim] = v
+      sum += v * w
+    }
+    let laneScore = Math.round(sum)
+    if (!reachable) laneScore = Math.min(laneScore, UNREACHABLE_CAP)
+    icp_scores[lane.key] = laneScore
+    dimension_breakdown[lane.key] = brk
+  }
+
+  // Best lane + tags (every lane clearing tier-C earns its tag).
+  let best = LANES[0]
+  for (const lane of LANES) if (icp_scores[lane.key] > icp_scores[best.key]) best = lane
+  const best_score = icp_scores[best.key]
+  const tags = LANES.filter(l => icp_scores[l.key] >= TIER_C).map(l => l.tag)
+  if (!tags.includes(best.tag)) tags.unshift(best.tag)
+
+  const tier: 'A' | 'B' | 'C' = best_score >= TIER_A ? 'A' : best_score >= TIER_B ? 'B' : 'C'
+
+  return {
+    icp_scores,
+    best_lane: best.tag,
+    best_score,
+    tier,
+    icp_score: best_score,
+    primary_venture: best.primaryVenture,
+    tags,
+    why_relevant: why,
+    dimension_breakdown,
+    insert: best_score >= INSERT_THRESHOLD,
+  }
+}
+
+function clamp(n: number): number {
+  if (!Number.isFinite(n)) return 0
+  return Math.max(0, Math.min(100, Math.round(n)))
+}

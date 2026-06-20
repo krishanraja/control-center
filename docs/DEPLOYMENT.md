@@ -136,6 +136,20 @@ The full list lives in `.env.example`. Two scopes:
 | `OPENAI_API_KEY` | Skill Forge (`/api/skills/*`) |
 | `OPENAI_MODEL` | Defaults to `gpt-4o` |
 | `SKILL_DELIVERY_WEBHOOK_URL` | Skill Forge delivery target |
+| `ANTHROPIC_API_KEY` | Claude — research briefs, email drafts, ICP scoring |
+| `AGATHA_WEBHOOK_SECRET` | `X-Agatha-Secret` gate on server→server endpoints |
+| `APOLLO_API_KEY` | Apollo search + reveal (enrich + lead burn-down) |
+| `PEOPLE_DATA_LABS_API_KEY`, `EXA_API_KEY`, `BRAVE_API_KEY` | Direct-enrichment fallbacks (each independently gated) |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Workspace SA for Gmail drafts + Drive/Docs |
+| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | SA PEM (literal `\n` newlines). **Sensitive.** |
+| `GOOGLE_IMPERSONATE_SUBJECT` | Workspace user the SA impersonates (`krish@themindmaker.ai`) |
+| `GOOGLE_DRIVE_FOLDER_ID` | Shared Drive folder for generated docs (optional) |
+
+> **External integrations (Apollo / Google / enrichment).** Apollo + Google +
+> the enrichment providers power the **direct (non-n8n)** enrich/draft/briefing
+> paths and the lead burn-down (`docs/APOLLO_CREDIT_BURNDOWN.md`) while n8n is
+> down. Google uses a service account with **domain-wide delegation**; drafts
+> only, nothing auto-sends.
 
 **Env-var changes don't auto-redeploy.** After editing in the Vercel UI,
 trigger a fresh deploy (commit something, or use the Vercel UI's "Redeploy" on

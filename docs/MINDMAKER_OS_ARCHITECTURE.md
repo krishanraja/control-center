@@ -104,6 +104,8 @@ When a section of this doc describes a workflow, table, or surface, it should be
 
 Full credential registry + auth patterns + endpoints: `TOOLS.md`. Credentials are also tracked in Supabase `system_config.credential_health` for expiry monitoring.
 
+**Interim direct (non-n8n) path (active until ~Jul 1).** While the n8n lead/enrich workflows are down, Apollo runs **directly from Vercel `/api/*` + a metered CLI**, not through n8n: `api/_apollo.ts` (search + bulk reveal), `api/_icpScore.ts` (the ICP rubric), and `scripts/apollo/burn.ts` (search → dedup → enrich → score → insert into `leads`). Gmail drafts + Drive/Docs likewise run direct via `api/_google.ts` (service-account DWD impersonating `krish@themindmaker.ai`; drafts only, never sends). Every prospect clears `docs/APOLLO_ICP_RUBRIC.md` before it lands. Traces to O-2 (consulting revenue), O-7 (decision lag). See `docs/APOLLO_CREDIT_BURNDOWN.md`.
+
 ---
 
 ## 3. The agent fleet (the OS in motion)
