@@ -237,7 +237,7 @@ function IdeaButton({ i, urg, onClick }: { i: ContentIdeaRow; urg: Urgency; onCl
         {i.lane && <span className="text-[10px] uppercase tracking-[0.1em] text-white/40">{i.lane.replace(/_/g, ' ')}</span>}
         <ChevronRight size={15} className="text-white/30 ml-auto" />
       </div>
-      <p className="text-[14px] font-semibold text-white leading-snug">{i.idea}</p>
+      <p className="text-[14px] font-semibold text-white leading-snug line-clamp-2">{i.idea}</p>
       {(i.body || i.thesis) && (
         <p className="text-[12px] text-white/55 leading-snug mt-1 line-clamp-2">
           {(i.body || i.thesis || '').slice(0, 180)}

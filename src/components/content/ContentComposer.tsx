@@ -237,7 +237,7 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
           onApplyDraft={applyDraft}
           onEditChange={onDraftChange}
           onFixVoice={fixVoice}
-          onClose={onClose}
+          onNext={goNext}
         />
       ) : (
         <div className="flex-1 min-h-0 flex flex-row">
@@ -316,21 +316,22 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
 // Draft is read by default (no keyboard); one-tap adjustments preview inline;
 // Cleo / Materials / Research are secondary sheets; one big sticky Save Draft.
 
-const MAGIC: { key: string; label: string; mode: string; value: string; hint?: string; instruction?: string }[] = [
+// Two quick adjustments live inline on the canvas — the highest-frequency taps.
+// Everything else (tone, length, channel, section rewrites) lives one tap deeper
+// in the Adjust sheet, sourced from the SAME presets the desktop Refine rail uses.
+const QUICK: { key: string; label: string; mode: string; value: string; hint?: string; instruction?: string }[] = [
   { key: 'tighten', label: 'Tighten', mode: 'feedback', value: 'shorter', hint: 'Cut at least a third. Keep the sharpest sentences, lose the connective tissue.' },
-  { key: 'hook', label: 'Sharper open', mode: 'feedback', value: 'sharper-hook', hint: 'Rewrite only the opening so the first sentence makes the reader feel mid-argument. No context-setting.' },
-  { key: 'ending', label: 'Harder ending', mode: 'feedback', value: 'harder-verdict', hint: 'Replace the ending with a hard, forward-looking verdict. No summary, no question, no CTA.' },
   { key: 'ready', label: 'Make it ready', mode: 'feedback', value: 'custom', instruction: 'Final publish polish: tighten, sharpen the opening and the ending, strip any voice tells and em dashes. Stay true to the draft, never invent.' },
 ]
 
-function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange, onFixVoice, onClose }: {
+function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange, onFixVoice, onNext }: {
   idea: ContentIdeaRow
   draft: string
   emDashes: number
   onApplyDraft: (t: string) => void
   onEditChange: (t: string) => void
   onFixVoice: () => void
-  onClose: () => void
+  onNext: () => void
 }) {
   const { toast } = useToast()
   const h = useHaptics()
@@ -338,21 +339,47 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
   const [busy, setBusy] = useState<string | null>(null)
   const [preview, setPreview] = useState<{ label: string; text: string } | null>(null)
   const [sheet, setSheet] = useState<null | 'cleo' | 'materials' | 'research'>(null)
+  const [adjust, setAdjust] = useState(false)
+  // Undo stack of prior draft bodies — every applied iteration is reversible.
+  const [history, setHistory] = useState<string[]>([])
 
-  const runMagic = async (m: typeof MAGIC[number]) => {
+  // Apply a new body, snapshotting the current one so a tap can be undone.
+  const apply = (text: string) => { setHistory(h => [...h, draft]); onApplyDraft(text) }
+  const undo = () => {
+    if (!history.length) return
+    onApplyDraft(history[history.length - 1])
+    setHistory(hs => hs.slice(0, -1))
+    h.tap(); toast('Reverted.', 'success')
+  }
+
+  // One revision pass. Iterations stack: each runs on the latest preview if one
+  // is open, otherwise on the committed draft (same chaining as desktop Refine).
+  const runRevise = async (opts: { label: string; mode: string; value: string; hint?: string; instruction?: string }) => {
     if (!draft.trim()) { toast('Nothing to adjust yet — ask Cleo to draft it first.', 'error'); return }
-    h.heavy(); setBusy(m.key)
+    const key = `${opts.mode}:${opts.value}`
+    h.heavy(); setBusy(key)
     try {
       const r = await fetch(`/api/content-ideas/${idea.id}/revise`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: m.mode, value: m.value, hint: m.hint, instruction: m.instruction, source_text: draft }),
+        body: JSON.stringify({ mode: opts.mode, value: opts.value, hint: opts.hint, instruction: opts.instruction, source_text: preview?.text ?? draft }),
       })
       const j = await r.json()
       if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
-      setPreview({ label: m.label, text: j.revised }); h.success()
-    } catch (e: any) { h.error(); toast(`${m.label} failed: ${e?.message || 'error'}`, 'error') }
+      setAdjust(false)
+      setPreview({ label: opts.label, text: j.revised }); h.success()
+    } catch (e: any) { h.error(); toast(`${opts.label} failed: ${e?.message || 'error'}`, 'error') }
     finally { setBusy(null) }
   }
+
+  // The grouped Adjust palette — every family from contentEngine, filtered so
+  // the current lane never offers "adapt to itself".
+  const currentChannel = laneToFactoryChannel(idea.lane, idea.lane_slot)
+  const ADJUST_GROUPS: { label: string; accent: string; items: { label: string; mode: string; value: string; hint?: string }[] }[] = [
+    { label: 'Tone', accent: 'border-rose-500/30 text-rose-200', items: TONE_PRESETS.map(o => ({ label: o.label, mode: 'tone', value: o.value, hint: o.hint })) },
+    { label: 'Length', accent: 'border-sky-500/30 text-sky-200', items: LENGTH_PRESETS.map(o => ({ label: o.label, mode: 'length', value: o.value, hint: o.hint })) },
+    { label: 'Sharpen', accent: 'border-amber-500/30 text-amber-200', items: [...ITERATE_CHIPS.map(o => ({ label: o.label, mode: 'feedback', value: o.value, hint: o.hint })), { label: 'Sharpest angle', mode: 'zoom', value: 'contrarian-angle', hint: ZOOM_DEFAULT_HINT }] },
+    { label: 'Adapt to channel', accent: 'border-violet-500/30 text-violet-200', items: LANE_ADAPTS.filter(l => l.value !== currentChannel).map(o => ({ label: o.label, mode: 'feedback', value: `adapt-${o.value}`, hint: o.hint })) },
+  ]
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
@@ -370,22 +397,33 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
             className="w-full min-h-[55vh] bg-transparent resize-none text-[16px] leading-[1.75] text-white/90 focus:outline-none"
           />
         ) : (
-          <RichText text={draft} className="text-[16px] leading-[1.75] text-white/90" />
+          <>
+            {/* What am I looking at — one calm line of orientation. */}
+            <p className="text-[11px] text-white/35 leading-snug mb-3">
+              Reviewing your draft. Tap <span className="text-violet-300/80">Adjust</span> to iterate, then <span className="text-violet-300/80">Save Draft</span> for Cleo's final pass.
+            </p>
+            <RichText text={draft} className="text-[16px] leading-[1.75] text-white/90" />
+          </>
         )}
       </div>
 
-      {/* Magic adjust row */}
+      {/* Quick adjust row: two inline shortcuts + the Adjust palette */}
       {draft.trim() && !edit && (
         <div className="px-3 pt-2 border-t border-white/[0.06] flex-shrink-0">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 -mx-1 px-1">
-            {MAGIC.map(m => (
+          <div className="flex items-center gap-1.5 pb-2">
+            <button
+              type="button" disabled={busy !== null} onClick={() => setAdjust(true)}
+              className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-full text-[12px] border border-violet-400/50 bg-violet-500/20 text-violet-100 disabled:opacity-40"
+            >
+              <SlidersHorizontal size={13} /> Adjust
+            </button>
+            {QUICK.map(m => (
               <button
-                key={m.key} type="button" disabled={busy !== null} onClick={() => runMagic(m)}
-                className={`flex items-center gap-1 whitespace-nowrap px-3 py-2 rounded-full text-[12px] border disabled:opacity-40 ${
-                  m.key === 'ready' ? 'border-violet-400/50 bg-violet-500/20 text-violet-100' : 'border-white/12 text-white/75 bg-white/[0.03]'
-                }`}
+                key={m.key} type="button" disabled={busy !== null}
+                onClick={() => runRevise({ label: m.label, mode: m.mode, value: m.value, hint: m.hint, instruction: m.instruction })}
+                className="flex items-center gap-1 whitespace-nowrap px-3 py-2 rounded-full text-[12px] border border-white/12 text-white/75 bg-white/[0.03] disabled:opacity-40"
               >
-                {busy === m.key ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} {m.label}
+                {busy === `${m.mode}:${m.value}` ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} {m.label}
               </button>
             ))}
           </div>
@@ -398,6 +436,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
         <MobileTool icon={<Paperclip size={14} />} label="Materials" onClick={() => setSheet('materials')} />
         <MobileTool icon={<Search size={14} />} label="Research" onClick={() => setSheet('research')} />
         <MobileTool icon={<PenLine size={14} />} label={edit ? 'Done' : 'Edit'} onClick={() => setEdit(e => !e)} active={edit} />
+        {history.length > 0 && !edit && <MobileTool icon={<RotateCcw size={14} />} label="Undo" onClick={undo} />}
         {emDashes > 0 && (
           <button type="button" onClick={onFixVoice} className="ml-auto flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] border border-rose-500/40 text-rose-200 bg-rose-500/10">
             <Check size={12} /> Fix {emDashes}
@@ -407,12 +446,47 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
 
       {/* Sticky push */}
       <div className="px-3 pt-2.5 pb-safe border-t border-white/[0.08] flex-shrink-0 bg-[#0a0a0b]">
-        <SaveDraftButton idea={idea} draft={draft} onApplyDraft={onApplyDraft} onSaved={onClose} block />
+        <SaveDraftButton idea={idea} draft={draft} onApplyDraft={onApplyDraft} onSaved={onNext} block />
       </div>
 
-      {/* Magic preview sheet */}
-      {preview && (
+      {/* Adjust palette sheet — grouped one-tap transforms */}
+      {adjust && (
         <div className="fixed inset-0 z-[95] flex flex-col justify-end">
+          <button aria-label="Close" onClick={() => setAdjust(false)} className="absolute inset-0 bg-black/60 animate-fade-in" />
+          <div className="relative bg-[#0f0f12] border-t border-white/[0.1] rounded-t-3xl max-h-[85dvh] flex flex-col animate-sheet-up">
+            <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
+            <div className="flex items-center justify-between pl-4 pr-2 py-1.5 flex-shrink-0">
+              <div className="flex items-center gap-2 text-[15px] font-medium text-white/90"><SlidersHorizontal size={16} className="text-violet-300" /> Adjust</div>
+              <button onClick={() => setAdjust(false)} aria-label="Close" className="flex items-center justify-center w-10 h-10 rounded-full text-white/50 active:bg-white/[0.08]"><X size={20} /></button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-safe space-y-4 pt-1">
+              {ADJUST_GROUPS.map(g => (
+                <div key={g.label}>
+                  <div className="text-[10px] uppercase tracking-[0.1em] text-white/35 mb-1.5">{g.label}</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {g.items.map(it => {
+                      const key = `${it.mode}:${it.value}`
+                      return (
+                        <button
+                          key={key} type="button" disabled={busy !== null}
+                          onClick={() => runRevise({ label: it.label, mode: it.mode, value: it.value, hint: it.hint })}
+                          className={`flex items-center gap-1 px-3 py-2 rounded-full text-[12px] border bg-white/[0.02] disabled:opacity-40 ${g.accent}`}
+                        >
+                          {busy === key ? <Loader2 size={12} className="animate-spin" /> : null} {it.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Iteration preview sheet — keep, stack another, or discard */}
+      {preview && (
+        <div className="fixed inset-0 z-[96] flex flex-col justify-end">
           <button aria-label="Discard" onClick={() => setPreview(null)} className="absolute inset-0 bg-black/60 animate-fade-in" />
           <div className="relative bg-[#0f0f12] border-t border-white/[0.1] rounded-t-3xl max-h-[85dvh] flex flex-col animate-sheet-up">
             <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
@@ -423,9 +497,14 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
               <RichText text={preview.text} className="text-[15px] leading-relaxed text-white/90" />
             </div>
             <div className="px-4 pt-3 pb-safe border-t border-white/[0.06] flex items-center gap-2">
-              <button type="button" onClick={() => { onApplyDraft(preview.text); setPreview(null); toast('Applied.', 'success') }}
+              <button type="button" onClick={() => { apply(preview.text); setPreview(null); toast('Applied.', 'success') }}
                 className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl text-[14px] font-semibold bg-violet-500/90 text-white active:bg-violet-500">
-                <Check size={15} /> Keep this
+                <Check size={15} /> Keep
+              </button>
+              <button type="button" onClick={() => { apply(preview.text); setPreview(null); setAdjust(true) }}
+                title="Keep this and stack another adjustment"
+                className="flex items-center gap-1.5 px-4 py-3 rounded-xl text-[14px] border border-violet-400/40 text-violet-200 active:bg-violet-500/10">
+                <SlidersHorizontal size={14} /> Again
               </button>
               <button type="button" onClick={() => setPreview(null)}
                 className="px-4 py-3 rounded-xl text-[14px] border border-white/12 text-white/70 active:bg-white/[0.06]">Discard</button>
@@ -590,7 +669,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
         {running ? <Loader2 size={block ? 15 : 13} className="animate-spin" /> : <Save size={block ? 15 : 13} />} Save Draft
       </button>
       <button
-        type="button" onClick={() => setMenu(m => !m)} disabled={busy}
+        type="button" onClick={() => setMenu(m => !m)} disabled={running}
         title="Choose channel" aria-label="Choose channel"
         className={`bg-violet-500/90 text-white hover:bg-violet-500 disabled:opacity-50 border-l border-violet-300/30 text-[10px] ${
           block ? 'px-3 py-3 rounded-r-xl' : 'px-1.5 py-2 rounded-r-lg'
