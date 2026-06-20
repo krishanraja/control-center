@@ -111,7 +111,9 @@ export async function apolloSearch(filters: ApolloSearchFilters): Promise<{
   if (filters.not_organization_naics_codes?.length) body.not_organization_naics_codes = filters.not_organization_naics_codes
   if (filters.organization_founded_year_range) body.organization_founded_year_range = filters.organization_founded_year_range
   if (filters.include_similar_titles !== undefined) body.include_similar_titles = filters.include_similar_titles
-  const j = await apolloFetch('/mixed_people/search', body)
+  // /mixed_people/search is deprecated for API callers (HTTP 422) — Apollo now
+  // requires the api_search variant. (Caught live during the scale run.)
+  const j = await apolloFetch('/mixed_people/api_search', body)
   const people = (Array.isArray(j?.people) ? j.people : []).map(liteFromPerson)
   const pag = j?.pagination || {}
   return { people, page: pag.page ?? page, per_page: pag.per_page ?? per_page, total_entries: pag.total_entries ?? people.length }

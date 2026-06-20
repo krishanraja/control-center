@@ -72,7 +72,7 @@ function recordContext(p: ApolloEnriched): string {
   ].filter(Boolean).join('\n')
 }
 
-function buildScoringPrompt(p: ApolloEnriched): { system: string; user: string } {
+function buildScoringPrompt(p: ApolloEnriched, webContext?: string): { system: string; user: string } {
   const laneSpec = LANES.map(l => `- ${l.key}: dimensions [${Object.keys(l.dims).join(', ')}]`).join('\n')
   const system = [
     'You are an ICP analyst for Krish Raja\'s Mindmaker portfolio (AI consulting, builder products, and two podcasts).',
@@ -85,6 +85,7 @@ function buildScoringPrompt(p: ApolloEnriched): { system: string; user: string }
   const user = [
     'PROSPECT RECORD:',
     recordContext(p),
+    webContext ? `\nWEB FINDINGS (use for audience reach + novelty, esp. builder_economy):\n${webContext}` : '',
     '',
     'LANES AND THEIR DIMENSIONS:',
     laneSpec,
@@ -108,8 +109,8 @@ function parseJson(text: string): any {
 
 /** Score one enriched prospect against the rubric. Returns per-lane scores, the
  *  insert decision, and everything needed to write a leads row. */
-export async function scoreProspect(p: ApolloEnriched): Promise<IcpScoreResult> {
-  const { system, user } = buildScoringPrompt(p)
+export async function scoreProspect(p: ApolloEnriched, opts: { webContext?: string } = {}): Promise<IcpScoreResult> {
+  const { system, user } = buildScoringPrompt(p, opts.webContext)
   const raw = await callClaude({ system, user, model: 'claude-sonnet-4-6', maxTokens: 900, temperature: 0.2 })
   const parsed = parseJson(raw)
   const modelScores: Record<string, Record<string, number>> = parsed?.scores || {}

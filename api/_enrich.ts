@@ -151,8 +151,10 @@ async function braveSearch(query: string): Promise<{ text: string; sources: stri
 }
 
 // Web research, cost-aware: prefer Perplexity (synthesized + cited); fall back to
-// Exa, then Brave, only when the prior source is unavailable/empty.
-async function webResearch(query: string): Promise<{ text: string; sources: string[] }> {
+// Exa, then Brave, only when the prior source is unavailable/empty. Exported so
+// the ICP scorer can augment lanes Apollo can't judge (e.g. builder_economy,
+// where audience + "impossible before AI" novelty live on the open web).
+export async function webResearch(query: string): Promise<{ text: string; sources: string[] }> {
   const pplxKey = process.env.PERPLEXITY_API_KEY
   if (pplxKey) {
     const r = await perplexity(pplxKey, 'You are a precise research assistant. Be factual, cite sources, never speculate.', query)

@@ -22,6 +22,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { apolloSearch, apolloBulkEnrich, apolloCreditsRemaining, type ApolloSearchFilters, type ApolloEnriched } from '../../api/_apollo'
 import { scoreProspect, LANES } from '../../api/_icpScore'
+import { webResearch } from '../../api/_enrich'
 
 const SUPA_URL = process.env.SUPABASE_URL
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -209,7 +210,16 @@ async function run() {
       const lane = chunk[k]?.lane || 'mindmaker'
       const eKey = emailNorm(e.email); const lKey = liNorm(e.linkedin_url)
       if ((eKey && emails.has(eKey)) || (lKey && lis.has(lKey))) continue   // re-check post-reveal
-      const result = await scoreProspect(e); scored++
+      // builder_economy can't be judged from Apollo alone (no audience/novelty
+      // signal), so augment that lane with a web pass before scoring.
+      let webContext: string | undefined
+      if (lane === 'builder_economy' && (e.name || e.organization_name)) {
+        try {
+          const w = await webResearch(`${e.name || ''}${e.organization_name ? `, founder of ${e.organization_name}` : ''}: what have they built with AI that wasn't possible before, audience/following, and notable traction?`)
+          webContext = w.text || undefined
+        } catch { /* best-effort */ }
+      }
+      const result = await scoreProspect(e, { webContext }); scored++
       if (!result.insert) { skippedLow++; continue }
       const row = buildLeadRow(e, lane, result)
       const { error } = await sb.from('leads').insert(row)
