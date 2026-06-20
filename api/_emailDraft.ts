@@ -1,4 +1,5 @@
 import { callClaude, robustJson } from './_content.js'
+import { googleConfigured, createGmailDraft } from './_google.js'
 
 // Shared delivery layer for outreach email drafts. Every draft-email route
 // (contacts / leads / customers / guests) builds its own rich context, then hands
@@ -133,5 +134,12 @@ export async function deliverEmailDraft(
   }
 
   const { subject, body } = await draftEmailDirect(payload)
-  return { mode: 'direct', subject, body }
+  // If a Google service account is configured, also land it in Gmail drafts so
+  // direct mode matches the n8n behaviour (best-effort; preview still shown).
+  let draft_url: string | undefined
+  if (googleConfigured() && payload.recipient_email) {
+    const gd = await createGmailDraft({ to: payload.recipient_email, subject, body })
+    if (gd) draft_url = gd.url
+  }
+  return { mode: 'direct', subject, body, draft_url }
 }
