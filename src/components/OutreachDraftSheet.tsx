@@ -95,6 +95,11 @@ export function OutreachDraftSheet({
   const [tone, setTone] = useState<Tone>('direct')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  // Work-outside-n8n: when on, skip the webhook and draft directly via Claude,
+  // returning the email here for preview instead of landing it in Gmail. Auto
+  // fallback still applies server-side if n8n is down even with this off.
+  const [directMode, setDirectMode] = useState(false)
+  const [preview, setPreview] = useState<{ subject: string; body: string } | null>(null)
 
   // Reset the form each time a new target is opened, defaulting the venture to
   // the lead's own venture so the common case is zero extra taps.
@@ -106,7 +111,12 @@ export function OutreachDraftSheet({
     setTone('direct')
     setNote('')
     setBusy(false)
+    setDirectMode(false)
+    setPreview(null)
   }, [target?.id])
+
+  const gmailComposeUrl = (to: string, subject: string, body: string) =>
+    `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
 
   const hasEmail = !!target?.email
   const ventureLabel = useMemo(
@@ -127,11 +137,17 @@ export function OutreachDraftSheet({
       const r = await fetch(endpoint || `/api/contacts/${target.id}/draft-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intent, venture, length, tone, note: note.trim() || undefined }),
+        body: JSON.stringify({ intent, venture, length, tone, note: note.trim() || undefined, mode: directMode ? 'direct' : undefined }),
       })
       const payload = await r.json().catch(() => ({}))
       if (!r.ok || payload?.ok === false) throw new Error(payload?.error || `HTTP ${r.status}`)
       h.success()
+      // Direct path returns the email for in-app review (no Gmail draft created).
+      if (payload?.mode === 'direct' && payload?.body) {
+        setPreview({ subject: payload.subject || '', body: payload.body })
+        return
+      }
+      // n8n path: the draft is sitting in Gmail.
       const url = payload?.draft_url
       toast(url ? 'Draft waiting in your Gmail.' : 'Draft created in Gmail.', 'success')
       if (url && typeof window !== 'undefined') {
@@ -148,8 +164,8 @@ export function OutreachDraftSheet({
 
   return (
     <BottomSheet open={!!target} onClose={onClose} fullHeight={false} ariaLabel="Draft outreach email">
-      {busy && <ProcessingOverlay label="Cleo is drafting the email" sub="Composing in your voice — it'll open in Gmail" />}
-      {target && (
+      {busy && <ProcessingOverlay label="Cleo is drafting the email" sub={directMode ? 'Composing in your voice for review' : "Composing in your voice — it'll open in Gmail"} />}
+      {target && !preview && (
         <div className="flex flex-col">
           <div className="px-5 pb-4 flex flex-col gap-5 overflow-y-auto scrollbar-hide" style={{ maxHeight: '70vh' }}>
             {/* Recipient */}
@@ -228,6 +244,18 @@ export function OutreachDraftSheet({
           <div className="px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-[#0f0f12]">
             <button
               type="button"
+              onClick={() => { h.tap(); setDirectMode(d => !d) }}
+              className="w-full flex items-center justify-between mb-3 text-left"
+            >
+              <span className="text-[13px] text-white/55">
+                {directMode ? 'Direct — review here, no n8n' : 'Via n8n — lands in Gmail'}
+              </span>
+              <span className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${directMode ? 'bg-violet-500/80' : 'bg-white/15'}`}>
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${directMode ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+              </span>
+            </button>
+            <button
+              type="button"
               onClick={draft}
               disabled={busy || !hasEmail}
               className="w-full flex items-center justify-center gap-2 rounded-full bg-white text-black text-[16px] font-semibold py-4 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100"
@@ -238,6 +266,58 @@ export function OutreachDraftSheet({
                 <><Sparkles size={18} /> Draft email{ventureLabel ? ` · ${ventureLabel}` : ''}</>
               )}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Direct-mode preview — review the email here, then copy or open Gmail compose. */}
+      {target && preview && (
+        <div className="flex flex-col">
+          <div className="px-5 pb-4 flex flex-col gap-3 overflow-y-auto scrollbar-hide" style={{ maxHeight: '70vh' }}>
+            <div className="flex items-center gap-2 text-[13px] text-violet-200/80">
+              <Sparkles size={15} /> Drafted for {target.name} — review before sending
+            </div>
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3">
+              <p className="text-[11px] uppercase tracking-wider text-white/40 mb-1">Subject</p>
+              <p className="text-[15px] text-white font-medium leading-snug">{preview.subject || '(no subject)'}</p>
+            </div>
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3">
+              <p className="text-[11px] uppercase tracking-wider text-white/40 mb-1">Body</p>
+              <p className="text-[15px] text-white/90 leading-relaxed whitespace-pre-wrap">{preview.body}</p>
+            </div>
+          </div>
+          <div className="px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-[#0f0f12] flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!target.email) return
+                  const url = gmailComposeUrl(target.email, preview.subject, preview.body)
+                  try { window.open(url, '_blank', 'noreferrer,noopener') } catch { /* popup blocked */ }
+                  h.success()
+                }}
+                className="flex-1 flex items-center justify-center gap-2 rounded-full bg-white text-black text-[15px] font-semibold py-3.5 active:scale-[0.98] transition-transform"
+              >
+                <Mail size={16} /> Open in Gmail
+              </button>
+              <button
+                type="button"
+                onClick={() => { navigator.clipboard?.writeText(`Subject: ${preview.subject}\n\n${preview.body}`); h.tap(); toast('Copied.', 'success') }}
+                className="px-4 py-3.5 rounded-full border border-white/15 text-white/80 text-[15px] active:bg-white/[0.06]"
+              >
+                Copy
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => { setPreview(null); draft() }}
+                className="flex-1 py-2.5 rounded-full border border-white/12 text-white/70 text-[14px] active:bg-white/[0.06]">
+                Regenerate
+              </button>
+              <button type="button" onClick={() => setPreview(null)}
+                className="flex-1 py-2.5 rounded-full border border-white/12 text-white/70 text-[14px] active:bg-white/[0.06]">
+                Back to options
+              </button>
+            </div>
           </div>
         </div>
       )}

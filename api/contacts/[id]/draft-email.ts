@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { ventureOffer } from '../../_venturePositioning.js'
 import { loadOutboundVoice } from '../../_voice.js'
+import { deliverEmailDraft } from '../../_emailDraft.js'
 
 // POST /api/contacts/:id/draft-email
 // Server-side proxy to the Cleo Email Draft N8N workflow for Relationship Engine
@@ -102,11 +103,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' })
 
-  const webhook = process.env.N8N_EMAIL_DRAFT_WEBHOOK_URL
-  if (!webhook) {
-    return res.status(503).json({ ok: false, error: 'N8N_EMAIL_DRAFT_WEBHOOK_URL not configured' })
-  }
-
   const idParam = req.query?.id
   const id = Array.isArray(idParam) ? idParam[0] : idParam
   if (!id) return res.status(400).json({ ok: false, error: 'id is required' })
@@ -117,7 +113,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     note?: string
     length?: string
     tone?: string
+    mode?: string
   }
+  const forceDirect = body.mode === 'direct'
 
   const intent = typeof body.intent === 'string' && INTENTS.has(body.intent) ? body.intent : 'introduction'
   const length = typeof body.length === 'string' && LENGTHS.has(body.length) ? body.length : 'standard'
@@ -182,38 +180,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     intent,
   })
 
-  const post = (entityType: string) =>
-    fetch(webhook, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payloadFor(entityType)),
-    })
-
   try {
-    let r = await post('contact')
-    let text = await r.text()
-
-    // Self-healing bridge: the canonical entity_type for this surface is
-    // 'contact', which the updated Cleo Email Draft workflow accepts. If the
-    // LIVE workflow hasn't been redeployed with that change yet, it rejects the
-    // body with a validation error before composing anything. Rather than fail
-    // the user's click, fall back once to 'lead' (an accepted type) so the draft
-    // still lands in Gmail. Once the workflow learns 'contact', this branch is
-    // never taken and the email_drafts ledger records the correct entity_type.
-    if (!r.ok && /entity_type must be/i.test(text)) {
-      r = await post('lead')
-      text = await r.text()
-    }
-
-    if (!r.ok) {
-      return res.status(502).json({ ok: false, error: `N8N ${r.status}`, body: text.slice(0, 300) })
-    }
-    try {
-      return res.status(200).json(JSON.parse(text))
-    } catch {
-      return res.status(200).json({ ok: true, raw: text })
-    }
+    // length/tone/note are already baked into contextLines for this route.
+    const result = await deliverEmailDraft(payloadFor('contact'), { forceDirect })
+    return res.status(200).json({ ok: true, ...result })
   } catch (e: any) {
-    return res.status(502).json({ ok: false, error: `N8N call failed: ${e?.message || String(e)}` })
+    return res.status(502).json({ ok: false, error: `Draft failed: ${e?.message || String(e)}` })
   }
 }
