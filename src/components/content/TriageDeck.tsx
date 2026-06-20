@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react'
-import { X, ChevronRight, Maximize2, FlaskConical, RotateCcw, CheckCircle2, Layers } from 'lucide-react'
+import { X, ChevronRight, Maximize2, RotateCcw, CheckCircle2, Layers, LogOut } from 'lucide-react'
 import { useCardDeck, type Dir } from '../../hooks/useCardDeck'
 import type { useContentTriage } from '../../hooks/useContentTriage'
 import { TriageCard } from './TriageCard'
@@ -13,22 +13,18 @@ interface Props {
   paused?: boolean
 }
 
-const ADVANCE_LABEL: Record<string, string> = {
-  seeded: 'Research', researching: 'Draft', drafting: 'Review',
-}
-
 /**
- * TriageDeck — one card at a time over the active backlog. LEFT = Drop, TAP = Open.
- * RIGHT depends on the card: on a SEEDED idea it RETAINS (buries it for later, the
- * non-committal "keep"); on a card already in the pipeline it ADVANCES one stage
- * (or Opens at a human gate). The middle button is Research on seeded cards (the
- * deliberate "yes, dig in" promote) and Open elsewhere.
+ * TriageDeck — one card at a time over the active backlog. Triage is binary:
+ * LEFT = Drop, RIGHT = Send to draft, TAP = Open. There is no research/keep-for-
+ * later step here — triage exists to clear the pile by either discarding or
+ * promoting into the drafting pipeline. Upstream cards jump straight to drafting;
+ * cards already drafting or at a gate open the composer on RIGHT.
  * Pointer swipe + on-screen buttons + arrow keys all drive the same actions, so
  * it works identically on phone and desktop. Only ~3 cards mount at once, which
  * is what makes a 200+ pile cheap instead of browser-crashing.
  */
 export function TriageDeck({ triage, narrow, paused }: Props) {
-  const { deck, advance, drop, retain, pendingDrop, chooseDropReason, cancelDrop, open, undo, canUndo, advanceIsGate, remaining, triagedCount, activeCount, exitTriage } = triage
+  const { deck, sendToDraft, drop, pendingDrop, chooseDropReason, cancelDrop, open, undo, canUndo, remaining, triagedCount, activeCount, exitTriage } = triage
   const top = deck[0] || null
   const containerRef = useRef<HTMLDivElement>(null)
   const dropReasons = reasonsFor('content_ideas')
@@ -36,9 +32,8 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
   const onCommit = useCallback((dir: Dir) => {
     if (!top) return
     if (dir === 'left') drop(top)
-    else if (top.state === 'seeded') retain(top) // keep for later (Backburner)
-    else advance(top) // gate states open the composer instead of advancing
-  }, [top, drop, advance, retain])
+    else sendToDraft(top) // right = send to draft (or open if already drafting/gate)
+  }, [top, drop, sendToDraft])
 
   const { bind, dx, phase, flyOut } = useCardDeck({ cardId: top?.id ?? null, onCommit, disabled: paused })
 
@@ -69,14 +64,13 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
     if (e.key === 'ArrowLeft') { e.preventDefault(); flyOut('left') }
     else if (e.key === 'ArrowRight') { e.preventDefault(); flyOut('right') }
     else if (e.key === 'ArrowUp' || e.key === 'Enter') { e.preventDefault(); open(top.id) }
-    else if ((e.key === 'r' || e.key === 'R') && top.state === 'seeded') { e.preventDefault(); advance(top) }
     else if (e.key === 'u' || e.key === 'U') { if (canUndo) { e.preventDefault(); undo() } }
   }
 
-  const gate = top ? advanceIsGate(top.state) : false
-  const seeded = top?.state === 'seeded'
-  // On a seeded card RIGHT = Retain ("Keep"); otherwise it advances a stage.
-  const rightLabel = seeded ? 'Keep' : (top ? (ADVANCE_LABEL[top.state] || 'Advance') : 'Advance')
+  // Upstream (seeded/researching) → RIGHT promotes to drafting; everything else
+  // already has a draft, so RIGHT just opens the composer.
+  const upstream = !!top && (top.state === 'seeded' || top.state === 'researching')
+  const rightLabel = upstream ? 'To draft' : 'Open'
 
   return (
     <div
@@ -98,8 +92,8 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
             </button>
           )}
           <button type="button" onClick={exitTriage}
-            className="text-[11px] text-white/45 hover:text-white/80 px-2 py-1 rounded-md hover:bg-white/[0.06]">
-            Exit triage
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/85 border border-white/20 bg-white/[0.06] hover:bg-white/[0.12] active:scale-95 transition px-3 py-1.5 rounded-lg">
+            <LogOut size={13} /> Exit triage
           </button>
         </div>
       </div>
@@ -118,7 +112,7 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
                 dx={isTop ? dx : 0}
                 dragging={isTop && phase === 'dragging'}
                 flyout={isTop && phase === 'flyout'}
-                rightIntent={isTop && gate ? 'open' : 'advance'}
+                rightIntent={isTop && !upstream ? 'open' : 'advance'}
                 rightLabel={rightLabel}
                 bind={isTop ? bind : undefined}
                 onClick={isTop ? () => open(idea.id) : undefined}
@@ -183,29 +177,18 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
               >
                 <X size={22} />
               </button>
-              {seeded ? (
-                <button
-                  type="button"
-                  onClick={() => advance(top)}
-                  aria-label="Send to research"
-                  className="flex items-center justify-center w-12 h-12 rounded-full border border-sky-400/40 text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 active:scale-95 transition"
-                >
-                  <FlaskConical size={18} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => open(top.id)}
-                  aria-label="Open in composer"
-                  className="flex items-center justify-center w-12 h-12 rounded-full border border-white/15 text-white/70 bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 transition"
-                >
-                  <Maximize2 size={18} />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => open(top.id)}
+                aria-label="Open in composer"
+                className="flex items-center justify-center w-12 h-12 rounded-full border border-white/15 text-white/70 bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 transition"
+              >
+                <Maximize2 size={18} />
+              </button>
               <button
                 type="button"
                 onClick={() => flyOut('right')}
-                aria-label={seeded ? 'Retain for later' : gate ? 'Open to approve' : `Advance to ${rightLabel.toLowerCase()}`}
+                aria-label={upstream ? 'Send to drafts' : 'Open in composer'}
                 className="flex items-center justify-center w-14 h-14 rounded-full border-2 border-emerald-500/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 transition"
               >
                 <ChevronRight size={24} />
@@ -213,13 +196,9 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
             </div>
 
             <p className="text-center text-[11px] text-white/35 mt-2.5 flex-shrink-0">
-              {seeded
-                ? (narrow
-                    ? <>Swipe left to drop · right to keep · tap to open · R research</>
-                    : <>← drop · → keep · ↑ open · R research · U undo</>)
-                : (narrow
-                    ? <>Swipe left to drop · right to {gate ? 'open' : rightLabel.toLowerCase()} · tap to open</>
-                    : <>← drop · → {gate ? 'open' : rightLabel.toLowerCase()} · ↑ open · U undo</>)}
+              {narrow
+                ? <>Swipe left to drop · right to {rightLabel.toLowerCase()} · tap to open</>
+                : <>← drop · → {rightLabel.toLowerCase()} · ↑ open · U undo</>}
             </p>
           </>
         )

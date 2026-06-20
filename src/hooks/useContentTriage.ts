@@ -214,6 +214,19 @@ export function useContentTriage() {
     commit(idea, next, `Advanced to ${next}.`)
   }, [commit, open, flushPendingDrop])
 
+  // Triage RIGHT = send to draft. Upstream cards (seeded/researching) jump
+  // straight into the drafting pile — triage's only forward move is "I'll write
+  // this" (no separate research stage). Cards already drafting or at a gate just
+  // open the composer to keep working.
+  const sendToDraft = useCallback((idea: ContentIdeaRow) => {
+    flushPendingDrop()
+    if (idea.state === 'seeded' || idea.state === 'researching') {
+      commit(idea, 'drafting', 'Sent to drafts.')
+    } else {
+      open(idea.id)
+    }
+  }, [commit, open, flushPendingDrop])
+
   // Left swipe: optimistically remove the card and park a drop awaiting its reason.
   const drop = useCallback((idea: ContentIdeaRow) => {
     flushPendingDrop()
@@ -306,6 +319,7 @@ export function useContentTriage() {
     remaining: deck.length,
     triagedCount: committed.size,
     advance,
+    sendToDraft,
     drop,
     retain,
     buried,

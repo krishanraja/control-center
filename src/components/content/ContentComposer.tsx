@@ -316,13 +316,30 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
 // Draft is read by default (no keyboard); one-tap adjustments preview inline;
 // Cleo / Materials / Research are secondary sheets; one big sticky Save Draft.
 
-// Two quick adjustments live inline on the canvas — the highest-frequency taps.
-// Everything else (tone, length, channel, section rewrites) lives one tap deeper
-// in the Adjust sheet, sourced from the SAME presets the desktop Refine rail uses.
-const QUICK: { key: string; label: string; mode: string; value: string; hint?: string; instruction?: string }[] = [
-  { key: 'tighten', label: 'Tighten', mode: 'feedback', value: 'shorter', hint: 'Cut at least a third. Keep the sharpest sentences, lose the connective tissue.' },
-  { key: 'ready', label: 'Make it ready', mode: 'feedback', value: 'custom', instruction: 'Final publish polish: tighten, sharpen the opening and the ending, strip any voice tells and em dashes. Stay true to the draft, never invent.' },
-]
+// A blocking, clearly-visual processing state. While Cleo is rewriting or
+// reading, this covers the surface so (a) it's obvious something is happening and
+// (b) no second action can be fired mid-flight. Used by every async content op on
+// both devices — one pattern, no half-states.
+function ProcessingOverlay({ label, sub }: { label: string; sub?: string }) {
+  return (
+    <div className="fixed inset-0 z-[120] flex flex-col items-center justify-center bg-black/75 backdrop-blur-sm animate-fade-in" role="alertdialog" aria-busy="true" aria-live="assertive">
+      <div className="flex flex-col items-center gap-3 px-8 text-center">
+        <Loader2 size={30} className="animate-spin text-violet-300" />
+        <p className="text-[15px] font-medium text-white/90">{label}</p>
+        <p className="text-[12px] text-white/45">{sub || 'One moment…'}</p>
+      </div>
+    </div>
+  )
+}
+
+// Shape stage, one-tap "make it publishable" — the old "Make it ready", now folded
+// into the single Adjust surface instead of being a competing top-level flow.
+const POLISH = {
+  label: 'Polish to publish',
+  mode: 'feedback',
+  value: 'custom',
+  instruction: 'Final publish polish: tighten, sharpen the opening and the ending, strip any voice tells and em dashes. Stay true to the draft, never invent.',
+}
 
 function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange, onFixVoice, onNext }: {
   idea: ContentIdeaRow
@@ -337,6 +354,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
   const h = useHaptics()
   const [edit, setEdit] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
+  const [busyLabel, setBusyLabel] = useState<string>('')
   const [preview, setPreview] = useState<{ label: string; text: string } | null>(null)
   const [sheet, setSheet] = useState<null | 'cleo' | 'materials' | 'research'>(null)
   const [adjust, setAdjust] = useState(false)
@@ -357,7 +375,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
   const runRevise = async (opts: { label: string; mode: string; value: string; hint?: string; instruction?: string }) => {
     if (!draft.trim()) { toast('Nothing to adjust yet — ask Cleo to draft it first.', 'error'); return }
     const key = `${opts.mode}:${opts.value}`
-    h.heavy(); setBusy(key)
+    h.heavy(); setBusy(key); setBusyLabel(opts.label)
     try {
       const r = await fetch(`/api/content-ideas/${idea.id}/revise`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -383,6 +401,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
+      {busy && <ProcessingOverlay label={`Cleo is rewriting — ${busyLabel}`} sub="Locking the draft while it works" />}
       {/* Draft: read by default, edit on demand */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         {!draft.trim() ? (
@@ -407,26 +426,15 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
         )}
       </div>
 
-      {/* Quick adjust row: two inline shortcuts + the Adjust palette */}
+      {/* Shape: one entry to every adjustment (no competing inline chips). */}
       {draft.trim() && !edit && (
         <div className="px-3 pt-2 border-t border-white/[0.06] flex-shrink-0">
-          <div className="flex items-center gap-1.5 pb-2">
-            <button
-              type="button" disabled={busy !== null} onClick={() => setAdjust(true)}
-              className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-full text-[12px] border border-violet-400/50 bg-violet-500/20 text-violet-100 disabled:opacity-40"
-            >
-              <SlidersHorizontal size={13} /> Adjust
-            </button>
-            {QUICK.map(m => (
-              <button
-                key={m.key} type="button" disabled={busy !== null}
-                onClick={() => runRevise({ label: m.label, mode: m.mode, value: m.value, hint: m.hint, instruction: m.instruction })}
-                className="flex items-center gap-1 whitespace-nowrap px-3 py-2 rounded-full text-[12px] border border-white/12 text-white/75 bg-white/[0.03] disabled:opacity-40"
-              >
-                {busy === `${m.mode}:${m.value}` ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} {m.label}
-              </button>
-            ))}
-          </div>
+          <button
+            type="button" disabled={busy !== null} onClick={() => setAdjust(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full text-[13px] font-medium border border-violet-400/50 bg-violet-500/20 text-violet-100 disabled:opacity-40 active:bg-violet-500/30"
+          >
+            <SlidersHorizontal size={15} /> Adjust the draft
+          </button>
         </div>
       )}
 
@@ -460,6 +468,15 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
               <button onClick={() => setAdjust(false)} aria-label="Close" className="flex items-center justify-center w-10 h-10 rounded-full text-white/50 active:bg-white/[0.08]"><X size={20} /></button>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-safe space-y-4 pt-1">
+              {/* One-tap publish polish — the absorbed "Make it ready". */}
+              <button
+                type="button" disabled={busy !== null}
+                onClick={() => runRevise({ label: POLISH.label, mode: POLISH.mode, value: POLISH.value, instruction: POLISH.instruction })}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-semibold border border-violet-400/50 bg-violet-500/20 text-violet-100 disabled:opacity-40 active:bg-violet-500/30"
+              >
+                <Sparkles size={15} /> {POLISH.label}
+              </button>
+              <p className="text-[10px] text-white/30 leading-snug -mt-2">Or steer it precisely:</p>
               {ADJUST_GROUPS.map(g => (
                 <div key={g.label}>
                   <div className="text-[10px] uppercase tracking-[0.1em] text-white/35 mb-1.5">{g.label}</div>
@@ -659,6 +676,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
 
   return (
     <div className={`relative flex items-center ${block ? 'w-full' : ''}`}>
+      {running && <ProcessingOverlay label="Cleo is reading your draft" sub="Final pass against the venture rubric" />}
       <button
         type="button" onClick={runPass} disabled={running}
         title="Run Cleo's final pass, then ship to Google Docs"
@@ -830,6 +848,8 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-label="Final pass review">
+      {shipping && <ProcessingOverlay label="Shipping to Google Docs" sub="Building the formatted draft" />}
+      {rerunning && <ProcessingOverlay label="Cleo is re-reading" sub="Re-running with your lenses" />}
       <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-fade-in" />
       <div className="relative w-full max-w-lg max-h-[92dvh] flex flex-col rounded-2xl border border-white/[0.1] bg-[#0f0f12] shadow-2xl shadow-black/60">
         {/* Header */}
@@ -1323,6 +1343,19 @@ function RefinePanel({ idea, draft, onApplyDraft }: { idea: ContentIdeaRow; draf
 
   return (
     <div className="space-y-3">
+      {busy && (
+        <div className="rounded-lg border border-violet-500/40 bg-violet-500/[0.08] px-3 py-2 flex items-center gap-2 text-[11px] text-violet-100">
+          <Loader2 size={13} className="animate-spin" /> Cleo is rewriting the draft…
+        </div>
+      )}
+
+      {/* Shape: one-tap publish polish (the unified "make it ready"). */}
+      <button type="button" disabled={busy !== null}
+        onClick={() => revise(POLISH.mode, POLISH.value, undefined, POLISH.instruction)}
+        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-semibold border border-violet-400/50 bg-violet-500/20 text-violet-100 hover:bg-violet-500/30 disabled:opacity-40">
+        <Sparkles size={13} /> {POLISH.label}
+      </button>
+
       {preview != null ? (
         <div className="rounded-lg border border-violet-500/30 bg-black/30 p-2.5 space-y-2">
           <div className="text-[9px] uppercase tracking-wide text-violet-200/70 flex items-center gap-1"><Sparkles size={10} /> Revised preview</div>
