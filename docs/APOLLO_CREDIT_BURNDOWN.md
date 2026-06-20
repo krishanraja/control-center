@@ -59,6 +59,14 @@ burn. The 50 exist to prove the rubric before the budget is committed.
 
 ## Results log
 
-| Date | Mode | Lanes | Revealed (credits) | Scored | Inserted | Notes |
-|---|---|---|---|---|---|---|
-| _pending_ | test 50 | all | | | | first gate run |
+| Date | Mode | Lanes | Revealed (credits) | Inserted (>=70) | Notes |
+|---|---|---|---|---|---|
+| 2026-06-20 | test v1 | all 6 | 45 | 17 | First gate run. Exposed the 8 calibration failures (vendor-keyword trap, mm_ctrl wrong audience, builder no-audience-signal, match-by-id, no *_norm cols). |
+| 2026-06-20 | validation v2 | mindmaker, mm_ctrl, builder | 37 | 20 | Corrected filters. mindmaker 11/15 (real in-house transformation buyers), mm_ctrl 8/12 (construction/mfg/logistics ops leaders), builder 1/7 (needs a web/audience pass). |
+
+**Running total:** 82 credits spent, ~775 left (resets 2026-06-25). 37 Apollo leads in the Leads tab.
+
+**Open calibration items for the next pass:**
+- `builder_economy` needs a web/social enrichment pass (Exa/Perplexity) for audience + novelty — Apollo alone can't tell a landmark guest from a generic AI founder.
+- `mm_ctrl_buyer` dimension `ai_curiosity` (0.20) penalizes exactly the traditional-industry leaders CTRL is for; consider swapping it for an `ops_complexity` signal.
+- `mindmaker_buyer` enterprise CIO/CDO profile is adjacent to Meliora/AdFixus more than the SMB/founder core Mindmaker ICP; may warrant a sub-lane split.
