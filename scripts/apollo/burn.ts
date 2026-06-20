@@ -32,45 +32,74 @@ const sb = createClient(SUPA_URL, SUPA_KEY)
 
 const GEO = ['United States', 'United Kingdom', 'Australia']
 
+// NAICS prefixes for software / IT-services / AI vendors. Excluded from the
+// BUYER lanes (mindmaker, mm_ctrl) so we stop recruiting the supply side.
+const VENDOR_NAICS = ['5415', '5112', '5182']
+// Government (92) + nonprofit/civic (813) — excluded from ecosystem_partner.
+const GOVT_NONPROFIT_NAICS = ['92', '813']
+
 // Per-lane Apollo search filters — the operational form of rubric §2.
+//
+// Calibration v2 (2026-06-20), from the live 45-record test pull:
+//   - Multi-word q_keywords AND-match and starved 4/6 lanes → use one term or none.
+//   - "AI" as a keyword recruits AI *vendors* (the supply side); for buyer lanes
+//     we DROP the AI keyword and EXCLUDE vendor NAICS instead. Intent is judged
+//     by the rubric, not by the employer being an AI company.
+//   - mm_ctrl_buyer = leaders at NON-AI operating companies (CTRL's real ICP).
+//   - builder_economy = "impossible before AI" builders → founded 2022+ proxy.
 const LANE_FILTERS: Record<string, ApolloSearchFilters> = {
+  // AI-adoption buyers: senior operators + dedicated AI/transformation roles
+  // INSIDE non-vendor operating companies (the only genuine buyer the v1 pull
+  // found was exactly this: an in-house Head of AI Transformation).
   mindmaker: {
-    person_titles: ['Founder', 'CEO', 'Chief Executive Officer', 'COO', 'President', 'CMO', 'CTO', 'Chief of Staff', 'VP Operations', 'VP Marketing', 'Head of Product', 'Head of Strategy'],
-    person_seniorities: ['owner', 'founder', 'c_suite', 'partner', 'vp', 'head'],
-    organization_num_employees_ranges: ['11,50', '51,200', '201,500', '501,1000', '1001,5000'],
+    person_titles: ['CEO', 'COO', 'President', 'Chief Digital Officer', 'Chief Transformation Officer', 'Chief Information Officer', 'Head of AI', 'Head of Digital Transformation', 'Head of Innovation', 'VP Operations'],
+    person_seniorities: ['owner', 'founder', 'c_suite', 'vp', 'head'],
+    organization_num_employees_ranges: ['51,200', '201,500', '501,1000', '1001,5000'],
     person_locations: GEO,
-    q_keywords: 'AI transformation',
+    not_organization_naics_codes: VENDOR_NAICS,
   },
+  // Fractional/advisory who actually DELIVER AI work (the v1 noise was generic
+  // fractional CMOs at welders/wellness shops). One AI keyword + fractional titles.
   fractional_network: {
-    person_titles: ['Fractional CTO', 'Fractional CMO', 'Fractional COO', 'Fractional CPO', 'Fractional CAIO', 'Fractional Executive', 'Independent Advisor', 'Principal Consultant', 'Managing Partner', 'Advisor'],
+    person_titles: ['Fractional CTO', 'Fractional CMO', 'Fractional COO', 'Fractional CAIO', 'Fractional Executive', 'AI Advisor', 'AI Consultant', 'Principal Consultant'],
     person_seniorities: ['owner', 'founder', 'partner', 'c_suite'],
     organization_num_employees_ranges: ['1,10', '11,50', '51,200'],
     person_locations: GEO,
-    q_keywords: 'fractional advisory AI',
+    q_keywords: 'AI',
   },
   signal_noise: {
-    person_titles: ['Editor', 'Editor-in-Chief', 'Journalist', 'Podcast Host', 'Head of Content', 'Producer', 'Communications Director', 'Media Director'],
+    person_titles: ['Editor-in-Chief', 'Journalist', 'Podcast Host', 'Head of Content', 'Communications Director', 'Media Director'],
     person_seniorities: ['owner', 'founder', 'c_suite', 'vp', 'head', 'senior'],
     person_locations: GEO,
-    q_keywords: 'AI media journalism',
+    q_keywords: 'AI',
   },
+  // "Impossible before AI" builders: founders at tiny, AI-era (founded 2022+)
+  // companies. Apollo has no audience/traction signal, so the rubric's novelty/
+  // leverage dims + a web pass (Exa/Perplexity) do the real judging.
   builder_economy: {
-    person_titles: ['Founder', 'Co-Founder', 'Indie Hacker', 'Software Engineer', 'AI Engineer', 'Developer', 'Maker', 'Engineer'],
-    person_seniorities: ['owner', 'founder', 'c_suite', 'senior'],
+    person_titles: ['Founder', 'Co-Founder', 'Creator', 'Indie Hacker'],
+    person_seniorities: ['owner', 'founder'],
     organization_num_employees_ranges: ['1,10', '11,50'],
-    q_keywords: 'AI build in public agents indie',
-  },
-  mm_ctrl_buyer: {
-    person_titles: ['CEO', 'COO', 'Founder', 'VP Strategy', 'Head of Operations', 'Director'],
-    person_seniorities: ['owner', 'founder', 'c_suite', 'vp', 'head', 'director'],
-    organization_num_employees_ranges: ['11,50', '51,200', '201,1000'],
     person_locations: GEO,
-    q_keywords: 'decision strategy leadership AI',
+    organization_founded_year_range: { min: 2022, max: 2026 },
+    q_keywords: 'AI',
+  },
+  // CTRL decision-clarity buyers: leaders at NON-AI operating companies in
+  // decision-heavy traditional industries; AI/software vendors excluded.
+  mm_ctrl_buyer: {
+    person_titles: ['CEO', 'COO', 'President', 'General Manager', 'VP Operations', 'Head of Operations'],
+    person_seniorities: ['owner', 'c_suite', 'vp', 'head'],
+    organization_num_employees_ranges: ['51,200', '201,1000', '1001,5000'],
+    person_locations: GEO,
+    q_organization_keyword_tags: ['manufacturing', 'healthcare', 'logistics', 'professional services', 'construction', 'retail'],
+    not_organization_naics_codes: VENDOR_NAICS,
   },
   ecosystem_partner: {
-    person_titles: ['Partner', 'Program Director', 'Community Lead', 'Platform Lead', 'Managing Director', 'Head of Community'],
+    person_titles: ['Partner', 'Program Director', 'Managing Director', 'Head of Community', 'Platform Lead'],
     person_seniorities: ['owner', 'founder', 'partner', 'c_suite', 'director'],
-    q_keywords: 'accelerator community venture ecosystem agency',
+    person_locations: GEO,
+    q_organization_keyword_tags: ['startup accelerator', 'venture capital', 'startup'],
+    not_organization_naics_codes: GOVT_NONPROFIT_NAICS,
   },
 }
 
@@ -101,14 +130,17 @@ function parseArgs(): Args {
 const emailNorm = (e?: string | null) => (e ? e.trim().toLowerCase() : '')
 const liNorm = (u?: string | null) => (u ? u.trim().toLowerCase().replace(/\/+$/, '') : '')
 
+// The live `leads`/`contacts` tables have no *_norm columns (that migration is
+// not applied), so we dedup on normalized email/linkedin computed here. And
+// because Apollo search masks emails, dedup is necessarily POST-reveal.
 async function loadDedupKeys(): Promise<{ emails: Set<string>; lis: Set<string> }> {
   const emails = new Set<string>(); const lis = new Set<string>()
   for (const table of ['leads', 'contacts'] as const) {
     let from = 0
     for (;;) {
-      const { data, error } = await sb.from(table).select('email_norm, linkedin_url_norm').range(from, from + 999)
+      const { data, error } = await sb.from(table).select('email, linkedin_url').range(from, from + 999)
       if (error) { console.warn(`dedup load ${table}: ${error.message}`); break }
-      for (const r of data || []) { if (r.email_norm) emails.add(r.email_norm); if (r.linkedin_url_norm) lis.add(r.linkedin_url_norm) }
+      for (const r of data || []) { if (r.email) emails.add(emailNorm(r.email)); if (r.linkedin_url) lis.add(liNorm(r.linkedin_url)) }
       if (!data || data.length < 1000) break
       from += 1000
     }
@@ -145,7 +177,9 @@ async function run() {
         const dedupId = lKey || `${(p.first_name || '').toLowerCase()}|${(p.last_name || '').toLowerCase()}|${(p.organization_name || '').toLowerCase()}`
         if (seen.has(dedupId)) continue
         seen.add(dedupId)
-        pool.push({ lane: laneKey, lite: p, detail: { id: p.id, first_name: p.first_name, last_name: p.last_name, name: p.name, organization_name: p.organization_name, linkedin_url: p.linkedin_url } })
+        // Match on the Apollo person_id from search — name+org alone returns 0
+        // matches because search masks last names (learned from the v1 pull).
+        pool.push({ lane: laneKey, lite: p, detail: { id: p.id, first_name: p.first_name, organization_name: p.organization_name } })
         collected++
         if (collected >= perLaneTarget) break
       }
@@ -195,9 +229,7 @@ function buildLeadRow(e: ApolloEnriched, lane: string, r: Awaited<ReturnType<typ
   return {
     full_name: e.name || `${e.first_name || ''} ${e.last_name || ''}`.trim() || null,
     email: e.email || null,
-    email_norm: emailNorm(e.email) || null,
     linkedin_url: e.linkedin_url || null,
-    linkedin_url_norm: liNorm(e.linkedin_url) || null,
     company: e.organization_name || null,
     title: e.title || null,
     source_type: 'apollo',

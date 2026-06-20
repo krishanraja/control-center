@@ -78,7 +78,8 @@ function buildScoringPrompt(p: ApolloEnriched): { system: string; user: string }
     'You are an ICP analyst for Krish Raja\'s Mindmaker portfolio (AI consulting, builder products, and two podcasts).',
     'Score one prospect against every lane. For EACH lane, score EACH listed dimension 0-100 strictly from the record below.',
     'Be conservative: if a signal is absent from the record, that dimension is LOW (10-30), never invented. High scores (80+) require explicit evidence.',
-    'Lanes: mindmaker = AI consulting sprint BUYERS (founders/operators serious about adopting AI). fractional_network = fractional execs / independent advisors / boutique AI consultancies (referral + co-delivery + buyers). signal_noise = podcast GUESTS on AI-in-media. builder_economy = podcast GUESTS who are AI builders / indie hackers. mm_ctrl_buyer = senior leaders who would buy a decision-clarity product. ecosystem_partner = accelerators / communities / agencies / VC platform leads who can channel many buyers or guests.',
+    'CRITICAL for the BUYER lanes (mindmaker, mm_ctrl_buyer): the prospect must be a BUYER, not a seller. If their employer is itself an AI/software vendor (company name contains "AI", or industry is software / IT services / artificial intelligence), they are the supply side — score mindmaker and mm_ctrl_buyer 25 or below.',
+    'Lanes: mindmaker = AI-ADOPTION buyers: senior operators or dedicated AI/transformation leaders INSIDE non-vendor operating companies who need help adopting AI. fractional_network = fractional execs / independent advisors who actually DELIVER AI work (referral + co-delivery + buyers); a generic fractional CMO with no AI signal scores low. signal_noise = podcast GUESTS who are credible AI-in-media voices. builder_economy = podcast GUESTS doing something that was IMPOSSIBLE BEFORE AI (a tiny team shipping what used to take many, a net-new AI-native product, novel craft) with real audience/traction; a junior AI engineer at a dev shop scores low. mm_ctrl_buyer = leaders at NON-AI operating companies (manufacturing, healthcare, logistics, professional services, retail) with high decision load who would buy an external decision-clarity product; leaders at AI/software companies score low (they build their own). ecosystem_partner = startup accelerators / VC platforms / communities (NOT government or nonprofit programs) who can channel many buyers or guests.',
     'Return ONLY strict JSON, no prose, no code fences.',
   ].join(' ')
   const user = [
@@ -115,6 +116,9 @@ export async function scoreProspect(p: ApolloEnriched): Promise<IcpScoreResult> 
   const why = String(parsed?.why_relevant || '').trim()
 
   const reachable = !!(p.email || p.linkedin_url)
+  // Deterministic guard (calibration v2): an AI/software-vendor employer is the
+  // supply side, so the BUYER lanes are capped hard regardless of the model.
+  const vendor = isAIVendor(p)
 
   const icp_scores: Record<string, number> = {}
   const dimension_breakdown: Record<string, Record<string, number>> = {}
@@ -129,6 +133,7 @@ export async function scoreProspect(p: ApolloEnriched): Promise<IcpScoreResult> 
     }
     let laneScore = Math.round(sum)
     if (!reachable) laneScore = Math.min(laneScore, UNREACHABLE_CAP)
+    if (vendor && (lane.key === 'mindmaker' || lane.key === 'mm_ctrl_buyer')) laneScore = Math.min(laneScore, 25)
     icp_scores[lane.key] = laneScore
     dimension_breakdown[lane.key] = brk
   }
@@ -159,4 +164,13 @@ export async function scoreProspect(p: ApolloEnriched): Promise<IcpScoreResult> 
 function clamp(n: number): number {
   if (!Number.isFinite(n)) return 0
   return Math.max(0, Math.min(100, Math.round(n)))
+}
+
+// An AI/software vendor employer = the supply side, disqualifying for the buyer
+// lanes. Standalone "AI" token in the org name, or a software/AI industry.
+function isAIVendor(p: ApolloEnriched): boolean {
+  const name = (p.organization_name || '').toLowerCase()
+  if (/\bai\b/.test(name) || /artificial intelligence/.test(name)) return true
+  const ind = (p.organization_industry || '').toLowerCase()
+  return /software|artificial intelligence|information technology/.test(ind)
 }

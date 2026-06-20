@@ -42,6 +42,14 @@ export interface ApolloSearchFilters {
   q_keywords?: string
   q_organization_keyword_tags?: string[]
   organization_industry_tag_ids?: string[]
+  // Calibration v2 (2026-06-20): exclude employer NAICS prefixes (e.g. '5415'
+  // computer-systems-design / IT services, '5112' software publishers to drop AI
+  // vendors from the *buyer* lanes; '92' government, '813' nonprofits from
+  // ecosystem). Plus founded-year window — the cheapest proxy for an AI-native
+  // ("impossible before AI") company in the builder lane.
+  not_organization_naics_codes?: string[]
+  organization_founded_year_range?: { min?: number; max?: number }
+  include_similar_titles?: boolean
   page?: number
   per_page?: number
 }
@@ -100,6 +108,9 @@ export async function apolloSearch(filters: ApolloSearchFilters): Promise<{
   if (filters.q_keywords) body.q_keywords = filters.q_keywords
   if (filters.q_organization_keyword_tags?.length) body.q_organization_keyword_tags = filters.q_organization_keyword_tags
   if (filters.organization_industry_tag_ids?.length) body.organization_industry_tag_ids = filters.organization_industry_tag_ids
+  if (filters.not_organization_naics_codes?.length) body.not_organization_naics_codes = filters.not_organization_naics_codes
+  if (filters.organization_founded_year_range) body.organization_founded_year_range = filters.organization_founded_year_range
+  if (filters.include_similar_titles !== undefined) body.include_similar_titles = filters.include_similar_titles
   const j = await apolloFetch('/mixed_people/search', body)
   const people = (Array.isArray(j?.people) ? j.people : []).map(liteFromPerson)
   const pag = j?.pagination || {}

@@ -5,9 +5,45 @@
 > *precision*, not volume: every lead that lands in the Control Center should be
 > one Krish would genuinely want to act on.
 
-Status: v1 (2026-06-20). Owner: Krish. Lives alongside the live scoring criteria
+Status: v2 (2026-06-20). Owner: Krish. Lives alongside the live scoring criteria
 seeded in `venture_registry.scoring_criteria` — this doc is the human-readable
 master; the code in `api/_icpScore.ts` is the executable copy. Keep them in sync.
+
+---
+
+## Calibration v2 — what a live 45-record test pull taught us
+
+The first real run (45 reveals, 17 inserts) exposed concrete failures; the
+filters in `scripts/apollo/burn.ts` and the guards in `api/_icpScore.ts` now
+encode the fixes:
+
+1. **Multi-word `q_keywords` AND-match** and returned **zero** for 4/6 lanes. Use
+   one term or none; let titles + seniorities + industry do the targeting.
+2. **"AI" as a keyword recruits the supply side.** It surfaced people who *work
+   at* AI companies or *sell* AI transformation, not buyers. The buyer lanes
+   (`mindmaker`, `mm_ctrl_buyer`) now **drop the AI keyword and exclude vendor
+   NAICS** (`5415`, `5112`, `5182`); a deterministic guard in `_icpScore.ts` caps
+   those lanes ≤25 when the employer is an AI/software vendor (org name has a
+   standalone "AI" token, or a software/IT industry).
+3. **`mindmaker_buyer` is hard to target positively.** The only genuine buyer the
+   v1 pull found was an in-house "Head of Enterprise AI Transformation" at a
+   non-tech company. The lane now targets senior operators + dedicated
+   AI/transformation roles **inside non-vendor operating companies**.
+4. **`mm_ctrl_buyer` = leaders at NON-AI operating companies.** A COO at an AI
+   company is the worst fit for an external decision-clarity product. Now filters
+   to traditional decision-heavy industries and excludes AI/software vendors.
+5. **`builder_economy` = "impossible before AI" builders**, not "AI engineers."
+   Now requires founders at AI-era companies (`organization_founded_year_range`
+   2022+) and leans on a web/social novelty pass — Apollo has no audience signal.
+6. **`ecosystem_partner`** excludes government/nonprofit programs (NAICS `92`,
+   `813`); targets startup accelerators / VC platforms / communities.
+7. **Apollo search masks last names**, so enrichment must match on the Apollo
+   `person_id` (name+org → 0 matches), and dedup is **post-reveal** (you only get
+   an email after spending the credit).
+8. **The live `leads` table has no `email_norm`/`linkedin_url_norm` columns** (the
+   `20260617120000` migration isn't applied here). Dedup runs on `lower(email)`.
+
+Budget reality: ~857 lead credits remained at v1 (not 1642), resetting ~Jun 25.
 
 ---
 
