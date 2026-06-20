@@ -1,0 +1,115 @@
+{
+  "version": "v2",
+  "updated": "2026-06-20",
+  "purpose": "Shareable ICP for the Mindmaker OS fleet. Source/score/route/draft against these lanes. Human doc: docs/ICP.md. Executable: api/_icpScore.ts.",
+  "insert_gate": 70,
+  "tiers": { "A": 80, "B": 60, "C": 40 },
+  "global_guards": {
+    "unreachable_cap": 55,
+    "unreachable_rule": "no email AND no linkedin -> cap every lane at 55",
+    "ai_vendor_cap": 25,
+    "ai_vendor_rule": "employer sells AI/software (name has standalone 'AI' token, or industry software/IT/AI) -> cap mindmaker_buyer and mm_ctrl_buyer <= 25"
+  },
+  "sourcing_notes": [
+    "Use mixed_people/api_search (mixed_people/search is deprecated for API callers).",
+    "Single-term keywords only; multi-word AND-matches to near-zero.",
+    "Search masks last names; enrich/dedup on the Apollo person_id.",
+    "Reveal = 1 credit/match; dedup before reveal where possible, always on lower(email).",
+    "Geography default: United States, United Kingdom, Australia."
+  ],
+  "lanes": [
+    {
+      "tag": "mindmaker_buyer",
+      "primary_venture": "mindmaker",
+      "serves": "O-2 consulting revenue",
+      "who": "Senior operators / dedicated AI/transformation leaders inside non-tech operating companies adopting AI",
+      "who_not": "Anyone whose employer sells AI or software (supply side)",
+      "weights": { "role_fit": 0.30, "intent_signals": 0.25, "ai_fluency_gap": 0.20, "budget_signal": 0.15, "audience_overlap": 0.10 },
+      "apollo": {
+        "person_titles": ["Chief Digital Officer", "Chief Transformation Officer", "Chief Information Officer", "Head of AI", "Head of Digital Transformation", "Head of Innovation", "VP Digital Transformation", "Head of Data"],
+        "person_seniorities": ["c_suite", "vp", "head"],
+        "organization_num_employees_ranges": ["51,200", "201,500", "501,1000", "1001,5000"],
+        "person_locations": ["United States", "United Kingdom", "Australia"],
+        "not_organization_naics_codes": ["5415", "5112", "5182"]
+      }
+    },
+    {
+      "tag": "fractional_network",
+      "primary_venture": "mindmaker",
+      "serves": "Referral + co-delivery + buyers",
+      "who": "Fractional execs / independent advisors who deliver AI work; boutique AI consultancies",
+      "who_not": "Generic fractional CMO/COO with no AI signal",
+      "weights": { "role_fit": 0.30, "referral_reach": 0.25, "ai_delivery_fit": 0.20, "independence_signal": 0.15, "audience_overlap": 0.10 },
+      "apollo": {
+        "person_titles": ["Fractional CTO", "Fractional CMO", "Fractional CAIO", "Fractional Executive", "AI Advisor", "AI Consultant", "Principal Consultant"],
+        "person_seniorities": ["owner", "founder", "partner", "c_suite"],
+        "organization_num_employees_ranges": ["1,10", "11,50", "51,200"],
+        "person_locations": ["United States", "United Kingdom", "Australia"],
+        "q_keywords": "AI"
+      }
+    },
+    {
+      "tag": "signal_noise_guest",
+      "primary_venture": "signal_noise",
+      "serves": "Podcast: AI in media",
+      "who": "Credible AI-in-media voices: editors-in-chief, journalists, podcast hosts, heads of content",
+      "who_not": "PR/comms with no editorial voice",
+      "weights": { "narrative_strength": 0.35, "novelty": 0.25, "audience_pull": 0.20, "availability_signal": 0.10, "krish_curiosity": 0.10 },
+      "apollo": {
+        "person_titles": ["Editor-in-Chief", "Journalist", "Podcast Host", "Head of Content", "Communications Director", "Media Director"],
+        "person_seniorities": ["owner", "founder", "c_suite", "vp", "head", "senior"],
+        "person_locations": ["United States", "United Kingdom", "Australia"],
+        "q_keywords": "AI"
+      }
+    },
+    {
+      "tag": "builder_economy_guest",
+      "primary_venture": "builder_economy",
+      "serves": "Podcast: AI builders",
+      "who": "People doing what was impossible before AI (tiny team, net-new AI-native product, novel craft) with real audience; founders at AI-era (2022+) companies",
+      "who_not": "Junior AI engineer at a dev shop",
+      "requires_web_pass": true,
+      "web_pass_note": "Apollo cannot judge audience/novelty; run webResearch (Perplexity->Exa->Brave) before scoring",
+      "weights": { "leverage_score": 0.35, "ship_cadence": 0.25, "infra_thesis": 0.20, "audience_pull": 0.10, "krish_curiosity": 0.10 },
+      "apollo": {
+        "person_titles": ["Founder", "Co-Founder", "Creator", "Indie Hacker"],
+        "person_seniorities": ["owner", "founder"],
+        "organization_num_employees_ranges": ["1,10", "11,50"],
+        "person_locations": ["United States", "United Kingdom", "Australia"],
+        "organization_founded_year_range": { "min": 2022, "max": 2026 },
+        "q_keywords": "AI"
+      }
+    },
+    {
+      "tag": "mm_ctrl_buyer",
+      "primary_venture": "mindmaker",
+      "serves": "CTRL decision-clarity product",
+      "who": "Leaders at NON-AI operating companies in decision-heavy traditional industries (manufacturing, construction, healthcare, logistics, distribution, multi-site retail)",
+      "who_not": "Leaders at AI/software companies (they build their own tooling)",
+      "weights": { "decision_load": 0.30, "seniority_fit": 0.25, "ai_curiosity": 0.20, "budget_signal": 0.15, "reachability": 0.10 },
+      "apollo": {
+        "person_titles": ["CEO", "COO", "Chief Operating Officer", "President", "General Manager", "VP Operations", "Head of Operations"],
+        "person_seniorities": ["owner", "c_suite", "vp", "head"],
+        "organization_num_employees_ranges": ["51,200", "201,1000", "1001,5000"],
+        "person_locations": ["United States", "United Kingdom", "Australia"],
+        "q_organization_keyword_tags": ["manufacturing", "healthcare", "logistics", "construction", "transportation", "distribution"],
+        "not_organization_naics_codes": ["5415", "5112", "5182"]
+      }
+    },
+    {
+      "tag": "ecosystem_partner",
+      "primary_venture": "mindmaker",
+      "serves": "Channel / referrals",
+      "who": "Startup accelerators, VC platform leads, operator communities who channel many buyers or guests",
+      "who_not": "Government procurement and nonprofit/civic accelerators",
+      "weights": { "channel_leverage": 0.35, "audience_overlap": 0.25, "collaboration_fit": 0.20, "reachability": 0.10, "krish_curiosity": 0.10 },
+      "apollo": {
+        "person_titles": ["Partner", "Program Director", "Managing Director", "Head of Community", "Platform Lead"],
+        "person_seniorities": ["owner", "founder", "partner", "c_suite", "director"],
+        "person_locations": ["United States", "United Kingdom", "Australia"],
+        "q_organization_keyword_tags": ["startup accelerator", "venture capital", "startup"],
+        "not_organization_naics_codes": ["92", "813"]
+      }
+    }
+  ]
+}

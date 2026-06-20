@@ -106,6 +106,8 @@ Full credential registry + auth patterns + endpoints: `TOOLS.md`. Credentials ar
 
 **Interim direct (non-n8n) path (active until ~Jul 1).** While the n8n lead/enrich workflows are down, Apollo runs **directly from Vercel `/api/*` + a metered CLI**, not through n8n: `api/_apollo.ts` (search + bulk reveal), `api/_icpScore.ts` (the ICP rubric), and `scripts/apollo/burn.ts` (search → dedup → enrich → score → insert into `leads`). Gmail drafts + Drive/Docs likewise run direct via `api/_google.ts` (service-account DWD impersonating `krish@themindmaker.ai`; drafts only, never sends). Every prospect clears `docs/APOLLO_ICP_RUBRIC.md` before it lands. Traces to O-2 (consulting revenue), O-7 (decision lag). See `docs/APOLLO_CREDIT_BURNDOWN.md`.
 
+**Fleet ICP (shareable).** The canonical, portable Ideal Customer Profile every sourcing/scoring/routing/drafting agent (Felix, Nell, Nova, Cleo, the burn-down, n8n ingest) targets against lives in `docs/ICP.md` (human) + `docs/icp.json` (machine-readable). Six lanes — `mindmaker_buyer`, `fractional_network`, `signal_noise_guest`, `builder_economy_guest`, `mm_ctrl_buyer`, `ecosystem_partner` — each with who-to-target, who-to-exclude, Apollo filters, weighted dimensions, and the ≥70 insert gate. Calibrated against live pulls (see the burn-down doc).
+
 ---
 
 ## 3. The agent fleet (the OS in motion)
