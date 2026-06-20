@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data: contact, error } = await supabase
     .from('contacts')
-    .select('id, dossier, enrichment_status, full_name, first_name, company, title, linkedin_url')
+    .select('id, dossier, enrichment_status, full_name, first_name, email, company, title, linkedin_url')
     .eq('id', id)
     .single()
   if (error || !contact) return res.status(404).json({ ok: false, error: 'contact not found' })
@@ -44,6 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         company: contact.company,
         title: contact.title,
         url: contact.linkedin_url,
+        email: contact.email,
       })
       const dossier = {
         pass5_meeting_weapon: { who_they_are: summary },

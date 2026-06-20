@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data: lead, error } = await supabase
     .from('leads')
-    .select('id, full_name, company, title, linkedin_url, source_url, why_relevant, raw_extraction')
+    .select('id, full_name, email, company, title, linkedin_url, source_url, why_relevant, raw_extraction')
     .eq('id', id)
     .single()
   if (error || !lead) return res.status(404).json({ ok: false, error: 'lead not found' })
@@ -58,6 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       company: lead.company,
       title: lead.title,
       url: lead.linkedin_url || lead.source_url,
+      email: lead.email,
       extra: lead.why_relevant,
     })
     const raw = (lead.raw_extraction && typeof lead.raw_extraction === 'object') ? lead.raw_extraction : {}

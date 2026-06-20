@@ -12,6 +12,7 @@ export interface BriefInput {
   company?: string | null
   title?: string | null
   url?: string | null
+  email?: string | null
   kind: 'person' | 'event'
   extra?: string | null
 }
@@ -36,28 +37,79 @@ async function perplexity(key: string, system: string, user: string): Promise<{ 
   }
 }
 
-/** Build a grounded research brief. Works with Perplexity for facts when the key
- *  is set, and degrades to a Claude-only synthesis from known context otherwise. */
+// Apollo.io people/match — structured B2B data (title, org, seniority, career
+// history) when APOLLO_API_KEY is set. Returns a context block for the synthesis
+// prompt plus the LinkedIn URL it resolved. Best-effort: any failure returns ''.
+async function apolloPerson(input: BriefInput): Promise<{ context: string; linkedin?: string }> {
+  const key = process.env.APOLLO_API_KEY
+  if (!key) return { context: '' }
+  const parts = (input.name || '').trim().split(/\s+/)
+  const first = parts[0] || undefined
+  const last = parts.length > 1 ? parts.slice(1).join(' ') : undefined
+  const body: Record<string, any> = {}
+  if (input.email) body.email = input.email
+  if (first) body.first_name = first
+  if (last) body.last_name = last
+  if (input.company) body.organization_name = input.company
+  if (input.url && /linkedin\.com/i.test(input.url)) body.linkedin_url = input.url
+  if (!body.email && !body.linkedin_url && !(body.first_name && body.organization_name)) return { context: '' }
+  try {
+    const r = await fetch('https://api.apollo.io/api/v1/people/match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'X-Api-Key': key },
+      body: JSON.stringify(body),
+    })
+    const j: any = await r.json().catch(() => ({}))
+    const p = j?.person
+    if (!r.ok || !p) return { context: '' }
+    const org = p.organization || {}
+    const lines = [
+      p.title ? `Title: ${p.title}` : '',
+      p.headline ? `Headline: ${p.headline}` : '',
+      org.name ? `Company: ${org.name}${org.industry ? ` (${org.industry})` : ''}` : '',
+      org.website_url ? `Company site: ${org.website_url}` : '',
+      org.estimated_num_employees ? `Company size: ~${org.estimated_num_employees} employees` : '',
+      [p.city, p.state, p.country].filter(Boolean).length ? `Location: ${[p.city, p.state, p.country].filter(Boolean).join(', ')}` : '',
+      Array.isArray(p.employment_history) && p.employment_history.length
+        ? `Career: ${p.employment_history.slice(0, 4).map((e: any) => `${e.title || ''}${e.organization_name ? ` @ ${e.organization_name}` : ''}`).filter((s: string) => s.trim()).join('; ')}`
+        : '',
+    ].filter(Boolean)
+    return { context: lines.length ? `APOLLO DATA:\n${lines.join('\n')}` : '', linkedin: p.linkedin_url || undefined }
+  } catch {
+    return { context: '' }
+  }
+}
+
+/** Build a grounded research brief. Uses Apollo for structured B2B data (people)
+ *  and Perplexity for web facts when their keys are set, then Claude to
+ *  synthesize. Degrades to a Claude-only summary from known context otherwise. */
 export async function researchBrief(input: BriefInput): Promise<BriefResult> {
   const pplxKey = process.env.PERPLEXITY_API_KEY
-  let research = ''
-  let sources: string[] = []
-  if (pplxKey) {
-    const q = input.kind === 'event'
-      ? `Research this event/visibility opportunity for a prospective speaker: "${input.name}"${input.url ? ` (${input.url})` : ''}. Who organises it, the audience and size, dates/deadlines, how to get on stage, and why it would matter. Cite sources.`
-      : `Research this person: ${input.name}${input.title ? `, ${input.title}` : ''}${input.company ? ` at ${input.company}` : ''}${input.url ? ` (${input.url})` : ''}. What they work on now, recent public activity, and what they care about. Cite sources.`
-    const r = await perplexity(pplxKey, 'You are a precise research assistant. Be factual, cite sources, never speculate.', q)
-    research = r.text
-    sources = r.citations
-  }
 
-  const system = 'You write a tight research brief an operator can act on immediately. 4–7 sentences, concrete and specific. If the facts are thin, say so plainly rather than inventing anything.'
+  // Structured + web research in parallel.
+  const apolloP = input.kind === 'person' ? apolloPerson(input) : Promise.resolve({ context: '' as string, linkedin: undefined as string | undefined })
+  const pplxP: Promise<{ text: string; citations: string[] }> = pplxKey
+    ? perplexity(
+        pplxKey,
+        'You are a precise research assistant. Be factual, cite sources, never speculate.',
+        input.kind === 'event'
+          ? `Research this event/visibility opportunity for a prospective speaker: "${input.name}"${input.url ? ` (${input.url})` : ''}. Who organises it, the audience and size, dates/deadlines, how to get on stage, and why it would matter. Cite sources.`
+          : `Research this person: ${input.name}${input.title ? `, ${input.title}` : ''}${input.company ? ` at ${input.company}` : ''}${input.url ? ` (${input.url})` : ''}. What they work on now, recent public activity, and what they care about. Cite sources.`,
+      )
+    : Promise.resolve({ text: '', citations: [] })
+
+  const [apollo, pplx] = await Promise.all([apolloP, pplxP])
+  const sources = pplx.citations
+
+  const system = 'You write a tight research brief an operator can act on immediately. 4–7 sentences, concrete and specific. Prefer the structured Apollo data for facts; use the web findings for recent/contextual colour. If the facts are thin, say so plainly rather than inventing anything.'
   const user = [
     input.kind === 'event' ? `EVENT: ${input.name}` : `PERSON: ${input.name}`,
     input.company ? `Company: ${input.company}` : '',
     input.title ? `Title: ${input.title}` : '',
     input.extra ? `Known context: ${input.extra}` : '',
-    research ? `RESEARCH FINDINGS:\n${research}` : '(no external research available — use only the known context above and stay honest about gaps)',
+    apollo.context || '',
+    pplx.text ? `WEB FINDINGS:\n${pplx.text}` : '',
+    (!apollo.context && !pplx.text) ? '(no external research available — use only the known context above and stay honest about gaps)' : '',
   ].filter(Boolean).join('\n')
 
   const summary = (await callClaude({ system, user, maxTokens: 600, temperature: 0.4 })).trim()
