@@ -1,4 +1,4 @@
-import { RotateCcw, Layers } from 'lucide-react'
+import { RotateCcw, Layers, LogOut } from 'lucide-react'
 
 interface Props {
   /** Headline, e.g. "Clear the pile" / "Handle 1-by-1". */
@@ -36,8 +36,8 @@ export function DeckProgressStrip({
           )}
           {onExit && (
             <button type="button" onClick={onExit}
-              className="text-[11px] text-white/45 hover:text-white/80 px-2 py-1 rounded-md hover:bg-white/[0.06]">
-              {exitLabel}
+              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/85 border border-white/20 bg-white/[0.06] hover:bg-white/[0.12] active:scale-95 transition px-3 py-1.5 rounded-lg">
+              <LogOut size={13} /> {exitLabel}
             </button>
           )}
         </div>

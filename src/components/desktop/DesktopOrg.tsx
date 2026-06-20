@@ -9,6 +9,7 @@ import { FlagAgentModal } from '../FlagAgentModal'
 import { NextOrgHero } from '../org/NextOrgHero'
 import { usePendingCorrections, type PendingCorrection } from '../../hooks/usePendingCorrections'
 import { SkillProposalsPanel } from '../shared/SkillProposalsPanel'
+import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 
 interface Agent {
   id: string
@@ -161,6 +162,7 @@ export function DesktopOrg() {
     }
     setTimeout(() => setTriggering(prev => ({ ...prev, [name]: 'idle' })), 2500)
   }
+  const triggeringName = Object.entries(triggering).find(([, s]) => s === 'loading')?.[0] || null
 
   useEffect(() => {
     supabase.from('agents').select('*').eq('active', true).order('pod').then(({ data }) => {
@@ -464,6 +466,7 @@ export function DesktopOrg() {
 
   return (
     <div className="flex flex-col gap-4">
+      {triggeringName && <ProcessingOverlay label={`Triggering ${triggeringName}`} sub="Starting the agent run" />}
       <NextOrgHero
         corrections={pendingCorrections.data}
         agentCount={agents.length}

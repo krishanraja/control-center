@@ -4,6 +4,7 @@ import {
   Save, Search, Send, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Wand2, X, Gauge,
 } from 'lucide-react'
 import { RichText } from './RichText'
+import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -316,21 +317,8 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
 // Draft is read by default (no keyboard); one-tap adjustments preview inline;
 // Cleo / Materials / Research are secondary sheets; one big sticky Save Draft.
 
-// A blocking, clearly-visual processing state. While Cleo is rewriting or
-// reading, this covers the surface so (a) it's obvious something is happening and
-// (b) no second action can be fired mid-flight. Used by every async content op on
-// both devices — one pattern, no half-states.
-function ProcessingOverlay({ label, sub }: { label: string; sub?: string }) {
-  return (
-    <div className="fixed inset-0 z-[120] flex flex-col items-center justify-center bg-black/75 backdrop-blur-sm animate-fade-in" role="alertdialog" aria-busy="true" aria-live="assertive">
-      <div className="flex flex-col items-center gap-3 px-8 text-center">
-        <Loader2 size={30} className="animate-spin text-violet-300" />
-        <p className="text-[15px] font-medium text-white/90">{label}</p>
-        <p className="text-[12px] text-white/45">{sub || 'One moment…'}</p>
-      </div>
-    </div>
-  )
-}
+// A blocking, clearly-visual processing state lives in shared/ProcessingOverlay
+// and is reused across tabs. Imported above.
 
 // Shape stage, one-tap "make it publishable" — the old "Make it ready", now folded
 // into the single Adjust surface instead of being a competing top-level flow.

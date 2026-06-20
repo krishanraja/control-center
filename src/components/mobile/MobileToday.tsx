@@ -7,6 +7,7 @@ import { useRealtimeTasks, type TaskRow } from '../../hooks/useRealtimeTasks'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { BackburnerSection } from '../shared/BackburnerSection'
+import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import { humanAge } from '../../lib/ageHelpers'
 import { DecisionDetail } from '../DecisionDetail'
 import { navigateDecision } from '../../lib/routeDecision'
@@ -92,6 +93,7 @@ export function MobileToday({
   )
   const [openId, setOpenId] = useState<string | null>(null)
   const [showStale, setShowStale] = useState(false)
+  const [taskBusy, setTaskBusy] = useState(false)
   const { mode, setMode } = useFocusMode()
   const { today: focusToday } = useDailyFocus()
   const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
@@ -152,7 +154,9 @@ export function MobileToday({
   // tasks under RLS (matches 0 rows without erroring, so the old direct
   // updates flashed success while the item stayed put).
   const taskAction = async (url: string, payload: Record<string, any>, okMsg: string, failMsg: string) => {
+    if (taskBusy) return
     h.heavy()
+    setTaskBusy(true)
     try {
       const res = await fetch(url, {
         method: 'POST',
@@ -167,6 +171,8 @@ export function MobileToday({
     } catch {
       h.error()
       toast(failMsg, 'error')
+    } finally {
+      setTaskBusy(false)
     }
   }
 
@@ -188,6 +194,7 @@ export function MobileToday({
         />
       }
     >
+      {taskBusy && <ProcessingOverlay label="Updating" sub="Saving your decision" />}
       {lane && (
         <div className="flex items-center gap-2 px-3 py-2 mb-3 bg-violet-500/10 border border-violet-400/20 rounded-lg text-sm">
           <span className="text-violet-200">Filtered to {lane}</span>

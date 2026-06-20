@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { X, Check, AlertTriangle, Loader2, RefreshCw, Send } from 'lucide-react'
 import type { SkillData, QualityGateResult } from './types'
+import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 
 const EMPTY_SKILL: SkillData = {
   name: '', description: '', body: '', references: [], test_prompts: [], gotchas: [], archetype: '',
@@ -54,6 +55,7 @@ export function SkillReviewModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+      {(shipping || regenerating) && <ProcessingOverlay label={shipping ? 'Shipping skills' : 'Regenerating skills'} sub={shipping ? 'Saving and emailing the client' : 'Cleo is rebuilding them'} />}
       <div className="relative w-full max-w-6xl max-h-[92vh] rounded-2xl border border-white/[0.08] bg-[#111114] shadow-2xl flex flex-col overflow-hidden">
 
         {/* Header */}

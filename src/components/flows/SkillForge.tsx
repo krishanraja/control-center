@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useToast } from '../shared/Toast'
 import { SkillReviewModal } from './SkillReviewModal'
 import { SkillDeliveryHistory } from './SkillDeliveryHistory'
+import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import type { SkillData, QualityGateResult, TriageResult, SkillDelivery } from './types'
 
 const API = import.meta.env.VITE_API_URL ?? ''
@@ -170,6 +171,7 @@ export function SkillForge() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+      {generating && !reviewOpen && <ProcessingOverlay label="Drafting skills" sub="Cleo is building them from the transcript" />}
       {/* Left: input form (60%) */}
       <div className="lg:col-span-3 space-y-3">
         <header>

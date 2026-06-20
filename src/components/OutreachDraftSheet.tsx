@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Mail, Sparkles, Loader2 } from 'lucide-react'
 import { BottomSheet } from './mobile/BottomSheet'
+import { ProcessingOverlay } from './shared/ProcessingOverlay'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 
@@ -147,6 +148,7 @@ export function OutreachDraftSheet({
 
   return (
     <BottomSheet open={!!target} onClose={onClose} fullHeight={false} ariaLabel="Draft outreach email">
+      {busy && <ProcessingOverlay label="Cleo is drafting the email" sub="Composing in your voice — it'll open in Gmail" />}
       {target && (
         <div className="flex flex-col">
           <div className="px-5 pb-4 flex flex-col gap-5 overflow-y-auto scrollbar-hide" style={{ maxHeight: '70vh' }}>
