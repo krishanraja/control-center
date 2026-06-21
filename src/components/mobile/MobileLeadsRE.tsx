@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import { Flame, Layers, ChevronRight, Target, Sparkles } from 'lucide-react'
-import { MobileShell, TabHeader, FeedCard, FeedRow, EmptyState } from './primitives'
+import { MobileShell, TabHeader, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { MobileShell as MobileStage } from './MobileShell'
 import { ContactImportDropzone } from '../ContactImportDropzone'
 import { ventureDisplayName } from '../ContactSourcePill'
@@ -209,6 +209,11 @@ export function MobileLeadsRE(_props: Props = {}) {
     items: handQueue, getId: c => c.id, loading,
     onAccept, onReject,
   })
+
+  // First paint loads single-focus — one column shimmering in — not a blank flash.
+  if (loading && rawContacts.length === 0) {
+    return <MobileLoadingScreen title="Network" subtitle="Gathering your network…" />
+  }
 
   if (triage.mode === 'deck') {
     const scope = venture ? ventureLabel(venture) : 'warm'

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase, logKrishAction } from '../../lib/supabase'
@@ -108,6 +108,10 @@ export function MobileFlows() {
       h.error()
       toast('Could not update proposal.', 'error')
     }
+  }
+
+  if (loading && grouped.length === 0) {
+    return <MobileLoadingScreen title="Flows" subtitle="Gathering workflow activity…" />
   }
 
   return (

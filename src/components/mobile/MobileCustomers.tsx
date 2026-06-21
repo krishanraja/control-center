@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
@@ -85,6 +85,10 @@ export function MobileCustomers() {
       onClick={() => { h.select(); setOpenId(c.id) }}
     />
   )
+
+  if (loading && customers.length === 0) {
+    return <MobileLoadingScreen title="Subscriptions" subtitle="Gathering subscriptions…" />
+  }
 
   return (
     <MobileShellPrim

@@ -5,6 +5,7 @@ import { supabase, logKrishAction } from '../../lib/supabase'
 import { humanize } from '../shared/tokens'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { SkillForge } from '../flows/SkillForge'
+import { BoardSkeleton } from '../shared/Skeleton'
 
 interface Run {
   id: string
@@ -144,7 +145,7 @@ export function DesktopFlows() {
         </div>
 
         {loading ? (
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-8 text-center text-[12px] text-white/30">Loading…</div>
+          <BoardSkeleton lanes={1} cardsPerLane={5} hero={false} />
         ) : grouped.length === 0 ? (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
             <WorkflowIcon size={20} className="text-white/20 mx-auto mb-3" />

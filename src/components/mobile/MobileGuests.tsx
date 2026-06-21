@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Mic, Megaphone, Calendar, Layers, ChevronRight, Sparkles, Linkedin, Twitter, Globe, Mail, ExternalLink, FileText } from 'lucide-react'
 import { MobileShell } from './MobileShell'
-import { TabHeader } from './primitives'
+import { TabHeader, MobileLoadingScreen } from './primitives'
 import { NextVisibilityHero } from '../guests/NextVisibilityHero'
 import { BottomSheet } from './BottomSheet'
 import { isTestRecord } from '../../lib/recordHygiene'
@@ -184,6 +184,12 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
   // ── Deck mode: the active lane's swipe deck owns the screen (lane toggle stays
   // so you can flip inbound/outbound without leaving triage).
   const activeTriage = lane === 'inbound' ? guestTriage : targetTriage
+
+  // First paint loads single-focus — one column shimmering in — not a blank flash.
+  if ((guestsLoading || targetsLoading) && guests.length === 0 && allTargets.length === 0) {
+    return <MobileLoadingScreen title="Visibility" subtitle="Gathering inbound + outbound…" />
+  }
+
   if (activeTriage.mode === 'deck') {
     return (
       <MobileShell scroll="none" header={<TabHeader title="Visibility" subtitle="Swipe to clear the pile" />}>

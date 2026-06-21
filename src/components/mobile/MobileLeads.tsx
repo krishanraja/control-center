@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Users, Linkedin, Mail, ExternalLink, X, ThumbsUp, Sparkles, Layers, ChevronRight } from 'lucide-react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { MobileShell as MobileStage } from './MobileShell'
 import { DetailSheet } from './DetailSheet'
 import { LeadImportDropzone } from '../LeadImportDropzone'
@@ -167,6 +167,11 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
       feedback={{ sourceTable: 'leads', sourceId: l.id, agentId: l.assignee_agent }}
     />
   )
+
+  // First paint loads single-focus — one column shimmering in — not a blank flash.
+  if (loading && leads.length === 0) {
+    return <MobileLoadingScreen title="Pipeline" subtitle="Gathering your pipeline…" />
+  }
 
   if (triage.mode === 'deck') {
     return (

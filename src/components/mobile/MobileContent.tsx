@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ChevronRight, Clock, AlertTriangle, CheckCircle2, Layers, GitMerge, Sparkles } from 'lucide-react'
 import { MobileShell } from './MobileShell'
-import { TabHeader } from './primitives'
+import { TabHeader, MobileLoadingScreen } from './primitives'
 import { type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { useContentTriage } from '../../hooks/useContentTriage'
 import { TriageDeck } from '../content/TriageDeck'
@@ -83,6 +83,11 @@ export function MobileContent({ ideaId }: Props = {}) {
   const renderedDraftCount = clusters.reduce((n, c) => n + c.members.length, 0) + looseDrafts.length
 
   const open = (id: string) => { window.location.hash = `#/content?idea=${id}` }
+
+  // First paint loads single-focus — one column shimmering in — not a blank flash.
+  if (loading && activeCount === 0) {
+    return <MobileLoadingScreen title="Content" subtitle="Gathering the pile…" />
+  }
 
   // ── Triage mode: the swipe deck owns the screen.
   if (mode === 'triage') {

@@ -20,6 +20,7 @@ import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 import { GuestCard } from '../GuestCard'
 import { VisibilityTargetCard } from '../VisibilityTargetCard'
+import { BoardSkeleton } from '../shared/Skeleton'
 
 type Lane = 'inbound' | 'outbound'
 
@@ -149,6 +150,22 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
   const renderGuestRow = (g: GuestRow) => <GuestCard guest={g} onOpen={handleOpenGuest} />
   const renderTargetRow = (t: VisibilityTargetRow) => <VisibilityTargetCard target={t} onOpen={openTarget} />
+
+  // Desktop loads the board's architecture at once — inbound + outbound breadth.
+  if ((guestsLoading || targetsLoading) && allGuests.length === 0 && allTargets.length === 0) {
+    return (
+      <div className="space-y-5">
+        <header>
+          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+            <Mic size={20} className="text-violet-300" />
+            Visibility
+          </h1>
+          <p className="text-[13px] text-white/55 mt-1">Gathering inbound guests + outbound targets…</p>
+        </header>
+        <BoardSkeleton lanes={2} cardsPerLane={3} hero={false} />
+      </div>
+    )
+  }
 
   if (triageOpen) {
     return (

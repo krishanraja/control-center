@@ -14,6 +14,7 @@ import { SubscriptionsWatchHero } from '../customers/SubscriptionsWatchHero'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
+import { BoardSkeleton } from '../shared/Skeleton'
 
 export function DesktopCustomers() {
   const { buckets, totals, customers, loading, error } = useCustomers()
@@ -222,6 +223,14 @@ export function DesktopCustomers() {
       Select a product
     </div>
   )
+
+  if (loading && customers.length === 0) {
+    return (
+      <div className="flex flex-col gap-4">
+        <BoardSkeleton lanes={3} cardsPerLane={3} />
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4">

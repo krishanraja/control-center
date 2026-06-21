@@ -10,6 +10,7 @@ import { NextOrgHero } from '../org/NextOrgHero'
 import { usePendingCorrections, type PendingCorrection } from '../../hooks/usePendingCorrections'
 import { SkillProposalsPanel } from '../shared/SkillProposalsPanel'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
+import { BoardSkeleton } from '../shared/Skeleton'
 
 interface Agent {
   id: string
@@ -114,6 +115,7 @@ function podOf(pod?: string): PodDef {
 
 export function DesktopOrg() {
   const [agents, setAgents] = useState<Agent[]>([])
+  const [loaded, setLoaded] = useState(false)
   const pendingCorrections = usePendingCorrections(5)
 
   // CLO-005 (audit 2026-05-26): react to ?correction=:id in hash. If a
@@ -167,6 +169,7 @@ export function DesktopOrg() {
   useEffect(() => {
     supabase.from('agents').select('*').eq('active', true).order('pod').then(({ data }) => {
       setAgents((data as any) || [])
+      setLoaded(true)
     })
   }, [])
 
@@ -463,6 +466,15 @@ export function DesktopOrg() {
       )}
     </div>
   ) : <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an agent</div>
+
+  if (!loaded && agents.length === 0) {
+    return (
+      <div className="flex flex-col gap-4">
+        <h1 className="text-2xl font-semibold text-white tracking-tight">Organisation</h1>
+        <BoardSkeleton lanes={3} cardsPerLane={3} hero={false} />
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4">

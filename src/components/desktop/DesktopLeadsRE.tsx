@@ -10,6 +10,7 @@ import { isTestRecord } from '../../lib/recordHygiene'
 import { predictiveScore } from '../../lib/networkScore'
 import { NextNetworkHero } from '../contacts/NextNetworkHero'
 import { ContactCard } from '../ContactCard'
+import { BoardSkeleton } from '../shared/Skeleton'
 
 // Bound the render — never mount the whole 1,000-contact grid (the 6,776-node
 // crash risk). Past the cap, route the rest into the 1-by-1 triage deck.
@@ -159,6 +160,22 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
         ? 'border-violet-400/50 bg-violet-500/15 text-violet-100'
         : 'border-white/10 text-white/60 hover:bg-white/[0.06]'
     }`
+
+  // Desktop loads the board's architecture at once — breadth, not a single card.
+  if (loading && rawContacts.length === 0) {
+    return (
+      <div className="space-y-5">
+        <header>
+          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+            <HeartHandshake size={20} className="text-rose-300" />
+            Network
+          </h1>
+          <p className="text-[13px] text-white/55 mt-1">Gathering your network…</p>
+        </header>
+        <BoardSkeleton lanes={3} cardsPerLane={3} hero={false} />
+      </div>
+    )
+  }
 
   if (triageOpen) {
     return (

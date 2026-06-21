@@ -18,6 +18,7 @@ import { useContentTriage } from '../../hooks/useContentTriage'
 import { SwipeCockpit } from '../shared/SwipeCockpit'
 import { buildContentTriageConfig } from '../../lib/triageConfig'
 import { SynthesisModal } from '../content/SynthesisModal'
+import { BoardSkeleton } from '../shared/Skeleton'
 
 // Past this many cards a lane stops stacking and offers the triage deck instead —
 // the guard that makes it structurally impossible to mount 200 cards again.
@@ -167,6 +168,14 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
       )}
     </div>
   )
+
+  if (loading && ideas.length === 0) {
+    return (
+      <div className="p-6">
+        <BoardSkeleton lanes={3} cardsPerLane={3} />
+      </div>
+    )
+  }
 
   return (
     <AppFrame

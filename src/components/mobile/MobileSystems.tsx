@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
@@ -98,6 +98,10 @@ export function MobileSystems() {
   const open = openId ? services.find(s => s.id === openId) ?? null : null
   const heroIssue = down[0] || warn[0] || null
   const overallOk = down.length === 0 && warn.length === 0
+
+  if (loading && services.length === 0) {
+    return <MobileLoadingScreen title="Systems" subtitle="Checking services…" />
+  }
 
   return (
     <MobileShellPrim

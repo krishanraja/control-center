@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, FeedCard, FeedRow, EmptyState } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader, HeroCard, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
@@ -103,6 +103,10 @@ export function MobileIntel() {
 
   const hero = state.signals[0] || null
   const rest = state.signals.slice(1)
+
+  if (state.loading && state.signals.length === 0 && state.metrics.length === 0) {
+    return <MobileLoadingScreen title="Intelligence" subtitle="Gathering fresh signals…" />
+  }
 
   return (
     <MobileShellPrim

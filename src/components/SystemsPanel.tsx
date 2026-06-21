@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { CheckCircle2, AlertTriangle, XCircle, HelpCircle, RefreshCw } from 'lucide-react'
+import { BoardSkeleton } from './shared/Skeleton'
 
 interface Service {
   id: string
@@ -146,6 +147,18 @@ export function SystemsPanel() {
   const unknownCount   = allServices.filter(s => s.status === 'unknown').length
 
   const overallOk = downServices.length === 0 && warnServices.length === 0
+
+  if (loading && !data) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold text-white">Systems</h1>
+          <p className="text-[13px] text-white/30 mt-0.5">Checking every connected service…</p>
+        </div>
+        <BoardSkeleton lanes={2} cardsPerLane={4} hero={false} />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-5">

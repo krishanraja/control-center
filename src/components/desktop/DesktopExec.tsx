@@ -239,9 +239,14 @@ function EmptyTile({ title, subtitle }: { title: string; subtitle?: string }) {
 }
 
 function LoadingTile() {
+  // Content-shaped shimmer — a promise of the assessment about to arrive, not a
+  // generic "Loading…". Uses the global `.skeleton` light-sweep.
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-8 text-center">
-      <p className="text-[12px] text-white/35">Loading…</p>
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4 space-y-2.5">
+      <div className="skeleton h-3 w-2/3 rounded-md" />
+      <div className="skeleton h-3 w-full rounded-md" />
+      <div className="skeleton h-3 w-5/6 rounded-md" />
+      <div className="skeleton h-3 w-1/2 rounded-md" />
     </div>
   )
 }
