@@ -57,7 +57,7 @@ export function BottomSheet({ open, onClose, children, fullHeight = true, ariaLa
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center"
+      className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[70] flex items-end justify-center"
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}
@@ -69,7 +69,7 @@ export function BottomSheet({ open, onClose, children, fullHeight = true, ariaLa
         style={{ opacity: visible ? 1 : 0 }}
       />
       <div
-        className={`relative w-full max-w-xl bg-[#0f0f12] border-t border-white/[0.08] rounded-t-[28px] shadow-2xl shadow-black/60 flex flex-col ${fullHeight ? 'h-[92vh]' : ''}`}
+        className={`relative w-full max-w-xl bg-[#0f0f12] border-t border-white/[0.08] rounded-t-[28px] shadow-2xl shadow-black/60 flex flex-col ${fullHeight ? 'h-[calc(92vh/var(--z,1))]' : ''}`}
         style={{
           transform: `translateY(${translate}px)`,
           transition: startY.current == null ? 'transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',

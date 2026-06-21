@@ -73,7 +73,7 @@ export function DetailSheet({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center"
+      className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[70] flex items-end justify-center"
       role="dialog"
       aria-modal="true"
       aria-label={title}

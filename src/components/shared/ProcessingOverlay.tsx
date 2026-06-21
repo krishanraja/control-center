@@ -9,7 +9,7 @@ import { Loader2 } from 'lucide-react'
 export function ProcessingOverlay({ label, sub }: { label: string; sub?: string }) {
   return (
     <div
-      className="fixed inset-0 z-[120] flex flex-col items-center justify-center bg-black/75 backdrop-blur-sm animate-fade-in"
+      className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[120] flex flex-col items-center justify-center bg-black/75 backdrop-blur-sm animate-fade-in"
       role="alertdialog"
       aria-busy="true"
       aria-live="assertive"

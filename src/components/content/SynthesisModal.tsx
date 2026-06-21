@@ -84,7 +84,7 @@ export function SynthesisModal({ open, onClose, selected, onSynthesized }: Props
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4"
+      className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-50 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-[10vh] px-4"
       onClick={onClose}
     >
       <div

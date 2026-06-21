@@ -108,7 +108,18 @@ export default function App() {
               Content tab's AppFrame). Chrome (sidebar / bottom nav) stays put. */}
           <main className="flex-1 min-w-0 overflow-hidden">
             {narrow ? (
-              <>
+              // Mobile zoom: render the whole mobile experience 20% larger than
+              // design size. `zoom` scales px + rem uniformly (this codebase uses
+              // many px-literal sizes, so a rem bump alone would be patchy). The
+              // wrapper is compensated to the viewport (width/height ÷ 1.2) so the
+              // zoomed box still fits exactly, and it publishes `--z` so the
+              // fixed-viewport shells and full-screen sheets inside can divide
+              // their own 100dvh/100vw by the same factor. The BottomNav sits
+              // OUTSIDE this wrapper, so it stays at native size.
+              <div
+                className="mobile-zoom-root"
+                style={{ zoom: 1.2, width: 'calc(100vw / 1.2)', height: 'calc(100dvh / 1.2)', '--z': '1.2' } as React.CSSProperties}
+              >
                 {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome onNavigate={navigate} /></ErrorBoundary>}
                 {tab === 'today'     && <ErrorBoundary label="Today"><MobileToday lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
                 {tab === 'leads'     && <ErrorBoundary label="Leads"><MobileLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
@@ -120,7 +131,7 @@ export default function App() {
                 {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrg /></ErrorBoundary>}
                 {tab === 'workflows' && <ErrorBoundary label="Flows"><MobileFlows /></ErrorBoundary>}
                 {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
-              </>
+              </div>
             ) : tab === 'content' ? (
               <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>
             ) : (

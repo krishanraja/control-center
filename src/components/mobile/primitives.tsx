@@ -28,7 +28,7 @@ export function MobileShell({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col h-[100dvh]">
+    <div className="flex flex-col h-[calc(100dvh/var(--z,1))]">
       {header && <div className="px-5 pt-7 pb-5 flex-shrink-0">{header}</div>}
       <div
         className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 scrollbar-hide ${BOTTOM_NAV_PAD}`}

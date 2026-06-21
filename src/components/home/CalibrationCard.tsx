@@ -207,9 +207,9 @@ function CalibrationFlow({ domain, onClose }: { domain: Domain; onClose: () => v
   const canFinish = recorded >= 3
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 animate-fade-in" onClick={onClose} />
-      <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0c0c0e] p-5 animate-fade-in">
+      <div className="relative w-full max-w-xl max-h-[calc(90vh/var(--z,1))] overflow-y-auto rounded-2xl border border-white/10 bg-[#0c0c0e] p-5 animate-fade-in">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-[15px] font-semibold text-white">
             Calibrate · {DOMAIN_LABEL[domain]}
