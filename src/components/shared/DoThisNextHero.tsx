@@ -1,5 +1,6 @@
 import React from 'react'
 import { Loader2 } from 'lucide-react'
+import { useReducedMotion } from './motion'
 
 /**
  * DoThisNextHero — the ONE "what do I do next" hero every tab renders through
@@ -7,9 +8,15 @@ import { Loader2 } from 'lucide-react'
  * nouns/verbs they feed in; the grammar, layout, tones, and behavior are
  * identical everywhere so the whole app feels like one product.
  *
- * Each tab computes a `HeroDescriptor` from its own pile and passes it in.
- * Rendering, color tone, the "DO THIS NEXT" eyebrow, and the one-tap primary
- * button live here and nowhere else.
+ * Calm & Anticipatory: while there's something to do, this is the one focal
+ * surface — it breathes with a slow violet halo so the eye lands on it without a
+ * single hard cue, and the rest of the screen stays still. When the next thing
+ * changes, the new instruction rises in rather than snapping. When you're clear,
+ * the bar exhales into a quiet, settled state.
+ *
+ * Device intent: on desktop (orchestrate) the primary action carries a keyboard
+ * affordance — this is a command surface you flow through with the keyboard. On
+ * mobile (decide) it's a single, thumb-scale tap.
  */
 export type HeroTone = 'emerald' | 'violet' | 'sky' | 'amber' | 'neutral'
 
@@ -56,18 +63,25 @@ interface Props {
 export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow }: Props) {
   const { headline, sub, actionLabel, icon, clear } = descriptor
   const tone: HeroTone = descriptor.tone || (clear ? 'neutral' : 'violet')
+  const reduced = useReducedMotion()
+
+  // The active "next" surface breathes; the cleared one exhales once and rests.
+  const sectionMotion = clear
+    ? (reduced ? '' : 'animate-exhale')
+    : (reduced ? 'shadow-glass' : 'animate-focus-halo')
 
   return (
     <section
       aria-label="Do this next"
-      className={`rounded-2xl border ${TONE_BG[tone]} ${narrow ? 'p-3.5' : 'px-5 py-4'} flex items-center gap-3`}
+      className={`relative rounded-2xl border ${TONE_BG[tone]} ${narrow ? 'p-3.5' : 'px-5 py-4'} flex items-center gap-3 ${sectionMotion}`}
     >
       {icon && (
         <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
           {icon}
         </div>
       )}
-      <div className="min-w-0 flex-1">
+      {/* Keyed on the headline so a new "next" gently rises in instead of swapping. */}
+      <div key={headline} className={`min-w-0 flex-1 ${reduced ? '' : 'animate-rise'}`}>
         {!clear && (
           <p className="text-[10px] uppercase tracking-[0.16em] text-white/40 mb-0.5">Do this next</p>
         )}
@@ -82,10 +96,17 @@ export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow }: 
           type="button"
           onClick={onAct}
           disabled={busy}
-          className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors disabled:opacity-50 min-h-[44px] text-[13px] border ${TONE_BTN[tone]}`}
+          className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors disabled:opacity-50 min-h-[44px] text-[13px] border outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${TONE_BTN[tone]}`}
         >
           {busy ? <Loader2 size={14} className="animate-spin" /> : icon}
           {actionLabel}
+          {/* Desktop is a keyboard-driven command surface: Tab to the action,
+              press Enter. Hidden on touch, where it's a single tap. */}
+          {!narrow && (
+            <kbd className="ml-1 hidden md:inline-block rounded-md border border-white/20 bg-white/[0.08] px-1.5 py-0.5 text-[10px] font-mono leading-none text-white/60">
+              ⏎
+            </kbd>
+          )}
         </button>
       )}
     </section>

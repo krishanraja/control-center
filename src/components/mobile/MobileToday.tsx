@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { isToday, isPast, parseISO } from 'date-fns'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow } from './primitives'
+import { MobileTabSkeleton } from '../shared/Skeleton'
+import { AllClear } from '../shared/AllClear'
 import { DetailSheet } from './DetailSheet'
 import { BottomSheet } from './BottomSheet'
 import { useRealtimeTasks, type TaskRow } from '../../hooks/useRealtimeTasks'
@@ -185,6 +187,17 @@ export function MobileToday({
   const rejectTask = (id: string, agent?: string) =>
     taskAction('/api/triage/reject', { source_table: 'tasks', source_id: id, agent }, 'Rejected.', 'Could not reject.')
 
+  // First paint loads single-focus: one hero, one column, shimmering in. On a
+  // phone you arrived to make one decision — so the placeholder is that shape,
+  // not a generic spinner, and it settles straight into the real day.
+  if (loading && allTasks.length === 0) {
+    return (
+      <MobileShellPrim header={<TabHeader title="Today" subtitle="Gathering your day…" />}>
+        <MobileTabSkeleton />
+      </MobileShellPrim>
+    )
+  }
+
   return (
     <MobileShellPrim
       header={
@@ -231,7 +244,10 @@ export function MobileToday({
       )}
 
       {due.length === 0 && waiting.length === 0 && pipeline.length === 0 && !loading && (
-        <EmptyState label="Inbox zero. Nothing needs you right now." />
+        <AllClear
+          title="You're all clear."
+          sub="Nothing needs you right now. The pods keep working in the background."
+        />
       )}
 
       {showFocus ? (

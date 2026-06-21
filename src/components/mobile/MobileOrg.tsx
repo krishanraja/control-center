@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, FeedCard, FeedRow, EmptyState } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader, HeroCard, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
@@ -126,6 +126,10 @@ export function MobileOrg() {
       setTriggering(prev => ({ ...prev, [name]: 'err' }))
     }
     setTimeout(() => setTriggering(prev => ({ ...prev, [name]: 'idle' })), 2500)
+  }
+
+  if (loading && agents.length === 0) {
+    return <MobileLoadingScreen title="Organisation" subtitle="Waking the roster…" />
   }
 
   return (

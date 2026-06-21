@@ -17,6 +17,7 @@ import { navigateDecision } from '../../lib/routeDecision'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
+import { BoardSkeleton } from '../shared/Skeleton'
 
 /**
  * Leads tab — venture-grouped lanes.
@@ -70,6 +71,24 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
   const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
   const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
   const renderLeadRow = (lead: LeadRow) => <LeadCard lead={lead} onOpen={handleOpen} />
+
+  // Desktop loads the whole board's architecture at once — a hero spine over the
+  // venture lanes, shimmering in left-to-right — because a desk session is about
+  // breadth, not a single card.
+  if (loading && allLeads.length === 0) {
+    return (
+      <div className="space-y-5">
+        <header>
+          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+            <Users size={20} className="text-emerald-300" />
+            Pipeline
+          </h1>
+          <p className="text-[13px] text-white/55 mt-1">Gathering your pipeline across every venture…</p>
+        </header>
+        <BoardSkeleton lanes={3} cardsPerLane={3} hero={false} />
+      </div>
+    )
+  }
 
   if (triageOpen) {
     return (

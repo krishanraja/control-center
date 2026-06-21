@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { BOTTOM_NAV_PAD } from './primitives'
+import { useReducedMotion } from '../shared/motion'
 
 interface Props {
   header?: React.ReactNode
@@ -113,17 +114,4 @@ export function MobileShell({ header, children, onRefresh, scroll = 'auto', foot
       {footer && <div className={`flex-shrink-0 ${BOTTOM_NAV_PAD}`}>{footer}</div>}
     </main>
   )
-}
-
-function useReducedMotion(): boolean {
-  const [v, setV] = useState(false)
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return
-    const m = window.matchMedia('(prefers-reduced-motion: reduce)')
-    setV(m.matches)
-    const h = () => setV(m.matches)
-    m.addEventListener?.('change', h)
-    return () => m.removeEventListener?.('change', h)
-  }, [])
-  return v
 }

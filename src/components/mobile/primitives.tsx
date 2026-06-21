@@ -40,6 +40,25 @@ export function MobileShell({
 }
 
 import { Logomark } from './Logomark'
+import { MobileTabSkeleton } from '../shared/Skeleton'
+
+/**
+ * First-paint loading screen for a mobile tab — the single-focus skeleton inside
+ * the real shell + title, so the page settles into live data instead of flashing
+ * a "Loading…" line. Drop-in for any tab: render it when the tab is loading and
+ * has no data yet, e.g. `if (loading && rows.length === 0) return <MobileLoadingScreen title="…" />`.
+ */
+export function MobileLoadingScreen({
+  title,
+  subtitle = 'One moment…',
+  rows = 4,
+}: { title: string; subtitle?: string; rows?: number }) {
+  return (
+    <MobileShell header={<TabHeader title={title} subtitle={subtitle} />}>
+      <MobileTabSkeleton rows={rows} />
+    </MobileShell>
+  )
+}
 
 /** Large nav title — iOS Large Title + Display Small scale. */
 export function TabHeader({
@@ -259,9 +278,15 @@ export function FeedRow({
   )
 }
 
-/** Empty state */
+/**
+ * Quiet empty state — for "nothing here yet / not set up" cases that are NOT a
+ * celebration (e.g. "No customers yet. Apply the migration."). For a genuine
+ * "you cleared it" moment, use <AllClear> instead, which earns a drawn check and
+ * a success haptic. Keeping these distinct means we never buzz "well done" at a
+ * blank setup screen.
+ */
 export function EmptyState({ label }: { label: string }) {
   return (
-    <div className="px-5 py-16 text-center text-[14px] text-white/40">{label}</div>
+    <div className="px-5 py-16 text-center text-[14px] text-white/40 animate-rise">{label}</div>
   )
 }

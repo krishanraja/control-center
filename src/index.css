@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ───────────────────────────────────────────────────────────────────────────
+   Calm & Anticipatory — motion language
+   The signature easing is the iOS sheet curve: a fast, confident departure that
+   settles softly, never bouncing. Everything that moves in this product moves on
+   this curve so the whole app shares one physical sensibility.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  --ease-calm: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* App entry: the content arrives, it does not snap. Opacity-only so it never
+   creates a transform context that would reposition fixed overlays. Pairs with
+   the brand splash exhale in index.html for a single, seamless handoff. */
+#root {
+  animation: app-enter 0.6s var(--ease-calm) both;
+}
+@keyframes app-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 @layer base {
   * {
     @apply border-command-border;
@@ -178,13 +200,118 @@
   pointer-events: none;
 }
 
+/* ───────────────────────────────────────────────────────────────────────────
+   Calm & Anticipatory — the motion system
+
+   Five gestures, one curve:
+   • rise      — content arrives from just below, settling (lists, panels)
+   • scale-in  — overlays/sheets bloom from 96% (focus comes to you)
+   • exhale    — the "all clear" gradient breathes open, once
+   • breathe   — the one focal thing has a slow living halo; the rest recedes
+   • orbit     — the system is thinking *for* you (loading is anticipation)
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-rise { animation: rise-in 0.55s var(--ease-calm) both; }
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in { animation: scale-in 0.34s var(--ease-calm) both; }
+
+@keyframes exhale {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-exhale { animation: exhale 0.7s var(--ease-out-soft) both; }
+
+/* The focal "do this next" surface is alive; everything else is still. A slow
+   violet halo (matches the brand accent) breathes so the eye is drawn without a
+   single hard cue. ~5s cycle reads as calm, never urgent. */
+@keyframes focus-halo {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(167,139,250,0.12), 0 12px 56px -18px rgba(167,139,250,0.22); }
+  50%      { box-shadow: 0 0 0 1px rgba(167,139,250,0.22), 0 16px 70px -14px rgba(167,139,250,0.36); }
+}
+.animate-focus-halo { animation: focus-halo 5s ease-in-out infinite; }
+
+/* The thinking orbit: a single particle travels a calm circle around the mark.
+   Composed in the component; this only spins the carrier. */
+@keyframes orbit { to { transform: rotate(360deg); } }
+.animate-orbit { animation: orbit 2.6s linear infinite; }
+.animate-orbit-slow { animation: orbit 5.2s linear infinite reverse; }
+
+/* The mark itself breathes while it works — a held breath, not a pulse. */
+@keyframes mark-breathe {
+  0%, 100% { transform: scale(1);    opacity: 0.92; }
+  50%      { transform: scale(1.035); opacity: 1; }
+}
+.animate-mark-breathe { animation: mark-breathe 2.6s ease-in-out infinite; }
+
+/* Indeterminate progress: a light travels the rail. No false percentages —
+   just honest, continuous motion that says "still working". */
+@keyframes indeterminate {
+  0%   { transform: translateX(-120%) scaleX(0.35); }
+  60%  { transform: translateX(40%)   scaleX(0.55); }
+  100% { transform: translateX(150%)  scaleX(0.35); }
+}
+.animate-indeterminate { animation: indeterminate 1.6s var(--ease-calm) infinite; transform-origin: left center; }
+
+/* Skeletons: content-shaped placeholders with a soft light sweep. A skeleton
+   is a promise of the exact thing about to appear — never a generic spinner. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255,255,255,0.045);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+  animation: skeleton-sweep 1.7s ease-in-out infinite;
+}
+@keyframes skeleton-sweep { 100% { transform: translateX(100%); } }
+
+/* The completion check draws itself — a small, earned moment. The length is
+   passed via --len so the stroke reveals at a controlled, calm pace. */
+@keyframes draw-check { to { stroke-dashoffset: 0; } }
+.draw-check {
+  stroke-dasharray: var(--len, 48);
+  stroke-dashoffset: var(--len, 48);
+  animation: draw-check 0.55s var(--ease-calm) 0.18s forwards;
+}
+
+/* Stagger helpers for calm, sequential reveals (1 = first, deeper = later). */
+.stagger-1 { animation-delay: 0.04s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.16s; }
+.stagger-4 { animation-delay: 0.22s; }
+.stagger-5 { animation-delay: 0.28s; }
+
 @media (prefers-reduced-motion: reduce) {
+  #root,
   .animate-neon-pulse,
   .animate-neon-pulse-violet,
   .animate-sheet-up,
-  .animate-fade-in {
-    animation: none;
+  .animate-fade-in,
+  .animate-rise,
+  .animate-scale-in,
+  .animate-exhale,
+  .animate-focus-halo,
+  .animate-orbit,
+  .animate-orbit-slow,
+  .animate-mark-breathe,
+  .animate-indeterminate {
+    animation: none !important;
   }
+  /* Reduced motion still gets the finished state, just instantly. */
+  .draw-check { stroke-dashoffset: 0; animation: none; }
+  .skeleton::after { animation: none; display: none; }
   .shimmer-sweep::after {
     animation: none;
     display: none;

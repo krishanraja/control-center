@@ -14,6 +14,8 @@ import { navigateDecision } from '../../lib/routeDecision'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
+import { Skeleton, SkeletonText } from '../shared/Skeleton'
+import { AllClear } from '../shared/AllClear'
 
 const PIPELINE_WORKSTREAM_SET = new Set<string>(PIPELINE_WORKSTREAMS as readonly string[])
 
@@ -151,6 +153,36 @@ export function DesktopToday({
     <DayRow task={t} selected={selected?.id === t.id} onClick={() => selectTask(t.id)} />
   )
 
+  // Desktop loads structure-first: the whole two-pane command surface appears
+  // immediately and fills in, rather than a bare "Loading…" line. Breadth is the
+  // point of a desk session, so we restore the list + detail architecture at once.
+  if (loading && allTasks.length === 0) {
+    const skList = (
+      <div className="space-y-5 pr-2 animate-rise">
+        <div className="space-y-2">
+          <Skeleton h={26} w={120} r={8} />
+          <Skeleton h={12} w="70%" r={5} />
+        </div>
+        <Skeleton h={84} r={16} />
+        {[0, 1].map(g => (
+          <div key={g} className="space-y-2.5">
+            <Skeleton h={11} w={80} r={5} />
+            {[0, 1, 2].map(i => <Skeleton key={i} h={62} r={12} />)}
+          </div>
+        ))}
+      </div>
+    )
+    const skDetail = (
+      <div className="h-full p-6 space-y-4 animate-rise">
+        <Skeleton h={20} w="55%" r={6} />
+        <SkeletonText lines={3} />
+        <Skeleton h={140} r={14} />
+        <Skeleton h={44} w={160} r={12} />
+      </div>
+    )
+    return <SplitPane left={skList} right={skDetail} hasSelection={false} onBack={() => {}} />
+  }
+
   const list = (
     <div className="space-y-4 pr-2">
       <div className="flex items-start gap-3">
@@ -174,8 +206,6 @@ export function DesktopToday({
           </button>
         </div>
       )}
-      {loading && <p className="text-[12px] text-white/30">Loading…</p>}
-
       {showFocus ? (
         <FocusLanes
           rows={visibleTasks}
@@ -211,10 +241,11 @@ export function DesktopToday({
           />
 
           {items.length === 0 && !loading && (
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
-              <p className="text-sm md:text-[14px] text-white/55 font-medium">Nothing scheduled for today.</p>
-              <p className="text-xs md:text-[12px] text-white/30 mt-1">Clear mind.</p>
-            </div>
+            <AllClear
+              title="Nothing scheduled for today."
+              sub="Your day is clear. The pods keep working in the background — pick up the pipeline whenever you're ready."
+              nextHint={{ label: 'Review pipeline', onClick: () => onNavigate?.('leads') }}
+            />
           )}
         </>
       )}
