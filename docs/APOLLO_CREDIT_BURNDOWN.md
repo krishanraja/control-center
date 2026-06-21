@@ -63,8 +63,11 @@ burn. The 50 exist to prove the rubric before the budget is committed.
 |---|---|---|---|---|---|
 | 2026-06-20 | test v1 | all 6 | 45 | 17 | First gate run. Exposed the 8 calibration failures (vendor-keyword trap, mm_ctrl wrong audience, builder no-audience-signal, match-by-id, no *_norm cols). |
 | 2026-06-20 | validation v2 | mindmaker, mm_ctrl, builder | 37 | 20 | Corrected filters. mindmaker 11/15 (real in-house transformation buyers), mm_ctrl 8/12 (construction/mfg/logistics ops leaders), builder 1/7 (needs a web/audience pass). |
+| 2026-06-20 | scale | mindmaker, mm_ctrl | ~480 | 125 | Big run on the two validated revenue lanes. 480 scored, 431 verified emails, 125 cleared >=70. All are Heads of AI/Digital Transformation, CDOs, CIOs, and ops Presidents/COOs at non-vendor operating companies (Masimo, Swiss Re, Volkswagen FS, Bloomsbury, Lufkin, Alta Equipment, ...). |
 
-**Running total:** 82 credits spent, ~775 left (resets 2026-06-25). 37 Apollo leads in the Leads tab.
+**Running total:** 562 credits spent this session (2205/2500 consumed), **295 left** (resets 2026-06-25). **162 Apollo leads** in the Leads tab (mm_ctrl-tagged 140, mindmaker-tagged 135; multi-tag overlap).
+
+**Observed at scale:** `mm_ctrl_buyer` almost never *wins* best-lane vs `mindmaker_buyer` (its `ai_curiosity` dimension drags traditional-industry leaders down), so those prospects carry both tags but `primary_venture=mindmaker`. The fix (swap `ai_curiosity` -> `ops_complexity`) is logged below.
 
 **Open calibration items for the next pass:**
 - `builder_economy` needs a web/social enrichment pass (Exa/Perplexity) for audience + novelty — Apollo alone can't tell a landmark guest from a generic AI founder.
