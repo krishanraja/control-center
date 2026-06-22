@@ -11,13 +11,27 @@
 :root {
   --ease-calm: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Motion timings — the single dial for the whole "calm" feel. Slower reads as
+     more serene; faster as more responsive. Every animation below references
+     these, so tuning here re-times the entire app at once. */
+  --dur-rise: 0.55s;          /* content arriving from just below       */
+  --dur-scale: 0.34s;         /* overlays/sheets blooming into focus     */
+  --dur-exhale: 0.7s;         /* the "all clear" gradient breathing open */
+  --dur-halo: 5s;             /* the focal "do this next" breathing cycle*/
+  --dur-orbit: 2.6s;          /* the thinking particle's orbit           */
+  --dur-breathe: 2.6s;        /* the mark's held breath while working    */
+  --dur-indeterminate: 1.6s;  /* the honest progress rail                */
+  --dur-skeleton: 1.7s;       /* the skeleton light-sweep                */
+  --dur-draw: 0.55s;          /* the completion check drawing itself     */
+  --dur-app-enter: 0.6s;      /* the first content reveal on load        */
 }
 
 /* App entry: the content arrives, it does not snap. Opacity-only so it never
    creates a transform context that would reposition fixed overlays. Pairs with
    the brand splash exhale in index.html for a single, seamless handoff. */
 #root {
-  animation: app-enter 0.6s var(--ease-calm) both;
+  animation: app-enter var(--dur-app-enter) var(--ease-calm) both;
 }
 @keyframes app-enter {
   from { opacity: 0; }
@@ -215,19 +229,19 @@
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.animate-rise { animation: rise-in 0.55s var(--ease-calm) both; }
+.animate-rise { animation: rise-in var(--dur-rise) var(--ease-calm) both; }
 
 @keyframes scale-in {
   from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }
 }
-.animate-scale-in { animation: scale-in 0.34s var(--ease-calm) both; }
+.animate-scale-in { animation: scale-in var(--dur-scale) var(--ease-calm) both; }
 
 @keyframes exhale {
   from { opacity: 0; transform: scale(0.97); }
   to   { opacity: 1; transform: scale(1); }
 }
-.animate-exhale { animation: exhale 0.7s var(--ease-out-soft) both; }
+.animate-exhale { animation: exhale var(--dur-exhale) var(--ease-out-soft) both; }
 
 /* The focal "do this next" surface is alive; everything else is still. A slow
    violet halo (matches the brand accent) breathes so the eye is drawn without a
@@ -236,20 +250,20 @@
   0%, 100% { box-shadow: 0 0 0 1px rgba(167,139,250,0.12), 0 12px 56px -18px rgba(167,139,250,0.22); }
   50%      { box-shadow: 0 0 0 1px rgba(167,139,250,0.22), 0 16px 70px -14px rgba(167,139,250,0.36); }
 }
-.animate-focus-halo { animation: focus-halo 5s ease-in-out infinite; }
+.animate-focus-halo { animation: focus-halo var(--dur-halo) ease-in-out infinite; }
 
 /* The thinking orbit: a single particle travels a calm circle around the mark.
    Composed in the component; this only spins the carrier. */
 @keyframes orbit { to { transform: rotate(360deg); } }
-.animate-orbit { animation: orbit 2.6s linear infinite; }
-.animate-orbit-slow { animation: orbit 5.2s linear infinite reverse; }
+.animate-orbit { animation: orbit var(--dur-orbit) linear infinite; }
+.animate-orbit-slow { animation: orbit calc(var(--dur-orbit) * 2) linear infinite reverse; }
 
 /* The mark itself breathes while it works — a held breath, not a pulse. */
 @keyframes mark-breathe {
   0%, 100% { transform: scale(1);    opacity: 0.92; }
   50%      { transform: scale(1.035); opacity: 1; }
 }
-.animate-mark-breathe { animation: mark-breathe 2.6s ease-in-out infinite; }
+.animate-mark-breathe { animation: mark-breathe var(--dur-breathe) ease-in-out infinite; }
 
 /* Indeterminate progress: a light travels the rail. No false percentages —
    just honest, continuous motion that says "still working". */
@@ -258,7 +272,7 @@
   60%  { transform: translateX(40%)   scaleX(0.55); }
   100% { transform: translateX(150%)  scaleX(0.35); }
 }
-.animate-indeterminate { animation: indeterminate 1.6s var(--ease-calm) infinite; transform-origin: left center; }
+.animate-indeterminate { animation: indeterminate var(--dur-indeterminate) var(--ease-calm) infinite; transform-origin: left center; }
 
 /* Skeletons: content-shaped placeholders with a soft light sweep. A skeleton
    is a promise of the exact thing about to appear — never a generic spinner. */
@@ -273,7 +287,7 @@
   inset: 0;
   transform: translateX(-100%);
   background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
-  animation: skeleton-sweep 1.7s ease-in-out infinite;
+  animation: skeleton-sweep var(--dur-skeleton) ease-in-out infinite;
 }
 @keyframes skeleton-sweep { 100% { transform: translateX(100%); } }
 
@@ -283,7 +297,7 @@
 .draw-check {
   stroke-dasharray: var(--len, 48);
   stroke-dashoffset: var(--len, 48);
-  animation: draw-check 0.55s var(--ease-calm) 0.18s forwards;
+  animation: draw-check var(--dur-draw) var(--ease-calm) 0.18s forwards;
 }
 
 /* Stagger helpers for calm, sequential reveals (1 = first, deeper = later). */

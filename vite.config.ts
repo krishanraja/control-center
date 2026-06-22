@@ -34,6 +34,27 @@ export default defineConfig({
     __BUILD_SHA__: JSON.stringify(sha),
     __BUILD_TIME__: JSON.stringify(ts),
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split the heavy, rarely-changing vendors into their own long-cache
+        // chunks so app edits never re-download React/Supabase/icons, and so the
+        // initial payload is a set of parallel, cacheable files rather than one
+        // monolith. App routes are additionally code-split via React.lazy.
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('react-dom') || id.includes('scheduler')) return 'react-dom'
+          if (id.includes('/react/') || id.includes('react/jsx-runtime')) return 'react'
+          if (id.includes('@supabase')) return 'supabase'
+          if (id.includes('lucide-react')) return 'icons'
+          if (id.includes('@radix-ui')) return 'radix'
+          if (id.includes('date-fns')) return 'date-fns'
+          if (id.includes('cmdk')) return 'cmdk'
+          return 'vendor'
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': '/src',
