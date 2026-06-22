@@ -71,7 +71,7 @@ export function useAltitudes(): AltitudesResult {
   const portfolioNeeds = noms > 0 || noActive || overCap || proposedMilestones > 0
   const portfolio: Altitude = {
     id: 'portfolio',
-    label: 'Portfolio',
+    label: 'OS',
     state: noActive ? 'unset' : portfolioNeeds ? 'stale' : 'set',
     needsAttention: portfolioNeeds,
     summary: noActive
