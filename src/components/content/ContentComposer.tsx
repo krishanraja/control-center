@@ -3,7 +3,7 @@ import {
   AlertTriangle, ArrowLeft, BookOpen, Check, ExternalLink, FileText, Link2, Loader2, MessageSquare, Paperclip, PenLine, RotateCcw,
   Save, Search, Send, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Wand2, X, Gauge,
 } from 'lucide-react'
-import { RichText } from './RichText'
+import { RichText, SelectableDraft } from './RichText'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { useToast } from '../shared/Toast'
@@ -290,12 +290,16 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
                 )}
                 {canvasMode === 'read' && draft.trim() ? (
                   <div
-                    onMouseUp={() => setSel(window.getSelection()?.toString() || '')}
-                    onClick={() => { if (!(window.getSelection()?.toString() || '').trim()) setCanvasMode('write') }}
-                    title="Click to edit · select a passage to adjust just it"
-                    className="cursor-text"
+                    onMouseUp={() => { const s = window.getSelection()?.toString() || ''; if (s.trim()) setSel(s) }}
+                    title="Click a paragraph to adjust just it · use Write to edit"
                   >
-                    <RichText text={draft} className="text-[16px] leading-[1.8] text-white/90" />
+                    <p className="text-[11px] text-white/30 mb-3">Click a paragraph to adjust just it, or drag to select a phrase. Use <span className="text-white/45">Write</span> to edit.</p>
+                    <SelectableDraft
+                      text={draft}
+                      selectedRaw={selection}
+                      onSelectBlock={setSelection}
+                      className="text-[16px] leading-[1.8] text-white/90"
+                    />
                   </div>
                 ) : (
                   <GrowTextarea
@@ -420,7 +424,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
   const currentChannel = laneToFactoryChannel(idea.lane, idea.lane_slot)
   const ADJUST_GROUPS: { label: string; accent: string; items: { label: string; mode: string; value: string; hint?: string }[] }[] = [
     { label: 'Tone', accent: 'border-rose-500/30 text-rose-200', items: TONE_PRESETS.map(o => ({ label: o.label, mode: 'tone', value: o.value, hint: o.hint })) },
-    { label: 'Humor', accent: 'border-fuchsia-500/30 text-fuchsia-200', items: HUMOR_PRESETS.map(o => ({ label: o.label, mode: 'tone', value: o.value, hint: o.hint })) },
+    { label: 'Humor', accent: 'border-fuchsia-500/30 text-fuchsia-200', items: HUMOR_PRESETS.map(o => ({ label: o.label, mode: 'humor', value: o.value, hint: o.hint })) },
     { label: 'Length', accent: 'border-sky-500/30 text-sky-200', items: LENGTH_PRESETS.map(o => ({ label: o.label, mode: 'length', value: o.value, hint: o.hint })) },
     { label: 'Sharpen', accent: 'border-amber-500/30 text-amber-200', items: [...ITERATE_CHIPS.map(o => ({ label: o.label, mode: 'feedback', value: o.value, hint: o.hint })), { label: 'Sharpest angle', mode: 'zoom', value: 'contrarian-angle', hint: ZOOM_DEFAULT_HINT }] },
     { label: 'Adapt to channel', accent: 'border-violet-500/30 text-violet-200', items: LANE_ADAPTS.filter(l => l.value !== currentChannel).map(o => ({ label: o.label, mode: 'feedback', value: `adapt-${o.value}`, hint: o.hint })) },
@@ -447,11 +451,16 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
           <>
             {/* What am I looking at — one calm line of orientation. */}
             <p className="text-[11px] text-white/35 leading-snug mb-3">
-              Reviewing your draft. Long-press to select a passage, then <span className="text-violet-300/80">Adjust</span> just it — or <span className="text-violet-300/80">Adjust</span> the whole draft, then <span className="text-violet-300/80">Save Draft</span> for Cleo's final pass.
+              {selection
+                ? <>One paragraph selected. Tap <span className="text-violet-300/80">Adjust</span> to change just it, or tap it again to deselect.</>
+                : <>Tap any paragraph to adjust just it, or tap <span className="text-violet-300/80">Adjust</span> for the whole draft. Then <span className="text-violet-300/80">Final Review</span> to ship.</>}
             </p>
-            <div onMouseUp={() => setSel(window.getSelection()?.toString() || '')} onTouchEnd={() => setSel(window.getSelection()?.toString() || '')}>
-              <RichText text={draft} className="text-[16px] leading-[1.75] text-white/90" />
-            </div>
+            <SelectableDraft
+              text={draft}
+              selectedRaw={selection}
+              onSelectBlock={setSelection}
+              className="text-[16px] leading-[1.75] text-white/90"
+            />
           </>
         )}
       </div>
@@ -1507,7 +1516,7 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
         {TONE_PRESETS.map(o => chip(o.label, `tone:${o.value}`, () => revise('tone', o.value, o.hint), 'border-rose-500/25 text-rose-200 hover:bg-rose-500/10'))}
       </Group>
       <Group label="Humor">
-        {HUMOR_PRESETS.map(o => chip(o.label, `tone:${o.value}`, () => revise('tone', o.value, o.hint), 'border-fuchsia-500/25 text-fuchsia-200 hover:bg-fuchsia-500/10'))}
+        {HUMOR_PRESETS.map(o => chip(o.label, `humor:${o.value}`, () => revise('humor', o.value, o.hint), 'border-fuchsia-500/25 text-fuchsia-200 hover:bg-fuchsia-500/10'))}
       </Group>
       <Group label="Length">
         {LENGTH_PRESETS.map(o => chip(o.label, `length:${o.value}`, () => revise('length', o.value, o.hint), 'border-sky-500/25 text-sky-200 hover:bg-sky-500/10'))}

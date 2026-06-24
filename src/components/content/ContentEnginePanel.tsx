@@ -160,7 +160,7 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
           <div className="flex items-center gap-1 flex-wrap">
             {[
               ...TONE_PRESETS.map(o => ({ o, mode: 'tone' })),
-              ...HUMOR_PRESETS.map(o => ({ o, mode: 'tone' })),
+              ...HUMOR_PRESETS.map(o => ({ o, mode: 'humor' })),
               ...ITERATE_CHIPS.slice(0, 2).map(o => ({ o, mode: 'feedback' })),
             ].map(({ o, mode }) => (
               <button key={o.value} type="button" title={o.hint} disabled={busy !== null}
@@ -181,7 +181,7 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
         </div>
         <div className="flex items-center gap-1 flex-wrap">
           <span className="text-[9px] text-white/35 w-10">Humor</span>
-          {HUMOR_PRESETS.map(o => chip(o, 'tone', 'border-fuchsia-500/25 text-fuchsia-200 hover:bg-fuchsia-500/10'))}
+          {HUMOR_PRESETS.map(o => chip(o, 'humor', 'border-fuchsia-500/25 text-fuchsia-200 hover:bg-fuchsia-500/10'))}
         </div>
         <div className="flex items-center gap-1 flex-wrap">
           <span className="text-[9px] text-white/35 w-10">Length</span>

@@ -1,10 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { callClaude, corpusForChannel, laneToCorpusChannel, loadCorpus, loadVoiceBlock, materialsContext, pathId, preamble, readMaterials, sanitizeVoice, VOICE_GUARDRAILS } from '../../_content.js'
+import { buildHumourSystem, isHumourRegister } from '../../_humor.js'
 
 // POST /api/content-ideas/:id/revise
 //   body: {
-//     mode: 'tone' | 'length' | 'zoom' | 'feedback',
+//     mode: 'tone' | 'length' | 'zoom' | 'feedback' | 'humor',
 //     value: string,            // preset value (e.g. 'punchier') or feedback chip
 //     instruction?: string,     // open-ended feedback (free text)
 //     hint?: string,            // steer text from the client preset (TONE/LENGTH/ITERATE)
@@ -28,9 +29,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const mode = b.mode || 'feedback'
   const sourceText = (b.source_text || '').trim()
   if (!sourceText) return res.status(400).json({ ok: false, error: 'source_text required' })
-  if (!['tone', 'length', 'zoom', 'feedback'].includes(mode)) {
+  if (!['tone', 'length', 'zoom', 'feedback', 'humor'].includes(mode)) {
     return res.status(400).json({ ok: false, error: 'invalid mode' })
   }
+  // Humour passes get a dedicated, examples-driven system prompt (see _humor.ts),
+  // run hotter and on a stronger model — the generic rewriter does not produce it.
+  const humour = mode === 'humor' || isHumourRegister(b.value)
 
   // Grab the idea for context (thesis/angle) — best effort.
   const { data: idea } = await supabase
@@ -57,17 +61,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : (b.hint || b.instruction || `Apply this change: ${b.value}.`)
   const extra = b.instruction && b.instruction !== directive ? `\nAlso apply this specific feedback: ${b.instruction}` : ''
 
-  const system = [
-    'You are Cleo, rewriting a draft in Krish Raja\'s voice. Krish is a British-Australian founder-operator in Brooklyn who runs a production AI agent fleet. Founder-practitioner, two gears, compression, the "Not X, Y" clarifier, hard-verdict endings.',
-    '',
-    voice ? `VOICE REFERENCE:\n${voice}` : '',
-    corpusBlock,
-    '',
-    VOICE_GUARDRAILS,
-    materialsBlock,
-    '',
-    'Return ONLY the rewritten text. No preamble, no explanation, no quotes around it.',
-  ].filter(Boolean).join('\n')
+  const system = humour
+    ? buildHumourSystem({ register: b.value || 'witty', voice, channelCorpus, materialsBlock })
+    : [
+      'You are Cleo, rewriting a draft in Krish Raja\'s voice. Krish is a British-Australian founder-operator in Brooklyn who runs a production AI agent fleet. Founder-practitioner, two gears, compression, the "Not X, Y" clarifier, hard-verdict endings.',
+      '',
+      voice ? `VOICE REFERENCE:\n${voice}` : '',
+      corpusBlock,
+      '',
+      VOICE_GUARDRAILS,
+      materialsBlock,
+      '',
+      'Return ONLY the rewritten text. No preamble, no explanation, no quotes around it.',
+    ].filter(Boolean).join('\n')
 
   const ctx = idea
     ? `IDEA: ${idea.idea}${idea.thesis ? `\nTHESIS: ${idea.thesis}` : ''}${idea.meta?.contrarian ? `\nCONTRARIAN ANGLE: ${idea.meta.contrarian}` : ''}\n\n`
@@ -80,8 +86,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     revisedFragment = (await callClaude({
       system, user,
+      model: humour ? 'claude-opus-4-8' : undefined,
       maxTokens: mode === 'length' && b.value === 'long' ? 3200 : 2200,
-      temperature: 0.55,
+      temperature: humour ? 0.8 : 0.55,
     })).trim()
   } catch (e: any) {
     return res.status(502).json({ ok: false, error: String(e?.message || e) })
