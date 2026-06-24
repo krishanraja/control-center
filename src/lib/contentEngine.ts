@@ -308,6 +308,20 @@ export const LENGTH_PRESETS: AxisOption[] = [
   { value: 'long', label: 'Full (Techonomic)', hint: 'Expand to a 600-1000 word essay. Slower structural open earns the depth; investigate, hold a counterpoint, end on a verdict.' },
 ]
 
+// Humor / comic-register presets — a facet of tone, so sent with mode 'tone'
+// (no backend change needed; the steer rides on `hint`). All obey the voice
+// guardrails: aim irony at ideas, hype, or situations, never at people (the
+// "Kind" standard). These layer one comic register onto the draft without
+// inventing facts or losing the argument.
+export const HUMOR_PRESETS: AxisOption[] = [
+  { value: 'witty', label: 'Witty', hint: 'Add wit: quick, intelligent turns of phrase, a clever reframe or an unexpected comparison that rewards a sharp reader. Earn the laugh through precision, never through trying. One good line beats three.' },
+  { value: 'sarcastic', label: 'Sarcastic', hint: 'Add a dry, sarcastic edge. Aim the irony at the idea, the hype, or the situation, never at a person. Say the opposite of the obvious read and let the gap carry it. Controlled, one or two beats, not a rant.' },
+  { value: 'absurd', label: 'Absurd', hint: 'Push one idea to its absurd logical extreme to expose the truth inside it. Commit fully to the bit, stay anchored to the real argument, land back on the point. Strange, not random.' },
+  { value: 'satirical', label: 'Satirical', hint: 'Deadpan satirical-column voice, like a satirical periodical. Report an absurd premise with total straight-faced seriousness. The humour lives in the framing and the restraint, never in a wink to the reader.' },
+  { value: 'deadpan', label: 'Deadpan', hint: 'Dry and deadpan. Underplay everything, let the absurdity sit unremarked, no exclamation marks, no signposting the joke. Flat on top, sharp underneath.' },
+  { value: 'periodic', label: 'Periodic', hint: 'Use periodic sentences: withhold the payoff until the final clause so each line lands on timing. Build, hold, then deliver the turn at the end.' },
+]
+
 export const ZOOM_DEFAULT_HINT =
   'Zoom into the single sharpest angle inside this idea and expand only that. Discard the rest. One arguable claim, earned with a specific artifact, ending on a hard verdict.'
 

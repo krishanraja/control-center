@@ -10,7 +10,7 @@ import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { lintVoice, autoFixVoice, type LintIssue } from '../../lib/voiceLint'
 import {
-  FACTORY_CHANNELS, FIVE_STANDARDS, ITERATE_CHIPS, LANE_ADAPTS, LENGTH_PRESETS,
+  FACTORY_CHANNELS, FIVE_STANDARDS, HUMOR_PRESETS, ITERATE_CHIPS, LANE_ADAPTS, LENGTH_PRESETS,
   TONE_PRESETS, ZOOM_DEFAULT_HINT, laneToFactoryChannel, nextBestAction,
 } from '../../lib/contentEngine'
 // ─────────────────────────────────────────────────────────────────────────
@@ -82,6 +82,20 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
   // straight into writing when the page is blank.
   const [canvasMode, setCanvasMode] = useState<'read' | 'write'>('write')
   const seededRef = useRef<string | null>(null)
+
+  // Selection-scoped adjust: a passage the user highlighted in the canvas, so a
+  // Refine chip rewrites only that point/paragraph instead of the whole article.
+  // Only accept a selection that is an exact substring of the raw markdown draft,
+  // which is what guarantees the /revise endpoint's in-place `includes()` match
+  // (mirrors ContentEnginePanel.captureSelection). Anything else clears it, so we
+  // never silently fall back to a whole-draft rewrite.
+  const [selection, setSelection] = useState('')
+  const setSel = useCallback((s: string) => {
+    const t = (s || '').trim()
+    setSelection(t.length >= 8 && draft.includes(t) ? t : '')
+  }, [draft])
+  // A new piece (or a body swap from Cleo/accept) invalidates any pending selection.
+  useEffect(() => { setSelection('') }, [idea?.id])
 
   // Adopt the row's body the first time we see this idea (and when not editing).
   useEffect(() => {
@@ -171,6 +185,8 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
       idea={idea}
       draft={draft}
       onApplyDraft={applyDraft}
+      selection={selection}
+      onClearSelection={() => setSelection('')}
     />
   )
 
@@ -273,13 +289,19 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
                   <EmptyCanvasHint idea={idea} onJump={() => openRail('cleo')} />
                 )}
                 {canvasMode === 'read' && draft.trim() ? (
-                  <div onClick={() => setCanvasMode('write')} title="Click anywhere to edit" className="cursor-text">
+                  <div
+                    onMouseUp={() => setSel(window.getSelection()?.toString() || '')}
+                    onClick={() => { if (!(window.getSelection()?.toString() || '').trim()) setCanvasMode('write') }}
+                    title="Click to edit · select a passage to adjust just it"
+                    className="cursor-text"
+                  >
                     <RichText text={draft} className="text-[16px] leading-[1.8] text-white/90" />
                   </div>
                 ) : (
                   <GrowTextarea
                     value={draft}
                     onChange={onDraftChange}
+                    onSelect={e => setSel(e.currentTarget.value.substring(e.currentTarget.selectionStart, e.currentTarget.selectionEnd))}
                     autoFocus={!!draft.trim()}
                     placeholder="Write here, or ask Cleo to start. Paste your research in Materials so she has the full picture."
                     className="w-full min-h-[55vh] bg-transparent resize-none text-[16px] leading-[1.8] text-white/90 placeholder:text-white/25 focus:outline-none"
@@ -348,6 +370,14 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
   const [adjust, setAdjust] = useState(false)
   // Undo stack of prior draft bodies — every applied iteration is reversible.
   const [history, setHistory] = useState<string[]>([])
+  // Selection-scoped adjust: a long-pressed passage to rewrite alone. Only kept
+  // when it's an exact substring of the raw markdown (guarantees the API's swap).
+  const [selection, setSelection] = useState('')
+  const setSel = (s: string) => {
+    const t = (s || '').trim()
+    setSelection(t.length >= 8 && draft.includes(t) ? t : '')
+  }
+  useEffect(() => { setSelection('') }, [idea.id])
 
   // Apply a new body, snapshotting the current one so a tap can be undone.
   const apply = (text: string) => { setHistory(h => [...h, draft]); onApplyDraft(text) }
@@ -363,16 +393,24 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
   const runRevise = async (opts: { label: string; mode: string; value: string; hint?: string; instruction?: string }) => {
     if (!draft.trim()) { toast('Nothing to adjust yet — ask Cleo to draft it first.', 'error'); return }
     const key = `${opts.mode}:${opts.value}`
+    // When a passage is selected, scope to it and pin the source to the committed
+    // draft so the in-place swap matches; otherwise chain on the open preview.
+    const scoped = !!selection
     h.heavy(); setBusy(key); setBusyLabel(opts.label)
     try {
       const r = await fetch(`/api/content-ideas/${idea.id}/revise`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: opts.mode, value: opts.value, hint: opts.hint, instruction: opts.instruction, source_text: preview?.text ?? draft }),
+        body: JSON.stringify({
+          mode: opts.mode, value: opts.value, hint: opts.hint, instruction: opts.instruction,
+          selection: selection || undefined,
+          source_text: scoped ? draft : (preview?.text ?? draft),
+        }),
       })
       const j = await r.json()
       if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
       setAdjust(false)
-      setPreview({ label: opts.label, text: j.revised }); h.success()
+      if (scoped) setSelection('')
+      setPreview({ label: scoped ? `${opts.label} · selection` : opts.label, text: j.revised }); h.success()
     } catch (e: any) { h.error(); toast(`${opts.label} failed: ${e?.message || 'error'}`, 'error') }
     finally { setBusy(null) }
   }
@@ -382,6 +420,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
   const currentChannel = laneToFactoryChannel(idea.lane, idea.lane_slot)
   const ADJUST_GROUPS: { label: string; accent: string; items: { label: string; mode: string; value: string; hint?: string }[] }[] = [
     { label: 'Tone', accent: 'border-rose-500/30 text-rose-200', items: TONE_PRESETS.map(o => ({ label: o.label, mode: 'tone', value: o.value, hint: o.hint })) },
+    { label: 'Humor', accent: 'border-fuchsia-500/30 text-fuchsia-200', items: HUMOR_PRESETS.map(o => ({ label: o.label, mode: 'tone', value: o.value, hint: o.hint })) },
     { label: 'Length', accent: 'border-sky-500/30 text-sky-200', items: LENGTH_PRESETS.map(o => ({ label: o.label, mode: 'length', value: o.value, hint: o.hint })) },
     { label: 'Sharpen', accent: 'border-amber-500/30 text-amber-200', items: [...ITERATE_CHIPS.map(o => ({ label: o.label, mode: 'feedback', value: o.value, hint: o.hint })), { label: 'Sharpest angle', mode: 'zoom', value: 'contrarian-angle', hint: ZOOM_DEFAULT_HINT }] },
     { label: 'Adapt to channel', accent: 'border-violet-500/30 text-violet-200', items: LANE_ADAPTS.filter(l => l.value !== currentChannel).map(o => ({ label: o.label, mode: 'feedback', value: `adapt-${o.value}`, hint: o.hint })) },
@@ -401,27 +440,36 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
         ) : edit ? (
           <GrowTextarea
             value={draft} onChange={onEditChange} autoFocus
+            onSelect={e => setSel(e.currentTarget.value.substring(e.currentTarget.selectionStart, e.currentTarget.selectionEnd))}
             className="w-full min-h-[55vh] bg-transparent resize-none text-[16px] leading-[1.75] text-white/90 focus:outline-none"
           />
         ) : (
           <>
             {/* What am I looking at — one calm line of orientation. */}
             <p className="text-[11px] text-white/35 leading-snug mb-3">
-              Reviewing your draft. Tap <span className="text-violet-300/80">Adjust</span> to iterate, then <span className="text-violet-300/80">Save Draft</span> for Cleo's final pass.
+              Reviewing your draft. Long-press to select a passage, then <span className="text-violet-300/80">Adjust</span> just it — or <span className="text-violet-300/80">Adjust</span> the whole draft, then <span className="text-violet-300/80">Save Draft</span> for Cleo's final pass.
             </p>
-            <RichText text={draft} className="text-[16px] leading-[1.75] text-white/90" />
+            <div onMouseUp={() => setSel(window.getSelection()?.toString() || '')} onTouchEnd={() => setSel(window.getSelection()?.toString() || '')}>
+              <RichText text={draft} className="text-[16px] leading-[1.75] text-white/90" />
+            </div>
           </>
         )}
       </div>
 
       {/* Shape: one entry to every adjustment (no competing inline chips). */}
       {draft.trim() && !edit && (
-        <div className="px-3 pt-2 border-t border-white/[0.06] flex-shrink-0">
+        <div className="px-3 pt-2 border-t border-white/[0.06] flex-shrink-0 space-y-1.5">
+          {selection && (
+            <div className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-2.5 py-1.5 text-[11px] text-amber-100">
+              <span className="flex-1 truncate">Selected: “{selection.slice(0, 48)}{selection.length > 48 ? '…' : ''}”</span>
+              <button type="button" onClick={() => setSelection('')} aria-label="Clear selection" className="text-white/45 active:text-white/80"><X size={13} /></button>
+            </div>
+          )}
           <button
             type="button" disabled={busy !== null} onClick={() => setAdjust(true)}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full text-[13px] font-medium border border-violet-400/50 bg-violet-500/20 text-violet-100 disabled:opacity-40 active:bg-violet-500/30"
           >
-            <SlidersHorizontal size={15} /> Adjust the draft
+            <SlidersHorizontal size={15} /> {selection ? 'Adjust selected passage' : 'Adjust the draft'}
           </button>
         </div>
       )}
@@ -456,6 +504,15 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
               <button onClick={() => setAdjust(false)} aria-label="Close" className="flex items-center justify-center w-10 h-10 rounded-full text-white/50 active:bg-white/[0.08]"><X size={20} /></button>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-safe space-y-4 pt-1">
+              {selection && (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.07] px-3 py-2 space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-[12px] text-amber-100">
+                    <span className="flex-1 truncate">Adjusting just: “{selection.slice(0, 56)}{selection.length > 56 ? '…' : ''}”</span>
+                    <button type="button" onClick={() => setSelection('')} aria-label="Adjust whole draft" className="text-white/45 active:text-white/80"><X size={14} /></button>
+                  </div>
+                  <p className="text-[10px] text-amber-200/50">Anything you tap rewrites only this passage. ✕ to adjust the whole draft.</p>
+                </div>
+              )}
               {/* One-tap publish polish — the absorbed "Make it ready". */}
               <button
                 type="button" disabled={busy !== null}
@@ -553,7 +610,7 @@ function MobileTool({ icon, label, onClick, active }: { icon: React.ReactNode; l
 
 // Auto-growing textarea: the page scrolls, the textarea never does (no nested
 // scrollbar inside the canvas). Optionally capped for chat-style inputs.
-function GrowTextarea({ value, onChange, className, placeholder, autoFocus, maxPx, onKeyDown }: {
+function GrowTextarea({ value, onChange, className, placeholder, autoFocus, maxPx, onKeyDown, onSelect }: {
   value: string
   onChange: (t: string) => void
   className?: string
@@ -561,6 +618,7 @@ function GrowTextarea({ value, onChange, className, placeholder, autoFocus, maxP
   autoFocus?: boolean
   maxPx?: number
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void
+  onSelect?: (e: React.SyntheticEvent<HTMLTextAreaElement>) => void
 }) {
   const ref = useRef<HTMLTextAreaElement | null>(null)
   useEffect(() => {
@@ -581,7 +639,7 @@ function GrowTextarea({ value, onChange, className, placeholder, autoFocus, maxP
   return (
     <textarea
       ref={ref} value={value} onChange={e => onChange(e.target.value)} rows={1}
-      placeholder={placeholder} onKeyDown={onKeyDown} className={className} spellCheck
+      placeholder={placeholder} onKeyDown={onKeyDown} onSelect={onSelect} className={className} spellCheck
     />
   )
 }
@@ -1165,11 +1223,12 @@ function EmptyCanvasHint({ idea, onJump }: { idea: ContentIdeaRow; onJump: () =>
 
 // ── Rail router ────────────────────────────────────────────────────────────
 
-function RailContent({ tab, idea, draft, onApplyDraft }: {
+function RailContent({ tab, idea, draft, onApplyDraft, selection, onClearSelection }: {
   tab: RailTab; idea: ContentIdeaRow; draft: string; onApplyDraft: (t: string) => void
+  selection: string; onClearSelection: () => void
 }) {
   if (tab === 'cleo') return <CleoChat idea={idea} draft={draft} onUseAsDraft={onApplyDraft} />
-  if (tab === 'refine') return <RefinePanel idea={idea} draft={draft} onApplyDraft={onApplyDraft} />
+  if (tab === 'refine') return <RefinePanel idea={idea} draft={draft} onApplyDraft={onApplyDraft} selection={selection} onClearSelection={onClearSelection} />
   if (tab === 'materials') return <MaterialsPanel idea={idea} />
   if (tab === 'research') return <ResearchPanel idea={idea} />
   return <StandardsPanel idea={idea} draft={draft} />
@@ -1300,7 +1359,10 @@ function CleoChat({ idea, draft, onUseAsDraft, mobile }: { idea: ContentIdeaRow;
 
 // ── Refine ─────────────────────────────────────────────────────────────────
 
-function RefinePanel({ idea, draft, onApplyDraft }: { idea: ContentIdeaRow; draft: string; onApplyDraft: (t: string) => void }) {
+function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }: {
+  idea: ContentIdeaRow; draft: string; onApplyDraft: (t: string) => void
+  selection: string; onClearSelection: () => void
+}) {
   const { toast } = useToast()
   const h = useHaptics()
   const [busy, setBusy] = useState<string | null>(null)
@@ -1309,15 +1371,24 @@ function RefinePanel({ idea, draft, onApplyDraft }: { idea: ContentIdeaRow; draf
 
   const revise = async (mode: string, value: string, hint?: string, instruction?: string) => {
     if (!draft.trim()) { toast('Nothing to refine yet — write or ask Cleo first.', 'error'); return }
+    // When a passage is selected, scope the rewrite to it and pin the source to the
+    // committed draft (the text the selection was validated against), so the API's
+    // in-place swap matches. Otherwise keep chaining on the open preview.
+    const scoped = !!selection
     h.heavy(); setBusy(`${mode}:${value}`)
     try {
       const r = await fetch(`/api/content-ideas/${idea.id}/revise`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, value, hint, instruction, source_text: preview ?? draft }),
+        body: JSON.stringify({
+          mode, value, hint, instruction,
+          selection: selection || undefined,
+          source_text: scoped ? draft : (preview ?? draft),
+        }),
       })
       const j = await r.json()
       if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
       setPreview(j.revised); h.success()
+      if (scoped) { onClearSelection(); toast('Revised just that passage.', 'success') }
     } catch (e: any) { h.error(); toast(`Refine failed: ${e?.message || 'error'}`, 'error') }
     finally { setBusy(null) }
   }
@@ -1333,7 +1404,18 @@ function RefinePanel({ idea, draft, onApplyDraft }: { idea: ContentIdeaRow; draf
     <div className="space-y-3">
       {busy && (
         <div className="rounded-lg border border-violet-500/40 bg-violet-500/[0.08] px-3 py-2 flex items-center gap-2 text-[11px] text-violet-100">
-          <Loader2 size={13} className="animate-spin" /> Cleo is rewriting the draft…
+          <Loader2 size={13} className="animate-spin" /> Cleo is rewriting {selection ? 'the selected passage' : 'the draft'}…
+        </div>
+      )}
+
+      {/* Selection scope: highlight a passage in the canvas to adjust just it. */}
+      {selection && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-2.5 py-2 space-y-0.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-amber-100">
+            <span className="flex-1 truncate">Adjusting just: “{selection.slice(0, 60)}{selection.length > 60 ? '…' : ''}”</span>
+            <button type="button" onClick={onClearSelection} title="Adjust the whole draft instead" className="text-white/45 hover:text-white/80"><X size={12} /></button>
+          </div>
+          <p className="text-[9px] text-amber-200/50">Any chip below rewrites only this passage. ✕ to adjust the whole draft.</p>
         </div>
       )}
 
@@ -1365,6 +1447,9 @@ function RefinePanel({ idea, draft, onApplyDraft }: { idea: ContentIdeaRow; draf
 
       <Group label="Tone">
         {TONE_PRESETS.map(o => chip(o.label, `tone:${o.value}`, () => revise('tone', o.value, o.hint), 'border-rose-500/25 text-rose-200 hover:bg-rose-500/10'))}
+      </Group>
+      <Group label="Humor">
+        {HUMOR_PRESETS.map(o => chip(o.label, `tone:${o.value}`, () => revise('tone', o.value, o.hint), 'border-fuchsia-500/25 text-fuchsia-200 hover:bg-fuchsia-500/10'))}
       </Group>
       <Group label="Length">
         {LENGTH_PRESETS.map(o => chip(o.label, `length:${o.value}`, () => revise('length', o.value, o.hint), 'border-sky-500/25 text-sky-200 hover:bg-sky-500/10'))}

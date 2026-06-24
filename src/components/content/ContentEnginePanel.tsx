@@ -7,7 +7,7 @@ import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { lintVoice, type LintIssue } from '../../lib/voiceLint'
 import {
-  FACTORY_CHANNELS, FIVE_STANDARDS, ITERATE_CHIPS, LANES, LENGTH_PRESETS, TONE_PRESETS,
+  FACTORY_CHANNELS, FIVE_STANDARDS, HUMOR_PRESETS, ITERATE_CHIPS, LANES, LENGTH_PRESETS, TONE_PRESETS,
   ZOOM_DEFAULT_HINT, gatePasses, laneToFactoryChannel, type AxisOption, type FactoryChannel,
 } from '../../lib/contentEngine'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
@@ -160,6 +160,7 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
           <div className="flex items-center gap-1 flex-wrap">
             {[
               ...TONE_PRESETS.map(o => ({ o, mode: 'tone' })),
+              ...HUMOR_PRESETS.map(o => ({ o, mode: 'tone' })),
               ...ITERATE_CHIPS.slice(0, 2).map(o => ({ o, mode: 'feedback' })),
             ].map(({ o, mode }) => (
               <button key={o.value} type="button" title={o.hint} disabled={busy !== null}
@@ -177,6 +178,10 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
         <div className="flex items-center gap-1 flex-wrap">
           <span className="text-[9px] text-white/35 w-10">Tone</span>
           {TONE_PRESETS.map(o => chip(o, 'tone', 'border-rose-500/25 text-rose-200 hover:bg-rose-500/10'))}
+        </div>
+        <div className="flex items-center gap-1 flex-wrap">
+          <span className="text-[9px] text-white/35 w-10">Humor</span>
+          {HUMOR_PRESETS.map(o => chip(o, 'tone', 'border-fuchsia-500/25 text-fuchsia-200 hover:bg-fuchsia-500/10'))}
         </div>
         <div className="flex items-center gap-1 flex-wrap">
           <span className="text-[9px] text-white/35 w-10">Length</span>
