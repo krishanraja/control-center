@@ -131,3 +131,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   return res.status(created.length ? 200 : 502).json({ ok: created.length > 0, created, errors })
 }
+
+// Claude/webhook calls here can run 20-60s; raise the function ceiling above
+// the short platform default so the request finishes instead of being killed
+// mid-call (the cause of the composer hanging then dropping back to the draft).
+export const config = { maxDuration: 60 }

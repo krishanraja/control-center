@@ -680,30 +680,40 @@ interface SaveResult { docUrl: string | null; pending: boolean; channel: string 
 function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: ContentIdeaRow; draft: string; onApplyDraft: (t: string) => void; onSaved: () => void; block?: boolean }) {
   const { toast } = useToast()
   const h = useHaptics()
-  const [running, setRunning] = useState(false)   // Final Pass running
+  const [running, setRunning] = useState(false)   // Final Review / direct save running
+  const [runMsg, setRunMsg] = useState({ label: 'Cleo is reviewing your draft', sub: 'Final pass against the venture rubric' })
   const [menu, setMenu] = useState(false)
   const [pass, setPass] = useState<FinalPassData | null>(null) // review gate open
   const [result, setResult] = useState<SaveResult | null>(null)
+  const [failed, setFailed] = useState<string | null>(null)    // review couldn't run
   const autoChannel = laneToFactoryChannel(idea.lane, idea.lane_slot)
   const [channel, setChannel] = useState<string>(autoChannel)
 
-  // Save Draft now runs Cleo's Final Pass first (Krish, Q1/Q3): the ship-moment
-  // editor reads the whole piece against the venture rubric, then the review gate
-  // lets him accept/dismiss and ship. Nothing reaches the factory until Ship.
+  // Final Review runs Cleo's ship-moment pass over the whole piece, then opens the
+  // review gate to accept/dismiss and ship. A hard client timeout means a slow or
+  // dead backend surfaces as a clear choice (retry / save anyway) instead of an
+  // infinite spinner that silently drops back to the draft.
   const runPass = async () => {
     if (!draft.trim()) { toast('Write or expand a draft first.', 'error'); return }
+    setMenu(false); setFailed(null)
+    setRunMsg({ label: 'Cleo is reviewing your draft', sub: 'Final pass against the venture rubric' })
     h.heavy(); setRunning(true)
+    const ctrl = new AbortController()
+    const tid = setTimeout(() => ctrl.abort(), 75000)
     try {
       const r = await fetch(`/api/content-ideas/${idea.id}/final-pass`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source_text: draft }),
+        body: JSON.stringify({ source_text: draft }), signal: ctrl.signal,
       })
       const j = await r.json().catch(() => ({}))
       if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
       h.success(); setPass(j as FinalPassData)
     } catch (e: any) {
-      h.error(); toast(`Final pass failed: ${e?.message || 'error'}`, 'error')
-    } finally { setRunning(false) }
+      h.error()
+      setFailed(e?.name === 'AbortError'
+        ? "The review took too long to respond. Your draft is safe — try again, or save without it."
+        : `The review couldn't run (${e?.message || 'error'}). Your draft is safe — try again, or save without it.`)
+    } finally { clearTimeout(tid); setRunning(false) }
   }
 
   // The actual ship: fires the factory and logs the override decision (Q14).
@@ -720,21 +730,34 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
     setResult({ docUrl: j.doc_url || null, pending: !!j.doc_pending, channel: j.target_channel || channel })
   }
 
+  // Skip the review and save straight to the factory — "I just want to continue".
+  const shipDirect = async () => {
+    if (!draft.trim()) { toast('Write or expand a draft first.', 'error'); return }
+    setMenu(false); setFailed(null)
+    setRunMsg({ label: 'Saving to Google Docs', sub: 'Building the formatted draft' })
+    h.heavy(); setRunning(true)
+    try {
+      await ship(draft, { venture: '', verdict: '', ran: false, accepted: 0, dismissed: [], shipped_with_open: [], lenses_demanded: [] })
+    } catch (e: any) {
+      h.error(); setFailed(`Save failed: ${e?.message || 'error'}`)
+    } finally { setRunning(false) }
+  }
+
   return (
     <div className={`relative flex items-center ${block ? 'w-full' : ''}`}>
-      {running && <ProcessingOverlay label="Cleo is reading your draft" sub="Final pass against the venture rubric" />}
+      {running && <ProcessingOverlay label={runMsg.label} sub={runMsg.sub} />}
       <button
         type="button" onClick={runPass} disabled={running}
-        title="Run Cleo's final pass, then ship to Google Docs"
+        title="Run Cleo's final review, then ship to Google Docs"
         className={`flex items-center justify-center gap-1.5 font-semibold bg-violet-500/90 text-white hover:bg-violet-500 disabled:opacity-50 transition-colors ${
           block ? 'flex-1 py-3 rounded-l-xl text-[14px]' : 'pl-3 pr-2.5 py-2 rounded-l-lg text-[12px]'
         }`}
       >
-        {running ? <Loader2 size={block ? 15 : 13} className="animate-spin" /> : <Save size={block ? 15 : 13} />} Save Draft
+        {running ? <Loader2 size={block ? 15 : 13} className="animate-spin" /> : <ShieldCheck size={block ? 15 : 13} />} Final Review
       </button>
       <button
         type="button" onClick={() => setMenu(m => !m)} disabled={running}
-        title="Choose channel" aria-label="Choose channel"
+        title="Channel & options" aria-label="Channel and options"
         className={`bg-violet-500/90 text-white hover:bg-violet-500 disabled:opacity-50 border-l border-violet-300/30 text-[10px] ${
           block ? 'px-3 py-3 rounded-r-xl' : 'px-1.5 py-2 rounded-r-lg'
         }`}
@@ -742,7 +765,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
         ▾
       </button>
       {menu && (
-        <div className={`absolute ${block ? 'right-0 bottom-full mb-1' : 'right-0 top-full mt-1'} w-52 rounded-lg border border-white/10 bg-[#0c0c0e] shadow-xl z-40 overflow-hidden`} onMouseLeave={() => setMenu(false)}>
+        <div className={`absolute ${block ? 'right-0 bottom-full mb-1' : 'right-0 top-full mt-1'} w-56 rounded-lg border border-white/10 bg-[#0c0c0e] shadow-xl z-40 overflow-hidden`} onMouseLeave={() => setMenu(false)}>
           <div className="px-3 py-1.5 text-[9px] uppercase tracking-wide text-white/35">Save as a draft for</div>
           {FACTORY_CHANNELS.map(c => (
             <button
@@ -753,6 +776,12 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
               {channel === c.value ? '✓ ' : ''}{c.label}{c.value === autoChannel ? ' (from lane)' : ''}
             </button>
           ))}
+          <button
+            type="button" onClick={shipDirect}
+            className="w-full text-left px-3 py-2 text-[12px] text-white/70 hover:bg-white/[0.05] border-t border-white/[0.07] flex items-center gap-1.5"
+          >
+            <Save size={12} className="text-white/45" /> Skip review, save now
+          </button>
         </div>
       )}
 
@@ -782,6 +811,35 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
           onClose={() => setResult(null)}
           onDone={() => { setResult(null); onSaved() }}
         />
+      )}
+
+      {failed && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Final review could not run">
+          <button aria-label="Close" onClick={() => setFailed(null)} className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in" />
+          <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.1] bg-[#0f0f12] shadow-2xl shadow-black/60 p-5">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle size={16} className="text-amber-300" />
+              </div>
+              <h3 className="text-[15px] font-semibold text-white leading-tight">Final review didn't finish</h3>
+            </div>
+            <p className="text-[12.5px] text-white/65 leading-snug">{failed}</p>
+            <div className="mt-4 flex items-center gap-2">
+              <button type="button" onClick={() => { setFailed(null); runPass() }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-semibold bg-violet-500/90 text-white hover:bg-violet-500">
+                <RotateCcw size={14} /> Try again
+              </button>
+              <button type="button" onClick={() => { setFailed(null); shipDirect() }}
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-[13px] border border-white/12 text-white/80 hover:bg-white/[0.06]">
+                <Save size={14} /> Save without review
+              </button>
+            </div>
+            <button type="button" onClick={() => setFailed(null)}
+              className="mt-2 w-full py-2 rounded-lg text-[12px] text-white/45 hover:text-white/75">
+              Back to editing
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -904,7 +962,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
             {blocked ? <ShieldAlert size={16} className="text-rose-300" /> : <ShieldCheck size={16} className="text-violet-300" />}
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-[15px] font-semibold text-white leading-tight">Final pass · {data.venture_label}</h3>
+            <h3 className="text-[15px] font-semibold text-white leading-tight">Final review · {data.venture_label}</h3>
             {data.verdict && <p className="text-[12px] text-white/55 leading-snug mt-0.5">{data.verdict}</p>}
           </div>
           <button onClick={onClose} aria-label="Close" className="flex items-center justify-center w-8 h-8 rounded-lg text-white/45 hover:text-white hover:bg-white/[0.06] flex-shrink-0"><X size={18} /></button>
@@ -922,7 +980,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
                   <li key={i} className="text-[12px] text-rose-100/85 leading-snug flex gap-1.5"><span className="text-rose-300/70">·</span>{r}</li>
                 ))}
               </ul>
-              <p className="text-[11px] text-rose-200/60 mt-2 leading-snug">Fix these in the draft, then Save Draft again to re-run the pass.</p>
+              <p className="text-[11px] text-rose-200/60 mt-2 leading-snug">Fix these in the draft, then run Final Review again to re-check.</p>
             </div>
           )}
 
