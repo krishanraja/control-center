@@ -39,22 +39,25 @@ export function buildDecisionActions(
   row: Record<string, any>,
   ctx: DecisionActionCtx,
 ): SheetAction[] {
-  const { toast, haptics: h, navigate, refresh, onDone } = ctx
+  const { toast, navigate, refresh, onDone } = ctx
   const acts: SheetAction[] = []
 
   // Small helper: fire a request, surface result, refresh + close on success.
+  // Haptics are intentionally NOT fired here — the button (Pressable) owns the
+  // full tactile choreography (touch-down `press`, then `success`/`error` on
+  // settle) by awaiting this promise. We resolve on success and REJECT on
+  // failure so the button can draw the earned check vs. the error shake. The
+  // toast (the textual confirmation) still lives here.
   const run = async (
     label: string,
     fn: () => Promise<Response>,
     okMsg: string,
     opts: { terminal?: boolean; openUrlFrom?: string } = {},
   ) => {
-    h.heavy()
     try {
       const r = await fn()
       const body = await r.json().catch(() => ({} as any))
       if (!r.ok || body?.ok === false) throw new Error(body?.error || `HTTP ${r.status}`)
-      h.success()
       toast(okMsg, 'success')
       if (opts.openUrlFrom && body?.[opts.openUrlFrom]) {
         try { window.open(body[opts.openUrlFrom], '_blank', 'noreferrer,noopener') } catch { /* popup blocked */ }
@@ -62,8 +65,8 @@ export function buildDecisionActions(
       refresh?.()
       if (opts.terminal) onDone?.()
     } catch (e: any) {
-      h.error()
       toast(`${label} failed: ${e?.message || 'try again'}`, 'error')
+      throw e // let the button surface the error state + haptic
     }
   }
 
@@ -139,7 +142,7 @@ export function buildDecisionActions(
         acts.push({
           label: 'Open LinkedIn',
           variant: 'secondary',
-          onClick: () => { h.tap(); try { window.open(row.linkedin_url, '_blank', 'noreferrer,noopener') } catch { /* blocked */ } },
+          onClick: () => { try { window.open(row.linkedin_url, '_blank', 'noreferrer,noopener') } catch { /* blocked */ } },
         })
       }
       pushClose(acts, row, run, json)
@@ -177,7 +180,6 @@ export function buildDecisionActions(
       // only thing that moves a piece forward; state changes as a consequence
       // of a real draft existing, not via a bare PATCH.
       const openComposer = () => {
-        h.tap()
         try { window.location.hash = `#/content?idea=${row.id}` } catch { /* noop */ }
         navigateDecision(navigate, 'idea', row.id)
         onDone?.()
@@ -283,7 +285,7 @@ export function buildDecisionActions(
     acts.push({
       label: 'Open full detail',
       variant: 'secondary',
-      onClick: () => { h.tap(); navigateDecision(navigate, kind, row.id); onDone?.() },
+      onClick: () => { navigateDecision(navigate, kind, row.id); onDone?.() },
     })
   }
 

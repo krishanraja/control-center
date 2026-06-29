@@ -3,6 +3,7 @@ import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles } from 'lu
 import { supabase } from '../../lib/supabase'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../../hooks/useRealtimeDecisionsWaiting'
 import { FeedCard, FeedRow, EmptyState } from '../mobile/primitives'
+import { SkeletonRow } from '../shared/Skeleton'
 import { DetailSheet } from '../mobile/DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
@@ -95,7 +96,11 @@ export function DecisionsInbox({
     <section id="decisions-inbox" className="scroll-mt-4">
       <FeedCard title={`Waiting on you · ${decisions.length}`}>
         {loading && decisions.length === 0 ? (
-          <EmptyState label="Loading…" />
+          // Promise the exact shape that's about to arrive — feed rows, not a
+          // "Loading…" line — so the inbox settles into live data.
+          <div className="divide-y divide-white/[0.06]" aria-busy="true">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)}
+          </div>
         ) : visible.length === 0 ? (
           <EmptyState label="Inbox zero. Nothing waiting on you." />
         ) : (

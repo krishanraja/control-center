@@ -340,8 +340,9 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
 }
 
 function SectionTab({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) {
+  const h = useHaptics()
   return (
-    <button type="button" onClick={onClick}
+    <button type="button" onClick={() => { h.tap(); onClick() }}
       className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md transition-colors min-h-[36px] ${active ? 'bg-white/[0.08] text-white/85' : 'text-white/45 hover:text-white/70'}`}>
       {icon} {label}
     </button>

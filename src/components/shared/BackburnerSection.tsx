@@ -28,6 +28,9 @@ export function BackburnerSection({ table, items, onRestored, promote }: Props) 
   const [open, setOpen] = useState(false)
   const [restoring, setRestoring] = useState<string | null>(null)
   const [restored, setRestored] = useState<Set<string>>(() => new Set())
+  // Items mid-exit: rendered for one beat with the collapse animation, then
+  // committed to `restored`. Keeps the list closing the gap calmly.
+  const [exiting, setExiting] = useState<Set<string>>(() => new Set())
   const { toast } = useToast()
   const h = useHaptics()
 
@@ -46,10 +49,15 @@ export function BackburnerSection({ table, items, onRestored, promote }: Props) 
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`)
-      setRestored(prev => { const n = new Set(prev); n.add(id); return n })
-      onRestored?.(id)
       h.success()
       toast(successMsg || 'Restored — it will not be auto-buried again.', 'success')
+      // Animate the row out, then commit its removal once the collapse finishes.
+      setExiting(prev => { const n = new Set(prev); n.add(id); return n })
+      window.setTimeout(() => {
+        setRestored(prev => { const n = new Set(prev); n.add(id); return n })
+        setExiting(prev => { const n = new Set(prev); n.delete(id); return n })
+        onRestored?.(id)
+      }, 320)
     } catch {
       h.error()
       toast('Could not update — try again.', 'error')
@@ -64,7 +72,7 @@ export function BackburnerSection({ table, items, onRestored, promote }: Props) 
     <div className="rounded-xl border border-white/[0.05] bg-white/[0.01]">
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => { h.tap(); setOpen(o => !o) }}
         className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/[0.02] transition-colors text-left"
       >
         <ChevronRight
@@ -81,7 +89,7 @@ export function BackburnerSection({ table, items, onRestored, promote }: Props) 
       {open && (
         <div className="border-t border-white/[0.05] divide-y divide-white/[0.04]">
           {visible.slice(0, 50).map(item => (
-            <div key={item.id} className="flex items-center gap-3 px-3 py-2">
+            <div key={item.id} className={`flex items-center gap-3 px-3 py-2 ${exiting.has(item.id) ? 'animate-row-collapse' : ''}`}>
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] text-white/70 truncate">{item.title}</p>
                 {item.buried_reason && (

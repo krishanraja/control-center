@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { useDeviceClass, useReducedMotion } from './motion'
 import { useHaptics } from '../../hooks/useHaptics'
+import { DrawnCheck } from './DrawnCheck'
 
 /**
  * AllClear — the "you're done" moment. Replaces the old low-contrast "nothing
@@ -31,25 +32,6 @@ const TONE = {
   emerald: { stroke: '#34d399', halo: 'from-emerald-400/20 via-violet-400/10' },
   violet:  { stroke: '#a78bfa', halo: 'from-violet-400/20 via-sky-400/10' },
   sky:     { stroke: '#7dd3fc', halo: 'from-sky-400/20 via-emerald-400/10' },
-}
-
-/** A checkmark that draws itself once, calmly. */
-function DrawnCheck({ size, stroke }: { size: number; stroke: string }) {
-  const reduced = useReducedMotion()
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="11" stroke={stroke} strokeOpacity="0.25" strokeWidth="1" />
-      <path
-        d="M6.5 12.5l3.5 3.5 7.5-8"
-        stroke={stroke}
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={reduced ? undefined : 'draw-check'}
-        style={{ ['--len' as string]: 24 }}
-      />
-    </svg>
-  )
 }
 
 export function AllClear({ title, sub, nextHint, tone = 'emerald' }: Props) {

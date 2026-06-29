@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { MoreHorizontal, type LucideIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { DESKTOP_PRIMARY_TABS, DESKTOP_DRAWER_TABS } from '../lib/tabs'
+import { usePressable } from './shared/usePressable'
 
 interface Props {
   active: string
@@ -176,10 +177,16 @@ interface SidebarButtonProps {
 }
 
 function SidebarButton({ id, label, Icon, active, onClick, expanded, showHealthBadge, unhealthyCount, badge }: SidebarButtonProps) {
+  // Shared press primitive: a no-op haptic on desktop, but it gives us the
+  // touch-down feel on hybrid/touch laptops for free and keeps nav consistent
+  // with the rest of the app. The focus ring is the real desktop win here.
+  const { bind } = usePressable({ onPress: onClick, haptic: 'select' })
   return (
     <button
-      onClick={onClick}
+      onClick={bind.onClick}
+      onPointerDown={bind.onPointerDown}
       className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all relative
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50
         ${active
           ? 'bg-violet-500/15 text-white border border-violet-500/25'
           : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04] border border-transparent'}`}

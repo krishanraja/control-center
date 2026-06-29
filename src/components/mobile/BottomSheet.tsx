@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useHaptics } from '../../hooks/useHaptics'
 
 interface Props {
   open: boolean
@@ -20,6 +21,7 @@ export function BottomSheet({ open, onClose, children, fullHeight = true, ariaLa
   const [visible, setVisible] = useState(false)
   const [dragY, setDragY] = useState(0)
   const startY = useRef<number | null>(null)
+  const h = useHaptics()
 
   useEffect(() => {
     if (open) {
@@ -48,7 +50,7 @@ export function BottomSheet({ open, onClose, children, fullHeight = true, ariaLa
     if (dy > 0) setDragY(dy)
   }
   const onTouchEnd = () => {
-    if (dragY > 120) onClose()
+    if (dragY > 120) { h.soft(); onClose() }
     setDragY(0)
     startY.current = null
   }

@@ -426,7 +426,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
-              onClick={() => setSkipOpen(o => !o)}
+              onClick={() => { h.select(); setSkipOpen(o => !o) }}
               disabled={busy !== null}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
               title="Skip this lead — Vera learns from the reason"
@@ -527,7 +527,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
         <div className="relative" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            onClick={() => setReassignOpen(o => !o)}
+            onClick={() => { h.select(); setReassignOpen(o => !o) }}
             disabled={busy !== null}
             className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
           >
@@ -552,7 +552,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
         <div className="relative" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            onClick={() => setFollowUpOpen(o => !o)}
+            onClick={() => { h.select(); setFollowUpOpen(o => !o) }}
             disabled={busy !== null}
             className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
           >

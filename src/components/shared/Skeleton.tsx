@@ -48,7 +48,8 @@ function LoadingAnnounce({ label = 'Loading' }: { label?: string }) {
   return <span className="sr-only" role="status" aria-live="polite">{label}…</span>
 }
 
-function SkeletonRow() {
+/** A single feed-row placeholder — matches FeedRow's anatomy (dot + 2 lines). */
+export function SkeletonRow() {
   return (
     <div className="flex items-start gap-3 px-5 py-4" style={{ minHeight: 76 }}>
       <Skeleton w={10} h={10} r={5} className="mt-1.5 flex-shrink-0" />

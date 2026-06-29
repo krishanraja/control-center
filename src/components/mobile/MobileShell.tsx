@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { BOTTOM_NAV_PAD } from './primitives'
 import { useReducedMotion } from '../shared/motion'
+import { useHaptics } from '../../hooks/useHaptics'
 
 interface Props {
   header?: React.ReactNode
@@ -26,7 +27,9 @@ export function MobileShell({ header, children, onRefresh, scroll = 'auto', foot
   const [pullDist, setPullDist] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
   const startY = useRef<number | null>(null)
+  const armed = useRef(false)
   const reduced = useReducedMotion()
+  const h = useHaptics()
 
   useEffect(() => {
     if (!onRefresh || noScroll) return
@@ -41,19 +44,25 @@ export function MobileShell({ header, children, onRefresh, scroll = 'auto', foot
       if (startY.current == null) return
       const dy = e.touches[0].clientY - startY.current
       if (dy > 0 && el.scrollTop <= 0) {
-        setPullDist(Math.min(dy * 0.45, 90))
+        const next = Math.min(dy * 0.45, 90)
+        // Buzz once at the moment the pull crosses the arming threshold, so the
+        // gesture feels "caught" before you even let go — the native iOS feel.
+        if (next >= THRESHOLD && !armed.current) { armed.current = true; h.impactMedium() }
+        else if (next < THRESHOLD && armed.current) { armed.current = false }
+        setPullDist(next)
       }
     }
     const onTouchEnd = async () => {
       if (pullDist >= THRESHOLD && !refreshing) {
         setRefreshing(true)
-        try { await onRefresh() } finally {
+        try { await onRefresh(); h.success() } finally {
           setRefreshing(false)
           setPullDist(0)
         }
       } else {
         setPullDist(0)
       }
+      armed.current = false
       startY.current = null
     }
 

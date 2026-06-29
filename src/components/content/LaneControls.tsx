@@ -1,6 +1,7 @@
 import React from 'react'
 import type { ContentIdeaRow, ContentLane } from '../../hooks/useRealtimeContentIdeas'
 import { LANES, LANE_BY_SLUG, computeLaneCadence, STATUS_DOT, type CadenceStatus } from '../../lib/contentLanes'
+import { useHaptics } from '../../hooks/useHaptics'
 
 export type LaneFilter = ContentLane | 'all'
 
@@ -19,6 +20,7 @@ export function LaneToggle({
   onChange: (l: LaneFilter) => void
   ideas: ContentIdeaRow[]
 }) {
+  const h = useHaptics()
   const now = nowMs()
   const activeCount = (lane: ContentLane) =>
     ideas.filter(i => i.lane === lane && i.state !== 'dropped' && i.state !== 'published').length
@@ -29,7 +31,7 @@ export function LaneToggle({
     <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
       <button
         type="button"
-        onClick={() => onChange('all')}
+        onClick={() => { h.tap(); onChange('all') }}
         className={`${base} ${value === 'all' ? 'bg-white text-black border-white' : 'border-white/10 text-white/65 hover:bg-white/[0.06]'}`}
       >
         All
@@ -41,7 +43,7 @@ export function LaneToggle({
           <button
             key={l.slug}
             type="button"
-            onClick={() => onChange(l.slug)}
+            onClick={() => { h.tap(); onChange(l.slug) }}
             className={`${base} ${active ? l.activeBg : 'border-white/10 text-white/65 hover:bg-white/[0.06]'}`}
             title={`${l.label} — ${l.cadenceLabel}`}
           >

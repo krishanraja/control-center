@@ -1,5 +1,6 @@
 import React from 'react'
 import { FeedbackButton, type FeedbackSurface } from '../shared/FeedbackButton'
+import { usePressable } from '../shared/usePressable'
 
 /**
  * Mobile-native primitives — thumb-scale, fills the viewport.
@@ -126,9 +127,10 @@ export function HeroCard({
     neutral: 'bg-white text-black',
   }
   const Wrapper: any = onClick ? 'button' : 'div'
+  const { bind } = usePressable({ onPress: onClick, haptic: 'tap', disabled: !onClick })
   return (
     <Wrapper
-      onClick={onClick}
+      {...(onClick ? { onClick: bind.onClick, onPointerDown: bind.onPointerDown } : {})}
       className={`relative w-full text-left rounded-3xl border p-6 bg-gradient-to-br ${accentMap[accent]} overflow-hidden flex-shrink-0 ${onClick ? 'active:scale-[0.99] transition-transform' : ''}`}
     >
       {eyebrow && (
@@ -245,13 +247,17 @@ export function FeedRow({
   // browsers auto-correct the DOM on mobile and the inner thumbs stop receiving
   // taps — which reads to the user as "I can't take any actions on a lead".
   const Tappable: any = onClick ? 'button' : 'div'
+  // Touch-down haptic for the row tap; we keep the existing background-shift
+  // affordance (a full-width row scaling would read wrong) rather than the
+  // scale press-effect, so we use the hook's bind but not its pressClass.
+  const { bind } = usePressable({ onPress: onClick, haptic: 'tap', disabled: !onClick })
   return (
     <div
       className="w-full px-5 py-4 flex items-start gap-3"
       style={{ minHeight: 76 }}
     >
       <Tappable
-        onClick={onClick}
+        {...(onClick ? { onClick: bind.onClick, onPointerDown: bind.onPointerDown } : {})}
         className={`flex-1 min-w-0 text-left flex items-start gap-3 ${onClick ? 'active:bg-white/[0.05] transition-colors' : ''}`}
       >
         {dotColor && (

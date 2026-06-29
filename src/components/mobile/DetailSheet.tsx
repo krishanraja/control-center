@@ -2,11 +2,18 @@ import React, { useEffect, useRef, useState } from 'react'
 import { X, ExternalLink } from 'lucide-react'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { StatusPill } from '../shared/StatusPill'
+import { Pressable } from '../shared/Pressable'
+import { useReducedMotion, useDeviceClass } from '../shared/motion'
+import { useHaptics } from '../../hooks/useHaptics'
 
 export interface SheetAction {
   label: string
   variant?: 'primary' | 'secondary' | 'danger'
-  onClick: () => void
+  /**
+   * The action. May return a Promise — when it does, the button choreographs
+   * the in-flight rail and the earned success/error state (see Pressable).
+   */
+  onClick: () => void | Promise<unknown>
 }
 
 interface Props {
@@ -34,6 +41,9 @@ export function DetailSheet({
   const [visible, setVisible] = useState(false)
   const [dragY, setDragY] = useState(0)
   const startY = useRef<number | null>(null)
+  const reduced = useReducedMotion()
+  const device = useDeviceClass()
+  const h = useHaptics()
 
   useEffect(() => {
     if (open) {
@@ -55,6 +65,25 @@ export function DetailSheet({
     return () => { document.body.style.overflow = prev }
   }, [mounted])
 
+  // Keyboard-first on the desk: Esc dismisses, Enter commits the primary action.
+  // We only auto-fire the affirmative primary (never a 'danger' action), so a
+  // stray Enter can't drop/kill/reject anything — that always stays a deliberate
+  // click. Reuses the exact action handlers the buttons use.
+  useEffect(() => {
+    if (!mounted || !visible) return
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return }
+      if (e.key === 'Enter') {
+        const primary = actions.find(a => a.variant === 'primary')
+        if (primary) { e.preventDefault(); primary.onClick() }
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mounted, visible, actions, onClose])
+
   if (!mounted) return null
 
   const onTouchStart = (e: React.TouchEvent) => { startY.current = e.touches[0].clientY }
@@ -64,7 +93,7 @@ export function DetailSheet({
     if (dy > 0) setDragY(dy)
   }
   const onTouchEnd = () => {
-    if (dragY > 120) onClose()
+    if (dragY > 120) { h.soft(); onClose() }
     setDragY(0)
     startY.current = null
   }
@@ -103,7 +132,7 @@ export function DetailSheet({
         </div>
 
         {/* Header */}
-        <div className="px-5 pb-4 flex items-start gap-3 border-b border-white/[0.06]">
+        <div className={`px-5 pb-4 flex items-start gap-3 border-b border-white/[0.06] ${reduced ? '' : 'animate-rise stagger-1'}`}>
           {agent && <AgentAvatar agent={agent} size="lg" />}
           <div className="flex-1 min-w-0">
             {eyebrow && (
@@ -130,27 +159,21 @@ export function DetailSheet({
 
         {/* Body */}
         {body && (
-          <div className="px-5 py-4 max-h-[48vh] overflow-y-auto scrollbar-hide">
+          <div className={`px-5 py-4 max-h-[48vh] overflow-y-auto scrollbar-hide ${reduced ? '' : 'animate-rise stagger-2'}`}>
             <p className="text-[15px] text-white/70 leading-relaxed whitespace-pre-wrap">{body}</p>
           </div>
         )}
 
         {/* Actions */}
-        <div className="px-5 pt-3 pb-2 space-y-2.5">
+        <div className={`px-5 pt-3 pb-2 space-y-2.5 ${reduced ? '' : 'animate-rise stagger-3'}`}>
           {actions.map((a, i) => (
-            <button
+            <Pressable
               key={i}
-              onClick={a.onClick}
-              className={`w-full rounded-2xl py-3.5 text-[15px] font-semibold transition-colors ${
-                a.variant === 'primary'
-                  ? 'bg-violet-500 text-white active:bg-violet-400'
-                  : a.variant === 'danger'
-                  ? 'bg-red-500/15 text-red-300 active:bg-red-500/25'
-                  : 'bg-white/[0.07] text-white active:bg-white/[0.12]'
-              }`}
+              variant={a.variant ?? 'secondary'}
+              onPress={a.onClick}
             >
               {a.label}
-            </button>
+            </Pressable>
           ))}
           {docUrl && (
             <a
@@ -162,6 +185,14 @@ export function DetailSheet({
               Open in Docs
               <ExternalLink className="w-3.5 h-3.5 opacity-70" />
             </a>
+          )}
+          {device === 'desktop' && actions.some(a => a.variant === 'primary') && (
+            <p className="pt-1 text-center text-[11px] text-white/35">
+              <kbd className="rounded border border-white/15 bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10px] text-white/55">Enter</kbd>
+              {' '}to confirm{' · '}
+              <kbd className="rounded border border-white/15 bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10px] text-white/55">Esc</kbd>
+              {' '}to close
+            </p>
           )}
         </div>
       </div>

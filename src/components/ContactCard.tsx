@@ -3,6 +3,7 @@ import { Linkedin, Mail, Flame, UserCircle2 } from 'lucide-react'
 import { humanAge } from '../lib/ageHelpers'
 import { ContactSourcePill, ConsentTierBadge, ventureDisplayName } from './ContactSourcePill'
 import { FeedbackButton } from './shared/FeedbackButton'
+import { useHaptics } from '../hooks/useHaptics'
 import type { ContactRow } from '../hooks/useRealtimeContacts'
 
 interface Props {
@@ -48,6 +49,7 @@ function HeatMeter({ score }: { score: number }) {
  * handles 1-by-1 rather than bulk-processing.
  */
 export function ContactCard({ contact: c, selected = false, onToggleSelect, onOpen }: Props) {
+  const h = useHaptics()
   const fullName = c.full_name || '—'
   const titleCompany = [c.title, c.company].filter(Boolean).join(' @ ')
   const heat = c.heat_score ?? 0
@@ -67,7 +69,7 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
             role="checkbox"
             aria-checked={selected}
             aria-label={selected ? `Deselect ${fullName}` : `Select ${fullName}`}
-            onClick={(e) => { e.stopPropagation(); onToggleSelect(c.id) }}
+            onClick={(e) => { e.stopPropagation(); selected ? h.soft() : h.impactRigid(); onToggleSelect(c.id) }}
             className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors
               ${selected ? 'bg-violet-500 border-violet-500 text-white' : 'border-white/25 hover:border-white/45 text-transparent'}`}
           >

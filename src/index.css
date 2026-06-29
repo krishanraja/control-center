@@ -300,6 +300,16 @@
   animation: draw-check var(--dur-draw) var(--ease-calm) 0.18s forwards;
 }
 
+/* A row leaving after its terminal action: it slides off and collapses its own
+   space so the list closes the gap calmly rather than snapping shut. */
+@keyframes row-collapse {
+  to { opacity: 0; transform: translateX(40px); height: 0; margin: 0; padding: 0; }
+}
+.animate-row-collapse {
+  animation: row-collapse 0.32s var(--ease-calm) forwards;
+  overflow: hidden;
+}
+
 /* Stagger helpers for calm, sequential reveals (1 = first, deeper = later). */
 .stagger-1 { animation-delay: 0.04s; }
 .stagger-2 { animation-delay: 0.10s; }
@@ -320,9 +330,12 @@
   .animate-orbit,
   .animate-orbit-slow,
   .animate-mark-breathe,
-  .animate-indeterminate {
+  .animate-indeterminate,
+  .animate-row-collapse {
     animation: none !important;
   }
+  /* Reduced motion: a leaving row just disappears, no slide. */
+  .animate-row-collapse { display: none; }
   /* Reduced motion still gets the finished state, just instantly. */
   .draw-check { stroke-dashoffset: 0; animation: none; }
   .skeleton::after { animation: none; display: none; }
