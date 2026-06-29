@@ -6,6 +6,7 @@ import { VisibilityTargetDetail } from './VisibilityTargetDetail'
 import { buildDecisionActions } from '../lib/decisionActions'
 import { useHaptics } from '../hooks/useHaptics'
 import { useToast } from './shared/Toast'
+import { Pressable } from './shared/Pressable'
 
 export type DecisionKind = DecisionRow['kind']
 
@@ -156,19 +157,9 @@ export function DecisionDetail({ decision, onClose, actionsEnabled = false, onNa
       {actions.length > 0 && (
         <div className="border-t border-white/[0.06] p-4 space-y-2.5 flex-shrink-0">
           {actions.map((a, i) => (
-            <button
-              key={i}
-              onClick={a.onClick}
-              className={`w-full rounded-2xl py-3 text-[15px] font-semibold transition-colors ${
-                a.variant === 'primary'
-                  ? 'bg-violet-500 text-white active:bg-violet-400'
-                  : a.variant === 'danger'
-                  ? 'bg-red-500/15 text-red-300 active:bg-red-500/25'
-                  : 'bg-white/[0.07] text-white active:bg-white/[0.12]'
-              }`}
-            >
+            <Pressable key={i} variant={a.variant ?? 'secondary'} onPress={a.onClick}>
               {a.label}
-            </button>
+            </Pressable>
           ))}
         </div>
       )}
