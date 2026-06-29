@@ -144,7 +144,7 @@ once per browser session and fan out via context if needed.
 | `useSwipeActions` | — | Touch gesture handler (legacy, touch-only) |
 | `useCardDeck` | — | Pointer/keyboard swipe deck (touch+mouse+pen, deferred capture, fly-out) |
 | `useContentTriage` | `content_ideas` (via `useRealtimeContentIdeas`) | Content tab mode + triage deck state (advance/drop/undo) |
-| `useHaptics` | — | Mobile haptic feedback |
+| `useHaptics` | — | Haptic vocabulary (Web Vibration API; no-op on iOS/desktop). `tap`/`select`/`success`/`warning`/`error`/`heavy` + impact family (`impactLight`/`impactMedium`/`impactRigid`/`soft`), `notifySuccess`, and the `press` primitive `usePressable` uses |
 | `useHashRoute` | `window.location.hash` | Router |
 
 ### Shape
@@ -252,6 +252,52 @@ either revives them (resets `updated_at`) or kills them
 Reject + reason button on tasks / leads / guests / visibility / ideas.
 Writes to `feedback_queue`. Consumed by Vera Feedback Aggregation
 (Sun 06:00 UTC) → `corrections` → Agatha brief edits.
+
+### Tactile interaction — `Pressable` / `usePressable` / `DrawnCheck`
+
+The one place press feedback, haptics, and async-action choreography live,
+so every interactive surface inherits them instead of re-implementing (or
+skipping) them per call site. This is the "more haptic / more magical"
+layer of the Calm & Anticipatory language, expressed as reusable code.
+
+**Why a primitive at all.** Before this, a one-tap action button only shifted
+colour on `:active`. It did not disable while its request was in flight, gave
+no progress signal, and no earned confirmation — the toast was the only proof
+anything happened. And haptics were wired by hand, so they drifted (present on
+swipe decks, missing on pull-to-refresh, sheet dismiss, toggles, menus). One
+primitive fixes the whole class of gaps at once.
+
+`usePressable({ onPress, haptic='press', successHold=900, disabled })`
+→ `{ state, bind, pressClass }` — the brain:
+- Fires the haptic on **`pointerdown`**, not click — native controls buzz the
+  instant your finger lands, before the click resolves.
+- If `onPress` returns a **Promise**, runs the state machine
+  `idle → pending → success | error`: the control is `disabled` + `aria-busy`
+  in flight (no double-submit), then fires `success()` / `error()` haptics and
+  settles back after `successHold`. The button — not the API helper — owns the
+  tactile outcome, so haptics fire exactly once.
+- `pressClass` is `press-effect` (active:scale-95), dropped under
+  `useReducedMotion()`. Haptics still fire under reduced motion (haptics ≠
+  motion).
+
+`<Pressable variant onPress>` — the body. Renders the button and swaps content
+by state: `pending` → the honest `.animate-indeterminate` rail; `success` →
+`<DrawnCheck>` drawing itself over the label. Reads `useDeviceClass()` so the
+device deltas live in one place: mobile keeps thumb-sized padding; desktop
+tightens it and adds a `focus-visible` violet ring for keyboard nav. Variant
+class strings are a superset of the old inline sheet buttons, so adoption is
+behaviour-preserving.
+
+`<DrawnCheck size stroke ring?>` — the shared self-drawing check (the
+`.draw-check` keyframe), used by both `AllClear` (empty-state celebration) and
+`Pressable` (post-action success).
+
+Adopted by: `DetailSheet` and `DecisionDetail` action footers (the
+`buildDecisionActions` registry — `src/lib/decisionActions.ts`, whose `run()`
+now resolves/rejects so the button can choreograph), `FeedRow`, `HeroCard`,
+`SidebarButton`. New tactile buttons should use `Pressable` rather than a raw
+`<button>`; gesture handlers that aren't buttons (pull-to-refresh, sheet drag)
+call the `useHaptics` methods directly.
 
 ## Lane components
 

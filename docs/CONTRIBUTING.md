@@ -268,16 +268,22 @@ CI (`.github/workflows/ci.yml`) runs `npm ci` + `npm run lint` +
 - [ ] Realtime updates appear within one tick
 - [ ] Cmd+K opens the command palette
 - [ ] Cmd+I opens Quick Capture Idea
+- [ ] Keyboard: interactive controls show a `focus-visible` ring; an open
+      decision sheet commits its affirmative primary on Enter and closes on Esc
 
 **Mobile (< 900px)**
 - [ ] Bottom nav visible
 - [ ] Single column layout, no horizontal scroll
 - [ ] Touch targets ≥ 44px
 - [ ] Detail views push and back-button works
-- [ ] Haptic feedback on swipe actions
+- [ ] Haptic feedback on swipe actions, pull-to-refresh (arm + complete), sheet
+      drag-dismiss, selection toggles, and menu/tab opens
+- [ ] New tactile buttons use `Pressable` (touch-down haptic + in-flight rail +
+      earned check), not a bare `<button>`
 
 **Data**
-- [ ] Empty states render distinctly from loading states
+- [ ] Empty states render distinctly from loading states (loading uses
+      content-shaped skeletons, not a "Loading…" line)
 - [ ] ErrorBoundary catches per-tab failures
 - [ ] Timestamps humanise (`date-fns`)
 - [ ] No "undefined" or "[object Object]" leaking to the UI
