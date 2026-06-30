@@ -47,6 +47,7 @@ const ALLOWED_SOURCE = new Set([
   'zara_signal',
   'customer_voice',
   'crm_opportunity',
+  'lens_radar',
   'manual',
 ])
 
