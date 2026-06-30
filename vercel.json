@@ -8,6 +8,8 @@
   ],
   "crons": [
     { "path": "/api/triage/sweep", "schedule": "0 3 * * *" },
-    { "path": "/api/content-ideas/cluster", "schedule": "0 4 * * *" }
+    { "path": "/api/content-ideas/cluster", "schedule": "0 4 * * *" },
+    { "path": "/api/discover-lens-radar", "schedule": "0 9 * * 1" },
+    { "path": "/api/discover-guest-scout", "schedule": "0 10 * * 1" }
   ]
 }

@@ -86,6 +86,9 @@ async function draftFor(p: SeedPerson): Promise<AngleDraft | null> {
 }
 
 function checkSecret(req: VercelRequest): boolean {
+  // Vercel Cron injects `Authorization: Bearer ${CRON_SECRET}` on scheduled runs.
+  const cronSecret = process.env.CRON_SECRET
+  if (cronSecret && req.headers['authorization'] === `Bearer ${cronSecret}`) return true
   const expected = process.env.LENS_RADAR_SECRET
   if (!expected) return true
   const got =
