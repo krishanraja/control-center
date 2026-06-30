@@ -235,8 +235,62 @@ const closedDeals: SeedSource = {
   },
 }
 
+// ── Source: judgment-economy lens radar ──────────────────────────────────────
+// Topics / POVs / headlines the lens radar found in the wider world (sharp
+// voices + theme search), gated to the "judgment economy" direction and written
+// to lens_seed_candidates on a cadence by api/discover-lens-radar.ts. This
+// feeder is a FAST read of that cached table - it never scrapes on rail load,
+// so it stays instant and cost-disciplined like every other source. Honest-by-
+// construction: if the radar found nothing fresh + on-direction, this is empty.
+interface LensRow {
+  id: string
+  text: string | null
+  sub: string | null
+  source_url: string | null
+  author: string | null
+  fit_score: number | null
+  occurred_at: string | null
+  status: string | null
+}
+
+const lensRadar: SeedSource = {
+  key: 'lens_seed_candidates',
+  weight: 0.85,
+  fetch: async (sb, sinceISO, limit) => {
+    const { data } = await sb
+      .from('lens_seed_candidates')
+      .select('id,text,sub,source_url,author,fit_score,occurred_at,status')
+      .eq('status', 'new')
+      .gte('occurred_at', sinceISO)
+      .order('occurred_at', { ascending: false, nullsFirst: false })
+      .limit(limit)
+    const rows = (data ?? []) as LensRow[]
+    const out: SeedCandidate[] = []
+    for (const r of rows) {
+      const raw = (r.text || '').trim()
+      if (raw.length < 12) continue
+      if (!r.occurred_at) continue
+      const fit = typeof r.fit_score === 'number' ? r.fit_score : 0.5
+      out.push({
+        key: `lens:${r.id}`,
+        kind: 'signal',
+        text: trimText(raw),
+        sub: r.sub || (r.author ? `voice · ${r.author}` : 'judgment economy'),
+        source_type: 'lens_radar',
+        source_ref: r.id,
+        source_url: r.source_url,
+        score: Math.round(fit * 10),
+        norm_score: clamp01(fit),
+        occurred_at: r.occurred_at,
+        weight: 0.85,
+      })
+    }
+    return out
+  },
+}
+
 // Registry. Order is irrelevant — ranking decides display order.
-export const SEED_SOURCES: SeedSource[] = [closedDeals, customerVoice, marketSignals]
+export const SEED_SOURCES: SeedSource[] = [closedDeals, customerVoice, marketSignals, lensRadar]
 
 export interface CollectOptions {
   windowDays?: number
