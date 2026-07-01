@@ -19,7 +19,8 @@
 | Compromised Vercel project | Yes | Vercel project isolation + per-environment env vars. |
 | Compromised Supabase service-role key | Yes | Most damaging single secret; full DB access. |
 | Hostile collaborator | Out of scope | Single-operator product. Audit log gives forensic recovery if this changes. |
-| Multi-tenant data leakage | Out of scope today | Will require RLS — ADR-006 (planned). |
+| Multi-tenant data leakage | Out of scope today | Single-operator today. A real auth + RLS model is scoped in ADR-008. |
+| Public anon key calling privileged RPCs | Closed (2026-07-01) | `SECURITY DEFINER` functions were revoked from anon/authenticated → service-role-only. See below + [`DB_HEALTH.md`](./DB_HEALTH.md). |
 | End-user XSS | Low | UI never renders user-supplied HTML; markdown is plaintext-rendered today. |
 
 ---
@@ -88,8 +89,30 @@ incident.
 | All `/api/*` mutations | Supabase JWT or shared secret per-endpoint. |
 | Multi-tenant access | RLS on every table keyed by `org_id`. See [`DATABASE.md`](./DATABASE.md#row-level-security-rls). |
 
-When any of these land, file an ADR in [`docs/DECISIONS/`](./DECISIONS/)
-covering the trade-off and update the table above in the same PR.
+The concrete, sequenced plan for landing the "Tomorrow" column — Supabase Auth,
+RLS on every source table, and converting the `SECURITY DEFINER` views to
+`SECURITY INVOKER` — is scoped in
+[ADR-008](./DECISIONS/008-security-hardening-and-auth-rls-scope.md). When any of
+it lands, update the table above and the ADR status in the same PR.
+
+---
+
+## Database-level hardening
+
+The anon key is subject to **row-level access as configured in Postgres**, and
+the database itself is hardened independently of the app auth model. State as of
+2026-07-01 (full breakdown + advisor tallies in [`DB_HEALTH.md`](./DB_HEALTH.md),
+rationale in [ADR-008](./DECISIONS/008-security-hardening-and-auth-rls-scope.md)):
+
+| Control | State |
+|---|---|
+| Function `search_path` | Pinned on all user-defined functions (advisor 0011) — closes search-path injection. |
+| `SECURITY DEFINER` function EXECUTE | Revoked from `public`/`anon`/`authenticated`, granted to `service_role` only. Privileged admin RPCs are no longer callable with the public anon key. |
+| `SECURITY DEFINER` views (`decisions_waiting`, `triage_queue`, …) | Intentionally left definer — the anon dashboard reads them without per-table RLS. Converting to invoker is gated on the auth work (ADR-008). |
+| `USING(true)` write policies | Load-bearing for one-click anon writes today; replaced by real RLS under the auth work (ADR-008). |
+
+**Do not** enable RLS or tighten a write policy on a table the anon client reads
+or writes without the auth cutover in ADR-008 — it will break the live app.
 
 ---
 

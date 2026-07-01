@@ -535,6 +535,31 @@ Every Supabase table has RLS enabled. The pattern:
 
 A table added without RLS will fail Vera's audit (standard CODE-005).
 
+### Function & view hardening (2026-07-01)
+
+Beyond table RLS, the database functions and views are hardened independently of
+the app auth model (full breakdown in [`DB_HEALTH.md`](./DB_HEALTH.md), rationale
+in [ADR-008](./DECISIONS/008-security-hardening-and-auth-rls-scope.md)):
+
+- **`search_path` pinned** on every user-defined function (advisor 0011).
+- **`SECURITY DEFINER` functions** are `service_role`-only — `EXECUTE` was
+  revoked from `public`/`anon`/`authenticated` (advisors 0028/0029). The
+  frontend makes zero `.rpc()` calls; triggers fire regardless of grants.
+- **`SECURITY DEFINER` views** (`decisions_waiting`, `triage_queue`,
+  `standards_efficacy`, `attribution_app_health`) are definer **by design** so
+  the anon client can read them without per-table RLS. Converting them to
+  `SECURITY INVOKER` is gated on the auth work in ADR-008 — do not change them
+  standalone or Home goes blank.
+
+### Migration ledger
+
+`supabase_migrations.schema_migrations` was reconciled on 2026-07-01: 17
+migrations that had been applied out-of-band (under different version stamps)
+were marked applied — after verifying each one's objects exist — **without
+re-running any DDL**, so every repo file in `supabase/migrations/` is now in the
+ledger and `supabase db push` is a clean no-op. Historically the ledger and repo
+diverged; do not `db push` a DB whose ledger you have not reconciled.
+
 ---
 
 ## Deprecated / dropped tables

@@ -62,7 +62,8 @@ does not belong.
 | Layer | Tool |
 |---|---|
 | Frontend | React 18 + TypeScript + Vite 4 |
-| Styling | Tailwind CSS 3 + Radix UI primitives |
+| Styling | Tailwind CSS 3 + Radix UI primitives; "Obsidian Aurora" design system with adaptive light/dark theming (see [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md)) |
+| Fonts | Bricolage Grotesque (display) · Fraunces (serif voice) · Geist + Geist Mono (body/numbers), self-hosted via Fontsource |
 | Icons | Lucide React |
 | Realtime | `@supabase/supabase-js` (`postgres_changes` subscriptions) |
 | API routes | Vercel serverless (`@vercel/node`) under `api/` |
@@ -177,9 +178,13 @@ issue.
 - [`docs/README.md`](./docs/README.md) — documentation index
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — Control Center
   architecture and engineering contract
+- [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md) — "Obsidian Aurora"
+  design system: themes, tokens, typography, material, motion, haptics
 - [`docs/PRODUCT.md`](./docs/PRODUCT.md) — per-tab product spec
 - [`docs/AGENTS.md`](./docs/AGENTS.md) — agent roster and slug-as-key rule
 - [`docs/DATABASE.md`](./docs/DATABASE.md) — Supabase tables, relationships, RLS
+- [`docs/DB_HEALTH.md`](./docs/DB_HEALTH.md) — DB health, security remediation,
+  migration-ledger notes
 - [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) — Vercel deployment
 - [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md) — workflow and standards
 - [`docs/DECISIONS/`](./docs/DECISIONS/) — architecture decision records

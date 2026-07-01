@@ -43,6 +43,7 @@ when in conflict.
 | **Prominence ladder** | Within a tab: blocking actions → KPIs → context → history. Never invert. |
 | **Mobile parity** | Below 900px every tab surfaces the same primary information; only secondary panels collapse. |
 | **One channel per table** | Realtime subscriptions reuse the shared channel (`tasks-rt-shared`, `leads-rt-shared`, etc.). Opening a second channel for the same table is a performance bug. ADR-002. |
+| **Adaptive theme** | Every surface must read correctly in light AND dark — use design tokens, never hardcoded hues. Theme = System/Light/Dark, switchable at will; the experimental ambient layer is toggleable off. ADR-007, [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md). |
 
 ---
 
@@ -530,6 +531,22 @@ None. Remediation is owned by Arlo / Kai out-of-band.
 - The webhook's Sonnet 4.6 extractor either inserts into `content_ideas`
   (when `is_idea=true` and `confidence >= 0.5`) or logs a skip row to
   `audit_log` as `cleo_idea_capture_skipped` with `skip_reason`.
+
+---
+
+## Surface: Appearance (theme)
+
+### Purpose
+> *Read the cockpit however I want — dark at night, light by day, or follow the
+> system — and turn the "magic" off if I want it flat.*
+
+### Behaviour
+- Two persisted switches: **theme** (`system` / `light` / `dark`, `system`
+  live-follows the OS) and **ambient** (the experimental aurora/grain/mood layer,
+  on by default, toggleable off for a clean flat theme).
+- Reachable from the desktop sidebar footer, the mobile "More" drawer
+  (Appearance row), and ⌘K → Appearance. No flash of the wrong theme on load.
+- Full spec: [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md); rationale: ADR-007.
 
 ---
 

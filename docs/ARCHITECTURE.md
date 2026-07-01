@@ -101,6 +101,12 @@ The repo does **not** own:
 - **Inbound writes from the OS** (sync pipeline on the VPS) hit `/api/sync`
   and `/api/sync-brief`, guarded by `SYNC_SECRET` in the `Authorization`
   header.
+- **DB hardening (2026-07-01).** User functions have a pinned `search_path`;
+  `SECURITY DEFINER` functions are `service_role`-only (the browser makes zero
+  `.rpc()` calls). The `decisions_waiting`/`triage_queue` views are
+  `SECURITY DEFINER` **by design** so anon reads them without per-table RLS —
+  don't convert them without the auth cutover. See
+  [`DB_HEALTH.md`](./DB_HEALTH.md) + [ADR-008](./DECISIONS/008-security-hardening-and-auth-rls-scope.md).
 
 ### 3.4 Realtime
 

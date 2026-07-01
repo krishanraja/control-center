@@ -299,6 +299,21 @@ now resolves/rejects so the button can choreograph), `FeedRow`, `HeroCard`,
 `<button>`; gesture handlers that aren't buttons (pull-to-refresh, sheet drag)
 call the `useHaptics` methods directly.
 
+### `AmbientField` (2026-07-01)
+
+The Obsidian Aurora "presence" layer — a fixed aurora field + fine grain painted
+behind all content. Mounted once at the App root. Hue reacts to OS state via
+`useMoodSource(id, mood, priority)` (no new realtime channels); goes static under
+reduced-motion and disappears when ambient is toggled off. See
+[`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md).
+
+### `ThemeToggle` (2026-07-01)
+
+The "at will" theme control: cycles System → Light → Dark and toggles the
+experimental ambient layer. Backed by `useTheme()` / `src/lib/theme.ts`
+(persisted, applied as `<html data-theme>` / `data-ambient`). Rendered in the
+desktop sidebar footer, the mobile "More" drawer, and as ⌘K → Appearance actions.
+
 ## Lane components
 
 Each pipeline tab uses lane components to group rows.
@@ -315,48 +330,40 @@ Each pipeline tab uses lane components to group rows.
 
 ## Styling
 
-### Colours
+> **Canonical source: [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md)** ("Obsidian
+> Aurora"). The app is **adaptive light/dark** — everything below is a token,
+> never a hardcoded hue.
+
+### Colours (adaptive tokens)
 
 ```css
-/* Background */
-bg-[#0a0a0b]           /* App background (near-black) */
-bg-white/[0.02]        /* Card background */
-bg-white/[0.03]        /* Card hover */
+/* Surfaces — follow the theme (obsidian by night, paper by day) */
+bg-base / bg-sunk       /* App / recessed background */
+.glass-card / .surface  /* Lit card material (per-theme) */
 
-/* Borders */
-border-white/[0.06]    /* Default border */
-border-white/[0.14]    /* Hover border */
-border-violet-500/40   /* Selected border */
+/* Foreground — `white` is remapped to --fg, so these adapt automatically */
+text-white              /* Primary text (ink on paper by day) */
+text-white/70 · /45 · /25   /* Secondary · tertiary · muted */
+border-white/[0.08]     /* Default hairline */
+text-[#fff]             /* Pure white ON a coloured fill (does NOT adapt) */
 
-/* Text */
-text-white             /* Primary text */
-text-white/70          /* Secondary text */
-text-white/45          /* Tertiary text */
-text-white/25          /* Muted text */
+/* Accent — aurora (violet ramp = brand anchor) */
+text-accent · .aurora-btn · .aurora-text   /* focus / primary / hero number */
+text-violet-400         /* brand accent (mapped to the aurora anchor) */
 
-/* Accents */
-text-violet-400        /* Primary accent (Krish actions, selection) */
-text-emerald-400       /* Success / active */
-text-amber-400         /* Warning / waiting */
-text-rose-400          /* Error / blocked / critical */
-text-cyan-300          /* Venture tags */
+/* Semantics (meaning is fixed — never repurpose) */
+text-emerald-400 /* active */  text-amber-400 /* waiting */
+text-rose-400 /* blocked */    pod-ops/revenue/growth · status-* tokens
 ```
 
 ### Typography
 
 ```css
-text-[10px]   /* Labels, metadata */
-text-[11px]   /* Small text */
-text-[12px]   /* Body small */
-text-[13px]   /* Body */
-text-[15px]   /* Large body */
-text-xl       /* Headings */
-text-2xl      /* Page titles */
-
-font-mono     /* Numbers, IDs, hashes */
-tabular-nums  /* Aligned numbers in tables */
-tracking-tight /* Headings */
-tracking-[0.16em] /* Uppercase section labels */
+font-display  /* Bricolage Grotesque — headings, hero titles, big numbers (auto on h1-h6) */
+font-serif    /* Fraunces — the "partner's voice": OS mission, Marcus brief, AllClear */
+font-sans     /* Geist — body, labels (default) */
+font-mono tabular-nums  /* Geist Mono — live/tabular numbers */
+/* Scale: 11/12/13/14/16/20/28/40/56 · tracking-tight headings · tracking-[0.2em] eyebrows */
 ```
 
 ### Spacing
