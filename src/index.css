@@ -26,6 +26,15 @@
   --accent-2: 99 102 241;   /* #6366F1 indigo                         */
   --accent-3: 34 211 238;   /* #22D3EE cyan                           */
 
+  /* On-tint accent text — the SECOND keystone. The light accent shades
+     (text-violet-200, text-amber-200, text-emerald-100, …) are used ONLY as
+     text on same-hue tinted cards (331 sites, 0 as bg/border). Remapping them
+     to these vars makes them light-on-dark by night and deep-on-tint by day, so
+     accent text stays readable in both themes with zero per-file edits. */
+  --ac-violet: 216 208 254;  --ac-amber: 253 230 138;  --ac-emerald: 167 243 208;
+  --ac-rose: 254 205 211;    --ac-sky: 186 230 253;    --ac-cyan: 165 243 252;
+  --ac-indigo: 199 210 254;
+
   /* Ambient "thought-partner" field — hue drifts with OS mood. Defaults to
      the calm violet; Home overrides via document.documentElement mood vars. */
   --mood-1: var(--accent);
@@ -68,22 +77,30 @@
    for contrast, and elevated white panels with soft shadows. Only the tokens
    change — every surface inherits daylight for free. */
 :root[data-theme='light'] {
-  --bg-base: 251 250 247;    /* #FBFAF7 warm paper                     */
-  --bg-sunk: 244 242 237;    /* #F4F2ED recessed wells                 */
-  --ink: 24 22 32;           /* #161620 near-black ink                 */
-  --ink-muted: 92 88 104;    /* #5C5868                                */
-  --ink-faint: 140 136 152;  /* #8C8898                                */
+  /* A faintly cool lavender paper (not stark white) so pure-white cards read as
+     raised, and the aurora wash is visible on it — the daylight face of the
+     obsidian, tied to the same violet→cyan accent. */
+  --bg-base: 242 241 248;    /* #F2F1F8 lavender paper                 */
+  --bg-sunk: 233 232 242;    /* #E9E8F2 recessed wells                 */
+  --ink: 23 21 33;           /* #171521 near-black ink                 */
+  --ink-muted: 88 84 102;    /* #585466                                */
+  --ink-faint: 138 133 152;  /* #8A8598                                */
   --accent: 99 84 224;       /* #6354E0 deepened for paper contrast    */
   --accent-2: 79 70 210;     /* #4F46D2                                */
-  --accent-3: 14 165 190;    /* #0EA5BE deeper cyan                    */
-  --fg: 24 22 32;            /* flips every *-white/NN utility to ink   */
+  --accent-3: 8 145 178;     /* #0891B2 deeper cyan                    */
+  --fg: 23 21 33;            /* flips every *-white/NN utility to ink   */
 
-  --card-bg: 255 255 255;    /* raised panels are near-white...         */
-  --card-bg-a: 0.82;         /* ...and nearly opaque                    */
-  --card-border-a: 0.10;
-  --card-hi-a: 0;            /* no top-light on paper                   */
-  --card-shadow: 0 1px 2px 0 rgba(20,18,40,0.06), 0 10px 30px -14px rgba(20,18,40,0.16);
-  --ambient-opacity: 0.42;   /* softer aurora in daylight               */
+  /* Deep accent-text so accent labels on pale tinted cards stay legible. */
+  --ac-violet: 91 33 182;    --ac-amber: 146 64 14;    --ac-emerald: 4 120 87;
+  --ac-rose: 190 18 60;      --ac-sky: 3 105 161;      --ac-cyan: 14 116 144;
+  --ac-indigo: 67 56 202;
+
+  --card-bg: 255 255 255;    /* raised panels are crisp white...        */
+  --card-bg-a: 1;            /* ...and fully opaque, so they separate    */
+  --card-border-a: 0.12;     /* a touch more visible hairline           */
+  --card-hi-a: 0;            /* no top-light on paper                    */
+  --card-shadow: 0 1px 2px 0 rgba(24,20,60,0.05), 0 10px 26px -10px rgba(24,20,60,0.16), 0 3px 8px -3px rgba(24,20,60,0.10);
+  --ambient-opacity: 0.9;    /* aurora is meant to be SEEN in daylight   */
 }
 
 /* Ambient OFF — the clean, flat adaptive light/dark with no Living Canvas. */
@@ -470,9 +487,9 @@
   opacity: var(--ambient-opacity);
   filter: blur(60px) saturate(1.1);
   background:
-    radial-gradient(42% 46% at 24% 14%, rgb(var(--mood-1) / 0.20) 0%, transparent 70%),
-    radial-gradient(48% 50% at 78% 8%,  rgb(var(--mood-3) / 0.16) 0%, transparent 72%),
-    radial-gradient(60% 55% at 52% 0%,  rgb(var(--mood-2) / 0.14) 0%, transparent 75%);
+    radial-gradient(46% 50% at 22% 12%, rgb(var(--mood-1) / 0.30) 0%, transparent 70%),
+    radial-gradient(50% 52% at 80% 6%,  rgb(var(--mood-3) / 0.26) 0%, transparent 72%),
+    radial-gradient(66% 58% at 52% 0%,  rgb(var(--mood-2) / 0.22) 0%, transparent 75%);
   animation: aurora-drift 24s ease-in-out infinite alternate;
   /* Mood shifts glide rather than snap. */
   transition: opacity 1.2s var(--ease-out-soft);
