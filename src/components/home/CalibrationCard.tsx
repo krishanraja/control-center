@@ -121,13 +121,23 @@ function CalibrationFlow({ domain, onClose }: { domain: Domain; onClose: () => v
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'items', domain, count: TARGET_SCREENS * SCREEN_SIZE }),
     })
-      .then(r => r.json())
-      .then(json => {
+      // Parse defensively — an HTML error page must not surface a raw
+      // "Unexpected token '<'…" to the user (see FleetFunnelPanel).
+      .then(async r => {
+        const raw = await r.text()
+        let json: any = null
+        try { json = raw ? JSON.parse(raw) : null } catch { json = null }
         if (cancelled) return
-        if (!json.ok) throw new Error(json.error)
+        if (!r.ok || json == null || !json.ok) {
+          throw new Error(json?.error || (r.ok ? 'Unexpected response.' : `Unavailable (HTTP ${r.status}).`))
+        }
         setItems(json.items as CalItem[])
       })
-      .catch(e => !cancelled && setError(String(e?.message || e)))
+      .catch(e => {
+        if (cancelled) return
+        const m = String(e?.message || '')
+        setError(/HTTP \d|unexpected|unavailable/i.test(m) ? m : 'Couldn’t load calibration — try again shortly.')
+      })
     return () => { cancelled = true }
   }, [domain])
 

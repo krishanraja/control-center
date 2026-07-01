@@ -90,8 +90,18 @@ export function FleetFunnelPanel() {
     if (isRefresh) setRefreshing(true)
     try {
       const r = await fetch('/api/fleet-funnel', { cache: 'no-store' })
-      const json = await r.json()
-      if (!r.ok || json.ok === false) throw new Error(json.error || `HTTP ${r.status}`)
+      // Read the body once and parse defensively — the endpoint can return an
+      // HTML error page (proxy/404/500) that is NOT JSON. Calling r.json()
+      // blindly would surface a raw "Unexpected token '<'…" to the user.
+      const raw = await r.text()
+      let json: any = null
+      try { json = raw ? JSON.parse(raw) : null } catch { json = null }
+      if (!r.ok || json == null || json.ok === false) {
+        throw new Error(
+          json?.error ||
+          (r.ok ? 'The service returned an unexpected response.' : `Service unavailable (HTTP ${r.status}).`),
+        )
+      }
       setData({
         byApp: Array.isArray(json.byApp) ? json.byApp : [],
         campaigns: Array.isArray(json.campaigns) ? json.campaigns : [],
@@ -100,7 +110,13 @@ export function FleetFunnelPanel() {
       setState('ok')
       setError(null)
     } catch (e: any) {
-      setError(String(e?.message || e))
+      // Never surface a raw parse/exception string. Map to a human reason.
+      const m = String(e?.message || '')
+      const friendly =
+        /HTTP \d|unexpected response|unavailable/i.test(m) ? m
+        : /failed to fetch|networkerror|load failed/i.test(m) ? 'Couldn’t reach the service — check your connection.'
+        : 'Temporarily unavailable — try again shortly.'
+      setError(friendly)
       setState('error')
     } finally {
       setRefreshing(false)
@@ -161,7 +177,15 @@ export function FleetFunnelPanel() {
       ) : state === 'error' ? (
         <div className="p-6 text-center">
           <p className="text-[13px] text-rose-300 font-medium">Couldn't load fleet funnel.</p>
-          {error && <p className="text-[11px] text-rose-300/60 mt-1 font-mono break-all">{error}</p>}
+          {error && <p className="text-[11.5px] text-white/45 mt-1 leading-snug">{error}</p>}
+          <button
+            type="button"
+            onClick={() => load(true)}
+            disabled={refreshing}
+            className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-violet-300 hover:text-violet-200 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} /> Try again
+          </button>
         </div>
       ) : (
         <>
