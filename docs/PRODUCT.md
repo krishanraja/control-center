@@ -77,7 +77,7 @@ Below the fold (context, not action):
 | DecisionsWaitingPanel | `decisions_waiting` view (UNION of `tasks`, `leads`, `guests`, `visibility_targets`, `content_ideas`) | `useRealtimeDecisionsWaiting` |
 | CriticalAlertBanner | `silent_failures` filtered to tier 3 | `useCriticalAlerts` |
 | DailyBriefBanner | `home_intelligence.daily_brief`, `weekly_retro`, `weekly_retro_ack_at`, `monday_premortem` | one-shot on mount + 5m refresh |
-| MrrTicker | `customers` (sum of `mrr_usd` where `customer_kind='paid'`) | `useCustomers` |
+| MrrTicker | `customers` (sum of `mrr_usd` where `kind='paid'`) | `useCustomers` |
 | StreakPills | `tasks`, `leads`, `content_ideas` aggregated client-side | shared channels |
 | Marcus headline + signals | `home_intelligence.summary`, `external_signals`, `customer_signals` | `home_intelligence` realtime |
 | Needs You panel | `tasks` where `status='waiting'`, `leads` where `deep_enriched_at IS NOT NULL AND promoted_task_id IS NULL` | shared channels |
@@ -246,7 +246,7 @@ Inline action surface (`InlineActions`):
   Customer Acquisition Sweeper).
 
 ### Behaviour rules
-- `customer_kind` enum: `paid` / `free_signup` / `trial` / `waitlist` /
+- `kind` enum: `paid` / `free_signup` / `trial` / `waitlist` /
   `churned`. MrrTicker sums only `paid`.
 - `attribution_channel` may be `unknown` — render that as a labelled
   bucket, never hide.
