@@ -52,7 +52,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
       type="button"
       onClick={onClick}
       className={`px-3.5 py-2 rounded-full text-[14px] font-medium whitespace-nowrap transition-colors ${
-        active ? 'bg-white text-black' : 'bg-white/[0.06] text-white/70 active:bg-white/[0.12]'
+        active ? 'btn-contrast' : 'bg-white/[0.06] text-white/70 active:bg-white/[0.12]'
       }`}
     >
       {children}
@@ -241,7 +241,7 @@ export function OutreachDraftSheet({
           </div>
 
           {/* Sticky action */}
-          <div className="px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-[#0f0f12]">
+          <div className="px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-base">
             <button
               type="button"
               onClick={() => { h.tap(); setDirectMode(d => !d) }}
@@ -251,14 +251,14 @@ export function OutreachDraftSheet({
                 {directMode ? 'Direct — review here, no n8n' : 'Via n8n — lands in Gmail'}
               </span>
               <span className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${directMode ? 'bg-violet-500/80' : 'bg-white/15'}`}>
-                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${directMode ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-[#fff] shadow transition-transform ${directMode ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
               </span>
             </button>
             <button
               type="button"
               onClick={draft}
               disabled={busy || !hasEmail}
-              className="w-full flex items-center justify-center gap-2 rounded-full bg-white text-black text-[16px] font-semibold py-4 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100"
+              className="w-full flex items-center justify-center gap-2 rounded-full btn-contrast text-[16px] font-semibold py-4 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100"
             >
               {busy ? (
                 <><Loader2 size={18} className="animate-spin" /> Drafting…</>
@@ -286,7 +286,7 @@ export function OutreachDraftSheet({
               <p className="text-[15px] text-white/90 leading-relaxed whitespace-pre-wrap">{preview.body}</p>
             </div>
           </div>
-          <div className="px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-[#0f0f12] flex flex-col gap-2">
+          <div className="px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-base flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -296,7 +296,7 @@ export function OutreachDraftSheet({
                   try { window.open(url, '_blank', 'noreferrer,noopener') } catch { /* popup blocked */ }
                   h.success()
                 }}
-                className="flex-1 flex items-center justify-center gap-2 rounded-full bg-white text-black text-[15px] font-semibold py-3.5 active:scale-[0.98] transition-transform"
+                className="flex-1 flex items-center justify-center gap-2 rounded-full btn-contrast text-[15px] font-semibold py-3.5 active:scale-[0.98] transition-transform"
               >
                 <Mail size={16} /> Open in Gmail
               </button>

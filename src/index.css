@@ -32,6 +32,22 @@
   --mood-2: var(--accent-2);
   --mood-3: var(--accent-3);
 
+  /* Foreground channel — the SINGLE lever that makes ~every `*-white/NN`
+     utility across the app theme-adaptive. Tailwind's `white` is remapped to
+     rgb(var(--fg) / <alpha>): in dark it's white overlays as before; in light
+     it flips to dark ink, so text/borders/tints read correctly on paper with
+     zero per-file edits. */
+  --fg: 255 255 255;
+
+  /* Elevated-surface recipe (glass-card / .surface). Per-theme so a card is a
+     lit white-overlay at night and a raised near-white panel by day. */
+  --card-bg: 255 255 255;      /* fill colour channels                */
+  --card-bg-a: 0.045;          /* fill alpha                          */
+  --card-border-a: 0.08;       /* hairline alpha (over --fg)          */
+  --card-hi-a: 0.06;           /* inner top-light highlight alpha      */
+  --card-shadow: 0 1px 2px 0 rgba(0,0,0,0.35), 0 12px 40px -20px rgba(0,0,0,0.65);
+  --ambient-opacity: 0.55;     /* strength of the aurora field         */
+
   /* Motion timings — the single dial for the whole "calm" feel. Slower reads as
      more serene; faster as more responsive. Every animation below references
      these, so tuning here re-times the entire app at once. */
@@ -45,6 +61,35 @@
   --dur-skeleton: 1.7s;       /* the skeleton light-sweep                */
   --dur-draw: 0.55s;          /* the completion check drawing itself     */
   --dur-app-enter: 0.6s;      /* the first content reveal on load        */
+}
+
+/* ── Daylight ─────────────────────────────────────────────────────────────
+   The adaptive light theme: warm paper, ink text, a slightly deepened accent
+   for contrast, and elevated white panels with soft shadows. Only the tokens
+   change — every surface inherits daylight for free. */
+:root[data-theme='light'] {
+  --bg-base: 251 250 247;    /* #FBFAF7 warm paper                     */
+  --bg-sunk: 244 242 237;    /* #F4F2ED recessed wells                 */
+  --ink: 24 22 32;           /* #161620 near-black ink                 */
+  --ink-muted: 92 88 104;    /* #5C5868                                */
+  --ink-faint: 140 136 152;  /* #8C8898                                */
+  --accent: 99 84 224;       /* #6354E0 deepened for paper contrast    */
+  --accent-2: 79 70 210;     /* #4F46D2                                */
+  --accent-3: 14 165 190;    /* #0EA5BE deeper cyan                    */
+  --fg: 24 22 32;            /* flips every *-white/NN utility to ink   */
+
+  --card-bg: 255 255 255;    /* raised panels are near-white...         */
+  --card-bg-a: 0.82;         /* ...and nearly opaque                    */
+  --card-border-a: 0.10;
+  --card-hi-a: 0;            /* no top-light on paper                   */
+  --card-shadow: 0 1px 2px 0 rgba(20,18,40,0.06), 0 10px 30px -14px rgba(20,18,40,0.16);
+  --ambient-opacity: 0.42;   /* softer aurora in daylight               */
+}
+
+/* Ambient OFF — the clean, flat adaptive light/dark with no Living Canvas. */
+:root[data-ambient='off'] .ambient-field,
+:root[data-ambient='off'] .grain-overlay {
+  display: none !important;
 }
 
 /* App entry: the content arrives, it does not snap. Opacity-only so it never
@@ -146,12 +191,10 @@
   .glass-card {
     border-radius: 1rem;
     background:
-      linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02) 42%, rgba(255,255,255,0.012));
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow:
-      inset 0 1px 0 0 rgba(255,255,255,0.06),
-      0 1px 2px 0 rgba(0,0,0,0.35),
-      0 12px 40px -20px rgba(0,0,0,0.65);
+      linear-gradient(180deg, rgb(var(--fg) / var(--card-hi-a)), transparent 55%),
+      rgb(var(--card-bg) / var(--card-bg-a));
+    border: 1px solid rgb(var(--fg) / var(--card-border-a));
+    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / var(--card-hi-a)), var(--card-shadow);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
@@ -159,15 +202,17 @@
   /* Raw surface primitives for new components (same material, no radius lock). */
   .surface {
     background:
-      linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.018) 45%, rgba(255,255,255,0.01));
-    border: 1px solid rgba(255,255,255,0.075);
-    box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.055), 0 10px 34px -20px rgba(0,0,0,0.65);
+      linear-gradient(180deg, rgb(var(--fg) / var(--card-hi-a)), transparent 55%),
+      rgb(var(--card-bg) / var(--card-bg-a));
+    border: 1px solid rgb(var(--fg) / var(--card-border-a));
+    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / var(--card-hi-a)), var(--card-shadow);
   }
   .surface-2 {
     background:
-      linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03) 45%, rgba(255,255,255,0.015));
-    border: 1px solid rgba(255,255,255,0.09);
-    box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.07), 0 16px 48px -22px rgba(0,0,0,0.72);
+      linear-gradient(180deg, rgb(var(--fg) / calc(var(--card-hi-a) + 0.012)), transparent 55%),
+      rgb(var(--card-bg) / calc(var(--card-bg-a) + 0.02));
+    border: 1px solid rgb(var(--fg) / calc(var(--card-border-a) + 0.012));
+    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / var(--card-hi-a)), var(--card-shadow);
   }
 
   /* Aurora ink — the signature gradient text, for the one hero number/word that
@@ -178,6 +223,12 @@
     background-clip: text;
     color: transparent;
   }
+
+  /* Contrast button — the "inverted" high-emphasis CTA. White-on-obsidian at
+     night, ink-on-paper by day. Replaces `bg-white text-black`, which would
+     invert to invisible in daylight. */
+  .btn-contrast { background: rgb(var(--fg)); color: rgb(var(--bg-base)); }
+  .btn-contrast:active { filter: brightness(0.94); }
 
   /* Money ink — the single number that matters wears an emerald→cyan sheen. */
   .money-text {
@@ -416,7 +467,7 @@
   height: 85vh;
   z-index: -2;
   pointer-events: none;
-  opacity: 0.55;
+  opacity: var(--ambient-opacity);
   filter: blur(60px) saturate(1.1);
   background:
     radial-gradient(42% 46% at 24% 14%, rgb(var(--mood-1) / 0.20) 0%, transparent 70%),

@@ -117,7 +117,7 @@ export function DetailSheet({
 
       {/* Sheet */}
       <div
-        className="relative w-full max-w-xl bg-[#0f0f12] border-t border-white/[0.08] rounded-t-[28px] shadow-2xl shadow-black/60 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]"
+        className="relative w-full max-w-xl bg-base border-t border-white/[0.08] rounded-t-[28px] shadow-2xl shadow-black/60 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]"
         style={{
           transform: `translateY(${translate}px)`,
           transition: startY.current == null ? 'transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',

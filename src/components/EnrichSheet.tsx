@@ -112,15 +112,15 @@ export function EnrichSheet({ target, onClose }: { target: EnrichTarget | null; 
             )}
           </div>
 
-          <div className="px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-[#0f0f12]">
+          <div className="px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-base">
             <button type="button" onClick={() => { h.tap(); setDirect(d => !d) }} className="w-full flex items-center justify-between mb-3 text-left">
               <span className="text-[13px] text-white/55">{direct ? 'Direct — research now, no n8n' : 'Via n8n — queues the deep workflow'}</span>
               <span className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${direct ? 'bg-violet-500/80' : 'bg-white/15'}`}>
-                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${direct ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-[#fff] shadow transition-transform ${direct ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
               </span>
             </button>
             <button type="button" onClick={run} disabled={busy}
-              className="w-full flex items-center justify-center gap-2 rounded-full bg-white text-black text-[16px] font-semibold py-4 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100">
+              className="w-full flex items-center justify-center gap-2 rounded-full btn-contrast text-[16px] font-semibold py-4 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100">
               <Wand2 size={18} /> {brief ? 'Re-research' : 'Research'}
             </button>
           </div>

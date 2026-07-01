@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { MoreHorizontal, type LucideIcon } from 'lucide-react'
 import { useHaptics } from '../hooks/useHaptics'
+import { ThemeToggle } from './shared/ThemeToggle'
 import { MOBILE_PRIMARY_TABS, MOBILE_DRAWER_TABS, type TabDef } from '../lib/tabs'
 
 interface Props {
@@ -110,11 +111,15 @@ function MobileMoreDrawer({
   return (
     <div className="fixed inset-0 z-[60]">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute bottom-0 left-0 right-0 bg-[#0a0a0f] border-t border-white/[0.08] rounded-t-2xl pb-safe">
+      <div className="absolute bottom-0 left-0 right-0 bg-base border-t border-white/[0.08] rounded-t-2xl pb-safe">
         <div className="flex items-center justify-center pt-3 pb-2">
           <div className="w-10 h-1 bg-white/20 rounded-full" />
         </div>
-        <div className="grid grid-cols-3 gap-2 p-4">
+        <div className="px-4 pb-3 flex items-center gap-3">
+          <span className="text-[11px] font-display font-semibold uppercase tracking-[0.18em] text-white/40 flex-shrink-0">Appearance</span>
+          <div className="flex-1 min-w-0"><ThemeToggle expanded /></div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 p-4 pt-1">
           {tabs.map(({ id, label, mobileIcon: Icon }) => (
             <button
               key={id}

@@ -78,7 +78,7 @@ export function TriageCard({
         pointerEvents: isTop ? 'auto' : 'none',
       }}
     >
-      <div className="relative h-full rounded-3xl border border-white/[0.10] bg-[#141417] shadow-2xl shadow-black/40 p-5 flex flex-col overflow-hidden">
+      <div className="relative h-full rounded-3xl border border-white/[0.10] bg-base shadow-2xl shadow-black/40 p-5 flex flex-col overflow-hidden">
         {/* Drag ghosts — only meaningful on the top card. */}
         {isTop && (
           <>

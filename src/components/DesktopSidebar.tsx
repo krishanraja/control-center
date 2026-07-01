@@ -3,6 +3,7 @@ import { MoreHorizontal, type LucideIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { DESKTOP_PRIMARY_TABS, DESKTOP_DRAWER_TABS } from '../lib/tabs'
 import { usePressable } from './shared/usePressable'
+import { ThemeToggle } from './shared/ThemeToggle'
 
 interface Props {
   active: string
@@ -151,13 +152,17 @@ export function DesktopSidebar({ active, onChange }: Props) {
                 <p className="text-[12px] text-white/30 mt-1 leading-snug">Not reported yet</p>
               )}
             </div>
+            <ThemeToggle expanded />
             <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between">
               <span className="text-[10px] uppercase tracking-[0.14em] text-white/30 font-medium">Command</span>
               <kbd className="text-[10px] font-mono text-white/45 border border-white/10 rounded px-1.5 py-0.5 bg-white/[0.03]">⌘K</kbd>
             </div>
           </>
         ) : (
-          <div className={`w-2 h-2 mx-auto rounded-full ${dotColor}`} title={dotTitle} />
+          <div className="flex flex-col items-center gap-3">
+            <ThemeToggle expanded={false} />
+            <div className={`w-2 h-2 rounded-full ${dotColor}`} title={dotTitle} />
+          </div>
         )}
       </div>
     </aside>

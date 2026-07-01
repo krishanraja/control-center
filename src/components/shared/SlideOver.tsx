@@ -31,9 +31,9 @@ export function SlideOver({ open, onClose, children, ariaLabel = 'Detail' }: Pro
       <div
         role="dialog"
         aria-label={ariaLabel}
-        className="fixed right-0 top-0 bottom-0 z-50 w-[480px] max-w-[92vw] overflow-y-auto bg-[#0c0c0e] border-l border-white/10 animate-fade-in"
+        className="fixed right-0 top-0 bottom-0 z-50 w-[480px] max-w-[92vw] overflow-y-auto bg-base border-l border-white/10 animate-fade-in"
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2.5 bg-[#0c0c0e]/95 backdrop-blur border-b border-white/[0.06]">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2.5 bg-base/95 backdrop-blur border-b border-white/[0.06]">
           <span className="text-[11px] uppercase tracking-[0.16em] text-violet-300/85">Detail</span>
           <button
             type="button"

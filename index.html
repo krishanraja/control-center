@@ -2,6 +2,19 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Pre-hydration theme init — set <html data-theme> before any style paints
+      // so there is never a flash of the wrong theme. Mirrors src/lib/theme.ts.
+      (function () {
+        try {
+          var m = localStorage.getItem('cc-theme') || 'system';
+          var dark = m === 'dark' || (m !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var el = document.documentElement;
+          el.dataset.theme = dark ? 'dark' : 'light';
+          if (localStorage.getItem('cc-ambient') === 'off') el.setAttribute('data-ambient', 'off');
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
@@ -18,6 +31,11 @@
     <meta name="description" content="Decisions, not admin — autonomous operations command center." />
     <style>
       html, body { background: #08070d; }
+      html[data-theme='light'], html[data-theme='light'] body { background: #fbfaf7; }
+      html[data-theme='light'] #brand-splash { background: radial-gradient(120% 90% at 50% 38%, #ffffff 0%, #f4f2ed 62%); }
+      html[data-theme='light'] #brand-splash .ring { border-color: rgba(20,18,40,0.08); }
+      html[data-theme='light'] #brand-splash .particle { background: #6354e0; box-shadow: 0 0 14px 3px rgba(99,84,224,0.5); }
+      html[data-theme='light'] #brand-splash img { box-shadow: 0 10px 40px rgba(20,18,40,0.16); }
       /* Calm & Anticipatory app entry: the mark breathes while a single particle
          orbits it — the system getting ready *for* you — then the whole splash
          exhales (scales up a touch as it fades) to hand off seamlessly to the

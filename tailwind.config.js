@@ -56,6 +56,12 @@ export default {
         // Channel-format CSS vars (defined in index.css :root) so opacity
         // modifiers work (text-ink/70, bg-accent/15) AND a future light theme
         // is a single :root[data-theme] block away.
+        // Remap `white` to the foreground channel: white overlays at night,
+        // ink on paper by day. This is what makes the thousands of existing
+        // `text-white/60`, `bg-white/[0.05]`, `border-white/10` utilities
+        // theme-adaptive without touching a single component. (Pure white where
+        // it must stay white — text on a filled accent — uses `text-[#fff]`.)
+        white: 'rgb(var(--fg) / <alpha-value>)',
         base: 'rgb(var(--bg-base) / <alpha-value>)',
         sunk: 'rgb(var(--bg-sunk) / <alpha-value>)',
         ink: {

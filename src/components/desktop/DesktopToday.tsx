@@ -524,7 +524,7 @@ function TodayDetail({ task, onActioned }: { task: TaskRow; onActioned?: () => v
           {moreOpen && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setMoreOpen(false)} />
-              <div className="absolute left-0 bottom-full mb-1 z-40 w-52 rounded-lg border border-white/10 bg-[#141417] shadow-xl py-1">
+              <div className="absolute left-0 bottom-full mb-1 z-40 w-52 rounded-lg border border-white/10 bg-base shadow-xl py-1">
                 {moreItems.map(item => (
                   <button
                     key={item.label}

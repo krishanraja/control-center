@@ -124,7 +124,7 @@ export function HeroCard({
     amber:   'bg-amber-400 text-black',
     emerald: 'bg-emerald-400 text-black',
     red:     'bg-red-500 text-white',
-    neutral: 'bg-white text-black',
+    neutral: 'btn-contrast',
   }
   const Wrapper: any = onClick ? 'button' : 'div'
   const { bind } = usePressable({ onPress: onClick, haptic: 'tap', disabled: !onClick })

@@ -71,7 +71,7 @@ export function BottomSheet({ open, onClose, children, fullHeight = true, ariaLa
         style={{ opacity: visible ? 1 : 0 }}
       />
       <div
-        className={`relative w-full max-w-xl bg-[#0f0f12] border-t border-white/[0.08] rounded-t-[28px] shadow-2xl shadow-black/60 flex flex-col ${fullHeight ? 'h-[calc(92vh/var(--z,1))]' : ''}`}
+        className={`relative w-full max-w-xl bg-base border-t border-white/[0.08] rounded-t-[28px] shadow-2xl shadow-black/60 flex flex-col ${fullHeight ? 'h-[calc(92vh/var(--z,1))]' : ''}`}
         style={{
           transform: `translateY(${translate}px)`,
           transition: startY.current == null ? 'transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',

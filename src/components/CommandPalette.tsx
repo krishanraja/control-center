@@ -3,6 +3,7 @@ import { Command } from 'cmdk'
 import { Search as SearchIcon } from 'lucide-react'
 import { supabase, logKrishAction } from '../lib/supabase'
 import { useHaptics } from '../hooks/useHaptics'
+import { setMode, setAmbient, getAmbient } from '../lib/theme'
 import { TABS as CANONICAL_TABS } from '../lib/tabs'
 
 interface Props {
@@ -45,7 +46,7 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-md animate-fade-in" onClick={onClose}>
       <div className="w-[640px] max-w-[92vw] animate-scale-in" onClick={(e) => e.stopPropagation()}>
         <Command
-          className="rounded-2xl border border-white/[0.10] bg-[#0e0d16]/95 backdrop-blur-2xl shadow-e3 aurora-ring overflow-hidden
+          className="rounded-2xl border border-white/[0.10] bg-base/95 backdrop-blur-2xl shadow-e3 aurora-ring overflow-hidden
             [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-display [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.2em] [&_[cmdk-group-heading]]:text-accent/60"
           label="Global command"
         >
@@ -66,6 +67,20 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
                 <Command.Item key={t.id} value={`tab ${t.label}`} onSelect={() => { h.select(); onTab(t.id); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-[13px] text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
                   <span>Go to {t.label}</span>
                   <span className="text-[10px] text-white/30">tab</span>
+                </Command.Item>
+              ))}
+            </Command.Group>
+
+            <Command.Group heading="Appearance">
+              {([
+                ['Switch to light', () => setMode('light')],
+                ['Switch to dark', () => setMode('dark')],
+                ['Use system theme', () => setMode('system')],
+                [getAmbient() ? 'Turn ambient effects off' : 'Turn ambient effects on', () => setAmbient(!getAmbient())],
+              ] as [string, () => void][]).map(([label, run]) => (
+                <Command.Item key={label} value={`appearance ${label}`} onSelect={() => { h.select(); run(); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-[13px] text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
+                  <span>{label}</span>
+                  <span className="text-[10px] text-white/30">theme</span>
                 </Command.Item>
               ))}
             </Command.Group>
