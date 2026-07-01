@@ -106,10 +106,12 @@ export default {
         // Redefine the `violet` ramp to the aurora anchor so the existing
         // violet-300/400/500 usages everywhere shift to the new brand accent
         // at once, cohesively, with zero per-file edits.
+        // Brand accent ramp — 300–950 are the aurora fills/dots (fixed hex);
+        // 50/100/200 are theme-adaptive accent TEXT (see --ac-* in index.css).
         violet: {
-          50:  '#f3f1ff',
-          100: '#e9e5ff',
-          200: '#d6ceff',
+          50:  'rgb(var(--ac-violet) / <alpha-value>)',
+          100: 'rgb(var(--ac-violet) / <alpha-value>)',
+          200: 'rgb(var(--ac-violet) / <alpha-value>)',
           300: '#b8a8fc',
           400: '#9c86f8',
           500: '#8b7cf6',
@@ -119,6 +121,14 @@ export default {
           900: '#392c7d',
           950: '#241a52',
         },
+        // Semantic accent text shades — 50/100/200 flip light↔deep by theme so
+        // accent labels on tinted cards stay readable. 300+ keep Tailwind defaults.
+        amber:   { 50: 'rgb(var(--ac-amber) / <alpha-value>)',   100: 'rgb(var(--ac-amber) / <alpha-value>)',   200: 'rgb(var(--ac-amber) / <alpha-value>)' },
+        emerald: { 50: 'rgb(var(--ac-emerald) / <alpha-value>)', 100: 'rgb(var(--ac-emerald) / <alpha-value>)', 200: 'rgb(var(--ac-emerald) / <alpha-value>)' },
+        rose:    { 50: 'rgb(var(--ac-rose) / <alpha-value>)',    100: 'rgb(var(--ac-rose) / <alpha-value>)',    200: 'rgb(var(--ac-rose) / <alpha-value>)' },
+        sky:     { 50: 'rgb(var(--ac-sky) / <alpha-value>)',     100: 'rgb(var(--ac-sky) / <alpha-value>)',     200: 'rgb(var(--ac-sky) / <alpha-value>)' },
+        cyan:    { 50: 'rgb(var(--ac-cyan) / <alpha-value>)',    100: 'rgb(var(--ac-cyan) / <alpha-value>)',    200: 'rgb(var(--ac-cyan) / <alpha-value>)' },
+        indigo:  { 50: 'rgb(var(--ac-indigo) / <alpha-value>)',  100: 'rgb(var(--ac-indigo) / <alpha-value>)',  200: 'rgb(var(--ac-indigo) / <alpha-value>)' },
       },
       // Calm & Anticipatory — depth tokens, now Obsidian Aurora. Glass reads as
       // layered, lit surfaces; the focus halo is the aurora accent.
