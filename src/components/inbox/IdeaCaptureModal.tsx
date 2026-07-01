@@ -118,7 +118,7 @@ export function IdeaCaptureModal({ open, onClose, source = 'control_center' }: P
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:pt-24 bg-black/65 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Drop a task">
-      <div className="w-full max-w-xl rounded-2xl border border-violet-500/25 bg-[#0a0a0b] shadow-2xl overflow-hidden">
+      <div className="w-full max-w-xl rounded-2xl border border-violet-500/25 bg-base shadow-2xl overflow-hidden">
         <header className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
           <div className="flex items-center gap-2">
             <Inbox size={14} className="text-violet-300" />

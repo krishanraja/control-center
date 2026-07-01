@@ -126,11 +126,11 @@ import { supabase } from './_supabase.js'
 import { supabase } from './_supabase'
 ```
 
-### Tailwind CSS
+### Tailwind CSS & theming
 
-- Use the design tokens defined in [`COMPONENTS.md`](./COMPONENTS.md).
-- Mobile-first responsive.
-- Avoid arbitrary values when a token applies.
+- Use the design tokens from [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) — the app is
+  **adaptive light/dark**, so hardcoded colours break daylight.
+- Mobile-first responsive. Avoid arbitrary values when a token applies.
 
 ```tsx
 // Good
@@ -139,6 +139,16 @@ import { supabase } from './_supabase'
 // Avoid
 <div className="px-[13px] py-[17px]">
 ```
+
+**Theming rules (these keep light/dark working):**
+
+- `text-white/NN`, `bg-white/NN`, `border-white/NN` are theme-adaptive
+  (`white` is remapped to `--fg`) — use them for foreground text, tints, hairlines.
+- Pure white on a coloured fill → `text-[#fff]` (not `text-white`).
+- Inverted high-emphasis CTA → `.btn-contrast` (not `bg-white text-black`).
+- Solid theme-following surface → `bg-base` / `bg-sunk` (never `bg-[#0f0f12]`).
+- Extend a shared primitive (`Pressable`, `HeroCard`, `SwipeCard`, …) rather than
+  hand-rolling a card/button so both device classes and both themes stay coherent.
 
 ### File organisation
 
@@ -310,14 +320,20 @@ common cross-browser failure point.
 
 ### A new Supabase table
 
-1. Write the migration in `supabase/migrations/`.
+1. Write the migration in `supabase/migrations/` (`<version>_<name>.sql`).
 2. Enable RLS and write the `anon` SELECT + `service_role` write
-   policies.
+   policies. Pin `search_path` on any function you add; keep `SECURITY DEFINER`
+   RPCs `service_role`-only (see [`DB_HEALTH.md`](./DB_HEALTH.md), ADR-008).
 3. Add the TypeScript interface in `src/types/`.
 4. Create a realtime hook if the table is live (`useRealtime<Table>.ts`)
    with the shared-channel pattern.
 5. Document in [`DATABASE.md`](./DATABASE.md).
 6. If the new table feeds Home decisions, add it to `decisions_waiting`.
+
+> **Migrations note.** The migration ledger was reconciled on 2026-07-01, so
+> `supabase/migrations/` and `supabase_migrations` now agree. Keep them in sync:
+> if you apply DDL out-of-band (dashboard / MCP), commit the matching migration
+> file. Never `supabase db push` against a DB whose ledger you haven't verified.
 
 ### A new component
 
@@ -325,7 +341,8 @@ common cross-browser failure point.
 2. Add a TypeScript props interface.
 3. Document usage in [`COMPONENTS.md`](./COMPONENTS.md) if it's
    reusable.
-4. Verify mobile parity.
+4. Verify **mobile parity** and **both themes** (light + dark) — see
+   [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) for the theming rules.
 
 ## Debugging
 

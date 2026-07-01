@@ -214,7 +214,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
           trailing={
             <button
               onClick={() => { h.tap(); setShowImport(s => !s) }}
-              className="px-5 py-3 rounded-full bg-white text-black text-[15px] font-semibold active:scale-95 transition-transform"
+              className="px-5 py-3 rounded-full btn-contrast text-[15px] font-semibold active:scale-95 transition-transform"
             >
               Import
             </button>

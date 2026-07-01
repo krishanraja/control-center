@@ -542,7 +542,7 @@ function ActionFooter({
   onSnooze: () => void
 }) {
   return (
-    <footer className="sticky bottom-0 px-5 py-3 border-t border-white/[0.06] bg-[#0a0a0b]/95 backdrop-blur flex items-center gap-2 flex-wrap">
+    <footer className="sticky bottom-0 px-5 py-3 border-t border-white/[0.06] bg-base/95 backdrop-blur flex items-center gap-2 flex-wrap">
       {isEnriched && (
         <button
           type="button"

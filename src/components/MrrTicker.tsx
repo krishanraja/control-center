@@ -2,6 +2,7 @@ import React from 'react'
 import { TrendingUp, TrendingDown, Target } from 'lucide-react'
 import { useRevenueAttribution } from '../hooks/useRevenueAttribution'
 import { useHomeIntelligence } from '../hooks/useHomeIntelligence'
+import { useMoodSource } from './shared/AmbientField'
 
 interface Props {
   variant?: 'mobile' | 'desktop'
@@ -26,18 +27,22 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
   const DeltaIcon = deltaPositive ? TrendingUp : TrendingDown
   const deltaColor = deltaPositive ? 'text-emerald-300' : 'text-red-300'
 
+  // When the money is growing, the whole app's ambient field warms. Cleared on
+  // unmount (leaving Home / Customers), so it never lingers falsely.
+  useMoodSource('mrr', deltaPositive && liveMrr > 0 ? 'warm' : null, 3)
+
   return (
     <div
-      className={`rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent p-5 ${className}`}
+      className={`rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent shadow-e2 p-5 ${className}`}
       aria-label="Live MRR ticker"
     >
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300/70 mb-1">
+          <p className="text-[10px] font-display font-bold uppercase tracking-[0.2em] text-emerald-300/70 mb-1.5">
             Live MRR
           </p>
-          <p className={`${isMobile ? 'text-[40px]' : 'text-[32px]'} font-bold tabular-nums text-white leading-none`}>
-            ${Math.round(liveMrr).toLocaleString()}
+          <p className={`${isMobile ? 'text-[46px]' : 'text-[36px]'} font-display font-bold tabular-nums leading-none`}>
+            <span className="money-text">${Math.round(liveMrr).toLocaleString()}</span>
             <span className="text-white/35 text-[18px] font-medium">/mo</span>
           </p>
           <div className={`flex items-center gap-1.5 mt-2 ${deltaColor}`}>

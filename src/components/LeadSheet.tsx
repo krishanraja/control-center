@@ -204,7 +204,7 @@ export function LeadSheet({
           </div>
 
           {/* Actions */}
-          <div className="px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-[#0f0f12] flex gap-2.5">
+          <div className="px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-base flex gap-2.5">
             {!enriched && (
               <button
                 type="button"
@@ -220,7 +220,7 @@ export function LeadSheet({
             <button
               type="button"
               onClick={() => { h.select(); onDraft(contact) }}
-              className="flex-1 flex items-center justify-center gap-2 rounded-full bg-white text-black text-[15px] font-semibold py-3.5 active:scale-[0.98] transition-transform"
+              className="flex-1 flex items-center justify-center gap-2 rounded-full btn-contrast text-[15px] font-semibold py-3.5 active:scale-[0.98] transition-transform"
             >
               <Mail size={17} /> Draft email
             </button>

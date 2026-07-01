@@ -365,7 +365,7 @@ export function WeeklyFocusTakeover({ narrow, tab }: { narrow: boolean; tab: str
         <div className="h-full flex flex-col">
           <div className="px-4 pt-2">{header}{rail}</div>
           <div className="flex-1 overflow-y-auto px-4">{stepBody}</div>
-          <div className="px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] border-t border-white/[0.06] bg-[#0f0f12]">{footer}</div>
+          <div className="px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] border-t border-white/[0.06] bg-base">{footer}</div>
         </div>
       </BottomSheet>
     )
@@ -378,7 +378,7 @@ export function WeeklyFocusTakeover({ narrow, tab }: { narrow: boolean; tab: str
         onClick={handleDismiss}
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
       />
-      <div className="relative w-full max-w-2xl max-h-[88vh] bg-[#0f0f12] border border-white/[0.10] rounded-2xl shadow-2xl shadow-black/60 flex flex-col">
+      <div className="relative w-full max-w-2xl max-h-[88vh] bg-base border border-white/[0.10] rounded-2xl shadow-2xl shadow-black/60 flex flex-col">
         <div className="px-6 pt-5">{header}{rail}</div>
         <div className="flex-1 overflow-y-auto px-6">{stepBody}</div>
         <div className="px-6 py-4 border-t border-white/[0.06]">{footer}</div>

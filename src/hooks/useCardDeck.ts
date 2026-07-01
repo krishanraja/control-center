@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useHaptics } from './useHaptics'
 
 export type Dir = 'left' | 'right'
 type Phase = 'idle' | 'dragging' | 'flyout'
@@ -31,6 +32,7 @@ interface Options {
 export function useCardDeck({ cardId, onCommit, threshold = 96, disabled }: Options) {
   const [dx, setDx] = useState(0)
   const [phase, setPhase] = useState<Phase>('idle')
+  const h = useHaptics()
 
   const startX = useRef(0)
   const startY = useRef(0)
@@ -39,6 +41,9 @@ export function useCardDeck({ cardId, onCommit, threshold = 96, disabled }: Opti
   const elRef = useRef<HTMLElement | null>(null)
   const committed = useRef(false)
   const flyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Which side (if any) the drag has crossed into commit range — drives the
+  // tactile "arm" tick the instant the card is ready to fire, iOS-style.
+  const armed = useRef<'none' | 'l' | 'r'>('none')
 
   // Reset all transient state whenever a new card reaches the top.
   useEffect(() => {
@@ -47,6 +52,7 @@ export function useCardDeck({ cardId, onCommit, threshold = 96, disabled }: Opti
     lock.current = 'none'
     pointerId.current = null
     committed.current = false
+    armed.current = 'none'
     if (flyTimer.current) { clearTimeout(flyTimer.current); flyTimer.current = null }
   }, [cardId])
 
@@ -61,11 +67,15 @@ export function useCardDeck({ cardId, onCommit, threshold = 96, disabled }: Opti
   // Programmatic fling — used by buttons and arrow keys so they animate identically.
   const flyOut = useCallback((dir: Dir) => {
     if (disabled || committed.current) return
+    // Commit buzz — the confident bump as the card leaves your hand. No-op on
+    // desktop/iOS. Fires for buttons and arrow keys too, so every commit feels
+    // identical regardless of how it was triggered.
+    h.impactMedium()
     setPhase('flyout')
     setDx(dir === 'left' ? -window.innerWidth : window.innerWidth)
     // transitionend is the primary signal; this is the safety net.
     flyTimer.current = setTimeout(() => finishCommit(dir), 380)
-  }, [disabled, finishCommit])
+  }, [disabled, finishCommit, h])
 
   const onTransitionEnd = useCallback((e: React.TransitionEvent) => {
     if (phase !== 'flyout' || e.propertyName !== 'transform') return
@@ -101,8 +111,19 @@ export function useCardDeck({ cardId, onCommit, threshold = 96, disabled }: Opti
         return
       }
     }
-    if (lock.current === 'h') setDx(ddx)
-  }, [phase])
+    if (lock.current === 'h') {
+      // Fire a faint tick the moment the drag crosses into commit range (and
+      // only on the crossing, not every frame) — the card "arming" in your hand.
+      const dropThreshold = threshold * 1.35
+      const next: 'none' | 'l' | 'r' =
+        ddx >= threshold ? 'r' : ddx <= -dropThreshold ? 'l' : 'none'
+      if (next !== armed.current) {
+        if (next !== 'none') h.impactLight()
+        armed.current = next
+      }
+      setDx(ddx)
+    }
+  }, [phase, threshold, h])
 
   const settle = useCallback((e: React.PointerEvent) => {
     if (pointerId.current !== e.pointerId) return
@@ -112,6 +133,7 @@ export function useCardDeck({ cardId, onCommit, threshold = 96, disabled }: Opti
     if (dx <= -dropThreshold) { flyOut('left'); return }
     if (dx >= threshold) { flyOut('right'); return }
     // Spring back.
+    armed.current = 'none'
     setPhase('idle')
     setDx(0)
   }, [dx, threshold, flyOut])

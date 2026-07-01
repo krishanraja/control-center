@@ -298,11 +298,11 @@ function OsMissionHero({
 
       <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-6 md:p-7 space-y-4">
         {northStar ? (
-          <p className="text-[15px] md:text-[16px] text-white/85 leading-relaxed font-medium">
+          <p className="text-[17px] md:text-[19px] font-serif text-white/88 leading-relaxed">
             {northStar}
           </p>
         ) : (
-          <p className="text-[14px] text-white/30 italic">No north star set yet.</p>
+          <p className="text-[15px] font-serif text-white/30 italic">No north star set yet.</p>
         )}
 
         <div className="h-px bg-white/[0.05]" />

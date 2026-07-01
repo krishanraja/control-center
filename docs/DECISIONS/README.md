@@ -21,6 +21,8 @@
 | [004](./004-agent-id-rename.md) | Renaming `workflow_runs.agent` → `agent_id` and `started_at` → `run_at` | Accepted |
 | [005](./005-pipeline-first-home.md) | Pipeline-first Home | Accepted |
 | [006](./006-leads-and-ideas-inbox.md) | Leads tab + Content Ideas inbox | Accepted |
+| [007](./007-obsidian-aurora-design-system.md) | Obsidian Aurora design system + adaptive light/dark theming | Accepted |
+| [008](./008-security-hardening-and-auth-rls-scope.md) | DB security hardening now; auth + RLS deferred, scoped | Accepted |
 
 ---
 

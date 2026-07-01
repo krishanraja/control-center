@@ -1,6 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ToastProvider } from './components/shared/Toast'
+import { AmbientField } from './components/shared/AmbientField'
 import { DesktopSidebar } from './components/DesktopSidebar'
 import { BottomNav } from './components/BottomNav'
 import { CommandPalette } from './components/CommandPalette'
@@ -126,7 +127,8 @@ export default function App() {
   return (
     <ToastProvider>
       <AgentsProvider>
-        <div className="h-[100dvh] overflow-hidden bg-[#0a0a0b] text-white flex flex-row">
+        <div className="h-[100dvh] overflow-hidden text-ink flex flex-row">
+          <AmbientField />
           {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
           {/* No-scroll app shell: the window never scrolls. main is a fixed,
               non-scrolling region; each tab owns its inner scroll — mobile via its

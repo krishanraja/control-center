@@ -59,7 +59,7 @@ function VentureChips({ venture, onPick }: { venture: string | null; onPick: (sl
     <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
       <button
         onClick={() => onPick(null)}
-        className={`px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${venture === null ? 'bg-white text-black' : 'bg-white/[0.06] text-white/70'}`}
+        className={`px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${venture === null ? 'btn-contrast' : 'bg-white/[0.06] text-white/70'}`}
       >
         All
       </button>
@@ -67,7 +67,7 @@ function VentureChips({ venture, onPick }: { venture: string | null; onPick: (sl
         <button
           key={v.slug}
           onClick={() => onPick(v.slug)}
-          className={`px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${venture === v.slug ? 'bg-white text-black' : 'bg-white/[0.06] text-white/70'}`}
+          className={`px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${venture === v.slug ? 'btn-contrast' : 'bg-white/[0.06] text-white/70'}`}
         >
           {v.label}
         </button>
@@ -257,7 +257,7 @@ export function MobileLeadsRE(_props: Props = {}) {
           trailing={
             <button
               onClick={() => { h.tap(); setShowImport(s => !s) }}
-              className="px-5 py-3 rounded-full bg-white text-black text-[15px] font-semibold active:scale-95 transition-transform"
+              className="px-5 py-3 rounded-full btn-contrast text-[15px] font-semibold active:scale-95 transition-transform"
             >
               Import
             </button>

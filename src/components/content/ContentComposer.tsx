@@ -171,7 +171,7 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
 
   if (!idea) {
     return (
-      <div className="fixed inset-0 z-[90] bg-[#0a0a0b] flex items-center justify-center">
+      <div className="fixed inset-0 z-[90] bg-base flex items-center justify-center">
         <Loader2 size={20} className="animate-spin text-white/40" />
       </div>
     )
@@ -191,7 +191,7 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
   )
 
   return (
-    <div className="fixed inset-0 z-[90] bg-[#0a0a0b] text-white flex flex-col">
+    <div className="fixed inset-0 z-[90] bg-base text-white flex flex-col">
       {/* Header */}
       <header className="flex items-center gap-2 px-3 sm:px-5 h-14 border-b border-white/[0.08] flex-shrink-0">
         <button
@@ -498,7 +498,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
       </div>
 
       {/* Sticky push */}
-      <div className="px-3 pt-2.5 pb-safe border-t border-white/[0.08] flex-shrink-0 bg-[#0a0a0b]">
+      <div className="px-3 pt-2.5 pb-safe border-t border-white/[0.08] flex-shrink-0 bg-base">
         <SaveDraftButton idea={idea} draft={draft} onApplyDraft={onApplyDraft} onSaved={onNext} block />
       </div>
 
@@ -506,7 +506,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
       {adjust && (
         <div className="fixed inset-0 z-[95] flex flex-col justify-end">
           <button aria-label="Close" onClick={() => setAdjust(false)} className="absolute inset-0 bg-black/60 animate-fade-in" />
-          <div className="relative bg-[#0f0f12] border-t border-white/[0.1] rounded-t-3xl max-h-[85dvh] flex flex-col animate-sheet-up">
+          <div className="relative bg-base border-t border-white/[0.1] rounded-t-3xl max-h-[85dvh] flex flex-col animate-sheet-up">
             <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
             <div className="flex items-center justify-between pl-4 pr-2 py-1.5 flex-shrink-0">
               <div className="flex items-center gap-2 text-[15px] font-medium text-white/90"><SlidersHorizontal size={16} className="text-violet-300" /> Adjust</div>
@@ -559,7 +559,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
       {preview && (
         <div className="fixed inset-0 z-[96] flex flex-col justify-end">
           <button aria-label="Discard" onClick={() => setPreview(null)} className="absolute inset-0 bg-black/60 animate-fade-in" />
-          <div className="relative bg-[#0f0f12] border-t border-white/[0.1] rounded-t-3xl max-h-[85dvh] flex flex-col animate-sheet-up">
+          <div className="relative bg-base border-t border-white/[0.1] rounded-t-3xl max-h-[85dvh] flex flex-col animate-sheet-up">
             <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
             <div className="flex items-center gap-1.5 px-4 py-2 text-[13px] text-violet-200/80">
               <Sparkles size={14} /> {preview.label} — preview
@@ -588,7 +588,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
       {sheet && (
         <div className="fixed inset-0 z-[95] flex flex-col justify-end">
           <button aria-label="Close" onClick={() => setSheet(null)} className="absolute inset-0 bg-black/60 animate-fade-in" />
-          <div className="relative bg-[#0f0f12] border-t border-white/[0.1] rounded-t-3xl h-[85dvh] flex flex-col animate-sheet-up">
+          <div className="relative bg-base border-t border-white/[0.1] rounded-t-3xl h-[85dvh] flex flex-col animate-sheet-up">
             <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
             <div className="flex items-center justify-between pl-4 pr-2 py-1.5 flex-shrink-0">
               <div className="flex items-center gap-2 text-[15px] font-medium text-white/90">
@@ -774,7 +774,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
         ▾
       </button>
       {menu && (
-        <div className={`absolute ${block ? 'right-0 bottom-full mb-1' : 'right-0 top-full mt-1'} w-56 rounded-lg border border-white/10 bg-[#0c0c0e] shadow-xl z-40 overflow-hidden`} onMouseLeave={() => setMenu(false)}>
+        <div className={`absolute ${block ? 'right-0 bottom-full mb-1' : 'right-0 top-full mt-1'} w-56 rounded-lg border border-white/10 bg-base shadow-xl z-40 overflow-hidden`} onMouseLeave={() => setMenu(false)}>
           <div className="px-3 py-1.5 text-[9px] uppercase tracking-wide text-white/35">Save as a draft for</div>
           {FACTORY_CHANNELS.map(c => (
             <button
@@ -825,7 +825,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
       {failed && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Final review could not run">
           <button aria-label="Close" onClick={() => setFailed(null)} className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in" />
-          <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.1] bg-[#0f0f12] shadow-2xl shadow-black/60 p-5">
+          <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.1] bg-base shadow-2xl shadow-black/60 p-5">
             <div className="flex items-center gap-2 mb-1.5">
               <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle size={16} className="text-amber-300" />
@@ -964,7 +964,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
       {shipping && <ProcessingOverlay label="Shipping to Google Docs" sub="Building the formatted draft" />}
       {rerunning && <ProcessingOverlay label="Cleo is re-reading" sub="Re-running with your lenses" />}
       <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-fade-in" />
-      <div className="relative w-full max-w-lg max-h-[92dvh] flex flex-col rounded-2xl border border-white/[0.1] bg-[#0f0f12] shadow-2xl shadow-black/60">
+      <div className="relative w-full max-w-lg max-h-[92dvh] flex flex-col rounded-2xl border border-white/[0.1] bg-base shadow-2xl shadow-black/60">
         {/* Header */}
         <div className="flex items-start gap-2.5 p-4 pb-3 border-b border-white/[0.07] flex-shrink-0">
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${blocked ? 'bg-rose-500/15' : 'bg-violet-500/15'}`}>
@@ -1156,7 +1156,7 @@ function SavedToDocsModal({ result, onClose, onDone }: { result: SaveResult; onC
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Draft saved to Google Docs">
       <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in" />
-      <div className="relative w-full max-w-md rounded-2xl border border-white/[0.1] bg-[#0f0f12] shadow-2xl shadow-black/60 p-5">
+      <div className="relative w-full max-w-md rounded-2xl border border-white/[0.1] bg-base shadow-2xl shadow-black/60 p-5">
         <div className="flex items-center gap-2 mb-1.5">
           <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
             <Check size={16} className="text-emerald-300" />

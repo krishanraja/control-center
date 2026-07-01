@@ -2,12 +2,25 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Pre-hydration theme init — set <html data-theme> before any style paints
+      // so there is never a flash of the wrong theme. Mirrors src/lib/theme.ts.
+      (function () {
+        try {
+          var m = localStorage.getItem('cc-theme') || 'system';
+          var dark = m === 'dark' || (m !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var el = document.documentElement;
+          el.dataset.theme = dark ? 'dark' : 'light';
+          if (localStorage.getItem('cc-ambient') === 'off') el.setAttribute('data-ambient', 'off');
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="theme-color" content="#08070d" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Mindmaker" />
@@ -17,7 +30,12 @@
     <title>Mindmaker</title>
     <meta name="description" content="Decisions, not admin — autonomous operations command center." />
     <style>
-      html, body { background: #0a0a0b; }
+      html, body { background: #08070d; }
+      html[data-theme='light'], html[data-theme='light'] body { background: #fbfaf7; }
+      html[data-theme='light'] #brand-splash { background: radial-gradient(120% 90% at 50% 38%, #ffffff 0%, #f4f2ed 62%); }
+      html[data-theme='light'] #brand-splash .ring { border-color: rgba(20,18,40,0.08); }
+      html[data-theme='light'] #brand-splash .particle { background: #6354e0; box-shadow: 0 0 14px 3px rgba(99,84,224,0.5); }
+      html[data-theme='light'] #brand-splash img { box-shadow: 0 10px 40px rgba(20,18,40,0.16); }
       /* Calm & Anticipatory app entry: the mark breathes while a single particle
          orbits it — the system getting ready *for* you — then the whole splash
          exhales (scales up a touch as it fades) to hand off seamlessly to the
@@ -25,7 +43,7 @@
       #brand-splash {
         position: fixed;
         inset: 0;
-        background: radial-gradient(120% 90% at 50% 42%, #121218 0%, #0a0a0b 60%);
+        background: radial-gradient(120% 90% at 50% 38%, #16121f 0%, #08070d 62%);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -57,8 +75,8 @@
         height: 7px;
         margin-left: -3.5px;
         border-radius: 9999px;
-        background: #c4b5fd;
-        box-shadow: 0 0 14px 3px rgba(167,139,250,0.7);
+        background: #a99bff;
+        box-shadow: 0 0 14px 3px rgba(139,124,246,0.75), 0 0 22px 6px rgba(34,211,238,0.25);
       }
       #brand-splash img {
         position: absolute;

@@ -32,7 +32,7 @@ export function LaneToggle({
       <button
         type="button"
         onClick={() => { h.tap(); onChange('all') }}
-        className={`${base} ${value === 'all' ? 'bg-white text-black border-white' : 'border-white/10 text-white/65 hover:bg-white/[0.06]'}`}
+        className={`${base} ${value === 'all' ? 'btn-contrast border-white' : 'border-white/10 text-white/65 hover:bg-white/[0.06]'}`}
       >
         All
       </button>

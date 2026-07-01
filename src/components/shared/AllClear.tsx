@@ -55,7 +55,7 @@ export function AllClear({ title, sub, nextHint, tone = 'emerald' }: Props) {
             <DrawnCheck size={40} stroke={t.stroke} />
           </div>
         </div>
-        <p className="text-[19px] font-semibold text-white/90 tracking-tight">{title}</p>
+        <p className="text-[22px] font-serif text-white/92 tracking-tight">{title}</p>
         {sub && <p className="text-[13px] text-white/45 mt-2 max-w-[18rem] leading-relaxed">{sub}</p>}
       </div>
     )
@@ -71,7 +71,7 @@ export function AllClear({ title, sub, nextHint, tone = 'emerald' }: Props) {
           <DrawnCheck size={30} stroke={t.stroke} />
         </div>
       </div>
-      <p className="text-[16px] font-semibold text-white/90 tracking-tight">{title}</p>
+      <p className="text-[18px] font-serif text-white/92 tracking-tight">{title}</p>
       {sub && <p className="text-[12.5px] text-white/45 mt-1.5 max-w-[22rem] leading-relaxed">{sub}</p>}
       {nextHint && (
         <button

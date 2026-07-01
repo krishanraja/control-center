@@ -175,7 +175,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
       </button>
       {showReasons && (
         <div
-          className="absolute right-0 top-full mt-1 z-30 bg-[#0f0f17] border border-white/[0.08] rounded-lg shadow-2xl py-1 min-w-[240px]"
+          className="absolute right-0 top-full mt-1 z-30 bg-base border border-white/[0.08] rounded-lg shadow-2xl py-1 min-w-[240px]"
           onMouseLeave={() => setShowReasons(false)}
         >
           <div className="px-3 py-2 text-[10px] uppercase tracking-wider text-white/40 border-b border-white/[0.06]">

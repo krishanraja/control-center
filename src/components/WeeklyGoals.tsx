@@ -199,7 +199,7 @@ export function WeeklyGoals({ variant = 'compact', hideHeader = false, onDataLoa
   }).length
 
   if (data.goals.length === 0) return (
-    <div className="bg-[#0c0d12] border border-white/[0.08] rounded-2xl overflow-hidden">
+    <div className="bg-base border border-white/[0.08] rounded-2xl overflow-hidden">
       <div className="px-4 py-3">
         <p className="text-[12px] text-white/35">No goals this week.</p>
         <button onClick={addGoal} disabled={saving} className="mt-2 text-[11px] text-violet-400 hover:text-violet-300">+ Add Goal</button>

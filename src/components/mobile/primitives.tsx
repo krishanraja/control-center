@@ -124,24 +124,24 @@ export function HeroCard({
     amber:   'bg-amber-400 text-black',
     emerald: 'bg-emerald-400 text-black',
     red:     'bg-red-500 text-white',
-    neutral: 'bg-white text-black',
+    neutral: 'btn-contrast',
   }
   const Wrapper: any = onClick ? 'button' : 'div'
   const { bind } = usePressable({ onPress: onClick, haptic: 'tap', disabled: !onClick })
   return (
     <Wrapper
       {...(onClick ? { onClick: bind.onClick, onPointerDown: bind.onPointerDown } : {})}
-      className={`relative w-full text-left rounded-3xl border p-6 bg-gradient-to-br ${accentMap[accent]} overflow-hidden flex-shrink-0 ${onClick ? 'active:scale-[0.99] transition-transform' : ''}`}
+      className={`relative w-full text-left rounded-3xl border p-6 bg-gradient-to-br ${accentMap[accent]} shadow-e2 overflow-hidden flex-shrink-0 ${onClick ? 'active:scale-[0.99] transition-transform duration-200 ease-spring' : ''}`}
     >
       {eyebrow && (
         <div className="flex items-center gap-2.5 mb-4">
           {dotColor && <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />}
-          <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/65">
+          <span className="text-[11px] font-display font-bold uppercase tracking-[0.2em] text-white/65">
             {eyebrow}
           </span>
         </div>
       )}
-      <p className="text-[22px] font-bold text-white leading-[1.2] tracking-tight">
+      <p className="text-[23px] font-display font-bold text-white leading-[1.15] tracking-tight">
         {title}
       </p>
       {detail && (
@@ -177,13 +177,13 @@ export function StatPill({
 }) {
   return (
     <div
-      className="flex-1 min-w-0 bg-white/[0.05] border border-white/[0.08] rounded-2xl px-3 py-5 text-center flex-shrink-0"
+      className="surface flex-1 min-w-0 rounded-2xl px-3 py-5 text-center flex-shrink-0"
       style={{ minHeight: 100 }}
     >
-      <p className={`text-[36px] font-bold leading-none font-mono tracking-tight ${color}`}>
+      <p className={`text-[36px] font-bold leading-none font-mono tabular-nums tracking-tight ${color}`}>
         {value}
       </p>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/55 mt-2.5 truncate">
+      <p className="text-[11px] font-display font-semibold uppercase tracking-[0.1em] text-white/55 mt-2.5 truncate">
         {label}
       </p>
       {sub && <p className="text-[11px] text-white/35 mt-1 truncate">{sub}</p>}
@@ -205,12 +205,12 @@ export function FeedCard({
 }) {
   return (
     <div
-      className={`bg-white/[0.05] border border-white/[0.08] rounded-2xl overflow-hidden ${fill ? 'flex-1 min-h-0 flex flex-col' : 'flex-shrink-0'}`}
+      className={`surface rounded-2xl overflow-hidden ${fill ? 'flex-1 min-h-0 flex flex-col' : 'flex-shrink-0'}`}
     >
       {(title || action) && (
         <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-white/[0.06] flex-shrink-0">
           {title && (
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/60">
+            <p className="text-[11px] font-display font-bold uppercase tracking-[0.2em] text-white/60">
               {title}
             </p>
           )}

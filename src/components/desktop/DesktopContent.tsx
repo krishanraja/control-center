@@ -538,7 +538,7 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
       {pickerDay && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Schedule a draft">
           <button aria-label="Cancel" onClick={() => setPickerDay(null)} className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-          <div className="relative w-full max-w-md max-h-[80vh] bg-[#0f0f12] border border-white/[0.10] rounded-2xl shadow-2xl shadow-black/60 flex flex-col">
+          <div className="relative w-full max-w-md max-h-[80vh] bg-base border border-white/[0.10] rounded-2xl shadow-2xl shadow-black/60 flex flex-col">
             <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
               <h3 className="text-[14px] font-semibold text-white">
                 Schedule for {pickerDay.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -781,7 +781,7 @@ function SweepTriageButton() {
       {open && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Sweep triage">
           <button aria-label="Cancel" onClick={() => setOpen(false)} className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-          <div className="relative w-full max-w-2xl max-h-[85vh] bg-[#0f0f12] border border-white/[0.10] rounded-2xl shadow-2xl shadow-black/60 flex flex-col">
+          <div className="relative w-full max-w-2xl max-h-[85vh] bg-base border border-white/[0.10] rounded-2xl shadow-2xl shadow-black/60 flex flex-col">
             <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
               <h3 className="text-[14px] font-semibold text-white flex items-center gap-2">
                 <Sparkles size={14} className="text-violet-300" /> Sweep triage to &lt;30
@@ -934,7 +934,7 @@ function MultiSelectBar({
   }, [ideas])
 
   return (
-    <div className="sticky top-0 z-20 mb-3 -mx-6 px-6 py-3 bg-[#0c0c0f]/95 backdrop-blur border-b border-violet-400/20">
+    <div className="sticky top-0 z-20 mb-3 -mx-6 px-6 py-3 bg-base/95 backdrop-blur border-b border-violet-400/20">
       <div className="flex items-center gap-3 mb-2">
         <GitMerge size={13} className="text-violet-300" />
         <p className="text-[12px] font-medium text-white">
