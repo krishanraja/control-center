@@ -129,6 +129,15 @@ export default {
         sky:     { 50: 'rgb(var(--ac-sky) / <alpha-value>)',     100: 'rgb(var(--ac-sky) / <alpha-value>)',     200: 'rgb(var(--ac-sky) / <alpha-value>)' },
         cyan:    { 50: 'rgb(var(--ac-cyan) / <alpha-value>)',    100: 'rgb(var(--ac-cyan) / <alpha-value>)',    200: 'rgb(var(--ac-cyan) / <alpha-value>)' },
         indigo:  { 50: 'rgb(var(--ac-indigo) / <alpha-value>)',  100: 'rgb(var(--ac-indigo) / <alpha-value>)',  200: 'rgb(var(--ac-indigo) / <alpha-value>)' },
+        // Secondary accent hues used only as text (fuchsia HUMOR chips, blue LENGTH,
+        // etc.) — text-only, so 100/200/300 all flip light↔deep by theme.
+        fuchsia: { 100: 'rgb(var(--ac-fuchsia) / <alpha-value>)', 200: 'rgb(var(--ac-fuchsia) / <alpha-value>)', 300: 'rgb(var(--ac-fuchsia) / <alpha-value>)' },
+        purple:  { 100: 'rgb(var(--ac-purple) / <alpha-value>)',  200: 'rgb(var(--ac-purple) / <alpha-value>)',  300: 'rgb(var(--ac-purple) / <alpha-value>)' },
+        teal:    { 100: 'rgb(var(--ac-teal) / <alpha-value>)',    200: 'rgb(var(--ac-teal) / <alpha-value>)',    300: 'rgb(var(--ac-teal) / <alpha-value>)' },
+        orange:  { 100: 'rgb(var(--ac-orange) / <alpha-value>)',  200: 'rgb(var(--ac-orange) / <alpha-value>)',  300: 'rgb(var(--ac-orange) / <alpha-value>)' },
+        blue:    { 100: 'rgb(var(--ac-blue) / <alpha-value>)',    200: 'rgb(var(--ac-blue) / <alpha-value>)',    300: 'rgb(var(--ac-blue) / <alpha-value>)' },
+        green:   { 100: 'rgb(var(--ac-green) / <alpha-value>)',   200: 'rgb(var(--ac-green) / <alpha-value>)',   300: 'rgb(var(--ac-green) / <alpha-value>)' },
+        pink:    { 100: 'rgb(var(--ac-pink) / <alpha-value>)',    200: 'rgb(var(--ac-pink) / <alpha-value>)',    300: 'rgb(var(--ac-pink) / <alpha-value>)' },
       },
       // Calm & Anticipatory — depth tokens, now Obsidian Aurora. Glass reads as
       // layered, lit surfaces; the focus halo is the aurora accent.

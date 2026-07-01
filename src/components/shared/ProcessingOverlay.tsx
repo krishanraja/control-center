@@ -69,7 +69,7 @@ function IndeterminateRail({ width = 168 }: { width?: number }) {
 function MobileThinking({ label, sub }: { label: string; sub?: string }) {
   return (
     <div
-      className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[120] flex flex-col items-center justify-center bg-black/75 backdrop-blur-md animate-fade-in"
+      className="on-dark fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[120] flex flex-col items-center justify-center bg-black/75 backdrop-blur-md animate-fade-in"
       role="alertdialog"
       aria-busy="true"
       aria-live="assertive"
@@ -89,7 +89,7 @@ function MobileThinking({ label, sub }: { label: string; sub?: string }) {
 function DesktopThinking({ label, sub }: { label: string; sub?: string }) {
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 backdrop-blur-md animate-fade-in"
+      className="on-dark fixed inset-0 z-[120] flex items-center justify-center bg-black/45 backdrop-blur-md animate-fade-in"
       role="alertdialog"
       aria-busy="true"
       aria-live="assertive"
