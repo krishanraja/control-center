@@ -120,10 +120,10 @@ export function HeroCard({
     neutral: 'from-white/[0.10] via-white/[0.05] to-transparent border-white/[0.12]',
   }
   const ctaColorMap: Record<string, string> = {
-    violet:  'bg-violet-500 text-white',
+    violet:  'bg-violet-500 text-[#fff]',
     amber:   'bg-amber-400 text-black',
     emerald: 'bg-emerald-400 text-black',
-    red:     'bg-red-500 text-white',
+    red:     'bg-red-500 text-[#fff]',
     neutral: 'btn-contrast',
   }
   const Wrapper: any = onClick ? 'button' : 'div'

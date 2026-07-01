@@ -301,7 +301,7 @@ export function SkillReviewModal({
             <button
               onClick={handleShip}
               disabled={shipping || regenerating || !clientEmail.trim()}
-              className="inline-flex items-center gap-1.5 px-3.5 h-8 rounded-lg bg-violet-500 hover:bg-violet-400 text-white text-[12px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 px-3.5 h-8 rounded-lg bg-violet-500 hover:bg-violet-400 text-[#fff] text-[12px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {shipping ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
               Ship to Client

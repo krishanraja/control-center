@@ -152,7 +152,7 @@ export function StaleHeaderCue() {
 const DOT: Record<Altitude['state'], string> = {
   set: 'bg-emerald-400',
   stale: 'bg-amber-400',
-  unset: 'bg-white/25',
+  unset: 'bg-white/40',
 }
 
 function AltitudePill({ altitude, onOpen }: { altitude: Altitude; onOpen: () => void }) {
