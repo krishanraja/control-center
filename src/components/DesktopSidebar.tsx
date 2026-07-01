@@ -111,7 +111,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all border ${
                 drawerOpen
                   ? 'bg-white/[0.04] text-white/80 border-white/10'
-                  : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04] border-transparent'
+                  : 'text-white/60 hover:text-white/80 hover:bg-white/[0.04] border-transparent'
               }`}
               title={!expanded ? 'More' : undefined}
             >
@@ -155,7 +155,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
             <ThemeToggle expanded />
             <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between">
               <span className="text-[10px] uppercase tracking-[0.14em] text-white/30 font-medium">Command</span>
-              <kbd className="text-[10px] font-mono text-white/45 border border-white/10 rounded px-1.5 py-0.5 bg-white/[0.03]">⌘K</kbd>
+              <kbd className="text-[10px] font-mono text-white/60 border border-white/10 rounded px-1.5 py-0.5 bg-white/[0.03]">⌘K</kbd>
             </div>
           </>
         ) : (
@@ -194,7 +194,7 @@ function SidebarButton({ id, label, Icon, active, onClick, expanded, showHealthB
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50
         ${active
           ? 'bg-violet-500/15 text-white border border-violet-500/25'
-          : 'text-white/45 hover:text-white/80 hover:bg-white/[0.04] border border-transparent'}`}
+          : 'text-white/60 hover:text-white/80 hover:bg-white/[0.04] border border-transparent'}`}
       title={!expanded ? (showHealthBadge ? `${label} (${unhealthyCount} issues)` : label) : undefined}
     >
       <div className="relative">

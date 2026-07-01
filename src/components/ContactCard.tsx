@@ -71,7 +71,7 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
             aria-label={selected ? `Deselect ${fullName}` : `Select ${fullName}`}
             onClick={(e) => { e.stopPropagation(); selected ? h.soft() : h.impactRigid(); onToggleSelect(c.id) }}
             className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors
-              ${selected ? 'bg-violet-500 border-violet-500 text-white' : 'border-white/25 hover:border-white/45 text-transparent'}`}
+              ${selected ? 'bg-violet-500 border-violet-500 text-[#fff]' : 'border-white/25 hover:border-white/45 text-transparent'}`}
           >
             <span className="text-[10px] leading-none">✓</span>
           </button>

@@ -47,7 +47,7 @@ export function BottomNav({ active, onChange }: Props) {
             <button
               onClick={() => { h.select(); setDrawerOpen(true) }}
               aria-label="More"
-              className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[72px] sm:min-h-[76px] text-white/45"
+              className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[72px] sm:min-h-[76px] text-white/55"
             >
               <MoreHorizontal className="w-7 h-7" strokeWidth={1.8} />
               <span className="text-[12px] font-medium leading-none tracking-tight">More</span>
@@ -78,7 +78,7 @@ function NavButton({ tab, active, ultraNarrow: _ultraNarrow, onClick }: { tab: T
       onClick={onClick}
       aria-label={tab.label}
       className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[72px] sm:min-h-[76px] ${
-        active ? 'text-white' : 'text-white/45'
+        active ? 'text-white' : 'text-white/55'
       }`}
     >
       <div className={`relative transition-transform duration-200 ${active ? 'scale-110' : 'scale-100'}`}>

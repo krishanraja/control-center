@@ -101,7 +101,7 @@
 
   --card-bg: 255 255 255;    /* raised panels are crisp white...        */
   --card-bg-a: 1;            /* ...and fully opaque, so they separate    */
-  --card-border-a: 0.12;     /* a touch more visible hairline           */
+  --card-border-a: 0.16;     /* more visible hairline on paper           */
   --card-hi-a: 0;            /* no top-light on paper                    */
   --card-shadow: 0 1px 2px 0 rgba(24,20,60,0.05), 0 10px 26px -10px rgba(24,20,60,0.16), 0 3px 8px -3px rgba(24,20,60,0.10);
   --ambient-opacity: 0.9;    /* aurora is meant to be SEEN in daylight   */

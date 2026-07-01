@@ -257,7 +257,7 @@ export function SkillForge() {
             <button
               onClick={handleGenerate}
               disabled={!canGenerate}
-              className="inline-flex items-center gap-2 px-4 h-9 rounded-lg bg-violet-500 hover:bg-violet-400 text-white text-[12.5px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-4 h-9 rounded-lg bg-violet-500 hover:bg-violet-400 text-[#fff] text-[12.5px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {generating ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />}
               {generating ? 'Drafting…' : 'Draft Skills'}
