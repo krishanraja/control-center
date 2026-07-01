@@ -71,7 +71,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
 
   return (
     <aside
-      className={`${w} flex-shrink-0 border-r border-white/[0.07] bg-[#0a0a0b] flex flex-col h-[100dvh] transition-[width] duration-150`}
+      className={`${w} flex-shrink-0 border-r border-white/[0.07] bg-base/55 backdrop-blur-2xl flex flex-col h-[100dvh] transition-[width] duration-150`}
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => { setExpanded(false); setDrawerOpen(false) }}
     >

@@ -59,7 +59,7 @@ export function SwipeCard({
         pointerEvents: isTop ? 'auto' : 'none',
       }}
     >
-      <div className="relative h-full rounded-3xl border border-white/[0.10] bg-[#141417] shadow-2xl shadow-black/40 p-5 flex flex-col overflow-hidden">
+      <div className="relative h-full rounded-3xl surface-2 shadow-e3 p-5 flex flex-col overflow-hidden">
         {isTop && (
           <>
             <div

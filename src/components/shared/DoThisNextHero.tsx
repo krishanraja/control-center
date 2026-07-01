@@ -83,12 +83,12 @@ export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow }: 
       {/* Keyed on the headline so a new "next" gently rises in instead of swapping. */}
       <div key={headline} className={`min-w-0 flex-1 ${reduced ? '' : 'animate-rise'}`}>
         {!clear && (
-          <p className="text-[10px] uppercase tracking-[0.16em] text-white/40 mb-0.5">Do this next</p>
+          <p className="text-[10px] font-display uppercase tracking-[0.2em] text-accent/70 mb-1">Do this next</p>
         )}
-        <p className={`${narrow ? 'text-[14px]' : 'text-[15px]'} font-semibold text-white leading-snug truncate`}>
+        <p className={`${narrow ? 'text-[15px]' : 'text-[17px]'} font-display font-semibold text-white leading-[1.15] tracking-tight truncate`}>
           {headline}
         </p>
-        <p className="text-[12px] text-white/55 leading-snug truncate">{sub}</p>
+        <p className="text-[12px] text-white/55 leading-snug truncate mt-0.5">{sub}</p>
       </div>
       {!clear && actionSlot}
       {!clear && !actionSlot && actionLabel && (

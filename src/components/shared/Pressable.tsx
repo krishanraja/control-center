@@ -29,10 +29,11 @@ interface PressableProps extends UsePressableOpts {
 }
 
 const VARIANT: Record<Variant, { base: string; checkStroke: string }> = {
-  primary:   { base: 'bg-violet-500 text-white active:bg-violet-400', checkStroke: '#ffffff' },
-  secondary: { base: 'bg-white/[0.07] text-white active:bg-white/[0.12]', checkStroke: '#a78bfa' },
+  // Primary is the aurora — a lit violet→indigo gradient with a soft accent glow.
+  primary:   { base: 'aurora-btn', checkStroke: '#ffffff' },
+  secondary: { base: 'bg-white/[0.07] text-white active:bg-white/[0.12]', checkStroke: '#a99bff' },
   danger:    { base: 'bg-red-500/15 text-red-300 active:bg-red-500/25', checkStroke: '#fca5a5' },
-  ghost:     { base: 'bg-transparent text-white/70 active:bg-white/[0.06]', checkStroke: '#a78bfa' },
+  ghost:     { base: 'bg-transparent text-white/70 active:bg-white/[0.06]', checkStroke: '#a99bff' },
 }
 
 export function Pressable({

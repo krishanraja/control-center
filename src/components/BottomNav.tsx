@@ -31,7 +31,7 @@ export function BottomNav({ active, onChange }: Props) {
   return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-50">
-        <div className="absolute inset-0 bg-[#0a0a0f]/85 backdrop-blur-2xl border-t border-white/[0.06]" />
+        <div className="absolute inset-0 bg-base/80 backdrop-blur-2xl border-t border-white/[0.06]" />
         <div className="relative flex items-stretch pb-safe px-1">
           {MOBILE_PRIMARY_TABS.map(tab => (
             <NavButton
