@@ -33,7 +33,9 @@
      accent text stays readable in both themes with zero per-file edits. */
   --ac-violet: 216 208 254;  --ac-amber: 253 230 138;  --ac-emerald: 167 243 208;
   --ac-rose: 254 205 211;    --ac-sky: 186 230 253;    --ac-cyan: 165 243 252;
-  --ac-indigo: 199 210 254;
+  --ac-indigo: 199 210 254;  --ac-fuchsia: 245 208 254; --ac-purple: 233 213 255;
+  --ac-teal: 153 246 228;    --ac-orange: 254 215 170;  --ac-blue: 191 219 254;
+  --ac-green: 187 247 208;   --ac-pink: 251 207 232;
 
   /* Ambient "thought-partner" field — hue drifts with OS mood. Defaults to
      the calm violet; Home overrides via document.documentElement mood vars. */
@@ -93,7 +95,9 @@
   /* Deep accent-text so accent labels on pale tinted cards stay legible. */
   --ac-violet: 91 33 182;    --ac-amber: 146 64 14;    --ac-emerald: 4 120 87;
   --ac-rose: 190 18 60;      --ac-sky: 3 105 161;      --ac-cyan: 14 116 144;
-  --ac-indigo: 67 56 202;
+  --ac-indigo: 67 56 202;    --ac-fuchsia: 162 28 175; --ac-purple: 126 34 206;
+  --ac-teal: 15 118 110;     --ac-orange: 194 65 12;   --ac-blue: 29 78 216;
+  --ac-green: 21 128 61;     --ac-pink: 190 24 93;
 
   --card-bg: 255 255 255;    /* raised panels are crisp white...        */
   --card-bg-a: 1;            /* ...and fully opaque, so they separate    */
@@ -240,6 +244,12 @@
     background-clip: text;
     color: transparent;
   }
+
+  /* Always-dark surface — a scrim / dark-glass overlay that stays obsidian in
+     BOTH themes (e.g. the "thinking" ProcessingOverlay). Pin --fg to white so
+     the `*-white/NN` text/rails inside resolve to real white on the dark scrim,
+     instead of flipping to ink in light mode. */
+  .on-dark { --fg: 255 255 255; }
 
   /* Contrast button — the "inverted" high-emphasis CTA. White-on-obsidian at
      night, ink-on-paper by day. Replaces `bg-white text-black`, which would

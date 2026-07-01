@@ -171,7 +171,7 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
 
   if (!idea) {
     return (
-      <div className="fixed inset-0 z-[90] bg-base flex items-center justify-center">
+      <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[90] bg-base flex items-center justify-center">
         <Loader2 size={20} className="animate-spin text-white/40" />
       </div>
     )
@@ -191,7 +191,7 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
   )
 
   return (
-    <div className="fixed inset-0 z-[90] bg-base text-white flex flex-col">
+    <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[90] bg-base text-white flex flex-col">
       {/* Header */}
       <header className="flex items-center gap-2 px-3 sm:px-5 h-14 border-b border-white/[0.08] flex-shrink-0">
         <button
@@ -504,7 +504,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
 
       {/* Adjust palette sheet — grouped one-tap transforms */}
       {adjust && (
-        <div className="fixed inset-0 z-[95] flex flex-col justify-end">
+        <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[95] flex flex-col justify-end">
           <button aria-label="Close" onClick={() => setAdjust(false)} className="absolute inset-0 bg-black/60 animate-fade-in" />
           <div className="relative bg-base border-t border-white/[0.1] rounded-t-3xl max-h-[85dvh] flex flex-col animate-sheet-up">
             <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
@@ -557,7 +557,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
 
       {/* Iteration preview sheet — keep, stack another, or discard */}
       {preview && (
-        <div className="fixed inset-0 z-[96] flex flex-col justify-end">
+        <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[96] flex flex-col justify-end">
           <button aria-label="Discard" onClick={() => setPreview(null)} className="absolute inset-0 bg-black/60 animate-fade-in" />
           <div className="relative bg-base border-t border-white/[0.1] rounded-t-3xl max-h-[85dvh] flex flex-col animate-sheet-up">
             <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
@@ -586,7 +586,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
 
       {/* Cleo / Materials / Research sheets */}
       {sheet && (
-        <div className="fixed inset-0 z-[95] flex flex-col justify-end">
+        <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[95] flex flex-col justify-end">
           <button aria-label="Close" onClick={() => setSheet(null)} className="absolute inset-0 bg-black/60 animate-fade-in" />
           <div className="relative bg-base border-t border-white/[0.1] rounded-t-3xl h-[85dvh] flex flex-col animate-sheet-up">
             <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
@@ -823,7 +823,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
       )}
 
       {failed && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Final review could not run">
+        <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Final review could not run">
           <button aria-label="Close" onClick={() => setFailed(null)} className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in" />
           <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.1] bg-base shadow-2xl shadow-black/60 p-5">
             <div className="flex items-center gap-2 mb-1.5">
@@ -960,7 +960,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-label="Final pass review">
+    <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[100] flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-label="Final pass review">
       {shipping && <ProcessingOverlay label="Shipping to Google Docs" sub="Building the formatted draft" />}
       {rerunning && <ProcessingOverlay label="Cleo is re-reading" sub="Re-running with your lenses" />}
       <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-fade-in" />
@@ -1154,7 +1154,7 @@ function SavedToDocsModal({ result, onClose, onDone }: { result: SaveResult; onC
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Draft saved to Google Docs">
+    <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Draft saved to Google Docs">
       <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in" />
       <div className="relative w-full max-w-md rounded-2xl border border-white/[0.1] bg-base shadow-2xl shadow-black/60 p-5">
         <div className="flex items-center gap-2 mb-1.5">

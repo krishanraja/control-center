@@ -187,15 +187,21 @@ export default function App() {
           {/* Full-screen content composer — owns the screen for one piece when an
               idea is deep-linked on the Content tab. Esc / back clears the param. */}
           {tab === 'content' && route.params.idea && (
-            <ErrorBoundary label="Composer">
-              <Suspense fallback={null}>
-                <ContentComposer
-                  ideaId={route.params.idea}
-                  narrow={narrow}
-                  onClose={() => navigate('content')}
-                />
-              </Suspense>
-            </ErrorBoundary>
+            // Match the tabs' 1.2× mobile scale: the composer is an App-root
+            // full-screen surface, so without this wrapper it renders at native
+            // size — noticeably smaller than every tab. Same zoom+--z contract as
+            // mobile-zoom-root; the composer's fixed containers size off --z.
+            <div style={narrow ? ({ zoom: 1.2, ['--z']: '1.2' } as React.CSSProperties) : undefined}>
+              <ErrorBoundary label="Composer">
+                <Suspense fallback={null}>
+                  <ContentComposer
+                    ideaId={route.params.idea}
+                    narrow={narrow}
+                    onClose={() => navigate('content')}
+                  />
+                </Suspense>
+              </ErrorBoundary>
+            </div>
           )}
           <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} onTab={handleTab} />
           <PendingFlagModal />
