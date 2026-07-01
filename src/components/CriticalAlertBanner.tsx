@@ -1,10 +1,15 @@
 import React from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { useCriticalAlerts } from '../hooks/useCriticalAlerts'
+import { useMoodSource } from './shared/AmbientField'
 import { humanAge } from '../lib/ageHelpers'
 
 export function CriticalAlertBanner() {
   const { alerts } = useCriticalAlerts()
+  // When something is genuinely on fire, the whole app's ambient field cools to
+  // a tense hue — felt before it's read. Highest priority. (Hook runs before the
+  // early return to respect the rules of hooks.)
+  useMoodSource('critical-alert', alerts.length > 0 ? 'tense' : null, 10)
   if (alerts.length === 0) return null
 
   const top = alerts[0]

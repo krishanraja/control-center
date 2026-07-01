@@ -179,6 +179,14 @@
     color: transparent;
   }
 
+  /* Money ink — the single number that matters wears an emerald→cyan sheen. */
+  .money-text {
+    background: linear-gradient(120deg, #6ee7b7 0%, #34d399 42%, #22d3ee 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
   /* Aurora primary action — a lit gradient with a soft accent glow. */
   .aurora-btn {
     background: linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent-2)));

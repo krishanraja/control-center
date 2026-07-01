@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+
 /**
  * AmbientField — the Obsidian Aurora "presence" layer.
  *
@@ -39,4 +41,32 @@ export function setMood(mood: Mood) {
   el.style.setProperty('--mood-1', a)
   el.style.setProperty('--mood-2', b)
   el.style.setProperty('--mood-3', c)
+}
+
+// ── Mood priority registry ───────────────────────────────────────────────────
+// Several surfaces know something about the OS state (Home's MRR delta, the
+// critical-alert banner). Rather than fight over the CSS vars, each registers a
+// mood + priority; the highest-priority active source wins. Empty → calm. This
+// keeps state-reactivity honest without opening a second realtime channel.
+const sources = new Map<string, { mood: Mood; priority: number }>()
+
+function resolveMood() {
+  let best: { mood: Mood; priority: number } | null = null
+  for (const v of sources.values()) if (!best || v.priority > best.priority) best = v
+  setMood(best?.mood ?? 'calm')
+}
+
+/** Register (or clear, with mood=null) a mood source. Highest priority wins. */
+export function setMoodSource(id: string, mood: Mood | null, priority = 0) {
+  if (mood === null) sources.delete(id)
+  else sources.set(id, { mood, priority })
+  resolveMood()
+}
+
+/** Declarative mood source for a component — auto-clears on unmount. */
+export function useMoodSource(id: string, mood: Mood | null, priority = 0) {
+  useEffect(() => {
+    setMoodSource(id, mood, priority)
+    return () => setMoodSource(id, null)
+  }, [id, mood, priority])
 }
