@@ -97,6 +97,10 @@ export function TriageCard({
           </>
         )}
 
+        {/* Only the top card renders content; cards behind stay blank scenery so
+            their text can never bleed through if the panel surface is translucent. */}
+        {isTop && (
+        <>
         <div className="flex items-center gap-2 flex-wrap mb-3">
           <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] font-semibold ${STATE_TONE[i.state] || 'bg-white/[0.08] text-white/65'}`}>
             {STATE_LABEL[i.state] || i.state}
@@ -148,6 +152,8 @@ export function TriageCard({
               </a>
             )}
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

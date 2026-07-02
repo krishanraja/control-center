@@ -76,7 +76,10 @@ export function SwipeCard({
             </div>
           </>
         )}
-        {children}
+        {/* Only the top card renders its content. Cards behind stay blank scenery,
+            so their text can never bleed through the (intentionally translucent)
+            surface-2 panel — the failure mode in the triage-deck screenshots. */}
+        {isTop ? children : null}
       </div>
     </div>
   )
