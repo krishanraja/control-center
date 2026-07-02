@@ -70,9 +70,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Re-sanitize in case a fix reintroduced a dash. Suggestions are NOT applied here.
   const cleaned = sanitizeVoice(applyAutofixes(source, result.autofixes))
 
-  // Audit stamp: last pass per piece (non-destructive). The override log is written
-  // at ship time by save-draft, so dismissals/ships are captured against the real
-  // decision, not the preview.
+  // The full review payload the composer renders — built once so the DB copy and
+  // the HTTP response are identical.
+  const payload = {
+    venture,
+    venture_label: rubric.label,
+    has_lenses: !!rubric.lenses,
+    cleaned_text: cleaned,
+    changed: cleaned !== source,
+    ...result,
+  }
+
+  // Durable result: persist the WHOLE payload (not just an audit stamp) keyed by a
+  // hash of the exact input draft. This is what makes the review survive a dropped
+  // response — if the browser tab is backgrounded / the connection blips / the
+  // gateway 504s AFTER the function finished, the composer recovers this via the
+  // content_ideas realtime channel instead of losing Cleo's work. `source_hash`
+  // lets the client confirm the result still matches the draft on screen.
   const meta = (idea?.meta || {}) as any
   await supabase.from('content_ideas')
     .update({
@@ -88,21 +102,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             suggestions: result.suggestions.length,
             verify: result.verify.length,
           },
+          source_hash: hashText(sourceRaw),
+          result: payload,
         },
       },
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
 
-  return res.status(200).json({
-    ok: true,
-    venture,
-    venture_label: rubric.label,
-    has_lenses: !!rubric.lenses,
-    cleaned_text: cleaned,
-    changed: cleaned !== source,
-    ...result,
-  })
+  return res.status(200).json({ ok: true, ...payload })
+}
+
+/** Stable, deterministic djb2 string hash (matches the composer's hashText). */
+function hashText(s: string): string {
+  let h = 5381
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0
+  return (h >>> 0).toString(36)
 }
 
 // Claude/webhook calls here can run 20-60s; raise the function ceiling above

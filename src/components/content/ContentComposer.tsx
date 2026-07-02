@@ -687,6 +687,13 @@ function TitleField({ idea }: { idea: ContentIdeaRow }) {
 
 interface SaveResult { docUrl: string | null; pending: boolean; channel: string }
 
+/** Stable djb2 string hash — must match api/content-ideas/[id]/final-pass.ts. */
+function hashText(s: string): string {
+  let h = 5381
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0
+  return (h >>> 0).toString(36)
+}
+
 function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: ContentIdeaRow; draft: string; onApplyDraft: (t: string) => void; onSaved: () => void; block?: boolean }) {
   const { toast } = useToast()
   const h = useHaptics()
@@ -699,6 +706,25 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
   const autoChannel = laneToFactoryChannel(idea.lane, idea.lane_slot)
   const [channel, setChannel] = useState<string>(autoChannel)
 
+  // Durable recovery. `idea` is a live realtime row, so when the server finishes a
+  // final pass it writes the full result to meta.final_pass and that lands here even
+  // if THIS tab lost the HTTP response (backgrounded phone, dropped radio, or a 504
+  // that arrived after the function had already finished). If a fresh result matches
+  // the draft on screen and we're mid-run or just failed, restore it instead of
+  // making Cleo do the work again.
+  const fp = (idea.meta as any)?.final_pass as
+    | { source_hash?: string; at?: string; result?: FinalPassData }
+    | undefined
+  useEffect(() => {
+    if (!fp?.result || !fp.source_hash) return
+    if (fp.source_hash !== hashText(draft)) return                 // matches on-screen draft
+    if (fp.at && Date.now() - new Date(fp.at).getTime() > 15 * 60_000) return // fresh only
+    if (pass) return                                               // already showing a review
+    if (!running && !failed) return                                // only recover an in-flight/failed run
+    setRunning(false); setFailed(null); setPass(fp.result)
+    h.success(); toast('Recovered Cleo’s review.', 'success')
+  }, [fp?.source_hash, fp?.at, draft, running, failed, pass])
+
   // Final Review runs Cleo's ship-moment pass over the whole piece, then opens the
   // review gate to accept/dismiss and ship. A hard client timeout means a slow or
   // dead backend surfaces as a clear choice (retry / save anyway) instead of an
@@ -708,6 +734,14 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
     setMenu(false); setFailed(null)
     setRunMsg({ label: 'Cleo is reviewing your draft', sub: 'Final pass against the venture rubric' })
     h.heavy(); setRunning(true)
+    // Save the exact text we're about to review FIRST, so the draft is durable and
+    // the review's source_hash matches what's persisted (no autosave-debounce race).
+    try {
+      await fetch('/api/content-ideas', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: idea.id, body: draft }),
+      })
+    } catch { /* best-effort; the review still runs on the in-memory draft */ }
     const ctrl = new AbortController()
     const tid = setTimeout(() => ctrl.abort(), 75000)
     try {
@@ -823,7 +857,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
         />
       )}
 
-      {failed && (
+      {failed && !pass && (
         <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Final review could not run">
           <button aria-label="Close" onClick={() => setFailed(null)} className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in" />
           <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.1] bg-base shadow-2xl shadow-black/60 p-5">
