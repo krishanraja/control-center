@@ -19,14 +19,14 @@ export function BoardDaily() {
       <button
         type="button"
         onClick={() => { h.select(); openFocusRitual('daily') }}
-        className="w-full flex items-center gap-3 rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.06] to-transparent px-4 py-3.5 text-left active:bg-violet-500/[0.10] transition-colors"
+        className="w-full flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3.5 text-left active:bg-white/[0.07] transition-colors"
       >
-        <Target size={16} className="text-violet-300 flex-shrink-0" />
+        <Target size={16} className="text-white/55 flex-shrink-0" />
         <span className="flex-1 min-w-0">
           <span className="block text-[14px] font-semibold text-white">Pick your 3 for today</span>
-          <span className="block text-[11px] text-white/55 mt-0.5">Frame the day and lock today's focus.</span>
+          <span className="block text-[11px] text-white/50 mt-0.5">Frame the day and lock today's focus.</span>
         </span>
-        <ArrowRight size={15} className="text-violet-300/80 flex-shrink-0" />
+        <ArrowRight size={15} className="text-white/40 flex-shrink-0" />
       </button>
     )
   }

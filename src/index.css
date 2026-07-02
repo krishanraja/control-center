@@ -22,20 +22,23 @@
   --ink: 236 234 245;       /* #ECEAF5 off-white, never harsh         */
   --ink-muted: 167 163 184; /* #A7A3B8                                */
   --ink-faint: 110 106 128; /* #6E6A80                                */
-  --accent: 139 124 246;    /* #8B7CF6 violet — brand anchor          */
-  --accent-2: 99 102 241;   /* #6366F1 indigo                         */
-  --accent-3: 34 211 238;   /* #22D3EE cyan                           */
+  /* Muted for restraint — a considered instrument, not neon. Hue kept, chroma
+     pulled down; the aurora field + accents read as calm, never candy. */
+  --accent: 140 128 200;    /* muted violet — brand anchor (was #8B7CF6) */
+  --accent-2: 112 112 168;  /* muted indigo  (was #6366F1)              */
+  --accent-3: 118 162 178;  /* muted teal    (was neon cyan #22D3EE)    */
 
   /* On-tint accent text — the SECOND keystone. The light accent shades
      (text-violet-200, text-amber-200, text-emerald-100, …) are used ONLY as
      text on same-hue tinted cards (331 sites, 0 as bg/border). Remapping them
      to these vars makes them light-on-dark by night and deep-on-tint by day, so
      accent text stays readable in both themes with zero per-file edits. */
-  --ac-violet: 216 208 254;  --ac-amber: 253 230 138;  --ac-emerald: 167 243 208;
-  --ac-rose: 254 205 211;    --ac-sky: 186 230 253;    --ac-cyan: 165 243 252;
-  --ac-indigo: 199 210 254;  --ac-fuchsia: 245 208 254; --ac-purple: 233 213 255;
-  --ac-teal: 153 246 228;    --ac-orange: 254 215 170;  --ac-blue: 191 219 254;
-  --ac-green: 187 247 208;   --ac-pink: 251 207 232;
+  /* Muted on-tint accent text (dark). Lower chroma, hue preserved. */
+  --ac-violet: 205 200 228;  --ac-amber: 222 206 168;  --ac-emerald: 176 210 192;
+  --ac-rose: 224 196 200;    --ac-sky: 190 210 224;    --ac-cyan: 182 210 216;
+  --ac-indigo: 196 202 228;  --ac-fuchsia: 224 202 230; --ac-purple: 214 202 228;
+  --ac-teal: 172 214 206;    --ac-orange: 224 206 180;  --ac-blue: 190 206 226;
+  --ac-green: 186 216 196;   --ac-pink: 226 200 216;
 
   /* Ambient "thought-partner" field — hue drifts with OS mood. Defaults to
      the calm violet; Home overrides via document.documentElement mood vars. */
@@ -57,7 +60,7 @@
   --card-border-a: 0.08;       /* hairline alpha (over --fg)          */
   --card-hi-a: 0.06;           /* inner top-light highlight alpha      */
   --card-shadow: 0 1px 2px 0 rgba(0,0,0,0.35), 0 12px 40px -20px rgba(0,0,0,0.65);
-  --ambient-opacity: 0.55;     /* strength of the aurora field         */
+  --ambient-opacity: 0.20;     /* aurora dialled to a whisper (was 0.55) */
 
   /* Motion timings — the single dial for the whole "calm" feel. Slower reads as
      more serene; faster as more responsive. Every animation below references
@@ -87,24 +90,24 @@
   --ink: 23 21 33;           /* #171521 near-black ink                 */
   --ink-muted: 88 84 102;    /* #585466                                */
   --ink-faint: 138 133 152;  /* #8A8598                                */
-  --accent: 99 84 224;       /* #6354E0 deepened for paper contrast    */
-  --accent-2: 79 70 210;     /* #4F46D2                                */
-  --accent-3: 8 145 178;     /* #0891B2 deeper cyan                    */
+  --accent: 108 95 165;      /* muted violet, deepened for paper (was #6354E0) */
+  --accent-2: 96 88 158;     /* muted indigo                           */
+  --accent-3: 70 120 135;    /* muted teal   (was deep cyan #0891B2)    */
   --fg: 23 21 33;            /* flips every *-white/NN utility to ink   */
 
-  /* Deep accent-text so accent labels on pale tinted cards stay legible. */
-  --ac-violet: 91 33 182;    --ac-amber: 146 64 14;    --ac-emerald: 4 120 87;
-  --ac-rose: 190 18 60;      --ac-sky: 3 105 161;      --ac-cyan: 14 116 144;
-  --ac-indigo: 67 56 202;    --ac-fuchsia: 162 28 175; --ac-purple: 126 34 206;
-  --ac-teal: 15 118 110;     --ac-orange: 194 65 12;   --ac-blue: 29 78 216;
-  --ac-green: 21 128 61;     --ac-pink: 190 24 93;
+  /* Muted deep accent-text (light) — legible on pale tinted cards, off-neon. */
+  --ac-violet: 104 82 140;   --ac-amber: 132 100 60;   --ac-emerald: 44 108 88;
+  --ac-rose: 158 72 88;      --ac-sky: 52 104 128;     --ac-cyan: 56 108 124;
+  --ac-indigo: 78 72 148;    --ac-fuchsia: 140 60 138; --ac-purple: 112 66 150;
+  --ac-teal: 40 108 102;     --ac-orange: 158 82 46;   --ac-blue: 56 84 150;
+  --ac-green: 52 112 76;     --ac-pink: 158 60 96;
 
   --card-bg: 255 255 255;    /* raised panels are crisp white...        */
   --card-bg-a: 1;            /* ...and fully opaque, so they separate    */
   --card-border-a: 0.16;     /* more visible hairline on paper           */
   --card-hi-a: 0;            /* no top-light on paper                    */
   --card-shadow: 0 1px 2px 0 rgba(24,20,60,0.05), 0 10px 26px -10px rgba(24,20,60,0.16), 0 3px 8px -3px rgba(24,20,60,0.10);
-  --ambient-opacity: 0.9;    /* aurora is meant to be SEEN in daylight   */
+  --ambient-opacity: 0.30;   /* aurora present but restrained in daylight (was 0.9) */
 }
 
 /* Ambient OFF — the clean, flat adaptive light/dark with no Living Canvas. */
@@ -330,47 +333,22 @@
   50%       { opacity: 1; }
 }
 
-/* Attention treatment for altitude cards that need completing.
-   A breathing amber neon ring (matches the needsAttention border) pulls the
-   eye toward the one thing to enrich; a slow shimmer sweep keeps it alive. */
+/* Attention treatment for cards that need completing. A serious instrument does
+   not glow: instead of a coloured neon ring we breathe a near-invisible hairline
+   (both amber + violet variants resolve to the same neutral, theme-adaptive tick),
+   so nothing on a resting surface emits colour. */
 @keyframes neon-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.30), 0 0 10px 0 rgba(251, 191, 36, 0.12);
-  }
-  50% {
-    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.70), 0 0 22px 2px rgba(251, 191, 36, 0.32);
-  }
+  0%, 100% { box-shadow: inset 0 0 0 1px rgb(var(--fg) / 0.05); }
+  50%       { box-shadow: inset 0 0 0 1px rgb(var(--fg) / 0.10); }
 }
-.animate-neon-pulse {
-  animation: neon-pulse 2s ease-in-out infinite;
-}
-
-/* Violet variant for the in-header "set what's stale" cue. */
-@keyframes neon-pulse-violet {
-  0%, 100% {
-    box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.30), 0 0 8px 0 rgba(167, 139, 250, 0.12);
-  }
-  50% {
-    box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.65), 0 0 16px 1px rgba(167, 139, 250, 0.30);
-  }
-}
+.animate-neon-pulse,
 .animate-neon-pulse-violet {
-  animation: neon-pulse-violet 2s ease-in-out infinite;
+  animation: neon-pulse 2.6s ease-in-out infinite;
 }
 
-@keyframes shimmer-sweep {
-  0%   { transform: translateX(-150%); }
-  100% { transform: translateX(150%); }
-}
-.shimmer-sweep::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.12) 50%, transparent 70%);
-  transform: translateX(-150%);
-  animation: shimmer-sweep 2.8s ease-in-out infinite;
-  pointer-events: none;
-}
+/* Shimmer sweep retired — a moving white gradient across a card reads as a
+   gamified consumer app. Inert class kept so existing usages are harmless. */
+.shimmer-sweep::after { content: none; }
 
 /* ───────────────────────────────────────────────────────────────────────────
    Calm & Anticipatory — the motion system
@@ -401,12 +379,12 @@
 }
 .animate-exhale { animation: exhale var(--dur-exhale) var(--ease-out-soft) both; }
 
-/* The focal "do this next" surface is alive; everything else is still. A slow
-   violet halo (matches the brand accent) breathes so the eye is drawn without a
-   single hard cue. ~5s cycle reads as calm, never urgent. */
+/* The focal "do this next" surface is alive; everything else is still. Restraint:
+   the draw is depth, not colour — a soft neutral elevation breathes so the eye is
+   led without a coloured glow. ~5s cycle reads as calm, never urgent. */
 @keyframes focus-halo {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(139,124,246,0.16), 0 12px 56px -18px rgba(139,124,246,0.24), 0 8px 44px -22px rgba(34,211,238,0.14); }
-  50%      { box-shadow: 0 0 0 1px rgba(139,124,246,0.28), 0 16px 70px -14px rgba(139,124,246,0.40), 0 12px 58px -18px rgba(34,211,238,0.22); }
+  0%, 100% { box-shadow: 0 0 0 1px rgb(var(--fg) / 0.05), 0 12px 48px -20px rgba(0,0,0,0.55); }
+  50%      { box-shadow: 0 0 0 1px rgb(var(--fg) / 0.09), 0 18px 64px -18px rgba(0,0,0,0.65); }
 }
 .animate-focus-halo { animation: focus-halo var(--dur-halo) ease-in-out infinite; }
 

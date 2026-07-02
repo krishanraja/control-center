@@ -84,22 +84,23 @@ export default {
           card: '#1c1b24',
           border: '#2a2833',
           text: '#eceaf5',
-          success: '#34d399',
-          warning: '#fbbf24',
-          error: '#fb7185',
-          info: '#60a5fa',
+          success: '#4d9e78',
+          warning: '#b98f4a',
+          error:   '#bd6f6f',
+          info:    '#5a93a2',
         },
+        // Muted, low-chroma — colour reserved for meaning, kept off-neon.
         pod: {
-          ops:     '#22d3ee',
-          revenue: '#34d399',
-          growth:  '#a78bfa',
+          ops:     '#6ba6b5', // muted teal    (was neon cyan   #22d3ee)
+          revenue: '#6cab8b', // muted sage    (was neon green  #34d399)
+          growth:  '#8f88bd', // muted lavender (was neon violet #a78bfa)
         },
         status: {
-          needsYou: '#fbbf24',
-          blocked:  '#fb7185',
-          active:   '#34d399',
-          waiting:  '#94a3b8',
-          done:     '#6b7280',
+          needsYou: '#cba35c', // muted ochre (was neon amber #fbbf24)
+          blocked:  '#c98585', // muted clay  (was neon rose  #fb7185)
+          active:   '#6cab8b', // muted sage
+          waiting:  '#8a94a3', // slate
+          done:     '#6b7280', // grey
         },
 
         // ── Brand accent cascade ───────────────────────────────────────────
@@ -112,22 +113,26 @@ export default {
           50:  'rgb(var(--ac-violet) / <alpha-value>)',
           100: 'rgb(var(--ac-violet) / <alpha-value>)',
           200: 'rgb(var(--ac-violet) / <alpha-value>)',
-          300: '#b8a8fc',
-          400: '#9c86f8',
-          500: '#8b7cf6',
-          600: '#6f5ae6',
-          700: '#5a44c8',
-          800: '#48379e',
-          900: '#392c7d',
-          950: '#241a52',
+          // Muted lavender ramp — the brand accent, off-neon.
+          300: '#b2a9d6',
+          400: '#998fc4',
+          500: '#8578b0',
+          600: '#6f6299',
+          700: '#5b5080',
+          800: '#484063',
+          900: '#39334f',
+          950: '#242036',
         },
         // Semantic accent text shades — 50/100/200 flip light↔deep by theme so
         // accent labels on tinted cards stay readable. 300+ keep Tailwind defaults.
-        amber:   { 50: 'rgb(var(--ac-amber) / <alpha-value>)',   100: 'rgb(var(--ac-amber) / <alpha-value>)',   200: 'rgb(var(--ac-amber) / <alpha-value>)' },
-        emerald: { 50: 'rgb(var(--ac-emerald) / <alpha-value>)', 100: 'rgb(var(--ac-emerald) / <alpha-value>)', 200: 'rgb(var(--ac-emerald) / <alpha-value>)' },
-        rose:    { 50: 'rgb(var(--ac-rose) / <alpha-value>)',    100: 'rgb(var(--ac-rose) / <alpha-value>)',    200: 'rgb(var(--ac-rose) / <alpha-value>)' },
-        sky:     { 50: 'rgb(var(--ac-sky) / <alpha-value>)',     100: 'rgb(var(--ac-sky) / <alpha-value>)',     200: 'rgb(var(--ac-sky) / <alpha-value>)' },
-        cyan:    { 50: 'rgb(var(--ac-cyan) / <alpha-value>)',    100: 'rgb(var(--ac-cyan) / <alpha-value>)',    200: 'rgb(var(--ac-cyan) / <alpha-value>)' },
+        // 50–200 are theme-adaptive accent TEXT (--ac-*); 300–600 are muted, off-neon
+        // ramps so raw `*-400` fills/dots/borders stop using Tailwind's neon defaults.
+        amber:   { 50: 'rgb(var(--ac-amber) / <alpha-value>)',   100: 'rgb(var(--ac-amber) / <alpha-value>)',   200: 'rgb(var(--ac-amber) / <alpha-value>)',   300: '#dcc08a', 400: '#cba35c', 500: '#b98f4a', 600: '#a07a3d' },
+        emerald: { 50: 'rgb(var(--ac-emerald) / <alpha-value>)', 100: 'rgb(var(--ac-emerald) / <alpha-value>)', 200: 'rgb(var(--ac-emerald) / <alpha-value>)', 300: '#8fc3a8', 400: '#6cab8b', 500: '#5b9578', 600: '#4d7f66' },
+        rose:    { 50: 'rgb(var(--ac-rose) / <alpha-value>)',    100: 'rgb(var(--ac-rose) / <alpha-value>)',    200: 'rgb(var(--ac-rose) / <alpha-value>)',    300: '#d3a3a3', 400: '#c98585', 500: '#b96c6c', 600: '#a15a5a' },
+        red:     { 300: '#d3a3a3', 400: '#c98585', 500: '#bd6f6f', 600: '#a75c5c' },
+        sky:     { 50: 'rgb(var(--ac-sky) / <alpha-value>)',     100: 'rgb(var(--ac-sky) / <alpha-value>)',     200: 'rgb(var(--ac-sky) / <alpha-value>)',     300: '#93b8c4', 400: '#6ba6b5', 500: '#5a93a2', 600: '#4c7d8a' },
+        cyan:    { 50: 'rgb(var(--ac-cyan) / <alpha-value>)',    100: 'rgb(var(--ac-cyan) / <alpha-value>)',    200: 'rgb(var(--ac-cyan) / <alpha-value>)',    300: '#93b8c4', 400: '#6ba6b5', 500: '#5a93a2', 600: '#4c7d8a' },
         indigo:  { 50: 'rgb(var(--ac-indigo) / <alpha-value>)',  100: 'rgb(var(--ac-indigo) / <alpha-value>)',  200: 'rgb(var(--ac-indigo) / <alpha-value>)' },
         // Secondary accent hues used only as text (fuchsia HUMOR chips, blue LENGTH,
         // etc.) — text-only, so 100/200/300 all flip light↔deep by theme.

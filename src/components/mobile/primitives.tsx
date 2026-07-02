@@ -112,31 +112,29 @@ export function HeroCard({
   cta?: string
   onClick?: () => void
 }) {
-  const accentMap: Record<string, string> = {
-    violet:  'from-violet-500/30 via-violet-500/12 to-transparent border-violet-400/40',
-    amber:   'from-amber-500/30 via-amber-500/12 to-transparent border-amber-400/40',
-    emerald: 'from-emerald-500/30 via-emerald-500/12 to-transparent border-emerald-400/40',
-    red:     'from-red-500/30 via-red-500/12 to-transparent border-red-400/40',
-    neutral: 'from-white/[0.10] via-white/[0.05] to-transparent border-white/[0.12]',
-  }
-  const ctaColorMap: Record<string, string> = {
-    violet:  'bg-violet-500 text-[#fff]',
-    amber:   'bg-amber-400 text-black',
-    emerald: 'bg-emerald-400 text-black',
-    red:     'bg-red-500 text-[#fff]',
-    neutral: 'btn-contrast',
+  // Restraint over Aurora: the surface stays neutral (adaptive `surface`); the
+  // accent is a single thin left bar (muted token), not a saturated gradient. One
+  // calm, theme-adaptive CTA (btn-contrast) for every accent. Keeps Aurora's
+  // serif display type + soft elevation.
+  const accentBar: Record<string, string> = {
+    violet:  'bg-pod-growth',
+    amber:   'bg-status-needsYou',
+    emerald: 'bg-status-active',
+    red:     'bg-status-blocked',
+    neutral: 'bg-white/25',
   }
   const Wrapper: any = onClick ? 'button' : 'div'
   const { bind } = usePressable({ onPress: onClick, haptic: 'tap', disabled: !onClick })
   return (
     <Wrapper
       {...(onClick ? { onClick: bind.onClick, onPointerDown: bind.onPointerDown } : {})}
-      className={`relative w-full text-left rounded-3xl border p-6 bg-gradient-to-br ${accentMap[accent]} shadow-e2 overflow-hidden flex-shrink-0 ${onClick ? 'active:scale-[0.99] transition-transform duration-200 ease-spring' : ''}`}
+      className={`surface relative w-full text-left rounded-3xl p-6 overflow-hidden flex-shrink-0 ${onClick ? 'active:scale-[0.99] transition-transform duration-200 ease-spring' : ''}`}
     >
+      <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${accentBar[accent] ?? accentBar.neutral} opacity-80`} />
       {eyebrow && (
         <div className="flex items-center gap-2.5 mb-4">
-          {dotColor && <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />}
-          <span className="text-[11px] font-display font-bold uppercase tracking-[0.2em] text-white/65">
+          {dotColor && <span className={`w-2 h-2 rounded-full ${dotColor}`} />}
+          <span className="text-[11px] font-display font-semibold uppercase tracking-[0.2em] text-white/50">
             {eyebrow}
           </span>
         </div>
@@ -145,16 +143,16 @@ export function HeroCard({
         {title}
       </p>
       {detail && (
-        <p className="text-[14px] text-white/65 mt-3 leading-[1.45] line-clamp-3">
+        <p className="text-[14px] text-white/60 mt-3 leading-[1.45] line-clamp-3">
           {detail}
         </p>
       )}
       <div className="flex items-center justify-between mt-5">
         {meta ? (
-          <span className="text-[12px] text-white/50">{meta}</span>
+          <span className="text-[12px] text-white/45">{meta}</span>
         ) : <span />}
         {cta && (
-          <span className={`text-[14px] font-semibold rounded-full px-5 py-2.5 ${ctaColorMap[accent]}`}>
+          <span className="text-[14px] font-semibold rounded-full px-5 py-2.5 btn-contrast">
             {cta}
           </span>
         )}
