@@ -18,7 +18,7 @@ export function CriticalAlertBanner() {
   return (
     // Urgent, not candy: a neutral surface with a single clay accent bar + icon
     // carries the alarm; the copy stays near-white and legible.
-    <div className="relative overflow-hidden rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 py-3 flex items-start gap-3">
+    <div className="relative flex-shrink-0 overflow-hidden rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 py-3 flex items-start gap-3">
       <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-status-blocked" />
       <AlertTriangle size={18} className="text-status-blocked flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">

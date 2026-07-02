@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Mic, Megaphone, Calendar, Layers, ChevronRight, Sparkles, Linkedin, Twitter, Globe, Mail, ExternalLink, FileText } from 'lucide-react'
 import { MobileShell } from './MobileShell'
 import { TabHeader, MobileLoadingScreen } from './primitives'
+import { SkeletonList } from '../shared/Skeleton'
 import { NextVisibilityHero } from '../guests/NextVisibilityHero'
 import { BottomSheet } from './BottomSheet'
 import { isTestRecord } from '../../lib/recordHygiene'
@@ -295,9 +296,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
               <GuestImportDropzone />
             </section>
 
-            {guestsLoading && (
-              <div className="text-[12px] text-white/45 text-center py-4">Loading…</div>
-            )}
+            {guestsLoading && <SkeletonList rows={3} />}
 
             {!guestsLoading && guests.length === 0 && (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-6 text-center">
@@ -347,9 +346,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
                 onClick={() => { h.tap(); targetTriage.forceDeck() }}
               />
             )}
-            {targetsLoading && (
-              <div className="text-[12px] text-white/45 text-center py-4">Loading…</div>
-            )}
+            {targetsLoading && <SkeletonList rows={3} />}
 
             {!targetsLoading && outboundCount === 0 && (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-6 text-center">

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { ExternalLink, ThumbsUp, ThumbsDown, Check, ChevronDown, ChevronUp, Radio, X, Ban } from 'lucide-react'
+import { SkeletonList } from './shared/Skeleton'
 import { formatDistanceToNow } from 'date-fns'
 import { supabase } from '../lib/supabase'
 import { signalStatusStyle } from './shared/tokens'
@@ -160,7 +161,7 @@ export function ZaraIntelligence() {
       </div>
 
       {loading ? (
-        <p className="text-[12px] text-white/30 py-6 text-center">Loading…</p>
+        <div className="py-2"><SkeletonList rows={2} /></div>
       ) : byVenture.length === 0 ? (
         <p className="text-[12px] text-white/30 py-6 text-center">No signals in the last 14 days.</p>
       ) : (

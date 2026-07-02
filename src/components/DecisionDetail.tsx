@@ -7,6 +7,7 @@ import { buildDecisionActions } from '../lib/decisionActions'
 import { useHaptics } from '../hooks/useHaptics'
 import { useToast } from './shared/Toast'
 import { Pressable } from './shared/Pressable'
+import { SkeletonText } from './shared/Skeleton'
 
 export type DecisionKind = DecisionRow['kind']
 
@@ -142,7 +143,10 @@ export function DecisionDetail({ decision, onClose, actionsEnabled = false, onNa
 
       <div className="flex-1 overflow-y-auto">
         {resolved.loading && (
-          <div className="p-6 text-[12px] text-white/45">Loading…</div>
+          <div className="p-5 space-y-3">
+            <SkeletonText lines={2} />
+            <SkeletonText lines={3} />
+          </div>
         )}
         {!resolved.loading && !resolved.row && (
           <div className="p-6 text-[13px] text-white/55">

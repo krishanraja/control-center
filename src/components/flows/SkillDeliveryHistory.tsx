@@ -1,5 +1,6 @@
 import React from 'react'
 import { formatDistanceToNow } from 'date-fns'
+import { SkeletonList } from '../shared/Skeleton'
 import { CheckCircle2, Clock, Mail, RotateCcw, ExternalLink, Inbox } from 'lucide-react'
 import type { SkillDelivery } from './types'
 
@@ -22,7 +23,7 @@ export function SkillDeliveryHistory({ deliveries, loading, onRegenerate }: Prop
       </header>
 
       {loading ? (
-        <div className="px-4 py-8 text-center text-[11.5px] text-white/30">Loading…</div>
+        <div className="px-4 py-4"><SkeletonList rows={3} card={false} /></div>
       ) : deliveries.length === 0 ? (
         <div className="px-4 py-8 text-center">
           <p className="text-[12px] text-white/45 font-medium">No deliveries yet.</p>

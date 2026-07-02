@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { RichText, SelectableDraft } from './RichText'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
+import { SkeletonText } from '../shared/Skeleton'
 import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -1640,7 +1641,7 @@ function MaterialsPanel({ idea }: { idea: ContentIdeaRow }) {
           Attached{materials && materials.length ? ` (${materials.length})` : ''}
         </div>
         {materials === null ? (
-          <div className="text-[11px] text-white/40">Loading…</div>
+          <div className="py-1"><SkeletonText lines={2} /></div>
         ) : materials.length === 0 ? (
           <div className="text-[11px] text-white/35 italic">No materials attached yet.</div>
         ) : materials.map(m => (

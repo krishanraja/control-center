@@ -62,6 +62,33 @@ export function SkeletonRow() {
 }
 
 /**
+ * The drop-in loading placeholder for any list/feed content area — the world-class
+ * replacement for a bare "Loading…" line. It reserves the space the real rows will
+ * occupy (so data settles in place instead of shifting layout) and reveals with the
+ * shared `animate-rise`. `card` matches spaced card lists (GuestCard/ContentCard);
+ * the default matches divided feed rows.
+ */
+export function SkeletonList({ rows = 3, card = true }: { rows?: number; card?: boolean }) {
+  if (card) {
+    return (
+      <div className="space-y-2 animate-rise" aria-busy="true" role="status" aria-label="Loading">
+        {Array.from({ length: rows }).map((_, i) => (
+          <div key={i} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-2.5">
+            <Skeleton h={14} w="72%" r={6} />
+            <SkeletonText lines={2} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+  return (
+    <div className="divide-y divide-white/[0.06] animate-rise" aria-busy="true" role="status" aria-label="Loading">
+      {Array.from({ length: rows }).map((_, i) => <SkeletonRow key={i} />)}
+    </div>
+  )
+}
+
+/**
  * Mobile: the single-focus tab placeholder. Mirrors the real anatomy —
  * a breathing hero, a 3-up stat row, then a feed — so the transition to live
  * data is a settle, not a relayout.

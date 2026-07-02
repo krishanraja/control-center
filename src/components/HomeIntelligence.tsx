@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { ChevronDown, ChevronUp, AlertTriangle, Compass, ExternalLink } from 'lucide-react'
+import { SkeletonList } from './shared/Skeleton'
 import { AgentAvatar } from './shared/AgentAvatar'
 import { StatusPill } from './shared/StatusPill'
 
@@ -430,7 +431,7 @@ export function HomeIntelligence() {
     return () => clearInterval(iv)
   }, [])
 
-  if (loading) return <div className="py-16 text-center text-[13px] text-white/30">Loading…</div>
+  if (loading) return <div className="py-4"><SkeletonList rows={3} /></div>
   if (!data) return <div className="py-16 text-center text-[13px] text-white/30">No intelligence yet</div>
 
   if (isV1(data)) return <V1View data={data} />

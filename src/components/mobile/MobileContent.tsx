@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ChevronRight, Clock, AlertTriangle, CheckCircle2, Layers, GitMerge, Sparkles } from 'lucide-react'
 import { MobileShell } from './MobileShell'
 import { TabHeader, MobileLoadingScreen } from './primitives'
+import { SkeletonList } from '../shared/Skeleton'
 import { type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { useContentTriage } from '../../hooks/useContentTriage'
 import { TriageDeck } from '../content/TriageDeck'
@@ -107,7 +108,7 @@ export function MobileContent({ ideaId }: Props = {}) {
   return (
     <MobileShell header={<TabHeader title="Content" subtitle="What's next, your drafts, and the backlog." />}>
       <div className="px-4 pb-6 space-y-2.5">
-        {loading && <div className="text-[12px] text-white/45 text-center py-8">Loading…</div>}
+        {loading && <SkeletonList rows={4} />}
 
         {!loading && activeCount === 0 && (
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-8 text-center mt-4">
