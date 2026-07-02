@@ -1,6 +1,7 @@
 import React from 'react'
 import { TrendingUp, TrendingDown, Target, Inbox } from 'lucide-react'
 import { useRevenueAttribution } from '../../hooks/useRevenueAttribution'
+import { formatMrr } from '../../lib/mrrDisplay'
 import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
 import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -54,7 +55,7 @@ export function GlanceHeader({
           ? <TrendingUp size={12} className="text-emerald-400" />
           : <TrendingDown size={12} className="text-rose-400" />}
         label="MRR"
-        value={loading ? '—' : `$${Math.round(liveMrr).toLocaleString()}`}
+        value={loading ? '—' : formatMrr(liveMrr)}
         sub={loading ? '' : `${deltaPositive ? '+' : ''}${Math.round(mrrDelta7d).toLocaleString()}/wk`}
         subColor={deltaPositive ? 'text-emerald-400/80' : 'text-rose-400/80'}
         valueSize={valueSize}

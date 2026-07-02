@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useCustomers, type CustomerRow, type CustomerProduct } from './useCustomers'
+import { displayMrr } from '../lib/mrrDisplay'
 
 /**
  * Pillar 1 — Money Machine.
@@ -122,7 +123,7 @@ export function useRevenueAttribution() {
     })
   }, [customers, leadsById, tasksById])
 
-  const liveMrr     = totals.mrrUsd
+  const liveMrr     = displayMrr(totals.mrrUsd)
   const mrrDelta7d  = useMemo(() => deltaMrr(customers, 7),  [customers])
   const mrrDelta28d = useMemo(() => deltaMrr(customers, 28), [customers])
   const projection  = useMemo(() => project90d(liveMrr, customers), [liveMrr, customers])

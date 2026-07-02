@@ -7,6 +7,7 @@ import { useRevenueAttribution } from '../../hooks/useRevenueAttribution'
 import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
 import { useHaptics } from '../../hooks/useHaptics'
 import { openFocusRitual } from '../../lib/focusRitual'
+import { formatMrr } from '../../lib/mrrDisplay'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -88,7 +89,7 @@ export function AltitudeSpine({
           <span className="min-w-0">
             <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-white/55">MRR</span>
             <span className="block text-[16px] font-bold font-mono tabular-nums text-white leading-tight">
-              {revLoading ? '—' : `$${Math.round(liveMrr).toLocaleString()}`}
+              {revLoading ? '—' : formatMrr(liveMrr)}
             </span>
           </span>
           {!revLoading && (

@@ -1,6 +1,7 @@
 import React from 'react'
 import { TrendingUp, TrendingDown, Target } from 'lucide-react'
 import { useRevenueAttribution } from '../hooks/useRevenueAttribution'
+import { formatMrr } from '../lib/mrrDisplay'
 import { useHomeIntelligence } from '../hooks/useHomeIntelligence'
 import { useMoodSource } from './shared/AmbientField'
 
@@ -42,7 +43,7 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
             Live MRR
           </p>
           <p className={`${isMobile ? 'text-[46px]' : 'text-[36px]'} font-display font-bold tabular-nums leading-none`}>
-            <span className="money-text">${Math.round(liveMrr).toLocaleString()}</span>
+            <span className="money-text">{formatMrr(liveMrr)}</span>
             <span className="text-white/35 text-[18px] font-medium">/mo</span>
           </p>
           <div className={`flex items-center gap-1.5 mt-2 ${deltaColor}`}>

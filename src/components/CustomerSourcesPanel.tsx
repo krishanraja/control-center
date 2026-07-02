@@ -1,5 +1,6 @@
 import React from 'react'
 import { useRevenueAttribution } from '../hooks/useRevenueAttribution'
+import { formatMrr } from '../lib/mrrDisplay'
 
 /**
  * Pillar 1 — ROI panel. Surfaces which channel / agent / source is
@@ -47,7 +48,7 @@ export function CustomerSourcesPanel() {
       <header className="px-4 py-3 border-b border-white/[0.05]">
         <h3 className="text-[12px] font-semibold text-white">Revenue by source</h3>
         <p className="text-[10px] text-white/45 mt-0.5">
-          Where each ${Math.round(liveMrr).toLocaleString()} of MRR came from.
+          Where each {formatMrr(liveMrr)} of MRR came from.
         </p>
       </header>
       <ul className="divide-y divide-white/[0.04]">

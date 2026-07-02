@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { MoreHorizontal, type LucideIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { DESKTOP_PRIMARY_TABS, DESKTOP_DRAWER_TABS } from '../lib/tabs'
+import { displayMrr, formatMrr } from '../lib/mrrDisplay'
 import { usePressable } from './shared/usePressable'
 import { ThemeToggle } from './shared/ThemeToggle'
 
@@ -28,8 +29,8 @@ export function DesktopSidebar({ active, onChange }: Props) {
       const health = (healthRes.data as Array<{ status?: string }> | null) || []
       setUnhealthyCount(health.filter(r => r.status === 'critical' || r.status === 'warning').length)
       const customers = (custRes.data as Array<{ mrr_usd?: number | null; churned_at?: string | null }> | null) || []
-      const active = customers.filter(c => !c.churned_at).reduce((sum, c) => sum + (Number(c.mrr_usd) || 0), 0)
-      setMrr(active > 0 ? `$${Math.round(active).toLocaleString()}/mo` : null)
+      const active = displayMrr(customers.filter(c => !c.churned_at).reduce((sum, c) => sum + (Number(c.mrr_usd) || 0), 0))
+      setMrr(active > 0 ? `${formatMrr(active)}/mo` : null)
     }
     loadSys()
     const ch = supabase
