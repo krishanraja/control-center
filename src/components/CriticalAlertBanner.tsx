@@ -11,21 +11,24 @@ export function CriticalAlertBanner() {
   const extra = alerts.length - 1
 
   return (
-    <div className="rounded-xl border border-rose-500/40 bg-rose-950/30 px-4 py-3 flex items-start gap-3">
-      <AlertTriangle size={18} className="text-rose-300 flex-shrink-0 mt-0.5" />
+    // Urgent, not candy: a neutral surface with a single clay accent bar + icon
+    // carries the alarm; the copy stays near-white and legible.
+    <div className="relative overflow-hidden rounded-xl border border-white/[0.09] bg-white/[0.035] px-4 py-3 flex items-start gap-3">
+      <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-status-blocked" />
+      <AlertTriangle size={18} className="text-status-blocked flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-rose-200">CRITICAL</span>
-          <span className="text-[11px] text-rose-200/70 tabular-nums">tier 4</span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-status-blocked">CRITICAL</span>
+          <span className="text-[11px] text-white/40 tabular-nums">tier 4</span>
         </div>
-        <p className="text-[13px] text-rose-50 mt-0.5 leading-snug">
+        <p className="text-[13px] text-white/90 mt-0.5 leading-snug">
           {top.workflow_name || top.workflow_id} is down. Detected {humanAge(top.detected_at)}.
         </p>
         {top.detail && (
-          <p className="text-[12px] text-rose-100/75 mt-1 line-clamp-2">{top.detail}</p>
+          <p className="text-[12px] text-white/60 mt-1 line-clamp-2">{top.detail}</p>
         )}
         {extra > 0 && (
-          <p className="text-[11px] text-rose-200/60 mt-1">+ {extra} more critical alert{extra > 1 ? 's' : ''}</p>
+          <p className="text-[11px] text-white/45 mt-1">+ {extra} more critical alert{extra > 1 ? 's' : ''}</p>
         )}
       </div>
     </div>

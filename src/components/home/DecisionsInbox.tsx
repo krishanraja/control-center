@@ -20,9 +20,11 @@ const KIND_LABEL: Record<DecisionRow['kind'], string> = {
 const KIND_TO_TABLE: Record<DecisionRow['kind'], string> = {
   task: 'tasks', guest: 'guests', idea: 'content_ideas', lead: 'leads', visibility: 'visibility_targets', correction: 'corrections', skill_proposal: 'skill_proposals',
 }
+// Muted, from the shared token palette (not raw neon), so the legend reads as one
+// calm family rather than a rainbow. Kinds still differ, just quietly.
 const KIND_DOT: Record<DecisionRow['kind'], string> = {
-  task: 'bg-violet-400', guest: 'bg-rose-400', idea: 'bg-rose-300',
-  lead: 'bg-emerald-400', visibility: 'bg-amber-400', correction: 'bg-red-400', skill_proposal: 'bg-violet-400',
+  task: 'bg-pod-growth', guest: 'bg-status-blocked', idea: 'bg-status-needsYou',
+  lead: 'bg-status-active', visibility: 'bg-pod-ops', correction: 'bg-status-blocked', skill_proposal: 'bg-pod-growth',
 }
 // Which tab's focused queue each kind batch-reviews into.
 const KIND_TO_TAB: Record<DecisionRow['kind'], string> = {
@@ -142,7 +144,7 @@ export function DecisionsInbox({
                         <Icon size={11} /> {KIND_LABEL[d.kind]}
                       </span>
                       {priorityChip && (
-                        <span className={`text-[10px] uppercase tracking-[0.1em] ${d.priority === 'overdue' || d.priority === 'high' ? 'text-rose-300' : 'text-amber-300'}`}>
+                        <span className={`text-[10px] uppercase tracking-[0.1em] ${d.priority === 'overdue' || d.priority === 'high' ? 'text-status-blocked' : 'text-status-needsYou'}`}>
                           {priorityChip}
                         </span>
                       )}

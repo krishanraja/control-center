@@ -59,7 +59,13 @@ export function SwipeCard({
         pointerEvents: isTop ? 'auto' : 'none',
       }}
     >
-      <div className="relative h-full rounded-3xl border border-white/[0.10] bg-[#141417] shadow-2xl shadow-black/40 p-5 flex flex-col overflow-hidden">
+      {/* Background is set inline (not a Tailwind arbitrary class) so it can never
+          be purged from the production stylesheet — the deck depends on this panel
+          being fully opaque to hide the cards behind it. */}
+      <div
+        className="relative h-full rounded-3xl border border-white/[0.10] shadow-2xl shadow-black/40 p-5 flex flex-col overflow-hidden"
+        style={{ backgroundColor: '#141417' }}
+      >
         {isTop && (
           <>
             <div
@@ -76,7 +82,11 @@ export function SwipeCard({
             </div>
           </>
         )}
-        {children}
+        {/* Only the top card renders its content. Cards behind are blank opaque
+            scenery (they peek a ~10-20px edge), so even if the background were ever
+            defeated, there is no text to bleed through — the failure mode in the
+            triage-deck screenshots. */}
+        {isTop ? children : null}
       </div>
     </div>
   )

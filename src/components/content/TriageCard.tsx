@@ -78,7 +78,13 @@ export function TriageCard({
         pointerEvents: isTop ? 'auto' : 'none',
       }}
     >
-      <div className="relative h-full rounded-3xl border border-white/[0.10] bg-[#141417] shadow-2xl shadow-black/40 p-5 flex flex-col overflow-hidden">
+      {/* Background is inline (not a Tailwind arbitrary class) so it can never be
+          purged from the production stylesheet — the deck relies on this panel being
+          fully opaque to cover the cards behind it. */}
+      <div
+        className="relative h-full rounded-3xl border border-white/[0.10] shadow-2xl shadow-black/40 p-5 flex flex-col overflow-hidden"
+        style={{ backgroundColor: '#141417' }}
+      >
         {/* Drag ghosts — only meaningful on the top card. */}
         {isTop && (
           <>
@@ -97,6 +103,11 @@ export function TriageCard({
           </>
         )}
 
+        {/* Only the top card renders its content — cards behind stay blank opaque
+            scenery so their text can never bleed through if the panel background is
+            ever weakened in a build. */}
+        {isTop && (
+        <>
         <div className="flex items-center gap-2 flex-wrap mb-3">
           <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] font-semibold ${STATE_TONE[i.state] || 'bg-white/[0.08] text-white/65'}`}>
             {STATE_LABEL[i.state] || i.state}
@@ -148,6 +159,8 @@ export function TriageCard({
               </a>
             )}
           </div>
+        )}
+        </>
         )}
       </div>
     </div>
