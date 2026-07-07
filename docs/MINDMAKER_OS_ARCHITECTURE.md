@@ -177,7 +177,7 @@ Live inventory (reconciled against the runtime 2026-07-01), grouped by name pref
 | **Nell** | 10 | Guest Scout, Apollo Contact Enrichment, Draft Outbound Messages, Lead Document Ingest, Guest Sheet Bulk Import, Guest Confirmed Cascade, Guest Pitch Draft, + **Briefing Stuck-Generating Sweep** (every 4h), **Guest Pitch Enrich (Exa)**, **Guest Speaker Briefing** |
 | **Agatha** | 8 | Content Angle Approval, Portfolio Pipeline Triage/Dispatch/Analytics, Product Proposal Review, State of Union Weekly, Lead Deep Enrich, Weekly Plan Refresh (Mon 09:00 UTC). Closure Intent Receiver still planned (§17.7). |
 | **Krish** | 6 | **NEW GROUP** — Inbox Return Detector (every 15m), Inbox Router, Inbox Classifier, Inbox Digest (Sun 17:00 UTC), Focus Calibrator, Objective Milestone Proposer |
-| **Stripe** | 3 | Revenue alerts: Fractionl, mm-ctrl, Mindmaker OS Payment Alert. (Merciless/OnAlert/Gutted alerts deactivated 2026-07-06, product retirement) |
+| **Stripe** | 3 | **Revenue Intake** (consolidated 2026-07-07: one workflow hosting both live webhook paths `/webhook/{mmctrl\|fractionl}-stripe-revenue`, HMAC signature verification arms itself when `system_config.stripe_webhook_signing_secrets` is populated; forged-event rejection adversarially tested); **Reconciliation Nightly** (05:00 UTC, Stripe is ground truth: upserts subscribers from live subscriptions via `system_config.stripe_price_product_map`, marks lapsed paid rows churned, surfaces unmapped price ids in audit_log instead of guessing); Mindmaker OS Payment Alert. (The per-product alert clones are retired: Merciless/OnAlert/Gutted 2026-07-06, Fractionl/mm-ctrl superseded by Revenue Intake 2026-07-07) |
 | **Feedback** | 2 | Weekly per product (Fractionl Circle, Fractionl Pulse). (Gutted/Merciless/OnAlert weeklies deactivated 2026-07-06, product retirement) |
 | **Vera** | 4 | Behavioural Auditor, Feedback Aggregation (Sun 06:00 UTC), Failure Pattern Sweep (Sun 07:00 UTC), Success Induction Sweep (Sun 08:00 UTC) |
 | **Nova** | 4 | Closed-Loop PR Engine, Visibility Sweeper (Mon 11:00 UTC; retry sub-trigger every 6h), Podchaser → Visibility (Outbound), enrich endpoint |
@@ -194,7 +194,7 @@ Live inventory (reconciled against the runtime 2026-07-01), grouped by name pref
 | **Felix** | 1 | Opportunity Pipeline Tracker (Mon–Fri) |
 | **Sonnet** | 0 | Task Lever Rater **disabled 2026-07-01** (broken — `$credentials` in Code node; §3.4.1) |
 | **Active total** | **87** | |
-| **Inactive / archived** | **16** | Workflow Optimizer; ZZ ARCHIVED Agatha Visibility Deep Enrich (dup); Nell Guest Speaker Briefing (archived dup) + Guest Pitch Enrich (archived); Nova Visibility Backfill Tick; System HARO Ingestion; "AI Agent workflow" (legacy); Critical Infrastructure Monitor (retired to VPS 2026-07-01); Maya Churn→Exit & Sonnet Task Lever Rater (disabled 2026-07-01); + the 6 retired-product workflows (Stripe + Feedback for Gutted/Merciless/OnAlert, deactivated 2026-07-06) |
+| **Inactive / archived** | **18** | Workflow Optimizer; ZZ ARCHIVED Agatha Visibility Deep Enrich (dup); Nell Guest Speaker Briefing (archived dup) + Guest Pitch Enrich (archived); Nova Visibility Backfill Tick; System HARO Ingestion; "AI Agent workflow" (legacy); Critical Infrastructure Monitor (retired to VPS 2026-07-01); Maya Churn→Exit & Sonnet Task Lever Rater (disabled 2026-07-01); the 6 retired-product workflows (Stripe + Feedback for Gutted/Merciless/OnAlert, deactivated 2026-07-06); + the 2 per-product Stripe alert clones (Fractionl, mm-ctrl) superseded by Revenue Intake 2026-07-07 |
 
 > Prior versions of this table listed a "Deep Enrich Retry Sweep" System workflow and a separate Cleo "Capture Idea Webhook" — neither exists as a standalone live workflow (retry behaviour folded into the Nova/Agatha enrich webhooks; idea capture is the single `Content Idea Capture` workflow). Removed 2026-07-01.
 
@@ -864,18 +864,30 @@ Krish approves / declines via VisibilityTargetCard
 ### 8.4 Customer flow — Stripe webhook to Customers tab to email draft
 
 ```
-Stripe (per-product) fires checkout.session.completed
+Stripe fires an event (checkout.session.completed, invoice.payment_succeeded, ...)
     → POST /webhook/{fractionl|mmctrl}-stripe-revenue
-      (merciless/onalert/gutted webhooks deactivated 2026-07-06, product retirement;
-       remove the endpoints in those Stripe dashboards during sunset)
-        → Stripe Webhook node
+      (both paths served by ONE workflow, Stripe | Revenue Intake, since 2026-07-07;
+       merciless/onalert/gutted webhooks deactivated 2026-07-06, product retirement,
+       remove those endpoints in their Stripe dashboards during sunset)
+        → verify stripe-signature (HMAC over the raw body; arms itself when
+          system_config.stripe_webhook_signing_secrets carries the product's whsec;
+          forged events are REJECTED with an audit_log stripe-signature-invalid entry;
+          until secrets land, events process flagged unverified)
             ├─ Telegram alert
-            ├─ Log to workflow_runs
-            ├─ Lookup Attribution (recent leads/tasks by email/domain)
+            ├─ Log to workflow_runs (outcome carries path:type:verified-state)
+            ├─ Lookup Attribution (recent leads by email)
             └─ Supabase: Upsert Customer → customers table
                 (idempotent via product+stripe_customer_id; populates
                 attribution_lead_id, attribution_task_id,
                 attribution_channel, attribution_confidence)
+
+Nightly 05:00 UTC: System | Stripe Reconciliation | Nightly  ← ground truth
+    → Stripe list subscriptions (mindmaker_llc account)
+    → map price/product ids via system_config.stripe_price_product_map
+    → upsert customers (attribution_confidence='reconciled'), mark lapsed paid rows churned
+    → unmapped price ids surface in audit_log (never guessed)
+    Webhooks are fast alerts; this job self-heals missed deliveries within 24h.
+    (First real run found and restored a paying subscriber the webhooks had missed.)
 
 Nightly 7AM UTC: Maya | Customer Acquisition Sweeper
     → GET each product Supabase profiles/subscriptions/waitlist
@@ -1530,7 +1542,9 @@ The autonomous customer-acquisition layer. Doctrine is canonical in `acquisition
 - **Four gates, one surface.** Strategy / Voice / Named-accounts+warm-network / Money+public-surface approvals all route through `decisions_waiting` (+ Telegram bridge). Two new kinds (`sequence_approval`, `send_sample`) are planned for the Control Center decisions panel (`DecisionsWaitingPanel.tsx` + `routeDecision.ts`); DB needs no migration (`kind` is unconstrained).
 - **Autonomy ladder.** Per-lane L1 (every send approved) → L2 (1-in-10 sampled) → L3 (exception-only), graduation mechanical on rejection rates, Vera's weekly audit owns demotion. All lanes start L1. Fields land with Phase 3.
 - **Moat metrics:** B2B = qualified meetings per 1,000 sends; B2C = capture-to-paid conversion. Opens/clicks are explicitly not success metrics.
-- **Build status (2026-07-07): Phases 1-3 SHIPPED.** Phase 1 live end to end: `/download` capture page on CTRL is PUBLIC (flag `VITE_FF_CAPTURE`, Vercel project `mm-ctrl`; capture clock started 2026-07-07, flip check 2026-08-04), engine = 3 Acquisition workflows (§3 table) + `acquisition_sends` ledger + `capture-lead` edge function on CTRL's Supabase; the full L1 cycle (capture → touch-1 send as `CTRL <ctrl@themindmaker.ai>` via verified Resend domain → touch-2 queue → Krish task approval → send → unsubscribe suppression) was live-proven with real email before launch. Phase 2: Full Time podcast RSS (`/api/public/feed.rss`) + per-episode share pages live; Pulse demand surface spec'd (`pulse-demand-test-spec.md`), warm-intro shortlist screened from Krish's LinkedIn export (Gate 1 answered). Phase 3: Plinth `llms.txt` (truth-corrected) + `/.well-known/mcp.json` live; Nova gained a Monday drafts-only product-data pitch lane (P4, 20 nodes, additive-verified) with `visibility_targets.pitch_type`/`product_slug`; autonomy ladder is data (`venture_registry.autonomy_level` default L1 + `autonomy_history`) enforced by Vera's weekly rejection-rate demotion check. Wave-1 distribution pack + shortlist picks + podcast directory submissions sit on Krish's decisions surface. Deferred: the Sweeper's product-data research chain (first draft correctly refused over n8n execution semantics; rebuild queued), dedicated decisions kinds UI, paid tests (locked until owned/earned revenue per Gate 4).
+- **Build status (2026-07-07): Phases 1-3 SHIPPED.** Phase 1 live end to end: `/download` capture page on CTRL is PUBLIC (flag `VITE_FF_CAPTURE`, Vercel project `mm-ctrl`; capture clock started 2026-07-07, flip check 2026-08-04), engine = 3 Acquisition workflows (§3 table) + `acquisition_sends` ledger + `capture-lead` edge function on CTRL's Supabase; the full L1 cycle (capture → touch-1 send as `CTRL <ctrl@themindmaker.ai>` via verified Resend domain → touch-2 queue → Krish task approval → send → unsubscribe suppression) was live-proven with real email before launch. Phase 2: Full Time podcast RSS (`/api/public/feed.rss`) + per-episode share pages live; Pulse demand surface spec'd (`pulse-demand-test-spec.md`), warm-intro shortlist screened from Krish's LinkedIn export (Gate 1 answered). Phase 3: Plinth `llms.txt` (truth-corrected) + `/.well-known/mcp.json` live; Nova gained a Monday drafts-only product-data pitch lane (P4, 20 nodes, additive-verified) with `visibility_targets.pitch_type`/`product_slug`; autonomy ladder is data (`venture_registry.autonomy_level` default L1 + `autonomy_history`) enforced by Vera's weekly rejection-rate demotion check. Wave-1 distribution pack + shortlist picks + podcast directory submissions sit on Krish's decisions surface.
+- **Revenue truth layer (2026-07-07, later):** the Stripe intake is consolidated + signature-capable and the nightly reconciliation makes Stripe the customers-table ground truth (both in §3/§8.4); the Sweeper's product-data research chain is LIVE (rebuilt as an independent parallel chain after the first design was correctly refused over n8n execution semantics), and the whole Visibility Sweeper was resurrected from dead Perplexity/Anthropic credentials in the same pass. Nova's P1-P3 lanes had 15 silent pre-existing defects fixed (identity-prepend field mismatch, post-LLM dead context reads).
+- **Deferred / open:** dedicated decisions kinds UI (task-row approvals work); paid tests (locked until owned/earned revenue per Gate 4); Krish-gated: whsec signing secrets, wave-1 approval, Pulse shortlist picks, podcast directory submissions, fractionl_ai Stripe key for Fractionl reconciliation, yearly price-id mappings (in audit_log); follow-up defects queued: Nova Podchaser filter-stage bare $json refs, mobile flex-shrink bug in three older customer panels, Zara signal feed dormant.
 
 Traces to O-2 (revenue), O-3 (one person running 15-30), O-6 (nothing external without approval), O-7 (decision lag).
 
@@ -1890,6 +1904,13 @@ docs/audits/                                                 # Closure architect
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
 
+### 2026-07-07 (later) - revenue truth layer + subscriber visibility + Nova resurrection
+
+- **Stripe | Revenue Intake** replaces the last two per-product webhook clones: one workflow, both live paths unchanged, HMAC signature verification that arms itself when `system_config.stripe_webhook_signing_secrets` is populated (adversarially tested: forged event rejected + audited, signed event verified; secrets disarmed until Krish supplies real whsec values).
+- **System | Stripe Reconciliation | Nightly** (05:00 UTC): Stripe is now the customers-table ground truth for the `mindmaker_llc` account; price/product mapping via `system_config.stripe_price_product_map`, unmapped ids surface in audit_log. First run found and restored a paying mm_ctrl subscriber the webhooks had missed.
+- **Subscriptions tab** (control-center PR #177): full active-subscriber roster with signup dates, product/plan/MRR, attribution, and Stripe-verified badges; summary strip. Read-only per the watch lock. En route: fixed a mobile flexbox min-size bug (overflow-hidden flex items need flex-shrink-0); same latent bug flagged in three older customer panels.
+- **Nova**: 15 pre-existing silent defects fixed across P1-P3 (identity-prepend never attached; post-LLM nodes reading wiped fields); Visibility Sweeper resurrected from dead Perplexity/Anthropic credentials (root causes recorded in fleet-ops: API-created vendor-typed credentials do not inject on httpRequest nodes, use generic httpHeaderAuth; and a bound credential is inert unless the node declares authentication=genericCredentialType); the product-data research chain is live as an independent parallel chain.
+
 ### 2026-07-07 - Acquisition OS Phases 1-3 shipped: CTRL capture lane public, engine live, distribution surfaces up
 
 - **CTRL B2C lane (Phase 1), public and L1-proven:** `/download` capture page live on ctrl.themindmaker.ai (mm-ctrl PR #333 + `VITE_FF_CAPTURE=true`); `capture-lead` edge function on CTRL's Supabase forwards to the new Acquisition workflows (Capture Intake, Nurture Scheduler daily 14:00 UTC, Unsubscribe); `acquisition_sends` L1 ledger + `acquisition_capture_to_paid` view + `acquisition_utm_conventions` config; Leo's Friday Pulse gained the funnel section. Full cycle verified with real email on the verified `themindmaker.ai` Resend domain before launch. Fixes en route: `leads_source_type_check` gained `capture`; `venture_registry` gained the missing `mm_ctrl` lane row (leads FK had blocked captures).
@@ -1934,7 +1955,7 @@ Closed out the all-tabs rebuild by porting the four secondary tabs that still le
 - **Intel (desktop)** — `src/components/intel/NextIntelDesktopHero.tsx`. Hot Zara signal (score ≥ 8, status received) → **"Promote to bet"** now does the real promote (POST `/api/bets` + flip `zara_signals.status='actioned'`). Previously this button only scrolled + outlined the row — a P-3 violation ("every click goes where the click promises"). When nothing's hot, the hero stays calm ("N signals tracked — nothing scoring 8+ yet").
 - **Intel (mobile)** — `src/components/intel/NextIntelMobileHero.tsx`. Ranks `home_intelligence.external_signals` by urgency × days_until, surfaces "Open {signal} · URGENCY · Nd"; the underlying `DetailSheet` carries Create-task / Add-to-bets.
 - **Org (Desktop + Mobile)** — `src/components/org/NextOrgHero.tsx`. Vera's pending corrections → "Review Vera's edit for {agent} · {N} downvotes · {pattern}". Desktop scrolls + outlines the correction row; mobile hands off to the desktop route by hash so the approve/reject UI is one tap away. Calm when the roster is tight.
-- **Subscriptions (Desktop + Mobile)** — `src/components/customers/SubscriptionsWatchHero.tsx`. Read-only watch by design (Krish 2026-06-17 outcome lock). Maya's expansion plays → "Reach out to {name} · ${mrr}/mo" (emerald); otherwise calm "Watching the revenue · $X/mo MRR · N paid · no expansion plays waiting" (no button, `clear` tone).
+- **Subscriptions (Desktop + Mobile)** — `src/components/customers/SubscriptionsWatchHero.tsx`. Read-only watch by design (Krish 2026-06-17 outcome lock). Maya's expansion plays → "Reach out to {name} · ${mrr}/mo" (emerald); otherwise calm "Watching the revenue · $X/mo MRR · N paid · no expansion plays waiting" (no button, `clear` tone). Since 2026-07-07 (PR #177) the surface also renders `SubscribersList`: every `kind='paid'` customer newest-first with name/email, product chip, plan, MRR, signed-up date (absolute + relative), attribution channel, and a Stripe-verified badge on reconciled rows; summary strip carries active MRR, count, newest subscriber, per-product chips. Still read-only.
 
 Verified: `tsc --noEmit` clean, `vite build` green (1838 modules), no `NextActionStrip` references left in `src/`. Home keeps its existing Focus Ritual spine (AltitudeSpine + BoardDaily + DecisionsInbox) — intentionally not a single hero. Flows still has no next-action hero; needs Krish's outcome lock before building (open in `docs/plans/all-tabs-rebuild/STATE.md`).
 
@@ -2193,7 +2214,7 @@ Edit this file when the architecture *genuinely* changes: new agent, new pillar,
 3. **`mindmaker-os` skill, Claude Code.** `C:\Users\krish\.claude\skills\mindmaker-os\SKILL.md` (YAML frontmatter + this body).
 4. **`mindmaker-os` skill, Cursor.** `C:\Users\krish\.cursor\skills-cursor\mindmaker-os\SKILL.md` (same body as #3).
 5. **`mindmaker-os` skill on the VPS.** `/root/.openclaw/skills/mindmaker-os/SKILL.md` (rendered/synced copy that skill-aware agents on the VPS load).
-6. **Google Drive (human-readable mirror).** Infrastructure folder, file id `1F0srFZSS-Nvg2RlUG84zVSvuiN9o8zDc`. The Drive MCP exposes no file-content update, so this one is updated manually: Krish drag-drops the latest `docs/MINDMAKER_OS_ARCHITECTURE.md` into the folder to replace the body, or uses Drive's "manage versions".
+6. **Google Drive (human-readable mirror).** Infrastructure folder, file id `1F0srFZSS-Nvg2RlUG84zVSvuiN9o8zDc`. Updated **in place by id** by the VPS script `/root/.openclaw/workspace/scripts/sync-to-drive.py` (gog CLI), verified working 2026-07-07; run it after the surface-1-to-5 sync. (The Drive MCP remains create-only, so never try to update this file through MCP; manual drag-drop is only the fallback if the script's gog auth breaks.)
 
 The document BODY (everything below the YAML frontmatter) must be byte-identical across locations 1 through 5. Location 6 (Drive) lags until Krish manually replaces it. The repo is for PR and review; the VPS is what agents actually read on wake; the two skill copies are what Claude Code and Cursor load; Drive is what humans share.
 
