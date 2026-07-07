@@ -13,6 +13,7 @@ import { CustomerCouncilCard } from '../CustomerCouncilCard'
 import { ExpansionRadar } from '../ExpansionRadar'
 import { CustomerSourcesPanel } from '../CustomerSourcesPanel'
 import { SubscriptionsWatchHero } from '../customers/SubscriptionsWatchHero'
+import { SubscribersList } from '../customers/SubscribersList'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
@@ -112,6 +113,7 @@ export function MobileCustomers() {
       />
 
       <MrrTicker variant="mobile" />
+      <SubscribersList />
       <CustomerCouncilCard />
       <ExpansionRadar />
       <CustomerSourcesPanel />
