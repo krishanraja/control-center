@@ -186,13 +186,14 @@ Live inventory (reconciled against the runtime 2026-07-01), grouped by name pref
 | **Maya** | 2 | Closed-Loop Revenue Engine, Customer Acquisition Sweeper. (Churn → Exit Interview **disabled 2026-07-01** — broken; §3.4.1) |
 | **Priya** | 2 | Daily Health Scan, Weekly Product Rollup |
 | **Kai** | 2 | Kai Helper — Slim Workflows Fetch (sub-workflow); Dependency Mapper + Credential Health (`fBgBwoAg0YdkabtU`, every 4h — **re-enabled 2026-07-01**, on probation, no prior execution history) |
+| **Acquisition** | 3 | **NEW 2026-07-07** — CTRL Capture Intake (webhook `/webhook/ctrl-capture`), CTRL Nurture Scheduler (daily 14:00 UTC; L1 approvals via `send-<id>` tasks), CTRL Unsubscribe (webhook `/webhook/ctrl-unsub`). See §11.5 |
 | **Fleet** | 1 | **NEW** — Attribution & Product-Truth Health (daily 06:15 UTC) |
 | **Mindmaker OS** | 1 | **NEW** — RE Dossier Engine (Relationship Engine, every 6h) |
 | **Leo** | 1 | Revenue Weekly Report (Friday) |
 | **Hunter** | 1 | Job Sweep (fires **Mon + Wed** per cron `dow=1,3`; node is mislabeled "Mon + Thu") |
 | **Felix** | 1 | Opportunity Pipeline Tracker (Mon–Fri) |
 | **Sonnet** | 0 | Task Lever Rater **disabled 2026-07-01** (broken — `$credentials` in Code node; §3.4.1) |
-| **Active total** | **84** | |
+| **Active total** | **87** | |
 | **Inactive / archived** | **16** | Workflow Optimizer; ZZ ARCHIVED Agatha Visibility Deep Enrich (dup); Nell Guest Speaker Briefing (archived dup) + Guest Pitch Enrich (archived); Nova Visibility Backfill Tick; System HARO Ingestion; "AI Agent workflow" (legacy); Critical Infrastructure Monitor (retired to VPS 2026-07-01); Maya Churn→Exit & Sonnet Task Lever Rater (disabled 2026-07-01); + the 6 retired-product workflows (Stripe + Feedback for Gutted/Merciless/OnAlert, deactivated 2026-07-06) |
 
 > Prior versions of this table listed a "Deep Enrich Retry Sweep" System workflow and a separate Cleo "Capture Idea Webhook" — neither exists as a standalone live workflow (retry behaviour folded into the Nova/Agatha enrich webhooks; idea capture is the single `Content Idea Capture` workflow). Removed 2026-07-01.
@@ -280,6 +281,7 @@ Every piece of OS state lives in one of these tables. Categorised by change rate
 | `customer_contacts` | One row per customer conversation. Mined by Marcus for `customer_voice` themes from the last 7 days. Drives the Customer Council card on the Customers tab |
 | `bets` | Falsifiable business hypotheses — `title`, `hypothesis`, `time_box_days`, `est_mrr_impact_usd`, `status` (`live`/`won`/`lost`/`partial`), `learning`, `actual_mrr_impact_usd`. 90-day hit-rate computed in the Bets tab |
 | `business_metrics` | Revenue MTD, pipeline value, content metrics |
+| `acquisition_sends` | L1 send ledger for the Acquisition OS (§11.5). One row per outbound nurture message: `lead_id` FK, `lane`, `frame_version`, `touch_number`, rendered subject/body, `status` (`queued`/`approved`/`sent`/`rejected`/`suppressed`/`failed`), `approval_task_id` (the `send-<id>` tasks row Krish marks done to approve), `resend_id`. Unique on (lead, frame, touch) = idempotency. Read by the `acquisition_capture_to_paid` view (weekly captures vs paid per lane; Leo's Friday Pulse renders it) and by Vera's weekly autonomy-demotion check |
 
 ### 4.4 Operational firehose (high write)
 
@@ -1528,7 +1530,7 @@ The autonomous customer-acquisition layer. Doctrine is canonical in `acquisition
 - **Four gates, one surface.** Strategy / Voice / Named-accounts+warm-network / Money+public-surface approvals all route through `decisions_waiting` (+ Telegram bridge). Two new kinds (`sequence_approval`, `send_sample`) are planned for the Control Center decisions panel (`DecisionsWaitingPanel.tsx` + `routeDecision.ts`); DB needs no migration (`kind` is unconstrained).
 - **Autonomy ladder.** Per-lane L1 (every send approved) → L2 (1-in-10 sampled) → L3 (exception-only), graduation mechanical on rejection rates, Vera's weekly audit owns demotion. All lanes start L1. Fields land with Phase 3.
 - **Moat metrics:** B2B = qualified meetings per 1,000 sends; B2C = capture-to-paid conversion. Opens/clicks are explicitly not success metrics.
-- **Build status (2026-07-06):** Phase 0 done (retirement/onboard above; deliverability gate moot in v1; decision-kind check confirmed). Phase 1 in flight: CTRL capture → Cleo 4-touch Resend nurture (frame Gate-2-approved before first external use) → Stripe, instrumented capture-to-paid from send one. Phases 2-4 (Pulse demand surface, Full Time distribution wiring, data-PR lane, autonomy fields, agent-facing Plinth distribution) staged per the playbook's build order.
+- **Build status (2026-07-07): Phases 1-3 SHIPPED.** Phase 1 live end to end: `/download` capture page on CTRL is PUBLIC (flag `VITE_FF_CAPTURE`, Vercel project `mm-ctrl`; capture clock started 2026-07-07, flip check 2026-08-04), engine = 3 Acquisition workflows (§3 table) + `acquisition_sends` ledger + `capture-lead` edge function on CTRL's Supabase; the full L1 cycle (capture → touch-1 send as `CTRL <ctrl@themindmaker.ai>` via verified Resend domain → touch-2 queue → Krish task approval → send → unsubscribe suppression) was live-proven with real email before launch. Phase 2: Full Time podcast RSS (`/api/public/feed.rss`) + per-episode share pages live; Pulse demand surface spec'd (`pulse-demand-test-spec.md`), warm-intro shortlist screened from Krish's LinkedIn export (Gate 1 answered). Phase 3: Plinth `llms.txt` (truth-corrected) + `/.well-known/mcp.json` live; Nova gained a Monday drafts-only product-data pitch lane (P4, 20 nodes, additive-verified) with `visibility_targets.pitch_type`/`product_slug`; autonomy ladder is data (`venture_registry.autonomy_level` default L1 + `autonomy_history`) enforced by Vera's weekly rejection-rate demotion check. Wave-1 distribution pack + shortlist picks + podcast directory submissions sit on Krish's decisions surface. Deferred: the Sweeper's product-data research chain (first draft correctly refused over n8n execution semantics; rebuild queued), dedicated decisions kinds UI, paid tests (locked until owned/earned revenue per Gate 4).
 
 Traces to O-2 (revenue), O-3 (one person running 15-30), O-6 (nothing external without approval), O-7 (decision lag).
 
@@ -1887,6 +1889,13 @@ docs/audits/                                                 # Closure architect
 ## 20. Recent architectural changes — rolling changelog
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
+
+### 2026-07-07 - Acquisition OS Phases 1-3 shipped: CTRL capture lane public, engine live, distribution surfaces up
+
+- **CTRL B2C lane (Phase 1), public and L1-proven:** `/download` capture page live on ctrl.themindmaker.ai (mm-ctrl PR #333 + `VITE_FF_CAPTURE=true`); `capture-lead` edge function on CTRL's Supabase forwards to the new Acquisition workflows (Capture Intake, Nurture Scheduler daily 14:00 UTC, Unsubscribe); `acquisition_sends` L1 ledger + `acquisition_capture_to_paid` view + `acquisition_utm_conventions` config; Leo's Friday Pulse gained the funnel section. Full cycle verified with real email on the verified `themindmaker.ai` Resend domain before launch. Fixes en route: `leads_source_type_check` gained `capture`; `venture_registry` gained the missing `mm_ctrl` lane row (leads FK had blocked captures).
+- **Phase 2:** Full Time podcast RSS + `/episode/$id` share pages live (full-time PR #4 + manual CLI deploy; that Vercel project is NOT GitHub-linked, fix proposed); `episodes.audio_bytes` backfilled 8/8 real. Pulse demand test spec'd; warm-intro shortlist (top 20 of 3,982 connections) screened from Krish's LinkedIn export.
+- **Phase 3:** Plinth `llms.txt` truth-corrected + MCP manifest live (plinth PR #27); Nova P4 product-data pitch lane (Mon 15:00 UTC, Gmail drafts only, additive-verified 80→100 nodes) + `visibility_targets.pitch_type`/`product_slug`; autonomy ladder columns on `venture_registry` + Vera weekly demotion check live.
+- **Found during the work, queued:** Nova P1-P3 pre-existing silent defects (identity-prepend field mismatch; post-LLM dead context) and the Sweeper product-research chain rebuild (first design correctly refused: converging branches into shared once-per-all-items Code nodes silently drops rows).
 
 ### 2026-07-06 - product retirement (Gutted/Merciless/OnAlert) + Plinth/Full Time onboard + Acquisition OS v1.1
 
