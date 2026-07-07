@@ -10,6 +10,8 @@ export type CustomerProduct =
   | 'fractionl_circle'
   | 'fractionl_pulse'
   | 'mm_ctrl'
+  | 'plinth'
+  | 'full_time'
 
 export interface CustomerRow {
   id: string
@@ -58,6 +60,7 @@ export interface ProductBucket {
 const ALL_PRODUCTS: CustomerProduct[] = [
   'gutted', 'onalert', 'merciless',
   'fractionl_circle', 'fractionl_pulse', 'mm_ctrl',
+  'plinth', 'full_time',
 ]
 
 /**
@@ -141,6 +144,11 @@ export function useCustomers() {
   return { customers: rows, buckets, totals, loading, error }
 }
 
+// Gutted/On Alert/Merciless were retired from the OS control plane 2026-07-06
+// (see MINDMAKER_OS_ARCHITECTURE.md §21) but historical `customers` rows for
+// them are preserved, not deleted — labels/accents/tones stay defined so those
+// rows keep rendering their real product name instead of crashing or falling
+// back to the raw enum string.
 export const PRODUCT_LABEL: Record<CustomerProduct, string> = {
   gutted: 'Gutted',
   onalert: 'On Alert',
@@ -148,6 +156,8 @@ export const PRODUCT_LABEL: Record<CustomerProduct, string> = {
   fractionl_circle: 'Fractionl Circle',
   fractionl_pulse: 'Fractionl Pulse',
   mm_ctrl: 'mm-ctrl',
+  plinth: 'Plinth',
+  full_time: 'Full Time',
 }
 
 export const PRODUCT_ACCENT: Record<CustomerProduct, string> = {
@@ -157,6 +167,24 @@ export const PRODUCT_ACCENT: Record<CustomerProduct, string> = {
   fractionl_circle: 'bg-violet-400',
   fractionl_pulse: 'bg-sky-400',
   mm_ctrl: 'bg-emerald-400',
+  plinth: 'bg-blue-400',
+  full_time: 'bg-orange-400',
+}
+
+// Bordered-chip tone triple (text / bg / border) — same hue family as
+// PRODUCT_ACCENT above, in the ContactSourcePill VENTURE_META idiom. Used
+// wherever a product needs a full chip rather than just a dot (e.g.
+// SubscribersList). Hardcoded literal Tailwind classes (not built from a
+// template string) so the JIT content scanner can see them.
+export const PRODUCT_CHIP_TONE: Record<CustomerProduct, string> = {
+  gutted: 'text-rose-300 bg-rose-500/10 border-rose-500/20',
+  onalert: 'text-amber-300 bg-amber-500/10 border-amber-500/20',
+  merciless: 'text-red-300 bg-red-500/10 border-red-500/20',
+  fractionl_circle: 'text-violet-300 bg-violet-500/10 border-violet-500/20',
+  fractionl_pulse: 'text-sky-300 bg-sky-500/10 border-sky-500/20',
+  mm_ctrl: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
+  plinth: 'text-blue-300 bg-blue-500/10 border-blue-500/20',
+  full_time: 'text-orange-300 bg-orange-500/10 border-orange-500/20',
 }
 
 export const KIND_ACCENT: Record<CustomerKind, string> = {
