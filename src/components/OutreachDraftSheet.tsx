@@ -33,7 +33,7 @@ const VENTURES: Array<{ slug: string; label: string }> = [
   { slug: 'adfixus', label: 'AdFixus' },
   { slug: 'signal_noise', label: 'Signal & Noise' },
   { slug: 'builder_economy', label: 'Builder Economy' },
-  { slug: 'fractionl', label: 'Fractionl' },
+  { slug: 'fractionl_pulse', label: 'Fractionl Pulse' },
   { slug: 'investor', label: 'Investor' },
 ]
 

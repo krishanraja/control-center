@@ -33,7 +33,7 @@ const TONE_GUIDE: Record<string, string> = {
 
 const VENTURE_LABEL: Record<string, string> = {
   mindmaker: 'Mindmaker', meliora: 'Meliora', adfixus: 'AdFixus', signal_noise: 'Signal & Noise',
-  builder_economy: 'Builder Economy', fractionl: 'Fractionl', investor: 'Investor',
+  builder_economy: 'Builder Economy', fractionl_pulse: 'Fractionl Pulse', investor: 'Investor',
 }
 
 const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '')

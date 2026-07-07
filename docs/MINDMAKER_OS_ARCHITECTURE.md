@@ -63,7 +63,7 @@ When a section of this doc describes a workflow, table, or surface, it should be
 | VPS (Ubuntu 22.04) | Hosts OpenClaw, every workspace, system crontab, helper scripts | `/root/.openclaw/` |
 | OpenClaw | Agent framework — sessions, cron, Telegram/Discord routing, gateway | `/root/.openclaw/openclaw.json` |
 | Supabase | Postgres database (state SSOT), PostgREST API, edge functions, auth, realtime | Project `gojpffsrxybbpbdzzrvs` |
-| N8N Cloud | ~100 workflows (~90 active, ~7,411 scheduled execs/mo, 10k/mo cap) running on cron/webhook — orchestrator, agent jobs, integrations | `krishraja10101.app.n8n.cloud` |
+| N8N Cloud | ~100 workflows (~84 active, ~7,400 scheduled execs/mo, 10k/mo cap) running on cron/webhook: orchestrator, agent jobs, integrations | `krishraja10101.app.n8n.cloud` |
 | Vercel | Hosts Control Center (React + Vite + TS) + `/api/*` proxy functions | Project `control-center` |
 | GitHub | Source for Control Center + checked-in N8N workflow snapshots + this doc | `krishanraja/control-center` |
 | Google Workspace | Docs, Sheets, Drive, Gmail — output + collaboration + email drafts via OAuth | `krish@themindmaker.ai` |
@@ -91,7 +91,7 @@ When a section of this doc describes a workflow, table, or surface, it should be
 
 | Service | Purpose |
 |---|---|
-| Stripe (6 accounts) | Payments for Mindmaker, Fractionl Circle, Fractionl Pulse, OnAlert, Gutted, Merciless, mm-ctrl |
+| Stripe | Payments for Mindmaker, Fractionl Circle, Fractionl Pulse, mm-ctrl (Full Time has TEST-mode wiring only, do not charge). The OnAlert / Gutted / Merciless accounts belong to products retired from the OS control plane 2026-07-06 and await Krish's manual sunset |
 | Apollo.io | Lead sourcing + ICP filtering + verified contacts |
 | Instantly.ai | Cold email sequencing |
 | Apify | Web scrapers (25 registered actors — see `apify_actor_registry`) |
@@ -177,8 +177,8 @@ Live inventory (reconciled against the runtime 2026-07-01), grouped by name pref
 | **Nell** | 10 | Guest Scout, Apollo Contact Enrichment, Draft Outbound Messages, Lead Document Ingest, Guest Sheet Bulk Import, Guest Confirmed Cascade, Guest Pitch Draft, + **Briefing Stuck-Generating Sweep** (every 4h), **Guest Pitch Enrich (Exa)**, **Guest Speaker Briefing** |
 | **Agatha** | 8 | Content Angle Approval, Portfolio Pipeline Triage/Dispatch/Analytics, Product Proposal Review, State of Union Weekly, Lead Deep Enrich, Weekly Plan Refresh (Mon 09:00 UTC). Closure Intent Receiver still planned (§17.7). |
 | **Krish** | 6 | **NEW GROUP** — Inbox Return Detector (every 15m), Inbox Router, Inbox Classifier, Inbox Digest (Sun 17:00 UTC), Focus Calibrator, Objective Milestone Proposer |
-| **Stripe** | 6 | Revenue alerts: Merciless, OnAlert, Gutted, Fractionl, mm-ctrl, Mindmaker OS Payment Alert |
-| **Feedback** | 5 | Weekly per product (Fractionl Circle, Fractionl Pulse, Gutted, Merciless, OnAlert) |
+| **Stripe** | 3 | Revenue alerts: Fractionl, mm-ctrl, Mindmaker OS Payment Alert. (Merciless/OnAlert/Gutted alerts deactivated 2026-07-06, product retirement) |
+| **Feedback** | 2 | Weekly per product (Fractionl Circle, Fractionl Pulse). (Gutted/Merciless/OnAlert weeklies deactivated 2026-07-06, product retirement) |
 | **Vera** | 4 | Behavioural Auditor, Feedback Aggregation (Sun 06:00 UTC), Failure Pattern Sweep (Sun 07:00 UTC), Success Induction Sweep (Sun 08:00 UTC) |
 | **Nova** | 4 | Closed-Loop PR Engine, Visibility Sweeper (Mon 11:00 UTC; retry sub-trigger every 6h), Podchaser → Visibility (Outbound), enrich endpoint |
 | **Marcus** | 4 | Synthesis + Home Intelligence (Mon + Wed/Fri + Sun deep), Daily Brief 06:30, Friday Retro 17:00, Monday Pre-mortem 08:00 |
@@ -192,8 +192,8 @@ Live inventory (reconciled against the runtime 2026-07-01), grouped by name pref
 | **Hunter** | 1 | Job Sweep (fires **Mon + Wed** per cron `dow=1,3`; node is mislabeled "Mon + Thu") |
 | **Felix** | 1 | Opportunity Pipeline Tracker (Mon–Fri) |
 | **Sonnet** | 0 | Task Lever Rater **disabled 2026-07-01** (broken — `$credentials` in Code node; §3.4.1) |
-| **Active total** | **90** | |
-| **Inactive / archived** | **10** | Workflow Optimizer; ZZ ARCHIVED Agatha Visibility Deep Enrich (dup); Nell Guest Speaker Briefing (archived dup) + Guest Pitch Enrich (archived); Nova Visibility Backfill Tick; System HARO Ingestion; "AI Agent workflow" (legacy); Critical Infrastructure Monitor (retired to VPS 2026-07-01); + Maya Churn→Exit & Sonnet Task Lever Rater (disabled 2026-07-01) |
+| **Active total** | **84** | |
+| **Inactive / archived** | **16** | Workflow Optimizer; ZZ ARCHIVED Agatha Visibility Deep Enrich (dup); Nell Guest Speaker Briefing (archived dup) + Guest Pitch Enrich (archived); Nova Visibility Backfill Tick; System HARO Ingestion; "AI Agent workflow" (legacy); Critical Infrastructure Monitor (retired to VPS 2026-07-01); Maya Churn→Exit & Sonnet Task Lever Rater (disabled 2026-07-01); + the 6 retired-product workflows (Stripe + Feedback for Gutted/Merciless/OnAlert, deactivated 2026-07-06) |
 
 > Prior versions of this table listed a "Deep Enrich Retry Sweep" System workflow and a separate Cleo "Capture Idea Webhook" — neither exists as a standalone live workflow (retry behaviour folded into the Nova/Agatha enrich webhooks; idea capture is the single `Content Idea Capture` workflow). Removed 2026-07-01.
 
@@ -863,7 +863,9 @@ Krish approves / declines via VisibilityTargetCard
 
 ```
 Stripe (per-product) fires checkout.session.completed
-    → POST /webhook/{merciless|onalert|gutted|fractionl|mmctrl}-stripe-revenue
+    → POST /webhook/{fractionl|mmctrl}-stripe-revenue
+      (merciless/onalert/gutted webhooks deactivated 2026-07-06, product retirement;
+       remove the endpoints in those Stripe dashboards during sunset)
         → Stripe Webhook node
             ├─ Telegram alert
             ├─ Log to workflow_runs
@@ -1450,18 +1452,19 @@ The OS actively tracks 8 ventures (`ventures` table, all `status='active'`).
 | **Meliora** (meliora.company) | Lead Associate, GenAI transformation for telco/media | `enterprise-gigs-agent` cron tracks pipeline; lives in `tasks` with `workstream='advisory_sales'` |
 | **AdFixus** (adfixus.com) | Enterprise Consultant, identity & data infra | Same pipeline mechanism as Meliora |
 
-### 11.2 Builder products (each has Stripe revenue alerts + weekly feedback loop)
+### 11.2 Builder products
 
 | Product | Domain | Customer slug | OS surface |
 |---|---|---|---|
-| **mm-ctrl (CTRL)** | ctrl.themindmaker.ai | `mm_ctrl` | AI decision-clarity product for leaders; live surfaces: decision spine, StoneRead, brain canvas, lesson-kit engine at `/kit`; forced-dark redesign live (PR #186). Webhook `/webhook/mmctrl-stripe-revenue` |
-| **Fractionl Circle** | circle.fractionl.ai | `fractionl_circle` | Subscriptions table sweep |
-| **Fractionl Pulse** | pulse.fractionl.ai | `fractionl_pulse` | Waitlist table sweep |
-| **OnAlert** | onalert.app | `onalert` | Profiles sweep + revenue alert |
-| **Gutted** | www.gutted.app | `gutted` | Profiles sweep + revenue alert |
-| **Merciless** | merciless.app | `merciless` | user_subscriptions sweep + revenue alert |
+| **mm-ctrl (CTRL)** | ctrl.themindmaker.ai | `mm_ctrl` | AI decision-clarity product for leaders; live surfaces: decision spine, StoneRead, brain canvas, lesson-kit engine at `/kit`; forced-dark redesign live (PR #186). Webhook `/webhook/mmctrl-stripe-revenue`. **B2C launch lane** per the Acquisition OS (§11.5) |
+| **Fractionl Circle** | circle.fractionl.ai | `fractionl_circle` | Subscriptions table sweep. Acquisition lane parked (§11.5) |
+| **Fractionl Pulse** | pulse.fractionl.ai | `fractionl_pulse` | Waitlist table sweep. **B2B launch lane**, gated on the demand test (§11.5) |
+| **Plinth** | plinth-tan.vercel.app (onplinth.io) | `plinth` | Typed product-data API + MCP for agents. Repo `krishanraja/plinth`, own Supabase `cgkcplcamsijghalintq`. Priya health scan live; no product-truth endpoint, customer sweep, or Stripe webhook yet (TODOs in the workflows). Dev-first, agent-first lane (§11.5) |
+| **Full Time** | full-time-alpha.vercel.app | `full_time` | Daily AI football recap. Repo `krishanraja/full-time`, own Supabase `hzadscrqmyilbisexvyz`. Priya health scan live; Stripe is TEST-mode only; no product-truth endpoint or customer sweep yet |
 
-*Each builder product also emits lifecycle + revenue events to the shared fleet attribution warehouse and publishes a machine-readable product-truth surface the fleet sells from — see **11.4**.*
+**Retired from the OS control plane 2026-07-06 (Krish directive):** OnAlert (`onalert`), Gutted (`gutted`), Merciless (`merciless`). Their Stripe/Feedback workflows are deactivated, their entries are removed from Priya's scans, Maya's engines, Marcus's synthesis, the competitor scan, the proposal router, all agent briefs, `system_config.fleet_skill_workflow_map_v1`, and `product_truth`. Historical `customers` / `workflow_runs` / attribution rows are preserved, and the `customer_product` enum keeps the old labels (Postgres enums cannot drop values without a rebuild). The apps themselves stay deployed until Krish manually sunsets their Stripe accounts, Vercel projects, and domains.
+
+*Each live builder product emits lifecycle + revenue events to the shared fleet attribution warehouse and publishes a machine-readable product-truth surface the fleet sells from, see **11.4**. Plinth and Full Time are not warehouse-wired yet.*
 
 ### 11.3 Creator / content
 
@@ -1476,7 +1479,7 @@ The OS actively tracks 8 ventures (`ventures` table, all `status='active'`).
 
 ### 11.4 Fleet attribution warehouse + autonomous app commerce
 
-The six builder products are agent-native, self-selling surfaces wired to one shared attribution warehouse, so the OS runs their sales + marketing autonomously. All six emit lifecycle + revenue events into the warehouse, and the growth agents read the resulting funnel/revenue views + each app's product-truth surface. Per-app detail lives in each repo's `AGENT_BRIEFING.md` / fleet-wiring doc and in `Downloads/app OS summaries/*.md`.
+The live builder products are agent-native, self-selling surfaces wired to one shared attribution warehouse, so the OS runs their sales + marketing autonomously. Three currently emit lifecycle + revenue events into the warehouse (Circle, Pulse, CTRL); Gutted/Merciless/OnAlert emitters were retired with those products on 2026-07-06, and Plinth + Full Time are not wired yet, so warehouse coverage is narrower than it was until the new lanes mature. The growth agents read the resulting funnel/revenue views + each live app's product-truth surface. Per-app detail lives in each repo's `AGENT_BRIEFING.md` / fleet-wiring doc and in `Downloads/app OS summaries/*.md`.
 
 **The warehouse (OS-owned).** One `attribution` schema on the OS Supabase `gojpffsrxybbpbdzzrvs`, fronted by a single secret-gated edge function `ingest-attribution` (validates `x-attribution-secret`, rate-limits, idempotent upsert into `attribution.events` on `dedupe_key` via the `public.ingest_attribution_event` RPC). The function **normalizes both documented envelopes**: the canonical shape (`event` / `dedupe_key` / flat `utm_*` / `amount_cents`) and gutted's `attribution.events/1` shape (`event_name` / `idempotency_key` / nested `utm{}` / `value_cents`). Two service-role-only read views:
 
@@ -1496,25 +1499,38 @@ Plus `public.attribution_app_health` (per-app last_event_at + 24h/7d event count
 | **Circle** | `fractionl_ai` | `circle.fractionl.ai/agent.json` | LIVE |
 | **Pulse** | `fractionl_ai` | `pulse.fractionl.ai/product-truth.json` (+ MCP + `/fwi-api/current`) | LIVE (Supabase secrets + `VITE_ATTRIBUTION_EMIT_URL`) |
 | **CTRL** | `mindmaker_llc` | `ctrl.themindmaker.ai/.well-known/product.json` | LIVE (`WAREHOUSE_INGEST_URL` + secret) |
-| **Gutted** | `mindmaker_llc` | `www.gutted.app/api/product-truth` | LIVE (Vercel env + ingest normalization) |
-| **Merciless** | `mindmaker_llc` | `merciless.app/offer.json` (+ live `offer`) | LIVE |
-| **OnAlert** | `mindmaker_llc` | `onalert.app/.well-known/product-truth.json` | LIVE (Supabase secrets + `VITE_ATTRIBUTION_ENABLED`) |
+| **Plinth** | none yet | none yet (TODO: publish + wire emit) | NOT WIRED |
+| **Full Time** | none yet (Stripe TEST-mode only) | none yet (TODO: publish + wire emit) | NOT WIRED |
+| ~~Gutted / Merciless / OnAlert~~ | `mindmaker_llc` | retired 2026-07-06 | RETIRED (emitters live in the app repos until sunset; warehouse ignores nothing, but the fleet no longer sells from them) |
 
 Env-var names differ per app and MUST match each app's code: CTRL reads `WAREHOUSE_INGEST_URL`; Gutted/OnAlert/Pulse read `ATTRIBUTION_INGEST_URL`. Gutted holds its secret in Vercel (Next.js server-side); CTRL/OnAlert/Pulse hold theirs in Supabase edge secrets. Pulse emits through its own `emit-event` proxy (pure client SPA, so the secret stays server-side).
 
 **Product-truth — the single sell-from source.** Every app publishes a machine-readable truth doc the fleet MUST fetch at use time (PRODTRUTH-001), carrying pricing, ICP, live-vs-roadmap capability status, and a voice / `do_not_say` / `never_claim` array. Agents MUST honor capability status (never sell a non-live feature) and the per-app voice rules (no em dashes; app-specific never-say) before any autonomous post. Cached daily into `public.product_truth`.
 
-**Merciless writable offer genome.** Maya can ship a price arm or headline framing on Merciless with no deploy: `POST .../offer-admin` with `x-fleet-secret: <FLEET_ADMIN_SECRET>`; read the attributed delta from the warehouse views; promote the winner inside the guardrail. Pulse + Circle share `fractionl_ai` and Pulse is Circle's funnel, so the warehouse shows Pulse-sourced revenue landing in Circle (separable by `app` + `stripe_account`).
+**Offer genome (retired capability).** The Merciless writable offer genome (`POST .../offer-admin`) retired with the product on 2026-07-06 and was removed from Maya's brief. Pulse + Circle share `fractionl_ai` and Pulse is Circle's funnel, so the warehouse shows Pulse-sourced revenue landing in Circle (separable by `app` + `stripe_account`).
 
-**Agent bindings (the autonomous loop, wired into `brief_content`):** Maya → `funnel_by_campaign` + runtime product-truth + Merciless `offer-admin`; Leo → `revenue_by_campaign` weekly; Cleo / Nell / Nova / Felix / Hunter / Zara → fetch product-truth + repo `AGENT_BRIEFING.md` before composing, tag every app link per ATTR-001, honor each app's `do_not_say` / voice rules; Marcus → folds warehouse funnel + revenue signal into `home_intelligence`.
+**Agent bindings (the autonomous loop, wired into `brief_content`):** Maya → `funnel_by_campaign` + runtime product-truth; Leo → `revenue_by_campaign` weekly; Cleo / Nell / Nova / Felix / Hunter / Zara → fetch product-truth + repo `AGENT_BRIEFING.md` before composing, tag every app link per ATTR-001, honor each app's `do_not_say` / voice rules; Marcus → folds warehouse funnel + revenue signal into `home_intelligence`.
 
 **Standards:** **ATTR-001** (every fleet app link carries `utm_source/medium/campaign/content/term` + `agent` + `campaign_id`) and **PRODTRUTH-001** (fetch product-truth at runtime; honor capability + voice guardrails). Both active in `standards_registry`.
 
-**Monitoring:** `Fleet | Attribution & Product-Truth Health` (n8n `Zz0nvhXNELQH0zFy`, daily 06:15 UTC) probes all six product-truth surfaces and Telegram-alerts ops if any goes down. `attribution_app_health` surfaces per-app emit freshness.
+**Monitoring:** `Fleet | Attribution & Product-Truth Health` (n8n `Zz0nvhXNELQH0zFy`, daily 06:15 UTC) probes the three live product-truth surfaces (Circle, Pulse, CTRL) and Telegram-alerts ops if any goes down; Plinth and Full Time join the probe list when they publish product-truth endpoints. `attribution_app_health` surfaces per-app emit freshness.
 
 **Outcome trace.** Moves O-2 (revenue — now attributed per app/campaign), O-3 (one person running 15-30), O-7 (decision lag — Maya/Leo act on attributed signal, not guesswork).
 
-**Pending (Krish-blocked):** add `charge.refunded` + `charge.dispute.created` to OnAlert's Stripe endpoint (needs the `mindmaker_llc` Stripe key); rotate the leaked `sbp_` token + GitHub PATs + the session-pasted tokens; rotate OnAlert's service-role JWT (paired with a Vercel `VITE_SUPABASE_ANON_KEY` update); Circle + Merciless OAuth scopes; Merciless Resend domain; live single-card purchase tests to arm Pulse checkout.
+**Pending (Krish-blocked):** rotate the leaked `sbp_` token + GitHub PATs + the session-pasted tokens; Circle OAuth scopes; live single-card purchase tests to arm Pulse checkout. (The OnAlert/Merciless items previously listed here retired with those products on 2026-07-06.)
+
+### 11.5 Acquisition OS (v1.1)
+
+The autonomous customer-acquisition layer. Doctrine is canonical in `acquisition-os-playbook.md` (v1.1, OneDrive: `Documents/0 Ventures/Mindmaker/GTM playbook for autonomous agents/`); this section records only what is wired into the OS.
+
+- **One engine, five lanes.** Pipeline `SENSE → QUALIFY → ENRICH → ENGAGE → CONVERT → LEARN` as a Supabase state machine over the existing `leads` / `customers` / `venture_registry` tables. Lanes = the `venture_registry` rows `mm_ctrl` (B2C launch lane), `fractionl_pulse` (B2B lane, gated on a demand test: 3+ qualified meetings in 4 weeks or Gate 1 kill/reposition), `plinth` (dev-first, agent-first: waitlist + llms.txt/MCP discovery, no outbound engine), `full_time` (employers are the buyers; Agatha's existing pipeline is the reference implementation), `fractionl_circle` (parked).
+- **v1.1 rulings (Krish, Gate 1, 2026-07-06):** no cold email in v1 and no new motion may require Krish's personal brand; product brands sell (product-brand senders, product-data PR, product surfaces); Krish's personal earned media (podcasts via Nova, his content voice) keeps running unchanged as a bonus channel, never a dependency. Everything is additive: no current functionality retires except products Krish explicitly kills. Instantly senders stay paused by design. Paid tests: $500/month total cap (Gate 4), 2-week cells with kill rules, and spend starts only after revenue is flowing through owned/earned channels.
+- **Four gates, one surface.** Strategy / Voice / Named-accounts+warm-network / Money+public-surface approvals all route through `decisions_waiting` (+ Telegram bridge). Two new kinds (`sequence_approval`, `send_sample`) are planned for the Control Center decisions panel (`DecisionsWaitingPanel.tsx` + `routeDecision.ts`); DB needs no migration (`kind` is unconstrained).
+- **Autonomy ladder.** Per-lane L1 (every send approved) → L2 (1-in-10 sampled) → L3 (exception-only), graduation mechanical on rejection rates, Vera's weekly audit owns demotion. All lanes start L1. Fields land with Phase 3.
+- **Moat metrics:** B2B = qualified meetings per 1,000 sends; B2C = capture-to-paid conversion. Opens/clicks are explicitly not success metrics.
+- **Build status (2026-07-06):** Phase 0 done (retirement/onboard above; deliverability gate moot in v1; decision-kind check confirmed). Phase 1 in flight: CTRL capture → Cleo 4-touch Resend nurture (frame Gate-2-approved before first external use) → Stripe, instrumented capture-to-paid from send one. Phases 2-4 (Pulse demand surface, Full Time distribution wiring, data-PR lane, autonomy fields, agent-facing Plinth distribution) staged per the playbook's build order.
+
+Traces to O-2 (revenue), O-3 (one person running 15-30), O-6 (nothing external without approval), O-7 (decision lag).
 
 ---
 
@@ -1871,6 +1887,15 @@ docs/audits/                                                 # Closure architect
 ## 20. Recent architectural changes — rolling changelog
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
+
+### 2026-07-06 - product retirement (Gutted/Merciless/OnAlert) + Plinth/Full Time onboard + Acquisition OS v1.1
+
+Krish directive: permanently retire Gutted, Merciless, and OnAlert from the OS control plane and replace them with Plinth and Full Time, as part of standing up the Acquisition OS (§11.5).
+
+- **Retired everywhere the OS acts:** 6 workflows deactivated (Stripe + Feedback per product); 8 more active workflows patched to drop the trio as live products (Maya Revenue Engine + Acquisition Sweeper, Marcus Synthesis, Fleet Attribution Health probe, Competitor Scan, Priya Daily + Weekly, Proposal→GitHub Issue router); all 14 `agents.brief_content` rows cleaned (product-truth URLs, enums, sample prose); `system_config.fleet_skill_workflow_map_v1` purged of the 6 workflow ids; `ventures.onalert` → `archived`; 13 stale `priya-health-alert` tasks superseded; 3 `product_truth` rows deleted. Historical data (customers, workflow_runs, attribution events) preserved. The apps stay deployed until Krish manually sunsets Stripe accounts, Vercel projects, and domains.
+- **Onboarded:** `venture_registry` gained `plinth` + `full_time` (and `fractionl` split into `fractionl_pulse` + `fractionl_circle`, Circle parked); Priya's Daily Health Scan now probes plinth (`plinth-tan.vercel.app`) and full-time (`full-time-alpha.vercel.app`), live-verified writing 6 `product_health` rows; `customer_product` enum gained `plinth` + `full_time`. Neither app has a product-truth endpoint, customer sweep, or live Stripe webhook yet; explicit TODOs sit in the patched workflows instead of invented endpoints.
+- **Control Center:** bare `fractionl` venture slug renamed to `fractionl_pulse` across 8 UI/API files (this PR).
+- Same day, earlier: the mm-ctrl Stripe webhook 500s were fixed (workflow_runs `agent_id` drift + responseMode) along with 3 fleet-wide silent bugs, including the missing `customers (product, stripe_customer_id)` unique index that had broken every revenue upsert since May.
 
 ### 2026-07-01 (later) — full OS audit: SEV-0 credential leak, monitoring rebuilt, API-usage tracking, RLS hardening
 
