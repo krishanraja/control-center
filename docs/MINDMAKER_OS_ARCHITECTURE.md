@@ -186,7 +186,7 @@ Live inventory (reconciled against the runtime 2026-07-01), grouped by name pref
 | **Maya** | 2 | Closed-Loop Revenue Engine, Customer Acquisition Sweeper. (Churn → Exit Interview **disabled 2026-07-01** — broken; §3.4.1) |
 | **Priya** | 2 | Daily Health Scan, Weekly Product Rollup |
 | **Kai** | 2 | Kai Helper — Slim Workflows Fetch (sub-workflow); Dependency Mapper + Credential Health (`fBgBwoAg0YdkabtU`, every 4h — **re-enabled 2026-07-01**, on probation, no prior execution history) |
-| **Acquisition** | 3 | **NEW 2026-07-07** — CTRL Capture Intake (webhook `/webhook/ctrl-capture`), CTRL Nurture Scheduler (daily 14:00 UTC; L1 approvals via `send-<id>` tasks), CTRL Unsubscribe (webhook `/webhook/ctrl-unsub`). See §11.5 |
+| **Acquisition** | 3 | **NEW 2026-07-07**: CTRL Capture Intake (webhook `/webhook/ctrl-capture`), CTRL Nurture Scheduler (daily 14:00 UTC; L1 approvals via `send-<id>` tasks), CTRL Unsubscribe (webhook `/webhook/ctrl-unsub`). See §11.5 |
 | **Fleet** | 1 | **NEW** — Attribution & Product-Truth Health (daily 06:15 UTC) |
 | **Mindmaker OS** | 1 | **NEW** — RE Dossier Engine (Relationship Engine, every 6h) |
 | **Leo** | 1 | Revenue Weekly Report (Friday) |
