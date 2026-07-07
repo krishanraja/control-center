@@ -170,7 +170,7 @@ export function SubscribersList() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[13px] font-semibold text-white truncate">{displayName(c)}</p>
-                      {c.email && <p className="text-[11px] text-white/45 truncate">{c.email}</p>}
+                      {c.email && c.full_name && <p className="text-[11px] text-white/45 truncate">{c.email}</p>}
                     </div>
                     {mrr && (
                       <span className="text-[12px] tabular-nums text-emerald-300 flex-shrink-0">{mrr}</span>
