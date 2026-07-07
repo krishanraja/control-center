@@ -7,7 +7,7 @@ import type { ContactRow } from '../hooks/useRealtimeContacts'
 
 export const VENTURE_LABEL: Record<string, string> = {
   mindmaker: 'Mindmaker', meliora: 'Meliora', adfixus: 'AdFixus', signal_noise: 'Signal & Noise',
-  builder_economy: 'Builder Economy', fractionl: 'Fractionl', investor: 'Investor',
+  builder_economy: 'Builder Economy', fractionl_pulse: 'Fractionl Pulse', investor: 'Investor',
 }
 
 export function ventureLabel(v?: string | null): string | null {

@@ -6,7 +6,7 @@ import { supabase } from '../../_supabase.js'
 // guest who's actually a better fit for another venture).
 
 const KNOWN_VENTURES = new Set([
-  'mindmaker', 'meliora', 'adfixus', 'signal_noise', 'builder_economy', 'fractionl', 'investor',
+  'mindmaker', 'meliora', 'adfixus', 'signal_noise', 'builder_economy', 'fractionl_pulse', 'investor',
 ])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
