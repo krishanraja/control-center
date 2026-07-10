@@ -21,10 +21,48 @@ async function bootResilientGoto(page, url) {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 })
     try {
       await page.waitForFunction(() => (document.getElementById('root')?.innerText || '').length > 40, { timeout: 15000 })
+      await unlockIfGated(page)
       return
     } catch { /* reload and retry */ }
   }
   throw new Error(`app never booted at ${url}`)
+}
+
+// Prod serves a client-side access gate ("Enter your access code"). Type the
+// code and unlock; the session keeps subsequent navigations open.
+async function unlockIfGated(page) {
+  const gated = await page.evaluate(() => document.body.innerText.includes('Enter your access code'))
+  if (!gated) return
+  const input = await page.$('input')
+  if (!input) throw new Error('access gate shown but no input found')
+  await input.type(CODE, { delay: 20 })
+  await page.keyboard.press('Enter')
+  // Unlock reloads the whole document (execution context is destroyed), so a
+  // waitForFunction would throw. Poll instead, tolerating dead contexts.
+  const deadline = Date.now() + 60000
+  let blankSince = null
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 2500))
+    try {
+      const t = await page.evaluate(() => document.getElementById('root')?.innerText || '')
+      if (t.length > 60 && !t.includes('Enter your access code')) {
+        await new Promise(r => setTimeout(r, 2000))
+        return
+      }
+      // Post-unlock blank shell: the session persisted, the paint did not.
+      // Reload (runbook: the SPA sometimes boots blank; reload up to a few times).
+      if (t.length < 10) {
+        blankSince = blankSince || Date.now()
+        if (Date.now() - blankSince > 8000) {
+          blankSince = null
+          await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {})
+        }
+      } else {
+        blankSince = null
+      }
+    } catch { /* navigating; keep polling */ }
+  }
+  throw new Error('unlock did not complete')
 }
 
 async function clickRoom(page, label) {
