@@ -75,8 +75,9 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     if (editor && brief && !dirty) {
       editor.commands.setContent(brief.body_md || '')
     }
-    // Load the canvas whenever a fresh brief arrives and there are no local edits.
-  }, [editor, brief]) // eslint-disable-line react-hooks/exhaustive-deps
+    // Load the canvas whenever a fresh brief arrives and there are no local
+    // edits (dirty is read, not depended on: a keystroke must never reload).
+  }, [editor, brief])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
