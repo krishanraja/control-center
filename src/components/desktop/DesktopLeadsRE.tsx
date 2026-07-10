@@ -268,7 +268,7 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search name, company, campaign…"
-              className="w-full rounded-md border border-white/10 bg-[#141416] pl-7 pr-2 py-1.5 text-[12px] text-white/85 placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none"
+              className="w-full rounded-md border border-white/10 bg-base pl-7 pr-2 py-1.5 text-[12px] text-white/85 placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none"
             />
           </div>
         </div>
@@ -406,7 +406,7 @@ function BulkActionBar({ count, busy, onClear, onAction }: BarProps) {
     'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium border border-white/15 text-white/80 hover:bg-white/[0.08] disabled:opacity-40 transition-colors'
 
   return (
-    <div className="flex-shrink-0 flex items-center gap-2 rounded-xl border border-violet-400/30 bg-[#16131d] px-3 py-2 shadow-2xl">
+    <div className="flex-shrink-0 flex items-center gap-2 rounded-xl border border-violet-400/30 bg-sunk px-3 py-2 shadow-2xl">
       <span className="text-[12px] font-semibold text-white tabular-nums">{count} selected</span>
 
       <div className="relative" onMouseLeave={closeMenu}>
@@ -414,7 +414,7 @@ function BulkActionBar({ count, busy, onClear, onAction }: BarProps) {
           <UserCog size={12} /> Assign owner…
         </button>
         {menu === 'owner' && (
-          <div className="absolute bottom-full mb-1 left-0 rounded-md border border-white/10 bg-[#141416] shadow-2xl p-1 flex flex-col min-w-[110px] z-30">
+          <div className="absolute bottom-full mb-1 left-0 rounded-md border border-white/10 bg-base shadow-2xl p-1 flex flex-col min-w-[110px] z-30">
             {OWNER_OPTIONS.map(o => (
               <button key={o} type="button" onClick={() => { closeMenu(); onAction('assign_owner', o) }} className="text-left px-2 py-1 rounded text-[11px] text-white/75 hover:bg-white/[0.06]">
                 {o}
@@ -429,7 +429,7 @@ function BulkActionBar({ count, busy, onClear, onAction }: BarProps) {
           <Tag size={12} /> Set tier…
         </button>
         {menu === 'tier' && (
-          <div className="absolute bottom-full mb-1 left-0 rounded-md border border-white/10 bg-[#141416] shadow-2xl p-1 flex flex-col min-w-[150px] z-30">
+          <div className="absolute bottom-full mb-1 left-0 rounded-md border border-white/10 bg-base shadow-2xl p-1 flex flex-col min-w-[150px] z-30">
             {TIERS.map(t => (
               <button key={t.value} type="button" onClick={() => { closeMenu(); onAction('set_tier', t.value) }} className="text-left px-2 py-1 rounded text-[11px] text-white/75 hover:bg-white/[0.06]">
                 {t.label}

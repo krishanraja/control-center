@@ -189,6 +189,9 @@ export function SystemsPanel() {
                 {overallOk ? 'All systems nominal' : downServices.length > 0 ? `${downServices.length} service${downServices.length > 1 ? 's' : ''} down` : `${warnServices.length} warning${warnServices.length > 1 ? 's' : ''}`}
               </span>
             </div>
+            {overallOk && (
+              <p className="text-[11px] text-white/30 pl-4">Ambient surface: nothing here needs you. Real failures page Telegram and land on Home.</p>
+            )}
             {downServices.length > 0 && (
               <p className="text-[11px] text-red-300/70 pl-4">
                 Down: {downServices.map(s => s.name).join(', ')}

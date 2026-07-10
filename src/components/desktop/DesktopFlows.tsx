@@ -140,7 +140,10 @@ export function DesktopFlows() {
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <WorkflowIcon size={13} className="text-blue-400" />
-          <h2 className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50 flex-1">Workflows</h2>
+          <h2 className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50 flex-1">
+            Workflows
+            <span className="ml-2 normal-case tracking-normal font-normal text-white/30">ambient · nothing here needs you; proposals surface on Home when they do</span>
+          </h2>
           <span className="text-[10px] text-white/30 font-mono tabular-nums">{grouped.length}</span>
         </div>
 

@@ -435,7 +435,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
               {busy === 'skip' ? 'Skipping…' : 'Skip'}
             </button>
             {skipOpen && (
-              <div className="absolute z-30 mt-1 left-0 rounded-md border border-white/10 bg-[#141416] shadow-2xl p-1 flex flex-col min-w-[180px]">
+              <div className="absolute z-30 mt-1 left-0 rounded-md border border-white/10 bg-base shadow-2xl p-1 flex flex-col min-w-[180px]">
                 <span className="px-2 pt-1 pb-0.5 text-[9px] uppercase tracking-[0.14em] text-white/40">
                   Why skip?
                 </span>
@@ -535,7 +535,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             {l.assignee_agent ? `Reassign · ${l.assignee_agent}` : 'Assign'}
           </button>
           {reassignOpen && (
-            <div className="absolute z-20 mt-1 left-0 rounded-md border border-white/10 bg-[#141416] shadow-2xl p-1 flex flex-col min-w-[110px]">
+            <div className="absolute z-20 mt-1 left-0 rounded-md border border-white/10 bg-base shadow-2xl p-1 flex flex-col min-w-[110px]">
               {ASSIGNEE_OPTIONS.filter(a => a !== l.assignee_agent).map(a => (
                 <button
                   key={a}
@@ -560,7 +560,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             Follow-up
           </button>
           {followUpOpen && (
-            <div className="absolute z-20 mt-1 left-0 rounded-md border border-white/10 bg-[#141416] shadow-2xl p-1 flex gap-1">
+            <div className="absolute z-20 mt-1 left-0 rounded-md border border-white/10 bg-base shadow-2xl p-1 flex gap-1">
               {[1, 3, 7, 14].map(d => (
                 <button
                   key={d}

@@ -131,6 +131,9 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
     loading,
     onAccept: triageConfig.onAccept,
     onReject: triageConfig.onReject,
+    // v2 idiom (coherence wave 1): the bounded typed queue is the default
+    // landing once a real queue exists, matching Guests. 30 was pile-tolerance.
+    enterAt: 8, exitAt: 5,
   })
 
   const detailSheet = (

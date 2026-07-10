@@ -276,6 +276,77 @@ export function buildDecisionActions(
       break
     }
 
+    case 'content_decision': {
+      // The Content Engine v2 weekly queue (spec R4): kind-correct one-tap
+      // rulings, same endpoints the Content tab's own queue uses. `row` is the
+      // content_decisions row: { id, kind, ref, week, payload }.
+      const dKind = row.kind || row.decision_kind
+      if (dKind === 'shift_proposal') {
+        acts.push({
+          label: 'Accept shift',
+          variant: 'primary',
+          onClick: () => run('Accept',
+            () => json(`/api/shifts/${row.ref}`, { action: 'accept' }, 'PATCH'),
+            'Shift accepted onto the register.', { terminal: true }),
+        })
+        acts.push({
+          label: 'Dismiss',
+          variant: 'danger',
+          onClick: () => run('Dismiss',
+            () => json(`/api/shifts/${row.ref}`, { action: 'dismiss' }, 'PATCH'),
+            'Proposal dismissed.', { terminal: true }),
+        })
+      } else if (dKind === 'shift_fading') {
+        acts.push({
+          label: 'Retire with verdict',
+          variant: 'primary',
+          onClick: () => run('Retire',
+            () => json(`/api/shifts/${row.ref}`, { action: 'retire' }, 'PATCH'),
+            'Shift retired; dossier kept.', { terminal: true }),
+        })
+        acts.push({
+          label: 'Keep watching',
+          variant: 'secondary',
+          onClick: () => run('Keep watching',
+            () => json(`/api/shifts/${row.ref}`, { action: 'keep_watching' }, 'PATCH'),
+            'Back on the watchlist.', { terminal: true }),
+        })
+      } else if (dKind === 'graduation') {
+        acts.push({
+          label: 'Graduate to Library',
+          variant: 'primary',
+          onClick: () => run('Graduate',
+            () => json(`/api/content-decisions/${row.id}`, { action: 'done' }, 'PATCH'),
+            'Kept forever, receipts attached.', { terminal: true }),
+        })
+        acts.push({
+          label: 'Let it purge',
+          variant: 'secondary',
+          onClick: () => run('Let it purge',
+            () => json(`/api/content-decisions/${row.id}`, { action: 'dismiss' }, 'PATCH'),
+            'It expires Monday.', { terminal: true }),
+        })
+      } else if (dKind === 'brief_review') {
+        acts.push({
+          label: 'Open the brief',
+          variant: 'primary',
+          onClick: async () => {
+            navigate?.('content', { brief: row.week })
+            onDone?.()
+          },
+        })
+      } else {
+        acts.push({
+          label: 'Acknowledged',
+          variant: 'primary',
+          onClick: () => run('Acknowledge',
+            () => json(`/api/content-decisions/${row.id}`, { action: 'done' }, 'PATCH'),
+            'Noted.', { terminal: true }),
+        })
+      }
+      break
+    }
+
     default:
       break
   }

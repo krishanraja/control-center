@@ -186,7 +186,7 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
 
       {/* Forced decision modal */}
       {modal && (
-        <div className="mt-3 rounded-lg border border-white/[0.12] bg-[#141416] p-3 space-y-2">
+        <div className="mt-3 rounded-lg border border-white/[0.12] bg-base p-3 space-y-2">
           <p className="text-[11px] font-semibold text-white">
             {modal === 'win'   && 'What worked? (one sentence, required)'}
             {modal === 'lose'  && 'What did you learn? (one sentence, required)'}

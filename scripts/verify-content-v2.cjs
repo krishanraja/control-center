@@ -20,8 +20,12 @@ async function bootResilientGoto(page, url) {
   for (let attempt = 1; attempt <= 4; attempt++) {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 })
     try {
-      await page.waitForFunction(() => (document.getElementById('root')?.innerText || '').length > 40, { timeout: 15000 })
-      await unlockIfGated(page)
+      // The access gate is a standalone middleware page with NO #root; unlock
+      // must run before waiting for the app to paint, and its redirect drops
+      // the hash route, so re-navigate to the target after unlocking.
+      const unlocked = await unlockIfGated(page)
+      if (unlocked) await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 })
+      await page.waitForFunction(() => (document.getElementById('root')?.innerText || '').length > 40, { timeout: 20000 })
       return
     } catch { /* reload and retry */ }
   }
@@ -32,7 +36,7 @@ async function bootResilientGoto(page, url) {
 // code and unlock; the session keeps subsequent navigations open.
 async function unlockIfGated(page) {
   const gated = await page.evaluate(() => document.body.innerText.includes('Enter your access code'))
-  if (!gated) return
+  if (!gated) return false
   const input = await page.$('input')
   if (!input) throw new Error('access gate shown but no input found')
   await input.type(CODE, { delay: 20 })
@@ -47,7 +51,7 @@ async function unlockIfGated(page) {
       const t = await page.evaluate(() => document.getElementById('root')?.innerText || '')
       if (t.length > 60 && !t.includes('Enter your access code')) {
         await new Promise(r => setTimeout(r, 2000))
-        return
+        return true
       }
       // Post-unlock blank shell: the session persisted, the paint did not.
       // Reload (runbook: the SPA sometimes boots blank; reload up to a few times).
