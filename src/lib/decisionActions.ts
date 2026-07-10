@@ -347,6 +347,46 @@ export function buildDecisionActions(
       break
     }
 
+    case 'inbox_returned': {
+      // A capture that came back needing Krish. Open the routed target when
+      // one exists; Archive resolves the inbox row itself (terminal).
+      if (navigate && row.target_table && row.target_id) {
+        const kindByTable: Record<string, string> = {
+          tasks: 'task', leads: 'lead', guests: 'guest',
+          visibility_targets: 'visibility', content_ideas: 'idea',
+        }
+        const targetKind = kindByTable[String(row.target_table)]
+        if (targetKind) {
+          acts.push({
+            label: 'Open the item',
+            variant: 'primary',
+            onClick: () => { navigateDecision(navigate, targetKind, String(row.target_id)); onDone?.() },
+          })
+        }
+      }
+      acts.push({
+        label: 'Archive',
+        variant: acts.length ? 'secondary' : 'primary',
+        onClick: () => run('Archive',
+          () => json('/api/tasks-inbox/archive', { id: row.id, reason: 'krish_dismissed' }),
+          'Archived.', { terminal: true }),
+      })
+      break
+    }
+
+    case 'vera_gap': {
+      // Persistent gaps resolve by fixing their owned task; Vera auto-closes
+      // the gap on the next sweep once the task moves.
+      if (navigate && row.task_id) {
+        acts.push({
+          label: 'Open the owning task',
+          variant: 'primary',
+          onClick: () => { navigateDecision(navigate, 'task', String(row.task_id)); onDone?.() },
+        })
+      }
+      break
+    }
+
     default:
       break
   }

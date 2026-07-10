@@ -114,10 +114,11 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   // v2 idiom: land in the bounded typed queue when one is waiting; closing it
   // browses the status lanes without a mid-session re-open.
   useEffect(() => {
-    if (!loading && !autoOpenedRef.current && triageConfig.items.length > 8) {
-      autoOpenedRef.current = true
-      setTriageOpen(true)
-    }
+    if (loading || autoOpenedRef.current) return
+    // Landing decision happens exactly once, on the first settled load; a
+    // later realtime arrival must never yank the user into the deck mid-task.
+    autoOpenedRef.current = true
+    if (triageConfig.items.length > 8) setTriageOpen(true)
   }, [loading, triageConfig.items.length])
 
   const handleOpenGuest = onOpenGuest || ((id: string) => navigateDecision(onNavigate || (() => {}), 'guest', id))

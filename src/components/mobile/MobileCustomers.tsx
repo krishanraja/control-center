@@ -1,7 +1,10 @@
 import React, { useMemo, useState } from 'react'
 import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
+import { BottomSheet } from './BottomSheet'
+import { Pressable } from '../shared/Pressable'
 import { useHaptics } from '../../hooks/useHaptics'
+import { useDictation } from '../../hooks/useDictation'
 import { useToast } from '../shared/Toast'
 import { supabase } from '../../lib/supabase'
 import {
@@ -23,6 +26,11 @@ export function MobileCustomers() {
   const { toast } = useToast()
   const { customers, buckets, totals, loading, error } = useCustomers()
   const [openId, setOpenId] = useState<string | null>(null)
+  // Log-a-call sheet: dictation-first quick capture (the sanctioned mobile
+  // composition exception). Hook lives at top level; actions only flip state.
+  const [logOpen, setLogOpen] = useState(false)
+  const [callNote, setCallNote] = useState('')
+  const dict = useDictation(t => setCallNote(prev => (prev.trim() ? `${prev.trim()} ${t}` : t)))
   const { mode, setMode } = useFocusMode()
   const { today: focusToday } = useDailyFocus()
   const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
@@ -87,6 +95,30 @@ export function MobileCustomers() {
     />
   )
 
+  const closeLogSheet = () => {
+    if (dict.listening) dict.toggle()
+    setLogOpen(false)
+  }
+
+  // Async on purpose: Pressable choreographs pending/success/error off the
+  // returned promise. Throw on failure so the error state (+ haptic) fires.
+  const submitLogCall = async () => {
+    if (!open) return
+    try {
+      const r = await fetch('/api/customer-contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_id: open.id, channel: 'call', summary: callNote.trim() }),
+      })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+    } catch (e) {
+      toast(`Could not log call: ${e instanceof Error ? e.message : 'try again'}`, 'error')
+      throw e
+    }
+    toast('Call logged.', 'success')
+    closeLogSheet()
+  }
+
   if (loading && customers.length === 0) {
     return <MobileLoadingScreen title="Subscriptions" subtitle="Gathering subscriptions…" />
   }
@@ -101,7 +133,7 @@ export function MobileCustomers() {
               ? 'Loading…'
               : totals.paid > 0
                 ? `${totals.paid} paid · $${Math.round(totals.mrrUsd).toLocaleString()}/mo`
-                : 'No paid customers yet — sweep + Stripe webhooks not wired.'
+                : 'No paid customers yet; sweep + Stripe webhooks not wired.'
           }
         />
       }
@@ -128,7 +160,7 @@ export function MobileCustomers() {
             hero.mode === 'paid' && typeof hero.row.mrr_usd === 'number' && hero.row.mrr_usd > 0
               ? `$${Math.round(hero.row.mrr_usd)}/mo added`
               : hero.mode === 'churned'
-                ? 'Investigate — Marcus can pull last-7-day context'
+                ? 'Investigate: Marcus can pull last-7-day context'
                 : undefined
           }
           cta="Open"
@@ -221,7 +253,7 @@ export function MobileCustomers() {
       )}
 
       <DetailSheet
-        open={open != null}
+        open={open != null && !logOpen}
         onClose={() => setOpenId(null)}
         eyebrow={open ? `${PRODUCT_LABEL[open.product]} · ${KIND_LABEL[open.kind]}` : undefined}
         title={open?.full_name || open?.email || ''}
@@ -271,24 +303,9 @@ export function MobileCustomers() {
           {
             label: 'Log call',
             variant: 'secondary' as const,
-            onClick: async () => {
-              const summary = window.prompt('Brief summary of the call:')
-              if (!summary) return
-              h.heavy()
-              try {
-                const r = await fetch('/api/customer-contacts', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ customer_id: open.id, kind: 'call', summary }),
-                })
-                if (!r.ok) throw new Error(`HTTP ${r.status}`)
-                h.success()
-                toast('Call logged.', 'success')
-              } catch (e: any) {
-                h.error()
-                toast(`Could not log call: ${e?.message || 'try again'}`, 'error')
-              }
-            },
+            // Sync open: swap the customer sheet for the dictation-first log
+            // sheet (never stack; see DetailSheet Enter-key/body-overflow traps).
+            onClick: () => { h.select(); setCallNote(''); setLogOpen(true) },
           },
           ...(open.needs_outreach_at ? [] : [{
             label: 'Mark for outreach',
@@ -296,11 +313,11 @@ export function MobileCustomers() {
             onClick: async () => {
               h.heavy()
               try {
-                const { error } = await supabase
-                  .from('customers')
-                  .update({ needs_outreach_at: new Date().toISOString() })
-                  .eq('id', open.id)
-                if (error) throw new Error(error.message)
+                // Service-role route: the old anon-client update silently
+                // matched 0 rows under RLS while the toast claimed success.
+                const r = await fetch(`/api/customers/${open.id}/outreach`, { method: 'POST' })
+                const body = await r.json().catch(() => ({}))
+                if (!r.ok || body?.ok === false) throw new Error(body?.error || `HTTP ${r.status}`)
                 h.success()
                 toast('Flagged for outreach.', 'success')
               } catch (e: any) {
@@ -311,6 +328,60 @@ export function MobileCustomers() {
           }]),
         ] : []}
       />
+
+      {/* Log-a-call sheet. Replaces the customer sheet while open (openId is
+          retained, so Cancel springs it back). Mic leads; the keyboard only
+          appears when summoned, or immediately when dictation is unsupported. */}
+      <BottomSheet
+        open={logOpen && open != null}
+        onClose={closeLogSheet}
+        fullHeight={false}
+        ariaLabel="Log a call"
+      >
+        <div className="px-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
+          <div className="pb-4 border-b border-white/[0.06]">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">
+              Log a call
+            </p>
+            <h2 className="text-[19px] font-bold text-white leading-snug mt-0.5">
+              {open?.full_name || open?.email || 'Customer'}
+            </h2>
+          </div>
+
+          {dict.supported && (
+            <button
+              type="button"
+              onClick={() => { h.select(); dict.toggle() }}
+              className={`mt-4 w-full rounded-full border py-3 text-[14px] font-semibold transition-colors ${
+                dict.listening
+                  ? 'border-red-400/40 bg-red-400/15 text-red-300'
+                  : 'border-sky-400/30 bg-sky-400/10 text-sky-300 active:bg-sky-400/20'
+              }`}
+            >
+              {dict.listening ? 'Listening... tap to stop' : '🎙 Dictate the summary'}
+            </button>
+          )}
+
+          <textarea
+            value={callNote}
+            onChange={e => setCallNote(e.target.value)}
+            rows={4}
+            // Summon the keyboard only when the mic cannot lead.
+            autoFocus={!dict.supported}
+            placeholder="Brief summary of the call"
+            className="mt-3 w-full rounded-2xl border border-white/[0.10] bg-white/[0.04] px-4 py-3 text-[15px] text-white placeholder:text-white/35 leading-relaxed resize-none focus:outline-none focus:border-white/25"
+          />
+
+          <div className="mt-3 space-y-2.5">
+            <Pressable variant="primary" disabled={!callNote.trim()} onPress={submitLogCall}>
+              Log it
+            </Pressable>
+            <Pressable variant="ghost" onPress={closeLogSheet}>
+              Cancel
+            </Pressable>
+          </div>
+        </div>
+      </BottomSheet>
     </MobileShellPrim>
   )
 }

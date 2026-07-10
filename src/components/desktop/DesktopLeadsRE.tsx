@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react'
-import { HeartHandshake, X, Search, UserCog, Tag, Ban, FileSearch, Flame, Layers } from 'lucide-react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { HeartHandshake, X, Search, UserCog, Tag, Ban, FileSearch, Flame, Layers, Table2 } from 'lucide-react'
 import {
   useRealtimeContacts,
   type ContactRow,
@@ -50,6 +50,9 @@ type BulkAction = 'assign_owner' | 'set_tier' | 'do_not_contact' | 'dismiss_play
 
 const heatDesc = (a: ContactRow, b: ContactRow) => (b.heat_score ?? 0) - (a.heat_score ?? 0)
 
+// /api/contacts/bulk rejects payloads over 500 ids (MAX_IDS), so select-all caps there.
+const BULK_SELECT_CAP = 500
+
 interface Props {
   onNavigate?: (tab: string, params?: Record<string, string>) => void
 }
@@ -58,6 +61,7 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
   const { toast } = useToast()
   const h = useHaptics()
   const [triageOpen, setTriageOpen] = useState(false)
+  const [powerMode, setPowerMode] = useState(false)
 
   const [ventureIn, setVentureIn] = useState<string[]>([])
   const [tierIn, setTierIn] = useState<ConsentTier[]>([])
@@ -105,6 +109,17 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
   // Desktop triage cockpit over the warm hand-queue (same swipe grammar as mobile).
   const triageConfig = useMemo(() => buildContactsTriageConfig(contacts, { toast }, loading), [contacts, toast, loading])
 
+  // Deck-first landing: whenever there is anything in the hand queue, Network
+  // opens straight into the cockpit. One-shot per mount so exiting to browse sticks.
+  const autoOpenedRef = useRef(false)
+  useEffect(() => {
+    if (loading || autoOpenedRef.current) return
+    // Landing decision happens exactly once, on the first settled load; a
+    // later realtime arrival must never yank the user into the deck mid-task.
+    autoOpenedRef.current = true
+    if (triageConfig.items.length > 0) setTriageOpen(true)
+  }, [loading, triageConfig.items.length])
+
   const toggleVenture = (slug: string) =>
     setVentureIn(prev => (prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]))
   const toggleTier = (t: ConsentTier) =>
@@ -120,7 +135,19 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
 
   const clearSelection = () => setSelected(new Set())
 
-  const selectAllReview = () => setSelected(new Set(reviewList.map(c => c.id)))
+  const selectAllReview = () => {
+    setSelected(new Set(reviewList.slice(0, BULK_SELECT_CAP).map(c => c.id)))
+    if (reviewList.length > BULK_SELECT_CAP) {
+      toast(`Selected the top ${BULK_SELECT_CAP} by predicted priority. Bulk actions cap at ${BULK_SELECT_CAP} at a time.`, 'info')
+    }
+  }
+
+  // Power mode gates the review grid + bulk bar. Toggling OFF clears the
+  // selection so a hidden sticky bar can never strand selected rows.
+  const togglePowerMode = () => {
+    if (powerMode) clearSelection()
+    setPowerMode(p => !p)
+  }
 
   const runBulk = async (action: BulkAction, value?: string) => {
     const ids = Array.from(selected)
@@ -218,6 +245,19 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
               <Layers size={14} /> Handle 1-by-1 · {triageConfig.items.length}
             </button>
           )}
+          <button
+            type="button"
+            onClick={togglePowerMode}
+            aria-pressed={powerMode}
+            title="Show the review grid and bulk actions"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold border transition-colors ${
+              powerMode
+                ? 'border-violet-400/50 bg-violet-500/15 text-violet-100'
+                : 'border-white/15 text-white/85 hover:bg-white/[0.06]'
+            }`}
+          >
+            <Table2 size={14} /> Power mode
+          </button>
           <button
             type="button"
             onClick={() => setShowImport(s => !s)}
@@ -327,52 +367,67 @@ export function DesktopLeadsRE({ onNavigate }: Props = {}) {
           )}
         </section>
 
-        {/* Bulk review section */}
-        <section>
-          <div className="flex items-center gap-2 mb-2">
-            <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-white/55">
-              Review &amp; bulk-action
-            </h2>
-            <span className="text-[11px] text-white/40 tabular-nums">{reviewList.length}</span>
-            {reviewList.length > 0 && (
-              <button
-                type="button"
-                onClick={selectAllReview}
-                className="ml-auto text-[11px] text-white/45 hover:text-white/75"
-              >
-                Select all
-              </button>
-            )}
-          </div>
-          {reviewList.length === 0 ? (
-            <p className="text-[12px] text-white/35 px-1 py-2">
-              {loading ? 'Loading contacts…' : 'Nothing else to review in this filter.'}
-            </p>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
-                {reviewList.slice(0, REVIEW_CAP).map(c => (
-                  <ContactCard
-                    key={c.id}
-                    contact={c}
-                    selected={selected.has(c.id)}
-                    onToggleSelect={toggleSelect}
-                    onOpen={() => setLeadContact(c)}
-                  />
-                ))}
-              </div>
-              {reviewList.length > REVIEW_CAP && (
-                <p className="mt-2 text-[11px] text-white/40 px-1">
-                  Showing the top {REVIEW_CAP} by predicted priority. Narrow with filters or search to see the rest — {reviewList.length - REVIEW_CAP} more match this filter.
-                </p>
+        {/* Bulk review section, behind the explicit Power mode */}
+        {powerMode ? (
+          <section>
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-white/55">
+                Review &amp; bulk-action
+              </h2>
+              <span className="text-[11px] text-white/40 tabular-nums">{reviewList.length}</span>
+              {reviewList.length > 0 && (
+                <button
+                  type="button"
+                  onClick={selectAllReview}
+                  className="ml-auto text-[11px] text-white/45 hover:text-white/75"
+                >
+                  Select all
+                </button>
               )}
-            </>
-          )}
-        </section>
+            </div>
+            {reviewList.length === 0 ? (
+              <p className="text-[12px] text-white/35 px-1 py-2">
+                {loading ? 'Loading contacts…' : 'Nothing else to review in this filter.'}
+              </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                  {reviewList.slice(0, REVIEW_CAP).map(c => (
+                    <ContactCard
+                      key={c.id}
+                      contact={c}
+                      selected={selected.has(c.id)}
+                      onToggleSelect={toggleSelect}
+                      onOpen={() => setLeadContact(c)}
+                    />
+                  ))}
+                </div>
+                {reviewList.length > REVIEW_CAP && (
+                  <p className="mt-2 text-[11px] text-white/40 px-1">
+                    Showing the top {REVIEW_CAP} by predicted priority. {reviewList.length - REVIEW_CAP} more match this filter. Narrow with filters or search to see the rest.
+                  </p>
+                )}
+              </>
+            )}
+          </section>
+        ) : reviewList.length > 0 ? (
+          <section className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.015] px-4 py-3">
+            <p className="text-[12px] text-white/55">
+              {reviewList.length} more {reviewList.length === 1 ? 'contact' : 'contacts'} in the long tail, ranked by predicted priority.
+            </p>
+            <button
+              type="button"
+              onClick={togglePowerMode}
+              className="flex-shrink-0 inline-flex items-center gap-1.5 text-[12px] font-semibold text-violet-200 hover:text-violet-100 transition-colors"
+            >
+              <Table2 size={13} /> Power mode
+            </button>
+          </section>
+        ) : null}
       </div>
 
-      {/* Sticky bulk action bar */}
-      {selected.size > 0 && (
+      {/* Sticky bulk action bar (power mode only, where selection is possible) */}
+      {powerMode && selected.size > 0 && (
         <BulkActionBar
           count={selected.size}
           busy={busy}

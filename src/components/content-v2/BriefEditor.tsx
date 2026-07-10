@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import { Markdown } from 'tiptap-markdown'
 import { contentV2Api } from '../../hooks/useContentV2'
+import { useDictation } from '../../hooks/useDictation'
 import { FACTORY_FANOUT, type WeeklyBriefRow } from '../../lib/contentV2'
 
 // The weekly brief editor (R8; mockup set 1 mock 2 + set 2 pin 12).
@@ -21,19 +22,6 @@ const MAGIC: Array<{ mode: string; label: string }> = [
   { mode: 'more_data', label: 'More data' },
 ]
 
-type SpeechRecognitionLike = {
-  lang: string; interimResults: boolean; maxAlternatives: number
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null
-  onend: (() => void) | null; onerror: (() => void) | null
-  start: () => void; stop: () => void
-}
-
-function getSpeech(): SpeechRecognitionLike | null {
-  const w = window as unknown as Record<string, unknown>
-  const Ctor = (w.SpeechRecognition || w.webkitSpeechRecognition) as (new () => SpeechRecognitionLike) | undefined
-  return Ctor ? new Ctor() : null
-}
-
 export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: boolean; onClose: () => void }) {
   const [brief, setBrief] = useState<WeeklyBriefRow | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -45,9 +33,8 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   const [fanout, setFanout] = useState<Set<string>>(new Set(FACTORY_FANOUT.filter(f => f.defaultOn).map(f => f.channel)))
   const [pushing, setPushing] = useState(false)
   const [pushed, setPushed] = useState<Array<{ channel: string; doc_url: string | null }> | null>(null)
-  const [listening, setListening] = useState(false)
   const [cleoNote, setCleoNote] = useState('')
-  const speechRef = useRef<SpeechRecognitionLike | null>(null)
+  const { listening, supported, toggle } = useDictation(setCleoNote)
 
   const editor = useEditor({
     extensions: [
@@ -167,22 +154,9 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   }, [brief, fanout, dirty, save, week, load])
 
   const dictate = useCallback(() => {
-    if (listening) { speechRef.current?.stop(); return }
-    const rec = getSpeech()
-    if (!rec) { setCleoNote(''); setPreview(null); setError('Dictation is not available in this browser; type the note instead.'); return }
-    speechRef.current = rec
-    rec.lang = 'en-GB'
-    rec.interimResults = false
-    rec.maxAlternatives = 1
-    rec.onresult = (e) => {
-      const said = e.results[0]?.[0]?.transcript || ''
-      setCleoNote(said)
-    }
-    rec.onend = () => setListening(false)
-    rec.onerror = () => setListening(false)
-    setListening(true)
-    rec.start()
-  }, [listening])
+    if (!supported) { setCleoNote(''); setPreview(null); setError('Dictation is not available in this browser; type the note instead.'); return }
+    toggle()
+  }, [supported, toggle])
 
   const editingClosed = brief ? !['ready', 'in_review', 'approved'].includes(brief.status) : false
   const versions = useMemo(() => (brief?.versions || []).slice().reverse(), [brief])
