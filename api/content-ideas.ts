@@ -315,6 +315,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (body.state === 'published') updates.published_at = new Date().toISOString()
     }
     if (typeof body.published_url === 'string') updates.published_url = body.published_url
+    // Content Engine v2 (spec §5): rescuing a Feed item before the Monday purge
+    // converts it into an evergreen Library candidate (fate 3, R10).
+    if (body.rescue === true) {
+      updates.horizon = 'evergreen'
+      updates.expires_at = null
+      updates.library_at = new Date().toISOString()
+    }
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ ok: false, error: 'no updatable fields supplied' })

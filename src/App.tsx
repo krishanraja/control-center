@@ -14,6 +14,7 @@ import { WeeklyFocusTakeover } from './components/objectives/WeeklyFocusTakeover
 import { FocusRitual } from './components/home/FocusRitual'
 import { isFocusRitualEnabled } from './lib/homeV2'
 import { useHashRoute } from './hooks/useHashRoute'
+import { contentV2Enabled } from './lib/contentV2'
 import { MobileTabSkeleton, BoardSkeleton } from './components/shared/Skeleton'
 
 /**
@@ -49,6 +50,11 @@ const MobileCustomers = lazy(() => import('./components/mobile/MobileCustomers')
 const MobileGuests = lazy(() => import('./components/mobile/MobileGuests').then(m => ({ default: m.MobileGuests })))
 const MobileContent = lazy(() => import('./components/mobile/MobileContent').then(m => ({ default: m.MobileContent })))
 const ContentComposer = lazy(() => import('./components/content/ContentComposer').then(m => ({ default: m.ContentComposer })))
+// Content Engine v2 (docs/CONTENT-ENGINE-V2-SPEC.md): the four-room Content tab
+// + the weekly-brief editor. Both flag-gated; the legacy triage surfaces render
+// untouched when VITE_CONTENT_V2_ENABLED is off.
+const ContentV2Tab = lazy(() => import('./components/content-v2/ContentV2Tab').then(m => ({ default: m.ContentV2Tab })))
+const BriefEditor = lazy(() => import('./components/content-v2/BriefEditor').then(m => ({ default: m.BriefEditor })))
 
 type TabId = 'home' | 'today' | 'leads' | 'relationships' | 'customers' | 'guests' | 'content' | 'org' | 'exec' | 'workflows' | 'systems'
 const VALID_TABS: TabId[] = ['home', 'today', 'leads', 'relationships', 'customers', 'guests', 'content', 'org', 'exec', 'workflows', 'systems']
@@ -155,7 +161,9 @@ export default function App() {
                   {tab === 'relationships' && <ErrorBoundary label="Leads"><MobileLeadsRE onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'customers' && <ErrorBoundary label="Customers"><MobileCustomers /></ErrorBoundary>}
                   {tab === 'guests'    && <ErrorBoundary label="Visibility"><MobileGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
-                  {tab === 'content'   && <ErrorBoundary label="Content"><MobileContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>}
+                  {tab === 'content'   && (contentV2Enabled()
+                    ? <ErrorBoundary label="Content"><div className="px-5 pt-7 pb-4 h-full flex flex-col overflow-hidden"><ContentV2Tab variant="mobile" /></div></ErrorBoundary>
+                    : <ErrorBoundary label="Content"><MobileContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>)}
                   {tab === 'exec'      && <ErrorBoundary label="Intel"><MobileIntel /></ErrorBoundary>}
                   {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrg /></ErrorBoundary>}
                   {tab === 'workflows' && <ErrorBoundary label="Flows"><MobileFlows /></ErrorBoundary>}
@@ -164,7 +172,9 @@ export default function App() {
               </div>
             ) : tab === 'content' ? (
               <Suspense fallback={<div className="p-6"><BoardSkeleton lanes={3} cardsPerLane={3} /></div>}>
-                <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>
+                {contentV2Enabled()
+                  ? <ErrorBoundary label="Content"><div className="h-full overflow-hidden px-6 py-6 flex flex-col"><ContentV2Tab variant="desktop" /></div></ErrorBoundary>
+                  : <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>}
               </Suspense>
             ) : (
               <div className="h-full overflow-y-auto px-6 py-6">
@@ -186,6 +196,21 @@ export default function App() {
           {narrow && <BottomNav active={tab} onChange={handleTab} />}
           {/* Full-screen content composer — owns the screen for one piece when an
               idea is deep-linked on the Content tab. Esc / back clears the param. */}
+          {/* Full-screen weekly-brief editor (Content Engine v2) — same overlay
+              contract as the composer; Esc / back clears the param. */}
+          {contentV2Enabled() && tab === 'content' && route.params.brief && (
+            <div style={narrow ? ({ zoom: 1.2, ['--z']: '1.2' } as React.CSSProperties) : undefined}>
+              <ErrorBoundary label="Brief">
+                <Suspense fallback={null}>
+                  <BriefEditor
+                    week={route.params.brief}
+                    narrow={narrow}
+                    onClose={() => navigate('content')}
+                  />
+                </Suspense>
+              </ErrorBoundary>
+            </div>
+          )}
           {tab === 'content' && route.params.idea && (
             // Match the tabs' 1.2× mobile scale: the composer is an App-root
             // full-screen surface, so without this wrapper it renders at native

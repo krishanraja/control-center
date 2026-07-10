@@ -129,6 +129,11 @@ export interface ContentIdeaRow {
       awaiting_publish?: boolean
     } | null
   } | null
+  // Content Engine v2 (spec §3): time horizon + purge deadline + dossier/library links.
+  horizon?: 'news' | 'evergreen' | null
+  expires_at?: string | null
+  shift_id?: string | null
+  library_at?: string | null
   /** 'user' rows are never auto-buried by the backburner sweep. */
   origin?: 'user' | 'agent' | null
   buried_at?: string | null
