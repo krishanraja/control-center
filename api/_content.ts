@@ -247,7 +247,14 @@ export function preamble(req: any, res: any, methods = 'POST, OPTIONS'): boolean
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   res.setHeader('Cache-Control', 'no-store')
   if (req.method === 'OPTIONS') { res.status(200).end(); return true }
-  if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'Method not allowed' }); return true }
+  // The methods string is the contract: a route declaring 'GET, PATCH, OPTIONS'
+  // accepts exactly those. (Previously only POST ever passed, whatever was
+  // declared, which 405'd the v2 GET/PATCH routes.)
+  const allowed = methods.split(',').map(m => m.trim().toUpperCase())
+  if (!allowed.includes(String(req.method).toUpperCase())) {
+    res.status(405).json({ ok: false, error: 'Method not allowed' })
+    return true
+  }
   return false
 }
 

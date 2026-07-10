@@ -187,7 +187,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   const versions = useMemo(() => (brief?.versions || []).slice().reverse(), [brief])
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0B0E14] flex flex-col" style={{ height: 'calc(100dvh / var(--z, 1))' }}>
+    <div className="fixed inset-0 z-50 bg-base flex flex-col" style={{ height: 'calc(100dvh / var(--z, 1))' }}>
       {/* header */}
       <header className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-white/[0.07] flex-shrink-0">
         <button onClick={onClose} className="text-white/50 hover:text-white text-[13px]">← Back</button>
@@ -226,7 +226,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
         <div className="flex-1 min-w-0 overflow-y-auto">
           {/* toolbar (desktop only) */}
           {!narrow && editor ? (
-            <div className="sticky top-0 z-10 flex items-center gap-0.5 px-4 sm:px-6 py-2 bg-[#0B0E14]/95 backdrop-blur border-b border-white/[0.05] flex-wrap">
+            <div className="sticky top-0 z-10 flex items-center gap-0.5 px-4 sm:px-6 py-2 bg-base/95 backdrop-blur border-b border-white/[0.05] flex-wrap">
               {([
                 ['B', () => editor.chain().focus().toggleBold().run(), editor.isActive('bold')],
                 ['I', () => editor.chain().focus().toggleItalic().run(), editor.isActive('italic')],
@@ -346,7 +346,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
 
       {/* fan-out bar */}
       {brief ? (
-        <footer className="px-4 sm:px-6 py-3.5 border-t border-white/[0.07] flex-shrink-0 bg-[#0A0C11]">
+        <footer className="px-4 sm:px-6 py-3.5 border-t border-white/[0.07] flex-shrink-0 bg-base">
           {pushed ? (
             <div className="text-[12.5px] text-emerald-300">
               Pushed {pushed.length} format{pushed.length === 1 ? '' : 's'} to Google Docs.{' '}
