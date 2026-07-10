@@ -43,6 +43,10 @@ export default defineConfig({
         // monolith. App routes are additionally code-split via React.lazy.
         manualChunks(id: string) {
           if (!id.includes('node_modules')) return
+          // TipTap ships as @tiptap/react + prosemirror-* and would otherwise be
+          // captured by the '/react/' rule below, interleaving editor code into
+          // the core React chunk (broken init order, prod-only white screen).
+          if (id.includes('@tiptap') || id.includes('tiptap-markdown') || id.includes('prosemirror')) return 'tiptap'
           if (id.includes('react-dom') || id.includes('scheduler')) return 'react-dom'
           if (id.includes('/react/') || id.includes('react/jsx-runtime')) return 'react'
           if (id.includes('@supabase')) return 'supabase'
