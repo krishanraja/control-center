@@ -35,6 +35,11 @@ export function routeDecision(kind: DecisionKind | string, id: string | null | u
     case 'content_decision':
       // The typed weekly queue lives in the Content tab's This Week room.
       return { tab: 'content', params: {} }
+    case 'inbox_returned':
+      // The returned capture surfaces as a Today decision on its routed task.
+      return { tab: 'today', params: safeId ? { decision: `inbox_returned:${safeId}` } : {} }
+    case 'vera_gap':
+      return { tab: 'today', params: safeId ? { decision: `vera_gap:${safeId}` } : {} }
     default:
       return { tab: 'today', params: {} }
   }

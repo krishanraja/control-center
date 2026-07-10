@@ -117,3 +117,52 @@ export function contactRationale(c: ContactRow): ContactRationale | null {
 export function contactDisplayName(c: ContactRow): string {
   return c.full_name || c.company || (c.email ? c.email.split('@')[0] : '—')
 }
+
+// ── Suggested next move ───────────────────────────────────────────────────
+
+export type SuggestedMoveTone = 'act' | 'due' | 'info'
+export interface SuggestedMove { label: string; tone: SuggestedMoveTone }
+
+const DAY_MS = 24 * 60 * 60 * 1000
+const QUIET_DAYS = 45
+const ENRICH_HEAT_FLOOR = 75
+
+/** Whole days since the timestamp. Null when absent or unparseable; negative = future. */
+function daysSince(iso?: string | null): number | null {
+  if (!iso) return null
+  const t = new Date(iso).getTime()
+  if (!Number.isFinite(t)) return null
+  return Math.floor((Date.now() - t) / DAY_MS)
+}
+
+/**
+ * The single suggested next move for a contact, judged purely from what is
+ * already on the row (zero fetches, zero credits). Precedence: the dossier's
+ * researched move, then an overdue follow-up, then re-warming a quiet warm
+ * contact, then filling gaps (enrich, find a channel). Null = nothing to push.
+ */
+export function suggestedMove(c: ContactRow): SuggestedMove | null {
+  const move = dossierMove(c.dossier, 60)
+  if (move) return { label: move, tone: 'act' }
+
+  const overdue = daysSince(c.next_touch_due_at)
+  if (overdue !== null && overdue >= 0) {
+    return { label: overdue >= 1 ? `Follow up, ${overdue}d overdue` : 'Follow up, due today', tone: 'due' }
+  }
+
+  const isWarm = c.consent_tier === 'warm' || c.consent_tier === 'customer'
+  const quiet = daysSince(c.last_touch_at)
+  if (isWarm && quiet !== null && quiet > QUIET_DAYS) {
+    return { label: `Re-warm, quiet ${quiet}d`, tone: 'due' }
+  }
+
+  if (!c.deep_enriched_at && (c.heat_score ?? 0) >= ENRICH_HEAT_FLOOR) {
+    return { label: 'Enrich first', tone: 'info' }
+  }
+
+  if (!c.email && !c.linkedin_url) {
+    return { label: 'No channel, find one', tone: 'info' }
+  }
+
+  return null
+}

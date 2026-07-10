@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { isToday, isPast, parseISO } from 'date-fns'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow } from './primitives'
+import { Mic } from 'lucide-react'
+import { MobileShell as MobileShellPrim, TabHeader, FeedCard, FeedRow } from './primitives'
 import { MobileTabSkeleton } from '../shared/Skeleton'
 import { AllClear } from '../shared/AllClear'
 import { DetailSheet } from './DetailSheet'
 import { BottomSheet } from './BottomSheet'
 import { useRealtimeTasks, type TaskRow } from '../../hooks/useRealtimeTasks'
+import { useDictation } from '../../hooks/useDictation'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { BackburnerSection } from '../shared/BackburnerSection'
@@ -40,11 +42,68 @@ function isDoneish(t: TaskRow): boolean {
   return t.status === 'superseded' || t.status === 'done' || t.status === 'closed'
 }
 
+// Mirrors DesktopToday: the day queue is the decisions_waiting task branch
+// (statuses an agent parks on Krish, unreviewed, not buried). Everything else
+// non-terminal is agent-carried and collapses to one ambient sentence.
+const QUEUE_STATUSES = new Set(['waiting', 'in_progress', 'blocked', 'new'])
+// A deferred task (future due_date) is off the plate until its date arrives.
+function deferredToLater(t: TaskRow): boolean {
+  if (!t.due_date) return false
+  const startOfTomorrow = new Date(); startOfTomorrow.setHours(24, 0, 0, 0)
+  return new Date(t.due_date).getTime() >= startOfTomorrow.getTime()
+}
+function needsKrish(t: TaskRow): boolean {
+  return QUEUE_STATUSES.has(t.status) && !t.krish_reviewed && !deferredToLater(t)
+}
+function isDueNow(t: TaskRow): boolean {
+  if (!t.due_date) return false
+  const d = parseISO(t.due_date)
+  return isToday(d) || isPast(d)
+}
+// Coarse sitting math, same spirit as minutesToZero in decisionKinds.
+function minutesLeft(remaining: number): number {
+  return Math.max(1, Math.round(remaining * 0.75))
+}
+type DeferChoice = 'tomorrow' | 'monday' | 'next_week'
+function deferDateISO(choice: DeferChoice): string {
+  const d = new Date()
+  if (choice === 'tomorrow') d.setDate(d.getDate() + 1)
+  else if (choice === 'monday') d.setDate(d.getDate() + (((8 - d.getDay()) % 7) || 7))
+  else d.setDate(d.getDate() + 7)
+  return d.toISOString()
+}
+
 function urgencyAccent(t: TaskRow): 'red' | 'amber' | 'violet' | 'neutral' {
   if (t.due_date && isPast(parseISO(t.due_date)) && t.status !== 'done') return 'red'
   if (t.priority === 'pri-1' || t.priority_override === 1) return 'amber'
   if (t.status === 'waiting') return 'violet'
   return 'neutral'
+}
+
+function cardAccent(t: TaskRow): string {
+  const a = urgencyAccent(t)
+  if (a === 'red') return 'border-red-400/25 bg-red-400/[0.04]'
+  if (a === 'amber') return 'border-amber-400/25 bg-amber-400/[0.04]'
+  if (a === 'violet') return 'border-violet-400/25 bg-violet-400/[0.04]'
+  return 'border-white/[0.08] bg-white/[0.02]'
+}
+
+// Thumb-zone button, same grammar as the content decision deck.
+function Big({ children, tone = 'ghost', onClick, disabled }: {
+  children: string; tone?: 'primary' | 'green' | 'ghost'; onClick: () => void; disabled?: boolean
+}) {
+  const cls = tone === 'green' ? 'bg-emerald-400 text-emerald-950'
+    : tone === 'primary' ? 'btn-contrast'
+    : 'bg-white/[0.06] text-white/75 border border-white/10'
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`w-full rounded-xl py-3.5 text-[13.5px] font-bold disabled:opacity-40 ${cls}`}
+    >
+      {children}
+    </button>
+  )
 }
 
 interface MobileTodayProps {
@@ -88,7 +147,7 @@ export function MobileToday({
 
   const h = useHaptics()
   const { toast } = useToast()
-  const { tasks: allTasks, loading } = useRealtimeTasks()
+  const { tasks: allTasks, loading, refresh } = useRealtimeTasks()
   const tasks = useMemo(
     () => (lane ? allTasks.filter(t => matchesLane(t, lane)) : allTasks),
     [allTasks, lane],
@@ -96,11 +155,20 @@ export function MobileToday({
   const [openId, setOpenId] = useState<string | null>(null)
   const [showStale, setShowStale] = useState(false)
   const [taskBusy, setTaskBusy] = useState(false)
+  // Set-based ledger: optimistic removal + a numerator that cannot double-count.
+  const [committed, setCommitted] = useState<Set<string>>(() => new Set())
+  const decided = committed.size
+  const [sendBackFor, setSendBackFor] = useState<TaskRow | null>(null)
+  const [deferFor, setDeferFor] = useState<TaskRow | null>(null)
+  const [note, setNote] = useState('')
+  // Dictation-first: the one-thumb contract means the mic leads and the
+  // keyboard only appears when summoned. Transcripts append to the note.
+  const dictation = useDictation(text => setNote(n => (n ? `${n} ${text}` : text)))
   const { mode, setMode } = useFocusMode()
   const { today: focusToday } = useDailyFocus()
   const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
 
-  const { due, waiting, pipeline, stale, buried, hero, visible } = useMemo(() => {
+  const { queue, carried, stale, buried } = useMemo(() => {
     const visible: TaskRow[] = []
     const staleArr: TaskRow[] = []
     const buried: TaskRow[] = []
@@ -111,31 +179,23 @@ export function MobileToday({
       if (isStale(t)) { staleArr.push(t); continue }
       visible.push(t)
     }
-    const due = visible.filter(t =>
-      t.due_date &&
-      (isToday(parseISO(t.due_date)) || isPast(parseISO(t.due_date))) &&
-      t.status !== 'done'
-    )
-    const waiting = visible.filter(t => t.status === 'waiting' && !due.includes(t))
-    const pipeline = visible.filter(t =>
-      (t.status === 'active' || t.status === 'in_progress') && !due.includes(t)
-    )
+    // Overdue and due-today rows lead (earliest first); the rest keep cache
+    // order (updated_at desc), same as desktop.
+    const queued = visible.filter(needsKrish).filter(t => !committed.has(t.id))
+    const dueNow = queued
+      .filter(isDueNow)
+      .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())
+    const queue = [...dueNow, ...queued.filter(t => !isDueNow(t))]
+    const carried = visible.filter(t => !needsKrish(t))
+    return { queue, carried, stale: staleArr, buried }
+  }, [tasks, committed])
 
-    const hero =
-      due.find(t => t.status === 'waiting') ||
-      due[0] ||
-      waiting[0] ||
-      pipeline[0] ||
-      null
-
-    return { due, waiting, pipeline, stale: staleArr, buried, hero, visible }
-  }, [tasks])
-
+  const current = queue[0] || null
+  const total = queue.length + decided
   const open = openId ? tasks.find(t => t.id === openId) ?? null : null
 
-  // Focus Mode (Phase 3): when enabled and the day is calibrated, the lists
-  // below regroup into the 3 daily-target lanes via relevance_index (table
-  // 'tasks'). One uniform row renderer feeds both the lanes and the muted set.
+  // Focus Mode (Phase 3): when enabled and the day is calibrated, the queue
+  // regroups into the 3 daily-target lanes via relevance_index (table 'tasks').
   const showFocus = isFocusModeEnabled() && !!calibrated && mode === 'focus'
   const renderTaskRow = (t: TaskRow) => {
     const accent = urgencyAccent(t)
@@ -152,15 +212,20 @@ export function MobileToday({
     )
   }
 
-  // Task writes go through service-role APIs — the anon client can't update
+  // Task writes go through service-role APIs; the anon client can't update
   // tasks under RLS (matches 0 rows without erroring, so the old direct
   // updates flashed success while the item stayed put).
-  const taskAction = async (url: string, payload: Record<string, any>, okMsg: string, failMsg: string) => {
+  const taskAction = async (
+    payload: Record<string, any>,
+    okMsg: string,
+    failMsg: string,
+    opts: { decided?: boolean } = {},
+  ) => {
     if (taskBusy) return
     h.heavy()
     setTaskBusy(true)
     try {
-      const res = await fetch(url, {
+      const res = await fetch('/api/tasks/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -169,7 +234,12 @@ export function MobileToday({
       if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`)
       h.success()
       toast(okMsg, 'success')
+      if (opts.decided) setCommitted(prev => { const n = new Set(prev); n.add(payload.id); return n })
       setOpenId(null)
+      setSendBackFor(null)
+      setDeferFor(null)
+      setNote('')
+      refresh()
     } catch {
       h.error()
       toast(failMsg, 'error')
@@ -178,18 +248,30 @@ export function MobileToday({
     }
   }
 
+  const approve = (t: TaskRow) =>
+    taskAction({ id: t.id, action: 'approve', agent: t.agent || t.owner }, 'Approved.', 'Could not approve.', { decided: true })
+  const sendBack = (t: TaskRow, notes: string) =>
+    taskAction(
+      { id: t.id, action: 'send_back', agent: t.agent || t.owner, notes },
+      `Sent back to ${t.agent || t.owner || 'the agent'}.`,
+      'Could not send back.',
+      { decided: true },
+    )
+  const defer = (t: TaskRow, choice: DeferChoice) =>
+    taskAction(
+      { id: t.id, action: 'defer', agent: t.agent || t.owner, due_date: deferDateISO(choice) },
+      'Deferred.',
+      'Could not defer.',
+      { decided: true },
+    )
   const supersede = (id: string, agent?: string) =>
-    taskAction('/api/tasks/update', { id, action: 'dismiss_superseded', agent }, 'Dismissed.', 'Could not dismiss.')
-  const markDone = (id: string, agent?: string) =>
-    taskAction('/api/tasks/update', { id, action: 'done', agent }, 'Done.', 'Could not mark done.')
-  const approve = (id: string, agent?: string) =>
-    taskAction('/api/tasks/update', { id, action: 'approve', agent }, 'Approved.', 'Could not approve.')
-  const rejectTask = (id: string, agent?: string) =>
-    taskAction('/api/triage/reject', { source_table: 'tasks', source_id: id, agent }, 'Rejected.', 'Could not reject.')
+    taskAction({ id, action: 'dismiss_superseded', agent }, 'Dismissed.', 'Could not dismiss.')
 
-  // First paint loads single-focus: one hero, one column, shimmering in. On a
-  // phone you arrived to make one decision — so the placeholder is that shape,
-  // not a generic spinner, and it settles straight into the real day.
+  const openSendBack = (t: TaskRow) => { h.select(); setOpenId(null); setNote(''); setSendBackFor(t) }
+  const openDefer = (t: TaskRow) => { h.select(); setOpenId(null); setDeferFor(t) }
+
+  // First paint loads single-focus: one card, shimmering in. On a phone you
+  // arrived to make one decision, so the placeholder is that shape.
   if (loading && allTasks.length === 0) {
     return (
       <MobileShellPrim header={<TabHeader title="Today" subtitle="Gathering your day…" />}>
@@ -203,7 +285,7 @@ export function MobileToday({
       header={
         <TabHeader
           title="Today"
-          subtitle={loading ? 'Loading…' : `${due.length} due · ${waiting.length} waiting on you`}
+          subtitle={loading ? 'Loading…' : queue.length > 0 ? `${queue.length} to decide` : 'The day is decided'}
         />
       }
     >
@@ -219,23 +301,6 @@ export function MobileToday({
           </button>
         </div>
       )}
-      {hero && (
-        <HeroCard
-          eyebrow={hero.agent ? `Needs you · ${hero.agent}` : 'Needs you'}
-          accent={urgencyAccent(hero)}
-          title={hero.title}
-          detail={hero.next_step || hero.description}
-          meta={hero.due_date ? `Due ${humanDue(hero.due_date)}` : humanAge(hero.updated_at)}
-          cta="Open"
-          onClick={() => { h.select(); setOpenId(hero.id) }}
-        />
-      )}
-
-      <div className="flex gap-3 flex-shrink-0">
-        <StatPill label="Due" value={due.length} color={due.length > 0 ? 'text-red-300' : 'text-white/45'} />
-        <StatPill label="Waiting" value={waiting.length} color={waiting.length > 0 ? 'text-amber-300' : 'text-white/45'} />
-        <StatPill label="Pipeline" value={pipeline.length} color="text-white/85" />
-      </div>
 
       {isFocusModeEnabled() && calibrated && (
         <div className="flex items-center justify-end -mt-1">
@@ -243,17 +308,10 @@ export function MobileToday({
         </div>
       )}
 
-      {due.length === 0 && waiting.length === 0 && pipeline.length === 0 && !loading && (
-        <AllClear
-          title="You're all clear."
-          sub="Nothing needs you right now. The pods keep working in the background."
-        />
-      )}
-
       {showFocus ? (
         <FeedCard title="Today, by focus">
           <FocusLanes
-            rows={visible}
+            rows={queue}
             table="tasks"
             keyOf={(t) => String(t.id)}
             renderItem={renderTaskRow}
@@ -261,56 +319,76 @@ export function MobileToday({
             mutedLabel="Off focus"
           />
         </FeedCard>
-      ) : (
-        <>
-          {due.length > 0 && (
-            <FeedCard title={`Due today · ${due.length}`}>
-              {due.slice(0, 6).map(t => (
-                <FeedRow
-                  key={t.id}
-                  dotColor="bg-red-400"
-                  title={t.title}
-                  detail={t.next_step || undefined}
-                  trailing={<span className="text-[14px] text-white/40">{humanDue(t.due_date)}</span>}
-                  onClick={() => { h.select(); setOpenId(t.id) }}
-                  feedback={{ sourceTable: "tasks", sourceId: t.id, agentId: t.agent || t.owner }}
-                />
-              ))}
-            </FeedCard>
-          )}
+      ) : current ? (
+        <div className="flex flex-col">
+          {/* progress */}
+          <div className="px-1 pb-3">
+            {total > 20 ? (
+              // Segments with fixed gaps stop fitting past ~20 items: one
+              // continuous track with a filled ratio carries the same read.
+              <div className="h-[3px] rounded-full bg-white/10 mb-2 overflow-hidden">
+                <div className="h-full rounded-full bg-emerald-400" style={{ width: `${Math.round((decided / Math.max(total, 1)) * 100)}%` }} />
+              </div>
+            ) : (
+              <div className="flex gap-1 mb-2">
+                {Array.from({ length: total || 1 }, (_, i) => (
+                  <span key={i} className={`h-[3px] flex-1 rounded-full ${i < decided ? 'bg-emerald-400' : 'bg-white/10'}`} />
+                ))}
+              </div>
+            )}
+            <div className="text-[11px] text-white/40 tabular-nums">
+              {decided} of {total} decided · about {minutesLeft(queue.length)} min left
+            </div>
+          </div>
 
-          {waiting.length > 0 && (
-            <FeedCard title={`Waiting on you · ${waiting.length}`}>
-              {waiting.slice(0, 8).map(t => (
-                <FeedRow
-                  key={t.id}
-                  dotColor="bg-amber-400"
-                  title={t.title}
-                  detail={t.next_step || undefined}
-                  trailing={<span className="text-[14px] text-white/35 tabular-nums">{humanAge(t.updated_at)}</span>}
-                  onClick={() => { h.select(); setOpenId(t.id) }}
-                  feedback={{ sourceTable: "tasks", sourceId: t.id, agentId: t.agent || t.owner }}
-                />
-              ))}
-            </FeedCard>
-          )}
+          {/* the one card */}
+          <div className={`rounded-2xl border p-5 ${cardAccent(current)}`}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold bg-white/[0.06] text-white/60 capitalize">
+                {current.agent || current.owner || 'system'}
+              </span>
+              {isDueNow(current) && (
+                <span className="inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold bg-red-400/15 text-red-300">
+                  Due {humanDue(current.due_date)}
+                </span>
+              )}
+            </div>
+            <h3 className="text-[16.5px] font-bold text-white mt-3 leading-snug">{current.title}</h3>
+            {(current.next_step || current.description) && (
+              <p className="text-[12.5px] text-white/50 mt-2 leading-relaxed line-clamp-4">
+                {current.next_step || current.description}
+              </p>
+            )}
+            <div className="flex items-center gap-2 mt-3 text-[11px] text-white/40 tabular-nums flex-wrap">
+              <span>waiting {humanAge(current.updated_at) || 'just now'}</span>
+              {current.lever_score != null && <span>· lever {current.lever_score}/10</span>}
+            </div>
+            <button
+              onClick={() => { h.select(); setOpenId(current.id) }}
+              className="mt-3 text-[12px] text-white/45 underline underline-offset-2 active:text-white/70"
+            >
+              Full detail
+            </button>
+          </div>
 
-          {pipeline.length > 0 && (
-            <FeedCard title={`In flight · ${pipeline.length}`}>
-              {pipeline.slice(0, 6).map(t => (
-                <FeedRow
-                  key={t.id}
-                  dotColor="bg-violet-400"
-                  title={t.title}
-                  detail={t.agent ? `${t.agent}${t.next_step ? ' · ' + t.next_step : ''}` : t.next_step || undefined}
-                  trailing={<span className="text-[14px] text-white/35 tabular-nums">{humanAge(t.updated_at)}</span>}
-                  onClick={() => { h.select(); setOpenId(t.id) }}
-                  feedback={{ sourceTable: "tasks", sourceId: t.id, agentId: t.agent || t.owner }}
-                />
-              ))}
-            </FeedCard>
-          )}
-        </>
+          {/* thumb zone */}
+          <div className="pt-4 pb-2 flex flex-col gap-2">
+            <Big tone="green" disabled={taskBusy} onClick={() => approve(current)}>Approve</Big>
+            <Big disabled={taskBusy} onClick={() => openSendBack(current)}>Send back with a note</Big>
+            <Big disabled={taskBusy} onClick={() => openDefer(current)}>Defer</Big>
+          </div>
+        </div>
+      ) : !loading ? (
+        <AllClear
+          title="The day is decided."
+          sub="Nothing is waiting on your ruling. New asks land here as the agents raise them."
+        />
+      ) : null}
+
+      {carried.length > 0 && (
+        <p className="text-[12px] text-white/40 text-center px-4">
+          Agents are carrying {carried.length} {carried.length === 1 ? 'task' : 'tasks'} themselves; none need you.
+        </p>
       )}
 
       {stale.length > 0 && (
@@ -364,14 +442,79 @@ export function MobileToday({
         actions={
           open
             ? [
-                { label: 'Approve', variant: 'primary', onClick: () => approve(open.id, open.agent) },
-                { label: 'Mark done', variant: 'secondary', onClick: () => markDone(open.id, open.agent) },
-                { label: 'Reject', variant: 'danger', onClick: () => rejectTask(open.id, open.agent) },
-                { label: 'Dismiss as superseded', variant: 'danger', onClick: () => supersede(open.id, open.agent) },
+                { label: 'Approve', variant: 'primary', onClick: () => approve(open) },
+                { label: 'Send back with a note', variant: 'secondary', onClick: () => openSendBack(open) },
+                { label: 'Defer', variant: 'secondary', onClick: () => openDefer(open) },
               ]
             : []
         }
       />
+
+      {/* Send back with a note: dictation-first, textarea fallback. */}
+      <BottomSheet
+        open={!!sendBackFor}
+        onClose={() => { dictation.stop(); setSendBackFor(null); setNote('') }}
+        fullHeight={false}
+        ariaLabel="Send back with a note"
+      >
+        {sendBackFor && (
+          <div className="px-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] flex flex-col gap-3">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">
+                Send back to {sendBackFor.agent || sendBackFor.owner || 'the agent'}
+              </p>
+              <h3 className="text-[16px] font-bold text-white mt-1 leading-snug">{sendBackFor.title}</h3>
+            </div>
+            <div className="flex items-start gap-2">
+              {dictation.supported && (
+                <button
+                  onClick={() => { h.tap(); dictation.toggle() }}
+                  aria-label={dictation.listening ? 'Stop dictation' : 'Dictate your note'}
+                  className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center border transition-colors ${
+                    dictation.listening
+                      ? 'bg-rose-500/20 border-rose-400/40 text-rose-300 animate-pulse'
+                      : 'bg-white/[0.06] border-white/10 text-white/70 active:bg-white/[0.1]'
+                  }`}
+                >
+                  <Mic className="w-5 h-5" />
+                </button>
+              )}
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={3}
+                placeholder={dictation.supported ? 'Tap the mic and say why, or type...' : 'Tell the agent what to change...'}
+                className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-[15px] text-white/85 focus:outline-none focus:border-violet-500/40 placeholder-white/25"
+              />
+            </div>
+            <Big tone="primary" disabled={taskBusy || !note.trim()} onClick={() => sendBack(sendBackFor, note.trim())}>
+              Send back
+            </Big>
+          </div>
+        )}
+      </BottomSheet>
+
+      {/* Defer: three honest date choices, no calendar spelunking. */}
+      <BottomSheet
+        open={!!deferFor}
+        onClose={() => setDeferFor(null)}
+        fullHeight={false}
+        ariaLabel="Defer to a date"
+      >
+        {deferFor && (
+          <div className="px-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] flex flex-col gap-3">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">Defer</p>
+              <h3 className="text-[16px] font-bold text-white mt-1 leading-snug">{deferFor.title}</h3>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Big tone="primary" disabled={taskBusy} onClick={() => defer(deferFor, 'tomorrow')}>Tomorrow</Big>
+              <Big disabled={taskBusy} onClick={() => defer(deferFor, 'monday')}>Monday</Big>
+              <Big disabled={taskBusy} onClick={() => defer(deferFor, 'next_week')}>Next week</Big>
+            </div>
+          </div>
+        )}
+      </BottomSheet>
 
       <BottomSheet
         open={!!decision}

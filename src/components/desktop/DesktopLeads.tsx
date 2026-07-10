@@ -59,10 +59,11 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
   // waiting; closing the deck browses lanes without it re-opening mid-session.
   const autoOpenedRef = useRef(false)
   useEffect(() => {
-    if (!loading && !autoOpenedRef.current && triageConfig.items.length > 8) {
-      autoOpenedRef.current = true
-      setTriageOpen(true)
-    }
+    if (loading || autoOpenedRef.current) return
+    // Landing decision happens exactly once, on the first settled load; a
+    // later realtime arrival must never yank the user into the deck mid-task.
+    autoOpenedRef.current = true
+    if (triageConfig.items.length > 8) setTriageOpen(true)
   }, [loading, triageConfig.items.length])
 
   const byVenture = useMemo(() => groupByVenture(leads), [leads])

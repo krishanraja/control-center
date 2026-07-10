@@ -3,16 +3,18 @@ import { ChevronRight, Activity } from 'lucide-react'
 import { useHaptics } from '../../hooks/useHaptics'
 
 /**
- * Collapsible "Pulse" group for the glanceable-but-not-actionable surfaces
- * (MRR detail, room previews, momentum, streaks, retro, signals). Keeps passive
- * context from interleaving with the daily action loop. Default collapsed on
- * mobile, open on desktop.
+ * The ambient fold: a collapsible group for the glanceable-but-not-actionable
+ * surfaces (MRR detail, room previews, momentum, streaks, retro, signals).
+ * Keeps passive context from interleaving with the daily action loop; the
+ * collapsed summary line promises that nothing inside asks anything of you.
  */
 export function PulseGroup({
   defaultOpen,
+  summary = 'the ambient room · nothing below asks anything of you',
   children,
 }: {
   defaultOpen?: boolean
+  summary?: string
   children: React.ReactNode
 }) {
   const h = useHaptics()
@@ -32,7 +34,7 @@ export function PulseGroup({
         />
         <Activity size={13} className="text-blue-400" />
         <span className="text-[11px] uppercase tracking-[0.16em] text-white/55 font-semibold">Pulse</span>
-        {!open && <span className="ml-auto text-[11px] text-white/35">money · pipeline · momentum</span>}
+        {!open && <span className="ml-auto min-w-0 truncate text-[11px] text-white/35">{summary}</span>}
       </button>
       {open && (
         <div className="border-t border-white/[0.06] p-3 flex flex-col gap-4">

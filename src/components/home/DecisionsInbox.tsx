@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles, Newspaper } from 'lucide-react'
+import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles, Newspaper, Inbox, AlertOctagon } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../../hooks/useRealtimeDecisionsWaiting'
 import { FeedCard, FeedRow, EmptyState } from '../mobile/primitives'
@@ -8,38 +8,33 @@ import { DetailSheet } from '../mobile/DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { buildDecisionActions } from '../../lib/decisionActions'
+import { splitDecisions, minutesToZero } from '../../lib/decisionKinds'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
 const KIND_ICON: Record<DecisionRow['kind'], typeof Mail> = {
-  task: Mail, guest: Mic, idea: FileText, lead: UserPlus, visibility: Target, correction: ShieldAlert, skill_proposal: Sparkles, content_decision: Newspaper,
+  task: Mail, guest: Mic, idea: FileText, lead: UserPlus, visibility: Target, correction: ShieldAlert, skill_proposal: Sparkles, content_decision: Newspaper, inbox_returned: Inbox, vera_gap: AlertOctagon,
 }
 const KIND_LABEL: Record<DecisionRow['kind'], string> = {
-  task: 'Task', guest: 'Guest', idea: 'Idea', lead: 'Lead', visibility: 'Visibility', correction: 'Correction', skill_proposal: 'Skill', content_decision: 'Content call',
+  task: 'Task', guest: 'Guest', idea: 'Idea', lead: 'Lead', visibility: 'Visibility', correction: 'Correction', skill_proposal: 'Skill', content_decision: 'Content call', inbox_returned: 'Returned', vera_gap: 'Persistent gap',
 }
 const KIND_TO_TABLE: Record<DecisionRow['kind'], string> = {
-  task: 'tasks', guest: 'guests', idea: 'content_ideas', lead: 'leads', visibility: 'visibility_targets', correction: 'corrections', skill_proposal: 'skill_proposals', content_decision: 'content_decisions',
+  task: 'tasks', guest: 'guests', idea: 'content_ideas', lead: 'leads', visibility: 'visibility_targets', correction: 'corrections', skill_proposal: 'skill_proposals', content_decision: 'content_decisions', inbox_returned: 'tasks_inbox', vera_gap: 'vera_gaps',
 }
 // Muted, from the shared token palette (not raw neon), so the legend reads as one
 // calm family rather than a rainbow. Kinds still differ, just quietly.
 const KIND_DOT: Record<DecisionRow['kind'], string> = {
   task: 'bg-pod-growth', guest: 'bg-status-blocked', idea: 'bg-status-needsYou',
-  lead: 'bg-status-active', visibility: 'bg-pod-ops', correction: 'bg-status-blocked', skill_proposal: 'bg-pod-growth', content_decision: 'bg-status-needsYou',
+  lead: 'bg-status-active', visibility: 'bg-pod-ops', correction: 'bg-status-blocked', skill_proposal: 'bg-pod-growth', content_decision: 'bg-status-needsYou', inbox_returned: 'bg-pod-growth', vera_gap: 'bg-status-blocked',
 }
-// Which tab's focused queue each kind batch-reviews into.
-const KIND_TO_TAB: Record<DecisionRow['kind'], string> = {
-  task: 'today', guest: 'guests', idea: 'content', lead: 'leads', visibility: 'guests', correction: 'org', skill_proposal: 'org', content_decision: 'content',
-}
-const KIND_LABEL_PLURAL: Record<DecisionRow['kind'], string> = {
-  task: 'Tasks', guest: 'Guests', idea: 'Ideas', lead: 'Leads', visibility: 'Visibility', correction: 'Corrections', skill_proposal: 'Skills', content_decision: 'Content calls',
-}
-
 /**
- * "Waiting on you" — the action centerpiece of Home. Lists the highest-priority
- * decisions_waiting rows; tapping one opens a DetailSheet whose buttons are the
- * row's kind-correct one-tap actions (promote / draft email / confirm /
- * greenlight / apply / close concept …) via the shared buildDecisionActions
- * registry, with haptic + toast confirmation. The full inbox lives on Today.
+ * "Your decisions" is the finishable anchor of Home. The count includes ONLY
+ * typed, only-Krish rulings (splitDecisions); pipeline pools surface as queue
+ * chips that open each tab's triage deck instead of inflating the number.
+ * Tapping a row opens a DetailSheet whose buttons are the row's kind-correct
+ * one-tap actions (promote / draft email / confirm / greenlight / apply /
+ * close concept ...) via the shared buildDecisionActions registry, with
+ * haptic + toast confirmation. The full inbox lives on Today.
  */
 export function DecisionsInbox({
   onNavigate,
@@ -48,26 +43,20 @@ export function DecisionsInbox({
   onNavigate?: NavigateFn
   limit?: number
 }) {
-  const { decisions, loading } = useRealtimeDecisionsWaiting()
+  const { decisions: allRows, loading } = useRealtimeDecisionsWaiting()
   const { toast } = useToast()
   const h = useHaptics()
 
   const [open, setOpen] = useState<DecisionRow | null>(null)
   const [resolved, setResolved] = useState<Record<string, any> | null>(null)
 
-  const visible = decisions.slice(0, limit)
+  // Q1 split: rows the badge counts (typed rulings) vs pipeline pools that
+  // batch-review in their own tab's triage deck. Filter per-consumer; the
+  // hook's module cache stays unfiltered for every other reader.
+  const { decisions, queues } = useMemo(() => splitDecisions(allRows), [allRows])
 
-  // Composition of the whole queue by kind, biggest first. The visible top-N is
-  // priority-sorted and tends to be monotone (one kind dominates), which hides
-  // how much of everything else is waiting — these chips restore that picture
-  // and double as a one-tap batch-review entry into each kind's queue.
-  const kindCounts = useMemo(() => {
-    const counts = new Map<DecisionRow['kind'], number>()
-    for (const d of decisions) counts.set(d.kind, (counts.get(d.kind) ?? 0) + 1)
-    return [...counts.entries()]
-      .map(([kind, count]) => ({ kind, count }))
-      .sort((a, b) => b.count - a.count)
-  }, [decisions])
+  const visible = decisions.slice(0, limit)
+  const toZero = minutesToZero(decisions)
 
   const select = async (d: DecisionRow) => {
     h.select()
@@ -96,64 +85,74 @@ export function DecisionsInbox({
 
   return (
     <section id="decisions-inbox" className="scroll-mt-4">
-      <FeedCard title={`Waiting on you · ${decisions.length}`}>
+      <FeedCard
+        title={`Your decisions · ${decisions.length}`}
+        action={decisions.length > 0 ? (
+          // The finishable cue: this list is a sitting, not a state of being.
+          <span className="text-[11px] text-emerald-300/80 tabular-nums whitespace-nowrap">
+            about {toZero} {toZero === 1 ? 'minute' : 'minutes'} to zero
+          </span>
+        ) : undefined}
+      >
+        {/* QUEUES: pipeline pools with their own rhythm. Always visible, even
+            at decision zero, so batch work stays reachable without inflating
+            the decision count. */}
+        {queues.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 px-5 py-3">
+            {queues.map(q => (
+              <button
+                key={q.kind}
+                type="button"
+                onClick={() => { h.tap(); onNavigate?.(q.tab) }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11px] text-white/70 hover:bg-white/[0.07] hover:text-white/90 transition-colors"
+                title={`Open the ${q.label} triage deck`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${KIND_DOT[q.kind]}`} />
+                <span>{q.label}</span>
+                <span className="tabular-nums font-semibold text-white/85">{q.count}</span>
+                <span className="text-white/40">· triage deck</span>
+              </button>
+            ))}
+          </div>
+        )}
         {loading && decisions.length === 0 ? (
-          // Promise the exact shape that's about to arrive — feed rows, not a
-          // "Loading…" line — so the inbox settles into live data.
+          // Promise the exact shape that's about to arrive: feed rows, not a
+          // "Loading" line, so the inbox settles into live data.
           <div className="divide-y divide-white/[0.06]" aria-busy="true">
             {Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)}
           </div>
         ) : visible.length === 0 ? (
-          <EmptyState label="Inbox zero. Nothing waiting on you." />
+          <EmptyState label="Nothing is waiting on you. That is the system working." />
         ) : (
-          <>
-            {kindCounts.length > 1 && (
-              <div className="flex flex-wrap gap-1.5 px-1 pb-2.5 mb-1 border-b border-white/[0.05]">
-                {kindCounts.map(({ kind, count }) => (
-                  <button
-                    key={kind}
-                    type="button"
-                    onClick={() => { h.tap(); onNavigate?.(KIND_TO_TAB[kind]) }}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11px] text-white/70 hover:bg-white/[0.07] hover:text-white/90 transition-colors"
-                    title={`Review ${count} ${count === 1 ? KIND_LABEL[kind] : KIND_LABEL_PLURAL[kind]}`}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full ${KIND_DOT[kind]}`} />
-                    <span className="tabular-nums font-semibold text-white/85">{count}</span>
-                    {count === 1 ? KIND_LABEL[kind] : KIND_LABEL_PLURAL[kind]}
-                  </button>
-                ))}
-              </div>
-            )}
-            {visible.map(d => {
-              const Icon = KIND_ICON[d.kind] || Mail
-              const priorityChip =
-                d.priority === 'overdue' ? 'Overdue'
-                : d.priority === 'urgent' ? 'Urgent'
-                : d.priority === 'high' ? 'High'
-                : null
-              return (
-                <FeedRow
-                  key={`${d.kind}-${d.id}`}
-                  dotColor={KIND_DOT[d.kind]}
-                  title={d.title}
-                  detail={d.description ?? undefined}
-                  onClick={() => select(d)}
-                  trailing={
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.1em] text-white/45">
-                        <Icon size={11} /> {KIND_LABEL[d.kind]}
+          visible.map(d => {
+            const Icon = KIND_ICON[d.kind] || Mail
+            const priorityChip =
+              d.priority === 'overdue' ? 'Overdue'
+              : d.priority === 'urgent' ? 'Urgent'
+              : d.priority === 'high' ? 'High'
+              : null
+            return (
+              <FeedRow
+                key={`${d.kind}-${d.id}`}
+                dotColor={KIND_DOT[d.kind]}
+                title={d.title}
+                detail={d.description ?? undefined}
+                onClick={() => select(d)}
+                trailing={
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.1em] text-white/45">
+                      <Icon size={11} /> {KIND_LABEL[d.kind]}
+                    </span>
+                    {priorityChip && (
+                      <span className={`text-[10px] uppercase tracking-[0.1em] ${d.priority === 'overdue' || d.priority === 'high' ? 'text-status-blocked' : 'text-status-needsYou'}`}>
+                        {priorityChip}
                       </span>
-                      {priorityChip && (
-                        <span className={`text-[10px] uppercase tracking-[0.1em] ${d.priority === 'overdue' || d.priority === 'high' ? 'text-status-blocked' : 'text-status-needsYou'}`}>
-                          {priorityChip}
-                        </span>
-                      )}
-                    </div>
-                  }
-                />
-              )
-            })}
-          </>
+                    )}
+                  </div>
+                }
+              />
+            )
+          })
         )}
       </FeedCard>
 

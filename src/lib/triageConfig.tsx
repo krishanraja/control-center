@@ -11,8 +11,9 @@ import type { ContentIdeaRow, IdeaState } from '../hooks/useRealtimeContentIdeas
 import { triageReject, triagePromote, feedbackVote } from './triageActions'
 import { ADVANCE_NEXT, STATE_PRIORITY, advanceMode, nextState as nextContentState } from './contentEngine'
 import { isHandQueue } from './contactTriage'
-import { topFit, dossierMove, contactRationale, ventureLabel as contactVentureLabel } from './contactSignals'
+import { topFit, dossierMove, contactRationale, suggestedMove, ventureLabel as contactVentureLabel } from './contactSignals'
 import { ventureDisplayName } from '../components/ContactSourcePill'
+import { SuggestedMoveChip, MOVE_TONE_TEXT } from '../components/ContactCard'
 
 /**
  * triageConfig — one place that describes how each surface drives the shared
@@ -288,6 +289,7 @@ function renderContactBody(c: ContactRow): React.ReactNode {
         {c.consent_tier && (
           <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] bg-violet-500/10 text-violet-200">{c.consent_tier}</span>
         )}
+        <SuggestedMoveChip contact={c} />
       </div>
       <p className="text-[20px] font-semibold text-white leading-snug">{contactName(c)}</p>
       {contactSubtitle(c) && (
@@ -377,14 +379,20 @@ export function buildContactsTriageConfig(
     onAccept,
     onReject,
     renderDetail: renderContactDetail,
-    renderRow: (c, active) => (
-      <div className="min-w-0">
-        <p className={`text-[12px] font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{contactName(c)}</p>
-        <p className="text-[10.5px] text-white/40 truncate">
-          {[ventureDisplayName(c.primary_venture), `heat ${c.heat_score ?? 0}`].filter(Boolean).join(' · ')}
-        </p>
-      </div>
-    ),
+    renderRow: (c, active) => {
+      const move = suggestedMove(c)
+      return (
+        <div className="min-w-0">
+          <p className={`text-[12px] font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{contactName(c)}</p>
+          <p className="text-[10.5px] text-white/40 truncate">
+            {[ventureDisplayName(c.primary_venture), `heat ${c.heat_score ?? 0}`].filter(Boolean).join(' · ')}
+          </p>
+          {move && (
+            <p className={`text-[10px] truncate ${MOVE_TONE_TEXT[move.tone]}`} title="Suggested move">{move.label}</p>
+          )}
+        </div>
+      )
+    },
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Flame, Layers, ChevronRight, Target, Sparkles } from 'lucide-react'
 import { MobileShell, TabHeader, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { MobileShell as MobileStage } from './MobileShell'
@@ -19,6 +19,7 @@ import { useSwipeTriage } from '../../hooks/useSwipeTriage'
 import { reasonsFor } from '../../lib/triageReasons'
 import { feedbackVote } from '../../lib/triageActions'
 import { topFit, dossierMove, contactRationale, ventureLabel } from '../../lib/contactSignals'
+import { SuggestedMoveChip } from '../ContactCard'
 
 const VENTURES: Array<{ slug: string; label: string }> = [
   { slug: 'mindmaker', label: 'Mindmaker' },
@@ -97,6 +98,7 @@ function renderContactBody(c: ContactRow) {
         {c.consent_tier && (
           <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] bg-violet-500/10 text-violet-200">{c.consent_tier}</span>
         )}
+        <SuggestedMoveChip contact={c} />
       </div>
       <p className="text-[20px] font-semibold text-white leading-snug">{contactName(c)}</p>
       {contactSubtitle(c) && (
@@ -209,6 +211,17 @@ export function MobileLeadsRE(_props: Props = {}) {
     items: handQueue, getId: c => c.id, loading,
     onAccept, onReject,
   })
+
+  // Deck-first landing: auto-enter the swipe deck once per mount when the warm
+  // hand queue is non-empty. One-shot, so exiting back to the list sticks.
+  const autoDeckRef = useRef(false)
+  useEffect(() => {
+    if (loading || autoDeckRef.current) return
+    // Landing decision happens exactly once, on the first settled load; a
+    // later realtime arrival must never yank the user into the deck mid-task.
+    autoDeckRef.current = true
+    if (handQueue.length > 0) triage.forceDeck()
+  }, [loading, handQueue.length, triage])
 
   // First paint loads single-focus — one column shimmering in — not a blank flash.
   if (loading && rawContacts.length === 0) {

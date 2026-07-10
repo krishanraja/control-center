@@ -24,6 +24,7 @@ import { ObjectivesPanel } from '../objectives/ObjectivesPanel'
 import { DailyDriver } from '../focus/DailyDriver'
 import { GlanceHeader } from '../home/GlanceHeader'
 import { DecisionsInbox } from '../home/DecisionsInbox'
+import { PulseGroup } from '../home/PulseGroup'
 import { AltitudeSpine } from '../home/AltitudeSpine'
 import { BoardDaily } from '../home/BoardDaily'
 import { isHomeV2Enabled, isFocusRitualEnabled } from '../../lib/homeV2'
@@ -60,27 +61,32 @@ function resolveMessage(ev: AuditEvent): string | null {
 const hasRenderableMessage = (ev: AuditEvent) => resolveMessage(ev) !== null
 
 /**
- * Mission Control. The CEO opens this once a day — within five seconds they
- * should know: "is the money up, what are my three plays today, and what's
- * waiting on me." Everything else is one click below.
+ * Mission Control. The CEO opens this once a day; within five seconds they
+ * should know: "is the money up, what are my three plays today, and what are
+ * my decisions." Everything that merely informs lives behind an explicit
+ * ambient fold.
  *
- * Order is deliberate, top to bottom:
- *   1. CriticalAlertBanner — only renders when something is on fire.
- *   2. MrrTicker — the only number that matters, with 7-day sparkline.
- *   3. TopThreeCards — Marcus's three ranked plays (revenue / growth / risk).
- *   4. RoomPreviews — Content / Visibility / Leads, top 2 each, kind-routed.
- *   5. MomentumStrip — 7-day mini-bars across the four pulse metrics.
- *   6. DecisionsWaitingPanel — compact (limit=4), kind-routed.
- *   7. DailyBriefBanner — non-blocking. Retro is a collapsed card.
- *   8. StreakPills + OsHealthStrip — thin context chrome.
- * Below the fold: OsMissionHero + WeeklyGoals + ActivityTail.
+ * Above the fold (the action loop): CriticalAlertBanner, GlanceHeader,
+ * MrrTicker, ObjectivesPanel, DailyDriver, DecisionsInbox.
+ * Behind the fold (PulseGroup, collapsed): RoomPreviews, CalibrationCard,
+ * BetsStrip, MomentumStrip, StreakPills, OsHealthStrip, OsMissionHero +
+ * WeeklyGoals, the Friday retro, ActivityTail. Nothing in there asks
+ * anything of you.
  */
 export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const v2 = isHomeV2Enabled()
   const { intel } = useHomeIntelligence()
   const [events, setEvents] = useState<AuditEvent[]>([])
   const [goalsData, setGoalsData] = useState<GoalsData | null>(null)
-  const { tasks: waiting } = useRealtimeTasks({ statusIn: ['waiting'] })
+  const { tasks: waitingRaw } = useRealtimeTasks({ statusIn: ['waiting'] })
+  // Mirror the Today queue's rule (unreviewed, unburied, not deferred to a
+  // future date) so the strip's Today tile and the queue can never disagree.
+  const waiting = useMemo(() => waitingRaw.filter(t => {
+    if (t.krish_reviewed || t.buried_at) return false
+    if (!t.due_date) return true
+    const startOfTomorrow = new Date(); startOfTomorrow.setHours(24, 0, 0, 0)
+    return new Date(t.due_date).getTime() < startOfTomorrow.getTime()
+  }), [waitingRaw])
   const live = useLiveStatus(60_000)
 
   useEffect(() => {
@@ -139,38 +145,42 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
         <DecisionsInbox onNavigate={onNavigate} />
 
-        <RoomPreviews onNavigate={onNavigate} variant="desktop" />
+        {/* THE AMBIENT ROOM: context that informs but never asks. Collapsed
+            behind an explicit fold so the action loop above owns the screen. */}
+        <PulseGroup>
+          <RoomPreviews onNavigate={onNavigate} variant="desktop" />
 
-        {/* GRADER — one-time calibration prompt; hides once all domains are fitted. */}
-        <CalibrationCard />
+          {/* GRADER: one-time calibration prompt; hides once all domains are fitted. */}
+          <CalibrationCard />
 
-        {/* BETS — compact strip replacing the standalone Bets tab. */}
-        <BetsStrip />
+          {/* BETS: compact strip replacing the standalone Bets tab. */}
+          <BetsStrip />
 
-        <MomentumStrip
-          momentum={intel.momentum}
-          generatedAt={intel.momentum_at ?? intel.generated_at}
-          variant="desktop"
-        />
-
-        <StreakPills variant="desktop" />
-
-        <OsHealthStrip onNavigate={onNavigate} approvalCount={waiting.length} live={live} />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
-          <OsMissionHero
-            northStar={goalsData?.north_star}
-            teamFocus={goalsData?.team_focus}
-            weekOf={goalsData?.week_of}
-            recommendedFocus={recommendedFocus}
-            onSaveFocus={handleSaveFocus}
+          <MomentumStrip
+            momentum={intel.momentum}
+            generatedAt={intel.momentum_at ?? intel.generated_at}
+            variant="desktop"
           />
-          <WeeklyGoals variant="compact" onDataLoaded={setGoalsData} />
-        </div>
 
-        <DailyBriefBanner blocking={false} variant="desktop" retroOnly />
+          <StreakPills variant="desktop" />
 
-        <ActivityTail events={events} />
+          <OsHealthStrip onNavigate={onNavigate} approvalCount={waiting.length} live={live} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
+            <OsMissionHero
+              northStar={goalsData?.north_star}
+              teamFocus={goalsData?.team_focus}
+              weekOf={goalsData?.week_of}
+              recommendedFocus={recommendedFocus}
+              onSaveFocus={handleSaveFocus}
+            />
+            <WeeklyGoals variant="compact" onDataLoaded={setGoalsData} />
+          </div>
+
+          <DailyBriefBanner blocking={false} variant="desktop" retroOnly />
+
+          <ActivityTail events={events} />
+        </PulseGroup>
       </div>
     )
   }
@@ -206,52 +216,54 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
           Re-introduces decisions_waiting to Home, now with inline actions. */}
       {v2 && <DecisionsInbox onNavigate={onNavigate} />}
 
-      {/* ROOM PREVIEWS — Content / Visibility / Leads. Two items per room,
-          one tap into the right detail. Replaces PipelineLanes. */}
-      <RoomPreviews onNavigate={onNavigate} variant="desktop" />
+      {/* THE AMBIENT ROOM: everything below informs but never asks. Collapsed
+          behind an explicit fold so the action loop above owns the screen. */}
+      <PulseGroup>
+        {/* ROOM PREVIEWS: Content / Visibility / Leads. Two items per room,
+            one tap into the right detail. Replaces PipelineLanes. */}
+        <RoomPreviews onNavigate={onNavigate} variant="desktop" />
 
-      {/* GRADER — one-time calibration prompt; hides once all domains are fitted. */}
-      <CalibrationCard />
+        {/* GRADER: one-time calibration prompt; hides once all domains are fitted. */}
+        <CalibrationCard />
 
-      {/* BETS — compact strip replacing the standalone Bets tab. */}
-      <BetsStrip />
+        {/* BETS: compact strip replacing the standalone Bets tab. */}
+        <BetsStrip />
 
-      {/* MOMENTUM — 7-day pulse across MRR / leads / shipped / visibility. */}
-      <MomentumStrip
-        momentum={intel.momentum}
-        generatedAt={intel.momentum_at ?? intel.generated_at}
-        variant="desktop"
-      />
-
-      <StreakPills variant="desktop" />
-
-      <OsHealthStrip
-        onNavigate={onNavigate}
-        approvalCount={waiting.length}
-        live={live}
-      />
-
-      {/* ── Below the fold (compact context) ─────────────────────────────── */}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
-        <OsMissionHero
-          northStar={goalsData?.north_star}
-          teamFocus={goalsData?.team_focus}
-          weekOf={goalsData?.week_of}
-          recommendedFocus={recommendedFocus}
-          onSaveFocus={handleSaveFocus}
+        {/* MOMENTUM: 7-day pulse across MRR / leads / shipped / visibility. */}
+        <MomentumStrip
+          momentum={intel.momentum}
+          generatedAt={intel.momentum_at ?? intel.generated_at}
+          variant="desktop"
         />
-        <WeeklyGoals
-          variant="compact"
-          onDataLoaded={setGoalsData}
+
+        <StreakPills variant="desktop" />
+
+        <OsHealthStrip
+          onNavigate={onNavigate}
+          approvalCount={waiting.length}
+          live={live}
         />
-      </div>
 
-      {/* WEEKLY RETRO — below the fold, retro-only. The brief now lives in the
-          daily spine's ContextHeader, so this surface carries only the Friday retro. */}
-      <DailyBriefBanner blocking={false} variant="desktop" retroOnly />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
+          <OsMissionHero
+            northStar={goalsData?.north_star}
+            teamFocus={goalsData?.team_focus}
+            weekOf={goalsData?.week_of}
+            recommendedFocus={recommendedFocus}
+            onSaveFocus={handleSaveFocus}
+          />
+          <WeeklyGoals
+            variant="compact"
+            onDataLoaded={setGoalsData}
+          />
+        </div>
 
-      <ActivityTail events={events} />
+        {/* WEEKLY RETRO: retro-only. The brief now lives in the daily spine's
+            ContextHeader, so this surface carries only the Friday retro. */}
+        <DailyBriefBanner blocking={false} variant="desktop" retroOnly />
+
+        <ActivityTail events={events} />
+      </PulseGroup>
     </div>
   )
 }

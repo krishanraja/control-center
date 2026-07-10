@@ -4,6 +4,7 @@ import { useRevenueAttribution } from '../../hooks/useRevenueAttribution'
 import { formatMrr } from '../../lib/mrrDisplay'
 import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
 import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
+import { splitDecisions } from '../../lib/decisionKinds'
 import { useHaptics } from '../../hooks/useHaptics'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
@@ -30,7 +31,9 @@ export function GlanceHeader({
   const doneCount = today
     ? [today.target_1_completed_at, today.target_2_completed_at, today.target_3_completed_at].filter(Boolean).length
     : 0
-  const waiting = decisions.length
+  // Same Q1 split as DecisionsInbox: the badge counts only typed rulings, so
+  // this cell and the anchor's header can never disagree on the number.
+  const waiting = splitDecisions(decisions).decisions.length
   const deltaPositive = mrrDelta7d >= 0
 
   const scrollTo = (id: string) => {
@@ -76,7 +79,7 @@ export function GlanceHeader({
         icon={<Inbox size={12} className={waiting > 0 ? 'text-amber-400' : 'text-white/40'} />}
         label="Waiting"
         value={`${waiting}`}
-        sub={waiting === 0 ? 'inbox zero' : 'on you'}
+        sub={waiting === 0 ? 'decision zero' : 'on you'}
         subColor={waiting > 0 ? 'text-amber-400/80' : 'text-white/45'}
         valueSize={valueSize}
         labelSize={labelSize}

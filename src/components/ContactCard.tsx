@@ -4,6 +4,7 @@ import { humanAge } from '../lib/ageHelpers'
 import { ContactSourcePill, ConsentTierBadge, ventureDisplayName } from './ContactSourcePill'
 import { FeedbackButton } from './shared/FeedbackButton'
 import { useHaptics } from '../hooks/useHaptics'
+import { suggestedMove, type SuggestedMoveTone } from '../lib/contactSignals'
 import type { ContactRow } from '../hooks/useRealtimeContacts'
 
 interface Props {
@@ -18,6 +19,38 @@ export function humanizePlayType(raw?: string | null): string | null {
   if (!raw) return null
   const spaced = raw.replace(/_/g, ' ')
   return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}
+
+const MOVE_TONE_CHIP: Record<SuggestedMoveTone, string> = {
+  act: 'bg-emerald-500/10 text-emerald-300',
+  due: 'bg-amber-500/10 text-amber-300',
+  info: 'bg-white/[0.06] text-white/55',
+}
+
+/** Tone-matched text classes for inline (non-chip) renderings of the move. */
+export const MOVE_TONE_TEXT: Record<SuggestedMoveTone, string> = {
+  act: 'text-emerald-300/85',
+  due: 'text-amber-300/85',
+  info: 'text-white/45',
+}
+
+/**
+ * The contact's single suggested next move as a small chip. A pure read of the
+ * row (contactSignals.suggestedMove), so it is safe anywhere a ContactRow is
+ * already in hand: cards, deck bodies, rails. Renders nothing when the ladder
+ * has no suggestion.
+ */
+export function SuggestedMoveChip({ contact }: { contact: ContactRow }) {
+  const move = suggestedMove(contact)
+  if (!move) return null
+  return (
+    <span
+      className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${MOVE_TONE_CHIP[move.tone]}`}
+      title="Suggested move"
+    >
+      {move.label}
+    </span>
+  )
 }
 
 /** Small inline heat meter. Colour ramps cold→hot; number always shown. */
@@ -54,6 +87,7 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
   const titleCompany = [c.title, c.company].filter(Boolean).join(' @ ')
   const heat = c.heat_score ?? 0
   const playLabel = humanizePlayType(c.primary_play_type)
+  const move = suggestedMove(c)
   const isHighValue = c.consent_tier === 'warm' || c.consent_tier === 'customer'
 
   const borderCls = isHighValue
@@ -71,7 +105,7 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
             aria-label={selected ? `Deselect ${fullName}` : `Select ${fullName}`}
             onClick={(e) => { e.stopPropagation(); selected ? h.soft() : h.impactRigid(); onToggleSelect(c.id) }}
             className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors
-              ${selected ? 'bg-violet-500 border-violet-500 text-[#fff]' : 'border-white/25 hover:border-white/45 text-transparent'}`}
+              ${selected ? 'bg-violet-500 border-violet-500 text-white' : 'border-white/25 hover:border-white/45 text-transparent'}`}
           >
             <span className="text-[10px] leading-none">✓</span>
           </button>
@@ -129,9 +163,17 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
         <ContactSourcePill contact={c} />
       </div>
 
-      {/* Play + venture + owner */}
-      {(c.primary_venture || playLabel || c.owner_agent) && (
+      {/* Suggested move + play + venture + owner */}
+      {(move || c.primary_venture || playLabel || c.owner_agent) && (
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+          {move && (
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${MOVE_TONE_CHIP[move.tone]}`}
+              title="Suggested move"
+            >
+              {move.label}
+            </span>
+          )}
           {c.primary_venture && (
             <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 uppercase tracking-[0.1em]">
               {ventureDisplayName(c.primary_venture)}

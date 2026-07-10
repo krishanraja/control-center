@@ -35,10 +35,10 @@ type NavigateFn = (tab: string, params?: Record<string, string>) => void
  * external signals.
  *
  * HomeV2 (VITE_HOME_V2_ENABLED) reorders Home around the daily action loop:
- * a glance header (money / today / waiting) → the daily spine → the action
- * inbox (decisions_waiting with one-tap actions) → the week (collapsed) →
- * the Pulse group (everything glanceable-but-passive, collapsed). The legacy
- * stack is kept as the fallback until the flag is dogfooded.
+ * a glance header (money / today / decisions) → the daily spine → the action
+ * inbox (typed decisions with one-tap actions, queue chips for the pools) →
+ * the ambient fold (the week + everything glanceable-but-passive, collapsed).
+ * The legacy stack is kept as the fallback until the flag is dogfooded.
  */
 export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
   const h = useHaptics()
@@ -112,7 +112,8 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         {/* ACTION INBOX — what's waiting on you, acted on in one tap. */}
         <DecisionsInbox onNavigate={onNavigate} />
 
-        {/* PULSE — money / pipeline / momentum, collapsed below the loop. */}
+        {/* THE AMBIENT ROOM: money / pipeline / momentum. Informs, never
+            asks; collapsed below the action loop. */}
         <PulseGroup>
           <MrrTicker variant="mobile" />
           <RoomPreviews onNavigate={onNavigate} variant="mobile" />
@@ -146,14 +147,13 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
           <DailyDriver />
         </div>
 
-        {/* ACTION INBOX — what's waiting on you, acted on in one tap. */}
+        {/* ACTION INBOX: your decisions, acted on in one tap. */}
         <DecisionsInbox onNavigate={onNavigate} />
 
-        {/* THE WEEK — collapsed; expand for objectives + milestones. */}
-        <ObjectivesPanel variant="mobile" collapsible />
-
-        {/* PULSE — money / pipeline / momentum, collapsed below the loop. */}
+        {/* THE AMBIENT ROOM: the week + money / pipeline / momentum. Informs,
+            never asks; collapsed below the action loop. */}
         <PulseGroup>
+          <ObjectivesPanel variant="mobile" collapsible />
           <MrrTicker variant="mobile" />
           <RoomPreviews onNavigate={onNavigate} variant="mobile" />
           <CalibrationCard />

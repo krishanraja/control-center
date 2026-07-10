@@ -4,6 +4,7 @@ import {
 } from 'lucide-react'
 import { useAltitudes, type Altitude, type AltitudeId } from '../../hooks/useAltitudes'
 import { useRevenueAttribution } from '../../hooks/useRevenueAttribution'
+import { splitDecisions } from '../../lib/decisionKinds'
 import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
 import { useHaptics } from '../../hooks/useHaptics'
 import { openFocusRitual } from '../../lib/focusRitual'
@@ -33,7 +34,8 @@ export function AltitudeSpine({
   const { liveMrr, mrrDelta7d, loading: revLoading } = useRevenueAttribution()
   const { decisions } = useRealtimeDecisionsWaiting()
 
-  const waiting = decisions.length
+  // Q1 contract: the spine's number is the same typed-rulings count as the anchor.
+  const waiting = splitDecisions(decisions).decisions.length
   const deltaPositive = mrrDelta7d >= 0
 
   const open = (id: AltitudeId | null) => { h.select(); openFocusRitual(id) }
@@ -109,7 +111,7 @@ export function AltitudeSpine({
             <span className="block text-[16px] font-bold font-mono tabular-nums text-white leading-tight">{waiting}</span>
           </span>
           <span className={`ml-auto text-[10px] ${waiting > 0 ? 'text-status-needsYou/90' : 'text-white/45'}`}>
-            {waiting === 0 ? 'inbox zero' : 'on you'}
+            {waiting === 0 ? 'decision zero' : 'on you'}
           </span>
         </button>
       </div>
