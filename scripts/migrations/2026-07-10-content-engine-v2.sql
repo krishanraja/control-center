@@ -89,7 +89,7 @@ create table if not exists public.content_decisions (
   week text not null,
   kind text not null check (kind in
     ('brief_review','shift_proposal','shift_fading','graduation','purge_preview')),
-  ref uuid,
+  ref uuid not null,
   payload jsonb not null default '{}'::jsonb,
   status text not null default 'pending' check (status in ('pending','done','dismissed')),
   resolution jsonb,
@@ -98,7 +98,7 @@ create table if not exists public.content_decisions (
 );
 create index if not exists content_decisions_open_idx on public.content_decisions (status, week desc, kind);
 create unique index if not exists content_decisions_dedupe_idx
-  on public.content_decisions (week, kind, coalesce(ref, '00000000-0000-0000-0000-000000000000'::uuid));
+  on public.content_decisions (week, kind, ref);
 
 alter table public.content_decisions enable row level security;
 drop policy if exists "content_decisions anon read" on public.content_decisions;
