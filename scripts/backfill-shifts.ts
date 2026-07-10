@@ -188,7 +188,6 @@ async function main() {
   }
 
   // Refresh aggregate totals + last_evidence_on across the whole register.
-  const { supabase } = await import('../api/_supabase.js')
   const { data: all } = await supabase.from('shifts').select('id')
   for (const s of all || []) {
     const { data: ev } = await supabase.from('shift_evidence').select('occurred_on, source').eq('shift_id', s.id).limit(5000)
