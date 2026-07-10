@@ -72,7 +72,7 @@ export function FlagAgentModal({ agentId, agentDisplayName, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-[420px] rounded-xl border border-white/[0.08] bg-[#141416] shadow-2xl"
+        className="relative w-full max-w-[420px] rounded-xl border border-white/[0.08] bg-base shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 px-5 pt-5 pb-3">

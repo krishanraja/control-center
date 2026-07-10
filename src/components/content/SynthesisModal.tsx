@@ -88,7 +88,7 @@ export function SynthesisModal({ open, onClose, selected, onSynthesized }: Props
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#101013] shadow-2xl"
+        className="w-full max-w-2xl rounded-2xl border border-white/10 bg-sunk shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center gap-2 px-5 pt-4 pb-2 border-b border-white/[0.06]">

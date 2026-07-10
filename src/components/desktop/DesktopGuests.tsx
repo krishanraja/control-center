@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Mic, Megaphone, Calendar, Layers } from 'lucide-react'
 import { isTestRecord } from '../../lib/recordHygiene'
 import { useRealtimeGuests, type GuestRow, type GuestStatus, type GuestPodcastTarget } from '../../hooks/useRealtimeGuests'
@@ -72,6 +72,8 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   const [lane, setLane] = useState<Lane>('inbound')
   const { toast } = useToast()
   const [triageOpen, setTriageOpen] = useState(false)
+  // Coherence wave 1 (v2 idiom): bounded typed queue first, lanes as browse.
+  const autoOpenedRef = useRef(false)
   const { guests: allGuests, loading: guestsLoading } = useRealtimeGuests()
   const { targets: allTargets, loading: targetsLoading } = useVisibilityTargets({ includeArchived: false })
   const guests = useMemo(() => allGuests.filter(g => !g.buried_at && !isTestRecord(g)), [allGuests])
@@ -108,6 +110,15 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   const guestConfig = useMemo(() => buildGuestsTriageConfig(guests, { toast }, guestsLoading), [guests, toast, guestsLoading])
   const targetConfig = useMemo(() => buildVisibilityTargetsTriageConfig(targets, { toast }, targetsLoading), [targets, toast, targetsLoading])
   const triageConfig = lane === 'inbound' ? guestConfig : targetConfig
+
+  // v2 idiom: land in the bounded typed queue when one is waiting; closing it
+  // browses the status lanes without a mid-session re-open.
+  useEffect(() => {
+    if (!loading && !autoOpenedRef.current && triageConfig.items.length > 8) {
+      autoOpenedRef.current = true
+      setTriageOpen(true)
+    }
+  }, [loading, triageConfig.items.length])
 
   const handleOpenGuest = onOpenGuest || ((id: string) => navigateDecision(onNavigate || (() => {}), 'guest', id))
   const openTarget = onOpenTarget || ((id: string) => navigateDecision(onNavigate || (() => {}), 'visibility', id))

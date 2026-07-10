@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Users, X, Sparkles, Layers } from 'lucide-react'
 import { useRealtimeLeads, type LeadSourceType, type LeadRow } from '../../hooks/useRealtimeLeads'
 import { isTestRecord } from '../../lib/recordHygiene'
@@ -53,6 +53,17 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
 
   // Desktop triage cockpit — same swipe grammar as mobile, laid out for landscape.
   const triageConfig = useMemo(() => buildLeadsTriageConfig(leads, { toast }, loading), [leads, toast, loading])
+
+  // Coherence wave 1 (v2 idiom): the bounded typed queue is the DEFAULT landing,
+  // browse lanes are the escape. Auto-open once per visit when a real queue is
+  // waiting; closing the deck browses lanes without it re-opening mid-session.
+  const autoOpenedRef = useRef(false)
+  useEffect(() => {
+    if (!loading && !autoOpenedRef.current && triageConfig.items.length > 8) {
+      autoOpenedRef.current = true
+      setTriageOpen(true)
+    }
+  }, [loading, triageConfig.items.length])
 
   const byVenture = useMemo(() => groupByVenture(leads), [leads])
   const bySource = useMemo(() => groupBySource(leads), [leads])

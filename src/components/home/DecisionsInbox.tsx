@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles } from 'lucide-react'
+import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles, Newspaper } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../../hooks/useRealtimeDecisionsWaiting'
 import { FeedCard, FeedRow, EmptyState } from '../mobile/primitives'
@@ -12,26 +12,26 @@ import { buildDecisionActions } from '../../lib/decisionActions'
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
 const KIND_ICON: Record<DecisionRow['kind'], typeof Mail> = {
-  task: Mail, guest: Mic, idea: FileText, lead: UserPlus, visibility: Target, correction: ShieldAlert, skill_proposal: Sparkles,
+  task: Mail, guest: Mic, idea: FileText, lead: UserPlus, visibility: Target, correction: ShieldAlert, skill_proposal: Sparkles, content_decision: Newspaper,
 }
 const KIND_LABEL: Record<DecisionRow['kind'], string> = {
-  task: 'Task', guest: 'Guest', idea: 'Idea', lead: 'Lead', visibility: 'Visibility', correction: 'Correction', skill_proposal: 'Skill',
+  task: 'Task', guest: 'Guest', idea: 'Idea', lead: 'Lead', visibility: 'Visibility', correction: 'Correction', skill_proposal: 'Skill', content_decision: 'Content call',
 }
 const KIND_TO_TABLE: Record<DecisionRow['kind'], string> = {
-  task: 'tasks', guest: 'guests', idea: 'content_ideas', lead: 'leads', visibility: 'visibility_targets', correction: 'corrections', skill_proposal: 'skill_proposals',
+  task: 'tasks', guest: 'guests', idea: 'content_ideas', lead: 'leads', visibility: 'visibility_targets', correction: 'corrections', skill_proposal: 'skill_proposals', content_decision: 'content_decisions',
 }
 // Muted, from the shared token palette (not raw neon), so the legend reads as one
 // calm family rather than a rainbow. Kinds still differ, just quietly.
 const KIND_DOT: Record<DecisionRow['kind'], string> = {
   task: 'bg-pod-growth', guest: 'bg-status-blocked', idea: 'bg-status-needsYou',
-  lead: 'bg-status-active', visibility: 'bg-pod-ops', correction: 'bg-status-blocked', skill_proposal: 'bg-pod-growth',
+  lead: 'bg-status-active', visibility: 'bg-pod-ops', correction: 'bg-status-blocked', skill_proposal: 'bg-pod-growth', content_decision: 'bg-status-needsYou',
 }
 // Which tab's focused queue each kind batch-reviews into.
 const KIND_TO_TAB: Record<DecisionRow['kind'], string> = {
-  task: 'today', guest: 'guests', idea: 'content', lead: 'leads', visibility: 'guests', correction: 'org', skill_proposal: 'org',
+  task: 'today', guest: 'guests', idea: 'content', lead: 'leads', visibility: 'guests', correction: 'org', skill_proposal: 'org', content_decision: 'content',
 }
 const KIND_LABEL_PLURAL: Record<DecisionRow['kind'], string> = {
-  task: 'Tasks', guest: 'Guests', idea: 'Ideas', lead: 'Leads', visibility: 'Visibility', correction: 'Corrections', skill_proposal: 'Skills',
+  task: 'Tasks', guest: 'Guests', idea: 'Ideas', lead: 'Leads', visibility: 'Visibility', correction: 'Corrections', skill_proposal: 'Skills', content_decision: 'Content calls',
 }
 
 /**

@@ -147,7 +147,7 @@ export function ContactImportDropzone({ onIngested }: Props) {
             <select
               value={originVenture}
               onChange={(e) => setOriginVenture(e.target.value)}
-              className="mt-1 w-full rounded-md border border-white/10 bg-[#141416] px-2 py-1.5 text-[12px] text-white/85 focus:border-violet-400/50 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-[12px] text-white/85 focus:border-violet-400/50 focus:outline-none"
             >
               {VENTURE_OPTIONS.map(v => (
                 <option key={v.slug} value={v.slug}>{v.label}</option>
@@ -159,7 +159,7 @@ export function ContactImportDropzone({ onIngested }: Props) {
             <select
               value={consentTier}
               onChange={(e) => setConsentTier(e.target.value as ConsentTier)}
-              className="mt-1 w-full rounded-md border border-white/10 bg-[#141416] px-2 py-1.5 text-[12px] text-white/85 focus:border-violet-400/50 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-[12px] text-white/85 focus:border-violet-400/50 focus:outline-none"
             >
               {TIER_OPTIONS.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -174,7 +174,7 @@ export function ContactImportDropzone({ onIngested }: Props) {
             value={originCampaign}
             onChange={(e) => setOriginCampaign(e.target.value)}
             placeholder="e.g. Substack subscribers"
-            className="mt-1 w-full rounded-md border border-white/10 bg-[#141416] px-2 py-1.5 text-[12px] text-white/85 placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-[12px] text-white/85 placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none"
           />
         </label>
         <p className="text-[10px] text-white/40">

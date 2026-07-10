@@ -32,6 +32,9 @@ export function routeDecision(kind: DecisionKind | string, id: string | null | u
       return { tab: 'org', params: safeId ? { correction: safeId } : {} }
     case 'skill_proposal':
       return { tab: 'org', params: safeId ? { skill_proposal: safeId } : {} }
+    case 'content_decision':
+      // The typed weekly queue lives in the Content tab's This Week room.
+      return { tab: 'content', params: {} }
     default:
       return { tab: 'today', params: {} }
   }

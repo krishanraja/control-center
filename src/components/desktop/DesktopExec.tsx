@@ -73,6 +73,9 @@ export function DesktopExec() {
         signals={filteredSignals}
         onPromoted={(id) => setSignals(prev => prev.map(x => x.id === id ? { ...x, status: 'actioned' } : x))}
       />
+      <p className="text-[11px] text-white/30 -mt-2">
+        Below the hero this is an ambient read: nothing needs you. A signal worth acting on surfaces above or on Home.
+      </p>
 
       <AskMarcus />
 

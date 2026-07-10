@@ -118,6 +118,9 @@ export function DesktopCustomers() {
         </section>
       )}
 
+      <p className="text-[11px] text-white/30">
+        Ambient surface: revenue truth to read, nothing to action here. Expansion plays worth a decision land on Home.
+      </p>
       <MrrTicker variant="desktop" />
       <SubscribersList />
       <CustomerCouncilCard />

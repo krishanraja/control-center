@@ -99,7 +99,7 @@ export function SkillReviewModal({
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
       {(shipping || regenerating || refining) && <ProcessingOverlay label={shipping ? 'Shipping skills' : refining ? 'Refining this skill' : 'Regenerating skills'} sub={shipping ? 'Saving and emailing the client' : refining ? 'Applying your instruction' : 'Cleo is rebuilding them'} />}
-      <div className="relative w-full max-w-6xl max-h-[92vh] rounded-2xl border border-white/[0.08] bg-[#111114] shadow-2xl flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-6xl max-h-[92vh] rounded-2xl border border-white/[0.08] bg-base shadow-2xl flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5">

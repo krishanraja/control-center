@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
+import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles, Newspaper, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../hooks/useRealtimeDecisionsWaiting'
 import { navigateDecision } from '../lib/routeDecision'
 import { useHaptics } from '../hooks/useHaptics'
@@ -14,6 +14,7 @@ const KIND_ICON: Record<DecisionRow['kind'], typeof Mail> = {
   visibility: Target,
   correction: ShieldAlert,
   skill_proposal: Sparkles,
+  content_decision: Newspaper,
 }
 
 const KIND_LABEL: Record<DecisionRow['kind'], string> = {
@@ -24,9 +25,10 @@ const KIND_LABEL: Record<DecisionRow['kind'], string> = {
   visibility: 'Visibility',
   correction: 'Correction',
   skill_proposal: 'Skill',
+  content_decision: 'Content call',
 }
 
-const KIND_ORDER: DecisionRow['kind'][] = ['correction', 'skill_proposal', 'task', 'idea', 'lead', 'guest', 'visibility']
+const KIND_ORDER: DecisionRow['kind'][] = ['content_decision', 'correction', 'skill_proposal', 'task', 'idea', 'lead', 'guest', 'visibility']
 
 interface Props {
   onNavigate?: (tab: string, params?: Record<string, string>) => void
