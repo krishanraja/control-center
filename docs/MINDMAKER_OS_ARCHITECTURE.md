@@ -42,7 +42,7 @@ The OS is judged by these outcomes, not by activity. Everything in this doc — 
 | # | Outcome | How we measure | Current vs target |
 |---|---|---|---|
 | **O-1** | Krish under 2 hrs/day on ops | Time logged + `decisions_waiting` count under 10 | Target: under 10. Live: tracked on Home as the unified panel badge. |
-| **O-2** | $20K/month consulting revenue inside 60 days of audit close | Stripe Mindmaker + Meliora + AdFixus revenue, MTD | Tracked by MrrTicker + Leo Weekly Report. |
+| **O-2** | Builder-product MRR growing + content audience growing (the missionary/build-lab thesis, measured) | Stripe product MRR (CTRL, Fractionl, ...) + Mindmaker LIVE subscribers + podcast reach | Tracked by MrrTicker + Leo Weekly Report. (Rewritten 2026-07-10: the $20K consulting outcome retired with advisory sales.) |
 | **O-3** | One person running what traditionally takes 15-30 | Active workflows × success rate × outputs landed | ~90 active workflows. Vera scores fleet health weekly. |
 | **O-4** | Same mistake doesn't survive four occurrences, and a repeated win gets crystallized into a skill | `feedback_queue` → `corrections` → brief edit cycle time; plus clustered wins → `skill_proposals` → brief play | Vera Feedback Aggregation runs Sun 06:00 UTC; Vera Success Induction Sweep runs Sun 08:00 UTC (self-gates until win density builds). |
 | **O-5** | Same silent failure doesn't survive a week | `silent_failures` → `corrections` via Failure Pattern Sweep | Vera Failure Pattern Sweep runs Sun 07:00 UTC. |
@@ -136,7 +136,7 @@ These are the agents the OS itself tracks via `agents.brief_content` (identity) 
 | Agent | Role | Trigger | KPI focus |
 |---|---|---|---|
 | **Cleo** | Content Production & Voice (coordinator) | webhook only (Krish-triggered) | Posts approved/published per week; **email drafts** approved per week |
-| **Felix** | Enterprise Sales Pipeline | scheduled (5×/day) | Active opportunities, advisory leads moved |
+| **Felix** | RETIRED 2026-07-10 (advisory sales dropped; `agents.active=false`, workflow unpublished) | none | none |
 | **Hunter** | Job Sourcing | scheduled (Mon + Thu) | 9-10/10 roles matched to Krish's criteria |
 | **Maya** | Customer Acquisition (Marketing / SEO) | scheduled (7×/day) | SEO striking-distance gains, customer sweep freshness |
 | **Nell** | Outbound + Podcast Guest Booking | scheduled (3×/day) | Guests booked, replies, conversations |
@@ -191,7 +191,7 @@ Live inventory (reconciled against the runtime 2026-07-01), grouped by name pref
 | **Mindmaker OS** | 1 | **NEW** — RE Dossier Engine (Relationship Engine, every 6h) |
 | **Leo** | 1 | Revenue Weekly Report (Friday) |
 | **Hunter** | 1 | Job Sweep (fires **Mon + Wed** per cron `dow=1,3`; node is mislabeled "Mon + Thu") |
-| **Felix** | 1 | Opportunity Pipeline Tracker (Mon–Fri) |
+| **Felix** | 0 | Opportunity Pipeline Tracker UNPUBLISHED 2026-07-10 (advisory sales retired). Also unpublished: Nell Apollo Contact Enrichment, Lead Document Ingest, Draft Outbound Messages |
 | **Sonnet** | 0 | Task Lever Rater **disabled 2026-07-01** (broken — `$credentials` in Code node; §3.4.1) |
 | **Active total** | **87** | |
 | **Inactive / archived** | **18** | Workflow Optimizer; ZZ ARCHIVED Agatha Visibility Deep Enrich (dup); Nell Guest Speaker Briefing (archived dup) + Guest Pitch Enrich (archived); Nova Visibility Backfill Tick; System HARO Ingestion; "AI Agent workflow" (legacy); Critical Infrastructure Monitor (retired to VPS 2026-07-01); Maya Churn→Exit & Sonnet Task Lever Rater (disabled 2026-07-01); the 6 retired-product workflows (Stripe + Feedback for Gutted/Merciless/OnAlert, deactivated 2026-07-06); + the 2 per-product Stripe alert clones (Fractionl, mm-ctrl) superseded by Revenue Intake 2026-07-07 |
@@ -1458,13 +1458,17 @@ All polished output lands in a fixed Drive hierarchy. **Hard rule: never create 
 
 The OS actively tracks 8 ventures (`ventures` table, all `status='active'`).
 
-### 11.1 Consulting / advisory
+### 11.1 Krish's role + the Mindmaker repositioning (2026-07-10)
 
-| Venture | Role | OS surface |
+**Krish is Chief of Staff at Amperity (amperity.com, CX customer data platform), delivering their AI transformation.** This is his primary professional commitment. Hard boundary: the OS does NOT manage the Amperity role and carries no Amperity work products or data. The alignment is directional: what the OS incubates (content, network, builds) should compound the edge of a Chief of Staff driving AI transformation in an AI + data business.
+
+| Venture | Status 2026-07-10 | OS surface |
 |---|---|---|
-| **Mindmaker** (themindmaker.ai) | CEO & Founder, AI consulting sprints | Primary venture. Stripe → `Mindmaker OS Payment Alert`. Felix runs outbound. Cleo runs the content engine. Tagged `mindmaker_buyer` in venture_registry |
-| **Meliora** (meliora.company) | Lead Associate, GenAI transformation for telco/media | `enterprise-gigs-agent` cron tracks pipeline; lives in `tasks` with `workstream='advisory_sales'` |
-| **AdFixus** (adfixus.com) | Enterprise Consultant, identity & data infra | Same pipeline mechanism as Meliora |
+| **Mindmaker** (themindmaker.ai) | REPOSITIONED: missionary vehicle, proprietary content channel, build-lab for incubating ideas. Advisory sales DROPPED; Maven lessons + CTRL retained | Cleo runs the content engine (weekly brief + shifts). The `mindmaker_buyer` ICP lane and Apollo burn-down are retired; 74 advisory leads superseded (audit_log `portfolio_overhaul`) |
+| **Meliora** (meliora.company) | RETIRED (consulting engagement ended with the Amperity move) | Pipeline mechanism retired |
+| **AdFixus** (adfixus.com) | RETIRED; venture archived in `ventures` | Campaigns were already paused 2026-06-08; assets remain in OneDrive for the record |
+
+Gutted, Merciless, and OnAlert (already off the control plane 2026-07-06) are now **totally retired**; their manual Stripe/account sunsets remain on Krish's decisions surface.
 
 ### 11.2 Builder products
 
@@ -1901,6 +1905,11 @@ docs/audits/                                                 # Closure architect
 ---
 
 ## 20. Recent architectural changes — rolling changelog
+
+### 2026-07-10: Portfolio overhaul: Amperity + advisory-sales retirement (+ Control Center decision idiom, waves 1-2)
+
+- **Krish joined Amperity as Chief of Staff (AI transformation).** Advisory sales dropped fleet-wide: AdFixus + Meliora retired, Mindmaker repositioned (missionary vehicle + content channel + build-lab; Maven lessons + CTRL retained). Gutted/Merciless/OnAlert now totally retired. O-2 rewritten to product MRR + content audience growth. DB: AdFixus venture archived, 74 advisory leads superseded, Felix `active=false` (audit_log `portfolio_overhaul`). n8n: Felix Opportunity Pipeline Tracker, Nell Apollo Contact Enrichment, Nell Lead Document Ingest, Nell Draft Outbound Messages unpublished (~outbound budget reclaimed). Briefs reoriented with dated blocks: Maya to product growth, Nell to guest booking only, Nova to platform-building with no advisory pitching. QUEUED: Zara Signal Sweep still carries the buyer-signal-to-leads branch aimed at the retired pipeline (surgical patch next session); Hunter's job-sweep purpose is arguably complete (Krish's call); Mindmaker site advisory-sales removal is a separate product pass.
+- **Content Engine v2 + coherence waves 1-2 shipped to prod** (PRs #179-#182): weekly brief + 37-shift provenance-labeled register replace one-at-a-time triage; unified typed decisions (`content_decisions` in `decisions_waiting`; view v3 hides future-deferred tasks); Home anchor counts only typed rulings with queue chips + ambient fold; Today is a 3-verb queue (approve / send back with note / defer); Leads/Guests/Network land in bounded triage decks; dictation-first mobile inputs. Weekly rhythm: Feed ingest daily 11:30 UTC, shifts detect Fri 17:30, brief assembles Fri 18:00, purge Mon 14:00 (Vercel crons, zero n8n budget).
 
 Pruned to the last 90 days. Older history is git-archaeology territory.
 
