@@ -71,7 +71,7 @@ trump Growth experiments).
 | Type | Behaviour | Example |
 |---|---|---|
 | **Coordinator** | Plans, delegates, reviews. Does not execute N8N workflows directly. | Agatha (COO), Cleo (Content) |
-| **Executor** | Runs scheduled N8N workflows; produces artefacts. | Felix (Enterprise Pipeline), Maya (Marketing/SEO), Marcus (Synthesis) |
+| **Executor** | Runs scheduled N8N workflows; produces artefacts. | Maya (Marketing/SEO), Marcus (Synthesis) |
 | **Monitor** | Continuous health/audit; rarely surfaces unless something is wrong. | Vera (Audit/Standards), Arlo (Infra), Kai (Integrations) |
 
 A coordinator with zero `workflow_runs` is **expected behaviour**, not a
@@ -96,9 +96,10 @@ check.
 
 ## Roster
 
-The canonical fleet is 14 production agents. Supabase `agents` (where
-`active = true`) is authoritative; the roster below mirrors that list and
-is the definitive product reference. The same list is hard-coded as a
+The canonical fleet is 14 tracked production agents, 12 active (Felix and
+Hunter retired 2026-07-10, `active = false`; rows kept for history).
+Supabase `agents` (where `active = true`) is authoritative; the roster
+below mirrors that list and is the definitive product reference. The same list is hard-coded as a
 fallback in `api/agents/[name].ts:available_agents` — **the table and the
 fallback list must agree.**
 
@@ -124,12 +125,12 @@ fallback list must agree.**
 | Slug | Display | Role |
 |---|---|---|
 | `cleo` | Cleo | Content Production & Voice (Coordinator) |
-| `felix` | Felix | Enterprise Sales Pipeline |
+| `felix` | Felix | Enterprise Sales Pipeline. RETIRED 2026-07-10 (advisory sales dropped; `active = false`, Opportunity Pipeline Tracker unpublished) |
 | `maya` | Maya | Customer Acquisition (Marketing / SEO) |
 | `nell` | Nell | Outbound + Podcast Guest Booking |
 | `nova` | Nova | Visibility & Speaking |
 | `zara` | Zara | Signal Intelligence & Market Research |
-| `hunter` | Hunter | Job Sourcing & Application Specialist |
+| `hunter` | Hunter | Job Sourcing & Application Specialist. RETIRED 2026-07-10 (job search complete: Amperity CoS; `active = false`, Job Sweep unpublished) |
 
 > **Source of truth.** The Supabase `agents` table is authoritative. The
 > roster above must match `api/agents/[name].ts:available_agents`. If the
