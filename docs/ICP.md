@@ -1,5 +1,10 @@
 # Mindmaker OS — Ideal Customer Profile (shareable)
 
+> **HISTORICAL (2026-07-10):** advisory sales retired with the Amperity move; the
+> `mindmaker_buyer` lane and the Apollo burn-down are no longer live. Kept for the
+> record. The guest/content lanes (`signal_noise_guest`, `builder_economy_guest`)
+> are still referenced by Nell/Nova.
+
 > Portable ICP spec for the whole fleet. Any agent that sources, scores, routes,
 > or drafts to a person (Felix outbound, Nell guest scout, Nova visibility, Cleo,
 > the Apollo burn-down, n8n lead ingest) should target and qualify against this.

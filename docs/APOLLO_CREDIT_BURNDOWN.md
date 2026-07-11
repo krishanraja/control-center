@@ -1,5 +1,9 @@
 # Apollo Credit Burn-Down (interim, non-n8n)
 
+> **HISTORICAL (2026-07-10):** advisory sales retired with the Amperity move; the
+> `mindmaker_buyer` lane and this Apollo burn-down are no longer live. Kept for
+> the record.
+
 Why this exists: there's a standing Apollo balance (~1642 credits) and the n8n
 lead pipeline is down until ~Jul 1, so the normal ingest route can't spend it.
 This is the interim, **metered** way to turn those credits into high-quality
