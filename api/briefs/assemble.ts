@@ -3,6 +3,7 @@ import { supabase } from '../_supabase.js'
 import { callClaude, robustJson, sanitizeVoice, loadVoiceBlock, loadCorpus, corpusForChannel } from '../_content.js'
 import { isoWeekLabel, startOfIsoWeek } from '../_weeks.js'
 import { realSource } from '../shifts/detect.js'
+import { loadStandingNotes, standingNotesPrompt } from '../_briefNotes.js'
 
 // Weekly brief assembly (Content Engine v2, spec §4). Fri 18:00 UTC.
 //
@@ -77,8 +78,8 @@ export async function runAssemble(force = false) {
     return { week, items: items.length, skipped: 'fewer than 5 items this week (honest skip)' }
   }
 
-  const [voice, corpus, register, krishWeek] = await Promise.all([
-    loadVoiceBlock(), loadCorpus(), loadRegisterSummary(), loadKrishWeek(weekStart),
+  const [voice, corpus, register, krishWeek, standingNotes] = await Promise.all([
+    loadVoiceBlock(), loadCorpus(), loadRegisterSummary(), loadKrishWeek(weekStart), loadStandingNotes(),
   ])
   const channelMandate = corpusForChannel(corpus, 'mindmaker_live', 3000)
 
@@ -86,6 +87,7 @@ export async function runAssemble(force = false) {
     'You write the Mindmaker LIVE weekly brief for business leaders making real AI decisions. You write as Krish.',
     voice ? `VOICE:\n${voice}` : '',
     channelMandate ? `CHANNEL MANDATE:\n${channelMandate}` : '',
+    standingNotesPrompt(standingNotes),
     'Shape: Headlines (5 to 8 stories, each with a one-line "why it matters" for an operator), then "What this actually means" (the connective essay: find the ONE movement under this week\'s stories, grounded in the shifts register below; 200-350 words), then Perspectives (a sharp first-person take seeded from Krish\'s own week; 80-160 words).',
     'HONESTY: every headline must come from the supplied stories with its real URL. Never invent facts, numbers, companies or quotes. No em dashes anywhere.',
     'Reply ONLY with JSON: {"title":"...","headlines":[{"id":"<story id>","headline":"...","why":"...","url":"...","source":"..."}],"meaning_md":"...","perspectives_md":"..."}',

@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { callClaude, loadVoiceBlock, preamble, sanitizeVoice, VOICE_GUARDRAILS } from '../../_content.js'
+import { loadStandingNotes, standingNotesPrompt } from '../../_briefNotes.js'
 
 // POST /api/briefs/:week/revise   body: { mode, instruction?, selection? }
 //
@@ -35,11 +36,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(409).json({ ok: false, error: 'selection no longer matches the draft' })
   }
 
-  const voice = await loadVoiceBlock()
+  const [voice, standingNotes] = await Promise.all([loadVoiceBlock(), loadStandingNotes()])
   const system = [
     'You edit the Mindmaker LIVE weekly brief. You write as Krish, for business leaders.',
     voice ? `VOICE:\n${voice}` : '',
     VOICE_GUARDRAILS,
+    standingNotesPrompt(standingNotes),
     'Preserve the markdown structure (headings, lists, links) unless the instruction says otherwise.',
     'HONESTY: never invent facts, numbers, companies or quotes. Keep every URL exactly as it is.',
     selection
