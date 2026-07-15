@@ -15,6 +15,7 @@ import { FocusRitual } from './components/home/FocusRitual'
 import { isFocusRitualEnabled } from './lib/homeV2'
 import { useHashRoute } from './hooks/useHashRoute'
 import { contentV2Enabled } from './lib/contentV2'
+import { BOTTOM_NAV_PAD } from './components/mobile/primitives'
 import { MobileTabSkeleton, BoardSkeleton } from './components/shared/Skeleton'
 
 /**
@@ -168,7 +169,10 @@ export default function App() {
                   {tab === 'customers' && <ErrorBoundary label="Customers"><MobileCustomers /></ErrorBoundary>}
                   {tab === 'guests'    && <ErrorBoundary label="Visibility"><MobileGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'content'   && (contentV2Enabled()
-                    ? <ErrorBoundary label="Content"><div className="px-5 pt-7 pb-4 h-full flex flex-col overflow-hidden"><ContentV2Tab variant="mobile" /></div></ErrorBoundary>
+                    // Reserve BottomNav clearance (like every MobileShell tab) so
+                    // the deck's thumb-zone actions and the room scroll tails are
+                    // never hidden behind the fixed nav bar.
+                    ? <ErrorBoundary label="Content"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><ContentV2Tab variant="mobile" /></div></ErrorBoundary>
                     : <ErrorBoundary label="Content"><MobileContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>)}
                   {tab === 'exec'      && <ErrorBoundary label="Intel"><MobileIntel /></ErrorBoundary>}
                   {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrg /></ErrorBoundary>}
