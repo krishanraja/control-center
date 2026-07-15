@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
@@ -6,6 +6,11 @@ import { Markdown } from 'tiptap-markdown'
 import { contentV2Api } from '../../hooks/useContentV2'
 import { useDictation } from '../../hooks/useDictation'
 import { FACTORY_FANOUT, type WeeklyBriefRow } from '../../lib/contentV2'
+import { renderBrief, toEndnotes } from '../../lib/citations'
+import { diffSections, mergeSections, wordDiff, type SectionDiff } from '../../lib/briefDiff'
+import { useToast } from '../shared/Toast'
+
+interface StandingNote { id: string; text: string; at: string }
 
 // The weekly brief editor (R8; mockup set 1 mock 2 + set 2 pin 12).
 // Full-screen overlay, deep-linked #/content?brief=<week>. The canvas is a
@@ -22,6 +27,34 @@ const MAGIC: Array<{ mode: string; label: string }> = [
   { mode: 'more_data', label: 'More data' },
 ]
 
+// Reading preferences that the surface should remember between visits, so the
+// system meets Krish where he left it instead of resetting every open.
+const CITATIONS_KEY = 'brief:citations'
+const FANOUT_KEY = 'brief:fanout'
+
+function readCitationsPref(): boolean {
+  try { return localStorage.getItem(CITATIONS_KEY) !== 'off' } catch { return true }
+}
+function writeCitationsPref(on: boolean): void {
+  try { localStorage.setItem(CITATIONS_KEY, on ? 'on' : 'off') } catch { /* noop */ }
+}
+function readFanoutPref(): Set<string> {
+  try {
+    const raw = localStorage.getItem(FANOUT_KEY)
+    if (raw) {
+      const arr = JSON.parse(raw) as unknown
+      if (Array.isArray(arr)) {
+        const valid = new Set(FACTORY_FANOUT.map(f => f.channel))
+        return new Set(arr.filter((c): c is string => typeof c === 'string' && valid.has(c)))
+      }
+    }
+  } catch { /* fall through to defaults */ }
+  return new Set(FACTORY_FANOUT.filter(f => f.defaultOn).map(f => f.channel))
+}
+function writeFanoutPref(channels: Set<string>): void {
+  try { localStorage.setItem(FANOUT_KEY, JSON.stringify([...channels])) } catch { /* noop */ }
+}
+
 export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: boolean; onClose: () => void }) {
   const [brief, setBrief] = useState<WeeklyBriefRow | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -30,11 +63,22 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   const [preview, setPreview] = useState<{ label: string; md: string } | null>(null)
   const [magicBusy, setMagicBusy] = useState<string | null>(null)
   const [showVersions, setShowVersions] = useState(false)
-  const [fanout, setFanout] = useState<Set<string>>(new Set(FACTORY_FANOUT.filter(f => f.defaultOn).map(f => f.channel)))
+  const [fanout, setFanout] = useState<Set<string>>(readFanoutPref)
   const [pushing, setPushing] = useState(false)
   const [pushed, setPushed] = useState<Array<{ channel: string; doc_url: string | null }> | null>(null)
   const [cleoNote, setCleoNote] = useState('')
+  const [citations, setCitations] = useState<boolean>(readCitationsPref)
+  const [notes, setNotes] = useState<StandingNote[]>([])
+  const [notesOpen, setNotesOpen] = useState(false)
+  // Section keys REJECTED in the current preview (default is keep-all); tracked
+  // as the exclusion set so a fresh preview starts with everything accepted.
+  const [rejected, setRejected] = useState<Set<string>>(new Set())
+  // The endnote-form (citations-on) markdown is the source of truth for saving.
+  // Hiding citations is a lossy reading view, so we never re-derive from it —
+  // we always render the display FROM this buffer.
+  const canonicalRef = useRef<string>('')
   const { listening, supported, toggle } = useDictation(setCleoNote)
+  const { toast } = useToast()
 
   const editor = useEditor({
     extensions: [
@@ -44,8 +88,16 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     ],
     editable: !narrow,
     content: '',
-    onUpdate: () => setDirty(true),
+    onUpdate: ({ editor }) => {
+      setDirty(true)
+      const storage = editor.storage as { markdown?: { getMarkdown: () => string } }
+      const md = storage.markdown?.getMarkdown()
+      // Edits only happen with citations on, so the buffer stays canonical.
+      if (md != null) canonicalRef.current = toEndnotes(md)
+    },
   })
+
+  const editingClosed = brief ? !['ready', 'in_review', 'approved'].includes(brief.status) : false
 
   const load = useCallback(async () => {
     try {
@@ -58,13 +110,32 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
 
   useEffect(() => { load() }, [load])
 
+  // Standing "Tell Cleo" preferences the engine folds into every draft.
+  useEffect(() => {
+    contentV2Api<{ notes: StandingNote[] }>('/api/briefs/notes')
+      .then(r => setNotes(r.notes || []))
+      .catch(() => { /* notes are a nicety; ignore fetch failures */ })
+  }, [])
+
+  // A) Canonicalize a fresh brief into the endnote buffer. Legacy briefs stored
+  //    with inline citations are migrated to citations-at-the-end on open; the
+  //    upgrade only persists if Krish actually edits and saves.
   useEffect(() => {
     if (editor && brief && !dirty) {
-      editor.commands.setContent(brief.body_md || '')
+      canonicalRef.current = toEndnotes(brief.body_md || '')
     }
-    // Load the canvas whenever a fresh brief arrives and there are no local
-    // edits (dirty is read, not depended on: a keystroke must never reload).
+    // dirty is read, not depended on: a keystroke must never reload.
   }, [editor, brief])
+
+  // B) Render the display from the canonical buffer for the current toggle.
+  //    Runs on load and whenever the citations toggle flips — never on a
+  //    keystroke (canonicalRef stays in sync via onUpdate), so edits are safe.
+  useEffect(() => {
+    if (!editor || !brief) return
+    editor.setEditable(!narrow && citations && !editingClosed)
+    editor.commands.setContent(renderBrief(canonicalRef.current, citations))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, brief, citations, narrow, editingClosed])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -82,7 +153,8 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     setSaving(true)
     try {
       const body: Record<string, unknown> = {}
-      if (dirty) { body.body_md = currentMd(); body.source = 'krish' }
+      // Persist the canonical endnote form, never the (lossy) citations-off view.
+      if (dirty) { body.body_md = canonicalRef.current || currentMd(); body.source = 'krish' }
       if (statusChange) body.status = statusChange
       if (Object.keys(body).length) {
         await contentV2Api(`/api/briefs/${week}`, { method: 'PATCH', body: JSON.stringify(body) })
@@ -99,6 +171,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   const runMagic = useCallback(async (mode: string, label: string, instruction?: string) => {
     setMagicBusy(mode)
     setPreview(null)
+    setRejected(new Set())
     try {
       // Persist local edits first so the revise runs against what is on screen.
       if (dirty) await save()
@@ -117,13 +190,36 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     }
   }, [dirty, save, editor, week])
 
+  // The revision, diffed against the current draft by section. A fresh preview
+  // starts with every change accepted; `rejected` tracks the ones toggled off.
+  const previewDiffs = useMemo<SectionDiff[]>(
+    () => (preview ? diffSections(canonicalRef.current, toEndnotes(preview.md)) : []),
+    [preview],
+  )
+  const changedDiffs = useMemo(() => previewDiffs.filter(d => d.status !== 'same'), [previewDiffs])
+  const acceptedKeys = useMemo(
+    () => new Set(changedDiffs.filter(d => !rejected.has(d.key)).map(d => d.key)),
+    [changedDiffs, rejected],
+  )
+
+  const toggleSection = useCallback((key: string) => {
+    setRejected(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key); else next.add(key)
+      return next
+    })
+  }, [])
+
   const keepPreview = useCallback(async () => {
-    if (!preview) return
-    await contentV2Api(`/api/briefs/${week}`, { method: 'PATCH', body: JSON.stringify({ body_md: preview.md, source: 'cleo' }) })
+    if (!preview || acceptedKeys.size === 0) return
+    // Apply only the accepted section changes, in canonical endnote form so
+    // citations stay at the end.
+    const merged = toEndnotes(mergeSections(previewDiffs, acceptedKeys))
+    await contentV2Api(`/api/briefs/${week}`, { method: 'PATCH', body: JSON.stringify({ body_md: merged, source: 'cleo' }) })
     setPreview(null)
     setDirty(false)
     await load()
-  }, [preview, week, load])
+  }, [preview, acceptedKeys, previewDiffs, week, load])
 
   const restore = useCallback(async (v: number) => {
     await contentV2Api(`/api/briefs/${week}`, { method: 'PATCH', body: JSON.stringify({ restore_version: v }) })
@@ -158,7 +254,46 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     toggle()
   }, [supported, toggle])
 
-  const editingClosed = brief ? !['ready', 'in_review', 'approved'].includes(brief.status) : false
+  const toggleCitations = useCallback(() => {
+    setCitations(prev => { const next = !prev; writeCitationsPref(next); return next })
+  }, [])
+
+  // Persist a Cleo instruction as a standing preference (future briefs honor it)
+  // and apply it once now so the effect is visible immediately.
+  const rememberNote = useCallback(async (text: string) => {
+    const clean = text.trim()
+    if (!clean) return
+    try {
+      const r = await contentV2Api<{ notes: StandingNote[] }>('/api/briefs/notes', {
+        method: 'POST', body: JSON.stringify({ text: clean }),
+      })
+      setNotes(r.notes || [])
+      toast('Cleo will remember that for every brief.', 'success')
+    } catch (e) {
+      toast(String((e as Error).message || e), 'error')
+    }
+  }, [toast])
+
+  const forgetNote = useCallback(async (id: string) => {
+    try {
+      const r = await contentV2Api<{ notes: StandingNote[] }>('/api/briefs/notes', {
+        method: 'DELETE', body: JSON.stringify({ id }),
+      })
+      setNotes(r.notes || [])
+    } catch (e) {
+      toast(String((e as Error).message || e), 'error')
+    }
+  }, [toast])
+
+  const toggleFanout = useCallback((channel: string) => {
+    setFanout(prev => {
+      const next = new Set(prev)
+      if (next.has(channel)) next.delete(channel); else next.add(channel)
+      writeFanoutPref(next)
+      return next
+    })
+  }, [])
+
   const versions = useMemo(() => (brief?.versions || []).slice().reverse(), [brief])
 
   return (
@@ -170,6 +305,20 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
           <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300/80">Weekly brief · {week}</div>
           <div className="text-[14px] font-bold text-white truncate">{brief?.title || 'Loading...'}</div>
         </div>
+        {brief ? (
+          <button
+            onClick={toggleCitations}
+            aria-pressed={citations}
+            title={citations ? 'Sources shown at the end — tap to hide' : 'Sources hidden — tap to show at the end'}
+            className={`flex-shrink-0 rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition-colors ${
+              citations
+                ? 'border-sky-400/30 bg-sky-400/10 text-sky-300'
+                : 'border-white/15 text-white/45 hover:text-white/80 hover:border-white/25'
+            }`}
+          >
+            {citations ? 'Citations on' : 'Citations off'}
+          </button>
+        ) : null}
         {!narrow && brief ? (
           <>
             <button
@@ -240,6 +389,10 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
               <div className="mb-4 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white/50 text-[12px] px-3 py-2">
                 This brief is {brief?.status}; editing is closed.
               </div>
+            ) : !narrow && !citations ? (
+              <div className="mb-4 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/45 text-[12px] px-3 py-2">
+                Reading view — sources are hidden. Turn <span className="text-sky-300/90 font-semibold">Citations on</span> to edit.
+              </div>
             ) : null}
             <EditorContent
               editor={editor}
@@ -293,6 +446,35 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
             >
               {listening ? 'Listening... tap to stop' : '🎙 Tell Cleo'}
             </button>
+            {notes.length > 0 ? (
+              <span className="relative">
+                <button
+                  onClick={() => setNotesOpen(o => !o)}
+                  className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11.5px] font-semibold text-white/55 hover:text-white/85 hover:bg-white/[0.07]"
+                >
+                  💭 Cleo remembers · {notes.length}
+                </button>
+                {notesOpen ? (
+                  <div className="absolute bottom-full mb-2 left-0 z-20 w-72 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-base shadow-xl p-2.5">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40 px-1 pb-1.5">
+                      Standing notes · every brief
+                    </div>
+                    {notes.map(n => (
+                      <div key={n.id} className="flex items-start gap-2 rounded-lg px-1.5 py-1.5 hover:bg-white/[0.04]">
+                        <span className="text-[12px] text-white/70 leading-snug flex-1">{n.text}</span>
+                        <button
+                          onClick={() => forgetNote(n.id)}
+                          aria-label="Forget this note"
+                          className="text-white/30 hover:text-red-300 text-[13px] leading-none flex-shrink-0"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </span>
+            ) : null}
             {cleoNote ? (
               <span className="flex items-center gap-2 text-[11.5px] text-white/55 bg-white/[0.04] rounded-full px-3 py-1.5">
                 “{cleoNote.slice(0, 80)}”
@@ -300,7 +482,14 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                   onClick={() => { runMagic('instruction', 'Tell Cleo', cleoNote); setCleoNote('') }}
                   className="text-sky-300 font-semibold"
                 >
-                  Apply
+                  Apply once
+                </button>
+                <button
+                  onClick={() => { rememberNote(cleoNote); runMagic('instruction', 'Tell Cleo', cleoNote); setCleoNote('') }}
+                  className="text-emerald-300 font-semibold"
+                  title="Apply now and honor this on every future brief"
+                >
+                  Remember
                 </button>
                 <button onClick={() => setCleoNote('')} className="text-white/35">×</button>
               </span>
@@ -308,11 +497,66 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
           </div>
           {preview ? (
             <div className="mt-3 rounded-xl border border-dashed border-sky-400/35 bg-sky-400/[0.05] p-3.5">
-              <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-sky-300 mb-1.5">Preview · {preview.label}</div>
-              <div className="text-[12.5px] text-white/70 leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap">{preview.md.slice(0, 1500)}</div>
-              <div className="flex gap-2 mt-3">
-                <button onClick={keepPreview} className="rounded-lg bg-emerald-400 text-emerald-950 px-4 py-2 text-[12px] font-bold">Keep it</button>
-                <button onClick={() => setPreview(null)} className="rounded-lg bg-white/[0.06] text-white/70 px-4 py-2 text-[12px] font-semibold">Undo</button>
+              <div className="flex items-center justify-between mb-2 gap-3">
+                <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-sky-300">Preview · {preview.label}</div>
+                <div className="text-[10.5px] text-white/40 tabular-nums">
+                  {changedDiffs.length === 0
+                    ? 'no changes'
+                    : `${acceptedKeys.size}/${changedDiffs.length} kept`}
+                </div>
+              </div>
+              {changedDiffs.length === 0 ? (
+                <div className="text-[12px] text-white/50">This revision came back identical to the current draft.</div>
+              ) : (
+                <div className="max-h-56 overflow-y-auto flex flex-col gap-2 pr-1">
+                  {changedDiffs.map(d => {
+                    const kept = !rejected.has(d.key)
+                    const before = d.before.replace(/^#{1,6}\s+.*\n?/, '')
+                    const after = d.after.replace(/^#{1,6}\s+.*\n?/, '')
+                    return (
+                      <div key={d.key} className={`rounded-lg border p-2.5 transition-opacity ${kept ? 'border-sky-400/25 bg-white/[0.02]' : 'border-white/[0.06] opacity-55'}`}>
+                        <label className="flex items-center gap-2 cursor-pointer select-none mb-1.5">
+                          <span
+                            onClick={() => toggleSection(d.key)}
+                            className={`w-4 h-4 rounded border inline-flex items-center justify-center text-[10px] flex-shrink-0 ${kept ? 'bg-emerald-400 border-emerald-400 text-emerald-950 font-bold' : 'border-white/25'}`}
+                          >
+                            {kept ? '✓' : ''}
+                          </span>
+                          <span className="text-[11px] font-semibold text-white/70">
+                            {d.heading || 'Intro'} <span className="text-white/35 font-normal">· {d.status}</span>
+                          </span>
+                        </label>
+                        <div className="text-[12px] leading-relaxed whitespace-pre-wrap break-words">
+                          {wordDiff(before, after).map((op, i) => (
+                            <span
+                              key={i}
+                              className={
+                                op.type === 'add' ? 'bg-emerald-400/20 text-emerald-200 rounded px-0.5'
+                                : op.type === 'del' ? 'bg-red-400/15 text-red-300/70 line-through rounded px-0.5'
+                                : 'text-white/55'
+                              }
+                            >
+                              {op.text}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              <div className="flex gap-2 mt-3 items-center">
+                <button
+                  onClick={keepPreview}
+                  disabled={acceptedKeys.size === 0}
+                  className="rounded-lg bg-emerald-400 text-emerald-950 px-4 py-2 text-[12px] font-bold disabled:opacity-40"
+                >
+                  {changedDiffs.length <= 1 ? 'Keep it' : `Keep ${acceptedKeys.size} of ${changedDiffs.length}`}
+                </button>
+                <button onClick={() => setPreview(null)} className="rounded-lg bg-white/[0.06] text-white/70 px-4 py-2 text-[12px] font-semibold">Discard</button>
+                {changedDiffs.length > 1 && rejected.size > 0 ? (
+                  <button onClick={() => setRejected(new Set())} className="text-[11px] text-white/40 hover:text-white/70 ml-auto">Keep all</button>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -321,7 +565,10 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
 
       {/* fan-out bar */}
       {brief ? (
-        <footer className="px-4 sm:px-6 py-3.5 border-t border-white/[0.07] flex-shrink-0 bg-base">
+        <footer
+          className="px-4 sm:px-6 pt-3.5 border-t border-white/[0.07] flex-shrink-0 bg-base"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)' }}
+        >
           {pushed ? (
             <div className="text-[12.5px] text-emerald-300">
               Pushed {pushed.length} format{pushed.length === 1 ? '' : 's'} to Google Docs.{' '}
@@ -338,11 +585,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                 return (
                   <label key={f.channel} className="flex items-center gap-1.5 text-[12px] text-white/70 cursor-pointer select-none">
                     <span
-                      onClick={() => setFanout(prev => {
-                        const next = new Set(prev)
-                        if (next.has(f.channel)) next.delete(f.channel); else next.add(f.channel)
-                        return next
-                      })}
+                      onClick={() => toggleFanout(f.channel)}
                       className={`w-4 h-4 rounded border inline-flex items-center justify-center text-[10px] ${on ? 'bg-emerald-400 border-emerald-400 text-emerald-950 font-bold' : 'border-white/25'}`}
                     >
                       {on ? '✓' : ''}

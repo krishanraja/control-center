@@ -130,6 +130,12 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  // A deep-linked brief editor or content composer takes over the whole screen
+  // (mirrors the render conditions below). While one is open we suppress the
+  // BottomNav so it can't overlap the overlay's own bars on mobile.
+  const fullScreenOverlayOpen = tab === 'content'
+    && Boolean(route.params.idea || (contentV2Enabled() && route.params.brief))
+
   return (
     <ToastProvider>
       <AgentsProvider>
@@ -193,7 +199,12 @@ export default function App() {
               </div>
             )}
           </main>
-          {narrow && <BottomNav active={tab} onChange={handleTab} />}
+          {/* Hide the tab bar while a full-screen content overlay owns the screen.
+              These overlays live in their own `zoom` stacking context, so a
+              fixed z-50 BottomNav would otherwise punch through and collide with
+              the editor's own bottom bars (the mobile nav-overlap bug). Each
+              overlay carries its own "← Back", so the tab bar is redundant here. */}
+          {narrow && !fullScreenOverlayOpen && <BottomNav active={tab} onChange={handleTab} />}
           {/* Full-screen content composer — owns the screen for one piece when an
               idea is deep-linked on the Content tab. Esc / back clears the param. */}
           {/* Full-screen weekly-brief editor (Content Engine v2) — same overlay
