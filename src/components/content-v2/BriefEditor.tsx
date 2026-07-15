@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
@@ -6,6 +6,7 @@ import { Markdown } from 'tiptap-markdown'
 import { contentV2Api } from '../../hooks/useContentV2'
 import { useDictation } from '../../hooks/useDictation'
 import { FACTORY_FANOUT, type WeeklyBriefRow } from '../../lib/contentV2'
+import { renderBrief, toEndnotes } from '../../lib/citations'
 
 // The weekly brief editor (R8; mockup set 1 mock 2 + set 2 pin 12).
 // Full-screen overlay, deep-linked #/content?brief=<week>. The canvas is a
@@ -22,6 +23,34 @@ const MAGIC: Array<{ mode: string; label: string }> = [
   { mode: 'more_data', label: 'More data' },
 ]
 
+// Reading preferences that the surface should remember between visits, so the
+// system meets Krish where he left it instead of resetting every open.
+const CITATIONS_KEY = 'brief:citations'
+const FANOUT_KEY = 'brief:fanout'
+
+function readCitationsPref(): boolean {
+  try { return localStorage.getItem(CITATIONS_KEY) !== 'off' } catch { return true }
+}
+function writeCitationsPref(on: boolean): void {
+  try { localStorage.setItem(CITATIONS_KEY, on ? 'on' : 'off') } catch { /* noop */ }
+}
+function readFanoutPref(): Set<string> {
+  try {
+    const raw = localStorage.getItem(FANOUT_KEY)
+    if (raw) {
+      const arr = JSON.parse(raw) as unknown
+      if (Array.isArray(arr)) {
+        const valid = new Set(FACTORY_FANOUT.map(f => f.channel))
+        return new Set(arr.filter((c): c is string => typeof c === 'string' && valid.has(c)))
+      }
+    }
+  } catch { /* fall through to defaults */ }
+  return new Set(FACTORY_FANOUT.filter(f => f.defaultOn).map(f => f.channel))
+}
+function writeFanoutPref(channels: Set<string>): void {
+  try { localStorage.setItem(FANOUT_KEY, JSON.stringify([...channels])) } catch { /* noop */ }
+}
+
 export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: boolean; onClose: () => void }) {
   const [brief, setBrief] = useState<WeeklyBriefRow | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -30,10 +59,15 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   const [preview, setPreview] = useState<{ label: string; md: string } | null>(null)
   const [magicBusy, setMagicBusy] = useState<string | null>(null)
   const [showVersions, setShowVersions] = useState(false)
-  const [fanout, setFanout] = useState<Set<string>>(new Set(FACTORY_FANOUT.filter(f => f.defaultOn).map(f => f.channel)))
+  const [fanout, setFanout] = useState<Set<string>>(readFanoutPref)
   const [pushing, setPushing] = useState(false)
   const [pushed, setPushed] = useState<Array<{ channel: string; doc_url: string | null }> | null>(null)
   const [cleoNote, setCleoNote] = useState('')
+  const [citations, setCitations] = useState<boolean>(readCitationsPref)
+  // The endnote-form (citations-on) markdown is the source of truth for saving.
+  // Hiding citations is a lossy reading view, so we never re-derive from it —
+  // we always render the display FROM this buffer.
+  const canonicalRef = useRef<string>('')
   const { listening, supported, toggle } = useDictation(setCleoNote)
 
   const editor = useEditor({
@@ -44,8 +78,16 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     ],
     editable: !narrow,
     content: '',
-    onUpdate: () => setDirty(true),
+    onUpdate: ({ editor }) => {
+      setDirty(true)
+      const storage = editor.storage as { markdown?: { getMarkdown: () => string } }
+      const md = storage.markdown?.getMarkdown()
+      // Edits only happen with citations on, so the buffer stays canonical.
+      if (md != null) canonicalRef.current = toEndnotes(md)
+    },
   })
+
+  const editingClosed = brief ? !['ready', 'in_review', 'approved'].includes(brief.status) : false
 
   const load = useCallback(async () => {
     try {
@@ -58,13 +100,25 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
 
   useEffect(() => { load() }, [load])
 
+  // A) Canonicalize a fresh brief into the endnote buffer. Legacy briefs stored
+  //    with inline citations are migrated to citations-at-the-end on open; the
+  //    upgrade only persists if Krish actually edits and saves.
   useEffect(() => {
     if (editor && brief && !dirty) {
-      editor.commands.setContent(brief.body_md || '')
+      canonicalRef.current = toEndnotes(brief.body_md || '')
     }
-    // Load the canvas whenever a fresh brief arrives and there are no local
-    // edits (dirty is read, not depended on: a keystroke must never reload).
+    // dirty is read, not depended on: a keystroke must never reload.
   }, [editor, brief])
+
+  // B) Render the display from the canonical buffer for the current toggle.
+  //    Runs on load and whenever the citations toggle flips — never on a
+  //    keystroke (canonicalRef stays in sync via onUpdate), so edits are safe.
+  useEffect(() => {
+    if (!editor || !brief) return
+    editor.setEditable(!narrow && citations && !editingClosed)
+    editor.commands.setContent(renderBrief(canonicalRef.current, citations))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, brief, citations, narrow, editingClosed])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -82,7 +136,8 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     setSaving(true)
     try {
       const body: Record<string, unknown> = {}
-      if (dirty) { body.body_md = currentMd(); body.source = 'krish' }
+      // Persist the canonical endnote form, never the (lossy) citations-off view.
+      if (dirty) { body.body_md = canonicalRef.current || currentMd(); body.source = 'krish' }
       if (statusChange) body.status = statusChange
       if (Object.keys(body).length) {
         await contentV2Api(`/api/briefs/${week}`, { method: 'PATCH', body: JSON.stringify(body) })
@@ -119,7 +174,8 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
 
   const keepPreview = useCallback(async () => {
     if (!preview) return
-    await contentV2Api(`/api/briefs/${week}`, { method: 'PATCH', body: JSON.stringify({ body_md: preview.md, source: 'cleo' }) })
+    // Store the revision in canonical endnote form so citations stay at the end.
+    await contentV2Api(`/api/briefs/${week}`, { method: 'PATCH', body: JSON.stringify({ body_md: toEndnotes(preview.md), source: 'cleo' }) })
     setPreview(null)
     setDirty(false)
     await load()
@@ -158,7 +214,19 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     toggle()
   }, [supported, toggle])
 
-  const editingClosed = brief ? !['ready', 'in_review', 'approved'].includes(brief.status) : false
+  const toggleCitations = useCallback(() => {
+    setCitations(prev => { const next = !prev; writeCitationsPref(next); return next })
+  }, [])
+
+  const toggleFanout = useCallback((channel: string) => {
+    setFanout(prev => {
+      const next = new Set(prev)
+      if (next.has(channel)) next.delete(channel); else next.add(channel)
+      writeFanoutPref(next)
+      return next
+    })
+  }, [])
+
   const versions = useMemo(() => (brief?.versions || []).slice().reverse(), [brief])
 
   return (
@@ -170,6 +238,20 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
           <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300/80">Weekly brief · {week}</div>
           <div className="text-[14px] font-bold text-white truncate">{brief?.title || 'Loading...'}</div>
         </div>
+        {brief ? (
+          <button
+            onClick={toggleCitations}
+            aria-pressed={citations}
+            title={citations ? 'Sources shown at the end — tap to hide' : 'Sources hidden — tap to show at the end'}
+            className={`flex-shrink-0 rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition-colors ${
+              citations
+                ? 'border-sky-400/30 bg-sky-400/10 text-sky-300'
+                : 'border-white/15 text-white/45 hover:text-white/80 hover:border-white/25'
+            }`}
+          >
+            {citations ? 'Citations on' : 'Citations off'}
+          </button>
+        ) : null}
         {!narrow && brief ? (
           <>
             <button
@@ -240,6 +322,10 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
               <div className="mb-4 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white/50 text-[12px] px-3 py-2">
                 This brief is {brief?.status}; editing is closed.
               </div>
+            ) : !narrow && !citations ? (
+              <div className="mb-4 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/45 text-[12px] px-3 py-2">
+                Reading view — sources are hidden. Turn <span className="text-sky-300/90 font-semibold">Citations on</span> to edit.
+              </div>
             ) : null}
             <EditorContent
               editor={editor}
@@ -309,7 +395,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
           {preview ? (
             <div className="mt-3 rounded-xl border border-dashed border-sky-400/35 bg-sky-400/[0.05] p-3.5">
               <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-sky-300 mb-1.5">Preview · {preview.label}</div>
-              <div className="text-[12.5px] text-white/70 leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap">{preview.md.slice(0, 1500)}</div>
+              <div className="text-[12.5px] text-white/70 leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap">{renderBrief(preview.md, citations).slice(0, 1500)}</div>
               <div className="flex gap-2 mt-3">
                 <button onClick={keepPreview} className="rounded-lg bg-emerald-400 text-emerald-950 px-4 py-2 text-[12px] font-bold">Keep it</button>
                 <button onClick={() => setPreview(null)} className="rounded-lg bg-white/[0.06] text-white/70 px-4 py-2 text-[12px] font-semibold">Undo</button>
@@ -321,7 +407,10 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
 
       {/* fan-out bar */}
       {brief ? (
-        <footer className="px-4 sm:px-6 py-3.5 border-t border-white/[0.07] flex-shrink-0 bg-base">
+        <footer
+          className="px-4 sm:px-6 pt-3.5 border-t border-white/[0.07] flex-shrink-0 bg-base"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)' }}
+        >
           {pushed ? (
             <div className="text-[12.5px] text-emerald-300">
               Pushed {pushed.length} format{pushed.length === 1 ? '' : 's'} to Google Docs.{' '}
@@ -338,11 +427,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                 return (
                   <label key={f.channel} className="flex items-center gap-1.5 text-[12px] text-white/70 cursor-pointer select-none">
                     <span
-                      onClick={() => setFanout(prev => {
-                        const next = new Set(prev)
-                        if (next.has(f.channel)) next.delete(f.channel); else next.add(f.channel)
-                        return next
-                      })}
+                      onClick={() => toggleFanout(f.channel)}
                       className={`w-4 h-4 rounded border inline-flex items-center justify-center text-[10px] ${on ? 'bg-emerald-400 border-emerald-400 text-emerald-950 font-bold' : 'border-white/25'}`}
                     >
                       {on ? '✓' : ''}

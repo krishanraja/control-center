@@ -126,17 +126,27 @@ export async function runAssemble(force = false) {
   const meaning = sanitizeVoice(String(parsed.meaning_md))
   const perspectives = sanitizeVoice(String(parsed.perspectives_md || ''))
 
+  // Citations live at the END, not inline: each headline carries a small [n]
+  // marker and the sources are listed under "## Sources" so the piece reads
+  // clean top to bottom (mirrors src/lib/citations.ts, the display contract).
   const body_md = [
     `# ${title}`,
     '',
     '## Headlines',
-    ...headlines.map((h: any) => `- **${h.headline}** (${h.source || 'source'}${h.url ? `, ${h.url}` : ''})\n  Why it matters: ${h.why}`),
+    ...headlines.map((h: any, i: number) => `- **${h.headline}** [${i + 1}]\n  Why it matters: ${h.why}`),
     '',
     '## What this actually means',
     meaning,
     '',
     '## Perspectives',
     perspectives,
+    '',
+    '## Sources',
+    '',
+    ...headlines.map((h: any, i: number) => {
+      const label = h.source || 'source'
+      return h.url ? `${i + 1}. [${label}](${h.url})` : `${i + 1}. ${label}`
+    }),
   ].join('\n')
 
   const sections = { headlines, meaning_md: meaning, perspectives_md: perspectives }
