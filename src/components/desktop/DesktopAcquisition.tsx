@@ -1,12 +1,19 @@
 import { useMemo, useState } from 'react'
 import { RefreshCw, Rocket } from 'lucide-react'
 import { useAcquisition, type AcquisitionLane } from '../../hooks/useAcquisition'
+import { useLaneDetail } from '../../hooks/useLaneDetail'
 import { AUTONOMY_CHIP, laneDot, laneDotTitle } from '../acquisition/laneMeta'
+import { ProfitGovernorCard } from '../acquisition/ProfitGovernorCard'
 import { NurtureFunnelPanel } from '../acquisition/NurtureFunnelPanel'
 import { TouchProgressPanel } from '../acquisition/TouchProgressPanel'
 import { ChurnReengagementQueue } from '../acquisition/ChurnReengagementQueue'
 import { AutonomyLadderCard } from '../acquisition/AutonomyLadderCard'
-import { SendQueuePreview } from '../acquisition/SendQueuePreview'
+import { SendApprovalDeck } from '../acquisition/SendApprovalDeck'
+import { ReplyInbox } from '../acquisition/ReplyInbox'
+import { ContentToCapturePanel } from '../acquisition/ContentToCapturePanel'
+import { GeoCitationsPanel } from '../acquisition/GeoCitationsPanel'
+import { LanePlaybookCard } from '../acquisition/LanePlaybookCard'
+import { SequenceReviewSheet } from '../acquisition/SequenceReviewSheet'
 import { BoardSkeleton } from '../shared/Skeleton'
 
 /**
@@ -17,6 +24,8 @@ import { BoardSkeleton } from '../shared/Skeleton'
  */
 export function DesktopAcquisition({
   lane: laneParam,
+  sendId,
+  seqId,
   onNavigate,
 }: {
   lane?: string | null
@@ -42,6 +51,7 @@ export function DesktopAcquisition({
   )
   const selected: AcquisitionLane | null =
     orderedLanes.find(l => l.slug === selectedSlug) || orderedLanes[0] || null
+  const { detail, refresh: refreshDetail } = useLaneDetail(selected?.slug || null)
 
   const totals = useMemo(
     () => ({
@@ -128,15 +138,22 @@ export function DesktopAcquisition({
       {selected ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-4">
+            <LanePlaybookCard lane={selected.slug} />
             <NurtureFunnelPanel lane={selected} />
             <TouchProgressPanel lane={selected} />
+            <ContentToCapturePanel rows={data?.content_attribution || []} />
+            <GeoCitationsPanel lane={selected.slug} />
           </div>
           <div className="space-y-4">
-            <SendQueuePreview
-              rows={(data?.queued_preview || []).filter(q => q.lane === selected.slug)}
-              totalQueued={selected.queued_count}
+            <SendApprovalDeck
+              lane={selected.slug}
+              autonomyLevel={selected.autonomy_level}
+              focusSendId={sendId}
+              onChanged={() => { refresh(); refreshDetail() }}
             />
-            <AutonomyLadderCard lane={selected} />
+            {detail && <ProfitGovernorCard detail={detail} onChanged={refreshDetail} />}
+            <AutonomyLadderCard lane={selected} detail={detail} onChanged={() => { refresh(); refreshDetail() }} />
+            <ReplyInbox lane={selected.slug} onChanged={refresh} />
             <ChurnReengagementQueue rows={selected.churn_queue} laneLabel={selected.name} />
           </div>
         </div>
@@ -152,6 +169,14 @@ export function DesktopAcquisition({
 
       {(data?.unassigned_churn.length || 0) > 0 && (
         <ChurnReengagementQueue rows={data!.unassigned_churn} laneLabel="unassigned" />
+      )}
+
+      {seqId && (
+        <SequenceReviewSheet
+          seqId={seqId}
+          onClose={() => onNavigate?.('acquisition', selected ? { lane: selected.slug } : {})}
+          onChanged={refresh}
+        />
       )}
     </div>
   )

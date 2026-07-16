@@ -40,6 +40,10 @@ export function routeDecision(kind: DecisionKind | string, id: string | null | u
       return { tab: 'today', params: safeId ? { decision: `inbox_returned:${safeId}` } : {} }
     case 'vera_gap':
       return { tab: 'today', params: safeId ? { decision: `vera_gap:${safeId}` } : {} }
+    case 'sequence_approval':
+      return { tab: 'acquisition', params: safeId ? { seq: safeId } : {} }
+    case 'send_sample':
+      return { tab: 'acquisition', params: safeId ? { send: safeId } : {} }
     default:
       return { tab: 'today', params: {} }
   }

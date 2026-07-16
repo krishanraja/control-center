@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles, Newspaper, Inbox, AlertOctagon } from 'lucide-react'
+import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles, Newspaper, Inbox, AlertOctagon, Layers, MailCheck } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../../hooks/useRealtimeDecisionsWaiting'
 import { FeedCard, FeedRow, EmptyState } from '../mobile/primitives'
@@ -13,19 +13,20 @@ import { splitDecisions, minutesToZero } from '../../lib/decisionKinds'
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
 const KIND_ICON: Record<DecisionRow['kind'], typeof Mail> = {
-  task: Mail, guest: Mic, idea: FileText, lead: UserPlus, visibility: Target, correction: ShieldAlert, skill_proposal: Sparkles, content_decision: Newspaper, inbox_returned: Inbox, vera_gap: AlertOctagon,
+  task: Mail, guest: Mic, idea: FileText, lead: UserPlus, visibility: Target, correction: ShieldAlert, skill_proposal: Sparkles, content_decision: Newspaper, inbox_returned: Inbox, vera_gap: AlertOctagon, sequence_approval: Layers, send_sample: MailCheck,
 }
 const KIND_LABEL: Record<DecisionRow['kind'], string> = {
-  task: 'Task', guest: 'Guest', idea: 'Idea', lead: 'Lead', visibility: 'Visibility', correction: 'Correction', skill_proposal: 'Skill', content_decision: 'Content call', inbox_returned: 'Returned', vera_gap: 'Persistent gap',
+  task: 'Task', guest: 'Guest', idea: 'Idea', lead: 'Lead', visibility: 'Visibility', correction: 'Correction', skill_proposal: 'Skill', content_decision: 'Content call', inbox_returned: 'Returned', vera_gap: 'Persistent gap', sequence_approval: 'Sequence', send_sample: 'Send',
 }
 const KIND_TO_TABLE: Record<DecisionRow['kind'], string> = {
-  task: 'tasks', guest: 'guests', idea: 'content_ideas', lead: 'leads', visibility: 'visibility_targets', correction: 'corrections', skill_proposal: 'skill_proposals', content_decision: 'content_decisions', inbox_returned: 'tasks_inbox', vera_gap: 'vera_gaps',
+  task: 'tasks', guest: 'guests', idea: 'content_ideas', lead: 'leads', visibility: 'visibility_targets', correction: 'corrections', skill_proposal: 'skill_proposals', content_decision: 'content_decisions', inbox_returned: 'tasks_inbox', vera_gap: 'vera_gaps', sequence_approval: 'acquisition_sequences', send_sample: 'acquisition_sends',
 }
 // Muted, from the shared token palette (not raw neon), so the legend reads as one
 // calm family rather than a rainbow. Kinds still differ, just quietly.
 const KIND_DOT: Record<DecisionRow['kind'], string> = {
   task: 'bg-pod-growth', guest: 'bg-status-blocked', idea: 'bg-status-needsYou',
   lead: 'bg-status-active', visibility: 'bg-pod-ops', correction: 'bg-status-blocked', skill_proposal: 'bg-pod-growth', content_decision: 'bg-status-needsYou', inbox_returned: 'bg-pod-growth', vera_gap: 'bg-status-blocked',
+  sequence_approval: 'bg-pod-growth', send_sample: 'bg-status-needsYou',
 }
 /**
  * "Your decisions" is the finishable anchor of Home. The count includes ONLY
@@ -64,6 +65,10 @@ export function DecisionsInbox({
     // so field-gated actions (email, concept_id, deep_enriched_at) are accurate.
     setResolved({ ...d.meta, id: d.id, agent: d.agent, status: d.status, title: d.title, description: d.description })
     setOpen(d)
+    // acquisition_sends is deny-all for anon (bodies + PII) — the seeded view
+    // row already carries everything the sheet's actions need, so skip the
+    // hydration round-trip that would silently return nothing.
+    if (d.kind === 'send_sample') return
     const { data } = await supabase
       .from(KIND_TO_TABLE[d.kind])
       .select('*')

@@ -1,12 +1,16 @@
 import { useMemo, useState } from 'react'
 import { MobileShell, TabHeader, StatPill, MobileLoadingScreen, EmptyState } from './primitives'
 import { useAcquisition, type AcquisitionLane } from '../../hooks/useAcquisition'
+import { useLaneDetail } from '../../hooks/useLaneDetail'
 import { AUTONOMY_CHIP, laneDot, laneDotTitle } from '../acquisition/laneMeta'
+import { ProfitGovernorCard } from '../acquisition/ProfitGovernorCard'
 import { NurtureFunnelPanel } from '../acquisition/NurtureFunnelPanel'
 import { TouchProgressPanel } from '../acquisition/TouchProgressPanel'
 import { AutonomyLadderCard } from '../acquisition/AutonomyLadderCard'
-import { SendQueuePreview } from '../acquisition/SendQueuePreview'
+import { SendApprovalDeck } from '../acquisition/SendApprovalDeck'
 import { ChurnReengagementQueue } from '../acquisition/ChurnReengagementQueue'
+import { ReplyInbox } from '../acquisition/ReplyInbox'
+import { LanePlaybookCard } from '../acquisition/LanePlaybookCard'
 
 /**
  * Growth (mobile) — single-column read of the acquisition command deck:
@@ -17,7 +21,7 @@ export function MobileAcquisition({
 }: {
   onNavigate?: (tab: string, params?: Record<string, string>) => void
 }) {
-  const { data, loading, error } = useAcquisition()
+  const { data, loading, error, refresh } = useAcquisition()
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
 
   const lanes = data?.lanes || []
@@ -33,6 +37,7 @@ export function MobileAcquisition({
   )
   const selected: AcquisitionLane | null =
     orderedLanes.find(l => l.slug === selectedSlug) || orderedLanes[0] || null
+  const { detail, refresh: refreshDetail } = useLaneDetail(selected?.slug || null)
 
   if (loading && !data) {
     return <MobileLoadingScreen title="Growth" subtitle="Reading the acquisition deck…" />
@@ -102,13 +107,17 @@ export function MobileAcquisition({
                   sub={`${selected.paid_count} paid`}
                 />
               </div>
-              <SendQueuePreview
-                rows={(data?.queued_preview || []).filter(q => q.lane === selected.slug)}
-                totalQueued={selected.queued_count}
+              <SendApprovalDeck
+                lane={selected.slug}
+                autonomyLevel={selected.autonomy_level}
+                onChanged={() => { refresh(); refreshDetail() }}
               />
+              {detail && <ProfitGovernorCard detail={detail} onChanged={refreshDetail} />}
+              <LanePlaybookCard lane={selected.slug} />
               <NurtureFunnelPanel lane={selected} />
               <TouchProgressPanel lane={selected} />
-              <AutonomyLadderCard lane={selected} />
+              <AutonomyLadderCard lane={selected} detail={detail} onChanged={() => { refresh(); refreshDetail() }} />
+              <ReplyInbox lane={selected.slug} onChanged={refresh} />
               <ChurnReengagementQueue rows={selected.churn_queue} laneLabel={selected.name} />
             </div>
           )}

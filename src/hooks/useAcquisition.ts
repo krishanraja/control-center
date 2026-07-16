@@ -42,6 +42,25 @@ export interface AutonomyEvent {
   [k: string]: unknown
 }
 
+export interface FrameConversionRow {
+  lane: string
+  frame_version: string
+  sent: number
+  leads_touched: number
+  paid: number
+}
+
+export interface ContentAttributionRow {
+  id: string
+  idea: string | null
+  utm_campaign: string
+  published_at: string | null
+  lane: string | null
+  captures: number
+  paid: number
+  mrr: number
+}
+
 export interface AcquisitionLane {
   slug: string
   name: string
@@ -57,6 +76,8 @@ export interface AcquisitionLane {
   mrr_usd: number
   wired: boolean
   churn_queue: ChurnLeadRow[]
+  frames: FrameConversionRow[]
+  replies_new: number
 }
 
 export interface QueuedSendPreview {
@@ -73,6 +94,7 @@ export interface AcquisitionOverview {
   lanes: AcquisitionLane[]
   queued_preview: QueuedSendPreview[]
   unassigned_churn: ChurnLeadRow[]
+  content_attribution: ContentAttributionRow[]
   generated_at?: string
 }
 
@@ -110,6 +132,7 @@ async function load(): Promise<void> {
           lanes: Array.isArray(json.lanes) ? json.lanes : [],
           queued_preview: Array.isArray(json.queued_preview) ? json.queued_preview : [],
           unassigned_churn: Array.isArray(json.unassigned_churn) ? json.unassigned_churn : [],
+          content_attribution: Array.isArray(json.content_attribution) ? json.content_attribution : [],
           generated_at: json.generated_at,
         },
         loading: false,

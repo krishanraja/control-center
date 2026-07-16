@@ -32,11 +32,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const laneFilter = typeof req.query.lane === 'string' ? req.query.lane : null
 
-    const [ventures, funnel, sends, queuedPreview, customers, churnedLeads] = await Promise.all([
+    // Lane roster comes from config, not venture kind — full_time is
+    // kind='career' and mindmaker is kind='product', so kind can't select.
+    const { data: laneCfg } = await supabase
+      .from('system_config')
+      .select('value')
+      .eq('key', 'acquisition_lanes')
+      .maybeSingle()
+    let laneSlugs: string[] = []
+    try { laneSlugs = JSON.parse(laneCfg?.value || '[]') } catch { laneSlugs = [] }
+    if (!laneSlugs.length) laneSlugs = ['mm_ctrl', 'fractionl_pulse', 'fractionl_circle', 'plinth', 'full_time']
+
+    const [ventures, funnel, sends, queuedPreview, customers, churnedLeads, frames, contentAttr, newReplies] = await Promise.all([
       supabase
         .from('venture_registry')
         .select('slug, display_name, kind, active, autonomy_level, autonomy_history')
-        .eq('kind', 'product')
+        .in('slug', laneSlugs)
         .order('sort_order', { ascending: true }),
       supabase
         .from('acquisition_capture_to_paid')
@@ -63,6 +74,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('status', 'churned')
         .order('churned_at', { ascending: false, nullsFirst: false })
         .limit(60),
+      supabase.from('frame_conversion').select('*'),
+      supabase
+        .from('content_capture_attribution')
+        .select('*')
+        .order('captures', { ascending: false })
+        .limit(20),
+      supabase
+        .from('acquisition_replies')
+        .select('id, lane, status')
+        .eq('status', 'new')
+        .limit(500),
     ])
     if (ventures.error) throw ventures.error
     if (funnel.error) throw funnel.error
@@ -70,6 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (queuedPreview.error) throw queuedPreview.error
     if (customers.error) throw customers.error
     if (churnedLeads.error) throw churnedLeads.error
+    // frames / contentAttr / newReplies degrade gracefully pre-migration.
 
     // Aggregate the sends ledger into per-(lane, frame, touch, status) cells.
     const touchMap = new Map<string, TouchCell>()
@@ -113,6 +136,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             || (funnel.data || []).some((r: any) => r.lane === v.slug)
             || laneCustomers.length > 0,
           churn_queue: (churnedLeads.data || []).filter(l => l.primary_venture === v.slug),
+          frames: (frames.data || []).filter((f: any) => f.lane === v.slug),
+          replies_new: (newReplies.data || []).filter((r: any) => r.lane === v.slug).length,
         }
       })
 
@@ -129,6 +154,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       lanes,
       queued_preview: (queuedPreview.data || []).filter(q => !laneFilter || q.lane === laneFilter),
       unassigned_churn: unassignedChurn,
+      content_attribution: contentAttr.data || [],
       sends_scanned: (sends.data || []).length,
       sends_scan_capped: (sends.data || []).length >= SENDS_SCAN_CAP,
     })

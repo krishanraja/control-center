@@ -41,6 +41,8 @@ const KIND_TO_TABLE: Record<DecisionKind, string> = {
   content_decision: 'content_decisions',
   inbox_returned: 'tasks_inbox',
   vera_gap: 'vera_gaps',
+  sequence_approval: 'acquisition_sequences',
+  send_sample: 'acquisition_sends',
 }
 
 function parseDecisionParam(raw: string): { kind: DecisionKind; id: string } | null {

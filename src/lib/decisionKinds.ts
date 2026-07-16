@@ -14,12 +14,16 @@ export const DECISION_KINDS: DecisionRow['kind'][] = [
   'idea',             // pieces in review awaiting his read (non-pool, review-only)
   'inbox_returned',   // tasks_inbox items that came back needing him
   'vera_gap',         // persistent gaps escalated after 2+ cycles
+  'sequence_approval', // a proposed nurture/frame sequence — one strategic ruling
 ] as const
 
 export const QUEUE_KINDS: Array<{ kind: DecisionRow['kind']; label: string; tab: string }> = [
   { kind: 'lead', label: 'Pipeline', tab: 'leads' },
   { kind: 'visibility', label: 'Visibility', tab: 'guests' },
   { kind: 'guest', label: 'Guests', tab: 'guests' },
+  // Queued nurture sends are batch work with their own rhythm (L1 all sends,
+  // L2 1-in-10 samples) — a queue chip into the Growth deck, never badge noise.
+  { kind: 'send_sample', label: 'Sends', tab: 'acquisition' },
 ]
 
 const DECISION_SET = new Set<string>(DECISION_KINDS)

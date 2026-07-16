@@ -17,13 +17,11 @@ export function NurtureFunnelPanel({ lane }: { lane: AcquisitionLane }) {
     { captures: 0, paid: 0, mrr: 0 },
   )
 
-  // Per-frame sent volume (frames only become interesting once sends exist).
-  const frameSent = new Map<string, number>()
-  for (const t of lane.touches) {
-    if (t.status !== 'sent') continue
-    frameSent.set(t.frame_version, (frameSent.get(t.frame_version) || 0) + t.count)
-  }
-  const frames = Array.from(frameSent.entries()).sort((a, b) => b[1] - a[1])
+  // Frame A/B leaderboard: sent → paid conversion per frame_version (from the
+  // frame_conversion view). Winners come back as frame_promotion proposals.
+  const frames = [...(lane.frames || [])]
+    .filter(f => f.sent > 0 || f.paid > 0)
+    .sort((a, b) => b.paid - a.paid || b.sent - a.sent)
 
   return (
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
@@ -80,18 +78,23 @@ export function NurtureFunnelPanel({ lane }: { lane: AcquisitionLane }) {
       {frames.length > 0 && (
         <div className="border-t border-white/[0.06]">
           <p className="px-4 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
-            Frames
+            Frame leaderboard
           </p>
-          <div className="px-4 pb-3 flex flex-wrap gap-1.5">
-            {frames.map(([frame, sent]) => (
-              <span
-                key={frame}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10.5px]"
-              >
-                <span className="text-white/70">{frame}</span>
-                <span className="text-white/35 tabular-nums">{sent} sent</span>
-              </span>
-            ))}
+          <div className="px-4 pb-3 divide-y divide-white/[0.03]">
+            {frames.map(f => {
+              const conv = f.leads_touched > 0 ? (f.paid / f.leads_touched) * 100 : null
+              return (
+                <div key={f.frame_version} className="py-1.5 flex items-baseline gap-2 text-[10.5px] tabular-nums">
+                  <span className="text-white/70 truncate">{f.frame_version}</span>
+                  <span className="ml-auto text-white/35">{f.sent} sent</span>
+                  <span className="text-white/35">{f.leads_touched} leads</span>
+                  <span className={f.paid > 0 ? 'text-emerald-300' : 'text-white/35'}>{f.paid} paid</span>
+                  <span className="w-12 text-right text-white/25">
+                    {conv != null ? `${conv.toFixed(1)}%` : '—'}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

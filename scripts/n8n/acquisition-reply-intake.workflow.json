@@ -1,0 +1,149 @@
+{
+  "name": "Acquisition | Reply Intake",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "nodes": [
+    {
+      "name": "Resend Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {
+        "path": "acquisition-reply-inbound",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "notes": "Point Resend's inbound routing (ctrl@ / pulse@ / etc.) at this webhook. Payload: {from, to, subject, text/html}."
+    },
+    {
+      "name": "Match lead + last send",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?email=eq.{{ encodeURIComponent($json.body?.from?.address || $json.from || '') }}&select=id,primary_venture,email&limit=1",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+    },
+    {
+      "name": "Classify (Claude Haiku)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [760, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 60, messages: [{ role: 'user', content: 'Classify this reply to a product nurture email as exactly one of: positive_intent, unsubscribe, question, auto_reply. Reply with the single label only.\\n\\n' + (($json.body?.text) || $json.text || '').slice(0, 1500) }] }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "credentials": { "httpHeaderAuth": { "name": "Anthropic API" } },
+      "notes": "Credential 'Anthropic API' (httpHeaderAuth): header 'x-api-key: <anthropic key>'. ~$0.0001/reply."
+    },
+    {
+      "name": "Build reply row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1020, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const hook = $('Resend Inbound Webhook').first().json;\nconst payload = hook.body || hook;\nconst lead = ($('Match lead + last send').first().json || [])[0] || null;\nconst raw = $('Classify (Claude Haiku)').first().json;\nconst label = String(raw?.content?.[0]?.text || 'unclassified').trim().toLowerCase();\nconst valid = ['positive_intent','unsubscribe','question','auto_reply'];\nreturn [{ json: {\n  lead_id: lead?.id || null,\n  lane: lead?.primary_venture || null,\n  from_email: payload?.from?.address || payload?.from || null,\n  subject: payload?.subject || null,\n  body: String(payload?.text || payload?.html || '').slice(0, 8000),\n  classification: valid.includes(label) ? label : 'unclassified',\n}}];"
+      }
+    },
+    {
+      "name": "Insert acquisition_replies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1280, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_replies",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+    },
+    {
+      "name": "Suppress pending sends",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1540, 300],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?lead_id=eq.{{ $json.lead_id }}&status=in.(queued,approved)",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'suppressed', error: 'reply received — sequence halted' }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } },
+      "notes": "A reply ALWAYS halts the sequence. positive_intent leads also flip to status='conversation' below."
+    },
+    {
+      "name": "Positive intent → conversation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1800, 300],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?id=eq.{{ $json.lead_id }}&{{ $json.classification === 'positive_intent' ? '' : 'id=eq.00000000-0000-0000-0000-000000000000' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'conversation' }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } },
+      "notes": "The impossible-uuid filter no-ops the PATCH for non-positive classifications (single linear path, no IF node needed)."
+    }
+  ],
+  "connections": {
+    "Resend Inbound Webhook":  { "main": [[{ "node": "Match lead + last send", "type": "main", "index": 0 }]] },
+    "Match lead + last send":  { "main": [[{ "node": "Classify (Claude Haiku)", "type": "main", "index": 0 }]] },
+    "Classify (Claude Haiku)": { "main": [[{ "node": "Build reply row", "type": "main", "index": 0 }]] },
+    "Build reply row":         { "main": [[{ "node": "Insert acquisition_replies", "type": "main", "index": 0 }]] },
+    "Insert acquisition_replies": { "main": [[{ "node": "Suppress pending sends", "type": "main", "index": 0 }]] },
+    "Suppress pending sends":  { "main": [[{ "node": "Positive intent → conversation", "type": "main", "index": 0 }]] }
+  }
+}
