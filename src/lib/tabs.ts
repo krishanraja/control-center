@@ -21,38 +21,44 @@ export interface TabDef {
 // id 'relationships' -> Network [contact pool, contacts table],
 // Customers -> Subscriptions, Guests -> Visibility).
 //
-// Mobile primary set: Home + the three high-value sections the phone is actually
-// used for — Content, Visibility, Leads (relationships). Everything else (Today,
-// Triage, Services, Subscriptions, Bets, Org, Intel, Flows, Systems) lives in the
-// "More" drawer. Fewer primary tabs (4 + More) gives each thumb target more room.
-// The bottom-bar order is set explicitly via MOBILE_PRIMARY_ORDER below so it can
-// differ from the desktop sidebar order without disturbing it.
+// Order = actual importance (Krish, 2026-07-16): Home stays first (the
+// finishable decisions anchor), then the three critical working surfaces —
+// Content, Network, Growth — then the day queue and the watch/ambient tabs.
+// The array order drives the desktop sidebar AND the mobile "More" drawer.
 //
-// Desktop drawer demotions: Bets (read-mostly, low action density) and Intel
-// (insight-only, no action) move out of the primary sidebar to reduce IA load;
-// they remain accessible under the "More" drawer.
+// Mobile primary set: Home + the three critical sections — Content, Network,
+// Growth. Everything else (Today, Subscriptions, Pipeline, Visibility, Org,
+// Intel, Flows, Systems) lives in the "More" drawer. Fewer primary tabs
+// (4 + More) gives each thumb target more room. The bottom-bar order is set
+// explicitly via MOBILE_PRIMARY_ORDER below so it can differ from the desktop
+// sidebar order without disturbing it.
+//
+// Desktop drawer demotions: Intel (insight-only, no action), Flows and Systems
+// (ops-ambient) stay out of the primary sidebar to reduce IA load; they remain
+// accessible under the "More" drawer.
 export const TABS: TabDef[] = [
   { id: 'home',      label: 'Home',          desktopIcon: LayoutDashboard, mobileIcon: Home,       desktopPriority: 'primary', mobilePriority: 'primary' },
-  { id: 'today',     label: 'Today',         desktopIcon: Calendar,        mobileIcon: Clock,      desktopPriority: 'primary', mobilePriority: 'drawer'  },
-  { id: 'leads',     label: 'Pipeline',      desktopIcon: UserPlus,        mobileIcon: UserPlus,   desktopPriority: 'primary', mobilePriority: 'drawer'  },
+  { id: 'content',   label: 'Content',       desktopIcon: FileText,        mobileIcon: FileText,   desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'relationships', label: 'Network',   desktopIcon: HeartHandshake,  mobileIcon: HeartHandshake, desktopPriority: 'primary', mobilePriority: 'primary' },
-  { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'primary', mobilePriority: 'drawer'  },
   // Growth: the acquisition command deck (nurture funnel, send approvals,
   // autonomy ladder, profit governor). Subscriptions stays the read-only
   // revenue watch; Growth is where acquisition gets ACTED on.
-  { id: 'acquisition', label: 'Growth', desktopIcon: Rocket, mobileIcon: Rocket, desktopPriority: 'primary', mobilePriority: 'drawer' },
-  { id: 'guests',    label: 'Visibility',    mobileShortLabel: 'Vis',  desktopIcon: Mic,        mobileIcon: Mic,        desktopPriority: 'primary', mobilePriority: 'primary' },
-  { id: 'content',   label: 'Content',       desktopIcon: FileText,        mobileIcon: FileText,   desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'acquisition', label: 'Growth', desktopIcon: Rocket, mobileIcon: Rocket, desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'today',     label: 'Today',         desktopIcon: Calendar,        mobileIcon: Clock,      desktopPriority: 'primary', mobilePriority: 'drawer'  },
+  { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'primary', mobilePriority: 'drawer'  },
+  { id: 'leads',     label: 'Pipeline',      desktopIcon: UserPlus,        mobileIcon: UserPlus,   desktopPriority: 'primary', mobilePriority: 'drawer'  },
+  { id: 'guests',    label: 'Visibility',    mobileShortLabel: 'Vis',  desktopIcon: Mic,        mobileIcon: Mic,        desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'org',       label: 'Org',           desktopIcon: Users,           mobileIcon: GitBranch,  desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'exec',      label: 'Intel',         desktopIcon: Brain,           mobileIcon: Activity,   desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
   { id: 'workflows', label: 'Flows',         desktopIcon: Workflow,        mobileIcon: Zap,        desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
   { id: 'systems',   label: 'Systems',       desktopIcon: Server,          mobileIcon: Server,     desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
 ]
 
-// Explicit bottom-bar order: Home first, then the three sections in the order the
-// user reads them. Decoupled from the TABS array order so the desktop sidebar is
-// untouched. Keep in sync with the `mobilePriority: 'primary'` flags above.
-const MOBILE_PRIMARY_ORDER = ['home', 'content', 'guests', 'relationships'] as const
+// Explicit bottom-bar order: Home first, then the three critical sections in
+// importance order (Content, Network, Growth). Decoupled from the TABS array
+// order so the desktop sidebar is untouched. Keep in sync with the
+// `mobilePriority: 'primary'` flags above.
+const MOBILE_PRIMARY_ORDER = ['home', 'content', 'relationships', 'acquisition'] as const
 
 export const DESKTOP_PRIMARY_TABS = TABS.filter(t => t.desktopPriority === 'primary')
 export const DESKTOP_DRAWER_TABS  = TABS.filter(t => t.desktopPriority === 'drawer')
