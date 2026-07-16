@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles, Newspaper, Inbox, AlertOctagon, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
+import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles, Newspaper, Inbox, AlertOctagon, ExternalLink, ChevronDown, ChevronRight, Layers, MailCheck } from 'lucide-react'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../hooks/useRealtimeDecisionsWaiting'
 import { navigateDecision } from '../lib/routeDecision'
 import { useHaptics } from '../hooks/useHaptics'
@@ -17,6 +17,8 @@ const KIND_ICON: Record<DecisionRow['kind'], typeof Mail> = {
   content_decision: Newspaper,
   inbox_returned: Inbox,
   vera_gap: AlertOctagon,
+  sequence_approval: Layers,
+  send_sample: MailCheck,
 }
 
 const KIND_LABEL: Record<DecisionRow['kind'], string> = {
@@ -30,6 +32,8 @@ const KIND_LABEL: Record<DecisionRow['kind'], string> = {
   content_decision: 'Content call',
   inbox_returned: 'Returned',
   vera_gap: 'Persistent gap',
+  sequence_approval: 'Sequence',
+  send_sample: 'Send',
 }
 
 const KIND_ORDER: DecisionRow['kind'][] = ['content_decision', 'correction', 'skill_proposal', 'task', 'idea', 'lead', 'guest', 'visibility']

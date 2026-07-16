@@ -7,3 +7,4 @@ dist/
 .vercel/
 public/data/_archived/
 .claude/
+test-results/

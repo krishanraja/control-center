@@ -3,7 +3,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
 export interface DecisionRow {
-  kind: 'task' | 'guest' | 'idea' | 'lead' | 'visibility' | 'correction' | 'skill_proposal' | 'content_decision' | 'inbox_returned' | 'vera_gap'
+  kind: 'task' | 'guest' | 'idea' | 'lead' | 'visibility' | 'correction' | 'skill_proposal' | 'content_decision' | 'inbox_returned' | 'vera_gap' | 'sequence_approval' | 'send_sample'
   id: string
   title: string
   description: string | null
@@ -23,7 +23,11 @@ let loaded = false
 let inflight: Promise<void> | null = null
 const listeners = new Set<() => void>()
 
-const SOURCE_TABLES = ['tasks', 'guests', 'content_ideas', 'leads', 'visibility_targets', 'corrections', 'skill_proposals', 'content_decisions', 'tasks_inbox', 'vera_gaps']
+// acquisition_sends is deliberately NOT subscribed: its RLS is deny-all for
+// anon (rendered bodies + lead PII), so the browser would never receive its
+// events. Queued sends surface via mount-time fetch + events on the tables
+// below; the Growth tab's own 60s poll keeps its deck fresh.
+const SOURCE_TABLES = ['tasks', 'guests', 'content_ideas', 'leads', 'visibility_targets', 'corrections', 'skill_proposals', 'content_decisions', 'tasks_inbox', 'vera_gaps', 'acquisition_sequences']
 let channels: RealtimeChannel[] = []
 
 function notify() { for (const l of listeners) l() }

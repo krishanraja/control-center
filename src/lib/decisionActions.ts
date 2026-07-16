@@ -387,6 +387,53 @@ export function buildDecisionActions(
       break
     }
 
+    case 'sequence_approval': {
+      // One strategic ruling per proposed nurture / frame-promotion sequence.
+      // Approve arms it for the scheduler; reject feeds Vera's learning loop.
+      acts.push({
+        label: 'Approve sequence',
+        variant: 'primary',
+        onClick: () => run('Approve',
+          () => json('/api/acquisition/sequences', { id: row.id, action: 'approve' }),
+          'Sequence approved — the scheduler can use it.', { terminal: true }),
+      })
+      acts.push({
+        label: 'Reject',
+        variant: 'danger',
+        onClick: () => run('Reject',
+          () => json('/api/acquisition/sequences', { id: row.id, action: 'reject' }),
+          'Sequence rejected. Vera will learn from this.', { terminal: true }),
+      })
+      break
+    }
+
+    case 'send_sample': {
+      // A queued nurture send (L1 every-send / L2 sampled). One-tap approve
+      // fires the dispatcher; "Review batch" opens the Growth deck for bulk.
+      acts.push({
+        label: 'Approve & send',
+        variant: 'primary',
+        onClick: () => run('Approve',
+          () => json('/api/acquisition/sends', { ids: [row.id], action: 'approve' }),
+          'Approved — dispatching now.', { terminal: true }),
+      })
+      if (navigate) {
+        acts.push({
+          label: 'Review batch',
+          variant: 'secondary',
+          onClick: () => { navigate('acquisition', { lane: String((row.meta as any)?.lane || row.lane || '') }); onDone?.() },
+        })
+      }
+      acts.push({
+        label: 'Reject',
+        variant: 'danger',
+        onClick: () => run('Reject',
+          () => json('/api/acquisition/sends', { ids: [row.id], action: 'reject', reason: 'krish_rejected_sample' }),
+          'Rejected — the lane’s rejection rate will reflect this.', { terminal: true }),
+      })
+      break
+    }
+
     default:
       break
   }

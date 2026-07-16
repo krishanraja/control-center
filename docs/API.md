@@ -374,6 +374,12 @@ All `api/*` functions auto-deploy on push to `main`.
 |---|---|
 | `/api/agents` | Roster summary |
 | `/api/agents/[name]` | Per-agent detail (brief + tasks + drive sync state) |
+| `/api/acquisition/overview` | Growth tab read spine: per-lane funnel, touch progress, autonomy, churn queue, frame conversion, content attribution (service-role — sends carry PII) |
+| `/api/acquisition/sends` | Queued-send list + batch approve/reject (`{ids[], action}`); approve pings the n8n dispatcher, reject feeds `feedback_queue` |
+| `/api/acquisition/sequences` | Sequence proposals: approve / reject / amend (edit touches in place while `proposed`) |
+| `/api/acquisition/lanes/[slug]` | Lane control plane: promote (mechanical 422 gates + unoverridable profit gate) / demote / pause / resume / set_budget (Gate 4) / set_voice |
+| `/api/acquisition/governor` | Per-lane economics + budget burn; 6h Vercel cron evaluates 80% warn / 100% circuit-breaker |
+| `/api/acquisition/replies` | Nurture reply inbox: list + draft product-brand reply / close |
 | `/api/ask-marcus` | Anthropic-backed Q&A grounded in customers/leads/bets/home_intelligence |
 | `/api/approvals` | Approval queue |
 | `/api/approvals/*` | Per-resource approval flows |

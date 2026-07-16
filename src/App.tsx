@@ -36,6 +36,7 @@ const DesktopOrg = lazy(() => import('./components/desktop/DesktopOrg').then(m =
 const DesktopExec = lazy(() => import('./components/desktop/DesktopExec').then(m => ({ default: m.DesktopExec })))
 const DesktopFlows = lazy(() => import('./components/desktop/DesktopFlows').then(m => ({ default: m.DesktopFlows })))
 const DesktopCustomers = lazy(() => import('./components/desktop/DesktopCustomers').then(m => ({ default: m.DesktopCustomers })))
+const DesktopAcquisition = lazy(() => import('./components/desktop/DesktopAcquisition').then(m => ({ default: m.DesktopAcquisition })))
 const DesktopGuests = lazy(() => import('./components/desktop/DesktopGuests').then(m => ({ default: m.DesktopGuests })))
 const DesktopContent = lazy(() => import('./components/desktop/DesktopContent').then(m => ({ default: m.DesktopContent })))
 const SystemsPanel = lazy(() => import('./components/SystemsPanel').then(m => ({ default: m.SystemsPanel })))
@@ -48,6 +49,7 @@ const MobileOrg = lazy(() => import('./components/mobile/MobileOrg').then(m => (
 const MobileFlows = lazy(() => import('./components/mobile/MobileFlows').then(m => ({ default: m.MobileFlows })))
 const MobileSystems = lazy(() => import('./components/mobile/MobileSystems').then(m => ({ default: m.MobileSystems })))
 const MobileCustomers = lazy(() => import('./components/mobile/MobileCustomers').then(m => ({ default: m.MobileCustomers })))
+const MobileAcquisition = lazy(() => import('./components/mobile/MobileAcquisition').then(m => ({ default: m.MobileAcquisition })))
 const MobileGuests = lazy(() => import('./components/mobile/MobileGuests').then(m => ({ default: m.MobileGuests })))
 const MobileContent = lazy(() => import('./components/mobile/MobileContent').then(m => ({ default: m.MobileContent })))
 const ContentComposer = lazy(() => import('./components/content/ContentComposer').then(m => ({ default: m.ContentComposer })))
@@ -57,8 +59,8 @@ const ContentComposer = lazy(() => import('./components/content/ContentComposer'
 const ContentV2Tab = lazy(() => import('./components/content-v2/ContentV2Tab').then(m => ({ default: m.ContentV2Tab })))
 const BriefEditor = lazy(() => import('./components/content-v2/BriefEditor').then(m => ({ default: m.BriefEditor })))
 
-type TabId = 'home' | 'today' | 'leads' | 'relationships' | 'customers' | 'guests' | 'content' | 'org' | 'exec' | 'workflows' | 'systems'
-const VALID_TABS: TabId[] = ['home', 'today', 'leads', 'relationships', 'customers', 'guests', 'content', 'org', 'exec', 'workflows', 'systems']
+type TabId = 'home' | 'today' | 'leads' | 'relationships' | 'customers' | 'acquisition' | 'guests' | 'content' | 'org' | 'exec' | 'workflows' | 'systems'
+const VALID_TABS: TabId[] = ['home', 'today', 'leads', 'relationships', 'customers', 'acquisition', 'guests', 'content', 'org', 'exec', 'workflows', 'systems']
 
 /** Calm chunk-load fallback for a mobile route (single-focus, one column). */
 function MobileRouteFallback() {
@@ -167,6 +169,7 @@ export default function App() {
                   {tab === 'leads'     && <ErrorBoundary label="Leads"><MobileLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'relationships' && <ErrorBoundary label="Leads"><MobileLeadsRE onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'customers' && <ErrorBoundary label="Customers"><MobileCustomers /></ErrorBoundary>}
+                  {tab === 'acquisition' && <ErrorBoundary label="Growth"><MobileAcquisition onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'guests'    && <ErrorBoundary label="Visibility"><MobileGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'content'   && (contentV2Enabled()
                     // Reserve BottomNav clearance (like every MobileShell tab) so
@@ -194,6 +197,7 @@ export default function App() {
                   {tab === 'leads'     && <ErrorBoundary label="Leads"><DesktopLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'relationships' && <ErrorBoundary label="Leads"><DesktopLeadsRE onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'customers' && <ErrorBoundary label="Customers"><DesktopCustomers /></ErrorBoundary>}
+                  {tab === 'acquisition' && <ErrorBoundary label="Growth"><DesktopAcquisition lane={route.params.lane || null} sendId={route.params.send || null} seqId={route.params.seq || null} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'guests'    && <ErrorBoundary label="Visibility"><DesktopGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}
                   {tab === 'exec'      && <ErrorBoundary label="Intel"><DesktopExec /></ErrorBoundary>}

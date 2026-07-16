@@ -1,0 +1,186 @@
+{
+  "name": "Acquisition | Send Dispatcher",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "nodes": [
+    {
+      "name": "Webhook Dispatch",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 200],
+      "parameters": {
+        "path": "acquisition-send-dispatch",
+        "httpMethod": "POST",
+        "responseMode": "onReceived"
+      },
+      "notes": "Fired by POST /api/acquisition/sends on every approved batch ({send_ids}). The payload is advisory — the fetch below re-reads status='approved' from the ledger, so replays and missed pings are both safe."
+    },
+    {
+      "name": "Every 15 min sweep",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 380],
+      "parameters": {
+        "triggerTimes": { "item": [{ "mode": "everyX", "value": 15, "unit": "minutes" }] }
+      },
+      "notes": "Fallback sweep so a missed webhook only delays a send, never drops it."
+    },
+    {
+      "name": "Fetch approved sends",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 290],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?status=eq.approved&select=id,lane,frame_version,touch_number,rendered_subject,rendered_body,lead_id,leads(email,full_name,status)&order=approved_at.asc&limit=50",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } },
+      "notes": "Service-role read. Embeds the lead so suppression checks need no second call."
+    },
+    {
+      "name": "Prepare Resend payloads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 290],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// One item per approved send, with per-lane sender identity and suppression.\n// Suppressed = lead missing/undeliverable or lead already churned/superseded/unsubscribed.\nconst FROM_BY_LANE = {\n  mm_ctrl: 'CTRL <ctrl@themindmaker.ai>',\n  fractionl_pulse: 'Fractionl <pulse@fractionl.ai>',\n  fractionl_circle: 'Fractionl <circle@fractionl.ai>',\n  plinth: 'Plinth <hello@themindmaker.ai>',\n  full_time: 'Full Time <fulltime@themindmaker.ai>',\n};\nconst rows = $('Fetch approved sends').all().map(i => i.json).flat();\nconst out = [];\nfor (const s of rows) {\n  const lead = s.leads || {};\n  const suppress = !lead.email || ['churned', 'superseded'].includes(lead.status);\n  out.push({ json: {\n    send_id: s.id,\n    lead_id: s.lead_id,\n    suppress,\n    from: FROM_BY_LANE[s.lane] || 'Mindmaker <hello@themindmaker.ai>',\n    to: lead.email || null,\n    subject: s.rendered_subject || '(no subject)',\n    html: s.rendered_body || '',\n  }});\n}\nreturn out;"
+      }
+    },
+    {
+      "name": "Suppress or send?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1040, 290],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ $json.suppress }}", "value2": true }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Mark suppressed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 180],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?id=eq.{{ $json.send_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'suppressed', error: 'lead unreachable or opted out at dispatch time' }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+    },
+    {
+      "name": "Send via Resend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ from: $json.from, to: [$json.to], subject: $json.subject, html: $json.html }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": { "response": { "response": { "fullResponse": false } } }
+      },
+      "credentials": { "httpHeaderAuth": { "name": "Resend API" } },
+      "continueOnFail": true,
+      "notes": "Credential 'Resend API' (httpHeaderAuth): header 'Authorization: Bearer <resend key>'. continueOnFail so one bounce doesn't strand the rest of the batch."
+    },
+    {
+      "name": "Record outcome",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 400],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Pair each Resend response with its send; classify sent vs failed.\nconst prepared = $('Suppress or send?').all().map(i => i.json);\nconst responses = $('Send via Resend').all();\nconst out = [];\nresponses.forEach((r, idx) => {\n  const p = prepared[idx] || {};\n  const ok = !r.json?.error && (r.json?.id || r.json?.data?.id);\n  out.push({ json: {\n    send_id: p.send_id,\n    lead_id: p.lead_id,\n    ok: Boolean(ok),\n    resend_id: r.json?.id || r.json?.data?.id || null,\n    error: ok ? null : JSON.stringify(r.json?.error || r.error || 'unknown resend failure').slice(0, 500),\n    now: new Date().toISOString(),\n  }});\n});\nreturn out;"
+      }
+    },
+    {
+      "name": "Mark send result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1820, 400],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/acquisition_sends?id=eq.{{ $json.send_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.ok ? { status: 'sent', resend_id: $json.resend_id, sent_at: $json.now } : { status: 'failed', error: $json.error }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+    },
+    {
+      "name": "Mark lead contacted",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2080, 400],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/leads?id=eq.{{ $json.lead_id }}&status=in.(ready,contacted,enriching,new)",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Prefer", "value": "return=minimal" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.ok ? { status: 'contacted', last_emailed_at: $json.now } : {}) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "name": "Supabase account 2" } },
+      "notes": "Status filter keeps 'conversation'/'closed_*' leads untouched — dispatch never regresses a lead's stage."
+    }
+  ],
+  "connections": {
+    "Webhook Dispatch":     { "main": [[{ "node": "Fetch approved sends", "type": "main", "index": 0 }]] },
+    "Every 15 min sweep":   { "main": [[{ "node": "Fetch approved sends", "type": "main", "index": 0 }]] },
+    "Fetch approved sends": { "main": [[{ "node": "Prepare Resend payloads", "type": "main", "index": 0 }]] },
+    "Prepare Resend payloads": { "main": [[{ "node": "Suppress or send?", "type": "main", "index": 0 }]] },
+    "Suppress or send?":    { "main": [
+      [{ "node": "Mark suppressed", "type": "main", "index": 0 }],
+      [{ "node": "Send via Resend", "type": "main", "index": 0 }]
+    ] },
+    "Send via Resend":      { "main": [[{ "node": "Record outcome", "type": "main", "index": 0 }]] },
+    "Record outcome":       { "main": [[{ "node": "Mark send result", "type": "main", "index": 0 }]] },
+    "Mark send result":     { "main": [[{ "node": "Mark lead contacted", "type": "main", "index": 0 }]] }
+  }
+}
