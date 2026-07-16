@@ -9,6 +9,11 @@ export interface VentureRow {
   scoring_criteria: Record<string, unknown> | null
   active: boolean
   sort_order: number
+  // Acquisition autonomy ladder (select('*') already returns these; typed so
+  // the Growth surfaces can consume them). L1 = every send approved,
+  // L2 = 1-in-10 sampled, L3 = exception only.
+  autonomy_level?: 'L1' | 'L2' | 'L3'
+  autonomy_history?: Array<Record<string, unknown>> | null
 }
 
 let cache: VentureRow[] = []

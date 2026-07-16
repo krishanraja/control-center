@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Home, Calendar, Clock, UserPlus, DollarSign, Mic, FileText,
   Users, GitBranch, Brain, Activity, Workflow, Zap, Server,
-  HeartHandshake,
+  HeartHandshake, Rocket,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -37,6 +37,10 @@ export const TABS: TabDef[] = [
   { id: 'leads',     label: 'Pipeline',      desktopIcon: UserPlus,        mobileIcon: UserPlus,   desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'relationships', label: 'Network',   desktopIcon: HeartHandshake,  mobileIcon: HeartHandshake, desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'primary', mobilePriority: 'drawer'  },
+  // Growth: the acquisition command deck (nurture funnel, send approvals,
+  // autonomy ladder, profit governor). Subscriptions stays the read-only
+  // revenue watch; Growth is where acquisition gets ACTED on.
+  { id: 'acquisition', label: 'Growth', desktopIcon: Rocket, mobileIcon: Rocket, desktopPriority: 'primary', mobilePriority: 'drawer' },
   { id: 'guests',    label: 'Visibility',    mobileShortLabel: 'Vis',  desktopIcon: Mic,        mobileIcon: Mic,        desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'content',   label: 'Content',       desktopIcon: FileText,        mobileIcon: FileText,   desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'org',       label: 'Org',           desktopIcon: Users,           mobileIcon: GitBranch,  desktopPriority: 'primary', mobilePriority: 'drawer'  },
