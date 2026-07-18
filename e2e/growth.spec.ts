@@ -183,6 +183,24 @@ test('direction studio shows the locked direction and locks a new version', asyn
   expect(lanePost.action).toBe('direction_lock')
 })
 
+test('seo rank panel shows owned positions, movement and volume', async ({ page }) => {
+  await mockGrowthApis(page)
+  // Specific override wins over the '**/rest/v1/**' catch-all (last route first).
+  await page.route('**/rest/v1/maya_striking_distance*', r =>
+    r.fulfill({
+      json: [
+        { id: 'r1', product: 'mm_ctrl', query: 'AI news aggregator', current_position: 8, previous_position: 12, search_volume: 170, priority: 60, last_checked_at: new Date().toISOString() },
+        { id: 'r2', product: 'mm_ctrl', query: 'AI tools for executives', current_position: null, previous_position: null, search_volume: 2400, priority: 40, last_checked_at: new Date().toISOString() },
+      ],
+    }))
+  await page.goto('/#/acquisition')
+  await expect(page.getByText('SEO rank')).toBeVisible()
+  // A ranking keyword shows its position; a non-ranking one is honest about it.
+  await expect(page.getByText('AI news aggregator')).toBeVisible()
+  await expect(page.getByText('#8')).toBeVisible()
+  await expect(page.getByText('not ranking')).toBeVisible()
+})
+
 test('integrations panel groups tools by status and shows gated reasons', async ({ page }) => {
   await mockGrowthApis(page)
   await page.goto('/#/acquisition')
