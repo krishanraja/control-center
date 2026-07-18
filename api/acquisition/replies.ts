@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { deliverEmailDraft } from '../_emailDraft.js'
+import { directionSpine } from '../_direction.js'
 
 /**
  * /api/acquisition/replies — the nurture reply inbox.
@@ -76,16 +77,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!reply.from_email) return res.status(400).json({ ok: false, error: 'reply has no from_email' })
 
-  // Load the lane's voice profile — each product speaks its own language.
-  const { data: venture } = await supabase
-    .from('venture_registry')
-    .select('voice_profile')
-    .eq('slug', reply.lane)
-    .maybeSingle()
-  const vp = (venture?.voice_profile || {}) as {
-    sender?: string; voice?: string; icp?: string; never_say?: string[]
-  }
-  const senderIdentity = vp.sender || PRODUCT_SENDER[reply.lane] || 'the product team'
+  // Propagation: the reply draft is written from the lane's LOCKED direction
+  // via the shared prompt spine — never composed ad hoc. Falls back to
+  // voice_profile only if no direction exists (pre-migration safety).
+  const spine = await directionSpine(reply.lane, 'a brief, warm reply to their response to a nurture email')
+  const senderIdentity = spine?.direction.creative_direction?.sender
+    || PRODUCT_SENDER[reply.lane] || 'the product team'
   const { data: lead } = reply.lead_id
     ? await supabase.from('leads').select('full_name, why_relevant, primary_venture').eq('id', reply.lead_id).maybeSingle()
     : { data: null }
@@ -103,14 +100,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `Their message: ${String(reply.body || '').slice(0, 1200)}`,
       lead?.why_relevant ? `Why they captured originally: ${lead.why_relevant}` : null,
     ].filter(Boolean).join('\n'),
-    voice_rules: [
-      `Write as ${senderIdentity} — the product's own voice, helpful and specific.`,
-      vp.voice ? `VOICE: ${vp.voice}` : null,
-      vp.icp ? `AUDIENCE: ${vp.icp}` : null,
-      vp.never_say?.length ? `NEVER SAY: ${vp.never_say.join(', ')}.` : null,
-      'BRAND RULE: never write as, sign as, or reference Krish or any personal brand.',
-      `Sign off as ${senderIdentity}. The email goes out from the product mailbox.`,
-    ].filter(Boolean).join(' '),
+    voice_rules: spine
+      ? spine.prompt
+      : `Write as ${senderIdentity} — the product's own voice. Never write as, sign as, or reference Krish or any personal brand. Sign off as ${senderIdentity}.`,
     tone: 'warm',
     length: 'short',
   })

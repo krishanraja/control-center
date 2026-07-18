@@ -10,7 +10,7 @@ import { AutonomyLadderCard } from '../acquisition/AutonomyLadderCard'
 import { SendApprovalDeck } from '../acquisition/SendApprovalDeck'
 import { ChurnReengagementQueue } from '../acquisition/ChurnReengagementQueue'
 import { ReplyInbox } from '../acquisition/ReplyInbox'
-import { LanePlaybookCard } from '../acquisition/LanePlaybookCard'
+import { DirectionStudio } from '../acquisition/DirectionStudio'
 
 /**
  * Growth (mobile) — single-column read of the acquisition command deck:
@@ -113,7 +113,7 @@ export function MobileAcquisition({
                 onChanged={() => { refresh(); refreshDetail() }}
               />
               {detail && <ProfitGovernorCard detail={detail} onChanged={refreshDetail} />}
-              <LanePlaybookCard lane={selected.slug} />
+              <DirectionStudio lane={selected.slug} detail={detail} onChanged={() => { refresh(); refreshDetail() }} />
               <NurtureFunnelPanel lane={selected} />
               <TouchProgressPanel lane={selected} />
               <AutonomyLadderCard lane={selected} detail={detail} onChanged={() => { refresh(); refreshDetail() }} />

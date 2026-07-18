@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
+import { directionSpine } from '../../_direction.js'
 
 /**
  * /api/acquisition/lanes/:slug — the autonomy + governor control plane for one lane.
@@ -95,12 +96,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const pausedEntry = paused?.[slug] || null
 
   if (req.method === 'GET') {
-    const { data: costs } = await supabase
-      .from('lane_costs')
-      .select('*')
-      .eq('lane', slug)
-      .order('created_at', { ascending: false })
-      .limit(50)
+    const [{ data: costs }, { data: directions }] = await Promise.all([
+      supabase.from('lane_costs').select('*').eq('lane', slug)
+        .order('created_at', { ascending: false }).limit(50),
+      supabase.from('lane_directions').select('*').eq('lane', slug)
+        .order('version', { ascending: false }).limit(20),
+    ])
+    const dirRows = directions || []
     return res.status(200).json({
       ok: true,
       lane: slug,
@@ -110,6 +112,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       paused: pausedEntry,
       costs: costs || [],
       paid_global_cap_usd: budgets?.paid_global_cap_usd ?? 500,
+      direction_locked: dirRows.find((d: any) => d.status === 'locked') || null,
+      direction_draft: dirRows.find((d: any) => d.status === 'draft') || null,
+      direction_history: dirRows,
     })
   }
 
@@ -124,6 +129,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     monthly_usd?: number
     paid_monthly_usd?: number
     voice_profile?: Record<string, unknown>
+    direction?: Record<string, unknown>  // draft fields for direction_draft
+    version?: number                      // target version for direction_rollback
+    context?: string                      // surface for direction_preview
   }
   const nowIso = new Date().toISOString()
   const level: Level = (stats.autonomy_level as Level) || 'L1'
@@ -291,8 +299,144 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ ok: true, voice_profile: merged })
       }
 
+      case 'direction_draft': {
+        // Create or update the lane's DRAFT direction. Never touches the locked
+        // version — Krish edits freely, then locks. Reuses the existing draft
+        // if one exists, else opens a new draft at max(version)+1.
+        const d = body.direction
+        if (!d || typeof d !== 'object') {
+          return res.status(400).json({ ok: false, error: 'direction object required' })
+        }
+        const { data: existing } = await supabase
+          .from('lane_directions')
+          .select('id, version, status')
+          .eq('lane', slug)
+          .order('version', { ascending: false })
+        const rows = existing || []
+        const draft = rows.find((r: any) => r.status === 'draft')
+        const maxV = rows.reduce((m: number, r: any) => Math.max(m, r.version), 0)
+        const fields = {
+          positioning: (d as any).positioning ?? null,
+          messaging_pillars: (d as any).messaging_pillars ?? [],
+          offers: (d as any).offers ?? [],
+          icp: (d as any).icp ?? null,
+          voice: (d as any).voice ?? null,
+          never_say: (d as any).never_say ?? [],
+          creative_direction: (d as any).creative_direction ?? {},
+          channel_priorities: (d as any).channel_priorities ?? [],
+          notes: (d as any).notes ?? null,
+          updated_at: nowIso,
+        }
+        if (draft) {
+          const { error } = await supabase.from('lane_directions').update(fields).eq('id', draft.id)
+          if (error) throw new Error(error.message)
+          await audit('krish_edit_direction_draft', slug, `Krish edited the ${slug} direction draft v${draft.version}`, { version: draft.version })
+          return res.status(200).json({ ok: true, version: draft.version, status: 'draft' })
+        }
+        const { data: created, error } = await supabase
+          .from('lane_directions')
+          .insert({ lane: slug, version: maxV + 1, status: 'draft', ...fields })
+          .select('version')
+          .single()
+        if (error) throw new Error(error.message)
+        await audit('krish_open_direction_draft', slug, `Krish opened ${slug} direction draft v${maxV + 1}`, { version: maxV + 1 })
+        return res.status(200).json({ ok: true, version: created.version, status: 'draft' })
+      }
+
+      case 'direction_preview': {
+        // Render the DRAFT (or current locked) direction into a sample
+        // touchpoint so Krish sees the direction rendered before committing.
+        const spine = await directionSpine(slug, body.context || 'a short nurture email')
+        if (!spine) return res.status(404).json({ ok: false, error: 'no direction for this lane' })
+        // Use the draft if present, else the resolved (locked/fallback) one.
+        const { data: draftRow } = await supabase
+          .from('lane_directions').select('*').eq('lane', slug).eq('status', 'draft').maybeSingle()
+        const dir = (draftRow as any) || spine.direction
+        return res.status(200).json({ ok: true, system_prompt: spine.prompt, direction_version: dir.version, using: draftRow ? 'draft' : dir.status })
+      }
+
+      case 'direction_lock': {
+        // Promote the draft to the single locked version. Supersede the old
+        // locked row, fire the propagation cascade, and audit. This is the act
+        // that makes the direction canonical for every downstream generator.
+        const { data: draftRow } = await supabase
+          .from('lane_directions').select('*').eq('lane', slug).eq('status', 'draft').maybeSingle()
+        if (!draftRow) return res.status(409).json({ ok: false, error: 'no draft to lock — edit a draft first' })
+        // Conformance self-check: the locked direction must not itself contain
+        // a personal-brand reference in its authored copy.
+        const authoredBlob = [draftRow.positioning, draftRow.voice, draftRow.icp].filter(Boolean).join(' ')
+        if (/\bkrish\b/i.test(authoredBlob)) {
+          return res.status(422).json({ ok: false, error: 'direction references a personal brand (Krish) — the system must run product-brand only' })
+        }
+        const { error: supErr } = await supabase
+          .from('lane_directions').update({ status: 'superseded', updated_at: nowIso })
+          .eq('lane', slug).eq('status', 'locked')
+        if (supErr) throw new Error(supErr.message)
+        const { error: lockErr } = await supabase
+          .from('lane_directions')
+          .update({ status: 'locked', locked_at: nowIso, locked_by: 'krish', updated_at: nowIso })
+          .eq('id', draftRow.id)
+        if (lockErr) throw new Error(lockErr.message)
+        await audit('krish_lock_direction', slug, `Krish locked ${slug} direction v${draftRow.version}`, { version: draftRow.version })
+
+        // Cascade: flag queued sends generated from an older direction for
+        // regeneration (they re-enter the approval queue), and count them.
+        const { data: staleSends } = await supabase
+          .from('acquisition_sends')
+          .select('id')
+          .eq('lane', slug)
+          .eq('status', 'queued')
+          .or(`direction_version.is.null,direction_version.lt.${draftRow.version}`)
+        const staleIds = (staleSends || []).map((s: any) => s.id)
+        if (staleIds.length) {
+          await supabase.from('acquisition_sends')
+            .update({ status: 'stale_direction' })
+            .in('id', staleIds)
+        }
+        // Fire the propagation webhook (best-effort; the scheduler also reads
+        // the locked direction on its next run).
+        let cascaded = false
+        try {
+          const hook = process.env.N8N_DIRECTION_PROPAGATION_WEBHOOK_URL
+            || 'https://krishraja10101.app.n8n.cloud/webhook/direction-propagation'
+          const r = await fetch(hook, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lane: slug, version: draftRow.version, stale_sends: staleIds.length }),
+          })
+          cascaded = r.ok
+        } catch { /* scheduler picks it up regardless */ }
+
+        // Summary card for the decisions inbox.
+        await supabase.from('tasks').insert({
+          id: `direction-lock-${slug}-v${draftRow.version}`,
+          title: `Direction v${draftRow.version} locked for ${slug}`,
+          description: `${staleIds.length} queued send${staleIds.length === 1 ? '' : 's'} flagged for regeneration against the new direction.`,
+          agent: 'maya', status: 'waiting', priority: 'normal', workstream: 'direction',
+          created: nowIso,
+        }).then(({ error }) => { if (error) console.warn('[direction_lock] task insert:', error.message) })
+
+        return res.status(200).json({ ok: true, version: draftRow.version, stale_sends: staleIds.length, cascaded })
+      }
+
+      case 'direction_rollback': {
+        // Re-lock a prior version (supersede current locked, relock the target).
+        if (body.version == null) return res.status(400).json({ ok: false, error: 'version required' })
+        const { data: target } = await supabase
+          .from('lane_directions').select('id, version, status')
+          .eq('lane', slug).eq('version', body.version).maybeSingle()
+        if (!target) return res.status(404).json({ ok: false, error: `no v${body.version} for this lane` })
+        await supabase.from('lane_directions')
+          .update({ status: 'superseded', updated_at: nowIso }).eq('lane', slug).eq('status', 'locked')
+        const { error } = await supabase.from('lane_directions')
+          .update({ status: 'locked', locked_at: nowIso, locked_by: 'krish', updated_at: nowIso })
+          .eq('id', target.id)
+        if (error) throw new Error(error.message)
+        await audit('krish_rollback_direction', slug, `Krish rolled ${slug} direction back to v${target.version}`, { version: target.version })
+        return res.status(200).json({ ok: true, version: target.version })
+      }
+
       default:
-        return res.status(400).json({ ok: false, error: "action must be one of promote|demote|pause|resume|set_budget|set_voice" })
+        return res.status(400).json({ ok: false, error: "action must be one of promote|demote|pause|resume|set_budget|set_voice|direction_draft|direction_preview|direction_lock|direction_rollback" })
     }
   } catch (e: any) {
     return res.status(500).json({ ok: false, error: e?.message || 'lane action failed' })

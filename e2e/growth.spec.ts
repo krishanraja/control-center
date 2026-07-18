@@ -65,6 +65,15 @@ const LANE_DETAIL = {
   paused: null,
   costs: [],
   paid_global_cap_usd: 500,
+  direction_locked: {
+    id: 'd1', lane: 'mm_ctrl', version: 1, status: 'locked',
+    positioning: 'Signal over noise, decision-first.', icp: 'Leaders drowning in AI news',
+    voice: 'Sharp, anti-hype.', messaging_pillars: [{ pillar: 'Corroborated decisions', proof: 'multi-source' }],
+    offers: [], never_say: ['revolutionary'], creative_direction: { sender: 'the CTRL team' },
+    channel_priorities: ['seo_geo'], notes: null, locked_at: new Date().toISOString(), locked_by: 'krish',
+  },
+  direction_draft: null,
+  direction_history: [],
 }
 
 const PROMOTE_422 = {
@@ -76,7 +85,12 @@ const PROMOTE_422 = {
   ],
 }
 
-async function mockGrowthApis(page: Page, onSendsPost?: (body: any) => void, promoteResponse?: { status: number; body: any }) {
+async function mockGrowthApis(
+  page: Page,
+  onSendsPost?: (body: any) => void,
+  promoteResponse?: { status: number; body: any },
+  onLanePost?: (body: any) => void,
+) {
   await page.route('**/api/acquisition/overview*', r => r.fulfill({ json: OVERVIEW }))
   await page.route('**/api/acquisition/replies*', r =>
     r.request().method() === 'GET' ? r.fulfill({ json: { ok: true, replies: [] } }) : r.fulfill({ json: { ok: true } }))
@@ -89,10 +103,14 @@ async function mockGrowthApis(page: Page, onSendsPost?: (body: any) => void, pro
   await page.route('**/api/acquisition/lanes/**', r => {
     if (r.request().method() === 'GET') return r.fulfill({ json: LANE_DETAIL })
     const body = r.request().postDataJSON()
+    onLanePost?.(body)
     if (body?.action === 'promote' && promoteResponse) {
       return r.fulfill({ status: promoteResponse.status, json: promoteResponse.body })
     }
-    return r.fulfill({ json: { ok: true } })
+    if (body?.action === 'direction_lock') {
+      return r.fulfill({ json: { ok: true, version: 2, stale_sends: 3, cascaded: true } })
+    }
+    return r.fulfill({ json: { ok: true, version: 2, status: 'draft' } })
   })
   // Anon Supabase traffic (venture registry, zara signals, realtime auth) —
   // return empty sets so panels settle without a live database.
@@ -143,4 +161,19 @@ test('profit governor renders margin, cost stack and burn bar', async ({ page })
   await expect(page.getByText('Attributed MRR')).toBeVisible()
   await expect(page.getByText('Monthly budget burn')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Pause lane' })).toBeVisible()
+})
+
+test('direction studio shows the locked direction and locks a new version', async ({ page }) => {
+  let lanePost: any = null
+  await mockGrowthApis(page, undefined, undefined, body => { lanePost = body })
+  await page.goto('/#/acquisition')
+  // Locked direction is visible with its version badge and positioning
+  await expect(page.getByText('Direction studio')).toBeVisible()
+  await expect(page.getByText('v1 locked')).toBeVisible()
+  await expect(page.getByText('Signal over noise, decision-first.')).toBeVisible()
+  // Edit -> lock round-trip posts direction_lock
+  await page.getByRole('button', { name: 'Edit', exact: true }).click()
+  await page.getByRole('button', { name: /Lock this/ }).click()
+  await expect.poll(() => lanePost).not.toBeNull()
+  expect(lanePost.action).toBe('direction_lock')
 })
