@@ -90,11 +90,24 @@ export interface QueuedSendPreview {
   status: string
 }
 
+export interface IntegrationRow {
+  tool: string
+  category: string
+  job: string | null
+  status: 'wired' | 'pending' | 'gated'
+  lanes: string[]
+  monthly_usd: number
+  usage_metered: boolean
+  gated_reason: string | null
+  notes: string | null
+}
+
 export interface AcquisitionOverview {
   lanes: AcquisitionLane[]
   queued_preview: QueuedSendPreview[]
   unassigned_churn: ChurnLeadRow[]
   content_attribution: ContentAttributionRow[]
+  integrations: IntegrationRow[]
   generated_at?: string
 }
 
@@ -133,6 +146,7 @@ async function load(): Promise<void> {
           queued_preview: Array.isArray(json.queued_preview) ? json.queued_preview : [],
           unassigned_churn: Array.isArray(json.unassigned_churn) ? json.unassigned_churn : [],
           content_attribution: Array.isArray(json.content_attribution) ? json.content_attribution : [],
+          integrations: Array.isArray(json.integrations) ? json.integrations : [],
           generated_at: json.generated_at,
         },
         loading: false,

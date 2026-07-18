@@ -37,6 +37,11 @@ const OVERVIEW = {
   queued_preview: [],
   unassigned_churn: [],
   content_attribution: [],
+  integrations: [
+    { tool: 'PostHog', category: 'analytics', job: 'Product analytics', status: 'wired', lanes: [], monthly_usd: 0, usage_metered: false, gated_reason: null, notes: null },
+    { tool: 'Getwaitlist', category: 'waitlist', job: 'Waitlist loop', status: 'pending', lanes: ['fractionl_pulse'], monthly_usd: 15, usage_metered: false, gated_reason: null, notes: null },
+    { tool: 'Affonso', category: 'affiliate', job: 'Referrals', status: 'gated', lanes: ['mm_ctrl'], monthly_usd: 19, usage_metered: false, gated_reason: 'unlock at $100 MRR/lane', notes: null },
+  ],
 }
 
 const QUEUED_SENDS = {
@@ -176,4 +181,15 @@ test('direction studio shows the locked direction and locks a new version', asyn
   await page.getByRole('button', { name: /Lock this/ }).click()
   await expect.poll(() => lanePost).not.toBeNull()
   expect(lanePost.action).toBe('direction_lock')
+})
+
+test('integrations panel groups tools by status and shows gated reasons', async ({ page }) => {
+  await mockGrowthApis(page)
+  await page.goto('/#/acquisition')
+  await expect(page.getByText('Integrations')).toBeVisible()
+  // Org-shared wired tool shows on the lane
+  await expect(page.getByText('PostHog')).toBeVisible()
+  // Gated tool shows its unlock reason (mm_ctrl is the selected lane)
+  await expect(page.getByText('Affonso')).toBeVisible()
+  await expect(page.getByText('unlock at $100 MRR/lane')).toBeVisible()
 })

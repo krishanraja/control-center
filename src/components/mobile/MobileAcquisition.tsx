@@ -6,6 +6,7 @@ import { AUTONOMY_CHIP, laneDot, laneDotTitle } from '../acquisition/laneMeta'
 import { ProfitGovernorCard } from '../acquisition/ProfitGovernorCard'
 import { NurtureFunnelPanel } from '../acquisition/NurtureFunnelPanel'
 import { TouchProgressPanel } from '../acquisition/TouchProgressPanel'
+import { IntegrationsPanel } from '../acquisition/IntegrationsPanel'
 import { AutonomyLadderCard } from '../acquisition/AutonomyLadderCard'
 import { SendApprovalDeck } from '../acquisition/SendApprovalDeck'
 import { ChurnReengagementQueue } from '../acquisition/ChurnReengagementQueue'
@@ -118,6 +119,7 @@ export function MobileAcquisition({
               <TouchProgressPanel lane={selected} />
               <AutonomyLadderCard lane={selected} detail={detail} onChanged={() => { refresh(); refreshDetail() }} />
               <ReplyInbox lane={selected.slug} onChanged={refresh} />
+              <IntegrationsPanel integrations={data?.integrations || []} lane={selected.slug} />
               <ChurnReengagementQueue rows={selected.churn_queue} laneLabel={selected.name} />
             </div>
           )}

@@ -43,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try { laneSlugs = JSON.parse(laneCfg?.value || '[]') } catch { laneSlugs = [] }
     if (!laneSlugs.length) laneSlugs = ['mm_ctrl', 'fractionl_pulse', 'fractionl_circle', 'plinth', 'full_time']
 
-    const [ventures, funnel, sends, queuedPreview, customers, churnedLeads, frames, contentAttr, newReplies] = await Promise.all([
+    const [ventures, funnel, sends, queuedPreview, customers, churnedLeads, frames, contentAttr, newReplies, integrations] = await Promise.all([
       supabase
         .from('venture_registry')
         .select('slug, display_name, kind, active, autonomy_level, autonomy_history')
@@ -85,6 +85,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .select('id, lane, status')
         .eq('status', 'new')
         .limit(500),
+      supabase
+        .from('growth_integrations')
+        .select('tool, category, job, status, lanes, monthly_usd, usage_metered, gated_reason, notes')
+        .order('status', { ascending: true })
+        .order('tool', { ascending: true }),
     ])
     if (ventures.error) throw ventures.error
     if (funnel.error) throw funnel.error
@@ -155,6 +160,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       queued_preview: (queuedPreview.data || []).filter(q => !laneFilter || q.lane === laneFilter),
       unassigned_churn: unassignedChurn,
       content_attribution: contentAttr.data || [],
+      integrations: integrations.data || [],
       sends_scanned: (sends.data || []).length,
       sends_scan_capped: (sends.data || []).length >= SENDS_SCAN_CAP,
     })
