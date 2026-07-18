@@ -1,0 +1,150 @@
+{
+  "name": "Maya | GSC Search Analytics Sync",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "nodes": [
+    {
+      "name": "Weekly Mon 17:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [240, 240],
+      "parameters": {
+        "rule": { "interval": [{ "field": "weeks", "weeksInterval": 1, "triggerAtDay": [1], "triggerAtHour": 17, "triggerAtMinute": 0 }] }
+      },
+      "notes": "17:00 UTC Monday, after the Serper rank sweep (16:00). Both feed maya_striking_distance."
+    },
+    {
+      "name": "Run now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 420],
+      "parameters": {}
+    },
+    {
+      "name": "GSC sites",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [480, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/webmasters/v3/sites",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "credentials": { "googleApi": { "id": "3tLQKho5GxFHLIYT", "name": "Google Search Console" } },
+      "onError": "continueRegularOutput",
+      "notes": "Service account credential must have 'Set up for use in HTTP Request node' enabled with scope https://www.googleapis.com/auth/webmasters.readonly, else 401 no-token."
+    },
+    {
+      "name": "Plan queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Map each verified GSC property to a venture slug. Specific subdomains first,\n// then domain-property fallbacks. Unmapped properties are skipped.\nconst resp = $('GSC sites').first().json;\nconst list = Array.isArray(resp && resp.siteEntry) ? resp.siteEntry : [];\nconst map = [\n  { needle: 'ctrl.themindmaker', product: 'mm_ctrl' },\n  { needle: 'pulse.fractionl', product: 'fractionl_pulse' },\n  { needle: 'onplinth', product: 'plinth' },\n  { needle: 'plinth', product: 'plinth' },\n  { needle: 'full-time', product: 'full_time' },\n  { needle: 'fulltime', product: 'full_time' },\n  { needle: 'themindmaker', product: 'mm_ctrl' },\n  { needle: 'fractionl', product: 'fractionl_pulse' },\n];\n// GSC data lags ~2-3 days; pull a 28-day window ending 3 days back.\nconst end = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);\nconst start = new Date(Date.now() - 31 * 86400000).toISOString().slice(0, 10);\nconst out = [];\nfor (const s of list) {\n  const url = String(s.siteUrl || '').toLowerCase();\n  const m = map.find(x => url.includes(x.needle));\n  if (!m) continue;\n  out.push({ json: { siteUrl: s.siteUrl, product: m.product, startDate: start, endDate: end } });\n}\nreturn out;"
+      }
+    },
+    {
+      "name": "GSC query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [960, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://www.googleapis.com/webmasters/v3/sites/{{ encodeURIComponent($json.siteUrl) }}/searchAnalytics/query",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ startDate: $json.startDate, endDate: $json.endDate, dimensions: ['query'], rowLimit: 100 }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "credentials": { "googleApi": { "id": "3tLQKho5GxFHLIYT", "name": "Google Search Console" } },
+      "onError": "continueRegularOutput",
+      "notes": "Runs once per mapped property. Top 100 queries, 28-day window."
+    },
+    {
+      "name": "Build rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Pair each site's response with its product; dedup (product, query) across\n// overlapping properties (a domain property and its subdomain both map to one\n// venture) by summing clicks/impressions and impression-weighting position.\nconst plans = $('Plan queries').all().map(i => i.json);\nconst responses = $('GSC query').all().map(i => i.json);\nconst nowIso = new Date().toISOString();\nconst acc = {};\nresponses.forEach((resp, idx) => {\n  const p = plans[idx] || {};\n  if (!p.product) return;\n  const grows = Array.isArray(resp && resp.rows) ? resp.rows : [];\n  for (const r of grows) {\n    const q = Array.isArray(r.keys) ? String(r.keys[0] || '') : '';\n    if (!q) continue;\n    const key = p.product + '||' + q;\n    const clicks = Number(r.clicks) || 0;\n    const impr = Number(r.impressions) || 0;\n    const pos = r.position != null ? Number(r.position) : null;\n    const w = impr || 1;\n    if (!acc[key]) acc[key] = { product: p.product, query: q, clicks: 0, impressions: 0, posSum: 0, posW: 0 };\n    const a = acc[key];\n    a.clicks += clicks;\n    a.impressions += impr;\n    if (pos != null) { a.posSum += pos * w; a.posW += w; }\n  }\n});\nconst rows = Object.keys(acc).map(k => {\n  const a = acc[k];\n  return {\n    product: a.product,\n    query: a.query,\n    clicks: Math.round(a.clicks),\n    impressions: Math.round(a.impressions),\n    ctr: a.impressions > 0 ? Number((a.clicks / a.impressions).toFixed(4)) : 0,\n    current_position: a.posW > 0 ? Number((a.posSum / a.posW).toFixed(1)) : null,\n    last_checked_at: nowIso,\n  };\n});\nconst striking = rows.filter(r => r.current_position != null && r.current_position >= 4 && r.current_position <= 20).length;\nreturn [{ json: { rows, n: rows.length, striking } }];"
+      },
+      "executeOnce": true,
+      "notes": "GSC owns clicks/impressions/ctr + position; the Serper sweep owns search_volume/priority. merge-duplicates upsert keeps them from clobbering each other."
+    },
+    {
+      "name": "Upsert striking distance",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1440, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/maya_striking_distance?on_conflict=product,query",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": { "parameters": [
+          { "name": "Prefer", "value": "resolution=merge-duplicates,return=minimal" },
+          { "name": "Content-Type", "value": "application/json" }
+        ] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.rows) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "id": "2yHduC474hSIvO0t", "name": "Supabase account 2" } },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "name": "Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1680, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": { "parameters": [
+          { "name": "Prefer", "value": "return=minimal" },
+          { "name": "Content-Type", "value": "application/json" }
+        ] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow_id: String($workflow.id), workflow_name: $workflow.name, agent_id: 'maya', outcome: 'gsc-sync', outcome_count: $('Build rows').first().json.n, status: 'success', metadata: { rows: $('Build rows').first().json.n, striking: $('Build rows').first().json.striking } }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "id": "2yHduC474hSIvO0t", "name": "Supabase account 2" } },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Weekly Mon 17:00 UTC": { "main": [[{ "node": "GSC sites", "type": "main", "index": 0 }]] },
+    "Run now":              { "main": [[{ "node": "GSC sites", "type": "main", "index": 0 }]] },
+    "GSC sites":            { "main": [[{ "node": "Plan queries", "type": "main", "index": 0 }]] },
+    "Plan queries":         { "main": [[{ "node": "GSC query", "type": "main", "index": 0 }]] },
+    "GSC query":            { "main": [[{ "node": "Build rows", "type": "main", "index": 0 }]] },
+    "Build rows":           { "main": [[{ "node": "Upsert striking distance", "type": "main", "index": 0 }]] },
+    "Upsert striking distance": { "main": [[{ "node": "Heartbeat", "type": "main", "index": 0 }]] }
+  }
+}

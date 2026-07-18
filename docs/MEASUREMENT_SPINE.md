@@ -14,20 +14,21 @@ the OS. Product brands only; no personal brand anywhere.
   (daily 06:30 UTC). 7-day rolling active users / pageviews / events per product.
   One shared PostHog project (free tier caps at one); the `product` super-property
   separates ventures.
-  - Apps instrumented (posthog-js snippet, publishable client key): **mm-ctrl,
-    plinth, fractionl-pulse are live**; **full-time is committed but not yet
-    deployed** (its Vercel project's git auto-deploy is disconnected, so the push
-    to main did not build — needs a manual Vercel deploy or a git reconnect).
+  - All four apps instrumented (posthog-js snippet, publishable client key) and
+    deployed: **mm-ctrl, plinth, fractionl-pulse, full-time are live** (verified
+    in served HTML). full-time was deployed via the Vercel API since its git
+    auto-deploy is disconnected.
+- **GSC search analytics** (`maya_striking_distance`) — Maya GSC Search Analytics
+  Sync (weekly). A Google service account reads real clicks / impressions / CTR /
+  position per property into `maya_striking_distance` (deduped across
+  domain+subdomain properties). GSC owns those columns; the Serper sweep owns
+  `search_volume` / `priority`; merge-duplicates upsert keeps them separate.
 - **OP3 podcast downloads** — the `op3.dev/e/` enclosure prefix is live in Full
-  Time's RSS (`src/routes/api/public/feed[.]rss.ts`), so downloads start counting
-  at OP3 the moment that build ships (see full-time deploy note above).
+  Time's RSS (`src/routes/api/public/feed[.]rss.ts`) and serving (verified), so
+  downloads are counting at OP3.
 
 ## Blocked on a one-time external action
 
-- **GSC** (`maya_striking_distance` clicks/impressions/ctr) — the n8n "Google
-  account" OAuth has no live access token. Connect a Google OAuth with the
-  `webmasters.readonly` scope (or add a service account as a user on the 4 Search
-  Console properties), then the sync into `maya_striking_distance` can run.
 - **OP3 read-back** — the prefix is live and collecting; pulling the counts into
   `podcast_downloads` needs an OP3 API token (op3.dev signup) plus real feed
   traffic.
