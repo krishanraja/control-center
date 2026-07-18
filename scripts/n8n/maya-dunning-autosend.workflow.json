@@ -1,0 +1,114 @@
+{
+  "name": "Maya | Dunning Auto-Send",
+  "active": false,
+  "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
+  "nodes": [
+    {
+      "name": "Daily 12:30 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [240, 240],
+      "parameters": { "rule": { "interval": [{ "field": "days", "daysInterval": 1, "triggerAtHour": 12, "triggerAtMinute": 30 }] } }
+    },
+    { "name": "Run now", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [240, 420], "parameters": {} },
+    {
+      "name": "Past due subs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [480, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.stripe.com/v1/subscriptions?status=past_due&limit=100&expand[]=data.customer",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "credentials": { "httpHeaderAuth": { "id": "fVDCMOkPByL0V1F5", "name": "Stripe mindmaker_llc restricted (reconciliation)" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "name": "Recent dunning",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [720, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/retention_events?select=email&kind=eq.dunning&status=eq.sent&sent_at=gte.{{ new Date(Date.now() - 5*86400000).toISOString() }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "credentials": { "supabaseApi": { "id": "2yHduC474hSIvO0t", "name": "Supabase account 2" } },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "name": "Build recovery sends",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const resp = $('Past due subs').first().json;\nconst subs = Array.isArray(resp && resp.data) ? resp.data : [];\nconst recent = new Set($('Recent dunning').all().map(i => i.json).map(r => String(r.email || '').toLowerCase()).filter(Boolean));\nconst out = [];\nfor (const s of subs) {\n  const email = s.customer && s.customer.email;\n  if (!email || recent.has(email.toLowerCase())) continue;\n  const scid = (s.customer && s.customer.id) || null;\n  out.push({ json: {\n    email,\n    scid,\n    subject: \"Your CTRL payment didn't go through\",\n    body: \"Hi,\\n\\nWe tried to renew your CTRL subscription and the payment didn't go through, usually an expired or replaced card.\\n\\nUpdate your card to keep your access: https://ctrl.themindmaker.ai\\n\\nIf you meant to cancel, no action needed; it lapses on its own.\\n\\n---\\nCTRL by Mindmaker.\",\n  } });\n}\nreturn out;"
+      },
+      "executeOnce": true,
+      "notes": "5-day cooldown per email via retention_events. Transactional recovery, so it auto-sends (saves/win-backs stay human-approved in Retention Watch)."
+    },
+    {
+      "name": "Send recovery (Resend)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1200, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ from: 'CTRL <ctrl@themindmaker.ai>', reply_to: 'krish@themindmaker.ai', to: [$json.email], subject: $json.subject, text: $json.body }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "credentials": { "httpHeaderAuth": { "name": "Resend API" } },
+      "onError": "continueRegularOutput",
+      "notes": "Needs a reusable 'Resend API' httpHeaderAuth credential (Authorization: Bearer <mindmaker resend key>). Create it, bind here, then activate the workflow. The live CTRL nurture currently sends via an inline key; this uses the credential store instead."
+    },
+    {
+      "name": "Log retention_events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1440, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/retention_events",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": { "parameters": [
+          { "name": "Prefer", "value": "return=minimal" },
+          { "name": "Content-Type", "value": "application/json" }
+        ] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ product: 'mm_ctrl', email: $('Build recovery sends').item.json.email, stripe_customer_id: $('Build recovery sends').item.json.scid, kind: 'dunning', channel: 'email', status: $json.id ? 'sent' : 'failed', resend_id: $json.id || null, meta: {} }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "id": "2yHduC474hSIvO0t", "name": "Supabase account 2" } },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Daily 12:30 UTC": { "main": [[{ "node": "Past due subs", "type": "main", "index": 0 }]] },
+    "Run now":         { "main": [[{ "node": "Past due subs", "type": "main", "index": 0 }]] },
+    "Past due subs":   { "main": [[{ "node": "Recent dunning", "type": "main", "index": 0 }]] },
+    "Recent dunning":  { "main": [[{ "node": "Build recovery sends", "type": "main", "index": 0 }]] },
+    "Build recovery sends": { "main": [[{ "node": "Send recovery (Resend)", "type": "main", "index": 0 }]] },
+    "Send recovery (Resend)": { "main": [[{ "node": "Log retention_events", "type": "main", "index": 0 }]] }
+  }
+}
