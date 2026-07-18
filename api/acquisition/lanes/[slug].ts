@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
-import { directionSpine } from '../../_direction.js'
+import { directionSpine, directionPrompt, type LaneDirection } from '../../_direction.js'
 
 /**
  * /api/acquisition/lanes/:slug — the autonomy + governor control plane for one lane.
@@ -346,13 +346,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case 'direction_preview': {
         // Render the DRAFT (or current locked) direction into a sample
         // touchpoint so Krish sees the direction rendered before committing.
-        const spine = await directionSpine(slug, body.context || 'a short nurture email')
-        if (!spine) return res.status(404).json({ ok: false, error: 'no direction for this lane' })
-        // Use the draft if present, else the resolved (locked/fallback) one.
+        // When a draft exists, render THE DRAFT (not the locked version) — that
+        // is the whole point of preview.
+        const ctx = body.context || 'a short nurture email'
         const { data: draftRow } = await supabase
           .from('lane_directions').select('*').eq('lane', slug).eq('status', 'draft').maybeSingle()
-        const dir = (draftRow as any) || spine.direction
-        return res.status(200).json({ ok: true, system_prompt: spine.prompt, direction_version: dir.version, using: draftRow ? 'draft' : dir.status })
+        let dir = draftRow as LaneDirection | null
+        if (!dir) {
+          const spine = await directionSpine(slug, ctx)
+          if (!spine) return res.status(404).json({ ok: false, error: 'no direction for this lane' })
+          dir = spine.direction
+        }
+        return res.status(200).json({
+          ok: true,
+          system_prompt: directionPrompt(dir, ctx),
+          direction_version: dir.version,
+          using: draftRow ? 'draft' : dir.status,
+        })
       }
 
       case 'direction_lock': {
