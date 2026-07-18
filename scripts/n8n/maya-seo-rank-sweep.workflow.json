@@ -1,0 +1,158 @@
+{
+  "name": "Maya | SEO Rank Sweep",
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "nodes": [
+    {
+      "name": "Weekly Mon 16:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [240, 240],
+      "parameters": {
+        "rule": { "interval": [{ "field": "weeks", "weeksInterval": 1, "triggerAtDay": [1], "triggerAtHour": 16, "triggerAtMinute": 0 }] }
+      },
+      "notes": "Weekly owned-rank truth. 16:00 UTC Monday, offset from Zara's GEO sweep (15:30) so they don't collide."
+    },
+    {
+      "name": "Run now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 440],
+      "parameters": {}
+    },
+    {
+      "name": "Keyword matrix",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 320],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// One probe per (product, query). product = venture slug so rows join to\n// lane economics. domains = owned URLs to detect our own ranking result.\n// Mix of head terms (real search volume, opportunity sizing) and ICP-specific\n// phrases (where we could realistically win first). Zero personal-brand queries.\nconst probes = [\n  { product: 'mm_ctrl', query: 'AI tools for executives', domains: ['ctrl.themindmaker.ai'] },\n  { product: 'mm_ctrl', query: 'AI news aggregator', domains: ['ctrl.themindmaker.ai'] },\n  { product: 'mm_ctrl', query: 'best AI news app', domains: ['ctrl.themindmaker.ai'] },\n  { product: 'mm_ctrl', query: 'cut through AI news noise tool', domains: ['ctrl.themindmaker.ai'] },\n  { product: 'fractionl_pulse', query: 'fractional executive', domains: ['pulse.fractionl.ai','fractionl.ai'] },\n  { product: 'fractionl_pulse', query: 'hire fractional executive', domains: ['pulse.fractionl.ai','fractionl.ai'] },\n  { product: 'fractionl_pulse', query: 'fractional executive platform', domains: ['pulse.fractionl.ai','fractionl.ai'] },\n  { product: 'plinth', query: 'MCP server', domains: ['plinth.themindmaker.ai','getplinth','plinth.dev'] },\n  { product: 'plinth', query: 'product data API', domains: ['plinth.themindmaker.ai','getplinth','plinth.dev'] },\n  { product: 'plinth', query: 'MCP server for product catalog data', domains: ['plinth.themindmaker.ai','getplinth','plinth.dev'] },\n];\nreturn [{ json: { probes } }];"
+      }
+    },
+    {
+      "name": "Serper rank batch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [720, 320],
+      "parameters": {
+        "method": "POST",
+        "url": "https://google.serper.dev/search",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Keyword matrix').first().json.probes.map(p => ({ q: p.query, num: 30, gl: 'us', hl: 'en' }))) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "credentials": { "httpHeaderAuth": { "id": "KkUJMna5QfBzyxOy", "name": "Serper API" } },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "notes": "Single batch POST (array of {q}) returns one result object per query, in probe order. 1 Serper credit per query."
+    },
+    {
+      "name": "DataForSEO volume",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [960, 320],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify([{ keywords: $('Keyword matrix').first().json.probes.map(p => p.query), location_code: 2840, language_code: 'en' }]) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": { "response": { "response": { "neverError": true } } }
+      },
+      "credentials": { "httpHeaderAuth": { "id": "RJbuKy3SlisBdObj", "name": "DataForSEO" } },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "notes": "US (location_code 2840) monthly search volume so priority reflects opportunity size, not just position. ~$0.09/run. continueRegularOutput so a DataForSEO hiccup never blocks the rank write."
+    },
+    {
+      "name": "Build rank rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 320],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const probes = $('Keyword matrix').first().json.probes;\nconst serperItems = $('Serper rank batch').all().map(i => i.json);\n// Serper batch returns one result object per query, in probe order.\nlet volByKw = {};\ntry {\n  const dfsItems = $('DataForSEO volume').all().map(i => i.json);\n  for (const d of dfsItems) {\n    const results = (d && d.tasks && d.tasks[0] && d.tasks[0].result) || [];\n    for (const r of results) if (r && r.keyword) volByKw[String(r.keyword).toLowerCase()] = (r.search_volume != null ? r.search_volume : null);\n  }\n} catch (e) {}\nconst nowIso = new Date().toISOString();\nconst rows = [];\nprobes.forEach((p, idx) => {\n  const res = serperItems[idx] || {};\n  const organic = Array.isArray(res.organic) ? res.organic : [];\n  let pos = null;\n  for (let i = 0; i < organic.length; i++) {\n    const o = organic[i] || {};\n    const link = String(o.link || o.url || '').toLowerCase();\n    if ((p.domains || []).some(d => link.includes(d))) { pos = (o.position != null ? Number(o.position) : (i + 1)); break; }\n  }\n  const vol = (p.query.toLowerCase() in volByKw) ? volByKw[p.query.toLowerCase()] : null;\n  const band = pos == null ? (organic.length ? 12 : 8)\n    : pos <= 3 ? 25\n    : pos <= 15 ? 92\n    : pos <= 30 ? 55\n    : 30;\n  const volMult = vol == null ? 1 : Math.min(1 + vol / 500, 4);\n  const priority = Math.round(Math.min(band * volMult, 100));\n  rows.push({ product: p.product, query: p.query, current_position: pos, search_volume: vol, priority: priority, last_checked_at: nowIso });\n});\nconst ranking = rows.filter(r => r.current_position != null).length;\nconst striking = rows.filter(r => r.current_position != null && r.current_position >= 4 && r.current_position <= 15).length;\nreturn [{ json: { rows, checked: rows.length, ranking, striking } }];"
+      },
+      "executeOnce": true,
+      "notes": "Pure transform. Finds our owned domain's position in each SERP; folds in search volume; scores priority (striking distance 4-15 x volume). previous_position is set by the DB trigger trg_maya_sd_shift_position on upsert, not here."
+    },
+    {
+      "name": "Upsert striking distance",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1440, 320],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/maya_striking_distance?on_conflict=product,query",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": { "parameters": [
+          { "name": "Prefer", "value": "resolution=merge-duplicates,return=minimal" },
+          { "name": "Content-Type", "value": "application/json" }
+        ] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.rows) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "id": "2yHduC474hSIvO0t", "name": "Supabase account 2" } },
+      "notes": "One array upsert on (product, query). merge-duplicates only touches the columns in the payload, so a later GSC sweep can own clicks/impressions/ctr on the same row without clobbering."
+    },
+    {
+      "name": "Heartbeat workflow_runs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1680, 320],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": { "parameters": [
+          { "name": "Prefer", "value": "return=minimal" },
+          { "name": "Content-Type", "value": "application/json" }
+        ] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow_id: String($workflow.id), workflow_name: $workflow.name, agent_id: 'maya', outcome: 'seo-rank-sweep', outcome_count: $('Build rank rows').first().json.ranking, status: 'success', metadata: { checked: $('Build rank rows').first().json.checked, ranking: $('Build rank rows').first().json.ranking, striking: $('Build rank rows').first().json.striking } }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "credentials": { "supabaseApi": { "id": "2yHduC474hSIvO0t", "name": "Supabase account 2" } },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Weekly Mon 16:00 UTC": { "main": [[{ "node": "Keyword matrix", "type": "main", "index": 0 }]] },
+    "Run now":              { "main": [[{ "node": "Keyword matrix", "type": "main", "index": 0 }]] },
+    "Keyword matrix":       { "main": [[{ "node": "Serper rank batch", "type": "main", "index": 0 }]] },
+    "Serper rank batch":    { "main": [[{ "node": "DataForSEO volume", "type": "main", "index": 0 }]] },
+    "DataForSEO volume":    { "main": [[{ "node": "Build rank rows", "type": "main", "index": 0 }]] },
+    "Build rank rows":      { "main": [[{ "node": "Upsert striking distance", "type": "main", "index": 0 }]] },
+    "Upsert striking distance": { "main": [[{ "node": "Heartbeat workflow_runs", "type": "main", "index": 0 }]] }
+  }
+}
