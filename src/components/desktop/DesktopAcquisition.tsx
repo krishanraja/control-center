@@ -12,6 +12,7 @@ import { SendApprovalDeck } from '../acquisition/SendApprovalDeck'
 import { ReplyInbox } from '../acquisition/ReplyInbox'
 import { ContentToCapturePanel } from '../acquisition/ContentToCapturePanel'
 import { GeoCitationsPanel } from '../acquisition/GeoCitationsPanel'
+import { IntegrationsPanel } from '../acquisition/IntegrationsPanel'
 import { DirectionStudio } from '../acquisition/DirectionStudio'
 import { SequenceReviewSheet } from '../acquisition/SequenceReviewSheet'
 import { BoardSkeleton } from '../shared/Skeleton'
@@ -143,6 +144,7 @@ export function DesktopAcquisition({
             <TouchProgressPanel lane={selected} />
             <ContentToCapturePanel rows={data?.content_attribution || []} />
             <GeoCitationsPanel lane={selected.slug} />
+            <IntegrationsPanel integrations={data?.integrations || []} lane={selected.slug} />
           </div>
           <div className="space-y-4">
             <SendApprovalDeck
