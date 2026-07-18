@@ -45,6 +45,30 @@ export interface LaneDetail {
   budget: { daily_usd: number; monthly_usd: number; paid_monthly_usd?: number }
   paused: { paused_at: string; by: string; reason: string } | null
   paid_global_cap_usd: number
+  direction_locked: LaneDirection | null
+  direction_draft: LaneDirection | null
+  direction_history: LaneDirection[]
+}
+
+export interface LaneDirection {
+  id: string
+  lane: string
+  version: number
+  status: 'draft' | 'locked' | 'superseded'
+  positioning: string | null
+  messaging_pillars: Array<{ pillar?: string; proof?: string }>
+  offers: Array<{ name?: string; price?: string; url?: string }>
+  icp: string | null
+  voice: string | null
+  never_say: string[]
+  creative_direction: {
+    sender?: string; mailbox?: string; palette_ref?: string
+    canva_template_ids?: string[]; image_style?: string; video_style?: string
+  }
+  channel_priorities: string[]
+  notes: string | null
+  locked_at: string | null
+  locked_by: string | null
 }
 
 const cache = new Map<string, LaneDetail>()

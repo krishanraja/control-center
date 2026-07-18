@@ -12,7 +12,7 @@ import { SendApprovalDeck } from '../acquisition/SendApprovalDeck'
 import { ReplyInbox } from '../acquisition/ReplyInbox'
 import { ContentToCapturePanel } from '../acquisition/ContentToCapturePanel'
 import { GeoCitationsPanel } from '../acquisition/GeoCitationsPanel'
-import { LanePlaybookCard } from '../acquisition/LanePlaybookCard'
+import { DirectionStudio } from '../acquisition/DirectionStudio'
 import { SequenceReviewSheet } from '../acquisition/SequenceReviewSheet'
 import { BoardSkeleton } from '../shared/Skeleton'
 
@@ -138,7 +138,7 @@ export function DesktopAcquisition({
       {selected ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-4">
-            <LanePlaybookCard lane={selected.slug} />
+            <DirectionStudio lane={selected.slug} detail={detail} onChanged={() => { refresh(); refreshDetail() }} />
             <NurtureFunnelPanel lane={selected} />
             <TouchProgressPanel lane={selected} />
             <ContentToCapturePanel rows={data?.content_attribution || []} />
