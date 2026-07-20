@@ -79,15 +79,23 @@ function DesktopRouteFallback() {
 /**
  * Mobile vs desktop layout selection.
  *
- * We key off the *pointer type*, not the pixel width. A coarse primary pointer
- * means a touch device (phone / tablet) — and crucially it is zoom-invariant:
- * browser/page zoom changes `innerWidth` but never the pointer media, so a phone
- * always gets the native mobile layout and never flips to the desktop shell when
- * the user pinches or changes the browser zoom. The width check is only a
- * fallback for desktop browsers dragged to a narrow window.
+ * A genuinely wide viewport is ALWAYS the desktop command center — even on a
+ * touch screen (touchscreen laptop, large tablet in landscape, touch monitor,
+ * or a browser in touch-emulation). Keying purely off pointer type used to force
+ * those devices into the mobile shell, which then stretched edge-to-edge across
+ * a full-width display and lost the desktop's deep-work density. So the width
+ * gate takes precedence: at ≥ 1024px we hand over the full command center.
+ *
+ * Below that, we fall back to the *pointer type*, not the pixel width. A coarse
+ * primary pointer means a phone / small tablet, and the check stays zoom-
+ * invariant: browser/page zoom changes `innerWidth` but never the pointer media,
+ * so a phone never flips shells when the user pinches or changes zoom (its width
+ * stays well under the gate either way).
  */
 function detectIsMobile() {
   if (typeof window === 'undefined') return false
+  // Desktop-class width wins outright, regardless of pointer type.
+  if (window.innerWidth >= 1024) return false
   const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false
   return coarsePointer || window.innerWidth < 900
 }
