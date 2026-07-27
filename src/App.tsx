@@ -12,6 +12,8 @@ import { IdeaCaptureModal, isInboxEnabled } from './components/inbox/IdeaCapture
 import { CaptureSpeedDial } from './components/CaptureSpeedDial'
 import { WeeklyFocusTakeover } from './components/objectives/WeeklyFocusTakeover'
 import { FocusRitual } from './components/home/FocusRitual'
+import { PilotGate } from './components/pilot/PilotGate'
+import { EveningShutdown } from './components/pilot/EveningShutdown'
 import { isFocusRitualEnabled } from './lib/homeV2'
 import { useHashRoute } from './hooks/useHashRoute'
 import { contentV2Enabled } from './lib/contentV2'
@@ -150,6 +152,10 @@ export default function App() {
   return (
     <ToastProvider>
       <AgentsProvider>
+        {/* PILOT LAYER: today's check-in gates the whole shell. On a red day the
+            gate renders one action instead of this tree until something ships.
+            It fails open, so an unreachable pilot route never locks the app. */}
+        <PilotGate>
         <div className="h-[100dvh] overflow-hidden text-ink flex flex-row">
           <AmbientField />
           {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
@@ -268,7 +274,11 @@ export default function App() {
           ) : (
             <WeeklyFocusTakeover narrow={narrow} tab={tab} />
           )}
+          {/* Evening shutdown: the small header button plus the after-5pm prompt.
+              Tomorrow's ONE is chosen here, which is what red mode reads. */}
+          <EveningShutdown />
         </div>
+        </PilotGate>
       </AgentsProvider>
     </ToastProvider>
   )
