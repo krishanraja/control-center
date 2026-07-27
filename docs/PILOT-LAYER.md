@@ -68,11 +68,29 @@ Recorded so they are not mistaken for bugs.
 
 **Streaks.** `useStreaks.ts` and `StreakPills` already existed and are untouched. The no-streaks rule is a rule about the pilot layer, not a retroactive rule about the rest of the dashboard.
 
+## v1.1: the worry compiler, BUILT
+
+Takes a raw mid-day worry and forces it into one of four terminal states so it cannot remain an open loop. It exists because the operator's failure mode is converting worries into research, scope expansion, and reopened decisions. The compiler converts them into tests, 15-minute actions, closed relitigations, or labelled weather instead.
+
+`api/pilot/worries.ts` plus `api/_worry-prompt.ts`, `src/components/pilot/WorryCompiler.tsx`, and `src/components/pilot/DueTestsCard.tsx`. Migration `scripts/migrations/2026-07-27-pilot-worries.sql`, applied live 2026-07-27.
+
+The four states: **test** carries a belief, a falsifiable prediction, a cheap test plan, and a due date, and stays open until an outcome is recorded. **action** is one 15-minute thing that leaves the machine, closed immediately, routed either into the ship log or into tomorrow's ONE. **relitigation** is closed immediately and answered by one question only, what new evidence arrived since the decision was made. **weather** is labelled, given a 7-day expiry, and closed lazily on read.
+
+### Two rules that must not be removed as improvements
+
+**No archive.** There is no endpoint, page, or component that lists past worries. The only rows the client ever sees are tests due today and, on a capped save, the five open tests blocking it. `raw_text` is write-only: it is accepted, stored, and never returned after save, enforced by column-scoped selects in the route rather than by client discipline. An archive of worries is something to ruminate through, which is the exact behaviour this feature exists to interrupt. Do not add a list endpoint.
+
+**Five open tests, hard cap, server-side.** A sixth open test is rejected with HTTP 409 and a body naming the five tests blocking it, so closing one is a single tap away. The cap is enforced in `api/pilot/worries.ts`, not in the UI, so it cannot be routed around.
+
+The compiler runs at `temperature: 0` and reuses the repo's existing OpenAI pattern: a plain fetch with `response_format: json_object`, no SDK. Malformed output retries exactly once and then fails loudly with a 502. Unlike `callSkillLLM` in `api/_skill-prompt.ts`, there is deliberately no stub fallback, because a silently invented compilation is worse than none. The key resolves from the deploy env first and then from `app_secrets`, matching `api/_embeddings.ts`.
+
+The compile button is green mode only, and structurally so: it is mounted inside `PilotGate`'s children, and red mode returns before children ever render. It cannot appear on a red day without someone moving the mount point.
+
+**One known tuning point.** The prompt is included verbatim as specified. In live testing it leans toward the closure states over the test state. "What if the Amperity thing falls through" compiled to `weather` where extracting a falsifiable prediction and a cheap check would have served better, and "the cohort pricing is wrong" compiled to `relitigation` rather than a test of the pricing. Both are defensible readings and neither violates the rules, but if the compiler feels too quick to close, rule 2 is the one to strengthen.
+
 ## v2 roadmap
 
 Nothing below is started.
-
-**Worry compiler.** `NOT STARTED.` Take a raw mid-day worry and force it into one of four terminal states so it cannot remain an open loop: a falsifiable prediction with a test and a due date, a 15-minute action, a closed relitigation answered only by new evidence, or labelled weather with a 7-day expiry. Raw worries are never stored for browsing and never displayed back in feeds, because an archive of worries is something to ruminate through. Open tests capped at 5.
 
 **Three-slot active-work cap.** `NOT STARTED.` At most three things in flight, with an explicit kill ritual required to start a fourth.
 
