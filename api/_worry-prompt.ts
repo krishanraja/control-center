@@ -82,7 +82,10 @@ const YMD = /^\d{4}-\d{2}-\d{2}$/
  * Validates model output against the four state shapes. Returns the compilation
  * or throws CompilerSchemaError, which is what triggers the single retry.
  */
-export function validateCompilation(raw: unknown): CompiledWorry {
+export function validateCompilation(
+  raw: unknown,
+  bounds?: { min: string; max: string },
+): CompiledWorry {
   if (!raw || typeof raw !== 'object') throw new CompilerSchemaError('Output was not an object')
   const o = raw as Record<string, unknown>
 
@@ -101,6 +104,9 @@ export function validateCompilation(raw: unknown): CompiledWorry {
   if (state === 'test') {
     const due = str('test_due_date')
     if (!YMD.test(due)) throw new CompilerSchemaError(`"test_due_date" was ${JSON.stringify(due)}`)
+    if (bounds && (due < bounds.min || due > bounds.max)) {
+      throw new CompilerSchemaError(`"test_due_date" ${due} is outside ${bounds.min}..${bounds.max}`)
+    }
     return {
       state, reasoning,
       belief: str('belief'),
@@ -147,9 +153,37 @@ async function getOpenAIKey(): Promise<string | null> {
   return cachedOpenAIKey
 }
 
+/** Today's civil date in the operator's zone. Mirrors src/lib/pilotDay.ts. */
+function pilotToday(at: Date = new Date()): string {
+  const f = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(at)
+  const get = (t: string) => f.find(p => p.type === t)?.value || ''
+  return `${get('year')}-${get('month')}-${get('day')}`
+}
+
+function addDays(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split('-').map(Number)
+  const base = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+  base.setUTCDate(base.getUTCDate() + days)
+  return base.toISOString().slice(0, 10)
+}
+
 async function callOnce(rawText: string): Promise<CompiledWorry> {
   const key = await getOpenAIKey()
   if (!key) throw new Error('No OpenAI key available (env or app_secrets)')
+
+  // The model has no clock. Without today's date it emits a due date from its
+  // training data, which lands in the past and makes the test read as already
+  // due. The date goes in the user message so the system prompt stays verbatim.
+  const today = pilotToday()
+  const dated = [
+    `TODAY: ${today}`,
+    `A test_due_date must fall between ${addDays(today, 1)} and ${addDays(today, 7)}.`,
+    '',
+    'WORRY:',
+    rawText,
+  ].join('\n')
 
   const resp = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -163,7 +197,7 @@ async function callOnce(rawText: string): Promise<CompiledWorry> {
       temperature: 0,
       messages: [
         { role: 'system', content: WORRY_COMPILER_SYSTEM_PROMPT },
-        { role: 'user', content: rawText },
+        { role: 'user', content: dated },
       ],
     }),
   })
@@ -180,7 +214,7 @@ async function callOnce(rawText: string): Promise<CompiledWorry> {
   try { parsed = JSON.parse(content) } catch {
     throw new CompilerSchemaError('Model did not return valid JSON')
   }
-  return validateCompilation(parsed)
+  return validateCompilation(parsed, { min: today, max: addDays(today, 7) })
 }
 
 /**

@@ -116,6 +116,11 @@ async function save(body: Record<string, unknown>, res: VercelResponse) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
       return res.status(400).json({ ok: false, error: '"test_due_date" must be YYYY-MM-DD' })
     }
+    // A past due date would make the test read as already due the moment it is
+    // saved, which is how a test becomes another thing nagging at him.
+    if (dueDate < today) {
+      return res.status(400).json({ ok: false, error: 'A test cannot be due in the past' })
+    }
 
     // The cap. Server-side, so the UI cannot route around it.
     const open = await openTests()
