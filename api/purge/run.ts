@@ -32,6 +32,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Fate 1: expire. Count first so the audit row is honest even though the
     // rows are gone afterwards.
+    // Safety floor: a row Krish has started working (drafting or beyond) is
+    // never hard-deleted by expiry, even if its expires_at was set while it
+    // was still a seed (temporal-class expiry, 2026-07-27).
     const expiredQuery = () => supabase
       .from('content_ideas')
       .select('id', { count: 'exact', head: true })
@@ -39,6 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .lte('expires_at', nowIso)
       .is('shift_id', null)
       .is('library_at', null)
+      .not('state', 'in', '("drafting","review","approved","published")')
     const { count: toExpire } = await expiredQuery()
 
     let expired = 0
@@ -50,6 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .lte('expires_at', nowIso)
         .is('shift_id', null)
         .is('library_at', null)
+        .not('state', 'in', '("drafting","review","approved","published")')
       if (delErr) throw new Error(delErr.message)
       expired = count ?? 0
     }

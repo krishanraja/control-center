@@ -1,0 +1,474 @@
+{
+  "name": "Cleo | Mindmaker OS | Content Lane Sourcing",
+  "nodes": [
+    {
+      "name": "Daily 13:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 13
+            }
+          ]
+        }
+      },
+      "id": "a4ba6bb1-a9ab-4270-b870-8b97d5693a5a"
+    },
+    {
+      "name": "Manual Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-lane-sourcing",
+        "responseMode": "onReceived"
+      },
+      "id": "b3218dd8-6ddc-44a0-8af7-65d02109b228",
+      "webhookId": "32729055-76c3-4d09-b575-3adb66060ffb"
+    },
+    {
+      "name": "Recompute Cadence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/rpc/recompute_content_cadence",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "024a82ce-9e27-4a67-a8f2-55cba4c4aa2f"
+    },
+    {
+      "name": "Get Cadence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/content_cadence?select=*",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "fd6546c7-fe42-4ca7-8d2e-2b5e6206334e"
+    },
+    {
+      "name": "Get Lane Configs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config?select=key,value&key=like.content_lane_*",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "f2b45ae7-698f-495d-8fbf-8c5955b13701"
+    },
+    {
+      "name": "Get Recent Drafts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/content_ideas?select=lane,lane_slot,state,created_at&order=created_at.desc&limit=200",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": []
+        },
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "b9b7330e-5860-41a6-85ac-31c4aedbb6c3"
+    },
+    {
+      "name": "Plan Due Lanes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        100
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "function rows(nodeName){const out=[];for(const it of $(nodeName).all()){const j=it.json;if(Array.isArray(j))out.push(...j);else if(j&&j.data&&Array.isArray(j.data))out.push(...j.data);else if(j&&(j.key||j.id||j.lane))out.push(j);}return out;}\nconst cadence=rows('Get Cadence');const configs=rows('Get Lane Configs');const recent=rows('Get Recent Drafts');\nconst byKey={};for(const c of configs){byKey[c.key]=(typeof c.value==='string')?JSON.parse(c.value):c.value;}\nfunction keyFor(cc){return cc.slot?('content_lane_'+cc.lane+'_'+cc.slot):('content_lane_'+cc.lane);}\nconst DAY=86400000,now=Date.now();\nfunction hasRecentDraft(lane,slot,iv){const cutoff=now-(iv||7)*DAY*0.8;return recent.some(r=>r.lane===lane&&(slot?r.lane_slot===slot:true)&&r.state!=='published'&&r.state!=='dropped'&&r.created_at&&new Date(r.created_at).getTime()>=cutoff);}\nconst due=[];\nfor(const cc of cadence){\n  if(!['overdue','due_soon','no_data'].includes(cc.status))continue;\n  if(hasRecentDraft(cc.lane,cc.slot,cc.interval_days))continue;\n  const cfg=byKey[keyFor(cc)];if(!cfg)continue;\n  due.push({json:{lane:cc.lane,slot:cc.slot||null,interval_days:cc.interval_days,format:cfg.format,research_prompt:cfg.research_prompt,draft_system:cfg.draft_system}});\n}\nreturn due;"
+      },
+      "id": "ab07431c-491d-41c3-8ce9-52f6b2d1fb31"
+    },
+    {
+      "name": "Perplexity Research",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model:'sonar-pro', messages:[{role:'system',content:'You are a precise research assistant. Always cite urls.'},{role:'user',content:$json.research_prompt}], temperature:0.2, max_tokens:1500 } }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi"
+      },
+      "id": "8e2da951-87a5-4085-a543-29475b450135"
+    },
+    {
+      "name": "Sonnet Draft",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model:'claude-sonnet-4-6', max_tokens:4000, temperature:0.5, system: $('Plan Due Lanes').item.json.draft_system + ' Keep the body within ~700 words so the JSON stays complete.', messages:[{role:'user', content:'Research to ground the piece (cite named facts, do not invent):\\n' + (((($json.choices||[])[0]||{}).message||{}).content||'') + '\\n\\nWrite the piece now. Return ONLY a single JSON object: {\"title\":string,\"body\":string,\"visual_suggestion\":string|null,\"sources\":[url]}.' }] } }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi"
+      },
+      "id": "8f224186-dfc8-41e6-981e-c8f9942b14bb"
+    },
+    {
+      "name": "Map Idea Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        100
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const cfg=$('Plan Due Lanes').item.json;\nlet txt=(($json.content||[])[0]||{}).text||'{}';\nfunction rj(t){t=String(t).trim();if(t.startsWith('```'))t=t.split('```')[1].replace(/^json/,'').trim();try{return JSON.parse(t);}catch(e){}const i=t.indexOf('{'),j=t.lastIndexOf('}');if(i>=0&&j>i){try{return JSON.parse(t.slice(i,j+1));}catch(e){}}return null;}\nlet d=rj(txt)||{title:'(parse failed)',body:String(txt).slice(0,2000)};\nconst pres=$('Perplexity Research').item.json;\nconst ptext=(((pres.choices||[])[0]||{}).message||{}).content||'';\nconst cites=pres.citations||[];\nfunction slug(s){return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,50);}\nconst row={idea:(d.title||'Untitled draft'),body:(d.body||''),lane:cfg.lane,lane_slot:cfg.slot,state:'drafting',source_type:'lane_sourcing',distribution:[],source_url:((d.sources&&d.sources[0])||cites[0]||null),source_snippet:String(ptext).slice(0,500),meta:{research:cites.slice(0,8),sources:(d.sources||cites||[]),visual_suggestion:(d.visual_suggestion||null),generated_by:'lane_sourcing',lane_format:cfg.format},concept_id:'concept:content:'+cfg.lane+':'+slug(d.title||'')+'-'+Date.now()};\nreturn { insert_row: row };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "5dd8ee66-918c-48a5-a37e-36d0f2f1cf2b"
+    },
+    {
+      "name": "Insert Idea",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/content_ideas",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.insert_row }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "0987bd02-1214-4bc5-b973-1e6c59d5025b"
+    },
+    {
+      "name": "Build Heartbeat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2220,
+        100
+      ],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "function rows(nm){const out=[];for(const it of $(nm).all()){const j=it.json;if(Array.isArray(j))out.push(...j);else if(j&&j.data&&Array.isArray(j.data))out.push(...j.data);else if(j&&(j.key||j.id||j.lane))out.push(j);}return out;}\nconst cadence=rows('Get Cadence');const recent=rows('Get Recent Drafts');\nconst DAY=86400000,now=Date.now();\nfunction hasRecent(lane,slot,iv){const c=now-(iv||7)*DAY*0.8;return recent.some(r=>r.lane===lane&&(slot?r.lane_slot===slot:true)&&r.state!=='published'&&r.state!=='dropped'&&r.created_at&&new Date(r.created_at).getTime()>=c);}\nlet due=0;for(const cc of cadence){if(!['overdue','due_soon','no_data'].includes(cc.status))continue;if(hasRecent(cc.lane,cc.slot,cc.interval_days))continue;due++;}\nreturn [{json:{workflow_id:'rRAyEUs7NsY06hFy',workflow_name:'Cleo | Mindmaker OS | Content Lane Sourcing',agent_id:'cleo',run_at:new Date().toISOString(),outcome:'success',outcome_count:due,status:'success',metadata:{lanes_due:due}}}];"
+      },
+      "id": "3348bb2b-9be8-4211-b53a-866973d77753"
+    },
+    {
+      "name": "Write Heartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2440,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "executeOnce": true,
+      "id": "e52b8210-6051-4170-b951-54bd3d9a8b45"
+    }
+  ],
+  "connections": {
+    "Daily 13:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Recompute Cadence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Webhook": {
+      "main": [
+        [
+          {
+            "node": "Recompute Cadence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recompute Cadence": {
+      "main": [
+        [
+          {
+            "node": "Get Cadence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Cadence": {
+      "main": [
+        [
+          {
+            "node": "Get Lane Configs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Lane Configs": {
+      "main": [
+        [
+          {
+            "node": "Get Recent Drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent Drafts": {
+      "main": [
+        [
+          {
+            "node": "Plan Due Lanes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan Due Lanes": {
+      "main": [
+        [
+          {
+            "node": "Perplexity Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity Research": {
+      "main": [
+        [
+          {
+            "node": "Sonnet Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet Draft": {
+      "main": [
+        [
+          {
+            "node": "Map Idea Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Idea Row": {
+      "main": [
+        [
+          {
+            "node": "Insert Idea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Heartbeat": {
+      "main": [
+        [
+          {
+            "node": "Write Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "_snapshot": {
+    "workflow_id": "rRAyEUs7NsY06hFy",
+    "exported": "2026-07-27",
+    "note": "checked-in snapshot, credentials stripped; live n8n is the runtime source"
+  }
+}
