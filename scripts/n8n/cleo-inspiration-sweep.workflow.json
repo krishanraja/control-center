@@ -1,0 +1,1607 @@
+{
+  "name": "Cleo | Mindmaker OS | Inspiration Sweep",
+  "nodes": [
+    {
+      "id": "86f34e2a-b7b3-4fde-b97d-2a5e8c46fc7c",
+      "name": "Daily 06:00 ET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        288
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "4e983234-cfd8-450e-9f8d-3298609971fa",
+      "name": "Record Start",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        288
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "rs1",
+              "name": "run_start_iso",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "rs2",
+              "name": "run_start_ms",
+              "value": "={{ $now.toMillis() }}",
+              "type": "number"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a4d6b02e-1e21-4e94-9c2f-a766dcf47d9e",
+      "name": "Load Gmail Label Config",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "eq.cleo_inspiration_gmail_label"
+            },
+            {
+              "name": "select",
+              "value": "value"
+            }
+          ]
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "da0ae556-4795-48ff-bdae-58267db3f3e1",
+      "name": "Normalize Gmail Label",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nlet label = 'AI Newsletters';\ntry {\n  const first = items[0] && items[0].json;\n  if (Array.isArray(first) && first.length > 0) label = first[0].value || label;\n  else if (first && typeof first === 'object' && first.value) label = first.value;\n} catch (e) {}\nreturn [{ json: { gmail_label: label } }];"
+      }
+    },
+    {
+      "id": "e2f4ccfd-24d0-4783-989b-afdc949e6fca",
+      "name": "Gmail List Inspirations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "url": "https://gmail.googleapis.com/gmail/v1/users/me/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ \"label:\\\"\" + $json.gmail_label + \"\\\" newer_than:7d -in:trash -in:spam\" }}"
+            },
+            {
+              "name": "maxResults",
+              "value": "50"
+            }
+          ]
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "e4a68e05-79c8-4788-98f0-62594bfe550c",
+      "name": "Gmail Limit Ids",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst first = (items[0] && items[0].json) || {};\nconst messages = (first.messages || []).slice(0, 50);\nreturn [{ json: { ids: messages.map(m => m.id), gmail_listed: messages.length } }];"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "0378c127-cf24-4665-9398-6f2fca0b5cd2",
+      "name": "Gmail Fetch Full",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1568,
+        0
+      ],
+      "parameters": {
+        "url": "=https://gmail.googleapis.com/gmail/v1/users/me/messages/{{ $json.id || \"none\" }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "format",
+              "value": "full"
+            }
+          ]
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ed065850-034a-4002-a908-377f3d9c0dcf",
+      "name": "Gmail Extract Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        0
+      ],
+      "parameters": {
+        "jsCode": "function decodePart(data) { try { return Buffer.from(String(data || '').replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8'); } catch (e) { return ''; } }\nfunction findBody(part) {\n  if (!part) return '';\n  const mt = (part.mimeType || '').toLowerCase();\n  if (mt === 'text/plain' && part.body && part.body.data) return decodePart(part.body.data);\n  if (mt === 'text/html' && part.body && part.body.data) return decodePart(part.body.data).replace(/<style[\\s\\S]*?<\\/style>/gi, '').replace(/<script[\\s\\S]*?<\\/script>/gi, '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\\s+/g, ' ');\n  if (Array.isArray(part.parts)) {\n    for (const p of part.parts) {\n      const got = findBody(p);\n      if (got) return got;\n    }\n  }\n  return '';\n}\nconst items = $input.all();\nlet stats = { gmail_listed: 0, gmail_new: 0, gmail_overflow: 0 };\ntry { const e = $('Emit Unseen').first().json; stats = { gmail_listed: e.gmail_listed || 0, gmail_new: e.gmail_new || 0, gmail_overflow: e.gmail_overflow || 0 }; } catch (err) {}\nconst newsletters = [];\nfor (const it of items) {\n  const j = it.json || {};\n  if (j._empty || j.error || !j.payload) continue;\n  const headers = j.payload.headers || [];\n  const getH = (n) => { const h = headers.find(x => (x.name || '').toLowerCase() === n.toLowerCase()); return h ? h.value : ''; };\n  const body = (findBody(j.payload) || j.snippet || '').slice(0, 12000);\n  if (!body || body.length < 80) continue;\n  const fromRaw = getH('From');\n  const fm = fromRaw.match(/^\\s*\"?([^\"<]*)\"?\\s*<([^>]+)>\\s*$/);\n  const display_name = ((fm ? fm[1] : fromRaw.split('@')[0]) || '').trim() || fromRaw.trim();\n  const from_email = ((fm ? fm[2] : fromRaw) || '').trim().toLowerCase();\n  let date_iso = null;\n  try { const d = new Date(getH('Date')); if (!isNaN(d.getTime())) date_iso = d.toISOString(); } catch (e2) {}\n  newsletters.push({\n    id: j.id,\n    thread_id: j.threadId,\n    subject: getH('Subject'),\n    from: fromRaw,\n    from_email,\n    display_name,\n    date_iso,\n    body,\n    url: 'https://mail.google.com/mail/u/0/#inbox/' + (j.threadId || j.id),\n  });\n}\nreturn [{ json: { newsletters, gmail_count: newsletters.length, gmail_listed: stats.gmail_listed, gmail_new: stats.gmail_new, gmail_overflow: stats.gmail_overflow } }];"
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "28c831a6-a8d5-48e6-8165-ff7e2a04e85e",
+      "name": "Combine Inputs",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2016,
+        192
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      }
+    },
+    {
+      "id": "aeda4077-bca2-49ca-8689-9d124a01fc9d",
+      "name": "Load Folder Id Config",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        384
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "eq.cleo_inspiration_folder_id"
+            },
+            {
+              "name": "select",
+              "value": "value"
+            }
+          ]
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "c7d7f8ad-73ef-4843-8fab-b43e60b98a78",
+      "name": "Normalize Folder Id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        384
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nlet folder_id = '';\ntry {\n  const first = items[0] && items[0].json;\n  if (Array.isArray(first) && first.length > 0) folder_id = first[0].value || '';\n  else if (first && typeof first === 'object') folder_id = first.value || '';\n} catch (e) {}\nconst ok = folder_id && !/YOUR_|PLACEHOLDER|HERE/i.test(folder_id) && folder_id.length >= 12;\nreturn [{ json: { folder_id: ok ? folder_id : '' } }];"
+      }
+    },
+    {
+      "id": "5a3434f8-283f-450a-aa89-d86aa748fc43",
+      "name": "Has Folder Id",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        384
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fid",
+              "leftValue": "={{ $json.folder_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "bcb11c48-ad46-4a6a-91ab-50f358fc538f",
+      "name": "Drive List Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1120,
+        192
+      ],
+      "parameters": {
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ \"'\" + $json.folder_id + \"' in parents and trashed=false and modifiedTime > '\" + $now.minus({ days: 14 }).toISO() + \"'\" }}"
+            },
+            {
+              "name": "orderBy",
+              "value": "modifiedTime desc"
+            },
+            {
+              "name": "pageSize",
+              "value": "15"
+            },
+            {
+              "name": "fields",
+              "value": "files(id,name,mimeType,modifiedTime)"
+            }
+          ]
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "8ac29d7a-da0d-4d27-88f3-c548c14b597f",
+      "name": "Drive Filter Readable",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        192
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst first = (items[0] && items[0].json) || {};\nconst READABLE = new Set([\n  'application/vnd.google-apps.document',\n  'text/plain',\n  'text/markdown',\n  'application/vnd.google-apps.spreadsheet',\n  'image/jpeg',\n  'image/png',\n  'image/webp',\n  'image/gif',\n  'application/pdf',\n]);\nconst files = (first.files || []).filter(f => READABLE.has(f.mimeType));\nif (files.length === 0) return [{ json: { _empty: true } }];\nreturn files.map(f => ({ json: { id: f.id, name: f.name, mimeType: f.mimeType, modifiedTime: f.modifiedTime } }));"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "a2601274-11d9-4930-8285-24e228531bfa",
+      "name": "Drive Fetch Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1568,
+        192
+      ],
+      "parameters": {
+        "url": "={{ $json.mimeType === \"application/vnd.google-apps.document\" ? \"https://www.googleapis.com/drive/v3/files/\" + $json.id + \"/export?mimeType=text/plain\" : $json.mimeType === \"application/vnd.google-apps.spreadsheet\" ? \"https://www.googleapis.com/drive/v3/files/\" + $json.id + \"/export?mimeType=text/csv\" : \"https://www.googleapis.com/drive/v3/files/\" + $json.id + \"?alt=media\" }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "b1881693-b369-463a-a978-9cafd40d0592",
+      "name": "Drive Aggregate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        192
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst list = $('Drive Filter Readable').all().map(i => i.json);\nconst TEXT_MIMES = new Set(['application/vnd.google-apps.document','text/plain','text/markdown','application/vnd.google-apps.spreadsheet']);\nconst IMAGE_MIMES = new Set(['image/jpeg','image/png','image/webp','image/gif']);\nconst PDF_MIME = 'application/pdf';\nconst docs = [];\nconst images = [];\nconst pdfs = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const meta = list[i] || {};\n  const mime = meta.mimeType || '';\n  const item = items[i] || {};\n  let buf = null;\n  if (item.binary && item.binary.data) {\n    try { buf = await this.helpers.getBinaryDataBuffer(i, 'data'); } catch (e) { buf = null; }\n  }\n  const urlFor = (id) => mime === 'application/vnd.google-apps.document' ? 'https://docs.google.com/document/d/' + id + '/edit'\n    : mime === 'application/vnd.google-apps.spreadsheet' ? 'https://docs.google.com/spreadsheets/d/' + id + '/edit'\n    : 'https://drive.google.com/file/d/' + id + '/view';\n\n  if (TEXT_MIMES.has(mime)) {\n    let body = buf ? buf.toString('utf-8') : '';\n    if ((!body || body.length < 80) && item.json && typeof item.json.data === 'string') body = item.json.data;\n    body = String(body || '').replace(/\\u0000/g, '').slice(0, 8000);\n    if (body && body.length >= 80) {\n      docs.push({ id: meta.id, name: meta.name, mime_type: mime, modified: meta.modifiedTime, body, url: urlFor(meta.id) });\n    }\n  } else if (IMAGE_MIMES.has(mime) && buf) {\n    images.push({ id: meta.id, name: meta.name, mime_type: mime, modified: meta.modifiedTime, base64: buf.toString('base64'), url: 'https://drive.google.com/file/d/' + meta.id + '/view' });\n  } else if (mime === PDF_MIME && buf) {\n    pdfs.push({ id: meta.id, name: meta.name, mime_type: mime, modified: meta.modifiedTime, base64: buf.toString('base64'), url: 'https://drive.google.com/file/d/' + meta.id + '/view' });\n  }\n}\nreturn [{ json: { drive_docs: docs, drive_images: images, drive_pdfs: pdfs, drive_count: docs.length + images.length + pdfs.length } }];"
+      }
+    },
+    {
+      "id": "2e8db22c-4476-4909-bb55-906dd0079002",
+      "name": "Drive Skip Empty",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1792,
+        384
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ds1",
+              "name": "drive_docs",
+              "value": "={{ [] }}",
+              "type": "array"
+            },
+            {
+              "id": "ds2",
+              "name": "drive_count",
+              "value": 0,
+              "type": "number"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c62a54e7-a75a-4d2f-a5e3-fcc25e4cfc00",
+      "name": "Load Pillars",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2240,
+        192
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/content_pillars",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "active",
+              "value": "eq.true"
+            },
+            {
+              "name": "select",
+              "value": "id,name,description,good_looks_like,anti_patterns,evidence_required"
+            },
+            {
+              "name": "order",
+              "value": "id.asc"
+            }
+          ]
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "6736b75f-a62b-4159-950d-70134b66bcff",
+      "name": "Load Cleo Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2464,
+        192
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/agents",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "eq.cleo"
+            },
+            {
+              "name": "select",
+              "value": "brief_content"
+            }
+          ]
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "846e5ddd-1d45-4cb5-868b-f7baa0ed7ca0",
+      "name": "Load Thresholds",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2688,
+        192
+      ],
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/system_config",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "in.(cleo_inspiration_min_brand_fit,cleo_inspiration_max_emails_per_run,cleo_inspiration_max_docs_per_run)"
+            },
+            {
+              "name": "select",
+              "value": "key,value"
+            }
+          ]
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "34c5f7cb-f490-4377-b73b-d3d40000fb2a",
+      "name": "Build Extraction Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2912,
+        192
+      ],
+      "parameters": {
+        "jsCode": "let newsletters = [];\ntry { const g = $('Apply Canonical Labels').first(); if (g && g.json && Array.isArray(g.json.newsletters)) newsletters = g.json.newsletters; } catch (e) {}\nif (!newsletters.length) { try { const g2 = $('Gmail Extract Body').first(); if (g2 && g2.json && Array.isArray(g2.json.newsletters)) newsletters = g2.json.newsletters; } catch (e) {} }\nlet drive_docs = [], drive_images = [], drive_pdfs = [];\ntry { const a = $('Drive Aggregate').first(); if (a && a.json) { drive_docs = a.json.drive_docs || []; drive_images = a.json.drive_images || []; drive_pdfs = a.json.drive_pdfs || []; } } catch (e) {}\nif (!drive_docs.length && !drive_images.length && !drive_pdfs.length) {\n  try { const s = $('Drive Skip Empty').first(); if (s && s.json && Array.isArray(s.json.drive_docs)) drive_docs = s.json.drive_docs; } catch (e) {}\n}\nconst pillarsRaw = $('Load Pillars').all().map(i => i.json);\nconst pillars = Array.isArray(pillarsRaw[0]) ? pillarsRaw[0] : pillarsRaw;\nconst briefRaw = $('Load Cleo Brief').all().map(i => i.json);\nconst briefArr = Array.isArray(briefRaw[0]) ? briefRaw[0] : briefRaw;\nconst brief = (briefArr[0] && briefArr[0].brief_content) || '';\nconst cfgRaw = $('Load Thresholds').all().map(i => i.json);\nconst cfgArr = Array.isArray(cfgRaw[0]) ? cfgRaw[0] : cfgRaw;\nconst cfg = {};\nfor (const row of cfgArr) cfg[row.key] = row.value;\nconst minFit = parseInt(cfg.cleo_inspiration_min_brand_fit || '6', 10);\nlet yieldRows = [];\ntry {\n  const yRaw = $('Load Source Yield').all().map(i => i.json);\n  const yArr = Array.isArray(yRaw[0]) ? yRaw[0] : yRaw;\n  yieldRows = yArr.filter(r => r && r.newsletter_key && r.newsletter_key !== 'unlabelled');\n} catch (e) {}\nconst trackBlock = yieldRows.map(r => '- ' + r.newsletter_key + ': ' + r.seeds + ' seeds, ' + r.advanced + ' advanced to drafting or beyond, ' + r.buried + ' buried, ' + r.recurrences + ' recurrences').join('\\n');\n\nconst pillarsBlock = pillars.map(p => {\n  const gl = p.good_looks_like || {};\n  const ap = (p.anti_patterns || []).map(x => '  - ' + x).join('\\n');\n  const er = (p.evidence_required || []).map(x => '  - ' + x).join('\\n');\n  return '### ' + p.name + ' (id: ' + p.id + ')\\n' +\n         '**Description:** ' + p.description + '\\n' +\n         '**Voice:** ' + (gl.voice || '') + '\\n' +\n         '**Source patterns:** ' + (gl.source_patterns || '') + '\\n' +\n         '**Angle patterns:** ' + (gl.angle_patterns || '') + '\\n' +\n         '**Good examples:** ' + (gl.good_examples || '') + '\\n' +\n         '**Anti-patterns (REJECT if matched):**\\n' + ap + '\\n' +\n         '**Evidence required (at least one must be present):**\\n' + er;\n}).join('\\n\\n');\n\nconst newslettersBlock = newsletters.length === 0\n  ? '(no NEW newsletters since the last run; previously-read messages are never re-read)'\n  : newsletters.map((n, i) => '--- NEWSLETTER ' + (i+1) + ' ---\\nFROM: ' + (n.canonical_label || n.from || 'unknown') + '\\nKEY: ' + (n.newsletter_key || 'unregistered') + '\\nSUBJECT: ' + (n.subject || '') + '\\nURL: ' + (n.url || '') + '\\nBODY:\\n' + n.body).join('\\n\\n');\n\nconst docsBlock = drive_docs.length === 0\n  ? '(no inspiration text docs in lookback window)'\n  : drive_docs.map((d, i) => '--- DOC ' + (i+1) + ' ---\\nFILE: ' + (d.name || '') + ' (' + (d.mime_type || '') + ')\\nURL: ' + (d.url || '') + '\\nBODY:\\n' + d.body).join('\\n\\n');\n\nconst imagesIntro = drive_images.length === 0 && drive_pdfs.length === 0\n  ? '(no image / PDF screenshots in lookback window)'\n  : 'The following ' + (drive_images.length + drive_pdfs.length) + ' file(s) are screenshots or PDFs from Krish inspiration folder. Most will be LinkedIn post screenshots. For each, EXTRACT: (a) who posted (name + handle/title if visible), (b) the post body/headline, (c) any visible engagement metrics, (d) why the post matters to one of Krish pillars. Apply the SAME pillar bar to image-derived seeds as to text-derived seeds. Source label should be the filename. Source url should be the Drive view url provided.';\n\nconst systemPrompt =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n---\\n\\n' : '') +\n  'You are reading raw inspiration material for Krish. Material may include newsletter bodies, text documents from a Drive folder, AND screenshots (mostly LinkedIn posts) or PDFs. Extract publish-ready content seeds mapped to one of Krish five pillars. The bar is high. Most input does NOT contain a seed worth surfacing. If nothing qualifies, return an empty array [].\\n\\n' +\n  '## KRISH PILLARS\\n\\n' + pillarsBlock + '\\n\\n' +\n  '## KRISH VOICE RULES\\n' +\n  '- Declarative and specific. No hedging.\\n' +\n  '- Real numbers, real artifacts, real anecdotes.\\n' +\n  '- One sharp thought per piece. No bullet-soup.\\n' +\n  '- NO em dashes anywhere. Use commas, colons, parentheses, or line breaks.\\n' +\n  '- Plain English. Banned: leveraging, unlocking, delve into, fast-paced world, navigating, robust, synergies.\\n\\n' +\n  '## THE BAR (CLO-020 v2)\\n' +\n  'Score each candidate brand_fit_score 1-10. Auto-reject below ' + minFit + '. Promote to researching at 9-10.\\n' +\n  '- 10: Krish exact voice; novel thesis with real artifact; clear distribution lane; perfect pillar fit.\\n' +\n  '- 9: Strong fit, original angle, satisfies pillar evidence_required, no anti-pattern triggers.\\n' +\n  '- 8: Plausible content needs one more piece of evidence.\\n' +\n  '- 7: Real candidate but generic in places.\\n' +\n  '- 6: Borderline. Surface but flag.\\n' +\n  '- <=5: Drop. Set is_idea=false.\\n\\n' +\n  '## EVIDENCE FLOOR\\n' +\n  'Reject any seed that does not satisfy its pillar evidence_required list. List evidence in evidence_present array.\\n\\n' +\n  '## ANTI-PATTERN FLOOR\\n' +\n  'Reject any seed whose framing matches any of the pillar anti_patterns. Score <=4 if it does.\\n\\n' +\n  '## SOURCE TRACK RECORD (how each newsletter has performed as a seed source)\\n' +\n  (trackBlock || '(no history yet)') + '\\n' +\n  'Seeds from sources whose output keeps getting buried need a HIGHER bar. Sources whose seeds advance to drafting deserve closer reading.\\n\\n' +\n  '## TEMPORAL CLASS (news vs trend)\\n' +\n  'Classify every seed:\\n' +\n  '- ephemeral: a single event (one launch, one funding round, one benchmark result). Worth an opinion this week, dead in two.\\n' +\n  '- developing: a storyline still unfolding across weeks; evidence is accumulating.\\n' +\n  '- durable: a structural change in how AI-first businesses operate; still true next quarter.\\n' +\n  'Set expires_in_days honestly: ephemeral 5-14, developing 21-45, durable null.\\n\\n' +\n  '## IMAGE / SCREENSHOT HANDLING\\n' +\n  imagesIntro + '\\n\\n' +\n  '## OUTPUT\\n' +\n  'Strict JSON array. No preamble, no markdown fence.\\n' +\n  '[\\n' +\n  '  {\\n' +\n  '    \"is_idea\": true,\\n' +\n  '    \"idea\": \"headline-style framing in Krish voice (12+ chars)\",\\n' +\n  '    \"thesis\": \"1-2 sentences. Why this lands now.\",\\n' +\n  '    \"pillar_id\": \"pillar:agentic_ops\",\\n' +\n  '    \"distribution\": [\"linkedin\", \"newsletter\", \"techonomic\"],\\n' +\n  '    \"brand_fit_score\": 9,\\n' +\n  '    \"confidence\": 0.9,\\n' +\n  '    \"quality_score\": \"green\",\\n' +\n  '    \"temporal_class\": \"ephemeral | developing | durable\",\\n' +\n  '    \"expires_in_days\": 10,\\n' +\n  '    \"newsletter_key\": \"the KEY provided with the newsletter this seed came from, null for doc/screenshot seeds\",\\n' +\n  '    \"source_label\": \"the canonical FROM label provided (or filename / post author for doc and screenshot seeds)\",\\n' +\n  '    \"source_url\": \"https://...\",\\n' +\n  '    \"source_excerpt\": \"<=280 chars of the original or transcribed image content\",\\n' +\n  '    \"evidence_present\": [\"named entity: X\", \"figure: $Y\", \"date: Z\"],\\n' +\n  '    \"image_source\": null,\\n' +\n  '    \"poster_name\": null,\\n' +\n  '    \"poster_handle\": null,\\n' +\n  '    \"rejection_reason\": null\\n' +\n  '  }\\n' +\n  ']\\n\\n' +\n  'For seeds extracted from a screenshot: set image_source to the filename, fill poster_name + poster_handle from what is visible in the image. For text-derived seeds: leave image_source, poster_name, poster_handle as null.\\n\\n' +\n  'If nothing qualifies, return [].';\n\nconst userContent = [];\nconst textBlock =\n  '=== NEW NEWSLETTERS (unread since last run, full bodies) ===\\n' + newslettersBlock + '\\n\\n' +\n  '=== INSPIRATION TEXT DOCS (last 14 days) ===\\n' + docsBlock + '\\n\\n' +\n  '=== INSPIRATION IMAGES / PDFs (last 14 days) ===\\n' + (drive_images.length + drive_pdfs.length === 0 ? '(none)' : 'See attached image and PDF blocks below. Filenames: ' + [...drive_images, ...drive_pdfs].map(x => x.name).join(', ')) + '\\n\\n' +\n  'Extract seeds now. Strict JSON array only.';\n\nuserContent.push({ type: 'text', text: textBlock });\nfor (const img of drive_images.slice(0, 10)) {\n  userContent.push({ type: 'image', source: { type: 'base64', media_type: img.mime_type, data: img.base64 } });\n  userContent.push({ type: 'text', text: '(above image: ' + img.name + ' - url: ' + img.url + ')' });\n}\nfor (const pdf of drive_pdfs.slice(0, 5)) {\n  userContent.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdf.base64 } });\n  userContent.push({ type: 'text', text: '(above PDF: ' + pdf.name + ' - url: ' + pdf.url + ')' });\n}\n\nconst anthropic_body = {\n  model: 'claude-sonnet-4-6',\n  max_tokens: 8000,\n  temperature: 0.2,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }],\n};\nreturn [{ json: { anthropic_body, newsletters_count: newsletters.length, docs_count: drive_docs.length, images_count: drive_images.length, pdfs_count: drive_pdfs.length, min_brand_fit: minFit, pillars_count: pillars.length } }];"
+      }
+    },
+    {
+      "id": "44f1885b-08a0-4f52-ad76-e335501037b8",
+      "name": "Anthropic Extract Seeds",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3136,
+        192
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.anthropic_body }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "3a79516c-96ce-4633-9d66-65d943807f43",
+      "name": "Build Gemini Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        336
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst src = (items[0] && items[0].json) || {};\nconst body = src.anthropic_body || {};\nconst msgs = body.messages || [];\nlet promptText = (body.system || '') + '\\n\\n';\nfor (const m of msgs) {\n  const c = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n  promptText += (m.role === 'user' ? c : '[assistant]: ' + c) + '\\n\\n';\n}\nconst gemini_body = {\n  contents: [{ parts: [{ text: promptText.trim() }] }],\n  generationConfig: { maxOutputTokens: body.max_tokens || 3000, temperature: body.temperature || 0.2 },\n};\nreturn [{ json: { gemini_body } }];"
+      }
+    },
+    {
+      "id": "e2d7ceae-51d0-4668-a7c2-738c35215551",
+      "name": "Gemini Fallback Extract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3584,
+        336
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.gemini_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 90000
+        }
+      }
+    },
+    {
+      "id": "c5fb2638-2010-480e-91ba-45a6b734433a",
+      "name": "Parse + Filter Survivors",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3808,
+        192
+      ],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst d = (items[0] && items[0].json) || {};\nlet raw = '';\nlet model_used = 'claude-sonnet-4-6';\nif (d.content && d.content[0] && d.content[0].text) { raw = d.content[0].text; }\nelse if (d.candidates && d.candidates[0]) { raw = ((d.candidates[0].content || {}).parts || [{}])[0].text || ''; model_used = 'gemini-2.5-pro-fallback'; }\nconst usage = d.usage || {};\nconst inputTokens = usage.input_tokens || 0;\nconst outputTokens = usage.output_tokens || 0;\nconst cost_usd = (inputTokens / 1000000) * 3.0 + (outputTokens / 1000000) * 15.0;\nconst minFit = parseInt($('Build Extraction Prompt').first().json.min_brand_fit || 6, 10);\nconst BLACKLIST = [/^how i /i, /^the (top|best) \\d/i, /^\\d+ ways /i, /^lessons (from|i learned)/i, /the future of /i, /^why .* matters$/i];\nlet arr = [];\ntry {\n  const m = raw.match(/\\[[\\s\\S]*\\]/);\n  if (m) arr = JSON.parse(m[0]);\n} catch (e) { arr = []; }\nif ((!Array.isArray(arr) || arr.length === 0) && raw.indexOf('[') !== -1) {\n  try {\n    const start = raw.indexOf('[');\n    const lastObj = raw.lastIndexOf('}');\n    if (start !== -1 && lastObj > start) {\n      arr = JSON.parse(raw.slice(start, lastObj + 1) + ']');\n    }\n  } catch (e) { arr = []; }\n}\nif (!Array.isArray(arr)) arr = [];\nconst rejected_reasons = {};\nfunction bump(k) { rejected_reasons[k] = (rejected_reasons[k] || 0) + 1; }\nconst survivors = [];\nfor (const r of arr) {\n  if (!r || r.is_idea === false) { bump('not_idea'); continue; }\n  if (!r.idea || String(r.idea).trim().length < 12) { bump('title_too_short'); continue; }\n  if (BLACKLIST.some(rx => rx.test(r.idea))) { bump('blacklisted_framing'); continue; }\n  if (!r.pillar_id) { bump('no_pillar'); continue; }\n  if (!r.source_url) { bump('no_source_url'); continue; }\n  if (typeof r.brand_fit_score !== 'number' || r.brand_fit_score < minFit) { bump('below_min_fit'); continue; }\n  if (!Array.isArray(r.evidence_present) || r.evidence_present.length === 0) { bump('no_evidence_listed'); continue; }\n  survivors.push(r);\n}\nreturn [{ json: { survivors, survivors_count: survivors.length, rejected_count: arr.length - survivors.length, rejected_reasons, raw_count: arr.length, model_used, cost_usd: Math.round(cost_usd * 100000) / 100000 } }];"
+      }
+    },
+    {
+      "id": "9734e74c-987b-4c5e-88e6-66656ae5e7e4",
+      "name": "Has Survivors",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4032,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "sc",
+              "leftValue": "={{ $json.survivors_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "c1902400-75f5-4770-aba0-50770805f642",
+      "name": "Fan Survivors",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4256,
+        192
+      ],
+      "parameters": {
+        "jsCode": "const d = ($input.first() && $input.first().json) || {};\nconst survivors = d.survivors || [];\nreturn survivors.map(s => ({ json: s }));"
+      }
+    },
+    {
+      "id": "10c182d9-cea2-4cb7-bf00-64017892877c",
+      "name": "Heartbeat Done",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4704,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Inspiration Sweep\", agent_id: \"cleo\", run_at: $now.toISO(), duration_ms: $now.toMillis() - $(\"Record Start\").item.json.run_start_ms, outcome: \"success\", status: \"success\", cost_estimate_usd: $(\"Parse + Filter Survivors\").item.json.cost_usd, api_calls_count: 8 + ($(\"Parse + Filter Survivors\").item.json.survivors_count * 2), metadata: { survivors_count: $(\"Parse + Filter Survivors\").item.json.survivors_count, rejected_count: $(\"Parse + Filter Survivors\").item.json.rejected_count, model_used: $(\"Parse + Filter Survivors\").item.json.model_used, gmail_listed: $(\"Apply Canonical Labels\").first().json.gmail_listed, gmail_new: $(\"Apply Canonical Labels\").first().json.gmail_new, gmail_overflow: $(\"Apply Canonical Labels\").first().json.gmail_overflow } } }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "7f4ff355-3498-47d8-9f40-21530a90bd32",
+      "name": "Audit Log Done",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4928,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { event_type: \"workflow_executed\", actor: \"cleo\", target: \"Inspiration Sweep\", details: { survivors_count: $(\"Parse + Filter Survivors\").item.json.survivors_count, rejected_count: $(\"Parse + Filter Survivors\").item.json.rejected_count, rejected_reasons: $(\"Parse + Filter Survivors\").item.json.rejected_reasons, raw_count: $(\"Parse + Filter Survivors\").item.json.raw_count, model_used: $(\"Parse + Filter Survivors\").item.json.model_used, gmail_listed: $(\"Apply Canonical Labels\").first().json.gmail_listed, gmail_new: $(\"Apply Canonical Labels\").first().json.gmail_new, gmail_overflow: $(\"Apply Canonical Labels\").first().json.gmail_overflow } } }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "bf5716e2-bf79-4677-a428-d1cd56645bc3",
+      "name": "Perplexity Research",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4704,
+        192
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: \"sonar-pro\", messages: [ { role: \"system\", content: \"You are research support for a content engine. For each idea, return strict JSON with two keys: (1) contrarian: 1-2 sentences with the strongest counter-argument or risk; (2) adjacent_stories: array of 2-3 recent (last 30 days) news items or analyses that connect to this idea but argue something different or add new evidence. Each story: {title, url, published_date_iso, why_relevant}. Output JSON only, no preamble or fence.\" }, { role: \"user\", content: \"IDEA: \" + $json.idea + \"\\nTHESIS: \" + ($json.thesis || \"\") + \"\\nPILLAR: \" + $json.pillar_id + \"\\n\\nReturn JSON now.\" } ], temperature: 0.3, search_recency_filter: \"month\", max_tokens: 700 } }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "perplexityApi"
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "acdd91a7-39ad-4640-8a35-ae2e7dff21e8",
+      "name": "Parse Research",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4928,
+        192
+      ],
+      "parameters": {
+        "jsCode": "const survivor = $('Loop Survivors').context.currentRunIndex !== undefined ? ($('Loop Survivors').item && $('Loop Survivors').item.json) : null;\nconst research = ($input.first() && $input.first().json) || {};\nlet contrarian = null;\nlet adjacent = [];\ntry {\n  const txt = (research.choices && research.choices[0] && research.choices[0].message && research.choices[0].message.content) || '';\n  const m = txt.match(/\\{[\\s\\S]*\\}/);\n  if (m) {\n    const obj = JSON.parse(m[0]);\n    contrarian = obj.contrarian || null;\n    adjacent = Array.isArray(obj.adjacent_stories) ? obj.adjacent_stories : [];\n  }\n} catch (e) {}\nconst src = survivor || (($('Fan Survivors').first() && $('Fan Survivors').first().json) || {});\nreturn [{ json: { ...src, contrarian, adjacent_stories: adjacent } }];"
+      }
+    },
+    {
+      "id": "3ecefc6f-1247-4890-8719-d931e034e9e8",
+      "name": "Upsert Seed RPC",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        5152,
+        272
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "jsonBody": "={{ { p: { idea: $json.idea, thesis: $json.thesis, distribution: $json.distribution || [\"linkedin\"], confidence: $json.confidence || 0.8, quality_score: $json.quality_score || \"amber\", brand_fit_score: $json.brand_fit_score, source_ref: \"inspiration-sweep-\" + $now.toFormat(\"yyyy-LL-dd\"), source_url: $json.source_url, source_excerpt: $json.source_excerpt, day: $now.toFormat(\"yyyy-LL-dd\"), temporal_class: $json.temporal_class, expires_in_days: $json.expires_in_days, pillar_id: $json.pillar_id, source_label: $json.source_label, newsletter_key: $json.newsletter_key, contrarian: $json.contrarian, adjacent_stories: $json.adjacent_stories, evidence_present: $json.evidence_present, image_source: $json.image_source, poster_name: $json.poster_name } } }}",
+        "method": "POST",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/rpc/upsert_inspiration_seed"
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "de08dfe5-d344-41ce-a5ff-0c1a9ec28edb",
+      "name": "Loop Survivors",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        4480,
+        192
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "7e30647d-e2a8-4fe4-8940-9182df1b7809",
+      "name": "Heartbeat Zero",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4256,
+        384
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/workflow_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Inspiration Sweep\", agent_id: \"cleo\", run_at: $now.toISO(), duration_ms: $now.toMillis() - $(\"Record Start\").item.json.run_start_ms, outcome: \"success\", status: \"success\", cost_estimate_usd: $(\"Parse + Filter Survivors\").item.json.cost_usd, api_calls_count: 8, metadata: { survivors_count: 0, rejected_count: $(\"Parse + Filter Survivors\").item.json.rejected_count, model_used: $(\"Parse + Filter Survivors\").item.json.model_used, note: \"bar not met\", gmail_listed: $(\"Apply Canonical Labels\").first().json.gmail_listed, gmail_new: $(\"Apply Canonical Labels\").first().json.gmail_new, gmail_overflow: $(\"Apply Canonical Labels\").first().json.gmail_overflow } } }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "efae289d-7e69-40fd-8cb2-55d823adcc24",
+      "name": "Audit Log Zero",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4480,
+        384
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/audit_log",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { event_type: \"workflow_executed\", actor: \"cleo\", target: \"Inspiration Sweep\", details: { survivors_count: 0, rejected_count: $(\"Parse + Filter Survivors\").item.json.rejected_count, rejected_reasons: $(\"Parse + Filter Survivors\").item.json.rejected_reasons, raw_count: $(\"Parse + Filter Survivors\").item.json.raw_count, model_used: $(\"Parse + Filter Survivors\").item.json.model_used, note: \"bar not met this run\", gmail_listed: $(\"Apply Canonical Labels\").first().json.gmail_listed, gmail_new: $(\"Apply Canonical Labels\").first().json.gmail_new, gmail_overflow: $(\"Apply Canonical Labels\").first().json.gmail_overflow } } }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "seen-filter-001",
+      "name": "Seen Filter",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1420,
+        -160
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "gmail_message_id",
+              "value": "=in.({{ $json.ids && $json.ids.length ? $json.ids.join(\",\") : \"__none__\" }})"
+            },
+            {
+              "name": "select",
+              "value": "gmail_message_id"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/inspiration_messages"
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "id": "emit-unseen-001",
+      "name": "Emit Unseen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        -160
+      ],
+      "parameters": {
+        "jsCode": "const listed = ($('Gmail Limit Ids').first().json.ids) || [];\nconst seen = new Set($input.all().map(i => i.json && i.json.gmail_message_id).filter(Boolean));\nconst unseen = listed.filter(id => !seen.has(id));\nconst CAP = 20;\nconst batch = unseen.slice(0, CAP);\nconst stats = { gmail_listed: listed.length, gmail_new: unseen.length, gmail_overflow: unseen.length - batch.length };\nif (batch.length === 0) return [{ json: { _empty: true, ...stats } }];\nreturn batch.map(id => ({ json: { id, ...stats } }));"
+      }
+    },
+    {
+      "id": "register-msgs-001",
+      "name": "Register Messages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1900,
+        -160
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "jsonBody": "={{ { p: { run_ref: \"inspiration-sweep-\" + $now.toFormat(\"yyyy-LL-dd\"), messages: ($json.newsletters || []).map(n => ({ id: n.id, thread_id: n.thread_id, from_email: n.from_email, display_name: n.display_name, subject: n.subject, date_iso: n.date_iso })) } } }}",
+        "method": "POST",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "timeout": 20000
+        },
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/rpc/register_inspiration_messages"
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "id": "apply-labels-001",
+      "name": "Apply Canonical Labels",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2020,
+        -160
+      ],
+      "parameters": {
+        "jsCode": "const base = $('Gmail Extract Body').first().json;\nlet map = {};\ntry { const r = $input.first().json; if (r && typeof r === 'object' && !Array.isArray(r) && !r.error) map = r; } catch (e) {}\nconst newsletters = (base.newsletters || []).map(n => {\n  const hit = map[n.from_email] || null;\n  return { ...n, newsletter_key: hit ? hit.key : null, canonical_label: hit ? hit.label : (n.display_name || n.from_email || 'unknown') };\n});\nreturn [{ json: { newsletters, gmail_count: newsletters.length, gmail_listed: base.gmail_listed || 0, gmail_new: base.gmail_new || 0, gmail_overflow: base.gmail_overflow || 0 } }];"
+      }
+    },
+    {
+      "id": "gmail-zero-001",
+      "name": "Gmail Zero?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2140,
+        -100
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "gz1",
+              "leftValue": "={{ $json.gmail_listed }}",
+              "operator": {
+                "operation": "equals",
+                "singleValue": true,
+                "type": "number"
+              },
+              "rightValue": 0
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "alert-zero-001",
+      "name": "Alert Zero Emails",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2140,
+        -260
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Inspiration Sweep\", tier: 2, failure_type: \"no_input\", detail: \"Gmail listed 0 messages in label AI Newsletters over the 7d window. Newsletters arrive daily, so this is almost certainly a Gmail OAuth or label failure, not a quiet week.\", run_count: 1 } }}",
+        "method": "POST",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "timeout": 15000
+        },
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/silent_failures"
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "gmail-empty-pass-001",
+      "name": "Gmail Empty Passthrough",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2260,
+        -260
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "gep1",
+              "name": "newsletters",
+              "type": "array",
+              "value": "={{ [] }}"
+            },
+            {
+              "id": "gep2",
+              "name": "gmail_count",
+              "type": "number",
+              "value": 0
+            },
+            {
+              "id": "gep3",
+              "name": "gmail_listed",
+              "type": "number",
+              "value": 0
+            },
+            {
+              "id": "gep4",
+              "name": "gmail_new",
+              "type": "number",
+              "value": 0
+            },
+            {
+              "id": "gep5",
+              "name": "gmail_overflow",
+              "type": "number",
+              "value": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "load-yield-001",
+      "name": "Load Source Yield",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2800,
+        64
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "order",
+              "value": "seeds.desc"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/newsletter_source_yield"
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "Record Start": {
+      "main": [
+        [
+          {
+            "node": "Load Gmail Label Config",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Folder Id Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Gmail Label Config": {
+      "main": [
+        [
+          {
+            "node": "Normalize Gmail Label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Gmail Label": {
+      "main": [
+        [
+          {
+            "node": "Gmail List Inspirations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail List Inspirations": {
+      "main": [
+        [
+          {
+            "node": "Gmail Limit Ids",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Fetch Full": {
+      "main": [
+        [
+          {
+            "node": "Gmail Extract Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Inputs": {
+      "main": [
+        [
+          {
+            "node": "Load Pillars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Folder Id Config": {
+      "main": [
+        [
+          {
+            "node": "Normalize Folder Id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Folder Id": {
+      "main": [
+        [
+          {
+            "node": "Has Folder Id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Folder Id": {
+      "main": [
+        [
+          {
+            "node": "Drive List Files",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Drive Skip Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive List Files": {
+      "main": [
+        [
+          {
+            "node": "Drive Filter Readable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Filter Readable": {
+      "main": [
+        [
+          {
+            "node": "Drive Fetch Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Fetch Content": {
+      "main": [
+        [
+          {
+            "node": "Drive Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Combine Inputs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Drive Skip Empty": {
+      "main": [
+        [
+          {
+            "node": "Combine Inputs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Load Pillars": {
+      "main": [
+        [
+          {
+            "node": "Load Cleo Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Cleo Brief": {
+      "main": [
+        [
+          {
+            "node": "Load Thresholds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Extraction Prompt": {
+      "main": [
+        [
+          {
+            "node": "Anthropic Extract Seeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Extract Seeds": {
+      "main": [
+        [
+          {
+            "node": "Parse + Filter Survivors",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Gemini Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Body": {
+      "main": [
+        [
+          {
+            "node": "Gemini Fallback Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Fallback Extract": {
+      "main": [
+        [
+          {
+            "node": "Parse + Filter Survivors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse + Filter Survivors": {
+      "main": [
+        [
+          {
+            "node": "Has Survivors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Survivors": {
+      "main": [
+        [
+          {
+            "node": "Fan Survivors",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Heartbeat Zero",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fan Survivors": {
+      "main": [
+        [
+          {
+            "node": "Loop Survivors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Heartbeat Done": {
+      "main": [
+        [
+          {
+            "node": "Audit Log Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity Research": {
+      "main": [
+        [
+          {
+            "node": "Parse Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Research": {
+      "main": [
+        [
+          {
+            "node": "Upsert Seed RPC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Survivors": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat Done",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Perplexity Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Heartbeat Zero": {
+      "main": [
+        [
+          {
+            "node": "Audit Log Zero",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Limit Ids": {
+      "main": [
+        [
+          {
+            "node": "Seen Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Seen Filter": {
+      "main": [
+        [
+          {
+            "node": "Emit Unseen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit Unseen": {
+      "main": [
+        [
+          {
+            "node": "Gmail Fetch Full",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Extract Body": {
+      "main": [
+        [
+          {
+            "node": "Register Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Register Messages": {
+      "main": [
+        [
+          {
+            "node": "Apply Canonical Labels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Canonical Labels": {
+      "main": [
+        [
+          {
+            "node": "Gmail Zero?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Zero?": {
+      "main": [
+        [
+          {
+            "node": "Alert Zero Emails",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Combine Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert Zero Emails": {
+      "main": [
+        [
+          {
+            "node": "Gmail Empty Passthrough",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Empty Passthrough": {
+      "main": [
+        [
+          {
+            "node": "Combine Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Thresholds": {
+      "main": [
+        [
+          {
+            "node": "Load Source Yield",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Source Yield": {
+      "main": [
+        [
+          {
+            "node": "Build Extraction Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Seed RPC": {
+      "main": [
+        [
+          {
+            "node": "Loop Survivors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 06:00 ET": {
+      "main": [
+        [
+          {
+            "node": "Record Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "_snapshot": {
+    "workflow_id": "D4W5TF1sP9lE828c",
+    "exported": "2026-07-27",
+    "note": "checked-in snapshot, credentials stripped; live n8n is the runtime source"
+  }
+}

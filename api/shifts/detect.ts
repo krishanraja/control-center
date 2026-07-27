@@ -39,26 +39,48 @@ function parseVec(v: unknown): number[] | null {
 
 async function loadCorpus(): Promise<CorpusItem[]> {
   const sinceISO = new Date(Date.now() - WINDOW_DAYS * 86_400_000).toISOString()
+  const sinceDay = sinceISO.slice(0, 10)
   const { data, error } = await supabase
     .from('content_ideas')
     .select('id, idea, thesis, source_snippet, source_url, source_type, source_captured_at, created_at, meta, state')
     .in('source_type', ['pool_headline', 'inspiration_sweep', 'zara_signal', 'signal_inbox'])
     .not('state', 'in', '("dropped","absorbed")')
-    .gte('created_at', sinceISO)
+    .is('buried_at', null)
+    // source_captured_at is refreshed when a story recurs, so a keeper row
+    // older than the window stays in the corpus while its story is still live.
+    .or(`created_at.gte.${sinceISO},source_captured_at.gte.${sinceISO}`)
     .limit(1200)
   if (error) throw new Error(error.message)
-  return (data || []).map((r: any): CorpusItem => {
-    const pool = r.meta?.pool || {}
-    return {
+  const out: CorpusItem[] = []
+  for (const r of data || []) {
+    const pool = (r as any).meta?.pool || {}
+    // For sweep rows source_captured_at moves on recurrence; created_at is the
+    // honest first-citation day. Other sources keep the original semantics.
+    const day = r.source_type === 'inspiration_sweep'
+      ? String((r as any).created_at).slice(0, 10)
+      : String((r as any).source_captured_at || (r as any).created_at).slice(0, 10)
+    const base: CorpusItem = {
       id: r.id,
-      day: String(r.source_captured_at || r.created_at).slice(0, 10),
+      day,
       category: pool.category || null,
-      headline: r.idea,
-      snippet: r.thesis || r.source_snippet || null,
+      headline: (r as any).idea,
+      snippet: (r as any).thesis || (r as any).source_snippet || null,
       source: realSource(r),
-      url: r.source_url || null,
+      url: (r as any).source_url || null,
     }
-  })
+    out.push(base)
+    // The sweep dedupes re-seen stories into meta.recurrences instead of
+    // duplicate rows (2026-07-27). Each recurrence is a real dated citation
+    // from a real publication, so it re-enters the corpus as its own item —
+    // recurrence across days IS the signal the gate measures.
+    const recs = Array.isArray((r as any).meta?.recurrences) ? (r as any).meta.recurrences : []
+    for (const rec of recs) {
+      const day = typeof rec?.day === 'string' ? rec.day.slice(0, 10) : null
+      if (!day || day < sinceDay) continue
+      out.push({ ...base, day, source: rec.label || base.source })
+    }
+  }
+  return out
 }
 
 // The gate's source-diversity floor needs the actual publication, not the

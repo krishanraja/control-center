@@ -35,6 +35,7 @@ const META: Record<AnySource, { label: string; icon: LucideIcon; tone: string }>
   inspiration_sweep:    { label: 'Inspiration sweep',    icon: Sparkles, tone: 'text-rose-300 bg-rose-500/10 border-rose-500/20' },
   synthesis_hypothesis: { label: 'Synthesis hypothesis', icon: Wand2,    tone: 'text-violet-300 bg-violet-500/10 border-violet-500/20' },
   synthesis:            { label: 'Synthesis',            icon: GitMerge, tone: 'text-violet-200 bg-violet-500/15 border-violet-400/30' },
+  lane_sourcing:        { label: 'Lane sourcing',        icon: Wand2,    tone: 'text-sky-300 bg-sky-500/10 border-sky-500/20' },
 }
 
 interface Props {

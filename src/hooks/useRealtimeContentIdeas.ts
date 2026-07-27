@@ -13,6 +13,8 @@ export type IdeaSourceType =
   | 'synthesis_hypothesis'
   /** Output of /api/content-ideas/synthesize — a narrative drafted from N source cards. */
   | 'synthesis'
+  /** Cleo | Content Lane Sourcing drafts (was mislabeled inspiration_sweep until 2026-07-27). */
+  | 'lane_sourcing'
 
 export type IdeaState =
   | 'seeded'
