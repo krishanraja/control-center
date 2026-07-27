@@ -27,6 +27,7 @@ import { AltitudeSpine, StaleHeaderCue } from '../home/AltitudeSpine'
 import { BoardDaily } from '../home/BoardDaily'
 import { isHomeV2Enabled, isFocusRitualEnabled } from '../../lib/homeV2'
 import { ShipLedgerCard } from '../pilot/ShipLedgerCard'
+import { DueTestsCard } from '../pilot/DueTestsCard'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -104,6 +105,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         <CriticalAlertBanner />
         {/* SHIP LEDGER: what left the machine. First, and always neutral. */}
         <ShipLedgerCard variant="mobile" />
+        <DueTestsCard variant="mobile" />
 
         {/* SPINE — portfolio / week / today as the hero cards. "Set what's stale"
             now lives in the header (StaleHeaderCue) so the cards own the screen. */}
@@ -143,6 +145,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         <CriticalAlertBanner />
         {/* SHIP LEDGER: what left the machine. First, and always neutral. */}
         <ShipLedgerCard variant="mobile" />
+        <DueTestsCard variant="mobile" />
 
         {/* GLANCE — the five-second answer: money / today / waiting. */}
         <GlanceHeader variant="mobile" onNavigate={onNavigate} />
@@ -186,6 +189,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       <CriticalAlertBanner />
       {/* SHIP LEDGER: what left the machine. First, and always neutral. */}
       <ShipLedgerCard variant="mobile" />
+      <DueTestsCard variant="mobile" />
 
       {/* MONEY MACHINE — live pulse with sparkline. */}
       <MrrTicker variant="mobile" />
