@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import type { PilotMode } from '../../types/pilot'
 import { computeMode, modeReason, saveMorning } from '../../hooks/usePilot'
+import { useHaptics } from '../../hooks/useHaptics'
+import { Tap } from './controls'
 
 // The gate. Three taps, under ten seconds, and the dashboard is unreachable
 // until it is answered. Not hostile, just unavoidable: the cost of answering is
@@ -11,6 +13,7 @@ interface Props {
 }
 
 function Scale({ label, value, onChange }: { label: string; value: number | null; onChange: (n: number) => void }) {
+  const h = useHaptics()
   return (
     <div className="flex flex-col gap-2.5">
       <span className="text-[13px] text-ink-muted">{label}</span>
@@ -19,9 +22,10 @@ function Scale({ label, value, onChange }: { label: string; value: number | null
           <button
             key={n}
             type="button"
+            onPointerDown={() => h.select()}
             onClick={() => onChange(n)}
             aria-label={`${label} ${n}`}
-            className={`flex-1 h-12 rounded-xl text-[15px] border transition-colors ${
+            className={`flex-1 min-h-[56px] rounded-xl text-[17px] border transition-all duration-100 active:scale-95 touch-manipulation ${
               value === n
                 ? 'bg-white/[0.12] border-white/30 text-ink'
                 : 'bg-white/[0.03] border-white/10 text-ink-muted hover:bg-white/[0.07]'
@@ -36,6 +40,7 @@ function Scale({ label, value, onChange }: { label: string; value: number | null
 }
 
 export function MorningCheckin({ onDone }: Props) {
+  const h = useHaptics()
   const [energy, setEnergy] = useState<number | null>(null)
   const [anxiety, setAnxiety] = useState<number | null>(null)
   const [oneWord, setOneWord] = useState('')
@@ -53,6 +58,7 @@ export function MorningCheckin({ onDone }: Props) {
     setError(null)
     try {
       await saveMorning({ energy, anxiety, one_word: oneWord.trim(), mode })
+      h.notifySuccess()
       onDone(mode)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save')
@@ -77,7 +83,7 @@ export function MorningCheckin({ onDone }: Props) {
             value={oneWord}
             onChange={e => setOneWord(e.target.value)}
             placeholder="Optional"
-            className="w-full px-3 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-white/25"
+            className="w-full px-4 py-3.5 min-h-[52px] rounded-xl bg-white/[0.03] border border-white/10 text-[16px] text-ink placeholder:text-ink-faint outline-none focus:border-white/25"
           />
         </div>
 
@@ -90,22 +96,18 @@ export function MorningCheckin({ onDone }: Props) {
 
             <button
               type="button"
+              onPointerDown={() => h.impactRigid()}
               onClick={() => setChosen(mode === 'red' ? 'green' : 'red')}
-              className="self-start text-[12px] text-ink-faint hover:text-ink-muted underline underline-offset-4 transition-colors"
+              className="self-start min-h-[44px] text-[13px] text-ink-faint hover:text-ink-muted underline underline-offset-4 transition-colors touch-manipulation"
             >
               {mode === 'red' ? 'Give me the full dashboard instead' : 'Give me one action instead'}
             </button>
 
             {error && <p className="text-[12px] text-ink-muted">{error}</p>}
 
-            <button
-              type="button"
-              onClick={commit}
-              disabled={saving}
-              className="mt-1 w-full py-3.5 rounded-xl text-[15px] font-medium bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] disabled:opacity-40 transition-colors"
-            >
+            <Tap className="mt-1 w-full justify-center flex items-center" onTap={commit} disabled={saving} feel="success">
               {saving ? 'Saving' : 'Start'}
-            </button>
+            </Tap>
           </div>
         )}
       </div>

@@ -6,6 +6,8 @@ import {
   type TestOutcome,
 } from '../../lib/worryStates'
 import { LogShipForm } from './LogShipForm'
+import { useHaptics } from '../../hooks/useHaptics'
+import { Tap, VoiceField, DockButton } from './controls'
 
 // Capture and close. One textarea in, one terminal state out, then the modal
 // shuts. Nothing here ever lists past worries: the only rows this component
@@ -33,20 +35,14 @@ export function WorryCompilerButton() {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        title="Compile a worry"
-        className="fixed bottom-4 right-[106px] z-40 px-3 py-1.5 rounded-lg text-[11px] bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.09] hover:text-ink transition-colors"
-      >
-        compile a worry
-      </button>
+      <DockButton label="compile a worry" title="Compile a worry" onTap={() => setOpen(true)} />
       <WorryCompiler open={open} onClose={() => setOpen(false)} />
     </>
   )
 }
 
 export function WorryCompiler({ open, onClose }: Props) {
+  const h = useHaptics()
   const [phase, setPhase] = useState<Phase>('capture')
   const [rawText, setRawText] = useState('')
   const [compilation, setCompilation] = useState<Compilation | null>(null)
@@ -129,8 +125,8 @@ export function WorryCompiler({ open, onClose }: Props) {
   const finish = (message: string) => { setClosingMessage(message); setPhase('done') }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-5 py-8 bg-base/80 backdrop-blur-sm">
-      <div className="w-full max-w-[460px] max-h-full overflow-y-auto rounded-2xl bg-base border border-white/[0.10] p-6 flex flex-col gap-5 text-ink">
+    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:px-5 sm:py-8 bg-base/80 backdrop-blur-sm">
+      <div className="w-full sm:max-w-[460px] max-h-[92dvh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-base border border-white/[0.10] p-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)] sm:pb-6 flex flex-col gap-5 text-ink">
 
         {phase === 'capture' && (
           <>
@@ -138,25 +134,20 @@ export function WorryCompiler({ open, onClose }: Props) {
               <h2 className="font-display text-[19px] leading-tight">Compile a worry</h2>
               <p className="text-[12px] text-ink-faint mt-1">It comes out as one thing you can finish.</p>
             </div>
-            <textarea
+            <VoiceField
               value={rawText}
-              onChange={e => setRawText(e.target.value)}
+              onChange={setRawText}
               rows={5}
-              autoFocus
               placeholder="Dump it. 60 seconds, any language."
-              className="w-full px-3 py-3 rounded-lg bg-white/[0.03] border border-white/10 text-[14px] leading-relaxed text-ink placeholder:text-ink-faint outline-none focus:border-white/25 resize-none"
             />
             {error && <p className="text-[12px] text-ink-muted leading-relaxed">{error}</p>}
             <div className="flex items-center gap-2">
-              <button
-                type="button" onClick={compile} disabled={busy || !rawText.trim()}
-                className="px-4 py-2.5 rounded-lg text-[14px] font-medium bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] disabled:opacity-40 transition-colors"
-              >
+              <Tap onTap={compile} disabled={busy || !rawText.trim()} feel="impactMedium" className="flex items-center justify-center">
                 {busy ? 'Compiling' : 'Compile'}
-              </button>
-              <button type="button" onClick={shut} className="px-3 py-2.5 rounded-lg text-[13px] text-ink-faint hover:text-ink-muted transition-colors">
+              </Tap>
+              <Tap variant="quiet" className="!min-h-[48px] text-[13px] flex items-center" onTap={() => { h.tap(); shut() }}>
                 Cancel
-              </button>
+              </Tap>
             </div>
           </>
         )}
@@ -203,8 +194,10 @@ export function WorryCompiler({ open, onClose }: Props) {
                   <div className="flex gap-1.5">
                     {(['confirmed', 'disconfirmed', 'partial'] as TestOutcome[]).map(o => (
                       <button
-                        key={o} type="button" onClick={() => closeTest(t.id, o)}
-                        className="px-2.5 py-1 rounded-md text-[11px] bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.10] hover:text-ink transition-colors"
+                        key={o} type="button"
+                        onPointerDown={() => h.select()}
+                        onClick={() => closeTest(t.id, o)}
+                        className="min-h-[44px] px-3.5 rounded-xl text-[13px] bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.10] hover:text-ink transition-all active:scale-95 touch-manipulation"
                       >
                         {o === 'confirmed' ? 'Came true' : o === 'disconfirmed' ? 'Did not' : 'Partly'}
                       </button>
@@ -214,16 +207,12 @@ export function WorryCompiler({ open, onClose }: Props) {
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <button
-                type="button" onClick={() => save().then(r => { if (r) finish('Test open.') })}
-                disabled={busy || openTests.length >= 5}
-                className="px-4 py-2.5 rounded-lg text-[14px] font-medium bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] disabled:opacity-40 transition-colors"
-              >
+              <Tap onTap={() => save().then(r => { if (r) finish('Test open.') })} disabled={busy || openTests.length >= 5} className="flex items-center justify-center">
                 Save the new test
-              </button>
-              <button type="button" onClick={shut} className="px-3 py-2.5 rounded-lg text-[13px] text-ink-faint hover:text-ink-muted transition-colors">
+              </Tap>
+              <Tap variant="quiet" className="!min-h-[48px] text-[13px] flex items-center" onTap={() => { h.tap(); shut() }}>
                 Leave it
-              </button>
+              </Tap>
             </div>
           </>
         )}
@@ -246,12 +235,9 @@ export function WorryCompiler({ open, onClose }: Props) {
         {phase === 'done' && (
           <>
             <p className="font-display text-[19px] leading-snug">{closingMessage}</p>
-            <button
-              type="button" onClick={shut}
-              className="self-start px-4 py-2.5 rounded-lg text-[14px] font-medium bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] transition-colors"
-            >
+            <Tap className="self-start flex items-center justify-center" onTap={() => { h.tap(); shut() }}>
               Close
-            </button>
+            </Tap>
           </>
         )}
       </div>
@@ -274,9 +260,9 @@ interface ConfirmProps {
   onCancel: () => void
 }
 
-const FIELD = 'w-full px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 text-[13px] leading-relaxed text-ink outline-none focus:border-white/25'
-const PRIMARY = 'px-4 py-2.5 rounded-lg text-[14px] font-medium bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] disabled:opacity-40 transition-colors'
-const SECONDARY = 'px-4 py-2.5 rounded-lg text-[14px] border border-white/10 text-ink-muted hover:bg-white/[0.05] hover:text-ink disabled:opacity-40 transition-colors'
+const FIELD = 'w-full px-4 py-3 min-h-[48px] rounded-xl bg-white/[0.03] border border-white/10 text-[16px] leading-relaxed text-ink outline-none focus:border-white/25'
+const PRIMARY = 'min-h-[48px] px-4 rounded-xl text-[15px] font-medium bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] disabled:opacity-40 active:scale-[0.97] transition-all touch-manipulation'
+const SECONDARY = 'min-h-[48px] px-4 rounded-xl text-[15px] border border-white/10 text-ink-muted hover:bg-white/[0.05] hover:text-ink disabled:opacity-40 active:scale-[0.97] transition-all touch-manipulation'
 
 function Label({ children }: { children: React.ReactNode }) {
   return <span className="text-[11px] uppercase tracking-[0.12em] text-ink-faint">{children}</span>
@@ -313,7 +299,7 @@ function ConfirmCard(p: ConfirmProps) {
           {p.error && <p className="text-[12px] text-ink-muted">{p.error}</p>}
           <div className="flex items-center gap-2">
             <button type="button" onClick={p.onSaveTest} disabled={p.busy} className={PRIMARY}>Save test</button>
-            <button type="button" onClick={p.onCancel} className="px-3 py-2.5 text-[13px] text-ink-faint hover:text-ink-muted transition-colors">Cancel</button>
+            <button type="button" onClick={p.onCancel} className="min-h-[48px] px-3 text-[13px] text-ink-faint hover:text-ink-muted transition-colors touch-manipulation">Cancel</button>
           </div>
         </div>
       )}

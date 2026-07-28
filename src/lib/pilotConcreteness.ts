@@ -23,9 +23,13 @@ export const BANNED_ABSTRACT: string[] = [
 
 export const REWRITE_HINT = 'Name the action, the recipient, and what leaves your machine.'
 
+/** Why an entry was rejected, so the UI can say something better than "no". */
+export type RejectionReason = 'empty' | 'banned' | 'no_verb'
+
 export interface ConcretenessResult {
   ok: boolean
-  /** Populated only when ok is false. */
+  reason?: RejectionReason
+  /** A specific, actionable sentence. Never the generic hint alone. */
   hint?: string
   /** The banned term that triggered the rejection, for the caller to highlight. */
   bannedTerm?: string
@@ -36,18 +40,51 @@ export interface ConcretenessResult {
  * abstract term. Verbs match on word boundaries so "asked" and "asking" count
  * while "task" does not. Banned terms match as substrings because several are
  * multi-word phrases.
+ *
+ * The hint names the actual problem. A generic "rephrase it" reads as the
+ * button being broken, which is exactly how the first version failed in use.
  */
 export function validateConcreteness(text: string): ConcretenessResult {
   const trimmed = (text || '').trim()
-  if (!trimmed) return { ok: false, hint: REWRITE_HINT }
+  if (!trimmed) {
+    return { ok: false, reason: 'empty', hint: 'Nothing entered yet.' }
+  }
 
   const lower = trimmed.toLowerCase()
 
   const bannedTerm = BANNED_ABSTRACT.find(term => lower.includes(term))
-  if (bannedTerm) return { ok: false, hint: REWRITE_HINT, bannedTerm }
+  if (bannedTerm) {
+    return {
+      ok: false,
+      reason: 'banned',
+      bannedTerm,
+      hint: `"${bannedTerm}" is processing, not shipping. Who receives something, and what?`,
+    }
+  }
 
   const hasVerb = CONCRETE_VERBS.some(verb => new RegExp(`\\b${verb}\\w*`, 'i').test(lower))
-  if (!hasVerb) return { ok: false, hint: REWRITE_HINT }
+  if (!hasVerb) {
+    return {
+      ok: false,
+      reason: 'no_verb',
+      hint: 'No action in there yet. Start with Send, Reply, Publish, Invoice, Ask, or Book.',
+    }
+  }
 
   return { ok: true }
 }
+
+/**
+ * The tappable starters. Picking one guarantees the verb half of the rule is
+ * satisfied, so the guided path can never dead-end the way free text can.
+ */
+export const ACTION_STARTERS: { verb: string; label: string; placeholder: string }[] = [
+  { verb: 'Send',     label: 'Send',    placeholder: 'what, and to whom' },
+  { verb: 'Reply to', label: 'Reply',   placeholder: 'whose message' },
+  { verb: 'Publish',  label: 'Publish', placeholder: 'what, and where' },
+  { verb: 'Invoice',  label: 'Invoice', placeholder: 'who, for what' },
+  { verb: 'Ask',      label: 'Ask',     placeholder: 'who, for what' },
+  { verb: 'Book',     label: 'Book',    placeholder: 'what, with whom' },
+  { verb: 'Call',     label: 'Call',    placeholder: 'who, about what' },
+  { verb: 'Post',     label: 'Post',    placeholder: 'what, and where' },
+]

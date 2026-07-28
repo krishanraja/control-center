@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import type { PilotCheckin } from '../../types/pilot'
 import { logOverride, saveEvening } from '../../hooks/usePilot'
-import { validateConcreteness } from '../../lib/pilotConcreteness'
+import { useHaptics } from '../../hooks/useHaptics'
 import { LogShipForm } from './LogShipForm'
+import { OneActionPicker } from './OneActionPicker'
+import { Tap } from './controls'
 
 // One screen, one action, and the means to do it. No navigation, no dashboard,
 // no list of other tasks.
@@ -20,32 +22,33 @@ interface Props {
 type Phase = 'ask' | 'task' | 'marking' | 'done'
 
 export function RedMode({ lastEvening, onUnlock }: Props) {
+  const h = useHaptics()
   const [one, setOne] = useState(lastEvening?.tomorrow_one || '')
   const [oneUrl] = useState(lastEvening?.tomorrow_one_url || '')
   const [phase, setPhase] = useState<Phase>(lastEvening?.tomorrow_one ? 'task' : 'ask')
 
   // The fallback path: no evening entry exists, so red mode asks exactly one
-  // question, holds it to the same concreteness bar, then locks to the answer.
-  const [draft, setDraft] = useState('')
-  const [hint, setHint] = useState<string | null>(null)
+  // question. The picker guarantees a valid answer without the keyboard, so
+  // this can no longer dead-end the way free-text validation did.
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const commitOne = async () => {
-    const check = validateConcreteness(draft)
-    if (!check.ok) { setHint(check.hint || null); return }
+  const commitOne = async (text: string) => {
     setSaving(true)
+    setError(null)
     try {
-      await saveEvening({ tomorrow_one: draft.trim() })
-      setOne(draft.trim())
+      await saveEvening({ tomorrow_one: text })
+      setOne(text)
       setPhase('task')
     } catch {
-      setHint('Could not save. Try once more.')
+      setError('Could not save. Try once more.')
     } finally {
       setSaving(false)
     }
   }
 
   const override = async () => {
+    h.tap()
     await logOverride()
     onUnlock()
   }
@@ -55,27 +58,12 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
       <div className="w-full max-w-[440px] flex flex-col gap-8">
 
         {phase === 'ask' && (
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-6">
             <h1 className="font-display text-[21px] leading-snug">
               What is the one 15-minute action that leaves your machine today?
             </h1>
-            <textarea
-              value={draft}
-              onChange={e => { setDraft(e.target.value); setHint(null) }}
-              rows={3}
-              autoFocus
-              placeholder="Verb, artifact, recipient"
-              className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-[15px] leading-relaxed text-ink placeholder:text-ink-faint outline-none focus:border-white/25 resize-none"
-            />
-            {hint && <p className="text-[13px] text-ink-muted leading-relaxed">{hint}</p>}
-            <button
-              type="button"
-              onClick={commitOne}
-              disabled={saving || !draft.trim()}
-              className="w-full py-3.5 rounded-xl text-[15px] font-medium bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] disabled:opacity-40 transition-colors"
-            >
-              {saving ? 'Saving' : 'Lock it in'}
-            </button>
+            <OneActionPicker onCommit={commitOne} saving={saving} />
+            {error && <p className="text-[13px] text-ink-muted">{error}</p>}
           </div>
         )}
 
@@ -94,23 +82,20 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
                 href={oneUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full py-4 rounded-xl text-[15px] font-medium text-center bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] transition-colors"
+                onPointerDown={() => h.impactMedium()}
+                className="w-full min-h-[52px] flex items-center justify-center rounded-xl text-[16px] font-medium text-center bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] active:scale-[0.98] transition-all touch-manipulation"
               >
                 Open it
               </a>
             ) : null}
 
-            <button
-              type="button"
-              onClick={() => setPhase('marking')}
-              className={`w-full py-3.5 rounded-xl text-[15px] transition-colors ${
-                oneUrl
-                  ? 'text-ink-muted hover:text-ink border border-white/10 hover:bg-white/[0.05]'
-                  : 'font-medium bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14]'
-              }`}
+            <Tap
+              variant={oneUrl ? 'secondary' : 'primary'}
+              className="w-full justify-center flex items-center"
+              onTap={() => { h.select(); setPhase('marking') }}
             >
               Mark done
-            </button>
+            </Tap>
           </div>
         )}
 
@@ -137,13 +122,9 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
                 It is in the ledger. Nothing else is required today.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onUnlock}
-              className="w-full py-3.5 rounded-xl text-[15px] font-medium bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] transition-colors"
-            >
+            <Tap className="w-full justify-center flex items-center" onTap={() => { h.notifySuccess(); onUnlock() }}>
               Open the dashboard
-            </button>
+            </Tap>
           </div>
         )}
       </div>
@@ -152,7 +133,7 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
         <button
           type="button"
           onClick={override}
-          className="mt-12 text-[11px] text-ink-faint/60 hover:text-ink-faint transition-colors"
+          className="mt-12 min-h-[44px] px-4 text-[11px] text-ink-faint/60 hover:text-ink-faint transition-colors touch-manipulation"
         >
           override to full dashboard
         </button>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useShipSummary } from '../../hooks/usePilot'
+import { useHaptics } from '../../hooks/useHaptics'
 import { LogShipForm } from './LogShipForm'
 
 // The ledger, as facts. Ships this week, days since the last one, the last
@@ -20,6 +21,7 @@ function formatWhen(iso: string): string {
 export function ShipLedgerCard({ variant = 'desktop' }: { variant?: 'desktop' | 'mobile' }) {
   const { summary, loading, refresh } = useShipSummary()
   const [logging, setLogging] = useState(false)
+  const h = useHaptics()
 
   if (loading || !summary) return null
 
@@ -40,8 +42,9 @@ export function ShipLedgerCard({ variant = 'desktop' }: { variant?: 'desktop' | 
         {!logging && (
           <button
             type="button"
+            onPointerDown={() => h.tap()}
             onClick={() => setLogging(true)}
-            className="px-3 py-1.5 rounded-lg text-[12px] bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.09] hover:text-ink transition-colors shrink-0"
+            className="min-h-[44px] px-4 rounded-xl text-[13px] bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.09] hover:text-ink transition-all active:scale-95 touch-manipulation shrink-0"
           >
             Log a ship
           </button>

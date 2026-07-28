@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { validateConcreteness } from '../../lib/pilotConcreteness'
 import { isAfterShutdownHour } from '../../lib/pilotDay'
 import { saveEvening, usePilotState } from '../../hooks/usePilot'
+import { useHaptics } from '../../hooks/useHaptics'
+import { OneActionPicker } from './OneActionPicker'
+import { WorryCompilerButton } from './WorryCompiler'
+import { Tap, VoiceField, PilotDock, DockButton } from './controls'
 
 // The evening shutdown. Three fields, and the only required one is tomorrow's
 // ONE, because choosing at night at higher capacity is what lets the morning
@@ -45,7 +48,16 @@ export function EveningShutdown() {
 
   return (
     <>
-      <ShutdownButton onClick={() => setOpen(true)} done={eveningDone} />
+      <PilotDock>
+        <WorryCompilerButton />
+        <span aria-hidden className="w-px h-5 bg-white/[0.10]" />
+        <DockButton
+          label="shutdown"
+          dimmed={eveningDone}
+          title={eveningDone ? 'Shutdown logged' : 'Evening shutdown'}
+          onTap={() => setOpen(true)}
+        />
+      </PilotDock>
       {open && (
         <ShutdownModal
           onClose={dismiss}
@@ -56,28 +68,11 @@ export function EveningShutdown() {
   )
 }
 
-function ShutdownButton({ onClick, done }: { onClick: () => void; done: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={done ? 'Shutdown logged' : 'Evening shutdown'}
-      className={`fixed bottom-4 right-4 z-40 px-3 py-1.5 rounded-lg text-[11px] border transition-colors ${
-        done
-          ? 'bg-white/[0.02] border-white/[0.06] text-ink-faint/50 hover:text-ink-faint'
-          : 'bg-white/[0.05] border-white/10 text-ink-muted hover:bg-white/[0.09] hover:text-ink'
-      }`}
-    >
-      shutdown
-    </button>
-  )
-}
-
 function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const h = useHaptics()
   const [shipped, setShipped] = useState('')
-  const [one, setOne] = useState('')
   const [url, setUrl] = useState('')
-  const [hint, setHint] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -86,80 +81,57 @@ function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const submit = async () => {
-    const check = validateConcreteness(one)
-    if (!check.ok) { setHint(check.hint || null); return }
+  const commit = async (one: string) => {
     setSaving(true)
+    setError(null)
     try {
       await saveEvening({
         shipped_today: shipped.trim() || undefined,
-        tomorrow_one: one.trim(),
+        tomorrow_one: one,
         tomorrow_one_url: url.trim() || undefined,
       })
+      h.notifySuccess()
       onSaved()
     } catch (e) {
-      setHint(e instanceof Error ? e.message : 'Could not save')
+      setError(e instanceof Error ? e.message : 'Could not save')
       setSaving(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-5 py-8 bg-base/80 backdrop-blur-sm">
-      <div className="w-full max-w-[430px] rounded-2xl bg-base border border-white/[0.10] p-6 flex flex-col gap-5 text-ink">
+    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:px-5 sm:py-8 bg-base/80 backdrop-blur-sm">
+      <div className="w-full sm:max-w-[430px] max-h-[92dvh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-base border border-white/[0.10] p-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)] sm:pb-6 flex flex-col gap-6 text-ink">
         <div>
-          <h2 className="font-display text-[19px] leading-tight">Shutdown</h2>
-          <p className="text-[12px] text-ink-faint mt-1">Choose tomorrow now, so the morning does not have to.</p>
+          <h2 className="font-display text-[20px] leading-tight">Shutdown</h2>
+          <p className="text-[13px] text-ink-faint mt-1">Choose tomorrow now, so the morning does not have to.</p>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <span className="text-[12px] text-ink-muted">What shipped today</span>
-          <input
-            value={shipped}
-            onChange={e => setShipped(e.target.value)}
-            placeholder="Optional"
-            className="w-full px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 text-[14px] text-ink placeholder:text-ink-faint outline-none focus:border-white/25"
-          />
+        <div className="flex flex-col gap-2.5">
+          <span className="text-[13px] text-ink-muted">What shipped today</span>
+          <VoiceField value={shipped} onChange={setShipped} placeholder="Optional" rows={2} />
         </div>
 
-        <div className="flex flex-col gap-2">
-          <span className="text-[12px] text-ink-muted">Tomorrow&rsquo;s ONE</span>
-          <textarea
-            value={one}
-            onChange={e => { setOne(e.target.value); setHint(null) }}
-            rows={2}
-            placeholder="Verb, artifact, recipient"
-            className="w-full px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 text-[14px] leading-relaxed text-ink placeholder:text-ink-faint outline-none focus:border-white/25 resize-none"
-          />
-          {hint && <p className="text-[12px] text-ink-muted leading-relaxed">{hint}</p>}
+        <div className="flex flex-col gap-2.5">
+          <span className="text-[13px] text-ink-muted">Tomorrow&rsquo;s ONE</span>
+          <OneActionPicker onCommit={commit} saving={saving} submitLabel="Close the day" />
         </div>
 
-        <div className="flex flex-col gap-2">
-          <span className="text-[12px] text-ink-muted">Link to it</span>
+        <div className="flex flex-col gap-2.5">
+          <span className="text-[13px] text-ink-muted">Link to it</span>
           <input
             value={url}
             onChange={e => setUrl(e.target.value)}
+            inputMode="url"
             placeholder="Optional. A draft, an editor, a campaign."
-            className="w-full px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 text-[14px] text-ink placeholder:text-ink-faint outline-none focus:border-white/25"
+            className="w-full px-4 py-3.5 min-h-[52px] rounded-xl bg-white/[0.03] border border-white/10 text-[16px] text-ink placeholder:text-ink-faint outline-none focus:border-white/25"
           />
         </div>
 
-        <div className="flex items-center gap-2 pt-1">
-          <button
-            type="button"
-            onClick={submit}
-            disabled={saving || !one.trim()}
-            className="px-4 py-2.5 rounded-lg text-[14px] font-medium bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] disabled:opacity-40 transition-colors"
-          >
-            {saving ? 'Saving' : 'Close the day'}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3 py-2.5 rounded-lg text-[13px] text-ink-faint hover:text-ink-muted transition-colors"
-          >
-            Not now
-          </button>
-        </div>
+        {error && <p className="text-[13px] text-ink-muted">{error}</p>}
+
+        <Tap variant="quiet" className="!min-h-[48px] text-[13px] self-start flex items-center" onTap={() => { h.tap(); onClose() }}>
+          Not now
+        </Tap>
       </div>
     </div>
   )

@@ -6,6 +6,7 @@ import {
   type DueResponse,
   type TestOutcome,
 } from '../../lib/worryStates'
+import { useHaptics } from '../../hooks/useHaptics'
 
 // Tests whose due date has arrived, and a calibration line once there is enough
 // history for it to mean anything.
@@ -20,6 +21,7 @@ const API = import.meta.env.VITE_API_URL ?? ''
 export function DueTestsCard({ variant = 'desktop' }: { variant?: 'desktop' | 'mobile' }) {
   const [data, setData] = useState<DueResponse | null>(null)
   const [note, setNote] = useState<Record<string, string>>({})
+  const h = useHaptics()
 
   const load = useCallback(async () => {
     try {
@@ -41,6 +43,7 @@ export function DueTestsCard({ variant = 'desktop' }: { variant?: 'desktop' | 'm
   useEffect(() => { load() }, [load])
 
   const close = async (id: string, outcome: TestOutcome) => {
+    h.notifySuccess()
     await fetch(`${API}/api/pilot/worries`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -70,15 +73,16 @@ export function DueTestsCard({ variant = 'desktop' }: { variant?: 'desktop' | 'm
                 value={note[t.id] || ''}
                 onChange={e => setNote(prev => ({ ...prev, [t.id]: e.target.value }))}
                 placeholder="One line, optional"
-                className="w-full px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/10 text-[12px] text-ink placeholder:text-ink-faint outline-none focus:border-white/25"
+                className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-white/[0.03] border border-white/10 text-[16px] text-ink placeholder:text-ink-faint outline-none focus:border-white/25"
               />
               <div className="flex gap-1.5">
                 {(['confirmed', 'disconfirmed', 'partial'] as TestOutcome[]).map(o => (
                   <button
                     key={o}
                     type="button"
+                    onPointerDown={() => h.select()}
                     onClick={() => close(t.id, o)}
-                    className="px-2.5 py-1 rounded-md text-[11px] bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.10] hover:text-ink transition-colors"
+                    className="min-h-[44px] px-3.5 rounded-xl text-[13px] bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.10] hover:text-ink transition-all active:scale-95 touch-manipulation"
                   >
                     {OUTCOME_LABEL[o]}
                   </button>

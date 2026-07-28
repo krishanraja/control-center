@@ -14,7 +14,6 @@ import { WeeklyFocusTakeover } from './components/objectives/WeeklyFocusTakeover
 import { FocusRitual } from './components/home/FocusRitual'
 import { PilotGate } from './components/pilot/PilotGate'
 import { EveningShutdown } from './components/pilot/EveningShutdown'
-import { WorryCompilerButton } from './components/pilot/WorryCompiler'
 import { isFocusRitualEnabled } from './lib/homeV2'
 import { useHashRoute } from './hooks/useHashRoute'
 import { contentV2Enabled } from './lib/contentV2'
@@ -277,10 +276,10 @@ export default function App() {
           )}
           {/* Evening shutdown: the small header button plus the after-5pm prompt.
               Tomorrow's ONE is chosen here, which is what red mode reads. */}
+          {/* Pilot dock: shutdown + worry compiler, one piece of chrome above
+              the bottom nav. Green mode only, because red mode returns before
+              these children ever render. */}
           <EveningShutdown />
-          {/* Worry compiler: capture and close. Green mode only, because red
-              mode returns before these children ever render. */}
-          <WorryCompilerButton />
         </div>
         </PilotGate>
       </AgentsProvider>

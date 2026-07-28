@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { SHIP_CHANNELS, type ShipChannel } from '../../types/pilot'
 import { logShip } from '../../hooks/usePilot'
+import { useHaptics } from '../../hooks/useHaptics'
+import { Tap, VoiceField } from './controls'
 
 // The two-field ship log. One implementation, used by both the home widget and
 // red mode's mark-done, so "do it now" can never grow a parallel write path.
@@ -23,6 +25,7 @@ const CHANNEL_LABEL: Record<ShipChannel, string> = {
 }
 
 export function LogShipForm({ onLogged, onCancel, initialDescription = '', submitLabel = 'Log it' }: Props) {
+  const h = useHaptics()
   const [channel, setChannel] = useState<ShipChannel | null>(null)
   const [description, setDescription] = useState(initialDescription)
   const [saving, setSaving] = useState(false)
@@ -36,6 +39,7 @@ export function LogShipForm({ onLogged, onCancel, initialDescription = '', submi
     setError(null)
     try {
       await logShip({ channel, description: description.trim() })
+      h.notifySuccess()
       onLogged()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not log it')
@@ -50,8 +54,9 @@ export function LogShipForm({ onLogged, onCancel, initialDescription = '', submi
           <button
             key={c}
             type="button"
+            onPointerDown={() => h.select()}
             onClick={() => setChannel(c)}
-            className={`px-3 py-1.5 rounded-lg text-[13px] border transition-colors ${
+            className={`min-h-[48px] px-4 rounded-xl text-[14px] border transition-all duration-100 active:scale-95 touch-manipulation ${
               channel === c
                 ? 'bg-white/[0.10] border-white/25 text-ink'
                 : 'bg-white/[0.03] border-white/10 text-ink-muted hover:bg-white/[0.06]'
@@ -62,33 +67,24 @@ export function LogShipForm({ onLogged, onCancel, initialDescription = '', submi
         ))}
       </div>
 
-      <input
+      <VoiceField
         value={description}
-        onChange={e => setDescription(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter' && canSubmit) submit() }}
+        onChange={setDescription}
+        onEnter={() => { if (canSubmit) submit() }}
         placeholder="What left your machine, and to whom"
-        className="w-full px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 text-[14px] text-ink placeholder:text-ink-faint outline-none focus:border-white/25"
+        rows={2}
       />
 
       {error && <p className="text-[12px] text-ink-muted">{error}</p>}
 
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={submit}
-          disabled={!canSubmit}
-          className="px-4 py-2 rounded-lg text-[13px] font-medium bg-white/[0.10] border border-white/20 text-ink disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/[0.14] transition-colors"
-        >
+        <Tap onTap={submit} disabled={!canSubmit} feel="success" className="flex items-center justify-center">
           {saving ? 'Saving' : submitLabel}
-        </button>
+        </Tap>
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-3 py-2 rounded-lg text-[13px] text-ink-faint hover:text-ink-muted transition-colors"
-          >
+          <Tap variant="quiet" className="!min-h-[48px] text-[13px] flex items-center" onTap={() => { h.tap(); onCancel() }}>
             Cancel
-          </button>
+          </Tap>
         )}
       </div>
     </div>
