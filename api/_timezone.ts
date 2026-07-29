@@ -27,6 +27,25 @@ export function isValidTz(tz: unknown): tz is string {
   return typeof tz === 'string' && VALID.has(tz)
 }
 
+/**
+ * The zone for THIS request.
+ *
+ * A caller that knows its own zone wins outright. The browser holds the
+ * operator's choice and sends it, so switching zones takes effect on the very
+ * next request instead of waiting out a per-instance cache, and two lambda
+ * instances can never serve two different days to the same session.
+ *
+ * The stored setting stays the fallback for callers with no opinion: n8n
+ * webhooks, cron, and anything server-only.
+ */
+export async function resolveTz(req: { query?: unknown; body?: unknown }): Promise<string> {
+  const q = (req.query as Record<string, unknown> | undefined)?.tz
+  if (isValidTz(q)) return q
+  const b = (req.body as Record<string, unknown> | undefined)?.tz
+  if (isValidTz(b)) return b
+  return getOperatorTz()
+}
+
 export async function getOperatorTz(): Promise<string> {
   if (cached && Date.now() - cachedAt < TTL_MS) return cached
   try {

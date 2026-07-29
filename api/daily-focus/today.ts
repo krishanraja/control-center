@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
-import { getOperatorTz, ymdIn, shiftYmd } from '../_timezone.js'
+import { resolveTz, ymdIn, shiftYmd } from '../_timezone.js'
 
 // GET /api/daily-focus/today
 //   Returns { today_row, carry_over_row | null }.
@@ -18,7 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // The operator's civil day, not UTC. focus_date is written by the client on
   // the same clock, so both ends must resolve it the same way.
-  const tz = await getOperatorTz()
+  const tz = await resolveTz(req)
   const todayIso = ymdIn(new Date(), tz)
   const yesterdayIso = shiftYmd(todayIso, -1)
 

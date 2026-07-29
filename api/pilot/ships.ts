@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
-import { getOperatorTz, ymdIn, dayStartUtcIn, weekOfIn } from '../_timezone.js'
+import { resolveTz, ymdIn, dayStartUtcIn, weekOfIn } from '../_timezone.js'
 
 /**
  * /api/pilot/ships
@@ -151,9 +151,9 @@ async function post(req: VercelRequest, res: VercelResponse) {
   return res.status(201).json({ ok: true, ship: data, deduped: false })
 }
 
-async function get(_req: VercelRequest, res: VercelResponse) {
+async function get(req: VercelRequest, res: VercelResponse) {
   const now = new Date()
-  const tz = await getOperatorTz()
+  const tz = await resolveTz(req)
   const dayStart = (at: Date) => dayStartUtcIn(ymdIn(at, tz), tz)
   const since = new Date(now.getTime() - TRAILING_DAYS * DAY_MS)
 

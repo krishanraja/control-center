@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { compileWorry, CompilerSchemaError } from '../_worry-prompt.js'
-import { getOperatorTz, ymdIn, shiftYmd as tzShift } from '../_timezone.js'
+import { resolveTz, ymdIn, shiftYmd as tzShift } from '../_timezone.js'
 
 /**
  * /api/pilot/worries
@@ -36,11 +36,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end()
 
   try {
-    if (req.method === 'GET') return await due(res)
+    if (req.method === 'GET') return await due(req, res)
     if (req.method === 'PATCH') return await outcome(req, res)
     if (req.method === 'POST') {
       const body = (req.body || {}) as Record<string, unknown>
-      return body.action === 'compile' ? await compile(body, res) : await save(body, res)
+      return body.action === 'compile' ? await compile(body, res) : await save(body, req, res)
     }
     return res.status(405).json({ ok: false, error: 'Method not allowed' })
   } catch (e) {
@@ -75,7 +75,7 @@ async function openTests() {
 }
 
 /** POST the confirmed compilation. The operator may have edited any field. */
-async function save(body: Record<string, unknown>, res: VercelResponse) {
+async function save(body: Record<string, unknown>, req: VercelRequest, res: VercelResponse) {
   const rawText = typeof body.raw_text === 'string' ? body.raw_text.trim() : ''
   if (!rawText) return res.status(400).json({ ok: false, error: '"raw_text" is required' })
 
@@ -86,7 +86,7 @@ async function save(body: Record<string, unknown>, res: VercelResponse) {
 
   const str = (k: string): string => (typeof body[k] === 'string' ? (body[k] as string).trim() : '')
   const now = new Date().toISOString()
-  const today = ymdIn(new Date(), await getOperatorTz())
+  const today = ymdIn(new Date(), await resolveTz(req))
 
   if (state === 'test') {
     const belief = str('belief')
@@ -190,8 +190,8 @@ async function save(body: Record<string, unknown>, res: VercelResponse) {
 }
 
 /** GET: tests due today, plus calibration once enough tests have closed. */
-async function due(res: VercelResponse) {
-  const today = ymdIn(new Date(), await getOperatorTz())
+async function due(req: VercelRequest, res: VercelResponse) {
+  const today = ymdIn(new Date(), await resolveTz(req))
 
   // Weather expires lazily on read. No cron, and nothing accumulates.
   await supabase.from('worries')

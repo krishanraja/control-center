@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
-import { getOperatorTz, ymdIn, shiftYmd, dayStartUtcIn, dayEndUtcIn } from '../_timezone.js'
+import { resolveTz, ymdIn, shiftYmd, dayStartUtcIn, dayEndUtcIn } from '../_timezone.js'
 
 /**
  * /api/pilot/checkin
@@ -41,16 +41,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
   if (req.method === 'OPTIONS') return res.status(200).end()
 
-  if (req.method === 'GET') return get(res)
+  if (req.method === 'GET') return get(req, res)
   if (req.method === 'POST') return post(req, res)
-  if (req.method === 'PATCH') return patch(res)
+  if (req.method === 'PATCH') return patch(req, res)
   return res.status(405).json({ ok: false, error: 'Method not allowed' })
 }
 
 
-async function get(res: VercelResponse) {
+async function get(req: VercelRequest, res: VercelResponse) {
   const now = new Date()
-  const tz = await getOperatorTz()
+  const tz = await resolveTz(req)
   const today = ymdIn(now, tz)
   const yesterday = shiftYmd(today, -1)
   const [morningRes, eveningRes, eveningTodayRes, lastMorningRes, ydayRes, yshipRes] = await Promise.all([
@@ -98,7 +98,7 @@ async function post(req: VercelRequest, res: VercelResponse) {
   }
 
   const now = new Date()
-  const today = ymdIn(now, await getOperatorTz())
+  const today = ymdIn(now, await resolveTz(req))
 
   if (kind === 'morning') {
     const mode = body.mode
@@ -163,9 +163,9 @@ async function post(req: VercelRequest, res: VercelResponse) {
   return res.status(201).json({ ok: true, checkin: data })
 }
 
-async function patch(res: VercelResponse) {
+async function patch(req: VercelRequest, res: VercelResponse) {
   const now = new Date()
-  const today = ymdIn(now, await getOperatorTz())
+  const today = ymdIn(now, await resolveTz(req))
 
   const existing = await supabase.from('pilot_checkins').select('id')
     .eq('kind', 'morning').eq('checkin_date', today).maybeSingle()

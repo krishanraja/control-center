@@ -5,6 +5,7 @@ import {
   type OpenTest,
   type TestOutcome,
 } from '../../lib/worryStates'
+import { getZone } from '../../lib/civilDate'
 import { LogShipForm } from './LogShipForm'
 import { useHaptics } from '../../hooks/useHaptics'
 import { Tap, VoiceField, DockButton } from './controls'
@@ -15,6 +16,7 @@ import { Tap, VoiceField, DockButton } from './controls'
 // solely so closing one is a single tap away.
 
 const API = import.meta.env.VITE_API_URL ?? ''
+const tzq = () => `?tz=${encodeURIComponent(getZone())}`
 
 type Phase = 'capture' | 'confirm' | 'capped' | 'shipping' | 'done'
 
@@ -65,7 +67,7 @@ export function WorryCompiler({ open, onClose }: Props) {
     if (!rawText.trim()) return
     setBusy(true); setError(null)
     try {
-      const res = await fetch(`${API}/api/pilot/worries`, {
+      const res = await fetch(`${API}/api/pilot/worries${tzq()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'compile', raw_text: rawText.trim() }),
@@ -85,7 +87,7 @@ export function WorryCompiler({ open, onClose }: Props) {
     if (!compilation) return
     setBusy(true); setError(null)
     try {
-      const res = await fetch(`${API}/api/pilot/worries`, {
+      const res = await fetch(`${API}/api/pilot/worries${tzq()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ raw_text: rawText.trim(), ...compilation, ...extra }),
@@ -114,7 +116,7 @@ export function WorryCompiler({ open, onClose }: Props) {
   }
 
   const closeTest = async (id: string, outcome: TestOutcome) => {
-    await fetch(`${API}/api/pilot/worries`, {
+    await fetch(`${API}/api/pilot/worries${tzq()}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, outcome }),

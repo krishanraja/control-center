@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
-import { getOperatorTz, weekOfIn } from '../_timezone.js'
+import { resolveTz, weekOfIn } from '../_timezone.js'
 
 // GET /api/daily-focus/suggestions
 //   Returns { marcus_top_three, marcus_alternates, marcus_reasoning }.
@@ -92,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 interface ServesMilestone { id: string; title: string; goal_id: string; goal_title: string | null }
 
 
-async function buildServesByTask(cards: TopThreeCard[]): Promise<Record<string, ServesMilestone>> {
+async function buildServesByTask(cards: TopThreeCard[], tz: string): Promise<Record<string, ServesMilestone>> {
   const out: Record<string, ServesMilestone> = {}
   try {
     const taskIds = Array.from(new Set(
@@ -101,7 +101,7 @@ async function buildServesByTask(cards: TopThreeCard[]): Promise<Record<string, 
     if (taskIds.length === 0) return out
     // The operator's civil week, the same one weekly_focus_milestones is keyed
     // by on the client. This used to be hardcoded to Europe/London.
-    const week = weekOfIn(new Date(), await getOperatorTz())
+    const week = weekOfIn(new Date(), tz)
     const { data: committed } = await supabase
       .from('weekly_focus_milestones')
       .select('milestone_id, goal_id')

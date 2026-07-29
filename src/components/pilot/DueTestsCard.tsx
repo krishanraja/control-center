@@ -6,6 +6,7 @@ import {
   type DueResponse,
   type TestOutcome,
 } from '../../lib/worryStates'
+import { getZone } from '../../lib/civilDate'
 import { useHaptics } from '../../hooks/useHaptics'
 
 // Tests whose due date has arrived, and a calibration line once there is enough
@@ -17,6 +18,7 @@ import { useHaptics } from '../../hooks/useHaptics'
 // disconfirmed predictions looks exactly like a run of confirmed ones.
 
 const API = import.meta.env.VITE_API_URL ?? ''
+const tzq = () => `?tz=${encodeURIComponent(getZone())}`
 
 export function DueTestsCard({ variant = 'desktop' }: { variant?: 'desktop' | 'mobile' }) {
   const [data, setData] = useState<DueResponse | null>(null)
@@ -25,7 +27,7 @@ export function DueTestsCard({ variant = 'desktop' }: { variant?: 'desktop' | 'm
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/pilot/worries`)
+      const res = await fetch(`${API}/api/pilot/worries${tzq()}`)
       const json = await res.json()
       if (!res.ok || !json.ok) throw new Error(json.error || 'failed')
       setData({
@@ -44,7 +46,7 @@ export function DueTestsCard({ variant = 'desktop' }: { variant?: 'desktop' | 'm
 
   const close = async (id: string, outcome: TestOutcome) => {
     h.notifySuccess()
-    await fetch(`${API}/api/pilot/worries`, {
+    await fetch(`${API}/api/pilot/worries${tzq()}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, outcome, outcome_note: note[id] || undefined }),
