@@ -19,59 +19,11 @@ import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 
-// Mirrors the desktop noise/stale filters in DesktopToday so the two surfaces
-// agree on what counts as "today".
-const STALE_DAYS = 14
-const STALE_MS = STALE_DAYS * 24 * 60 * 60 * 1000
-const NOISE_TITLE: RegExp[] = [
-  /^\s*health alert:\s*0\s*down,\s*0\s*stale/i,
-  /^\s*sync engine running every/i,
-]
-
-function isStale(t: TaskRow): boolean {
-  if (t.started_at) return false
-  if (!t.updated_at) return false
-  const ms = Date.now() - new Date(t.updated_at).getTime()
-  if (!Number.isFinite(ms) || ms < STALE_MS) return false
-  return t.status === 'active' || t.status === 'waiting' || t.status === 'new'
-}
-function isNoise(t: TaskRow): boolean {
-  return !!t.title && NOISE_TITLE.some(re => re.test(t.title))
-}
-function isDoneish(t: TaskRow): boolean {
-  return t.status === 'superseded' || t.status === 'done' || t.status === 'closed'
-}
-
-// Mirrors DesktopToday: the day queue is the decisions_waiting task branch
-// (statuses an agent parks on Krish, unreviewed, not buried). Everything else
-// non-terminal is agent-carried and collapses to one ambient sentence.
-const QUEUE_STATUSES = new Set(['waiting', 'in_progress', 'blocked', 'new'])
-// A deferred task (future due_date) is off the plate until its date arrives.
-function deferredToLater(t: TaskRow): boolean {
-  if (!t.due_date) return false
-  const startOfTomorrow = new Date(); startOfTomorrow.setHours(24, 0, 0, 0)
-  return new Date(t.due_date).getTime() >= startOfTomorrow.getTime()
-}
-function needsKrish(t: TaskRow): boolean {
-  return QUEUE_STATUSES.has(t.status) && !t.krish_reviewed && !deferredToLater(t)
-}
-function isDueNow(t: TaskRow): boolean {
-  if (!t.due_date) return false
-  const d = parseISO(t.due_date)
-  return isToday(d) || isPast(d)
-}
-// Coarse sitting math, same spirit as minutesToZero in decisionKinds.
-function minutesLeft(remaining: number): number {
-  return Math.max(1, Math.round(remaining * 0.75))
-}
-type DeferChoice = 'tomorrow' | 'monday' | 'next_week'
-function deferDateISO(choice: DeferChoice): string {
-  const d = new Date()
-  if (choice === 'tomorrow') d.setDate(d.getDate() + 1)
-  else if (choice === 'monday') d.setDate(d.getDate() + (((8 - d.getDay()) % 7) || 7))
-  else d.setDate(d.getDate() + 7)
-  return d.toISOString()
-}
+// Queue predicates live in the shared helper (src/lib/taskQueue.ts) so Home,
+// Today, and the decisions surfaces agree on what counts as "the day".
+import {
+  splitTaskQueue, minutesLeft, deferDateISO, isDueNow, type DeferChoice,
+} from '../../lib/taskQueue'
 
 function urgencyAccent(t: TaskRow): 'red' | 'amber' | 'violet' | 'neutral' {
   if (t.due_date && isPast(parseISO(t.due_date)) && t.status !== 'done') return 'red'
@@ -168,27 +120,10 @@ export function MobileToday({
   const { today: focusToday } = useDailyFocus()
   const calibrated = focusToday?.status === 'calibrated' || focusToday?.status === 'complete'
 
-  const { queue, carried, stale, buried } = useMemo(() => {
-    const visible: TaskRow[] = []
-    const staleArr: TaskRow[] = []
-    const buried: TaskRow[] = []
-    for (const t of tasks) {
-      if (isDoneish(t)) continue
-      if (t.buried_at) { buried.push(t); continue }
-      if (isNoise(t)) continue
-      if (isStale(t)) { staleArr.push(t); continue }
-      visible.push(t)
-    }
-    // Overdue and due-today rows lead (earliest first); the rest keep cache
-    // order (updated_at desc), same as desktop.
-    const queued = visible.filter(needsKrish).filter(t => !committed.has(t.id))
-    const dueNow = queued
-      .filter(isDueNow)
-      .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())
-    const queue = [...dueNow, ...queued.filter(t => !isDueNow(t))]
-    const carried = visible.filter(t => !needsKrish(t))
-    return { queue, carried, stale: staleArr, buried }
-  }, [tasks, committed])
+  const { queue, carried, stale, buried } = useMemo(
+    () => splitTaskQueue(tasks, committed),
+    [tasks, committed],
+  )
 
   const current = queue[0] || null
   const total = queue.length + decided

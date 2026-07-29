@@ -15,6 +15,8 @@ import { FocusRitual } from './components/home/FocusRitual'
 import { PilotGate } from './components/pilot/PilotGate'
 import { EveningShutdown } from './components/pilot/EveningShutdown'
 import { isFocusRitualEnabled } from './lib/homeV2'
+import { isSimplifiedIA } from './lib/iaV3'
+import { VALID_TAB_IDS } from './lib/tabs'
 import { useHashRoute } from './hooks/useHashRoute'
 import { contentV2Enabled } from './lib/contentV2'
 import { BOTTOM_NAV_PAD } from './components/mobile/primitives'
@@ -60,9 +62,28 @@ const ContentComposer = lazy(() => import('./components/content/ContentComposer'
 // untouched when VITE_CONTENT_V2_ENABLED is off.
 const ContentV2Tab = lazy(() => import('./components/content-v2/ContentV2Tab').then(m => ({ default: m.ContentV2Tab })))
 const BriefEditor = lazy(() => import('./components/content-v2/BriefEditor').then(m => ({ default: m.BriefEditor })))
+// Simplified-IA wrapper tabs (VITE_IA_V3_ENABLED): People = Pipeline + Network +
+// Visibility lanes; OS = Org + Intel + Flows + Systems subtabs.
+const PeopleTab = lazy(() => import('./components/people/PeopleTab').then(m => ({ default: m.PeopleTab })))
+const OsTab = lazy(() => import('./components/os/OsTab').then(m => ({ default: m.OsTab })))
 
-type TabId = 'home' | 'today' | 'leads' | 'relationships' | 'customers' | 'acquisition' | 'guests' | 'content' | 'org' | 'exec' | 'workflows' | 'systems'
-const VALID_TABS: TabId[] = ['home', 'today', 'leads', 'relationships', 'customers', 'acquisition', 'guests', 'content', 'org', 'exec', 'workflows', 'systems']
+// Tab validity derives from the registry (src/lib/tabs.ts VALID_TAB_IDS) so the
+// old hand-maintained duplicate list can never drift from the sidebar again.
+
+// Legacy-hash aliases under the simplified IA. Render-time only (the hash is
+// never rewritten), so bookmarks, navigate('leads') call sites, and deep-link
+// params all keep working: `#/org?correction=x` resolves to the OS tab with
+// { sub: 'org', correction: 'x' }. Route params win over alias-injected ones.
+const IA_ALIASES: Record<string, { tab: string; params?: Record<string, string> }> = {
+  today: { tab: 'home' },
+  leads: { tab: 'people', params: { lane: 'pipeline' } },
+  relationships: { tab: 'people', params: { lane: 'network' } },
+  guests: { tab: 'people', params: { lane: 'visibility' } },
+  org: { tab: 'os', params: { sub: 'org' } },
+  exec: { tab: 'os', params: { sub: 'intel' } },
+  workflows: { tab: 'os', params: { sub: 'flows' } },
+  systems: { tab: 'os', params: { sub: 'systems' } },
+}
 
 /** Calm chunk-load fallback for a mobile route (single-focus, one column). */
 function MobileRouteFallback() {
@@ -105,7 +126,10 @@ function detectIsMobile() {
 export default function App() {
   const { route, navigate } = useHashRoute()
   const rawTab = route.tab === 'execution' ? 'exec' : route.tab
-  const tab: TabId = (VALID_TABS as string[]).includes(rawTab) ? (rawTab as TabId) : 'home'
+  const alias = isSimplifiedIA() ? IA_ALIASES[rawTab] : undefined
+  const resolvedTab = alias?.tab ?? rawTab
+  const tab = VALID_TAB_IDS.has(resolvedTab) ? resolvedTab : 'home'
+  const params = alias?.params ? { ...alias.params, ...route.params } : route.params
   const [narrow, setNarrow] = useState(detectIsMobile)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [inboxOpen, setInboxOpen] = useState(false)
@@ -178,7 +202,7 @@ export default function App() {
                 style={{ zoom: 1.2, width: 'calc(100vw / 1.2)', height: 'calc(100dvh / 1.2)', '--z': '1.2' } as React.CSSProperties}
               >
                 <Suspense fallback={<MobileRouteFallback />}>
-                  {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome onNavigate={navigate} /></ErrorBoundary>}
+                  {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome onNavigate={navigate} deepTask={params.task || null} deepDecision={params.decision || null} /></ErrorBoundary>}
                   {tab === 'today'     && <ErrorBoundary label="Today"><MobileToday lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
                   {tab === 'leads'     && <ErrorBoundary label="Leads"><MobileLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'relationships' && <ErrorBoundary label="Leads"><MobileLeadsRE onNavigate={navigate} /></ErrorBoundary>}
@@ -195,6 +219,8 @@ export default function App() {
                   {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrg /></ErrorBoundary>}
                   {tab === 'workflows' && <ErrorBoundary label="Flows"><MobileFlows /></ErrorBoundary>}
                   {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
+                  {tab === 'people'    && <PeopleTab narrow params={params} onNavigate={navigate} />}
+                  {tab === 'os'        && <OsTab narrow params={params} onNavigate={navigate} />}
                 </Suspense>
               </div>
             ) : tab === 'content' ? (
@@ -206,7 +232,7 @@ export default function App() {
             ) : (
               <div className="h-full overflow-y-auto px-6 py-6">
                 <Suspense fallback={<DesktopRouteFallback />}>
-                  {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome onNavigate={navigate} /></ErrorBoundary>}
+                  {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome onNavigate={navigate} deepTask={params.task || null} deepDecision={params.decision || null} /></ErrorBoundary>}
                   {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday selectedTaskId={route.params.task || null} onSelectTask={(id) => navigate('today', id ? { task: id } : {})} lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
                   {tab === 'leads'     && <ErrorBoundary label="Leads"><DesktopLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'relationships' && <ErrorBoundary label="Leads"><DesktopLeadsRE onNavigate={navigate} /></ErrorBoundary>}
@@ -217,6 +243,8 @@ export default function App() {
                   {tab === 'exec'      && <ErrorBoundary label="Intel"><DesktopExec /></ErrorBoundary>}
                   {tab === 'workflows' && <ErrorBoundary label="Flows"><DesktopFlows /></ErrorBoundary>}
                   {tab === 'systems'   && <ErrorBoundary label="Systems"><SystemsPanel /></ErrorBoundary>}
+                  {tab === 'people'    && <PeopleTab narrow={false} params={params} onNavigate={navigate} />}
+                  {tab === 'os'        && <OsTab narrow={false} params={params} onNavigate={navigate} />}
                 </Suspense>
               </div>
             )}

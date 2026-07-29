@@ -44,6 +44,9 @@ export function routeDecision(kind: DecisionKind | string, id: string | null | u
       return { tab: 'acquisition', params: safeId ? { seq: safeId } : {} }
     case 'send_sample':
       return { tab: 'acquisition', params: safeId ? { send: safeId } : {} }
+    case 'growth_stall':
+      // The stall ruling (3 drafted moves) lives in Home's decision deck.
+      return { tab: 'home', params: safeId ? { decision: `growth_stall:${safeId}` } : {} }
     default:
       return { tab: 'today', params: {} }
   }

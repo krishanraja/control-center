@@ -1,55 +1,66 @@
-import React, { useState, useMemo } from 'react'
-import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles, Newspaper, Inbox, AlertOctagon, Layers, MailCheck } from 'lucide-react'
+import React, { useState, useMemo, useEffect } from 'react'
+import { Mail, Layers as DeckIcon, ChevronDown } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../../hooks/useRealtimeDecisionsWaiting'
+import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { FeedCard, FeedRow, EmptyState } from '../mobile/primitives'
 import { SkeletonRow } from '../shared/Skeleton'
 import { DetailSheet } from '../mobile/DetailSheet'
+import { BackburnerSection } from '../shared/BackburnerSection'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { buildDecisionActions } from '../../lib/decisionActions'
-import { splitDecisions, minutesToZero } from '../../lib/decisionKinds'
+import {
+  splitDecisions, minutesToZero,
+  KIND_ICON, KIND_LABEL, KIND_TO_TABLE, KIND_DOT,
+} from '../../lib/decisionKinds'
+import { splitTaskQueue, STALE_DAYS } from '../../lib/taskQueue'
+import { DecisionDeck } from './DecisionDeck'
+import { useRulingPrompts } from './RulingPrompts'
+import { isSimplifiedIA } from '../../lib/iaV3'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
-const KIND_ICON: Record<DecisionRow['kind'], typeof Mail> = {
-  task: Mail, guest: Mic, idea: FileText, lead: UserPlus, visibility: Target, correction: ShieldAlert, skill_proposal: Sparkles, content_decision: Newspaper, inbox_returned: Inbox, vera_gap: AlertOctagon, sequence_approval: Layers, send_sample: MailCheck,
-}
-const KIND_LABEL: Record<DecisionRow['kind'], string> = {
-  task: 'Task', guest: 'Guest', idea: 'Idea', lead: 'Lead', visibility: 'Visibility', correction: 'Correction', skill_proposal: 'Skill', content_decision: 'Content call', inbox_returned: 'Returned', vera_gap: 'Persistent gap', sequence_approval: 'Sequence', send_sample: 'Send',
-}
-const KIND_TO_TABLE: Record<DecisionRow['kind'], string> = {
-  task: 'tasks', guest: 'guests', idea: 'content_ideas', lead: 'leads', visibility: 'visibility_targets', correction: 'corrections', skill_proposal: 'skill_proposals', content_decision: 'content_decisions', inbox_returned: 'tasks_inbox', vera_gap: 'vera_gaps', sequence_approval: 'acquisition_sequences', send_sample: 'acquisition_sends',
-}
-// Muted, from the shared token palette (not raw neon), so the legend reads as one
-// calm family rather than a rainbow. Kinds still differ, just quietly.
-const KIND_DOT: Record<DecisionRow['kind'], string> = {
-  task: 'bg-pod-growth', guest: 'bg-status-blocked', idea: 'bg-status-needsYou',
-  lead: 'bg-status-active', visibility: 'bg-pod-ops', correction: 'bg-status-blocked', skill_proposal: 'bg-pod-growth', content_decision: 'bg-status-needsYou', inbox_returned: 'bg-pod-growth', vera_gap: 'bg-status-blocked',
-  sequence_approval: 'bg-pod-growth', send_sample: 'bg-status-needsYou',
-}
 /**
  * "Your decisions" is the finishable anchor of Home. The count includes ONLY
  * typed, only-Krish rulings (splitDecisions); pipeline pools surface as queue
  * chips that open each tab's triage deck instead of inflating the number.
  * Tapping a row opens a DetailSheet whose buttons are the row's kind-correct
- * one-tap actions (promote / draft email / confirm / greenlight / apply /
- * close concept ...) via the shared buildDecisionActions registry, with
- * haptic + toast confirmation. The full inbox lives on Today.
+ * one-tap actions via the shared buildDecisionActions registry (now including
+ * the old Today verbs: approve / send back with a note / defer). "Clear the
+ * queue" opens the one-card DecisionDeck for a full sitting. The stale tail
+ * and backburner (formerly Today's folds) collapse below.
  */
 export function DecisionsInbox({
   onNavigate,
-  limit = 6,
+  limit = 5,
+  deepTask = null,
+  deepDecision = null,
 }: {
   onNavigate?: NavigateFn
   limit?: number
+  /** Deep-linked task id (legacy #/today?task=...) — opens the deck seeded to it. */
+  deepTask?: string | null
+  /** Deep-linked decision ref (legacy #/today?decision=kind:id). */
+  deepDecision?: string | null
 }) {
   const { decisions: allRows, loading } = useRealtimeDecisionsWaiting()
   const { toast } = useToast()
   const h = useHaptics()
+  const { promptNote, promptDefer, overlay } = useRulingPrompts()
 
   const [open, setOpen] = useState<DecisionRow | null>(null)
   const [resolved, setResolved] = useState<Record<string, any> | null>(null)
+  const [deckOpen, setDeckOpen] = useState(false)
+  const [deckSeed, setDeckSeed] = useState<string | null>(null)
+  const [narrow] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024)
+
+  // Legacy Today deep links land here under the simplified IA: seed the deck
+  // to the referenced row so the old bookmark still opens the right ruling.
+  useEffect(() => {
+    const seed = deepTask || (deepDecision ? deepDecision.split(':').pop() || null : null)
+    if (seed) { setDeckSeed(seed); setDeckOpen(true) }
+  }, [deepTask, deepDecision])
 
   // Q1 split: rows the badge counts (typed rulings) vs pipeline pools that
   // batch-review in their own tab's triage deck. Filter per-consumer; the
@@ -57,7 +68,38 @@ export function DecisionsInbox({
   const { decisions, queues } = useMemo(() => splitDecisions(allRows), [allRows])
 
   const visible = decisions.slice(0, limit)
+  const overflow = Math.max(0, decisions.length - visible.length)
   const toZero = minutesToZero(decisions)
+
+  // The old Today folds, absorbed: stale no-progress rows + backburner.
+  const { tasks: allTasks } = useRealtimeTasks()
+  const { stale, buried } = useMemo(() => splitTaskQueue(allTasks), [allTasks])
+  const buriedTasks = useMemo(
+    () => buried.map(t => ({ id: t.id, title: t.title, buried_reason: (t as Record<string, any>).buried_reason ?? null })),
+    [buried],
+  )
+  const [tailOpen, setTailOpen] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
+
+  const bulkStale = async (action: 'snooze_30d' | 'dismiss_superseded') => {
+    if (bulkBusy || stale.length === 0) return
+    setBulkBusy(true)
+    try {
+      const ids = stale.map(t => t.id)
+      const r = await fetch('/api/tasks/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, action, notes: `Bulk: ${ids.length} stale (>${STALE_DAYS}d) items` }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || j.ok === false) throw new Error(j.error || `HTTP ${r.status}`)
+      toast(action === 'snooze_30d' ? `Snoozed ${ids.length} for 30 days.` : `Dismissed ${ids.length} stale items.`, 'success')
+    } catch {
+      toast('Bulk action failed. Try again.', 'error')
+    } finally {
+      setBulkBusy(false)
+    }
+  }
 
   const select = async (d: DecisionRow) => {
     h.select()
@@ -85,6 +127,8 @@ export function DecisionsInbox({
         toast,
         haptics: h,
         onDone: close,
+        promptNote,
+        promptDefer,
       })
     : []
 
@@ -93,10 +137,19 @@ export function DecisionsInbox({
       <FeedCard
         title={`Your decisions · ${decisions.length}`}
         action={decisions.length > 0 ? (
-          // The finishable cue: this list is a sitting, not a state of being.
-          <span className="text-[11px] text-emerald-300/80 tabular-nums whitespace-nowrap">
-            about {toZero} {toZero === 1 ? 'minute' : 'minutes'} to zero
-          </span>
+          <div className="flex items-center gap-2">
+            {/* The finishable cue: this list is a sitting, not a state of being. */}
+            <span className="text-[11px] text-emerald-300/80 tabular-nums whitespace-nowrap hidden sm:inline">
+              about {toZero} {toZero === 1 ? 'minute' : 'minutes'} to zero
+            </span>
+            <button
+              type="button"
+              onClick={() => { h.tap(); setDeckSeed(null); setDeckOpen(true) }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-400/20 transition-colors whitespace-nowrap"
+            >
+              <DeckIcon size={11} /> Clear the queue
+            </button>
+          </div>
         ) : undefined}
       >
         {/* QUEUES: pipeline pools with their own rhythm. Always visible, even
@@ -129,37 +182,100 @@ export function DecisionsInbox({
         ) : visible.length === 0 ? (
           <EmptyState label="Nothing is waiting on you. That is the system working." />
         ) : (
-          visible.map(d => {
-            const Icon = KIND_ICON[d.kind] || Mail
-            const priorityChip =
-              d.priority === 'overdue' ? 'Overdue'
-              : d.priority === 'urgent' ? 'Urgent'
-              : d.priority === 'high' ? 'High'
-              : null
-            return (
-              <FeedRow
-                key={`${d.kind}-${d.id}`}
-                dotColor={KIND_DOT[d.kind]}
-                title={d.title}
-                detail={d.description ?? undefined}
-                onClick={() => select(d)}
-                trailing={
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.1em] text-white/45">
-                      <Icon size={11} /> {KIND_LABEL[d.kind]}
-                    </span>
-                    {priorityChip && (
-                      <span className={`text-[10px] uppercase tracking-[0.1em] ${d.priority === 'overdue' || d.priority === 'high' ? 'text-status-blocked' : 'text-status-needsYou'}`}>
-                        {priorityChip}
+          <>
+            {visible.map(d => {
+              const Icon = KIND_ICON[d.kind] || Mail
+              const priorityChip =
+                d.priority === 'overdue' ? 'Overdue'
+                : d.priority === 'urgent' ? 'Urgent'
+                : d.priority === 'high' ? 'High'
+                : null
+              return (
+                <FeedRow
+                  key={`${d.kind}-${d.id}`}
+                  dotColor={KIND_DOT[d.kind]}
+                  title={d.title}
+                  detail={d.description ?? undefined}
+                  onClick={() => select(d)}
+                  trailing={
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.1em] text-white/45">
+                        <Icon size={11} /> {KIND_LABEL[d.kind]}
                       </span>
-                    )}
-                  </div>
-                }
-              />
-            )
-          })
+                      {priorityChip && (
+                        <span className={`text-[10px] uppercase tracking-[0.1em] ${d.priority === 'overdue' || d.priority === 'high' ? 'text-status-blocked' : 'text-status-needsYou'}`}>
+                          {priorityChip}
+                        </span>
+                      )}
+                    </div>
+                  }
+                />
+              )
+            })}
+            {overflow > 0 && (
+              <button
+                type="button"
+                onClick={() => { h.tap(); setDeckSeed(null); setDeckOpen(true) }}
+                className="w-full px-5 py-2.5 text-[11px] text-white/45 hover:text-white/80 text-left transition-colors"
+              >
+                + {overflow} more · rule on them one at a time
+              </button>
+            )}
+          </>
         )}
       </FeedCard>
+
+      {/* THE TAIL: the old Today folds. Stale no-progress rows (bulk snooze /
+          dismiss) and the backburner, collapsed so the queue owns the screen. */}
+      {isSimplifiedIA() && (
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={() => setTailOpen(v => !v)}
+            className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] text-white/35 hover:text-white/65 transition-colors"
+          >
+            <ChevronDown size={12} className={`transition-transform ${tailOpen ? 'rotate-180' : ''}`} />
+            {stale.length > 0 ? `Hidden · ${stale.length} stale (>${STALE_DAYS}d) · backburner` : 'Backburner'}
+          </button>
+          {tailOpen && (
+            <div className="space-y-2 mt-1">
+              {stale.length > 0 && (
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-[11px] text-white/50">{stale.length} items untouched for {STALE_DAYS}+ days with no progress.</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => bulkStale('snooze_30d')}
+                        disabled={bulkBusy}
+                        className="px-2.5 py-1 rounded-lg text-[11px] border border-white/10 text-white/60 hover:text-white/85 disabled:opacity-40"
+                      >
+                        Snooze all 30d
+                      </button>
+                      <button
+                        onClick={() => bulkStale('dismiss_superseded')}
+                        disabled={bulkBusy}
+                        className="px-2.5 py-1 rounded-lg text-[11px] border border-red-400/20 text-red-300/80 hover:text-red-200 disabled:opacity-40"
+                      >
+                        Dismiss all
+                      </button>
+                    </div>
+                  </div>
+                  <ul className="mt-2 space-y-1 max-h-44 overflow-y-auto">
+                    {stale.slice(0, 30).map(t => (
+                      <li key={t.id} className="text-[11px] text-white/40 truncate">{t.title}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <BackburnerSection
+                table="tasks"
+                items={buriedTasks}
+                onRestored={() => { /* realtime echo refreshes the cache */ }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       <DetailSheet
         open={open != null}
@@ -171,6 +287,16 @@ export function DecisionsInbox({
         body={composeBody(resolved)}
         actions={actions}
       />
+
+      <DecisionDeck
+        open={deckOpen}
+        onClose={() => { setDeckOpen(false); setDeckSeed(null) }}
+        narrow={narrow}
+        onNavigate={onNavigate}
+        seedId={deckSeed}
+      />
+
+      {overlay}
     </section>
   )
 }

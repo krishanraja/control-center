@@ -4,6 +4,7 @@ import {
   HeartHandshake, Rocket,
   type LucideIcon,
 } from 'lucide-react'
+import { isSimplifiedIA } from './iaV3'
 
 export interface TabDef {
   id: string
@@ -36,7 +37,7 @@ export interface TabDef {
 // Desktop drawer demotions: Intel (insight-only, no action), Flows and Systems
 // (ops-ambient) stay out of the primary sidebar to reduce IA load; they remain
 // accessible under the "More" drawer.
-export const TABS: TabDef[] = [
+const LEGACY_TABS: TabDef[] = [
   { id: 'home',      label: 'Home',          desktopIcon: LayoutDashboard, mobileIcon: Home,       desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'content',   label: 'Content',       desktopIcon: FileText,        mobileIcon: FileText,   desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'relationships', label: 'Network',   desktopIcon: HeartHandshake,  mobileIcon: HeartHandshake, desktopPriority: 'primary', mobilePriority: 'primary' },
@@ -54,15 +55,33 @@ export const TABS: TabDef[] = [
   { id: 'systems',   label: 'Systems',       desktopIcon: Server,          mobileIcon: Server,     desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
 ]
 
+// Simplified IA (VITE_IA_V3_ENABLED): six destinations. Home absorbed Today's
+// ruling queue; People = Pipeline + Network + Visibility as lanes; OS = Org +
+// Intel + Flows + Systems as subtabs; Subscriptions watches from the drawer
+// (the Home scoreboard carries its headline). Old hashes resolve through the
+// App-level alias layer, so bookmarks and navigate() call sites keep working.
+const SIMPLIFIED_TABS: TabDef[] = [
+  { id: 'home',      label: 'Home',    desktopIcon: LayoutDashboard, mobileIcon: Home,          desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'content',   label: 'Content', desktopIcon: FileText,        mobileIcon: FileText,      desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'people',    label: 'People',  desktopIcon: HeartHandshake,  mobileIcon: HeartHandshake, desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'acquisition', label: 'Growth', desktopIcon: Rocket,         mobileIcon: Rocket,        desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'os',        label: 'OS',      desktopIcon: Server,          mobileIcon: Server,        desktopPriority: 'primary', mobilePriority: 'drawer'  },
+  { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'drawer', mobilePriority: 'drawer' },
+]
+
+export const TABS: TabDef[] = isSimplifiedIA() ? SIMPLIFIED_TABS : LEGACY_TABS
+
 // Explicit bottom-bar order: Home first, then the three critical sections in
-// importance order (Content, Network, Growth). Decoupled from the TABS array
-// order so the desktop sidebar is untouched. Keep in sync with the
-// `mobilePriority: 'primary'` flags above.
-const MOBILE_PRIMARY_ORDER = ['home', 'content', 'relationships', 'acquisition'] as const
+// importance order (Content, People/Network, Growth). Decoupled from the
+// desktop sidebar order. Keep in sync with the `mobilePriority: 'primary'`
+// flags above.
+const MOBILE_PRIMARY_ORDER: readonly string[] = isSimplifiedIA()
+  ? ['home', 'content', 'people', 'acquisition']
+  : ['home', 'content', 'relationships', 'acquisition']
 
 export const DESKTOP_PRIMARY_TABS = TABS.filter(t => t.desktopPriority === 'primary')
 export const DESKTOP_DRAWER_TABS  = TABS.filter(t => t.desktopPriority === 'drawer')
 export const MOBILE_PRIMARY_TABS  = MOBILE_PRIMARY_ORDER.map(id => TABS.find(t => t.id === id)!)
-export const MOBILE_DRAWER_TABS   = TABS.filter(t => !MOBILE_PRIMARY_ORDER.includes(t.id as typeof MOBILE_PRIMARY_ORDER[number]))
+export const MOBILE_DRAWER_TABS   = TABS.filter(t => !MOBILE_PRIMARY_ORDER.includes(t.id))
 
 export const VALID_TAB_IDS = new Set(TABS.map(t => t.id))

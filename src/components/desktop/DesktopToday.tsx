@@ -15,81 +15,12 @@ import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 import { Skeleton, SkeletonText } from '../shared/Skeleton'
 import { AllClear } from '../shared/AllClear'
 
-// Stale threshold for the Today auto-collapse. Tasks not touched for this many
-// days, with no progress, hide behind a single "N stale items hidden" disclosure.
-const STALE_DAYS = 14
-const STALE_THRESHOLD_MS = STALE_DAYS * 24 * 60 * 60 * 1000
-
-// Health-alert noise that Marcus's prompt sometimes collapses into the
-// "Top blockers" string. We filter these patterns out client-side so they
-// don't surface as actionable items. The Marcus prompt patch is the
-// source-side fix; this is defence in depth.
-const NOISE_TITLE_PATTERNS: RegExp[] = [
-  /^\s*health alert:\s*0\s*down,\s*0\s*stale/i,
-  /^\s*sync engine running every/i,
-]
-
-function isStaleNoProgress(t: TaskRow): boolean {
-  if (t.started_at) return false
-  if (!t.updated_at) return false
-  const updated = new Date(t.updated_at).getTime()
-  if (!Number.isFinite(updated)) return false
-  if (Date.now() - updated < STALE_THRESHOLD_MS) return false
-  return t.status === 'active' || t.status === 'waiting' || t.status === 'new'
-}
-
-function isNoiseTask(t: TaskRow): boolean {
-  if (!t.title) return false
-  return NOISE_TITLE_PATTERNS.some(re => re.test(t.title))
-}
-
-function isSupersededOrDone(t: TaskRow): boolean {
-  return t.status === 'superseded' || t.status === 'done' || t.status === 'closed'
-}
-
-// The day queue mirrors the decisions_waiting task branch exactly: statuses an
-// agent parks on Krish, not yet reviewed, not buried. Anything non-terminal
-// outside that set is work the agents carry themselves (the ambient line).
-const QUEUE_STATUSES = new Set(['waiting', 'in_progress', 'blocked', 'new'])
-
-// A deferred task (future due_date) is off the plate until its date arrives,
-// then re-enters here automatically (defer no longer sets krish_reviewed).
-function deferredToLater(t: TaskRow): boolean {
-  if (!t.due_date) return false
-  const startOfTomorrow = new Date(); startOfTomorrow.setHours(24, 0, 0, 0)
-  return new Date(t.due_date).getTime() >= startOfTomorrow.getTime()
-}
-
-function needsKrish(t: TaskRow): boolean {
-  return QUEUE_STATUSES.has(t.status) && !t.krish_reviewed && !deferredToLater(t)
-}
-
-function isDueNow(t: TaskRow): boolean {
-  if (!t.due_date) return false
-  const d = parseISO(t.due_date)
-  return isToday(d) || isPast(d)
-}
-
-// Coarse sitting math, same spirit as minutesToZero in decisionKinds: a task
-// ruling runs well under a minute; floor of 1 so a non-empty queue never
-// claims zero minutes.
-function minutesLeft(remaining: number): number {
-  return Math.max(1, Math.round(remaining * 0.75))
-}
-
-function deferDateISO(choice: 'tomorrow' | 'monday' | 'next_week'): string {
-  const d = new Date()
-  if (choice === 'tomorrow') d.setDate(d.getDate() + 1)
-  else if (choice === 'monday') d.setDate(d.getDate() + (((8 - d.getDay()) % 7) || 7))
-  else d.setDate(d.getDate() + 7)
-  return d.toISOString()
-}
-
-const DEFER_CHOICES: Array<{ key: 'tomorrow' | 'monday' | 'next_week'; label: string }> = [
-  { key: 'tomorrow', label: 'Tomorrow' },
-  { key: 'monday', label: 'Monday' },
-  { key: 'next_week', label: 'Next week' },
-]
+// Queue predicates live in the shared helper (src/lib/taskQueue.ts) so Home,
+// Today, and the decisions surfaces agree on what counts as "the day".
+import {
+  STALE_DAYS, isStaleNoProgress, isNoiseTask, isDoneish as isSupersededOrDone,
+  needsKrish, isDueNow, minutesLeft, deferDateISO, DEFER_CHOICES,
+} from '../../lib/taskQueue'
 
 function waitingDaysLabel(iso?: string | null): string {
   if (!iso) return ''

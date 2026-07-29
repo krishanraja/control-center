@@ -29,6 +29,8 @@ import { AltitudeSpine } from '../home/AltitudeSpine'
 import { BoardDaily } from '../home/BoardDaily'
 import { GrowthScoreboard } from '../home/GrowthScoreboard'
 import { isGrowthScoreboardEnabled } from '../../hooks/useGrowthMetrics'
+import { needsKrish } from '../../lib/taskQueue'
+import { isSimplifiedIA } from '../../lib/iaV3'
 import { isHomeV2Enabled, isFocusRitualEnabled } from '../../lib/homeV2'
 import { ShipLedgerCard } from '../pilot/ShipLedgerCard'
 import { DueTestsCard } from '../pilot/DueTestsCard'
@@ -77,20 +79,23 @@ const hasRenderableMessage = (ev: AuditEvent) => resolveMessage(ev) !== null
  * WeeklyGoals, the Friday retro, ActivityTail. Nothing in there asks
  * anything of you.
  */
-export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
+export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }: {
+  onNavigate?: NavigateFn
+  /** Legacy #/today deep links, forwarded by the simplified-IA alias layer. */
+  deepTask?: string | null
+  deepDecision?: string | null
+} = {}) {
   const v2 = isHomeV2Enabled()
   const { intel } = useHomeIntelligence()
   const [events, setEvents] = useState<AuditEvent[]>([])
   const [goalsData, setGoalsData] = useState<GoalsData | null>(null)
   const { tasks: waitingRaw } = useRealtimeTasks({ statusIn: ['waiting'] })
-  // Mirror the Today queue's rule (unreviewed, unburied, not deferred to a
-  // future date) so the strip's Today tile and the queue can never disagree.
-  const waiting = useMemo(() => waitingRaw.filter(t => {
-    if (t.krish_reviewed || t.buried_at) return false
-    if (!t.due_date) return true
-    const startOfTomorrow = new Date(); startOfTomorrow.setHours(24, 0, 0, 0)
-    return new Date(t.due_date).getTime() < startOfTomorrow.getTime()
-  }), [waitingRaw])
+  // The shared queue rule (unreviewed, unburied, not deferred to a future
+  // date) so the strip's Today tile and the ruling queue can never disagree.
+  const waiting = useMemo(
+    () => waitingRaw.filter(t => !t.buried_at && needsKrish(t)),
+    [waitingRaw],
+  )
   const live = useLiveStatus(60_000)
 
   useEffect(() => {
@@ -153,7 +158,7 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         {/* THE DAY — track and close; the picker lives in the ritual. */}
         <BoardDaily />
 
-        <DecisionsInbox onNavigate={onNavigate} />
+        <DecisionsInbox onNavigate={onNavigate} deepTask={deepTask} deepDecision={deepDecision} />
 
         {/* THE AMBIENT ROOM: context that informs but never asks. Collapsed
             behind an explicit fold so the action loop above owns the screen. */}
@@ -229,8 +234,9 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
       </div>
 
       {/* ACTION INBOX — what's waiting on you, acted on in one tap (HomeV2).
-          Re-introduces decisions_waiting to Home, now with inline actions. */}
-      {v2 && <DecisionsInbox onNavigate={onNavigate} />}
+          Under the simplified IA it renders unconditionally: Today is gone, so
+          Home must always carry the ruling queue regardless of the home flags. */}
+      {(v2 || isSimplifiedIA()) && <DecisionsInbox onNavigate={onNavigate} deepTask={deepTask} deepDecision={deepDecision} />}
 
       {/* THE AMBIENT ROOM: everything below informs but never asks. Collapsed
           behind an explicit fold so the action loop above owns the screen. */}

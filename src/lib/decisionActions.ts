@@ -1,5 +1,6 @@
 import type { SheetAction } from '../components/mobile/DetailSheet'
 import { navigateDecision } from './routeDecision'
+import { deferDateISO } from './taskQueue'
 import type { DecisionRow } from '../hooks/useRealtimeDecisionsWaiting'
 
 type Haptics = {
@@ -21,6 +22,14 @@ export interface DecisionActionCtx {
   haptics: Haptics
   /** Close the open sheet after a terminal action fires. */
   onDone?: () => void
+  /**
+   * Collect a send-back note from the user (resolves null on cancel). When the
+   * consumer supplies this, task rows gain the "Send back" verb; without it the
+   * verb is omitted rather than broken.
+   */
+  promptNote?: (title: string) => Promise<string | null>
+  /** Pick a defer horizon (resolves null on cancel). Gates the "Defer" verb. */
+  promptDefer?: () => Promise<'tomorrow' | 'monday' | 'next_week' | null>
 }
 
 type Kind = DecisionRow['kind']
@@ -39,7 +48,7 @@ export function buildDecisionActions(
   row: Record<string, any>,
   ctx: DecisionActionCtx,
 ): SheetAction[] {
-  const { toast, navigate, refresh, onDone } = ctx
+  const { toast, navigate, refresh, onDone, promptNote, promptDefer } = ctx
   const acts: SheetAction[] = []
 
   // Small helper: fire a request, surface result, refresh + close on success.
@@ -232,6 +241,7 @@ export function buildDecisionActions(
     }
 
     case 'task': {
+      const taskAgent = row.agent || row.owner || 'agatha'
       acts.push({
         label: 'Approve',
         variant: 'primary',
@@ -239,10 +249,40 @@ export function buildDecisionActions(
           () => json('/api/tasks/update', {
             id: row.id,
             action: 'approve',
-            agent: row.agent || row.owner || 'agatha',
+            agent: taskAgent,
           }),
           'Approved.', { terminal: true }),
       })
+      // Today's ruling verbs, absorbed into the unified queue: Send back (with
+      // a note the owning agent acts on) and Defer (off the plate until its
+      // date). Both need a consumer-supplied prompt; without one the verb is
+      // simply not offered.
+      if (promptNote) {
+        acts.push({
+          label: 'Send back',
+          variant: 'secondary',
+          onClick: async () => {
+            const notes = await promptNote(row.title || 'Send back with a note')
+            if (notes == null) return
+            await run('Send back',
+              () => json('/api/tasks/update', { id: row.id, action: 'send_back', agent: taskAgent, notes }),
+              `Sent back to ${taskAgent}.`, { terminal: true })
+          },
+        })
+      }
+      if (promptDefer) {
+        acts.push({
+          label: 'Defer',
+          variant: 'secondary',
+          onClick: async () => {
+            const choice = await promptDefer()
+            if (choice == null) return
+            await run('Defer',
+              () => json('/api/tasks/update', { id: row.id, action: 'defer', agent: taskAgent, due_date: deferDateISO(choice) }),
+              'Deferred.', { terminal: true })
+          },
+        })
+      }
       acts.push({
         label: 'Reject',
         variant: 'danger',
@@ -250,10 +290,31 @@ export function buildDecisionActions(
           () => json('/api/triage/reject', {
             source_table: 'tasks',
             source_id: row.id,
-            agent: row.agent || row.owner || 'agatha',
+            agent: taskAgent,
             reason_code: 'task_other',
           }),
           'Rejected. Vera will learn from this.', { terminal: true }),
+      })
+      break
+    }
+
+    case 'correction': {
+      // Vera's learning-loop approvals, previously actionable only on the Org
+      // tab (PendingCorrectionsPanel). Same endpoints, same payload shape; the
+      // Org panel stays as a second consumer.
+      acts.push({
+        label: 'Approve',
+        variant: 'primary',
+        onClick: () => run('Approve',
+          () => json('/api/corrections/approve', { correction_id: row.id }),
+          'Correction approved — brief updated within 15 minutes.', { terminal: true }),
+      })
+      acts.push({
+        label: 'Reject',
+        variant: 'danger',
+        onClick: () => run('Reject',
+          () => json('/api/corrections/reject', { correction_id: row.id }),
+          'Correction rejected.', { terminal: true }),
       })
       break
     }

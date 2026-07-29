@@ -27,6 +27,7 @@ import { AltitudeSpine, StaleHeaderCue } from '../home/AltitudeSpine'
 import { BoardDaily } from '../home/BoardDaily'
 import { GrowthScoreboard } from '../home/GrowthScoreboard'
 import { isGrowthScoreboardEnabled } from '../../hooks/useGrowthMetrics'
+import { isSimplifiedIA } from '../../lib/iaV3'
 import { isHomeV2Enabled, isFocusRitualEnabled } from '../../lib/homeV2'
 import { ShipLedgerCard } from '../pilot/ShipLedgerCard'
 import { DueTestsCard } from '../pilot/DueTestsCard'
@@ -44,7 +45,12 @@ type NavigateFn = (tab: string, params?: Record<string, string>) => void
  * the ambient fold (the week + everything glanceable-but-passive, collapsed).
  * The legacy stack is kept as the fallback until the flag is dogfooded.
  */
-export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
+export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }: {
+  onNavigate?: NavigateFn
+  /** Legacy #/today deep links, forwarded by the simplified-IA alias layer. */
+  deepTask?: string | null
+  deepDecision?: string | null
+} = {}) {
   const h = useHaptics()
   const { intel } = useHomeIntelligence()
   const [openSignal, setOpenSignal] = useState<ExternalSignal | null>(null)
@@ -120,7 +126,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         <BoardDaily />
 
         {/* ACTION INBOX — what's waiting on you, acted on in one tap. */}
-        <DecisionsInbox onNavigate={onNavigate} />
+        <DecisionsInbox onNavigate={onNavigate} deepTask={deepTask} deepDecision={deepDecision} />
 
         {/* THE AMBIENT ROOM: money / pipeline / momentum. Informs, never
             asks; collapsed below the action loop. */}
@@ -164,7 +170,7 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         </div>
 
         {/* ACTION INBOX: your decisions, acted on in one tap. */}
-        <DecisionsInbox onNavigate={onNavigate} />
+        <DecisionsInbox onNavigate={onNavigate} deepTask={deepTask} deepDecision={deepDecision} />
 
         {/* THE AMBIENT ROOM: the week + money / pipeline / momentum. Informs,
             never asks; collapsed below the action loop. */}
@@ -207,6 +213,10 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
       {/* DAILY SPINE — one journey: frame, lock 3, track, close. */}
       <DailyDriver />
+
+      {/* ACTION INBOX — under the simplified IA the ruling queue must exist on
+          every home path (Today is gone), regardless of the home flags. */}
+      {isSimplifiedIA() && <DecisionsInbox onNavigate={onNavigate} deepTask={deepTask} deepDecision={deepDecision} />}
 
       {/* ROOM PREVIEWS — Content / Visibility / Leads, stacked. */}
       <RoomPreviews onNavigate={onNavigate} variant="mobile" />
