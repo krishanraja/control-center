@@ -122,7 +122,9 @@ export function ThumbSlider({ label, notches, value, onChange, hint }: Props) {
             className={`absolute w-[34px] h-[34px] rounded-full bg-base border-2 border-white/35 shadow-lg shadow-black/20 pointer-events-none transition-transform duration-75 ${
               dragging ? 'scale-110' : 'scale-100'
             }`}
-            style={{ left: `calc(${pct}% - 17px)` }}
+            // Inset the travel by the thumb's own width so it never overhangs
+            // either end of the track: 0% sits flush left, 100% flush right.
+            style={{ left: `calc(${pct}% - ${(pct / 100) * 34}px)` }}
           />
         )}
         {value === null && (
