@@ -5,6 +5,7 @@ import { DESKTOP_PRIMARY_TABS, DESKTOP_DRAWER_TABS } from '../lib/tabs'
 import { displayMrr, formatMrr } from '../lib/mrrDisplay'
 import { usePressable } from './shared/usePressable'
 import { ThemeToggle } from './shared/ThemeToggle'
+import { TimezoneToggle } from './shared/TimezoneToggle'
 
 interface Props {
   active: string
@@ -154,6 +155,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
               )}
             </div>
             <ThemeToggle expanded />
+            <TimezoneToggle expanded />
             <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between">
               <span className="text-[10px] uppercase tracking-[0.14em] text-white/30 font-medium">Command</span>
               <kbd className="text-[10px] font-mono text-white/60 border border-white/10 rounded px-1.5 py-0.5 bg-white/[0.03]">⌘K</kbd>
@@ -162,6 +164,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
         ) : (
           <div className="flex flex-col items-center gap-3">
             <ThemeToggle expanded={false} />
+            <TimezoneToggle expanded={false} />
             <div className={`w-2 h-2 rounded-full ${dotColor}`} title={dotTitle} />
           </div>
         )}

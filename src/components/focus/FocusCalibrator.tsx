@@ -8,6 +8,7 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { usePilotStateContext } from '../../contexts/PilotStateContext'
 import { rankByIntent } from '../../lib/pilotCapacity'
+import { civilYmd } from '../../lib/civilDate'
 
 // Picker for today's 3 focuses. Renders only when no daily_focus row
 // exists for today. Krish sees Marcus's 7 leverage picks as compact
@@ -66,7 +67,7 @@ const KIND_META: Record<string, { label: string; bg: string; text: string; Icon:
 }
 
 function ymd(d: Date): string {
-  return d.toISOString().slice(0, 10)
+  return civilYmd(d)
 }
 
 function browserCanRecord(): boolean {

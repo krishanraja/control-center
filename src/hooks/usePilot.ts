@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { LogShipInput, PilotMode, PilotState, ShipSummary } from '../types/pilot'
+import { adoptServerZone } from '../lib/civilDate'
 
 // Single reader of pilot state. Deliberately thin: no realtime channel, no
 // shared cache across mounts. The gate reads once on load and the widget reads
@@ -25,6 +26,8 @@ export function usePilotState(): PilotStateResult {
       const res = await fetch(`${API}/api/pilot/checkin`)
       const json = await res.json()
       if (!res.ok || !json.ok) throw new Error(json.error || `Request failed (${res.status})`)
+      // A zone set on the laptop shows up on the phone without a second call.
+      adoptServerZone(json.timezone)
       setState({
         morning: json.morning,
         last_evening: json.last_evening,

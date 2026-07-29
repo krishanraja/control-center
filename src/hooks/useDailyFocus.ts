@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { civilYmd } from '../lib/civilDate'
 
 // Phase 1 of focus + tasks inbox brief. Single canonical reader of
 // today's daily_focus row + yesterday's carry-over candidate. Shared
@@ -43,8 +44,11 @@ interface DailyFocusState {
   loading: boolean
 }
 
+// The operator's civil day, not UTC. focus_date used to be a UTC key while
+// useAltitudes asked London whether today was set, so the two could disagree
+// for an hour every day and all day for a European operator.
 function ymd(d: Date): string {
-  return d.toISOString().slice(0, 10)
+  return civilYmd(d)
 }
 
 let cache: DailyFocusState = { today: null, carry_over: null, loading: true }

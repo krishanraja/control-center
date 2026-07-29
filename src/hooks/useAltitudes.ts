@@ -3,7 +3,7 @@ import { useObjectives } from './useObjectives'
 import { useWeeklyFocus, isWeeklyFocusEnabled } from './useWeeklyFocus'
 import { useDailyFocus, isFocusEnabled } from './useDailyFocus'
 import { isFocusRitualEnabled } from '../lib/homeV2'
-import { londonYmd } from '../lib/londonDate'
+import { civilYmd } from '../lib/civilDate'
 import { usePilotStateContext } from '../contexts/PilotStateContext'
 
 // The unifying state machine behind the Focus Ritual. Every altitude shares one
@@ -67,7 +67,7 @@ export function useAltitudes(): AltitudesResult {
   const demandOk = pilot.profile.allowsHigherAltitudeDemand
 
   const loading = obj.loading || wf.loading || df.loading
-  const todayYmd = londonYmd(new Date())
+  const todayYmd = civilYmd(new Date())
   const dismissedToday = safeGet(DISMISS_KEY) === todayYmd
 
   // ── Portfolio ──────────────────────────────────────────────────────────────
@@ -141,7 +141,7 @@ export function useAltitudes(): AltitudesResult {
   const allSet = !loading && pending.length === 0
 
   const dismissToday = useCallback(() => {
-    safeSet(DISMISS_KEY, londonYmd(new Date()))
+    safeSet(DISMISS_KEY, civilYmd(new Date()))
     setV(v => v + 1)
   }, [])
 

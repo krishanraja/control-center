@@ -1,13 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { getOperatorTz, ymdIn, shiftYmd } from '../_timezone.js'
 
 // GET /api/daily-focus/today
 //   Returns { today_row, carry_over_row | null }.
 //   carry_over_row is yesterday's row if its status is not 'complete'.
 
-function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10)
-}
+
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -17,9 +16,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'GET')     return res.status(405).json({ ok: false, error: 'Method not allowed' })
 
-  const todayIso = isoDate(new Date())
-  const y = new Date(); y.setUTCDate(y.getUTCDate() - 1)
-  const yesterdayIso = isoDate(y)
+  // The operator's civil day, not UTC. focus_date is written by the client on
+  // the same clock, so both ends must resolve it the same way.
+  const tz = await getOperatorTz()
+  const todayIso = ymdIn(new Date(), tz)
+  const yesterdayIso = shiftYmd(todayIso, -1)
 
   const [todayRes, yRes] = await Promise.all([
     supabase.from('daily_focus').select('*').eq('focus_date', todayIso).maybeSingle(),

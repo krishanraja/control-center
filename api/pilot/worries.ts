@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { compileWorry, CompilerSchemaError } from '../_worry-prompt.js'
+import { getOperatorTz, ymdIn, shiftYmd as tzShift } from '../_timezone.js'
 
 /**
  * /api/pilot/worries
@@ -23,24 +24,9 @@ import { compileWorry, CompilerSchemaError } from '../_worry-prompt.js'
  */
 
 const OPEN_TEST_CAP = 5
-const PILOT_TZ = 'America/New_York'
 const WEATHER_DAYS = 7
 
-/** Today's civil date in the pilot zone as YYYY-MM-DD. Mirrors src/lib/pilotDay.ts. */
-function pilotToday(at: Date = new Date()): string {
-  const f = new Intl.DateTimeFormat('en-GB', {
-    timeZone: PILOT_TZ, year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(at)
-  const get = (t: string) => f.find(p => p.type === t)?.value || ''
-  return `${get('year')}-${get('month')}-${get('day')}`
-}
 
-function addDays(ymd: string, days: number): string {
-  const [y, m, d] = ymd.split('-').map(Number)
-  const base = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
-  base.setUTCDate(base.getUTCDate() + days)
-  return base.toISOString().slice(0, 10)
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -100,7 +86,7 @@ async function save(body: Record<string, unknown>, res: VercelResponse) {
 
   const str = (k: string): string => (typeof body[k] === 'string' ? (body[k] as string).trim() : '')
   const now = new Date().toISOString()
-  const today = pilotToday()
+  const today = ymdIn(new Date(), await getOperatorTz())
 
   if (state === 'test') {
     const belief = str('belief')
@@ -197,7 +183,7 @@ async function save(body: Record<string, unknown>, res: VercelResponse) {
   const { data, error } = await supabase.from('worries').insert({
     raw_text: rawText, state,
     outcome_note: str('label') || null,
-    expires_at: new Date(`${addDays(today, WEATHER_DAYS)}T00:00:00Z`).toISOString(),
+    expires_at: new Date(`${tzShift(today, WEATHER_DAYS)}T00:00:00Z`).toISOString(),
   }).select('id, state, closed_at, expires_at, test_due_date').single()
   if (error) return res.status(500).json({ ok: false, error: error.message })
   return res.status(201).json({ ok: true, worry: data })
@@ -205,7 +191,7 @@ async function save(body: Record<string, unknown>, res: VercelResponse) {
 
 /** GET: tests due today, plus calibration once enough tests have closed. */
 async function due(res: VercelResponse) {
-  const today = pilotToday()
+  const today = ymdIn(new Date(), await getOperatorTz())
 
   // Weather expires lazily on read. No cron, and nothing accumulates.
   await supabase.from('worries')

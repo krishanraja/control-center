@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { getOperatorTz, weekOfIn } from '../_timezone.js'
 
 // GET /api/daily-focus/suggestions
 //   Returns { marcus_top_three, marcus_alternates, marcus_reasoning }.
@@ -90,18 +91,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 interface ServesMilestone { id: string; title: string; goal_id: string; goal_title: string | null }
 
-// Monday (Europe/London) of the week containing `now`, matching the client's
-// weekOfLondon so the chip lines up with what the takeover committed.
-function mondayLondon(now: Date): string {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
-  }).formatToParts(now)
-  const get = (t: string) => parts.find(p => p.type === t)?.value || ''
-  const dow: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }
-  const base = new Date(Date.UTC(Number(get('year')), Number(get('month')) - 1, Number(get('day')), 12))
-  base.setUTCDate(base.getUTCDate() - (dow[get('weekday')] ?? 0))
-  return base.toISOString().slice(0, 10)
-}
 
 async function buildServesByTask(cards: TopThreeCard[]): Promise<Record<string, ServesMilestone>> {
   const out: Record<string, ServesMilestone> = {}
@@ -110,7 +99,9 @@ async function buildServesByTask(cards: TopThreeCard[]): Promise<Record<string, 
       cards.filter(c => c.action_kind === 'task' && c.action_target_id).map(c => c.action_target_id as string),
     ))
     if (taskIds.length === 0) return out
-    const week = mondayLondon(new Date())
+    // The operator's civil week, the same one weekly_focus_milestones is keyed
+    // by on the client. This used to be hardcoded to Europe/London.
+    const week = weekOfIn(new Date(), await getOperatorTz())
     const { data: committed } = await supabase
       .from('weekly_focus_milestones')
       .select('milestone_id, goal_id')

@@ -1,3 +1,4 @@
+import { getOperatorTz, ymdIn, shiftYmd as tzShift } from './_timezone.js'
 /**
  * The worry compiler's system prompt and LLM call.
  *
@@ -153,21 +154,7 @@ async function getOpenAIKey(): Promise<string | null> {
   return cachedOpenAIKey
 }
 
-/** Today's civil date in the operator's zone. Mirrors src/lib/pilotDay.ts. */
-function pilotToday(at: Date = new Date()): string {
-  const f = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(at)
-  const get = (t: string) => f.find(p => p.type === t)?.value || ''
-  return `${get('year')}-${get('month')}-${get('day')}`
-}
 
-function addDays(ymd: string, days: number): string {
-  const [y, m, d] = ymd.split('-').map(Number)
-  const base = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
-  base.setUTCDate(base.getUTCDate() + days)
-  return base.toISOString().slice(0, 10)
-}
 
 async function callOnce(rawText: string): Promise<CompiledWorry> {
   const key = await getOpenAIKey()
@@ -176,10 +163,10 @@ async function callOnce(rawText: string): Promise<CompiledWorry> {
   // The model has no clock. Without today's date it emits a due date from its
   // training data, which lands in the past and makes the test read as already
   // due. The date goes in the user message so the system prompt stays verbatim.
-  const today = pilotToday()
+  const today = ymdIn(new Date(), await getOperatorTz())
   const dated = [
     `TODAY: ${today}`,
-    `A test_due_date must fall between ${addDays(today, 1)} and ${addDays(today, 7)}.`,
+    `A test_due_date must fall between ${tzShift(today, 1)} and ${tzShift(today, 7)}.`,
     '',
     'WORRY:',
     rawText,
@@ -214,7 +201,7 @@ async function callOnce(rawText: string): Promise<CompiledWorry> {
   try { parsed = JSON.parse(content) } catch {
     throw new CompilerSchemaError('Model did not return valid JSON')
   }
-  return validateCompilation(parsed, { min: today, max: addDays(today, 7) })
+  return validateCompilation(parsed, { min: today, max: tzShift(today, 7) })
 }
 
 /**

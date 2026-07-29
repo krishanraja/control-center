@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { getOperatorTz, ymdIn, dayStartUtcIn, weekOfIn } from '../_timezone.js'
 
 /**
  * /api/pilot/ships
@@ -54,27 +55,6 @@ function authorised(req: VercelRequest): boolean {
   return auth === `Bearer ${secret}`
 }
 
-/** Midnight in America/New_York for the civil day containing `at`, as a Date. */
-function nyDayStart(at: Date): Date {
-  const f = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'America/New_York',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-  }).formatToParts(at)
-  const get = (t: string) => Number(f.find(p => p.type === t)?.value || '0')
-  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour') % 24, get('minute'), get('second'))
-  const offsetMs = at.getTime() - asUtc
-  return new Date(Date.UTC(get('year'), get('month') - 1, get('day'), 0, 0, 0) + offsetMs)
-}
-
-/** Monday 00:00 in America/New_York for the week containing `at`. */
-function nyWeekStart(at: Date): Date {
-  const weekday = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/New_York', weekday: 'short' })
-    .format(at)
-  const dow: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }
-  const start = nyDayStart(at)
-  return new Date(start.getTime() - (dow[weekday] ?? 0) * DAY_MS)
-}
 
 function median(values: number[]): number | null {
   if (values.length === 0) return null
@@ -173,6 +153,8 @@ async function post(req: VercelRequest, res: VercelResponse) {
 
 async function get(_req: VercelRequest, res: VercelResponse) {
   const now = new Date()
+  const tz = await getOperatorTz()
+  const dayStart = (at: Date) => dayStartUtcIn(ymdIn(at, tz), tz)
   const since = new Date(now.getTime() - TRAILING_DAYS * DAY_MS)
 
   const { data, error } = await supabase
@@ -184,7 +166,7 @@ async function get(_req: VercelRequest, res: VercelResponse) {
 
   const ships = data || []
 
-  const weekStart = nyWeekStart(now)
+  const weekStart = dayStartUtcIn(weekOfIn(now, tz), tz)
   const this_week = ships.filter(s => new Date(s.occurred_at).getTime() >= weekStart.getTime()).length
 
   // days_since_last needs the newest ship overall, which may predate the 60-day
@@ -200,7 +182,7 @@ async function get(_req: VercelRequest, res: VercelResponse) {
     newest = latest.data?.occurred_at
   }
   const days_since_last = newest
-    ? Math.max(0, Math.round((nyDayStart(now).getTime() - nyDayStart(new Date(newest)).getTime()) / DAY_MS))
+    ? Math.max(0, Math.round((dayStart(now).getTime() - dayStart(new Date(newest)).getTime()) / DAY_MS))
     : null
 
   // Return rate: how quickly activity resumes after a gap, as the median gap in
@@ -211,8 +193,8 @@ async function get(_req: VercelRequest, res: VercelResponse) {
   )
   const gaps: number[] = []
   for (let i = 1; i < ascending.length; i += 1) {
-    const prev = nyDayStart(new Date(ascending[i - 1].occurred_at)).getTime()
-    const curr = nyDayStart(new Date(ascending[i].occurred_at)).getTime()
+    const prev = dayStart(new Date(ascending[i - 1].occurred_at)).getTime()
+    const curr = dayStart(new Date(ascending[i].occurred_at)).getTime()
     gaps.push(Math.round((curr - prev) / DAY_MS))
   }
   const return_rate = median(gaps)

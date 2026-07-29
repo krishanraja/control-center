@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { MoreHorizontal, type LucideIcon } from 'lucide-react'
 import { useHaptics } from '../hooks/useHaptics'
 import { ThemeToggle } from './shared/ThemeToggle'
+import { TimezoneToggle } from './shared/TimezoneToggle'
 import { MOBILE_PRIMARY_TABS, MOBILE_DRAWER_TABS, type TabDef } from '../lib/tabs'
 
 interface Props {
@@ -118,6 +119,7 @@ function MobileMoreDrawer({
         <div className="px-4 pb-3 flex items-center gap-3">
           <span className="text-[11px] font-display font-semibold uppercase tracking-[0.18em] text-white/40 flex-shrink-0">Appearance</span>
           <div className="flex-1 min-w-0"><ThemeToggle expanded /></div>
+          <div className="flex-1 min-w-0"><TimezoneToggle expanded /></div>
         </div>
         <div className="grid grid-cols-3 gap-2 p-4 pt-1">
           {tabs.map(({ id, label, mobileIcon: Icon }) => (
