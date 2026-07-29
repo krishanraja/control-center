@@ -7,6 +7,7 @@ import { useAltitudes, type AltitudeId } from '../../hooks/useAltitudes'
 import { useObjectives, reorderObjectives } from '../../hooks/useObjectives'
 import { useWeeklyFocus } from '../../hooks/useWeeklyFocus'
 import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
+import { usePilotState } from '../../hooks/usePilot'
 import { useStreaks } from '../../hooks/useStreaks'
 import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -524,6 +525,8 @@ function WeeklyStep({ onCommitted }: { onCommitted: () => void }) {
 // Frame the day (Marcus's brief + yesterday's open loop), then pick today's 3.
 // FocusCalibrator owns the pick + its own Lock button; onLocked advances us.
 function DailyStep({ onLocked }: { onLocked: () => void }) {
+  const { state: pilot } = usePilotState()
+  const pilotOne = pilot?.last_evening?.tomorrow_one ?? null
   const { today } = useDailyFocus()
 
   if (today) {
@@ -547,7 +550,7 @@ function DailyStep({ onLocked }: { onLocked: () => void }) {
     <div className="flex flex-col gap-3">
       <ContextHeader />
       <CarryOverPrompt />
-      <FocusCalibrator onLocked={onLocked} />
+      <FocusCalibrator onLocked={onLocked} pilotOne={pilotOne} />
     </div>
   )
 }

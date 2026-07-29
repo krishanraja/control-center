@@ -15,6 +15,10 @@ export interface Intent {
   blurb: string
 }
 
+// Which nomination kinds each intent favours lives in pilotCapacity.INTENT_KINDS,
+// keyed by `key` below, so the ranking rule sits next to the capacity rules
+// rather than being split across two files.
+
 export const INTENTS: Intent[] = [
   { key: 'content',  label: 'Publish something', tab: 'content',     blurb: 'Today is for getting something out.' },
   { key: 'outreach', label: 'Talk to people',    tab: 'relationships', blurb: 'Today is for reaching humans.' },

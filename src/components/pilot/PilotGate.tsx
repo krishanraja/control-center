@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import type { PilotMode } from '../../types/pilot'
 import { usePilotState } from '../../hooks/usePilot'
 import { intentByKey, type Intent } from '../../lib/pilotIntent'
+import { PilotStateProvider } from '../../contexts/PilotStateContext'
 import { MorningCheckin } from './MorningCheckin'
 import { RedMode } from './RedMode'
 
@@ -48,6 +49,8 @@ export function PilotGate({ children, onIntent }: Props) {
   }, [routed, onIntent, savedIntent, mode])
 
   if (loading) return null
+  // Fails open: an unreachable pilot service renders the dashboard untouched,
+  // with no provider, which resolves every consumer to `steady`.
   if (error || !state) return <>{children}</>
 
   const recentMorning = state.last_morning_at
@@ -82,5 +85,7 @@ export function PilotGate({ children, onIntent }: Props) {
     )
   }
 
-  return <>{children}</>
+  // The reading reaches the dashboard from here. Before the capacity layer this
+  // returned bare children and the state died at the gate.
+  return <PilotStateProvider morning={state.morning}>{children}</PilotStateProvider>
 }

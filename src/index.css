@@ -542,3 +542,33 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-\[pilotIn_260ms_ease-out\] { animation: none; }
 }
+
+/* ── Capacity: the whole visual temperature change ────────────────────────────
+   The pilot layer stamps data-capacity="low" on <html> when the morning reading
+   says depleted (see src/lib/theme.ts applyCapacity). Everything below re-times
+   and softens the app from that one attribute, so no component has to know the
+   operator's state in order to respond to it.
+
+   It only ever calms. It never signals alarm, and it never marks anything as
+   behind, per the no-guilt-UI rule in docs/PILOT-LAYER.md. */
+:root[data-capacity='low'] {
+  /* Slower motion reads as more serene. These are the same dials the whole app
+     already animates against. */
+  --dur-rise: 0.75s;
+  --dur-scale: 0.46s;
+  --dur-exhale: 0.95s;
+  --dur-app-enter: 0.8s;
+
+  /* Flatter surfaces, less edge contrast: fewer things competing for the eye. */
+  --card-hi-a: 0;
+  --ambient-opacity: 0.35;
+}
+
+/* Give the day more room to breathe without any component changing its markup. */
+:root[data-capacity='low'] main {
+  letter-spacing: 0.002em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-capacity='low'] { --dur-rise: 0s; --dur-scale: 0s; --dur-exhale: 0s; }
+}

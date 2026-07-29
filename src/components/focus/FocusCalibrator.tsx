@@ -6,6 +6,8 @@ import {
 import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
+import { usePilotStateContext } from '../../contexts/PilotStateContext'
+import { rankByIntent } from '../../lib/pilotCapacity'
 
 // Picker for today's 3 focuses. Renders only when no daily_focus row
 // exists for today. Krish sees Marcus's 7 leverage picks as compact
@@ -84,7 +86,11 @@ function newCustomId(): string {
   return `custom-${customCounter}-${Date.now()}`
 }
 
-export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
+export function FocusCalibrator({ onLocked, pilotOne }: {
+  onLocked?: () => void
+  /** Last night's shutdown ONE, seeded as the first slot. See the effect below. */
+  pilotOne?: string | null
+} = {}) {
   const { today, carry_over, loading } = useDailyFocus()
   const [suggestions, setSuggestions] = useState<SuggestionsPayload>({
     marcus_top_three: [], marcus_alternates: [], marcus_reasoning: null,
@@ -101,6 +107,7 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
   const [submitting, setSubmitting] = useState(false)
   const h = useHaptics()
   const { toast } = useToast()
+  const pilot = usePilotStateContext()
 
   useEffect(() => {
     void (async () => {
@@ -118,16 +125,48 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
     })()
   }, [])
 
+  // One commitment, not two.
+  //
+  // The pilot layer's evening shutdown already picks tomorrow's ONE, at higher
+  // capacity, the night before. Until now that lived in pilot_checkins and the
+  // morning lock lived in daily_focus, so the operator held two daily
+  // commitments on two different clocks that could disagree. Seeding it as the
+  // first slot makes them the same object: red mode runs on slot 1, and a
+  // higher-capacity day simply asks for more slots after it.
+  //
+  // It seeds once, and only into an empty picker, so it can always be un-picked.
+  const seededOne = useRef(false)
+  useEffect(() => {
+    if (seededOne.current) return
+    const one = pilotOne?.trim()
+    if (!one) return
+    seededOne.current = true
+    setPicks(prev => (prev.length > 0 ? prev : [{ kind: 'custom', text: one, id: 'pilot-one' }]))
+  }, [pilotOne])
+
   if (!isFocusEnabled()) return null
   if (loading) return null
   if (today) return null
 
+  // How many targets today asks for. Capacity only ever lowers this. The daily
+  // altitude is never suppressed to zero: one commitment is the floor, and it
+  // is the same floor red mode already runs on.
+  const targetCount = pilot.profile.targets
+
   // Flatten Marcus's 7 picks (3 primary + up to 4 alternates) into a single
   // ordered list. Stable key per row.
-  const allPicks: Array<{ s: Suggestion; key: string; tier: 'primary' | 'alternate' }> = [
-    ...suggestions.marcus_top_three.map((s, i) => ({ s, key: suggestionKey(s, i),       tier: 'primary' as const })),
-    ...suggestions.marcus_alternates.map((s, i) => ({ s, key: suggestionKey(s, 100 + i), tier: 'alternate' as const })),
-  ]
+  // Ranked for what today is actually for: entries whose kind matches the
+  // morning intent rise above the rest, then leverage decides. A matched
+  // alternate can outrank an unmatched primary, which is the point of asking
+  // what the day is for at check-in.
+  const allPicks: Array<{ s: Suggestion; key: string; tier: 'primary' | 'alternate'; kind?: string; leverage_score?: number | null }> =
+    rankByIntent(
+      [
+        ...suggestions.marcus_top_three.map((s, i) => ({ s, key: suggestionKey(s, i),       tier: 'primary' as const,   kind: s.kind, leverage_score: s.leverage_score })),
+        ...suggestions.marcus_alternates.map((s, i) => ({ s, key: suggestionKey(s, 100 + i), tier: 'alternate' as const, kind: s.kind, leverage_score: s.leverage_score })),
+      ],
+      pilot.intent,
+    )
 
   const marcusPickIndex = new Map<string, number>() // key → slot number
   picks.forEach((p, i) => {
@@ -137,7 +176,7 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
     }
   })
 
-  const canLock = picks.length === 3 && picks.every(p => p.text.trim().length > 0) && !submitting
+  const canLock = picks.length === targetCount && picks.every(p => p.text.trim().length > 0) && !submitting
 
   const toggleMarcus = (s: Suggestion, key: string) => {
     if (unsuitable.has(key)) return // Row is locked after thumbs-down.
@@ -148,9 +187,9 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
         h.tap()
         return prev.filter((_, i) => i !== existing)
       }
-      if (prev.length >= 3) {
+      if (prev.length >= targetCount) {
         // At cap — tell Krish to un-pick first.
-        toast('Already at 3. Un-pick one first.', 'error')
+        toast(`Already at ${targetCount}. Un-pick one first.`, 'error')
         h.error()
         return prev
       }
@@ -228,8 +267,8 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
   }
 
   const addCustom = () => {
-    if (picks.length >= 3) {
-      toast('Already at 3. Un-pick one first.', 'error')
+    if (picks.length >= targetCount) {
+      toast(`Already at ${targetCount}. Un-pick one first.`, 'error')
       return
     }
     h.tap()
@@ -299,7 +338,7 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
       <header className="mb-4">
         <h2 className="text-[16px] font-semibold text-white">What are your 3 today?</h2>
         <p className="text-[12px] text-white/55 mt-1">
-          Pick from Marcus's leverage picks below, add your own, or mix. Lock 3 and Home recalibrates.
+          Pick from Marcus&rsquo;s leverage picks below, add your own, or mix. Lock {targetCount} and Home recalibrates.
           {carry_over ? ' Yesterday is still open below.' : ''}
         </p>
       </header>
@@ -359,17 +398,17 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
           <button
             type="button"
             onClick={addCustom}
-            disabled={picks.length >= 3}
+            disabled={picks.length >= targetCount}
             className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white/70 hover:text-white border border-white/[0.08] rounded-md px-2.5 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus size={11} />
             Add your own
           </button>
-          {picks.length >= 3 && (
-            <span className="text-[10px] text-white/45">3/3 — un-pick to swap</span>
+          {picks.length >= targetCount && (
+            <span className="text-[10px] text-white/45">{targetCount}/{targetCount} · un-pick to swap</span>
           )}
-          {picks.length < 3 && (
-            <span className="text-[10px] text-white/45 tabular-nums">{picks.length}/3</span>
+          {picks.length < targetCount && (
+            <span className="text-[10px] text-white/45 tabular-nums">{picks.length}/{targetCount}</span>
           )}
         </div>
       </div>
@@ -382,7 +421,7 @@ export function FocusCalibrator({ onLocked }: { onLocked?: () => void } = {}) {
           className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-violet-100 bg-violet-500/25 hover:bg-violet-500/40 border border-violet-400/40 rounded-md px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-          {submitting ? 'Locking...' : "Lock today's 3"}
+          {submitting ? 'Locking...' : `Lock today's ${targetCount}`}
         </button>
       </div>
     </section>
