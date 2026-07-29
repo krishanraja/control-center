@@ -58,6 +58,8 @@ export function PilotGate({ children, onIntent }: Props) {
   if (!answered) {
     return (
       <MorningCheckin
+        yesterday={state.yesterday}
+        today={state.today}
         onDone={(next, intent) => {
           setJustChose(next)
           if (next === 'green' && intent) { setRouted(true); onIntent?.(intent) }

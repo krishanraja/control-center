@@ -532,3 +532,13 @@
     display: none;
   }
 }
+
+/* Pilot layer: stage entrance for the morning check-in. Short and small, so a
+   stage change reads as a settle rather than an animation. */
+@keyframes pilotIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[pilotIn_260ms_ease-out\] { animation: none; }
+}

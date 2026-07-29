@@ -56,7 +56,19 @@ export interface PilotState {
   evening_done_today: boolean
   /** Newest morning row of any date, used to suppress the gate across a rollover. */
   last_morning_at: string | null
+  /** Yesterday's reading and output, for the one-line recap. */
+  yesterday: YesterdayRecap | null
   today: string
+}
+
+export interface YesterdayRecap {
+  date: string
+  energy: number | null
+  anxiety: number | null
+  mode: PilotMode | null
+  one_word: string | null
+  intent: string | null
+  ships: number
 }
 
 export interface LogShipInput {

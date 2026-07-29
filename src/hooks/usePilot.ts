@@ -30,6 +30,7 @@ export function usePilotState(): PilotStateResult {
         last_evening: json.last_evening,
         evening_done_today: json.evening_done_today,
         last_morning_at: json.last_morning_at ?? null,
+        yesterday: json.yesterday ?? null,
         today: json.today,
       })
       setError(null)

@@ -78,10 +78,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   return res.status(405).json({ ok: false, error: 'Method not allowed' })
 }
 
+/** Yesterday's civil date in the pilot zone. */
+function prevYmd(ymd: string): string {
+  const [y, m, d] = ymd.split('-').map(Number)
+  const base = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+  base.setUTCDate(base.getUTCDate() - 1)
+  return base.toISOString().slice(0, 10)
+}
+
 async function get(res: VercelResponse) {
   const now = new Date()
   const today = pilotYmd(now)
-  const [morningRes, eveningRes, eveningTodayRes, lastMorningRes] = await Promise.all([
+  const yesterday = prevYmd(today)
+  const [morningRes, eveningRes, eveningTodayRes, lastMorningRes, ydayRes, yshipRes] = await Promise.all([
     supabase.from('pilot_checkins').select('*')
       .eq('kind', 'morning').eq('checkin_date', today).maybeSingle(),
     supabase.from('pilot_checkins').select('*')
@@ -92,6 +101,12 @@ async function get(res: VercelResponse) {
     supabase.from('pilot_checkins').select('created_at')
       .eq('kind', 'morning').order('created_at', { ascending: false })
       .limit(1).maybeSingle(),
+    // Yesterday, for the one-line recap the gate opens with.
+    supabase.from('pilot_checkins').select('energy, anxiety, mode, one_word, intent')
+      .eq('kind', 'morning').eq('checkin_date', yesterday).maybeSingle(),
+    supabase.from('ships').select('id', { count: 'exact', head: true })
+      .gte('occurred_at', dayStartUtc(yesterday).toISOString())
+      .lt('occurred_at', dayEndUtc(yesterday).toISOString()),
   ])
 
   const firstError = morningRes.error || eveningRes.error || eveningTodayRes.error
@@ -103,6 +118,9 @@ async function get(res: VercelResponse) {
     last_evening: eveningRes.data || null,
     evening_done_today: Boolean(eveningTodayRes.data),
     last_morning_at: lastMorningRes.data?.created_at || null,
+    yesterday: ydayRes.data
+      ? { ...ydayRes.data, ships: yshipRes.count ?? 0, date: yesterday }
+      : null,
     today,
   })
 }
