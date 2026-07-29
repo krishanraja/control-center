@@ -155,7 +155,7 @@ export default function App() {
         {/* PILOT LAYER: today's check-in gates the whole shell. On a red day the
             gate renders one action instead of this tree until something ships.
             It fails open, so an unreachable pilot route never locks the app. */}
-        <PilotGate>
+        <PilotGate onIntent={(intent) => navigate(intent.tab)}>
         <div className="h-[100dvh] overflow-hidden text-ink flex flex-row">
           <AmbientField />
           {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}

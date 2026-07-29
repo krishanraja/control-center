@@ -81,18 +81,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 async function get(res: VercelResponse) {
   const now = new Date()
   const today = pilotYmd(now)
-  const start = dayStartUtc(today).toISOString()
-  const end = dayEndUtc(today).toISOString()
-
-  const [morningRes, eveningRes, eveningTodayRes] = await Promise.all([
+  const [morningRes, eveningRes, eveningTodayRes, lastMorningRes] = await Promise.all([
     supabase.from('pilot_checkins').select('*')
-      .eq('kind', 'morning').gte('created_at', start).lt('created_at', end)
-      .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      .eq('kind', 'morning').eq('checkin_date', today).maybeSingle(),
     supabase.from('pilot_checkins').select('*')
       .eq('kind', 'evening').not('tomorrow_one', 'is', null)
       .order('created_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('pilot_checkins').select('id')
-      .eq('kind', 'evening').gte('created_at', start).lt('created_at', end)
+      .eq('kind', 'evening').eq('checkin_date', today).maybeSingle(),
+    supabase.from('pilot_checkins').select('created_at')
+      .eq('kind', 'morning').order('created_at', { ascending: false })
       .limit(1).maybeSingle(),
   ])
 
@@ -104,6 +102,7 @@ async function get(res: VercelResponse) {
     morning: morningRes.data || null,
     last_evening: eveningRes.data || null,
     evening_done_today: Boolean(eveningTodayRes.data),
+    last_morning_at: lastMorningRes.data?.created_at || null,
     today,
   })
 }
@@ -126,19 +125,18 @@ async function post(req: VercelRequest, res: VercelResponse) {
     }
     const row = {
       kind: 'morning' as const,
+      checkin_date: today,
       energy: clampScore(body.energy),
       anxiety: clampScore(body.anxiety),
       one_word: typeof body.one_word === 'string' && body.one_word.trim() ? body.one_word.trim() : null,
       mode,
+      intent: typeof body.intent === 'string' && body.intent.trim() ? body.intent.trim() : null,
     }
 
     // One morning row per civil day. A reload must never re-gate, so a second
     // post updates today's row instead of inserting beside it.
     const existing = await supabase.from('pilot_checkins').select('id')
-      .eq('kind', 'morning')
-      .gte('created_at', dayStartUtc(today).toISOString())
-      .lt('created_at', dayEndUtc(today).toISOString())
-      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      .eq('kind', 'morning').eq('checkin_date', today).maybeSingle()
 
     if (existing.data) {
       const { data, error } = await supabase.from('pilot_checkins')
@@ -160,6 +158,7 @@ async function post(req: VercelRequest, res: VercelResponse) {
 
   const row = {
     kind: 'evening' as const,
+    checkin_date: today,
     shipped_today: typeof body.shipped_today === 'string' && body.shipped_today.trim()
       ? body.shipped_today.trim() : null,
     tomorrow_one: tomorrowOne,
@@ -168,10 +167,7 @@ async function post(req: VercelRequest, res: VercelResponse) {
   }
 
   const existing = await supabase.from('pilot_checkins').select('id')
-    .eq('kind', 'evening')
-    .gte('created_at', dayStartUtc(today).toISOString())
-    .lt('created_at', dayEndUtc(today).toISOString())
-    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    .eq('kind', 'evening').eq('checkin_date', today).maybeSingle()
 
   if (existing.data) {
     const { data, error } = await supabase.from('pilot_checkins')
@@ -190,10 +186,7 @@ async function patch(res: VercelResponse) {
   const today = pilotYmd(now)
 
   const existing = await supabase.from('pilot_checkins').select('id')
-    .eq('kind', 'morning')
-    .gte('created_at', dayStartUtc(today).toISOString())
-    .lt('created_at', dayEndUtc(today).toISOString())
-    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    .eq('kind', 'morning').eq('checkin_date', today).maybeSingle()
 
   if (!existing.data) {
     return res.status(404).json({ ok: false, error: 'No morning check-in today' })

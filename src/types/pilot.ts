@@ -21,6 +21,8 @@ export interface PilotCheckin {
   tomorrow_one: string | null
   tomorrow_one_url: string | null
   override_at: string | null
+  checkin_date: string | null
+  intent: string | null
 }
 
 export interface Ship {
@@ -52,6 +54,8 @@ export interface PilotState {
   last_evening: PilotCheckin | null
   /** True once an evening row exists for today, so the shutdown stops prompting. */
   evening_done_today: boolean
+  /** Newest morning row of any date, used to suppress the gate across a rollover. */
+  last_morning_at: string | null
   today: string
 }
 

@@ -29,6 +29,7 @@ export function usePilotState(): PilotStateResult {
         morning: json.morning,
         last_evening: json.last_evening,
         evening_done_today: json.evening_done_today,
+        last_morning_at: json.last_morning_at ?? null,
         today: json.today,
       })
       setError(null)
@@ -62,6 +63,7 @@ export async function saveMorning(input: {
   anxiety: number
   one_word: string
   mode: PilotMode
+  intent?: string
 }): Promise<void> {
   const res = await fetch(`${API}/api/pilot/checkin`, {
     method: 'POST',
