@@ -25,6 +25,8 @@ import { CalibrationCard } from '../home/CalibrationCard'
 import { PulseGroup } from '../home/PulseGroup'
 import { AltitudeSpine, StaleHeaderCue } from '../home/AltitudeSpine'
 import { BoardDaily } from '../home/BoardDaily'
+import { GrowthScoreboard } from '../home/GrowthScoreboard'
+import { isGrowthScoreboardEnabled } from '../../hooks/useGrowthMetrics'
 import { isHomeV2Enabled, isFocusRitualEnabled } from '../../lib/homeV2'
 import { ShipLedgerCard } from '../pilot/ShipLedgerCard'
 import { DueTestsCard } from '../pilot/DueTestsCard'
@@ -111,6 +113,9 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
             now lives in the header (StaleHeaderCue) so the cards own the screen. */}
         <AltitudeSpine variant="mobile" onNavigate={onNavigate} showStaleCta={false} />
 
+        {/* GROWTH SCOREBOARD — content subs / app subs / network at a glance. */}
+        {isGrowthScoreboardEnabled() && <GrowthScoreboard variant="mobile" />}
+
         {/* THE DAY — track today's 3 and close; the picker lives in the ritual. */}
         <BoardDaily />
 
@@ -149,6 +154,9 @@ export function MobileHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
         {/* GLANCE — the five-second answer: money / today / waiting. */}
         <GlanceHeader variant="mobile" onNavigate={onNavigate} />
+
+        {/* GROWTH SCOREBOARD — content subs / app subs / network at a glance. */}
+        {isGrowthScoreboardEnabled() && <GrowthScoreboard variant="mobile" />}
 
         {/* DAILY SPINE — frame, lock 3, track, close. */}
         <div id="daily-driver" className="scroll-mt-4">

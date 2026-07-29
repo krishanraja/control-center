@@ -27,6 +27,8 @@ import { DecisionsInbox } from '../home/DecisionsInbox'
 import { PulseGroup } from '../home/PulseGroup'
 import { AltitudeSpine } from '../home/AltitudeSpine'
 import { BoardDaily } from '../home/BoardDaily'
+import { GrowthScoreboard } from '../home/GrowthScoreboard'
+import { isGrowthScoreboardEnabled } from '../../hooks/useGrowthMetrics'
 import { isHomeV2Enabled, isFocusRitualEnabled } from '../../lib/homeV2'
 import { ShipLedgerCard } from '../pilot/ShipLedgerCard'
 import { DueTestsCard } from '../pilot/DueTestsCard'
@@ -145,6 +147,9 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
         {/* SPINE — portfolio / week / today + one button to set what's stale. */}
         <AltitudeSpine variant="desktop" onNavigate={onNavigate} />
 
+        {/* GROWTH SCOREBOARD — the three engines: content subs / app subs / network. */}
+        {isGrowthScoreboardEnabled() && <GrowthScoreboard variant="desktop" />}
+
         {/* THE DAY — track and close; the picker lives in the ritual. */}
         <BoardDaily />
 
@@ -208,6 +213,9 @@ export function DesktopHome({ onNavigate }: { onNavigate?: NavigateFn } = {}) {
 
       {/* MONEY MACHINE — the only number that matters. */}
       <MrrTicker variant="desktop" />
+
+      {/* GROWTH SCOREBOARD — the three engines: content subs / app subs / network. */}
+      {isGrowthScoreboardEnabled() && <GrowthScoreboard variant="desktop" />}
 
       {/* OBJECTIVE LAYER: Krish's multi-week unlocks. The week sits structurally
           above the day, so the daily spine below ladders up to it. */}

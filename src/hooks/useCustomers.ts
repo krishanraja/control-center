@@ -12,6 +12,9 @@ export type CustomerProduct =
   | 'mm_ctrl'
   | 'plinth'
   | 'full_time'
+  | 'mindmaker'
+  | 'mindmaker_live'
+  | 'tech0nomic'
 
 export interface CustomerRow {
   id: string
@@ -57,10 +60,16 @@ export interface ProductBucket {
   recent: CustomerRow[]
 }
 
+// mindmaker / mindmaker_live / tech0nomic joined the customer_product enum with
+// the unified audience pipeline (2026-06-03 migration). Leaving them out of this
+// list silently dropped every paid Substack subscriber from totals.paid and
+// totals.mrrUsd (MrrTicker, GlanceHeader, Subscriptions header) while
+// SubscribersList counted them, so the same tab disagreed with itself.
 const ALL_PRODUCTS: CustomerProduct[] = [
   'gutted', 'onalert', 'merciless',
   'fractionl_circle', 'fractionl_pulse', 'mm_ctrl',
   'plinth', 'full_time',
+  'mindmaker', 'mindmaker_live', 'tech0nomic',
 ]
 
 /**
@@ -158,6 +167,9 @@ export const PRODUCT_LABEL: Record<CustomerProduct, string> = {
   mm_ctrl: 'mm-ctrl',
   plinth: 'Plinth',
   full_time: 'Full Time',
+  mindmaker: 'Mindmaker',
+  mindmaker_live: 'Mindmaker Live',
+  tech0nomic: 'Techonomic',
 }
 
 export const PRODUCT_ACCENT: Record<CustomerProduct, string> = {
@@ -169,6 +181,9 @@ export const PRODUCT_ACCENT: Record<CustomerProduct, string> = {
   mm_ctrl: 'bg-emerald-400',
   plinth: 'bg-blue-400',
   full_time: 'bg-orange-400',
+  mindmaker: 'bg-teal-400',
+  mindmaker_live: 'bg-cyan-400',
+  tech0nomic: 'bg-indigo-400',
 }
 
 // Bordered-chip tone triple (text / bg / border) — same hue family as
@@ -185,6 +200,9 @@ export const PRODUCT_CHIP_TONE: Record<CustomerProduct, string> = {
   mm_ctrl: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
   plinth: 'text-blue-300 bg-blue-500/10 border-blue-500/20',
   full_time: 'text-orange-300 bg-orange-500/10 border-orange-500/20',
+  mindmaker: 'text-teal-300 bg-teal-500/10 border-teal-500/20',
+  mindmaker_live: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
+  tech0nomic: 'text-indigo-300 bg-indigo-500/10 border-indigo-500/20',
 }
 
 export const KIND_ACCENT: Record<CustomerKind, string> = {

@@ -14,19 +14,26 @@ interface PendingFile {
   message?: string
 }
 
+const PUBLICATIONS = [
+  { source: 'mindmaker_live', label: 'Mindmaker Live' },
+  { source: 'tech0nomic', label: 'Techonomic' },
+] as const
+
 /**
  * Substack subscriber import for the Leads tab.
  *
- * Substack has no API, so the supported path is a manual CSV export. Drop the
- * export here and it lands in the shared audience_contacts table tagged
- * mindmaker_live: free subscribers become leads, paid subscribers become
- * Subscriptions (never both). Forwards to /api/audience/import-substack.
+ * Substack has no API, so the supported path is a manual CSV export. Pick the
+ * publication, drop the export, and it lands in the shared audience_contacts
+ * table tagged with that source: free subscribers become leads, paid
+ * subscribers become Subscriptions (never both). Forwards to
+ * /api/audience/import-substack.
  */
 export function SubstackImportDropzone({ onImported }: Props) {
   const { toast } = useToast()
   const h = useHaptics()
   const [hover, setHover] = useState(false)
   const [files, setFiles] = useState<PendingFile[]>([])
+  const [source, setSource] = useState<typeof PUBLICATIONS[number]['source']>('mindmaker_live')
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const send = useCallback(async (fileName: string, csv: string) => {
@@ -36,7 +43,7 @@ export function SubstackImportDropzone({ onImported }: Props) {
       const r = await fetch('/api/audience/import-substack', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ csv }),
+        body: JSON.stringify({ csv, source }),
       })
       const payload = await r.json().catch(() => ({}))
       if (!r.ok || !payload.ok) throw new Error(payload?.error || String(r.status))
@@ -49,7 +56,7 @@ export function SubstackImportDropzone({ onImported }: Props) {
       h.error()
       toast('Substack import failed — check the CSV.', 'error')
     }
-  }, [onImported, toast, h])
+  }, [onImported, toast, h, source])
 
   const handleFiles = useCallback(async (list: File[]) => {
     for (const file of list) {
@@ -72,6 +79,23 @@ export function SubstackImportDropzone({ onImported }: Props) {
         <p className="text-[11px] text-white/45 mt-0.5">
           Subscribers → ⋯ → Export. Free become leads, paid become Subscriptions.
         </p>
+        <div className="flex items-center justify-center gap-1 mt-2" role="radiogroup" aria-label="Publication">
+          {PUBLICATIONS.map(p => (
+            <button
+              key={p.source}
+              type="button"
+              role="radio"
+              aria-checked={source === p.source}
+              onClick={(e) => { e.stopPropagation(); setSource(p.source) }}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-medium border transition-colors
+                ${source === p.source
+                  ? 'border-teal-500/40 bg-teal-500/15 text-teal-200'
+                  : 'border-white/10 text-white/45 hover:text-white/70'}`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
         <div className="flex items-center justify-center gap-2 mt-3">
           <button
             type="button"
