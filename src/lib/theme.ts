@@ -52,6 +52,21 @@ export function apply(mode: ThemeMode, ambient: boolean) {
   else el.setAttribute('data-ambient', 'off')
 }
 
+/**
+ * The pilot layer's capacity, as a third independent global switch alongside
+ * theme and ambient. `data-capacity="low"` is read by exactly one block in
+ * index.css, which re-times and softens the whole app at once, so no component
+ * has to know the operator's state in order to respond to it.
+ *
+ * Pass null to clear, which is what the flag being off resolves to.
+ */
+export function applyCapacity(capacity: 'low' | 'steady' | 'high' | null) {
+  if (!canUse) return
+  const el = document.documentElement
+  if (!capacity || capacity === 'steady') el.removeAttribute('data-capacity')
+  else el.setAttribute('data-capacity', capacity)
+}
+
 // Minimal pub/sub so every mounted control re-renders on a change.
 const listeners = new Set<() => void>()
 function emit() { listeners.forEach(l => l()) }

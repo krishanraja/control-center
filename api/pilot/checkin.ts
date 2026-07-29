@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { resolveTz, ymdIn, shiftYmd, dayStartUtcIn, dayEndUtcIn } from '../_timezone.js'
 
 /**
  * /api/pilot/checkin
@@ -18,44 +19,12 @@ import { supabase } from '../_supabase.js'
  * PATCH record the red mode override on today's morning row.
  *       Body: { override: true }
  *
- * The civil day is America/New_York. See src/lib/pilotDay.ts for the client
- * side of the same boundary; the two must agree or the gate flickers.
+ * The civil day comes from the operator_timezone setting (api/_timezone.ts),
+ * the same value src/lib/civilDate.ts holds in the browser and public.operator_tz()
+ * reads in SQL. The three must agree or the gate flickers.
  */
 
-const PILOT_TZ = 'America/New_York'
 
-function tzParts(at: Date) {
-  const f = new Intl.DateTimeFormat('en-GB', {
-    timeZone: PILOT_TZ,
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-  }).formatToParts(at)
-  const get = (t: string) => Number(f.find(p => p.type === t)?.value || '0')
-  return { y: get('year'), m: get('month'), d: get('day'), h: get('hour') % 24, mi: get('minute'), s: get('second') }
-}
-
-/** Today's civil date in the pilot zone, as YYYY-MM-DD. */
-function pilotYmd(at: Date): string {
-  const { y, m, d } = tzParts(at)
-  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-}
-
-/** The UTC instant at which a pilot-zone civil date begins. */
-function dayStartUtc(ymd: string): Date {
-  const [y, m, d] = ymd.split('-').map(Number)
-  const probe = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
-  const p = tzParts(probe)
-  const asUtc = Date.UTC(p.y, p.m - 1, p.d, p.h, p.mi, p.s)
-  const offsetMs = probe.getTime() - asUtc
-  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0) + offsetMs)
-}
-
-function dayEndUtc(ymd: string): Date {
-  const [y, m, d] = ymd.split('-').map(Number)
-  const next = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
-  next.setUTCDate(next.getUTCDate() + 1)
-  return dayStartUtc(next.toISOString().slice(0, 10))
-}
 
 function clampScore(value: unknown): number | null {
   const n = Number(value)
@@ -72,24 +41,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
   if (req.method === 'OPTIONS') return res.status(200).end()
 
-  if (req.method === 'GET') return get(res)
+  if (req.method === 'GET') return get(req, res)
   if (req.method === 'POST') return post(req, res)
-  if (req.method === 'PATCH') return patch(res)
+  if (req.method === 'PATCH') return patch(req, res)
   return res.status(405).json({ ok: false, error: 'Method not allowed' })
 }
 
-/** Yesterday's civil date in the pilot zone. */
-function prevYmd(ymd: string): string {
-  const [y, m, d] = ymd.split('-').map(Number)
-  const base = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
-  base.setUTCDate(base.getUTCDate() - 1)
-  return base.toISOString().slice(0, 10)
-}
 
-async function get(res: VercelResponse) {
+async function get(req: VercelRequest, res: VercelResponse) {
   const now = new Date()
-  const today = pilotYmd(now)
-  const yesterday = prevYmd(today)
+  const tz = await resolveTz(req)
+  const today = ymdIn(now, tz)
+  const yesterday = shiftYmd(today, -1)
   const [morningRes, eveningRes, eveningTodayRes, lastMorningRes, ydayRes, yshipRes] = await Promise.all([
     supabase.from('pilot_checkins').select('*')
       .eq('kind', 'morning').eq('checkin_date', today).maybeSingle(),
@@ -105,8 +68,8 @@ async function get(res: VercelResponse) {
     supabase.from('pilot_checkins').select('energy, anxiety, mode, one_word, intent')
       .eq('kind', 'morning').eq('checkin_date', yesterday).maybeSingle(),
     supabase.from('ships').select('id', { count: 'exact', head: true })
-      .gte('occurred_at', dayStartUtc(yesterday).toISOString())
-      .lt('occurred_at', dayEndUtc(yesterday).toISOString()),
+      .gte('occurred_at', dayStartUtcIn(yesterday, tz).toISOString())
+      .lt('occurred_at', dayEndUtcIn(yesterday, tz).toISOString()),
   ])
 
   const firstError = morningRes.error || eveningRes.error || eveningTodayRes.error
@@ -121,6 +84,7 @@ async function get(res: VercelResponse) {
     yesterday: ydayRes.data
       ? { ...ydayRes.data, ships: yshipRes.count ?? 0, date: yesterday }
       : null,
+    timezone: tz,
     today,
   })
 }
@@ -134,7 +98,7 @@ async function post(req: VercelRequest, res: VercelResponse) {
   }
 
   const now = new Date()
-  const today = pilotYmd(now)
+  const today = ymdIn(now, await resolveTz(req))
 
   if (kind === 'morning') {
     const mode = body.mode
@@ -199,9 +163,9 @@ async function post(req: VercelRequest, res: VercelResponse) {
   return res.status(201).json({ ok: true, checkin: data })
 }
 
-async function patch(res: VercelResponse) {
+async function patch(req: VercelRequest, res: VercelResponse) {
   const now = new Date()
-  const today = pilotYmd(now)
+  const today = ymdIn(now, await resolveTz(req))
 
   const existing = await supabase.from('pilot_checkins').select('id')
     .eq('kind', 'morning').eq('checkin_date', today).maybeSingle()

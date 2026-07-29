@@ -3,7 +3,8 @@ import { useObjectives } from './useObjectives'
 import { useWeeklyFocus, isWeeklyFocusEnabled } from './useWeeklyFocus'
 import { useDailyFocus, isFocusEnabled } from './useDailyFocus'
 import { isFocusRitualEnabled } from '../lib/homeV2'
-import { londonYmd } from '../lib/londonDate'
+import { civilYmd } from '../lib/civilDate'
+import { usePilotStateContext } from '../contexts/PilotStateContext'
 
 // The unifying state machine behind the Focus Ritual. Every altitude shares one
 // lifecycle — Marcus proposes -> Krish ratifies -> it's "set" until its cadence
@@ -54,10 +55,19 @@ export function useAltitudes(): AltitudesResult {
   const obj = useObjectives()
   const wf = useWeeklyFocus()
   const df = useDailyFocus()
+  const pilot = usePilotStateContext()
   const [, setV] = useState(0)
 
+  // Capacity gates DEMAND, not availability. On a depleted day the OS stops
+  // asking for portfolio and weekly decisions, because reviewing objectives is
+  // exactly the scope-expanding move the pilot layer exists to interrupt. The
+  // daily altitude is deliberately never suppressed: one commitment is the
+  // floor, and it is what red mode already runs on. Every altitude stays
+  // reachable by tapping its pill, so nothing is taken away.
+  const demandOk = pilot.profile.allowsHigherAltitudeDemand
+
   const loading = obj.loading || wf.loading || df.loading
-  const todayYmd = londonYmd(new Date())
+  const todayYmd = civilYmd(new Date())
   const dismissedToday = safeGet(DISMISS_KEY) === todayYmd
 
   // ── Portfolio ──────────────────────────────────────────────────────────────
@@ -68,7 +78,7 @@ export function useAltitudes(): AltitudesResult {
   const overCap = obj.active_count > obj.soft_cap
   // Marcus-proposed milestones across the active board still awaiting accept/reject.
   const proposedMilestones = obj.active.reduce((s, o) => s + (o.proposed_milestone_count || 0), 0)
-  const portfolioNeeds = noms > 0 || noActive || overCap || proposedMilestones > 0
+  const portfolioNeeds = demandOk && (noms > 0 || noActive || overCap || proposedMilestones > 0)
   const portfolio: Altitude = {
     id: 'portfolio',
     label: 'OS',
@@ -92,7 +102,7 @@ export function useAltitudes(): AltitudesResult {
   // a new uncommitted week with objectives to plan, until committed or snoozed.
   const weeklyActive = isWeeklyFocusEnabled() || isFocusRitualEnabled()
   const weeklySet = !!wf.thisWeek || wf.committedThisWeekLS
-  const weeklyNeeds = weeklyActive && !weeklySet && obj.active.length > 0 && !wf.snoozedToday
+  const weeklyNeeds = demandOk && weeklyActive && !weeklySet && obj.active.length > 0 && !wf.snoozedToday
   const weekly: Altitude = {
     id: 'weekly',
     label: 'Week',
@@ -120,7 +130,9 @@ export function useAltitudes(): AltitudesResult {
     label: 'Today',
     state: dailySet ? 'set' : 'unset',
     needsAttention: dailyNeeds,
-    summary: dailySet ? `Today ${doneCount}/3` : 'Pick your 3',
+    summary: dailySet
+      ? `Today ${doneCount}/${pilot.profile.targets}`
+      : `Pick your ${pilot.profile.targets}`,
     count: dailyNeeds ? 1 : 0,
   }
 
@@ -129,7 +141,7 @@ export function useAltitudes(): AltitudesResult {
   const allSet = !loading && pending.length === 0
 
   const dismissToday = useCallback(() => {
-    safeSet(DISMISS_KEY, londonYmd(new Date()))
+    safeSet(DISMISS_KEY, civilYmd(new Date()))
     setV(v => v + 1)
   }, [])
 

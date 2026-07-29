@@ -1,15 +1,16 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
-import { londonParts, weekOfLondon, isMondayLondon } from '../lib/londonDate'
+import { civilYmd, weekOf, isMonday } from '../lib/civilDate'
 
 // Re-exported for callers that imported these from here historically.
-export { weekOfLondon, isMondayLondon }
+// Re-exported under their old names so call sites elsewhere keep working.
+export { weekOf as weekOfLondon, isMonday as isMondayLondon }
 
 // Weekly focus gate + reader (Phase 2 of the focus spine). Mirrors
 // useDailyFocus: one shared realtime channel on weekly_focus per session
 // (ADR-002), module-level cache. The committed row (one per ISO week, keyed by
-// the Monday in Europe/London) is the source of truth for whether Krish has run
+// the Monday in the operator's civil zone) is the source of truth for whether Krish has run
 // the weekly ritual. The commit itself goes through /api/weekly-focus/commit
 // (service role writes the bridge rows); this hook reads the gate row and owns
 // the localStorage fallbacks that keep the takeover from re-popping.
@@ -53,7 +54,7 @@ function notify() { for (const l of listeners) l() }
 async function fetchThisWeek(): Promise<void> {
   if (inflight) return inflight
   inflight = (async () => {
-    const week = weekOfLondon(new Date())
+    const week = weekOf(new Date())
     const { data } = await supabase.from('weekly_focus').select('*').eq('week_of', week).maybeSingle()
     cache = { thisWeek: (data as WeeklyFocusRow | null) || null, loading: false }
     loaded = true
@@ -93,12 +94,12 @@ export function useWeeklyFocus() {
   }, [])
 
   const refresh = useCallback(() => { fetchThisWeek() }, [])
-  const markSetWeek = useCallback(() => { safeSet(SET_WEEK_KEY, weekOfLondon(new Date())) }, [])
-  const snoozeToday = useCallback(() => { safeSet(SNOOZE_DATE_KEY, londonParts(new Date()).ymd) }, [])
+  const markSetWeek = useCallback(() => { safeSet(SET_WEEK_KEY, weekOf(new Date())) }, [])
+  const snoozeToday = useCallback(() => { safeSet(SNOOZE_DATE_KEY, civilYmd(new Date())) }, [])
 
   const now = new Date()
-  const currentWeekOf = weekOfLondon(now)
-  const todayLondon = londonParts(now).ymd
+  const currentWeekOf = weekOf(now)
+  const todayLondon = civilYmd(now)
 
   return {
     thisWeek: cache.thisWeek,
@@ -108,7 +109,7 @@ export function useWeeklyFocus() {
     // re-pops before the realtime row lands.
     committedThisWeekLS: safeGet(SET_WEEK_KEY) === currentWeekOf,
     snoozedToday: safeGet(SNOOZE_DATE_KEY) === todayLondon,
-    isMonday: isMondayLondon(now),
+    isMonday: isMonday(now),
     markSetWeek,
     snoozeToday,
     refresh,

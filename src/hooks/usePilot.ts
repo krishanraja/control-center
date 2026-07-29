@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { LogShipInput, PilotMode, PilotState, ShipSummary } from '../types/pilot'
+import { adoptServerZone, getZone } from '../lib/civilDate'
 
 // Single reader of pilot state. Deliberately thin: no realtime channel, no
 // shared cache across mounts. The gate reads once on load and the widget reads
@@ -7,6 +8,12 @@ import type { LogShipInput, PilotMode, PilotState, ShipSummary } from '../types/
 // the ambient dashboard the whole layer exists to avoid.
 
 const API = import.meta.env.VITE_API_URL ?? ''
+
+// Every day-scoped call carries the operator's zone, so switching zones takes
+// effect on the very next request rather than waiting out the server's cache,
+// and two lambda instances can never serve two different days to one session.
+const withTz = (path: string) => `${API}${path}${path.includes('?') ? '&' : '?'}tz=${encodeURIComponent(getZone())}`
+const tzBody = (o: Record<string, unknown>) => JSON.stringify({ ...o, tz: getZone() })
 
 interface PilotStateResult {
   state: PilotState | null
@@ -22,9 +29,11 @@ export function usePilotState(): PilotStateResult {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/pilot/checkin`)
+      const res = await fetch(withTz('/api/pilot/checkin'))
       const json = await res.json()
       if (!res.ok || !json.ok) throw new Error(json.error || `Request failed (${res.status})`)
+      // A zone set on the laptop shows up on the phone without a second call.
+      adoptServerZone(json.timezone)
       setState({
         morning: json.morning,
         last_evening: json.last_evening,
@@ -69,7 +78,7 @@ export async function saveMorning(input: {
   const res = await fetch(`${API}/api/pilot/checkin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ kind: 'morning', ...input }),
+    body: tzBody({ kind: 'morning', ...input }),
   })
   const json = await res.json().catch(() => ({}))
   if (!res.ok || !json.ok) throw new Error(json.error || `Could not save (${res.status})`)
@@ -83,7 +92,7 @@ export async function saveEvening(input: {
   const res = await fetch(`${API}/api/pilot/checkin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ kind: 'evening', ...input }),
+    body: tzBody({ kind: 'evening', ...input }),
   })
   const json = await res.json().catch(() => ({}))
   if (!res.ok || !json.ok) throw new Error(json.error || `Could not save (${res.status})`)
@@ -91,14 +100,14 @@ export async function saveEvening(input: {
 
 /** Records the red mode escape hatch on today's morning row. */
 export async function logOverride(): Promise<void> {
-  await fetch(`${API}/api/pilot/checkin`, { method: 'PATCH' }).catch(() => {})
+  await fetch(withTz('/api/pilot/checkin'), { method: 'PATCH' }).catch(() => {})
 }
 
 export async function logShip(input: LogShipInput): Promise<void> {
   const res = await fetch(`${API}/api/pilot/ships`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ source: 'manual', ...input }),
+    body: tzBody({ source: 'manual', ...input }),
   })
   const json = await res.json().catch(() => ({}))
   if (!res.ok || !json.ok) throw new Error(json.error || `Could not log (${res.status})`)
@@ -116,7 +125,7 @@ export function useShipSummary(): ShipSummaryResult {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/pilot/ships`)
+      const res = await fetch(withTz('/api/pilot/ships'))
       const json = await res.json()
       if (!res.ok || !json.ok) throw new Error(json.error || 'Request failed')
       setSummary({

@@ -5,6 +5,7 @@ import { FocusCalibrator } from './FocusCalibrator'
 import { ContextHeader } from './ContextHeader'
 import { TrackStep } from './TrackStep'
 import { CloseStep } from './CloseStep'
+import { usePilotState } from '../../hooks/usePilot'
 
 // The daily spine. One orchestrator that walks a single linear journey driven
 // by daily_focus.status, replacing the five overlapping Home surfaces
@@ -20,6 +21,10 @@ import { CloseStep } from './CloseStep'
 // existing shared hooks; opens no new realtime channels (ADR-002).
 export function DailyDriver() {
   const { today, loading } = useDailyFocus()
+  // Last night's ONE, seeded as the first slot so the pilot layer and the focus
+  // spine hold one commitment rather than two.
+  const { state: pilot } = usePilotState()
+  const pilotOne = pilot?.last_evening?.tomorrow_one ?? null
 
   if (!isFocusEnabled()) return null
   if (loading) return null
@@ -31,7 +36,7 @@ export function DailyDriver() {
       <div className="flex flex-col gap-3">
         <ContextHeader />
         <CarryOverPrompt />
-        <FocusCalibrator />
+        <FocusCalibrator pilotOne={pilotOne} />
       </div>
     )
   }
