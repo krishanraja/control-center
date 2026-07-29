@@ -42,11 +42,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(502).json({ ok: false, error: result.error || 'import failed', detail: result })
   }
   const imp = result.import || {}
+  const processed = imp.processed ?? 0
+  const paid = imp.paid ?? 0
+  const free = imp.free ?? 0
+
+  // The CSV export IS the full subscriber list, so a successful import is the
+  // one EXACT count we ever get (Substack exposes no public number for these
+  // publications). Write it to growth_metrics as the reconcile entry that
+  // anchors the scoreboard trend line and the stall detector.
+  const total = (paid + free) > 0 ? paid + free : processed
+  if (total > 0) {
+    const metric_key = source === 'tech0nomic' ? 'substack_tech0nomic_total' : 'substack_mindmakerlive_total'
+    const { error: gmErr } = await supabase.from('growth_metrics').upsert(
+      {
+        metric_key,
+        metric_date: new Date().toISOString().slice(0, 10),
+        value: total,
+        source: 'reconcile',
+        meta: { via: 'csv_import', paid, free, processed },
+        captured_at: new Date().toISOString(),
+      },
+      { onConflict: 'metric_key,metric_date' },
+    )
+    if (gmErr) console.warn('[import-substack] growth_metrics upsert failed:', gmErr.message)
+  }
+
   return res.json({
     ok: true,
-    processed: imp.processed ?? 0,
-    paid: imp.paid ?? 0,
-    free: imp.free ?? 0,
+    processed,
+    paid,
+    free,
     skipped: imp.skipped ?? 0,
     sync: result.sync || null,
   })

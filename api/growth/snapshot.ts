@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
-import { webResearch } from '../_enrich.js'
 
 /**
  * /api/growth/snapshot — daily growth-metrics snapshot for the Home scoreboard.
@@ -76,27 +75,30 @@ async function fetchText(url: string): Promise<string> {
   return r.text()
 }
 
-/** Pull "N subscribers" out of a research-text answer; conservative. */
-function countFromResearch(text: string, noun: RegExp): number | null {
-  const m = text.match(new RegExp(`([\\d.,]+\\s*[kKmM]?)\\+?\\s*(?:free\\s+|total\\s+|paid\\s+)?(?:${noun.source})`, 'i'))
-  if (!m) return null
-  return parseCount(m[1].replace(/\s+/g, ''))
-}
+// Scrape-or-nothing. Live inspection (2026-07-29) showed Substack does NOT
+// expose exact counts for these publications (freeSubscriberCount: null, only
+// an order-of-magnitude string) and Maven shows no public student count. A web
+// -research fallback was tried and produced a confidently wrong number, so it
+// was removed: a wrong baseline poisons the scoreboard AND the stall detector.
+// The exact-truth paths are the Substack CSV import (the export IS the full
+// subscriber list; the import writes source:'reconcile' rows) and the manual
+// log-counts widget. The scrapes stay so the feed self-heals if the pages ever
+// start exposing counts (e.g. the author enables the public counter).
 
 async function substackCount(pub: string): Promise<KeyResult> {
   try {
     const html = await fetchText(`https://${pub}.substack.com/about`)
+    // Visible "N subscribers" marketing line (only present when the author
+    // displays it) or the page JSON's freeSubscriberCount when non-null.
     const m = html.match(/([\d.,]+\s*[kKmM]?)\+?\s*(?:free\s+)?subscribers/i)
-    const value = m ? parseCount(m[1].replace(/\s+/g, '')) : null
+    let value = m ? parseCount(m[1].replace(/\s+/g, '')) : null
+    if (value == null) {
+      const j = html.match(/"freeSubscriberCount\\?":\\?"?(\d+)/)
+      if (j) value = Number(j[1])
+    }
     if (value != null && value > 0) return { ok: true, value, method: 'scrape' }
-    throw new Error(m ? 'unparseable count' : 'no subscriber count in page')
+    return { ok: false, error: 'count not public on page (use CSV import or log counts)' }
   } catch (e: any) {
-    // Research fallback: lower trust, still better than a blind spot.
-    try {
-      const r = await webResearch(`How many subscribers does the Substack publication ${pub}.substack.com currently have? Answer with the number.`)
-      const value = countFromResearch(r.text, /subscribers?/)
-      if (value != null && value > 0) return { ok: true, value, method: 'research' }
-    } catch { /* fall through */ }
     return { ok: false, error: String(e?.message || e) }
   }
 }
@@ -107,13 +109,8 @@ async function mavenCount(): Promise<KeyResult> {
     const m = html.match(/([\d.,]+\s*[kKmM]?)\+?\s*students?/i)
     const value = m ? parseCount(m[1].replace(/\s+/g, '')) : null
     if (value != null && value > 0) return { ok: true, value, method: 'scrape' }
-    throw new Error(m ? 'unparseable count' : 'no student count in page')
+    return { ok: false, error: 'count not public on page (use log counts)' }
   } catch (e: any) {
-    try {
-      const r = await webResearch('How many students has the Maven instructor profile maven.com/mindmaker taught? Answer with the number of students.')
-      const value = countFromResearch(r.text, /students?/)
-      if (value != null && value > 0) return { ok: true, value, method: 'research' }
-    } catch { /* fall through */ }
     return { ok: false, error: String(e?.message || e) }
   }
 }
