@@ -5,6 +5,7 @@ import {
   type GrowthSeries, type GrowthPoint,
 } from '../../hooks/useGrowthMetrics'
 import { useCustomers } from '../../hooks/useCustomers'
+import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
 
 /**
  * The Growth Scoreboard: the three engines Krish is growing, one line each.
@@ -72,16 +73,32 @@ function DeltaChip({ delta, money }: { delta: number | null; money?: boolean }) 
 
 export interface GrowthScoreboardProps {
   variant?: 'desktop' | 'mobile'
-  /** When an open growth stall exists for a line, clicking its flat chip goes there. */
-  onOpenStall?: (metricKey: string) => void
-  /** metric_key set of currently open stalls (wired in the stall-engine phase). */
-  openStallKeys?: Set<string>
 }
 
-export function GrowthScoreboard({ variant = 'desktop', onOpenStall, openStallKeys }: GrowthScoreboardProps) {
+export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps) {
   const { series, loading } = useGrowthMetrics()
   const { totals } = useCustomers()
   const [logOpen, setLogOpen] = useState(false)
+  // Open stall episodes, straight from the shared decisions cache: a line with
+  // an open stall renders its flat chip as a link into the ruling (the deck,
+  // seeded to the stall's 3 drafted moves).
+  const { decisions: decisionRows } = useRealtimeDecisionsWaiting()
+  const openStalls = useMemo(() => {
+    const map = new Map<string, string>() // metric_key -> stall id
+    for (const d of decisionRows) {
+      if (d.kind !== 'growth_stall') continue
+      const key = (d.meta as { metric_key?: string })?.metric_key
+      if (key) map.set(key, d.id)
+    }
+    return map
+  }, [decisionRows])
+  const openStallFor = (keys: string[]): string | null => {
+    for (const k of keys) { const id = openStalls.get(k); if (id) return id }
+    return null
+  }
+  const openStallRuling = (stallId: string) => {
+    try { window.location.hash = `#/home?decision=growth_stall:${stallId}` } catch { /* noop */ }
+  }
 
   const lines = useMemo(() => {
     const contentKeys: GrowthSeries[] = [
@@ -119,12 +136,12 @@ export function GrowthScoreboard({ variant = 'desktop', onOpenStall, openStallKe
     }
   }, [series, totals.paid])
 
-  const stallKeyForLine: Record<LineDef['id'], string> = {
-    // The stall detector fires per metric_key; a line-level chip opens the
-    // first open stall among its constituent keys.
-    content: ['substack_mindmakerlive_total', 'substack_tech0nomic_total', 'maven_students'].find(k => openStallKeys?.has(k)) || 'substack_mindmakerlive_total',
-    apps: 'app_paid_subs',
-    network: 'guests_confirmed_30d',
+  // The stall detector fires per metric_key; a line-level chip opens the
+  // first open stall among its constituent keys.
+  const LINE_KEYS: Record<LineDef['id'], string[]> = {
+    content: ['substack_mindmakerlive_total', 'substack_tech0nomic_total', 'maven_students'],
+    apps: ['app_paid_subs', 'app_mrr_usd'],
+    network: ['guests_confirmed_30d', 'visibility_accepted_30d'],
   }
 
   if (loading && !lines.content.hasAnyData && !lines.network.hasAnyData) {
@@ -192,20 +209,27 @@ export function GrowthScoreboard({ variant = 'desktop', onOpenStall, openStallKe
                 <Spark points={line.combined} bar={def.bar} />
               </div>
               <div className="flex items-center gap-1.5 min-h-[16px]">
-                {line.flat && (
-                  onOpenStall && openStallKeys?.size ? (
-                    <button
-                      onClick={() => onOpenStall(stallKeyForLine[def.id])}
-                      className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-px rounded bg-amber-500/15 text-amber-300 border border-amber-500/25 hover:bg-amber-500/25 transition-colors"
-                    >
-                      flat {STALL_DAYS}d · 3 moves ready
-                    </button>
-                  ) : (
-                    <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-px rounded bg-amber-500/15 text-amber-300 border border-amber-500/25">
-                      flat {STALL_DAYS}d
-                    </span>
-                  )
-                )}
+                {(() => {
+                  const stallId = openStallFor(LINE_KEYS[def.id])
+                  if (stallId) {
+                    return (
+                      <button
+                        onClick={() => openStallRuling(stallId)}
+                        className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-px rounded bg-amber-500/15 text-amber-300 border border-amber-500/25 hover:bg-amber-500/25 transition-colors"
+                      >
+                        stalled · moves ready
+                      </button>
+                    )
+                  }
+                  if (line.flat) {
+                    return (
+                      <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-px rounded bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                        flat {STALL_DAYS}d
+                      </span>
+                    )
+                  }
+                  return null
+                })()}
                 {line.staleDays != null && line.staleDays > STALE_AFTER_DAYS && (
                   <span className="text-[9px] uppercase tracking-wide px-1.5 py-px rounded bg-white/[0.04] text-white/40 border border-white/[0.08]">
                     stale {line.staleDays}d

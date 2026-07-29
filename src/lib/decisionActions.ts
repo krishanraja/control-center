@@ -495,6 +495,40 @@ export function buildDecisionActions(
       break
     }
 
+    case 'growth_stall': {
+      // A stalled growth line with ~3 drafted moves attached. Adopting a move
+      // creates a high-priority task for the owning agent (which re-enters
+      // this queue as a task ruling); dismiss closes the episode.
+      const moves = (Array.isArray(row.moves) ? row.moves : (row.meta as any)?.moves || []) as Array<{ title?: string }>
+      moves.slice(0, 3).forEach((m, i) => {
+        if (!m?.title) return
+        acts.push({
+          label: `Adopt: ${m.title}`,
+          variant: i === 0 ? 'primary' : 'secondary',
+          onClick: () => run('Adopt',
+            () => json('/api/growth/stall-check', { action: 'adopt', id: row.id, move_index: i }),
+            'Move adopted — task created.', { terminal: true }),
+        })
+      })
+      if (moves.length === 0) {
+        acts.push({
+          label: 'Draft 3 moves',
+          variant: 'primary',
+          onClick: () => run('Draft',
+            () => json('/api/growth/stall-check', { action: 'redraft', id: row.id }),
+            'Moves drafted — reopen the card.'),
+        })
+      }
+      acts.push({
+        label: 'Dismiss stall',
+        variant: 'danger',
+        onClick: () => run('Dismiss',
+          () => json('/api/growth/stall-check', { action: 'dismiss', id: row.id }),
+          'Stall dismissed.', { terminal: true }),
+      })
+      break
+    }
+
     default:
       break
   }

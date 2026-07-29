@@ -134,7 +134,6 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     if (!editor || !brief) return
     editor.setEditable(!narrow && citations && !editingClosed)
     editor.commands.setContent(renderBrief(canonicalRef.current, citations))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, brief, citations, narrow, editingClosed])
 
   useEffect(() => {
