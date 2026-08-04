@@ -24,7 +24,7 @@ type Phase = 'ask' | 'task' | 'marking' | 'done'
 export function RedMode({ lastEvening, onUnlock }: Props) {
   const h = useHaptics()
   const [one, setOne] = useState(lastEvening?.tomorrow_one || '')
-  const [oneUrl] = useState(lastEvening?.tomorrow_one_url || '')
+  const [oneUrl, setOneUrl] = useState(lastEvening?.tomorrow_one_url || '')
   const [phase, setPhase] = useState<Phase>(lastEvening?.tomorrow_one ? 'task' : 'ask')
 
   // The fallback path: no evening entry exists, so red mode asks exactly one
@@ -33,12 +33,15 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const commitOne = async (text: string) => {
+  // A url arrives when the picker resolved the action against the publish
+  // queue, and becomes the "Open it" button so the draft is one tap away.
+  const commitOne = async (text: string, url?: string) => {
     setSaving(true)
     setError(null)
     try {
-      await saveEvening({ tomorrow_one: text })
+      await saveEvening({ tomorrow_one: text, tomorrow_one_url: url })
       setOne(text)
+      setOneUrl(url || '')
       setPhase('task')
     } catch {
       setError('Could not save. Try once more.')

@@ -81,14 +81,16 @@ function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const commit = async (one: string) => {
+  // pickedUrl arrives when the picker resolved tomorrow's ONE against the
+  // publish queue. A url typed by hand in the field below still wins.
+  const commit = async (one: string, pickedUrl?: string) => {
     setSaving(true)
     setError(null)
     try {
       await saveEvening({
         shipped_today: shipped.trim() || undefined,
         tomorrow_one: one,
-        tomorrow_one_url: url.trim() || undefined,
+        tomorrow_one_url: url.trim() || pickedUrl || undefined,
       })
       h.notifySuccess()
       onSaved()

@@ -74,6 +74,29 @@ export function validateConcreteness(text: string): ConcretenessResult {
   return { ok: true }
 }
 
+/** Verbs the system can resolve against real inventory (the content queue). */
+export const PUBLISHABLE_VERBS: string[] = ['publish', 'post']
+
+/** Placeholder objects. A concrete verb with one of these is intent, not a task. */
+export const VAGUE_OBJECT_TERMS: string[] = [
+  'something', 'anything', 'whatever', 'stuff', 'some content',
+]
+
+/**
+ * The hole the concreteness rule leaves: "Publish something timely and unique"
+ * passes because "publish" is a concrete verb, yet it names no artifact and no
+ * destination, so it parks on the screen as a decision still to make. This
+ * detects that shape so the caller can offer the queue's real candidate as a
+ * substitution. Never used to reject: rejection on a red day reads as a broken
+ * button, substitution reads as the system doing its job.
+ */
+export function isVaguePublishIntent(text: string): boolean {
+  const lower = (text || '').toLowerCase()
+  const publishy = PUBLISHABLE_VERBS.some(v => new RegExp(`\\b${v}\\w*`).test(lower))
+  if (!publishy) return false
+  return VAGUE_OBJECT_TERMS.some(term => lower.includes(term))
+}
+
 /**
  * The tappable starters. Picking one guarantees the verb half of the rule is
  * satisfied, so the guided path can never dead-end the way free text can.
