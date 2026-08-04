@@ -4,6 +4,7 @@ import { computeMode, saveMorning } from '../../hooks/usePilot'
 import { useHaptics } from '../../hooks/useHaptics'
 import { INTENTS, type Intent } from '../../lib/pilotIntent'
 import { readingFor, stoicFor } from '../../lib/pilotStoic'
+import { ANXIETY_ANCHORS, ENERGY_ANCHORS, anxietyColor, energyColor } from '../../lib/pilotColor'
 import { MicButton, browserCanRecord } from '../shared/VoiceCapture'
 import { ThumbSlider, ENERGY_NOTCHES, ANXIETY_NOTCHES } from './ThumbSlider'
 import { Tap } from './controls'
@@ -41,6 +42,10 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
   const [stage, setStage] = useState<Stage>('read')
   const [energy, setEnergy] = useState<number | null>(null)
   const [anxiety, setAnxiety] = useState<number | null>(null)
+  // Raw track positions (0..1), streamed by the sliders during the drag so the
+  // ambient light answers the finger frame by frame, not notch by notch.
+  const [energyT, setEnergyT] = useState<number | null>(null)
+  const [anxietyT, setAnxietyT] = useState<number | null>(null)
   const [word, setWord] = useState('')
   const [intent, setIntent] = useState<Intent | null>(null)
   const [chosen, setChosen] = useState<PilotMode | null>(null)
@@ -77,9 +82,28 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
     }
   }
 
+  // The screen's ambient light: energy glows from the lower left, anxiety from
+  // the upper right, each blended along its slider's own anchor strip. Before
+  // the first touch the screen is dark; the reading brings the light with it,
+  // and the tint stays through the later stages so the whole ritual carries
+  // the morning's color.
+  const eT = energyT ?? (energy !== null ? (energy - 1) / 4 : null)
+  const aT = anxietyT ?? (anxiety !== null ? (anxiety - 1) / 4 : null)
+  const ambientLayers = [
+    eT !== null ? `radial-gradient(120% 85% at 12% 94%, ${energyColor(eT, 0.22)} 0%, rgba(0,0,0,0) 62%)` : null,
+    aT !== null ? `radial-gradient(120% 85% at 88% 4%, ${anxietyColor(aT, 0.18)} 0%, rgba(0,0,0,0) 62%)` : null,
+  ].filter(Boolean).join(', ')
+
   return (
-    <div className="h-[100dvh] w-full overflow-hidden flex flex-col items-center text-ink">
-      <div className="w-full max-w-[420px] h-full flex flex-col px-6">
+    <div className="relative h-[100dvh] w-full overflow-hidden flex flex-col items-center text-ink">
+      {ambientLayers && (
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: ambientLayers }}
+        />
+      )}
+      <div className="relative w-full max-w-[420px] h-full flex flex-col px-6">
 
         {/* Header: progress and yesterday, both fixed height */}
         <header className="shrink-0 pt-[calc(env(safe-area-inset-top,0px)+22px)] pb-2">
@@ -104,8 +128,22 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
             <Fade key="read">
               <h1 className="font-display text-[26px] leading-[1.15] mb-7">How is it, honestly?</h1>
               <div className="flex flex-col gap-5">
-                <ThumbSlider label="Energy" notches={ENERGY_NOTCHES} value={energy} onChange={setEnergy} />
-                <ThumbSlider label="Anxiety" notches={ANXIETY_NOTCHES} value={anxiety} onChange={setAnxiety} />
+                <ThumbSlider
+                  label="Energy"
+                  notches={ENERGY_NOTCHES}
+                  value={energy}
+                  onChange={setEnergy}
+                  anchors={ENERGY_ANCHORS}
+                  onLive={setEnergyT}
+                />
+                <ThumbSlider
+                  label="Anxiety"
+                  notches={ANXIETY_NOTCHES}
+                  value={anxiety}
+                  onChange={setAnxiety}
+                  anchors={ANXIETY_ANCHORS}
+                  onLive={setAnxietyT}
+                />
               </div>
               {answered && mode && (
                 <div className="mt-7">
