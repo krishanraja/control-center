@@ -30,9 +30,11 @@ export function PublishCandidateCard({
   const h = useHaptics()
   const lane = laneLabel(candidate.lane)
 
-  const readiness = candidate.state === 'approved'
-    ? (candidate.url ? 'Approved. The draft is one tap away.' : 'Approved and drafted.')
-    : 'Draft in review. The fifteen minutes is finishing it.'
+  const readiness = candidate.state === 'review'
+    ? 'Draft in review. The fifteen minutes is finishing it.'
+    : candidate.tier === 'near'
+      ? 'Approved a while back. The fifteen minutes is freshening it before it goes out.'
+      : (candidate.url ? 'Approved and fresh. The draft is one tap away.' : 'Approved and fresh.')
 
   return (
     <div className="flex flex-col gap-4">

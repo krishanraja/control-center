@@ -120,8 +120,12 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
         saving={saving}
         submitLabel={submitLabel}
         preface={candSource === 'freetext'
-          ? 'That names the intent, not the artifact. The queue has one ready:'
-          : null}
+          ? (c.tier === 'ready'
+            ? 'That names the intent, not the artifact. The queue has one ready:'
+            : 'That names the intent, not the artifact. Nothing is fully fresh; the closest:')
+          : (c.tier === 'ready'
+            ? null
+            : 'Nothing is both approved and fresh. The closest:')}
         onAccept={() => { h.notifySuccess(); onCommit(candidateActionText(c), c.url ?? undefined) }}
         onNext={() => {
           if (candIdx + 1 < cands.length) {
