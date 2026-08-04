@@ -82,6 +82,13 @@ export const VAGUE_OBJECT_TERMS: string[] = [
   'something', 'anything', 'whatever', 'stuff', 'some content',
 ]
 
+/** True when the text carries a publish-shaped verb at all. The picker routes
+ *  these through the server-side judgment against the queue. */
+export function isPublishIntent(text: string): boolean {
+  const lower = (text || '').toLowerCase()
+  return PUBLISHABLE_VERBS.some(v => new RegExp(`\\b${v}\\w*`).test(lower))
+}
+
 /**
  * The hole the concreteness rule leaves: "Publish something timely and unique"
  * passes because "publish" is a concrete verb, yet it names no artifact and no
@@ -91,9 +98,8 @@ export const VAGUE_OBJECT_TERMS: string[] = [
  * button, substitution reads as the system doing its job.
  */
 export function isVaguePublishIntent(text: string): boolean {
+  if (!isPublishIntent(text)) return false
   const lower = (text || '').toLowerCase()
-  const publishy = PUBLISHABLE_VERBS.some(v => new RegExp(`\\b${v}\\w*`).test(lower))
-  if (!publishy) return false
   return VAGUE_OBJECT_TERMS.some(term => lower.includes(term))
 }
 

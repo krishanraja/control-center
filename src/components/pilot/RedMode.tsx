@@ -81,15 +81,33 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
             </div>
 
             {oneUrl ? (
-              <a
-                href={oneUrl}
-                target="_blank"
-                rel="noreferrer"
-                onPointerDown={() => h.impactMedium()}
-                className="w-full min-h-[52px] flex items-center justify-center rounded-xl text-[16px] font-medium text-center bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] active:scale-[0.98] transition-all touch-manipulation"
-              >
-                Open it
-              </a>
+              oneUrl.startsWith('#') ? (
+                // An in-app draft (the Composer). The gate owns the screen, so
+                // opening it means unlocking, and the logged override keeps a
+                // reload from re-trapping the operator mid-draft. This is the
+                // one action's workspace, not the dashboard.
+                <Tap
+                  className="w-full justify-center flex items-center"
+                  feel="impactMedium"
+                  onTap={async () => {
+                    await logOverride()
+                    window.location.hash = oneUrl
+                    onUnlock()
+                  }}
+                >
+                  Open the draft
+                </Tap>
+              ) : (
+                <a
+                  href={oneUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onPointerDown={() => h.impactMedium()}
+                  className="w-full min-h-[52px] flex items-center justify-center rounded-xl text-[16px] font-medium text-center bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] active:scale-[0.98] transition-all touch-manipulation"
+                >
+                  Open it
+                </a>
+              )
             ) : null}
 
             <Tap

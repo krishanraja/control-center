@@ -70,3 +70,46 @@ export function PublishCandidateCard({
     </div>
   )
 }
+
+/**
+ * The no-match outcome: the judgment said nothing outstanding serves the ask,
+ * and the honest next move is to build it. The reason line is the judge's own
+ * sentence, so the operator sees WHY the deck came up empty, not a shrug.
+ */
+export function BuildOfferCard({
+  reason, saving, onBuild, onManual, onKeepMine,
+}: {
+  reason: string
+  saving?: boolean
+  onBuild: () => void
+  onManual: () => void
+  onKeepMine?: () => void
+}) {
+  const h = useHaptics()
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-4 flex flex-col gap-2">
+        <span className="text-[11px] uppercase tracking-[0.14em] text-ink-faint">The queue came up empty</span>
+        <p className="text-[14px] leading-relaxed text-ink">{reason}</p>
+        <p className="text-[13px] text-ink-faint leading-relaxed">
+          The system can draft it now, in your voice, grounded in the corpus. About a minute. It lands as a draft you finish, nothing publishes itself.
+        </p>
+      </div>
+
+      <Tap onTap={onBuild} disabled={saving} feel="success" className="w-full justify-center flex items-center">
+        Build it now
+      </Tap>
+
+      <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
+        <Tap variant="quiet" className="!min-h-[44px] text-[13px]" onTap={() => { h.tap(); onManual() }}>
+          Name it myself
+        </Tap>
+        {onKeepMine && (
+          <Tap variant="quiet" className="!min-h-[44px] text-[13px]" onTap={() => { h.tap(); onKeepMine() }}>
+            Keep my words
+          </Tap>
+        )}
+      </div>
+    </div>
+  )
+}

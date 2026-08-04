@@ -142,6 +142,83 @@ function byBest(a: PublishCandidate, b: PublishCandidate): number {
   return 0
 }
 
+// ── The server-side judgment and build routes ─────────────────────────────
+// resolve-ask judges the operator's typed intent against the queue (one Haiku
+// call over a deterministic shortlist, server-side). build-one generates a
+// real draft when nothing matches. Both degrade to null on any failure so the
+// picker can fall back to the deterministic path; red mode never dead-ends.
+
+const API = import.meta.env.VITE_API_URL ?? ''
+
+export interface AskResolution {
+  verdict: 'match' | 'no_match'
+  candidate: PublishCandidate | null
+  reason: string
+}
+
+export interface BuiltDraft {
+  id: string
+  idea: string
+  lane: string | null
+  reused: boolean
+}
+
+async function postJson(path: string, body: unknown, timeoutMs: number): Promise<any | null> {
+  const ctrl = new AbortController()
+  const tid = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    const res = await fetch(`${API}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    })
+    const json = await res.json().catch(() => null)
+    if (!res.ok || !json?.ok) return null
+    return json
+  } catch {
+    return null
+  } finally {
+    clearTimeout(tid)
+  }
+}
+
+/** Judge the ask against the queue. Null means the route failed; fall back. */
+export async function resolveAsk(ask: string): Promise<AskResolution | null> {
+  const json = await postJson('/api/pilot/resolve-ask', { ask }, 25000)
+  if (!json) return null
+  const c = json.candidate
+  return {
+    verdict: json.verdict === 'match' ? 'match' : 'no_match',
+    candidate: c
+      ? {
+          id: c.id,
+          idea: c.idea,
+          state: c.state === 'approved' ? 'approved' : 'review',
+          lane: c.lane ?? null,
+          quality: c.quality ?? null,
+          url: c.url ?? null,
+          dueAt: c.dueAt ?? null,
+          tier: c.tier === 'ready' ? 'ready' : 'near',
+          score: typeof c.score === 'number' ? c.score : 0,
+        }
+      : null,
+    reason: typeof json.reason === 'string' ? json.reason : '',
+  }
+}
+
+/** Build a fresh draft from the ask. 30-90s; null means the build failed. */
+export async function buildOne(ask: string): Promise<BuiltDraft | null> {
+  const json = await postJson('/api/pilot/build-one', { ask }, 75000)
+  if (!json || !json.id) return null
+  return {
+    id: String(json.id),
+    idea: String(json.idea || ''),
+    lane: json.lane ?? null,
+    reused: Boolean(json.reused),
+  }
+}
+
 /**
  * Fetch the best-first shortlist. Never throws: red mode must degrade to the
  * manual path on any failure, not dead-end behind a network error. An empty
