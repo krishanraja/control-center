@@ -1,5 +1,5 @@
 import React from 'react'
-import { laneLabel, type PublishCandidate } from '../../lib/publishCandidates'
+import { laneLabel, type OutreachCandidate, type PublishCandidate } from '../../lib/publishCandidates'
 import { useHaptics } from '../../hooks/useHaptics'
 import { Tap } from './controls'
 
@@ -58,6 +58,66 @@ export function PublishCandidateCard({
         <Tap variant="quiet" className="!min-h-[44px] text-[13px]" onTap={() => { h.tap(); onNext() }}>
           Not this one
         </Tap>
+        <Tap variant="quiet" className="!min-h-[44px] text-[13px]" onTap={() => { h.tap(); onManual() }}>
+          Name it myself
+        </Tap>
+        {onKeepMine && (
+          <Tap variant="quiet" className="!min-h-[44px] text-[13px]" onTap={() => { h.tap(); onKeepMine() }}>
+            Keep my words
+          </Tap>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The outreach lane's one candidate: a Gmail draft ready to send, or a person
+ * the system can draft to right now. Same shape as the publish card: one
+ * artifact, one primary action, quiet exits.
+ */
+export function OutreachCandidateCard({
+  candidate, preface, saving, submitLabel = 'Lock it in',
+  onAccept, onManual, onKeepMine,
+}: {
+  candidate: OutreachCandidate
+  preface: string
+  saving?: boolean
+  submitLabel?: string
+  onAccept: () => void
+  onManual: () => void
+  onKeepMine?: () => void
+}) {
+  const h = useHaptics()
+  const kindLabel = candidate.kind === 'email_draft'
+    ? 'Ready in Gmail drafts'
+    : candidate.kind === 'lead' ? 'Enriched lead' : 'Guest, pitch drafted'
+  const note = candidate.kind === 'email_draft'
+    ? 'Already written. Sending it is the fifteen minutes.'
+    : 'No draft yet. The system writes it now, in your voice; you send it.'
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-[13px] text-ink-muted leading-relaxed">{preface}</p>
+
+      <div className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-4 flex flex-col gap-2">
+        <span className="text-[11px] uppercase tracking-[0.14em] text-ink-faint">{kindLabel}</span>
+        <p className="font-display text-[19px] leading-snug text-ink">
+          {candidate.kind === 'email_draft' && candidate.detail
+            ? `"${candidate.detail}" to ${candidate.name}`
+            : candidate.name}
+        </p>
+        {candidate.kind !== 'email_draft' && candidate.detail && (
+          <p className="text-[13px] text-ink-muted leading-relaxed">{candidate.detail}</p>
+        )}
+        <p className="text-[13px] text-ink-faint leading-relaxed">{note}</p>
+      </div>
+
+      <Tap onTap={onAccept} disabled={saving} feel="success" className="w-full justify-center flex items-center">
+        {saving ? 'Saving' : submitLabel}
+      </Tap>
+
+      <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
         <Tap variant="quiet" className="!min-h-[44px] text-[13px]" onTap={() => { h.tap(); onManual() }}>
           Name it myself
         </Tap>

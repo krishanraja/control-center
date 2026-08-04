@@ -77,6 +77,16 @@ export function validateConcreteness(text: string): ConcretenessResult {
 /** Verbs the system can resolve against real inventory (the content queue). */
 export const PUBLISHABLE_VERBS: string[] = ['publish', 'post']
 
+/** Verbs the system can resolve against the outreach inventory (unsent Gmail
+ *  drafts, enriched leads, pitched guests). */
+export const OUTREACH_VERBS: string[] = ['send', 'email', 'reply', 'dm', 'follow']
+
+/** True when the text carries an outreach-shaped verb. */
+export function isOutreachIntent(text: string): boolean {
+  const lower = (text || '').toLowerCase()
+  return OUTREACH_VERBS.some(v => new RegExp(`\\b${v}\\w*`).test(lower))
+}
+
 /** Placeholder objects. A concrete verb with one of these is intent, not a task. */
 export const VAGUE_OBJECT_TERMS: string[] = [
   'something', 'anything', 'whatever', 'stuff', 'some content',

@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
-import { ACTION_STARTERS, isPublishIntent, isVaguePublishIntent, validateConcreteness } from '../../lib/pilotConcreteness'
+import { ACTION_STARTERS, isOutreachIntent, isPublishIntent, isVaguePublishIntent, validateConcreteness } from '../../lib/pilotConcreteness'
 import {
   buildOne,
   candidateActionText,
+  draftOutreach,
   fetchPublishCandidates,
   laneLabel,
   resolveAsk,
+  type OutreachCandidate,
   type PublishCandidate,
 } from '../../lib/publishCandidates'
 import { useHaptics } from '../../hooks/useHaptics'
-import { BuildOfferCard, PublishCandidateCard } from './PublishCandidateCard'
+import { BuildOfferCard, OutreachCandidateCard, PublishCandidateCard } from './PublishCandidateCard'
 import { Tap, VoiceField } from './controls'
 
 /**
@@ -48,29 +50,34 @@ type AskPhase =
   | null
   | { kind: 'judging' }
   | { kind: 'offer'; reason: string }
-  | { kind: 'building' }
+  | { kind: 'no-match'; reason: string }
+  | { kind: 'building'; flavor: 'publish' | 'email' }
 
-const BUILD_STAGES = [
-  'Reading the corpus',
-  'Drafting in your voice',
-  'Holding it to the five standards',
-]
+const BUILD_FLAVORS = {
+  publish: {
+    stages: ['Reading the corpus', 'Drafting in your voice', 'Holding it to the five standards'],
+    note: 'About a minute. It lands as a draft you finish, nothing publishes itself.',
+  },
+  email: {
+    stages: ['Reading the context', 'Drafting the email in your voice'],
+    note: 'It lands in Gmail drafts. You send it, nothing sends itself.',
+  },
+} as const
 
-/** Calm inline progress for the synchronous build. Honest stages on a slow
+/** Calm inline progress for the synchronous builds. Honest stages on a slow
  *  clock, no fake percentage, matching red mode's palette (ProcessingOverlay
  *  is a full-screen dashboard surface and does not belong here). */
-function BuildingState() {
+function BuildingState({ flavor }: { flavor: 'publish' | 'email' }) {
+  const { stages, note } = BUILD_FLAVORS[flavor]
   const [stage, setStage] = useState(0)
   useEffect(() => {
-    const t = setInterval(() => setStage(s => Math.min(s + 1, BUILD_STAGES.length - 1)), 18000)
+    const t = setInterval(() => setStage(s => Math.min(s + 1, stages.length - 1)), 18000)
     return () => clearInterval(t)
-  }, [])
+  }, [stages.length])
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-[14px] text-ink leading-relaxed animate-pulse">{BUILD_STAGES[stage]}.</p>
-      <p className="text-[13px] text-ink-faint leading-relaxed">
-        About a minute. It lands as a draft you finish, nothing publishes itself.
-      </p>
+      <p className="text-[14px] text-ink leading-relaxed animate-pulse">{stages[stage]}.</p>
+      <p className="text-[13px] text-ink-faint leading-relaxed">{note}</p>
     </div>
   )
 }
@@ -93,6 +100,7 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
   const [keptWords, setKeptWords] = useState('')
   const [judgeReason, setJudgeReason] = useState<string | null>(null)
   const [askPhase, setAskPhase] = useState<AskPhase>(null)
+  const [outreach, setOutreach] = useState<OutreachCandidate | null>(null)
 
   const composed = starter ? `${starter.verb} ${rest.trim()}`.trim() : ''
 
@@ -119,14 +127,21 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
     }
   }
 
-  /** The typed publish path: judge the ask server-side, then either surface
-   *  the genuine match, offer the build, or degrade to the deterministic
-   *  candidates so a failed route can never dead-end the screen. */
+  /** The typed path: judge the ask server-side against whichever inventory
+   *  its verb points at, then surface the genuine match, offer the next move,
+   *  or degrade to the deterministic candidates so a failed route can never
+   *  dead-end the screen. */
   const judgeAsk = async (askText: string) => {
     setKeptWords(askText)
     setAskPhase({ kind: 'judging' })
     const result = await resolveAsk(askText)
 
+    if (result?.verdict === 'match' && result.intent === 'outreach' && result.outreach) {
+      setAskPhase(null)
+      setJudgeReason(result.reason || null)
+      setOutreach(result.outreach)
+      return
+    }
     if (result?.verdict === 'match' && result.candidate) {
       setAskPhase(null)
       setCands([result.candidate])
@@ -136,7 +151,13 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
       return
     }
     if (result) {
-      setAskPhase({ kind: 'offer', reason: result.reason || 'Nothing in the queue genuinely serves that ask.' })
+      // Publish gets the build offer; outreach cannot invent a recipient, so
+      // its honest no-match keeps the operator's words one tap away instead.
+      if (result.intent === 'outreach') {
+        setAskPhase({ kind: 'no-match', reason: result.reason || 'Nothing outstanding genuinely serves that ask.' })
+      } else {
+        setAskPhase({ kind: 'offer', reason: result.reason || 'Nothing in the queue genuinely serves that ask.' })
+      }
       return
     }
 
@@ -156,7 +177,7 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
   }
 
   const startBuild = async () => {
-    setAskPhase({ kind: 'building' })
+    setAskPhase({ kind: 'building', flavor: 'publish' })
     const built = await buildOne(keptWords)
     if (!built) {
       h.warning()
@@ -171,9 +192,40 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
     )
   }
 
+  /** Accept an outreach candidate: a ready draft commits directly; a lead or
+   *  guest fires the existing draft-email route first, then commits the send. */
+  const acceptOutreach = async (c: OutreachCandidate) => {
+    if (c.kind === 'email_draft') {
+      h.notifySuccess()
+      onCommit(
+        c.detail ? `Send "${c.detail}" to ${c.name}` : `Send the draft to ${c.name}`,
+        c.url ?? undefined,
+      )
+      return
+    }
+    if (!c.entityType || !c.entityId) {
+      h.warning()
+      setJudgeReason('That one is missing its record link. Name it yourself.')
+      return
+    }
+    setAskPhase({ kind: 'building', flavor: 'email' })
+    const drafted = await draftOutreach(c.entityType, c.entityId)
+    if (!drafted) {
+      h.warning()
+      setAskPhase(null)
+      setJudgeReason('The draft did not come back. Try once more, or keep your words.')
+      return
+    }
+    h.notifySuccess()
+    onCommit(
+      drafted.subject ? `Send "${drafted.subject}" to ${c.name}` : `Send the email to ${c.name}`,
+      drafted.url ?? undefined,
+    )
+  }
+
   const commitGuided = () => {
     if (!rest.trim()) { setHint('Say or type who it goes to.'); h.warning(); return }
-    if (starter && (starter.verb === 'Publish' || starter.verb === 'Post')) {
+    if (starter && ['Publish', 'Post', 'Send', 'Reply to'].includes(starter.verb)) {
       judgeAsk(composed)
       return
     }
@@ -184,7 +236,7 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
   const commitFree = async () => {
     const check = validateConcreteness(text)
     if (!check.ok) { setHint(check.hint || null); h.warning(); return }
-    if (isPublishIntent(text)) {
+    if (isPublishIntent(text) || isOutreachIntent(text)) {
       await judgeAsk(text.trim())
       return
     }
@@ -203,7 +255,7 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
 
   // ── The draft is being built ───────────────────────────────────────────────
   if (askPhase?.kind === 'building') {
-    return <BuildingState />
+    return <BuildingState flavor={askPhase.flavor} />
   }
 
   // ── Nothing matched: offer to build it now ─────────────────────────────────
@@ -214,6 +266,51 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
         saving={saving}
         onBuild={startBuild}
         onManual={() => { setAskPhase(null); setHint(null) }}
+        onKeepMine={keptWords ? () => { h.notifySuccess(); onCommit(keptWords) } : undefined}
+      />
+    )
+  }
+
+  // ── Outreach no-match: the system cannot invent a recipient, so the honest
+  //    close is the reason plus the operator's own words, one tap away ────────
+  if (askPhase?.kind === 'no-match') {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-4 flex flex-col gap-2">
+          <span className="text-[11px] uppercase tracking-[0.14em] text-ink-faint">Nothing outstanding matches</span>
+          <p className="text-[14px] leading-relaxed text-ink">{askPhase.reason}</p>
+        </div>
+        {keptWords && (
+          <Tap
+            onTap={() => { h.notifySuccess(); onCommit(keptWords) }}
+            disabled={saving}
+            feel="success"
+            className="w-full justify-center flex items-center"
+          >
+            Keep my words
+          </Tap>
+        )}
+        <Tap
+          variant="quiet"
+          className="!min-h-[44px] text-[13px]"
+          onTap={() => { h.tap(); setAskPhase(null); setHint(null) }}
+        >
+          Name it myself
+        </Tap>
+      </div>
+    )
+  }
+
+  // ── An outreach artifact, offered one at a time ────────────────────────────
+  if (outreach) {
+    return (
+      <OutreachCandidateCard
+        candidate={outreach}
+        preface={judgeReason || 'The inventory has a genuine match:'}
+        saving={saving}
+        submitLabel={submitLabel}
+        onAccept={() => { acceptOutreach(outreach) }}
+        onManual={() => { setOutreach(null); setJudgeReason(null); setHint(null) }}
         onKeepMine={keptWords ? () => { h.notifySuccess(); onCommit(keptWords) } : undefined}
       />
     )

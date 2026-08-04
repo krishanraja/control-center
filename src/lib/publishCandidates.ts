@@ -150,9 +150,23 @@ function byBest(a: PublishCandidate, b: PublishCandidate): number {
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
+/** An outreach artifact from the server inventory: a Gmail draft ready to
+ *  send, or a person the existing draft-email routes can write to now. */
+export interface OutreachCandidate {
+  kind: 'email_draft' | 'lead' | 'guest'
+  id: string
+  entityType: 'lead' | 'guest' | 'customer' | null
+  entityId: string | null
+  name: string
+  detail: string | null
+  url: string | null
+}
+
 export interface AskResolution {
+  intent: 'publish' | 'outreach'
   verdict: 'match' | 'no_match'
   candidate: PublishCandidate | null
+  outreach: OutreachCandidate | null
   reason: string
 }
 
@@ -183,12 +197,15 @@ async function postJson(path: string, body: unknown, timeoutMs: number): Promise
   }
 }
 
-/** Judge the ask against the queue. Null means the route failed; fall back. */
+/** Judge the ask against the outstanding inventory. Null means the route
+ *  failed; the picker falls back to the deterministic path. */
 export async function resolveAsk(ask: string): Promise<AskResolution | null> {
   const json = await postJson('/api/pilot/resolve-ask', { ask }, 25000)
   if (!json) return null
   const c = json.candidate
+  const o = json.outreach
   return {
+    intent: json.intent === 'outreach' ? 'outreach' : 'publish',
     verdict: json.verdict === 'match' ? 'match' : 'no_match',
     candidate: c
       ? {
@@ -203,7 +220,33 @@ export async function resolveAsk(ask: string): Promise<AskResolution | null> {
           score: typeof c.score === 'number' ? c.score : 0,
         }
       : null,
+    outreach: o && o.kind && o.id
+      ? {
+          kind: o.kind,
+          id: String(o.id),
+          entityType: ['lead', 'guest', 'customer'].includes(o.entityType) ? o.entityType : null,
+          entityId: o.entityId ? String(o.entityId) : null,
+          name: String(o.name || 'the recipient'),
+          detail: o.detail ? String(o.detail) : null,
+          url: o.url ? String(o.url) : null,
+        }
+      : null,
     reason: typeof json.reason === 'string' ? json.reason : '',
+  }
+}
+
+/** Fire the existing per-entity draft-email route: the build arm of the
+ *  outreach lane. Returns the Gmail draft url when one landed. Null = failed. */
+export async function draftOutreach(
+  entityType: 'lead' | 'guest' | 'customer',
+  entityId: string,
+): Promise<{ url: string | null; subject: string | null } | null> {
+  const base = entityType === 'customer' ? 'customers' : `${entityType}s`
+  const json = await postJson(`/api/${base}/${entityId}/draft-email`, { intent: 'introduction' }, 75000)
+  if (!json) return null
+  return {
+    url: json.draft_url ? String(json.draft_url) : null,
+    subject: json.subject ? String(json.subject) : null,
   }
 }
 
