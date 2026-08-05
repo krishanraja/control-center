@@ -106,7 +106,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     })
 
-    const isCron = req.method === 'POST' || Boolean(req.headers['x-vercel-cron'])
+    // A plain GET is read-only economics and stays open, because the
+    // ProfitGovernorCard fetches it from the browser with no secret.
+    // The EVALUATION pass is different: it can deactivate n8n workflows when a
+    // budget trips, so it must prove the cron credential. x-vercel-cron is NOT
+    // stripped by Vercel on inbound requests (verified 2026-08-05: a forged
+    // header ran a job on another route), so it authenticates nothing on its own.
+    const cronSecret = process.env.CRON_SECRET || ''
+    const authHeader = req.headers.authorization || ''
+    const authorised = Boolean(cronSecret) && authHeader === `Bearer ${cronSecret}`
+    const wantsEvaluation = req.method === 'POST' || Boolean(req.headers['x-vercel-cron'])
+    if (wantsEvaluation && !authorised) {
+      return res.status(401).json({ ok: false, error: 'unauthorized' })
+    }
+    const isCron = wantsEvaluation && authorised
     const events: any[] = []
 
     if (isCron) {
