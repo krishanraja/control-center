@@ -73,6 +73,17 @@ interface Evidence {
     by_status: Record<string, number>
     unaddressed_high_value: Array<{ channel: string; watering_hole: string | null; score: number | null }>
     in_progress: string[]
+    // The map is where structural knowledge lives (an auth wall, a fixed
+    // llms.txt, a rescore off GEO evidence). Without it the council is amnesiac
+    // and rediscovers the same blockers every week.
+    known_structure: Array<{
+      channel: string
+      status: string
+      score: number | null
+      rationale: string | null
+      assumption_flag: string | null
+      evidence: Record<string, unknown> | null
+    }>
   }
   geo: {
     window_days: number
@@ -139,6 +150,23 @@ async function buildEvidence(slug: ProductSlug, weekStart: string, ctx: {
     .sort((a, b) => num(b.cost_efficiency_score) - num(a.cost_efficiency_score))
     .slice(0, 4)
     .map(t => ({ channel: String(t.channel), watering_hole: t.watering_hole ?? null, score: t.cost_efficiency_score ?? null }))
+
+  // Carry the map's own recorded knowledge forward. rationale, assumption_flag
+  // and evidence are where a diagnosed structural blocker (an auth wall, a
+  // Cloudflare bot block, a sitemap serving 404s) is written down. Reading them
+  // is what stops the council rediscovering the same wall every Sunday.
+  const knownStructure = tps
+    .filter(t => t.coverage_status !== 'retired' && (t.rationale || t.assumption_flag || (t.evidence && Object.keys(t.evidence).length)))
+    .sort((a, b) => num(b.cost_efficiency_score) - num(a.cost_efficiency_score))
+    .slice(0, 8)
+    .map(t => ({
+      channel: String(t.channel),
+      status: String(t.coverage_status),
+      score: t.cost_efficiency_score ?? null,
+      rationale: t.rationale ? String(t.rationale).slice(0, 400) : null,
+      assumption_flag: t.assumption_flag ? String(t.assumption_flag).slice(0, 200) : null,
+      evidence: t.evidence && Object.keys(t.evidence).length ? (t.evidence as Record<string, unknown>) : null,
+    }))
 
   // --- GEO citation truth --------------------------------------------------
   const geoSince = new Date(Date.now() - GEO_WINDOW_DAYS * 86_400_000).toISOString()
@@ -230,6 +258,7 @@ async function buildEvidence(slug: ProductSlug, weekStart: string, ctx: {
       by_status: byStatus,
       unaddressed_high_value: unaddressed,
       in_progress: tps.filter(t => t.coverage_status === 'in_progress').map(t => String(t.channel)),
+      known_structure: knownStructure,
     },
     geo: {
       window_days: GEO_WINDOW_DAYS,
@@ -313,6 +342,7 @@ async function writeReview(e: Evidence): Promise<{ findings: Record<string, stri
     'ABSOLUTE RULE: every number you write must appear in the evidence JSON you are given. You may not estimate, extrapolate, round for effect, or infer traffic that is not measured.',
     'ABSOLUTE RULE: the evidence carries an `unknowns` array. Each entry there MUST be reflected in your findings, stated as unknown. Never convert an unknown into a zero. "No emitter wired" is not "no traffic".',
     'Tone: blunt, specific, structural. Name the constraint, not the mood. No hedging, no encouragement, no summary of the summary.',
+    'touchpoints.known_structure carries what the map already knows about each channel: the diagnosed blocker, the flagged assumption, what shipped and when. Use it. If a structural blocker is recorded there, name it, because a metric that cannot move until that blocker clears is not a performance problem.',
     VOICE_GUARDRAILS,
     'Respond with ONLY a JSON object:',
     '{"headline": string (<=160 chars, the one sentence that matters this week),',
