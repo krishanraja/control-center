@@ -275,7 +275,7 @@ function measuredLine(e: Evidence): string {
     traffic,
     `signups ${a.status === 'no_emitter_wired' ? 'unknown' : num(a.this_week.signed_up)} this week`,
     geo,
-    `paid ${e.revenue.paid_now}, MRR $${e.revenue.mrr_usd}, churned ${e.revenue.churned_total}`,
+    `customers table: paid ${e.revenue.paid_now}, MRR $${e.revenue.mrr_usd}, churned ${e.revenue.churned_total}`,
     `touchpoints ${e.touchpoints.total} (${Object.entries(e.touchpoints.by_status).map(([k, v]) => `${k} ${v}`).join(', ') || 'none'})`,
   ].join(' | ')
 }
@@ -290,7 +290,22 @@ function fallbackReview(e: Evidence) {
   return { findings, kill_list: [] as string[], double_down: [] as string[] }
 }
 
-const CLEAN = (s: unknown, max: number) => String(s ?? '').replace(/[—―–]/g, ',').replace(/\s+/g, ' ').trim().slice(0, max)
+/**
+ * Krish's hard rule is no em dashes, and a model that is told that will reach
+ * for the ASCII stand-ins instead. So the sweep kills the real characters AND
+ * the substitutes: "--", and a hyphen used as a spaced dash. Word-internal
+ * hyphens (AI-native, full-time) are left alone.
+ */
+const CLEAN = (s: unknown, max: number) =>
+  String(s ?? '')
+    .replace(/[—―–]/g, ',')
+    .replace(/\s*-{2,}\s*/g, ', ')
+    .replace(/\s+-\s+/g, ', ')
+    .replace(/\s*,(\s*,)+/g, ',')
+    .replace(/\s+([,.;:])/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max)
 
 async function writeReview(e: Evidence): Promise<{ findings: Record<string, string>; kill_list: string[]; double_down: string[] }> {
   const system = [
@@ -304,7 +319,7 @@ async function writeReview(e: Evidence): Promise<{ findings: Record<string, stri
     ' "findings": { "<short_snake_case_key>": string (<=320 chars) } (3 to 6 entries, each a distinct evidence-backed observation; keys like geo, traffic, signups, revenue, attribution_quality, structural_blocker),',
     ' "kill_list": string[] (0 to 3, things to stop; empty array is a valid and common answer),',
     ' "double_down": string[] (0 to 4, the specific next moves the evidence supports)}',
-    'No prose outside the JSON. No em dashes anywhere in any string.',
+    'No prose outside the JSON. No em dashes anywhere in any string, and no ASCII stand-ins for one either: never write "--" or a spaced hyphen as a dash. Use a comma, a period, or parentheses.',
   ].join('\n\n')
 
   const user = [
