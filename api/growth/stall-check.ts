@@ -8,7 +8,7 @@ import { callClaude, robustJson, loadVoiceBlock, VOICE_GUARDRAILS } from '../_co
  *
  *   GET (cron)                         — daily 07:00 UTC (after the 05:30
  *                                        snapshot). Bearer CRON_SECRET or the
- *                                        x-vercel-cron header.
+ *                                        Bearer CRON_SECRET.
  *   POST { action:'run', dry_run? }    — manual evaluation pass.
  *   POST { action:'adopt', id, move_index } — turn one drafted move into a
  *                                        task for the right agent; stall ->
@@ -238,8 +238,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'GET') {
       const secret = process.env.CRON_SECRET || ''
       const auth = req.headers.authorization || ''
-      const isVercelCron = !!req.headers['x-vercel-cron']
-      if (!isVercelCron && (!secret || auth !== `Bearer ${secret}`)) {
+      // NOTE: x-vercel-cron is NOT stripped by Vercel on inbound external
+      // requests (verified 2026-08-05: a spoofed header returned 200 and ran
+      // the job), so it is not proof of anything. Vercel sends
+      // `Authorization: Bearer $CRON_SECRET` on cron invocations whenever
+      // CRON_SECRET is set, which it is. Bearer-only matches the proven
+      // pattern in api/feed/ingest.ts.
+      if (!secret || auth !== `Bearer ${secret}`) {
         return res.status(401).json({ ok: false, error: 'unauthorized' })
       }
       const result = await runCheck(req.query.dry_run === '1')
