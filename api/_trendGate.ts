@@ -104,15 +104,26 @@ export function verifyShift(p: ProposedShift, byId: Map<string, CorpusItem>): Ve
   if (items.length < MIN_EVIDENCE) return null
 
   const days = new Set(items.map(i => i.day))
-  const sources = new Set(items.map(i => (i.source || 'unknown').toLowerCase()))
-  if (days.size < MIN_DAY_SPAN || sources.size < MIN_SOURCES) return null
+  // Count distinct ROOT DOMAINS and distinct URLs, never source labels.
+  // Three newsletters summarising one press release are three labels but one
+  // origin. That is circular reporting, and counting labels let it walk
+  // straight through the gate built to stop it. `realSource()` resolves to the
+  // newsletter or aggregator, not the publisher, which made the old count
+  // actively misleading rather than merely loose.
+  // Measured 2026-08-05 on the live register: 42 of 42 shifts passed the label
+  // floor, only 25 passed this one.
+  // An item with no URL contributes to NEITHER count. An uncitable claim is not
+  // a citation, and 124 of 307 evidence rows had no URL at all.
+  const domains = new Set(items.map(i => rootDomain(i.url)).filter(Boolean) as string[])
+  const urls = new Set(items.map(i => i.url).filter(Boolean) as string[])
+  if (days.size < MIN_DAY_SPAN || domains.size < MIN_SOURCES || urls.size < MIN_EVIDENCE) return null
 
   const newest = items.map(i => i.day).sort().at(-1)!
   const recentFloor = shiftDate(newest, -RECENT_DAYS)
   const recentCount = items.filter(i => i.day >= recentFloor).length
 
   const daySpan = days.size
-  const sourceCount = sources.size
+  const sourceCount = domains.size
   return {
     ...p, category, items, daySpan, sourceCount, recentCount,
     momentum: computeMomentum(daySpan, sourceCount, recentCount),
@@ -121,6 +132,18 @@ export function verifyShift(p: ProposedShift, byId: Map<string, CorpusItem>): Ve
 
 // Durable AND still moving: day-spread dominates, recent activity keeps a
 // fading theme from outranking a live one.
+// Root domain of a URL, lowercased, www stripped. Returns null for anything
+// unparseable or absent, so callers can filter rather than count a fiction.
+export function rootDomain(url: string | null | undefined): string | null {
+  if (!url) return null
+  try {
+    const h = new URL(url).hostname.replace(/^www\./, '').toLowerCase()
+    return h || null
+  } catch {
+    return null
+  }
+}
+
 export function computeMomentum(daySpan: number, sourceCount: number, recentCount: number): number {
   return daySpan * 2 + sourceCount + recentCount
 }
