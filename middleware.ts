@@ -29,6 +29,31 @@ const COOKIE = 'cc_access'
 const MAX_AGE = 60 * 60 * 24 * 30 // 30 days
 const UNLOCK_PATH = '/__unlock'
 
+// Static browser metadata that must be served ungated.
+//
+// The manifest is the one that actually broke: a `<link rel="manifest">` fetch
+// is anonymous by default (no cookies unless the tag opts in with
+// crossorigin="use-credentials"), so the gate answered it with the HTML unlock
+// page under Content-Type: text/html and every page logged
+// `Manifest: Line: 1, column: 1, Syntax error.` The icons are here for the same
+// class of reason: apple-touch-icon and the maskable icons are fetched by the
+// OS installer rather than the page, and the manifest itself references them,
+// so a gated icon would break install even once the manifest parses.
+//
+// Nothing on this list carries data. The JS bundle (which does carry the
+// Supabase anon key) stays gated.
+const PUBLIC_STATIC = new Set([
+  '/manifest.webmanifest',
+  '/favicon.ico',
+  '/favicon.png',
+  '/favicon-32.png',
+  '/favicon-180.png',
+  '/apple-touch-icon.png',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/icon-maskable-512.png',
+])
+
 async function sha256Hex(input: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input))
   return Array.from(new Uint8Array(digest))
@@ -105,8 +130,13 @@ export default async function middleware(request: Request): Promise<Response | u
   // lock Krish out of his own dashboard. Set ACCESS_CODE in Vercel to arm it.
   if (!code) return undefined
 
-  const token = await sha256Hex(code)
   const url = new URL(request.url)
+
+  // Static browser metadata is served ungated (see PUBLIC_STATIC): the manifest
+  // fetch carries no cookie, so gating it returned HTML where JSON was expected.
+  if (PUBLIC_STATIC.has(url.pathname)) return undefined
+
+  const token = await sha256Hex(code)
 
   // Unlock submission: check the code, set the cookie, redirect in.
   if (request.method === 'POST' && url.pathname === UNLOCK_PATH) {
