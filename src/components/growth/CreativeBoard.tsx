@@ -100,14 +100,16 @@ export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop
 
       {adding && <AddCard g={g} thisWeek={thisWeek} onDone={() => setAdding(false)} />}
 
-      {g.cards.length === 0 && !adding ? (
+      {g.cards.length === 0 && (
         <EmptyNote>
           No creative cards yet. Nothing here is generated for you: a card exists once you or an agent writes one,
           and the board stays empty until then. Start one with New card, capped at {BATCH_MIN} to {BATCH_MAX} script
           candidates for the week.
         </EmptyNote>
-      ) : (
-        <div className={`flex-1 min-h-0 ${variant === 'desktop' ? 'overflow-x-auto' : 'overflow-x-auto'}`}>
+      )}
+      {/* The columns render even at zero cards: the pipeline is the point, and an
+          empty board still has to show what the stages are and take a drop. */}
+      <div className="flex-1 min-h-0 overflow-x-auto">
           <div className="flex gap-3 min-h-0 h-full" style={{ minWidth: variant === 'desktop' ? 940 : 760 }}>
             {BOARD_STAGES.map(stage => {
               const inStage = live.filter(c => c.stage === stage)
@@ -140,8 +142,7 @@ export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop
               )
             })}
           </div>
-        </div>
-      )}
+      </div>
 
       {showDropped && dropped.length > 0 && (
         <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3">
