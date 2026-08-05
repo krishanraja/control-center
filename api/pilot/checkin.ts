@@ -56,8 +56,14 @@ async function get(req: VercelRequest, res: VercelResponse) {
   const [morningRes, eveningRes, eveningTodayRes, lastMorningRes, ydayRes, yshipRes] = await Promise.all([
     supabase.from('pilot_checkins').select('*')
       .eq('kind', 'morning').eq('checkin_date', today).maybeSingle(),
+    // A tomorrow_one is FOR the day after it was filed (last night's shutdown)
+    // or for the same day (red mode's morning ask writes an evening row dated
+    // today). Anything older is a stale ONE from a past day and must not own
+    // this morning: the unbounded version of this query is how a task typed
+    // last Tuesday kept resurfacing every red day after.
     supabase.from('pilot_checkins').select('*')
       .eq('kind', 'evening').not('tomorrow_one', 'is', null)
+      .in('checkin_date', [yesterday, today])
       .order('created_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('pilot_checkins').select('id')
       .eq('kind', 'evening').eq('checkin_date', today).maybeSingle(),

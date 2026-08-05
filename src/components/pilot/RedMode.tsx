@@ -117,6 +117,17 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
             >
               Mark done
             </Tap>
+
+            {/* The escape from a ONE that no longer fits: back to the ask,
+                where the judge and the build live. Without this, a stale or
+                vague ONE was a dead end with nothing but Mark done. */}
+            <Tap
+              variant="quiet"
+              className="!min-h-[44px] text-[13px] w-full justify-center flex items-center"
+              onTap={() => { h.tap(); setOne(''); setOneUrl(''); setPhase('ask') }}
+            >
+              Pick a different action
+            </Tap>
           </div>
         )}
 

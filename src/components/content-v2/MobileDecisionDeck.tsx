@@ -36,12 +36,25 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   const { decisions, brief, loading } = v2
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(0)
+  // Client-side rotation: "Decide later" sends the current card to the back of
+  // the queue WITHOUT resolving it, so the deck can be walked end to end on a
+  // coffee line. The queue stays finite and honest (nothing resolves, the
+  // count does not move); before this the only way past card one was deciding
+  // it, and one wedged card wedged the whole tab.
+  const [deferred, setDeferred] = useState<string[]>([])
 
-  // Brief first (the anchor decision), then shifts, then the rest.
+  // Brief first (the anchor decision), then shifts, then the rest. Deferred
+  // cards sink to the back in the order they were passed on.
   const queue = useMemo(() => {
     const order: Record<string, number> = { brief_review: 0, shift_proposal: 1, shift_fading: 2, graduation: 3, purge_preview: 4 }
-    return [...decisions].sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9))
-  }, [decisions])
+    const sorted = [...decisions].sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9))
+    if (!deferred.length) return sorted
+    const rank = new Map(deferred.map((id, i) => [id, i]))
+    return [
+      ...sorted.filter(d => !rank.has(d.id)),
+      ...sorted.filter(d => rank.has(d.id)).sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0)),
+    ]
+  }, [decisions, deferred])
   const current = queue[0] || null
   const total = queue.length + done
 
@@ -136,6 +149,15 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
             </>
           ) : (
             <Big tone="primary" disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'done'))}>Acknowledged</Big>
+          )}
+          {queue.length > 1 && (
+            <button
+              onClick={() => setDeferred(prev => [...prev.filter(id => id !== d.id), d.id])}
+              disabled={busy}
+              className="w-full py-2.5 text-[12.5px] text-white/40 hover:text-white/70 disabled:opacity-40"
+            >
+              Decide later · show the next
+            </button>
           )}
         </div>
       </div>

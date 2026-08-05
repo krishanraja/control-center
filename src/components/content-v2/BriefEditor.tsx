@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import Link from '@tiptap/extension-link'
 import { Markdown } from 'tiptap-markdown'
 import { contentV2Api } from '../../hooks/useContentV2'
 import { useDictation } from '../../hooks/useDictation'
@@ -19,6 +18,16 @@ interface StandingNote { id: string; text: string; at: string }
 // Desktop: edit + toolbar + versions + magic row + fan-out push.
 // Mobile (narrow): read-mode + magic row + Tell Cleo dictation + big actions;
 // careful writing stays on the desktop by design (R13).
+
+// One stable extension set, shared by every editor instance. Two hard-won
+// rules live here. StarterKit bundles Link since tiptap v3, so registering
+// extension-link on top of it created a DUPLICATE 'link' mark. And the array
+// must NOT be rebuilt per render: @tiptap/react compares extensions by
+// identity on every render and a fresh array forces a setOptions churn.
+const EXTENSIONS = [
+  StarterKit.configure({ link: { openOnClick: false } }),
+  Markdown.configure({ html: false, linkify: true }),
+]
 
 const MAGIC: Array<{ mode: string; label: string }> = [
   { mode: 'tighten', label: 'Tighten' },
@@ -80,14 +89,16 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   const { listening, supported, toggle } = useDictation(setCleoNote)
   const { toast } = useToast()
 
+  // The brief's markdown is handed to the editor AT CREATION, not injected
+  // afterwards: the deps array recreates the editor when the brief arrives, so
+  // tiptap-markdown parses the content on the editor's own construction path.
+  // The old shape (create empty, setContent from an effect) raced the view
+  // mount and intermittently produced a blank canvas: the brief opened empty
+  // on phones from the day this shipped.
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Link.configure({ openOnClick: false }),
-      Markdown.configure({ html: false, linkify: true }),
-    ],
+    extensions: EXTENSIONS,
     editable: !narrow,
-    content: '',
+    content: brief ? renderBrief(toEndnotes(brief.body_md || ''), citations) : '',
     onUpdate: ({ editor }) => {
       setDirty(true)
       const storage = editor.storage as { markdown?: { getMarkdown: () => string } }
@@ -95,7 +106,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
       // Edits only happen with citations on, so the buffer stays canonical.
       if (md != null) canonicalRef.current = toEndnotes(md)
     },
-  })
+  }, [brief?.id])
 
   const editingClosed = brief ? !['ready', 'in_review', 'approved'].includes(brief.status) : false
 
@@ -121,19 +132,27 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   //    with inline citations are migrated to citations-at-the-end on open; the
   //    upgrade only persists if Krish actually edits and saves.
   useEffect(() => {
-    if (editor && brief && !dirty) {
+    if (brief && !dirty) {
       canonicalRef.current = toEndnotes(brief.body_md || '')
     }
     // dirty is read, not depended on: a keystroke must never reload.
-  }, [editor, brief])
+  }, [brief])
 
-  // B) Render the display from the canonical buffer for the current toggle.
-  //    Runs on load and whenever the citations toggle flips — never on a
-  //    keystroke (canonicalRef stays in sync via onUpdate), so edits are safe.
+  // B) Re-render the display from the canonical buffer when the citations
+  //    toggle or editability flips. Initial content arrives at editor creation
+  //    (see useEditor above); this only handles the user-triggered flips, when
+  //    the view is definitely mounted. Never runs on a keystroke (canonicalRef
+  //    stays in sync via onUpdate), so edits are safe.
   useEffect(() => {
-    if (!editor || !brief) return
+    // isDestroyed guards the recreation cycle: when the brief arrives, the
+    // editor is rebuilt and this effect fires once more against the torn-down
+    // instance from the previous render's closure.
+    if (!editor || editor.isDestroyed || !brief) return
     editor.setEditable(!narrow && citations && !editingClosed)
-    editor.commands.setContent(renderBrief(canonicalRef.current, citations))
+    // emitUpdate false, because this is a programmatic re-render, not an edit. In
+    // tiptap v3 setContent emits update by default, which flipped dirty and
+    // re-canonicalized from the serializer on every pass.
+    editor.commands.setContent(renderBrief(canonicalRef.current, citations), { emitUpdate: false })
   }, [editor, brief, citations, narrow, editingClosed])
 
   useEffect(() => {

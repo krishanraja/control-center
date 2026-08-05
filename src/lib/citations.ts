@@ -87,11 +87,16 @@ export function extractCitations(md: string): { prose: string; sources: Citation
     if (boldClose === -1) return line
     const head = line.slice(0, boldClose + 2)
     const tail = line.slice(boldClose + 2)
-    // Trailing [n] marker (endnote form) — drop it; source comes from endSources.
-    // TipTap's markdown serializer backslash-escapes brackets, so a marker can
-    // round-trip back as "\[1\]"; tolerate the escaped form too.
-    const marker = tail.match(/^\s*\\?\[\d+\\?\]\s*$/)
-    if (marker) return head
+    // [n] markers (endnote form): drop them; sources come from endSources.
+    // TipTap's serializer backslash-escapes brackets ("\[1\]") and can glue a
+    // continuation onto the same line, so markers are stripped as a PREFIX of
+    // the tail (one or more, healing any duplicates a past round-trip stacked)
+    // rather than requiring the marker to end the line. Requiring end-of-line
+    // is how markers silently survived and accumulated one per open.
+    const stripped = tail.replace(/^(?:\s*\\?\[\d+\\?\])+/, '')
+    if (stripped !== tail) {
+      return stripped.trim() ? head + stripped : head
+    }
     // Trailing (citation) — extract and drop it.
     const paren = tail.match(/^\s*\((.*)\)\s*$/)
     if (paren && LOOKS_LIKE_CITATION.test(paren[1])) {
