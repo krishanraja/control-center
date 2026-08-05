@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Home, Calendar, Clock, UserPlus, DollarSign, Mic, FileText,
   Users, GitBranch, Brain, Activity, Workflow, Zap, Server,
-  HeartHandshake,
+  HeartHandshake, TrendingUp,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -31,6 +31,11 @@ export interface TabDef {
 // Desktop drawer demotions: Bets (read-mostly, low action density) and Intel
 // (insight-only, no action) move out of the primary sidebar to reduce IA load;
 // they remain accessible under the "More" drawer.
+//
+// Growth (the ICP touchpoint map, creative board, council and GEO probes) is a
+// desk surface: dense tables, a kanban and inline editing. It sits in the
+// desktop sidebar next to Content and in the mobile "More" drawer, since the
+// phone is not where the map gets rescored.
 export const TABS: TabDef[] = [
   { id: 'home',      label: 'Home',          desktopIcon: LayoutDashboard, mobileIcon: Home,       desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'today',     label: 'Today',         desktopIcon: Calendar,        mobileIcon: Clock,      desktopPriority: 'primary', mobilePriority: 'drawer'  },
@@ -39,6 +44,7 @@ export const TABS: TabDef[] = [
   { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'guests',    label: 'Visibility',    mobileShortLabel: 'Vis',  desktopIcon: Mic,        mobileIcon: Mic,        desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'content',   label: 'Content',       desktopIcon: FileText,        mobileIcon: FileText,   desktopPriority: 'primary', mobilePriority: 'primary' },
+  { id: 'growth',    label: 'Growth',        desktopIcon: TrendingUp,      mobileIcon: TrendingUp, desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'org',       label: 'Org',           desktopIcon: Users,           mobileIcon: GitBranch,  desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'exec',      label: 'Intel',         desktopIcon: Brain,           mobileIcon: Activity,   desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
   { id: 'workflows', label: 'Flows',         desktopIcon: Workflow,        mobileIcon: Zap,        desktopPriority: 'drawer',  mobilePriority: 'drawer'  },

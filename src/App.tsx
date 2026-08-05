@@ -55,9 +55,13 @@ const ContentComposer = lazy(() => import('./components/content/ContentComposer'
 // untouched when VITE_CONTENT_V2_ENABLED is off.
 const ContentV2Tab = lazy(() => import('./components/content-v2/ContentV2Tab').then(m => ({ default: m.ContentV2Tab })))
 const BriefEditor = lazy(() => import('./components/content-v2/BriefEditor').then(m => ({ default: m.BriefEditor })))
+// Growth: the ICP touchpoint map (the spine), the Higgsfield creative board,
+// the weekly council feed and the GEO probe results. One tab, four sections,
+// same room-nav shape as Content.
+const GrowthTab = lazy(() => import('./components/growth/GrowthTab').then(m => ({ default: m.GrowthTab })))
 
-type TabId = 'home' | 'today' | 'leads' | 'relationships' | 'customers' | 'guests' | 'content' | 'org' | 'exec' | 'workflows' | 'systems'
-const VALID_TABS: TabId[] = ['home', 'today', 'leads', 'relationships', 'customers', 'guests', 'content', 'org', 'exec', 'workflows', 'systems']
+type TabId = 'home' | 'today' | 'leads' | 'relationships' | 'customers' | 'guests' | 'content' | 'growth' | 'org' | 'exec' | 'workflows' | 'systems'
+const VALID_TABS: TabId[] = ['home', 'today', 'leads', 'relationships', 'customers', 'guests', 'content', 'growth', 'org', 'exec', 'workflows', 'systems']
 
 /** Calm chunk-load fallback for a mobile route (single-focus, one column). */
 function MobileRouteFallback() {
@@ -164,6 +168,7 @@ export default function App() {
                   {tab === 'content'   && (contentV2Enabled()
                     ? <ErrorBoundary label="Content"><div className="px-5 pt-7 pb-4 h-full flex flex-col overflow-hidden"><ContentV2Tab variant="mobile" /></div></ErrorBoundary>
                     : <ErrorBoundary label="Content"><MobileContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>)}
+                  {tab === 'growth'    && <ErrorBoundary label="Growth"><div className="px-5 pt-7 pb-4 h-full flex flex-col overflow-hidden"><GrowthTab variant="mobile" /></div></ErrorBoundary>}
                   {tab === 'exec'      && <ErrorBoundary label="Intel"><MobileIntel /></ErrorBoundary>}
                   {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrg /></ErrorBoundary>}
                   {tab === 'workflows' && <ErrorBoundary label="Flows"><MobileFlows /></ErrorBoundary>}
@@ -175,6 +180,15 @@ export default function App() {
                 {contentV2Enabled()
                   ? <ErrorBoundary label="Content"><div className="h-full overflow-hidden px-6 py-6 flex flex-col"><ContentV2Tab variant="desktop" /></div></ErrorBoundary>
                   : <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>}
+              </Suspense>
+            ) : tab === 'growth' ? (
+              // Growth owns its own height like Content: the board scrolls
+              // sideways and each section scrolls inside itself, so the shell
+              // must not add a second scroll container around it.
+              <Suspense fallback={<div className="p-6"><BoardSkeleton lanes={4} cardsPerLane={3} /></div>}>
+                <ErrorBoundary label="Growth">
+                  <div className="h-full overflow-hidden px-6 py-6 flex flex-col"><GrowthTab variant="desktop" /></div>
+                </ErrorBoundary>
               </Suspense>
             ) : (
               <div className="h-full overflow-y-auto px-6 py-6">
