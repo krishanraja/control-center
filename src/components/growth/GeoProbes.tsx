@@ -89,15 +89,29 @@ export function GeoProbes({ g }: { g: GrowthData }) {
   )
 }
 
+/**
+ * Probes come back with full citation URLs, which are unreadable in a row. The
+ * host is the part that answers "who got cited instead of us", so that is what
+ * shows; the full URL stays on the title attribute and in the database.
+ */
+function hostLabel(s: string): string {
+  try {
+    return new URL(s).hostname.replace(/^www\./, '')
+  } catch {
+    return s
+  }
+}
+
 function ProbeRow({ probe }: { probe: GeoProbeRow }) {
   const competitors = asList(probe.competitors_cited)
+  const hosts = Array.from(new Set(competitors.map(hostLabel)))
   return (
     <div className="px-3 py-2 border-t border-white/[0.05] flex items-start gap-3">
       <div className="min-w-0 flex-1">
         <p className="text-[12.5px] text-white/85 leading-snug">{probe.question}</p>
-        {competitors.length > 0 && (
-          <p className="text-[11px] text-white/40 leading-snug mt-0.5">
-            Cited instead: {competitors.join(', ')}
+        {hosts.length > 0 && (
+          <p className="text-[11px] text-white/40 leading-snug mt-0.5 break-words" title={competitors.join('\n')}>
+            Cited instead: {hosts.join(', ')}
           </p>
         )}
         {probe.answer_snapshot && (

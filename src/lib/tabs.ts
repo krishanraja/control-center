@@ -73,9 +73,10 @@ const SIMPLIFIED_TABS: TabDef[] = [
   { id: 'acquisition', label: 'Growth', desktopIcon: Rocket,         mobileIcon: Rocket,        desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'os',        label: 'OS',      desktopIcon: Server,          mobileIcon: Server,        desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'drawer', mobilePriority: 'drawer' },
-  // Simplified IA keeps six destinations, so the map sits in the drawer next to
-  // Subscriptions rather than taking a seventh primary slot.
-  { id: 'growth',    label: 'Growth map', desktopIcon: MapIcon,       mobileIcon: MapIcon,       desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
+  // The map is a desk surface, so it keeps a sidebar slot next to the Growth
+  // deck it feeds. On the phone it stays in the drawer: dense tables and a
+  // kanban are not thumb work, and the mobile primary set stays at four.
+  { id: 'growth',    label: 'Growth map', desktopIcon: MapIcon,       mobileIcon: MapIcon,       desktopPriority: 'primary', mobilePriority: 'drawer'  },
 ]
 
 export const TABS: TabDef[] = isSimplifiedIA() ? SIMPLIFIED_TABS : LEGACY_TABS

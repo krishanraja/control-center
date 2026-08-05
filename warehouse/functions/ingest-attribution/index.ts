@@ -18,11 +18,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-attribution-secret",
 };
 
-const APPS = new Set(["ctrl", "onalert", "gutted", "merciless", "circle", "pulse"]);
+const APPS = new Set(["ctrl", "onalert", "gutted", "merciless", "circle", "pulse", "full-time"]);
 const EVENTS = new Set([
   "landed", "demo_played", "demo_stalled", "signed_up", "chart_calculated", "activated",
   "paywall_hit", "purchased", "refunded", "churned", "reactivated",
   "share_card_created", "verdict_viewed", "synastry_pair_minted", "recipient_unblurred",
+  // full-time: its North Star is completed listens, so the listen funnel is first class.
+  "listen_started", "listen_completed", "waitlist_joined", "episode_shared", "push_opt_in",
 ]);
 
 function json(body: unknown, status = 200) {
