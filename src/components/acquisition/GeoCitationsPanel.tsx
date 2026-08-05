@@ -4,10 +4,15 @@ import { Globe } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 /**
- * GEO Citations — is the product showing up in AI answers (ChatGPT,
+ * RETIRED FROM RENDER 2026-08-04: zara_signals has never held a single
+ * signal_type='geo-citation' row, so this panel only ever drew its empty state,
+ * and growth_geo_probes (the Signals section) is the real GEO surface. Kept on
+ * disk in case the Zara sweep is ever wired and this read becomes true again.
+ *
+ * GEO Citations: is the product showing up in AI answers (ChatGPT,
  * Perplexity, AI Overviews)? Rows come from Zara's weekly geo-citation sweep
  * (zara_signals, signal_type='geo-citation'; raw_data.cited boolean).
- * Zero-marginal-cost visibility channel — no personal brand involved.
+ * Zero-marginal-cost visibility channel, no personal brand involved.
  */
 
 interface GeoSignal {

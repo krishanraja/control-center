@@ -1,9 +1,15 @@
 import { test, expect, type Page } from '@playwright/test'
 
 /**
- * Growth tab E2E — deterministic: every /api/* and Supabase call is mocked.
- * Covers: tab render with lanes, batch send approval POST shape, autonomy
- * promote 422 criteria checklist, profit governor rendering.
+ * Growth tab E2E, deterministic: every /api/* and Supabase call is mocked.
+ *
+ * Covers the merged tab (one "Growth", five sections: Map, Work, Signals,
+ * Council, Governance): the `#/acquisition` alias, the section nav, the
+ * Governance lane control plane (profit governor, autonomy 422 checklist,
+ * direction lock, tool registry) and the Signals measurement surface.
+ *
+ * The send-approval test that used to live here went with the deck: cold email
+ * outbound is retired and acquisition_sends holds no rows.
  */
 
 const OVERVIEW = {
@@ -41,14 +47,6 @@ const OVERVIEW = {
     { tool: 'PostHog', category: 'analytics', job: 'Product analytics', status: 'wired', lanes: [], monthly_usd: 0, usage_metered: false, gated_reason: null, notes: null },
     { tool: 'Getwaitlist', category: 'waitlist', job: 'Waitlist loop', status: 'pending', lanes: ['fractionl_pulse'], monthly_usd: 15, usage_metered: false, gated_reason: null, notes: null },
     { tool: 'Affonso', category: 'affiliate', job: 'Referrals', status: 'gated', lanes: ['mm_ctrl'], monthly_usd: 19, usage_metered: false, gated_reason: 'unlock at $100 MRR/lane', notes: null },
-  ],
-}
-
-const QUEUED_SENDS = {
-  ok: true,
-  sends: [
-    { id: 'send-1', lead_id: 'lead-1', lane: 'mm_ctrl', frame_version: 'ctrl-v1', touch_number: 2, rendered_subject: 'What a real decision looks like in CTRL', rendered_body: 'Body one', status: 'queued', sample_required: true, queued_at: new Date().toISOString() },
-    { id: 'send-2', lead_id: 'lead-2', lane: 'mm_ctrl', frame_version: 'ctrl-v1', touch_number: 2, rendered_subject: 'Second queued subject', rendered_body: 'Body two', status: 'queued', sample_required: true, queued_at: new Date().toISOString() },
   ],
 }
 
@@ -92,19 +90,10 @@ const PROMOTE_422 = {
 
 async function mockGrowthApis(
   page: Page,
-  onSendsPost?: (body: any) => void,
   promoteResponse?: { status: number; body: any },
   onLanePost?: (body: any) => void,
 ) {
   await page.route('**/api/acquisition/overview*', r => r.fulfill({ json: OVERVIEW }))
-  await page.route('**/api/acquisition/replies*', r =>
-    r.request().method() === 'GET' ? r.fulfill({ json: { ok: true, replies: [] } }) : r.fulfill({ json: { ok: true } }))
-  await page.route('**/api/acquisition/sends*', r => {
-    if (r.request().method() === 'GET') return r.fulfill({ json: QUEUED_SENDS })
-    const body = r.request().postDataJSON()
-    onSendsPost?.(body)
-    return r.fulfill({ json: { ok: true, action: body?.action, affected: body?.ids?.length ?? 0, skipped: 0, dispatched: true } })
-  })
   await page.route('**/api/acquisition/lanes/**', r => {
     if (r.request().method() === 'GET') return r.fulfill({ json: LANE_DETAIL })
     const body = r.request().postDataJSON()
@@ -117,40 +106,65 @@ async function mockGrowthApis(
     }
     return r.fulfill({ json: { ok: true, version: 2, status: 'draft' } })
   })
-  // Anon Supabase traffic (venture registry, zara signals, realtime auth) —
-  // return empty sets so panels settle without a live database.
+  // Anon Supabase traffic (growth tables, SEO sweep, realtime auth): return
+  // empty sets so panels settle on their honest empty states without a live
+  // database. Specs that need rows override a single table below.
   await page.route('**/rest/v1/**', r => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', r => r.abort())
 }
 
-test('growth tab renders lanes, funnel and honest empties', async ({ page }) => {
+/** Open the merged Growth tab and switch to one of its five sections. */
+async function openSection(page: Page, label: string, hash = '/#/growth') {
+  await page.goto(hash)
+  await expect(page.getByRole('heading', { name: 'Growth' })).toBeVisible()
+  await page.getByRole('button', { name: label, exact: true }).click()
+}
+
+test('one Growth tab, five sections, Map first', async ({ page }) => {
+  await mockGrowthApis(page)
+  await page.goto('/#/growth')
+  await expect(page.getByRole('heading', { name: 'Growth' })).toBeVisible()
+  // Exactly one sidebar entry reads "Growth". The old "Growth map" twin is gone.
+  await expect(page.getByRole('navigation').getByText('Growth', { exact: true })).toHaveCount(1)
+  await expect(page.getByText('Growth map')).toHaveCount(0)
+  for (const label of ['Map', 'Work', 'Signals', 'Council', 'Governance']) {
+    await expect(page.getByRole('button', { name: label, exact: true })).toBeVisible()
+  }
+  // Map is the landing section: the touchpoint spine, honest about an empty read.
+  await expect(page.getByText('Touchpoint map')).toBeVisible()
+})
+
+test('the #/acquisition bookmark lands on Growth, on Governance', async ({ page }) => {
   await mockGrowthApis(page)
   await page.goto('/#/acquisition')
   await expect(page.getByRole('heading', { name: 'Growth' })).toBeVisible()
-  // Lane chips: wired CTRL first, unwired Plinth present
+  // The old deck's lane controls are what those links pointed at, so that is
+  // where the alias drops you.
+  await expect(page.getByText('Profit governor')).toBeVisible()
   await expect(page.getByRole('button', { name: /CTRL/ }).first()).toBeVisible()
   await expect(page.getByRole('button', { name: /Plinth/ }).first()).toBeVisible()
-  // Funnel rows from the mocked view
-  await expect(page.getByText('12', { exact: true }).first()).toBeVisible()
-  await expect(page.getByText('Frame leaderboard')).toBeVisible()
-  // Summary line reflects mocked totals
-  await expect(page.getByText(/2 sends queued · 18 sent · 3 paid/)).toBeVisible()
 })
 
-test('send deck batch-approves with the full id set', async ({ page }) => {
-  let posted: any = null
-  await mockGrowthApis(page, body => { posted = body })
+test('the retired outbound machinery is not on the tab', async ({ page }) => {
+  await mockGrowthApis(page)
   await page.goto('/#/acquisition')
-  await expect(page.getByText('What a real decision looks like in CTRL')).toBeVisible()
-  await page.getByRole('button', { name: 'Approve all 2' }).click()
-  await expect.poll(() => posted).not.toBeNull()
-  expect(posted.action).toBe('approve')
-  expect(posted.ids).toEqual(['send-1', 'send-2'])
+  await expect(page.getByText('Profit governor')).toBeVisible()
+  for (const gone of ['Send queue', 'Reply inbox', 'Nurture funnel', 'Touch progress', 'AI-answer citations']) {
+    await expect(page.getByText(gone)).toHaveCount(0)
+  }
+})
+
+test('work says plainly that the board is empty', async ({ page }) => {
+  await mockGrowthApis(page)
+  await openSection(page, 'Work')
+  await expect(page.getByText('Creative board')).toBeVisible()
+  await expect(page.getByText(/No creative cards yet/)).toBeVisible()
+  await expect(page.getByText(/Nothing queued for this week/)).toBeVisible()
 })
 
 test('promote shows the mechanical 422 criteria checklist', async ({ page }) => {
-  await mockGrowthApis(page, undefined, { status: 422, body: PROMOTE_422 })
-  await page.goto('/#/acquisition')
+  await mockGrowthApis(page, { status: 422, body: PROMOTE_422 })
+  await openSection(page, 'Governance')
   await page.getByRole('button', { name: 'Promote', exact: true }).click()
   await expect(page.getByText('≥ 20 approved sends in 30d')).toBeVisible()
   await expect(page.getByText('Rejection rate < 5% (30d)')).toBeVisible()
@@ -160,7 +174,7 @@ test('promote shows the mechanical 422 criteria checklist', async ({ page }) => 
 
 test('profit governor renders margin, cost stack and burn bar', async ({ page }) => {
   await mockGrowthApis(page)
-  await page.goto('/#/acquisition')
+  await openSection(page, 'Governance')
   await expect(page.getByText('Profit governor')).toBeVisible()
   await expect(page.getByText('+$23.25/mo')).toBeVisible()
   await expect(page.getByText('Attributed MRR')).toBeVisible()
@@ -170,40 +184,45 @@ test('profit governor renders margin, cost stack and burn bar', async ({ page })
 
 test('direction studio shows the locked direction and locks a new version', async ({ page }) => {
   let lanePost: any = null
-  await mockGrowthApis(page, undefined, undefined, body => { lanePost = body })
-  await page.goto('/#/acquisition')
+  await mockGrowthApis(page, undefined, body => { lanePost = body })
+  await openSection(page, 'Governance')
   // Locked direction is visible with its version badge and positioning
   await expect(page.getByText('Direction studio')).toBeVisible()
   await expect(page.getByText('v1 locked')).toBeVisible()
   await expect(page.getByText('Signal over noise, decision-first.')).toBeVisible()
-  // Edit -> lock round-trip posts direction_lock
+  // Edit then lock round-trip posts direction_lock
   await page.getByRole('button', { name: 'Edit', exact: true }).click()
   await page.getByRole('button', { name: /Lock this/ }).click()
   await expect.poll(() => lanePost).not.toBeNull()
   expect(lanePost.action).toBe('direction_lock')
 })
 
-test('seo rank panel shows owned positions, movement and volume', async ({ page }) => {
+test('signals merges the GEO citation rate with the SEO rank sweep', async ({ page }) => {
   await mockGrowthApis(page)
   // Specific override wins over the '**/rest/v1/**' catch-all (last route first).
   await page.route('**/rest/v1/maya_striking_distance*', r =>
     r.fulfill({
       json: [
         { id: 'r1', product: 'mm_ctrl', query: 'AI news aggregator', current_position: 8, previous_position: 12, search_volume: 170, priority: 60, last_checked_at: new Date().toISOString() },
-        { id: 'r2', product: 'mm_ctrl', query: 'AI tools for executives', current_position: null, previous_position: null, search_volume: 2400, priority: 40, last_checked_at: new Date().toISOString() },
+        { id: 'r2', product: 'fractionl_pulse', query: 'AI tools for executives', current_position: null, previous_position: null, search_volume: 2400, priority: 40, last_checked_at: new Date().toISOString() },
       ],
     }))
-  await page.goto('/#/acquisition')
+  await openSection(page, 'Signals')
+  // GEO leads the section and stays honest when no probe has run.
+  await expect(page.getByText('GEO probes')).toBeVisible()
+  await expect(page.getByText(/No GEO probes have been run yet/)).toBeVisible()
+  // The SEO sweep sits under it, cross-product, each row labelled with its lane.
   await expect(page.getByText('SEO rank')).toBeVisible()
-  // A ranking keyword shows its position; a non-ranking one is honest about it.
   await expect(page.getByText('AI news aggregator')).toBeVisible()
   await expect(page.getByText('#8')).toBeVisible()
   await expect(page.getByText('not ranking')).toBeVisible()
+  await expect(page.getByText('mm-ctrl')).toBeVisible()
+  await expect(page.getByText('Fractionl Pulse')).toBeVisible()
 })
 
 test('integrations panel groups tools by status and shows gated reasons', async ({ page }) => {
   await mockGrowthApis(page)
-  await page.goto('/#/acquisition')
+  await openSection(page, 'Governance')
   await expect(page.getByText('Integrations')).toBeVisible()
   // Org-shared wired tool shows on the lane
   await expect(page.getByText('PostHog')).toBeVisible()

@@ -40,7 +40,6 @@ const DesktopOrg = lazy(() => import('./components/desktop/DesktopOrg').then(m =
 const DesktopExec = lazy(() => import('./components/desktop/DesktopExec').then(m => ({ default: m.DesktopExec })))
 const DesktopFlows = lazy(() => import('./components/desktop/DesktopFlows').then(m => ({ default: m.DesktopFlows })))
 const DesktopCustomers = lazy(() => import('./components/desktop/DesktopCustomers').then(m => ({ default: m.DesktopCustomers })))
-const DesktopAcquisition = lazy(() => import('./components/desktop/DesktopAcquisition').then(m => ({ default: m.DesktopAcquisition })))
 const DesktopGuests = lazy(() => import('./components/desktop/DesktopGuests').then(m => ({ default: m.DesktopGuests })))
 const DesktopContent = lazy(() => import('./components/desktop/DesktopContent').then(m => ({ default: m.DesktopContent })))
 const SystemsPanel = lazy(() => import('./components/SystemsPanel').then(m => ({ default: m.SystemsPanel })))
@@ -53,7 +52,6 @@ const MobileOrg = lazy(() => import('./components/mobile/MobileOrg').then(m => (
 const MobileFlows = lazy(() => import('./components/mobile/MobileFlows').then(m => ({ default: m.MobileFlows })))
 const MobileSystems = lazy(() => import('./components/mobile/MobileSystems').then(m => ({ default: m.MobileSystems })))
 const MobileCustomers = lazy(() => import('./components/mobile/MobileCustomers').then(m => ({ default: m.MobileCustomers })))
-const MobileAcquisition = lazy(() => import('./components/mobile/MobileAcquisition').then(m => ({ default: m.MobileAcquisition })))
 const MobileGuests = lazy(() => import('./components/mobile/MobileGuests').then(m => ({ default: m.MobileGuests })))
 const MobileContent = lazy(() => import('./components/mobile/MobileContent').then(m => ({ default: m.MobileContent })))
 const ContentComposer = lazy(() => import('./components/content/ContentComposer').then(m => ({ default: m.ContentComposer })))
@@ -62,12 +60,13 @@ const ContentComposer = lazy(() => import('./components/content/ContentComposer'
 // untouched when VITE_CONTENT_V2_ENABLED is off.
 const ContentV2Tab = lazy(() => import('./components/content-v2/ContentV2Tab').then(m => ({ default: m.ContentV2Tab })))
 const BriefEditor = lazy(() => import('./components/content-v2/BriefEditor').then(m => ({ default: m.BriefEditor })))
-// Growth map: the strategy layer under the Growth deck. Four sections over one
-// spine: the ICP touchpoint map (growth_touchpoints), the Higgsfield creative
-// board (growth_creative_queue), the weekly council (growth_council_reviews)
-// and the GEO probe results (growth_geo_probes). The `acquisition` tab remains
-// the execution deck (lanes, sends, autonomy); these two are candidates to fold
-// into one tab once Krish has used both.
+// Growth: ONE tab, five sections in the order of the weekly loop. Map (the ICP
+// touchpoint map, growth_touchpoints), Work (the Higgsfield creative board,
+// growth_creative_queue), Signals (GEO probes over growth_geo_probes plus the
+// SEO rank sweep over maya_striking_distance), Council (growth_council_reviews)
+// and Governance (the per-lane control plane: profit governor, autonomy ladder,
+// direction lock, tool registry). Merged from the old 'acquisition' + 'growth'
+// pair on 2026-08-04; the retired cold-email machinery is no longer rendered.
 const GrowthTab = lazy(() => import('./components/growth/GrowthTab').then(m => ({ default: m.GrowthTab })))
 // Simplified-IA wrapper tabs (VITE_IA_V3_ENABLED): People = Pipeline + Network +
 // Visibility lanes; OS = Org + Intel + Flows + Systems subtabs.
@@ -132,7 +131,15 @@ function detectIsMobile() {
 
 export default function App() {
   const { route, navigate } = useHashRoute()
-  const rawTab = route.tab === 'execution' ? 'exec' : route.tab
+  const routeTab = route.tab === 'execution' ? 'exec' : route.tab
+  // `#/acquisition` folded into the single Growth tab (2026-08-04). The alias
+  // runs in BOTH IA modes, ahead of IA_ALIASES, so every old bookmark and every
+  // navigate('acquisition', ...) call site (decisionActions, decisionKinds,
+  // routeDecision, pilotIntent) still lands on a real surface with its params
+  // intact. Arriving that way, or with ?lane=, opens the Governance section,
+  // because that is where the per-lane controls those links pointed at now live.
+  const cameFromAcquisition = routeTab === 'acquisition'
+  const rawTab = cameFromAcquisition ? 'growth' : routeTab
   const alias = isSimplifiedIA() ? IA_ALIASES[rawTab] : undefined
   const resolvedTab = alias?.tab ?? rawTab
   const tab = VALID_TAB_IDS.has(resolvedTab) ? resolvedTab : 'home'
@@ -180,6 +187,11 @@ export default function App() {
   const fullScreenOverlayOpen = tab === 'content'
     && Boolean(route.params.idea || (contentV2Enabled() && route.params.brief))
 
+  // Which Growth section a deep link opens on. Undefined means "leave it where
+  // the user left it", so clicking a lane chip (which writes ?lane=) never
+  // yanks the section out from under them.
+  const growthEntrySection = cameFromAcquisition || route.params.lane ? 'governance' : undefined
+
   return (
     <ToastProvider>
       <AgentsProvider>
@@ -214,8 +226,7 @@ export default function App() {
                   {tab === 'leads'     && <ErrorBoundary label="Leads"><MobileLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'relationships' && <ErrorBoundary label="Leads"><MobileLeadsRE onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'customers' && <ErrorBoundary label="Customers"><MobileCustomers /></ErrorBoundary>}
-                  {tab === 'acquisition' && <ErrorBoundary label="Growth"><MobileAcquisition onNavigate={navigate} /></ErrorBoundary>}
-                  {tab === 'growth'    && <ErrorBoundary label="Growth map"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><GrowthTab variant="mobile" /></div></ErrorBoundary>}
+                  {tab === 'growth'    && <ErrorBoundary label="Growth"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><GrowthTab variant="mobile" initialSection={growthEntrySection} lane={route.params.lane || null} onNavigate={navigate} /></div></ErrorBoundary>}
                   {tab === 'guests'    && <ErrorBoundary label="Visibility"><MobileGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'content'   && (contentV2Enabled()
                     // Reserve BottomNav clearance (like every MobileShell tab) so
@@ -238,12 +249,19 @@ export default function App() {
                   : <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>}
               </Suspense>
             ) : tab === 'growth' ? (
-              // The map owns its own height like Content: the creative board
+              // Growth owns its own height like Content: the creative board
               // scrolls sideways and each section scrolls inside itself, so the
               // shell must not wrap it in a second scroll container.
               <Suspense fallback={<div className="p-6"><BoardSkeleton lanes={4} cardsPerLane={3} /></div>}>
-                <ErrorBoundary label="Growth map">
-                  <div className="h-full overflow-hidden px-6 py-6 flex flex-col"><GrowthTab variant="desktop" /></div>
+                <ErrorBoundary label="Growth">
+                  <div className="h-full overflow-hidden px-6 py-6 flex flex-col">
+                    <GrowthTab
+                      variant="desktop"
+                      initialSection={growthEntrySection}
+                      lane={route.params.lane || null}
+                      onNavigate={navigate}
+                    />
+                  </div>
                 </ErrorBoundary>
               </Suspense>
             ) : (
@@ -254,7 +272,6 @@ export default function App() {
                   {tab === 'leads'     && <ErrorBoundary label="Leads"><DesktopLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'relationships' && <ErrorBoundary label="Leads"><DesktopLeadsRE onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'customers' && <ErrorBoundary label="Customers"><DesktopCustomers /></ErrorBoundary>}
-                  {tab === 'acquisition' && <ErrorBoundary label="Growth"><DesktopAcquisition lane={route.params.lane || null} sendId={route.params.send || null} seqId={route.params.seq || null} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'guests'    && <ErrorBoundary label="Visibility"><DesktopGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}
                   {tab === 'exec'      && <ErrorBoundary label="Intel"><DesktopExec /></ErrorBoundary>}

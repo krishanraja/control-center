@@ -19,7 +19,14 @@ import { SequenceReviewSheet } from '../acquisition/SequenceReviewSheet'
 import { BoardSkeleton } from '../shared/Skeleton'
 
 /**
- * Growth — the acquisition command deck. Per-lane nurture funnel, touch
+ * UNMOUNTED 2026-08-04. The `acquisition` tab was folded into the single Growth
+ * tab (src/components/growth/GrowthTab.tsx): its lane controls now live in the
+ * Governance section, and the cold-email machinery it hosted (send approvals,
+ * reply inbox, sequence review, nurture funnel, touch progress) is retired by
+ * standing doctrine. Nothing imports this file. Kept intact so the deck can be
+ * remounted whole if Krish ever restarts outbound.
+ *
+ * Growth: the acquisition command deck. Per-lane nurture funnel, touch
  * progress, send queue, autonomy ladder, and churn re-engagement, read
  * through the service-role overview route. Subscriptions stays the ambient
  * revenue watch; this tab is where acquisition gets acted on.
