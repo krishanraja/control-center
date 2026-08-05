@@ -1,6 +1,6 @@
 # Mindmaker OS — Ideal Customer Profile (shareable)
 
-> **HISTORICAL (2026-07-10):** advisory sales retired with the Amperity move; the
+> **HISTORICAL (2026-07-10):** advisory sales were retired 2026-07-10 and REOPENED 2026-08-05 under a new thesis; the
 > `mindmaker_buyer` lane and the Apollo burn-down are no longer live. Kept for the
 > record. The guest/content lanes (`signal_noise_guest`, `builder_economy_guest`)
 > are still referenced by Nell/Nova.

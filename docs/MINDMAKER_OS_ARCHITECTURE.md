@@ -138,7 +138,7 @@ These are the agents the OS itself tracks via `agents.brief_content` (identity) 
 |---|---|---|---|
 | **Cleo** | Content Production & Voice (coordinator) | webhook only (Krish-triggered) | Posts approved/published per week; **email drafts** approved per week |
 | **Felix** | RETIRED 2026-07-10 (advisory sales dropped; `agents.active=false`, workflow unpublished) | none | none |
-| **Hunter** | RETIRED 2026-07-10 (job search complete: Amperity CoS; `agents.active=false`, Job Sweep unpublished) | none | none |
+| **Hunter** | RETIRED 2026-07-10 (`agents.active=false`, Job Sweep unpublished). NOTE 2026-08-05: the original reason no longer holds; re-arming is Krish's call alone | none | none |
 | **Maya** | Customer Acquisition (Marketing / SEO) | scheduled (7×/day) | SEO striking-distance gains, customer sweep freshness |
 | **Nell** | Outbound + Podcast Guest Booking | scheduled (3×/day) | Guests booked, replies, conversations |
 | **Nova** | Visibility & Speaking | scheduled (2×/day + Mon weekly sweep) | Confirmed talks, PR placements |
@@ -191,7 +191,7 @@ Live inventory (reconciled against the runtime 2026-07-01), grouped by name pref
 | **Fleet** | 1 | **NEW** — Attribution & Product-Truth Health (daily 06:15 UTC) |
 | **Mindmaker OS** | 1 | **NEW** — RE Dossier Engine (Relationship Engine, every 6h) |
 | **Leo** | 1 | Revenue Weekly Report (Friday) |
-| **Hunter** | 0 | Job Sweep UNPUBLISHED 2026-07-10 (job search complete: Amperity CoS). Previously fired **Mon + Wed** per cron `dow=1,3`; node was mislabeled "Mon + Thu" |
+| **Hunter** | 0 | Job Sweep UNPUBLISHED 2026-07-10; the original reason no longer holds as of 2026-08-05. Previously fired **Mon + Wed** per cron `dow=1,3`; node was mislabeled "Mon + Thu" |
 | **Felix** | 0 | Opportunity Pipeline Tracker UNPUBLISHED 2026-07-10 (advisory sales retired). Also unpublished: Nell Apollo Contact Enrichment, Lead Document Ingest, Draft Outbound Messages |
 | **Sonnet** | 0 | Task Lever Rater **disabled 2026-07-01** (broken — `$credentials` in Code node; §3.4.1) |
 | **Active total** | **82** | Column sum after the 2026-07-10 unpublishings (Nell 10→7, Hunter 1→0; Felix already 0) |
@@ -1544,14 +1544,16 @@ All polished output lands in a fixed Drive hierarchy. **Hard rule: never create 
 
 The OS actively tracks 8 ventures (`ventures` table, all `status='active'`).
 
-### 11.1 Krish's role + the Mindmaker repositioning (2026-07-10)
+### 11.1 Mindmaker's positioning (2026-07-10, revised 2026-08-05)
 
-**Krish is Chief of Staff at Amperity (amperity.com, CX customer data platform), delivering their AI transformation.** This is his primary professional commitment. Hard boundary: the OS does NOT manage the Amperity role and carries no Amperity work products or data. The alignment is directional: what the OS incubates (content, network, builds) should compound the edge of a Chief of Staff driving AI transformation in an AI + data business.
+**Mindmaker's scope narrowed on 2026-08-05 to one thesis: the creation of your digital brain, with the express USP that it anchors to live decision making.** It is sold two ways: self-serve in the app (CTRL) and as a managed service with Krish as advisor. The managed engagement is broader than the app: depending on the client it covers overhauling GTM, pricing and positioning for a non-AI-native business, or helping build it for an AI-native one. The digital brain anchored to live decisions is the method and the through-line, not the whole deliverable.
 
-| Venture | Status 2026-07-10 | OS surface |
+**ADVISORY SALES ARE REOPENED as of 2026-08-05**, reversing the 2026-07-10 ruling below. Objective O-2 still needs revising to carry advisory revenue again. Several agent briefs (nova, felix) carry a standing "never pitch advisory" rule that is flagged in-brief as under revision.
+
+| Venture | Status 2026-07-10 (advisory line superseded 2026-08-05) | OS surface |
 |---|---|---|
-| **Mindmaker** (themindmaker.ai) | REPOSITIONED: missionary vehicle, proprietary content channel, build-lab for incubating ideas. Advisory sales DROPPED; Maven lessons + CTRL retained | Cleo runs the content engine (weekly brief + shifts). The `mindmaker_buyer` ICP lane and Apollo burn-down are retired; 74 advisory leads superseded (audit_log `portfolio_overhaul`) |
-| **Meliora** (meliora.company) | RETIRED (consulting engagement ended with the Amperity move) | Pipeline mechanism retired |
+| **Mindmaker** (themindmaker.ai) | REPOSITIONED: missionary vehicle, proprietary content channel, build-lab for incubating ideas. Advisory sales were DROPPED here and REOPENED 2026-08-05; Maven lessons + CTRL retained | Cleo runs the content engine (weekly brief + shifts). The `mindmaker_buyer` ICP lane and Apollo burn-down were retired; 74 advisory leads superseded (audit_log `portfolio_overhaul`) |
+| **Meliora** (meliora.company) | RETIRED (consulting engagement ended 2026-07) | Pipeline mechanism retired |
 | **AdFixus** (adfixus.com) | RETIRED; venture archived in `ventures` | Campaigns were already paused 2026-06-08; assets remain in OneDrive for the record |
 
 Gutted, Merciless, and OnAlert (already off the control plane 2026-07-06) are now **totally retired**; their manual Stripe/account sunsets remain on Krish's decisions surface.
@@ -2027,9 +2029,9 @@ docs/audits/                                                 # Closure architect
 - **n8n**: 3 live CTRL acquisition workflows checked in (sanitized); new Send Dispatcher / Reply Intake / GEO Citation Sweep workflow JSONs + Nurture Scheduler sampling patch + Frame A/B sweep spec await import (see `docs/GROWTH_TAB_RUNBOOK.md` — session's auto-permission layer declined to create live email-sending workflows autonomously).
 - **E2E**: Playwright suite added (`e2e/growth.spec.ts`, mocked APIs, 4 green); orphaned `WorkflowImprovements.tsx` removed (its burn-bar idiom lives on in `BudgetBar`).
 
-### 2026-07-10: Portfolio overhaul: Amperity + advisory-sales retirement (+ Control Center decision idiom, waves 1-2)
+### 2026-07-10: Portfolio overhaul: advisory-sales retirement (+ Control Center decision idiom, waves 1-2)
 
-- **Krish joined Amperity as Chief of Staff (AI transformation).** Advisory sales dropped fleet-wide: AdFixus + Meliora retired, Mindmaker repositioned (missionary vehicle + content channel + build-lab; Maven lessons + CTRL retained). Gutted/Merciless/OnAlert now totally retired. O-2 rewritten to product MRR + content audience growth. DB: AdFixus venture archived, 74 advisory leads superseded, Felix `active=false` (audit_log `portfolio_overhaul`). n8n: Felix Opportunity Pipeline Tracker, Nell Apollo Contact Enrichment, Nell Lead Document Ingest, Nell Draft Outbound Messages unpublished (~outbound budget reclaimed). Briefs reoriented with dated blocks: Maya to product growth, Nell to guest booking only, Nova to platform-building with no advisory pitching. QUEUED: Zara Signal Sweep still carries the buyer-signal-to-leads branch aimed at the retired pipeline (surgical patch next session); Hunter's job-sweep purpose is arguably complete (Krish's call); Mindmaker site advisory-sales removal is a separate product pass.
+- **Advisory sales dropped fleet-wide** (REOPENED 2026-08-05 under the digital-brain thesis): AdFixus + Meliora retired, Mindmaker repositioned (missionary vehicle + content channel + build-lab; Maven lessons + CTRL retained). Gutted/Merciless/OnAlert now totally retired. O-2 rewritten to product MRR + content audience growth. DB: AdFixus venture archived, 74 advisory leads superseded, Felix `active=false` (audit_log `portfolio_overhaul`). n8n: Felix Opportunity Pipeline Tracker, Nell Apollo Contact Enrichment, Nell Lead Document Ingest, Nell Draft Outbound Messages unpublished (~outbound budget reclaimed). Briefs reoriented with dated blocks: Maya to product growth, Nell to guest booking only, Nova to platform-building with no advisory pitching. QUEUED: Zara Signal Sweep still carries the buyer-signal-to-leads branch aimed at the retired pipeline (surgical patch next session); Hunter's job-sweep purpose is arguably complete (Krish's call); Mindmaker site advisory-sales removal is a separate product pass.
 - **Content Engine v2 + coherence waves 1-2 shipped to prod** (PRs #179-#182): weekly brief + 37-shift provenance-labeled register replace one-at-a-time triage; unified typed decisions (`content_decisions` in `decisions_waiting`; view v3 hides future-deferred tasks); Home anchor counts only typed rulings with queue chips + ambient fold; Today is a 3-verb queue (approve / send back with note / defer); Leads/Guests/Network land in bounded triage decks; dictation-first mobile inputs. Weekly rhythm: Feed ingest daily 11:30 UTC, shifts detect Fri 17:30, brief assembles Fri 18:00, purge Mon 14:00 (Vercel crons, zero n8n budget).
 
 Pruned to the last 90 days. Older history is git-archaeology territory.

@@ -86,7 +86,7 @@ The compiler runs at `temperature: 0` and reuses the repo's existing OpenAI patt
 
 The compile button is green mode only, and structurally so: it is mounted inside `PilotGate`'s children, and red mode returns before children ever render. It cannot appear on a red day without someone moving the mount point.
 
-**One known tuning point.** The prompt is included verbatim as specified. In live testing it leans toward the closure states over the test state. "What if the Amperity thing falls through" compiled to `weather` where extracting a falsifiable prediction and a cheap check would have served better, and "the cohort pricing is wrong" compiled to `relitigation` rather than a test of the pricing. Both are defensible readings and neither violates the rules, but if the compiler feels too quick to close, rule 2 is the one to strengthen.
+**One known tuning point.** The prompt is included verbatim as specified. In live testing it leans toward the closure states over the test state. "What if the funding round falls through" compiled to `weather` where extracting a falsifiable prediction and a cheap check would have served better, and "the cohort pricing is wrong" compiled to `relitigation` rather than a test of the pricing. Both are defensible readings and neither violates the rules, but if the compiler feels too quick to close, rule 2 is the one to strengthen.
 
 ## v2 roadmap
 
