@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { useContentV2 } from '../../hooks/useContentV2'
 import type { ContentDecisionRow } from '../../lib/contentV2'
 
@@ -6,6 +6,13 @@ import type { ContentDecisionRow } from '../../lib/contentV2'
 // queue, one card at a time, every action in the bottom thumb zone. Finishable
 // in a coffee line; when it hits zero it says so and means it (the queue is a
 // real count, never a filtered view over a hidden pile).
+//
+// Browsing and deciding are two different acts, and the deck now honors both.
+// SWIPE (or the chevrons) moves back and forth through every waiting card
+// freely, wrapping at the ends, resolving nothing: that is how perspective on
+// what to keep or cull gets built. The BUTTONS decide. Deciding removes the
+// card and the deck closes ranks; the count only ever moves because something
+// was actually decided.
 
 const KIND_CHIP: Record<string, { label: string; cls: string }> = {
   brief_review: { label: 'Weekly brief', cls: 'bg-sky-400/15 text-sky-300' },
@@ -14,6 +21,9 @@ const KIND_CHIP: Record<string, { label: string; cls: string }> = {
   graduation: { label: 'Graduation', cls: 'bg-sky-400/15 text-sky-300' },
   purge_preview: { label: 'Monday purge', cls: 'bg-amber-400/15 text-amber-300' },
 }
+
+/** Swipe distance that commits a navigation. Under it, the card snaps home. */
+const SWIPE_COMMIT_PX = 64
 
 function Big({ children, tone = 'ghost', onClick, disabled }: {
   children: string; tone?: 'primary' | 'green' | 'ghost'; onClick: () => void; disabled?: boolean
@@ -36,27 +46,54 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   const { decisions, brief, loading } = v2
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(0)
-  // Client-side rotation: "Decide later" sends the current card to the back of
-  // the queue WITHOUT resolving it, so the deck can be walked end to end on a
-  // coffee line. The queue stays finite and honest (nothing resolves, the
-  // count does not move); before this the only way past card one was deciding
-  // it, and one wedged card wedged the whole tab.
-  const [deferred, setDeferred] = useState<string[]>([])
 
-  // Brief first (the anchor decision), then shifts, then the rest. Deferred
-  // cards sink to the back in the order they were passed on.
+  // Where the browse sits in the queue. Navigation moves it; deciding a card
+  // removes the card under it and the position clamps to the survivor.
+  const [pos, setPos] = useState(0)
+
+  // Live swipe state: the card follows the finger, then commits or snaps back.
+  const [dragX, setDragX] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const dragStart = useRef<number | null>(null)
+
+  // Brief first (the anchor decision), then shifts, then the rest.
   const queue = useMemo(() => {
     const order: Record<string, number> = { brief_review: 0, shift_proposal: 1, shift_fading: 2, graduation: 3, purge_preview: 4 }
-    const sorted = [...decisions].sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9))
-    if (!deferred.length) return sorted
-    const rank = new Map(deferred.map((id, i) => [id, i]))
-    return [
-      ...sorted.filter(d => !rank.has(d.id)),
-      ...sorted.filter(d => rank.has(d.id)).sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0)),
-    ]
-  }, [decisions, deferred])
-  const current = queue[0] || null
+    return [...decisions].sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9))
+  }, [decisions])
+
+  // Keep the position on a real card when the queue shrinks or reloads.
+  useEffect(() => {
+    if (queue.length && pos >= queue.length) setPos(queue.length - 1)
+  }, [queue.length, pos])
+
+  const current = queue.length ? queue[Math.min(pos, queue.length - 1)] : null
   const total = queue.length + done
+
+  const go = (dir: 1 | -1) => {
+    if (queue.length < 2) { setDragX(0); return }
+    setPos(p => (p + dir + queue.length) % queue.length)
+    setDragX(0)
+  }
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    ;(e.target as Element).setPointerCapture?.(e.pointerId)
+    dragStart.current = e.clientX
+    setDragging(true)
+  }
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (dragStart.current === null) return
+    setDragX(e.clientX - dragStart.current)
+  }
+  const endDrag = () => {
+    if (dragStart.current === null) return
+    dragStart.current = null
+    setDragging(false)
+    // Swipe left brings the next card, swipe right brings the previous one.
+    if (dragX <= -SWIPE_COMMIT_PX) go(1)
+    else if (dragX >= SWIPE_COMMIT_PX) go(-1)
+    else setDragX(0)
+  }
 
   const act = async (fn: () => Promise<void>) => {
     setBusy(true)
@@ -86,21 +123,53 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* progress */}
+      {/* progress + browse position */}
       <div className="flex-shrink-0 px-1 pb-3">
         <div className="flex gap-1 mb-2">
           {Array.from({ length: total || 1 }, (_, i) => (
             <span key={i} className={`h-[3px] flex-1 rounded-full ${i < done ? 'bg-emerald-400' : 'bg-white/10'}`} />
           ))}
         </div>
-        <div className="text-[11px] text-white/40 tabular-nums">
-          {done + 1} of {total} · about {Math.max(1, Math.round(queue.length * 0.7))} min left
+        <div className="flex items-center justify-between">
+          <div className="text-[11px] text-white/40 tabular-nums">
+            {pos + 1} of {queue.length} waiting{done ? ` · ${done} decided` : ''} · about {Math.max(1, Math.round(queue.length * 0.7))} min left
+          </div>
+          {queue.length > 1 && (
+            <div className="flex items-center gap-1">
+              <button
+                aria-label="Previous card"
+                onClick={() => go(-1)}
+                className="min-w-[40px] min-h-[32px] rounded-lg text-[15px] text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
+              >
+                ‹
+              </button>
+              <button
+                aria-label="Next card"
+                onClick={() => go(1)}
+                className="min-w-[40px] min-h-[32px] rounded-lg text-[15px] text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
+              >
+                ›
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* the one card */}
+      {/* the one card: swipe left / right to browse, wrapping at the ends */}
       <div className="flex-1 min-h-0 flex flex-col">
-        <div className={`rounded-2xl border p-5 ${d.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}>
+        <div
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          style={{
+            touchAction: 'pan-y',
+            transform: `translateX(${dragX}px) rotate(${dragX / 60}deg)`,
+            opacity: 1 - Math.min(0.35, Math.abs(dragX) / 500),
+            transition: dragging ? 'none' : 'transform 180ms ease-out, opacity 180ms ease-out',
+          }}
+          className={`rounded-2xl border p-5 select-none cursor-grab active:cursor-grabbing ${d.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}
+        >
           <span className={`inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold ${chip.cls}`}>{chip.label}</span>
           <h3 className="text-[16.5px] font-bold text-white mt-3 leading-snug">
             {d.kind === 'brief_review' ? (p.title || 'This week’s brief')
@@ -117,6 +186,9 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
           {d.kind === 'shift_proposal' && p.summary ? (
             <p className="text-[12px] text-emerald-200/70 mt-2 leading-relaxed">{p.summary}</p>
           ) : null}
+          {queue.length > 1 && (
+            <p className="text-[10.5px] text-white/25 mt-3">Swipe to browse. Buttons decide.</p>
+          )}
         </div>
 
         {/* thumb zone */}
@@ -149,15 +221,6 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
             </>
           ) : (
             <Big tone="primary" disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'done'))}>Acknowledged</Big>
-          )}
-          {queue.length > 1 && (
-            <button
-              onClick={() => setDeferred(prev => [...prev.filter(id => id !== d.id), d.id])}
-              disabled={busy}
-              className="w-full py-2.5 text-[12.5px] text-white/40 hover:text-white/70 disabled:opacity-40"
-            >
-              Decide later · show the next
-            </button>
           )}
         </div>
       </div>
