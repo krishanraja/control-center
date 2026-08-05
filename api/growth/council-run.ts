@@ -532,6 +532,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'GET (cron) or POST only' })
 
     const body = (req.body || {}) as { action?: string; dry_run?: boolean; week_start?: string }
+    // Manual POST must prove the same credential the cron path proves. These
+    // routes spend real money (Perplexity, Anthropic), and `/api/*` is
+    // deliberately ungated by middleware, so an unauthenticated POST was a
+    // free way for anyone who guessed the URL to burn credits on demand.
+    const secret = process.env.CRON_SECRET || ''
+    const auth = req.headers.authorization || ''
+    if (!secret || auth !== `Bearer ${secret}`) {
+      return res.status(401).json({ ok: false, error: 'unauthorized' })
+    }
     if (body.action !== 'run') return res.status(400).json({ ok: false, error: "action must be 'run'" })
     const result = await runCouncil(!!body.dry_run, body.week_start)
     return res.json({ ok: true, ...result })
