@@ -15,7 +15,11 @@ import { ReplyInbox } from '../acquisition/ReplyInbox'
 import { DirectionStudio } from '../acquisition/DirectionStudio'
 
 /**
- * Growth (mobile) — single-column read of the acquisition command deck:
+ * UNMOUNTED 2026-08-04, same as its desktop twin. The `acquisition` tab folded
+ * into the single Growth tab; on the phone that surface is GrowthTab with
+ * variant="mobile". Nothing imports this file. Kept intact for revival.
+ *
+ * Growth (mobile): single-column read of the acquisition command deck:
  * lane chips, headline stats, funnel, touch progress, queue, autonomy, churn.
  */
 export function MobileAcquisition({

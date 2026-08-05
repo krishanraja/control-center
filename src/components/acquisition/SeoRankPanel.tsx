@@ -3,11 +3,11 @@ import { Search, ArrowUp, ArrowDown } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 /**
- * SEO rank — where the product ranks on Google for its ICP keywords, and the
+ * SEO rank: where the product ranks on Google for its ICP keywords, and the
  * search volume behind each. Rows come from Maya's weekly SEO rank sweep
  * (maya_striking_distance: Serper positions + DataForSEO volume). Priority
  * surfaces the biggest gaps (high volume, not ranking) at the top. Owned-domain
- * ranking only — no personal brand involved.
+ * ranking only, no personal brand involved.
  */
 
 interface RankRow {
@@ -21,11 +21,53 @@ interface RankRow {
   last_checked_at: string | null
 }
 
+/**
+ * PostgREST serialises Postgres `numeric` as a JSON string, so position, volume
+ * and priority all arrive as text. Left as-is, "10" < "9" is true and the
+ * movement arrow points the wrong way. Coerce once, on the way in.
+ */
+function num(v: unknown): number | null {
+  if (v == null || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+function normalise(raw: RankRow[]): RankRow[] {
+  return raw.map(r => ({
+    ...r,
+    current_position: num(r.current_position),
+    previous_position: num(r.previous_position),
+    search_volume: num(r.search_volume),
+    priority: num(r.priority),
+  }))
+}
+
 function fmtVolume(v: number | null): string {
   if (v == null) return 'no data'
   if (v >= 1000) return `${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k/mo`
   return `${v}/mo`
 }
+
+/**
+ * maya_striking_distance.product carries the ACQUISITION lane slug, not the
+ * growth product_slug, so this panel keeps its own label map rather than
+ * borrowing PRODUCT_LABEL from lib/growth (different key space, different set).
+ * On the Signals section the panel runs unfiltered across lanes, so each row has
+ * to say which product it belongs to.
+ */
+const LANE_LABEL: Record<string, string> = {
+  mm_ctrl: 'mm-ctrl',
+  fractionl_circle: 'Fractionl Circle',
+  fractionl_pulse: 'Fractionl Pulse',
+  full_time: 'Full Time',
+  plinth: 'Plinth',
+}
+
+function laneLabel(slug: string): string {
+  return LANE_LABEL[slug] || slug.replace(/_/g, ' ')
+}
+
+const VISIBLE_ROWS = 8
 
 export function SeoRankPanel({ lane }: { lane?: string | null }) {
   const [rows, setRows] = useState<RankRow[]>([])
@@ -34,15 +76,20 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
   useEffect(() => {
     let cancelled = false
     const load = async () => {
+      // nullsFirst:false matters. Postgres sorts DESC as NULLS FIRST, and only
+      // 10 of the 41 rows carry a priority, so without it the panel led with
+      // unscored brand-name keywords and buried the actual striking-distance
+      // targets. Volume breaks ties so the biggest gaps rise inside a band.
       let q = supabase
         .from('maya_striking_distance')
         .select('id, product, query, current_position, previous_position, search_volume, priority, last_checked_at')
-        .order('priority', { ascending: false })
+        .order('priority', { ascending: false, nullsFirst: false })
+        .order('search_volume', { ascending: false, nullsFirst: false })
         .limit(40)
       if (lane) q = q.eq('product', lane)
       const { data, error } = await q
       if (cancelled) return
-      if (!error) setRows((data as RankRow[]) || [])
+      if (!error) setRows(normalise((data as RankRow[]) || []))
       setLoaded(true)
     }
     load()
@@ -75,7 +122,7 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
         </div>
       ) : (
         <div className="divide-y divide-white/[0.04]">
-          {rows.slice(0, 8).map(r => {
+          {rows.slice(0, VISIBLE_ROWS).map(r => {
             const pos = r.current_position
             const prev = r.previous_position
             const moved = pos != null && prev != null && pos !== prev
@@ -100,12 +147,18 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5 text-[10px] text-white/30">
+                  <span className="text-white/40">{laneLabel(r.product)}</span>
                   <span>{fmtVolume(r.search_volume)}</span>
                   <span className="ml-auto text-white/25">priority {r.priority ?? 0}</span>
                 </div>
               </div>
             )
           })}
+          {rows.length > VISIBLE_ROWS && (
+            <p className="px-4 py-2 text-[10px] text-white/25">
+              {rows.length - VISIBLE_ROWS} more keywords in the sweep, below these on priority.
+            </p>
+          )}
         </div>
       )}
     </section>

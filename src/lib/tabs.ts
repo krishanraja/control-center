@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Home, Calendar, Clock, UserPlus, DollarSign, Mic, FileText,
   Users, GitBranch, Brain, Activity, Workflow, Zap, Server,
-  HeartHandshake, Rocket, Map as MapIcon,
+  HeartHandshake, Rocket,
   type LucideIcon,
 } from 'lucide-react'
 import { isSimplifiedIA } from './iaV3'
@@ -17,7 +17,7 @@ export interface TabDef {
   mobilePriority: 'primary' | 'drawer'
 }
 
-// Canonical 12-tab IA. URL ids preserved for bookmark compatibility; labels follow
+// Canonical 11-tab IA. URL ids preserved for bookmark compatibility; labels follow
 // the rename passes (id 'leads' -> Pipeline [deal pipeline, leads table],
 // id 'relationships' -> Network [contact pool, contacts table],
 // Customers -> Subscriptions, Guests -> Visibility).
@@ -41,16 +41,15 @@ const LEGACY_TABS: TabDef[] = [
   { id: 'home',      label: 'Home',          desktopIcon: LayoutDashboard, mobileIcon: Home,       desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'content',   label: 'Content',       desktopIcon: FileText,        mobileIcon: FileText,   desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'relationships', label: 'Network',   desktopIcon: HeartHandshake,  mobileIcon: HeartHandshake, desktopPriority: 'primary', mobilePriority: 'primary' },
-  // Growth: the acquisition command deck (nurture funnel, send approvals,
-  // autonomy ladder, profit governor). Subscriptions stays the read-only
-  // revenue watch; Growth is where acquisition gets ACTED on.
-  { id: 'acquisition', label: 'Growth', desktopIcon: Rocket, mobileIcon: Rocket, desktopPriority: 'primary', mobilePriority: 'primary' },
-  // Growth map: the strategy layer under the Growth deck. The ICP touchpoint
-  // map is the spine; the creative board, the weekly council and the GEO probe
-  // results all hang off it. Kept as its own destination so the acquisition
-  // deck (where sends get approved) stays a single-purpose surface. See the
-  // note in App.tsx: these two surfaces are candidates to fold into one tab.
-  { id: 'growth',    label: 'Growth map',    desktopIcon: MapIcon,         mobileIcon: MapIcon,    desktopPriority: 'primary', mobilePriority: 'drawer'  },
+  // Growth: ONE tab, five sections in the order of the weekly loop (Map, Work,
+  // Signals, Council, Governance). It used to be two tabs that both read as
+  // "growth": id 'acquisition' labelled "Growth" (the outbound send deck) and
+  // id 'growth' labelled "Growth map" (the strategy layer). They overlapped on
+  // measurement and half the send deck served a retired motion, so they were
+  // folded together on 2026-08-04. The id 'growth' is canonical; '#/acquisition'
+  // still resolves here through the alias in App.tsx, so old bookmarks and every
+  // navigate('acquisition', ...) call site keep working.
+  { id: 'growth',    label: 'Growth',        desktopIcon: Rocket,          mobileIcon: Rocket,     desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'today',     label: 'Today',         desktopIcon: Calendar,        mobileIcon: Clock,      desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'leads',     label: 'Pipeline',      desktopIcon: UserPlus,        mobileIcon: UserPlus,   desktopPriority: 'primary', mobilePriority: 'drawer'  },
@@ -70,13 +69,10 @@ const SIMPLIFIED_TABS: TabDef[] = [
   { id: 'home',      label: 'Home',    desktopIcon: LayoutDashboard, mobileIcon: Home,          desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'content',   label: 'Content', desktopIcon: FileText,        mobileIcon: FileText,      desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'people',    label: 'People',  desktopIcon: HeartHandshake,  mobileIcon: HeartHandshake, desktopPriority: 'primary', mobilePriority: 'primary' },
-  { id: 'acquisition', label: 'Growth', desktopIcon: Rocket,         mobileIcon: Rocket,        desktopPriority: 'primary', mobilePriority: 'primary' },
+  // Same single Growth destination as the legacy IA, same five sections.
+  { id: 'growth',    label: 'Growth',  desktopIcon: Rocket,          mobileIcon: Rocket,        desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'os',        label: 'OS',      desktopIcon: Server,          mobileIcon: Server,        desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'drawer', mobilePriority: 'drawer' },
-  // The map is a desk surface, so it keeps a sidebar slot next to the Growth
-  // deck it feeds. On the phone it stays in the drawer: dense tables and a
-  // kanban are not thumb work, and the mobile primary set stays at four.
-  { id: 'growth',    label: 'Growth map', desktopIcon: MapIcon,       mobileIcon: MapIcon,       desktopPriority: 'primary', mobilePriority: 'drawer'  },
 ]
 
 export const TABS: TabDef[] = isSimplifiedIA() ? SIMPLIFIED_TABS : LEGACY_TABS
@@ -86,8 +82,8 @@ export const TABS: TabDef[] = isSimplifiedIA() ? SIMPLIFIED_TABS : LEGACY_TABS
 // desktop sidebar order. Keep in sync with the `mobilePriority: 'primary'`
 // flags above.
 const MOBILE_PRIMARY_ORDER: readonly string[] = isSimplifiedIA()
-  ? ['home', 'content', 'people', 'acquisition']
-  : ['home', 'content', 'relationships', 'acquisition']
+  ? ['home', 'content', 'people', 'growth']
+  : ['home', 'content', 'relationships', 'growth']
 
 export const DESKTOP_PRIMARY_TABS = TABS.filter(t => t.desktopPriority === 'primary')
 export const DESKTOP_DRAWER_TABS  = TABS.filter(t => t.desktopPriority === 'drawer')

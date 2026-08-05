@@ -32,8 +32,10 @@ export function GeoProbes({ g }: { g: GrowthData }) {
 
   if (g.loading) return <div className="text-white/40 text-sm py-10 text-center">Loading probes...</div>
 
+  // No bottom padding here: SignalsPanel owns the section's tail spacing so the
+  // SEO rank panel sits directly under the GEO block rather than a gap away.
   return (
-    <div className="space-y-4 pb-8">
+    <div className="space-y-4">
       <SectionHead
         title="GEO probes"
         sub="What ChatGPT, Perplexity, Claude, Google AIO and Grok actually say when the ICP asks. Citation rate is the only score."
