@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Home, Calendar, Clock, UserPlus, DollarSign, Mic, FileText,
   Users, GitBranch, Brain, Activity, Workflow, Zap, Server,
-  HeartHandshake, Rocket,
+  HeartHandshake, Rocket, Map as MapIcon,
   type LucideIcon,
 } from 'lucide-react'
 import { isSimplifiedIA } from './iaV3'
@@ -45,6 +45,12 @@ const LEGACY_TABS: TabDef[] = [
   // autonomy ladder, profit governor). Subscriptions stays the read-only
   // revenue watch; Growth is where acquisition gets ACTED on.
   { id: 'acquisition', label: 'Growth', desktopIcon: Rocket, mobileIcon: Rocket, desktopPriority: 'primary', mobilePriority: 'primary' },
+  // Growth map: the strategy layer under the Growth deck. The ICP touchpoint
+  // map is the spine; the creative board, the weekly council and the GEO probe
+  // results all hang off it. Kept as its own destination so the acquisition
+  // deck (where sends get approved) stays a single-purpose surface. See the
+  // note in App.tsx: these two surfaces are candidates to fold into one tab.
+  { id: 'growth',    label: 'Growth map',    desktopIcon: MapIcon,         mobileIcon: MapIcon,    desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'today',     label: 'Today',         desktopIcon: Calendar,        mobileIcon: Clock,      desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'leads',     label: 'Pipeline',      desktopIcon: UserPlus,        mobileIcon: UserPlus,   desktopPriority: 'primary', mobilePriority: 'drawer'  },
@@ -67,6 +73,9 @@ const SIMPLIFIED_TABS: TabDef[] = [
   { id: 'acquisition', label: 'Growth', desktopIcon: Rocket,         mobileIcon: Rocket,        desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'os',        label: 'OS',      desktopIcon: Server,          mobileIcon: Server,        desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'drawer', mobilePriority: 'drawer' },
+  // Simplified IA keeps six destinations, so the map sits in the drawer next to
+  // Subscriptions rather than taking a seventh primary slot.
+  { id: 'growth',    label: 'Growth map', desktopIcon: MapIcon,       mobileIcon: MapIcon,       desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
 ]
 
 export const TABS: TabDef[] = isSimplifiedIA() ? SIMPLIFIED_TABS : LEGACY_TABS
