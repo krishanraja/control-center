@@ -256,6 +256,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const body = (req.body || {}) as { action?: string; id?: string; move_index?: number; dry_run?: boolean }
 
     if (body.action === 'run') {
+      // The cron-equivalent run must prove the same credential the GET path does.
+      // The stall-move branches below stay open: they are UI-driven and already
+      // require a valid existing stall id.
+      const secret = process.env.CRON_SECRET || ''
+      const auth = req.headers.authorization || ''
+      if (!secret || auth !== `Bearer ${secret}`) {
+        return res.status(401).json({ ok: false, error: 'unauthorized' })
+      }
       const result = await runCheck(!!body.dry_run)
       return res.json({ ok: true, ...result })
     }

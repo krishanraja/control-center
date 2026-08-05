@@ -234,6 +234,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const body = (req.body || {}) as { action?: string; dry_run?: boolean; entries?: Array<{ metric_key?: string; value?: unknown }> }
     if (body.action === 'run') {
+      // The cron-equivalent run must prove the same credential the GET path does.
+      // The 'log' branch below is deliberately NOT guarded: it is driven by the
+      // Scoreboard UI from the browser, which holds no CRON_SECRET, and it is
+      // already constrained to the MANUAL_KEYS allowlist with numeric validation.
+      const secret = process.env.CRON_SECRET || ''
+      const auth = req.headers.authorization || ''
+      if (!secret || auth !== `Bearer ${secret}`) {
+        return res.status(401).json({ ok: false, error: 'unauthorized' })
+      }
       const result = await runSnapshot(!!body.dry_run)
       return res.json({ ok: true, ...result })
     }
