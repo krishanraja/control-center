@@ -62,6 +62,13 @@ const ContentComposer = lazy(() => import('./components/content/ContentComposer'
 // untouched when VITE_CONTENT_V2_ENABLED is off.
 const ContentV2Tab = lazy(() => import('./components/content-v2/ContentV2Tab').then(m => ({ default: m.ContentV2Tab })))
 const BriefEditor = lazy(() => import('./components/content-v2/BriefEditor').then(m => ({ default: m.BriefEditor })))
+// Growth map: the strategy layer under the Growth deck. Four sections over one
+// spine: the ICP touchpoint map (growth_touchpoints), the Higgsfield creative
+// board (growth_creative_queue), the weekly council (growth_council_reviews)
+// and the GEO probe results (growth_geo_probes). The `acquisition` tab remains
+// the execution deck (lanes, sends, autonomy); these two are candidates to fold
+// into one tab once Krish has used both.
+const GrowthTab = lazy(() => import('./components/growth/GrowthTab').then(m => ({ default: m.GrowthTab })))
 // Simplified-IA wrapper tabs (VITE_IA_V3_ENABLED): People = Pipeline + Network +
 // Visibility lanes; OS = Org + Intel + Flows + Systems subtabs.
 const PeopleTab = lazy(() => import('./components/people/PeopleTab').then(m => ({ default: m.PeopleTab })))
@@ -208,6 +215,7 @@ export default function App() {
                   {tab === 'relationships' && <ErrorBoundary label="Leads"><MobileLeadsRE onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'customers' && <ErrorBoundary label="Customers"><MobileCustomers /></ErrorBoundary>}
                   {tab === 'acquisition' && <ErrorBoundary label="Growth"><MobileAcquisition onNavigate={navigate} /></ErrorBoundary>}
+                  {tab === 'growth'    && <ErrorBoundary label="Growth map"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><GrowthTab variant="mobile" /></div></ErrorBoundary>}
                   {tab === 'guests'    && <ErrorBoundary label="Visibility"><MobileGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'content'   && (contentV2Enabled()
                     // Reserve BottomNav clearance (like every MobileShell tab) so
@@ -228,6 +236,15 @@ export default function App() {
                 {contentV2Enabled()
                   ? <ErrorBoundary label="Content"><div className="h-full overflow-hidden px-6 py-6 flex flex-col"><ContentV2Tab variant="desktop" /></div></ErrorBoundary>
                   : <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>}
+              </Suspense>
+            ) : tab === 'growth' ? (
+              // The map owns its own height like Content: the creative board
+              // scrolls sideways and each section scrolls inside itself, so the
+              // shell must not wrap it in a second scroll container.
+              <Suspense fallback={<div className="p-6"><BoardSkeleton lanes={4} cardsPerLane={3} /></div>}>
+                <ErrorBoundary label="Growth map">
+                  <div className="h-full overflow-hidden px-6 py-6 flex flex-col"><GrowthTab variant="desktop" /></div>
+                </ErrorBoundary>
               </Suspense>
             ) : (
               <div className="h-full overflow-y-auto px-6 py-6">
