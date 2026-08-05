@@ -130,7 +130,7 @@ fallback list must agree.**
 | `nell` | Nell | Outbound + Podcast Guest Booking |
 | `nova` | Nova | Visibility & Speaking |
 | `zara` | Zara | Signal Intelligence & Market Research |
-| `hunter` | Hunter | Job Sourcing & Application Specialist. RETIRED 2026-07-10 (job search complete: Amperity CoS; `active = false`, Job Sweep unpublished) |
+| `hunter` | Hunter | Job Sourcing & Application Specialist. RETIRED 2026-07-10 (`active = false`, Job Sweep unpublished). NOTE 2026-08-05: the original reason no longer holds; re-arming is Krish's call alone |
 
 > **Source of truth.** The Supabase `agents` table is authoritative. The
 > roster above must match `api/agents/[name].ts:available_agents`. If the

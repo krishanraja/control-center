@@ -1,6 +1,6 @@
 # Apollo Credit Burn-Down (interim, non-n8n)
 
-> **HISTORICAL (2026-07-10):** advisory sales retired with the Amperity move; the
+> **HISTORICAL (2026-07-10):** advisory sales were retired 2026-07-10 and REOPENED 2026-08-05 under a new thesis; the
 > `mindmaker_buyer` lane and this Apollo burn-down are no longer live. Kept for
 > the record.
 
