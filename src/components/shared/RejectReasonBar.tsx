@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import type { ReasonChip } from '../../lib/triageReasons'
+import { labelForReason, type ReasonChip } from '../../lib/triageReasons'
+import type { Likely } from '../../hooks/useLikelyReasons'
 
 // The one "why are you binning this?" bar. Extracted from the v1 triage deck so
 // the v1 swipe decks and the v2 weekly queue ask the same question the same way
@@ -23,13 +24,26 @@ interface Props {
   /** Number hints (1-9) next to chips. ONLY set this where the caller actually
    *  binds those keys, or the hint promises a shortcut that does nothing. */
   showNumbers?: boolean
+  /** Predicted reasons, surfaced above the standard set. Absent or empty is
+   *  the normal case and the bar looks exactly as it did without it. */
+  likely?: Likely
   className?: string
+}
+
+const SOURCE_LINE: Record<string, string> = {
+  history: 'From what you binned before.',
+  model: 'Predicted from your voice.',
 }
 
 export function RejectReasonBar({
   title, reasons, onChoose, onCancel,
-  cancelLabel = 'Undo', allowNote = true, showNumbers = false, className = '',
+  cancelLabel = 'Undo', allowNote = true, showNumbers = false, likely, className = '',
 }: Props) {
+  const predicted = likely?.reasons?.length ? likely.reasons.slice(0, 3) : []
+  const predictedCodes = new Set(predicted.map(p => p.code))
+  // A predicted chip and its twin in the standard row would be the same tap
+  // twice. The prediction wins the position.
+  const rest = reasons.filter(r => !predictedCodes.has(r.code))
   const [note, setNote] = useState('')
   const [noteOpen, setNoteOpen] = useState(false)
   const noteRef = useRef<HTMLTextAreaElement>(null)
@@ -75,8 +89,32 @@ export function RejectReasonBar({
         </div>
       ) : null}
 
+      {predicted.length ? (
+        <div className="mb-2.5">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-amber-200/60 mb-1.5">
+            Likely
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {predicted.map(p => (
+              <button
+                key={p.code}
+                type="button"
+                onClick={() => choose(p.code)}
+                title={p.because || undefined}
+                className="text-[12px] min-h-[40px] px-3 py-2 rounded-lg border border-amber-300/35 bg-amber-300/[0.08] text-amber-100/90 hover:bg-amber-300/[0.16] active:scale-95 transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-200/70"
+              >
+                {labelForReason(p.code)}
+              </button>
+            ))}
+          </div>
+          {SOURCE_LINE[likely!.source] ? (
+            <p className="text-[10.5px] text-white/35 mt-1.5">{SOURCE_LINE[likely!.source]}</p>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap gap-1.5">
-        {reasons.map((c, i) => (
+        {rest.map((c, i) => (
           <button
             key={c.code}
             type="button"

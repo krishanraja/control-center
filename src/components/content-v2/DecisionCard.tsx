@@ -3,6 +3,7 @@ import type { useContentV2 } from '../../hooks/useContentV2'
 import type { ContentDecisionRow } from '../../lib/contentV2'
 import { reasonsFor } from '../../lib/triageReasons'
 import { feedbackVote } from '../../lib/triageActions'
+import { useLikelyReasons } from '../../hooks/useLikelyReasons'
 import { RejectReasonBar } from '../shared/RejectReasonBar'
 
 // One typed decision (mockup set 1, pin 2). Exactly six kinds exist; each
@@ -48,6 +49,10 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
   const p = d.payload as Record<string, any>
   const chip = KIND_CHIP[d.kind] || { label: d.kind, cls: 'bg-white/[0.06] text-white/55' }
   const [rejecting, setRejecting] = useState(false)
+  // Lazy here, unlike the mobile deck: the desktop room renders every card at
+  // once, so prefetching all of them would embed the whole queue to shortcut
+  // one tap. It fills in a moment after the bar opens.
+  const likely = useLikelyReasons(rejecting ? d.id : null)
 
   // Shift rulings resolve their own card on their own endpoint, so there the
   // ruling and the lesson are two calls; everything else rejects in one. The
@@ -156,6 +161,7 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
           onChoose={submitReject}
           onCancel={() => setRejecting(false)}
           cancelLabel="Keep it"
+          likely={likely}
         />
       ) : null}
     </div>

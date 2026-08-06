@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { preamble, pathId } from '../_content.js'
+import { attachRejectSignal } from '../_rejectSignal.js'
 
 // PATCH /api/content-decisions/:id
 //   body: { action: 'done'|'dismiss'|'reject', note?, reason_code?, reason_text? }
@@ -71,7 +72,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let taught = false
   let archived = false
   if (rejecting) {
-    const { error: fbErr } = await supabase.from('feedback_queue').insert({
+    const p = (decision.payload || {}) as Record<string, any>
+    const cardTitle = String(p.title || p.anchor_headline || '')
+    const cardText = [p.summary, p.thesis, p.why].filter(v => typeof v === 'string' && v.trim()).join('\n')
+
+    const { data: fbRow, error: fbErr } = await supabase.from('feedback_queue').insert({
       source_table: 'content_decisions',
       source_id: decision.id,
       agent_id: 'cleo',
@@ -82,8 +87,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       reason_text: reasonText,
       meta: { kind: decision.kind, ref: decision.ref, week: decision.week, surface: 'content_v2_week' },
       status: 'pending',
-    })
+    }).select('id').single()
     taught = !fbErr
+
+    // Keep what was refused, not just that it was. Survives the purge that
+    // deletes the underlying item, and is what the predictor searches.
+    await attachRejectSignal(fbRow?.id, cardTitle, cardText)
 
     // A binned brief must leave This Week. Without this the hero card keeps
     // offering the brief that was just refused, which reads as the bin failing.

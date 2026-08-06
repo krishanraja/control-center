@@ -10,6 +10,8 @@ import { diffSections, mergeSections, wordDiff, type SectionDiff } from '../../l
 import { useToast } from '../shared/Toast'
 import { RejectReasonBar } from '../shared/RejectReasonBar'
 import { reasonsFor } from '../../lib/triageReasons'
+import { useLikelyReasons } from '../../hooks/useLikelyReasons'
+import { supabase } from '../../lib/supabase'
 
 interface StandingNote { id: string; text: string; at: string }
 
@@ -85,6 +87,10 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   // worth the week, say why in one tap. Back leaves it waiting; this rules on it.
   const [binning, setBinning] = useState(false)
   const [binBusy, setBinBusy] = useState(false)
+  // The predictor is keyed by decision, and this surface only knows its week,
+  // so resolve the brief's own card. Absent (already ruled on) just means no
+  // predicted chips, which is a shortcut lost and nothing else.
+  const [decisionId, setDecisionId] = useState<string | null>(null)
   // Section keys REJECTED in the current preview (default is keep-all); tracked
   // as the exclusion set so a fresh preview starts with everything accepted.
   const [rejected, setRejected] = useState<Set<string>>(new Set())
@@ -319,6 +325,16 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   }, [])
 
   const versions = useMemo(() => (brief?.versions || []).slice().reverse(), [brief])
+
+  useEffect(() => {
+    let alive = true
+    supabase.from('content_decisions').select('id')
+      .eq('week', week).eq('kind', 'brief_review').eq('status', 'pending').limit(1)
+      .then(({ data }) => { if (alive) setDecisionId(data?.[0]?.id || null) })
+    return () => { alive = false }
+  }, [week])
+
+  const likely = useLikelyReasons(binning ? decisionId : null)
 
   const bin = useCallback(async (reasonCode?: string, reasonText?: string) => {
     setBinBusy(true)
@@ -627,6 +643,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
               onChoose={bin}
               onCancel={() => setBinning(false)}
               cancelLabel="Keep it"
+              likely={likely}
             />
           ) : (
             <>

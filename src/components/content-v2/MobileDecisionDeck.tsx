@@ -3,6 +3,7 @@ import type { useContentV2 } from '../../hooks/useContentV2'
 import type { ContentDecisionRow } from '../../lib/contentV2'
 import { reasonsFor } from '../../lib/triageReasons'
 import { feedbackVote } from '../../lib/triageActions'
+import { useLikelyReasons } from '../../hooks/useLikelyReasons'
 import { RejectReasonBar } from '../shared/RejectReasonBar'
 
 // The whole mobile job (mockup set 2, pin 11): the week's finite decision
@@ -148,6 +149,12 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   // that opened it, and must never answer for the one that replaced it.
   useEffect(() => { setRejecting(false) }, [current?.id])
 
+  // Prefetched on the card, not on the tap: the prediction costs an embedding
+  // and a vector search, and the one place that latency must not land is
+  // between deciding to bin something and being asked why.
+  const likely = useLikelyReasons(
+    current && current.kind !== 'purge_preview' ? current.id : null)
+
   // A shift ruling lives on its own endpoint (which resolves its own card), so
   // there the ruling and the lesson are two calls. Everything else rejects in
   // one. The vote is best-effort in both: the card is already gone, and telling
@@ -275,6 +282,7 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
               onChoose={submitReject}
               onCancel={() => setRejecting(false)}
               cancelLabel="Keep it"
+              likely={likely}
             />
           ) : (
           <>

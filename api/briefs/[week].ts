@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { sanitizeVoice, preamble } from '../_content.js'
+import { attachRejectSignal } from '../_rejectSignal.js'
 
 // GET/PATCH /api/briefs/:week  (Content Engine v2, spec §4)
 //
@@ -70,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Best-effort, exactly as in /api/content-decisions/:id: the brief is
     // already binned, so a failed learning write must not report a failed bin.
-    const { error: fbErr } = await supabase.from('feedback_queue').insert({
+    const { data: fbRow, error: fbErr } = await supabase.from('feedback_queue').insert({
       source_table: 'content_decisions',
       source_id: decisions?.[0]?.id || brief.id,
       agent_id: 'cleo',
@@ -81,7 +82,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       reason_text: reasonText,
       meta: { kind: 'brief_review', ref: brief.id, week, surface: 'brief_editor' },
       status: 'pending',
-    })
+    }).select('id').single()
+
+    // The brief's own opening is the best available description of what was
+    // refused, so that is what the taste signal keeps.
+    await attachRejectSignal(fbRow?.id, brief.title, (brief.body_md || '').slice(0, 1200))
 
     return res.json({ ok: true, binned: true, reason_code: reasonCode, taught: !fbErr })
   }
