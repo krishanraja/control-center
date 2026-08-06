@@ -90,8 +90,9 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 - Vercel: project `compound`, root `compound/`, GitHub connected, production deployment ready, OIDC enabled.
 - Live domain: `https://compound.krishraja.com` verified; HTTPS 200, title `COMPOUND`, CSP present, `noindex, nofollow`, API returns 401 without a user session.
 - Live browser: sign-in shell renders with zero console warnings/errors.
-- Auth: production Site URL and redirect allowlist include `https://compound.krishraja.com`; public signup is disabled while existing hosted email-confirmation, rate-limit, OTP and TOTP protections are preserved.
+- Auth: production Site URL and redirect allowlist include `https://compound.krishraja.com`; email login is enabled, project-wide new-user signup is disabled, and hosted email-confirmation, rate-limit, OTP and TOTP protections are preserved.
 - Private account: one approved member (`hello@krishraja.com`) and two starter snapshots exist; anonymous snapshot access remains denied.
+- Magic-link delivery: Supabase accepted a real production sign-in email for `hello@krishraja.com`; a synthetic unknown address was rejected and the Auth user count remained exactly one.
 - Live answer: a temporary synthetic, non-personal snapshot produced `meta`, streamed `delta`, `evidence` and `done` events through Vercel OIDC and Supabase; exactly one user/assistant pair was saved and a repeated request returned the same pair without duplication.
 - Production cleanup: the temporary synthetic snapshot and chat rows were deleted; readback shows two starter snapshots, zero synthetic test messages and one member.
 

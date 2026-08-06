@@ -27,9 +27,10 @@ Completed:
 
 1. Created and confirmed the explicitly designated Auth user `hello@krishraja.com`.
 2. Inserted only that user's id into `compound.members` and seeded the 3-month and 1-year private starter snapshots.
-3. Set the production Site URL and redirect allowlist to `https://compound.krishraja.com`, retained localhost development redirects, and disabled public signup.
+3. Set the production Site URL and redirect allowlist to `https://compound.krishraja.com`, retained localhost development redirects, enabled email login and disabled project-wide new-user signup.
 4. Preserved and read back the hosted email-confirmation, rate-limit, OTP-length and TOTP settings.
-5. Verified a generated magic link resolves to the production domain, the member can read both private snapshots, and anonymous access is denied.
+5. Verified a generated magic link resolves to the production domain, Supabase accepted a real sign-in email for the approved member, the member can read both private snapshots, and anonymous access is denied.
+6. Verified a synthetic unknown address cannot create an account and the Auth user count remains exactly one.
 
 ## Live-answer gate
 

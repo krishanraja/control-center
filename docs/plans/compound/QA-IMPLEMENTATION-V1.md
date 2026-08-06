@@ -27,7 +27,7 @@ The approved dashboard remains the complete home screen and the new question flo
 | Ask and receive a progressive answer | verified in sample mode | mobile and desktop Ask renders plus component/SSE tests | The question is preserved, the answer is readable and the evidence is visible. |
 | Return to the dashboard | verified | `/ask` to `/` browser check | Ask is additive and reversible. |
 | Understand quiet and stale states | verified in sample mode | quiet dashboard, stale dashboard and stale Ask renders | Old data is not presented as a new recommendation. |
-| Live auth, persistence and provider recovery | verified | approved member session, two RLS-scoped snapshots, streamed production SSE, saved user/assistant pair and idempotent retry | The private vertical slice works through the custom domain without exposing data anonymously. |
+| Live auth, persistence and provider recovery | verified | accepted production sign-in email, approved member session, rejected unknown signup, two RLS-scoped snapshots, streamed production SSE, saved user/assistant pair and idempotent retry | The private vertical slice works through the custom domain without exposing data anonymously or creating unknown users. |
 
 ## Confirmed finding
 
@@ -49,7 +49,7 @@ The full dashboard remains present after Ask was added. The separate Ask route, 
 ## Remaining scope
 
 - The two private starter snapshots are deterministic examples; the daily Financial Modeling Prep feed and engines remain a separate release phase.
-- An actual inbox-delivery check still depends on the recipient opening the email, but production magic-link generation and redirect resolution pass.
+- Supabase accepted the production sign-in email; inbox receipt and link opening remain recipient-side actions, while server-side generation and redirect resolution pass.
 - Full authenticated visual QA on the final domain can be repeated when a human opens the private magic link; API-level signed-in data, streaming and persistence checks pass now.
 
 ## Verification after authorized fixes
