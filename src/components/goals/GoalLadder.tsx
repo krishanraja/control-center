@@ -216,7 +216,11 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
   // the chronicle hang off. The ladder read filters archived rows out, so it
   // leaves the surface immediately without anything being destroyed.
   const archive = async (g: LadderGoal) => {
-    const ok = await patch({ goalId: g.id, status: 'archived' })
+    // 'dropped', not 'archived': goals_status_objective_check allows
+    // proposed / active / paused / done / dropped and nothing else. The ladder
+    // read already filters dropped rows out, so the goal leaves the surface
+    // while the row and its history stay put.
+    const ok = await patch({ goalId: g.id, status: 'dropped' })
     if (ok) { h.success(); setEditing(null) }
   }
 

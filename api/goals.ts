@@ -132,7 +132,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // that no surface filters on, which would make the goal invisible
       // everywhere and unrecoverable from the UI.
       if (body.status !== undefined) {
-        const ALLOWED_STATUS = new Set(['active', 'archived', 'dropped', 'done'])
+        // Mirrors goals_status_objective_check exactly. 'archived' is NOT in it:
+        // sending it returned a raw Postgres constraint error to the UI. Keep
+        // these in step with the constraint, or the whitelist just moves the
+        // failure one layer down.
+        const ALLOWED_STATUS = new Set(['proposed', 'active', 'paused', 'done', 'dropped'])
         if (!ALLOWED_STATUS.has(String(body.status))) {
           return res.status(400).json({ ok: false, error: `unknown status '${body.status}'` })
         }
