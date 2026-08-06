@@ -55,6 +55,10 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   // Live swipe state: the card follows the finger, then commits or snaps back.
   const [dragX, setDragX] = useState(0)
   const [dragging, setDragging] = useState(false)
+  // True only while the card is repositioned off-screen between cards, so
+  // the jump to the far side is never animated or seen.
+  const [swapping, setSwapping] = useState(false)
+  const exiting = useRef(false)
   const dragStart = useRef<number | null>(null)
 
   // Brief first (the anchor decision), then shifts, then the rest.
@@ -71,10 +75,33 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   const current = queue.length ? queue[Math.min(pos, queue.length - 1)] : null
   const total = queue.length + done
 
+  // Krish: "the animation doesnt have me feel like the card is swiping away,
+  // even though the next card does appear."
+  // Cause: go() changed the index and zeroed dragX in the same tick, so the card
+  // TELEPORTED back to centre while its content swapped underneath. Nothing ever
+  // left the screen, which is why the gesture registered but the motion did not.
+  // Now the card finishes the throw first, then the content swaps behind it, then
+  // it returns from the opposite edge.
   const go = (dir: 1 | -1) => {
     if (queue.length < 2) { setDragX(0); return }
-    setPos(p => (p + dir + queue.length) % queue.length)
-    setDragX(0)
+    if (exiting.current) return
+    exiting.current = true
+    const w = typeof window === 'undefined' ? 400 : window.innerWidth
+    // 1. finish the throw, off-screen and clear of the edge
+    setDragX(dir === 1 ? -Math.round(w * 1.15) : Math.round(w * 1.15))
+    window.setTimeout(() => {
+      // 2. swap content while the card is out of sight, and park it on the far
+      //    side with transitions suppressed so the reposition is never seen
+      setSwapping(true)
+      setPos(p => (p + dir + queue.length) % queue.length)
+      setDragX(dir === 1 ? Math.round(w * 0.5) : -Math.round(w * 0.5))
+      // 3. next frame, re-enable transitions and let it settle into place
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        setSwapping(false)
+        setDragX(0)
+        exiting.current = false
+      }))
+    }, 200)
   }
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -166,8 +193,12 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
           style={{
             touchAction: 'pan-y',
             transform: `translateX(${dragX}px) rotate(${dragX / 60}deg)`,
-            opacity: 1 - Math.min(0.35, Math.abs(dragX) / 500),
-            transition: dragging ? 'none' : 'transform 180ms ease-out, opacity 180ms ease-out',
+            // Opacity must NOT race the travel: fading while it flies is what
+            // makes a throw read as a disappear. It stays legible on the way out.
+            opacity: swapping ? 0 : 1 - Math.min(0.25, Math.abs(dragX) / 900),
+            transition: dragging || swapping
+              ? 'none'
+              : 'transform 200ms cubic-bezier(0.32,0,0.67,0), opacity 140ms ease-out',
           }}
           className={`rounded-2xl border p-5 select-none cursor-grab active:cursor-grabbing ${d.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}
         >

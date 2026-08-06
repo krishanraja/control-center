@@ -23,8 +23,13 @@ interface CreateBody {
   priority?: number | null
   status?: 'proposed' | 'active' | 'paused' | 'done' | 'dropped'
   concept_id?: string | null
+  /** Which rung of the ladder. Defaults to venture_objective. */
+  horizon?: 'os' | 'mid_term' | 'weekly' | 'venture_objective'
+  /** Required for every horizon except 'os': what this goal serves. */
+  parent_id?: string | null
 }
 
+const ALLOWED_HORIZON = new Set(['os', 'mid_term', 'weekly', 'venture_objective'])
 const ALLOWED_STATUS = new Set(['proposed', 'active', 'paused', 'done', 'dropped'])
 
 function setCors(res: VercelResponse) {
@@ -119,6 +124,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: body.status || 'active',
       created_by: 'krish',
       source: 'krish_declared',
+      // The ladder (canon §0a.2). Defaults to venture_objective because that is
+      // what this endpoint historically created, but it can now create at ANY
+      // altitude, which is what makes one-place-to-enter-a-goal true rather
+      // than aspirational: before this, no UI could create an OS or mid-term
+      // goal at all, so two of the four horizons were unreachable.
+      horizon: ALLOWED_HORIZON.has(body.horizon as string)
+        ? body.horizon
+        : 'venture_objective',
+      parent_id: body.parent_id || null,
+    }
+    // A non-OS goal with no parent is an orphan and the whole point of the
+    // ladder is that it cannot happen silently. goals_health flags these; here
+    // we refuse to create one in the first place.
+    if (row.horizon !== 'os' && !row.parent_id) {
+      return res.status(400).json({
+        ok: false,
+        error: 'a ' + row.horizon + ' goal needs a parent_id: what does it serve?',
+      })
     }
     if (row.status === 'active') row.activated_at = new Date().toISOString()
 
