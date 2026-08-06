@@ -11,7 +11,8 @@ import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { lintVoice, autoFixVoice, type LintIssue } from '../../lib/voiceLint'
 import {
-  FACTORY_CHANNELS, FIVE_STANDARDS, HUMOR_PRESETS, ITERATE_CHIPS, LANE_ADAPTS, LENGTH_PRESETS,
+  DEFAULT_CHANNELS, FACTORY_CHANNELS, FIVE_STANDARDS, HUMOR_PRESETS, ITERATE_CHIPS, LANE_ADAPTS,
+  LENGTH_PRESETS, MEDIA_CHANNELS,
   TONE_PRESETS, ZOOM_DEFAULT_HINT, laneToFactoryChannel, nextBestAction,
 } from '../../lib/contentEngine'
 // ─────────────────────────────────────────────────────────────────────────
@@ -51,6 +52,9 @@ const RAIL_TABS: { id: RailTab; label: string; icon: React.ReactNode }[] = [
   { id: 'research', label: 'Research', icon: <Search size={14} /> },
   { id: 'standards', label: 'Standards', icon: <Gauge size={14} /> },
 ]
+
+// Hoisted: O(1) membership test for stored distribution values.
+const CHANNEL_VALUES = new Set(MEDIA_CHANNELS.map(c => c.value as string))
 
 export function ContentComposer({ ideaId, narrow, onClose }: Props) {
   const { ideas } = useRealtimeContentIdeas()
@@ -706,6 +710,21 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
   const autoChannel = laneToFactoryChannel(idea.lane, idea.lane_slot)
   const [channel, setChannel] = useState<string>(autoChannel)
 
+  // Distribution (Krish 2026-08-06): venture is picked before the work, channels
+  // are picked after it. This is the "after" half. `channel` above is the factory
+  // PRODUCTION target; these are the surfaces the finished piece is lifted to,
+  // and they persist to content_ideas.distribution (text[]).
+  // Lazy init: this only seeds the first render, so it must not recompute on
+  // every one (rerender-lazy-state-init). A stored distribution always wins over
+  // the per-format default.
+  const [distribution, setDistribution] = useState<string[]>(() => {
+    const stored = idea.distribution?.filter(d => CHANNEL_VALUES.has(d))
+    if (stored?.length) return stored
+    return DEFAULT_CHANNELS[`${idea.lane}:${idea.lane_slot}`] ?? []
+  })
+  const toggleChannel = (v: string) =>
+    setDistribution(d => (d.includes(v) ? d.filter(x => x !== v) : [...d, v]))
+
   // Durable recovery. `idea` is a live realtime row, so when the server finishes a
   // final pass it writes the full result to meta.final_pass and that lands here even
   // if THIS tab lost the HTTP response (backgrounded phone, dropped radio, or a 504
@@ -764,7 +783,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
   const ship = async (finalText: string, override: FinalPassShipPayload) => {
     const r = await fetch(`/api/content-ideas/${idea.id}/save-draft`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channel, source_text: finalText, final_pass: override }),
+      body: JSON.stringify({ channel, distribution, source_text: finalText, final_pass: override }),
     })
     const j = await r.json().catch(() => ({}))
     if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
@@ -820,6 +839,28 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
               {channel === c.value ? '✓ ' : ''}{c.label}{c.value === autoChannel ? ' (from lane)' : ''}
             </button>
           ))}
+          <div className="px-3 py-1.5 text-[9px] uppercase tracking-wide text-white/35 border-t border-white/[0.07]">
+            Distribute to
+          </div>
+          <div className="px-2 pb-1.5 flex flex-wrap gap-1">
+            {MEDIA_CHANNELS.map(c => {
+              const on = distribution.includes(c.value)
+              return (
+                <button
+                  key={c.value} type="button"
+                  onClick={() => toggleChannel(c.value)}
+                  aria-pressed={on}
+                  className={`px-2 py-1 rounded-full text-[11px] border transition-colors ${
+                    on
+                      ? 'border-violet-400/60 bg-violet-500/20 text-violet-100'
+                      : 'border-white/10 text-white/55 hover:bg-white/[0.06]'
+                  }`}
+                >
+                  {on ? '✓ ' : ''}{c.label}
+                </button>
+              )
+            })}
+          </div>
           <button
             type="button" onClick={shipDirect}
             className="w-full text-left px-3 py-2 text-[12px] text-white/70 hover:bg-white/[0.05] border-t border-white/[0.07] flex items-center gap-1.5"

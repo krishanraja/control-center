@@ -2006,6 +2006,34 @@ docs/audits/                                                 # Closure architect
 
 ## 20. Recent architectural changes — rolling changelog
 
+### 2026-08-06 (evening): venture / format / channel split, MYMU becomes the content brand
+
+Krish collapsed the content brands onto one property and, crucially, separated two things the OS had fused. *"Make sure there is a distinction between ventures and media channels. Before I get to work, I should be selecting the venture to work on. After, I should be choosing where to distribute."*
+
+**The three layers, and why they were two.** `lane` used to answer both "what am I working on" and "where does it go". That is why `signal_noise` and `builder_economy` existed as BOTH ventures and lanes, and why Instagram was buried inside a venture value (`builder_economy_ig`). Now:
+
+| Layer | Question | Picked | Home |
+|---|---|---|---|
+| Venture | What am I working on? | first | `venture_registry` (`kind='media'` for the content ones) |
+| Format | What shape is this? | second, scoped to venture | `venture_formats` (new) |
+| Channel | Where does it go? | last, multi-select | `media_channels` (new), persisted to `content_ideas.distribution` |
+
+**A channel is never a venture again.** `builder_economy_ig` is retired as a lane; Instagram is a channel any venture can publish to.
+
+**Brands.** themindmaker.ai is the business (managed advisory + CTRL). makeyourmindup.ai is the content brand at its root; Decide / Extend / Imagine stay in place as lead magnets at their own URLs. Signal & Noise and Builder Economy stay as their own shows on their own feeds, untouched, because Krish still needs guests and a feed rename loses every Apple and Spotify subscriber. MYMU: Built therefore DRAWS FROM the Builder Economy recording rather than replacing it.
+
+**MYMU formats.** `MYMU: Teardown` (hero, was Techonomic), `Make Your Mind Up` (the weekly), `MYMU: Built`.
+
+**The weekly is deliberately not a digest.** Weekly AI news is the most saturated format there is and a digest has no spine, so it competes on speed against full-time curation teams. Make Your Mind Up competes on commitment instead: a Best / Worst / Ugliest triptych, then one real decision with two defensible answers, then Krish picks one in public and dates it, then Wrong Last Week. **The commitment and the revisit ARE the format.** Skip the revisit three weeks running and it collapses into a digest with jokes, so the revisit is tracked as an obligation rather than left to memory. The triptych is also pre-cut for short form: three cards, three clips, three chapters, no adaptation work.
+
+**The beat is now enforced in code, not prompt (G0, `api/_beat.ts`).** Krish's exclusion list: not technical news, not governance, not enterprise pilots, not model releases; yes to second-order effects on pricing, positioning, corporate strategy, unit economics and human labour. This runs BEFORE any metered gate call. It is in code for the same reason the vendor-number rule is: the interestingness score selects hardest on asymmetry, and capability announcements score beautifully on asymmetry while being exactly the beat that was excluded. The rule is not "never mention a model release", it is "the event is never the story": an off-beat headline survives when the load-bearing sentence is economic, so *"GPT-5.5 launch quietly repriced the whole agent market"* passes while *"OpenAI launches GPT-5.5 with a 2M context window"* does not. Checked in both directions by `scripts/check-teardown-beat.mts` (6 blocked, 6 passed), because a guard that over-blocks is as damaging as one that under-blocks.
+
+**Corpus restructured** into a shared MYMU house register plus per-format playbooks: `## 0. MYMU house register`, `## 1. Teardown`, `## 2. Built`, `## 3. Make Your Mind Up (the weekly)`, `## 4. Signal & Noise`, `## 5. Maven`. The register carries two load-bearing rules. **The Kind rule:** irony points at claims, hype and incentives, never at a named person's competence, because the corpus is graded against Kind and the sarcastic register would otherwise fight its own rubric every week. **The rigour rule:** the register is sarcastic, the evidence handling is humourless, and the joke can never be the finding.
+
+**Heading collisions are now structurally impossible rather than merely documented.** Every `##` heading matches exactly one `CHANNEL_HEADING` key, asserted directly against the corpus. The house register is matched on the exact phrase "MYMU house register" precisely so a bare "MYMU" elsewhere cannot claim it.
+
+**Known debt, deliberately not bundled.** `growth_social_accounts` and `src/lib/growth.ts` carry their own product vocabulary (`full-time`, `circle`) that does not match `venture_registry` (`full_time`, `fractionl_circle`). Its CHECK constraint was extended to admit the media ventures rather than normalised, because normalising touches 30 seeded `growth_touchpoints` and the Growth tab. That is a separate pass.
+
 ### 2026-08-06 (later the same day): Mindmaker LIVE renamed to MYMU, Techonomic folds in as "MYMU: Teardown"
 
 Krish's directive, superseding the earlier entry below that folded Techonomic into "Mindmaker LIVE": *"Techonomic folds in to Makeyourmindup as 'MYMU: Teardown' so I can discern it from other MYMU outputs in the content creator."* One content brand, matching the live property at makeyourmindup.ai. Earlier changelog entries keep their original wording as the historical record; every normative section above is renamed.

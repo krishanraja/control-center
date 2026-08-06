@@ -20,6 +20,11 @@ import {
 // the honest action it is — save a formatted draft to Drive, you stay the final
 // word (no auto-publish; PUB-001 intact).
 
+// Distribution surfaces a piece can be lifted to. Mirrors media_channels.
+const MEDIA_CHANNEL_SLUGS = new Set([
+  'substack', 'instagram', 'tiktok', 'youtube', 'linkedin', 'podcast',
+])
+
 const FACTORY_CHANNELS = new Set([
   'signal_noise', 'makeyourmindup', 'linkedin',
   'builder_economy', 'vertical_video', 'dynamic',
@@ -99,7 +104,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = pathId(req)
   if (!id) return res.status(400).json({ ok: false, error: 'id required' })
 
-  const b = (req.body || {}) as { channel?: string; source_text?: string; final_pass?: FinalPassShip }
+  const b = (req.body || {}) as {
+    channel?: string; source_text?: string; final_pass?: FinalPassShip; distribution?: string[]
+  }
 
   const webhook = process.env.N8N_CONTENT_FACTORY_WEBHOOK_URL
   if (!webhook) return res.status(500).json({ ok: false, error: 'N8N_CONTENT_FACTORY_WEBHOOK_URL not configured' })
@@ -118,6 +125,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const draft = sanitizeVoice(draftRaw)
 
   const channel = resolveChannel(b.channel) || laneToChannel(idea.lane, idea.lane_slot)
+
+  // Distribution surfaces (venture/format/channel split, 2026-08-06). The
+  // composer picks these AFTER the work; `channel` above is the production
+  // target. Filtered to known channels so a stale tab cannot write junk.
+  const distribution = Array.isArray(b.distribution)
+    ? b.distribution.filter(d => MEDIA_CHANNEL_SLUGS.has(d))
+    : null
 
   const hook = firstLine(draft) || idea.idea
   const contrarian = meta.contrarian || idea.thesis || idea.idea
@@ -219,6 +233,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     updated_at: nowIso,
   }
   if (docUrl) update.draft_link = docUrl
+  // Only write distribution when the composer actually sent a selection, so a
+  // caller that omits the field never silently clears an existing one.
+  if (distribution) update.distribution = distribution
 
   const { error: upErr } = await supabase.from('content_ideas').update(update).eq('id', id)
   if (upErr) return res.status(500).json({ ok: false, error: upErr.message })

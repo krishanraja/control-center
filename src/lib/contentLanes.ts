@@ -74,6 +74,11 @@ const LEGACY_LANE_ALIAS: Record<string, ContentLane> = {
   techonomic: 'mindmaker',
   mindmaker_live: 'mindmaker',
   makeyourmindup: 'mindmaker',
+  // 2026-08-06 venture/format/channel split: MYMU is its own venture now, and
+  // Instagram stopped being one. Both still read as the Mindmaker display lane
+  // so historical rows keep a home on the board.
+  mymu: 'mindmaker',
+  builder_economy_ig: 'builder_economy_ig',
 }
 
 export function normalizeLane(lane?: string | null): ContentLane | null {
