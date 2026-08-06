@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { useContentV2 } from '../../hooks/useContentV2'
 import type { ContentDecisionRow } from '../../lib/contentV2'
 
-// One typed decision (mockup set 1, pin 2). Exactly five kinds exist; each
+// One typed decision (mockup set 1, pin 2). Exactly six kinds exist; each
 // renders its own finite action set. There is no open-ended triage here.
 
 const KIND_CHIP: Record<string, { label: string; cls: string }> = {
@@ -11,6 +11,7 @@ const KIND_CHIP: Record<string, { label: string; cls: string }> = {
   shift_fading: { label: 'Shift losing momentum', cls: 'bg-amber-400/15 text-amber-300' },
   graduation: { label: 'Graduation', cls: 'bg-sky-400/15 text-sky-300' },
   purge_preview: { label: 'Sunday purge', cls: 'bg-amber-400/15 text-amber-300' },
+  investigation: { label: 'Investigation', cls: 'bg-violet-400/15 text-violet-300' },
 }
 
 function Btn({ children, primary, onClick, disabled }: {
@@ -44,6 +45,7 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
     : d.kind === 'shift_proposal' ? String(p.title || 'New shift')
     : d.kind === 'shift_fading' ? `${p.title || 'A shift'} has gone quiet`
     : d.kind === 'graduation' ? `Evergreen: ${p.title || 'a piece'}`
+    : d.kind === 'investigation' ? `Investigation ready: ${p.anchor_headline || 'this week'}`
     : `${p.expiring ?? 0} time-sensitive items expire Monday`
 
   const subtitle =
@@ -52,6 +54,8 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
     : d.kind === 'shift_fading' ? `No qualifying evidence since ${p.last_evidence_on || 'a while'}. Retire it with a verdict, or keep watching.`
     : d.kind === 'graduation' ? 'Move it to the Library with its receipts, or let it purge.'
     : d.kind === 'purge_preview' ? 'Nothing needs you. Tap only to rescue something before it goes.'
+    : d.kind === 'investigation'
+      ? `${p.citable_evidence ?? 0} citable rows across ${p.distinct_domains ?? 0} domains, ${p.distinct_origins ?? 0} distinct origins. Stopped at rung ${p.terminal_rung ?? '?'} (${p.terminal_reason || 'unknown'}).`
     : String(p.summary || '')
 
   const actions = () => {
@@ -66,6 +70,12 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
       <>
         <Btn primary disabled={busy} onClick={() => onAct(() => v2.ruleShift(d.ref, 'retire'))}>Retire</Btn>
         <Btn disabled={busy} onClick={() => onAct(() => v2.ruleShift(d.ref, 'keep_watching'))}>Keep watching</Btn>
+      </>
+    )
+    if (d.kind === 'investigation') return (
+      <>
+        <Btn primary disabled={busy} onClick={() => onAct(async () => { window.location.hash = `#content?idea=${p.idea_id || ''}` })}>Open the evidence</Btn>
+        <Btn disabled={busy} onClick={() => onAct(() => v2.resolveDecision(d.id, 'dismiss'))}>Not this week</Btn>
       </>
     )
     if (d.kind === 'graduation') return (

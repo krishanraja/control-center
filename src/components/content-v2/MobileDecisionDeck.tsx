@@ -20,6 +20,7 @@ const KIND_CHIP: Record<string, { label: string; cls: string }> = {
   shift_fading: { label: 'Shift losing momentum', cls: 'bg-amber-400/15 text-amber-300' },
   graduation: { label: 'Graduation', cls: 'bg-sky-400/15 text-sky-300' },
   purge_preview: { label: 'Monday purge', cls: 'bg-amber-400/15 text-amber-300' },
+  investigation: { label: 'Investigation', cls: 'bg-violet-400/15 text-violet-300' },
 }
 
 /** Swipe distance that commits a navigation. Under it, the card snaps home. */
@@ -58,7 +59,7 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
 
   // Brief first (the anchor decision), then shifts, then the rest.
   const queue = useMemo(() => {
-    const order: Record<string, number> = { brief_review: 0, shift_proposal: 1, shift_fading: 2, graduation: 3, purge_preview: 4 }
+    const order: Record<string, number> = { brief_review: 0, investigation: 1, shift_proposal: 2, shift_fading: 3, graduation: 4, purge_preview: 5 }
     return [...decisions].sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9))
   }, [decisions])
 
@@ -173,6 +174,7 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
           <span className={`inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold ${chip.cls}`}>{chip.label}</span>
           <h3 className="text-[16.5px] font-bold text-white mt-3 leading-snug">
             {d.kind === 'brief_review' ? (p.title || 'This week’s brief')
+              : d.kind === 'investigation' ? `Investigation ready: ${p.anchor_headline || 'this week'}`
               : d.kind === 'purge_preview' ? `${p.expiring ?? 0} time-sensitive items expire Monday`
               : (p.title || '')}
           </h3>
@@ -180,6 +182,7 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
             {d.kind === 'brief_review' ? `${p.headlines ?? '?'} headlines, assembled Friday. Review section by section, magic-edit anything soft, then push.`
               : d.kind === 'shift_proposal' ? `Cleared the recurrence gate: ${p.stories ?? '?'} stories, ${p.day_span ?? '?'} days, ${p.sources ?? '?'} sources.${p.nearest?.title ? ` Nearest existing: ${p.nearest.title}.` : ''}`
               : d.kind === 'shift_fading' ? `No qualifying evidence since ${p.last_evidence_on || 'a while'}.`
+              : d.kind === 'investigation' ? `${p.citable_evidence ?? 0} citable rows, ${p.distinct_domains ?? 0} domains, ${p.distinct_origins ?? 0} origins. Stopped at rung ${p.terminal_rung ?? '?'}.`
               : d.kind === 'graduation' ? 'Cited across weeks and still true. Keep it forever with its receipts?'
               : 'Nothing needs you. Anything that fed a shift or the Library is already safe.'}
           </p>

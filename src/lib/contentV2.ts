@@ -8,7 +8,7 @@ export function contentV2Enabled(): boolean {
 
 export type ShiftStatus = 'proposed' | 'active' | 'fading' | 'retired' | 'library'
 export type BriefStatus = 'assembling' | 'ready' | 'in_review' | 'approved' | 'pushed' | 'sent' | 'archived'
-export type DecisionKind = 'brief_review' | 'shift_proposal' | 'shift_fading' | 'graduation' | 'purge_preview'
+export type DecisionKind = 'brief_review' | 'shift_proposal' | 'shift_fading' | 'graduation' | 'purge_preview' | 'investigation'
 
 export interface MomentumPoint {
   week: string
