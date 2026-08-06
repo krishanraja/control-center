@@ -59,12 +59,24 @@ export function useContentV2() {
     refresh()
   }, [refresh])
 
+  // Bin a card AND say why. Distinct from resolveDecision(id, 'dismiss'), which
+  // is a silent "not now": this one writes the −1 that Vera clusters by reason
+  // code, so refusing the same kind of story three weeks running actually
+  // changes what gets assembled instead of just clearing the queue.
+  const rejectDecision = useCallback(async (id: string, reasonCode?: string, reasonText?: string) => {
+    await api(`/api/content-decisions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action: 'reject', reason_code: reasonCode, reason_text: reasonText }),
+    })
+    refresh()
+  }, [refresh])
+
   const ruleShift = useCallback(async (id: string, action: string, extra?: Record<string, unknown>) => {
     await api(`/api/shifts/${id}`, { method: 'PATCH', body: JSON.stringify({ action, ...extra }) })
     refresh()
   }, [refresh])
 
-  return { brief, decisions, shifts, loading, refresh, resolveDecision, ruleShift }
+  return { brief, decisions, shifts, loading, refresh, resolveDecision, rejectDecision, ruleShift }
 }
 
 export function useShiftEvidence(shiftId: string | null) {

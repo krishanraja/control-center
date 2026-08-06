@@ -45,9 +45,12 @@ export function feedbackVote(
   vote: 1 | -1,
   agent_id?: string | null,
   reason_code?: string,
+  reason_text?: string | null,
+  meta?: Record<string, unknown> | null,
 ) {
   return postOk('/api/feedback', {
     source_table, source_id, vote,
     agent_id: agent_id || null, reason_code: reason_code || null,
+    reason_text: reason_text || null, meta: meta || null,
   })
 }

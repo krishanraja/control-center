@@ -182,8 +182,8 @@ export function useContentTriage() {
 
   // Send the −1 reject for a parked drop (the actual state→dropped + feedback_queue
   // vote). On failure the card is restored to the deck.
-  const resolveDrop = useCallback(async (p: { id: string; idea: ContentIdeaRow }, reasonCode?: string) => {
-    const ok = await triageReject('content_ideas', p.id, 'cleo', reasonCode ?? DEFAULT_REASON.content_ideas)
+  const resolveDrop = useCallback(async (p: { id: string; idea: ContentIdeaRow }, reasonCode?: string, reasonText?: string) => {
+    const ok = await triageReject('content_ideas', p.id, 'cleo', reasonCode ?? DEFAULT_REASON.content_ideas, reasonText || null)
     if (!ok) {
       setCommitted(prev => { const n = new Set(prev); n.delete(p.id); return n })
       h.error()
@@ -259,13 +259,13 @@ export function useContentTriage() {
     })
   }, [h, toast, flushPendingDrop, undoRetain])
 
-  const chooseDropReason = useCallback((reasonCode?: string) => {
+  const chooseDropReason = useCallback((reasonCode?: string, reasonText?: string) => {
     const p = pendingDropRef.current
     if (!p) return
     pendingDropRef.current = null
     setPendingDrop(null)
     h.select()
-    void resolveDrop(p, reasonCode)
+    void resolveDrop(p, reasonCode, reasonText)
   }, [h, resolveDrop])
 
   const cancelDrop = useCallback(() => {

@@ -42,6 +42,11 @@ const ALLOWED_TABLES = new Set([
   // or dismisses teaches Marcus's weekly slate. source_id is the milestone id (or
   // a week-scoped synthetic id for a custom move).
   'weekly_slate',
+  // Content Engine v2 weekly queue (2026-08). Rejecting a card in This Week —
+  // a brief, a proposed shift, a graduation — teaches the same loop the v1
+  // triage deck fed. source_id is the content_decisions row id; meta carries
+  // the decision kind + ref so Vera can cluster by what was actually refused.
+  'content_decisions',
 ])
 
 // Canonical reason codes for the three Marcus feedback altitudes plus the
@@ -78,6 +83,11 @@ const REASON_OPTIONS = new Set([
   'content_already_covered',
   'content_too_promotional',
   'content_thin',
+  // Content Engine v2 weekly queue (2026-08). Assembled output gets refused on
+  // subject and angle, which the draft-quality codes above could not express.
+  'content_wrong_topic',
+  'content_wrong_angle',
+  'content_bad_timing',
   'content_other',
   'lead_wrong_seniority',
   'lead_wrong_company_size',

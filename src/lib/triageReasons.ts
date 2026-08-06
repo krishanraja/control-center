@@ -6,6 +6,21 @@
 export interface ReasonChip { code: string; label: string }
 
 export const REJECT_REASONS: Record<string, ReasonChip[]> = {
+  // The Content Engine v2 weekly queue (This Week). These cards are assembled
+  // OUTPUT (a brief, a proposed shift, a graduation), not raw ideas, so the
+  // reasons are about subject and angle rather than draft quality. Governance
+  // is the worked example: Krish opened a brief he had no appetite for and had
+  // nowhere to say so, which taught the engine nothing.
+  content_decisions: [
+    { code: 'content_wrong_topic',     label: 'Wrong topic for me' },
+    { code: 'content_wrong_angle',     label: 'Wrong angle' },
+    { code: 'content_already_covered', label: 'Already covered' },
+    { code: 'content_old_news',        label: 'Old news' },
+    { code: 'content_too_generic',     label: 'Too generic' },
+    { code: 'content_not_my_voice',    label: 'Not my voice' },
+    { code: 'content_bad_timing',      label: 'Bad timing' },
+    { code: 'content_other',           label: 'Other' },
+  ],
   content_ideas: [
     { code: 'content_too_negative',    label: 'Too negative' },
     { code: 'content_too_technical',   label: 'Too technical' },
@@ -63,6 +78,7 @@ export const REJECT_REASONS: Record<string, ReasonChip[]> = {
 
 /** Fallback reason a "Skip" (no chip picked) emits, so the −1 still carries a code. */
 export const DEFAULT_REASON: Record<string, string> = {
+  content_decisions: 'content_other',
   content_ideas: 'content_other',
   leads: 'lead_other',
   visibility_targets: 'visibility_other',
