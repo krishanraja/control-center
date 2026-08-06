@@ -48,11 +48,14 @@ interface LadderData {
   week_of: string
 }
 
-const RUNGS: Array<{ id: Horizon; label: string; blurb: string }> = [
-  { id: 'os', label: 'OS goals', blurb: 'What the whole system is for. Rarely changes.' },
-  { id: 'mid_term', label: 'Mid-term', blurb: 'The next few months. Serves an OS goal.' },
-  { id: 'weekly', label: 'This week', blurb: 'What moves a mid-term goal this week.' },
-  { id: 'venture_objective', label: 'Per venture', blurb: 'Sharpened from the above, scoped to one venture.' },
+// `noun` is the singular, article included, because it is interpolated into
+// button labels and empty states. Deriving it from `label` produced "Add a os
+// goals goal", which is how it read in production.
+const RUNGS: Array<{ id: Horizon; label: string; noun: string; blurb: string }> = [
+  { id: 'os', label: 'OS goals', noun: 'an OS goal', blurb: 'What the whole system is for. Rarely changes.' },
+  { id: 'mid_term', label: 'Mid-term', noun: 'a mid-term goal', blurb: 'The next few months. Serves an OS goal.' },
+  { id: 'weekly', label: 'This week', noun: 'a weekly goal', blurb: 'What moves a mid-term goal this week.' },
+  { id: 'venture_objective', label: 'Per venture', noun: 'a venture objective', blurb: 'One venture’s slice of a mid-term goal. Sits beside the week, not under it.' },
 ]
 
 const VENTURES = ['mindmaker', 'mymu', 'mm_ctrl', 'full_time', 'fractionl_pulse', 'plinth', 'signal_noise', 'builder_economy']
@@ -208,6 +211,15 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
     await patch({ goalId: g.id, progress: (g.progress ?? 0) >= 100 ? 0 : 100 })
   }
 
+  // Retiring a goal. Status, never DELETE: canon Rule A wants decay to be
+  // reversible, and the row still carries the history that learning signals and
+  // the chronicle hang off. The ladder read filters archived rows out, so it
+  // leaves the surface immediately without anything being destroyed.
+  const archive = async (g: LadderGoal) => {
+    const ok = await patch({ goalId: g.id, status: 'archived' })
+    if (ok) { h.success(); setEditing(null) }
+  }
+
   const saveFocus = async () => {
     const ok = await patch({ team_focus: focusText })
     if (ok) setEditingFocus(false)
@@ -301,8 +313,9 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
           const rows = data?.by_horizon[rung.id] || []
           const isCollapsed = collapsed.has(rung.id)
           const parentPool = rung.id === 'os' ? 1 : (data?.by_horizon[parentRung(rung.id) as Horizon] || []).length
+          const parentNoun = RUNGS.find(r => r.id === parentRung(rung.id))?.noun
           const blockedReason = rung.id !== 'os' && parentPool === 0
-            ? `Add a ${RUNGS.find(r => r.id === parentRung(rung.id))?.label.toLowerCase()} goal first`
+            ? `Add ${parentNoun} first`
             : null
 
           return (
@@ -321,7 +334,7 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
                   type="button"
                   onClick={() => openAdd(rung.id)}
                   disabled={!!blockedReason}
-                  title={blockedReason || `Add a ${rung.label.toLowerCase()} goal`}
+                  title={blockedReason || `Add ${rung.noun}`}
                   className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-violet-300 hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <Plus size={11} /> Add
@@ -363,6 +376,15 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
                                     className="w-20 min-h-[34px] px-2 rounded-lg bg-white/[0.04] border border-white/10 text-[12px] text-white/85 outline-none focus:border-violet-400/40"
                                   />
                                   <span className="text-[11px] text-white/35">% done</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => void archive(g)}
+                                    disabled={saving}
+                                    title="Retire this goal. Reversible: it is archived, not deleted."
+                                    className="px-2 py-1 text-[11.5px] text-white/40 hover:text-rose-300 disabled:opacity-40"
+                                  >
+                                    Retire
+                                  </button>
                                   <div className="flex-1" />
                                   <button type="button" onClick={() => setEditing(null)} className="px-2 py-1 text-[11.5px] text-white/45 hover:text-white/80">Cancel</button>
                                   <button
@@ -441,7 +463,7 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
         <div className="mt-3 rounded-xl border border-violet-400/25 bg-violet-500/[0.06] p-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[12px] font-semibold text-violet-200">
-              New {RUNGS.find(r => r.id === adding)?.label.toLowerCase()} goal
+              New {RUNGS.find(r => r.id === adding)?.noun.replace(/^an? /, '')}
             </span>
             <button type="button" onClick={() => setAdding(null)} aria-label="Cancel" className="text-white/35 hover:text-white/70">
               <X size={14} />

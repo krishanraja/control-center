@@ -126,6 +126,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (body.current !== undefined) updates.current = body.current
       if (body.progress !== undefined) updates.progress = Math.max(0, Math.min(100, Number(body.progress)))
       if (body.notes !== undefined) updates.notes = body.notes
+      // Retiring a goal is a status change, never a DELETE. Canon Rule A wants
+      // decay reversible, and the row carries history the learning signals and
+      // the chronicle hang off. Whitelisted so a client cannot invent a status
+      // that no surface filters on, which would make the goal invisible
+      // everywhere and unrecoverable from the UI.
+      if (body.status !== undefined) {
+        const ALLOWED_STATUS = new Set(['active', 'archived', 'dropped', 'done'])
+        if (!ALLOWED_STATUS.has(String(body.status))) {
+          return res.status(400).json({ ok: false, error: `unknown status '${body.status}'` })
+        }
+        updates.status = body.status
+      }
       const { error } = await supabase.from('goals').update(updates).eq('id', body.goalId)
       if (error) {
         return res.status(500).json({ ok: false, error: error.message })
