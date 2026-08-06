@@ -8,3 +8,6 @@ dist/
 public/data/_archived/
 .claude/
 test-results/
+
+# Supabase CLI scratch state, never committed
+supabase/.temp/
