@@ -1,7 +1,7 @@
 # COMPOUND production release gate
 
 - Prepared: 2026-08-06 EDT
-- Status: production infrastructure deployed; private account activation blocked on exact approved email
+- Status: production vertical slice deployed and signed-in verification passed
 - Target repository: `krishanraja/control-center`, Vercel root directory `compound/`
 - Target Supabase project: linked project recorded in `STATE.md`
 
@@ -23,10 +23,13 @@ Completed:
 
 ## Authentication gate
 
-1. Confirm the exact Supabase Auth email that should receive COMPOUND access. The project currently has zero Auth users.
-2. Insert only that user's id into `compound.members`.
-3. Add the COMPOUND Vercel URL and final domain to Auth's additional redirect URLs. Do not replace the existing shared project's Site URL or Control Center redirects.
-4. Verify magic-link sign-in, member access and non-member rejection with designated accounts.
+Completed:
+
+1. Created and confirmed the explicitly designated Auth user `hello@krishraja.com`.
+2. Inserted only that user's id into `compound.members` and seeded the 3-month and 1-year private starter snapshots.
+3. Set the production Site URL and redirect allowlist to `https://compound.krishraja.com`, retained localhost development redirects, and disabled public signup.
+4. Preserved and read back the hosted email-confirmation, rate-limit, OTP-length and TOTP settings.
+5. Verified a generated magic link resolves to the production domain, the member can read both private snapshots, and anonymous access is denied.
 
 ## Live-answer gate
 
@@ -37,7 +40,9 @@ Completed:
 1. Deployed only `compound-ask`; it is active with JWT verification enabled.
 2. Set `openai/gpt-5.4-mini` as the current Gateway model based on the live Vercel model catalog.
 3. Verified the same-origin proxy denies unauthenticated calls with 401.
-4. Normal signed-in streaming and persistence remain blocked until the member account exists.
+4. Verified signed-in streaming through the live custom domain using a temporary synthetic snapshot with no personal or portfolio content.
+5. Verified `meta`, `delta`, `evidence` and `done` events, one persisted user/assistant pair and idempotent retry behavior.
+6. Deleted the synthetic snapshot and its chat rows; production readback returned two starter snapshots and zero synthetic test messages.
 
 ## Vercel gate
 
@@ -45,7 +50,7 @@ Completed:
 2. Completed: only the two public Supabase values were added to development, preview and production; demo mode is absent.
 3. Completed: production build ready; `/` and `/api/compound-ask` verified; CSP/noindex/security headers pass.
 4. Completed: `compound.krishraja.com` is verified and serves the latest production deployment over HTTPS.
-5. Completed for the live sign-in shell; signed-in routes await the account gate.
+5. Completed for the live sign-in shell and the signed-in private data and Ask routes.
 
 ## Repository gate
 

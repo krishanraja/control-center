@@ -2,7 +2,7 @@
 
 ## Verdict
 
-The approved dashboard remains the complete home screen and the new question flow works as a separate, reversible route. Local mobile and desktop cases pass. Production infrastructure is live at `https://compound.krishraja.com`; the sign-in shell, headers, JWT gate, Supabase schema and anonymous denial are certified. Signed-in persistence and provider output are not certified because Supabase Auth has zero users and no email may be inferred.
+The approved dashboard remains the complete home screen and the new question flow works as a separate, reversible route. Local mobile and desktop cases pass. Production is live at `https://compound.krishraja.com`; the sign-in shell, headers, JWT gate, Supabase schema, anonymous denial, approved-member session, private snapshot read, streamed model answer, persistence and idempotent retry are certified.
 
 ## Scope and evidence
 
@@ -12,9 +12,9 @@ The approved dashboard remains the complete home screen and the new question flo
 - Retrieved/tested at: 2026-08-06 EDT
 - Viewports and browser: Chromium, 390 by 844 and 1440 by 1000
 - Primary tasks attempted: understand today's view; switch horizon; open the accessible holdings list; open Ask without losing the dashboard; submit a suggested question; inspect evidence; return to today; understand quiet and stale states
-- Access or data limitations: no designated live Auth account; dashboard state tests use deterministic sample data
-- Write authority: local implementation and synthetic browser interaction only
-- Test-data and cleanup boundary: repository fixture; no external cleanup required
+- Access or data limitations: the approved live member exists; dashboard state tests still use deterministic starter data rather than a daily market feed
+- Write authority: authorized production Auth, member, starter-snapshot and synthetic smoke-test mutations
+- Test-data and cleanup boundary: the provider smoke test used a temporary synthetic snapshot containing no personal or portfolio information; its snapshot and chat rows were deleted after verification
 - Evidence location: `C:\Users\krish\.scratch\compound\qa-implementation-v1`; sample data only, no credentials or private session data
 
 ## Results by task
@@ -27,7 +27,7 @@ The approved dashboard remains the complete home screen and the new question flo
 | Ask and receive a progressive answer | verified in sample mode | mobile and desktop Ask renders plus component/SSE tests | The question is preserved, the answer is readable and the evidence is visible. |
 | Return to the dashboard | verified | `/ask` to `/` browser check | Ask is additive and reversible. |
 | Understand quiet and stale states | verified in sample mode | quiet dashboard, stale dashboard and stale Ask renders | Old data is not presented as a new recommendation. |
-| Live auth, persistence and provider recovery | blocked on account identity | production shell, database and function are live | Requires the exact approved email, member insertion and signed-in test. |
+| Live auth, persistence and provider recovery | verified | approved member session, two RLS-scoped snapshots, streamed production SSE, saved user/assistant pair and idempotent retry | The private vertical slice works through the custom domain without exposing data anonymously. |
 
 ## Confirmed finding
 
@@ -46,11 +46,11 @@ The approved dashboard remains the complete home screen and the new question flo
 
 The full dashboard remains present after Ask was added. The separate Ask route, Back to today path, horizon state, evidence list, late-data explanation, keyboard focus, minimum control height, reduced-motion answer, quiet state and stale refusal all passed in the local rendered build. No console error appeared in the tested cases.
 
-## Unverified and blocked
+## Remaining scope
 
-- Live magic-link delivery, member access and non-member rejection need the exact designated account.
-- AI Gateway provider output, persistence, timeout and retry behavior need a signed-in member snapshot.
-- Full mobile/desktop dashboard QA on the final domain needs that same member session; the production sign-in shell has no console warnings or errors.
+- The two private starter snapshots are deterministic examples; the daily Financial Modeling Prep feed and engines remain a separate release phase.
+- An actual inbox-delivery check still depends on the recipient opening the email, but production magic-link generation and redirect resolution pass.
+- Full authenticated visual QA on the final domain can be repeated when a human opens the private magic link; API-level signed-in data, streaming and persistence checks pass now.
 
 ## Verification after authorized fixes
 

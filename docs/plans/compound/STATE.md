@@ -4,13 +4,13 @@
 
 ## Current status
 
-- Phase: production release; account activation blocked
-- State: repository, Supabase migrations, Edge Function, standalone Vercel project and custom domain are live; no Supabase Auth user exists yet, so private member binding and signed-in end-to-end proof require the exact approved email address
+- Phase: production vertical slice live
+- State: repository, Supabase migrations, Auth member, private snapshots, Edge Function, standalone Vercel project, custom domain and grounded live-answer path are deployed and verified
 - Base revision: `09c0f88750774f014a91d493e86d9acc50065a7c`
 - Production release: authorised and deployed
 - Supabase production mutation: completed through a guarded migration ledger; only COMPOUND migrations ran
 - Vercel project or domain mutation: completed in standalone project `compound`
-- Next action: Krish supplies the exact email address that may be created and allowlisted; then create that Auth user, insert its id into `compound.members`, seed the two private snapshots, add the final Auth redirect and run the signed-in live-answer test
+- Next action: replace the two deterministic starter snapshots with the separately scoped daily market-data pipeline when rotated Financial Modeling Prep credentials are available
 
 ## Preflight record
 
@@ -30,11 +30,11 @@ FIRST_SURFACE: the approved mobile-first daily dashboard, followed by its live-q
 TARGET: krishanraja/control-center, feature branch from 09c0f88750774f014a91d493e86d9acc50065a7c
 CURRENT RUNTIME: Windows PowerShell, Node 25.5.0, Python 3.14.2, Supabase CLI 2.98.2, GitHub connector authenticated as krishanraja
 SOURCE OF TRUTH: this state file for delivery state; Supabase compound schema for runtime state after an approved migration
-AUTHORITY: autonomous production completion granted by Krish on 2026-08-06; account identity is still not inferred
+AUTHORITY: autonomous production completion granted by Krish on 2026-08-06; `hello@krishraja.com` explicitly designated as the Git author and private Supabase member
 PASS SIGNALS: dependency boundary check, migration security checks, deterministic pipeline tests, frontend type/lint/build, representative responsive renders, authenticated persistence readback when access exists
 ROLLBACK: main remains untouched; production is isolated to the `compound` Vercel project, `compound` Supabase schema and `compound-ask` function
 READBACK: GitHub branch, Supabase migration ledger, PostgREST schema/denial checks, Edge Function revision, Vercel project/domain/deployment and live HTTPS checks
-STATUS: production infrastructure live; private account activation awaiting explicit identity
+STATUS: production vertical slice live and signed-in end-to-end proof passed
 ```
 
 ## LLM access preflight
@@ -71,9 +71,9 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 | P2B Live-question interaction and rendered mock | Locked | COMPOUND-ASK-MOCK-V1 approved as a separate `/ask` route; the dashboard remains `/` |
 | P3 Supabase schema and RLS | Live pass | three COMPOUND-only migrations applied; schema exposed additively; service read succeeds and anonymous read returns 401 |
 | P4 Feed adapters and engines 1 to 2 | Pending | deterministic fixtures, score and failure tests |
-| P5 Authenticated frontend vertical slice | Live shell; account blocked | custom domain serves the sign-in shell with no console errors; Supabase Auth currently has zero users, so signed-in proof awaits the explicitly designated email |
+| P5 Authenticated frontend vertical slice | Live pass | `hello@krishraja.com` exists in Auth and `compound.members`; two private snapshots are RLS-readable only by that member; production magic-link redirect resolves to the custom domain |
 | P6 Engines 3 to 4 and falsifier audit | Pending | model contract, suppression and historical check tests |
-| P7 Release verification | Infrastructure live; account proof pending | branch pushed; Edge Function active with JWT verification; Vercel deployment ready; custom domain verified; HTTPS/CSP/noindex and unauthenticated API denial pass |
+| P7 Release verification | Live pass | branch pushed; Edge Function active with JWT verification; Vercel deployment ready; custom domain verified; HTTPS/CSP/noindex, unauthenticated denial, signed-in streaming, persistence and idempotent retry pass |
 
 ## Current local verification
 
@@ -90,6 +90,10 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 - Vercel: project `compound`, root `compound/`, GitHub connected, production deployment ready, OIDC enabled.
 - Live domain: `https://compound.krishraja.com` verified; HTTPS 200, title `COMPOUND`, CSP present, `noindex, nofollow`, API returns 401 without a user session.
 - Live browser: sign-in shell renders with zero console warnings/errors.
+- Auth: production Site URL and redirect allowlist include `https://compound.krishraja.com`; public signup is disabled while existing hosted email-confirmation, rate-limit, OTP and TOTP protections are preserved.
+- Private account: one approved member (`hello@krishraja.com`) and two starter snapshots exist; anonymous snapshot access remains denied.
+- Live answer: a temporary synthetic, non-personal snapshot produced `meta`, streamed `delta`, `evidence` and `done` events through Vercel OIDC and Supabase; exactly one user/assistant pair was saved and a repeated request returned the same pair without duplication.
+- Production cleanup: the temporary synthetic snapshot and chat rows were deleted; readback shows two starter snapshots, zero synthetic test messages and one member.
 
 ## Confirmed decisions
 
@@ -108,6 +112,6 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 - Shared GitHub means repository permissions are shared. GitHub Environment secrets narrow runtime access but do not create repository security isolation.
 - Every credential exposed in chat or the supplied API file remains in remediation. None may be used.
 - The FMP rate ceiling and batch quote behavior must be verified with rotated credentials before the full daily call budget is enabled.
-- Supabase Auth has zero existing users. Creating or choosing an account from local Git metadata was rejected as an unsafe inference; the exact approved email is the sole account-activation blocker.
-- The project redirect URL still needs to be added after the account identity is confirmed; the CLI session cannot safely update the shared Auth redirect list without risking unrelated settings.
-- Full daily feed adapters and engines remain outside this vertical-slice release; the initial private snapshot cannot be inserted until its member exists.
+- Supabase Auth now has one explicitly approved COMPOUND member. Public signup is disabled; additional members require a deliberate admin action and allowlist row.
+- The shared Auth configuration was diffed before release and read back afterward. COMPOUND's redirect was added while hosted email and TOTP protections were preserved.
+- Full daily feed adapters and engines remain outside this vertical-slice release. The two private starter snapshots are deterministic examples, not a live market-data feed.
