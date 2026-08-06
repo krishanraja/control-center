@@ -29,11 +29,13 @@ export type IdeaState =
    *  meta.absorbed_into pointer. Excluded from the triage deck. */
   | 'absorbed'
 
-/** The brand lanes on the Content tab (destinations, not themes; pillars are the theme layer). */
+/** The VENTURES on the Content tab: what am I working on, picked before the
+ *  work (Krish 2026-08-06). Not destinations. Where a piece goes is a channel
+ *  (MediaChannel), and the theme layer is still pillars. */
 export type ContentLane =
+  | 'mymu'
   | 'signal_noise'
-  | 'mindmaker'
-  | 'builder_economy_ig'
+  | 'builder_economy'
 
 /**
  * Lane values that can still be sitting on a stored row. Techonomic was retired
@@ -43,7 +45,9 @@ export type ContentLane =
  * all normalize to 'mindmaker' for display (contentLanes.normalizeLane).
  */
 export type StoredContentLane =
-  | ContentLane | 'makeyourmindup' | 'mindmaker_live' | 'techonomic'
+  | ContentLane
+  | 'mindmaker' | 'builder_economy_ig'   // pre venture/channel split
+  | 'makeyourmindup' | 'mindmaker_live' | 'techonomic'
 
 /**
  * Container for Cleo's derivative outputs keyed by target format. Cleo's

@@ -15,6 +15,7 @@
 
 import { randomUUID, createHash } from 'node:crypto'
 import { supabase } from './_supabase.js'
+import { onTeardownBeat } from './_beat.js'
 import { robustJson, sanitizeVoice } from './_content.js'
 import { isoWeekLabel } from './_weeks.js'
 import { rootDomain } from './_trendGate.js'
@@ -163,6 +164,17 @@ export async function selectAnchor(
     const c = row.candidate
     const ref = `a${i + 1}`
     const sentence = numberSentence(c)
+
+    // G0 runs before anything that costs money. A capability announcement or a
+    // governance story is off-beat however well it scores, so drop it here
+    // rather than paying for a gate call on a piece that must not be written.
+    if (!onTeardownBeat(c.headline, sentence)) {
+      attempts.push({
+        ref, headline: c.headline, action: 'block',
+        reason: 'off-beat for MYMU: Teardown (event story with no second-order economic effect: pricing, unit economics, positioning, corporate strategy or labour)',
+      })
+      continue
+    }
 
     // The pure pass first. It is free, and for a non-vendor anchor it is the
     // whole gate: no call is made at all.

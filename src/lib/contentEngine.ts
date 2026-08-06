@@ -350,11 +350,77 @@ export interface LaneDef {
   factoryChannel: FactoryChannel
 }
 
-// 'makeyourmindup' (MYMU) is the channel formerly called 'mindmaker_live'.
-// Renamed 2026-08-06 when Techonomic folded in: one content brand, and the
-// investigative register ships as the MYMU: Teardown format rather than as its
-// own brand. The old slug is never offered again but always maps (see
-// LEGACY_LANE_CHANNEL), so stored rows keep resolving.
+// ── Venture / format / channel (Krish, 2026-08-06) ────────────────────────
+// Three layers, deliberately separate, because they used to be two:
+//   VENTURE  what am I working on?     picked FIRST
+//   FORMAT   what shape is this?       picked second, scoped to the venture
+//   CHANNEL  where does it go?         picked LAST, multi-select
+// Before this, `lane` fused venture and channel, which is why signal_noise and
+// builder_economy existed as BOTH a venture and a lane, and why Instagram was
+// buried inside a venture value ('builder_economy_ig'). A channel is never a
+// venture again.
+
+/** Media ventures: the ones that produce content. Mirrors venture_registry
+ *  where kind='media'. Product ventures (ctrl, circle, pulse...) also publish,
+ *  but through these. */
+export type MediaVenture = 'mymu' | 'signal_noise' | 'builder_economy'
+
+export interface VentureFormat {
+  venture: MediaVenture
+  slot: string
+  label: string
+  hero?: boolean
+  gear: 'A' | 'B'
+  /** corpus playbook key (api/_content CHANNEL_HEADING). */
+  corpusKey: string
+}
+
+/** Mirrors the `venture_formats` table. The composer picks one of these AFTER
+ *  the venture and BEFORE the channels. */
+export const VENTURE_FORMATS: VentureFormat[] = [
+  { venture: 'mymu', slot: 'teardown', label: 'MYMU: Teardown', hero: true, gear: 'A', corpusKey: 'investigation' },
+  { venture: 'mymu', slot: 'weekly', label: 'Make Your Mind Up', gear: 'A', corpusKey: 'mymu_weekly' },
+  { venture: 'mymu', slot: 'built', label: 'MYMU: Built', gear: 'B', corpusKey: 'built' },
+  { venture: 'signal_noise', slot: 'episode', label: 'Signal & Noise episode', gear: 'B', corpusKey: 'signal_noise' },
+  { venture: 'builder_economy', slot: 'episode', label: 'Builder Economy episode', gear: 'B', corpusKey: 'built' },
+]
+
+export const MEDIA_VENTURES: { value: MediaVenture; label: string }[] = [
+  { value: 'mymu', label: 'MYMU' },
+  { value: 'signal_noise', label: 'Signal & Noise' },
+  { value: 'builder_economy', label: 'Builder Economy' },
+]
+
+export function formatsForVenture(v?: string | null): VentureFormat[] {
+  return VENTURE_FORMATS.filter(f => f.venture === v)
+}
+
+/** Distribution surfaces. Mirrors the `media_channels` table. Multi-select:
+ *  one piece is produced once and lifted to several of these. */
+export type MediaChannel =
+  | 'substack' | 'instagram' | 'tiktok' | 'youtube' | 'linkedin' | 'podcast'
+
+export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: boolean }[] = [
+  { value: 'substack', label: 'Substack', shortForm: false },
+  { value: 'instagram', label: 'Instagram', shortForm: true },
+  { value: 'tiktok', label: 'TikTok', shortForm: true },
+  { value: 'youtube', label: 'YouTube', shortForm: false },
+  { value: 'linkedin', label: 'LinkedIn', shortForm: true },
+  { value: 'podcast', label: 'Podcast', shortForm: false },
+]
+
+/** Default distribution per format, so the composer pre-ticks the sane set. */
+export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
+  'mymu:teardown': ['substack', 'linkedin'],
+  'mymu:weekly': ['substack', 'instagram', 'tiktok', 'youtube', 'linkedin'],
+  'mymu:built': ['substack', 'instagram', 'tiktok', 'youtube'],
+  'signal_noise:episode': ['podcast', 'youtube', 'linkedin'],
+  'builder_economy:episode': ['podcast', 'instagram', 'tiktok', 'youtube'],
+}
+
+// The factory channel is what the Omnichannel Content Factory polishes INTO.
+// It is a production target, not a distribution surface, and it is kept
+// separate from MediaChannel on purpose.
 export type FactoryChannel =
   | 'signal_noise' | 'makeyourmindup' | 'linkedin'
   | 'builder_economy' | 'vertical_video' | 'dynamic'
@@ -363,18 +429,19 @@ export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
   { value: 'signal_noise', label: 'Signal & Noise' },
   { value: 'makeyourmindup', label: 'MYMU' },
   { value: 'linkedin', label: 'LinkedIn' },
-  { value: 'builder_economy', label: 'Builder Economy' },
+  { value: 'builder_economy', label: 'Built' },
   { value: 'vertical_video', label: 'Vertical Video' },
 ]
 
-// Every lane the user can toggle for variant generation (decision 2026-06-11:
-// expose ALL lanes as per-idea toggles). mindmaker has two slots.
+// The variant toggles. `lane` now carries the VENTURE and `slot` the FORMAT,
+// which is why 'builder_economy_ig' is gone: Instagram was a channel wearing a
+// venture's clothes, and it now lives in MEDIA_CHANNELS where it belongs.
 export const LANES: LaneDef[] = [
-  { lane: 'signal_noise', label: 'Signal & Noise', gear: 'A', factoryChannel: 'signal_noise' },
-  { lane: 'mindmaker', slot: 'roundup', label: 'Mindmaker — roundup', gear: 'A', factoryChannel: 'makeyourmindup' },
-  { lane: 'mindmaker', slot: 'investigation', label: 'MYMU: Teardown', gear: 'A', factoryChannel: 'makeyourmindup' },
-  { lane: 'mindmaker', slot: 'field_learning', label: 'Mindmaker — field learning', gear: 'B', factoryChannel: 'linkedin' },
-  { lane: 'builder_economy_ig', label: 'Builder Economy (IG)', gear: 'B', factoryChannel: 'builder_economy' },
+  { lane: 'mymu', slot: 'teardown', label: 'MYMU: Teardown', gear: 'A', factoryChannel: 'makeyourmindup' },
+  { lane: 'mymu', slot: 'weekly', label: 'Make Your Mind Up', gear: 'A', factoryChannel: 'makeyourmindup' },
+  { lane: 'mymu', slot: 'built', label: 'MYMU: Built', gear: 'B', factoryChannel: 'builder_economy' },
+  { lane: 'signal_noise', slot: 'episode', label: 'Signal & Noise episode', gear: 'B', factoryChannel: 'signal_noise' },
+  { lane: 'builder_economy', slot: 'episode', label: 'Builder Economy episode', gear: 'B', factoryChannel: 'builder_economy' },
 ]
 
 // ── Adapt-to-lane (composer Refine) ──────────────────────────────────────
@@ -422,6 +489,10 @@ const LEGACY_LANE_CHANNEL: Record<string, FactoryChannel> = {
   techonomic: 'makeyourmindup',
   mindmaker_live: 'makeyourmindup',
   makeyourmindup: 'makeyourmindup',
+  // 'mindmaker' was the lane before MYMU became its own venture (2026-08-06).
+  mindmaker: 'makeyourmindup',
+  // Instagram was buried inside this venture value; it is a channel now.
+  builder_economy_ig: 'builder_economy',
 }
 
 /** Map a generated variant's lane (+slot) onto a content-factory channel. */

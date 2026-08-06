@@ -109,22 +109,32 @@ export async function loadCorpus(): Promise<string> {
 // matching channel playbook, and the cross-channel rules. The score gate still
 // loads the full corpus — it is grading against every standard.
 
-/** lane (+slot) -> the corpus channel key whose playbook applies. */
+/** venture (+format) -> the corpus playbook key that applies.
+ *
+ *  The venture/format/channel split (Krish 2026-08-06): venture answers "what am
+ *  I working on", format answers "what shape is this", channel answers "where
+ *  does it go". Before this, `lane` fused venture and channel, which is why
+ *  signal_noise and builder_economy existed as both a venture and a lane. */
 export function laneToCorpusChannel(lane?: string | null, slot?: string | null): string | null {
   if (lane === 'signal_noise') return 'signal_noise'
+  if (lane === 'builder_economy') return 'built'
+  if (lane === 'mymu') {
+    // Teardown carries the investigation playbook and its harder bar. The slot
+    // key stays 'investigation' to match content_cadence and venture_formats.
+    if (slot === 'teardown' || slot === 'investigation') return 'investigation'
+    if (slot === 'built') return 'built'
+    if (slot === 'weekly') return 'mymu_weekly'
+    return 'makeyourmindup'   // the house register
+  }
+  // Legacy stored values, mapped never rejected. `mindmaker` was the lane before
+  // MYMU became a venture; `techonomic` was the retired brand; `mindmaker_live`
+  // was the interim channel slug.
   if (lane === 'mindmaker') {
     if (slot === 'field_learning') return 'linkedin'
-    // The MYMU: Teardown slot IS the old Techonomic register, so it must draw
-    // the investigation playbook and its harder bar, not the weekly one. The
-    // slot key stays 'investigation' to match content_cadence and the
-    // content_lane_mindmaker_investigation config row.
-    if (slot === 'investigation') return 'investigation'
+    if (slot === 'investigation' || slot === 'teardown') return 'investigation'
     return 'makeyourmindup'
   }
-  if (lane === 'builder_economy_ig') return 'builder_economy'
-  // Legacy stored values. Techonomic was retired 2026-08-06 and folded into
-  // MYMU; its long-form register survives as the 'investigation' playbook, so
-  // old rows keep the depth bar instead of dropping to null.
+  if (lane === 'builder_economy_ig') return 'built'
   if (lane === 'techonomic') return 'investigation'
   if (lane === 'mindmaker_live' || lane === 'makeyourmindup') return 'makeyourmindup'
   return null
@@ -132,28 +142,34 @@ export function laneToCorpusChannel(lane?: string | null, slot?: string | null):
 
 // channel key -> a matcher against the playbook heading text in the corpus.
 const CHANNEL_HEADING: Record<string, RegExp> = {
-  // The corpus playbook is titled "Investigation (long-form teardown)". The
-  // retired brand stays in the pattern so an older corpus copy still resolves.
-  //
-  // TWO-WAY COLLISION RULE, do not break either direction:
-  //  1. Never retitle the investigation section to contain "MYMU" or
-  //     "Mindmaker Live" — it sits before section 4 and would capture the
-  //     weekly-channel lookup below, handing every weekly piece the teardown bar.
-  //  2. Never title the WEEKLY MYMU section with "Teardown" or "Investigation".
-  //     The format is called "MYMU: Teardown", so this is now easy to get wrong:
-  //     that string would be swallowed by the investigation pattern first, and
-  //     the weekly channel would silently resolve to the wrong playbook.
-  //     Keep the weekly heading as plain "MYMU" (e.g. "MYMU (weekly brief)").
+  // COLLISION RULE. These patterns are tested against every `##` heading in the
+  // corpus and the FIRST match wins, so a heading must match exactly one key.
+  // The corpus headings are deliberately disjoint to guarantee that:
+  //   ## 0. MYMU house register   ## 1. Teardown   ## 2. Built
+  //   ## 3. Make Your Mind Up (the weekly)   ## 4. Signal & Noise   ## 5. Maven
+  // Two traps, both of which have actually happened:
+  //   1. Never title the investigation section with "MYMU" or "Mindmaker Live".
+  //      It precedes the weekly section and would capture its lookup, handing
+  //      every weekly piece the teardown bar.
+  //   2. Never title the weekly section with "Teardown" or "Investigation". The
+  //      hero format is literally called "MYMU: Teardown", so this is the easy
+  //      mistake, and the investigation pattern is tested first.
+  // The house register is matched on the exact phrase "MYMU house register"
+  // precisely so that a bare "MYMU" in any other heading cannot claim it.
   investigation: /Techonomic|Investigation|Teardown/i,
+  built: /^#*\s*\d*\.?\s*Built\b|Builder Economy/i,
+  mymu_weekly: /Make\s*Your\s*Mind\s*Up\s*\(the weekly\)/i,
+  makeyourmindup: /MYMU house register/i,
   signal_noise: /Signal\s*&?\s*Noise/i,
-  // Renamed from 'mindmaker_live' 2026-08-06. Old heading kept in the pattern
-  // so a corpus copy that has not been resynced yet still resolves.
-  makeyourmindup: /MYMU|Make\s*Your\s*Mind\s*Up|Mindmaker Live/i,
-  mindmaker_live: /MYMU|Make\s*Your\s*Mind\s*Up|Mindmaker Live/i,
-  builder_economy: /Builder Economy/i,
-  // Social cutdowns (LinkedIn / Builder Economy IG field-learning) ride the
-  // builder-economy register, so they borrow that playbook.
-  linkedin: /Builder Economy/i,
+  // Legacy key kept so a corpus copy that has not been resynced still resolves.
+  mindmaker_live: /MYMU house register|Mindmaker Live/i,
+  // The "Builder Economy" playbook became "Built" when Builder Economy stopped
+  // being a lane and became a venture with its own feed. Old name kept in the
+  // pattern for an un-resynced corpus copy.
+  builder_economy: /^#*\s*\d*\.?\s*Built\b|Builder Economy/i,
+  // Social cutdowns (LinkedIn, Instagram) ride the Built register, so they
+  // borrow that playbook.
+  linkedin: /^#*\s*\d*\.?\s*Built\b|Builder Economy/i,
   maven: /Maven Sales Surface/i,
 }
 
