@@ -5,6 +5,7 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { INTENTS, type Intent } from '../../lib/pilotIntent'
 import { readingFor, stoicFor } from '../../lib/pilotStoic'
 import { ANXIETY_ANCHORS, ENERGY_ANCHORS, anxietyColor, energyColor } from '../../lib/pilotColor'
+import { bucketFor, type StateBucket } from '../../lib/pilotStoic'
 import { MicButton, browserCanRecord } from '../shared/VoiceCapture'
 import { ThumbSlider, ENERGY_NOTCHES, ANXIETY_NOTCHES } from './ThumbSlider'
 import { Tap } from './controls'
@@ -30,10 +31,33 @@ interface Props {
   onDone: (mode: PilotMode, intent: Intent | null) => void
 }
 
-const MOOD_CHIPS = [
-  'wired', 'flat', 'scattered', 'clear',
-  'heavy', 'restless', 'calm', 'behind',
+// The word must FOLLOW the reading. Offering 'heavy' and 'flat' to someone who
+// just said high energy and low anxiety reads as though the check-in was not
+// listening, and it teaches him the whole flow is decorative.
+// Buckets come from bucketFor(energy, anxiety) so there is one state model, not
+// a second one invented here.
+const MOOD_CHIPS_BY_BUCKET: Record<StateBucket, string[]> = {
+  strong_calm:      ['clear', 'sharp', 'ready', 'light', 'focused', 'up for it'],
+  strong_anxious:   ['wired', 'restless', 'urgent', 'buzzing', 'scattered', 'over-caffeinated'],
+  depleted_calm:    ['flat', 'slow', 'quiet', 'tired', 'muted', 'low battery'],
+  depleted_anxious: ['heavy', 'behind', 'frayed', 'thin', 'wrung out', 'underwater'],
+  steady:           ['steady', 'fine', 'even', 'plodding', 'okay', 'warming up'],
+}
+
+// Accountability: which venture is today actually for. Mirrors
+// venture_registry active ventures; kept short because this is a phone screen
+// at 7am, not a picker.
+const VENTURE_CHOICES: Array<{ slug: string; label: string }> = [
+  { slug: 'mindmaker', label: 'Mindmaker' },
+  { slug: 'mymu', label: 'MYMU' },
+  { slug: 'mm_ctrl', label: 'CTRL' },
+  { slug: 'full_time', label: 'Full Time' },
+  { slug: 'fractionl_pulse', label: 'Pulse' },
+  { slug: 'plinth', label: 'Plinth' },
 ]
+
+/** Fallback only for the case where the reading is somehow missing. */
+const MOOD_CHIPS_DEFAULT = ['clear', 'steady', 'scattered', 'flat', 'wired', 'heavy']
 
 type Stage = 'read' | 'word' | 'intent' | 'set'
 
@@ -52,8 +76,13 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const [venture, setVenture] = useState<string | null>(null)
   const answered = energy !== null && anxiety !== null
   const computed = answered ? computeMode(energy, anxiety) : null
+  // Words follow the reading, so the check-in visibly listened.
+  const moodChips = answered
+    ? MOOD_CHIPS_BY_BUCKET[bucketFor(energy as number, anxiety as number)]
+    : MOOD_CHIPS_DEFAULT
   const mode = chosen ?? computed
 
   const stoic = useMemo(
@@ -73,7 +102,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
     setSaving(true)
     setError(null)
     try {
-      await saveMorning({ energy, anxiety, one_word: word.trim(), mode, intent: intent?.key })
+      await saveMorning({ energy, anxiety, one_word: word.trim(), mode, intent: intent?.key, venture })
       h.notifySuccess()
       onDone(mode, intent)
     } catch (e) {
@@ -179,7 +208,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
                 )}
               </div>
               <div className="grid grid-cols-2 gap-2.5">
-                {MOOD_CHIPS.map(c => (
+                {moodChips.map(c => (
                   <button
                     key={c}
                     type="button"
@@ -195,7 +224,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
                   </button>
                 ))}
               </div>
-              {word && !MOOD_CHIPS.includes(word) && (
+              {word && !moodChips.includes(word) && (
                 <p className="mt-4 text-[14px] text-ink-muted truncate">{word}</p>
               )}
             </Fade>
@@ -210,7 +239,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
                     key={i.key}
                     type="button"
                     onPointerDown={() => h.select()}
-                    onClick={() => { setIntent(i); setTimeout(forward, 140) }}
+                    onClick={() => { setIntent(i); h.select() }}
                     className={`min-h-[52px] px-4 rounded-2xl text-[15px] text-left border transition-all active:scale-[0.98] touch-manipulation ${
                       intent?.key === i.key
                         ? 'bg-ink/[0.10] border-ink/25 text-ink'
@@ -221,6 +250,46 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
                   </button>
                 ))}
               </div>
+
+              {/* Krish: "if I select one of these, ideally I can choose which
+                  venture to focus on as well, for accountability." The intent
+                  says what KIND of day it is; the venture says what it is FOR.
+                  Only appears once an intent is picked, so the screen stays a
+                  single decision until it has been made. */}
+              {intent && (
+                <div className="mt-6">
+                  <p className="text-[12px] uppercase tracking-[0.16em] text-ink-faint mb-2.5">
+                    On what?
+                  </p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {VENTURE_CHOICES.map(v => (
+                      <button
+                        key={v.slug}
+                        type="button"
+                        onPointerDown={() => h.select()}
+                        onClick={() => {
+                          setVenture(venture === v.slug ? null : v.slug)
+                          if (venture !== v.slug) setTimeout(forward, 160)
+                        }}
+                        className={`min-h-[48px] rounded-2xl text-[14px] border transition-all active:scale-[0.97] touch-manipulation ${
+                          venture === v.slug
+                            ? 'bg-ink/[0.10] border-ink/25 text-ink'
+                            : 'bg-ink/[0.02] border-ink/[0.08] text-ink-muted'
+                        }`}
+                      >
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setVenture(null); forward() }}
+                    className="mt-3 text-[13px] text-ink-faint underline underline-offset-4"
+                  >
+                    Skip, no single venture today
+                  </button>
+                </div>
+              )}
             </Fade>
           )}
 
