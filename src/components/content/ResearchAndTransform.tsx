@@ -11,7 +11,6 @@ const TRANSFORM_TARGETS: TransformTarget[] = [
   { lane: 'signal_noise', label: 'Signal & Noise' },
   { lane: 'mindmaker', slot: 'roundup', label: 'Mindmaker · roundup' },
   { lane: 'mindmaker', slot: 'field_learning', label: 'Mindmaker · field' },
-  { lane: 'techonomic', label: 'Techonomic' },
   { lane: 'builder_economy_ig', label: 'Builder Economy · IG' },
 ]
 

@@ -125,5 +125,5 @@ Plus terminal: `dropped`, `absorbed` (folded into a synthesized narrative). Buri
 | Skill | Why it matters |
 |---|---|
 | `krish-voice` (`~/.openclaw/skills/krish-voice/SKILL.md`) | Voice rules V-001..V-007. Mandatory read before any outbound copy edit. |
-| `content-corpus` (`~/.openclaw/skills/content-corpus/SKILL.md`) | Per-channel mandate (Techonomic / Builder Economy / Signal & Noise / Mindmaker Live) + Five Standards. |
+| `content-corpus` (`~/.openclaw/skills/content-corpus/SKILL.md`) | Per-channel mandate (Builder Economy / Signal & Noise / Mindmaker LIVE, including the long-form investigation format) + Five Standards. The Techonomic playbook is retired (2026-08-06); the VPS copy still carries the old heading. |
 | `mindmaker-os` (this repo's `docs/MINDMAKER_OS_ARCHITECTURE.md`) | §5.7 is the Content Engine spec; §5.6 is the Focus System. |

@@ -13,9 +13,14 @@ import { preamble, sanitizeVoice } from '../../_content.js'
 // must be `approved` first.
 
 const FACTORY_CHANNELS = new Set([
-  'techonomic', 'signal_noise', 'mindmaker_live', 'linkedin',
+  'signal_noise', 'mindmaker_live', 'linkedin',
   'builder_economy', 'vertical_video', 'dynamic',
 ])
+
+// Techonomic was retired 2026-08-06 and folded into Mindmaker LIVE. A saved
+// fan-out selection that still names it collapses onto Mindmaker LIVE (the
+// dedupe below keeps the push from producing the same Doc twice).
+const RETIRED_CHANNELS: Record<string, string> = { techonomic: 'mindmaker_live' }
 
 function extractDocUrl(payload: any, depth = 0): string | null {
   if (!payload || typeof payload !== 'object' || depth > 4) return null
@@ -44,7 +49,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!webhook) return res.status(500).json({ ok: false, error: 'N8N_CONTENT_FACTORY_WEBHOOK_URL not configured' })
 
   const channels = Array.isArray((req.body || {}).channels)
-    ? [...new Set((req.body.channels as string[]).filter(c => FACTORY_CHANNELS.has(c)))]
+    ? [...new Set((req.body.channels as string[])
+      .map(c => RETIRED_CHANNELS[c] || c)
+      .filter(c => FACTORY_CHANNELS.has(c)))]
     : []
   if (!channels.length) return res.status(400).json({ ok: false, error: 'pick at least one channel' })
 

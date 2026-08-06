@@ -31,7 +31,10 @@ import { embed, vectorLiteral } from '../_embeddings.js'
  * pragmatic window PilotGate uses for once-a-day semantics).
  */
 
-const ALLOWED_LANES = new Set(['techonomic', 'signal_noise', 'mindmaker', 'builder_economy_ig'])
+// Techonomic was retired 2026-08-06 and folded into Mindmaker LIVE. A model that
+// still reaches for the old name lands on mindmaker instead of failing the build.
+const RETIRED_LANES: Record<string, string> = { techonomic: 'mindmaker', mindmaker_live: 'mindmaker' }
+const ALLOWED_LANES = new Set(['signal_noise', 'mindmaker', 'builder_economy_ig'])
 const REUSE_WINDOW_MS = 20 * 60 * 60 * 1000
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -68,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     `Today is ${today}.`,
     `Krish's intent, verbatim: "${ask}"`,
     '',
-    'Write ONE complete, timely, undeniably-his piece that serves this intent. Choose the lane it belongs to from: techonomic, signal_noise, mindmaker (lane_slot roundup or field_learning), builder_economy_ig.',
+    'Write ONE complete, timely, undeniably-his piece that serves this intent. Choose the lane it belongs to from: signal_noise, mindmaker (lane_slot roundup or field_learning), builder_economy_ig.',
     'Length follows the lane: a LinkedIn-register piece runs 150-300 words, an essay lane runs 500-800. It must be finishable and publishable inside fifteen minutes of light editing.',
     '',
     'Return ONLY a JSON object:',
@@ -76,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     '  "title": string,          // the headline',
     '  "thesis": string,         // one arguable sentence',
     '  "body": string,           // the full draft, ready to edit',
-    '  "lane": string,           // one of the four lanes',
+    '  "lane": string,           // one of the three lanes',
     '  "lane_slot": string|null, // only for mindmaker',
     '  "why_now": string         // one sentence on why this is timely today',
     '}',
@@ -97,7 +100,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const title = sanitizeVoice(String(parsed.title || ask).slice(0, 250))
   const body = sanitizeVoice(String(parsed.body))
   const thesis = parsed.thesis ? sanitizeVoice(String(parsed.thesis)).slice(0, 500) : null
-  const lane = ALLOWED_LANES.has(parsed.lane) ? parsed.lane : null
+  const rawLane = RETIRED_LANES[parsed.lane] || parsed.lane
+  const lane = ALLOWED_LANES.has(rawLane) ? rawLane : null
   const laneSlot = lane === 'mindmaker' && ['roundup', 'field_learning'].includes(parsed.lane_slot)
     ? parsed.lane_slot
     : null

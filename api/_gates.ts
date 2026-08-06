@@ -1,4 +1,4 @@
-// _gates: the Techonomic double-check gate set. Pure module: no I/O, no
+// _gates: the investigation double-check gate set. Pure module: no I/O, no
 // clients, no DB. Mirrors the shape of api/_trendGate.ts on purpose, because
 // that file is the proven pattern in this codebase for "the model articulates,
 // deterministic code decides".

@@ -109,7 +109,6 @@ export const VERDICT_LABEL: Record<ShiftVerdict, string> = {
 export const FACTORY_FANOUT: Array<{ channel: string; label: string; defaultOn: boolean }> = [
   { channel: 'mindmaker_live', label: 'Mindmaker LIVE', defaultOn: true },
   { channel: 'linkedin', label: 'LinkedIn post', defaultOn: true },
-  { channel: 'techonomic', label: 'Techonomic essay', defaultOn: true },
   { channel: 'builder_economy', label: 'Builder Economy IG', defaultOn: false },
 ]
 

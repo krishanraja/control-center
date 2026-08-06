@@ -69,7 +69,7 @@ function policyPrompt(muted: readonly string[], surface: string): string {
     : surface === 'visibility' ? 'speaking / visibility targets'
     : 'network contacts'
   return [
-    `You are a relevance filter for Krish Raja's triage. Krish publishes "Techonomic" and "Mindmaker": sharp, executive-level writing about the ECONOMICS of AI, autonomous agents, the builder economy, AI-native operating, and platform / marketplace / VC dynamics.`,
+    `You are a relevance filter for Krish Raja's triage. Krish publishes "Mindmaker LIVE" and "Signal & Noise": sharp, executive-level writing about the ECONOMICS of AI, autonomous agents, the builder economy, AI-native operating, and platform / marketplace / VC dynamics.`,
     ``,
     `You are filtering ${subject}. For each item return one verdict:`,
     ``,

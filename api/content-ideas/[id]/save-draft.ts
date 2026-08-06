@@ -21,9 +21,20 @@ import {
 // word (no auto-publish; PUB-001 intact).
 
 const FACTORY_CHANNELS = new Set([
-  'techonomic', 'signal_noise', 'mindmaker_live', 'linkedin',
+  'signal_noise', 'mindmaker_live', 'linkedin',
   'builder_economy', 'vertical_video', 'dynamic',
 ])
+
+// Retired channels a stored row or a stale browser tab can still send. Techonomic
+// was retired 2026-08-06 and folded into Mindmaker LIVE, so it maps instead of
+// 400-ing: a draft in flight when the brand went away still saves.
+const RETIRED_CHANNELS: Record<string, string> = { techonomic: 'mindmaker_live' }
+
+function resolveChannel(c?: string | null): string | null {
+  if (!c) return null
+  const mapped = RETIRED_CHANNELS[c] || c
+  return FACTORY_CHANNELS.has(mapped) ? mapped : null
+}
 
 // The Final Pass decision Krish shipped with (Q14 learning loop): what Cleo
 // flagged, what he accepted, what he dismissed and overrode. Logged so each
@@ -40,10 +51,12 @@ interface FinalPassShip {
 
 // lane (+slot) -> factory channel. Mirrors src/lib/contentEngine.ts LANES.
 function laneToChannel(lane?: string | null, slot?: string | null): string {
-  if (lane === 'techonomic') return 'techonomic'
   if (lane === 'signal_noise') return 'signal_noise'
   if (lane === 'mindmaker') return slot === 'field_learning' ? 'linkedin' : 'mindmaker_live'
   if (lane === 'builder_economy_ig') return 'builder_economy'
+  // Legacy stored lanes: both the retired brand and the value its rows were
+  // re-laned to now polish into the Mindmaker LIVE format.
+  if (lane === 'techonomic' || lane === 'mindmaker_live') return 'mindmaker_live'
   return 'dynamic'
 }
 
@@ -101,9 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!draftRaw) return res.status(400).json({ ok: false, error: 'nothing to save — write or expand a draft first' })
   const draft = sanitizeVoice(draftRaw)
 
-  const channel = b.channel && FACTORY_CHANNELS.has(b.channel)
-    ? b.channel
-    : laneToChannel(idea.lane, idea.lane_slot)
+  const channel = resolveChannel(b.channel) || laneToChannel(idea.lane, idea.lane_slot)
 
   const hook = firstLine(draft) || idea.idea
   const contrarian = meta.contrarian || idea.thesis || idea.idea

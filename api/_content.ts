@@ -111,16 +111,23 @@ export async function loadCorpus(): Promise<string> {
 
 /** lane (+slot) -> the corpus channel key whose playbook applies. */
 export function laneToCorpusChannel(lane?: string | null, slot?: string | null): string | null {
-  if (lane === 'techonomic') return 'techonomic'
   if (lane === 'signal_noise') return 'signal_noise'
   if (lane === 'mindmaker') return slot === 'field_learning' ? 'linkedin' : 'mindmaker_live'
   if (lane === 'builder_economy_ig') return 'builder_economy'
+  // Legacy stored values. Techonomic was retired 2026-08-06 and folded into
+  // Mindmaker LIVE; its long-form register survives as the 'investigation'
+  // playbook, so old rows keep the depth bar instead of dropping to null.
+  if (lane === 'techonomic') return 'investigation'
+  if (lane === 'mindmaker_live') return 'mindmaker_live'
   return null
 }
 
 // channel key -> a matcher against the playbook heading text in the corpus.
 const CHANNEL_HEADING: Record<string, RegExp> = {
-  techonomic: /Techonomic/i,
+  // The corpus (system_config.content_corpus) still titles the long-form
+  // investigative playbook after the retired brand. Match both that heading and
+  // the neutral names, so this keeps working before and after Krish rewrites it.
+  investigation: /Techonomic|Investigation|Teardown/i,
   signal_noise: /Signal\s*&?\s*Noise/i,
   mindmaker_live: /Mindmaker Live/i,
   builder_economy: /Builder Economy/i,

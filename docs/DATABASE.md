@@ -199,11 +199,11 @@ Guest Confirmed Cascade.
 | `id` | uuid | Primary key |
 | `idea` | text | One-line idea |
 | `thesis` | text | Sharp POV / claim |
-| `distribution` | text[] | Channels (whitelist: `linkedin`, `newsletter`, `signal-noise-pod`, `builder-economy-pod`, `techonomic`, `x`) |
+| `distribution` | text[] | Channels (whitelist: `linkedin`, `newsletter`, `signal-noise-pod`, `builder-economy-pod`, `x`). `techonomic` is legacy-only (brand retired 2026-08-06) |
 | `confidence` | numeric | 0-1, hard contract `>= 0.5` for insert |
 | `quality_score` | text | `green` / `amber` / `red` |
 | `body` | text | Long-form draft (sanitized on save: no em dashes). Edited in the Composer; written via the API, never the anon client (RLS blocks anon writes) |
-| `lane` | text | `signal_noise` / `mindmaker` / `techonomic` / `builder_economy_ig` |
+| `lane` | text | `signal_noise` / `mindmaker` / `builder_economy_ig`. Legacy rows may still hold `techonomic` (retired 2026-08-06) or `mindmaker_live` (where those rows were re-laned); both read as Mindmaker |
 | `lane_slot` | text | Mindmaker: `roundup` / `field_learning`; null elsewhere |
 | `state` | text | `seeded` → `researching` → `drafting` → `review` → `approved` → `published` / `dropped` |
 | `cadence_due_at` | timestamptz | Next-due for the lane/slot; drives mobile "urgent" + the All-view sort |

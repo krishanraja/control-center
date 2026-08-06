@@ -29,12 +29,19 @@ export type IdeaState =
    *  meta.absorbed_into pointer. Excluded from the triage deck. */
   | 'absorbed'
 
-/** The four brand lanes on the Content tab (destinations, not themes — pillars are the theme layer). */
+/** The brand lanes on the Content tab (destinations, not themes; pillars are the theme layer). */
 export type ContentLane =
   | 'signal_noise'
   | 'mindmaker'
-  | 'techonomic'
   | 'builder_economy_ig'
+
+/**
+ * Lane values that can still be sitting on a stored row. Techonomic was retired
+ * as a brand on 2026-08-06 and folded into Mindmaker LIVE, and the rows that
+ * carried it were re-laned to 'mindmaker_live'. Neither value is offered as a
+ * new choice; both normalize to 'mindmaker' for display (contentLanes.normalizeLane).
+ */
+export type StoredContentLane = ContentLane | 'mindmaker_live' | 'techonomic'
 
 /**
  * Container for Cleo's derivative outputs keyed by target format. Cleo's
@@ -79,8 +86,9 @@ export interface ContentIdeaRow {
   quality_score?: 'green' | 'amber' | 'red' | null
   pillar_id?: string | null
   related_idea_ids?: string[] | null
-  /** Brand lane this piece is committed to (signal_noise | mindmaker | techonomic | builder_economy_ig). */
-  lane?: ContentLane | null
+  /** Brand lane this piece is committed to (signal_noise | mindmaker | builder_economy_ig),
+   *  or a legacy stored value from before the Techonomic retirement. */
+  lane?: StoredContentLane | null
   /** Sub-cadence within a lane. Mindmaker: 'roundup' | 'field_learning'. Null elsewhere. */
   lane_slot?: string | null
   /** Parent idea this row was transformed from (Transform §5.5). Null for parents. */

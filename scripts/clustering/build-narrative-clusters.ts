@@ -15,7 +15,7 @@
 //
 // We deliberately use a LOOSER threshold (0.78) than the dedup tier (0.92).
 // At 0.78 the cards are "about the same topic" rather than "the same story",
-// which is what we want for narrative grouping — a Techonomic essay weaves
+// which is what we want for narrative grouping. A long-form investigation weaves
 // 10-15 thematically related cards into one argument.
 
 import { createClient } from '@supabase/supabase-js'

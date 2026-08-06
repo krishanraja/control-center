@@ -4,14 +4,13 @@ import { useToast } from '../shared/Toast'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 
 interface LaneChoice {
-  lane: 'techonomic' | 'signal_noise' | 'mindmaker' | 'builder_economy_ig'
+  lane: 'signal_noise' | 'mindmaker' | 'builder_economy_ig'
   slot?: string | null
   label: string
   description: string
 }
 
 const LANES: LaneChoice[] = [
-  { lane: 'techonomic', label: 'Techonomic', description: '600-1000 word essay. Investigate the mechanism, hold one counterpoint, hard verdict.' },
   { lane: 'signal_noise', label: 'Signal & Noise', description: 'Exec-to-exec, ~300-500 words. Separate the durable signal from the noise.' },
   { lane: 'mindmaker', slot: 'roundup', label: 'Mindmaker — roundup', description: 'Curated narrative roundup; each item carries a so-what.' },
   { lane: 'mindmaker', slot: 'field_learning', label: 'Mindmaker — field learning', description: 'Builder-in-the-room. ~400-700 words on the lesson the field is teaching.' },

@@ -892,7 +892,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
 // ── Final Pass: the ship-moment review gate ─────────────────────────────────
 // Cleo's last read against the venture rubric. Auto-fixed errors are already
 // folded into pass.cleaned_text; here Krish accepts/dismisses content
-// suggestions, dials Techonomic lenses, eyeballs [VERIFY] flags and the Five
+// suggestions, dials the investigative lenses, eyeballs [VERIFY] flags and the Five
 // Standards, then ships. An instant-fail hard-blocks the ship (Q1). What he
 // dismisses or overrides is logged so the rubric tunes to his taste (Q14).
 
@@ -1053,7 +1053,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
             </div>
           )}
 
-          {/* Techonomic lenses (dial-able) */}
+          {/* Investigative lenses (dial-able) */}
           {data.has_lenses && data.lenses.length > 0 && (
             <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
               <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-white/45 mb-2">

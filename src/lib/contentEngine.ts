@@ -305,7 +305,7 @@ export const TONE_PRESETS: AxisOption[] = [
 export const LENGTH_PRESETS: AxisOption[] = [
   { value: 'short', label: 'Short (LinkedIn)', hint: 'Cut to 150-250 words. Scroll-stopping claim or scene first. No hook-line-gap-explanation pattern.' },
   { value: 'mid', label: 'Mid (Mindmaker Live)', hint: 'Tighten to ~400-700 words. Teaching voice, every paragraph advances the argument, each item carries a so-what.' },
-  { value: 'long', label: 'Full (Techonomic)', hint: 'Expand to a 600-1000 word essay. Slower structural open earns the depth; investigate, hold a counterpoint, end on a verdict.' },
+  { value: 'long', label: 'Full essay', hint: 'Expand to a 600-1000 word investigative essay. Slower structural open that earns the depth, take the claim apart and check each part against dated evidence, hold one genuine counterpoint, say where the knowable ends, end on a hard verdict. No summary ending.' },
 ]
 
 // Humor / comic-register presets — a facet of tone, so sent with mode 'tone'
@@ -351,11 +351,10 @@ export interface LaneDef {
 }
 
 export type FactoryChannel =
-  | 'techonomic' | 'signal_noise' | 'mindmaker_live' | 'linkedin'
+  | 'signal_noise' | 'mindmaker_live' | 'linkedin'
   | 'builder_economy' | 'vertical_video' | 'dynamic'
 
 export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
-  { value: 'techonomic', label: 'Techonomic' },
   { value: 'signal_noise', label: 'Signal & Noise' },
   { value: 'mindmaker_live', label: 'Mindmaker Live' },
   { value: 'linkedin', label: 'LinkedIn' },
@@ -366,7 +365,6 @@ export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
 // Every lane the user can toggle for variant generation (decision 2026-06-11:
 // expose ALL lanes as per-idea toggles). mindmaker has two slots.
 export const LANES: LaneDef[] = [
-  { lane: 'techonomic', label: 'Techonomic', gear: 'A', factoryChannel: 'techonomic' },
   { lane: 'signal_noise', label: 'Signal & Noise', gear: 'A', factoryChannel: 'signal_noise' },
   { lane: 'mindmaker', slot: 'roundup', label: 'Mindmaker — roundup', gear: 'A', factoryChannel: 'mindmaker_live' },
   { lane: 'mindmaker', slot: 'field_learning', label: 'Mindmaker — field learning', gear: 'B', factoryChannel: 'linkedin' },
@@ -399,22 +397,26 @@ export const LANE_ADAPTS: LaneAdapt[] = [
     hint: 'Adapt this for Mindmaker Live. Teaching voice (Gear A), ~400-700 words, every paragraph advances the argument and carries a so-what, ground claims in the artifact, end on a forward verdict.',
   },
   {
-    value: 'techonomic',
-    label: 'Techonomic (essay)',
-    hint: 'Adapt this into a Techonomic essay. 600-1000 words, a slower structural open that earns the depth, investigate the mechanism, hold one genuine counterpoint, end on a hard verdict. No summary ending.',
-  },
-  {
     value: 'builder_economy',
     label: 'Builder Economy (IG)',
     hint: 'Adapt this for Builder Economy on Instagram. Punchy, builder-in-the-room (Gear B), short stacked lines that read well on mobile, one idea, a concrete artifact, a verdict that lands. No corporate tone.',
   },
 ]
 
+// Lane values that no longer exist but are still stored on rows. Techonomic was
+// retired 2026-08-06 and folded into Mindmaker LIVE, so anything that carried it
+// polishes into the Mindmaker LIVE format now. Mapped, never rejected.
+const LEGACY_LANE_CHANNEL: Record<string, FactoryChannel> = {
+  techonomic: 'mindmaker_live',
+  mindmaker_live: 'mindmaker_live',
+}
+
 /** Map a generated variant's lane (+slot) onto a content-factory channel. */
 export function laneToFactoryChannel(lane?: string | null, slot?: string | null): FactoryChannel {
   const hit = LANES.find(l => l.lane === lane && (l.slot || null) === (slot || null))
     || LANES.find(l => l.lane === lane)
-  return hit?.factoryChannel || 'dynamic'
+  if (hit) return hit.factoryChannel
+  return (lane && LEGACY_LANE_CHANNEL[lane]) || 'dynamic'
 }
 
 // ── The Five Standards (Phase 6) ─────────────────────────────────────────

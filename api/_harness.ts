@@ -1,4 +1,4 @@
-// _harness: the budgeted evidence-gathering layer for the Techonomic
+// _harness: the budgeted evidence-gathering layer for the Mindmaker LIVE
 // investigation pipeline.
 //
 // TWO HARD CONSTRAINTS SHAPE EVERY FUNCTION HERE.
@@ -217,7 +217,7 @@ export async function fetchPage(url: string, budget: RunBudget): Promise<Fetched
       signal: ctrl.signal,
       headers: {
         Range: `bytes=0-${FETCH_BYTES}`,
-        'User-Agent': 'Mozilla/5.0 (compatible; TechonomicVerifier/1.0; +https://techonomic.co)',
+        'User-Agent': 'Mozilla/5.0 (compatible; MindmakerVerifier/1.0; +https://mindmakerlive.substack.com)',
         Accept: 'text/html,application/xhtml+xml',
       },
     })
