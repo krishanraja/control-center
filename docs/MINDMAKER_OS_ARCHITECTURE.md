@@ -35,6 +35,81 @@ If a section below contradicts this five-sentence model, the model is right and 
 
 ---
 
+## 0a. CANON as of 2026-08-06 — read this before anything below it
+
+> **This section supersedes every conflicting statement later in the document.** A
+> long session on 2026-08-06 changed four load-bearing structures. Older sections
+> were written against the previous model and have been corrected inline where
+> found, but where they disagree with this section, **this section wins**.
+
+### The one-source-of-truth rule (the rule that generated the others)
+
+**There is exactly ONE place to enter any given thing, and exactly one table behind it.** Multiple surfaces may READ a table and present different slices of it. No surface may invent its own parallel concept for something that already has a home. Where two surfaces disagreed about what a table meant, that was the bug, not a feature.
+
+The failures this rule exists to prevent, all of which were real in this codebase:
+- three surfaces rendering `goals` as three different concepts
+- a channel value (`builder_economy_ig`) that was also a venture
+- `visibility_targets` used as a PR register with an events schema bolted on
+- a second date taxonomy invented per ingest source
+
+### 1. Content: venture → format → channel
+
+Three layers, never two. `lane` used to fuse "what am I working on" with "where does it go", which is why `signal_noise` and `builder_economy` existed as both ventures and lanes.
+
+| Layer | Question | Picked | Home |
+|---|---|---|---|
+| **Venture** | What am I working on? | first | `venture_registry` (`kind='media'` for content ventures) |
+| **Format** | What shape is this? | second, scoped to venture | `venture_formats` |
+| **Channel** | Where does it go? | last, multi-select | `media_channels` → `content_ideas.distribution` |
+
+**A channel is never a venture.** `builder_economy_ig` is retired as a lane; Instagram is a channel any venture publishes to.
+
+**Brands.** `themindmaker.ai` is the business (managed advisory + CTRL self-serve). `makeyourmindup.ai` is **MYMU**, the content brand, at the root; the Decide / Extend / Imagine product doors remain as lead magnets at their own URLs. Signal & Noise and Builder Economy keep their own shows and their own RSS feeds; **`MYMU: Built` draws from the Builder Economy recording, it does not replace it**, and that feed GUID is never renamed.
+
+**MYMU formats:** `MYMU: Teardown` (hero, the retired Techonomic register, slot key `investigation`), `Make Your Mind Up` (the weekly), `MYMU: Built`.
+
+**The weekly is not a digest.** Best / Worst / Ugliest triptych, then one real decision with two defensible answers, then Krish commits in public with a date, then Wrong Last Week. **The commitment and the revisit ARE the format.**
+
+**The Teardown beat is enforced in code** (`api/_beat.ts`, gate G0), not in a prompt. Out: technical news, model releases, benchmarks, governance, enterprise pilots, funding rounds. In: second-order effects on pricing, positioning, corporate strategy, unit economics, human labour. The rule is "the event is never the story".
+
+### 2. Goals: one ladder, four horizons
+
+`goals` is the single table. `horizon` is the discriminator, `parent_id` is the ladder.
+
+| Horizon | Stale after | Notes |
+|---|---|---|
+| `os` | 90 days | the top; what the whole system is for |
+| `mid_term` | 45 days | hangs off an OS goal |
+| `weekly` | 10 days | hangs off a mid-term goal |
+| `venture_objective` | 30 days | sharpened from the above; `milestones` decompose it downward |
+
+**One version of every goal**, enforced by a unique index on `(horizon, lower(trim(title)))` for non-terminal statuses. A duplicate is rejected at the database level.
+
+**Staleness is URGENT, not a footnote**, and each horizon has its own clock. `goals_health` exposes `is_stale` and `orphaned` (any non-OS goal with no parent). A stale goal is a confident compass pointing the wrong way: event and content ranking both hang off live goals, so staleness silently misaligns the whole system.
+
+**Energy and anxiety never change goal content.** `MorningCheckin` captures both and `PilotStateContext` computes `capacity` and `mode`. Those drive **sequencing and punch-through** (which milestone today, how much deep work, one hard thing or three easy ones), never what the goals say.
+
+### 3. Events: the attend lane
+
+`events` is the canonical event table for both attending and speaking. `visibility_targets` remains what it actually is: a press and podcast relationship register.
+
+**Rule A, nothing dead is displayed.** Auto-scrub on: speaking deadline passed, event date past, free/cheap event more than 90 days out, or a **temporary** item whose window closed. Items are typed `durable` or `temporary` at capture; a temporary claim is a STATE and states revert.
+
+**Archiving is only ever for the dead.** An away-city event is *unactionable*, not dead, and becomes live the moment a trip is booked. Actionability is a **query-time** concern (`events_for(home_city)`), never destructive. Getting this wrong destroyed 26 New York rows once already.
+
+**An unverified date is worse than no date.** `date_verified=false` rows can never be recommended.
+
+**Two-axis scoring**, because one number cannot express the asymmetry: **Draw** (technical-leader density, where Krish wants to be) and **Demand** (commercial-leader density, who could hire or buy). Podcast guests are the reconciler: every technical leader in a room is potential guest supply, so high-Draw rooms serve an active goal.
+
+**Cities:** London / New York toggle. **Sydney is temporary and fires on a button press only.**
+
+**Sources, measured not assumed.** Luma city pages and Meetup search are server-rendered and parse without auth. Eventbrite serves an AWS WAF bot wall to datacenter IPs (fine from residential, blocked from the VPS), so no browser choice fixes it on a cron. Gmail is the invite-only tier no crawler can see, and is a supplement, not the primary source: an inbox only contains events already found.
+
+### 4. Tooling note
+
+Headless Chrome (`--dump-dom`) is the browser tier for JS-rendered pages. **Skyvern is deliberately not used for scheduled scraping**: it is a metered AI agent (~530 credits/task historically) and paying an agent to read a DOM on a daily cron is the wrong tool.
+
+
 ## 1. Outcomes — what the OS is for
 
 The OS is judged by these outcomes, not by activity. Everything in this doc — every workflow, every table, every cron — exists to move one of these:
@@ -263,7 +338,7 @@ Every piece of OS state lives in one of these tables. Categorised by change rate
 |---|---|
 | `agent_plans` (14 rows) | One sprint plan per agent — `current_phase`, `objective`, `blockers`, `next_milestone`, `progress_pct`, `doc_link`, `last_rendered_at`. Refreshed weekly by `Agatha Weekly Plan Refresh` (Mon 09:00 UTC) via `refresh_agent_plans()` RPC + Sonnet 4.6 |
 | `tasks` | The unit of action — `id`, `title`, `agent`, `status` (`waiting`/`active`/`in_progress`/`blocked`/`done`/`pending-agatha-review`/`pending-review`/`paused`/`superseded`), `workstream`, `created`, plus `lever_score` + `est_hours_to_revenue`, plus **`concept_id text`** (backfilled for `Outreach:%` titles, indexed). CHECK constraint `tasks_status_check` enumerates the status values |
-| `goals` | **Portfolio objectives** (repurposed from the old weekly-goals graveyard). Multi-week unlocks scoped to a venture (`venture` column), with status (`proposed`/`active`/`paused`/`done`/`dropped`), priority, definition_of_done, why_now, target_horizon, primary/secondary KPI, `is_auto` (Agatha auto-decomposes), `source` (`krish_declared`/`marcus_nominated`/`agatha_decomposed`). The 8 April chore rows live in `goals_archive_2026_04`. FK from `agent_plans.weekly_goal_id` makes this the parent objective every agent loads on wake (CLAUDE.md Step 3b) |
+| `goals` | **The one goal table, four horizons** (`os` / `mid_term` / `weekly` / `venture_objective`), laddered by `parent_id`, one version of each enforced by unique index, staleness per horizon via `goals_health`. See §0a.2. Historically this held only flat venture objectives. Multi-week unlocks scoped to a venture (`venture` column), with status (`proposed`/`active`/`paused`/`done`/`dropped`), priority, definition_of_done, why_now, target_horizon, primary/secondary KPI, `is_auto` (Agatha auto-decomposes), `source` (`krish_declared`/`marcus_nominated`/`agatha_decomposed`). The 8 April chore rows live in `goals_archive_2026_04`. FK from `agent_plans.weekly_goal_id` makes this the parent objective every agent loads on wake (CLAUDE.md Step 3b) |
 | `milestones` | Week-sized chunks of an objective. FK to `goals(id)` ON DELETE CASCADE. Status (`proposed`/`accepted`/`active`/`done`/`dropped`), source (`marcus_proposed`/`krish_authored`/`krish_tweaked`/`agatha_decomposed`), `sequence` (order within objective), `est_deep_work_hours`, `marcus_reasoning`. Marcus proposes for non-auto objectives; Krish accepts/tweaks/replaces/rejects; Agatha auto-creates for `is_auto=true` objectives. Tasks attach upward via `tasks.milestone_id` (nullable; null is legitimate for tactical work) |
 | `goal_agent_contributions` | M:n bridge: an objective lists which agents contribute and what each contributes (`contribution_note`). Complements the 1:1 `agent_plans.weekly_goal_id` pointer with the many side |
 | `workstreams`, `workstream_contexts` | Workstream definitions + rolling context |
@@ -590,7 +665,7 @@ The dashboard subscribes to Postgres Realtime via `@supabase/supabase-js`. Hot s
 
 **Schema.** Zero new tables — `content_ideas.meta` (jsonb) absorbs `revisions` / `challenges` / `standards` / `cleo_pushes` / **`materials`** (the attached corpus) / **`cleo_chat`** (the Composer conversation) / **`saved_drafts`** (Save Draft stamps), alongside the existing `transformed_outputs` and `quality_score`. `meta` is the durable home for engine + Composer state. RLS unchanged (`content_ideas`: anon SELECT, service_role ALL), which is why all writes route through the API.
 
-**Lane → factory channel.** Two taxonomies overlap but differ: lanes generate variants (`content_lane_*` voice configs: signal_noise / builder_economy_ig / mindmaker roundup+field), while the factory polishes into `signal_noise | makeyourmindup | linkedin | builder_economy | vertical_video | dynamic`. `src/lib/contentEngine.ts` holds the map plus the transform-axis presets and the Five Standards definitions. Since the 2026-08-06 Techonomic retirement (§11.3) the stored lane values `techonomic` and `mindmaker_live` are legacy: `normalizeLane()` reads both as Mindmaker and every server mapper folds them onto the `makeyourmindup` factory channel, so nothing throws on an old row. `mindmaker_live` became a legacy value on 2026-08-06 when the channel was renamed to `makeyourmindup` (§20).
+**Lane → factory channel.** Two taxonomies overlap but differ: ventures generate variants (`content_lane_*` voice configs: mymu teardown/weekly/built, signal_noise, builder_economy; `builder_economy_ig` is RETIRED as a lane, Instagram is a channel, see §0a), while the factory polishes into `signal_noise | makeyourmindup | linkedin | builder_economy | vertical_video | dynamic`. `src/lib/contentEngine.ts` holds the map plus the transform-axis presets and the Five Standards definitions. Since the 2026-08-06 Techonomic retirement (§11.3) the stored lane values `techonomic` and `mindmaker_live` are legacy: `normalizeLane()` reads both as Mindmaker and every server mapper folds them onto the `makeyourmindup` factory channel, so nothing throws on an old row. `mindmaker_live` became a legacy value on 2026-08-06 when the channel was renamed to `makeyourmindup` (§20).
 
 **Feature flag.** `VITE_CONTENT_ENGINE_ENABLED` (build-time; set true in Vercel env + redeploy to go live). Server keys: `N8N_CONTENT_FACTORY_WEBHOOK_URL`, `PERPLEXITY_API_KEY`, `ANTHROPIC_API_KEY`, optional `NEWSAPI_KEY` and `APIFY_TOKEN` (real Reddit/LinkedIn community scraping in Challenge; degrades to the Perplexity forum pass without it; `APIFY_REDDIT_ACTOR` / `APIFY_LINKEDIN_ACTOR` override the actors). All set in prod 2026-06-11; engine live.
 
