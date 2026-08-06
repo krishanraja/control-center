@@ -18,7 +18,7 @@ interface PendingFile {
 // 2026-08-06 but its subscriber list is real and still needs folding into the
 // audience. It is a provenance tag on an import, not a live destination.
 const PUBLICATIONS = [
-  { source: 'mindmaker_live', label: 'Mindmaker LIVE' },
+  { source: 'mindmaker_live', label: 'MYMU' },
   { source: 'tech0nomic', label: 'Techonomic (retired)' },
 ] as const
 

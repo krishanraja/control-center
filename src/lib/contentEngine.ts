@@ -304,7 +304,7 @@ export const TONE_PRESETS: AxisOption[] = [
 
 export const LENGTH_PRESETS: AxisOption[] = [
   { value: 'short', label: 'Short (LinkedIn)', hint: 'Cut to 150-250 words. Scroll-stopping claim or scene first. No hook-line-gap-explanation pattern.' },
-  { value: 'mid', label: 'Mid (Mindmaker Live)', hint: 'Tighten to ~400-700 words. Teaching voice, every paragraph advances the argument, each item carries a so-what.' },
+  { value: 'mid', label: 'Mid (MYMU)', hint: 'Tighten to ~400-700 words. Teaching voice, every paragraph advances the argument, each item carries a so-what.' },
   { value: 'long', label: 'Full essay', hint: 'Expand to a 600-1000 word investigative essay. Slower structural open that earns the depth, take the claim apart and check each part against dated evidence, hold one genuine counterpoint, say where the knowable ends, end on a hard verdict. No summary ending.' },
 ]
 
@@ -350,13 +350,18 @@ export interface LaneDef {
   factoryChannel: FactoryChannel
 }
 
+// 'makeyourmindup' (MYMU) is the channel formerly called 'mindmaker_live'.
+// Renamed 2026-08-06 when Techonomic folded in: one content brand, and the
+// investigative register ships as the MYMU: Teardown format rather than as its
+// own brand. The old slug is never offered again but always maps (see
+// LEGACY_LANE_CHANNEL), so stored rows keep resolving.
 export type FactoryChannel =
-  | 'signal_noise' | 'mindmaker_live' | 'linkedin'
+  | 'signal_noise' | 'makeyourmindup' | 'linkedin'
   | 'builder_economy' | 'vertical_video' | 'dynamic'
 
 export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
   { value: 'signal_noise', label: 'Signal & Noise' },
-  { value: 'mindmaker_live', label: 'Mindmaker Live' },
+  { value: 'makeyourmindup', label: 'MYMU' },
   { value: 'linkedin', label: 'LinkedIn' },
   { value: 'builder_economy', label: 'Builder Economy' },
   { value: 'vertical_video', label: 'Vertical Video' },
@@ -366,7 +371,8 @@ export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
 // expose ALL lanes as per-idea toggles). mindmaker has two slots.
 export const LANES: LaneDef[] = [
   { lane: 'signal_noise', label: 'Signal & Noise', gear: 'A', factoryChannel: 'signal_noise' },
-  { lane: 'mindmaker', slot: 'roundup', label: 'Mindmaker — roundup', gear: 'A', factoryChannel: 'mindmaker_live' },
+  { lane: 'mindmaker', slot: 'roundup', label: 'Mindmaker — roundup', gear: 'A', factoryChannel: 'makeyourmindup' },
+  { lane: 'mindmaker', slot: 'investigation', label: 'MYMU: Teardown', gear: 'A', factoryChannel: 'makeyourmindup' },
   { lane: 'mindmaker', slot: 'field_learning', label: 'Mindmaker — field learning', gear: 'B', factoryChannel: 'linkedin' },
   { lane: 'builder_economy_ig', label: 'Builder Economy (IG)', gear: 'B', factoryChannel: 'builder_economy' },
 ]
@@ -392,9 +398,14 @@ export const LANE_ADAPTS: LaneAdapt[] = [
     hint: 'Adapt this for the Signal & Noise audience. Exec-to-exec authority (Gear A), ~300-500 words, separate the durable signal from the noise, name what most people get wrong ("Not X, Y"), commercially grounded, hard verdict ending.',
   },
   {
-    value: 'mindmaker_live',
-    label: 'Mindmaker Live',
-    hint: 'Adapt this for Mindmaker Live. Teaching voice (Gear A), ~400-700 words, every paragraph advances the argument and carries a so-what, ground claims in the artifact, end on a forward verdict.',
+    value: 'makeyourmindup',
+    label: 'MYMU',
+    hint: 'Adapt this for MYMU. Teaching voice (Gear A), ~400-700 words, every paragraph advances the argument and carries a so-what, ground claims in the artifact, end on a forward verdict.',
+  },
+  {
+    value: 'mymu_teardown',
+    label: 'MYMU: Teardown',
+    hint: 'Adapt this into a MYMU: Teardown, the investigative register that came over from Techonomic. Take one load-bearing claim apart and check each part against dated evidence. Attribute every number to the party that produced it. Hold one genuine counterpoint. Say plainly where the knowable record ends rather than papering over it, and end on the terminal question the evidence actually leaves open. No summary ending, no vendor framing.',
   },
   {
     value: 'builder_economy',
@@ -404,11 +415,13 @@ export const LANE_ADAPTS: LaneAdapt[] = [
 ]
 
 // Lane values that no longer exist but are still stored on rows. Techonomic was
-// retired 2026-08-06 and folded into Mindmaker LIVE, so anything that carried it
-// polishes into the Mindmaker LIVE format now. Mapped, never rejected.
+// retired 2026-08-06 and folded into MYMU, and 'mindmaker_live' was the interim
+// value its rows were re-laned to before the channel itself was renamed to
+// 'makeyourmindup' the same day. Both map forward, never rejected.
 const LEGACY_LANE_CHANNEL: Record<string, FactoryChannel> = {
-  techonomic: 'mindmaker_live',
-  mindmaker_live: 'mindmaker_live',
+  techonomic: 'makeyourmindup',
+  mindmaker_live: 'makeyourmindup',
+  makeyourmindup: 'makeyourmindup',
 }
 
 /** Map a generated variant's lane (+slot) onto a content-factory channel. */

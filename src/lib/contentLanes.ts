@@ -5,11 +5,12 @@ import type { ContentIdeaRow, ContentLane } from '../hooks/useRealtimeContentIde
 // (how often Krish has committed to publish) and a voice gear (krish-voice).
 // Pillars remain the orthogonal *theme* layer.
 //
-// Techonomic was retired as a brand on 2026-08-06 and folded into Mindmaker
-// LIVE: fewer brands, and the investigative register belongs where the offer
-// lives. It is not a lane any more. Rows that still carry the old value (or the
-// 'mindmaker_live' value they were re-laned to) read as Mindmaker via
-// normalizeLane, so nothing disappears from the board.
+// Techonomic was retired as a brand on 2026-08-06 and folded into MYMU
+// (makeyourmindup): fewer brands, and the investigative register ships as the
+// MYMU: Teardown format. It is not a lane any more. Rows that still carry the
+// old value, the interim 'mindmaker_live' value they were re-laned to, or the
+// channel slug 'makeyourmindup' all read as Mindmaker via normalizeLane, so
+// nothing disappears from the board.
 
 export interface LaneDef {
   slug: ContentLane
@@ -72,6 +73,7 @@ export const LANE_BY_SLUG: Record<ContentLane, LaneDef> = Object.fromEntries(
 const LEGACY_LANE_ALIAS: Record<string, ContentLane> = {
   techonomic: 'mindmaker',
   mindmaker_live: 'mindmaker',
+  makeyourmindup: 'mindmaker',
 }
 
 export function normalizeLane(lane?: string | null): ContentLane | null {

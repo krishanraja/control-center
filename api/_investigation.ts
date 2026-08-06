@@ -1,4 +1,4 @@
-// _investigation: the Mindmaker LIVE weekly investigation: anchor selection, claim
+// _investigation: the MYMU: Teardown weekly investigation: anchor selection, claim
 // decomposition, the why-ladder descent, the harness set, and the six gates
 // wired in at each drift point.
 //
@@ -766,7 +766,7 @@ export function buildManifest(m: ManifestInput): string {
   const quarantined = m.harnesses.filter(h => h.verdict === 'miss' || h.verdict === 'error').map(h => h.harness)
 
   return [
-    '## VERIFIED EVIDENCE MANIFEST (Mindmaker LIVE investigation)',
+    '## VERIFIED EVIDENCE MANIFEST (MYMU: Teardown)',
     '',
     '### Citable rows, load-bearing only',
     ...(cites.length ? cites : ['(none survived the harness gate)']),
@@ -815,7 +815,7 @@ async function attachMaterials(ideaId: string, runId: string, manifest: string):
     // only because materialsContext reads a subset of the fields.
     id: createHash('sha1').update(runId).digest('hex').slice(0, 12),
     kind: 'research',
-    title: 'Mindmaker LIVE investigation: verified evidence manifest',
+    title: 'MYMU: Teardown: verified evidence manifest',
     content: manifest,
     at: new Date().toISOString(),
     investigation_id: runId,

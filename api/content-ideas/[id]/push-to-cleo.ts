@@ -15,7 +15,7 @@ import { loadConfig, pathId, preamble } from '../../_content.js'
 // the idea's hook/audience/angle. Webhook URL is server-side + rotatable.
 
 const FACTORY_CHANNELS = new Set([
-  'signal_noise', 'mindmaker_live', 'linkedin',
+  'signal_noise', 'makeyourmindup', 'linkedin',
   'builder_economy', 'vertical_video', 'dynamic',
 ])
 

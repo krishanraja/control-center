@@ -13,12 +13,12 @@ import { preamble, sanitizeVoice } from '../../_content.js'
 // must be `approved` first.
 
 const FACTORY_CHANNELS = new Set([
-  'signal_noise', 'mindmaker_live', 'linkedin',
+  'signal_noise', 'makeyourmindup', 'linkedin',
   'builder_economy', 'vertical_video', 'dynamic',
 ])
 
 // Techonomic was retired 2026-08-06 and folded into Mindmaker LIVE. A saved
-// fan-out selection that still names it collapses onto Mindmaker LIVE (the
+// fan-out selection that still names it collapses onto MYMU (the
 // dedupe below keeps the push from producing the same Doc twice).
 const RETIRED_CHANNELS: Record<string, string> = { techonomic: 'mindmaker_live' }
 
@@ -73,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       source: 'control-center',
       brief_week: week,
       target_channel: channel,
-      title: brief.title || `Mindmaker LIVE ${week}`,
+      title: brief.title || `MYMU ${week}`,
       hook,
       target_audience: 'Business leaders making real AI decisions',
       contrarian_angle: (sections.meaning_md || '').slice(0, 400),

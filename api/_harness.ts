@@ -1,4 +1,4 @@
-// _harness: the budgeted evidence-gathering layer for the Mindmaker LIVE
+// _harness: the budgeted evidence-gathering layer for the MYMU: Teardown
 // investigation pipeline.
 //
 // TWO HARD CONSTRAINTS SHAPE EVERY FUNCTION HERE.

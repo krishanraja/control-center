@@ -43,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // lane it sits in, so it is judged by the investigation rubric (five lenses,
   // an unverifiable load-bearing claim is an instant fail). Before Techonomic
   // was retired this only fired for lane='techonomic'; the depth engine now
-  // publishes to Mindmaker LIVE and must not lose its bar on the way.
+  // publishes to MYMU as a Teardown and must not lose its bar on the way.
   const venture = hasInvestigationManifest(idea?.meta)
     ? 'investigation'
     : laneToVenture(idea?.lane, idea?.lane_slot)

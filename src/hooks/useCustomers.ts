@@ -168,7 +168,7 @@ export const PRODUCT_LABEL: Record<CustomerProduct, string> = {
   plinth: 'Plinth',
   full_time: 'Full Time',
   mindmaker: 'Mindmaker',
-  mindmaker_live: 'Mindmaker Live',
+  mindmaker_live: 'MYMU',
   // Retired as a brand 2026-08-06 and folded into Mindmaker LIVE. The enum value
   // stays (Postgres enums cannot drop values) and existing rows keep rendering.
   tech0nomic: 'Techonomic (retired)',

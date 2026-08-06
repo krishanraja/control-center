@@ -9,10 +9,10 @@ import { loadStandingNotes, standingNotesPrompt } from '../_briefNotes.js'
 //
 // R9: the brief arrives fully DRAFTED; Krish's job is editorial. One Sonnet
 // pass reads the week's corpus (pool headlines + newsletters + Zara) plus the
-// live shifts register and writes the Mindmaker LIVE shape: Headlines (with a
+// live shifts register and writes the MYMU weekly shape: Headlines (with a
 // why-line per story), What this actually means (the connective essay, grounded
 // in the register), Perspectives (seeded from Krish's own week: bets +
-// decisions). Voice is krish-voice + the mindmaker_live corpus mandate. The
+// decisions). Voice is krish-voice + the makeyourmindup corpus mandate. The
 // result is one weekly_briefs row (status 'ready', version 1) plus the weekend
 // decision cards: brief_review, purge_preview, graduation candidates.
 //
@@ -81,10 +81,10 @@ export async function runAssemble(force = false) {
   const [voice, corpus, register, krishWeek, standingNotes] = await Promise.all([
     loadVoiceBlock(), loadCorpus(), loadRegisterSummary(), loadKrishWeek(weekStart), loadStandingNotes(),
   ])
-  const channelMandate = corpusForChannel(corpus, 'mindmaker_live', 3000)
+  const channelMandate = corpusForChannel(corpus, 'makeyourmindup', 3000)
 
   const system = [
-    'You write the Mindmaker LIVE weekly brief for business leaders making real AI decisions. You write as Krish.',
+    'You write the MYMU weekly brief for business leaders making real AI decisions. You write as Krish.',
     voice ? `VOICE:\n${voice}` : '',
     channelMandate ? `CHANNEL MANDATE:\n${channelMandate}` : '',
     standingNotesPrompt(standingNotes),
