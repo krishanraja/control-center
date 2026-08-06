@@ -861,8 +861,22 @@ export function terminalStatement(reason: TerminalReason, ctx: TerminalContext =
   const domains = ctx.domains ?? 0
   const question = ctx.question || 'the question below'
   switch (reason) {
-    case 'motive_not_mechanism':
-      return `Past this point the explanations are motive, not mechanism. The next honest question is why ${entity} wants ${outcome}, and I cannot answer that from filings.`
+    case 'motive_not_mechanism': {
+      // `outcome` arrives as rung-0 text, which is very often already an
+      // interrogative ("how did an undenominated number reach 9 outlets"). The
+      // old template spliced it after "why X wants", producing "why Andreessen
+      // Horowitz wants how did an undenominated number reach 9 outlets", which
+      // is broken English. Measured on the first real run, 2026-08-05.
+      // This string is published VERBATIM (G6 blocks any draft missing it), so
+      // a mangled sentence ships under Krish's name. Detect the interrogative
+      // and restructure rather than splice.
+      const o = outcome.trim().replace(/[.?!]+$/, '')
+      const interrogative = /^(how|why|what|who|when|where|whether|did|does|is|are|was|were|can|could|will|would)\b/i.test(o)
+      if (interrogative) {
+        return `Past this point the explanations are motive, not mechanism. The next honest question is ${o}, and I cannot answer that from filings.`
+      }
+      return `Past this point the explanations are motive, not mechanism. The next honest question is why ${entity} wants ${o}, and I cannot answer that from filings.`
+    }
     case 'evidence_exhausted':
       return `Past this point the record runs out. ${searches} searches across ${domains} domains produced nothing citable on ${question}.`
     case 'restatement':
