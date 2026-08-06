@@ -5,6 +5,10 @@ import { supabase } from '../../_supabase.js'
 // Primary use: reassign a contact's venture (e.g. a recorded Signal & Noise
 // guest who's actually a better fit for another venture).
 
+// 'meliora' and 'adfixus' are retired but stay accepted here: contacts tagged
+// before the July 2026 retirement still PATCH their existing venture back on an
+// unrelated edit, and rejecting it would 400 those saves. The pickers no longer
+// offer them, so this set only ever readmits a value that is already on the row.
 const KNOWN_VENTURES = new Set([
   'mindmaker', 'meliora', 'adfixus', 'signal_noise', 'builder_economy', 'fractionl_pulse', 'investor',
 ])

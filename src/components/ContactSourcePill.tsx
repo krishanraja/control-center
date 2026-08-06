@@ -16,8 +16,9 @@ import type { ConsentTier, ContactRow } from '../hooks/useRealtimeContacts'
 // existing pill vocabulary in LeadSourcePill).
 const VENTURE_META: Record<string, { label: string; tone: string }> = {
   mindmaker:       { label: 'Mindmaker',       tone: 'text-violet-300 bg-violet-500/10 border-violet-500/20' },
-  meliora:         { label: 'Meliora',         tone: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' },
-  adfixus:         { label: 'AdFixus',         tone: 'text-sky-300 bg-sky-500/10 border-sky-500/20' },
+  // Retired July 2026; kept so historical contacts still render a named pill.
+  meliora:         { label: 'Meliora (retired)', tone: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' },
+  adfixus:         { label: 'AdFixus (retired)', tone: 'text-sky-300 bg-sky-500/10 border-sky-500/20' },
   signal_noise:    { label: 'Signal & Noise',  tone: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20' },
   builder_economy: { label: 'Builder Economy', tone: 'text-amber-300 bg-amber-500/10 border-amber-500/20' },
   fractionl_pulse: { label: 'Fractionl Pulse', tone: 'text-rose-300 bg-rose-500/10 border-rose-500/20' },

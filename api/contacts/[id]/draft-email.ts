@@ -31,8 +31,11 @@ const TONE_GUIDE: Record<string, string> = {
   direct: 'TONE: direct and economical. Get to the point fast.',
 }
 
+// The retired labels carry their status into the prompt so a draft against a
+// historical contact cannot read as an active pitch. ventureOffer() also returns
+// null for them, so there is no offer line to anchor on.
 const VENTURE_LABEL: Record<string, string> = {
-  mindmaker: 'Mindmaker', meliora: 'Meliora', adfixus: 'AdFixus', signal_noise: 'Signal & Noise',
+  mindmaker: 'Mindmaker', meliora: 'Meliora (retired)', adfixus: 'AdFixus (retired)', signal_noise: 'Signal & Noise',
   builder_economy: 'Builder Economy', fractionl_pulse: 'Fractionl Pulse', investor: 'Investor',
 }
 
