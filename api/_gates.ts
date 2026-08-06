@@ -255,6 +255,61 @@ export interface OriginResult {
   matchedAlias: string | null
   domainInLexicon: boolean
   unknownEntityCandidate: string | null
+  /** True only when the entity was matched in an ATTRIBUTIVE position, meaning
+   *  the sentence actually says the number came from it. False means a vendor
+   *  alias was merely PRESENT, so the row is treated as vendor-sourced (the
+   *  conservative call) but the entity is NOT named anywhere that gets printed. */
+  attributed: boolean
+}
+
+/** Does the sentence attribute the number TO this entity, rather than merely
+ *  mention it? Measured on the live pool 2026-08-05: the bare alias scan named
+ *  OpenAI as the source of Cisco's cost figure ("Cisco built a model that beats
+ *  GPT-5.5 at 172x lower cost"), named OpenAI as the source of Moonshot's
+ *  benchmark result ("Kimi K3 took the coding crown from Anthropic and OpenAI"),
+ *  and named Anthropic as the source of Simon Willison's vulnerability framework.
+ *  Three of the top twelve real candidates. That entity is then interpolated into
+ *  rung0Question and terminalStatement, both of which are PUBLISHED, and G6 hard
+ *  blocks any draft that omits the terminal statement verbatim. So a mere mention
+ *  became a printed attribution: a real company credited with a claim it never
+ *  made, which is the exact failure this file exists to prevent. */
+function attributiveHit(sentence: string, aliases: string[]): string | null {
+  const s = normalizeSpan(sentence)
+  // Clause heads, because a possessive is only an attribution when the entity is
+  // the SUBJECT. "OpenAI's rogue agent ran 17,600 actions" attributes. The same
+  // possessive buried in a list, "CVEs across Microsoft 365 Copilot, Slack AI and
+  // Anthropic's Claude iOS app", names a product that got hit, not a measurer.
+  // Sentence heads only, NOT comma-separated list items. Splitting on commas too
+  // made every item in a list a candidate subject, and "CVEs across Microsoft 365
+  // Copilot, Slack AI, and Anthropic's Claude iOS app" then credited Salesforce,
+  // because `slack` is a Salesforce alias and "Slack AI" led its own fragment.
+  const clauses = s.split(/(?<=[.!?;:])\s+/).map(c => c.trim())
+  for (const a of aliases) {
+    const needle = a.trim()
+    if (!needle) continue
+    const esc = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const lead = /^[a-z0-9]/i.test(needle) ? '\\b' : ''
+    const tail = /[a-z0-9]$/i.test(needle) ? '\\b' : ''
+    const A = `${lead}${esc}${tail}`
+
+    // Attributive wherever it appears: the verb or the credit phrase does the
+    // work, so position carries no extra information.
+    //   Deliberately NOT here: a bare "from X" or "by X". "Kimi K3 took the
+    //   coding crown from Anthropic and OpenAI" credited OpenAI with Moonshot's
+    //   benchmark result, because "from" reads as attribution and as dispossession
+    //   with the same three letters.
+    const anywhere = [
+      `${A}\\s+(said|says|announced|reported|reports|claims?|claimed|disclosed|published|releases?d?|found|finds|estimates?|estimated|told|touts?|states?)\\b`,
+      `\\b(according to|per|citing)\\s+${A}\\b`,
+      `\\b(data|figures?|numbers?|research|analysis|report|study|survey|filing)\\s+(from|by)\\s+${A}\\b`,
+    ]
+    if (anywhere.some(p => new RegExp(p, 'i').test(s))) return a
+
+    // Subject position only.
+    const head = [`^${A}'s\\b`, `^${A}\\b`]
+    if (clauses.some(c => head.some(p => new RegExp(p, 'i').test(c)))) return a
+  }
+  return null
 }
 
 /** Classify who is speaking. The MAJORITY case, and the one that killed the old
@@ -266,6 +321,8 @@ export function classifyOrigin(url: string | null, numberSentence: string): Orig
   const independentVerb = INDEPENDENT_MEASUREMENT.test(numberSentence)
 
   if (entry) {
+    // The domain IS the entity's own property, so publishing its name is a fact
+    // about the URL, not an inference from the prose. Attribution is certain.
     const hit = aliasHit(numberSentence, [...entry.aliases, entry.entity])
     return {
       origin: hit ? 'self' : 'self_relayed',
@@ -274,15 +331,35 @@ export function classifyOrigin(url: string | null, numberSentence: string): Orig
       matchedAlias: hit,
       domainInLexicon: true,
       unknownEntityCandidate: null,
+      attributed: true,
     }
   }
 
+  // Attributive matches first, across the whole lexicon, so a sentence that says
+  // "Cisco built ... beats GPT-5.5" cannot be won by OpenAI purely because
+  // openai.com sits earlier in the map than cisco does not sit in it at all.
   for (const e of Object.values(VENDOR_DOMAINS)) {
-    const hit = aliasHit(numberSentence, [...e.aliases, e.entity])
+    const hit = attributiveHit(numberSentence, [...e.aliases, e.entity])
     if (hit && !independentVerb) {
       return {
         origin: 'self_relayed', entity: e.entity, entityTier: e.tier,
         matchedAlias: hit, domainInLexicon: false, unknownEntityCandidate: null,
+        attributed: true,
+      }
+    }
+  }
+
+  // A vendor alias is present but nothing attributes the number to it. Stay
+  // conservative on the GATE (this is still a vendor-adjacent number and does not
+  // get to be a rung-0 thesis), but refuse to NAME anyone: entity stays null and
+  // every published template degrades to a description instead of a wrong name.
+  for (const e of Object.values(VENDOR_DOMAINS)) {
+    const hit = aliasHit(numberSentence, [...e.aliases, e.entity])
+    if (hit && !independentVerb) {
+      return {
+        origin: 'self_relayed', entity: null, entityTier: e.tier,
+        matchedAlias: hit, domainInLexicon: false, unknownEntityCandidate: null,
+        attributed: false,
       }
     }
   }
@@ -290,6 +367,7 @@ export function classifyOrigin(url: string | null, numberSentence: string): Orig
   return {
     origin: 'independent', entity: null, entityTier: null, matchedAlias: null,
     domainInLexicon: false, unknownEntityCandidate: leadEntity(numberSentence),
+    attributed: false,
   }
 }
 
@@ -370,7 +448,7 @@ export function gateAnchor(input: AnchorGateInput, now = new Date()): AnchorGate
 
   // The one place a model is admitted, and only when the lexicon is silent.
   if (o.origin === 'independent' && input.modelEntity && input.modelEntity.confidence >= 0.7 && input.modelEntity.sells) {
-    o = { ...o, origin: 'self_relayed', entity: input.modelEntity.entity, entityTier: 'vendor' }
+    o = { ...o, origin: 'self_relayed', entity: input.modelEntity.entity, entityTier: 'vendor', attributed: true }
     checks.push(check('vendor_entity_model_adjudicated', true,
       { entity: input.modelEntity.entity, confidence: input.modelEntity.confidence },
       'confidence >= 0.7 and entity sells the thing measured', false))
@@ -379,6 +457,11 @@ export function gateAnchor(input: AnchorGateInput, now = new Date()): AnchorGate
   const den = denominatorVerdict(input.numberSentence)
   checks.push(check('anchor_domain', Boolean(dom), dom, 'a parseable root domain'))
   checks.push(check('origin_classification', true, { origin: o.origin, entity: o.entity, tier: o.entityTier, alias: o.matchedAlias, domain_in_lexicon: o.domainInLexicon }, 'self | self_relayed | independent'))
+  // Recorded even when it passes: an unattributed vendor block is a different
+  // animal from an attributed one, and only the attributed kind may print a name.
+  checks.push(check('entity_attributed', o.origin === 'independent' || o.attributed,
+    { attributed: o.attributed, entity: o.entity, alias: o.matchedAlias },
+    'the sentence attributes the number to the entity, rather than merely mentioning it'))
   checks.push(check('denominator', den.verdict !== 'bare_ratio', { verdict: den.verdict, matched: den.matched, numbers: den.numbers }, 'a number carries n, a from/to base, a scoped absolute, or a named method'))
 
   const stale = lexiconIsStale(now)
@@ -400,8 +483,13 @@ export function gateAnchor(input: AnchorGateInput, now = new Date()): AnchorGate
   checks.push(check('rung0_admissible', false, { origin: o.origin, entity: o.entity }, 'a vendor-sourced number cannot be a rung-0 thesis'))
   checks.push(check('circulation_floor', enoughCirculation, { domains: input.circulationDomains, window_days: input.circulationWindowDays }, `>= ${MIN_CIRCULATION_DOMAINS} distinct root domains within ${CIRCULATION_WINDOW_DAYS} days`))
 
-  const entity = o.entity || input.modelEntity?.entity || 'the vendor'
-  const q = `how did an undenominated number from ${entity} reach ${input.circulationDomains} outlets across ${input.circulationWindowDays} days`
+  // NEVER name an entity the sentence did not attribute the number to. An
+  // unattributed vendor number still pivots to a circulation thesis, it just
+  // describes the source instead of guessing at it.
+  const entity = o.attributed ? (o.entity || input.modelEntity?.entity || null) : null
+  const q = entity
+    ? `how did an undenominated number from ${entity} reach ${input.circulationDomains} outlets across ${input.circulationWindowDays} days`
+    : `how did an undenominated vendor number reach ${input.circulationDomains} outlets across ${input.circulationWindowDays} days without anyone naming who measured it`
 
   return {
     verdict: {
@@ -681,7 +769,7 @@ export function namedArtifacts(text: string): string[] {
   return [...out]
 }
 
-export type TerminalReason = 'cap' | 'motive_not_mechanism' | 'evidence_exhausted' | 'restatement' | 'abstraction_drift'
+export type TerminalReason = 'cap' | 'motive_not_mechanism' | 'evidence_exhausted' | 'restatement' | 'abstraction_drift' | 'budget_exhausted'
 
 export interface RungInput {
   ref: string
@@ -783,6 +871,15 @@ export function terminalStatement(reason: TerminalReason, ctx: TerminalContext =
       return 'This ladder stops at three rungs by design. Rung four would be inference, not evidence.'
     case 'abstraction_drift':
       return 'Past this point each answer is more abstract than the one above it, which is the shape of an explanation that has stopped explaining.'
+    case 'budget_exhausted':
+      // The record running out and the budget running out are different facts
+      // and only one of them is a finding. Before this existed, a model cap, an
+      // API error and an unparseable response all published "Past this point the
+      // record runs out", which is a false statement in print about how hard the
+      // system looked. The terminal layer is the one thing this pipeline promises
+      // to publish honestly, so it may not round a spending limit up into a
+      // conclusion about the world.
+      return `This ladder stopped because the run itself stopped, not because the record ran out. ${searches} searches and ${domains} domains in, the next rung was never attempted. Read this as an unfinished ladder, not a finding.`
   }
 }
 
@@ -866,12 +963,53 @@ export interface DiversityResult {
   domains: string[]
   origins: string[]
   circular: boolean
+  /** The load-bearing numbers this run keyed on. Published alongside the counts
+   *  so "3 domains, 1 origin" is a claim a reader can re-derive. */
+  anchorNumbers: string[]
 }
 
-export function diversity(rows: { url: string | null; entity?: string | null; headline?: string | null; snippet?: string | null }[]): DiversityResult {
+/** The set of numbers a row carries that also appear in the ANCHOR claim.
+ *  Set equality on the whole page fingerprint was the original design and it is
+ *  inert on real HTML: measured 2026-08-05, three outlets reprinting one press
+ *  release produced three DIFFERENT fingerprints, because each page carries its
+ *  own furniture (read time, comment count, subscription price, copyright year)
+ *  and any extra number can only INCREASE the origin count. The detector
+ *  therefore returned "3 domains, 3 origins, not circular" for a one-origin
+ *  syndication and for three genuinely independent measurements alike: identical
+ *  output, zero discriminating power, failing open in every case.
+ *  Keying on the anchor's OWN load-bearing numbers is the honest relation. Two
+ *  pages carrying the same anchor number are reprinting it. A page carrying its
+ *  own different number measured something. */
+function carriedAnchorNumbers(text: string, anchorNumbers: NumberToken[]): string[] {
+  if (!anchorNumbers.length) return []
+  const have = extractNumbers(text)
+  return anchorNumbers
+    .filter(a => have.some(h => sameMagnitude(a, h)))
+    .map(a => `${a.value}${a.percent ? 'p' : ''}`)
+    .filter((v, i, arr) => arr.indexOf(v) === i)
+    .sort()
+}
+
+export function diversity(
+  rows: { url: string | null; entity?: string | null; headline?: string | null; snippet?: string | null }[],
+  anchorClaimText = '',
+): DiversityResult {
   const domains = [...new Set(rows.map(r => rootDomain(r.url)).filter(Boolean) as string[])]
-  const origins = [...new Set(rows.map(r => originKey(r.entity, `${r.headline || ''} ${r.snippet || ''}`)))]
-  return { distinctDomains: domains.length, distinctOrigins: origins.length, domains, origins, circular: domains.length > origins.length }
+  const anchorNums = extractNumbers(anchorClaimText).filter(n => !n.yearLike)
+  const origins = [...new Set(rows.map(r => {
+    const text = `${r.headline || ''} ${r.snippet || ''}`
+    const shared = carriedAnchorNumbers(text, anchorNums)
+    // A row carrying none of the anchor's numbers is its own origin, keyed on its
+    // domain: it is not evidence of circulation either way.
+    return shared.length
+      ? `${entitySlug(r.entity)}:reprint:${shared.join('|')}`
+      : `${entitySlug(r.entity)}:own:${rootDomain(r.url) || 'unknown'}`
+  }))]
+  return {
+    distinctDomains: domains.length, distinctOrigins: origins.length, domains, origins,
+    circular: domains.length > origins.length,
+    anchorNumbers: anchorNums.map(n => n.raw),
+  }
 }
 
 export const MIN_RUNG_DOMAINS = 2
@@ -1107,6 +1245,17 @@ export function gateDraft(
     const checks: GateCheck[] = []
     let action: GateAction = 'pass'
     const row = a.evidence_ref ? byRef.get(a.evidence_ref) : undefined
+    // KIND IS MEASURED, NOT ACCEPTED. The extractor proposes a kind, and the
+    // block rules keyed off it: an assertion carrying a number but labelled
+    // 'event' took the lenient unmapped path and came out FLAG instead of BLOCK.
+    // That made a deterministic gate depend on a model's labelling, so any
+    // assertion that actually carries a number is treated as a number.
+    const carriesNumber = extractNumbers(a.assertion).some(n => !n.yearLike)
+    const kind: AssertionKind = carriesNumber && a.kind !== 'quote' ? 'number' : a.kind
+    if (kind !== a.kind) {
+      checks.push(check('assertion_kind_measured', true, { declared: a.kind, measured: kind },
+        'an assertion carrying a non-year number is a numeric assertion whatever it was labelled'))
+    }
 
     if (a.evidence_ref && !row) {
       // A non-resolving reference is a fabricated citation, full stop.
@@ -1114,8 +1263,8 @@ export function gateDraft(
       checks.push(check('evidence_ref_resolves', false, a.evidence_ref, 'the reference names a real stored evidence row'))
       action = 'block'
     } else if (!a.evidence_ref) {
-      const blocking = a.kind !== 'event'
-      checks.push(check('assertion_mapped', false, { kind: a.kind }, 'number, quote and attribution assertions must map to evidence'))
+      const blocking = kind !== 'event'
+      checks.push(check('assertion_mapped', false, { kind }, 'number, quote and attribution assertions must map to evidence'))
       if (blocking) { unmapped.push(a.assertion); action = 'block' } else {
         action = 'flag'
         verifySeeds.push({ quote: a.sentence.slice(0, 200), claim: a.assertion.slice(0, 200), why: 'event assertion with no mapped evidence row' })
@@ -1123,19 +1272,19 @@ export function gateDraft(
     } else {
       checks.push(check('evidence_ref_resolves', true, a.evidence_ref, 'the reference names a real stored evidence row'))
       const src = `${row!.headline || ''} ${row!.pageText || ''}`
-      if (a.kind === 'number') {
+      if (kind === 'number') {
         const nm = numbersMissing(a.assertion, src).map(n => n.raw)
         checks.push(check('number_in_evidence', nm.length === 0, nm, 'the number appears in the stored page text'))
         checks.push(check('evidence_load_bearing', row!.loadBearing, { tier: row!.tier, citable: row!.citable }, 'a numeric assertion needs a tier 0 to 2 citable row'))
         if (nm.length || !row!.loadBearing) action = 'block'
-      } else if (a.kind === 'quote') {
+      } else if (kind === 'quote') {
         // No fuzzy tier. A misquote is worse than a wrong number.
         const q = normalizeSpan(a.assertion.replace(/^["']|["']$/g, ''))
         const found = normalizeSpan(src).includes(q)
         checks.push(check('quote_exact_in_evidence', found, { quote: q.slice(0, 140) }, 'exact substring of the stored page text, no fuzzy tier'))
         if (!found) action = 'block'
       } else {
-        checks.push(check('assertion_mapped', true, { kind: a.kind, ref: a.evidence_ref }, 'mapped to a stored evidence row'))
+        checks.push(check('assertion_mapped', true, { kind, ref: a.evidence_ref }, 'mapped to a stored evidence row'))
       }
     }
 
@@ -1143,6 +1292,31 @@ export function gateDraft(
       gate: 'G6_draft', subject_kind: 'draft', subject_ref: ref,
       subject_label: a.assertion.slice(0, 160), action, score: null, checks, model_calls: 0,
     })
+  })
+
+  // COVERAGE. Everything above judges the assertions the extractor CHOSE to
+  // return, which made the whole gate contingent on a model's diligence: an
+  // extractor that silently omitted the fabricated sentence, or returned an
+  // empty list for a draft made entirely of fabrications, produced action=pass
+  // with nothing blocked. Both were reproduced 2026-08-05. So the numbers in the
+  // draft are counted deterministically and every one of them has to have been
+  // checked by some assertion. A number in print that no assertion covers is
+  // indistinguishable from a number nobody verified, because that is what it is.
+  const bodyNumbers = extractNumbers(body).filter(n => !n.yearLike)
+  const coveredText = normalizeSpan(assertions.map(a => `${a.assertion} ${a.sentence}`).join(' '))
+  const coveredNumbers = extractNumbers(coveredText)
+  const uncovered = bodyNumbers
+    .filter(n => !coveredNumbers.some(c => c.value === n.value && c.percent === n.percent))
+    .map(n => n.raw)
+    .filter((v, i, arr) => arr.indexOf(v) === i)
+  if (uncovered.length) unmapped.push(...uncovered.map(n => `unchecked number in the draft: ${n}`))
+  verdicts.push({
+    gate: 'G6_draft', subject_kind: 'draft', subject_ref: 'coverage',
+    subject_label: `${bodyNumbers.length} numbers in the draft, ${assertions.length} assertions extracted`,
+    action: uncovered.length ? 'block' : 'pass', score: uncovered.length, model_calls: 0,
+    checks: [check('every_number_checked', uncovered.length === 0,
+      { draft_numbers: bodyNumbers.length, assertions: assertions.length, uncovered },
+      'every non-year number in the draft body appears in an extracted assertion')],
   })
 
   const tsOk = !terminalStatementText || normBody.includes(normalizeSpan(terminalStatementText))
