@@ -7,6 +7,8 @@ import type { Database } from "./database.types.ts";
 
 const encoder = new TextEncoder();
 const maxQuestionsPerDay = 50;
+const gatewayBaseUrl = "https://ai-gateway.vercel.sh/v1";
+const gatewayModel = "openai/gpt-5.4-mini";
 
 type Horizon = "3m" | "1y";
 
@@ -149,9 +151,9 @@ export default {
     const evidence = safeEvidence(payload.evidence);
     const visibleEvidence = evidenceForClient(evidence);
     const excluded = excludedForClient(evidence);
-    const baseUrl = Deno.env.get("COMPOUND_LLM_BASE_URL")?.replace(/\/$/, "");
-    const apiKey = Deno.env.get("COMPOUND_LLM_API_KEY");
-    const model = Deno.env.get("COMPOUND_LLM_MODEL");
+    const baseUrl = Deno.env.get("COMPOUND_LLM_BASE_URL")?.replace(/\/$/, "") ?? gatewayBaseUrl;
+    const apiKey = Deno.env.get("COMPOUND_LLM_API_KEY") ?? req.headers.get("x-compound-gateway-token");
+    const model = Deno.env.get("COMPOUND_LLM_MODEL") ?? gatewayModel;
 
     const deterministicAnswer = isBoundaryRequest(question)
       ? "I can only answer questions about the COMPOUND information shown to you. I cannot open Control Center, reveal private settings or ignore the evidence boundary."

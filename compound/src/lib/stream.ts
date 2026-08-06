@@ -79,11 +79,10 @@ export async function streamCompoundAnswer(
 ): Promise<void> {
   if (!config.supabaseUrl || !config.supabasePublishableKey) throw new Error(config.error ?? "COMPOUND is not connected.");
 
-  const response = await fetch(`${config.supabaseUrl}/functions/v1/compound-ask`, {
+  const response = await fetch("/api/compound-ask", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${session.access_token}`,
-      apikey: config.supabasePublishableKey,
       "Content-Type": "application/json",
       Accept: "text/event-stream",
     },
