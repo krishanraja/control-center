@@ -1,9 +1,15 @@
 import type { ContentIdeaRow, ContentLane } from '../hooks/useRealtimeContentIdeas'
 
 // ─── Content lanes (brand destinations) ───────────────────────────────────────
-// The Content tab toggles across these four commitments. Each carries a cadence
+// The Content tab toggles across these commitments. Each carries a cadence
 // (how often Krish has committed to publish) and a voice gear (krish-voice).
 // Pillars remain the orthogonal *theme* layer.
+//
+// Techonomic was retired as a brand on 2026-08-06 and folded into Mindmaker
+// LIVE: fewer brands, and the investigative register belongs where the offer
+// lives. It is not a lane any more. Rows that still carry the old value (or the
+// 'mindmaker_live' value they were re-laned to) read as Mindmaker via
+// normalizeLane, so nothing disappears from the board.
 
 export interface LaneDef {
   slug: ContentLane
@@ -42,16 +48,6 @@ export const LANES: LaneDef[] = [
     voice: 'Gear A roundup + Gear B field-learning',
   },
   {
-    slug: 'techonomic',
-    label: 'Techonomic',
-    short: 'TE',
-    accent: 'text-amber-300',
-    activeBg: 'bg-amber-500/20 border-amber-400/50 text-amber-100',
-    cadenceLabel: '1 / week',
-    targetPerWeek: 1,
-    voice: 'Gear A · investigative, how AI changes monetization',
-  },
-  {
     slug: 'builder_economy_ig',
     label: 'Builder Economy',
     short: 'BE · IG',
@@ -66,6 +62,23 @@ export const LANES: LaneDef[] = [
 export const LANE_BY_SLUG: Record<ContentLane, LaneDef> = Object.fromEntries(
   LANES.map(l => [l.slug, l]),
 ) as Record<ContentLane, LaneDef>
+
+/**
+ * Stored lane value -> the lane it displays under. Legacy values map instead of
+ * throwing: 'techonomic' is the retired brand and 'mindmaker_live' is where its
+ * rows were re-laned, and both belong to Mindmaker now. Anything unrecognised
+ * returns null so callers can treat it as unlaned rather than crash.
+ */
+const LEGACY_LANE_ALIAS: Record<string, ContentLane> = {
+  techonomic: 'mindmaker',
+  mindmaker_live: 'mindmaker',
+}
+
+export function normalizeLane(lane?: string | null): ContentLane | null {
+  if (!lane) return null
+  if (lane in LANE_BY_SLUG) return lane as ContentLane
+  return LEGACY_LANE_ALIAS[lane] ?? null
+}
 
 export type CadenceStatus = 'on_pace' | 'due_soon' | 'overdue' | 'no_data'
 
@@ -88,9 +101,9 @@ const DAY_MS = 24 * 60 * 60 * 1000
  */
 export function computeLaneCadence(lane: ContentLane, ideas: ContentIdeaRow[], now: number): LaneCadence {
   const def = LANE_BY_SLUG[lane]
-  const intervalDays = def.targetPerWeek > 0 ? 7 / def.targetPerWeek : 14
+  const intervalDays = def && def.targetPerWeek > 0 ? 7 / def.targetPerWeek : 14
   const published = ideas
-    .filter(i => i.lane === lane && i.state === 'published' && i.published_at)
+    .filter(i => normalizeLane(i.lane) === lane && i.state === 'published' && i.published_at)
     .map(i => new Date(i.published_at as string).getTime())
     .filter(t => Number.isFinite(t))
   if (published.length === 0) {

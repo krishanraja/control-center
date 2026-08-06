@@ -39,7 +39,9 @@ const LINES: LineDef[] = [
 
 const SOURCE_CHIPS: Array<{ key: 'substack_mindmakerlive_total' | 'substack_tech0nomic_total' | 'maven_students'; label: string }> = [
   { key: 'substack_mindmakerlive_total', label: 'MM Live' },
-  { key: 'substack_tech0nomic_total', label: 'Techonomic' },
+  // Retired 2026-08-06, folded into Mindmaker LIVE. The chip stays so the
+  // subscribers it still holds are not silently missing from the total.
+  { key: 'substack_tech0nomic_total', label: 'Techonomic (retired)' },
   { key: 'maven_students', label: 'Maven' },
 ]
 

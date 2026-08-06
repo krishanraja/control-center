@@ -15,9 +15,13 @@ import { loadConfig, pathId, preamble } from '../../_content.js'
 // the idea's hook/audience/angle. Webhook URL is server-side + rotatable.
 
 const FACTORY_CHANNELS = new Set([
-  'techonomic', 'signal_noise', 'mindmaker_live', 'linkedin',
+  'signal_noise', 'mindmaker_live', 'linkedin',
   'builder_economy', 'vertical_video', 'dynamic',
 ])
+
+// Techonomic was retired 2026-08-06 and folded into Mindmaker LIVE. A stale
+// client that still asks for it gets mapped, not rejected.
+const RETIRED_CHANNELS: Record<string, string> = { techonomic: 'mindmaker_live' }
 
 function firstLine(s?: string | null): string {
   if (!s) return ''
@@ -31,7 +35,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!id) return res.status(400).json({ ok: false, error: 'id required' })
 
   const b = (req.body || {}) as { target_channel?: string; source_text?: string }
-  const channel = b.target_channel || 'dynamic'
+  const requested = b.target_channel || 'dynamic'
+  const channel = RETIRED_CHANNELS[requested] || requested
   if (!FACTORY_CHANNELS.has(channel)) {
     return res.status(400).json({ ok: false, error: `invalid target_channel (${[...FACTORY_CHANNELS].join('|')})` })
   }

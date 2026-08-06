@@ -400,7 +400,8 @@ cannot be checked. Excluded from the worst-component overall rollup.
 **Venture** — A business project. Eight active rows in `ventures` cover
 the full portfolio (Mindmaker, Meliora, AdFixus, mm-ctrl, Fractionl
 Circle, Fractionl Pulse, OnAlert, Gutted, Merciless). Plus content
-brands (Builder Economy, Signal & Noise, Techonomic, personal brand).
+brands (Builder Economy, Signal & Noise, personal brand). Techonomic was
+retired 2026-08-06 and folded into Mindmaker LIVE.
 
 **Venture Registry** — The 3-row `venture_registry` table
 (`mindmaker`, `signal_noise`, `builder_economy`) that drives multi-tag

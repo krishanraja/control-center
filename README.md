@@ -3,7 +3,7 @@
 The single pane of glass for **Mindmaker OS**, the fleet of AI agents that
 runs Krish Raja's business portfolio (Mindmaker, Meliora, AdFixus,
 Fractionl, OnAlert, Gutted, Merciless, mm-ctrl, plus the content brands
-Builder Economy, Signal & Noise, Techonomic).
+Builder Economy and Signal & Noise).
 
 **URL:** [`controlcenter.krishraja.com`](https://controlcenter.krishraja.com)
 &nbsp;·&nbsp; **Deploy:** Vercel (push to `main` auto-deploys)

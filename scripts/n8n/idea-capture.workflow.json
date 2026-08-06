@@ -24,7 +24,7 @@
           "values": [
             {
               "role": "system",
-              "content": "You extract structured content ideas from raw text. Return JSON only.\nSchema: { \"idea\":string, \"thesis\":string, \"distribution\":string[], \"confidence\":number }\nRules:\n- idea: one-line headline-style framing of the seed.\n- thesis: 1-2 sentences explaining why this is interesting / true / useful right now.\n- distribution: array of channels best suited. Allowed values: linkedin, newsletter, signal-noise-pod, builder-economy-pod, techonomic, x.\n- confidence: 0.0-1.0. Lower for vague seeds, higher for already-developed ones.\nOutput strictly valid JSON."
+              "content": "You extract structured content ideas from raw text. Return JSON only.\nSchema: { \"idea\":string, \"thesis\":string, \"distribution\":string[], \"confidence\":number }\nRules:\n- idea: one-line headline-style framing of the seed.\n- thesis: 1-2 sentences explaining why this is interesting / true / useful right now.\n- distribution: array of channels best suited. Allowed values: linkedin, newsletter, signal-noise-pod, builder-economy-pod, x.\n- confidence: 0.0-1.0. Lower for vague seeds, higher for already-developed ones.\nOutput strictly valid JSON."
             },
             {
               "role": "user",

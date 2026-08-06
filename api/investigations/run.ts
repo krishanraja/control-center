@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { runInvestigation, type RunOpts } from '../_investigation.js'
 import type { HarnessName } from '../_harness.js'
 
-// The Techonomic weekly investigation.
+// The Mindmaker LIVE weekly investigation.
 //
 //   GET  (CRON_SECRET), Thu 21:00 UTC, after Thursday's anchor is fresh
 //   POST (CRON_SECRET), manual, same guard

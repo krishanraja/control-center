@@ -41,8 +41,11 @@ export interface PublishCandidate {
 const LANE_LABELS: Record<string, string> = {
   signal_noise: 'Signal & Noise',
   mindmaker: 'Mindmaker',
-  techonomic: 'Techonomic',
+  mindmaker_live: 'Mindmaker LIVE',
   builder_economy_ig: 'Builder Economy (IG)',
+  // Retired 2026-08-06: the Techonomic lane was folded into Mindmaker LIVE.
+  // Stored rows still carry the old value, so label them where they now live.
+  techonomic: 'Mindmaker LIVE',
 }
 
 export function laneLabel(lane: string | null): string | null {

@@ -14,9 +14,12 @@ interface PendingFile {
   message?: string
 }
 
+// tech0nomic stays importable: the publication was retired as a brand on
+// 2026-08-06 but its subscriber list is real and still needs folding into the
+// audience. It is a provenance tag on an import, not a live destination.
 const PUBLICATIONS = [
-  { source: 'mindmaker_live', label: 'Mindmaker Live' },
-  { source: 'tech0nomic', label: 'Techonomic' },
+  { source: 'mindmaker_live', label: 'Mindmaker LIVE' },
+  { source: 'tech0nomic', label: 'Techonomic (retired)' },
 ] as const
 
 /**

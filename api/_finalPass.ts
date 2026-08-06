@@ -7,7 +7,7 @@
 //   - autofixes     → real errors (spelling/grammar/syntax/voice-mechanical),
 //                     applied automatically, each undoable
 //   - suggestions   → content improvements, dismissible one by one
-//   - lenses        → (Techonomic) which investigative lenses are present
+//   - lenses        → (investigation) which investigative lenses are present
 //   - verify        → claims to source before shipping ([VERIFY])
 //   - standards     → the Five Standards, scored, so this reads as one system
 //                     with the mid-iteration Standards tab, not a second one
@@ -25,9 +25,15 @@
 // ── Ventures ────────────────────────────────────────────────────────────────
 // Mindmaker is one lane with two shapes, so it is two ventures here: the Live
 // roundup/perspective/resource surface and the LinkedIn field-learning post.
+//
+// 'investigation' is the third Mindmaker LIVE shape: the long-form teardown that
+// takes a claim apart, checks each part against dated evidence, and publishes
+// where the knowable ends. It used to be a separate brand (Techonomic, retired
+// 2026-08-06). It is a FORMAT now, not a destination, and it keeps the hardest
+// evidence bar in the OS because that bar is the whole point of it.
 
 export type VentureKey =
-  | 'techonomic'
+  | 'investigation'
   | 'signal_noise'
   | 'mindmaker_live'
   | 'mindmaker_field'
@@ -36,10 +42,13 @@ export type VentureKey =
 
 /** lane (+slot) -> venture rubric key. Mirrors laneToFactoryChannel / save-draft. */
 export function laneToVenture(lane?: string | null, slot?: string | null): VentureKey {
-  if (lane === 'techonomic') return 'techonomic'
   if (lane === 'signal_noise') return 'signal_noise'
   if (lane === 'mindmaker') return slot === 'field_learning' ? 'mindmaker_field' : 'mindmaker_live'
   if (lane === 'builder_economy_ig') return 'builder_economy'
+  // Legacy stored values, mapped rather than rejected. Rows laned to the retired
+  // Techonomic brand keep the investigation rubric they were written against.
+  if (lane === 'techonomic') return 'investigation'
+  if (lane === 'mindmaker_live') return 'mindmaker_live'
   return 'dynamic'
 }
 
@@ -66,7 +75,7 @@ export interface VentureRubric {
   evidenceBar: string
   /** Things every piece in this venture must carry. */
   mustHave: string[]
-  /** Investigative lenses (Techonomic). Dial-able in the review UI. */
+  /** Investigative lenses (the investigation format). Dial-able in the review UI. */
   lenses?: Lens[]
   /** Extra venture-specific guidance for the editor. */
   notes: string[]
@@ -104,8 +113,8 @@ export type PassDimension = typeof PASS_DIMENSIONS[number]['key']
 
 // ── The rubrics ─────────────────────────────────────────────────────────────
 
-const TECHONOMIC_LENSES: Lens[] = [
-  { key: 'economic', label: 'Economic', desc: 'The unit economics, the money mechanic, who pays and who captures. The spine of every Techonomic piece.', defaultOn: true },
+const INVESTIGATION_LENSES: Lens[] = [
+  { key: 'economic', label: 'Economic', desc: 'The unit economics, the money mechanic, who pays and who captures. The spine of every investigation.', defaultOn: true },
   { key: 'operator', label: 'Operator-insider', desc: 'What this looks like from inside a P&L Krish has run. The unclone-able artifact angle.', defaultOn: true },
   { key: 'precedent', label: 'Historical precedent', desc: 'The prior cycle this rhymes with. What happened last time the same force moved.', defaultOn: true },
   { key: 'contrarian', label: 'Contrarian', desc: 'The lazy consensus take, discarded out loud, then the spikier read that holds.', defaultOn: true },
@@ -113,11 +122,11 @@ const TECHONOMIC_LENSES: Lens[] = [
 ]
 
 const RUBRICS: Record<VentureKey, VentureRubric> = {
-  techonomic: {
-    key: 'techonomic',
-    label: 'Techonomic',
-    corpusChannel: 'techonomic',
-    mandate: 'Investigative essay on the economics of AI. Exec-to-exec authority (Gear A). The flagship.',
+  investigation: {
+    key: 'investigation',
+    label: 'Mindmaker LIVE (investigation)',
+    corpusChannel: 'investigation',
+    mandate: 'Long-form investigation on the economics of AI, published to Mindmaker LIVE. Take a claim, decompose it, verify each part against dated evidence, say where the knowable ends. Exec-to-exec authority (Gear A). The flagship format.',
     leadWith: 'Evidence and proof, layered through a unique combination of lenses. Open on a fact, a number, or a primary source, never an opinion.',
     instantFail: [
       'The piece is opinion-only: it asserts a position without evidence, proof, or a primary source behind it.',
@@ -129,10 +138,10 @@ const RUBRICS: Record<VentureKey, VentureRubric> = {
       'At least two distinct lenses layered onto the same fact (economic + one more).',
       'Every number cited to a real source or owned as lived experience. Never "studies show" without the study.',
     ],
-    lenses: TECHONOMIC_LENSES,
+    lenses: INVESTIGATION_LENSES,
     notes: [
       'This is investigation, not commentary. If it leans only on "a thing I read", it failed.',
-      'A Techonomic piece can almost always be repurposed into Signal & Noise, keep it that portable.',
+      'An investigation can almost always be repurposed into Signal & Noise, keep it that portable.',
     ],
     unverifiedClaim: 'block',
   },
@@ -153,7 +162,7 @@ const RUBRICS: Record<VentureKey, VentureRubric> = {
       'A clean separation of the durable signal from the transient noise.',
     ],
     notes: [
-      'This is the natural home for a repurposed Techonomic piece. Hold the same evidence bar, lighter structure.',
+      'This is the natural home for a repurposed investigation. Hold the same evidence bar, lighter structure.',
       'Stay on AI x media / marketing / AdTech / internet monetization. Drift off that beat is a content miss.',
     ],
     unverifiedClaim: 'flag',
@@ -174,6 +183,7 @@ const RUBRICS: Record<VentureKey, VentureRubric> = {
     notes: [
       'This venture flexes on tone and structure across its three shapes. It does NOT flex on the voice absolutes (no em dashes, no two-word stacks, dropped pronouns, no warm-up, hard ending).',
       'Detect the shape first (headline / perspective / resource) and judge it against that shape, not a generic essay.',
+      'The long-form investigation is a fourth Mindmaker LIVE shape with its own, harder rubric (venture "investigation"). If this draft is a full teardown, it belongs there, not here.',
     ],
     unverifiedClaim: 'flag',
   },
@@ -241,7 +251,7 @@ export function rubricFor(venture: VentureKey): VentureRubric {
 // ── Prompt ──────────────────────────────────────────────────────────────────
 
 export interface PassRequestCfg {
-  /** Lens keys Krish wants demanded this run (Techonomic). Defaults to the rubric's defaultOn set. */
+  /** Lens keys Krish wants demanded this run (investigation). Defaults to the rubric's defaultOn set. */
   lenses?: string[]
 }
 

@@ -1,6 +1,6 @@
 import React from 'react'
 import type { ContentIdeaRow, ContentLane } from '../../hooks/useRealtimeContentIdeas'
-import { LANES, LANE_BY_SLUG, computeLaneCadence, STATUS_DOT, type CadenceStatus } from '../../lib/contentLanes'
+import { LANES, LANE_BY_SLUG, computeLaneCadence, normalizeLane, STATUS_DOT, type CadenceStatus } from '../../lib/contentLanes'
 import { useHaptics } from '../../hooks/useHaptics'
 
 export type LaneFilter = ContentLane | 'all'
@@ -10,7 +10,7 @@ function nowMs(): number {
   return Date.now()
 }
 
-/** Segmented control: All + the four brand lanes, each with a cadence status dot and active count. */
+/** Segmented control: All + the brand lanes, each with a cadence status dot and active count. */
 export function LaneToggle({
   value,
   onChange,
@@ -22,8 +22,10 @@ export function LaneToggle({
 }) {
   const h = useHaptics()
   const now = nowMs()
+  // normalizeLane so rows carrying a retired lane value (Techonomic, folded into
+  // Mindmaker LIVE on 2026-08-06) still count against the lane they now live in.
   const activeCount = (lane: ContentLane) =>
-    ideas.filter(i => i.lane === lane && i.state !== 'dropped' && i.state !== 'published').length
+    ideas.filter(i => normalizeLane(i.lane) === lane && i.state !== 'dropped' && i.state !== 'published').length
 
   const base =
     'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap border transition-colors'
@@ -73,8 +75,11 @@ const STATUS_TEXT: Record<CadenceStatus, string> = {
 
 /** The commitment bar for a single selected lane: cadence, last shipped, next due. */
 export function CadenceBar({ lane, ideas }: { lane: ContentLane; ideas: ContentIdeaRow[] }) {
+  // A lane that no longer exists (Techonomic, retired 2026-08-06) must not blank
+  // the tab, so a stale selection renders nothing instead of throwing.
   const def = LANE_BY_SLUG[lane]
   const cad = computeLaneCadence(lane, ideas, nowMs())
+  if (!def) return null
   return (
     <div className="flex items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.015] px-4 py-2.5">
       <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${STATUS_DOT[cad.status]}`} />

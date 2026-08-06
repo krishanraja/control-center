@@ -448,7 +448,7 @@ function InlineFields({ idea: i, busy, setBusy }: { idea: ContentIdeaRow; busy: 
       <label className="block text-[9px] text-white/35 uppercase tracking-wide">Thesis</label>
       <textarea value={thesis} onChange={e => setThesis(e.target.value)} rows={2} className={field} placeholder="The arguable claim, one sentence." />
       <label className="block text-[9px] text-white/35 uppercase tracking-wide">Distribution (comma-separated)</label>
-      <input value={dist} onChange={e => setDist(e.target.value)} className={field} placeholder="techonomic, linkedin, signal_noise" />
+      <input value={dist} onChange={e => setDist(e.target.value)} className={field} placeholder="linkedin, newsletter, signal_noise" />
       <button type="button" onClick={save} disabled={busy !== null || !dirty}
         className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-violet-500/30 text-white hover:bg-violet-500/40 disabled:opacity-40 min-h-[36px]">
         <Save size={11} /> {busy === 'fields' ? 'Saving…' : 'Save fields'}

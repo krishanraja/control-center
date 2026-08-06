@@ -323,8 +323,9 @@ Inline action surface (`InlineActions`):
 ### Behaviour rules
 - Quality scoring (`green` / `amber` / `red`) is shown on the card.
 - Distribution channels (whitelist: `linkedin`, `newsletter`,
-  `signal-noise-pod`, `builder-economy-pod`, `techonomic`, `x`) are
-  shown as chips.
+  `signal-noise-pod`, `builder-economy-pod`, `x`) are shown as chips.
+  `techonomic` is a legacy value on older rows only; the brand was retired
+  2026-08-06 and folded into Mindmaker LIVE.
 
 ---
 

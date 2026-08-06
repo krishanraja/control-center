@@ -17,14 +17,14 @@ import { embed, vectorLiteral } from '../_embeddings.js'
 // Body:
 //   {
 //     source_idea_ids: string[],           // 2..25 cards to fold into one narrative
-//     target_lane: 'techonomic' | 'signal_noise' | 'mindmaker' | 'builder_economy_ig',
+//     target_lane: 'signal_noise' | 'mindmaker' | 'builder_economy_ig',
 //     lane_slot?: string,                  // e.g. 'roundup' for mindmaker
 //     angle_hint?: string,                 // optional: Krish's steer for the take
 //   }
 //
 // This is the core "235 cards → 20 narratives" move. Instead of treating each
 // card as a 1:1 candidate for publishing, we synthesize a cluster into a
-// single drafted piece in the requested lane's voice — a Techonomic essay
+// single drafted piece in the requested lane's voice. A long-form investigation
 // typically references 10-15 cards, so this is the operation that match-fits
 // the OS to that workflow.
 //
@@ -48,7 +48,10 @@ import { embed, vectorLiteral } from '../_embeddings.js'
 // ContentComposer, eyeball the citations, and accept. The Five Standards
 // autoscore trigger fires on body insert.
 
-const VALID_LANES = new Set(['techonomic', 'signal_noise', 'mindmaker', 'builder_economy_ig'])
+// Techonomic was retired 2026-08-06 and folded into Mindmaker LIVE. Not a
+// synthesis target any more; a stale client asking for it is mapped, not 400'd.
+const RETIRED_LANES: Record<string, string> = { techonomic: 'mindmaker', mindmaker_live: 'mindmaker' }
+const VALID_LANES = new Set(['signal_noise', 'mindmaker', 'builder_economy_ig'])
 const MIN_SOURCES = 2
 const MAX_SOURCES = 25
 
@@ -89,7 +92,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ ok: false, error: `source_idea_ids capped at ${MAX_SOURCES} cards per synthesis` })
   }
 
-  const targetLane = body.target_lane || ''
+  const requestedLane = body.target_lane || ''
+  const targetLane = RETIRED_LANES[requestedLane] || requestedLane
   if (!VALID_LANES.has(targetLane)) {
     return res.status(400).json({ ok: false, error: `target_lane must be one of: ${Array.from(VALID_LANES).join(', ')}` })
   }

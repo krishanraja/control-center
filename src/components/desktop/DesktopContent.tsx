@@ -6,6 +6,7 @@ import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { ContentIdeaCardActionable } from '../ContentIdeaCardActionable'
 import { LaneToggle, CadenceBar, type LaneFilter } from '../content/LaneControls'
+import { normalizeLane } from '../../lib/contentLanes'
 import { ContentSeedRail } from '../content/ContentSeedRail'
 import { contentEngineEnabled, contentBuckets } from '../../lib/contentEngine'
 import { NextBestActionHero } from '../content/NextBestActionHero'
@@ -77,7 +78,7 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
   // Backburner-buried ideas drop out of the lanes and show in the collapsed
   // section at the bottom instead.
   const laneIdeas = useMemo(
-    () => (laneFilter === 'all' ? ideas : ideas.filter(i => i.lane === laneFilter)).filter(i => !i.buried_at),
+    () => (laneFilter === 'all' ? ideas : ideas.filter(i => normalizeLane(i.lane) === laneFilter)).filter(i => !i.buried_at),
     [ideas, laneFilter],
   )
   const buriedIdeas = useMemo(

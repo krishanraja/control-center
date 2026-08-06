@@ -29,9 +29,12 @@ import { callClaude, robustJson, loadVoiceBlock, VOICE_GUARDRAILS } from '../_co
  *      baseline resolves itself.
  */
 
+// substack_tech0nomic_total is deliberately NOT watched. The publication was
+// retired on 2026-08-06 and folded into Mindmaker LIVE, so it is flat by design
+// and stall-detecting it would draft growth moves for a channel nobody publishes
+// to. Its label stays below so historical episodes still render.
 const WATCHED_KEYS = [
   'substack_mindmakerlive_total',
-  'substack_tech0nomic_total',
   'maven_students',
   'app_paid_subs',
   'app_mrr_usd',
@@ -41,7 +44,7 @@ const WATCHED_KEYS = [
 
 const KEY_LABEL: Record<string, string> = {
   substack_mindmakerlive_total: 'Mindmaker Live Substack subscribers',
-  substack_tech0nomic_total: 'Techonomic Substack subscribers',
+  substack_tech0nomic_total: 'Techonomic Substack subscribers (retired)',
   maven_students: 'Maven students',
   app_paid_subs: 'paid app subscribers',
   app_mrr_usd: 'app MRR',

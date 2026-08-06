@@ -17,7 +17,7 @@ import { newBudget, callMetered, UTILITY_MODEL } from '../../_harness.js'
 //
 // A non-resolving evidence_ref is a FABRICATED CITATION and hard-blocks. So
 // does a number absent from the evidence page, a misquote, and a missing
-// terminal statement. Because techonomic.unverifiedClaim is already 'block' in
+// terminal statement. Because investigation.unverifiedClaim is already 'block' in
 // _finalPass, anything that slips here is caught again there: the two gates are
 // redundant in the correct direction.
 

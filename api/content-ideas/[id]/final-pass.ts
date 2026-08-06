@@ -16,7 +16,7 @@ import {
 //   - instant_fail  → Save Draft is disabled until it clears (Krish, Q1)
 //   - autofixes     → real errors, applied to produce `cleaned_text` (Q2a)
 //   - suggestions   → content improvements, dismissible one by one (Q2b/Q4)
-//   - lenses        → (Techonomic) which investigative lenses landed (Q5)
+//   - lenses        → (investigation) which investigative lenses landed (Q5)
 //   - verify        → claims to source before shipping (Q12)
 //   - standards     → the Five Standards, so this reads as one system with /score
 //
@@ -36,12 +36,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: idea } = await supabase
     .from('content_ideas').select('idea,thesis,meta,lane,lane_slot').eq('id', id).single()
 
-  const venture = laneToVenture(idea?.lane, idea?.lane_slot)
+  const materials = readMaterials(idea?.meta)
+
+  // The lane picks the rubric, with one override: a piece carrying a verified
+  // evidence manifest from the investigation pipeline is a teardown whatever
+  // lane it sits in, so it is judged by the investigation rubric (five lenses,
+  // an unverifiable load-bearing claim is an instant fail). Before Techonomic
+  // was retired this only fired for lane='techonomic'; the depth engine now
+  // publishes to Mindmaker LIVE and must not lose its bar on the way.
+  const venture = hasInvestigationManifest(idea?.meta)
+    ? 'investigation'
+    : laneToVenture(idea?.lane, idea?.lane_slot)
   const rubric = rubricFor(venture)
 
   const [voice, corpus] = await Promise.all([loadVoiceBlock(), loadCorpus()])
   const channelCorpus = corpusForChannel(corpus, rubric.corpusChannel)
-  const materials = readMaterials(idea?.meta)
   const materialsBlock = materials.length ? `\n${materialsContext(materials)}` : ''
 
   // Deterministic em-dash sanitize first, so the model never wastes an autofix on
@@ -111,6 +120,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .eq('id', id)
 
   return res.status(200).json({ ok: true, ...payload })
+}
+
+/** True when api/_investigation.ts has attached a verified evidence manifest to
+ *  this row (materials entries carry `investigation_id`). */
+function hasInvestigationManifest(meta: unknown): boolean {
+  const list = (meta as { materials?: unknown } | null | undefined)?.materials
+  if (!Array.isArray(list)) return false
+  return list.some(m => Boolean((m as { investigation_id?: string } | null)?.investigation_id))
 }
 
 /** Stable, deterministic djb2 string hash (matches the composer's hashText). */

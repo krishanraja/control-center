@@ -10,7 +10,11 @@ import { sanitizeVoice } from '../../_content.js'
 // each in that lane's krish-voice gear (system_config.content_lane_*), inheriting
 // the parent's research/citations. Re-transforming a lane replaces its prior child.
 
-const VALID_LANES = new Set(['signal_noise', 'mindmaker', 'techonomic', 'builder_economy_ig'])
+// Techonomic was retired 2026-08-06 and folded into Mindmaker LIVE, so it is no
+// longer a transform target. A stale client asking for it lands on mindmaker
+// rather than getting a 400 with an empty lane list.
+const RETIRED_LANES: Record<string, string> = { techonomic: 'mindmaker', mindmaker_live: 'mindmaker' }
+const VALID_LANES = new Set(['signal_noise', 'mindmaker', 'builder_economy_ig'])
 
 function parseVal(v: unknown): any {
   if (typeof v === 'string') { try { return JSON.parse(v) } catch { return null } }
@@ -41,8 +45,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!parentId) return res.status(400).json({ ok: false, error: 'id required' })
 
   const body = (req.body || {}) as { lanes?: string[]; slots?: Record<string, string> }
-  const lanes = (body.lanes || []).filter(l => VALID_LANES.has(l))
-  if (lanes.length === 0) return res.status(400).json({ ok: false, error: 'lanes required (signal_noise|mindmaker|techonomic|builder_economy_ig)' })
+  const lanes = [...new Set((body.lanes || []).map(l => RETIRED_LANES[l] || l).filter(l => VALID_LANES.has(l)))]
+  if (lanes.length === 0) return res.status(400).json({ ok: false, error: 'lanes required (signal_noise|mindmaker|builder_economy_ig)' })
 
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return res.status(500).json({ ok: false, error: 'ANTHROPIC_API_KEY not configured' })
