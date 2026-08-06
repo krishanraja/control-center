@@ -184,12 +184,27 @@ export async function selectAnchor(
           modelEntity: { entity: parsed.entity, sells: Boolean(parsed.entity_is_seller_of_the_thing_measured), confidence: parsed.confidence },
         })
         if (parsed.confidence >= 0.7 && parsed.entity_is_seller_of_the_thing_measured) {
-          await supabase.from('vendor_lexicon_pending').upsert({
+          // Plain insert, duplicate swallowed. `upsert({onConflict:'entity'})` was
+          // a silent no-op: the unique index is on lower(entity), an EXPRESSION
+          // index, which PostgREST's on_conflict=entity cannot target, so every
+          // write returned 42P10 and the discarded error hid it. Verified against
+          // the live database 2026-08-05. The lexicon learning loop, which is the
+          // only route by which a vendor missing from the hardcoded map ever gets
+          // proposed for it, had never written a row.
+          const { error } = await supabase.from('vendor_lexicon_pending').insert({
             entity: parsed.entity, domain: rootDomain(c.url),
             sells_the_thing_measured: true, confidence: parsed.confidence,
             evidence: sentence.slice(0, 400),
-          }, { onConflict: 'entity', ignoreDuplicates: true })
+          })
+          if (error && error.code !== '23505') degraded.push(`vendor lexicon proposal not recorded: ${error.message}`)
         }
+      } else {
+        // FAIL LOUD. G1's model backstop is the ONLY guard against a vendor whose
+        // domain and aliases are both absent from the lexicon, and an errored or
+        // unparseable call previously left the anchor passing as `independent`
+        // with no degraded reason and model_calls 0 in the gate log, so a paid
+        // call that failed was indistinguishable from a call never made.
+        degraded.push(`G1 vendor-entity adjudication returned nothing usable for ${ref} (${res.error || 'unparseable response'}); anchor admitted on the lexicon alone`)
       }
     }
 
@@ -457,7 +472,13 @@ export async function runInvestigation(opts: RunOpts = {}): Promise<RunResult> {
   }
 
   const citable = stored.filter(s => s.citable)
-  const div = diversity(citable.map(s => ({ url: s.url, entity: decision.entity, headline: s.headline, snippet: s.pageText.slice(0, 1500) })))
+  // Keyed on the ANCHOR's own numbers. Keying on each page's whole numeric
+  // fingerprint counted every reprint as its own origin, because page furniture
+  // (read time, comment count, price, copyright year) differs on every masthead.
+  const div = diversity(
+    citable.map(s => ({ url: s.url, entity: decision.entity, headline: s.headline, snippet: s.pageText.slice(0, 1500) })),
+    anchorText,
+  )
   await logGate(ctx, {
     gate: 'G5_harness', subject_kind: 'evidence', subject_ref: 'diversity', subject_label: 'investigation-wide source diversity',
     action: div.distinctDomains >= MIN_INVESTIGATION_DOMAINS ? 'pass' : 'flag', score: div.distinctDomains, model_calls: 0,
@@ -557,10 +578,16 @@ export async function runInvestigation(opts: RunOpts = {}): Promise<RunResult> {
   let parentId = claimIds.get(rung0.ref) || null
 
   for (let rung = 1; rung <= MAX_RUNGS; rung++) {
-    if (budgetLeft(budget).model <= 0) { terminalReason = 'evidence_exhausted'; terminalRung = rung - 1; break }
+    // A SPENDING CAP IS NOT A FINDING. These three exits are the run failing, not
+    // the record running out, and the terminal statement gets PUBLISHED verbatim.
+    // Collapsing them into evidence_exhausted printed "Past this point the record
+    // runs out. N searches across M domains produced nothing citable", which is a
+    // false claim about how hard the system looked, in the one paragraph this
+    // pipeline promises to keep honest.
+    if (budgetLeft(budget).model <= 0) { degraded.push(`descent stopped at rung ${rung}: model call cap ${budget.maxModelCalls} reached`); terminalReason = 'budget_exhausted'; terminalRung = rung - 1; break }
     const p = buildDescentPrompt(question, rung, priorTexts, descentEvidence)
     const res = await callMetered({ system: p.system, user: p.user, model: LADDER_MODEL, maxTokens: 1400 }, budget)
-    if (res.error) { degraded.push(`descent rung ${rung}: ${res.error}`); terminalReason = 'evidence_exhausted'; terminalRung = rung - 1; break }
+    if (res.error) { degraded.push(`descent rung ${rung}: ${res.error}`); terminalReason = 'budget_exhausted'; terminalRung = rung - 1; break }
     const raw = (robustJson(res.text) || {}) as RawRung
     const answer = sanitizeVoice(String(raw.answer || ''))
     if (!answer) {
@@ -568,8 +595,8 @@ export async function runInvestigation(opts: RunOpts = {}): Promise<RunResult> {
       // out, and the terminal statement gets published, so the difference has
       // to survive into the audit rather than being quietly rounded to the
       // nicer reason.
-      degraded.push(`descent rung ${rung}: model returned no usable answer, terminal reason recorded as evidence_exhausted`)
-      terminalReason = 'evidence_exhausted'
+      degraded.push(`descent rung ${rung}: model returned no usable answer, terminal reason recorded as budget_exhausted`)
+      terminalReason = 'budget_exhausted'
       terminalRung = rung - 1
       break
     }
@@ -755,7 +782,16 @@ export function buildManifest(m: ManifestInput): string {
       : '',
     '',
     '### The ladder',
-    ...m.ladder.map(r => `Rung ${r.rung}: ${String(r.text).slice(0, 400)}${r.mechanism_type ? ` [mechanism: ${r.mechanism_type}]` : ''}`),
+    // A rung is appended to `ladder` BEFORE gateRung's verdict is consulted, so a
+    // rung that failed grounding or resolved no evidence still lands here. It
+    // printed as a plain rung inside a block headed VERIFIED EVIDENCE MANIFEST,
+    // which is how an ungrounded sentence reaches a writer looking like a checked
+    // one. Failed rungs stay visible, and say what they failed.
+    ...m.ladder.map(r => {
+      const failed = r.rung !== 0 && r.may_descend === false && r.terminal_reason && r.terminal_reason !== 'cap'
+      const mark = failed ? ` [NOT VERIFIED, failed the ladder gate on ${r.terminal_reason}. Do not cite this rung.]` : ''
+      return `Rung ${r.rung}: ${String(r.text).slice(0, 400)}${r.mechanism_type ? ` [mechanism: ${r.mechanism_type}]` : ''}${mark}`
+    }),
     '',
     '### Terminal layer, PUBLISH THIS VERBATIM',
     m.terminalStatement,
