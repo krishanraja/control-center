@@ -8,6 +8,10 @@ import { FACTORY_FANOUT, type WeeklyBriefRow } from '../../lib/contentV2'
 import { renderBrief, toEndnotes } from '../../lib/citations'
 import { diffSections, mergeSections, wordDiff, type SectionDiff } from '../../lib/briefDiff'
 import { useToast } from '../shared/Toast'
+import { RejectReasonBar } from '../shared/RejectReasonBar'
+import { reasonsFor } from '../../lib/triageReasons'
+import { useLikelyReasons } from '../../hooks/useLikelyReasons'
+import { supabase } from '../../lib/supabase'
 
 interface StandingNote { id: string; text: string; at: string }
 
@@ -79,6 +83,14 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   const [citations, setCitations] = useState<boolean>(readCitationsPref)
   const [notes, setNotes] = useState<StandingNote[]>([])
   const [notesOpen, setNotesOpen] = useState(false)
+  // Binning the brief from inside it. Open the brief, read it, decide it is not
+  // worth the week, say why in one tap. Back leaves it waiting; this rules on it.
+  const [binning, setBinning] = useState(false)
+  const [binBusy, setBinBusy] = useState(false)
+  // The predictor is keyed by decision, and this surface only knows its week,
+  // so resolve the brief's own card. Absent (already ruled on) just means no
+  // predicted chips, which is a shortcut lost and nothing else.
+  const [decisionId, setDecisionId] = useState<string | null>(null)
   // Section keys REJECTED in the current preview (default is keep-all); tracked
   // as the exclusion set so a fresh preview starts with everything accepted.
   const [rejected, setRejected] = useState<Set<string>>(new Set())
@@ -313,6 +325,33 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   }, [])
 
   const versions = useMemo(() => (brief?.versions || []).slice().reverse(), [brief])
+
+  useEffect(() => {
+    let alive = true
+    supabase.from('content_decisions').select('id')
+      .eq('week', week).eq('kind', 'brief_review').eq('status', 'pending').limit(1)
+      .then(({ data }) => { if (alive) setDecisionId(data?.[0]?.id || null) })
+    return () => { alive = false }
+  }, [week])
+
+  const likely = useLikelyReasons(binning ? decisionId : null)
+
+  const bin = useCallback(async (reasonCode?: string, reasonText?: string) => {
+    setBinBusy(true)
+    try {
+      await contentV2Api(`/api/briefs/${week}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ bin: true, reason_code: reasonCode, reason_text: reasonText }),
+      })
+      setBinning(false)
+      toast('Binned. Cleo will hear why.', 'success')
+      onClose()
+    } catch (e) {
+      toast(String((e as Error).message || e), 'error')
+    } finally {
+      setBinBusy(false)
+    }
+  }, [week, toast, onClose])
 
   return (
     <div className="fixed inset-0 z-50 bg-base flex flex-col" style={{ height: 'calc(100dvh / var(--z, 1))' }}>
@@ -595,7 +634,19 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
               ))}
               <span className="text-white/40">Cleo confirms on Telegram. You are done for the week.</span>
             </div>
+          ) : binning ? (
+            // The verdict is asked for where the verdict gets made, replacing
+            // the ship controls rather than floating over them.
+            <RejectReasonBar
+              title="Why bin this brief?"
+              reasons={reasonsFor('content_decisions')}
+              onChoose={bin}
+              onCancel={() => setBinning(false)}
+              cancelLabel="Keep it"
+              likely={likely}
+            />
           ) : (
+            <>
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/40">Publish as</span>
               {FACTORY_FANOUT.map(f => {
@@ -620,6 +671,18 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                 {pushing ? 'Pushing...' : `Push ${fanout.size} format${fanout.size === 1 ? '' : 's'} to Google Docs`}
               </button>
             </div>
+            {/* The other verdict. Ship it or bin it, both reachable from the
+                same place, with the destructive one deliberately quieter. */}
+            <div className="flex mt-2.5">
+              <button
+                onClick={() => setBinning(true)}
+                disabled={binBusy}
+                className="rounded-lg border border-rose-400/25 bg-rose-500/[0.06] text-rose-300/85 hover:bg-rose-500/[0.12] px-3 py-1.5 text-[11.5px] font-semibold disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-300/60"
+              >
+                Bin this brief
+              </button>
+            </div>
+            </>
           )}
         </footer>
       ) : null}

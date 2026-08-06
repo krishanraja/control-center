@@ -1,5 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { attachRejectSignal } from '../_rejectSignal.js'
+
+/** Where each table keeps the one line that says what the thing actually was. */
+const TITLE_COLUMN: Record<string, string> = {
+  content_ideas: 'idea',
+  leads: 'company',
+  visibility_targets: 'name',
+  guests: 'name',
+  tasks: 'title',
+}
 
 /**
  * POST /api/triage/reject
@@ -29,13 +39,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (body.source_table === 'guests') updatePayload = { status: 'skipped', skipped_at: new Date().toISOString() }
   if (body.source_table === 'tasks') updatePayload = { status: 'superseded', krish_reviewed: true }
 
+  // Read the item BEFORE the update: for content_ideas the very next purge can
+  // delete this row, and once it is gone the reject becomes an orphaned reason
+  // code that nothing can learn from. Checked against live data, that had
+  // already happened to all 320 coded rejects.
+  const titleCol = TITLE_COLUMN[body.source_table]
+  let snapTitle: string | null = null
+  let snapText: string | null = null
+  if (titleCol) {
+    const { data: src } = await supabase
+      .from(body.source_table).select(titleCol).eq('id', body.source_id).single()
+    snapTitle = (src as Record<string, string> | null)?.[titleCol] || null
+  }
+
   const { error: upErr } = await supabase
     .from(body.source_table)
     .update(updatePayload)
     .eq('id', body.source_id)
   if (upErr) return res.status(500).json({ ok: false, error: upErr.message })
 
-  await supabase.from('feedback_queue').insert({
+  const { data: fbRow } = await supabase.from('feedback_queue').insert({
     source_table: body.source_table,
     source_id: body.source_id,
     agent_id: body.agent || null,
@@ -45,7 +68,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     reason_code: body.reason_code || null,
     reason_text: body.reason_text || null,
     status: 'pending',
-  })
+  }).select('id').single()
+
+  await attachRejectSignal(fbRow?.id, snapTitle, snapText)
 
   return res.json({ ok: true, rejected: true })
 }
