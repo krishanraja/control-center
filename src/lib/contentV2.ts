@@ -106,10 +106,20 @@ export const VERDICT_LABEL: Record<ShiftVerdict, string> = {
   new: 'Newly tracked',
 }
 
+// The LIVE fan-out (ContentV2Tab -> BriefEditor). This is the list Krish
+// actually sees when pushing content, which is why fixing v1's LANE_ADAPTS and
+// SynthesisModal did not change what he was looking at: v2 is the live system
+// and v1 does not render while VITE_CONTENT_V2_ENABLED is on.
+//
+// MYMU is a VENTURE with three formats and three registers, so offering it as
+// one destination was the same mistake as offering "Builder Economy IG", a
+// channel wearing a venture's name.
 export const FACTORY_FANOUT: Array<{ channel: string; label: string; defaultOn: boolean }> = [
-  { channel: 'makeyourmindup', label: 'MYMU', defaultOn: true },
+  { channel: 'investigation', label: 'MYMU: Teardown', defaultOn: false },
+  { channel: 'mymu_weekly', label: 'Make Your Mind Up (weekly)', defaultOn: true },
+  { channel: 'built', label: 'MYMU: Built', defaultOn: false },
   { channel: 'linkedin', label: 'LinkedIn post', defaultOn: true },
-  { channel: 'builder_economy', label: 'Builder Economy IG', defaultOn: false },
+  { channel: 'signal_noise', label: 'Signal & Noise', defaultOn: false },
 ]
 
 export function monthLabel(day: string): string {

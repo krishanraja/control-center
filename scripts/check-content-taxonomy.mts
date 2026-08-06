@@ -38,9 +38,24 @@ if (/value:\s*'makeyourmindup'/.test(adaptBlock)) {
   bad("'makeyourmindup' is offered as an adapt target; MYMU is a venture with three formats, not one register")
 }
 
+// ── 4. the LIVE fan-out must be format-level too ───────────────────────────
+// FACTORY_FANOUT (contentV2) is the list Krish actually sees when pushing,
+// because v2 is the live system and v1 does not render while the flag is on.
+// Fixing v1's LANE_ADAPTS while v2 was live changed nothing he could see, which
+// is precisely the miss this check exists to prevent.
+const cv2 = readFileSync('src/lib/contentV2.ts', 'utf8')
+const fanBlock = cv2.split('FACTORY_FANOUT')[1]?.split('\n]')[0] ?? ''
+const fanChannels = [...fanBlock.matchAll(/channel:\s*'([^']+)'/g)].map(m => m[1])
+if (!fanChannels.length) bad('no FACTORY_FANOUT channels parsed')
+for (const c of fanChannels) {
+  if (!corpusKeys.has(c)) bad(`FACTORY_FANOUT channel '${c}' is not a CHANNEL_HEADING key`)
+  if (c === 'makeyourmindup') bad('FACTORY_FANOUT offers the MYMU venture as one destination; it has three formats')
+  if (c === 'builder_economy_ig') bad('FACTORY_FANOUT still offers the retired builder_economy_ig')
+}
+
 console.log(
   fail === 0
-    ? `PASS  ${adaptValues.length} adapt values, all resolve to corpus keys: ${adaptValues.join(', ')}`
+    ? `PASS  ${adaptValues.length} adapt values + ${fanChannels.length} live fan-out channels all resolve to corpus keys`
     : `${fail} FAILURE(S)`,
 )
 process.exit(fail ? 1 : 0)
