@@ -36,6 +36,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Method not allowed' })
 
+  // ── Capacity shapes the PUNCH-THROUGH, never the goals (canon §0a.2) ─────
+  // Krish: energy and anxiety "maybe they dont affect the OS//midterm/weekly
+  // goals but they sure as hell need to affect how to punch through them".
+  // So capacity never filters or reorders GOALS; it decides how much of the
+  // slate is worth showing today and which shape of move leads.
+  //   low    -> one thing, the smallest real move (protect the day)
+  //   steady -> the normal breadth-first slate
+  //   high   -> the full board, heaviest deep-work move first
+  const capacity = (['low', 'steady', 'high'] as const)
+    .find(c => c === req.query.capacity) ?? 'steady'
+  const SLATE_CAP: Record<string, number> = { low: 1, steady: 5, high: 9 }
+
   const { data: goalsData, error: gErr } = await supabase
     .from('goals')
     .select('id, title, venture, priority')
@@ -112,5 +124,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     pass += 1
   }
 
-  return res.json({ ok: true, slate, objective_count: goals.length })
+  // Apply capacity LAST, so it shapes what surfaces without ever having
+  // touched goal selection, goal order, or goal content.
+  const cap = SLATE_CAP[capacity]
+  let shaped = slate
+  if (capacity === 'high') {
+    // Clear and charged: lead with the heaviest real move.
+    shaped = [...slate].sort(
+      (a, b) => ((b.est_deep_work_hours as number) ?? 0) - ((a.est_deep_work_hours as number) ?? 0))
+  } else if (capacity === 'low') {
+    // Depleted: the SMALLEST real move, one only. Protecting the day is the
+    // point; a full board on a low day is how a week gets abandoned.
+    shaped = [...slate].sort(
+      (a, b) => ((a.est_deep_work_hours as number) ?? 99) - ((b.est_deep_work_hours as number) ?? 99))
+  }
+
+  return res.json({
+    ok: true,
+    slate: shaped.slice(0, cap),
+    objective_count: goals.length,
+    capacity,
+    shaped_by_capacity: capacity !== 'steady',
+  })
 }

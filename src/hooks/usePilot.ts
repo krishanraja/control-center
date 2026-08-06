@@ -74,6 +74,8 @@ export async function saveMorning(input: {
   one_word: string
   mode: PilotMode
   intent?: string
+  /** Which venture today is for. Accountability, not scoping. */
+  venture?: string | null
 }): Promise<void> {
   const res = await fetch(`${API}/api/pilot/checkin`, {
     method: 'POST',

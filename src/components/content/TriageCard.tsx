@@ -43,11 +43,25 @@ export function TriageCard({
   idea: i, dx = 0, dragging, flyout, depth = 0, rightIntent = 'advance', rightLabel = 'Advance', bind, onClick,
 }: Props) {
   const isTop = depth === 0
-  const rot = isTop ? dx * 0.035 : 0
+  // Krish: "the animation doesnt have me feel like the card is swiping away,
+  // even though the next card does appear."
+  // Cause: opacity went 1 -> 0 over 280ms IN PARALLEL with the 280ms travel, so
+  // the card dissolved in place and was already invisible by the time it had
+  // moved any meaningful distance. A throw you cannot see is just a disappear.
+  // Fix: the card keeps its opacity while it travels and only fades over the
+  // last third, it rotates harder as it goes so it reads as thrown rather than
+  // slid, and it accelerates out (ease-in) instead of easing to a polite stop.
+  const rot = isTop ? dx * (flyout ? 0.055 : 0.035) : 0
   const transform = isTop
     ? `translateX(${dx}px) rotate(${rot}deg)`
     : `translateY(${depth * 10}px) scale(${1 - depth * 0.04})`
-  const transition = dragging ? 'none' : 'transform 280ms cubic-bezier(0.2,0.8,0.2,1), opacity 280ms ease'
+  const transition = dragging
+    ? 'none'
+    : flyout
+      // travel is the whole point, so it gets the full duration and an
+      // accelerating curve; the fade is delayed until the card is mostly gone
+      ? 'transform 340ms cubic-bezier(0.32,0,0.67,0), opacity 120ms ease 220ms'
+      : 'transform 280ms cubic-bezier(0.2,0.8,0.2,1), opacity 280ms ease'
   const opacity = flyout ? 0 : 1
 
   const dropGhost = Math.max(0, Math.min(-dx / 110, 1))

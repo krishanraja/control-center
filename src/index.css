@@ -55,8 +55,16 @@
 
   /* Elevated-surface recipe (glass-card / .surface). Per-theme so a card is a
      lit white-overlay at night and a raised near-white panel by day. */
-  --card-bg: 255 255 255;      /* fill colour channels                */
-  --card-bg-a: 0.045;          /* fill alpha                          */
+  /* Krish: "in dark mode the cards are translucent and look awful."
+     It was a 4.5% WHITE WASH over the page background, so a card never became
+     a surface, it just slightly lightened the paint behind it. Light mode had
+     it right all along (--card-bg-a: 1, fully opaque, cards separate). Dark now
+     gets a real RAISED colour rather than a tint of the page: a lifted warm
+     obsidian, near-opaque, so a card reads as material sitting above the page.
+     The gradient sheen and lit top edge below still do the "catching light"
+     work, which is what the translucency was reaching for and failing at. */
+  --card-bg: 26 23 38;         /* #1A1726 raised surface, not a tint  */
+  --card-bg-a: 0.94;           /* near-opaque so cards actually separate */
   --card-border-a: 0.08;       /* hairline alpha (over --fg)          */
   --card-hi-a: 0.06;           /* inner top-light highlight alpha      */
   --card-shadow: 0 1px 2px 0 rgba(0,0,0,0.35), 0 12px 40px -20px rgba(0,0,0,0.65);

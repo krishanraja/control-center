@@ -72,9 +72,14 @@ export function useCardDeck({ cardId, onCommit, threshold = 96, disabled }: Opti
     // identical regardless of how it was triggered.
     h.impactMedium()
     setPhase('flyout')
-    setDx(dir === 'left' ? -window.innerWidth : window.innerWidth)
-    // transitionend is the primary signal; this is the safety net.
-    flyTimer.current = setTimeout(() => finishCommit(dir), 380)
+    // 1.15x so the card fully CLEARS the viewport. At exactly innerWidth a
+    // centred card only travels about half its own width past the edge, which
+    // reads as a stall rather than a throw.
+    const fling = Math.round(window.innerWidth * 1.15)
+    setDx(dir === 'left' ? -fling : fling)
+    // transitionend is the primary signal; this is the safety net. Must stay
+    // longer than the 340ms transform or the card is culled mid-flight.
+    flyTimer.current = setTimeout(() => finishCommit(dir), 440)
   }, [disabled, finishCommit, h])
 
   const onTransitionEnd = useCallback((e: React.TransitionEvent) => {

@@ -44,7 +44,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let q = supabase
       .from('goals')
-      .select('id, title, venture, objective_kind, status, priority, definition_of_done, why_now, target_horizon, primary_kpi, secondary_kpi, is_auto, source, activated_at, completed_at, created_at, updated_at')
+      .select('id, title, venture, objective_kind, status, priority, definition_of_done, why_now, target_horizon, primary_kpi, secondary_kpi, is_auto, source, activated_at, completed_at, created_at, updated_at, horizon, parent_id')
+      // ONE table, one meaning per surface. `horizon` is the discriminator
+      // (canon §0a.2). Without it this returned every goal at every altitude,
+      // so Objectives and WeeklyGoals each rendered the other's rows.
+      // Legacy rows have horizon NULL and are treated as venture objectives,
+      // which is what they historically were.
+      .or('horizon.eq.venture_objective,horizon.is.null')
       .order('priority', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true })
 

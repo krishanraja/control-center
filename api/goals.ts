@@ -11,7 +11,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'GET') {
     const [goalsRes, configRes, tasksRes] = await Promise.all([
-      supabase.from('goals').select('*').order('created_at'),
+      // This endpoint backs the WEEKLY surface only. `horizon` is the
+      // discriminator (canon §0a.2): without it, select('*') returned every
+      // goal at every altitude and WeeklyGoals rendered venture objectives
+      // as weekly goals, which is why it never felt like one source of truth.
+      supabase.from('goals').select('*').eq('horizon', 'weekly').order('created_at'),
       supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus', 'week_of']),
       supabase.from('tasks').select('id, title, status, agent, weekly_goal_id').not('weekly_goal_id', 'is', null)
     ])
@@ -64,6 +68,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (body.owner !== undefined) newGoal.owner = body.owner
     if (body.target !== undefined) newGoal.target = body.target
     if (body.weekly_goal_id !== undefined) newGoal.weekly_goal_id = body.weekly_goal_id
+
+    // Anything created here IS a weekly goal. Stamping the horizon at the
+    // point of creation is what stops orphans forming: a row with no
+    // horizon belongs to no surface and shows up on all of them.
+    newGoal.horizon = 'weekly'
+    if (body.parent_id !== undefined) newGoal.parent_id = body.parent_id
 
     const { error } = await supabase.from('goals').insert(newGoal)
     if (error) return res.status(500).json({ ok: false, error: error.message })

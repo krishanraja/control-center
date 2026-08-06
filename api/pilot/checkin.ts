@@ -119,6 +119,9 @@ async function post(req: VercelRequest, res: VercelResponse) {
       one_word: typeof body.one_word === 'string' && body.one_word.trim() ? body.one_word.trim() : null,
       mode,
       intent: typeof body.intent === 'string' && body.intent.trim() ? body.intent.trim() : null,
+      // Accountability, not scoping: which venture today is for. Null is a
+      // legitimate answer ("no single venture today").
+      venture: typeof body.venture === 'string' && body.venture.trim() ? body.venture.trim() : null,
     }
 
     // One morning row per civil day. A reload must never re-gate, so a second

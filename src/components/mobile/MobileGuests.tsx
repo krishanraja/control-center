@@ -271,11 +271,13 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
           </LaneTab>
         </div>
 
-        {isFocusModeEnabled() && calibrated && (
-          <div className="flex items-center justify-end -mt-1">
-            <FocusModeToggle mode={mode} onChange={setMode} />
-          </div>
-        )}
+        {/* Krish: "the mobile experience is way too overwhelming and complex
+            given I would be looking at inspiration and opportunities on a mobile
+            and triaging mainly."
+            Focus Mode is a second mode selector stacked under the lane tabs, so
+            the phone opened with TWO mode decisions before any content. It is a
+            power feature for a desk, not for the three jobs he actually does on
+            a phone (look, spot, triage). Desktop keeps it. */}
 
         <NextVisibilityHero guests={guests} targets={targets} narrow />
 
