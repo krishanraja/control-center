@@ -1,9 +1,10 @@
 # Control Center
 
 The single pane of glass for **Mindmaker OS**, the fleet of AI agents that
-runs Krish Raja's business portfolio (Mindmaker, Meliora, AdFixus,
-Fractionl, OnAlert, Gutted, Merciless, mm-ctrl, plus the content brands
-Builder Economy and Signal & Noise).
+runs Krish Raja's business portfolio (Mindmaker, Fractionl, mm-ctrl, plus
+the content brands Mindmaker LIVE, Builder Economy and Signal & Noise).
+AdFixus and OnAlert are archived; Meliora, Gutted and Merciless were
+retired in July 2026.
 
 **URL:** [`controlcenter.krishraja.com`](https://controlcenter.krishraja.com)
 &nbsp;·&nbsp; **Deploy:** Vercel (push to `main` auto-deploys)

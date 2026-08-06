@@ -46,9 +46,10 @@ slug-as-key rule.
 
 ### `ventures` / `venture_registry`
 
-- **`ventures`** — 8 active rows covering the full portfolio (Mindmaker,
-  Meliora, AdFixus, mm-ctrl, Fractionl Circle, Fractionl Pulse, OnAlert,
-  Gutted, Merciless).
+- **`ventures`** — 8 rows: 6 active (`mindmaker`, `fractionl`,
+  `builder-economy`, `signal-noise`, `personal-brand`, `ops`) and 2
+  archived (`adfixus`, `onalert`). Filter on `status = 'active'`;
+  archived rows are kept so historical attribution still resolves.
 - **`venture_registry`** — 3-row table (`mindmaker`, `signal_noise`,
   `builder_economy`) that drives multi-tag leads and per-venture lanes
   on the Leads tab.

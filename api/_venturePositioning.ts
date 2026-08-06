@@ -23,16 +23,9 @@ export const VENTURE_POSITIONING: Record<string, VenturePositioning> = {
     offer:
       'A Mindmaker AI consulting sprint (a Strategy Day) that takes their leadership team from AI noise to a shipped, in-production system in a matter of weeks.',
   },
-  meliora: {
-    label: 'Meliora',
-    offer:
-      'A Meliora GenAI transformation engagement for telco and media enterprises — from strategy through to deployed, production systems.',
-  },
-  adfixus: {
-    label: 'AdFixus',
-    offer:
-      'AdFixus privacy-safe identity and first-party data infrastructure for enterprises navigating the move away from third-party cookies.',
-  },
+  // AdFixus and Meliora were retired in July 2026 and are deliberately absent.
+  // ventureOffer() returning null for them is what stops an outreach draft from
+  // pitching a venture Krish no longer runs.
   signal_noise: {
     label: 'Signal & Noise',
     offer:

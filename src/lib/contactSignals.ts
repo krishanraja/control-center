@@ -5,8 +5,11 @@ import type { ContactRow } from '../hooks/useRealtimeContacts'
 // identical in both places. None of this spends a credit — it reads what's already
 // known (fit scores + any dossier already on file).
 
+// meliora and adfixus were retired in July 2026. Their labels stay so contacts
+// tagged before then still render a name instead of a blank chip; they are absent
+// from every venture picker, so nothing new can be filed against them.
 export const VENTURE_LABEL: Record<string, string> = {
-  mindmaker: 'Mindmaker', meliora: 'Meliora', adfixus: 'AdFixus', signal_noise: 'Signal & Noise',
+  mindmaker: 'Mindmaker', meliora: 'Meliora (retired)', adfixus: 'AdFixus (retired)', signal_noise: 'Signal & Noise',
   builder_economy: 'Builder Economy', fractionl_pulse: 'Fractionl Pulse', investor: 'Investor',
 }
 

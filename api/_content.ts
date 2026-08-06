@@ -124,9 +124,11 @@ export function laneToCorpusChannel(lane?: string | null, slot?: string | null):
 
 // channel key -> a matcher against the playbook heading text in the corpus.
 const CHANNEL_HEADING: Record<string, RegExp> = {
-  // The corpus (system_config.content_corpus) still titles the long-form
-  // investigative playbook after the retired brand. Match both that heading and
-  // the neutral names, so this keeps working before and after Krish rewrites it.
+  // The corpus playbook was retitled "Investigation (long-form teardown)" on
+  // 2026-08-06. The retired brand stays in the pattern so an older corpus copy
+  // still resolves. Do NOT retitle that section to anything containing
+  // "Mindmaker Live": it sits before section 4 and would capture the
+  // mindmaker_live lookup below, handing every weekly piece the teardown bar.
   investigation: /Techonomic|Investigation|Teardown/i,
   signal_noise: /Signal\s*&?\s*Noise/i,
   mindmaker_live: /Mindmaker Live/i,

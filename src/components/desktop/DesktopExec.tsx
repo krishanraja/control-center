@@ -17,7 +17,7 @@ interface MarcusSynthesis {
   generated_at: string | null
 }
 
-type VentureFilter = 'all' | 'mindmaker' | 'adfixus' | 'personal-brand'
+type VentureFilter = 'all' | 'mindmaker' | 'personal-brand'
 
 type LoadState = 'loading' | 'ok' | 'error'
 
@@ -133,7 +133,7 @@ export function DesktopExec() {
           <div className="flex items-center gap-3">
             <SectionHeader icon={<Zap size={13} className="text-rose-400" />} label="Zara Signal Feed" />
             <div className="flex gap-1.5 ml-auto">
-              {(['all', 'mindmaker', 'adfixus', 'personal-brand'] as VentureFilter[]).map(v => (
+              {(['all', 'mindmaker', 'personal-brand'] as VentureFilter[]).map(v => (
                 <button
                   key={v}
                   onClick={() => setVentureFilter(v)}

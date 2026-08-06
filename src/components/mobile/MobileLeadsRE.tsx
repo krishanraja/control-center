@@ -23,8 +23,6 @@ import { SuggestedMoveChip } from '../ContactCard'
 
 const VENTURES: Array<{ slug: string; label: string }> = [
   { slug: 'mindmaker', label: 'Mindmaker' },
-  { slug: 'meliora', label: 'Meliora' },
-  { slug: 'adfixus', label: 'AdFixus' },
   { slug: 'signal_noise', label: 'Signal & Noise' },
   { slug: 'builder_economy', label: 'Builder Economy' },
   { slug: 'fractionl_pulse', label: 'Fractionl Pulse' },
