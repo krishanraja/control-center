@@ -8,3 +8,4 @@ dist/
 public/data/_archived/
 .claude/
 test-results/
+supabase/.temp/

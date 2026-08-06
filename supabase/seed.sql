@@ -1,0 +1,2 @@
+-- Intentionally empty. COMPOUND sample data lives only in the frontend demo fixture.
+-- Production members and snapshots must be added through an explicitly approved operation.
