@@ -12,6 +12,7 @@
     { "path": "/api/discover-lens-radar", "schedule": "0 9 * * 1" },
     { "path": "/api/discover-guest-scout", "schedule": "0 10 * * 1" },
     { "path": "/api/feed/ingest", "schedule": "30 11 * * *" },
+    { "path": "/api/investigations/run", "schedule": "0 21 * * 4" },
     { "path": "/api/shifts/detect", "schedule": "30 17 * * 5" },
     { "path": "/api/briefs/assemble", "schedule": "0 18 * * 5" },
     { "path": "/api/purge/run", "schedule": "0 14 * * 1" },

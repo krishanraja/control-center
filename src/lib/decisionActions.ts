@@ -387,6 +387,22 @@ export function buildDecisionActions(
             () => json(`/api/content-decisions/${row.id}`, { action: 'dismiss' }, 'PATCH'),
             'It expires Monday.', { terminal: true }),
         })
+      } else if (dKind === 'investigation') {
+        acts.push({
+          label: 'Open the evidence',
+          variant: 'primary',
+          onClick: async () => {
+            navigate?.('content', { idea: row.payload?.idea_id || row.ref })
+            onDone?.()
+          },
+        })
+        acts.push({
+          label: 'Not this week',
+          variant: 'secondary',
+          onClick: () => run('Dismiss',
+            () => json(`/api/content-decisions/${row.id}`, { action: 'dismiss' }, 'PATCH'),
+            'Shelved; the manifest stays attached.', { terminal: true }),
+        })
       } else if (dKind === 'brief_review') {
         acts.push({
           label: 'Open the brief',
