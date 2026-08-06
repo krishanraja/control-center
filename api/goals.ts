@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { weekOfLabel } from './_week.js'
 import { supabase } from './_supabase.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -16,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // goal at every altitude and WeeklyGoals rendered venture objectives
       // as weekly goals, which is why it never felt like one source of truth.
       supabase.from('goals').select('*').eq('horizon', 'weekly').order('created_at'),
-      supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus', 'week_of']),
+      supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus']),
       supabase.from('tasks').select('id, title, status, agent, weekly_goal_id').not('weekly_goal_id', 'is', null)
     ])
 
@@ -42,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       goals,
       north_star: config.north_star || '',
       team_focus: config.team_focus || '',
-      week_of: config.week_of || '',
+      week_of: weekOfLabel(),
       updated_at: new Date().toISOString()
     })
   }
@@ -61,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       progress: 0,
       notes: '',
       status: 'active',
-      week_of: 'Week of ' + new Date().toISOString().split('T')[0],
+      week_of: weekOfLabel(),
     }
     // Optional fields — only set when the caller provided them so we
     // don't overwrite column defaults with nulls.
@@ -164,13 +165,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const { data: goals } = await supabase.from('goals').select('*').order('created_at')
-    const { data: configs } = await supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus', 'week_of'])
+    const { data: configs } = await supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus'])
     const cfg: Record<string, string> = {}
     for (const c of configs || []) cfg[c.key] = c.value
 
     return res.json({
       ok: true,
-      goals: { goals: goals || [], north_star: cfg.north_star || '', team_focus: cfg.team_focus || '', week_of: cfg.week_of || '' }
+      goals: { goals: goals || [], north_star: cfg.north_star || '', team_focus: cfg.team_focus || '', week_of: weekOfLabel() }
     })
   }
 

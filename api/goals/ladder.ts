@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { weekOfLabel } from '../_week.js'
 
 // GET /api/goals/ladder
 //
@@ -29,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .order('priority', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true }),
     supabase.from('goals_health').select('id, is_stale, orphaned, days_since_touch, stale_after_days'),
-    supabase.from('system_config').select('key, value').in('key', ['north_star', 'team_focus', 'week_of']),
+    supabase.from('system_config').select('key, value').in('key', ['north_star', 'team_focus']),
   ])
 
   const err = goalsRes.error || healthRes.error || cfgRes.error
@@ -65,6 +66,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     orphan_count: rows.filter(r => r.orphaned).length,
     north_star: cfg.north_star || '',
     team_focus: cfg.team_focus || '',
-    week_of: cfg.week_of || '',
+    // Derived, never read from config: a stored week label is wrong the
+    // moment the week turns, and it was showing April in August.
+    week_of: weekOfLabel(),
   })
 }
