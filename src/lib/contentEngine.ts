@@ -10,11 +10,6 @@ export function contentEngineEnabled(): boolean {
   return String(import.meta.env.VITE_CONTENT_ENGINE_ENABLED) === 'true'
 }
 
-/** Content tab rebuild flag (see docs/plans/content-tab-rebuild). Default OFF. */
-export function contentRebuildEnabled(): boolean {
-  return String(import.meta.env.VITE_CONTENT_REBUILD_ENABLED) === 'true'
-}
-
 // ── The single source of truth for the content state machine ─────────────
 // Every surface (lanes list, triage deck, the right-rail decision actions, the
 // pipeline hook) imports from HERE. No surface may redefine the advance map,
