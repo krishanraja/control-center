@@ -64,7 +64,7 @@ export function TouchpointMap({ g, variant }: { g: GrowthData; variant: 'desktop
   return (
     <div className="space-y-4 pb-8">
       <SectionHead
-        title="Touchpoint map"
+        title="Where your buyers already are"
         sub="Every place the ICP already is, per product. Coverage and cost efficiency save the moment you change them."
         action={
           <button type="button" onClick={() => setAdding(a => !a)} className={BTN_PRIMARY}>
@@ -216,8 +216,8 @@ function Row({ t, variant, onSave, onAnswer }: {
       value={t.cost_efficiency_score ?? ''}
       onChange={e => onSave(t.id, { cost_efficiency_score: e.target.value === '' ? null : Number(e.target.value) })}
       className={`${SELECT_CLS} border-white/10 text-white/80 tabular-nums w-full`}
-      aria-label="Cost efficiency score, 1 to 10"
-      title="Cost efficiency, 1 to 10"
+      aria-label="How cheap is it to reach them here (1 to 10)"
+      title="How cheap to reach them (1 to 10)"
     >
       <option value="">-</option>
       {SCORE_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -257,7 +257,7 @@ function Row({ t, variant, onSave, onAnswer }: {
             onChange={e => setAnswer(e.target.value)}
             rows={2}
             autoFocus
-            placeholder="Your answer. It gets filed onto this touchpoint as evidence."
+            placeholder="Your answer. It gets saved here as evidence."
             className={INPUT_CLS}
           />
           <div className="flex gap-2">
@@ -365,12 +365,12 @@ function AddTouchpoint({ g, onDone }: { g: GrowthData; onDone: () => void }) {
           </select>
         </Field>
         <Field label="ICP trigger" wide>
-          <input value={form.icp_trigger} onChange={set('icp_trigger')} className={INPUT_CLS} placeholder="The question or moment the ICP already has" />
+          <input value={form.icp_trigger} onChange={set('icp_trigger')} className={INPUT_CLS} placeholder="What they are already asking, in their words" />
         </Field>
-        <Field label="Watering hole" wide>
-          <input value={form.watering_hole} onChange={set('watering_hole')} className={INPUT_CLS} placeholder="Where exactly: the query, the sub, the newsletter, the surface" />
+        <Field label="Where they gather" wide>
+          <input value={form.watering_hole} onChange={set('watering_hole')} className={INPUT_CLS} placeholder="Where exactly: the search, the subreddit, the newsletter, the event" />
         </Field>
-        <Field label="Cost efficiency, 1 to 10">
+        <Field label="How cheap to reach them (1 to 10)">
           <select value={form.cost_efficiency_score} onChange={set('cost_efficiency_score')} className={`${INPUT_CLS} cursor-pointer`}>
             <option value="">Not scored yet</option>
             {SCORE_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -385,10 +385,10 @@ function AddTouchpoint({ g, onDone }: { g: GrowthData; onDone: () => void }) {
           <input value={form.owner_agent} onChange={set('owner_agent')} className={INPUT_CLS} placeholder="cleo, maya, nell, krish" />
         </Field>
         <Field label="Open question (optional)">
-          <input value={form.assumption_flag} onChange={set('assumption_flag')} className={INPUT_CLS} placeholder="What this row is still assuming" />
+          <input value={form.assumption_flag} onChange={set('assumption_flag')} className={INPUT_CLS} placeholder="What we are still guessing about this" />
         </Field>
         <Field label="Rationale" wide>
-          <textarea value={form.rationale} onChange={set('rationale')} rows={2} className={INPUT_CLS} placeholder="Why this touchpoint earns a place on the map" />
+          <textarea value={form.rationale} onChange={set('rationale')} rows={2} className={INPUT_CLS} placeholder="Why this place is worth your time" />
         </Field>
       </div>
       <div className="flex gap-2 mt-3">

@@ -32,11 +32,15 @@ import { GovernancePanel } from './GovernancePanel'
 export type GrowthSectionId = 'map' | 'work' | 'signals' | 'council' | 'governance'
 
 const SECTIONS: Array<{ id: GrowthSectionId; label: string }> = [
-  { id: 'map', label: 'Map' },
-  { id: 'work', label: 'Work' },
-  { id: 'signals', label: 'Signals' },
-  { id: 'council', label: 'Council' },
-  { id: 'governance', label: 'Governance' },
+  // Krish: "I find the laguage used over complicated and hard to understand
+  // what everything actually is, full of jargon". Section names now say what
+  // the section IS, not what the subsystem behind it is called. The ids are
+  // unchanged so nothing downstream breaks.
+  { id: 'map', label: 'Where they are' },
+  { id: 'work', label: 'To do' },
+  { id: 'signals', label: "What's moving" },
+  { id: 'council', label: 'Weekly review' },
+  { id: 'governance', label: 'Spend limits' },
 ]
 
 export function GrowthTab({
