@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { GoalLadder } from '../goals/GoalLadder'
 import {
   MobileShell as MobileShellPrim,
   TabHeader,
@@ -16,7 +17,6 @@ import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { StreakPills } from '../StreakPills'
 import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
-import { ObjectivesPanel } from '../objectives/ObjectivesPanel'
 import { DailyDriver } from '../focus/DailyDriver'
 import { GlanceHeader } from '../home/GlanceHeader'
 import { DecisionsInbox } from '../home/DecisionsInbox'
@@ -119,6 +119,11 @@ export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }:
             now lives in the header (StaleHeaderCue) so the cards own the screen. */}
         <AltitudeSpine variant="mobile" onNavigate={onNavigate} showStaleCta={false} />
 
+        {/* THE GOAL LADDER. The live mobile branch had no goal surface at all,
+            so goals could only be entered on desktop. Same single editor, same
+            four rungs, above the ambient fold. */}
+        <GoalLadder variant="mobile" />
+
         {/* GROWTH SCOREBOARD — content subs / app subs / network at a glance. */}
         {isGrowthScoreboardEnabled() && <GrowthScoreboard variant="mobile" />}
 
@@ -172,10 +177,12 @@ export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }:
         {/* ACTION INBOX: your decisions, acted on in one tap. */}
         <DecisionsInbox onNavigate={onNavigate} deepTask={deepTask} deepDecision={deepDecision} />
 
-        {/* THE AMBIENT ROOM: the week + money / pipeline / momentum. Informs,
+        {/* THE GOAL LADDER: asks for input, so it sits above the fold. */}
+        <GoalLadder variant="mobile" />
+
+        {/* THE AMBIENT ROOM: money / pipeline / momentum. Informs,
             never asks; collapsed below the action loop. */}
         <PulseGroup>
-          <ObjectivesPanel variant="mobile" collapsible />
           <MrrTicker variant="mobile" />
           <RoomPreviews onNavigate={onNavigate} variant="mobile" />
           <CalibrationCard />
@@ -208,8 +215,9 @@ export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }:
       {/* MONEY MACHINE — live pulse with sparkline. */}
       <MrrTicker variant="mobile" />
 
-      {/* OBJECTIVE LAYER: Krish's multi-week unlocks. The week frames the day. */}
-      <ObjectivesPanel variant="mobile" />
+      {/* THE GOAL LADDER: one place to enter a goal at any altitude. Replaced
+          ObjectivesPanel + WeeklyGoals, which were two editors over one table. */}
+      <GoalLadder variant="mobile" />
 
       {/* DAILY SPINE — one journey: frame, lock 3, track, close. */}
       <DailyDriver />

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { GoalLadder } from '../goals/GoalLadder'
 import {
   Activity as ActivityIcon, ChevronRight,
   Pencil, Check, X, Compass,
@@ -10,7 +11,6 @@ import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { useHomeIntelligence } from '../../hooks/useHomeIntelligence'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { humanize } from '../shared/tokens'
-import { WeeklyGoals, type GoalsData } from '../WeeklyGoals'
 import { OsHealthStrip } from './OsHealthStrip'
 import { MrrTicker } from '../MrrTicker'
 import { DailyBriefBanner } from '../DailyBriefBanner'
@@ -20,7 +20,6 @@ import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
 import { BetsStrip } from '../home/BetsStrip'
 import { CalibrationCard } from '../home/CalibrationCard'
-import { ObjectivesPanel } from '../objectives/ObjectivesPanel'
 import { DailyDriver } from '../focus/DailyDriver'
 import { GlanceHeader } from '../home/GlanceHeader'
 import { DecisionsInbox } from '../home/DecisionsInbox'
@@ -88,7 +87,7 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
   const v2 = isHomeV2Enabled()
   const { intel } = useHomeIntelligence()
   const [events, setEvents] = useState<AuditEvent[]>([])
-  const [goalsData, setGoalsData] = useState<GoalsData | null>(null)
+  const [goalsData, setGoalsData] = useState<{ north_star: string; team_focus: string; week_of: string } | null>(null)
   const { tasks: waitingRaw } = useRealtimeTasks({ statusIn: ['waiting'] })
   // The shared queue rule (unreviewed, unburied, not deferred to a future
   // date) so the strip's Today tile and the ruling queue can never disagree.
@@ -152,6 +151,21 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
         {/* SPINE — portfolio / week / today + one button to set what's stale. */}
         <AltitudeSpine variant="desktop" onNavigate={onNavigate} />
 
+        {/* THE GOAL LADDER + the mission it serves. Above the fold on purpose:
+            this is the single place a goal is entered at any altitude, and
+            staleness here is urgent, so it cannot sit behind the ambient
+            collapse the way the old objectives panel did. */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <OsMissionHero
+            northStar={goalsData?.north_star}
+            teamFocus={goalsData?.team_focus}
+            weekOf={goalsData?.week_of}
+            recommendedFocus={recommendedFocus}
+            onSaveFocus={handleSaveFocus}
+          />
+          <GoalLadder variant="desktop" showFocus={false} onDataLoaded={setGoalsData} />
+        </div>
+
         {/* GROWTH SCOREBOARD — the three engines: content subs / app subs / network. */}
         {isGrowthScoreboardEnabled() && <GrowthScoreboard variant="desktop" />}
 
@@ -180,17 +194,6 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
           <StreakPills variant="desktop" />
 
           <OsHealthStrip onNavigate={onNavigate} approvalCount={waiting.length} live={live} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
-            <OsMissionHero
-              northStar={goalsData?.north_star}
-              teamFocus={goalsData?.team_focus}
-              weekOf={goalsData?.week_of}
-              recommendedFocus={recommendedFocus}
-              onSaveFocus={handleSaveFocus}
-            />
-            <WeeklyGoals variant="compact" onDataLoaded={setGoalsData} />
-          </div>
 
           <DailyBriefBanner blocking={false} variant="desktop" retroOnly />
 
@@ -224,7 +227,6 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
 
       {/* OBJECTIVE LAYER: Krish's multi-week unlocks. The week sits structurally
           above the day, so the daily spine below ladders up to it. */}
-      <ObjectivesPanel variant="desktop" />
 
       {/* DAILY SPINE — one journey: frame the day, lock 3, track, close.
           Replaces the old NextAction / carry-over / bar / calibrator / top-three
@@ -237,6 +239,19 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
           Under the simplified IA it renders unconditionally: Today is gone, so
           Home must always carry the ruling queue regardless of the home flags. */}
       {(v2 || isSimplifiedIA()) && <DecisionsInbox onNavigate={onNavigate} deepTask={deepTask} deepDecision={deepDecision} />}
+
+      {/* THE GOAL LADDER + the mission it serves. Asks for input, so it stays
+          above the ambient fold. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <OsMissionHero
+          northStar={goalsData?.north_star}
+          teamFocus={goalsData?.team_focus}
+          weekOf={goalsData?.week_of}
+          recommendedFocus={recommendedFocus}
+          onSaveFocus={handleSaveFocus}
+        />
+        <GoalLadder variant="desktop" showFocus={false} onDataLoaded={setGoalsData} />
+      </div>
 
       {/* THE AMBIENT ROOM: everything below informs but never asks. Collapsed
           behind an explicit fold so the action loop above owns the screen. */}
@@ -265,20 +280,6 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
           approvalCount={waiting.length}
           live={live}
         />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
-          <OsMissionHero
-            northStar={goalsData?.north_star}
-            teamFocus={goalsData?.team_focus}
-            weekOf={goalsData?.week_of}
-            recommendedFocus={recommendedFocus}
-            onSaveFocus={handleSaveFocus}
-          />
-          <WeeklyGoals
-            variant="compact"
-            onDataLoaded={setGoalsData}
-          />
-        </div>
 
         {/* WEEKLY RETRO: retro-only. The brief now lives in the daily spine's
             ContextHeader, so this surface carries only the Friday retro. */}
