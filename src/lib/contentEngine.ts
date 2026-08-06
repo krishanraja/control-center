@@ -453,6 +453,10 @@ export const LANES: LaneDef[] = [
 
 export interface LaneAdapt { value: string; label: string; hint: string }
 
+// CONSTRAINT: `value` is used verbatim as the corpus lookup key by
+// api/content-ideas/[id]/revise.ts (corpusForChannel(corpus, adaptMatch[1])).
+// It MUST be a key in CHANNEL_HEADING in api/_content.ts, or the adapt
+// silently loses its channel corpus and degrades to a generic rewrite.
 export const LANE_ADAPTS: LaneAdapt[] = [
   {
     value: 'linkedin',
@@ -464,20 +468,23 @@ export const LANE_ADAPTS: LaneAdapt[] = [
     label: 'Signal & Noise',
     hint: 'Adapt this for the Signal & Noise audience. Exec-to-exec authority (Gear A), ~300-500 words, separate the durable signal from the noise, name what most people get wrong ("Not X, Y"), commercially grounded, hard verdict ending.',
   },
+  // MYMU is a venture, never an adapt target. Adapting to "MYMU" was
+  // meaningless: it has three formats with three different registers, and
+  // offering the venture as one option is what made the composer feel stale.
   {
-    value: 'makeyourmindup',
-    label: 'MYMU',
-    hint: 'Adapt this for MYMU. Teaching voice (Gear A), ~400-700 words, every paragraph advances the argument and carries a so-what, ground claims in the artifact, end on a forward verdict.',
-  },
-  {
-    value: 'mymu_teardown',
+    value: 'investigation',
     label: 'MYMU: Teardown',
-    hint: 'Adapt this into a MYMU: Teardown, the investigative register that came over from Techonomic. Take one load-bearing claim apart and check each part against dated evidence. Attribute every number to the party that produced it. Hold one genuine counterpoint. Say plainly where the knowable record ends rather than papering over it, and end on the terminal question the evidence actually leaves open. No summary ending, no vendor framing.',
+    hint: 'Adapt this into a MYMU: Teardown, the investigative register that came over from Techonomic. Take one load-bearing claim apart and check each part against dated evidence. Attribute every number to the party that produced it. Hold one genuine counterpoint. Say plainly where the knowable record ends rather than papering over it, and end on the terminal question the evidence actually leaves open. No summary ending, no vendor framing. The register is dry and sarcastic; the evidence handling is not. The joke is never the finding.',
   },
   {
-    value: 'builder_economy',
-    label: 'Builder Economy (IG)',
-    hint: 'Adapt this for Builder Economy on Instagram. Punchy, builder-in-the-room (Gear B), short stacked lines that read well on mobile, one idea, a concrete artifact, a verdict that lands. No corporate tone.',
+    value: 'mymu_weekly',
+    label: 'Make Your Mind Up',
+    hint: 'Adapt this into the Make Your Mind Up weekly. Open on the Best / Worst / Ugliest triptych, then ONE real decision a leader faces this week with two genuinely defensible answers, then commit to one in public with a date, then Wrong Last Week. 500-800 words, Gear A with the house register on. Sarcasm aims at claims and incentives, never at a named person. The commitment and the revisit are the format, so never soften them into "it depends".',
+  },
+  {
+    value: 'built',
+    label: 'MYMU: Built',
+    hint: 'Adapt this into a MYMU: Built piece. A conversation with someone who actually built something in the AI era, dug past what they built to why they really built it. Gear B, generous and human, 400-800 words. This is the one MYMU format where the house sarcasm dials down: aim any irony at the industry around the builder, never at the builder. The guest must finish the piece looking more human, not more foolish.',
   },
 ]
 

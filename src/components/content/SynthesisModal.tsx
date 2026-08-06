@@ -3,18 +3,21 @@ import { Sparkles, X, Loader2, GitMerge } from 'lucide-react'
 import { useToast } from '../shared/Toast'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 
+// Venture + format, mirroring venture_formats. These were lanes from the old
+// model, which is why Instagram (a channel) appeared here as a venture value.
 interface LaneChoice {
-  lane: 'signal_noise' | 'mindmaker' | 'builder_economy_ig'
+  lane: 'mymu' | 'signal_noise' | 'builder_economy'
   slot?: string | null
   label: string
   description: string
 }
 
 const LANES: LaneChoice[] = [
-  { lane: 'signal_noise', label: 'Signal & Noise', description: 'Exec-to-exec, ~300-500 words. Separate the durable signal from the noise.' },
-  { lane: 'mindmaker', slot: 'roundup', label: 'Mindmaker — roundup', description: 'Curated narrative roundup; each item carries a so-what.' },
-  { lane: 'mindmaker', slot: 'field_learning', label: 'Mindmaker — field learning', description: 'Builder-in-the-room. ~400-700 words on the lesson the field is teaching.' },
-  { lane: 'builder_economy_ig', label: 'Builder Economy (IG)', description: 'Punchy mobile-first stack. One idea, one artifact, one verdict.' },
+  { lane: 'mymu', slot: 'investigation', label: 'MYMU: Teardown', description: 'The hero. Take one load-bearing claim apart against dated evidence, end where the record runs out.' },
+  { lane: 'mymu', slot: 'weekly', label: 'Make Your Mind Up', description: 'The weekly. Best / Worst / Ugliest, then one real decision you commit to in public with a date.' },
+  { lane: 'mymu', slot: 'built', label: 'MYMU: Built', description: 'Someone who actually built something, and why they really built it. Warm, Gear B.' },
+  { lane: 'signal_noise', slot: 'episode', label: 'Signal & Noise', description: 'Exec-to-exec, ~300-500 words. Separate the durable signal from the noise.' },
+  { lane: 'builder_economy', slot: 'episode', label: 'Builder Economy', description: 'Its own show and feed. Feeds MYMU: Built rather than being replaced by it.' },
 ]
 
 interface Props {
