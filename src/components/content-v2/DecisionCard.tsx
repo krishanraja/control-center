@@ -7,7 +7,7 @@ import type { ContentDecisionRow } from '../../lib/contentV2'
 
 const KIND_CHIP: Record<string, { label: string; cls: string }> = {
   brief_review: { label: 'Weekly brief', cls: 'bg-sky-400/15 text-sky-300' },
-  shift_proposal: { label: 'New shift proposed', cls: 'bg-emerald-400/15 text-emerald-300' },
+  shift_proposal: { label: 'Shift detected automatically', cls: 'bg-emerald-400/15 text-emerald-300' },
   shift_fading: { label: 'Shift losing momentum', cls: 'bg-amber-400/15 text-amber-300' },
   graduation: { label: 'Graduation', cls: 'bg-sky-400/15 text-sky-300' },
   purge_preview: { label: 'Sunday purge', cls: 'bg-amber-400/15 text-amber-300' },
@@ -50,7 +50,11 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
 
   const subtitle =
     d.kind === 'shift_proposal'
-      ? `Cleared the recurrence gate: ${p.stories ?? '?'} stories, ${p.day_span ?? '?'} days, ${p.sources ?? '?'} sources.${p.nearest?.title ? ` Nearest existing: ${p.nearest.title}.` : ''}`
+      // Krish asked what this button actually does and whether the system spots
+      // shifts on its own. It does (api/shifts/detect.ts, Fridays) and this card
+      // IS that output. The copy now says so, and says where Accept sends it,
+      // because a bare "Accept" made an automatic system look manual.
+      ? `The weekly sweep found this on its own: ${p.stories ?? '?'} stories across ${p.day_span ?? '?'} days from ${p.sources ?? '?'} distinct sources. Tracking it moves it to the Shifts room, where it is watched over time and its evidence accumulates.${p.nearest?.title ? ` Closest one you already track: ${p.nearest.title}.` : ''}`
     : d.kind === 'shift_fading' ? `No qualifying evidence since ${p.last_evidence_on || 'a while'}. Retire it with a verdict, or keep watching.`
     : d.kind === 'graduation' ? 'Move it to the Library with its receipts, or let it purge.'
     : d.kind === 'purge_preview' ? 'Nothing needs you. Tap only to rescue something before it goes.'
@@ -62,8 +66,8 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
     if (d.kind === 'brief_review') return <Btn primary onClick={onOpenBrief} disabled={busy}>Open the brief</Btn>
     if (d.kind === 'shift_proposal') return (
       <>
-        <Btn primary disabled={busy} onClick={() => onAct(() => v2.ruleShift(d.ref, 'accept'))}>Accept</Btn>
-        <Btn disabled={busy} onClick={() => onAct(() => v2.ruleShift(d.ref, 'dismiss'))}>Dismiss</Btn>
+        <Btn primary disabled={busy} onClick={() => onAct(() => v2.ruleShift(d.ref, 'accept'))}>Track as a shift</Btn>
+        <Btn disabled={busy} onClick={() => onAct(() => v2.ruleShift(d.ref, 'dismiss'))}>Not a shift</Btn>
       </>
     )
     if (d.kind === 'shift_fading') return (
