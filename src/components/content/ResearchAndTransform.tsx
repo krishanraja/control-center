@@ -7,11 +7,14 @@ import { useHaptics } from '../../hooks/useHaptics'
 interface DeepDive { query: string; findings: string; citations?: string[]; at: string }
 
 interface TransformTarget { lane: ContentLane; slot?: string; label: string }
+// Venture + format, mirroring venture_formats. Transform moves a researched
+// idea into another venture's format, each in that format's krish-voice gear.
 const TRANSFORM_TARGETS: TransformTarget[] = [
-  { lane: 'signal_noise', label: 'Signal & Noise' },
-  { lane: 'mindmaker', slot: 'roundup', label: 'Mindmaker · roundup' },
-  { lane: 'mindmaker', slot: 'field_learning', label: 'Mindmaker · field' },
-  { lane: 'builder_economy_ig', label: 'Builder Economy · IG' },
+  { lane: 'mymu', slot: 'teardown', label: 'MYMU: Teardown' },
+  { lane: 'mymu', slot: 'weekly', label: 'Make Your Mind Up' },
+  { lane: 'mymu', slot: 'built', label: 'MYMU: Built' },
+  { lane: 'signal_noise', slot: 'episode', label: 'Signal & Noise' },
+  { lane: 'builder_economy', slot: 'episode', label: 'Builder Economy' },
 ]
 
 /**

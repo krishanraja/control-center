@@ -27,7 +27,21 @@ export interface LaneDef {
   voice: string
 }
 
+// The board's top-level toggle is now the VENTURE picker: "what am I working
+// on", chosen before any work happens (Krish 2026-08-06). It used to be a lane,
+// which fused this with "where does it go" and put Instagram (a channel) in the
+// same list as two ventures.
 export const LANES: LaneDef[] = [
+  {
+    slug: 'mymu',
+    label: 'MYMU',
+    short: 'MYMU',
+    accent: 'text-violet-300',
+    activeBg: 'bg-violet-500/20 border-violet-400/50 text-violet-100',
+    cadenceLabel: '2 / week',
+    targetPerWeek: 2,
+    voice: 'Gear A · Teardown, the weekly, and Built',
+  },
   {
     slug: 'signal_noise',
     label: 'Signal & Noise',
@@ -36,27 +50,17 @@ export const LANES: LaneDef[] = [
     activeBg: 'bg-sky-500/20 border-sky-400/50 text-sky-100',
     cadenceLabel: '1 every ~2 weeks',
     targetPerWeek: 0.5,
-    voice: 'Gear A · open-web monetization in media/adtech/martech',
+    voice: 'Gear B · co-hosted, its own feed',
   },
   {
-    slug: 'mindmaker',
-    label: 'Mindmaker',
-    short: 'MM',
-    accent: 'text-violet-300',
-    activeBg: 'bg-violet-500/20 border-violet-400/50 text-violet-100',
-    cadenceLabel: '2 / week',
-    targetPerWeek: 2,
-    voice: 'Gear A roundup + Gear B field-learning',
-  },
-  {
-    slug: 'builder_economy_ig',
+    slug: 'builder_economy',
     label: 'Builder Economy',
-    short: 'BE · IG',
+    short: 'BE',
     accent: 'text-emerald-300',
     activeBg: 'bg-emerald-500/20 border-emerald-400/50 text-emerald-100',
-    cadenceLabel: 'daily',
-    targetPerWeek: 7,
-    voice: 'Gear B · upbeat, what people built with AI',
+    cadenceLabel: 'per episode',
+    targetPerWeek: 0.5,
+    voice: 'Gear B · its own show and feed; feeds MYMU: Built',
   },
 ]
 
@@ -71,14 +75,16 @@ export const LANE_BY_SLUG: Record<ContentLane, LaneDef> = Object.fromEntries(
  * returns null so callers can treat it as unlaned rather than crash.
  */
 const LEGACY_LANE_ALIAS: Record<string, ContentLane> = {
-  techonomic: 'mindmaker',
-  mindmaker_live: 'mindmaker',
-  makeyourmindup: 'mindmaker',
+  techonomic: 'mymu',
+  mindmaker_live: 'mymu',
+  makeyourmindup: 'mymu',
   // 2026-08-06 venture/format/channel split: MYMU is its own venture now, and
   // Instagram stopped being one. Both still read as the Mindmaker display lane
   // so historical rows keep a home on the board.
-  mymu: 'mindmaker',
-  builder_economy_ig: 'builder_economy_ig',
+  // Everything that used to be a Mindmaker-lane row now displays under MYMU.
+  mindmaker: 'mymu',
+  // Instagram stopped being a venture; those rows belong to MYMU now.
+  builder_economy_ig: 'mymu',
 }
 
 export function normalizeLane(lane?: string | null): ContentLane | null {
