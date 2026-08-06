@@ -21,14 +21,15 @@ import {
 // word (no auto-publish; PUB-001 intact).
 
 const FACTORY_CHANNELS = new Set([
-  'signal_noise', 'mindmaker_live', 'linkedin',
+  'signal_noise', 'makeyourmindup', 'linkedin',
   'builder_economy', 'vertical_video', 'dynamic',
 ])
 
 // Retired channels a stored row or a stale browser tab can still send. Techonomic
-// was retired 2026-08-06 and folded into Mindmaker LIVE, so it maps instead of
-// 400-ing: a draft in flight when the brand went away still saves.
-const RETIRED_CHANNELS: Record<string, string> = { techonomic: 'mindmaker_live' }
+// was retired 2026-08-06 and folded into MYMU, and 'mindmaker_live' was the
+// interim channel slug before the rename, so both map instead of 400-ing: a
+// draft in flight when the brand went away still saves.
+const RETIRED_CHANNELS: Record<string, string> = { techonomic: 'makeyourmindup', mindmaker_live: 'makeyourmindup' }
 
 function resolveChannel(c?: string | null): string | null {
   if (!c) return null
@@ -52,11 +53,13 @@ interface FinalPassShip {
 // lane (+slot) -> factory channel. Mirrors src/lib/contentEngine.ts LANES.
 function laneToChannel(lane?: string | null, slot?: string | null): string {
   if (lane === 'signal_noise') return 'signal_noise'
-  if (lane === 'mindmaker') return slot === 'field_learning' ? 'linkedin' : 'mindmaker_live'
+  // Both the weekly shapes and MYMU: Teardown publish to the same channel; the
+  // teardown slot differs by rubric and corpus playbook, not by destination.
+  if (lane === 'mindmaker') return slot === 'field_learning' ? 'linkedin' : 'makeyourmindup'
   if (lane === 'builder_economy_ig') return 'builder_economy'
   // Legacy stored lanes: both the retired brand and the value its rows were
-  // re-laned to now polish into the Mindmaker LIVE format.
-  if (lane === 'techonomic' || lane === 'mindmaker_live') return 'mindmaker_live'
+  // re-laned to now polish into the MYMU format.
+  if (lane === 'techonomic' || lane === 'mindmaker_live' || lane === 'makeyourmindup') return 'makeyourmindup'
   return 'dynamic'
 }
 

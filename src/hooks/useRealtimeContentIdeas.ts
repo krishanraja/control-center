@@ -37,11 +37,13 @@ export type ContentLane =
 
 /**
  * Lane values that can still be sitting on a stored row. Techonomic was retired
- * as a brand on 2026-08-06 and folded into Mindmaker LIVE, and the rows that
- * carried it were re-laned to 'mindmaker_live'. Neither value is offered as a
- * new choice; both normalize to 'mindmaker' for display (contentLanes.normalizeLane).
+ * as a brand on 2026-08-06 and folded into MYMU; its rows were first re-laned to
+ * 'mindmaker_live', which was then itself renamed to the channel slug
+ * 'makeyourmindup' the same day. None of the three is offered as a new choice;
+ * all normalize to 'mindmaker' for display (contentLanes.normalizeLane).
  */
-export type StoredContentLane = ContentLane | 'mindmaker_live' | 'techonomic'
+export type StoredContentLane =
+  | ContentLane | 'makeyourmindup' | 'mindmaker_live' | 'techonomic'
 
 /**
  * Container for Cleo's derivative outputs keyed by target format. Cleo's

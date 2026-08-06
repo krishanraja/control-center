@@ -26,7 +26,7 @@
 // Mindmaker is one lane with two shapes, so it is two ventures here: the Live
 // roundup/perspective/resource surface and the LinkedIn field-learning post.
 //
-// 'investigation' is the third Mindmaker LIVE shape: the long-form teardown that
+// 'investigation' is the MYMU: Teardown shape: the long-form teardown that
 // takes a claim apart, checks each part against dated evidence, and publishes
 // where the knowable ends. It used to be a separate brand (Techonomic, retired
 // 2026-08-06). It is a FORMAT now, not a destination, and it keeps the hardest
@@ -35,7 +35,7 @@
 export type VentureKey =
   | 'investigation'
   | 'signal_noise'
-  | 'mindmaker_live'
+  | 'makeyourmindup'
   | 'mindmaker_field'
   | 'builder_economy'
   | 'dynamic'
@@ -43,12 +43,17 @@ export type VentureKey =
 /** lane (+slot) -> venture rubric key. Mirrors laneToFactoryChannel / save-draft. */
 export function laneToVenture(lane?: string | null, slot?: string | null): VentureKey {
   if (lane === 'signal_noise') return 'signal_noise'
-  if (lane === 'mindmaker') return slot === 'field_learning' ? 'mindmaker_field' : 'mindmaker_live'
+  if (lane === 'mindmaker') {
+    if (slot === 'field_learning') return 'mindmaker_field'
+    // MYMU: Teardown is the investigation register, so it takes the hard rubric.
+    if (slot === 'investigation') return 'investigation'
+    return 'makeyourmindup'
+  }
   if (lane === 'builder_economy_ig') return 'builder_economy'
   // Legacy stored values, mapped rather than rejected. Rows laned to the retired
   // Techonomic brand keep the investigation rubric they were written against.
   if (lane === 'techonomic') return 'investigation'
-  if (lane === 'mindmaker_live') return 'mindmaker_live'
+  if (lane === 'mindmaker_live' || lane === 'makeyourmindup') return 'makeyourmindup'
   return 'dynamic'
 }
 
@@ -124,9 +129,9 @@ const INVESTIGATION_LENSES: Lens[] = [
 const RUBRICS: Record<VentureKey, VentureRubric> = {
   investigation: {
     key: 'investigation',
-    label: 'Mindmaker LIVE (investigation)',
+    label: 'MYMU: Teardown',
     corpusChannel: 'investigation',
-    mandate: 'Long-form investigation on the economics of AI, published to Mindmaker LIVE. Take a claim, decompose it, verify each part against dated evidence, say where the knowable ends. Exec-to-exec authority (Gear A). The flagship format.',
+    mandate: 'Long-form investigation on the economics of AI, published to MYMU as a Teardown. Take a claim, decompose it, verify each part against dated evidence, say where the knowable ends. Exec-to-exec authority (Gear A). The flagship format.',
     leadWith: 'Evidence and proof, layered through a unique combination of lenses. Open on a fact, a number, or a primary source, never an opinion.',
     instantFail: [
       'The piece is opinion-only: it asserts a position without evidence, proof, or a primary source behind it.',
@@ -168,10 +173,10 @@ const RUBRICS: Record<VentureKey, VentureRubric> = {
     unverifiedClaim: 'flag',
   },
 
-  mindmaker_live: {
-    key: 'mindmaker_live',
-    label: 'Mindmaker Live',
-    corpusChannel: 'mindmaker_live',
+  makeyourmindup: {
+    key: 'makeyourmindup',
+    label: 'MYMU',
+    corpusChannel: 'makeyourmindup',
     mandate: 'One of three shapes: (1) current headlines a leader must be across, (2) perspectives on the future of AI in business (opinion and experience led), or (3) resources (kits, packs, videos, templates).',
     leadWith: 'The shape decides the open. Headlines: the headline and why it matters now. Perspective: the claim. Resource: what it is and who it is for.',
     instantFail: [],
@@ -183,7 +188,7 @@ const RUBRICS: Record<VentureKey, VentureRubric> = {
     notes: [
       'This venture flexes on tone and structure across its three shapes. It does NOT flex on the voice absolutes (no em dashes, no two-word stacks, dropped pronouns, no warm-up, hard ending).',
       'Detect the shape first (headline / perspective / resource) and judge it against that shape, not a generic essay.',
-      'The long-form investigation is a fourth Mindmaker LIVE shape with its own, harder rubric (venture "investigation"). If this draft is a full teardown, it belongs there, not here.',
+      'The long-form investigation is a fourth MYMU shape, published as MYMU: Teardown, with its own harder rubric (venture "investigation"). If this draft is a full teardown, it belongs there, not here.',
     ],
     unverifiedClaim: 'flag',
   },

@@ -40,7 +40,7 @@ const CUSTOMER_PRODUCTS: Record<ProductSlug, string[]> = {
   circle: ['fractionl_circle'],
   pulse: ['fractionl_pulse'],
   'full-time': ['full_time'],
-  mindmaker: ['mindmaker', 'mindmaker_live'],
+  mindmaker: ['mindmaker', 'makeyourmindup', 'mindmaker_live'],
 }
 
 // Products that emit into the attribution warehouse do so under an `app` name.

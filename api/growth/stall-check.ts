@@ -43,7 +43,7 @@ const WATCHED_KEYS = [
 ] as const
 
 const KEY_LABEL: Record<string, string> = {
-  substack_mindmakerlive_total: 'Mindmaker Live Substack subscribers',
+  substack_mindmakerlive_total: 'MYMU Substack subscribers',
   substack_tech0nomic_total: 'Techonomic Substack subscribers (retired)',
   maven_students: 'Maven students',
   app_paid_subs: 'paid app subscribers',

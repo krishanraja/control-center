@@ -23,7 +23,7 @@ export function LaneToggle({
   const h = useHaptics()
   const now = nowMs()
   // normalizeLane so rows carrying a retired lane value (Techonomic, folded into
-  // Mindmaker LIVE on 2026-08-06) still count against the lane they now live in.
+  // MYMU on 2026-08-06) still count against the lane they now live in.
   const activeCount = (lane: ContentLane) =>
     ideas.filter(i => normalizeLane(i.lane) === lane && i.state !== 'dropped' && i.state !== 'published').length
 
