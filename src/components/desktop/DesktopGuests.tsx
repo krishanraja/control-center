@@ -5,6 +5,7 @@ import { useRealtimeGuests, type GuestRow, type GuestStatus, type GuestPodcastTa
 import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'
 import { SwipeCockpit } from '../shared/SwipeCockpit'
 import { buildGuestsTriageConfig, buildVisibilityTargetsTriageConfig } from '../../lib/triageConfig'
+import { dismissTriageToday, triageDismissedToday } from '../../lib/triageDismissal'
 import { useToast } from '../shared/Toast'
 import { GuestImportDropzone } from '../GuestImportDropzone'
 import { VisibilityImportDropzone } from '../VisibilityImportDropzone'
@@ -110,6 +111,7 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
   const guestConfig = useMemo(() => buildGuestsTriageConfig(guests, { toast }, guestsLoading), [guests, toast, guestsLoading])
   const targetConfig = useMemo(() => buildVisibilityTargetsTriageConfig(targets, { toast }, targetsLoading), [targets, toast, targetsLoading])
   const triageConfig = lane === 'inbound' ? guestConfig : targetConfig
+  const triageSurface = lane === 'inbound' ? 'guests' : 'visibility'
 
   // v2 idiom: land in the bounded typed queue when one is waiting; closing it
   // browses the status lanes without a mid-session re-open.
@@ -118,6 +120,9 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
     // Landing decision happens exactly once, on the first settled load; a
     // later realtime arrival must never yank the user into the deck mid-task.
     autoOpenedRef.current = true
+    // A ref only survives this mount, so leaving the tab and returning used to
+    // re-trigger the deck. Dismissal is now remembered for the civil day.
+    if (triageDismissedToday(triageSurface)) return
     if (triageConfig.items.length > 8) setTriageOpen(true)
   }, [loading, triageConfig.items.length])
 
@@ -192,9 +197,9 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
           </span>
         </header>
         {lane === 'inbound' ? (
-          <SwipeCockpit config={guestConfig} onExit={() => setTriageOpen(false)} onNavigate={onNavigate} />
+          <SwipeCockpit config={guestConfig} onExit={() => { dismissTriageToday(triageSurface); setTriageOpen(false) }} onNavigate={onNavigate} />
         ) : (
-          <SwipeCockpit config={targetConfig} onExit={() => setTriageOpen(false)} onNavigate={onNavigate} />
+          <SwipeCockpit config={targetConfig} onExit={() => { dismissTriageToday(triageSurface); setTriageOpen(false) }} onNavigate={onNavigate} />
         )}
       </div>
     )

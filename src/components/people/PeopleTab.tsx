@@ -47,8 +47,20 @@ export function PeopleTab({ narrow, params, onNavigate }: Props) {
     <div
       role="tablist"
       aria-label="People lanes"
+      // Krish: "in light mode the pipeline/network/visibility buttons in the top
+      // right of the people tab are not visible and they are too far in the
+      // corner/out of sight for very important buttons."
+      //
+      // TWO bugs. (1) `bg-black/70` is the only colour here that is NOT theme
+      // remapped: tailwind.config maps `white` to --fg so it flips to ink in
+      // light mode, but `black` stays black. Result: ink text on a black pill,
+      // invisible on paper. Uses the `base` token now, which flips. (2) A fixed
+      // pill in the top-right corner is the worst position on a phone: furthest
+      // from the thumb and easy to miss. It is now a full-width segmented
+      // control in the normal flow, where the lane switch is legible and
+      // reachable.
       className={narrow
-        ? 'fixed top-2 right-3 z-40 flex gap-0.5 rounded-full border border-white/10 bg-black/70 backdrop-blur px-1 py-0.5'
+        ? 'flex gap-1 mb-3 rounded-xl border border-white/10 bg-base/80 backdrop-blur p-1'
         : 'flex gap-1 mb-4'}
     >
       {LANES.map(l => (
@@ -58,7 +70,10 @@ export function PeopleTab({ narrow, params, onNavigate }: Props) {
           aria-selected={lane === l.id}
           onClick={() => setLane(l.id)}
           className={narrow
-            ? `px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors ${lane === l.id ? 'bg-white/15 text-white' : 'text-white/45'}`
+            // flex-1 so the three lanes split the width evenly and each is a
+            // real tap target rather than a 10px pill.
+            ? `flex-1 min-h-[38px] rounded-lg text-[12px] font-semibold transition-colors ${
+                lane === l.id ? 'bg-white/15 text-white' : 'text-white/55'}`
             : `px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors ${
                 lane === l.id
                   ? 'border-white/20 bg-white/[0.08] text-white'
