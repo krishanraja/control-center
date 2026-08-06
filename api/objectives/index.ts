@@ -70,8 +70,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: rows, error } = await q
     if (error) return res.status(500).json({ ok: false, error: error.message })
 
-    const { data: countData } = await supabase.rpc('count_active_objectives')
-    const active_count = typeof countData === 'number' ? countData : null
+    // Counted with the SAME horizon filter as the list above, not via the
+    // count_active_objectives RPC. That RPC predates the horizon column and
+    // counted every active goal, so entering a single OS goal made the Home
+    // spine announce "1 active objective" while the objectives list was empty.
+    // The count and the list must come from one predicate or they will drift
+    // again the next time a horizon is added.
+    const { count: activeCount } = await supabase
+      .from('goals')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active')
+      .or('horizon.eq.venture_objective,horizon.is.null')
+    const active_count = typeof activeCount === 'number' ? activeCount : null
 
     // Attach the count of Marcus-proposed (unratified) milestones per objective so
     // the Home altitude spine can flag Portfolio as needing attention without a
