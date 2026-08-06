@@ -2,17 +2,17 @@
 
 ## Verdict
 
-The approved dashboard remains the complete home screen and the new question flow works as a separate, reversible route in the tested local sample-data build. The primary mobile and desktop tasks are usable with a keyboard, reduced motion and partial, quiet and stale data. Live authentication, Supabase persistence and provider output are not certified because the migration, function secrets and deployment remain intentionally unapplied.
+The approved dashboard remains the complete home screen and the new question flow works as a separate, reversible route. Local mobile and desktop cases pass. Production infrastructure is live at `https://compound.krishraja.com`; the sign-in shell, headers, JWT gate, Supabase schema and anonymous denial are certified. Signed-in persistence and provider output are not certified because Supabase Auth has zero users and no email may be inferred.
 
 ## Scope and evidence
 
 - Repository and source revision: `C:\Users\krish\dev\control-center`, `feat/compound-foundation`, uncommitted working tree based on `09c0f88750774f014a91d493e86d9acc50065a7c`
-- Deployment URL, environment and deployed revision: temporary local Vite server only; no Vercel deployment
+- Deployment URL, environment and deployed revision: `https://compound.krishraja.com`, production deployment `dpl_Hgb6L4BU36j1TSnrPQahgKTz6Xt7`
 - Source/deployment identity match: confirmed for the temporary local server
 - Retrieved/tested at: 2026-08-06 EDT
 - Viewports and browser: Chromium, 390 by 844 and 1440 by 1000
 - Primary tasks attempted: understand today's view; switch horizon; open the accessible holdings list; open Ask without losing the dashboard; submit a suggested question; inspect evidence; return to today; understand quiet and stale states
-- Access or data limitations: explicit sample-data mode; no live account, database write, LLM provider call or deployment
+- Access or data limitations: no designated live Auth account; dashboard state tests use deterministic sample data
 - Write authority: local implementation and synthetic browser interaction only
 - Test-data and cleanup boundary: repository fixture; no external cleanup required
 - Evidence location: `C:\Users\krish\.scratch\compound\qa-implementation-v1`; sample data only, no credentials or private session data
@@ -27,7 +27,7 @@ The approved dashboard remains the complete home screen and the new question flo
 | Ask and receive a progressive answer | verified in sample mode | mobile and desktop Ask renders plus component/SSE tests | The question is preserved, the answer is readable and the evidence is visible. |
 | Return to the dashboard | verified | `/ask` to `/` browser check | Ask is additive and reversible. |
 | Understand quiet and stale states | verified in sample mode | quiet dashboard, stale dashboard and stale Ask renders | Old data is not presented as a new recommendation. |
-| Live auth, persistence and provider recovery | blocked | production mutations remain gated | Requires the approved migration, allowlisted account and dedicated Edge Function secret. |
+| Live auth, persistence and provider recovery | blocked on account identity | production shell, database and function are live | Requires the exact approved email, member insertion and signed-in test. |
 
 ## Confirmed finding
 
@@ -48,10 +48,9 @@ The full dashboard remains present after Ask was added. The separate Ask route, 
 
 ## Unverified and blocked
 
-- Supabase migration syntax and policies were statically checked but not executed locally because Docker is unavailable.
-- Live magic-link delivery and membership rejection need a designated account after production or preview configuration is approved.
-- The LLM provider, model and dedicated secret have not been selected or set, so live response timing, timeout and retry behavior remain unverified.
-- Vercel deep links, headers, CSP and domain behavior require a matching preview or production deployment.
+- Live magic-link delivery, member access and non-member rejection need the exact designated account.
+- AI Gateway provider output, persistence, timeout and retry behavior need a signed-in member snapshot.
+- Full mobile/desktop dashboard QA on the final domain needs that same member session; the production sign-in shell has no console warnings or errors.
 
 ## Verification after authorized fixes
 
