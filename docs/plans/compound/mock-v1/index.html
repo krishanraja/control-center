@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>COMPOUND dashboard mock V1</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #f2f3f5;
+        --muted: #8a949d;
+        --faint: #59636c;
+        --line: #293038;
+        --line-strong: #3a434c;
+        --base: #090b0d;
+        --surface: #0e1114;
+        --raised: #14181c;
+        --signal: #ffb000;
+        --signal-soft: rgba(255, 176, 0, 0.13);
+        --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      }
+
+      * { box-sizing: border-box; }
+      html { background: var(--base); }
+      body {
+        margin: 0;
+        background:
+          linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+          var(--base);
+        background-size: 100% 32px;
+        color: var(--ink);
+        font-family: var(--sans);
+        min-height: 100vh;
+      }
+      button { font: inherit; }
+      button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+      .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding-bottom: 96px; }
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 18px;
+        align-items: center;
+        min-height: 78px;
+        border-bottom: 1px solid var(--line-strong);
+        background: rgba(9, 11, 13, 0.96);
+      }
+      .brand-row { display: flex; align-items: baseline; gap: 15px; min-width: 0; }
+      .brand { font-family: var(--mono); font-size: 15px; font-weight: 800; letter-spacing: 0.16em; }
+      .mock-flag { color: var(--muted); font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; white-space: nowrap; }
+      .horizon { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line-strong); }
+      .horizon button {
+        min-width: 58px;
+        min-height: 44px;
+        border: 0;
+        border-right: 1px solid var(--line-strong);
+        background: transparent;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .horizon button:last-child { border-right: 0; }
+      .horizon button.active { background: var(--signal); color: #15110a; }
+
+      .eyebrow { margin: 0 0 10px; color: var(--muted); font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+      .today { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; align-items: end; padding: 34px 0 28px; border-bottom: 1px solid var(--line-strong); }
+      .today h1 { margin: 0; max-width: 900px; font-size: clamp(30px, 4.1vw, 58px); line-height: 0.99; letter-spacing: -0.048em; font-weight: 590; }
+      .today h1 .signal { color: var(--signal); }
+      .freshness { min-width: 180px; padding-left: 18px; border-left: 1px solid var(--line-strong); }
+      .freshness strong { display: block; margin-bottom: 7px; color: var(--ink); font-family: var(--mono); font-size: 12px; }
+      .freshness span { color: var(--muted); font-family: var(--mono); font-size: 10px; line-height: 1.55; }
+
+      .facts { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line-strong); }
+      .fact { min-height: 98px; padding: 20px 18px 17px 0; border-right: 1px solid var(--line); }
+      .fact:not(:first-child) { padding-left: 18px; }
+      .fact:last-child { border-right: 0; }
+      .fact strong { display: block; margin-top: 4px; font-size: 23px; line-height: 1; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+      .fact small { color: var(--muted); font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; }
+      .fact .attention { color: var(--signal); }
+
+      .decision-grid { display: grid; grid-template-columns: minmax(420px, 1.05fr) minmax(420px, 0.95fr); border-bottom: 1px solid var(--line-strong); }
+      .instrument, .argument { min-width: 0; padding: 34px 32px 32px 0; }
+      .argument { padding-right: 0; padding-left: 32px; border-left: 1px solid var(--line-strong); }
+      .section-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; }
+      .section-head h2 { margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+      .section-head button { min-height: 38px; padding: 0 12px; border: 1px solid var(--line-strong); background: transparent; color: var(--muted); font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+      .dial-help { margin: -8px 0 14px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+      .dial-stage { position: relative; width: min(100%, 510px); aspect-ratio: 1; margin: 0 auto; }
+      .dial {
+        position: absolute;
+        inset: 9%;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle, transparent 0 27%, var(--line-strong) 27.3% 27.6%, transparent 27.9% 43%, var(--line) 43.3% 43.8%, transparent 44.1% 61%, var(--line-strong) 61.3% 61.8%, transparent 62.1%),
+          conic-gradient(from -90deg,
+            var(--signal) 0deg 148deg,
+            #46505a 148deg 194deg,
+            #69737c 194deg 239deg,
+            #3d464f 239deg 274deg,
+            #7d8790 274deg 298deg,
+            #313840 298deg 311deg,
+            #21272d 311deg 354deg,
+            var(--base) 354deg 360deg);
+        box-shadow: 0 0 0 1px var(--line-strong);
+      }
+      .dial::before {
+        content: "";
+        position: absolute;
+        inset: 16%;
+        border-radius: 50%;
+        background: var(--base);
+        box-shadow: 0 0 0 1px var(--line-strong);
+      }
+      .dial::after {
+        content: "";
+        position: absolute;
+        inset: 26%;
+        border-radius: 50%;
+        background: var(--surface);
+        box-shadow: 0 0 0 1px var(--line);
+      }
+      .dial-overlay { position: absolute; inset: 2.4%; width: 95.2%; height: 95.2%; overflow: visible; pointer-events: none; }
+      .dial-overlay .grid { fill: none; stroke: #6b747d; stroke-width: 1.1; opacity: 0.34; }
+      .dial-overlay .change { fill: none; stroke: var(--signal); stroke-width: 5; stroke-linecap: butt; }
+      .dial-overlay .trust { fill: none; stroke: #8b949c; stroke-width: 2; stroke-dasharray: 2 9; opacity: 0.8; }
+      .dial-overlay .corr { fill: none; stroke: #9ba4ac; stroke-width: 1.2; opacity: 0.28; }
+      .hub { position: absolute; inset: 33%; z-index: 4; display: grid; place-content: center; text-align: center; }
+      .hub strong { color: var(--signal); font-size: clamp(30px, 4vw, 43px); line-height: 0.9; letter-spacing: -0.06em; }
+      .hub span { display: block; margin-top: 9px; color: var(--ink); font-size: 13px; line-height: 1.1; }
+      .hub small { display: block; margin-top: 7px; color: var(--muted); font-family: var(--mono); font-size: 8px; line-height: 1.4; letter-spacing: 0.06em; text-transform: uppercase; }
+      .dial-label { position: absolute; z-index: 7; font-family: var(--mono); font-size: 9px; line-height: 1.2; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+      .dial-label strong { display: block; color: var(--ink); font-size: 11px; }
+      .dial-label > span { display: block; }
+      .dial-label.sol { left: 0; top: 19%; color: var(--signal); }
+      .dial-label.nvda { right: 2%; top: 24%; text-align: right; }
+      .dial-label.sym { right: -1%; top: 55%; text-align: right; }
+      .dial-label.soun { right: 13%; bottom: 5%; text-align: right; }
+      .dial-label.crypto { left: 7%; bottom: 11%; }
+      .gate {
+        position: absolute;
+        z-index: 8;
+        display: grid;
+        place-items: center;
+        width: 38px;
+        height: 38px;
+        border: 2px solid var(--base);
+        border-radius: 50%;
+        background: var(--signal);
+        color: #171108;
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 900;
+        box-shadow: 0 0 0 1px var(--signal);
+      }
+      .gate.one { left: 7%; top: 36%; }
+      .dial-key { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 2px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+      .dial-key div { padding: 12px 10px; border-right: 1px solid var(--line); }
+      .dial-key div:last-child { border-right: 0; }
+      .dial-key strong { display: block; font-family: var(--mono); font-size: 10px; }
+      .dial-key span { color: var(--muted); font-family: var(--mono); font-size: 8px; text-transform: uppercase; }
+
+      .gate-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+      .chip { display: inline-flex; align-items: center; min-height: 28px; padding: 0 9px; border: 1px solid var(--line-strong); color: var(--muted); font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; }
+      .chip.signal { border-color: var(--signal); color: var(--signal); }
+      .argument h2 { margin: 0; font-size: clamp(32px, 3.2vw, 48px); line-height: 0.96; letter-spacing: -0.05em; font-weight: 600; }
+      .call { margin: 19px 0 25px; max-width: 560px; color: var(--ink); font-size: 18px; line-height: 1.35; }
+      .proof-grid { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line-strong); }
+      .proof { padding: 18px 18px 18px 0; border-bottom: 1px solid var(--line); }
+      .proof:nth-child(even) { padding-left: 18px; border-left: 1px solid var(--line); }
+      .proof.full { grid-column: 1 / -1; padding-right: 0; border-left: 0; }
+      .proof .eyebrow { margin-bottom: 8px; }
+      .proof p { margin: 0; font-size: 13px; line-height: 1.52; }
+      .proof strong { color: var(--signal); font-variant-numeric: tabular-nums; }
+      .source { display: block; margin-top: 8px; color: var(--muted); font-family: var(--mono); font-size: 8px; text-transform: uppercase; }
+      .gate-nav { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 20px; }
+      .gate-nav button { min-height: 44px; border: 1px solid var(--line-strong); background: transparent; color: var(--ink); font-family: var(--mono); font-size: 10px; text-transform: uppercase; cursor: pointer; }
+      .gate-nav button:first-child { border-color: var(--signal); color: var(--signal); }
+
+      .lower-grid { display: grid; grid-template-columns: 1fr 1fr; }
+      .lower-section { padding: 30px 30px 0 0; }
+      .lower-section + .lower-section { padding-right: 0; padding-left: 30px; border-left: 1px solid var(--line-strong); }
+      .row { display: grid; grid-template-columns: minmax(90px, 0.7fr) minmax(150px, 1.6fr) auto; gap: 14px; align-items: center; min-height: 66px; border-top: 1px solid var(--line); }
+      .row:last-child { border-bottom: 1px solid var(--line); }
+      .row strong { font-size: 13px; }
+      .row span { color: var(--muted); font-size: 12px; line-height: 1.35; }
+      .status { justify-self: end; font-family: var(--mono); font-size: 9px !important; text-transform: uppercase; }
+      .status.attention { color: var(--signal); }
+      .integrity { margin-top: 34px; padding: 20px 0; border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); }
+      .integrity .issue { display: grid; grid-template-columns: 130px 1fr auto; gap: 16px; align-items: center; }
+      .integrity .issue strong { font-family: var(--mono); font-size: 10px; }
+      .integrity .issue p { margin: 0; color: var(--muted); font-size: 12px; }
+      .integrity .issue span { color: var(--signal); font-family: var(--mono); font-size: 9px; text-transform: uppercase; }
+      .table-equivalent { display: none; margin-top: 18px; overflow-x: auto; }
+      .table-equivalent.open { display: block; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td { padding: 10px; border: 1px solid var(--line); text-align: left; }
+      th { color: var(--muted); font-family: var(--mono); font-size: 9px; text-transform: uppercase; }
+      .footer-note { margin-top: 24px; color: var(--faint); font-family: var(--mono); font-size: 8px; line-height: 1.5; text-transform: uppercase; }
+
+      .ask-page { display: none; width: min(100% - 44px, 1180px); margin: 0 auto; padding-bottom: 56px; }
+      body.view-ask .shell { display: none; }
+      body.view-ask .ask-page { display: block; }
+      .ask-topbar { display: flex; min-height: 78px; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--line-strong); }
+      .back-link { display: inline-flex; min-height: 44px; align-items: center; padding: 0 14px; border: 1px solid var(--line-strong); color: var(--muted); font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-decoration: none; text-transform: uppercase; }
+      .back-link:focus-visible, .suggestion:focus-visible, .composer input:focus-visible, .composer button:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+      .ask-layout { display: grid; grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.55fr); min-height: calc(100vh - 134px); }
+      .ask-context { padding: 44px 34px 44px 0; border-right: 1px solid var(--line-strong); }
+      .ask-context h2 { margin: 10px 0 14px; font-size: clamp(31px, 3.5vw, 46px); line-height: 0.98; letter-spacing: -0.05em; font-weight: 600; }
+      .context-call { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+      .context-data { margin: 26px 0 34px; padding: 16px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--muted); font-family: var(--mono); font-size: 9px; line-height: 1.65; text-transform: uppercase; }
+      .suggestions { display: grid; gap: 8px; margin-top: 14px; }
+      .suggestion { min-height: 46px; padding: 10px 12px; border: 1px solid var(--line-strong); background: transparent; color: var(--ink); text-align: left; font-size: 12px; cursor: pointer; }
+      .suggestion:hover { border-color: var(--signal); color: var(--signal); }
+      .conversation { min-width: 0; padding: 44px 0 44px 42px; }
+      .conversation > header { max-width: 760px; margin-bottom: 34px; }
+      .conversation h1 { margin: 8px 0 10px; font-size: clamp(42px, 5vw, 68px); line-height: 0.94; letter-spacing: -0.055em; font-weight: 600; }
+      .conversation-intro { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+      .thread { max-width: 800px; }
+      .question { margin-left: clamp(26px, 8vw, 120px); padding: 16px 18px; border: 1px solid var(--line-strong); background: var(--surface); }
+      .question small { display: block; margin-bottom: 6px; color: var(--muted); font-family: var(--mono); font-size: 8px; text-transform: uppercase; }
+      .question p { margin: 0; font-size: 16px; line-height: 1.4; }
+      .answer { margin-top: 20px; padding: 24px 0 0; border-top: 2px solid var(--signal); }
+      .answer-status { display: flex; align-items: center; gap: 9px; margin-bottom: 17px; color: var(--signal); font-family: var(--mono); font-size: 9px; text-transform: uppercase; }
+      .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--signal); box-shadow: 0 0 0 3px rgba(255, 176, 0, 0.14); }
+      .answer-copy { max-width: 720px; font-size: 20px; line-height: 1.48; }
+      .answer-copy p { margin: 0 0 16px; }
+      .answer-copy strong { color: var(--signal); }
+      .answer-copy.streaming::after { content: "|"; margin-left: 2px; color: var(--signal); }
+      .answer-evidence { margin-top: 28px; border-top: 1px solid var(--line-strong); }
+      .answer-evidence h2 { margin: 18px 0 4px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+      .evidence-line { display: grid; grid-template-columns: minmax(180px, 1fr) auto; gap: 18px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+      .evidence-line strong { font-size: 13px; }
+      .evidence-line span { color: var(--muted); font-family: var(--mono); font-size: 9px; text-align: right; text-transform: uppercase; }
+      .unused-note { margin: 14px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+      .composer { max-width: 800px; margin-top: 32px; padding-top: 22px; border-top: 1px solid var(--line-strong); }
+      .composer label { display: block; margin-bottom: 10px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+      .composer-row { display: grid; grid-template-columns: 1fr auto; }
+      .composer input { min-width: 0; min-height: 52px; padding: 0 15px; border: 1px solid var(--line-strong); border-right: 0; background: var(--surface); color: var(--ink); font: inherit; }
+      .composer input::placeholder { color: var(--muted); }
+      .composer button { min-width: 86px; min-height: 52px; border: 1px solid var(--signal); background: var(--signal); color: #090b0d; font-family: var(--mono); font-size: 10px; font-weight: 900; text-transform: uppercase; cursor: pointer; }
+      .composer-note { margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+
+      body.state-quiet .gate,
+      body.state-quiet .argument .representative,
+      body.state-quiet .integrity,
+      body.state-quiet .lower-grid { display: none; }
+      body.state-quiet .dial-overlay .change { stroke: #505961; opacity: 0.35; }
+      body.state-quiet .dial-label.sol { color: var(--muted); }
+      body.state-quiet .dial { background: radial-gradient(circle, transparent 0 27%, var(--line-strong) 27.3% 27.6%, transparent 27.9% 43%, var(--line) 43.3% 43.8%, transparent 44.1% 61%, var(--line-strong) 61.3% 61.8%, transparent 62.1%), conic-gradient(from -90deg, #4b555e 0deg 148deg, #46505a 148deg 194deg, #69737c 194deg 239deg, #3d464f 239deg 274deg, #7d8790 274deg 298deg, #313840 298deg 311deg, #21272d 311deg 354deg, var(--base) 354deg 360deg); }
+      body.state-quiet .fact .attention { color: var(--ink); }
+      .quiet-copy { display: none; }
+      body.state-quiet .quiet-copy { display: block; }
+      body.state-quiet .argument { align-content: start; }
+      .quiet-summary { display: none; padding: 24px 0; border-bottom: 1px solid var(--line-strong); }
+      .quiet-summary strong { display: block; margin-bottom: 7px; font-size: 16px; }
+      .quiet-summary span { color: var(--muted); font-size: 12px; }
+      body.state-quiet .quiet-summary { display: block; }
+      body.state-stale .freshness strong,
+      body.state-stale .integrity .issue span { color: var(--signal); }
+      body.state-stale .gate,
+      body.state-stale .gate-nav { display: none; }
+      body.state-stale .proof-grid { opacity: 0.52; }
+      body.state-stale .dial-overlay .change { stroke-dasharray: 12 10 !important; opacity: 0.75; }
+      .stale-note { display: none; margin: 0 0 18px; padding: 12px 14px; border: 1px dashed var(--signal); color: var(--muted); font-family: var(--mono); font-size: 9px; line-height: 1.5; text-transform: uppercase; }
+      body.state-stale .stale-note { display: block; }
+
+      @media (max-width: 760px) {
+        .shell { width: min(100% - 28px, 520px); padding-bottom: 64px; }
+        .topbar { min-height: 68px; }
+        .brand-row { display: block; }
+        .brand { display: block; }
+        .mock-flag { display: block; margin-top: 4px; font-size: 7px; }
+        .horizon button { min-width: 52px; min-height: 44px; }
+        .today { display: block; padding: 24px 0 21px; }
+        .today h1 { font-size: clamp(31px, 10.5vw, 44px); line-height: 1.01; }
+        .freshness { margin-top: 17px; padding: 0; border-left: 0; }
+        .freshness strong { display: inline; margin: 0 7px 0 0; }
+        .facts { grid-template-columns: 1fr 1fr; }
+        .fact { min-height: 78px; padding: 15px 12px 14px 0; }
+        .fact:not(:first-child) { padding-left: 12px; }
+        .fact:nth-child(2) { border-right: 0; }
+        .fact:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+        .fact strong { font-size: 20px; }
+        .decision-grid { display: block; }
+        .instrument, .argument { padding: 28px 0; }
+        .argument { border-top: 1px solid var(--line-strong); border-left: 0; }
+        .dial-stage { width: min(100%, 390px); }
+        .dial-label { font-size: 8px; }
+        .dial-label strong { font-size: 10px; }
+        .hub strong { font-size: 34px; }
+        .hub span { font-size: 11px; }
+        .proof-grid { grid-template-columns: 1fr; }
+        .proof, .proof:nth-child(even) { grid-column: 1; padding: 16px 0; border-left: 0; }
+        .lower-grid { display: block; }
+        .lower-section, .lower-section + .lower-section { padding: 26px 0 0; border-left: 0; }
+        .row { grid-template-columns: 84px minmax(0, 1fr) auto; gap: 9px; }
+        .row > * { min-width: 0; }
+        .integrity .issue { grid-template-columns: 1fr auto; }
+        .integrity .issue p { grid-column: 1 / -1; }
+        .ask-page { width: min(100% - 28px, 520px); padding-bottom: 48px; }
+        .ask-topbar { min-height: 68px; }
+        .back-link { padding: 0 10px; font-size: 8px; }
+        .ask-layout { display: block; min-height: 0; }
+        .ask-context { padding: 24px 0; border-right: 0; border-bottom: 1px solid var(--line-strong); }
+        .ask-context h2 { margin-top: 8px; font-size: 30px; }
+        .context-call { font-size: 14px; }
+        .context-data { margin: 18px 0; padding: 12px 0; }
+        .suggestions { grid-template-columns: 1fr; }
+        .conversation { padding: 30px 0 0; }
+        .conversation > header { margin-bottom: 24px; }
+        .conversation h1 { font-size: clamp(41px, 13vw, 54px); }
+        .question { margin-left: 22px; padding: 14px; }
+        .answer { padding-top: 20px; }
+        .answer-copy { font-size: 18px; line-height: 1.5; }
+        .evidence-line { grid-template-columns: 1fr; gap: 5px; }
+        .evidence-line span { text-align: left; }
+        .composer-row { grid-template-columns: minmax(0, 1fr) 74px; }
+        .composer button { min-width: 74px; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand-row">
+          <span class="brand">COMPOUND</span>
+          <span class="mock-flag">DESIGN MOCK · SAMPLE DATA · V2</span>
+        </div>
+        <div class="horizon" aria-label="Time period">
+          <button type="button" data-horizon="3m" class="active" aria-pressed="true">3 months</button>
+          <button type="button" data-horizon="1y" aria-pressed="false">1 year</button>
+        </div>
+      </header>
+
+      <section class="today" aria-labelledby="today-title">
+        <div>
+          <p class="eyebrow">Today · Friday 7 August</p>
+          <h1 id="today-title" data-copy="today">Keep the cash for now. <span class="signal">Solana needs a closer look.</span> None of the other options looks better.</h1>
+        </div>
+        <div class="freshness" aria-label="Data freshness">
+          <strong data-copy="fresh-title">8 of 9 data sources up to date</strong>
+          <span data-copy="fresh-detail">Updated 06:14 EDT<br />News data is 19 minutes late</span>
+        </div>
+      </section>
+
+      <section class="facts" aria-label="Summary of your money">
+        <div class="fact"><small>Most money is in</small><strong>Solana 42.1%</strong></div>
+        <div class="fact"><small>Money in crypto that moves together</small><strong>59.4%</strong></div>
+        <div class="fact"><small>Cash available</small><strong>A$4,938</strong></div>
+        <div class="fact"><small>Needs a closer look</small><strong class="attention" data-copy="capital">A$17,628</strong></div>
+      </section>
+
+      <section class="decision-grid">
+        <div class="instrument">
+          <div class="section-head">
+            <h2>Your money at a glance</h2>
+            <button type="button" id="table-toggle" aria-expanded="false">See the list</button>
+          </div>
+          <p class="dial-help">Bigger slice means more money. Yellow means something changed.</p>
+          <div class="dial-stage" role="img" aria-label="Chart showing Solana as 42.1 percent of invested money and one thing to check">
+            <div class="dial"></div>
+            <svg class="dial-overlay" viewBox="0 0 500 500" aria-hidden="true">
+              <circle class="trust" cx="250" cy="250" r="232"></circle>
+              <circle class="change" cx="250" cy="250" r="218" stroke-dasharray="170 1200" transform="rotate(-124 250 250)"></circle>
+              <path class="corr" d="M94 164 Q250 298 382 126"></path>
+              <path class="corr" d="M94 164 Q228 342 130 374"></path>
+              <path class="corr" d="M94 164 Q332 332 407 287"></path>
+              <circle class="grid" cx="250" cy="250" r="168"></circle>
+              <circle class="grid" cx="250" cy="250" r="112"></circle>
+            </svg>
+            <div class="hub">
+              <strong data-copy="gate-count">1</strong>
+              <span data-copy="hub-call">thing to check</span>
+              <small data-copy="hub-detail">next 3 months<br />no clear new buy</small>
+            </div>
+            <div class="dial-label sol"><strong>Solana · 42%</strong><span data-copy="dial-sol-status">needs a look</span></div>
+            <div class="dial-label nvda"><strong>Nvidia · 13%</strong>looks healthy</div>
+            <div class="dial-label sym"><strong>Symbotic · 13%</strong>looks healthy</div>
+            <div class="dial-label soun"><strong>SoundHound · 10%</strong>watch spending</div>
+            <div class="dial-label crypto"><strong>CRYPTO GROUP</strong>often moves together</div>
+            <button class="gate one" type="button" aria-label="Open the Solana check">1</button>
+          </div>
+          <div class="dial-key" aria-hidden="true">
+            <div><strong>SLICE SIZE</strong><span>how much money</span></div>
+            <div><strong>INNER RING</strong><span>how strong the reasons look</span></div>
+            <div><strong>YELLOW</strong><span>something changed</span></div>
+          </div>
+          <div class="table-equivalent" id="table-equivalent">
+            <table>
+              <caption class="eyebrow">All companies and coins · next 3 months</caption>
+              <thead><tr><th>Company or coin</th><th>% of your invested money</th><th>How it looks</th><th>What changed</th><th>Latest data</th></tr></thead>
+              <tbody>
+                <tr><td>Solana</td><td>42.1%</td><td>Needs a look</td><td>Network fees and digital dollars are down</td><td>Up to date</td></tr>
+                <tr><td>Nvidia</td><td>12.7%</td><td>Looks healthy</td><td>No important change</td><td>Some news data is late</td></tr>
+                <tr><td>Symbotic</td><td>13.3%</td><td>Looks healthy</td><td>No important change</td><td>Up to date</td></tr>
+                <tr><td>SoundHound</td><td>9.8%</td><td>Watch spending</td><td>Cash could last about 21 months</td><td>Up to date</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <article class="argument" aria-labelledby="gate-title">
+          <div class="representative">
+            <div class="gate-meta">
+              <span class="chip signal" data-copy="review-label">Needs a closer look</span>
+              <span class="chip" data-copy="horizon-chip">Next 3 months</span>
+              <span class="chip">A$17,628 in Solana</span>
+            </div>
+            <p class="eyebrow">How Solana looks</p>
+            <h2 id="gate-title" data-copy="gate-title">Solana is looking weaker.</h2>
+            <p class="call" data-copy="call">Do not buy more yet. Keep the cash until activity on the Solana network starts recovering.</p>
+            <p class="stale-note">Previous information only. The data below is not current enough for a new recommendation.</p>
+            <div class="proof-grid">
+              <section class="proof">
+                <p class="eyebrow">What changed</p>
+                <p>People paid <strong>19% less</strong> in fees to use Solana than they did 30 days ago. The value of digital dollars held on Solana is <strong>6%</strong> below its July high.</p>
+                <span class="source">DefiLlama · up to date at 06:11</span>
+              </section>
+              <section class="proof">
+                <p class="eyebrow">Why this may be temporary</p>
+                <p>A$4.74B is still deposited in Solana apps. Its price could recover before usage does.</p>
+                <span class="source">DefiLlama + CoinGecko</span>
+              </section>
+              <section class="proof full">
+                <p class="eyebrow">When this becomes serious</p>
+                <p>If the value of digital dollars held on Solana falls below <strong>$14B</strong>, the reason for owning it is no longer strong. It is $15.56B now.</p>
+                <span class="source">Checked daily · about 10% above that level</span>
+              </section>
+            </div>
+            <div class="gate-nav">
+              <button type="button">I've checked this</button>
+              <button type="button">Nothing else to check</button>
+            </div>
+          </div>
+          <div class="quiet-copy">
+            <div class="gate-meta"><span class="chip">Nothing to check</span><span class="chip">All data is current</span></div>
+            <p class="eyebrow">Your money today</p>
+            <h2>Nothing needs your attention today.</h2>
+            <p class="call">Keep the cash. None of the other options looks better.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="quiet-summary" aria-label="Quiet day summary">
+        <strong>The companies and coins you own have not changed. Your research list has not changed either.</strong>
+        <span>Use See the list if you want the full detail.</span>
+      </section>
+
+      <section class="lower-grid">
+        <div class="lower-section">
+          <div class="section-head"><h2>How each investment looks</h2><span class="chip">4 shown · 7 total</span></div>
+          <div class="row"><strong>Solana</strong><span>Use of the network is falling</span><span class="status attention">Needs a look</span></div>
+          <div class="row"><strong>Nvidia</strong><span>Most analysts still rate it positively</span><span class="status">Looks healthy</span></div>
+          <div class="row"><strong>Symbotic</strong><span>No new reason to worry</span><span class="status">Looks healthy</span></div>
+          <div class="row"><strong>SoundHound</strong><span>Cash could last about 21 months</span><span class="status">Watch spending</span></div>
+        </div>
+        <div class="lower-section">
+          <div class="section-head"><h2>Where money is moving</h2><span class="chip">Next 3 months</span></div>
+          <div class="row"><strong>Getting stronger</strong><span>Power infrastructure moved from 41st to 12th out of 159 parts of the market</span><span class="status attention">Look closer</span></div>
+          <div class="row"><strong>Popular but expensive</strong><span>Chip companies cost about 74 times their yearly profit</span><span class="status">Pricey</span></div>
+          <div class="row"><strong>Worth researching</strong><span>CrowdStrike moved to your research list</span><span class="status">New</span></div>
+          <div class="row"><strong>Still weakening</strong><span>Regional bank prices continue to lose ground</span><span class="status">Skip</span></div>
+        </div>
+      </section>
+
+      <section class="integrity" aria-label="Data warning">
+        <div class="issue">
+          <strong data-copy="issue-feed">NEWS DATA</strong>
+          <p data-copy="issue-detail">News updates are 19 minutes late. Today's short-term view leaves that information out. Everything else is up to date.</p>
+          <span data-copy="issue-status">Late data left out</span>
+        </div>
+      </section>
+
+      <p class="footer-note">Sample data for design testing. This is not live investment advice.</p>
+    </main>
+
+    <main class="ask-page" aria-labelledby="ask-title">
+      <header class="ask-topbar">
+        <div class="brand-row">
+          <span class="brand">COMPOUND</span>
+          <span class="mock-flag">ASK MOCK · SAMPLE DATA · V1</span>
+        </div>
+        <a class="back-link" href="?state=partial">Back to today</a>
+      </header>
+
+      <div class="ask-layout">
+        <aside class="ask-context" aria-labelledby="context-title">
+          <p class="eyebrow">Today's view</p>
+          <h2 id="context-title">Keep the cash for now.</h2>
+          <p class="context-call">Solana needs a closer look. None of the other options looks better.</p>
+          <p class="context-data">Data updated 06:14 EDT<br />News data is 19 minutes late</p>
+
+          <p class="eyebrow">Try asking</p>
+          <div class="suggestions">
+            <button class="suggestion" type="button">What changed today?</button>
+            <button class="suggestion" type="button">Why not buy more Solana?</button>
+            <button class="suggestion" type="button">What is my biggest risk?</button>
+          </div>
+        </aside>
+
+        <section class="conversation" aria-labelledby="ask-title">
+          <header>
+            <p class="eyebrow">Ask COMPOUND</p>
+            <h1 id="ask-title">Ask about your money.</h1>
+            <p class="conversation-intro">COMPOUND answers from today's data and shows what it used.</p>
+          </header>
+
+          <div class="thread" aria-live="polite">
+            <div class="question">
+              <small>You asked</small>
+              <p>Why shouldn't I buy more Solana?</p>
+            </div>
+
+            <article class="answer" aria-labelledby="answer-status">
+              <div class="answer-status" id="answer-status">
+                <span class="live-dot" aria-hidden="true"></span>
+                <span data-stream-status>Answer ready</span>
+              </div>
+              <div class="answer-copy" data-answer-copy>
+                <p><strong>Don't buy more Solana yet.</strong> Two signs of use are down.</p>
+                <p>People paid 19% less in fees to use Solana than they did 30 days ago. The value of digital dollars held on Solana is 6% below its July high.</p>
+                <p>That does not prove Solana's price will fall. It means today's data is not strong enough to support buying more. The answer changes if activity on the Solana network starts rising again.</p>
+              </div>
+
+              <section class="answer-evidence" aria-labelledby="used-title">
+                <h2 id="used-title">Used for this answer</h2>
+                <div class="evidence-line">
+                  <strong>Fees paid to use Solana: down 19% over 30 days</strong>
+                  <span>DefiLlama · checked 06:11</span>
+                </div>
+                <div class="evidence-line">
+                  <strong>Digital dollars held on Solana: 6% below the July high</strong>
+                  <span>DefiLlama · checked 06:11</span>
+                </div>
+                <p class="unused-note">News updates are late, so this answer does not use them.</p>
+              </section>
+            </article>
+          </div>
+
+          <form class="composer" data-composer>
+            <label for="ask-input">Ask another question</label>
+            <div class="composer-row">
+              <input id="ask-input" name="question" autocomplete="off" placeholder="Ask anything about today's view" />
+              <button type="submit">Ask</button>
+            </div>
+            <p class="composer-note">Your questions stay in COMPOUND. Answers explain the data but never place a trade.</p>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const params = new URLSearchParams(location.search);
+      const state = params.get("state") || "partial";
+      const initialHorizon = params.get("horizon") || "3m";
+      const view = params.get("view") || "today";
+      document.body.classList.add(`state-${state}`);
+      document.body.classList.add(`view-${view}`);
+
+      const copy = {
+        partial: {
+          "today": "Keep the cash for now. <span class='signal'>Solana needs a closer look.</span> None of the other options looks better.",
+          "fresh-title": "8 of 9 data sources up to date",
+          "fresh-detail": "Updated 06:14 EDT<br />News data is 19 minutes late"
+        },
+        quiet: {
+          "today": "<span class='signal'>Nothing needs your attention today.</span> Keep the cash for now.",
+          "fresh-title": "All 9 data sources are up to date",
+          "fresh-detail": "Updated 06:14 EDT<br />All checks finished",
+          "capital": "Nothing",
+          "gate-count": "0",
+          "hub-call": "things to check",
+          "hub-detail": "chosen time period<br />no clear new buy",
+          "dial-sol-status": "looks healthy"
+        },
+        stale: {
+          "today": "<span class='signal'>I can't give a new recommendation today.</span> The latest complete data is 31 hours old.",
+          "fresh-title": "Data is 31 hours old",
+          "fresh-detail": "Last complete check: Thursday 06:14<br />2 important sources are missing",
+          "capital": "Not available",
+          "gate-count": "?",
+          "hub-call": "no current answer",
+          "hub-detail": "last complete check<br />31 hours ago",
+          "review-label": "Last complete view",
+          "gate-title": "No new result. The price data is too old.",
+          "call": "You can still see the previous view, but there is not enough current data for a new recommendation.",
+          "issue-feed": "PRICE DATA",
+          "issue-detail": "Price data is 31 hours old. Anything that depends on it has been left out.",
+          "issue-status": "No current result"
+        }
+      };
+
+      function applyCopy(values) {
+        Object.entries(values || {}).forEach(([key, value]) => {
+          const element = document.querySelector(`[data-copy='${key}']`);
+          if (element) element.innerHTML = value;
+        });
+      }
+
+      function setHorizon(horizon) {
+        document.querySelectorAll("[data-horizon]").forEach((button) => {
+          const active = button.dataset.horizon === horizon;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+        const label = horizon === "1y" ? "Next 1 year" : "Next 3 months";
+        document.querySelector("[data-copy='horizon-chip']").textContent = label;
+        const hub = document.querySelector("[data-copy='hub-detail']");
+        if (state !== "quiet" && state !== "stale") hub.innerHTML = `${label}<br />no clear new buy`;
+      }
+
+      applyCopy(copy[state]);
+      setHorizon(initialHorizon);
+      document.querySelectorAll("[data-horizon]").forEach((button) => button.addEventListener("click", () => setHorizon(button.dataset.horizon)));
+
+      const tableButton = document.getElementById("table-toggle");
+      const table = document.getElementById("table-equivalent");
+      tableButton.addEventListener("click", () => {
+        const open = table.classList.toggle("open");
+        tableButton.setAttribute("aria-expanded", String(open));
+        tableButton.textContent = open ? "Hide the list" : "See the list";
+      });
+
+      const askInput = document.getElementById("ask-input");
+      document.querySelectorAll(".suggestion").forEach((button) => {
+        button.addEventListener("click", () => {
+          askInput.value = button.textContent.trim();
+          askInput.focus();
+        });
+      });
+
+      document.querySelector("[data-composer]").addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!askInput.value.trim()) return;
+        document.querySelector(".question p").textContent = askInput.value.trim();
+        askInput.value = "";
+      });
+
+      if (view === "ask" && params.get("stream") === "1" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const answer = document.querySelector("[data-answer-copy]");
+        const status = document.querySelector("[data-stream-status]");
+        const fullText = "Don't buy more Solana yet. Two signs of use are down. People paid 19% less in fees to use Solana than they did 30 days ago. The value of digital dollars held on Solana is 6% below its July high. That does not prove Solana's price will fall. It means today's data is not strong enough to support buying more. The answer changes if activity on the Solana network starts rising again.";
+        const words = fullText.split(" ");
+        let index = 0;
+        answer.textContent = "";
+        answer.classList.add("streaming");
+        status.textContent = "Answering now";
+        const timer = setInterval(() => {
+          answer.textContent += `${index ? " " : ""}${words[index]}`;
+          index += 1;
+          if (index >= words.length) {
+            clearInterval(timer);
+            answer.classList.remove("streaming");
+            status.textContent = "Answer ready";
+          }
+        }, 55);
+      }
+    </script>
+  </body>
+</html>

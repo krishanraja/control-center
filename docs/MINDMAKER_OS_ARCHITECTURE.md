@@ -2107,7 +2107,31 @@ Krish directive: everything called Plinth becomes Legibility. Recorded here beca
 
 **Deliberately not renamed:** the applied migration files under `scripts/migrations/`, which are a record of what was run and would become false if edited. `text-rendering: optimizeLegibility` in `src/index.css` is a CSS property and unrelated.
 
-**Left open at time of writing:** the `venture_registry.slug` row and the `customer_product` enum label in production still read `plinth`, and the live n8n workflows still carry the old slug. Both are recorded in `supabase/migrations/20260807120000_rename_plinth_to_legibility.sql`, which is intentionally NOT applied yet - see the sequencing note in that file.
+**The database, the live n8n workflows and the code were renamed in one sitting**, because no ordering of them is safe alone: ship the code first and the lane filters on a slug the database does not contain, so Growth and Customers render it empty; apply the database first and the live workflows keep writing rows against a slug that no longer exists. All five workflows were inactive at the time, which removed the second risk in practice.
+
+**Three things the data migration got wrong on the first pass**, each caught by the database refusing it rather than by review. `venture_registry.slug` is the PRIMARY KEY with **seven** dependent foreign keys, so an in-place update is rejected outright and it has to be insert-copy, repoint every child, delete-old. `leads.primary_venture` is `ON DELETE SET NULL`, so deleting the parent before repointing it would have silently stripped the venture tag off every Legibility lead. And `system_config.value` is `text` despite holding a JSON array, so the `::jsonb` cast that works for `voice_profile` and `creative_direction` fails on it.
+
+**Verified after applying:** a scan of every text, varchar, enum and jsonb column in `public` for the old name returns only `audit_log` (11 rows), `agent_brief_backups` (17) and one `tasks.id`, all three preserved on purpose. Leads with a null venture: zero.
+
+### 2026-08-07: the Drive mirror stops lying, and the branch list is resolved
+
+Two things left open the previous night, both now closed.
+
+**The agent-brief Drive mirror had been dead for six weeks.** `sync-to-drive.py` reported 27 FAILs on every run since 25 June (actions) and 1 July (identities). The per-agent Identity and Action Google Docs had been deleted in Drive, and a stored doc id gave the script no way to recover, so it could only fail forever. The permanent red also buried any genuine failure, which is the more expensive half of the bug.
+
+The fix makes it self-healing rather than merely re-pointed:
+- `google_drive_sync.folder_id` records where each doc belongs, so a deleted doc can be recreated in place instead of only failing.
+- A write that fails with doc-not-found recreates the doc and repoints the row. It heals once rather than failing on every run.
+- **A matching checksum is not evidence the destination exists.** The checksum describes the SOURCE. `arlo/identity` sat green against a deleted doc for weeks because its content had not changed, so the heal path was never reached. Existence is probed before the skip.
+- Retired agents are skipped, not mirrored, derived live from `agents.active` rather than a second flag. Felix and Hunter correctly get no docs, and re-arming either needs no bookkeeping.
+
+Verified: `changed=0 skipped=29 failed=0`, exit 0. All 12 active agents have exactly one Identity and one Action doc, zero duplicates. Committed to the workspace repo as `5bee9ba`.
+
+Known and left alone: identity docs rewrite on most runs because the rendered `SKILL.md` carries a `rendered_at` stamp that changes every render. Harmless, just noisy.
+
+**Branch list resolved, 50 to 2.** 33 branches whose PR was merged were deleted, then 13 more that were byte-identical to main (zero diff, so nothing could be lost). Two carried unique work and were **tagged before deletion** so they stay permanently recoverable: `archive/ui-restraint-pass-2026-07-02` (a monochrome restraint pass that hardcodes dark-mode values and would regress light mode) and `archive/growth-tab-alt-2026-08-05` (superseded; main's Growth tab is the larger implementation).
+
+`feat/compound-foundation` is **deliberately kept**. It is not stale: it holds the only copy of the source for **compound.krishraja.com**, a live Vercel project that is CLI-deployed with no git link. Deleting that branch would delete a live product's source. Whether it should get its own repo is a structural call for Krish.
 
 ### 2026-08-06 (late): the goal ladder becomes one editor
 
