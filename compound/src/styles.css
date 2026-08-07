@@ -32,6 +32,7 @@ body {
 }
 button, input { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
+button:focus, input:focus, a:focus,
 button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .48; }
@@ -238,18 +239,23 @@ th { color: var(--muted); font-family: var(--mono); font-size: 8px; letter-spaci
 .composer-row button { min-width: 82px; border: 1px solid var(--signal); background: var(--signal); color: #171006; font-family: var(--mono); font-size: 11px; font-weight: 900; }
 .composer-note { margin: 10px 0 0; color: var(--faint); font-size: 10px; }
 
-.center-screen, .signin-shell { width: min(560px, calc(100% - 36px)); min-height: 100vh; margin: 0 auto; display: flex; flex-direction: column; justify-content: center; }
+.center-screen { width: min(560px, calc(100% - 36px)); min-height: 100vh; margin: 0 auto; display: flex; flex-direction: column; justify-content: center; }
+.signin-shell { width: min(640px, calc(100% - 40px)); min-height: 100vh; min-height: 100dvh; margin: 0 auto; padding: 24px 0; display: flex; flex-direction: column; justify-content: center; }
 .center-screen h1 { margin: 0; font-size: clamp(35px, 7vw, 60px); line-height: 1; letter-spacing: -.05em; }
 .center-screen > p:last-child { color: var(--muted); line-height: 1.6; }
-.signin-card { padding: 32px; border: 1px solid var(--line-strong); background: var(--surface); }
-.signin-card .eyebrow { margin-top: 42px; }
-.signin-card h1 { margin: 0; font-size: 44px; letter-spacing: -.05em; }
-.signin-card > p { color: var(--muted); line-height: 1.6; }
-.signin-card form { display: grid; gap: 10px; margin-top: 28px; }
-.signin-card label { font-family: var(--mono); font-size: 10px; font-weight: 800; }
-.signin-card input { min-height: 50px; padding: 0 13px; border: 1px solid var(--line-strong); background: var(--base); color: var(--ink); }
-.signin-card button { min-height: 50px; border: 1px solid var(--signal); background: var(--signal); color: #171006; font-weight: 800; }
-.form-message { color: var(--ink) !important; }
+.signin-card { width: 100%; padding: 44px; border: 1px solid var(--line-strong); background: var(--surface); }
+.signin-card .eyebrow { margin-top: 54px; }
+.signin-card h1 { margin: 0; font-size: clamp(46px, 7vw, 62px); line-height: .98; letter-spacing: -.05em; }
+.signin-card > p { max-width: 520px; color: var(--muted); font-size: 16px; line-height: 1.6; }
+.signin-card > p strong { color: var(--ink); }
+.signin-card form { display: grid; gap: 12px; margin-top: 30px; }
+.signin-card label { font-family: var(--mono); font-size: 12px; font-weight: 800; }
+.signin-card input { min-height: 56px; padding: 0 15px; border: 1px solid var(--line-strong); border-radius: 0; background: var(--base); color: var(--ink); font-size: 16px; }
+.signin-card button { min-height: 56px; border: 1px solid var(--signal); border-radius: 0; background: var(--signal); color: #171006; font-weight: 800; }
+.signin-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 18px; margin-top: 18px; }
+.signin-card .text-button { min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--muted); font-size: 13px; text-decoration: underline; text-underline-offset: 4px; }
+.signin-card .text-button:hover { color: var(--signal); }
+.form-message { margin-bottom: 0; color: var(--ink) !important; font-size: 14px; }
 
 @keyframes pulse { 50% { opacity: .28; transform: scale(.75); } }
 @keyframes blink { 50% { opacity: 0; } }
@@ -285,17 +291,33 @@ th { color: var(--muted); font-family: var(--mono); font-size: 8px; letter-spaci
   .dial-stage { margin-top: 12px; }
   .dial-grid { box-shadow: 0 0 0 29px rgb(41 48 56 / 38%), 0 0 0 30px var(--line); }
   .dial-label.crypto { display: none; }
-  .dial-label { max-width: 98px; font-size: 7px; }
-  .dial-label strong { font-size: 8px; }
-  .hub > span { font-size: 9px; }
-  .hub small { font-size: 6px; }
+  .brand { font-size: 14px; }
+  .demo-flag, .eyebrow { font-size: 10px; }
+  .ask-link, .horizon button { min-height: 48px; font-size: 12px; }
+  .fact small { min-height: 0; font-size: 12px; }
+  .fact strong { font-size: 20px; }
+  .section-head h2 { font-size: 20px; }
+  .section-head button { min-height: 48px; font-size: 12px; }
+  .dial-help { font-size: 14px; line-height: 1.5; }
+  .dial-label { max-width: 108px; font-size: 10px; }
+  .dial-label strong { font-size: 11px; }
+  .hub { inset: 33%; }
+  .hub > span { font-size: 11px; }
+  .hub small { margin-top: 7px; font-size: 10px; line-height: 1.25; }
+  .chip { min-height: 32px; font-size: 10px; }
+  .proof p:not(.eyebrow) { font-size: 15px; }
+  .source { font-size: 11px; }
+  th { font-size: 10px; }
+  td { font-size: 13px; }
   .proof-grid { grid-template-columns: 1fr; }
   .proof { border-right: 0; border-bottom: 1px solid var(--line); }
   .proof:nth-child(2) { border-bottom: 0; }
   .proof.wide { grid-column: auto; border-top: 1px solid var(--line); border-bottom: 0; }
   .lower-grid { gap: 42px; padding: 38px 0; }
-  .data-row { grid-template-columns: minmax(90px, .8fr) minmax(0, 1.5fr); }
+  .data-row { grid-template-columns: minmax(90px, .8fr) minmax(0, 1.5fr); font-size: 14px; }
   .data-row .status { grid-column: 2; text-align: left; }
+  .status, .issue > strong, .issue > span, .footer-note { font-size: 11px; }
+  .issue p { font-size: 14px; }
   .issue { grid-template-columns: 1fr; gap: 9px; }
   .issue > span { padding-top: 4px; }
 
@@ -303,16 +325,42 @@ th { color: var(--muted); font-family: var(--mono); font-size: 8px; letter-spaci
   .ask-layout { display: block; border-bottom: 0; }
   .ask-context { padding: 34px 0; border-right: 0; border-bottom: 1px solid var(--line-strong); }
   .ask-context h2 { font-size: 29px; }
-  .context-data { margin-bottom: 30px; }
+  .context-call { font-size: 15px; }
+  .context-data { margin-bottom: 30px; font-size: 12px; }
+  .suggestions button { min-height: 48px; font-size: 14px; }
   .conversation { padding: 39px 0 0; }
   .conversation > header h1 { font-size: 47px; }
   .question { margin-left: 28px; }
-  .answer-copy { padding: 22px 18px 24px; font-size: 15px; }
+  .question small, .answer-status { font-size: 10px; }
+  .question p { font-size: 15px; }
+  .answer-copy { padding: 22px 18px 24px; font-size: 17px; }
   .answer-evidence { padding: 0 18px 19px; }
   .evidence-line { display: grid; gap: 6px; }
-  .evidence-line span { text-align: left; }
+  .evidence-line strong { font-size: 13px; }
+  .evidence-line span { font-size: 11px; text-align: left; }
   .composer-row button { min-width: 68px; }
-  .signin-card { padding: 25px 20px; }
+  .composer label { font-size: 12px; }
+  .composer-note { font-size: 12px; }
+  .signin-shell { width: 100%; min-height: 100vh; min-height: 100svh; padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); justify-content: flex-start; }
+  .signin-card { padding: 24px 0; border: 0; background: transparent; }
+  .signin-card .eyebrow { margin-top: clamp(58px, 12vh, 96px); font-size: 11px; }
+  .signin-card h1 { font-size: clamp(42px, 12vw, 54px); }
+  .signin-card > p { font-size: 16px; }
+  .signin-card input, .signin-card button { min-height: 56px; }
+}
+
+/* Some Android custom tabs expose a desktop-width viewport on a phone. */
+@media (pointer: coarse) and (max-device-width: 600px) and (min-width: 681px) {
+  .signin-shell { width: 100%; min-height: 100vh; min-height: 100dvh; padding: 48px 56px; }
+  .signin-card { width: 100%; padding: 64px; }
+  .signin-card .brand { font-size: 22px; }
+  .signin-card .eyebrow { margin-top: 72px; font-size: 15px; }
+  .signin-card h1 { font-size: 72px; }
+  .signin-card > p { max-width: 760px; font-size: 24px; }
+  .signin-card form { gap: 16px; margin-top: 40px; }
+  .signin-card label { font-size: 16px; }
+  .signin-card input, .signin-card button { min-height: 76px; font-size: 20px; }
+  .signin-card .text-button, .form-message { font-size: 18px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

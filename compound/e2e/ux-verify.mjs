@@ -10,14 +10,24 @@ await mkdir(evidenceDir, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const results = [];
 
-async function openCase(name, width, height, route, test) {
-  const context = await browser.newContext({ viewport: { width, height }, reducedMotion: "reduce" });
+async function openCase(name, width, height, route, test, device = {}) {
+  const context = await browser.newContext({
+    viewport: { width, height },
+    screen: device.screen ?? { width, height },
+    isMobile: device.isMobile ?? false,
+    hasTouch: device.hasTouch ?? width <= 768,
+    reducedMotion: "reduce",
+  });
   const page = await context.newPage();
   const consoleErrors = [];
   page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
   page.on("pageerror", (error) => consoleErrors.push(error.message));
   await page.goto(`${baseUrl}${route}`, { waitUntil: "networkidle" });
-  await page.keyboard.press("Tab");
+  if (device.hasTouch ?? width <= 768) {
+    await page.locator("button, input, a[href]").first().focus();
+  } else {
+    await page.keyboard.press("Tab");
+  }
   const focusState = await page.evaluate(() => {
     const element = document.activeElement;
     if (!(element instanceof HTMLElement)) return null;
@@ -98,11 +108,29 @@ async function verifyStaleAsk(page) {
 }
 
 try {
-  await openCase("dashboard-mobile-partial", 390, 844, "/?state=partial", (page) => verifyDashboard(page, "partial"));
+  await openCase("dashboard-phone-320-partial", 320, 700, "/?state=partial", (page) => verifyDashboard(page, "partial"));
+  await openCase("dashboard-phone-360-partial", 360, 800, "/?state=partial", (page) => verifyDashboard(page, "partial"));
+  await openCase("dashboard-phone-390-partial", 390, 844, "/?state=partial", (page) => verifyDashboard(page, "partial"));
+  await openCase("dashboard-phone-412-partial", 412, 915, "/?state=partial", (page) => verifyDashboard(page, "partial"));
+  await openCase("dashboard-phone-430-partial", 430, 932, "/?state=partial", (page) => verifyDashboard(page, "partial"));
+  await openCase("dashboard-tablet-768-partial", 768, 1024, "/?state=partial", (page) => verifyDashboard(page, "partial"));
+  await openCase("dashboard-android-scaled-partial", 980, 1600, "/?state=partial", (page) => verifyDashboard(page, "partial"), {
+    screen: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
   await openCase("dashboard-desktop-partial", 1440, 1000, "/?state=partial", (page) => verifyDashboard(page, "partial"));
   await openCase("dashboard-mobile-quiet", 390, 844, "/?state=quiet", (page) => verifyDashboard(page, "quiet"));
   await openCase("dashboard-desktop-stale", 1440, 1000, "/?state=stale", (page) => verifyDashboard(page, "stale"));
-  await openCase("ask-mobile-ready", 390, 844, "/ask?state=partial", verifyAsk);
+  await openCase("ask-phone-320-ready", 320, 700, "/ask?state=partial", verifyAsk);
+  await openCase("ask-phone-390-ready", 390, 844, "/ask?state=partial", verifyAsk);
+  await openCase("ask-phone-430-ready", 430, 932, "/ask?state=partial", verifyAsk);
+  await openCase("ask-tablet-768-ready", 768, 1024, "/ask?state=partial", verifyAsk);
+  await openCase("ask-android-scaled-ready", 980, 1600, "/ask?state=partial", verifyAsk, {
+    screen: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
   await openCase("ask-desktop-ready", 1440, 1000, "/ask?state=partial", verifyAsk);
   await openCase("ask-mobile-stale", 390, 844, "/ask?state=stale", verifyStaleAsk);
   console.log(JSON.stringify({ baseUrl, results }, null, 2));

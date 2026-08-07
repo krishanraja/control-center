@@ -10,6 +10,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "qa:ux": "node e2e/ux-verify.mjs",
+    "qa:auth": "node e2e/auth-responsive.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:supabase": "node scripts/check-supabase.mjs",
     "verify": "npm run check:boundaries && npm run check:supabase && npm run test:run && npm run build"

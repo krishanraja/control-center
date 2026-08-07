@@ -7,7 +7,10 @@ const repositoryRoot = resolve(compoundRoot, "..");
 const migration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260806220210_compound_foundation.sql"), "utf8");
 const exposureMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260806223500_compound_expose_schema.sql"), "utf8");
 const reloadMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260806231230_compound_reload_schema.sql"), "utf8");
+const loginMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260807002034_compound_login_delivery.sql"), "utf8");
 const edgeFunction = await readFile(join(repositoryRoot, "supabase", "functions", "compound-ask", "index.ts"), "utf8");
+const loginFunction = await readFile(join(repositoryRoot, "supabase", "functions", "compound-login", "index.ts"), "utf8");
+const loginProxy = await readFile(join(compoundRoot, "api", "compound-login.js"), "utf8");
 const config = await readFile(join(repositoryRoot, "supabase", "config.toml"), "utf8");
 
 const failures = [];
@@ -26,6 +29,14 @@ if (/schema\(["'](?:public|auth)["']\)/.test(edgeFunction)) failures.push("Edge 
 if (/supabaseAdmin|SERVICE_ROLE|service_role/.test(edgeFunction)) failures.push("Edge Function contains a privileged database path");
 if (!edgeFunction.includes("AbortSignal.timeout(30_000)")) failures.push("LLM provider call has no bounded timeout");
 if (!/\[functions\.compound-ask\][\s\S]*?verify_jwt = true/.test(config)) failures.push("compound-ask does not require a user JWT");
+if (!loginMigration.includes("alter table compound.login_deliveries enable row level security;")) failures.push("login delivery audit does not enable RLS");
+if (!loginMigration.includes("alter table compound.login_deliveries force row level security;")) failures.push("login delivery audit does not force RLS");
+if (!loginMigration.includes("revoke all on compound.login_deliveries from public, anon, authenticated;")) failures.push("login delivery audit is exposed to user roles");
+if (/\bemail\s+text\b/i.test(loginMigration)) failures.push("login delivery audit stores a plaintext email column");
+if (!loginFunction.includes('schema("compound")')) failures.push("login delivery function does not keep its audit in COMPOUND");
+if (!loginFunction.includes("COMPOUND_LOGIN_PROXY_SECRET") || !loginProxy.includes("COMPOUND_LOGIN_PROXY_SECRET")) failures.push("login delivery proxy secret is not enforced at both ends");
+if (!loginMigration.includes("pg_advisory_xact_lock") || !loginMigration.includes("interval '1 hour'")) failures.push("login delivery reservation is not atomically rate limited");
+if (!/\[functions\.compound-login\][\s\S]*?verify_jwt = false/.test(config)) failures.push("compound-login platform auth posture is not explicit");
 
 if (failures.length) {
   console.error(failures.join("\n"));
