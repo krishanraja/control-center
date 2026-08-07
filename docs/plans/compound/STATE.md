@@ -5,7 +5,7 @@
 ## Current status
 
 - Phase: production vertical slice live
-- State: repository, Supabase migrations, Auth member, private snapshots, Edge Function, standalone Vercel project, custom domain and grounded live-answer path are deployed and verified
+- State: repository, magic-word sign-in, Supabase migrations, private snapshots, Edge Functions, standalone Vercel project, custom domain and grounded live-answer path are deployed and verified
 - Base revision: `09c0f88750774f014a91d493e86d9acc50065a7c`
 - Production release: authorised and deployed
 - Supabase production mutation: completed through a guarded migration ledger; only COMPOUND migrations ran
@@ -69,30 +69,30 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 | P1 Product and architecture boundary | Locked | approved plan and ADR-009 |
 | P2 Daily dashboard concept and rendered mock | Locked | COMPOUND-DASHBOARD-MOCK-V2 approved by Krish after responsive, state and copy checks |
 | P2B Live-question interaction and rendered mock | Locked | COMPOUND-ASK-MOCK-V1 approved as a separate `/ask` route; the dashboard remains `/` |
-| P3 Supabase schema and RLS | Live pass | three COMPOUND-only migrations applied; schema exposed additively; service read succeeds and anonymous read returns 401 |
+| P3 Supabase schema and RLS | Live pass | six COMPOUND-only migrations applied; schema exposed additively; service read succeeds and anonymous read returns 401 |
 | P4 Feed adapters and engines 1 to 2 | Pending | deterministic fixtures, score and failure tests |
-| P5 Authenticated frontend vertical slice | Live pass | `hello@krishraja.com` exists in Auth and `compound.members`; two private snapshots are RLS-readable only by that member; production magic-link redirect resolves to the custom domain |
+| P5 Authenticated frontend vertical slice | Live pass | one server-held magic word exchanges for a one-time session without sending email; `hello@krishraja.com` remains the sole internal Auth identity and member; two private snapshots are RLS-readable only by that session |
 | P6 Engines 3 to 4 and falsifier audit | Pending | model contract, suppression and historical check tests |
-| P7 Release verification | Live pass | branch pushed; Edge Function active with JWT verification; Vercel deployment ready; custom domain verified; HTTPS/CSP/noindex, unauthenticated denial, signed-in streaming, persistence and idempotent retry pass |
+| P7 Release verification | Live pass | feature branch pushed; `compound-login` active with server-proxy authentication and rate limiting; Vercel deployment ready; custom domain verified; HTTPS/CSP/noindex, wrong-word denial, one-time session, signed-in streaming, persistence and idempotent retry pass |
 
 ## Current local verification
 
 - COMPOUND source and Supabase boundary checks: pass.
-- Frontend unit and component tests: 7 pass, 0 fail.
+- Frontend unit and component tests: 10 pass, 0 fail.
 - Edge Function protocol tests: 4 pass, 0 fail.
 - Frontend TypeScript and production build: pass.
 - Edge Function Deno type-check: pass.
 - Dependency advisory audit: 0 known vulnerabilities.
-- Browser UX: 7 mobile/desktop route and data-state cases pass with zero horizontal overflow, visible keyboard focus, practical control heights, reduced motion and no console errors.
+- Browser UX: the existing 7 route and data-state cases pass; the live public sign-in separately passes at 320, 360, 390, 412, 430, 768 and Android-scaled widths with no overflow or console errors.
 - Credential-pattern scan and JSON configuration parse: pass.
-- Supabase production migrations: pass; exactly `20260806220210`, `20260806223500` and `20260806231230` applied through the guarded ledger.
-- Edge Function: active, version 1, JWT verification enabled.
-- Vercel: project `compound`, root `compound/`, GitHub connected, production deployment ready, OIDC enabled.
+- Supabase production migrations: pass; exactly `20260806220210`, `20260806223500`, `20260806231230`, `20260807002034`, `20260807010239` and `20260807015930` applied through the guarded ledger.
+- Edge Functions: `compound-ask` remains JWT-protected; `compound-login` is active at version 7, rejects direct calls without the private server-proxy token and stores only one-way client fingerprints for throttling.
+- Vercel: project `compound`, root `compound/`, GitHub connected, production deployment `dpl_FaySdeVkLf2BVNxNv4zHMwRfDZyC` ready, OIDC enabled.
 - Live domain: `https://compound.krishraja.com` verified; HTTPS 200, title `COMPOUND`, CSP present, `noindex, nofollow`, API returns 401 without a user session.
 - Live browser: sign-in shell renders with zero console warnings/errors.
-- Auth: production Site URL and redirect allowlist include `https://compound.krishraja.com`; email login is enabled, project-wide new-user signup is disabled, and hosted email-confirmation, rate-limit, OTP and TOTP protections are preserved.
+- Auth: the public app no longer requests an email or sends a link. The approved word is normalized and compared to a protected one-way digest, then exchanged for a one-time Supabase session. Project-wide public signup remains disabled.
 - Private account: one approved member (`hello@krishraja.com`) and two starter snapshots exist; anonymous snapshot access remains denied.
-- Magic-link delivery: Supabase accepted a real production sign-in email for `hello@krishraja.com`; a synthetic unknown address was rejected and the Auth user count remained exactly one.
+- Magic-word access: wrong-word production requests return 401 and leave the Auth user count at one; the approved word opens a one-time session, reads a private snapshot and reaches the dashboard and Ask entry point on a 390-pixel live browser.
 - Live answer: a temporary synthetic, non-personal snapshot produced `meta`, streamed `delta`, `evidence` and `done` events through Vercel OIDC and Supabase; exactly one user/assistant pair was saved and a repeated request returned the same pair without duplication.
 - Production cleanup: the temporary synthetic snapshot and chat rows were deleted; readback shows two starter snapshots, zero synthetic test messages and one member.
 
@@ -101,7 +101,7 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 - Same GitHub repository and default branch as Control Center.
 - Same Supabase project, isolated through a dedicated `compound` schema and RLS.
 - Separate Vercel project at `compound.krishraja.com`.
-- Supabase Auth magic link plus a `compound.members` allowlist.
+- A server-held shared magic word plus a `compound.members` allowlist; email delivery is not part of the user journey.
 - GitHub Actions runs the daily Python pipeline and writes Supabase without committing generated data.
 - One material dashboard render must be approved before frontend implementation.
 - Questions stream through a same-origin Vercel OIDC proxy to a Supabase server-side function and use only authenticated COMPOUND evidence.
@@ -114,5 +114,6 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 - Every credential exposed in chat or the supplied API file remains in remediation. None may be used.
 - The FMP rate ceiling and batch quote behavior must be verified with rotated credentials before the full daily call budget is enabled.
 - Supabase Auth now has one explicitly approved COMPOUND member. Public signup is disabled; additional members require a deliberate admin action and allowlist row.
+- The shared word is convenience access, not high-assurance authentication. Five failed attempts per client fingerprint trigger a 15-minute pause, but anyone who learns the word can enter.
 - The shared Auth configuration was diffed before release and read back afterward. COMPOUND's redirect was added while hosted email and TOTP protections were preserved.
 - Full daily feed adapters and engines remain outside this vertical-slice release. The two private starter snapshots are deterministic examples, not a live market-data feed.
