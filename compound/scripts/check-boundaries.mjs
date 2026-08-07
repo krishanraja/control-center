@@ -1,12 +1,22 @@
 import { readFile, readdir } from "node:fs/promises";
-import { dirname, extname, join, relative, resolve } from "node:path";
+import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const sourceRoots = [join(root, "src"), join(root, "api")];
 const allowedExtensions = new Set([".ts", ".tsx", ".js", ".mjs"]);
-const forbiddenImport = /(?:from\s+|import\s*\(|require\s*\()\s*["'](?:\.\.\/){2,}(?:src|api|public|warehouse|n8n)(?:\/|["'])/;
+// Relative specifiers are resolved against the importing file rather than
+// pattern-matched, because "../../public" means the microsite's own public
+// directory from src/test and Control Center's from src. Only an import that
+// resolves outside this package breaks the isolation the schema relies on.
+const relativeImport = /(?:from\s+|import\s*\(|require\s*\()\s*["'](\.[^"']*)["']/g;
 const forbiddenSecrets = /(?:service[_-]?role|sbp_|ghp_|vcp_)[A-Za-z0-9_.-]{8,}/i;
+
+function escapes(file, specifier) {
+  const target = resolve(dirname(file), specifier);
+  const path = relative(root, target);
+  return path === ".." || path.startsWith(`..${sep}`);
+}
 
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -22,7 +32,9 @@ async function walk(directory) {
 const failures = [];
 for (const file of (await Promise.all(sourceRoots.map(walk))).flat()) {
   const content = await readFile(file, "utf8");
-  if (forbiddenImport.test(content)) failures.push(`${relative(root, file)} imports a Control Center path`);
+  for (const [, specifier] of content.matchAll(relativeImport)) {
+    if (escapes(file, specifier)) failures.push(`${relative(root, file)} imports "${specifier}", which is outside COMPOUND`);
+  }
   if (forbiddenSecrets.test(content)) failures.push(`${relative(root, file)} appears to contain a secret`);
 }
 
