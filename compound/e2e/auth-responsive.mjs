@@ -52,6 +52,7 @@ try {
         cardRatio: cardRect.width / innerWidth,
         titleSize: Number.parseFloat(getComputedStyle(title).fontSize),
         inputSize: Number.parseFloat(getComputedStyle(input).fontSize),
+        inputType: input.getAttribute("type"),
         inputHeight: input.getBoundingClientRect().height,
         buttonHeight: button.getBoundingClientRect().height,
       };
@@ -61,8 +62,10 @@ try {
     if (testCase.viewport.width <= 430 && metrics.cardRatio < 0.86) throw new Error(`${testCase.name} uses too little of the phone width`);
     if (testCase.name === "android-scaled" && metrics.cardRatio < 0.86) throw new Error("Android scaled layout still renders as a small desktop card");
     if (metrics.inputSize < 16) throw new Error(`${testCase.name} can trigger mobile form zoom`);
+    if (metrics.inputType !== "password") throw new Error(`${testCase.name} does not protect the magic word on screen`);
     if (metrics.inputHeight < 52 || metrics.buttonHeight < 52) throw new Error(`${testCase.name} has undersized sign-in controls`);
     if (errors.length) throw new Error(`${testCase.name} console errors: ${errors.join(" | ")}`);
+    if (await page.getByText("No email needed.", { exact: false }).count() !== 1) throw new Error(`${testCase.name} still presents the old email flow`);
 
     const screenshot = path.join(evidenceDir, `${testCase.name}.png`);
     await page.screenshot({ path: screenshot, fullPage: true });

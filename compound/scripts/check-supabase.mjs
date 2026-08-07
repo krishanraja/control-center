@@ -8,6 +8,7 @@ const migration = await readFile(join(repositoryRoot, "supabase", "migrations", 
 const exposureMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260806223500_compound_expose_schema.sql"), "utf8");
 const reloadMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260806231230_compound_reload_schema.sql"), "utf8");
 const loginMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260807002034_compound_login_delivery.sql"), "utf8");
+const accessMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260807010239_compound_magic_word_access.sql"), "utf8");
 const edgeFunction = await readFile(join(repositoryRoot, "supabase", "functions", "compound-ask", "index.ts"), "utf8");
 const loginFunction = await readFile(join(repositoryRoot, "supabase", "functions", "compound-login", "index.ts"), "utf8");
 const loginProxy = await readFile(join(compoundRoot, "api", "compound-login.js"), "utf8");
@@ -33,9 +34,19 @@ if (!loginMigration.includes("alter table compound.login_deliveries enable row l
 if (!loginMigration.includes("alter table compound.login_deliveries force row level security;")) failures.push("login delivery audit does not force RLS");
 if (!loginMigration.includes("revoke all on compound.login_deliveries from public, anon, authenticated;")) failures.push("login delivery audit is exposed to user roles");
 if (/\bemail\s+text\b/i.test(loginMigration)) failures.push("login delivery audit stores a plaintext email column");
-if (!loginFunction.includes('schema("compound")')) failures.push("login delivery function does not keep its audit in COMPOUND");
-if (!loginFunction.includes("COMPOUND_LOGIN_PROXY_SECRET") || !loginProxy.includes("COMPOUND_LOGIN_PROXY_SECRET")) failures.push("login delivery proxy secret is not enforced at both ends");
+if (!loginFunction.includes('schema("compound")')) failures.push("login function does not keep its audit in COMPOUND");
+if (!loginFunction.includes("COMPOUND_LOGIN_PROXY_SECRET") || !loginProxy.includes("COMPOUND_LOGIN_PROXY_SECRET")) failures.push("login proxy secret is not enforced at both ends");
 if (!loginMigration.includes("pg_advisory_xact_lock") || !loginMigration.includes("interval '1 hour'")) failures.push("login delivery reservation is not atomically rate limited");
+if (!accessMigration.includes("alter table compound.access_attempts enable row level security;")) failures.push("magic-word attempts do not enable RLS");
+if (!accessMigration.includes("alter table compound.access_attempts force row level security;")) failures.push("magic-word attempts do not force RLS");
+if (!accessMigration.includes("revoke all on compound.access_attempts from public, anon, authenticated;")) failures.push("magic-word attempts are exposed to user roles");
+if (!accessMigration.includes("security invoker") || accessMigration.includes("security definer")) failures.push("magic-word throttling uses an elevated execution context");
+if (!accessMigration.includes("pg_advisory_xact_lock") || !accessMigration.includes("interval '15 minutes'")) failures.push("magic-word attempts are not atomically rate limited");
+if (!accessMigration.includes("alter function compound.reserve_login_delivery(text) security invoker;")) failures.push("the unused email reservation keeps its elevated execution context");
+if (/\b(?:magic_word|client_ip)\s+text\b/i.test(accessMigration)) failures.push("magic-word audit stores a word or client IP");
+if (!loginFunction.includes("COMPOUND_MAGIC_WORD_HASH") || !loginFunction.includes("hashed_token")) failures.push("magic-word login does not use the server-held digest and one-time token hash");
+if (loginFunction.includes("RESEND_API_KEY") || loginFunction.includes("api.resend.com")) failures.push("magic-word login still depends on email delivery");
+if (!loginProxy.includes("X-Compound-Client-Fingerprint") || !loginProxy.includes('createHash("sha256")')) failures.push("login proxy does not create a server-peppered client fingerprint");
 if (!/\[functions\.compound-login\][\s\S]*?verify_jwt = false/.test(config)) failures.push("compound-login platform auth posture is not explicit");
 
 if (failures.length) {
