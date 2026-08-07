@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { sanitizeVoice, preamble } from '../_content.js'
+import { attachRejectSignal } from '../_rejectSignal.js'
 
 // GET/PATCH /api/briefs/:week  (Content Engine v2, spec §4)
 //
@@ -33,6 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const b = (req.body || {}) as {
     body_md?: string; title?: string; status?: string
     source?: 'krish' | 'cleo' | 'engine'; restore_version?: number
+    bin?: boolean; reason_code?: string; reason_text?: string
   }
 
   const { data: brief, error } = await supabase.from('weekly_briefs').select('*').eq('week', week).single()
@@ -41,6 +43,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const patch: Record<string, unknown> = {}
   const nowIso = new Date().toISOString()
   const versions: any[] = Array.isArray(brief.versions) ? brief.versions : []
+
+  // Bin the brief from inside it, with a reason. The mirror image of approving:
+  // approve resolves the decision card as done, bin resolves it as rejected and
+  // teaches the −1 that Vera clusters by reason code. Krish asked for this after
+  // opening a brief he had no appetite for and finding the only exits were Back
+  // (which leaves it waiting) and Approve.
+  if (b.bin) {
+    if (['pushed', 'sent', 'archived'].includes(brief.status)) {
+      return res.status(409).json({ ok: false, error: `brief is ${brief.status}; too late to bin it` })
+    }
+    const reasonCode = b.reason_code || 'content_other'
+    const reasonText = (b.reason_text || '').trim() || null
+
+    const { error: binErr } = await supabase.from('weekly_briefs')
+      .update({ status: 'archived', updated_at: nowIso }).eq('id', brief.id)
+    if (binErr) return res.status(500).json({ ok: false, error: binErr.message })
+
+    const { data: decisions } = await supabase.from('content_decisions')
+      .update({
+        status: 'dismissed',
+        resolved_at: nowIso,
+        resolution: { action: 'reject', at: nowIso, reason_code: reasonCode, reason_text: reasonText, from: 'brief_editor' },
+      })
+      .eq('week', week).eq('kind', 'brief_review').eq('status', 'pending')
+      .select('id')
+
+    // Best-effort, exactly as in /api/content-decisions/:id: the brief is
+    // already binned, so a failed learning write must not report a failed bin.
+    const { data: fbRow, error: fbErr } = await supabase.from('feedback_queue').insert({
+      source_table: 'content_decisions',
+      source_id: decisions?.[0]?.id || brief.id,
+      agent_id: 'cleo',
+      original_agent: 'cleo',
+      original_item_id: decisions?.[0]?.id || brief.id,
+      vote: -1,
+      reason_code: reasonCode,
+      reason_text: reasonText,
+      meta: { kind: 'brief_review', ref: brief.id, week, surface: 'brief_editor' },
+      status: 'pending',
+    }).select('id').single()
+
+    // The brief's own opening is the best available description of what was
+    // refused, so that is what the taste signal keeps.
+    await attachRejectSignal(fbRow?.id, brief.title, (brief.body_md || '').slice(0, 1200))
+
+    return res.json({ ok: true, binned: true, reason_code: reasonCode, taught: !fbErr })
+  }
 
   if (typeof b.restore_version === 'number') {
     const v = versions.find(x => x?.v === b.restore_version)

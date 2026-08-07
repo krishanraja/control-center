@@ -1,0 +1,73 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { supabase } from '../_supabase.js'
+import { weekOfLabel } from '../_week.js'
+
+// GET /api/goals/ladder
+//
+// The ONE read for the whole goal ladder (canon §0a.2). Before this, Home made
+// two separate reads that each returned a slice of `goals` and each presented it
+// as a different concept, which is what made "one source of truth" untrue in
+// practice even after the data was correct.
+//
+// Returns every rung plus its health, so the UI never has to compute staleness
+// or orphanhood itself and cannot disagree with `goals_health` about either.
+
+const HORIZONS = ['os', 'mid_term', 'weekly', 'venture_objective'] as const
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Cache-Control', 'no-store')
+  if (req.method === 'OPTIONS') return res.status(200).end()
+  if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Method not allowed' })
+
+  const [goalsRes, healthRes, cfgRes] = await Promise.all([
+    supabase
+      .from('goals')
+      .select('id, title, horizon, parent_id, venture, status, priority, progress, target, current, notes, why_now, definition_of_done, target_horizon, updated_at, created_at')
+      .not('status', 'in', '("dropped","archived")')
+      .order('priority', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true }),
+    supabase.from('goals_health').select('id, is_stale, orphaned, days_since_touch, stale_after_days'),
+    supabase.from('system_config').select('key, value').in('key', ['north_star', 'team_focus']),
+  ])
+
+  const err = goalsRes.error || healthRes.error || cfgRes.error
+  if (err) return res.status(500).json({ ok: false, error: err.message })
+
+  const health = new Map((healthRes.data || []).map(h => [(h as any).id, h]))
+  const rows = (goalsRes.data || []).map(g => {
+    const h = health.get((g as any).id) as any
+    return {
+      ...g,
+      // Legacy rows predate the ladder and were venture objectives in practice.
+      horizon: (g as any).horizon || 'venture_objective',
+      is_stale: h?.is_stale ?? false,
+      orphaned: h?.orphaned ?? false,
+      days_since_touch: h?.days_since_touch ?? null,
+      stale_after_days: h?.stale_after_days ?? null,
+    }
+  })
+
+  const cfg: Record<string, string> = {}
+  for (const c of cfgRes.data || []) cfg[(c as any).key] = (c as any).value
+
+  const byHorizon: Record<string, unknown[]> = {}
+  for (const hz of HORIZONS) byHorizon[hz] = rows.filter(r => r.horizon === hz)
+
+  return res.json({
+    ok: true,
+    horizons: HORIZONS,
+    by_horizon: byHorizon,
+    goals: rows,
+    // Counts the UI shows without recomputing; staleness is urgent by design.
+    stale_count: rows.filter(r => r.is_stale).length,
+    orphan_count: rows.filter(r => r.orphaned).length,
+    north_star: cfg.north_star || '',
+    team_focus: cfg.team_focus || '',
+    // Derived, never read from config: a stored week label is wrong the
+    // moment the week turns, and it was showing April in August.
+    week_of: weekOfLabel(),
+  })
+}

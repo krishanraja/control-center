@@ -81,11 +81,14 @@ export function useAltitudes(): AltitudesResult {
   const portfolioNeeds = demandOk && (noms > 0 || noActive || overCap || proposedMilestones > 0)
   const portfolio: Altitude = {
     id: 'portfolio',
-    label: 'OS',
+    // Labelled Portfolio, not OS. This altitude counts VENTURE objectives; the
+    // ladder's top rung is the OS goal. Both were called OS, so Home read as a
+    // contradiction: "No active objectives" next to a live OS goal.
+    label: 'Portfolio',
     state: noActive ? 'unset' : portfolioNeeds ? 'stale' : 'set',
     needsAttention: portfolioNeeds,
     summary: noActive
-      ? 'No active objectives'
+      ? 'No venture objectives'
       : noms > 0
         ? `${noms} proposed to review`
         : proposedMilestones > 0
@@ -111,7 +114,7 @@ export function useAltitudes(): AltitudesResult {
     summary: weeklySet
       ? 'Week committed'
       : obj.active.length === 0
-        ? 'No objectives to plan'
+        ? 'No venture objectives to plan'
         : 'Plan this week',
     count: weeklyNeeds ? 1 : 0,
   }

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { useContentV2 } from '../../hooks/useContentV2'
 import type { ContentDecisionRow } from '../../lib/contentV2'
+import { reasonsFor } from '../../lib/triageReasons'
+import { feedbackVote } from '../../lib/triageActions'
+import { useLikelyReasons } from '../../hooks/useLikelyReasons'
+import { RejectReasonBar } from '../shared/RejectReasonBar'
 
 // The whole mobile job (mockup set 2, pin 11): the week's finite decision
 // queue, one card at a time, every action in the bottom thumb zone. Finishable
@@ -13,6 +17,13 @@ import type { ContentDecisionRow } from '../../lib/contentV2'
 // what to keep or cull gets built. The BUTTONS decide. Deciding removes the
 // card and the deck closes ranks; the count only ever moves because something
 // was actually decided.
+//
+// Every card also carries a REJECT path, because clearing a card and judging it
+// are two more different acts. "Skip for the desktop sitting" defers and teaches
+// nothing. "Not for me" bins it and asks one question, answerable in one tap,
+// and that answer is the −1 Vera clusters by reason code. Without it Krish could
+// open a brief he had no appetite for and had no way to say so, which is how the
+// engine kept assembling the same subject back at him.
 
 const KIND_CHIP: Record<string, { label: string; cls: string }> = {
   brief_review: { label: 'Weekly brief', cls: 'bg-sky-400/15 text-sky-300' },
@@ -55,6 +66,10 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   // Live swipe state: the card follows the finger, then commits or snaps back.
   const [dragX, setDragX] = useState(0)
   const [dragging, setDragging] = useState(false)
+  // True only while the card is repositioned off-screen between cards, so
+  // the jump to the far side is never animated or seen.
+  const [swapping, setSwapping] = useState(false)
+  const exiting = useRef(false)
   const dragStart = useRef<number | null>(null)
 
   // Brief first (the anchor decision), then shifts, then the rest.
@@ -71,10 +86,33 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   const current = queue.length ? queue[Math.min(pos, queue.length - 1)] : null
   const total = queue.length + done
 
+  // Krish: "the animation doesnt have me feel like the card is swiping away,
+  // even though the next card does appear."
+  // Cause: go() changed the index and zeroed dragX in the same tick, so the card
+  // TELEPORTED back to centre while its content swapped underneath. Nothing ever
+  // left the screen, which is why the gesture registered but the motion did not.
+  // Now the card finishes the throw first, then the content swaps behind it, then
+  // it returns from the opposite edge.
   const go = (dir: 1 | -1) => {
     if (queue.length < 2) { setDragX(0); return }
-    setPos(p => (p + dir + queue.length) % queue.length)
-    setDragX(0)
+    if (exiting.current) return
+    exiting.current = true
+    const w = typeof window === 'undefined' ? 400 : window.innerWidth
+    // 1. finish the throw, off-screen and clear of the edge
+    setDragX(dir === 1 ? -Math.round(w * 1.15) : Math.round(w * 1.15))
+    window.setTimeout(() => {
+      // 2. swap content while the card is out of sight, and park it on the far
+      //    side with transitions suppressed so the reposition is never seen
+      setSwapping(true)
+      setPos(p => (p + dir + queue.length) % queue.length)
+      setDragX(dir === 1 ? Math.round(w * 0.5) : -Math.round(w * 0.5))
+      // 3. next frame, re-enable transitions and let it settle into place
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        setSwapping(false)
+        setDragX(0)
+        exiting.current = false
+      }))
+    }, 200)
   }
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -99,6 +137,42 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   const act = async (fn: () => Promise<void>) => {
     setBusy(true)
     try { await fn(); setDone(d => d + 1) } finally { setBusy(false) }
+  }
+
+  // Reject flow: tapping "Not for me" swaps the thumb zone for the reason bar,
+  // so the question lands where the thumb already is instead of in a modal that
+  // covers the card being judged.
+  const [rejecting, setRejecting] = useState(false)
+  const rejectReasons = reasonsFor('content_decisions')
+
+  // Browsing away closes the question. An open reason bar belongs to the card
+  // that opened it, and must never answer for the one that replaced it.
+  useEffect(() => { setRejecting(false) }, [current?.id])
+
+  // Prefetched on the card, not on the tap: the prediction costs an embedding
+  // and a vector search, and the one place that latency must not land is
+  // between deciding to bin something and being asked why.
+  const likely = useLikelyReasons(
+    current && current.kind !== 'purge_preview' ? current.id : null)
+
+  // A shift ruling lives on its own endpoint (which resolves its own card), so
+  // there the ruling and the lesson are two calls. Everything else rejects in
+  // one. The vote is best-effort in both: the card is already gone, and telling
+  // Krish his tap failed because a learning write missed would be a lie.
+  const submitReject = async (reasonCode?: string, reasonText?: string) => {
+    if (!current) return
+    const d = current
+    setRejecting(false)
+    await act(async () => {
+      if (d.kind === 'shift_proposal' || d.kind === 'shift_fading') {
+        await v2.ruleShift(d.ref, 'dismiss', { note: reasonText || null })
+        void feedbackVote('content_decisions', d.id, -1, 'cleo', reasonCode || 'content_other', reasonText, {
+          kind: d.kind, ref: d.ref, week: d.week, surface: 'content_v2_week',
+        })
+      } else {
+        await v2.rejectDecision(d.id, reasonCode, reasonText)
+      }
+    })
   }
 
   if (loading) return <div className="text-white/40 text-sm py-16 text-center">Loading the week...</div>
@@ -166,8 +240,12 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
           style={{
             touchAction: 'pan-y',
             transform: `translateX(${dragX}px) rotate(${dragX / 60}deg)`,
-            opacity: 1 - Math.min(0.35, Math.abs(dragX) / 500),
-            transition: dragging ? 'none' : 'transform 180ms ease-out, opacity 180ms ease-out',
+            // Opacity must NOT race the travel: fading while it flies is what
+            // makes a throw read as a disappear. It stays legible on the way out.
+            opacity: swapping ? 0 : 1 - Math.min(0.25, Math.abs(dragX) / 900),
+            transition: dragging || swapping
+              ? 'none'
+              : 'transform 200ms cubic-bezier(0.32,0,0.67,0), opacity 140ms ease-out',
           }}
           className={`rounded-2xl border p-5 select-none cursor-grab active:cursor-grabbing ${d.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}
         >
@@ -194,8 +272,20 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
           )}
         </div>
 
-        {/* thumb zone */}
+        {/* thumb zone — the reason bar takes it over while a reject is being
+            answered, so the question sits under the thumb that asked it */}
         <div className="mt-auto pt-4 pb-2 flex flex-col gap-2">
+          {rejecting ? (
+            <RejectReasonBar
+              title="Why bin it?"
+              reasons={rejectReasons}
+              onChoose={submitReject}
+              onCancel={() => setRejecting(false)}
+              cancelLabel="Keep it"
+              likely={likely}
+            />
+          ) : (
+          <>
           {d.kind === 'brief_review' ? (
             <>
               <Big tone="primary" disabled={busy} onClick={() => { window.location.hash = `#/content?brief=${d.week}` }}>
@@ -208,9 +298,9 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
           ) : d.kind === 'shift_proposal' ? (
             <>
               <Big tone="green" disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'accept'))}>Accept shift</Big>
-              <div className="flex gap-2">
-                <Big disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'dismiss'))}>Dismiss</Big>
-              </div>
+              {/* This card's own no already exists, so it carries the reason
+                  rather than sitting beside a second, near-identical no. */}
+              <Big disabled={busy} onClick={() => setRejecting(true)}>Not a shift</Big>
             </>
           ) : d.kind === 'shift_fading' ? (
             <>
@@ -224,6 +314,22 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
             </>
           ) : (
             <Big tone="primary" disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'done'))}>Acknowledged</Big>
+          )}
+
+          {/* The reject, on the cards that offer something without already
+              having a no. purge_preview is a notice rather than an offer.
+              shift_fading's two verdicts already cover the ground, and
+              shift_proposal carries the reason on its own "Not a shift". */}
+          {!['purge_preview', 'shift_fading', 'shift_proposal'].includes(d.kind) ? (
+            <button
+              onClick={() => setRejecting(true)}
+              disabled={busy}
+              className="w-full rounded-xl py-3 text-[13px] font-semibold text-rose-300/85 border border-rose-400/25 bg-rose-500/[0.06] active:scale-[0.98] transition disabled:opacity-40"
+            >
+              Not for me
+            </button>
+          ) : null}
+          </>
           )}
         </div>
       </div>

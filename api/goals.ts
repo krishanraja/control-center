@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { weekOfLabel } from './_week.js'
 import { supabase } from './_supabase.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -16,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // goal at every altitude and WeeklyGoals rendered venture objectives
       // as weekly goals, which is why it never felt like one source of truth.
       supabase.from('goals').select('*').eq('horizon', 'weekly').order('created_at'),
-      supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus', 'week_of']),
+      supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus']),
       supabase.from('tasks').select('id, title, status, agent, weekly_goal_id').not('weekly_goal_id', 'is', null)
     ])
 
@@ -42,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       goals,
       north_star: config.north_star || '',
       team_focus: config.team_focus || '',
-      week_of: config.week_of || '',
+      week_of: weekOfLabel(),
       updated_at: new Date().toISOString()
     })
   }
@@ -61,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       progress: 0,
       notes: '',
       status: 'active',
-      week_of: 'Week of ' + new Date().toISOString().split('T')[0],
+      week_of: weekOfLabel(),
     }
     // Optional fields — only set when the caller provided them so we
     // don't overwrite column defaults with nulls.
@@ -125,6 +126,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (body.current !== undefined) updates.current = body.current
       if (body.progress !== undefined) updates.progress = Math.max(0, Math.min(100, Number(body.progress)))
       if (body.notes !== undefined) updates.notes = body.notes
+      // Retiring a goal is a status change, never a DELETE. Canon Rule A wants
+      // decay reversible, and the row carries history the learning signals and
+      // the chronicle hang off. Whitelisted so a client cannot invent a status
+      // that no surface filters on, which would make the goal invisible
+      // everywhere and unrecoverable from the UI.
+      if (body.status !== undefined) {
+        // Mirrors goals_status_objective_check exactly. 'archived' is NOT in it:
+        // sending it returned a raw Postgres constraint error to the UI. Keep
+        // these in step with the constraint, or the whitelist just moves the
+        // failure one layer down.
+        const ALLOWED_STATUS = new Set(['proposed', 'active', 'paused', 'done', 'dropped'])
+        if (!ALLOWED_STATUS.has(String(body.status))) {
+          return res.status(400).json({ ok: false, error: `unknown status '${body.status}'` })
+        }
+        updates.status = body.status
+      }
       const { error } = await supabase.from('goals').update(updates).eq('id', body.goalId)
       if (error) {
         return res.status(500).json({ ok: false, error: error.message })
@@ -164,13 +181,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const { data: goals } = await supabase.from('goals').select('*').order('created_at')
-    const { data: configs } = await supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus', 'week_of'])
+    const { data: configs } = await supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus'])
     const cfg: Record<string, string> = {}
     for (const c of configs || []) cfg[c.key] = c.value
 
     return res.json({
       ok: true,
-      goals: { goals: goals || [], north_star: cfg.north_star || '', team_focus: cfg.team_focus || '', week_of: cfg.week_of || '' }
+      goals: { goals: goals || [], north_star: cfg.north_star || '', team_focus: cfg.team_focus || '', week_of: weekOfLabel() }
     })
   }
 

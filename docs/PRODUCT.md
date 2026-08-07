@@ -18,7 +18,7 @@
 |---|---|
 | Primary user | Krish (CEO, single operator) |
 | Secondary user | Future ops staff with read-only oversight |
-| Never the user | Agents — they read briefs and Supabase rows, never this UI |
+| Never the user | Agents - they read briefs and Supabase rows, never this UI |
 | Operating mode | Glanceable status + decisive action. No exploration UI, no analytics-style dashboards. |
 | Decision velocity | Every tab must answer its core question in < 3 seconds. |
 
@@ -43,7 +43,7 @@ when in conflict.
 | **Prominence ladder** | Within a tab: blocking actions → KPIs → context → history. Never invert. |
 | **Mobile parity** | Below 900px every tab surfaces the same primary information; only secondary panels collapse. |
 | **One channel per table** | Realtime subscriptions reuse the shared channel (`tasks-rt-shared`, `leads-rt-shared`, etc.). Opening a second channel for the same table is a performance bug. ADR-002. |
-| **Adaptive theme** | Every surface must read correctly in light AND dark — use design tokens, never hardcoded hues. Theme = System/Light/Dark, switchable at will; the experimental ambient layer is toggleable off. ADR-007, [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md). |
+| **Adaptive theme** | Every surface must read correctly in light AND dark - use design tokens, never hardcoded hues. Theme = System/Light/Dark, switchable at will; the experimental ambient layer is toggleable off. ADR-007, [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md). |
 
 ---
 
@@ -54,22 +54,22 @@ when in conflict.
 > show me the live revenue pulse, and flag anything actually broken.*
 
 ### Above-the-fold ladder (1280×800)
-1. **CriticalAlertBanner** — subscribed to `silent_failures` tier 3. Hidden
+1. **CriticalAlertBanner** - subscribed to `silent_failures` tier 3. Hidden
    when nothing is critical. When present, it pre-empts everything else
    visually.
-2. **DailyBriefBanner** — Marcus's daily COO brief; the Friday weekly retro
+2. **DailyBriefBanner** - Marcus's daily COO brief; the Friday weekly retro
    takes priority over the daily brief until Krish acks (`weekly_retro_ack_at`).
-3. **MrrTicker** — live MRR + path-to-$100k delta.
-4. **StreakPills** — Content / Leads / Waiting-on-you streaks.
+3. **MrrTicker** - live MRR + path-to-$100k delta.
+4. **StreakPills** - Content / Leads / Waiting-on-you streaks.
 5. **Marcus headline** + Signals + "Needs you" panels.
-6. **DecisionsWaitingPanel** — unified across tasks / leads / guests /
+6. **DecisionsWaitingPanel** - unified across tasks / leads / guests /
    visibility / ideas, reading the `decisions_waiting` Postgres view.
    Rendering anchored by this panel; everything else is context.
-7. **KillListModal** — auto-opens when ≥ 5 tasks are untouched for 21+ days.
+7. **KillListModal** - auto-opens when ≥ 5 tasks are untouched for 21+ days.
 
 Below the fold (context, not action):
 - **OS Mission** (north star + this week's focus) + **Weekly Goals**.
-- **Activity** — collapsed `<details>` rolling `audit_log`.
+- **Activity** - collapsed `<details>` rolling `audit_log`.
 
 ### Inputs
 
@@ -83,11 +83,11 @@ Below the fold (context, not action):
 | Marcus headline + signals | `home_intelligence.summary`, `external_signals`, `customer_signals` | `home_intelligence` realtime |
 | Needs You panel | `tasks` where `status='waiting'`, `leads` where `deep_enriched_at IS NOT NULL AND promoted_task_id IS NULL` | shared channels |
 | Activity feed | `audit_log` latest 40, realtime INSERT subscription | `home-activity` channel |
-| OS Mission · north star + team focus | `goals` via `WeeklyGoals` | latest period |
-| Weekly Goals | `goals` via `WeeklyGoals` | latest 6 by `updated_at`, current period |
+| OS Mission · north star + team focus | `goals` via `GoalLadder` (`GET /api/goals/ladder`) | current, week label derived |
+| Goal ladder · all four horizons | `goals` via `GoalLadder` | every non-terminal row, grouped by `horizon` |
 
 ### Writes
-Home itself owns very few mutations — every actionable row in the
+Home itself owns very few mutations - every actionable row in the
 DecisionsWaitingPanel routes to the appropriate tab's handler (Approve,
 Promote, Confirm, Deep enrich, etc.). The exceptions:
 - **OS Mission · Save focus** → `PATCH /api/goals` (`team_focus`).
@@ -118,7 +118,7 @@ Promote, Confirm, Deep enrich, etc.). The exceptions:
 |---|---|
 | No critical alerts | Banner absent (zero height). |
 | No decisions waiting | Panel renders "Nothing waiting. Clear mind." |
-| `decisions_waiting` view unreachable | Panel renders empty state with "view unreachable" caption — not a spinner. |
+| `decisions_waiting` view unreachable | Panel renders empty state with "view unreachable" caption - not a spinner. |
 | Empty activity | "Quiet. Activity will appear here in real time." inside the collapsed `<details>`. |
 | Loading > 500ms | Calm. Never a full-page spinner. |
 
@@ -140,9 +140,9 @@ Promote, Confirm, Deep enrich, etc.). The exceptions:
 > *What needs my attention before EOD?*
 
 ### Sections
-1. **Due** — `tasks` with `due_date` today or in the past, status not
+1. **Due** - `tasks` with `due_date` today or in the past, status not
    `done`. Accent: rose.
-2. **Waiting on You** — `tasks` with `status='waiting'` not already in Due.
+2. **Waiting on You** - `tasks` with `status='waiting'` not already in Due.
    Accent: amber.
 
 ### Inputs
@@ -159,7 +159,7 @@ Inline action surface (`InlineActions`):
 - **Flag** → opens `FlagAgentModal`; persists a flag against the agent.
 
 ### Behaviour rules
-- A task in "Due" cannot also appear in "Waiting" — Due wins.
+- A task in "Due" cannot also appear in "Waiting" - Due wins.
 - Selecting a task on desktop opens the right pane; on mobile it pushes a
   detail view with a back button.
 - Empty *both* groups → "Nothing scheduled for today. Clear mind."
@@ -174,14 +174,14 @@ Inline action surface (`InlineActions`):
 
 ### Purpose
 > *Which leads are enriched and ready for me to promote, reassign, schedule
-> follow-up on, or kill — sliced by venture?*
+> follow-up on, or kill - sliced by venture?*
 
 ### Layout
-- **Per-venture lanes** — one column per active venture in `venture_registry`
+- **Per-venture lanes** - one column per active venture in `venture_registry`
   (`mindmaker`, `signal_noise`, `builder_economy`), rendered by
   `LeadVentureLane`. The `assignee_agent` column is independent and can
   route a row to any agent regardless of the venture lane.
-- **LeadCard** — each card shows venture pill + per-venture ICP chips
+- **LeadCard** - each card shows venture pill + per-venture ICP chips
   (sourced from `icp_scores` jsonb), with inline Promote / Reassign /
   Schedule follow-up / Deep enrich.
 
@@ -225,14 +225,14 @@ Inline action surface (`InlineActions`):
 > risk, and which warrant an expansion conversation?*
 
 ### Sections
-1. **MrrTicker** — live MRR + delta vs path-to-$100k.
-2. **CustomerSourcesPanel** — revenue by `attribution_channel`
+1. **MrrTicker** - live MRR + delta vs path-to-$100k.
+2. **CustomerSourcesPanel** - revenue by `attribution_channel`
    (cold-email / podcast / content / referral / direct).
-3. **CustomerCouncilCard** — exit-interview-overdue customers + tenured
+3. **CustomerCouncilCard** - exit-interview-overdue customers + tenured
    customers due for a check-in.
-4. **ExpansionRadar** — long-tenured starter-plan customers ready to
+4. **ExpansionRadar** - long-tenured starter-plan customers ready to
    upsell.
-5. **Per-product feeds** — per `customer_product` (mm-ctrl, Fractionl
+5. **Per-product feeds** - per `customer_product` (mm-ctrl, Fractionl
    Circle, Fractionl Pulse, OnAlert, Gutted, Merciless): recent signups,
    churns, MRR delta.
 
@@ -249,7 +249,7 @@ Inline action surface (`InlineActions`):
 ### Behaviour rules
 - `kind` enum: `paid` / `free_signup` / `trial` / `waitlist` /
   `churned`. MrrTicker sums only `paid`.
-- `attribution_channel` may be `unknown` — render that as a labelled
+- `attribution_channel` may be `unknown` - render that as a labelled
   bucket, never hide.
 - Churned customers stay in the table; ExpansionRadar excludes them.
 
@@ -262,12 +262,12 @@ Inline action surface (`InlineActions`):
 > which visibility / PR opportunities are waiting?*
 
 ### Layout
-- **GuestImportDropzone** — flexible-format paste/drop (mirrors
+- **GuestImportDropzone** - flexible-format paste/drop (mirrors
   LeadImportDropzone). POSTs to `/webhook/guest-doc-ingest`.
-- **GuestCard** — Confirm / Skip / Deep enrich / Edit pitch.
-- **GuestStatusLane** — `new` / `enriched` / `confirmed` / `skipped` /
+- **GuestCard** - Confirm / Skip / Deep enrich / Edit pitch.
+- **GuestStatusLane** - `new` / `enriched` / `confirmed` / `skipped` /
   `done`.
-- **VisibilityTargetCard** — speaking + PR opportunities with deep-enrich
+- **VisibilityTargetCard** - speaking + PR opportunities with deep-enrich
   + edit (replaces legacy `useNovaConferences` / `VisibilityEventCard`,
   retained in the source tree for safety-window only).
 
@@ -314,7 +314,7 @@ Inline action surface (`InlineActions`):
 - **Promote to task** → creates a `tasks` row in the `content` workstream.
 
 ### Capture surface
-- **Cmd+I (QuickCaptureIdea)** — rendered at the app root, available on
+- **Cmd+I (QuickCaptureIdea)** - rendered at the app root, available on
   every tab. POSTs to the Cleo idea-capture webhook (Sonnet 4.6
   extractor; see PR #51). Hard contract on insert: `is_idea=true`,
   `confidence >= 0.5`. Below bar → write to `audit_log` as
@@ -336,13 +336,13 @@ Inline action surface (`InlineActions`):
 > and how much MRR have my bets actually delivered?*
 
 ### Sections
-1. **Bet Board** — live bets with time-box fill bars (`time_box_days`
+1. **Bet Board** - live bets with time-box fill bars (`time_box_days`
    countdown).
-2. **Place a bet** — inline form: title, hypothesis, time-box,
+2. **Place a bet** - inline form: title, hypothesis, time-box,
    `est_mrr_impact_usd`.
-3. **90-day hit rate** — won / (won + lost + partial) over the last 90
+3. **90-day hit rate** - won / (won + lost + partial) over the last 90
    days.
-4. **MRR impact panel** — `sum(actual_mrr_impact_usd)` of bets closed in
+4. **MRR impact panel** - `sum(actual_mrr_impact_usd)` of bets closed in
    the last 90 days.
 
 ### Inputs
@@ -394,7 +394,7 @@ Inline action surface (`InlineActions`):
 ### Behaviour rules
 - The slug-as-key rule applies absolutely. If an agent's runs don't
   appear, the bug is in the writer, not the reader. The reader does
-  best-effort token expansion — see [`AGENTS.md`](./AGENTS.md).
+  best-effort token expansion - see [`AGENTS.md`](./AGENTS.md).
 - Empty drawer states ("No recent activity", "No workflow runs") must not
   be confused with "agent is broken." Cross-reference Systems tab for
   health.
@@ -414,16 +414,16 @@ Inline action surface (`InlineActions`):
 > state, and read the signal stream.*
 
 ### Sections
-1. **AskMarcus** — chat surface backed by `/api/ask-marcus`. Anthropic-
+1. **AskMarcus** - chat surface backed by `/api/ask-marcus`. Anthropic-
    backed Q&A grounded in `customers` / `leads` / `bets` /
    `home_intelligence`.
-2. **Revenue & Pipeline** — line chart of `home_intelligence.metrics[].progress_pct`.
-3. **Agent Cost** — bar chart, total in the corner. Sourced from
+2. **Revenue & Pipeline** - line chart of `home_intelligence.metrics[].progress_pct`.
+3. **Agent Cost** - bar chart, total in the corner. Sourced from
    `workflow_runs.cost_usd` (with legacy `cost` fallback). Grouped by
    `agent_id` (with legacy `agent` fallback). Unattributed rows roll up to
    `system`.
-4. **Intelligence Feed** — chronological `audit_log`, latest 20.
-5. **Zara Signals** — top recent rows from `zara_signals`.
+4. **Intelligence Feed** - chronological `audit_log`, latest 20.
+5. **Zara Signals** - top recent rows from `zara_signals`.
 
 ### Inputs
 - `home_intelligence` (singleton, `id='current'`).
@@ -452,9 +452,9 @@ Inline action surface (`InlineActions`):
 > waiting on my approval.*
 
 ### Sections
-1. **Workflows** — grouped by `workflow_id`. Columns: workflow, agent
+1. **Workflows** - grouped by `workflow_id`. Columns: workflow, agent
    chip, last run, status, runs, errors.
-2. **Pending Proposals** — workflow improvements awaiting approval.
+2. **Pending Proposals** - workflow improvements awaiting approval.
 
 ### Inputs
 - `workflow_runs` latest 50, normalised to backfill
@@ -470,7 +470,7 @@ Inline action surface (`InlineActions`):
   worst-case status.
 - Errors column is bold-rose when > 0; never green-on-zero (zero is the
   default, not a celebration).
-- Mobile renders cards instead of the table — same data, no truncation
+- Mobile renders cards instead of the table - same data, no truncation
   of the workflow name.
 
 ---
@@ -517,7 +517,7 @@ None. Remediation is owned by Arlo / Kai out-of-band.
 - Always reachable via ⌘K / Ctrl+K. Esc closes.
 - Fuzzy match (cmdk default).
 - Action verbs match the inline-action verbs exactly (Approve, Reject,
-  Done, Flag) — never invent synonyms in the palette.
+  Done, Flag) - never invent synonyms in the palette.
 
 ---
 
@@ -538,8 +538,8 @@ None. Remediation is owned by Arlo / Kai out-of-band.
 ## Surface: Appearance (theme)
 
 ### Purpose
-> *Read the cockpit however I want — dark at night, light by day, or follow the
-> system — and turn the "magic" off if I want it flat.*
+> *Read the cockpit however I want - dark at night, light by day, or follow the
+> system - and turn the "magic" off if I want it flat.*
 
 ### Behaviour
 - Two persisted switches: **theme** (`system` / `light` / `dark`, `system`

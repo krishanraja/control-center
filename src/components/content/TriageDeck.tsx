@@ -4,6 +4,7 @@ import { useCardDeck, type Dir } from '../../hooks/useCardDeck'
 import type { useContentTriage } from '../../hooks/useContentTriage'
 import { TriageCard } from './TriageCard'
 import { reasonsFor } from '../../lib/triageReasons'
+import { RejectReasonBar } from '../shared/RejectReasonBar'
 
 interface Props {
   triage: ReturnType<typeof useContentTriage>
@@ -138,31 +139,13 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
       {/* Reason chip bar — pops after a LEFT swipe (drop); tap a chip to teach Vera */}
       {pendingDrop ? (
         <div className="pt-4 flex-shrink-0">
-          <div className="rounded-2xl border border-rose-400/25 bg-rose-500/[0.06] p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[11px] text-white/70 font-medium">Why drop it?</span>
-              <button type="button" onClick={cancelDrop}
-                className="ml-auto text-[11px] text-white/55 hover:text-white/90 px-2 py-1 rounded-md hover:bg-white/[0.06]">
-                Undo
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {dropReasons.map((c, i) => (
-                <button
-                  key={c.code}
-                  type="button"
-                  onClick={() => chooseDropReason(c.code)}
-                  className="text-[12px] px-2.5 py-1.5 rounded-lg border border-white/[0.12] text-white/80 hover:border-white/[0.25] hover:bg-white/[0.05] transition-colors"
-                >
-                  <span className="hidden md:inline text-white/35 mr-1 tabular-nums">{i + 1}</span>{c.label}
-                </button>
-              ))}
-              <button type="button" onClick={() => chooseDropReason(undefined)}
-                className="text-[12px] px-2.5 py-1.5 rounded-lg text-white/50 hover:text-white/80">
-                Skip
-              </button>
-            </div>
-          </div>
+          <RejectReasonBar
+            title="Why drop it?"
+            reasons={dropReasons}
+            onChoose={(code, text) => chooseDropReason(code, text)}
+            onCancel={cancelDrop}
+            showNumbers
+          />
         </div>
       ) : (
         top && (
