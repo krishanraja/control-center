@@ -1,30 +1,33 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { AskPage } from "./pages/AskPage";
-import { DashboardPage } from "./pages/DashboardPage";
-import { SignInPage } from "./pages/SignInPage";
+import { Shell } from "./app/Shell";
 import { readConfig } from "./lib/env";
+import { loadSnapshot } from "./lib/snapshot";
 import { getSupabase } from "./lib/supabase";
+import { SignInPage } from "./pages/SignInPage";
+import type { Snapshot, TabKey } from "./types";
 
-interface RouteState {
-  pathname: string;
-  search: string;
-}
+const TAB_KEYS: TabKey[] = ["now", "shifts", "stocks", "mine", "ask"];
 
-function currentRoute(): RouteState {
-  return { pathname: window.location.pathname, search: window.location.search };
+/** The tab lives in the URL so a shared link and the back button both work. */
+function tabFromLocation(): TabKey {
+  if (window.location.pathname === "/ask") return "ask";
+  const requested = new URLSearchParams(window.location.search).get("tab");
+  return TAB_KEYS.find((key) => key === requested) ?? "now";
 }
 
 export function App() {
   const config = useMemo(() => readConfig(), []);
-  const [route, setRoute] = useState<RouteState>(currentRoute);
+  const [tab, setTab] = useState<TabKey>(tabFromLocation);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(config.mode === "demo" || Boolean(config.error));
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [snapshotError, setSnapshotError] = useState("");
 
   useEffect(() => {
-    const handlePopState = () => setRoute(currentRoute());
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    const onPop = () => setTab(tabFromLocation());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, []);
 
   useEffect(() => {
@@ -32,13 +35,12 @@ export function App() {
     const supabase = getSupabase(config);
     let mounted = true;
     void supabase.auth.getSession().then(({ data }) => {
-      if (mounted) {
-        setSession(data.session);
-        setAuthReady(true);
-      }
+      if (!mounted) return;
+      setSession(data.session);
+      setAuthReady(true);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => {
+      setSession(next);
       setAuthReady(true);
     });
     return () => {
@@ -47,38 +49,46 @@ export function App() {
     };
   }, [config]);
 
-  function navigate(href: string) {
-    window.history.pushState({}, "", href);
-    setRoute(currentRoute());
-    window.scrollTo({ top: 0, behavior: "auto" });
-  }
+  const signedIn = config.mode === "demo" || Boolean(session);
 
-  if (config.error) return <SetupError message={config.error} />;
-  if (!authReady) return <LoadingScreen />;
+  useEffect(() => {
+    if (config.error || !signedIn) return;
+    const controller = new AbortController();
+    setSnapshotError("");
+    void loadSnapshot(controller.signal)
+      .then(setSnapshot)
+      .catch((reason: unknown) => {
+        if (controller.signal.aborted) return;
+        setSnapshotError(reason instanceof Error ? reason.message : "Today's data could not be read.");
+      });
+    return () => controller.abort();
+  }, [config.error, signedIn]);
+
+  const changeTab = useCallback((next: TabKey) => {
+    setTab(next);
+    const params = new URLSearchParams(window.location.search);
+    if (next === "now") params.delete("tab");
+    else params.set("tab", next);
+    const query = params.toString();
+    window.history.pushState({}, "", query ? `/?${query}` : "/");
+    document.querySelector(".scroll")?.scrollTo({ top: 0, behavior: "auto" });
+  }, []);
+
+  if (config.error) return <Notice eyebrow="COMPOUND SETUP" title="COMPOUND is not connected yet." body={config.error} />;
+  if (!authReady) return <Notice eyebrow="COMPOUND" title="Checking your session…" />;
   if (config.mode === "live" && !session) return <SignInPage config={config} />;
+  if (snapshotError) return <Notice eyebrow="COMPOUND" title="There is nothing current to show." body={snapshotError} />;
+  if (!snapshot) return <Notice eyebrow="COMPOUND" title="Reading today's data…" />;
 
-  if (route.pathname === "/ask") {
-    return <AskPage config={config} session={session} search={route.search} navigate={navigate} />;
-  }
-
-  return <DashboardPage config={config} session={session} search={route.search} navigate={navigate} />;
+  return <Shell snapshot={snapshot} config={config} session={session} tab={tab} onTab={changeTab} />;
 }
 
-function LoadingScreen() {
+function Notice({ eyebrow, title, body }: { eyebrow: string; title: string; body?: string }) {
   return (
     <main className="center-screen" aria-live="polite">
-      <p className="eyebrow">COMPOUND</p>
-      <h1>Loading today's view…</h1>
-    </main>
-  );
-}
-
-function SetupError({ message }: { message: string }) {
-  return (
-    <main className="center-screen">
-      <p className="eyebrow">COMPOUND SETUP</p>
-      <h1>COMPOUND is not connected yet.</h1>
-      <p>{message}</p>
+      <p className="eyebrow">{eyebrow}</p>
+      <h1>{title}</h1>
+      {body && <p>{body}</p>}
     </main>
   );
 }

@@ -1,6 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
-import type { ChatEvent, Horizon } from "../types";
+import type { ChatEvent } from "../types";
 import type { CompoundConfig } from "./env";
+import type { Horizon } from "./horizon";
 
 export interface AskRequest {
   question: string;
