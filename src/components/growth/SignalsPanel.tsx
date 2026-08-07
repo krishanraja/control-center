@@ -12,7 +12,7 @@ import type { GrowthData } from '../../hooks/useGrowth'
  * owned-domain check: Maya's weekly SEO rank sweep over maya_striking_distance.
  *
  * The SEO panel runs UNFILTERED here on purpose. maya_striking_distance is keyed
- * on the acquisition lane slug (mm_ctrl, fractionl_pulse, plinth) while the GEO
+ * on the acquisition lane slug (mm_ctrl, fractionl_pulse, legibility) while the GEO
  * probes are keyed on the growth product slug (ctrl, pulse, mindmaker), so a
  * shared filter would silently drop rows. Signals is a portfolio read; the
  * per-lane cut lives in Governance.

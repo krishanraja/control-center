@@ -23,7 +23,7 @@ const PRODUCT_SENDER: Record<string, string> = {
   mm_ctrl: 'the CTRL team',
   fractionl_pulse: 'the Fractionl Pulse team',
   fractionl_circle: 'the Fractionl Circle team',
-  plinth: 'the Plinth team',
+  legibility: 'the Legibility team',
   full_time: 'the Full Time team',
 }
 

@@ -6,7 +6,7 @@ the OS. Product brands only; no personal brand anywhere.
 ## Live
 
 - **SEO rank** (`maya_striking_distance`) — Maya SEO Rank Sweep (weekly). Serper
-  positions + DataForSEO volume for CTRL / Pulse / Plinth ICP keywords. Surfaced
+  positions + DataForSEO volume for CTRL / Pulse / Legibility ICP keywords. Surfaced
   on the Growth tab (SEO rank board).
 - **GEO citations** (`zara_signals`) — Zara GEO Citation Sweep (weekly). Whether
   products get cited in AI answers.
@@ -15,7 +15,7 @@ the OS. Product brands only; no personal brand anywhere.
   One shared PostHog project (free tier caps at one); the `product` super-property
   separates ventures.
   - All four apps instrumented (posthog-js snippet, publishable client key) and
-    deployed: **mm-ctrl, plinth, fractionl-pulse, full-time are live** (verified
+    deployed: **mm-ctrl, legibility, fractionl-pulse, full-time are live** (verified
     in served HTML). full-time was deployed via the Vercel API since its git
     auto-deploy is disconnected.
 - **GSC search analytics** (`maya_striking_distance`) — Maya GSC Search Analytics

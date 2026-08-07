@@ -15,7 +15,7 @@ import { EmptyNote, SectionHead } from './atoms'
  * the agents have, what they are allowed to say, and which tools are wired.
  *
  * One lane selector serves the whole section, because everything in it is keyed
- * on the acquisition lane slug (mm_ctrl, fractionl_circle, plinth and friends),
+ * on the acquisition lane slug (mm_ctrl, fractionl_circle, legibility and friends),
  * a different key space from the growth product_slug the Map, Work, Signals and
  * Council sections use. Two selectors in one tab would have been the defect, so
  * the lane-keyed cards all live here together.
