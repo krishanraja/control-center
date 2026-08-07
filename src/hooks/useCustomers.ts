@@ -10,7 +10,7 @@ export type CustomerProduct =
   | 'fractionl_circle'
   | 'fractionl_pulse'
   | 'mm_ctrl'
-  | 'plinth'
+  | 'legibility'
   | 'full_time'
   | 'mindmaker'
   | 'mindmaker_live'
@@ -68,7 +68,7 @@ export interface ProductBucket {
 const ALL_PRODUCTS: CustomerProduct[] = [
   'gutted', 'onalert', 'merciless',
   'fractionl_circle', 'fractionl_pulse', 'mm_ctrl',
-  'plinth', 'full_time',
+  'legibility', 'full_time',
   'mindmaker', 'mindmaker_live', 'tech0nomic',
 ]
 
@@ -165,7 +165,7 @@ export const PRODUCT_LABEL: Record<CustomerProduct, string> = {
   fractionl_circle: 'Fractionl Circle',
   fractionl_pulse: 'Fractionl Pulse',
   mm_ctrl: 'mm-ctrl',
-  plinth: 'Plinth',
+  legibility: 'Legibility',
   full_time: 'Full Time',
   mindmaker: 'Mindmaker',
   mindmaker_live: 'MYMU',
@@ -181,7 +181,7 @@ export const PRODUCT_ACCENT: Record<CustomerProduct, string> = {
   fractionl_circle: 'bg-violet-400',
   fractionl_pulse: 'bg-sky-400',
   mm_ctrl: 'bg-emerald-400',
-  plinth: 'bg-blue-400',
+  legibility: 'bg-blue-400',
   full_time: 'bg-orange-400',
   mindmaker: 'bg-teal-400',
   mindmaker_live: 'bg-cyan-400',
@@ -200,7 +200,7 @@ export const PRODUCT_CHIP_TONE: Record<CustomerProduct, string> = {
   fractionl_circle: 'text-violet-300 bg-violet-500/10 border-violet-500/20',
   fractionl_pulse: 'text-sky-300 bg-sky-500/10 border-sky-500/20',
   mm_ctrl: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
-  plinth: 'text-blue-300 bg-blue-500/10 border-blue-500/20',
+  legibility: 'text-blue-300 bg-blue-500/10 border-blue-500/20',
   full_time: 'text-orange-300 bg-orange-500/10 border-orange-500/20',
   mindmaker: 'text-teal-300 bg-teal-500/10 border-teal-500/20',
   mindmaker_live: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',

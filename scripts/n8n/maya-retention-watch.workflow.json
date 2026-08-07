@@ -25,7 +25,7 @@
       },
       "credentials": { "httpHeaderAuth": { "id": "fVDCMOkPByL0V1F5", "name": "Stripe mindmaker_llc restricted (reconciliation)" } },
       "onError": "continueRegularOutput",
-      "notes": "CTRL/mindmaker_llc account (the paid subs). Extend to plinth/fractionl/fulltime Stripe creds as those lanes take paid subs."
+      "notes": "CTRL/mindmaker_llc account (the paid subs). Extend to legibility/fractionl/fulltime Stripe creds as those lanes take paid subs."
     },
     {
       "name": "Churned with email",

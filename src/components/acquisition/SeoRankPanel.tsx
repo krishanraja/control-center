@@ -60,7 +60,7 @@ const LANE_LABEL: Record<string, string> = {
   fractionl_circle: 'Fractionl Circle',
   fractionl_pulse: 'Fractionl Pulse',
   full_time: 'Full Time',
-  plinth: 'Plinth',
+  legibility: 'Legibility',
 }
 
 function laneLabel(slug: string): string {

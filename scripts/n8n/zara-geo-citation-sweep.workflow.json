@@ -23,7 +23,7 @@
       "position": [480, 300],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// One probe per (product, query). Zero personal-brand queries by design —\n// this measures PRODUCT visibility in AI answers.\nconst probes = [\n  { venture: 'mm_ctrl',   product: 'CTRL',   query: 'best AI news decision tools for executives 2026' },\n  { venture: 'mm_ctrl',   product: 'CTRL',   query: 'AI tool to cut through AI news noise' },\n  { venture: 'plinth',    product: 'Plinth', query: 'typed product data API for AI agents MCP' },\n  { venture: 'plinth',    product: 'Plinth', query: 'best MCP servers for product data' },\n  { venture: 'fractionl_pulse', product: 'Fractionl', query: 'fractional executive tools platforms 2026' },\n  { venture: 'full_time', product: 'Full Time', query: 'AI football recap podcast predictions' },\n];\nreturn probes.map(p => ({ json: p }));"
+        "jsCode": "// One probe per (product, query). Zero personal-brand queries by design —\n// this measures PRODUCT visibility in AI answers.\nconst probes = [\n  { venture: 'mm_ctrl',   product: 'CTRL',   query: 'best AI news decision tools for executives 2026' },\n  { venture: 'mm_ctrl',   product: 'CTRL',   query: 'AI tool to cut through AI news noise' },\n  { venture: 'legibility', product: 'Legibility', query: 'typed product data API for AI agents MCP' },\n  { venture: 'legibility', product: 'Legibility', query: 'best MCP servers for product data' },\n  { venture: 'fractionl_pulse', product: 'Fractionl', query: 'fractional executive tools platforms 2026' },\n  { venture: 'full_time', product: 'Full Time', query: 'AI football recap podcast predictions' },\n];\nreturn probes.map(p => ({ json: p }));"
       }
     },
     {

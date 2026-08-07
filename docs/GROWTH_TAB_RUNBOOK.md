@@ -69,12 +69,12 @@ Rejection rates feed Vera's weekly ladder check via `feedback_queue`.
 ## Outstanding (deliberate)
 
 - **Stripe price map** covers only CTRL (`monthly8usd`, `prod_UA0VCxc0WVM898`) —
-  add Fractionl/Plinth/Full Time price IDs to
+  add Fractionl/Legibility/Full Time price IDs to
   `system_config.stripe_price_product_map` as those lanes wire up, or nightly
   reconciliation will skip them.
 - **Stripe webhook signing secrets** are unarmed
   (`system_config.stripe_webhook_signing_secrets`) — arm before Full Time goes
   live (playbook §7.4).
-- Plinth / Full Time / Pulse capture intakes: clone the CTRL pattern
+- Legibility / Full Time / Pulse capture intakes: clone the CTRL pattern
   (checked-in reference: `acquisition-ctrl-capture-intake.workflow.json`) with
   their lane slug; the whole Growth tab lights up per lane automatically.

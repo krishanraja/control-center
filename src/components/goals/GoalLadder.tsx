@@ -58,7 +58,7 @@ const RUNGS: Array<{ id: Horizon; label: string; noun: string; blurb: string }> 
   { id: 'venture_objective', label: 'Per venture', noun: 'a venture objective', blurb: 'One venture’s slice of a mid-term goal. Sits beside the week, not under it.' },
 ]
 
-const VENTURES = ['mindmaker', 'mymu', 'mm_ctrl', 'full_time', 'fractionl_pulse', 'plinth', 'signal_noise', 'builder_economy']
+const VENTURES = ['mindmaker', 'mymu', 'mm_ctrl', 'full_time', 'fractionl_pulse', 'legibility', 'signal_noise', 'builder_economy']
 
 function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48)

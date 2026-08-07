@@ -53,7 +53,7 @@ const VENTURE_CHOICES: Array<{ slug: string; label: string }> = [
   { slug: 'mm_ctrl', label: 'CTRL' },
   { slug: 'full_time', label: 'Full Time' },
   { slug: 'fractionl_pulse', label: 'Pulse' },
-  { slug: 'plinth', label: 'Plinth' },
+  { slug: 'legibility', label: 'Legibility' },
 ]
 
 /** Fallback only for the case where the reading is somehow missing. */

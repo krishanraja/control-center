@@ -41,7 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .maybeSingle()
     let laneSlugs: string[] = []
     try { laneSlugs = JSON.parse(laneCfg?.value || '[]') } catch { laneSlugs = [] }
-    if (!laneSlugs.length) laneSlugs = ['mm_ctrl', 'fractionl_pulse', 'fractionl_circle', 'plinth', 'full_time']
+    if (!laneSlugs.length) laneSlugs = ['mm_ctrl', 'fractionl_pulse', 'fractionl_circle', 'legibility', 'full_time']
 
     const [ventures, funnel, sends, queuedPreview, customers, churnedLeads, frames, contentAttr, newReplies, integrations] = await Promise.all([
       supabase

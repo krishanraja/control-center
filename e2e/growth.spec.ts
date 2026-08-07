@@ -34,7 +34,7 @@ const OVERVIEW = {
       replies_new: 0,
     },
     {
-      slug: 'plinth', name: 'Plinth', active: true, autonomy_level: 'L1',
+      slug: 'legibility', name: 'Legibility', active: true, autonomy_level: 'L1',
       autonomy_history: [], wired: false, funnel_weeks: [], touches: [],
       queued_count: 0, sent_count: 0, paid_count: 0, free_count: 0, mrr_usd: 0,
       churn_queue: [], frames: [], replies_new: 0,
@@ -142,7 +142,7 @@ test('the #/acquisition bookmark lands on Growth, on Governance', async ({ page 
   // where the alias drops you.
   await expect(page.getByText('Profit governor')).toBeVisible()
   await expect(page.getByRole('button', { name: /CTRL/ }).first()).toBeVisible()
-  await expect(page.getByRole('button', { name: /Plinth/ }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: /Legibility/ }).first()).toBeVisible()
 })
 
 test('the retired outbound machinery is not on the tab', async ({ page }) => {
