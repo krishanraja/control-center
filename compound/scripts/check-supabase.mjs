@@ -9,6 +9,7 @@ const exposureMigration = await readFile(join(repositoryRoot, "supabase", "migra
 const reloadMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260806231230_compound_reload_schema.sql"), "utf8");
 const loginMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260807002034_compound_login_delivery.sql"), "utf8");
 const accessMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260807010239_compound_magic_word_access.sql"), "utf8");
+const accessFixMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260807015930_compound_magic_word_rate_limit_fix.sql"), "utf8");
 const edgeFunction = await readFile(join(repositoryRoot, "supabase", "functions", "compound-ask", "index.ts"), "utf8");
 const loginFunction = await readFile(join(repositoryRoot, "supabase", "functions", "compound-login", "index.ts"), "utf8");
 const loginProxy = await readFile(join(compoundRoot, "api", "compound-login.js"), "utf8");
@@ -42,6 +43,7 @@ if (!accessMigration.includes("alter table compound.access_attempts force row le
 if (!accessMigration.includes("revoke all on compound.access_attempts from public, anon, authenticated;")) failures.push("magic-word attempts are exposed to user roles");
 if (!accessMigration.includes("security invoker") || accessMigration.includes("security definer")) failures.push("magic-word throttling uses an elevated execution context");
 if (!accessMigration.includes("pg_advisory_xact_lock") || !accessMigration.includes("interval '15 minutes'")) failures.push("magic-word attempts are not atomically rate limited");
+if (!accessFixMigration.includes("attempts.outcome in") || !accessFixMigration.includes("attempts.attempted_at")) failures.push("magic-word rate limiting leaves ambiguous audit columns");
 if (!accessMigration.includes("alter function compound.reserve_login_delivery(text) security invoker;")) failures.push("the unused email reservation keeps its elevated execution context");
 if (/\b(?:magic_word|client_ip)\s+text\b/i.test(accessMigration)) failures.push("magic-word audit stores a word or client IP");
 if (!loginFunction.includes("COMPOUND_MAGIC_WORD_HASH") || !loginFunction.includes("hashed_token")) failures.push("magic-word login does not use the server-held digest and one-time token hash");
