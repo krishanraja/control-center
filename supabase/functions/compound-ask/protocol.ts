@@ -45,7 +45,11 @@ export function isBoundaryRequest(question: string): boolean {
 /** The industries the reader has switched off, cleaned and capped. */
 export function cleanExcluded(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).slice(0, 80);
+  const names = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  return [...new Set(names)].slice(0, 256);
 }
 
 /**
@@ -61,10 +65,13 @@ export function excludedNote(excluded: string[]): string {
 
 /** Best effort: drop evidence whose text names a hidden industry. */
 export function filterEvidenceByExcluded(evidence: EvidenceRecord[], excluded: string[]): EvidenceRecord[] {
-  const names = cleanExcluded(excluded).map((name) => name.toLowerCase());
-  if (!names.length) return evidence;
+  const matchers = cleanExcluded(excluded).map((name) => {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{N}])`, "iu");
+  });
+  if (!matchers.length) return evidence;
   return evidence.filter((item) => {
-    const haystack = `${item.label} ${item.detail}`.toLowerCase();
-    return !names.some((name) => haystack.includes(name));
+    const haystack = `${item.label} ${item.detail}`;
+    return !matchers.some((matcher) => matcher.test(haystack));
   });
 }

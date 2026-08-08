@@ -1,14 +1,4 @@
-/**
- * Real-world context for an insight. The dashboard already fuses the numbers
- * into one claim; this adds the layer the numbers cannot see — what the wider
- * world is saying right now — and always names where it came from. It is one
- * short, cited paragraph woven into the insight, never a separate "news" feed.
- *
- * This file is the pure part: build one tight query per insight, and turn a
- * provider's reply into a trimmed summary plus deduped citations. The network
- * call and the key live in the serverless endpoint (api/context.js), so nothing
- * here touches a secret and every branch is unit-testable.
- */
+/** Pure normalization and display helpers for cited world context. */
 
 export interface Citation {
   title: string;
@@ -16,51 +6,108 @@ export interface Citation {
 }
 
 export interface InsightContext {
-  /** One or two plain sentences, no citation brackets. */
+  /** One or two plain sentences, no citation markers or Markdown. */
   summary: string;
   citations: Citation[];
-  /** ISO date the context was gathered, shown next to it. */
+  /** ISO date the context was gathered. */
   asOf: string;
-  /** Which provider answered, for the source line. */
+  /** Which provider answered. */
   via: "perplexity" | "exa" | "demo";
 }
 
 const MAX_CITATIONS = 4;
 const MAX_SUMMARY = 360;
+const MAX_PREVIEW = 160;
 
-/** Bare hostname for a citation with no title of its own. */
+function plainText(text: string): string {
+  return text
+    .replace(/\[([^\]]+)\]\([^\s)]+\)/g, "$1")
+    .replace(/\s*\[\d+\]/g, "")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/[*_`~]/g, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Truncate at a word boundary. An unbroken overlong token is unusable. */
+export function truncateWords(text: string, limit: number): string {
+  const clean = text.trim();
+  if (clean.length <= limit) return clean;
+  const contentLimit = Math.max(1, limit - 1);
+  const boundary = clean.slice(0, contentLimit + 1).search(/\s+\S*$/);
+  if (boundary <= 0) return "";
+  return `${clean.slice(0, boundary).trim()}…`;
+}
+
+/** Bare hostname, or an empty string when the citation URL is unsafe. */
 export function hostOf(url: string): string {
   try {
-    return new URL(url).hostname.replace(/^www\./, "");
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+    return parsed.hostname.replace(/^www\./, "");
   } catch {
-    return url;
+    return "";
   }
 }
 
 /** One tight query per insight so the provider call stays small and on-topic. */
 export function contextQuery(topic: string): string {
-  return `${topic.trim()}: the most important news, analyst views and risks in the last two weeks`;
+  return `${topic.trim()}: the most important news, analyst views and material risks in the last two weeks`;
 }
 
-/** Drop citation markers like [1], collapse whitespace, and cap the length. */
+/** Strip provider formatting and cap at a complete sentence or word. */
 export function cleanSummary(text: string): string {
-  const stripped = text.replace(/\s*\[\d+\]/g, "").replace(/\s+/g, " ").trim();
+  const stripped = plainText(text);
   if (stripped.length <= MAX_SUMMARY) return stripped;
-  const cut = stripped.slice(0, MAX_SUMMARY);
+  const cut = stripped.slice(0, MAX_SUMMARY + 1);
   const lastStop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("? "), cut.lastIndexOf("! "));
-  return (lastStop > 120 ? cut.slice(0, lastStop + 1) : cut).trim();
+  if (lastStop >= 120) return cut.slice(0, lastStop + 1).trim();
+  return truncateWords(stripped, MAX_SUMMARY);
+}
+
+/** A concise first-sentence treatment for the closed card face. */
+export function contextPreview(summary: string): string {
+  const clean = cleanSummary(summary);
+  const firstStop = clean.search(/[.!?](?:\s|$)/);
+  if (firstStop >= 0 && firstStop + 1 <= MAX_PREVIEW) return clean.slice(0, firstStop + 1);
+  return truncateWords(clean, MAX_PREVIEW);
 }
 
 function dedupeCitations(citations: Citation[]): Citation[] {
   const seen = new Set<string>();
   const out: Citation[] = [];
   for (const citation of citations) {
-    if (!citation.url || seen.has(citation.url)) continue;
-    seen.add(citation.url);
-    out.push({ url: citation.url, title: citation.title?.trim() || hostOf(citation.url) });
+    const url = citation.url?.trim();
+    const host = url ? hostOf(url) : "";
+    if (!url || !host || seen.has(url)) continue;
+    seen.add(url);
+    out.push({ url, title: plainText(citation.title || "") || host });
     if (out.length >= MAX_CITATIONS) break;
   }
   return out;
+}
+
+/** Treat the API and session cache as untrusted before anything becomes a link. */
+export function sanitizeInsightContext(value: unknown): InsightContext | null {
+  if (!value || typeof value !== "object") return null;
+  const context = value as Partial<InsightContext>;
+  if (typeof context.summary !== "string" || !Array.isArray(context.citations) || typeof context.asOf !== "string") return null;
+  if (context.via !== "perplexity" && context.via !== "exa" && context.via !== "demo") return null;
+  const summary = cleanSummary(context.summary);
+  const citations = dedupeCitations(context.citations);
+  if (!summary || citations.length === 0) return null;
+  return { summary, citations, asOf: context.asOf, via: context.via };
+}
+
+export function hasCitedContext(context: InsightContext | null | undefined): context is InsightContext {
+  return sanitizeInsightContext(context) !== null;
+}
+
+export function contextSourceLine(context: InsightContext): string {
+  const first = hostOf(context.citations[0]?.url ?? "");
+  const more = context.citations.length - 1;
+  return more > 0 ? `${first} +${more} ${more === 1 ? "source" : "sources"}` : first;
 }
 
 interface PerplexityShape {
@@ -80,17 +127,14 @@ export function normalizePerplexity(payload: unknown, asOf: string): InsightCont
     .map((item) => item as { title?: unknown; url?: unknown })
     .filter((item) => typeof item.url === "string")
     .map((item) => ({ title: typeof item.title === "string" ? item.title : "", url: item.url as string }));
-
   const fromUrls: Citation[] = Array.isArray(data.citations)
     ? data.citations.filter((url): url is string => typeof url === "string").map((url) => ({ title: "", url }))
     : [];
 
-  return {
-    summary: cleanSummary(content),
-    citations: dedupeCitations(fromResults.length ? fromResults : fromUrls),
-    asOf,
-    via: "perplexity",
-  };
+  const summary = cleanSummary(content);
+  const citations = dedupeCitations(fromResults.length ? fromResults : fromUrls);
+  if (!summary || citations.length === 0) return null;
+  return { summary, citations, asOf, via: "perplexity" };
 }
 
 interface ExaShape {
@@ -107,7 +151,6 @@ export function normalizeExa(payload: unknown, asOf: string): InsightContext | n
       .filter((item) => typeof item.url === "string")
       .map((item) => ({ title: typeof item.title === "string" ? item.title : "", url: item.url as string })),
   );
-
   const snippet = results
     .map((item) => {
       if (typeof item.summary === "string") return item.summary;
@@ -116,11 +159,7 @@ export function normalizeExa(payload: unknown, asOf: string): InsightContext | n
     })
     .find((text) => text.trim().length > 0);
 
-  if (!snippet && !citations.length) return null;
-  return {
-    summary: snippet ? cleanSummary(snippet) : `Recent coverage from ${citations.map((c) => c.title).slice(0, 2).join(" and ")}.`,
-    citations,
-    asOf,
-    via: "exa",
-  };
+  const summary = snippet ? cleanSummary(snippet) : "";
+  if (!summary || citations.length === 0) return null;
+  return { summary, citations, asOf, via: "exa" };
 }

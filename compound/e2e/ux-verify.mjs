@@ -271,12 +271,19 @@ async function verifyCardDepth(page) {
   await page.getByRole("heading", { name: "Your AI Fund Strategist" }).waitFor();
   const card = page.locator(".chead").first();
   if (await card.getAttribute("aria-expanded") !== "false") throw new Error("A card was open before it was asked to be");
+  const face = page.locator(".c").first().locator(".cworld-face");
+  if (!(await face.isVisible())) throw new Error("A closed card hid its cited world context");
+  if (!((await face.locator(".cworld-preview").textContent()) ?? "").trim()) throw new Error("A context face had no glanceable summary");
+  if (await page.locator(".c").first().getByRole("link").count()) throw new Error("A closed card placed citation links inside its disclosure control");
   await card.click();
   if (await card.getAttribute("aria-expanded") !== "true") throw new Error("A card did not report its open state");
   await page.locator(".c.open .src").first().waitFor();
+  await page.locator(".c.open .cworld").first().waitFor();
+  if (await page.locator(".c.open .cite").count() === 0) throw new Error("Expanded world context cited no sources");
   if (!(await page.locator(".c.open .askbtn").first().isVisible())) throw new Error("An open card offered no way to ask about it");
   await card.click();
   if (await card.getAttribute("aria-expanded") !== "false") throw new Error("A card did not fold up again");
+  if (!(await face.isVisible())) throw new Error("The context face did not return after closing the card");
 }
 
 /** Hidden industries are set in Settings and apply to the whole app. */
@@ -288,9 +295,14 @@ async function verifySettings(page, device) {
 
   await page.getByRole("button", { name: "Settings" }).click();
   await page.getByRole("button", { name: device.close }).waitFor();
-  // An industry carrying nothing today would hide nothing, which proves nothing.
-  const withNames = page.getByRole("switch").filter({ hasNotText: "nothing today" });
-  const toggle = withNames.first();
+  const sectors = page.getByRole("checkbox");
+  if (await sectors.count() !== 11) throw new Error(`Settings showed ${await sectors.count()} top-level rows instead of 11 sectors`);
+  if (await page.getByRole("switch").count() !== 0) throw new Error("Settings exposed industries before a sector was opened or searched");
+
+  // Search flattens the hierarchy to one active industry, which is the safest
+  // reversible persistence check for both device systems.
+  await page.getByLabel("Search industries").fill("Software - Infrastructure");
+  const toggle = page.getByRole("switch", { name: /Software - Infrastructure/ });
   const industry = (await toggle.locator(".tn").textContent()) ?? "";
   if (await toggle.getAttribute("aria-checked") !== "true") throw new Error("An industry started out hidden");
   await toggle.click();
@@ -303,6 +315,7 @@ async function verifySettings(page, device) {
 
   // Put it back so the screenshot shows the default state.
   await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByLabel("Search industries").fill(industry);
   await page.getByRole("switch", { name: new RegExp(industry.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) }).click();
   await page.getByRole("button", { name: device.close }).click();
   if ((await count.textContent()) !== before) throw new Error("Showing the industry again did not restore Stocks");

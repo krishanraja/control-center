@@ -314,10 +314,9 @@
 }
 .stack .seg button.on { background: var(--sig); color: #101112; font-weight: 640; }
 .stack .seg .count { margin-left: calc(6 * var(--px)); font-family: var(--mono); font-size: calc(12.5 * var(--px)); opacity: .75; }
-/* A secondary control (the industry groups on Trends) sits below a primary one
-   and reads at 80% of its label size so the hierarchy is obvious at a glance. */
-.stack .seg.sm button { font-size: calc(12 * var(--px)); }
-.stack .seg.sm .count { font-size: calc(10 * var(--px)); }
+/* The Trends quadrant control is secondary, but remains comfortably readable. */
+.stack .seg.sm button { padding-inline: calc(12 * var(--px)); font-size: calc(13.5 * var(--px)); }
+.stack .seg.sm .count { font-size: calc(11.5 * var(--px)); }
 
 /* ---- suggested questions ---- */
 .stack .pills { display: grid; gap: calc(8 * var(--px)); margin: calc(18 * var(--px)) 0 calc(6 * var(--px)); }
@@ -449,6 +448,9 @@
   font-size: calc(16 * var(--px));
 }
 .stack .settingsbar input::placeholder { color: var(--faint); }
+.stack .settings-page .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; }
+.stack .settings-page .seg button { min-width: 0; padding-inline: calc(8 * var(--px)); }
+.stack .settings-page .seg .count { display: block; margin: calc(2 * var(--px)) 0 0; font-size: calc(11 * var(--px)); }
 .stack .bulk { margin-top: calc(16 * var(--px)); }
 .stack .bulk-actions { display: grid; grid-template-columns: 1fr 1fr; gap: calc(8 * var(--px)); margin-top: calc(8 * var(--px)); }
 .stack .bulk-actions .pill { justify-content: center; }
@@ -477,16 +479,27 @@
 .stack .sw.on i { left: calc(21 * var(--px)); background: var(--sig); }
 /* Industry families: a header row (open control + family switch) with the
    member industries indented beneath it when the family is opened. */
-.stack .group { border-bottom: calc(1 * var(--px)) solid var(--line); }
+.stack .settings-groups { margin-top: calc(14 * var(--px)); }
+.stack .group { border-bottom: calc(1 * var(--px)) solid var(--line); background: var(--surf); }
 .stack .group:last-child { border-bottom: 0; }
-.stack .grouprow { display: flex; align-items: center; justify-content: space-between; gap: calc(14 * var(--px)); }
-.stack .groupname { display: flex; align-items: center; gap: calc(10 * var(--px)); flex: 1; min-width: 0; min-height: calc(60 * var(--px)); padding: calc(13 * var(--px)) 0 calc(13 * var(--px)) calc(16 * var(--px)); border: 0; background: none; text-align: left; }
+.stack .grouprow { display: flex; align-items: stretch; justify-content: space-between; gap: calc(6 * var(--px)); }
+.stack .groupname { display: flex; align-items: center; gap: calc(11 * var(--px)); flex: 1; min-width: 0; min-height: calc(70 * var(--px)); padding: calc(14 * var(--px)) calc(4 * var(--px)) calc(14 * var(--px)) calc(16 * var(--px)); border: 0; background: none; text-align: left; }
 .stack button.groupname:active { background: var(--surf2); }
-.stack .grouprow .sw { margin-right: calc(16 * var(--px)); }
+.stack .groupcopy { min-width: 0; }
+.stack .groupcopy .tn { display: block; font-size: calc(16.5 * var(--px)); font-weight: 640; letter-spacing: -.01em; }
+.stack .groupcopy .ts { display: block; margin-top: calc(4 * var(--px)); color: var(--mut); font-size: calc(12.5 * var(--px)); line-height: 1.35; }
+.stack .groupcontrol { display: flex; flex: none; align-items: center; gap: calc(7 * var(--px)); min-height: calc(48 * var(--px)); padding: 0 calc(14 * var(--px)) 0 calc(5 * var(--px)); border: 0; background: none; color: var(--mut); }
+.stack .groupcontrol:active { background: var(--surf2); }
+.stack .groupstate { width: calc(29 * var(--px)); font-family: var(--mono); font-size: calc(9.5 * var(--px)); font-weight: 650; letter-spacing: .06em; text-align: right; text-transform: uppercase; }
+.stack .state-some .groupstate { color: var(--sig); }
 .stack .chev { display: flex; flex: none; color: var(--mut); transition: transform .16s; }
 .stack .chev.open { transform: rotate(90deg); }
 .stack .chev svg { width: calc(16 * var(--px)); height: calc(16 * var(--px)); }
-.stack .group .tog.member { padding-left: calc(38 * var(--px)); background: var(--surf2); }
+.stack .sw.mixed { background: rgb(250 178 25 / 18%); }
+.stack .sw.mixed i { left: calc(12 * var(--px)); background: var(--sig); }
+.stack .groupmembers { margin-left: calc(22 * var(--px)); border-left: calc(1 * var(--px)) solid var(--line2); background: var(--surf2); }
+.stack .group .tog.member { min-height: calc(64 * var(--px)); padding-left: calc(18 * var(--px)); background: transparent; }
+.stack .group .tog.member .tn { font-size: calc(14.5 * var(--px)); font-weight: 520; }
 .stack .group .tog.member:last-child { border-bottom: 0; }
 .stack .sub.note { margin-top: calc(6 * var(--px)); color: var(--mut); }
 
@@ -568,9 +581,14 @@
   .stack .botnav button .puck { width: calc(46 * var(--px)); }
 }
 
-/* World-context layer inside a card: cited, woven into the working. */
-.stack .cworld { margin-top: calc(14 * var(--px)); padding-top: calc(12 * var(--px)); border-top: calc(1 * var(--px)) solid var(--line); }
-.stack .cworld-h { margin: 0 0 calc(4 * var(--px)); color: var(--mut); font-size: calc(12 * var(--px)); text-transform: uppercase; letter-spacing: .04em; }
-.stack .cites { display: flex; flex-wrap: wrap; gap: calc(6 * var(--px)); margin-top: calc(8 * var(--px)); }
-.stack .cite { max-width: 100%; padding: calc(4 * var(--px)) calc(9 * var(--px)); border: calc(1 * var(--px)) solid var(--line2); border-radius: 999px; color: var(--ink2); font-size: calc(12.5 * var(--px)); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Cited context appears on the face, then opens into full source detail. */
+.stack .cworld-face { display: block; margin-top: calc(15 * var(--px)); padding: calc(11 * var(--px)) calc(12 * var(--px)); border-left: calc(2 * var(--px)) solid var(--sig); border-radius: 0 calc(8 * var(--px)) calc(8 * var(--px)) 0; background: rgb(250 178 25 / 7%); }
+.stack .cworld-kicker { display: block; color: var(--sig); font-family: var(--mono); font-size: calc(9.5 * var(--px)); font-weight: 650; letter-spacing: .1em; text-transform: uppercase; }
+.stack .cworld-preview { display: -webkit-box; margin-top: calc(5 * var(--px)); overflow: hidden; color: var(--ink); font-size: calc(13.5 * var(--px)); line-height: 1.42; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.stack .cworld-meta { display: block; margin-top: calc(6 * var(--px)); color: var(--mut); font-size: calc(11.5 * var(--px)); line-height: 1.35; }
+.stack .cworld { margin-top: calc(16 * var(--px)); padding: calc(14 * var(--px)); border: calc(1 * var(--px)) solid var(--line); border-left: calc(3 * var(--px)) solid var(--sig); border-radius: var(--r-control); background: rgb(250 178 25 / 5%); }
+.stack .cbody .cworld-h { margin: 0; color: var(--sig); font-family: var(--mono); font-size: calc(10 * var(--px)); font-weight: 650; text-transform: uppercase; letter-spacing: .08em; }
+.stack .cbody .cworld-summary { margin-top: calc(8 * var(--px)); color: var(--ink2); }
+.stack .cites { display: grid; gap: calc(7 * var(--px)); margin-top: calc(12 * var(--px)); }
+.stack .cite { display: flex; align-items: center; min-height: calc(44 * var(--px)); max-width: 100%; padding: calc(9 * var(--px)) calc(11 * var(--px)); border: calc(1 * var(--px)) solid var(--line2); border-radius: calc(9 * var(--px)); color: var(--ink2); font-size: calc(12.5 * var(--px)); line-height: 1.35; text-decoration: none; }
 .stack a.cite:active { border-color: var(--sig); color: var(--sig); }

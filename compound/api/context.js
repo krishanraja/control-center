@@ -10,33 +10,58 @@ const PROVIDER_TIMEOUT_MS = 9000;
 const MAX_CITATIONS = 4;
 const MAX_SUMMARY = 360;
 
+function plainText(text) {
+  return text
+    .replace(/\[([^\]]+)\]\([^\s)]+\)/g, "$1")
+    .replace(/\s*\[\d+\]/g, "")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/[*_`~]/g, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function hostOf(url) {
   try {
-    return new URL(url).hostname.replace(/^www\./, "");
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+    return parsed.hostname.replace(/^www\./, "");
   } catch {
-    return url;
+    return "";
   }
 }
 
 function contextQuery(topic) {
-  return `${topic.trim()}: the most important news, analyst views and risks in the last two weeks`;
+  return `${topic.trim()}: the most important news, analyst views and material risks in the last two weeks`;
+}
+
+function truncateWords(text, limit) {
+  const clean = text.trim();
+  if (clean.length <= limit) return clean;
+  const contentLimit = Math.max(1, limit - 1);
+  const boundary = clean.slice(0, contentLimit + 1).search(/\s+\S*$/);
+  if (boundary <= 0) return "";
+  return `${clean.slice(0, boundary).trim()}…`;
 }
 
 function cleanSummary(text) {
-  const stripped = text.replace(/\s*\[\d+\]/g, "").replace(/\s+/g, " ").trim();
+  const stripped = plainText(text);
   if (stripped.length <= MAX_SUMMARY) return stripped;
-  const cut = stripped.slice(0, MAX_SUMMARY);
+  const cut = stripped.slice(0, MAX_SUMMARY + 1);
   const lastStop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("? "), cut.lastIndexOf("! "));
-  return (lastStop > 120 ? cut.slice(0, lastStop + 1) : cut).trim();
+  if (lastStop >= 120) return cut.slice(0, lastStop + 1).trim();
+  return truncateWords(stripped, MAX_SUMMARY);
 }
 
 function dedupeCitations(citations) {
   const seen = new Set();
   const out = [];
   for (const citation of citations) {
-    if (!citation.url || seen.has(citation.url)) continue;
-    seen.add(citation.url);
-    out.push({ url: citation.url, title: (citation.title || "").trim() || hostOf(citation.url) });
+    const url = citation.url?.trim();
+    const host = url ? hostOf(url) : "";
+    if (!url || !host || seen.has(url)) continue;
+    seen.add(url);
+    out.push({ url, title: plainText(citation.title || "") || host });
     if (out.length >= MAX_CITATIONS) break;
   }
   return out;
@@ -52,12 +77,10 @@ function normalizePerplexity(payload, asOf) {
   const fromUrls = Array.isArray(payload.citations)
     ? payload.citations.filter((url) => typeof url === "string").map((url) => ({ title: "", url }))
     : [];
-  return {
-    summary: cleanSummary(content),
-    citations: dedupeCitations(fromResults.length ? fromResults : fromUrls),
-    asOf,
-    via: "perplexity",
-  };
+  const summary = cleanSummary(content);
+  const citations = dedupeCitations(fromResults.length ? fromResults : fromUrls);
+  if (!summary || citations.length === 0) return null;
+  return { summary, citations, asOf, via: "perplexity" };
 }
 
 function normalizeExa(payload, asOf) {
@@ -75,13 +98,9 @@ function normalizeExa(payload, asOf) {
       return typeof item.text === "string" ? item.text : "";
     })
     .find((text) => text.trim().length > 0);
-  if (!snippet && !citations.length) return null;
-  return {
-    summary: snippet ? cleanSummary(snippet) : `Recent coverage from ${citations.map((c) => c.title).slice(0, 2).join(" and ")}.`,
-    citations,
-    asOf,
-    via: "exa",
-  };
+  const summary = snippet ? cleanSummary(snippet) : "";
+  if (!summary || citations.length === 0) return null;
+  return { summary, citations, asOf, via: "exa" };
 }
 
 function sendJson(response, status, body) {
@@ -102,7 +121,7 @@ async function fromPerplexity(query, apiKey, asOf) {
         {
           role: "system",
           content:
-            "You add real-world context to a private investor's dashboard. Answer in at most two plain sentences a non-expert can read. State only what reputable recent reporting says, note if views conflict, and never invent numbers. If there is nothing notable, say so briefly.",
+            "Add current context to a private investor dashboard. Return at most two plain-text sentences with no Markdown. Use plain language, including sales instead of revenue. Prefer primary sources and established financial or business reporting. State only what recent reporting supports, note material disagreement, and never invent numbers. If there is nothing notable, say so briefly.",
         },
         { role: "user", content: query },
       ],
