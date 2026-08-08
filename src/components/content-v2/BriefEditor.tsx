@@ -35,7 +35,7 @@ const EXTENSIONS = [
 
 const MAGIC: Array<{ mode: string; label: string }> = [
   { mode: 'tighten', label: 'Tighten' },
-  { mode: 'sharper_open', label: 'Sharper open' },
+  { mode: 'sharper_open', label: 'Sharper claim' },
   { mode: 'harder_ending', label: 'Harder ending' },
   { mode: 'more_data', label: 'More data' },
 ]
@@ -77,6 +77,10 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   const [magicBusy, setMagicBusy] = useState<string | null>(null)
   const [showVersions, setShowVersions] = useState(false)
   const [fanout, setFanout] = useState<Set<string>>(readFanoutPref)
+  // The fan-out list is five checkboxes that wrap to three rows on a phone, for a
+  // choice that persists between weeks and rarely changes. On narrow it collapses
+  // to the one line that says which formats are selected, and opens on tap.
+  const [fanoutOpen, setFanoutOpen] = useState(false)
   const [pushing, setPushing] = useState(false)
   const [pushed, setPushed] = useState<Array<{ channel: string; doc_url: string | null }> | null>(null)
   const [cleoNote, setCleoNote] = useState('')
@@ -325,6 +329,10 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   }, [])
 
   const versions = useMemo(() => (brief?.versions || []).slice().reverse(), [brief])
+  const fanoutSummary = useMemo(
+    () => FACTORY_FANOUT.filter(f => fanout.has(f.channel)).map(f => f.short).join(', '),
+    [fanout],
+  )
 
   useEffect(() => {
     let alive = true
@@ -480,16 +488,26 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
         ) : null}
       </div>
 
-      {/* magic row + preview */}
-      {brief && !editingClosed ? (
-        <div className="px-4 sm:px-6 py-3 border-t border-white/[0.07] flex-shrink-0">
+      {/* The action deck: edit tools, the revision preview, and the ship controls
+          in ONE bordered block. It used to be two stacked blocks, each with its
+          own border and vertical padding, and on a phone the fan-out checkboxes
+          wrapped to three rows with "Bin this brief" alone on a fourth. That cost
+          roughly a third of the screen before a word of the brief was visible.
+          The preview now sits directly between the chips that produced it and the
+          button that ships it, which is where the verdict belongs. */}
+      {brief ? (
+        <footer
+          className="px-4 sm:px-6 pt-2.5 border-t border-white/[0.07] flex-shrink-0 bg-base"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
+        >
+        {!editingClosed ? (
           <div className="flex gap-1.5 flex-wrap items-center">
             {MAGIC.map(m => (
               <button
                 key={m.mode}
                 onClick={() => runMagic(m.mode, m.label)}
                 disabled={magicBusy !== null}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11.5px] font-semibold text-white/70 hover:bg-white/[0.09] disabled:opacity-40"
+                className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[11.5px] font-semibold text-white/70 hover:bg-white/[0.09] disabled:opacity-40"
               >
                 {magicBusy === m.mode ? 'Working...' : m.label}
               </button>
@@ -497,19 +515,21 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
             <button
               onClick={dictate}
               disabled={magicBusy !== null}
-              className={`rounded-full border px-3 py-1.5 text-[11.5px] font-semibold disabled:opacity-40 ${
+              title={listening ? 'Stop dictating' : 'Dictate an instruction for Cleo'}
+              className={`rounded-full border px-2.5 py-1.5 text-[11.5px] font-semibold disabled:opacity-40 ${
                 listening ? 'border-red-400/40 bg-red-400/15 text-red-300' : 'border-sky-400/30 bg-sky-400/10 text-sky-300 hover:bg-sky-400/20'
               }`}
             >
-              {listening ? 'Listening... tap to stop' : '🎙 Tell Cleo'}
+              {listening ? (narrow ? 'Tap to stop' : 'Listening... tap to stop') : (narrow ? '🎙 Cleo' : '🎙 Tell Cleo')}
             </button>
             {notes.length > 0 ? (
               <span className="relative">
                 <button
                   onClick={() => setNotesOpen(o => !o)}
-                  className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11.5px] font-semibold text-white/55 hover:text-white/85 hover:bg-white/[0.07]"
+                  title={`${notes.length} standing note${notes.length === 1 ? '' : 's'} Cleo applies to every brief`}
+                  className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-[11.5px] font-semibold text-white/55 hover:text-white/85 hover:bg-white/[0.07]"
                 >
-                  💭 Cleo remembers · {notes.length}
+                  💭 {narrow ? notes.length : `Cleo remembers · ${notes.length}`}
                 </button>
                 {notesOpen ? (
                   <div className="absolute bottom-full mb-2 left-0 z-20 w-72 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-base shadow-xl p-2.5">
@@ -552,8 +572,10 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
               </span>
             ) : null}
           </div>
+        ) : null}
+
           {preview ? (
-            <div className="mt-3 rounded-xl border border-dashed border-sky-400/35 bg-sky-400/[0.05] p-3.5">
+            <div className="mt-2.5 rounded-xl border border-dashed border-sky-400/35 bg-sky-400/[0.05] p-3.5">
               <div className="flex items-center justify-between mb-2 gap-3">
                 <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-sky-300">Preview · {preview.label}</div>
                 <div className="text-[10.5px] text-white/40 tabular-nums">
@@ -617,17 +639,9 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
               </div>
             </div>
           ) : null}
-        </div>
-      ) : null}
 
-      {/* fan-out bar */}
-      {brief ? (
-        <footer
-          className="px-4 sm:px-6 pt-3.5 border-t border-white/[0.07] flex-shrink-0 bg-base"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)' }}
-        >
           {pushed ? (
-            <div className="text-[12.5px] text-emerald-300">
+            <div className="text-[12.5px] text-emerald-300 mt-2.5">
               Pushed {pushed.length} format{pushed.length === 1 ? '' : 's'} to Google Docs.{' '}
               {pushed.filter(p => p.doc_url).map(p => (
                 <a key={p.channel} href={p.doc_url!} target="_blank" rel="noreferrer" className="underline mr-2">{p.channel}</a>
@@ -637,49 +651,81 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
           ) : binning ? (
             // The verdict is asked for where the verdict gets made, replacing
             // the ship controls rather than floating over them.
-            <RejectReasonBar
-              title="Why bin this brief?"
-              reasons={reasonsFor('content_decisions')}
-              onChoose={bin}
-              onCancel={() => setBinning(false)}
-              cancelLabel="Keep it"
-              likely={likely}
-            />
+            <div className="mt-2.5">
+              <RejectReasonBar
+                title="Why bin this brief?"
+                reasons={reasonsFor('content_decisions')}
+                onChoose={bin}
+                onCancel={() => setBinning(false)}
+                cancelLabel="Keep it"
+                likely={likely}
+              />
+            </div>
           ) : (
             <>
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/40">Publish as</span>
-              {FACTORY_FANOUT.map(f => {
-                const on = fanout.has(f.channel)
-                return (
-                  <label key={f.channel} className="flex items-center gap-1.5 text-[12px] text-white/70 cursor-pointer select-none">
-                    <span
-                      onClick={() => toggleFanout(f.channel)}
-                      className={`w-4 h-4 rounded border inline-flex items-center justify-center text-[10px] ${on ? 'bg-emerald-400 border-emerald-400 text-emerald-950 font-bold' : 'border-white/25'}`}
-                    >
-                      {on ? '✓' : ''}
-                    </span>
-                    {f.label}
-                  </label>
-                )
-              })}
+            {/* Where it goes. Wide shows the whole list inline; narrow shows the
+                selection as one line and opens the list on tap, because the
+                choice persists between weeks and almost never changes. */}
+            {!narrow || fanoutOpen ? (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2.5">
+                <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/40">Publish as</span>
+                {FACTORY_FANOUT.map(f => {
+                  const on = fanout.has(f.channel)
+                  return (
+                    <label key={f.channel} className="flex items-center gap-1.5 text-[12px] text-white/70 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={() => toggleFanout(f.channel)}
+                        className="peer sr-only"
+                      />
+                      <span
+                        aria-hidden
+                        className={`w-4 h-4 rounded border inline-flex items-center justify-center text-[10px] peer-focus-visible:ring-1 peer-focus-visible:ring-emerald-300/70 ${on ? 'bg-emerald-400 border-emerald-400 text-emerald-950 font-bold' : 'border-white/25'}`}
+                      >
+                        {on ? '✓' : ''}
+                      </span>
+                      {f.label}
+                    </label>
+                  )
+                })}
+                {narrow ? (
+                  <button onClick={() => setFanoutOpen(false)} className="text-[11px] font-semibold text-sky-300 ml-auto">Done</button>
+                ) : null}
+              </div>
+            ) : (
+              <button
+                onClick={() => setFanoutOpen(true)}
+                className="flex w-full items-baseline gap-2 mt-2.5 text-left"
+              >
+                <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/40 flex-shrink-0">Publish as</span>
+                <span className={`text-[12px] truncate flex-1 ${fanout.size ? 'text-white/70' : 'text-amber-300/80'}`}>
+                  {fanoutSummary || 'nothing selected'}
+                </span>
+                <span className="text-[11px] font-semibold text-sky-300 flex-shrink-0">Change</span>
+              </button>
+            )}
+            {/* Both verdicts on one row. Ship it or bin it, reachable from the
+                same place, with the destructive one deliberately quieter and
+                held well away from the thumb path to the push button. */}
+            <div className="flex items-center gap-2 mt-2">
+              <button
+                onClick={() => setBinning(true)}
+                disabled={binBusy}
+                className="rounded-lg border border-rose-400/25 bg-rose-500/[0.06] text-rose-300/85 hover:bg-rose-500/[0.12] px-3 py-2 text-[11.5px] font-semibold disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-300/60"
+              >
+                {narrow ? 'Bin' : 'Bin this brief'}
+              </button>
               <button
                 onClick={push}
                 disabled={pushing || fanout.size === 0 || !brief.body_md}
                 className="ml-auto rounded-lg bg-emerald-400 text-emerald-950 px-4 py-2.5 text-[12.5px] font-bold disabled:opacity-40"
               >
-                {pushing ? 'Pushing...' : `Push ${fanout.size} format${fanout.size === 1 ? '' : 's'} to Google Docs`}
-              </button>
-            </div>
-            {/* The other verdict. Ship it or bin it, both reachable from the
-                same place, with the destructive one deliberately quieter. */}
-            <div className="flex mt-2.5">
-              <button
-                onClick={() => setBinning(true)}
-                disabled={binBusy}
-                className="rounded-lg border border-rose-400/25 bg-rose-500/[0.06] text-rose-300/85 hover:bg-rose-500/[0.12] px-3 py-1.5 text-[11.5px] font-semibold disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-300/60"
-              >
-                Bin this brief
+                {pushing
+                  ? 'Pushing...'
+                  : narrow
+                    ? `Push ${fanout.size} to Docs`
+                    : `Push ${fanout.size} format${fanout.size === 1 ? '' : 's'} to Google Docs`}
               </button>
             </div>
             </>

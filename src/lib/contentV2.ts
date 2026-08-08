@@ -58,12 +58,29 @@ export interface BriefHeadline {
   source: string | null
 }
 
+// The brief's structured sections. `headlines` (the clues) and `meaning_md`
+// (the investigation, read by the factory as the contrarian angle) are the
+// original two keys and every stored brief has them. The rest arrived with the
+// investigative shape (2026-08-08) and are absent on older briefs, so every
+// reader must treat them as optional.
+export interface BriefSections {
+  headlines?: BriefHeadline[]
+  stance?: 'contradicts' | 'confirms' | null
+  belief?: string
+  standfirst?: string
+  consensus_md?: string
+  meaning_md?: string
+  next_year_md?: string
+  position_md?: string
+  perspectives_md?: string
+}
+
 export interface WeeklyBriefRow {
   id: string
   week: string
   title: string | null
   status: BriefStatus
-  sections: { headlines?: BriefHeadline[]; meaning_md?: string; perspectives_md?: string }
+  sections: BriefSections
   body_md: string | null
   versions: Array<{ v: number; at: string; source: string; body_md?: string; restored_from?: number }>
   stats: Record<string, number | string>
@@ -114,12 +131,15 @@ export const VERDICT_LABEL: Record<ShiftVerdict, string> = {
 // MYMU is a VENTURE with three formats and three registers, so offering it as
 // one destination was the same mistake as offering "Builder Economy IG", a
 // channel wearing a venture's name.
-export const FACTORY_FANOUT: Array<{ channel: string; label: string; defaultOn: boolean }> = [
-  { channel: 'investigation', label: 'MYMU: Teardown', defaultOn: false },
-  { channel: 'mymu_weekly', label: 'Make Your Mind Up (weekly)', defaultOn: true },
-  { channel: 'built', label: 'MYMU: Built', defaultOn: false },
-  { channel: 'linkedin', label: 'LinkedIn post', defaultOn: true },
-  { channel: 'signal_noise', label: 'Signal & Noise', defaultOn: false },
+// `short` is the name used where the full label will not fit, notably the
+// collapsed one-line fan-out summary on a phone. It exists so that summary can
+// name every selected format instead of ellipsing after the first.
+export const FACTORY_FANOUT: Array<{ channel: string; label: string; short: string; defaultOn: boolean }> = [
+  { channel: 'investigation', label: 'MYMU: Teardown', short: 'Teardown', defaultOn: false },
+  { channel: 'mymu_weekly', label: 'Make Your Mind Up (weekly)', short: 'MYMU weekly', defaultOn: true },
+  { channel: 'built', label: 'MYMU: Built', short: 'Built', defaultOn: false },
+  { channel: 'linkedin', label: 'LinkedIn post', short: 'LinkedIn', defaultOn: true },
+  { channel: 'signal_noise', label: 'Signal & Noise', short: 'Signal & Noise', defaultOn: false },
 ]
 
 export function monthLabel(day: string): string {

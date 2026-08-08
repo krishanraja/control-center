@@ -64,7 +64,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!draft) return res.status(400).json({ ok: false, error: 'brief has no body' })
 
   const sections: any = brief.sections || {}
-  const hook = (draft.split('\n').map((x: string) => x.trim()).find(Boolean) || '').slice(0, 280)
+  // The hook is the standfirst, the first real line of prose. Taking the first
+  // non-empty line handed the factory the `# Title` heading, which it already
+  // receives as `title`, so the hook was a duplicate carrying a stray '#'.
+  const hook = (draft.split('\n')
+    .map((x: string) => x.trim())
+    .find((x: string) => x && !x.startsWith('#')) || '').slice(0, 280)
+  // The contrarian angle is the belief on trial plus the investigation that
+  // rules on it, in that order: the angle is the argument, not the evidence.
+  const angle = [
+    sections.stance && sections.belief
+      ? `This week ${sections.stance} the view that ${String(sections.belief).replace(/^["']|["']$/g, '')}`
+      : '',
+    sections.meaning_md || '',
+  ].filter(Boolean).join('\n\n').slice(0, 600)
   const nowIso = new Date().toISOString()
 
   const results: Array<{ channel: string; ok: boolean; doc_url: string | null; error?: string }> = []
@@ -76,7 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       title: brief.title || `MYMU ${week}`,
       hook,
       target_audience: 'Business leaders making real AI decisions',
-      contrarian_angle: (sections.meaning_md || '').slice(0, 400),
+      contrarian_angle: angle,
       draft_seed: draft,
       full_draft: draft,
       materials: (sections.headlines || []).map((h: any) => ({
