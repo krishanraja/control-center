@@ -1,6 +1,8 @@
 import { contested } from "../../lib/agreement";
+import type { CompoundConfig } from "../../lib/env";
 import { aud, pct1, plain1, usd } from "../../lib/format";
 import { themesFor } from "../../lib/migration";
+import { useInsightContext, type ContextTopic } from "../../lib/useInsightContext";
 import { EXPLAIN } from "../../lib/words";
 import type { Snapshot } from "../../types";
 import { useSplit } from "../DeviceProvider";
@@ -11,6 +13,7 @@ import { SectionHead, Tile } from "../components/Tile";
 
 interface Props {
   snapshot: Snapshot;
+  config: CompoundConfig;
   open: Record<string, boolean>;
   onToggle: (id: string) => void;
   onAsk: (question: string) => void;
@@ -23,7 +26,7 @@ function loudestUnsupported(snapshot: Snapshot) {
     .sort((a, b) => Math.abs(b.m1 ?? 0) - Math.abs(a.m1 ?? 0))[0];
 }
 
-export function NowTab({ snapshot, open, onToggle, onAsk }: Props) {
+export function NowTab({ snapshot, config, open, onToggle, onAsk }: Props) {
   const split = useSplit();
   const themes = themesFor(snapshot);
   const theme = themes.find((entry) => entry.diverged) ?? themes[0];
@@ -32,6 +35,14 @@ export function NowTab({ snapshot, open, onToggle, onAsk }: Props) {
 
   const largest = snapshot.holdings.find((holding) => holding.symbol === snapshot.portfolio.largest);
   const solana = snapshot.solana;
+
+  // Each insight asks the wider world one tight question, tied to its card id.
+  const topics: ContextTopic[] = [
+    theme?.beneficiary && theme.disrupted ? { id: "n1", topic: theme.definition.name } : null,
+    largest ? { id: "n2", topic: largest.name } : null,
+    unsupported ? { id: "n3", topic: unsupported.name } : null,
+  ].filter((entry): entry is ContextTopic => entry !== null);
+  const contexts = useInsightContext(config, topics);
   // The comparable month is the past year's fee income divided by twelve. The
   // feed gives a rolling 30 day figure and a rolling 12 month figure, nothing
   // in between, so this is the only like for like the data supports.
@@ -64,6 +75,7 @@ export function NowTab({ snapshot, open, onToggle, onAsk }: Props) {
           }
           source="Company accounts through FMP, latest full year reported"
           ask={`Is AI actually hurting ${theme.definition.disrupted} yet?`}
+          context={contexts.n1}
           open={Boolean(open.n1)}
           onToggle={onToggle}
           onAsk={onAsk}
@@ -119,6 +131,7 @@ export function NowTab({ snapshot, open, onToggle, onAsk }: Props) {
           }
           source={`DefiLlama, ${snapshot.generated}${solana.stables == null ? " · digital dollar balances did not come back this run" : ""}`}
           ask={`What would tell me ${largest.name} is actually recovering?`}
+          context={contexts.n2}
           open={Boolean(open.n2)}
           onToggle={onToggle}
           onAsk={onAsk}
@@ -153,6 +166,7 @@ export function NowTab({ snapshot, open, onToggle, onAsk }: Props) {
           visual={<div className="metervis"><AgreementMeter row={unsupported} /><AgreementKey /></div>}
           source="Expert ratings and news scores over 30 days, through FMP and Marketaux"
           ask="Which stocks are moving with nothing behind them?"
+          context={contexts.n3}
           open={Boolean(open.n3)}
           onToggle={onToggle}
           onAsk={onAsk}

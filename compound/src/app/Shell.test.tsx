@@ -135,6 +135,17 @@ describe("Shell", () => {
     expect(screen.getByRole("switch", { name: /Software - Infrastructure/ })).toHaveAttribute("aria-checked", "false");
   });
 
+  it("weaves cited real-world context into the Today cards", () => {
+    renderShell();
+    // Every insight fuses in its own cited world-context block, not a feed.
+    expect(screen.getAllByText(/In the wider world/)).toHaveLength(3);
+    // Open the AI-vs-IT-services insight; it cites Reuters and links open out.
+    fireEvent.click(screen.getByRole("button", { name: /should be dying/ }));
+    const cite = screen.getByRole("link", { name: /Reuters/ });
+    expect(cite.getAttribute("href")).toContain("reuters.com");
+    expect(cite).toHaveAttribute("target", "_blank");
+  });
+
   it("hands a card's question to Ask and answers it", () => {
     const { onTab, view } = renderShell();
     fireEvent.click(screen.getByRole("button", { name: /should be dying/ }));

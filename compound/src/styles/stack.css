@@ -567,3 +567,10 @@
   .stack .botnav button { font-size: calc(9.5 * var(--px)); }
   .stack .botnav button .puck { width: calc(46 * var(--px)); }
 }
+
+/* World-context layer inside a card: cited, woven into the working. */
+.stack .cworld { margin-top: calc(14 * var(--px)); padding-top: calc(12 * var(--px)); border-top: calc(1 * var(--px)) solid var(--line); }
+.stack .cworld-h { margin: 0 0 calc(4 * var(--px)); color: var(--mut); font-size: calc(12 * var(--px)); text-transform: uppercase; letter-spacing: .04em; }
+.stack .cites { display: flex; flex-wrap: wrap; gap: calc(6 * var(--px)); margin-top: calc(8 * var(--px)); }
+.stack .cite { max-width: 100%; padding: calc(4 * var(--px)) calc(9 * var(--px)); border: calc(1 * var(--px)) solid var(--line2); border-radius: 999px; color: var(--ink2); font-size: calc(12.5 * var(--px)); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stack a.cite:active { border-color: var(--sig); color: var(--sig); }

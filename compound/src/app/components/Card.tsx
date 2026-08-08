@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import type { InsightContext } from "../../lib/context";
+import { longDate } from "../../lib/format";
 import { useSplit } from "../DeviceProvider";
 import { CaretIcon } from "./Icons";
 
@@ -19,9 +21,33 @@ export interface CardProps {
   source: string;
   /** The question this card hands to Ask. */
   ask: string;
+  /** Real-world context that the numbers cannot see, always cited. */
+  context?: InsightContext;
   open: boolean;
   onToggle: (id: string) => void;
   onAsk: (question: string) => void;
+}
+
+/**
+ * The world-context layer, woven into the working so it reads as part of one
+ * insight rather than a separate news feed. Every claim here names its sources.
+ */
+function ContextBlock({ context }: { context: InsightContext }) {
+  return (
+    <div className="cworld">
+      <p className="cworld-h">In the wider world · {longDate(context.asOf)}</p>
+      <p>{context.summary}</p>
+      {context.citations.length > 0 && (
+        <p className="cites">
+          {context.citations.map((citation) => (
+            <a key={citation.url} className="cite" href={citation.url} target="_blank" rel="noreferrer">
+              {citation.title}
+            </a>
+          ))}
+        </p>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -32,7 +58,7 @@ export interface CardProps {
  * text with a small control under it, because a 400 pixel button is not how
  * desktop software behaves and a mouse does not need the extra area.
  */
-export function Card({ id, tag, tone, head, next, visual, children, source, ask, open, onToggle, onAsk }: CardProps) {
+export function Card({ id, tag, tone, head, next, visual, children, source, ask, context, open, onToggle, onAsk }: CardProps) {
   const split = useSplit();
   const bodyId = `card-body-${id}`;
   const toneClass = tone === "down" ? " dnc" : tone === "mixed" ? " mx" : "";
@@ -41,6 +67,7 @@ export function Card({ id, tag, tone, head, next, visual, children, source, ask,
   const working = (
     <div className="cbody" id={bodyId} hidden={!open}>
       {children}
+      {context && <ContextBlock context={context} />}
       <div className="src">{source}</div>
       <button type="button" className="askbtn" onClick={() => onAsk(ask)}>Ask about this</button>
     </div>
