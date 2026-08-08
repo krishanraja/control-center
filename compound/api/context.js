@@ -9,6 +9,16 @@ const EXA_URL = "https://api.exa.ai/search";
 const PROVIDER_TIMEOUT_MS = 9000;
 const MAX_CITATIONS = 4;
 const MAX_SUMMARY = 360;
+const DEFERRED_SOURCE_HOSTS = new Set([
+  "facebook.com",
+  "instagram.com",
+  "reddit.com",
+  "tiktok.com",
+  "twitter.com",
+  "x.com",
+  "youtu.be",
+  "youtube.com",
+]);
 
 function plainText(text) {
   return text
@@ -45,7 +55,7 @@ function truncateWords(text, limit) {
 }
 
 function cleanSummary(text) {
-  const stripped = plainText(text);
+  const stripped = plainText(text).replace(/\brevenues?\b/gi, (word) => (/^[A-Z]/.test(word) ? "Sales" : "sales"));
   if (stripped.length <= MAX_SUMMARY) return stripped;
   const cut = stripped.slice(0, MAX_SUMMARY + 1);
   const lastStop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("? "), cut.lastIndexOf("! "));
@@ -62,9 +72,16 @@ function dedupeCitations(citations) {
     if (!url || !host || seen.has(url)) continue;
     seen.add(url);
     out.push({ url, title: plainText(citation.title || "") || host });
-    if (out.length >= MAX_CITATIONS) break;
   }
-  return out;
+  return out
+    .map((citation, index) => ({
+      citation,
+      index,
+      deferred: DEFERRED_SOURCE_HOSTS.has(hostOf(citation.url)) ? 1 : 0,
+    }))
+    .sort((a, b) => a.deferred - b.deferred || a.index - b.index)
+    .slice(0, MAX_CITATIONS)
+    .map(({ citation }) => citation);
 }
 
 function normalizePerplexity(payload, asOf) {

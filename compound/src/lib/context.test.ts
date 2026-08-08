@@ -39,6 +39,11 @@ describe("summary presentation", () => {
     expect(contextPreview("Fees fell while deposits held. Analysts disagree on the recovery."))
       .toBe("Fees fell while deposits held.");
   });
+
+  it("keeps provider copy in the app's plain financial language", () => {
+    expect(cleanSummary("Revenue rose while quarterly revenues held steady."))
+      .toBe("Sales rose while quarterly sales held steady.");
+  });
 });
 
 describe("citation safety", () => {
@@ -66,16 +71,21 @@ describe("normalizePerplexity", () => {
     const context = normalizePerplexity({
       choices: [{ message: { content: "**Solana fees fell** [1] while deposits held [2]." } }],
       search_results: [
+        { title: "Video", url: "https://youtube.com/watch?v=1" },
         { title: "Reuters: Solana", url: "https://reuters.com/a" },
         { title: "Dup", url: "https://reuters.com/a" },
         { title: "Unsafe", url: "javascript:alert(1)" },
         { title: "CNBC", url: "https://cnbc.com/b" },
+        { title: "FT", url: "https://ft.com/c" },
+        { title: "WSJ", url: "https://wsj.com/d" },
       ],
     }, "2026-08-08");
     expect(context?.summary).toBe("Solana fees fell while deposits held.");
     expect(context?.citations).toEqual([
       { title: "Reuters: Solana", url: "https://reuters.com/a" },
       { title: "CNBC", url: "https://cnbc.com/b" },
+      { title: "FT", url: "https://ft.com/c" },
+      { title: "WSJ", url: "https://wsj.com/d" },
     ]);
     expect(context?.via).toBe("perplexity");
   });
