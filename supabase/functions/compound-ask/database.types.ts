@@ -27,6 +27,12 @@ export interface Database {
         Update: { status?: string; content?: string; evidence?: Json };
         Relationships: [];
       };
+      view_settings: {
+        Row: { user_id: string; excluded_industries: string[]; updated_at: string };
+        Insert: { user_id: string; excluded_industries?: string[]; updated_at?: string };
+        Update: { excluded_industries?: string[]; updated_at?: string };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

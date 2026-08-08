@@ -41,3 +41,30 @@ export function safeEvidence(value: unknown): EvidenceRecord[] {
 export function isBoundaryRequest(question: string): boolean {
   return /(control[ -]?center|app_secrets|system_config|service[ -]?role|api key|access token|reveal.{0,20}(prompt|secret)|ignore.{0,30}(instructions|evidence))/i.test(question);
 }
+
+/** The industries the reader has switched off, cleaned and capped. */
+export function cleanExcluded(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).slice(0, 80);
+}
+
+/**
+ * A hidden industry must stay hidden in the answer too, or Ask contradicts the
+ * rest of the app. This is the instruction that carries the reader's choice
+ * into the model; it returns "" when nothing is hidden so no note is added.
+ */
+export function excludedNote(excluded: string[]): string {
+  const names = cleanExcluded(excluded);
+  if (!names.length) return "";
+  return `The reader has switched these industries off and does not want them in answers: ${names.join(", ")}. Do not build the answer around them. If the question is only about a switched-off industry, say it is hidden in their settings.`;
+}
+
+/** Best effort: drop evidence whose text names a hidden industry. */
+export function filterEvidenceByExcluded(evidence: EvidenceRecord[], excluded: string[]): EvidenceRecord[] {
+  const names = cleanExcluded(excluded).map((name) => name.toLowerCase());
+  if (!names.length) return evidence;
+  return evidence.filter((item) => {
+    const haystack = `${item.label} ${item.detail}`.toLowerCase();
+    return !names.some((name) => haystack.includes(name));
+  });
+}
