@@ -1,7 +1,7 @@
 import { plain1, pct1, ratio, usd } from "../../lib/format";
 import { byQuadrant, quadrantCounts } from "../../lib/industries";
 import { themesFor } from "../../lib/migration";
-import { EXPLAIN, GROUP_NAME, GROUP_NOTE, plainStageDesc } from "../../lib/words";
+import { EXPLAIN, GROUP_NAME, GROUP_NOTE, GROUP_SHORT, plainStageDesc } from "../../lib/words";
 import type { Placed, Quadrant, Snapshot } from "../../types";
 import { useSplit } from "../DeviceProvider";
 import { Card } from "../components/Card";
@@ -220,7 +220,7 @@ export function ShiftsTab({ snapshot, force, quadrant, excluded, open, onForce, 
       <SectionHead title="Where money is moving" note={`${industries.length} industries`} />
       <Segmented
         label="Which group"
-        choices={QUADRANTS.map((entry) => ({ id: entry, name: GROUP_NAME[entry], count: counts[entry] }))}
+        choices={QUADRANTS.map((entry) => ({ id: entry, name: GROUP_NAME[entry], short: GROUP_SHORT[entry], count: counts[entry] }))}
         value={quadrant}
         onChange={(id) => onQuadrant(id as Quadrant)}
         wrap

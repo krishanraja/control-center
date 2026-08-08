@@ -76,6 +76,15 @@ export const GROUP_NAME: Record<Quadrant, string> = {
   avoid: "Going down, no let up",
 };
 
+/** The phone track is two across, so the names have to be short enough to fit
+ *  one line. The sentence under the track carries the full meaning either way. */
+export const GROUP_SHORT: Record<Quadrant, string> = {
+  early: "Up, still cheap",
+  crowded: "Up, but pricey",
+  turning: "Down, slowing",
+  avoid: "Down, no let up",
+};
+
 export const GROUP_NOTE: Record<Quadrant, string> = {
   early: "Up over three months and still cheaper than most. This is where digging pays off.",
   crowded: "Up over three months, but you pay more for it than for most. The easy money has gone.",

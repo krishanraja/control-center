@@ -88,6 +88,35 @@ describe("Shell", () => {
     expect(screen.queryByRole("button", { name: /PLTR/ })).not.toBeInTheDocument();
   });
 
+  it("hides a whole list of industries at once", () => {
+    renderShell("stocks");
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+
+    // Narrow to what today actually carries, then hide all of it in one press.
+    fireEvent.change(screen.getByLabelText("Search industries"), { target: { value: "software" } });
+    const listed = screen.getAllByRole("switch");
+    expect(listed.length).toBeGreaterThan(1);
+    for (const toggle of listed) expect(toggle).toHaveAttribute("aria-checked", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: `Hide these ${listed.length}` }));
+    for (const toggle of screen.getAllByRole("switch")) expect(toggle).toHaveAttribute("aria-checked", "false");
+
+    fireEvent.click(screen.getByRole("button", { name: "Show everything again" }));
+    for (const toggle of screen.getAllByRole("switch")) expect(toggle).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("lists only the industries carrying companies when asked", () => {
+    renderShell("stocks");
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    const all = screen.getAllByRole("switch").length;
+
+    const filter = screen.getByRole("group", { name: "Which industries to list" });
+    fireEvent.click(within(filter).getByRole("button", { name: /Have companies/ }));
+    const active = screen.getAllByRole("switch");
+    expect(active.length).toBeLessThan(all);
+    for (const toggle of active) expect(toggle).not.toHaveTextContent("nothing today");
+  });
+
   it("hands a card's question to Ask and answers it", () => {
     const { onTab, view } = renderShell();
     fireEvent.click(screen.getByRole("button", { name: /should be dying/ }));
@@ -116,8 +145,9 @@ describe("Shell", () => {
   it("groups industries by direction first, never by a bounce", () => {
     renderShell("shifts");
     const group = screen.getByRole("group", { name: "Which group" });
-    expect(within(group).getByRole("button", { name: /Going up, still cheap \(27\)/ })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(within(group).getByRole("button", { name: /Going down, but slowing \(17\)/ }));
+    // The phone track is two across, so the names are short enough to fit one.
+    expect(within(group).getByRole("button", { name: /Up, still cheap \(27\)/ })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(within(group).getByRole("button", { name: /Down, slowing \(17\)/ }));
     expect(screen.getByText(/Still down over three months/)).toBeInTheDocument();
   });
 });
@@ -153,6 +183,14 @@ describe("device systems", () => {
     expect(document.querySelector(".sheet")).not.toBeInTheDocument();
     // The list stays on screen next to the panel rather than being covered.
     expect(screen.getByRole("heading", { name: "Which ones have real backing." })).toBeInTheDocument();
+  });
+
+  it("spells the group names out where there is width for them", () => {
+    asSplit();
+    renderShell("shifts");
+    const group = screen.getByRole("group", { name: "Which group" });
+    expect(within(group).getByRole("button", { name: /Going up, still cheap/ })).toBeInTheDocument();
+    expect(within(group).getByRole("button", { name: /Going down, but slowing/ })).toBeInTheDocument();
   });
 
   it("moves between sections with the number keys on a desktop", () => {

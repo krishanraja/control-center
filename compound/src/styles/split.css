@@ -403,6 +403,7 @@
 .split .panelbody .page { max-width: none; padding: 20px 20px 40px; }
 .split .panelbody .grid, .split .panelbody .split2 { grid-template-columns: minmax(0, 1fr); }
 .split .panelbody .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.split .panelbody .toglist { grid-template-columns: minmax(0, 1fr); }
 .split .panelbody h2.big { font-size: 22px; }
 .split .panelbody .srow { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 14px; }
 .split .panelbody .dthead { display: none; }
@@ -422,6 +423,8 @@
   font-size: 14px;
 }
 .split .settingsbar input::placeholder { color: var(--faint); }
+.split .bulk { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; }
+.split .bulk-actions { display: flex; gap: 8px; }
 .split .toglist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1px; }
 @media (max-width: 1199px) { .split .toglist { grid-template-columns: minmax(0, 1fr); } }
 .split .tog {

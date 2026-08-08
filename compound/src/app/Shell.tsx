@@ -144,7 +144,9 @@ export function Shell({ snapshot, config, session, tab, onTab }: Props) {
           excluded={excluded}
           saveError={saveError}
           onToggle={(industry) => persist(toggleIn(excluded, industry))}
-          onClearAll={() => persist([])}
+          onBulk={(industries, hide) => persist(hide
+            ? [...new Set([...excluded, ...industries])]
+            : excluded.filter((entry) => !industries.includes(entry)))}
         />
       );
     }

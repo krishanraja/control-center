@@ -1,6 +1,6 @@
 # COMPOUND device systems
 
-- Revision: DS-002
+- Revision: DS-003
 - Date: 2026-08-08
 - Applies to: `compound/` only
 - Approval state: implemented on `claude/compound-responsive-redesign-tayh7v`, rendered evidence produced, material visual approval outstanding
@@ -37,6 +37,7 @@ share nothing about size, spacing, rhythm, component shape or interaction.
 | Five stage track | names the current stage | labels all five |
 | Keyboard | not assumed | 1 to 5 for sections, Escape closes the panel |
 | Ask | suggestions first, input at the bottom near the thumb | input at the top, suggestions under it |
+| Settings | search, filter, bulk actions, one column of switches | the same, in the panel, two columns wide when there is room |
 
 Both put the answer directly under whatever was used to ask for it.
 
@@ -64,6 +65,25 @@ tablet gets a 62 character measure instead of an 87 character one.
 apply, within 10%. That check was written by breaking it first: with `--px`
 pinned to 1, the suite fails with "everything would render at 40% of the size
 it was written at".
+
+## Nothing scrolls sideways on a phone
+
+`checkOverflow` only fires when the document itself scrolls, so a control with
+`overflow-x: auto` absorbed its own overflow and passed. The industry group
+track did exactly that: a two column grid on `1fr` columns, whose labels were
+`nowrap`, so the columns refused to shrink and the grid ran 190 pixels off a
+390 pixel screen while every other check went green.
+
+Two fixes, one structural and one cosmetic. `minmax(0, 1fr)` lets a column
+shrink below its label and the labels wrap, so no name can push that grid out
+however long it gets. The phone also gets short group names, because a two
+across track has room for "Up, still cheap" and not for "Going up, still
+cheap"; the desktop rail keeps the full ones and the sentence under the track
+carries the meaning on both.
+
+`checkNoSideways` now runs on every section and on every group, and fails on
+anything inside the phone page that sits past the screen edge or hides content
+behind a sideways scroll.
 
 ## How it is wired
 

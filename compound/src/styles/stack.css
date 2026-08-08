@@ -288,7 +288,13 @@
   scrollbar-width: none;
 }
 .stack .seg::-webkit-scrollbar { display: none; }
-.stack .seg.two { display: grid; grid-template-columns: 1fr 1fr; }
+/* minmax(0, 1fr), not 1fr: a plain 1fr refuses to shrink below its longest
+   label, so the two columns grew wider than the track and the track's own
+   horizontal scroll hid the overflow instead of preventing it. Labels wrap
+   here too, so no name can push the grid out however long it gets. */
+.stack .seg.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow-x: visible; }
+.stack .seg.two button { white-space: normal; line-height: 1.25; }
+.stack .seg.two button:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .stack .seg button {
   flex: 1 0 auto;
   text-align: center;
@@ -435,7 +441,9 @@
   font-size: calc(16 * var(--px));
 }
 .stack .settingsbar input::placeholder { color: var(--faint); }
-.stack .settingsbar .pill { justify-content: center; }
+.stack .bulk { margin-top: calc(16 * var(--px)); }
+.stack .bulk-actions { display: grid; grid-template-columns: 1fr 1fr; gap: calc(8 * var(--px)); margin-top: calc(8 * var(--px)); }
+.stack .bulk-actions .pill { justify-content: center; }
 .stack .tog {
   display: flex;
   align-items: center;

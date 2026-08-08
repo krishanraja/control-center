@@ -27,6 +27,7 @@ const STACK = {
   tabs: { now: "Today", shifts: "Trends", stocks: "Stocks", mine: "Money", ask: "Ask" },
   close: "Back",
   rates: "Rates",
+  groupSlowing: "Down, slowing",
   // 44px is the touch target size Apple and Android both publish, and above
   // the 24px WCAG 2.2 minimum. The old gate applied it to mice as well.
   minControl: 44,
@@ -38,6 +39,7 @@ const SPLIT = {
   tabs: { now: "Today", shifts: "Big trends", stocks: "Stocks", mine: "My money", ask: "Ask a question" },
   close: "Close",
   rates: "Interest rates",
+  groupSlowing: "Going down, but slowing",
   // A pointer is precise. 32px clears WCAG 2.2 target size comfortably and is
   // what desktop software actually uses.
   minControl: 32,
@@ -70,11 +72,9 @@ async function openCase(name, width, height, route, device, test, emulation = {}
 
   await checkSystem(page, name, device);
 
-  if (emulation.hasTouch ?? width <= 768) {
-    await page.locator("button, input, a[href]").first().focus();
-  } else {
-    await page.keyboard.press("Tab");
-  }
+  // Tab, on every case. A ring is a keyboard affordance, so asserting it after
+  // a programmatic focus would prove nothing a keyboard user relies on.
+  await page.keyboard.press("Tab");
   // Poll rather than sample once: the focus ring can be read mid-recalculation
   // and report a zero width that it does not keep. A ring that never arrives
   // times out here and still fails the case.
@@ -186,6 +186,41 @@ async function checkOverflow(page, name, when) {
   throw new Error(`${name} has ${layout.scrollWidth - layout.width}px horizontal overflow ${when}: ${JSON.stringify(offenders)}`);
 }
 
+/**
+ * Nothing on a phone screen may sit past the edge, and nothing may hide the
+ * fact by scrolling sideways inside itself.
+ *
+ * checkOverflow only fires when the document itself scrolls. A control with
+ * overflow-x: auto absorbs its own overflow, so a two column grid whose
+ * columns refused to shrink below their labels ran 190 pixels off a 390 pixel
+ * screen while every other check passed. The phone system has no business
+ * scrolling sideways anywhere, so this says so.
+ */
+async function checkNoSideways(page, name, device) {
+  if (device.system !== "stack") return;
+  const found = await page.evaluate(() => {
+    const edge = document.documentElement.clientWidth;
+    const root = document.querySelector(".page");
+    if (!root) return [];
+    const out = [];
+    for (const element of root.querySelectorAll("*")) {
+      const rect = element.getBoundingClientRect();
+      if (!rect.width || !rect.height) continue;
+      const describe = (why) => ({
+        why,
+        tag: element.tagName,
+        className: String(element.className).slice(0, 40),
+        text: (element.textContent ?? "").trim().slice(0, 34),
+        right: Math.round(rect.right),
+      });
+      if (rect.right > edge + 1 || rect.left < -1) out.push(describe("past the screen edge"));
+      else if (element.scrollWidth > element.clientWidth + 1) out.push(describe("hiding content behind a sideways scroll"));
+    }
+    return out.slice(0, 6);
+  });
+  if (found.length) throw new Error(`${name} has content off the side: ${JSON.stringify(found)}`);
+}
+
 /** Nothing a reader sees may be cut off with an ellipsis by the layout. */
 async function checkTruncation(page, name) {
   const clipped = await page.evaluate(() => Array.from(document.querySelectorAll(".rowname, .ch, .tn, h2, h3, .cnext, .sub"))
@@ -209,6 +244,7 @@ async function verifyTabs(page, device) {
       throw new Error(`${label} did not report itself as the current section`);
     }
     await checkOverflow(page, `${label} section`, "while open");
+    await checkNoSideways(page, `${label} section`, device);
     await checkTruncation(page, `${label} section`);
   }
   await nav.getByRole("button", { name: device.tabs.now, exact: true }).click();
@@ -325,7 +361,14 @@ async function verifyTrendDrill(page, device) {
   await page.getByRole("button", { name: device.close }).click();
 
   const groups = page.getByRole("group", { name: "Which group" });
-  await groups.getByRole("button", { name: /Going down, but slowing/ }).click();
+  // Every group in turn. The longest label is the one that used to break out
+  // of the two column track and run off the side of the screen.
+  const groupCount = await groups.getByRole("button").count();
+  for (let index = 0; index < groupCount; index += 1) {
+    await groups.getByRole("button").nth(index).click();
+    await checkNoSideways(page, `Trends group ${index + 1}`, device);
+  }
+  await groups.getByRole("button", { name: new RegExp(device.groupSlowing) }).click();
   await page.getByText(/Still down over three months/).waitFor();
 }
 

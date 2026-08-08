@@ -46,8 +46,11 @@ body {
 button, input { font: inherit; }
 button { cursor: pointer; color: inherit; }
 button:disabled { cursor: not-allowed; opacity: .45; }
-button:focus-visible, input:focus-visible, a:focus-visible,
-button:focus, input:focus { outline: 2px solid var(--sig); outline-offset: 2px; }
+/* :focus-visible only. A bare :focus rule lit a ring on every tap, including
+   the one the sheet moves focus to when it opens. A keyboard user still sees
+   it, because the browser keeps :focus-visible on programmatic focus when the
+   last input was a key. */
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--sig); outline-offset: 2px; }
 h1, h2, h3, p { overflow-wrap: anywhere; }
 .visually-hidden {
   position: absolute;

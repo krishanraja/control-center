@@ -78,7 +78,7 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 ## Current local verification
 
 - COMPOUND source and Supabase boundary checks: pass.
-- Frontend unit and component tests: 67 pass, 0 fail.
+- Frontend unit and component tests: 70 pass, 0 fail.
 - Edge Function protocol tests: 4 pass, 0 fail.
 - Frontend TypeScript and production build: pass.
 - Edge Function Deno type-check: pass.
