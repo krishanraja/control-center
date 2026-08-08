@@ -20,6 +20,16 @@ export interface Device {
   input: Input;
   /** How many content columns the split system may use. Always 1 on stack. */
   columns: 1 | 2 | 3;
+  /**
+   * CSS pixels per design pixel, for the stack system.
+   *
+   * Normally 1. Some Android browsers, and any browser in desktop site mode,
+   * report a 980 pixel viewport on a 412 pixel screen and then squeeze the
+   * rendered page back down to fit the glass. Phone sized type drawn into that
+   * viewport arrives at under half the size it should be. Scaling by the same
+   * ratio the browser is about to shrink by cancels it out.
+   */
+  scale: number;
 }
 
 const SPLIT = "(min-width: 900px)";
@@ -35,15 +45,28 @@ function matches(query: string): boolean {
   return window.matchMedia(query).matches;
 }
 
+/** How much wider the viewport is than the screen it has to fit onto. */
+function designPixel(layout: Layout): number {
+  if (layout !== "stack" || typeof window === "undefined") return 1;
+  const viewport = window.innerWidth;
+  const screen = window.screen?.width ?? viewport;
+  if (!viewport || !screen) return 1;
+  const ratio = viewport / screen;
+  // Below 1.2 the two agree closely enough to leave alone. Above 3 something
+  // is reporting nonsense and scaling further would do more harm than good.
+  if (ratio < 1.2) return 1;
+  return Math.round(Math.min(ratio, 3) * 100) / 100;
+}
+
 function read(): Device {
   const coarse = matches(COARSE);
   const layout: Layout = matches(SPLIT) && !matches(HANDHELD) ? "split" : "stack";
   const columns = layout === "stack" ? 1 : matches(THREE_UP) ? 3 : 2;
-  return { layout, input: coarse ? "touch" : "pointer", columns };
+  return { layout, input: coarse ? "touch" : "pointer", columns, scale: designPixel(layout) };
 }
 
 function same(a: Device, b: Device): boolean {
-  return a.layout === b.layout && a.input === b.input && a.columns === b.columns;
+  return a.layout === b.layout && a.input === b.input && a.columns === b.columns && a.scale === b.scale;
 }
 
 export function useDevice(): Device {
@@ -58,7 +81,13 @@ export function useDevice(): Device {
     });
     update();
     for (const list of lists) list.addEventListener?.("change", update);
-    return () => { for (const list of lists) list.removeEventListener?.("change", update); };
+    // The viewport to screen ratio changes on rotation, and no media query
+    // fires for it, so the resize event is the only signal.
+    window.addEventListener("resize", update);
+    return () => {
+      for (const list of lists) list.removeEventListener?.("change", update);
+      window.removeEventListener("resize", update);
+    };
   }, []);
 
   return device;

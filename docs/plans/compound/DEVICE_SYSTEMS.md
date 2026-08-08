@@ -1,6 +1,6 @@
 # COMPOUND device systems
 
-- Revision: DS-001
+- Revision: DS-002
 - Date: 2026-08-08
 - Applies to: `compound/` only
 - Approval state: implemented on `claude/compound-responsive-redesign-tayh7v`, rendered evidence produced, material visual approval outstanding
@@ -40,11 +40,37 @@ share nothing about size, spacing, rhythm, component shape or interaction.
 
 Both put the answer directly under whatever was used to ask for it.
 
+## The design pixel
+
+The phone system is written in design pixels on a 390 wide phone, and every
+size is multiplied by `--px` at render time. On a real phone `--px` is 1 and a
+design pixel is a CSS pixel.
+
+It is not always 1. A browser in desktop site mode, and several Android in-app
+browsers, hand the page a 980 pixel viewport on a 412 pixel screen and then
+squeeze the rendered result back down to fit the glass. Phone sized type drawn
+into that viewport arrives at 42% of its intended size, with 112 characters to
+a line: the right system, sized for the wrong screen. `Shell` sets `--px` from
+the ratio between `window.innerWidth` and `window.screen.width`, which cancels
+the squeeze exactly. Reported on a Galaxy handset on 8 August 2026 and fixed
+the same day.
+
+Two guards sit either side of it: below a ratio of 1.2 the two widths agree
+closely enough to leave alone, and above 3 something is reporting nonsense.
+The stack reading column also stops growing at 560 design pixels, so a portrait
+tablet gets a 62 character measure instead of an 87 character one.
+
+`qa:ux` asserts the design pixel matches the squeeze the browser is about to
+apply, within 10%. That check was written by breaking it first: with `--px`
+pinned to 1, the suite fails with "everything would render at 40% of the size
+it was written at".
+
 ## How it is wired
 
 - `src/lib/device.ts` decides. `layout` picks the system, `input` picks the hit
-  target size, `columns` says how many the grid may use. A small physical
-  screen stays on `stack` even when an in-app browser claims a 980px viewport.
+  target size, `columns` says how many the grid may use, and `scale` is the
+  design pixel above. A small physical screen stays on `stack` even when an
+  in-app browser claims a 980px viewport.
 - `src/app/DeviceProvider.tsx` puts that in context, so a leaf component can
   render a different tree rather than a different class name.
 - `src/styles/base.css` holds colour, reset and the shared atoms.
@@ -70,11 +96,12 @@ replacement. Current reading grades: 2.2 to 4.8 per screen, 4.6 overall.
 
 ## Proof
 
-- `npm run qa:ux -- <url> <dir>` runs 13 cases: 320, 360, 390, 412, 430, 768
-  and an Android-scaled viewport on `stack`; a 1180 landscape tablet, 1280,
-  1440 and 1920 on `split`; plus two deep links. Each case asserts it rendered
-  the right system, has no horizontal overflow, clips no text, meets its own
-  target size floor, keeps a visible focus ring, and reaches every section.
+- `npm run qa:ux -- <url> <dir>` runs 14 cases: 320, 360, 390, 412, 430, 768
+  and two wide-viewport-on-a-small-screen cases on `stack`; a 1180 landscape
+  tablet, 1280, 1440 and 1920 on `split`; plus two deep links. Each case
+  asserts it rendered the right system at the right size, has no horizontal
+  overflow, clips no text, meets its own target size floor, keeps a visible
+  focus ring, and reaches every section.
 - Target size floors follow the input, not the window: 44px for touch, which is
   what Apple and Android publish, and 32px for a pointer, comfortably above the
   24px WCAG 2.2 minimum. The old gate applied a single 42px floor to mice.

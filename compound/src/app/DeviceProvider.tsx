@@ -6,7 +6,7 @@ import type { Device } from "../lib/device";
  * prop through six layers. A leaf that reads `layout` is allowed to render a
  * different tree, not just a different class name, which is the whole point.
  */
-const DeviceContext = createContext<Device>({ layout: "stack", input: "touch", columns: 1 });
+const DeviceContext = createContext<Device>({ layout: "stack", input: "touch", columns: 1, scale: 1 });
 
 export function DeviceProvider({ device, children }: { device: Device; children: ReactNode }) {
   return <DeviceContext.Provider value={device}>{children}</DeviceContext.Provider>;

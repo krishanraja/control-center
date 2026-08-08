@@ -78,13 +78,13 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 ## Current local verification
 
 - COMPOUND source and Supabase boundary checks: pass.
-- Frontend unit and component tests: 58 pass, 0 fail.
+- Frontend unit and component tests: 67 pass, 0 fail.
 - Edge Function protocol tests: 4 pass, 0 fail.
 - Frontend TypeScript and production build: pass.
 - Edge Function Deno type-check: pass.
 - Dependency advisory audit: 0 known vulnerabilities.
 - Device systems: `stack` (phone) and `split` (desktop) render different component trees over one data layer; see docs/plans/compound/DEVICE_SYSTEMS.md.
-- Browser UX: 13 route, device and data-state cases pass, covering 320 to 1920 and both systems; reading level passes at grade 9 ceiling with screens between 2.2 and 4.8; the live public sign-in separately passes at 320, 360, 390, 412, 430, 768 and Android-scaled widths with no overflow or console errors.
+- Browser UX: 14 route, device and data-state cases pass, covering 320 to 1920 and both systems; reading level passes at grade 9 ceiling with screens between 2.2 and 4.8; the live public sign-in separately passes at 320, 360, 390, 412, 430, 768 and Android-scaled widths with no overflow or console errors.
 - Credential-pattern scan and JSON configuration parse: pass.
 - Supabase production migrations: pass; exactly `20260806220210`, `20260806223500`, `20260806231230`, `20260807002034`, `20260807010239` and `20260807015930` applied through the guarded ledger.
 - Edge Functions: `compound-ask` remains JWT-protected; `compound-login` is active at version 7, rejects direct calls without the private server-proxy token and stores only one-way client fingerprints for throttling.

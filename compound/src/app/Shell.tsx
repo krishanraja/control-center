@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { indexBySymbol } from "../lib/agreement";
 import { useDevice } from "../lib/device";
@@ -218,7 +218,10 @@ export function Shell({ snapshot, config, session, tab, onTab }: Props) {
 
   return (
     <DeviceProvider device={device}>
-      <div className={`shell ${device.layout} ${device.input}`}>
+      <div
+        className={`shell ${device.layout} ${device.input}`}
+        style={{ "--px": `${device.scale}px` } as CSSProperties}
+      >
         {split
           ? (
             <DeskFrame
