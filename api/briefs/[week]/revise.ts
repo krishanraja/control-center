@@ -10,12 +10,19 @@ import { loadStandingNotes, standingNotesPrompt } from '../../_briefNotes.js'
 // instruction ("Tell Cleo", dictated on mobile), and span-scoped rewrites
 // (selection replaced inside the full draft). Preview-only: returns the
 // rewritten markdown, the client PATCHes it via /api/briefs/:week on Keep.
+//
+// Every preset knows the brief is an ARGUMENT (see api/briefs/assemble.ts): a
+// piece that contradicts a belief or confirms a twelve-month thesis, read
+// through a commercial and strategic lens. A preset that treats it as a roundup
+// sands the argument off, which is exactly how the weekly drifted before.
+
+const ARGUMENT = 'This brief is an investigative opinion piece, not a roundup: the clues prosecute one belief, either contradicting it or confirming a twelve-month thesis, always through a commercial and strategic lens (pricing, margin, who pays, build versus buy, competitive position). Every edit must leave that argument intact or sharper, never flatter.'
 
 const PRESETS: Record<string, string> = {
-  tighten: 'Tighten the whole piece. Cut filler, keep every fact and citation, do not change the structure or headings.',
-  sharper_open: 'Rewrite the opening of each section to land harder. Keep all facts, headings and citations.',
-  harder_ending: 'Rewrite the ending to land on a hard, forward-looking verdict. Never end on a summary or a question.',
-  more_data: 'Where a claim is soft, sharpen it with the specific numbers, companies and dates already present in the piece. Never invent data.',
+  tighten: 'Tighten the whole piece. Cut filler and any sentence that restates the one above it. Keep every fact and citation, do not change the structure or headings, and do not soften the verdict while shortening it.',
+  sharper_open: 'Sharpen the claim. Make the title and standfirst state what is being argued and which way it came down, so a reader who sees only those knows the verdict. Then make the opening of each section land on its own point in the first sentence. Keep all facts, headings and citations.',
+  harder_ending: 'Make the close land on a hard, forward-looking verdict with a commercial consequence and the specific thing to watch. Never end on a summary, a question, or "time will tell".',
+  more_data: 'Where a claim is soft, sharpen it with the specific numbers, companies and dates already present in the piece, and tie each to the mechanism it moves (price, margin, who pays, buying behaviour). Never invent data. Where the evidence cannot carry the claim, say so plainly instead of padding it.',
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -42,7 +49,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     voice ? `VOICE:\n${voice}` : '',
     VOICE_GUARDRAILS,
     standingNotesPrompt(standingNotes),
-    'Preserve the markdown structure (headings, lists, links) unless the instruction says otherwise.',
+    ARGUMENT,
+    'Preserve the markdown structure (headings, lists, links) unless the instruction says otherwise. Only the clues are a bulleted list; keep bold text out of the prose sections, because the citation markers attach to bold bullets by position.',
     'HONESTY: never invent facts, numbers, companies or quotes. Keep every URL exactly as it is.',
     selection
       ? 'Rewrite ONLY the selected span; return the FULL draft with the span replaced and everything else byte-identical.'

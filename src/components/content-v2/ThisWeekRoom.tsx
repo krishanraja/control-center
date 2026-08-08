@@ -51,12 +51,23 @@ export function ThisWeekRoom({ v2, ideas }: { v2: ReturnType<typeof useContentV2
               </span>
             ) : null}
             <span className="rounded-full bg-white/[0.06] text-white/55 px-2.5 py-1">
-              {ledger.inBrief} headlines · {brief.week}
+              {ledger.inBrief} clues · {brief.week}
             </span>
+            {/* The stance is the whole point of the piece, so the card says which
+                way the week came down before it is opened. Absent on briefs
+                assembled before the investigative shape. */}
+            {brief.sections?.stance ? (
+              <span className="rounded-full bg-amber-400/10 text-amber-300 px-2.5 py-1">
+                {brief.sections.stance === 'confirms' ? 'Confirms a thesis' : 'Contradicts the consensus'}
+              </span>
+            ) : null}
           </div>
           <h2 className="text-[19px] font-bold text-white mt-3 leading-snug">{brief.title || 'Untitled brief'}</h2>
-          <p className="text-[12.5px] text-white/45 mt-1">
-            Headlines · What this actually means · Perspectives &nbsp;·&nbsp; {STATUS_COPY[brief.status] || brief.status}
+          {brief.sections?.belief ? (
+            <p className="text-[13px] text-white/60 mt-1.5 leading-relaxed">{brief.sections.belief}</p>
+          ) : null}
+          <p className="text-[12.5px] text-white/45 mt-1.5">
+            {STATUS_COPY[brief.status] || brief.status}
           </p>
           <div className="flex gap-2 mt-4">
             <button onClick={openBrief} className="btn-contrast rounded-lg px-4 py-2 text-[13px] font-semibold">
