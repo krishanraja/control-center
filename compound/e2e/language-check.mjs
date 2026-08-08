@@ -75,6 +75,7 @@ const PROSE = [
   "h1", "h2", "h3", ".sub", ".ch", ".cnext", ".cbody p", ".keynote", ".footnote",
   ".verdict p", ".ans p", ".degraded p", ".tracknow", ".tile .d", ".tile .lbl",
   ".navblurb", ".railnote", ".src", ".evline span:first-child", ".hint", ".migcap",
+  ".cworld-preview", ".cworld-summary", ".groupcopy .ts",
 ].join(", ");
 
 /** Opens everything that folds away, so hidden copy is scored too. */

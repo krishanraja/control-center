@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { cleanSummary, contextQuery, hostOf, normalizeExa, normalizePerplexity } from "./context";
+import {
+  cleanSummary,
+  contextPreview,
+  contextQuery,
+  contextSourceLine,
+  hasCitedContext,
+  hostOf,
+  normalizeExa,
+  normalizePerplexity,
+  truncateWords,
+} from "./context";
 
 describe("contextQuery", () => {
   it("builds one tight, time-bounded query per topic", () => {
@@ -7,73 +17,109 @@ describe("contextQuery", () => {
   });
 });
 
-describe("cleanSummary", () => {
-  it("strips citation markers and collapses whitespace", () => {
-    expect(cleanSummary("PLTR jumped [1] after a beat[12].  Analysts stay bullish[3].")).toBe(
-      "PLTR jumped after a beat. Analysts stay bullish.",
+describe("summary presentation", () => {
+  it("strips citation markers and provider Markdown", () => {
+    expect(cleanSummary("## Update\n**PLTR jumped** [1] after a `beat`.  Analysts stay bullish[3].")).toBe(
+      "Update PLTR jumped after a beat. Analysts stay bullish.",
     );
   });
 
-  it("caps to a whole sentence rather than a hard cut", () => {
-    const long = `${"A".repeat(200)}. ${"B".repeat(200)}. tail`;
-    const out = cleanSummary(long);
-    expect(out.length).toBeLessThanOrEqual(360);
-    expect(out.endsWith(".")).toBe(true);
+  it("caps summaries and previews at whole words", () => {
+    const long = Array.from({ length: 90 }, (_, index) => `word${index}`).join(" ");
+    const summary = cleanSummary(long);
+    const preview = contextPreview(long);
+    expect(summary.length).toBeLessThanOrEqual(360);
+    expect(preview.length).toBeLessThanOrEqual(160);
+    expect(summary.endsWith("…")).toBe(true);
+    expect(preview.endsWith("…")).toBe(true);
+    expect(truncateWords("x".repeat(200), 160)).toBe("");
+  });
+
+  it("uses a concise first sentence when one is available", () => {
+    expect(contextPreview("Fees fell while deposits held. Analysts disagree on the recovery."))
+      .toBe("Fees fell while deposits held.");
+  });
+
+  it("keeps provider copy in the app's plain financial language", () => {
+    expect(cleanSummary("Revenue rose while quarterly revenues held steady."))
+      .toBe("Sales rose while quarterly sales held steady.");
   });
 });
 
-describe("hostOf", () => {
-  it("returns a bare hostname", () => {
+describe("citation safety", () => {
+  it("returns only safe hostnames", () => {
     expect(hostOf("https://www.reuters.com/markets/x")).toBe("reuters.com");
-    expect(hostOf("not a url")).toBe("not a url");
+    expect(hostOf("javascript:alert(1)")).toBe("");
+    expect(hostOf("not a url")).toBe("");
+  });
+
+  it("builds compact source metadata", () => {
+    expect(contextSourceLine({
+      summary: "Something happened.",
+      citations: [
+        { title: "Reuters", url: "https://reuters.com/a" },
+        { title: "FT", url: "https://ft.com/b" },
+      ],
+      asOf: "2026-08-08",
+      via: "demo",
+    })).toBe("reuters.com +1 source");
   });
 });
 
 describe("normalizePerplexity", () => {
-  it("prefers titled search results and dedupes to a cap", () => {
-    const ctx = normalizePerplexity({
-      choices: [{ message: { content: "Solana fees fell [1] while deposits held [2]." } }],
+  it("prefers titled search results, removes unsafe URLs and dedupes", () => {
+    const context = normalizePerplexity({
+      choices: [{ message: { content: "**Solana fees fell** [1] while deposits held [2]." } }],
       search_results: [
+        { title: "Video", url: "https://youtube.com/watch?v=1" },
         { title: "Reuters: Solana", url: "https://reuters.com/a" },
         { title: "Dup", url: "https://reuters.com/a" },
+        { title: "Unsafe", url: "javascript:alert(1)" },
         { title: "CNBC", url: "https://cnbc.com/b" },
+        { title: "FT", url: "https://ft.com/c" },
+        { title: "WSJ", url: "https://wsj.com/d" },
       ],
     }, "2026-08-08");
-    expect(ctx?.summary).toBe("Solana fees fell while deposits held.");
-    expect(ctx?.citations).toEqual([
+    expect(context?.summary).toBe("Solana fees fell while deposits held.");
+    expect(context?.citations).toEqual([
       { title: "Reuters: Solana", url: "https://reuters.com/a" },
       { title: "CNBC", url: "https://cnbc.com/b" },
+      { title: "FT", url: "https://ft.com/c" },
+      { title: "WSJ", url: "https://wsj.com/d" },
     ]);
-    expect(ctx?.via).toBe("perplexity");
+    expect(context?.via).toBe("perplexity");
   });
 
-  it("falls back to citation urls when there are no search results", () => {
-    const ctx = normalizePerplexity({
+  it("falls back to safe citation URLs when search results are absent", () => {
+    const context = normalizePerplexity({
       choices: [{ message: { content: "Something happened." } }],
       citations: ["https://www.wsj.com/x"],
     }, "2026-08-08");
-    expect(ctx?.citations).toEqual([{ title: "wsj.com", url: "https://www.wsj.com/x" }]);
+    expect(context?.citations).toEqual([{ title: "wsj.com", url: "https://www.wsj.com/x" }]);
   });
 
-  it("returns null when there is no usable content", () => {
+  it("returns null without usable content and at least one citation", () => {
     expect(normalizePerplexity({ choices: [] }, "2026-08-08")).toBeNull();
+    expect(normalizePerplexity({ choices: [{ message: { content: "Uncited." } }] }, "2026-08-08")).toBeNull();
   });
 });
 
 describe("normalizeExa", () => {
   it("builds a summary from the first snippet and lists sources", () => {
-    const ctx = normalizeExa({
+    const context = normalizeExa({
       results: [
         { title: "FT", url: "https://ft.com/a", highlights: ["Rates are priced to stay higher for longer."] },
         { title: "BBG", url: "https://bloomberg.com/b" },
       ],
     }, "2026-08-08");
-    expect(ctx?.summary).toBe("Rates are priced to stay higher for longer.");
-    expect(ctx?.citations.map((c) => c.url)).toEqual(["https://ft.com/a", "https://bloomberg.com/b"]);
-    expect(ctx?.via).toBe("exa");
+    expect(context?.summary).toBe("Rates are priced to stay higher for longer.");
+    expect(context?.citations.map((citation) => citation.url)).toEqual(["https://ft.com/a", "https://bloomberg.com/b"]);
+    expect(context?.via).toBe("exa");
+    expect(hasCitedContext(context)).toBe(true);
   });
 
-  it("returns null when there are no results", () => {
+  it("returns null without both a snippet and citations", () => {
     expect(normalizeExa({ results: [] }, "2026-08-08")).toBeNull();
+    expect(normalizeExa({ results: [{ title: "No URL", highlights: ["Text"] }] }, "2026-08-08")).toBeNull();
   });
 });

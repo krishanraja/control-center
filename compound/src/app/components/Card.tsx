@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
-import type { InsightContext } from "../../lib/context";
+import {
+  contextPreview,
+  contextSourceLine,
+  sanitizeInsightContext,
+  type InsightContext,
+} from "../../lib/context";
 import { longDate } from "../../lib/format";
 import { useSplit } from "../DeviceProvider";
 import { CaretIcon } from "./Icons";
@@ -28,24 +33,30 @@ export interface CardProps {
   onAsk: (question: string) => void;
 }
 
-/**
- * The world-context layer, woven into the working so it reads as part of one
- * insight rather than a separate news feed. Every claim here names its sources.
- */
+/** Compact context for the closed card face. It deliberately contains no links. */
+function ContextFace({ context }: { context: InsightContext }) {
+  return (
+    <span className="cworld-face">
+      <span className="cworld-kicker">In the wider world</span>
+      <span className="cworld-preview">{contextPreview(context.summary)}</span>
+      <span className="cworld-meta">{longDate(context.asOf)} · {contextSourceLine(context)}</span>
+    </span>
+  );
+}
+
+/** Full context and source links, available after the card is opened. */
 function ContextBlock({ context }: { context: InsightContext }) {
   return (
     <div className="cworld">
       <p className="cworld-h">In the wider world · {longDate(context.asOf)}</p>
-      <p>{context.summary}</p>
-      {context.citations.length > 0 && (
-        <p className="cites">
-          {context.citations.map((citation) => (
-            <a key={citation.url} className="cite" href={citation.url} target="_blank" rel="noreferrer">
-              {citation.title}
-            </a>
-          ))}
-        </p>
-      )}
+      <p className="cworld-summary">{context.summary}</p>
+      <div className="cites" aria-label="Sources">
+        {context.citations.map((citation) => (
+          <a key={citation.url} className="cite" href={citation.url} target="_blank" rel="noreferrer">
+            {citation.title}
+          </a>
+        ))}
+      </div>
     </div>
   );
 }
@@ -63,11 +74,13 @@ export function Card({ id, tag, tone, head, next, visual, children, source, ask,
   const bodyId = `card-body-${id}`;
   const toneClass = tone === "down" ? " dnc" : tone === "mixed" ? " mx" : "";
   const caret = <span className="caret"><CaretIcon /></span>;
+  const citedContext = sanitizeInsightContext(context) ?? undefined;
+  const contextFace = citedContext && !open ? <ContextFace context={citedContext} /> : null;
 
   const working = (
     <div className="cbody" id={bodyId} hidden={!open}>
       {children}
-      {context && <ContextBlock context={context} />}
+      {citedContext && <ContextBlock context={citedContext} />}
       <div className="src">{source}</div>
       <button type="button" className="askbtn" onClick={() => onAsk(ask)}>Ask about this</button>
     </div>
@@ -81,6 +94,7 @@ export function Card({ id, tag, tone, head, next, visual, children, source, ask,
           <span className="ch">{head}</span>
           <span className="cnext">{next}</span>
           {visual}
+          {contextFace}
         </div>
         <button
           type="button"
@@ -110,6 +124,7 @@ export function Card({ id, tag, tone, head, next, visual, children, source, ask,
         <span className="ch">{head}</span>
         <span className="cnext">{next}</span>
         {visual}
+        {contextFace}
         <span className="cmore">
           {open ? "Hide the working" : "See how we worked it out"}
           {caret}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { CompoundConfig } from "./env";
-import type { InsightContext } from "./context";
+import { sanitizeInsightContext, type InsightContext } from "./context";
 import { DEMO_CONTEXT } from "./contextDemo";
 
 /** One insight that wants real-world context: a stable id and a plain topic. */
@@ -10,6 +10,7 @@ export interface ContextTopic {
 }
 
 type ContextMap = Record<string, InsightContext>;
+const MAX_TOPICS = 3;
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -19,82 +20,90 @@ function cacheKey(topic: string): string {
   return `compound.ctx.${today()}.${topic}`;
 }
 
-function readCache(topic: string): InsightContext | null {
+/** Undefined means no cache entry. Null is a cached, intentionally empty result. */
+function readCache(topic: string): InsightContext | null | undefined {
   try {
     const raw = window.sessionStorage.getItem(cacheKey(topic));
-    return raw ? (JSON.parse(raw) as InsightContext) : null;
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === "object" && (parsed as { empty?: unknown }).empty === true) return null;
+    return sanitizeInsightContext(parsed) ?? undefined;
   } catch {
-    return null;
+    return undefined;
   }
 }
 
-function writeCache(topic: string, context: InsightContext): void {
+function writeCache(topic: string, context: InsightContext | null): void {
   try {
-    window.sessionStorage.setItem(cacheKey(topic), JSON.stringify(context));
+    window.sessionStorage.setItem(cacheKey(topic), JSON.stringify(context ?? { empty: true }));
   } catch {
-    // A full or blocked store just means we ask again next time.
+    // A full or blocked store only removes the cache optimization.
   }
 }
 
 function demoMap(topics: ContextTopic[]): ContextMap {
   const map: ContextMap = {};
-  for (const topic of topics) {
+  for (const topic of topics.slice(0, MAX_TOPICS)) {
     const hit = DEMO_CONTEXT[topic.id];
-    if (hit) map[topic.id] = hit;
+    const context = sanitizeInsightContext(hit);
+    if (context) map[topic.id] = context;
   }
   return map;
 }
 
 /**
- * Real-world context for a handful of insights. Demo mode returns bundled,
- * cited fixtures so the layer works offline; live mode asks /api/context once
- * per topic and caches the answer for the day. A topic that returns nothing is
- * simply left out, so the insight falls back to its numbers rather than showing
- * an empty "news" slot.
+ * Real-world context for at most three insights. Demo mode returns bundled,
+ * cited fixtures. Live mode asks once per topic, in parallel, and caches both
+ * useful and intentionally empty responses for the day.
  */
 export function useInsightContext(config: CompoundConfig, topics: ContextTopic[]): ContextMap {
   const [map, setMap] = useState<ContextMap>(() => (config.mode === "demo" ? demoMap(topics) : {}));
   const signature = topics.map((entry) => `${entry.id}:${entry.topic}`).join("|");
 
   useEffect(() => {
+    const selected = topics.slice(0, MAX_TOPICS);
     if (config.mode === "demo") {
-      setMap(demoMap(topics));
+      setMap(demoMap(selected));
       return;
     }
-    if (typeof window === "undefined" || topics.length === 0) return;
+    if (typeof window === "undefined" || selected.length === 0) {
+      setMap({});
+      return;
+    }
 
     const controller = new AbortController();
     let active = true;
     void (async () => {
-      const found: ContextMap = {};
-      for (const { id, topic } of topics) {
+      const pairs = await Promise.all(selected.map(async ({ id, topic }) => {
         const cached = readCache(topic);
-        if (cached) {
-          found[id] = cached;
-          continue;
-        }
+        if (cached !== undefined) return [id, cached] as const;
+
         try {
-          const response = await fetch(`/api/context?id=${encodeURIComponent(id)}&q=${encodeURIComponent(topic)}`, {
-            signal: controller.signal,
-          });
-          if (!response.ok) continue;
-          const context = (await response.json()) as InsightContext;
-          if (context?.summary) {
-            found[id] = context;
+          const response = await fetch(`/api/context?q=${encodeURIComponent(topic)}`, { signal: controller.signal });
+          if (!response.ok) return [id, null] as const;
+          const context = sanitizeInsightContext(await response.json());
+          if (context) {
             writeCache(topic, context);
+            return [id, context] as const;
           }
+          writeCache(topic, null);
         } catch {
-          // Network or provider trouble: leave this insight on its numbers.
+          // Provider or network trouble remains retryable on a later mount.
         }
-      }
-      if (active && Object.keys(found).length) setMap((current) => ({ ...current, ...found }));
+        return [id, null] as const;
+      }));
+
+      if (!active) return;
+      const found: ContextMap = {};
+      for (const [id, context] of pairs) if (context) found[id] = context;
+      setMap(found);
     })();
 
     return () => {
       active = false;
       controller.abort();
     };
-    // signature captures the topic set; config.mode gates demo vs live.
+    // signature captures the topic set; config.mode gates demo versus live.
   }, [config.mode, signature]);
 
   return map;

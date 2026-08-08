@@ -15,23 +15,12 @@ interface Props {
   onBulk: (industries: string[], hidden: boolean) => void;
 }
 
-/** One line under the filter saying, in plain words, what the view is showing. */
 const VIEW_NOTE: Record<View, string> = {
-  all: "Every industry in today's run, rolled up into families.",
-  active: "Only industries with at least one company in today's data — the ones you can act on now.",
-  hidden: "The industries you have switched off.",
+  all: "Open a sector to choose individual industries.",
+  active: "Industries represented in today's company signals.",
+  hidden: "Industries COMPOUND is leaving out.",
 };
 
-/**
- * The 123 industries roll up into families ("Software", "Oil & Gas", "REIT")
- * so the list is scannable. A family switch hides or shows everything under it
- * in one tap; open a family to reach the industries inside it. Turning one off
- * hides it on Stocks and in the Trends list, and the setting follows you rather
- * than the browser you happened to open.
- *
- * Search, or the "Active" and "Hidden" views, drop the families and show a flat
- * list so a specific industry is one tap away.
- */
 export function SettingsSheet({ snapshot, excluded, saveError, onToggle, onBulk }: Props) {
   const [filter, setFilter] = useState("");
   const [view, setView] = useState<View>("all");
@@ -51,11 +40,8 @@ export function SettingsSheet({ snapshot, excluded, saveError, onToggle, onBulk 
 
   const groups = useMemo(() => buildGroups(entries), [entries]);
   const withCompanies = entries.filter((entry) => entry.names > 0).length;
-
   const needle = filter.trim().toLowerCase();
   const searching = needle.length > 0;
-  // Search and the two narrow views flatten to a plain list; only the resting
-  // "all" view rolls the industries up into families.
   const flat = searching || view !== "all";
 
   function passes(entry: IndustryEntry, group: string): boolean {
@@ -73,9 +59,16 @@ export function SettingsSheet({ snapshot, excluded, saveError, onToggle, onBulk 
     .flatMap((group) => group.members)
     .sort((a, b) => a.industry.localeCompare(b.industry));
 
-  const listed = flat ? flatMembers.map((entry) => entry.industry) : shownGroups.flatMap((group) => group.members.map((entry) => entry.industry));
+  const listed = flat
+    ? flatMembers.map((entry) => entry.industry)
+    : shownGroups.flatMap((group) => group.members.map((entry) => entry.industry));
   const canHide = listed.filter((name) => !hidden.has(name)).length;
   const canShow = listed.filter((name) => hidden.has(name)).length;
+  const viewNote = searching
+    ? `${flatMembers.length} ${flatMembers.length === 1 ? "industry" : "industries"} match your search.`
+    : view === "all"
+      ? `${groups.length} sectors. ${VIEW_NOTE.all}`
+      : VIEW_NOTE[view];
 
   function renderMember(entry: IndustryEntry, inGroup = false) {
     const visible = !hidden.has(entry.industry);
@@ -91,7 +84,9 @@ export function SettingsSheet({ snapshot, excluded, saveError, onToggle, onBulk 
         <span>
           <span className="tn">{entry.industry}</span>
           <span className="ts">
-            {entry.names === 0 ? "nothing today" : `${entry.names} ${entry.names === 1 ? "company" : "companies"}`}
+            {entry.names === 0
+              ? "No companies today"
+              : `${entry.names} ${entry.names === 1 ? "company" : "companies"} today`}
           </span>
         </span>
         <span className={visible ? "sw on" : "sw"} aria-hidden="true"><i /></span>
@@ -100,9 +95,9 @@ export function SettingsSheet({ snapshot, excluded, saveError, onToggle, onBulk 
   }
 
   return (
-    <div className="page">
-      <h2 className="big nomargin">What you want to see</h2>
-      <p className="sub">Switch off any industry — or a whole family — you never want to look at. It disappears everywhere in the app.</p>
+    <div className="page settings-page">
+      <h2 className="big nomargin">Choose what COMPOUND shows</h2>
+      <p className="sub">Hide a sector or industry once. It stays out of Stocks, Trends and Ask.</p>
 
       <div className="settingsbar">
         <input
@@ -115,7 +110,7 @@ export function SettingsSheet({ snapshot, excluded, saveError, onToggle, onBulk 
       </div>
 
       <Segmented
-        label="Which industries to list"
+        label="Show"
         choices={[
           { id: "all", name: "All", count: groups.length },
           { id: "active", name: "Active today", short: "Active", count: withCompanies },
@@ -123,76 +118,81 @@ export function SettingsSheet({ snapshot, excluded, saveError, onToggle, onBulk 
         ]}
         value={view}
         onChange={(id) => setView(id as View)}
-        wrap
       />
-      <p className="sub note">{VIEW_NOTE[view]}</p>
+      <p className="sub note">{viewNote}</p>
 
-      {/* The two buttons act on the list below them, so what they will do is
-          always visible. Narrow the list first, then act on all of it. */}
-      <div className="bulk">
-        <p className="eyebrow">
-          {flat ? `${listed.length} listed` : `${shownGroups.length} families`}
-          {excluded.length > 0 && ` · ${excluded.length} hidden`}
-        </p>
-        <div className="bulk-actions">
-          <button type="button" className="pill" disabled={canHide === 0} onClick={() => onBulk(listed, true)}>
-            Hide these {canHide > 0 ? canHide : ""}
-          </button>
-          <button type="button" className="pill" disabled={canShow === 0} onClick={() => onBulk(listed, false)}>
-            Show these {canShow > 0 ? canShow : ""}
-          </button>
+      {flat && listed.length > 0 && (
+        <div className="bulk">
+          <p className="eyebrow">
+            {listed.length} listed
+            {excluded.length > 0 && ` · ${excluded.length} hidden`}
+          </p>
+          <div className="bulk-actions">
+            <button type="button" className="pill" disabled={canHide === 0} onClick={() => onBulk(listed, true)}>
+              Hide listed {canHide > 0 ? canHide : ""}
+            </button>
+            <button type="button" className="pill" disabled={canShow === 0} onClick={() => onBulk(listed, false)}>
+              Show listed {canShow > 0 ? canShow : ""}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {saveError && <p className="dn small">{saveError}</p>}
 
-      <div className="rowbox">
+      <div className="rowbox settings-groups">
         {shownGroups.length === 0 && (
           <p className="sub empty">
-            {view === "hidden" ? "You have not hidden anything yet." : "No industry matches that."}
+            {view === "hidden" ? "Nothing is hidden." : "No industry matches that search."}
           </p>
         )}
 
         {flat && flatMembers.map((entry) => renderMember(entry))}
 
         {!flat && shownGroups.map((group) => {
-          if (group.members.length === 1) return renderMember(group.members[0]);
           const memberNames = group.members.map((entry) => entry.industry);
           const visibleCount = memberNames.filter((name) => !hidden.has(name)).length;
-          const anyVisible = visibleCount > 0;
-          const partial = visibleCount > 0 && visibleCount < group.members.length;
+          const allVisible = visibleCount === group.members.length;
+          const partial = visibleCount > 0 && !allVisible;
           const opened = Boolean(openGroups[group.group]);
+          const activeIndustries = group.members.filter((entry) => entry.names > 0).length;
+          const state = allVisible ? "All" : partial ? "Some" : "None";
+          const subtitle = allVisible
+            ? `${group.members.length} industries · ${activeIndustries} active today`
+            : partial
+              ? `${visibleCount} of ${group.members.length} shown · ${activeIndustries} active today`
+              : `${group.members.length} industries · Hidden`;
+          const groupId = `industry-group-${group.group.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+
           return (
-            <div className="group" key={group.group}>
+            <div className={`group state-${state.toLowerCase()}`} key={group.group}>
               <div className="grouprow">
                 <button
                   type="button"
                   className="groupname"
                   aria-expanded={opened}
+                  aria-controls={groupId}
                   onClick={() => setOpenGroups((current) => ({ ...current, [group.group]: !current[group.group] }))}
                 >
                   <span className={opened ? "chev open" : "chev"} aria-hidden="true"><ChevronIcon /></span>
-                  <span>
+                  <span className="groupcopy">
                     <span className="tn">{group.group}</span>
-                    <span className="ts">
-                      {group.members.length} industries · {partial
-                        ? `${visibleCount} of ${group.members.length} shown`
-                        : `${group.companies} ${group.companies === 1 ? "company" : "companies"}`}
-                    </span>
+                    <span className="ts">{subtitle}</span>
                   </span>
                 </button>
                 <button
                   type="button"
-                  role="switch"
-                  aria-checked={anyVisible}
-                  aria-label={`Show ${group.group}`}
-                  className={anyVisible ? "sw on" : "sw"}
-                  onClick={() => onBulk(memberNames, anyVisible)}
+                  role="checkbox"
+                  aria-checked={partial ? "mixed" : allVisible}
+                  aria-label={allVisible ? `Hide all ${group.group} industries` : `Show all ${group.group} industries`}
+                  className="groupcontrol"
+                  onClick={() => onBulk(memberNames, allVisible)}
                 >
-                  <i />
+                  <span className="groupstate">{state}</span>
+                  <span className={allVisible ? "sw on" : partial ? "sw mixed" : "sw"} aria-hidden="true"><i /></span>
                 </button>
               </div>
-              {opened && group.members.map((entry) => renderMember(entry, true))}
+              {opened && <div id={groupId} className="groupmembers">{group.members.map((entry) => renderMember(entry, true))}</div>}
             </div>
           );
         })}
@@ -200,7 +200,7 @@ export function SettingsSheet({ snapshot, excluded, saveError, onToggle, onBulk 
 
       {excluded.length > 0 && (
         <button type="button" className="askbtn ghost" onClick={() => onBulk(excluded, false)}>
-          Show everything again
+          Show all industries
         </button>
       )}
     </div>

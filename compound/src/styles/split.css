@@ -286,9 +286,9 @@
 .split .seg button:hover { border-color: var(--sig); color: var(--sig); }
 .split .seg button.on { border-color: var(--sig); background: var(--sig); color: #101112; font-weight: 620; }
 .split .seg .count { margin-left: 7px; font-family: var(--mono); font-size: 12px; opacity: .75; }
-/* Secondary control (industry groups on Trends): 80% of the base label size. */
-.split .seg.sm button { font-size: 10.8px; }
-.split .seg.sm .count { font-size: 9.6px; }
+/* The Trends quadrant control is secondary, not miniature. */
+.split .seg.sm button { padding-inline: 14px; font-size: 12.5px; }
+.split .seg.sm .count { font-size: 11.5px; }
 .split .pills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 18px 0 6px; }
 .split .pill {
   display: flex;
@@ -456,16 +456,27 @@
 .split .sw.on i { left: 19px; background: var(--sig); }
 /* Industry families: a header row (open control + family switch) with the
    member industries indented beneath it when the family is opened. */
-.split .group { border-bottom: 1px solid var(--line); }
+.split .settings-groups { margin-top: 14px; }
+.split .group { border-bottom: 1px solid var(--line); background: var(--surf); }
 .split .group:last-child { border-bottom: 0; }
-.split .grouprow { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-.split .groupname { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 48px; padding: 10px 0 10px 16px; border: 0; background: none; text-align: left; }
+.split .grouprow { display: flex; align-items: stretch; justify-content: space-between; gap: 8px; }
+.split .groupname { display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0; min-height: 58px; padding: 11px 4px 11px 16px; border: 0; background: none; text-align: left; }
 .split button.groupname:hover { background: var(--surf2); }
-.split .grouprow .sw { margin-right: 16px; }
+.split .groupcopy { min-width: 0; }
+.split .groupcopy .tn { display: block; font-size: 14px; font-weight: 620; letter-spacing: -.005em; }
+.split .groupcopy .ts { display: block; margin-top: 3px; color: var(--mut); font-size: 11.5px; line-height: 1.35; }
+.split .groupcontrol { display: flex; flex: none; align-items: center; gap: 7px; min-height: 44px; padding: 0 16px 0 6px; border: 0; background: none; color: var(--mut); }
+.split .groupcontrol:hover { background: var(--surf2); }
+.split .groupstate { width: 30px; font-family: var(--mono); font-size: 9.5px; font-weight: 650; letter-spacing: .06em; text-align: right; text-transform: uppercase; }
+.split .state-some .groupstate { color: var(--sig); }
 .split .chev { display: flex; flex: none; color: var(--mut); transition: transform .16s; }
 .split .chev.open { transform: rotate(90deg); }
 .split .chev svg { width: 16px; height: 16px; }
-.split .group .tog.member { padding-left: 36px; background: var(--surf2); }
+.split .sw.mixed { background: rgb(250 178 25 / 18%); }
+.split .sw.mixed i { left: 11px; background: var(--sig); }
+.split .groupmembers { margin-left: 22px; border-left: 1px solid var(--line2); background: var(--surf2); }
+.split .group .tog.member { min-height: 54px; padding-left: 17px; background: transparent; }
+.split .group .tog.member .tn { font-size: 13px; font-weight: 500; }
 .split .group .tog.member:last-child { border-bottom: 0; }
 .split .sub.note { margin-top: 6px; color: var(--mut); }
 
@@ -550,9 +561,14 @@
   font-size: 10.5px;
 }
 
-/* World-context layer inside a card: cited, woven into the working. */
-.split .cworld { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
-.split .cworld-h { margin: 0 0 4px; color: var(--mut); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-.split .cites { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.split .cite { max-width: 100%; padding: 3px 9px; border: 1px solid var(--line2); border-radius: 999px; color: var(--ink2); font-size: 12px; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Cited context appears on the face, then opens into full source detail. */
+.split .cworld-face { display: block; margin-top: 15px; padding: 11px 13px; border-left: 2px solid var(--sig); border-radius: 0 8px 8px 0; background: rgb(250 178 25 / 7%); }
+.split .cworld-kicker { display: block; color: var(--sig); font-family: var(--mono); font-size: 9.5px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; }
+.split .cworld-preview { display: -webkit-box; margin-top: 5px; overflow: hidden; color: var(--ink); font-size: 13px; line-height: 1.42; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.split .cworld-meta { display: block; margin-top: 6px; color: var(--mut); font-size: 11px; line-height: 1.35; }
+.split .cworld { margin-top: 16px; padding: 14px 15px; border: 1px solid var(--line); border-left: 3px solid var(--sig); border-radius: var(--r-control); background: rgb(250 178 25 / 5%); }
+.split .cbody .cworld-h { margin: 0; color: var(--sig); font-family: var(--mono); font-size: 10px; font-weight: 650; text-transform: uppercase; letter-spacing: .08em; }
+.split .cbody .cworld-summary { max-width: 76ch; margin: 8px 0 0; color: var(--ink2); }
+.split .cites { display: grid; gap: 7px; margin-top: 11px; }
+.split .cite { display: flex; align-items: center; min-height: 38px; max-width: 680px; padding: 8px 11px; border: 1px solid var(--line2); border-radius: 8px; color: var(--ink2); font-size: 12px; line-height: 1.35; text-decoration: none; }
 .split a.cite:hover { border-color: var(--sig); color: var(--sig); }
