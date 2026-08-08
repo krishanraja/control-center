@@ -90,6 +90,7 @@ async function openCase(name, width, height, route, device, test, emulation = {}
     .catch(() => null);
   if (!focusState) throw new Error(`${name} has no visible keyboard focus on entry`);
 
+  await checkProportions(page, name, device);
   await checkControls(page, name, device);
   await checkOverflow(page, name, "on entry");
   await test(page, device);
@@ -114,6 +115,42 @@ async function checkSystem(page, name, device) {
   }
   if (!(await page.locator(device.nav).isVisible())) {
     throw new Error(`${name} is missing its ${device.system} navigation`);
+  }
+}
+
+/**
+ * The phone system is written in design pixels and multiplied by --px, so a
+ * viewport wider than the screen it has to fit onto still arrives at thumb
+ * size. This measures the result back into design pixels: a reading column
+ * that is phone shaped, and body text nobody has to squint at.
+ *
+ * Without this, a browser handing the page a 980 pixel viewport on a 412 pixel
+ * screen passed every other check while rendering 7 pixel text on the glass.
+ */
+async function checkProportions(page, name, device) {
+  if (device.system !== "stack") return;
+  const shape = await page.evaluate(() => {
+    const shell = document.querySelector(".shell");
+    const px = parseFloat(getComputedStyle(shell).getPropertyValue("--px")) || 1;
+    const wanted = Math.min(Math.max(window.innerWidth / (window.screen.width || window.innerWidth), 1), 3);
+    const body = parseFloat(getComputedStyle(document.querySelector(".sub")).fontSize);
+    const column = (document.querySelector(".page")?.getBoundingClientRect().width ?? 0) / px;
+    return { px, wanted, body: body / px, column, viewport: window.innerWidth, screen: window.screen.width };
+  });
+  // The design pixel has to match the squeeze the browser is about to apply.
+  // Miss it and every other check still passes while the glass shows 7px text.
+  if (shape.wanted > 1.2 && Math.abs(shape.px - shape.wanted) / shape.wanted > 0.1) {
+    throw new Error(
+      `${name} draws at ${shape.px} CSS pixels per design pixel, but a ${shape.viewport}px viewport on a `
+      + `${shape.screen}px screen needs ${shape.wanted.toFixed(2)}. Everything would render at `
+      + `${Math.round((shape.px / shape.wanted) * 100)}% of the size it was written at.`,
+    );
+  }
+  if (shape.column > 600) {
+    throw new Error(`${name} reads ${Math.round(shape.column)} design pixels wide, which is a tablet column on a phone layout`);
+  }
+  if (shape.body < 15) {
+    throw new Error(`${name} sets body text at ${shape.body.toFixed(1)} design pixels, under the 15 the phone system is written in`);
   }
 }
 
@@ -325,8 +362,16 @@ try {
   await openCase("phone-412", 412, 915, "/", STACK, verifyEverything);
   await openCase("phone-430", 430, 932, "/", STACK, verifyEverything);
   await openCase("tablet-768", 768, 1024, "/", STACK, verifyEverything);
+  // A browser in desktop site mode, and several Android in-app browsers, hand
+  // the page a viewport far wider than the screen and squeeze the result to
+  // fit. Both of these render at phone size or they fail.
   await openCase("android-scaled", 980, 1600, "/", STACK, verifyEverything, {
     screen: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  await openCase("desktop-site-980", 980, 2100, "/", STACK, verifyEverything, {
+    screen: { width: 412, height: 915 },
     isMobile: true,
     hasTouch: true,
   });
