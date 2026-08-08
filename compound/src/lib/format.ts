@@ -50,6 +50,13 @@ export function longDate(iso: string): string {
   });
 }
 
+/** "2026-08-06" reads as "6 Aug" for the phone bar, where width is scarce. */
+export function shortDate(iso: string): string {
+  const parsed = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return iso;
+  return parsed.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+}
+
 /** Bar width as a share of the largest magnitude in a comparison set. */
 export function barWidth(value: number, peak: number): string {
   if (!Number.isFinite(value) || !Number.isFinite(peak) || peak === 0) return "0%";

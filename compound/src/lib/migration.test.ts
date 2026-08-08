@@ -57,7 +57,7 @@ describe("migrationFor", () => {
   it("says so rather than guessing when a side is missing", () => {
     const missing = migrationFor([{ symbol: "WIN", group: "AI chips", now: 65, prev: 40, delta: 25, gm: 71, year: "2026" }], THEMES[0]);
     expect(missing.gap).toBeNull();
-    expect(missing.verdict).toBe("Not enough filed revenue to test this yet.");
+    expect(missing.verdict).toBe("Not enough reported sales to test this yet.");
   });
 });
 

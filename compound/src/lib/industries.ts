@@ -1,5 +1,7 @@
 import type { IndustryRow, Quadrant } from "../types";
 
+// The names the reader sees for these four groups live in lib/words.ts.
+
 /**
  * Industry momentum. Compound the daily `averageChange` values returned by
  * `historical-industry-performance`:
@@ -12,20 +14,6 @@ import type { IndustryRow, Quadrant } from "../types";
  * rise. An earlier pass let a bounce qualify as "rising, still cheap" while the
  * industry was ranked 122 of 123 and down 55.7% over three months.
  */
-
-export const QUADRANT_LABEL: Record<Quadrant, string> = {
-  early: "Rising, still cheap",
-  crowded: "Rising, already dear",
-  turning: "Falling, pace easing",
-  avoid: "Falling, no let up",
-};
-
-export const QUADRANT_NOTE: Record<Quadrant, string> = {
-  early: "Up over three months and cheaper than most. This is where the work pays.",
-  crowded: "Up over three months but priced above most. The easy part has gone.",
-  turning: "Still down over three months, but the recent pace is faster than the trend.",
-  avoid: "Down over three months with no sign of the pace easing.",
-};
 
 export function compoundChange(series: number[], rows: number): number {
   const window = series.slice(-rows);

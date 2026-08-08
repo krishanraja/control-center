@@ -1,9 +1,10 @@
 # COMPOUND dashboard design brief
 
-- Revision: DB-002
-- Date: 2026-08-06
-- Materiality: material first surface
-- Approval state: V1 visual direction retained; V2 language revision in progress
+- Revision: DB-003
+- Date: 2026-08-08
+- Materiality: material redesign of every surface
+- Approval state: two device native systems implemented and rendered on `claude/compound-responsive-redesign-tayh7v`; Krish's visual approval outstanding
+- Companion: DEVICE_SYSTEMS.md carries the two systems and their proof
 
 ## State of use
 
@@ -19,10 +20,13 @@ Signal over feed. Quiet days stay quiet. Every call names its evidence, stronges
 
 ## Zero-context language contract
 
+Enforced by `npm run qa:language`, which scores the rendered prose and fails
+above Flesch Kincaid grade 9.
+
 - Assume the reader has never invested and does not know trading language.
 - Say what happened, why it matters and what to do in ordinary words.
 - Show full company and coin names before any ticker symbol.
-- Replace unexplained terms such as capital, thesis, correlation, review gate, falsifier, feed, vertical, P/E and deployment case.
+- Replace unexplained terms such as capital, thesis, correlation, review gate, falsifier, feed, vertical, P/E, revenue, gross margin and deployment case. Shared replacements live in `compound/src/lib/words.ts`.
 - Explain the dial where it appears: bigger slice means more money; yellow means something changed.
 - Keep the recommendation direct, but do not hide missing or late data.
 
@@ -49,11 +53,14 @@ Signal over feed. Quiet days stay quiet. Every call names its evidence, stronges
 
 ## Visual constraints
 
-- Mobile first, desktop uses the same information in two columns.
+- Two device native systems over one data layer, not one layout that stretches.
+  Same facts, different components, spacing, type scale and interaction. See
+  DEVICE_SYSTEMS.md.
 - Cool dark technical base with exactly one signal color.
 - Monospace labels and metadata, plain sans-serif figures and sentences.
 - No gradient mesh, glass cards, mascot, nested component scrollbars or Control Center visual reuse.
 - Charts require accessible table equivalents.
+- Nothing a reader needs may be truncated to fit a column. Rewrite the row.
 - The page scrolls naturally and controls meet keyboard, focus, contrast and touch-target requirements.
 
 ## Authority and proof

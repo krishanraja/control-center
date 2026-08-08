@@ -88,16 +88,16 @@ export function migrationFor(rows: AccelRow[], definition: ThemeDefinition): The
   // the divergence worth flagging, whichever way the beneficiary is going.
   const diverged = Boolean(disrupted?.accelerating);
 
-  let verdict = "Not enough filed revenue to test this yet.";
+  let verdict = "Not enough reported sales to test this yet.";
   if (beneficiary && disrupted) {
     if (diverged && gapDelta != null && gapDelta < 0) {
-      verdict = `The story is not in the numbers. ${definition.disrupted} revenue is speeding up and the gap is closing by ${Math.abs(gapDelta).toFixed(1)} points a year.`;
+      verdict = `The story is not in the numbers. ${definition.disrupted} is selling more, faster, and the gap between the two sides is closing by ${Math.abs(gapDelta).toFixed(1)} points a year.`;
     } else if (diverged) {
-      verdict = `${definition.disrupted} revenue is still speeding up, so the disruption has not reached the filings.`;
+      verdict = `${definition.disrupted} sales are still speeding up, so nothing has reached the accounts yet.`;
     } else if (gapDelta != null && gapDelta > 0) {
-      verdict = `The numbers agree with the story. The gap is widening by ${gapDelta.toFixed(1)} points a year.`;
+      verdict = `The numbers agree with the story. The gap between the two sides is growing by ${gapDelta.toFixed(1)} points a year.`;
     } else {
-      verdict = `${definition.disrupted} revenue is slowing, which is the first thing the story predicts.`;
+      verdict = `${definition.disrupted} sales are slowing, which is the first thing the story says should happen.`;
     }
   }
 
@@ -114,14 +114,14 @@ export const THEMES: ThemeDefinition[] = [
     name: "AI against IT services",
     beneficiary: "AI chips",
     disrupted: "IT services",
-    claim: "AI eats consultants and IT outsourcers.",
+    claim: "AI replaces consultants and the firms companies hire to run their computers.",
   },
   {
     id: "ai-research",
     name: "AI against research and advisory",
     beneficiary: "AI chips",
     disrupted: "Research",
-    claim: "Models answer the questions people used to pay analysts for.",
+    claim: "Chatbots answer the questions people used to pay researchers for.",
   },
 ];
 

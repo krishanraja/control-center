@@ -12,12 +12,46 @@ const executablePath = process.env.CHROMIUM_PATH || undefined;
 const browser = await chromium.launch({ headless: true, executablePath });
 const results = [];
 
-async function openCase(name, width, height, route, test, device = {}) {
+/**
+ * COMPOUND renders two systems, so the QA pass checks two systems.
+ *
+ *   stack  bottom tabs, short tab names, sheets over the content, list rows
+ *   split  a rail, long tab names, a panel beside the content, real tables
+ *
+ * Every case declares which system it expects, and every check below reads
+ * that rather than assuming one shape. A case that renders the wrong system
+ * for its width fails here rather than surprising somebody on a phone.
+ */
+const STACK = {
+  system: "stack",
+  tabs: { now: "Today", shifts: "Trends", stocks: "Stocks", mine: "Money", ask: "Ask" },
+  close: "Back",
+  rates: "Rates",
+  // 44px is the touch target size Apple and Android both publish, and above
+  // the 24px WCAG 2.2 minimum. The old gate applied it to mice as well.
+  minControl: 44,
+  nav: ".botnav",
+  detail: ".sheet",
+};
+const SPLIT = {
+  system: "split",
+  tabs: { now: "Today", shifts: "Big trends", stocks: "Stocks", mine: "My money", ask: "Ask a question" },
+  close: "Close",
+  rates: "Interest rates",
+  // A pointer is precise. 32px clears WCAG 2.2 target size comfortably and is
+  // what desktop software actually uses.
+  minControl: 32,
+  nav: ".sidenav",
+  detail: ".panel",
+};
+const SPLIT_TOUCH = { ...SPLIT, minControl: 44 };
+
+async function openCase(name, width, height, route, device, test, emulation = {}) {
   const context = await browser.newContext({
     viewport: { width, height },
-    screen: device.screen ?? { width, height },
-    isMobile: device.isMobile ?? false,
-    hasTouch: device.hasTouch ?? width <= 768,
+    screen: emulation.screen ?? { width, height },
+    isMobile: emulation.isMobile ?? false,
+    hasTouch: emulation.hasTouch ?? width <= 768,
     reducedMotion: "reduce",
   });
   const page = await context.newPage();
@@ -34,7 +68,9 @@ async function openCase(name, width, height, route, test, device = {}) {
   await page.getByRole("navigation", { name: "Sections" }).waitFor();
   await page.getByRole("heading", { level: 2 }).first().waitFor();
 
-  if (device.hasTouch ?? width <= 768) {
+  await checkSystem(page, name, device);
+
+  if (emulation.hasTouch ?? width <= 768) {
     await page.locator("button, input, a[href]").first().focus();
   } else {
     await page.keyboard.press("Tab");
@@ -54,28 +90,49 @@ async function openCase(name, width, height, route, test, device = {}) {
     .catch(() => null);
   if (!focusState) throw new Error(`${name} has no visible keyboard focus on entry`);
 
-  await checkControls(page, name);
+  await checkControls(page, name, device);
   await checkOverflow(page, name, "on entry");
-  await test(page);
-  await checkControls(page, `${name} after interaction`);
+  await test(page, device);
+  await checkControls(page, `${name} after interaction`, device);
   await checkOverflow(page, name, "after interaction");
   if (consoleErrors.length) throw new Error(`${name} console errors: ${consoleErrors.join(" | ")}`);
 
   const screenshot = path.join(evidenceDir, `${name}.png`);
   await page.screenshot({ path: screenshot });
-  results.push({ name, width, height, route, screenshot, status: "verified" });
+  results.push({ name, width, height, route, system: device.system, screenshot, status: "verified" });
   await context.close();
 }
 
-async function checkControls(page, name) {
-  const undersized = await page.evaluate(() => Array.from(document.querySelectorAll("button, input")).flatMap((element) => {
+/** The right system for this width, and none of the other one's furniture. */
+async function checkSystem(page, name, device) {
+  const other = device.system === "stack" ? "split" : "stack";
+  if (!(await page.locator(`.shell.${device.system}`).count())) {
+    throw new Error(`${name} did not render the ${device.system} system`);
+  }
+  if (await page.locator(`.shell.${other}`).count()) {
+    throw new Error(`${name} rendered the ${other} system as well`);
+  }
+  if (!(await page.locator(device.nav).isVisible())) {
+    throw new Error(`${name} is missing its ${device.system} navigation`);
+  }
+}
+
+/** Column headings belong to the desktop table and to nothing else. */
+async function checkTableShape(page, name, device) {
+  const heads = await page.locator(".dthead").count();
+  if (device.system === "split" && heads === 0) throw new Error(`${name} has tables with no column headings`);
+  if (device.system === "stack" && heads > 0) throw new Error(`${name} put desktop table headings on a phone`);
+}
+
+async function checkControls(page, name, device) {
+  const undersized = await page.evaluate((floor) => Array.from(document.querySelectorAll("button, input")).flatMap((element) => {
     const rect = element.getBoundingClientRect();
     const visible = rect.width > 0 && rect.height > 0 && getComputedStyle(element).visibility !== "hidden";
-    return visible && rect.height < 42
+    return visible && rect.height < floor
       ? [{ tag: element.tagName, text: element.textContent?.trim().slice(0, 40), height: Math.round(rect.height) }]
       : [];
-  }));
-  if (undersized.length) throw new Error(`${name} has undersized controls: ${JSON.stringify(undersized)}`);
+  }), device.minControl);
+  if (undersized.length) throw new Error(`${name} has controls under ${device.minControl}px: ${JSON.stringify(undersized)}`);
 }
 
 async function checkOverflow(page, name, when) {
@@ -92,55 +149,65 @@ async function checkOverflow(page, name, when) {
   throw new Error(`${name} has ${layout.scrollWidth - layout.width}px horizontal overflow ${when}: ${JSON.stringify(offenders)}`);
 }
 
-const TABS = ["Now", "Shifts", "Stocks", "Mine", "Ask"];
-
-/** Every tab reachable, every tab rendering, in the layout for this width. */
-async function verifyTabs(page) {
-  const nav = page.getByRole("navigation", { name: "Sections" });
-  await nav.waitFor();
-  for (const tab of TABS) {
-    await nav.getByRole("button", { name: tab, exact: true }).click();
-    await page.getByRole("heading", { level: 2 }).first().waitFor();
-    if (await nav.getByRole("button", { name: tab, exact: true }).getAttribute("aria-current") !== "page") {
-      throw new Error(`${tab} did not report itself as the current section`);
-    }
-    await checkOverflow(page, `${tab} tab`, "while open");
-  }
-  await nav.getByRole("button", { name: "Now", exact: true }).click();
+/** Nothing a reader sees may be cut off with an ellipsis by the layout. */
+async function checkTruncation(page, name) {
+  const clipped = await page.evaluate(() => Array.from(document.querySelectorAll(".rowname, .ch, .tn, h2, h3, .cnext, .sub"))
+    .filter((element) => element.scrollWidth > element.clientWidth + 1)
+    .map((element) => ({ className: String(element.className), text: element.textContent?.trim().slice(0, 60) }))
+    .slice(0, 8));
+  if (clipped.length) throw new Error(`${name} clips text it should wrap: ${JSON.stringify(clipped)}`);
 }
 
-/** Collapsed by default, one tap to the working, source named next to it. */
+const TAB_KEYS = ["now", "shifts", "stocks", "mine", "ask"];
+
+/** Every section reachable and rendering, in the layout for this width. */
+async function verifyTabs(page, device) {
+  const nav = page.getByRole("navigation", { name: "Sections" });
+  await nav.waitFor();
+  for (const key of TAB_KEYS) {
+    const label = device.tabs[key];
+    await nav.getByRole("button", { name: label, exact: true }).click();
+    await page.getByRole("heading", { level: 2 }).first().waitFor();
+    if (await nav.getByRole("button", { name: label, exact: true }).getAttribute("aria-current") !== "page") {
+      throw new Error(`${label} did not report itself as the current section`);
+    }
+    await checkOverflow(page, `${label} section`, "while open");
+    await checkTruncation(page, `${label} section`);
+  }
+  await nav.getByRole("button", { name: device.tabs.now, exact: true }).click();
+}
+
+/** Folded by default, one press to the working, source named next to it. */
 async function verifyCardDepth(page) {
-  await page.getByRole("heading", { name: "Three things that could matter next." }).waitFor();
+  await page.getByRole("heading", { name: "What changed while you were away." }).waitFor();
   const card = page.locator(".chead").first();
-  if (await card.getAttribute("aria-expanded") !== "false") throw new Error("A card was expanded before it was asked to be");
+  if (await card.getAttribute("aria-expanded") !== "false") throw new Error("A card was open before it was asked to be");
   await card.click();
   if (await card.getAttribute("aria-expanded") !== "true") throw new Error("A card did not report its open state");
   await page.locator(".c.open .src").first().waitFor();
-  if (!(await page.locator(".c.open .askbtn").first().isVisible())) throw new Error("An expanded card offered no way to ask about it");
+  if (!(await page.locator(".c.open .askbtn").first().isVisible())) throw new Error("An open card offered no way to ask about it");
   await card.click();
-  if (await card.getAttribute("aria-expanded") !== "false") throw new Error("A card did not collapse again");
+  if (await card.getAttribute("aria-expanded") !== "false") throw new Error("A card did not fold up again");
 }
 
-/** Exclusions come from Settings and apply to the whole app. */
-async function verifySettings(page) {
+/** Hidden industries are set in Settings and apply to the whole app. */
+async function verifySettings(page, device) {
   const nav = page.getByRole("navigation", { name: "Sections" });
-  await nav.getByRole("button", { name: "Stocks", exact: true }).click();
-  // The count line, not whichever eyebrow the layout happens to put first.
-  const count = page.getByText(/^\d+ names/);
+  await nav.getByRole("button", { name: device.tabs.stocks, exact: true }).click();
+  const count = page.getByText(/^\d+ companies/);
   const before = await count.textContent();
 
   await page.getByRole("button", { name: "Settings" }).click();
-  await page.getByRole("button", { name: "Done" }).waitFor();
-  // An industry carrying no names today would hide nothing, which proves nothing.
-  const withNames = page.getByRole("switch").filter({ hasNotText: "no names today" });
+  await page.getByRole("button", { name: device.close }).waitFor();
+  // An industry carrying nothing today would hide nothing, which proves nothing.
+  const withNames = page.getByRole("switch").filter({ hasNotText: "nothing today" });
   const toggle = withNames.first();
   const industry = (await toggle.locator(".tn").textContent()) ?? "";
   if (await toggle.getAttribute("aria-checked") !== "true") throw new Error("An industry started out hidden");
   await toggle.click();
   if (await toggle.getAttribute("aria-checked") !== "false") throw new Error("Turning an industry off did not register");
 
-  await page.getByRole("button", { name: "Done" }).click();
+  await page.getByRole("button", { name: device.close }).click();
   const after = await count.textContent();
   if (after === before) throw new Error(`Hiding ${industry} changed nothing on Stocks (read "${before}" before and after)`);
   if (!after?.includes("hidden")) throw new Error("Stocks did not report how many industries are hidden");
@@ -148,98 +215,133 @@ async function verifySettings(page) {
   // Put it back so the screenshot shows the default state.
   await page.getByRole("button", { name: "Settings" }).click();
   await page.getByRole("switch", { name: new RegExp(industry.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) }).click();
-  await page.getByRole("button", { name: "Done" }).click();
+  await page.getByRole("button", { name: device.close }).click();
   if ((await count.textContent()) !== before) throw new Error("Showing the industry again did not restore Stocks");
 }
 
-/** A stock opens as a sheet over the frame, with a way back and no new route. */
-async function verifyStockSheet(page) {
+/**
+ * A stock opens without changing the route, and the way back is obvious. On a
+ * phone the detail covers the content; on a desktop it sits beside it and the
+ * list stays readable, which is the whole reason the two systems differ.
+ */
+async function verifyDetail(page, device) {
   const nav = page.getByRole("navigation", { name: "Sections" });
-  await nav.getByRole("button", { name: "Stocks", exact: true }).click();
-  await page.getByRole("heading", { name: "What looks worth the work." }).waitFor();
+  await nav.getByRole("button", { name: device.tabs.stocks, exact: true }).click();
+  await page.getByRole("heading", { name: "Which ones have real backing." }).waitFor();
+  await checkTableShape(page, "Stocks", device);
   const routeBefore = new URL(page.url()).pathname;
 
   await page.locator("button.srow").first().click();
-  await page.getByRole("button", { name: "← Back" }).waitFor();
-  await page.getByText("What it would take").waitFor();
-  if (new URL(page.url()).pathname !== routeBefore) throw new Error("A sheet changed the route instead of covering the frame");
-  if (!(await nav.isVisible())) throw new Error("A sheet hid the navigation");
+  await page.getByRole("button", { name: device.close }).waitFor();
+  await page.getByText("What would change this").waitFor();
+  if (new URL(page.url()).pathname !== routeBefore) throw new Error("The detail changed the route instead of opening in place");
+  if (!(await page.locator(device.nav).isVisible())) throw new Error("The detail hid the navigation");
+  if (!(await page.locator(device.detail).isVisible())) throw new Error(`The detail did not open as a ${device.system} ${device.detail}`);
 
-  await page.getByRole("button", { name: "← Back" }).click();
-  await page.getByRole("heading", { name: "What looks worth the work." }).waitFor();
+  // The phone marks the content behind a sheet inert, so the heading drops out
+  // of the accessibility tree entirely. The desktop panel is not modal, so the
+  // list it was opened from stays right there beside it.
+  const listReachable = await page.getByRole("heading", { name: "Which ones have real backing." }).count() > 0;
+  if (device.system === "split" && !listReachable) throw new Error("The desktop panel covered the list it was opened from");
+  if (device.system === "stack" && listReachable) throw new Error("The phone sheet left the content behind it reachable");
+
+  await page.getByRole("button", { name: device.close }).click();
+  await page.getByRole("heading", { name: "Which ones have real backing." }).waitFor();
 }
 
 /** A card hands its question to Ask, and Ask answers with its sources named. */
-async function verifyAskHandover(page) {
+async function verifyAskHandover(page, device) {
   const nav = page.getByRole("navigation", { name: "Sections" });
-  await nav.getByRole("button", { name: "Now", exact: true }).click();
+  await nav.getByRole("button", { name: device.tabs.now, exact: true }).click();
   await page.locator(".chead").first().click();
   await page.locator(".c.open .askbtn").first().click();
 
   await page.getByRole("heading", { name: "Ask." }).waitFor();
   await page.locator(".ans").waitFor();
-  await page.getByText("What this used").waitFor();
+  await page.getByText("Where this came from").waitFor();
   if (await page.locator(".evline").count() === 0) throw new Error("An answer cited nothing");
   if (new URL(page.url()).searchParams.get("tab") !== "ask") throw new Error("Ask was not reflected in the URL");
 
   if (!(await page.locator(".composer button").isDisabled())) throw new Error("An empty question could be submitted");
   await page.getByLabel("Ask another question").fill("What is my biggest risk?");
   await page.locator(".composer button").click();
-  await page.getByText(/Concentration/).first().waitFor();
+  await page.getByText(/Having too much in one thing/).first().waitFor();
 }
 
-/** Shifts drills from a theme into the companies on each side of it. */
-async function verifyThemeDrill(page) {
+/** Trends drills from a force into the companies on each side of it. */
+async function verifyTrendDrill(page, device) {
   const nav = page.getByRole("navigation", { name: "Sections" });
-  await nav.getByRole("button", { name: "Shifts", exact: true }).click();
-  await page.getByRole("heading", { name: "The forces." }).waitFor();
+  await nav.getByRole("button", { name: device.tabs.shifts, exact: true }).click();
+  await page.getByRole("heading", { name: "The three forces." }).waitFor();
 
-  const forces = page.getByRole("group", { name: "Force" });
-  await forces.getByRole("button", { name: "Cost of money" }).click();
-  await page.getByText(/Borrowing costs are priced/).waitFor();
+  const forces = page.getByRole("group", { name: "Which force" });
+  await forces.getByRole("button", { name: device.rates }).click();
+  await page.getByText(/Borrowing is priced/).waitFor();
   await forces.getByRole("button", { name: "Crypto" }).click();
   await page.getByText("Crypto is being used less, not more.").waitFor();
   await forces.getByRole("button", { name: "AI", exact: true }).click();
 
   await page.locator(".chead").first().click();
-  await page.getByRole("button", { name: "See both sides →" }).first().click();
-  await page.getByText("story says wins").waitFor();
-  await page.getByText("story says loses").waitFor();
-  await page.getByRole("button", { name: "← Back" }).click();
+  await page.getByRole("button", { name: "See both sides" }).first().click();
+  await page.getByText("the story says this side wins").waitFor();
+  await page.getByText("the story says this side loses").waitFor();
+  await page.getByRole("button", { name: device.close }).click();
 
-  const groups = page.getByRole("group", { name: "Industry group" });
-  await groups.getByRole("button", { name: /Falling, pace easing/ }).click();
+  const groups = page.getByRole("group", { name: "Which group" });
+  await groups.getByRole("button", { name: /Going down, but slowing/ }).click();
   await page.getByText(/Still down over three months/).waitFor();
 }
 
-async function verifyEverything(page) {
-  await verifyTabs(page);
+/** Number keys move between sections. Desktop only, because keyboards are. */
+async function verifyKeyboard(page, device) {
+  const nav = page.getByRole("navigation", { name: "Sections" });
+  await page.keyboard.press("3");
+  await page.getByRole("heading", { name: "Which ones have real backing." }).waitFor();
+  if (await nav.getByRole("button", { name: device.tabs.stocks, exact: true }).getAttribute("aria-current") !== "page") {
+    throw new Error("Pressing 3 did not move to Stocks");
+  }
+  await page.locator("button.srow").first().click();
+  await page.getByRole("button", { name: device.close }).waitFor();
+  await page.keyboard.press("Escape");
+  if (await page.locator(device.detail).count()) throw new Error("Escape did not close the panel");
+  await page.keyboard.press("1");
+  await page.getByRole("heading", { name: "What changed while you were away." }).waitFor();
+}
+
+async function verifyEverything(page, device) {
+  await verifyTabs(page, device);
   await verifyCardDepth(page);
-  await verifyThemeDrill(page);
-  await verifySettings(page);
-  await verifyStockSheet(page);
-  await verifyAskHandover(page);
+  await verifyTrendDrill(page, device);
+  await verifySettings(page, device);
+  await verifyDetail(page, device);
+  await verifyAskHandover(page, device);
+  if (device.system === "split") await verifyKeyboard(page, device);
 }
 
 try {
-  await openCase("phone-320", 320, 700, "/", verifyEverything);
-  await openCase("phone-360", 360, 800, "/", verifyEverything);
-  await openCase("phone-390", 390, 844, "/", verifyEverything);
-  await openCase("phone-412", 412, 915, "/", verifyEverything);
-  await openCase("phone-430", 430, 932, "/", verifyEverything);
-  await openCase("tablet-768", 768, 1024, "/", verifyEverything);
-  await openCase("android-scaled", 980, 1600, "/", verifyEverything, {
+  await openCase("phone-320", 320, 700, "/", STACK, verifyEverything);
+  await openCase("phone-360", 360, 800, "/", STACK, verifyEverything);
+  await openCase("phone-390", 390, 844, "/", STACK, verifyEverything);
+  await openCase("phone-412", 412, 915, "/", STACK, verifyEverything);
+  await openCase("phone-430", 430, 932, "/", STACK, verifyEverything);
+  await openCase("tablet-768", 768, 1024, "/", STACK, verifyEverything);
+  await openCase("android-scaled", 980, 1600, "/", STACK, verifyEverything, {
     screen: { width: 390, height: 844 },
     isMobile: true,
     hasTouch: true,
   });
-  await openCase("desktop-1280", 1280, 900, "/", verifyEverything);
-  await openCase("desktop-1440", 1440, 1000, "/", verifyEverything);
-  await openCase("deep-link-stocks", 390, 844, "/?tab=stocks", async (page) => {
-    await page.getByRole("heading", { name: "What looks worth the work." }).waitFor();
-    await verifyStockSheet(page);
+  await openCase("tablet-landscape-1180", 1180, 820, "/", SPLIT_TOUCH, verifyEverything, {
+    screen: { width: 1180, height: 820 },
+    hasTouch: true,
   });
-  await openCase("deep-link-ask", 390, 844, "/ask", async (page) => {
+  await openCase("desktop-1280", 1280, 900, "/", SPLIT, verifyEverything);
+  await openCase("desktop-1440", 1440, 1000, "/", SPLIT, verifyEverything);
+  await openCase("desktop-1920", 1920, 1080, "/", SPLIT, verifyEverything);
+  await openCase("deep-link-stocks", 390, 844, "/?tab=stocks", STACK, async (page, device) => {
+    await page.getByRole("heading", { name: "Which ones have real backing." }).waitFor();
+    await verifyDetail(page, device);
+  });
+  await openCase("deep-link-ask", 390, 844, "/ask", STACK, async (page) => {
     await page.getByRole("heading", { name: "Ask." }).waitFor();
   });
   console.log(JSON.stringify({ baseUrl, results }, null, 2));
