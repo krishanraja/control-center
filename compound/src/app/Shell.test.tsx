@@ -76,6 +76,8 @@ describe("Shell", () => {
     const before = screen.getByText(/^\d+ companies/).textContent ?? "";
 
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    // Searching flattens the family rollup to the individual industries.
+    fireEvent.change(screen.getByLabelText("Search industries"), { target: { value: "Software - Infrastructure" } });
     const toggle = screen.getByRole("switch", { name: /Software - Infrastructure/ });
     expect(toggle).toHaveAttribute("aria-checked", "true");
     fireEvent.click(toggle);
@@ -108,13 +110,40 @@ describe("Shell", () => {
   it("lists only the industries carrying companies when asked", () => {
     renderShell("stocks");
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
-    const all = screen.getAllByRole("switch").length;
 
     const filter = screen.getByRole("group", { name: "Which industries to list" });
-    fireEvent.click(within(filter).getByRole("button", { name: /Have companies/ }));
+    fireEvent.click(within(filter).getByRole("button", { name: /Active/ }));
     const active = screen.getAllByRole("switch");
-    expect(active.length).toBeLessThan(all);
+    expect(active.length).toBeGreaterThan(0);
     for (const toggle of active) expect(toggle).not.toHaveTextContent("nothing today");
+  });
+
+  it("rolls industries into families and drills into one", () => {
+    renderShell("stocks");
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+
+    // The resting view shows a family switch, not the industries inside it.
+    expect(screen.getByRole("switch", { name: "Show Software" })).toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: /Software - Infrastructure/ })).not.toBeInTheDocument();
+
+    // Opening the family reveals its member industries.
+    fireEvent.click(screen.getByRole("button", { name: /Software/ }));
+    expect(screen.getByRole("switch", { name: /Software - Infrastructure/ })).toBeInTheDocument();
+
+    // The family switch hides every industry under it in one tap.
+    fireEvent.click(screen.getByRole("switch", { name: "Show Software" }));
+    expect(screen.getByRole("switch", { name: /Software - Infrastructure/ })).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("weaves cited real-world context into the Today cards", () => {
+    renderShell();
+    // Every insight fuses in its own cited world-context block, not a feed.
+    expect(screen.getAllByText(/In the wider world/)).toHaveLength(3);
+    // Open the AI-vs-IT-services insight; it cites Reuters and links open out.
+    fireEvent.click(screen.getByRole("button", { name: /should be dying/ }));
+    const cite = screen.getByRole("link", { name: /Reuters/ });
+    expect(cite.getAttribute("href")).toContain("reuters.com");
+    expect(cite).toHaveAttribute("target", "_blank");
   });
 
   it("hands a card's question to Ask and answers it", () => {

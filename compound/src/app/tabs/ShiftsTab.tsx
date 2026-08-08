@@ -224,6 +224,7 @@ export function ShiftsTab({ snapshot, force, quadrant, excluded, open, onForce, 
         value={quadrant}
         onChange={(id) => onQuadrant(id as Quadrant)}
         wrap
+        size="sm"
       />
       <p className="sub">{GROUP_NOTE[quadrant]}</p>
 

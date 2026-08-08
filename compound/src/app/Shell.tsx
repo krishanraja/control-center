@@ -162,7 +162,7 @@ export function Shell({ snapshot, config, session, tab, onTab }: Props) {
   }
 
   function tabBody() {
-    if (tab === "now") return <NowTab snapshot={snapshot} open={open} onToggle={toggleCard} onAsk={askAbout} />;
+    if (tab === "now") return <NowTab snapshot={snapshot} config={config} open={open} onToggle={toggleCard} onAsk={askAbout} />;
     if (tab === "shifts") {
       return (
         <ShiftsTab

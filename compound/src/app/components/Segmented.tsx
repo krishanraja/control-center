@@ -23,6 +23,7 @@ export function Segmented({
   value,
   onChange,
   wrap = false,
+  size,
 }: {
   label: string;
   choices: readonly Choice[];
@@ -30,10 +31,13 @@ export function Segmented({
   onChange: (id: string) => void;
   /** Long names that will not fit one phone row go two across instead. */
   wrap?: boolean;
+  /** "sm" shrinks the labels for a secondary, lower-emphasis control. */
+  size?: "sm";
 }) {
   const split = useSplit();
+  const className = ["seg", wrap && !split ? "two" : "", size === "sm" ? "sm" : ""].filter(Boolean).join(" ");
   return (
-    <div className={wrap && !split ? "seg two" : "seg"} role="group" aria-label={label}>
+    <div className={className} role="group" aria-label={label}>
       {choices.map((choice) => (
         <button
           key={choice.id}
