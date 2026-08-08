@@ -212,7 +212,7 @@ export function NowTab({ snapshot, open, onToggle, onAsk }: Props) {
   return (
     <>
       <p className="eyebrow">Three things worth knowing</p>
-      <h2 className="big">What changed while you were away.</h2>
+      <h2 className="big oneline">Your AI Fund Strategist</h2>
       <p className="sub">
         {split
           ? "Open a card to see the numbers behind it and where they came from."
