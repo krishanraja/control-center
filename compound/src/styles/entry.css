@@ -1,0 +1,92 @@
+/*
+ * The way in: the magic word screen and the short notices that stand in for
+ * the app when it cannot load. One screen, two device readings. A phone gets
+ * the form near the thumb; a desktop gets a card with room around it.
+ */
+.signin-shell {
+  display: flex;
+  width: min(680px, calc(100% - 40px));
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 24px 0;
+  flex-direction: column;
+  justify-content: center;
+}
+.signin-card { width: 100%; padding: 44px; border: 1px solid var(--line2); border-radius: 16px; background: var(--surf); }
+.signin-card .brand { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .22em; }
+.signin-card .eyebrow {
+  margin: 34px 0 0;
+  color: var(--mut);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.signin-card h1 { margin: 10px 0 0; font-size: clamp(32px, 5vw, 44px); letter-spacing: -.03em; line-height: 1.05; }
+.signin-card > p { max-width: 46ch; margin: 12px 0 0; color: var(--ink2); font-size: 16px; line-height: 1.55; }
+.signin-card > p strong { color: var(--ink); }
+.signin-card form { display: grid; gap: 12px; margin-top: 28px; }
+.signin-card label { font-size: 14px; font-weight: 560; }
+.signin-card input {
+  min-height: 54px;
+  padding: 0 15px;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  background: var(--page);
+  color: var(--ink);
+  font-size: 16px;
+}
+.signin-card button {
+  min-height: 54px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--sig);
+  color: #101112;
+  font-size: 16px;
+  font-weight: 660;
+}
+.signin-card button:hover:not(:disabled) { background: #ffc23f; }
+.signin-card .hint { margin-top: 14px; color: var(--mut); font-size: 13.5px; line-height: 1.5; }
+.form-message { margin: 16px 0 0 !important; color: var(--ink) !important; font-size: 15px; }
+
+.center-screen {
+  display: flex;
+  width: min(560px, calc(100% - 36px));
+  min-height: 100vh;
+  margin: 0 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+.center-screen h1 { margin: 0; font-size: clamp(26px, 5vw, 38px); letter-spacing: -.03em; line-height: 1.12; }
+.center-screen p:not(.eyebrow) { margin: 0; color: var(--ink2); font-size: 16px; line-height: 1.6; }
+.center-screen .eyebrow {
+  margin: 0;
+  color: var(--mut);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 680px) {
+  .signin-card { padding: 26px 0; border: 0; background: transparent; }
+  .signin-shell {
+    width: 100%;
+    padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+    justify-content: flex-start;
+  }
+  .signin-card .eyebrow { margin-top: clamp(40px, 9vh, 80px); }
+  .signin-card input, .signin-card button { min-height: 56px; }
+}
+
+/* Some Android in-app browsers report a desktop width viewport on a phone. */
+@media (pointer: coarse) and (max-device-width: 600px) and (min-width: 681px) {
+  .signin-shell { width: 100%; padding: 48px 56px; }
+  .signin-card { padding: 56px; }
+  .signin-card h1 { font-size: 64px; }
+  .signin-card > p { max-width: 34ch; font-size: 22px; }
+  .signin-card input, .signin-card button { min-height: 72px; font-size: 20px; }
+  .signin-card .hint, .form-message { font-size: 18px; }
+}

@@ -1,20 +1,21 @@
 import type { ReactNode } from "react";
+import { useSplit } from "../DeviceProvider";
 import { CaretIcon } from "./Icons";
 
 export interface CardProps {
   id: string;
-  /** The kind of claim, in three or four words. */
+  /** What kind of claim this is, in three or four words. */
   tag: string;
   tone?: "up" | "down" | "mixed";
-  /** A forward claim, not a summary of what happened. */
+  /** A claim about what happens next, not a summary of what happened. */
   head: string;
-  /** One line on what happens next. */
+  /** One line on what to watch for. */
   next: string;
-  /** A bar set or the agreement strip. Read before the words are. */
+  /** Bars or the check strip. Read before the words are. */
   visual?: ReactNode;
-  /** The working. Collapsed until asked for. */
+  /** The working. Folded away until someone asks for it. */
   children: ReactNode;
-  /** The named feed and the date behind every number above. */
+  /** The named source and date behind every number above. */
   source: string;
   /** The question this card hands to Ask. */
   ask: string;
@@ -23,9 +24,51 @@ export interface CardProps {
   onAsk: (question: string) => void;
 }
 
+/**
+ * Desktop and phone disagree about what a card is.
+ *
+ * On a phone the whole card is the target, because a thumb wants a large one
+ * and a list of tappable cards is the native pattern. On a desktop a card is
+ * text with a small control under it, because a 400 pixel button is not how
+ * desktop software behaves and a mouse does not need the extra area.
+ */
 export function Card({ id, tag, tone, head, next, visual, children, source, ask, open, onToggle, onAsk }: CardProps) {
+  const split = useSplit();
   const bodyId = `card-body-${id}`;
   const toneClass = tone === "down" ? " dnc" : tone === "mixed" ? " mx" : "";
+  const caret = <span className="caret"><CaretIcon /></span>;
+
+  const working = (
+    <div className="cbody" id={bodyId} hidden={!open}>
+      {children}
+      <div className="src">{source}</div>
+      <button type="button" className="askbtn" onClick={() => onAsk(ask)}>Ask about this</button>
+    </div>
+  );
+
+  if (split) {
+    return (
+      <div className={open ? "c open" : "c"}>
+        <div className="ctop">
+          <span className={`ctag${toneClass}`}>{tag}</span>
+          <span className="ch">{head}</span>
+          <span className="cnext">{next}</span>
+          {visual}
+        </div>
+        <button
+          type="button"
+          className="chead"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          onClick={() => onToggle(id)}
+        >
+          {caret}
+          {open ? "Hide the working" : "Show the working"}
+        </button>
+        {working}
+      </div>
+    );
+  }
 
   return (
     <div className={open ? "c open" : "c"}>
@@ -36,19 +79,16 @@ export function Card({ id, tag, tone, head, next, visual, children, source, ask,
         aria-controls={bodyId}
         onClick={() => onToggle(id)}
       >
-        <span className="ct">
-          <span className={`ctag${toneClass}`}>{tag}</span>
-          <span className="ch">{head}</span>
-          <span className="cnext">{next}</span>
-          {visual}
+        <span className={`ctag${toneClass}`}>{tag}</span>
+        <span className="ch">{head}</span>
+        <span className="cnext">{next}</span>
+        {visual}
+        <span className="cmore">
+          {open ? "Hide the working" : "See how we worked it out"}
+          {caret}
         </span>
-        <span className="caret"><CaretIcon /></span>
       </button>
-      <div className="cbody" id={bodyId} hidden={!open}>
-        {children}
-        <div className="src">{source}</div>
-        <button type="button" className="askbtn" onClick={() => onAsk(ask)}>Ask about this →</button>
-      </div>
+      {working}
     </div>
   );
 }

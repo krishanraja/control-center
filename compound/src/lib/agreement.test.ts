@@ -85,26 +85,26 @@ describe("contested", () => {
   it("flags a price moving with nothing else behind it", () => {
     const state = contested(row({ price: 1 }));
     expect(state.noBackers).toBe(true);
-    expect(agreementLabel(row({ price: 1 }))).toBe("price only");
+    expect(agreementLabel(row({ price: 1 }))).toBe("only the price");
   });
 
   it("flags an even split", () => {
-    expect(agreementLabel(row({ analysts: 1, news: -1 }))).toBe("sources disagree");
+    expect(agreementLabel(row({ analysts: 1, news: -1 }))).toBe("the checks disagree");
   });
 
   it("does not call a single vote agreement", () => {
     // The mock shipped "1 of 1 agree" on rows the grouping filed under
     // "price is on its own". One rule now decides both.
-    expect(agreementLabel(row({ analysts: 1 }))).toBe("one source only");
+    expect(agreementLabel(row({ analysts: 1 }))).toBe("only one check");
     expect(backed(row({ analysts: 1 }))).toBe(false);
   });
 
   it("says so when no source has an opinion", () => {
-    expect(agreementLabel(row({}))).toBe("no signal yet");
+    expect(agreementLabel(row({}))).toBe("nothing to go on");
   });
 
   it("counts a real majority", () => {
-    expect(agreementLabel(row({ price: 1, analysts: 1, news: 1 }))).toBe("3 of 3 agree");
+    expect(agreementLabel(row({ price: 1, analysts: 1, news: 1 }))).toBe("3 of 3 checks agree");
     expect(backed(row({ price: 1, analysts: 1, news: 1 }))).toBe(true);
   });
 
@@ -124,13 +124,13 @@ describe("the label and the grouping stay in sync", () => {
 
   it("never labels a row in the disagreeing group as agreeing", () => {
     for (const entry of alone) {
-      expect(agreementLabel(entry), `${entry.symbol} sits under "price is on its own"`).not.toMatch(/^\d+ of \d+ agree$/);
+      expect(agreementLabel(entry), `${entry.symbol} sits under "price is on its own"`).not.toMatch(/^\d+ of \d+ checks agree$/);
     }
   });
 
   it("always labels a row in the agreeing group with its majority", () => {
     for (const entry of strong) {
-      expect(agreementLabel(entry), entry.symbol).toMatch(/^\d+ of \d+ agree$/);
+      expect(agreementLabel(entry), entry.symbol).toMatch(/^\d+ of \d+ checks agree$/);
       expect(entry.agree).toBeGreaterThanOrEqual(2);
       expect(entry.direction).not.toBe("split");
     }

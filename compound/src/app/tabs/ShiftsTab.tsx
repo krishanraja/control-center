@@ -1,16 +1,20 @@
 import { plain1, pct1, ratio, usd } from "../../lib/format";
-import { QUADRANT_LABEL, QUADRANT_NOTE, byQuadrant, quadrantCounts } from "../../lib/industries";
+import { byQuadrant, quadrantCounts } from "../../lib/industries";
 import { themesFor } from "../../lib/migration";
+import { EXPLAIN, GROUP_NAME, GROUP_NOTE, plainStageDesc } from "../../lib/words";
 import type { Placed, Quadrant, Snapshot } from "../../types";
+import { useSplit } from "../DeviceProvider";
 import { Card } from "../components/Card";
 import { CompareBars } from "../components/CompareBars";
-import { Sparkline } from "../components/Sparkline";
+import { IndustryRow } from "../components/IndustryRow";
+import { Segmented } from "../components/Segmented";
 import { StageTrack } from "../components/StageTrack";
+import { TableHead } from "../components/StockRow";
 import { SectionHead } from "../components/Tile";
 
 export const FORCES = [
   { id: "ai", name: "AI" },
-  { id: "money", name: "Cost of money" },
+  { id: "money", name: "Interest rates", short: "Rates" },
   { id: "crypto", name: "Crypto" },
 ] as const;
 
@@ -38,223 +42,219 @@ interface Props {
 }
 
 export function ShiftsTab({ snapshot, force, quadrant, excluded, open, onForce, onQuadrant, onToggle, onAsk, onTheme }: Props) {
+  const split = useSplit();
   const themes = themesFor(snapshot);
   const placed = snapshot.placed.filter((entry) => forceOf(entry) === force);
   const hidden = new Set(excluded);
   const industries = snapshot.industries.filter((row) => !hidden.has(row.industry));
   const counts = quadrantCounts(industries);
-  const rows = byQuadrant(industries, quadrant).slice(0, 8);
+  const rows = byQuadrant(industries, quadrant).slice(0, split ? 12 : 8);
   const macro = snapshot.macro;
   const pricingHikes = macro.pricingHikes ?? (macro.y1 != null && macro.fedFunds != null && macro.y1 > macro.fedFunds);
 
-  return (
+  const cards = [
+    ...(force === "ai"
+      ? themes.map((theme) => (
+        <Card
+          key={theme.definition.id}
+          id={`t-${theme.definition.id}`}
+          tag={theme.diverged ? "Story and numbers disagree" : "Story and numbers agree"}
+          tone={theme.diverged ? "mixed" : "up"}
+          head={`${theme.definition.beneficiary} against ${theme.definition.disrupted}.`}
+          next={theme.verdict}
+          visual={
+            <CompareBars
+              rows={[
+                { label: theme.definition.beneficiary, value: theme.beneficiary?.avgGrowth ?? null, colour: "var(--s1)" },
+                { label: theme.definition.disrupted, value: theme.disrupted?.avgGrowth ?? null, colour: "var(--s3)" },
+              ]}
+              caption="Sales growth over the last full year"
+            />
+          }
+          source="Company accounts through FMP, latest full year reported"
+          ask={`Who actually wins in ${theme.definition.name}?`}
+          open={Boolean(open[`t-${theme.definition.id}`])}
+          onToggle={onToggle}
+          onAsk={onAsk}
+        >
+          <p>What is being tested: <b>{theme.definition.claim}</b></p>
+          <p>
+            {theme.definition.beneficiary} grew sales <b>{pct1(theme.beneficiary?.avgGrowth ?? null)}</b>,{" "}
+            {theme.definition.disrupted} grew <b>{pct1(theme.disrupted?.avgGrowth ?? null)}</b>. Comparing those two
+            numbers is the obvious move and the wrong one. What matters is which way each side is heading:{" "}
+            <b>{pct1(theme.beneficiary?.avgDelta ?? null)}</b> against{" "}
+            <b>{pct1(theme.disrupted?.avgDelta ?? null)}</b> a year.
+          </p>
+          <button type="button" className="askbtn ghost" onClick={() => onTheme(theme.definition.id)}>
+            See both sides
+          </button>
+        </Card>
+      ))
+      : []),
+
+    ...placed.map((entry, index) => (
+      <Card
+        key={entry.what}
+        id={`p-${force}-${index}`}
+        tag={`Stage ${entry.stage} of 5`}
+        tone={entry.dir === "up" ? "up" : entry.dir === "down" ? "down" : "mixed"}
+        head={entry.what}
+        next={entry.note}
+        visual={<StageTrack stage={entry.stage} stages={snapshot.stages} />}
+        source="Placed using reported sales, industry movement and price"
+        ask={`What happens next to ${entry.what.toLowerCase()}?`}
+        open={Boolean(open[`p-${force}-${index}`])}
+        onToggle={onToggle}
+        onAsk={onAsk}
+      >
+        <p>
+          {plainStageDesc(snapshot.stages.find((stage) => stage.stage === entry.stage)?.desc ?? "No description for this stage.")}{" "}
+          {entry.note}
+        </p>
+        <p>
+          Every big shift walks the same five stages. The talk almost always arrives years before the numbers do, and
+          markets price the talk first, so the money is in the gap between the stage a thing is really at and the stage
+          its price says it is at.
+        </p>
+      </Card>
+    )),
+
+    force === "money"
+      ? (
+        <Card
+          key="m-rates"
+          id="m-rates"
+          tag="The setting everything else runs on"
+          head={pricingHikes ? "Borrowing is priced to get dearer, not cheaper." : "Borrowing is priced to get cheaper."}
+          next={pricingHikes
+            ? "While that holds, companies making money now beat companies promising it later."
+            : "Cheaper borrowing puts the long shot promises back in favour."}
+          visual={
+            <CompareBars
+              rows={[
+                { label: "What safe cash pays", value: macro.fedFunds, colour: "var(--s3)" },
+                { label: "1 year loan to the US government", value: macro.y1, colour: "var(--s1)" },
+                { label: "10 year loan to the US government", value: macro.y10, colour: "var(--s2)" },
+              ]}
+              caption="Interest paid per year"
+            />
+          }
+          source="US Federal Reserve data and the US Treasury"
+          ask="What happens to my money if borrowing gets dearer again?"
+          open={Boolean(open["m-rates"])}
+          onToggle={onToggle}
+          onAsk={onAsk}
+        >
+          <p>
+            Lending to the US government for a year pays <b>{plain1(macro.y1)}</b>. Leaving it in cash pays{" "}
+            <b>{plain1(macro.fedFunds)}</b>. When the one year loan pays more than cash, the market is saying it expects
+            cash to pay more soon, not less.
+          </p>
+          <p>
+            The 10 year loan pays <b>{plain1(macro.real10)}</b> once you take price rises out of it, against{" "}
+            <b>{plain1(macro.real10_1y)}</b> a year ago. That is {EXPLAIN.realRate}, and it is the number that decides
+            what everything else is worth. Money today beats money later, so anything whose profits show up in five
+            years is worth less than it was.
+          </p>
+          <p>
+            Lenders are not worried yet. {EXPLAIN.spread} sits at <b>{plain1(macro.hyOAS)}</b>, and {EXPLAIN.nerves} is{" "}
+            <b>{ratio(macro.vix)}</b>. Your crypto is <b>{plain1(snapshot.portfolio.cryptoPct)}</b> of your money and
+            pays you nothing while this holds.
+          </p>
+        </Card>
+      )
+      : null,
+
+    force === "crypto"
+      ? (
+        <Card
+          key="c-usage"
+          id="c-usage"
+          tone="down"
+          tag="People are using it less"
+          head="Crypto is being used less, not more."
+          next="Until fee income stops falling, a rising price is traders rather than users."
+          visual={
+            <CompareBars
+              rows={[
+                { label: "Bitcoin", value: snapshot.cryptoGlobal.btcDom, colour: "var(--sig)" },
+                {
+                  label: "Everything else",
+                  value: snapshot.cryptoGlobal.btcDom != null ? 100 - snapshot.cryptoGlobal.btcDom : null,
+                  colour: "var(--s1)",
+                },
+              ]}
+              caption="Share of all the money in crypto"
+            />
+          }
+          source="CoinGecko and DefiLlama"
+          ask="Is crypto being used more anywhere?"
+          open={Boolean(open["c-usage"])}
+          onToggle={onToggle}
+          onAsk={onAsk}
+        >
+          <p>
+            All crypto together is worth <b>{usd(snapshot.cryptoGlobal.mcap)}</b>, and Bitcoin is{" "}
+            <b>{plain1(snapshot.cryptoGlobal.btcDom)}</b> of that. When Bitcoin's share goes up, money is retreating to
+            the one coin that does not need anybody to use it for anything.
+          </p>
+          <p>
+            Solana collected <b>{usd(snapshot.solana.fees30d)}</b> in fees over 30 days against{" "}
+            <b>{usd(snapshot.solana.fees1y != null ? snapshot.solana.fees1y / 12 : null)}</b> in a normal month of the
+            past year. {EXPLAIN.fees}
+          </p>
+          {snapshot.cryptoHot.length > 0 && (
+            <p>
+              Fastest risers over 30 days:{" "}
+              {snapshot.cryptoHot.slice(0, 3).map((coin) => `${coin.name} ${pct1(coin.price_change_percentage_30d_in_currency)}`).join(", ")}.
+              Those are small enough that the moves say more about how few coins exist than about anyone using them.
+            </p>
+          )}
+        </Card>
+      )
+      : null,
+  ].filter(Boolean);
+
+  const industryPanel = (
     <>
-      <p className="eyebrow">What is moving value around</p>
-      <h2 className="big">The forces.</h2>
-      <p className="sub">Pick one to see what it is doing and what happens next.</p>
-
-      <div className="forces" role="group" aria-label="Force">
-        {FORCES.map((entry) => (
-          <button
-            key={entry.id}
-            type="button"
-            className={force === entry.id ? "on" : ""}
-            aria-pressed={force === entry.id}
-            onClick={() => onForce(entry.id)}
-          >
-            {entry.name}
-          </button>
-        ))}
-      </div>
-
-      <div className="cardstack">
-        {force === "ai" && themes.map((theme) => (
-          <Card
-            key={theme.definition.id}
-            id={`t-${theme.definition.id}`}
-            tag={theme.diverged ? "Story and numbers disagree" : "Story and numbers agree"}
-            tone={theme.diverged ? "mixed" : "up"}
-            head={`${theme.definition.beneficiary} against ${theme.definition.disrupted}.`}
-            next={theme.verdict}
-            visual={
-              <CompareBars
-                rows={[
-                  { label: theme.definition.beneficiary, value: theme.beneficiary?.avgGrowth ?? null, colour: "var(--s1)" },
-                  { label: theme.definition.disrupted, value: theme.disrupted?.avgGrowth ?? null, colour: "var(--s3)" },
-                ]}
-              />
-            }
-            source="FMP income statements, latest full year filed"
-            ask={`Who actually wins in ${theme.definition.name}?`}
-            open={Boolean(open[`t-${theme.definition.id}`])}
-            onToggle={onToggle}
-            onAsk={onAsk}
-          >
-            <p>
-              The claim being tested: <b>{theme.definition.claim}</b>
-            </p>
-            <p>
-              {theme.definition.beneficiary} revenue growth is <b>{pct1(theme.beneficiary?.avgGrowth ?? null)}</b>,{" "}
-              {theme.definition.disrupted} is <b>{pct1(theme.disrupted?.avgGrowth ?? null)}</b>. Levels are the obvious
-              comparison and the wrong one. What matters is the direction each one is travelling:{" "}
-              <b>{pct1(theme.beneficiary?.avgDelta ?? null)}</b> against{" "}
-              <b>{pct1(theme.disrupted?.avgDelta ?? null)}</b> a year.
-            </p>
-            <button type="button" className="askbtn ghost" onClick={() => onTheme(theme.definition.id)}>
-              See both sides →
-            </button>
-          </Card>
-        ))}
-
-        {placed.map((entry, index) => (
-          <Card
-            key={entry.what}
-            id={`p-${force}-${index}`}
-            tag={`Stage ${entry.stage} of 5`}
-            tone={entry.dir === "up" ? "up" : entry.dir === "down" ? "down" : "mixed"}
-            head={entry.what}
-            next={entry.note}
-            visual={<StageTrack stage={entry.stage} stages={snapshot.stages} />}
-            source="Placed from filed revenue, industry momentum and price"
-            ask={`What happens next to ${entry.what.toLowerCase()}?`}
-            open={Boolean(open[`p-${force}-${index}`])}
-            onToggle={onToggle}
-            onAsk={onAsk}
-          >
-            <p>
-              {snapshot.stages.find((stage) => stage.stage === entry.stage)?.desc ?? "No description for this stage."}{" "}
-              {entry.note}
-            </p>
-            <p>
-              The track runs {snapshot.stages.map((stage) => stage.name.toLowerCase()).join(" → ")}. Most narratives arrive
-              years before the numbers, and markets usually price the narrative first, so the interesting money is in the
-              gap between the stage a thing is at and the stage it is priced at.
-            </p>
-          </Card>
-        ))}
-
-        {force === "money" && (
-          <Card
-            id="m-rates"
-            tag="The setting everything runs on"
-            head={pricingHikes ? "Borrowing costs are priced to rise, not fall." : "Borrowing costs are priced to fall."}
-            next={pricingHikes
-              ? "While that holds, businesses making cash now keep beating businesses promising it later."
-              : "Cheaper money favours the long-dated promises again."}
-            visual={
-              <CompareBars
-                rows={[
-                  { label: "Cash rate", value: macro.fedFunds, colour: "var(--s3)" },
-                  { label: "1yr bond", value: macro.y1, colour: "var(--s1)" },
-                  { label: "10yr bond", value: macro.y10, colour: "var(--s2)" },
-                ]}
-              />
-            }
-            source="FRED and US Treasury"
-            ask="What happens to my portfolio if rates rise again?"
-            open={Boolean(open["m-rates"])}
-            onToggle={onToggle}
-            onAsk={onAsk}
-          >
-            <p>
-              The 1 year bond pays <b>{plain1(macro.y1)}</b>. Cash pays <b>{plain1(macro.fedFunds)}</b>. When the shorter
-              bond pays more than cash, the market is telling you it expects the cash rate to go up, not down.
-            </p>
-            <p>
-              After inflation the 10 year pays <b>{plain1(macro.real10)}</b>, against{" "}
-              <b>{plain1(macro.real10_1y)}</b> a year ago. That is the number that actually reprices assets: money today
-              is worth more than money later, so anything whose profits arrive in five years is worth less than it was.
-            </p>
-            <p>
-              Credit is not worried yet. High-yield spreads are <b>{plain1(macro.hyOAS)}</b> and the VIX is{" "}
-              <b>{ratio(macro.vix)}</b>. Your crypto is <b>{plain1(snapshot.portfolio.cryptoPct)}</b> of your money and
-              pays nothing while this holds.
-            </p>
-          </Card>
-        )}
-
-        {force === "crypto" && (
-          <Card
-            id="c-usage"
-            tone="down"
-            tag="Value leaving"
-            head="Crypto is being used less, not more."
-            next="Until fee income stops falling, price rises are traders rather than users."
-            visual={
-              <CompareBars
-                rows={[
-                  { label: "Bitcoin", value: snapshot.cryptoGlobal.btcDom, colour: "var(--sig)" },
-                  {
-                    label: "Everything else",
-                    value: snapshot.cryptoGlobal.btcDom != null ? 100 - snapshot.cryptoGlobal.btcDom : null,
-                    colour: "var(--s1)",
-                  },
-                ]}
-              />
-            }
-            source="CoinGecko and DefiLlama"
-            ask="Is crypto usage recovering anywhere?"
-            open={Boolean(open["c-usage"])}
-            onToggle={onToggle}
-            onAsk={onAsk}
-          >
-            <p>
-              All crypto is worth <b>{usd(snapshot.cryptoGlobal.mcap)}</b> and Bitcoin is{" "}
-              <b>{plain1(snapshot.cryptoGlobal.btcDom)}</b> of it. When the Bitcoin share rises, money is retreating to
-              the one asset that does not need a use case.
-            </p>
-            <p>
-              Solana fee income over 30 days is <b>{usd(snapshot.solana.fees30d)}</b> against{" "}
-              <b>{usd(snapshot.solana.fees1y != null ? snapshot.solana.fees1y / 12 : null)}</b> for the average month of
-              the past year. Fees are the clearest measure of whether people actually use a network, because they are
-              paid rather than promised.
-            </p>
-            {snapshot.cryptoHot.length > 0 && (
-              <p>
-                Fastest 30 days: {snapshot.cryptoHot.slice(0, 3).map((coin) => `${coin.name} ${pct1(coin.price_change_percentage_30d_in_currency)}`).join(", ")}.
-                Those are small enough that the moves say more about float than adoption.
-              </p>
-            )}
-          </Card>
-        )}
-      </div>
-
-      <SectionHead title="Where the money is going" note={`${industries.length} industries`} />
-      <div className="forces small" role="group" aria-label="Industry group">
-        {QUADRANTS.map((entry) => (
-          <button
-            key={entry}
-            type="button"
-            className={quadrant === entry ? "on" : ""}
-            aria-pressed={quadrant === entry}
-            onClick={() => onQuadrant(entry)}
-          >
-            {QUADRANT_LABEL[entry]} <span className="count">{counts[entry]}</span>
-          </button>
-        ))}
-      </div>
-      <p className="sub">{QUADRANT_NOTE[quadrant]}</p>
+      <SectionHead title="Where money is moving" note={`${industries.length} industries`} />
+      <Segmented
+        label="Which group"
+        choices={QUADRANTS.map((entry) => ({ id: entry, name: GROUP_NAME[entry], count: counts[entry] }))}
+        value={quadrant}
+        onChange={(id) => onQuadrant(id as Quadrant)}
+        wrap
+      />
+      <p className="sub">{GROUP_NOTE[quadrant]}</p>
 
       <div className="rowbox">
-        {rows.length === 0 && <p className="sub empty">Nothing in this group once your hidden industries are removed.</p>}
-        {rows.map((row) => (
-          <div className="srow static" key={row.industry}>
-            <span className="snm wide">{row.industry}</span>
-            <Sparkline
-              series={row.series}
-              colour={row.r3m > 0 ? "var(--up)" : "var(--dn)"}
-              label={`${row.industry} over 63 trading days`}
-            />
-            <span className="sval mut">{row.peRank != null ? `${row.peRank}th` : "no pe"}</span>
-            <span className={`sval ${row.r3m > 0 ? "up" : "dn"}`}>{pct1(row.r3m)}</span>
-          </div>
-        ))}
+        <TableHead columns="cols-industry" labels={["Industry", "Shape", "Price vs the rest", "3 month move"]} />
+        {rows.length === 0 && <p className="sub empty">Nothing in this group once your hidden industries are taken out.</p>}
+        {rows.map((row) => <IndustryRow key={row.industry} row={row} />)}
       </div>
+    </>
+  );
+
+  return (
+    <>
+      <p className="eyebrow">What is pushing prices around</p>
+      <h2 className="big">The three forces.</h2>
+      <p className="sub">Pick one to see what it is doing and what happens next.</p>
+
+      <Segmented label="Which force" choices={FORCES} value={force} onChange={onForce} />
+
+      {/* Desktop reads the force cards two across, then gives the industry
+          table the full width so an industry keeps its whole name. A phone
+          reads one card at a time and then the same list. */}
+      {split
+        ? <div className="grid">{cards.map((card, index) => <div key={index}>{card}</div>)}</div>
+        : <div className="cardstack">{cards}</div>}
+      {industryPanel}
 
       <div className="footnote">
-        3 month move compounded from daily industry averages, 63 trading days. Valuation column is this industry's
-        price-to-earnings percentile against every industry with a usable P/E. Rising means up over three months, never
-        acceleration alone.
+        The three month move adds up every day of the last 63 trading days, which is about three months. The price
+        column compares what you pay for this industry's profits against every other industry, so "dearer than 80%"
+        means only one industry in five costs more. Going up means up over three months, never a single good week.
       </div>
     </>
   );

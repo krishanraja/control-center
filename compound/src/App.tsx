@@ -59,7 +59,7 @@ export function App() {
       .then(setSnapshot)
       .catch((reason: unknown) => {
         if (controller.signal.aborted) return;
-        setSnapshotError(reason instanceof Error ? reason.message : "Today's data could not be read.");
+        setSnapshotError(reason instanceof Error ? reason.message : "Today's numbers could not be read.");
       });
     return () => controller.abort();
   }, [config.error, signedIn]);
@@ -74,11 +74,11 @@ export function App() {
     document.querySelector(".scroll")?.scrollTo({ top: 0, behavior: "auto" });
   }, []);
 
-  if (config.error) return <Notice eyebrow="COMPOUND SETUP" title="COMPOUND is not connected yet." body={config.error} />;
-  if (!authReady) return <Notice eyebrow="COMPOUND" title="Checking your session…" />;
+  if (config.error) return <Notice eyebrow="COMPOUND setup" title="COMPOUND is not connected yet." body={config.error} />;
+  if (!authReady) return <Notice eyebrow="COMPOUND" title="Checking who you are…" />;
   if (config.mode === "live" && !session) return <SignInPage config={config} />;
-  if (snapshotError) return <Notice eyebrow="COMPOUND" title="There is nothing current to show." body={snapshotError} />;
-  if (!snapshot) return <Notice eyebrow="COMPOUND" title="Reading today's data…" />;
+  if (snapshotError) return <Notice eyebrow="COMPOUND" title="Nothing to show right now." body={snapshotError} />;
+  if (!snapshot) return <Notice eyebrow="COMPOUND" title="Getting today's numbers…" />;
 
   return <Shell snapshot={snapshot} config={config} session={session} tab={tab} onTab={changeTab} />;
 }

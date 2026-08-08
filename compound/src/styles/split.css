@@ -1,0 +1,529 @@
+/*
+ * The split system: laptops, desktops and landscape tablets.
+ *
+ * Grammar borrowed from desktop software, not from this app's phone screen.
+ * The width is used: a rail that names every section, a two or three column
+ * grid of cards, real tables with column headings, and a detail panel that
+ * opens beside the list instead of covering it. Hover and the keyboard are
+ * first class here because both exist.
+ *
+ * Scoped entirely under .split, so no rule here can reach the stack system.
+ */
+.split {
+  --tap: 38px;
+  --rail: 248px;
+  --panel: 400px;
+  --gut: 28px;
+  --t-title: 34px;
+  --t-head: 18px;
+  --t-lead: 16px;
+  --t-body: 15px;
+  --t-small: 13.5px;
+  --t-label: 11px;
+  --r-card: 12px;
+  --r-control: 9px;
+}
+/* A landscape tablet gets the desktop layout with finger sized controls. */
+.split.touch { --tap: 44px; --t-body: 15.5px; }
+@media (min-width: 1400px) { .split { --gut: 32px; --panel: 440px; } }
+
+.split .app { display: flex; height: 100vh; height: 100dvh; background: var(--page); }
+.split .deskmain { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.split .workspace { display: flex; flex: 1; min-height: 0; }
+.split .scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.split .scroll::-webkit-scrollbar { width: 8px; }
+.split .scroll::-webkit-scrollbar-thumb { border-radius: 4px; background: #2a2f38; }
+.split .page { max-width: 1560px; padding: 26px var(--gut) 56px; }
+
+/* ---- rail ---- */
+.split .sidenav {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: var(--rail);
+  padding: 20px 12px 16px;
+  border-right: 1px solid var(--line);
+  background: var(--surf);
+}
+.split .sidenav .brand {
+  padding: 4px 12px 22px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .24em;
+}
+.split .sidenav button {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: var(--tap);
+  margin-bottom: 2px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: none;
+  color: var(--ink2);
+  font-size: 14px;
+  text-align: left;
+}
+.split .sidenav button svg { width: 17px; height: 17px; }
+.split .sidenav button .navname { display: block; font-weight: 540; }
+.split .sidenav button .navblurb {
+  display: block;
+  margin-top: 2px;
+  color: var(--mut);
+  font-size: 12px;
+  line-height: 1.3;
+}
+.split .sidenav button .key {
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 11px;
+  opacity: 0;
+}
+.split .sidenav button:hover { background: var(--surf2); color: var(--ink); }
+.split .sidenav button:hover .key { opacity: 1; }
+.split .sidenav button.on { background: var(--surf3); color: var(--sig); }
+.split .sidenav button.on .navblurb { color: var(--ink2); }
+.split .railfoot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); }
+.split .railnote { padding: 10px 12px 4px; color: var(--faint); font-family: var(--mono); font-size: 10.5px; line-height: 1.6; }
+
+/* ---- top bar ---- */
+.split .deskhead {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 56px;
+  padding: 0 var(--gut);
+  border-bottom: 1px solid var(--line);
+  background: var(--surf);
+}
+.split .deskhead .where { display: flex; align-items: baseline; gap: 12px; }
+.split .deskhead .where strong { font-size: 15px; font-weight: 620; }
+.split .deskhead .where span { color: var(--mut); font-size: 13px; }
+.split .chip {
+  display: inline-block;
+  padding: 5px 10px;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  color: var(--mut);
+  font-size: 12px;
+}
+
+/* ---- type ---- */
+.split .eyebrow {
+  margin: 0;
+  color: var(--mut);
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.split h2.big {
+  max-width: 22ch;
+  margin: 8px 0 0;
+  font-size: var(--t-title);
+  font-weight: 660;
+  letter-spacing: -.026em;
+  line-height: 1.14;
+}
+.split h2.nomargin { margin-top: 0; }
+.split .sub { max-width: 68ch; margin: 10px 0 0; color: var(--ink2); font-size: var(--t-lead); line-height: 1.5; }
+.split .sub.empty { padding: 16px; color: var(--mut); font-size: var(--t-body); }
+.split .small { font-size: var(--t-small); }
+.split .footnote { max-width: 88ch; margin-top: 24px; color: var(--faint); font-size: 12.5px; line-height: 1.6; }
+.split .sechead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 34px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.split .sechead h3 { margin: 0; font-size: 17px; font-weight: 620; letter-spacing: -.012em; }
+
+/* ---- the content grid, the reason this system exists ---- */
+/* Stretch, not start: cards that share a row end level, and their controls
+   line up instead of stepping down the screen. */
+.split .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 20px; align-items: stretch; }
+.split .grid > div { display: flex; min-width: 0; }
+/* The wrapper stretches to its grid cell; the card has to be told to fill the
+   wrapper, or a card spanning both columns sits at its content width. */
+.split .grid > div > * { flex: 1; min-width: 0; }
+.split .grid.one { grid-template-columns: minmax(0, 1fr); }
+.split .grid .wide { grid-column: 1 / -1; }
+@media (min-width: 1400px) {
+  .split .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .split .grid.lead { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+}
+.split .split2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; margin-top: 20px; }
+.split .cardcol { display: grid; gap: 16px; align-content: start; }
+@media (max-width: 1199px) { .split .split2 { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---- cards ---- */
+.split .c {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surf);
+  transition: border-color .14s;
+}
+.split .c:hover { border-color: var(--line2); }
+.split .ctop { padding: 18px 20px 20px; }
+.split .ctag {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--sig);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.split .ctag.dnc { color: var(--dn); }
+.split .ctag.mx { color: var(--s1); }
+.split .ch { display: block; font-size: var(--t-head); font-weight: 620; letter-spacing: -.016em; line-height: 1.3; }
+.split .cnext { display: block; margin-top: 9px; color: var(--ink2); font-size: var(--t-body); line-height: 1.5; }
+/* A discrete control, not a card sized button. There is a pointer here. */
+.split .chead {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: var(--tap);
+  margin: 16px 20px 16px;
+  padding: 8px 13px;
+  border: 1px solid var(--line2);
+  border-radius: var(--r-control);
+  background: none;
+  color: var(--ink2);
+  font-size: 13.5px;
+  font-weight: 540;
+  align-self: flex-start;
+}
+.split .chead:hover { border-color: var(--sig); color: var(--sig); }
+.split .caret { display: inline-flex; transition: transform .16s; }
+.split .caret svg { width: 14px; height: 14px; }
+.split .c.open .caret { transform: rotate(180deg); }
+.split .cbody { padding: 0 20px 20px; }
+.split .cbody p { max-width: 76ch; margin: 0 0 12px; color: var(--ink2); font-size: var(--t-body); line-height: 1.62; }
+.split .cbody p:last-of-type { margin-bottom: 0; }
+.split .cbody p b, .split .cbody b { color: var(--ink); font-weight: 620; }
+.split .src { margin-top: 14px; color: var(--faint); font-size: 12px; line-height: 1.5; }
+.split .askbtn {
+  min-height: var(--tap);
+  margin-top: 14px;
+  padding: 9px 14px;
+  border: 1px solid var(--line2);
+  border-radius: var(--r-control);
+  background: var(--surf3);
+  color: var(--sig);
+  font-size: 13.5px;
+  font-weight: 540;
+}
+.split .askbtn:hover { border-color: var(--sig); background: var(--surf2); }
+.split .askbtn.ghost { background: none; color: var(--ink2); }
+.split .askbtn.ghost:hover { color: var(--sig); }
+
+/* ---- the four checks ---- */
+.split .dots i { width: 15px; height: 5px; }
+.split .agree .lab { color: var(--mut); font-size: 12.5px; white-space: nowrap; }
+.split .agreekey { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 14px; }
+.split .agreekey span { display: flex; align-items: center; gap: 6px; color: var(--ink2); font-size: 12.5px; }
+.split .agreekey i { display: block; width: 13px; height: 4px; border-radius: 2px; background: #333944; }
+.split .agreekey .keynote { flex: 1 0 100%; max-width: 76ch; color: var(--mut); font-size: 12.5px; line-height: 1.5; }
+.split .metervis { margin-top: 14px; }
+.split .nometer { flex: none; color: var(--faint); font-size: 12px; }
+
+/* ---- comparison bars keep the label column here, there is room for it ---- */
+.split .mig { margin-top: 16px; }
+.split .migcap { margin-bottom: 8px; color: var(--mut); font-size: 12.5px; }
+.split .migrow { display: flex; align-items: center; gap: 12px; margin-bottom: 9px; }
+.split .migrow:last-child { margin-bottom: 0; }
+.split .migrow .mlab { flex: none; width: 132px; color: var(--ink2); font-size: 13px; line-height: 1.3; }
+.split .migbar { position: relative; flex: 1; min-width: 0; height: 20px; overflow: hidden; border-radius: 5px; background: var(--surf3); }
+.split .migbar span { position: absolute; inset: 0 auto 0 0; border-radius: 5px; }
+.split .migrow .mval { flex: none; width: 68px; font-family: var(--mono); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right; }
+
+/* ---- stage track ---- */
+.split .stagewrap { margin-top: 16px; }
+.split .track { display: flex; gap: 4px; }
+.split .track div { flex: 1; height: 6px; border-radius: 3px; background: #252b33; }
+.split .track div.on { background: var(--sig); }
+.split .track div.past { background: #4a4335; }
+.split .tracklab { display: flex; justify-content: space-between; gap: 6px; margin-top: 7px; color: var(--mut); font-size: 11px; }
+.split .tracklab span { flex: 1; text-align: center; }
+.split .tracklab span:first-child { text-align: left; }
+.split .tracklab span:last-child { text-align: right; }
+.split .tracklab span.sig { color: var(--sig); font-weight: 600; }
+
+/* ---- filters ---- */
+.split .seg { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 4px; }
+.split .seg button {
+  min-height: var(--tap);
+  padding: 8px 16px;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink2);
+  font-size: 13.5px;
+  font-weight: 540;
+}
+.split .seg button:hover { border-color: var(--sig); color: var(--sig); }
+.split .seg button.on { border-color: var(--sig); background: var(--sig); color: #101112; font-weight: 620; }
+.split .seg .count { margin-left: 7px; font-family: var(--mono); font-size: 12px; opacity: .75; }
+.split .pills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 18px 0 6px; }
+.split .pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: var(--tap);
+  padding: 11px 15px;
+  border: 1px solid var(--line2);
+  border-radius: var(--r-control);
+  background: none;
+  color: var(--ink2);
+  font-size: 13.5px;
+  line-height: 1.35;
+  text-align: left;
+}
+.split .pill:hover:not(:disabled) { border-color: var(--sig); background: var(--surf); color: var(--sig); }
+.split .pill svg { flex: none; width: 13px; height: 13px; opacity: .6; }
+
+/* ---- tables: column headings, aligned figures, a hover row ---- */
+.split .rowbox { margin-top: 14px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--surf); }
+.split .dthead {
+  display: grid;
+  gap: 14px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--line2);
+  background: var(--surf2);
+  color: var(--mut);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.split .srow {
+  display: grid;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  text-align: left;
+}
+.split .srow:last-child { border-bottom: 0; }
+.split button.srow:hover { background: var(--surf2); }
+.split button.srow:hover .rowname { color: var(--sig); }
+/* Stocks: name, ticker, checks, what they say, one month move. */
+.split .cols-stock { grid-template-columns: minmax(0, 1fr) 62px 84px 130px 78px; }
+/* Holdings: name, share of your money, checks, day move. */
+.split .cols-hold { grid-template-columns: minmax(0, 1fr) 92px 118px 84px 78px; }
+/* Industries: name, three month shape, price rank, three month move. */
+.split .cols-industry { grid-template-columns: minmax(0, 1fr) 78px 152px 86px; }
+/* Growth pairs: name, last year to this year, checks, change. */
+.split .cols-pair { grid-template-columns: minmax(0, 1fr) 168px 84px 78px; }
+.split .dthead span:last-child, .split .srow .sval { text-align: right; }
+.split .rowname { overflow: hidden; font-size: 13.5px; font-weight: 540; text-overflow: ellipsis; white-space: nowrap; }
+.split .rowtick { color: var(--mut); font-family: var(--mono); font-size: 12px; font-weight: 620; }
+.split .rowsay { overflow: hidden; color: var(--mut); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.split .sval { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.split .rowchev { display: none; }
+.split .rowend { display: contents; }
+.split .rowmain { min-width: 0; }
+.split .rowunder { display: contents; }
+.split .spark { width: 76px; height: 20px; }
+
+/* ---- tiles ---- */
+/* auto-fit, because these tiles sit in the full width on one screen and in
+   a half column on another. A fixed count clipped "A$41,844" in the narrow one. */
+.split .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(196px, 1fr)); gap: 14px; margin-top: 14px; }
+.split .tile { padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--surf); }
+.split .tile .lbl { color: var(--mut); font-size: 12.5px; }
+.split .tile .v { margin-top: 8px; font-size: 24px; font-weight: 640; font-variant-numeric: tabular-nums; letter-spacing: -.024em; }
+.split .tile .d { margin-top: 6px; color: var(--mut); font-size: 12.5px; line-height: 1.45; }
+
+/* ---- money split bar ---- */
+.split .allocation { display: flex; gap: 5px; height: 34px; overflow: hidden; border-radius: 8px; margin: 16px 0 4px; }
+.split .allocation div { min-width: 3px; }
+.split .allocation .cash { background: #2a313b; }
+
+/* ---- the detail panel: the list stays visible beside it ---- */
+.split .panel {
+  display: flex;
+  flex: none;
+  width: var(--panel);
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+  background: var(--surf);
+}
+.split .panelhead {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 52px;
+  padding: 0 10px 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+.split .panelhead .sheettitle { overflow: hidden; font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.split .panelhead .backbtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap);
+  padding: 7px 12px;
+  border: 1px solid var(--line2);
+  border-radius: var(--r-control);
+  background: none;
+  color: var(--ink2);
+  font-size: 13px;
+}
+.split .panelhead .backbtn:hover { border-color: var(--sig); color: var(--sig); }
+.split .panelhead .backbtn svg { width: 13px; height: 13px; transform: rotate(180deg); }
+.split .panelbody { flex: 1; overflow-y: auto; scrollbar-width: thin; }
+.split .panelbody .page { max-width: none; padding: 20px 20px 40px; }
+.split .panelbody .grid, .split .panelbody .split2 { grid-template-columns: minmax(0, 1fr); }
+.split .panelbody .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.split .panelbody h2.big { font-size: 22px; }
+.split .panelbody .srow { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 14px; }
+.split .panelbody .dthead { display: none; }
+.split .panelbody .rowsay, .split .panelbody .rowtick { display: none; }
+
+/* ---- settings ---- */
+.split .settingsbar { display: flex; gap: 10px; margin: 18px 0 12px; }
+.split .settingsbar input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0 13px;
+  border: 1px solid var(--line2);
+  border-radius: var(--r-control);
+  background: var(--page);
+  color: var(--ink);
+  font-size: 14px;
+}
+.split .settingsbar input::placeholder { color: var(--faint); }
+.split .toglist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1px; }
+@media (max-width: 1199px) { .split .toglist { grid-template-columns: minmax(0, 1fr); } }
+.split .tog {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  text-align: left;
+}
+.split button.tog:hover { background: var(--surf2); }
+.split .tog .tn { display: block; font-size: 13.5px; }
+.split .tog .ts { display: block; margin-top: 3px; color: var(--mut); font-size: 12px; }
+.split .togval { display: flex; flex: none; align-items: center; gap: 10px; }
+.split .togval i { width: 15px; height: 5px; }
+.split .sw { position: relative; flex: none; width: 40px; height: 24px; border: 0; border-radius: 12px; background: #333944; }
+.split .sw i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #8d949e; transition: left .16s, background .16s; }
+.split .sw.on { background: rgb(250 178 25 / 32%); }
+.split .sw.on i { left: 19px; background: var(--sig); }
+
+/* ---- verdicts, warnings, answers ---- */
+.split .verdict {
+  margin-top: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--sig);
+  border-radius: var(--r-card);
+  background: var(--surf);
+}
+.split .verdict p { max-width: 76ch; margin: 8px 0 0; color: var(--ink2); font-size: var(--t-body); line-height: 1.6; }
+.split .verdict p b { color: var(--ink); }
+.split .degraded {
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--dn);
+  border-radius: var(--r-card);
+  background: var(--surf);
+}
+.split .degraded p { max-width: 84ch; margin: 6px 0 0; color: var(--ink2); font-size: var(--t-body); line-height: 1.5; }
+.split .ans {
+  margin-top: 18px;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--sig);
+  border-radius: var(--r-card);
+  background: var(--surf);
+}
+.split .ans .asked { margin-bottom: 12px; font-size: 15px; font-weight: 620; }
+.split .ans p { max-width: 78ch; margin: 12px 0 0; color: var(--ink2); font-size: var(--t-body); line-height: 1.62; white-space: pre-wrap; }
+.split .ans p:first-of-type { margin-top: 0; }
+.split .ans p b { color: var(--ink); }
+.split .ans p.streaming::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  margin-left: 5px;
+  background: var(--sig);
+  vertical-align: -.15em;
+  animation: blink 1s steps(1) infinite;
+}
+.split .used { margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); }
+.split .used .ctag { display: block; margin-bottom: 8px; color: var(--mut); font-size: 12.5px; }
+.split .evline { display: flex; justify-content: space-between; gap: 18px; padding: 7px 0; color: var(--ink2); font-size: 13px; line-height: 1.45; }
+.split .evline span:last-child { flex: none; color: var(--mut); font-size: 11.5px; text-align: right; }
+.split .excluded { margin: 12px 0 0; padding-left: 12px; border-left: 2px solid var(--sig); color: var(--mut); font-size: 13px; }
+.split .composer { max-width: 760px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
+.split .composer label { display: block; margin-bottom: 9px; font-size: 14px; font-weight: 560; }
+.split .composer-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+.split .composer-row input {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line2);
+  border-radius: var(--r-control);
+  background: var(--page);
+  color: var(--ink);
+  font-size: 14.5px;
+}
+.split .composer-row input::placeholder { color: var(--faint); }
+.split .composer-row button {
+  min-width: 96px;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: var(--sig);
+  color: #101112;
+  font-size: 14.5px;
+  font-weight: 640;
+}
+.split .composer-row button:hover:not(:disabled) { background: #ffc23f; }
+.split .kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--line2);
+  border-radius: 4px;
+  color: var(--mut);
+  font-family: var(--mono);
+  font-size: 10.5px;
+}

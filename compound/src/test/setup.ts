@@ -6,6 +6,11 @@ import { afterEach } from "vitest";
 // never registers itself. Without this, one test's DOM leaks into the next.
 afterEach(cleanup);
 
+// Hidden industries are written to local storage, and jsdom keeps that between
+// tests in a file. One test switching an industry off used to hide it from
+// every test that ran after it.
+afterEach(() => localStorage.clear());
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { Snapshot } from "../../types";
+import { useSplit } from "../DeviceProvider";
 
 interface Props {
   snapshot: Snapshot;
@@ -10,11 +11,12 @@ interface Props {
 }
 
 /**
- * Every industry in the run gets a toggle. Turning one off hides it on Stocks
- * and in the Shifts industry map, and the setting follows the member rather
- * than the browser.
+ * Every industry in today's run gets a switch. Turning one off hides it on
+ * Stocks and in the industry list on Trends, and the setting follows you
+ * rather than the browser you happened to open.
  */
 export function SettingsSheet({ snapshot, excluded, saveError, onToggle, onClearAll }: Props) {
+  const split = useSplit();
   const [filter, setFilter] = useState("");
   const hidden = new Set(excluded);
 
@@ -33,50 +35,54 @@ export function SettingsSheet({ snapshot, excluded, saveError, onToggle, onClear
   const shown = needle ? industries.filter((entry) => entry.industry.toLowerCase().includes(needle)) : industries;
 
   return (
-    <div className="pad">
-      <h2 className="big nomargin">Industries</h2>
-      <p className="sub">Turn off anything you never want to see. Applies everywhere.</p>
+    <div className="page">
+      <h2 className="big nomargin">What you want to see</h2>
+      <p className="sub">Switch off any industry you never want to look at. It disappears everywhere in the app.</p>
 
       <div className="settingsbar">
         <input
           type="search"
-          aria-label="Filter industries"
-          placeholder={`Filter ${industries.length} industries`}
+          aria-label="Search industries"
+          placeholder={`Search ${industries.length} industries`}
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
         />
         <button type="button" className="pill" onClick={onClearAll} disabled={excluded.length === 0}>
-          Show all
+          Show all again
         </button>
       </div>
 
       <p className="eyebrow">
         {excluded.length === 0 ? "Nothing hidden" : `${excluded.length} hidden`}
-        {needle && ` · ${shown.length} matching`}
+        {needle && ` · ${shown.length} match`}
       </p>
       {saveError && <p className="dn small">{saveError}</p>}
 
       <div className="rowbox">
-        {shown.length === 0 && <p className="sub empty">No industry matches that.</p>}
-        {shown.map((entry) => {
-          const visible = !hidden.has(entry.industry);
-          return (
-            <button
-              type="button"
-              className="tog toggle"
-              key={entry.industry}
-              role="switch"
-              aria-checked={visible}
-              onClick={() => onToggle(entry.industry)}
-            >
-              <span>
-                <span className="tn">{entry.industry}</span>
-                <span className="ts">{entry.names === 0 ? "no names today" : `${entry.names} ${entry.names === 1 ? "name" : "names"}`}</span>
-              </span>
-              <span className={visible ? "sw on" : "sw"} aria-hidden="true"><i /></span>
-            </button>
-          );
-        })}
+        <div className={split ? "toglist" : undefined}>
+          {shown.length === 0 && <p className="sub empty">No industry matches that.</p>}
+          {shown.map((entry) => {
+            const visible = !hidden.has(entry.industry);
+            return (
+              <button
+                type="button"
+                className="tog toggle"
+                key={entry.industry}
+                role="switch"
+                aria-checked={visible}
+                onClick={() => onToggle(entry.industry)}
+              >
+                <span>
+                  <span className="tn">{entry.industry}</span>
+                  <span className="ts">
+                    {entry.names === 0 ? "nothing today" : `${entry.names} ${entry.names === 1 ? "company" : "companies"}`}
+                  </span>
+                </span>
+                <span className={visible ? "sw on" : "sw"} aria-hidden="true"><i /></span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -1,8 +1,22 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fixture } from "../test/snapshot-fixture";
 import type { TabKey } from "../types";
 import { Shell } from "./Shell";
+
+/**
+ * jsdom reports every media query as false, so these render the stack system.
+ * `asSplit` flips the two queries the device hook reads, which is how the
+ * desktop system gets covered without a browser.
+ */
+function asSplit() {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: query.includes("min-width: 900px") || query.includes("min-width: 1400px"),
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+}
 
 function renderShell(tab: TabKey = "now") {
   const onTab = vi.fn();
@@ -10,51 +24,56 @@ function renderShell(tab: TabKey = "now") {
   return { onTab, view };
 }
 
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
 describe("Shell", () => {
   it("offers all five sections and reports the current one", () => {
     const { onTab } = renderShell();
     const nav = screen.getByRole("navigation", { name: "Sections" });
-    for (const name of ["Now", "Shifts", "Stocks", "Mine", "Ask"]) {
+    for (const name of ["Today", "Trends", "Stocks", "Money", "Ask"]) {
       expect(within(nav).getByRole("button", { name })).toBeInTheDocument();
     }
-    expect(within(nav).getByRole("button", { name: "Now" })).toHaveAttribute("aria-current", "page");
+    expect(within(nav).getByRole("button", { name: "Today" })).toHaveAttribute("aria-current", "page");
 
     fireEvent.click(within(nav).getByRole("button", { name: "Stocks" }));
     expect(onTab).toHaveBeenCalledWith("stocks");
   });
 
-  it("leads with a forward claim and keeps the working collapsed", () => {
+  it("leads with a forward claim and keeps the working folded away", () => {
     renderShell();
-    expect(screen.getByRole("heading", { name: "Three things that could matter next." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "What changed while you were away." })).toBeInTheDocument();
 
     const card = screen.getByRole("button", { name: /should be dying/ });
     expect(card).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(card);
     expect(card).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText(/FMP income statements/)).toBeVisible();
+    expect(screen.getByText(/Company accounts through FMP/)).toBeVisible();
   });
 
-  it("splits stocks by whether independent sources agree", () => {
+  it("splits stocks by whether the checks agree", () => {
     renderShell("stocks");
-    expect(screen.getByRole("heading", { name: "Sources agree" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Price is on its own" })).toBeInTheDocument();
-    // Palantir has price, analysts and news pointing the same way.
+    expect(screen.getByRole("heading", { name: "Most checks agree" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Only the price says so" })).toBeInTheDocument();
+    // Palantir has price, experts and news pointing the same way.
     expect(screen.getByRole("button", { name: /PLTR/ })).toBeInTheDocument();
   });
 
   it("opens a stock as a sheet with a way back, not a new route", () => {
     renderShell("stocks");
     fireEvent.click(screen.getByRole("button", { name: /PLTR/ }));
-    expect(screen.getByRole("button", { name: "← Back" })).toBeInTheDocument();
-    expect(screen.getByText("What it would take")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
+    expect(screen.getByText("What would change this")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "← Back" }));
-    expect(screen.getByRole("heading", { name: "What looks worth the work." })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByRole("heading", { name: "Which ones have real backing." })).toBeInTheDocument();
   });
 
   it("hides an industry everywhere once it is switched off", () => {
     renderShell("stocks");
-    const before = screen.getByText(/^\d+ names/).textContent ?? "";
+    const before = screen.getByText(/^\d+ companies/).textContent ?? "";
 
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
     const toggle = screen.getByRole("switch", { name: /Software - Infrastructure/ });
@@ -62,8 +81,8 @@ describe("Shell", () => {
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-checked", "false");
 
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
-    const after = screen.getByText(/^\d+ names/).textContent ?? "";
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    const after = screen.getByText(/^\d+ companies/).textContent ?? "";
     expect(after).not.toBe(before);
     expect(after).toContain("1 industry hidden");
     expect(screen.queryByRole("button", { name: /PLTR/ })).not.toBeInTheDocument();
@@ -72,33 +91,80 @@ describe("Shell", () => {
   it("hands a card's question to Ask and answers it", () => {
     const { onTab, view } = renderShell();
     fireEvent.click(screen.getByRole("button", { name: /should be dying/ }));
-    fireEvent.click(screen.getAllByRole("button", { name: "Ask about this →" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Ask about this" })[0]);
     expect(onTab).toHaveBeenCalledWith("ask");
 
     // The parent owns the tab, so replay what it would do next.
     view.rerender(<Shell snapshot={fixture} config={{ mode: "demo" }} session={null} tab="ask" onTab={onTab} />);
     expect(screen.getByRole("heading", { name: "Ask." })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "What is my biggest risk?" }));
-    expect(screen.getByText(/Concentration/)).toBeInTheDocument();
-    expect(screen.getByText("What this used")).toBeInTheDocument();
+    expect(screen.getByText(/Having too much in one thing/)).toBeInTheDocument();
+    expect(screen.getByText("Where this came from")).toBeInTheDocument();
   });
 
-  it("drills from a theme into the companies on each side", () => {
+  it("drills from a trend into the companies on each side", () => {
     renderShell("shifts");
-    expect(screen.getByRole("heading", { name: "The forces." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "The three forces." })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /AI chips against it services/i }));
-    fireEvent.click(screen.getAllByRole("button", { name: "See both sides →" })[0]);
-    expect(screen.getByText("story says wins")).toBeInTheDocument();
-    expect(screen.getByText("story says loses")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /AI chips against IT services/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: "See both sides" })[0]);
+    expect(screen.getByText("the story says this side wins")).toBeInTheDocument();
+    expect(screen.getByText("the story says this side loses")).toBeInTheDocument();
     expect(screen.getByText("CTSH")).toBeInTheDocument();
   });
 
   it("groups industries by direction first, never by a bounce", () => {
     renderShell("shifts");
-    const group = screen.getByRole("group", { name: "Industry group" });
-    expect(within(group).getByRole("button", { name: /Rising, still cheap 27/ })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(within(group).getByRole("button", { name: /Falling, pace easing 17/ }));
+    const group = screen.getByRole("group", { name: "Which group" });
+    expect(within(group).getByRole("button", { name: /Going up, still cheap \(27\)/ })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(within(group).getByRole("button", { name: /Going down, but slowing \(17\)/ }));
     expect(screen.getByText(/Still down over three months/)).toBeInTheDocument();
+  });
+});
+
+describe("device systems", () => {
+  it("puts the tabs at the bottom and the detail over the screen on a phone", () => {
+    renderShell("stocks");
+    expect(document.querySelector(".shell.stack")).toBeInTheDocument();
+    expect(document.querySelector(".botnav")).toBeInTheDocument();
+    expect(document.querySelector(".sidenav")).not.toBeInTheDocument();
+    // No column headings: a phone list has no columns to head.
+    expect(document.querySelector(".dthead")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /PLTR/ }));
+    expect(document.querySelector(".sheet")).toBeInTheDocument();
+    expect(document.querySelector(".panel")).not.toBeInTheDocument();
+  });
+
+  it("puts the sections in a rail and the detail beside the list on a desktop", () => {
+    asSplit();
+    renderShell("stocks");
+    expect(document.querySelector(".shell.split")).toBeInTheDocument();
+    expect(document.querySelector(".sidenav")).toBeInTheDocument();
+    expect(document.querySelector(".botnav")).not.toBeInTheDocument();
+    // The rail has room for the long section names and what each one is for.
+    const nav = screen.getByRole("navigation", { name: "Sections" });
+    expect(within(nav).getByText("My money")).toBeInTheDocument();
+    expect(within(nav).getByText("What you own and what it is doing")).toBeInTheDocument();
+    expect(document.querySelector(".dthead")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /PLTR/ }));
+    expect(document.querySelector(".panel")).toBeInTheDocument();
+    expect(document.querySelector(".sheet")).not.toBeInTheDocument();
+    // The list stays on screen next to the panel rather than being covered.
+    expect(screen.getByRole("heading", { name: "Which ones have real backing." })).toBeInTheDocument();
+  });
+
+  it("moves between sections with the number keys on a desktop", () => {
+    asSplit();
+    const { onTab } = renderShell();
+    fireEvent.keyDown(window, { key: "3" });
+    expect(onTab).toHaveBeenCalledWith("stocks");
+  });
+
+  it("leaves the number keys alone on a phone, where there is no keyboard", () => {
+    const { onTab } = renderShell();
+    fireEvent.keyDown(window, { key: "3" });
+    expect(onTab).not.toHaveBeenCalled();
   });
 });

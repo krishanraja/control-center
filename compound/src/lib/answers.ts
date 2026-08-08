@@ -4,12 +4,12 @@ import { themesFor } from "./migration";
 import type { Snapshot } from "../types";
 
 /**
- * The offline answer set. Every sentence is built from the snapshot, so the
- * numbers in an answer are the same numbers the cards showed and the sources
- * named underneath are the feeds they came from.
+ * The answers that work without a live session. Every sentence is built from
+ * the snapshot, so the numbers in an answer are the numbers the cards showed
+ * and the sources named underneath are the feeds they came from.
  *
  * In live mode these questions go to the model instead. This set is what makes
- * the surface usable without a session and what the QA pass asserts against.
+ * the surface usable without a session and what the QA pass checks against.
  */
 
 export interface Answer {
@@ -30,31 +30,31 @@ export function buildAnswers(snapshot: Snapshot): Answer[] {
 
   if (theme?.beneficiary && theme.disrupted) {
     answers.push({
-      question: `Is AI actually hurting ${theme.definition.disrupted} revenue yet?`,
+      question: `Is AI actually hurting ${theme.definition.disrupted} yet?`,
       paragraphs: [
-        `**Not in the numbers.** ${theme.disrupted.members.map((member) => `${member.symbol} went from ${pct1(member.prev)} to ${pct1(member.now)}`).join(", ")}. Every one of them accelerated in the latest full year filed.`,
-        `${theme.definition.beneficiary} growth went the other way, from **${pct1(theme.beneficiary.avgPrev)}** to **${pct1(theme.beneficiary.avgGrowth)}**. The gap is still **${plain1(theme.gap)}** but it is ${theme.gapDelta != null && theme.gapDelta < 0 ? "closing" : "widening"} by **${plain1(Math.abs(theme.gapDelta ?? 0))}** a year.`,
-        `So the story is ahead of the filings. Either the disrupted group is being paid to build the thing meant to replace it, or the spending is a one-off and growth rolls over. Watch for the first quarter where growth turns down. That is the real signal, not the headlines.`,
+        `**Not in the numbers.** ${theme.disrupted.members.map((member) => `${member.symbol} went from ${pct1(member.prev)} to ${pct1(member.now)}`).join(", ")}. Every one of them sold more, faster, in the last full year they reported.`,
+        `${theme.definition.beneficiary} went the other way, from **${pct1(theme.beneficiary.avgPrev)}** down to **${pct1(theme.beneficiary.avgGrowth)}**. One side is still growing **${plain1(theme.gap)}** faster than the other, but that gap is ${theme.gapDelta != null && theme.gapDelta < 0 ? "closing" : "getting wider"} by **${plain1(Math.abs(theme.gapDelta ?? 0))}** a year.`,
+        `So the story is running ahead of the accounts. Either the losing side is getting paid to build the very thing meant to replace it, or the spending is a one off and sales drop back. Watch for the first three months where sales growth turns down. That is the real signal, not the headlines.`,
       ],
       evidence: [
-        { label: `${theme.definition.disrupted} revenue growth, latest full year filed`, source: "FMP income statements" },
-        { label: `${theme.definition.beneficiary} revenue growth, latest full year filed`, source: "FMP income statements" },
+        { label: `${theme.definition.disrupted} sales growth, last full year reported`, source: "Company accounts through FMP" },
+        { label: `${theme.definition.beneficiary} sales growth, last full year reported`, source: "Company accounts through FMP" },
       ],
     });
   }
 
   if (unsupported.length) {
     answers.push({
-      question: "Which stocks are moving without any support?",
+      question: "Which stocks are moving with nothing behind them?",
       paragraphs: [
-        `**${unsupported.map((row) => row.symbol).join(" and ")}.** ${unsupported.map((row) => `${row.symbol} is ${(row.m1 ?? 0) > 0 ? "up" : "down"} ${pct1(row.m1)} in a month`).join(", and ")}. In each case the price is the only one of the four sources pointing that way.`,
-        `${unsupported[0].symbol} is the clearest. ${unsupported[0].signals.analysts < 0 ? "Analysts cut their positive count" : "Analysts have no view"}${unsupported[0].sent != null ? `, and 30-day news sentiment is ${unsupported[0].sent.toFixed(2)}` : ""}. ${unsupported[0].breadth != null ? `Only ${unsupported[0].breadth}% of ratings are positive.` : ""}`,
-        `Compare that with **${strong[0]?.symbol ?? "the agreeing group"}**, where ${strong[0]?.agree ?? 0} of ${strong[0]?.total ?? 0} sources point the same way. Both look like a move on a chart. Only one has evidence underneath it.`,
+        `**${unsupported.map((row) => row.symbol).join(" and ")}.** ${unsupported.map((row) => `${row.symbol} is ${(row.m1 ?? 0) > 0 ? "up" : "down"} ${pct1(row.m1)} in a month`).join(", and ")}. In both cases the price is the only one of the four checks pointing that way.`,
+        `${unsupported[0].symbol} is the clearest. ${unsupported[0].signals.analysts < 0 ? "Fewer experts are positive than were before" : "Experts have no view either way"}${unsupported[0].sent != null ? `, and the news over 30 days scores ${unsupported[0].sent.toFixed(2)}` : ""}. ${unsupported[0].breadth != null ? `Only ${unsupported[0].breadth}% of experts rate it a buy.` : ""}`,
+        `Compare that with **${strong[0]?.symbol ?? "the ones that agree"}**, where ${strong[0]?.agree ?? 0} of ${strong[0]?.total ?? 0} checks point the same way. Both look like a move on a chart. Only one of them has anything underneath it.`,
       ],
       evidence: [
-        { label: "1 month price move", source: "FMP stock price change" },
-        { label: "Change in positive analyst ratings", source: "FMP grades history" },
-        { label: "30 day mean news sentiment", source: "Marketaux entity sentiment" },
+        { label: "How the price moved over one month", source: "FMP price history" },
+        { label: "Whether more experts turned positive", source: "FMP ratings history" },
+        { label: "How positive the news was over 30 days", source: "Marketaux news scores" },
       ],
     });
   }
@@ -63,13 +63,13 @@ export function buildAnswers(snapshot: Snapshot): Answer[] {
     answers.push({
       question: `Who actually wins in ${theme.definition.name}?`,
       paragraphs: [
-        `Follow the margin. ${theme.definition.beneficiary} earns **${plain1(theme.beneficiary.avgGm)}** gross margin. ${theme.definition.disrupted} earns **${plain1(theme.disrupted.avgGm)}**. That difference is the whole argument: one side sells something scarce, the other sells hours.`,
-        `But the growth is moving the other way. ${theme.definition.disrupted} is accelerating by **${pct1(theme.disrupted.avgDelta)}** a year while ${theme.definition.beneficiary} decelerated by **${pct1(theme.beneficiary.avgDelta)}**. High margin and slowing beats low margin and slowing, but it does not obviously beat low margin and speeding up at a fraction of the price.`,
-        `The names on each side are in the theme sheet on the Shifts tab, with what each one filed.`,
+        `Follow the profit. ${theme.definition.beneficiary} keeps **${plain1(theme.beneficiary.avgGm)}** of every dollar it sells. ${theme.definition.disrupted} keeps **${plain1(theme.disrupted.avgGm)}**. That difference is the whole argument: one side sells something hard to copy, the other sells hours of people's time.`,
+        `The growth is moving the other way though. ${theme.definition.disrupted} is speeding up by **${pct1(theme.disrupted.avgDelta)}** a year while ${theme.definition.beneficiary} is slowing by **${pct1(theme.beneficiary.avgDelta)}**. Keeping more profit while slowing beats keeping less while slowing. It does not obviously beat keeping less while speeding up at a fraction of the price.`,
+        `The companies on each side are on the Trends screen, with what each one reported.`,
       ],
       evidence: [
-        { label: "Gross margin by group", source: "FMP income statements" },
-        { label: "Revenue growth change by group", source: "FMP financial growth" },
+        { label: "Profit kept per dollar of sales, by side", source: "Company accounts through FMP" },
+        { label: "Change in sales growth, by side", source: "Company accounts through FMP" },
       ],
     });
   }
@@ -78,14 +78,14 @@ export function buildAnswers(snapshot: Snapshot): Answer[] {
     answers.push({
       question: `What would tell me ${largest.name} is actually recovering?`,
       paragraphs: [
-        `One number: **fee income**. It is **${usd(solana.fees30d)}** over 30 days against **${usd(averageMonth)}** for the average month of the past year, so the last month ran **${plain1(averageMonth && solana.fees30d != null ? Math.abs(((solana.fees30d - averageMonth) / averageMonth) * 100) : null)} below** that pace.`,
-        `Fees are what people pay to use the network, so they are the closest thing it has to revenue. Price can rise without them. Usage cannot.`,
-        `The test is three straight weeks of rising fees. Deposits are **${usd(solana.tvl)}** and have not left, so the capital is there and idle. You hold **${aud(largest.valueAud)}**, **${largest.pct}%** of everything you own, which is why this one number matters more than any other on the screen.`,
+        `One number: **fee income**. It came to **${usd(solana.fees30d)}** over 30 days against **${usd(averageMonth)}** in a normal month of the past year, so the last month ran **${plain1(averageMonth && solana.fees30d != null ? Math.abs(((solana.fees30d - averageMonth) / averageMonth) * 100) : null)} below** that pace.`,
+        `Fees are what people pay to use the network, so they are the closest thing it has to sales. The price can go up without them. Actual use cannot.`,
+        `The test is three weeks of rising fees in a row. There is **${usd(solana.tvl)}** sitting in its apps and it has not left, so the money is there and doing nothing. You own **${aud(largest.valueAud)}** of it, **${largest.pct}%** of everything you have, which is why this one number matters more than anything else on these screens.`,
       ],
       evidence: [
-        { label: "Fee income, 30 days and 1 year", source: "DefiLlama" },
-        { label: "Deposits held in apps", source: "DefiLlama" },
-        { label: "Position size", source: "Your holdings" },
+        { label: "Fee income, 30 days and one year", source: "DefiLlama" },
+        { label: "Money parked in its apps", source: "DefiLlama" },
+        { label: "How much of it you own", source: "What you entered" },
       ],
     });
   }
@@ -93,13 +93,13 @@ export function buildAnswers(snapshot: Snapshot): Answer[] {
   answers.push({
     question: "What is my biggest risk?",
     paragraphs: [
-      `Concentration. **${snapshot.portfolio.largest}** is **${snapshot.portfolio.largestPct}%** of everything you own and crypto in total is **${plain1(snapshot.portfolio.cryptoPct)}**. Those positions tend to move together, so the real exposure is one bet wearing several names.`,
-      `The second risk is the setting rather than the holdings. The 1 year bond pays **${plain1(snapshot.macro.y1)}** against a **${plain1(snapshot.macro.fedFunds)}** cash rate, so the market expects money to get dearer, not cheaper. After inflation the 10 year pays **${plain1(snapshot.macro.real10)}** against **${plain1(snapshot.macro.real10_1y)}** a year ago. Assets that pay nothing now are worth less in that world.`,
-      `You have **${aud(snapshot.portfolio.cashAud)}** in cash, which is the thing that makes the concentration survivable rather than fatal.`,
+      `Having too much in one thing. **${snapshot.portfolio.largest}** is **${snapshot.portfolio.largestPct}%** of everything you own, and crypto altogether is **${plain1(snapshot.portfolio.cryptoPct)}**. Those coins tend to rise and fall together, so it is really one bet wearing several names.`,
+      `The second risk is the setting rather than the holdings. Lending to the US government for a year pays **${plain1(snapshot.macro.y1)}** while cash pays **${plain1(snapshot.macro.fedFunds)}**, so the market expects borrowing to get dearer, not cheaper. Over 10 years it pays **${plain1(snapshot.macro.real10)}** once price rises are taken out, against **${plain1(snapshot.macro.real10_1y)}** a year ago. Anything that pays you nothing today is worth less in that world.`,
+      `You have **${aud(snapshot.portfolio.cashAud)}** in cash, which is the thing that makes all of the above survivable instead of fatal.`,
     ],
     evidence: [
-      { label: "Position sizes and crypto share", source: "Your holdings" },
-      { label: "Cash rate, 1 year and real 10 year", source: "FRED and US Treasury" },
+      { label: "What you own and how much is crypto", source: "What you entered" },
+      { label: "What cash and government loans pay", source: "US Federal Reserve data and the US Treasury" },
     ],
   });
 

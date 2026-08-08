@@ -10,6 +10,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "qa:ux": "node e2e/ux-verify.mjs",
+    "qa:language": "node e2e/language-check.mjs",
+    "qa:render": "node e2e/render-evidence.mjs",
     "qa:auth": "node e2e/auth-responsive.mjs",
     "qa:auth-live": "node e2e/magic-word-live.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",

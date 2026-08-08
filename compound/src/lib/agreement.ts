@@ -1,7 +1,8 @@
 import type { AgreementRow, SignalName, SignalVote, Signals } from "../types";
 
 /**
- * Agreement: four independent signals per company, each voting +1, -1 or 0.
+ * Agreement: four independent checks per company, each voting +1, -1 or 0.
+ * The reader sees them as Price, Experts, News and Sales. See lib/words.ts.
  *
  *   price     +1 if the 1-month move > +2%, -1 if < -2%      (stock-price-change)
  *   analysts  +1 if the positive-rating count rose against    (grades-historical)
@@ -21,10 +22,10 @@ import type { AgreementRow, SignalName, SignalVote, Signals } from "../types";
 export const SIGNAL_ORDER: SignalName[] = ["price", "analysts", "news", "revenue"];
 
 export const SIGNAL_SOURCES: Record<SignalName, string> = {
-  price: "1 month price move",
-  analysts: "change in positive ratings",
-  news: "30 day news sentiment",
-  revenue: "latest filed revenue growth",
+  price: "how the price moved over one month",
+  analysts: "whether more experts turned positive",
+  news: "how positive the news was over 30 days",
+  revenue: "how fast sales grew last year",
 };
 
 export interface Contested {
@@ -109,31 +110,31 @@ export function agreementLabel(row: AgreementRow | undefined): string {
   if (!row) return "no data";
   const state = contested(row);
   if (state.priceAlone) return "price disagrees";
-  if (state.noBackers) return "price only";
-  if (state.split) return "sources disagree";
-  if (state.thin) return row.total === 0 ? "no signal yet" : "one source only";
-  return `${row.agree} of ${row.total} agree`;
+  if (state.noBackers) return "only the price";
+  if (state.split) return "the checks disagree";
+  if (state.thin) return row.total === 0 ? "nothing to go on" : "only one check";
+  return `${row.agree} of ${row.total} checks agree`;
 }
 
 /** What would have to change for the reading to flip. */
 export function whatItWouldTake(row: AgreementRow): string {
   const state = contested(row);
   if (state.priceAlone) {
-    return "The price is moving without the other sources. Analysts turning positive, or news sentiment crossing back above zero, would make this a real move rather than a drift.";
+    return "The price is moving and the other three checks point the other way. Experts turning positive, or the news going from bad to good, would make this a real move instead of a drift.";
   }
   if (state.noBackers) {
-    return "Nothing except the price has an opinion. One analyst revision or a week of news coverage would give this its first piece of independent support.";
+    return "Only the price has anything to say. One expert changing their rating, or a week of news coverage, would give this its first bit of outside support.";
   }
   if (state.split) {
-    return "Sources disagree, so this is a coin flip dressed as a trend. Wait for news and analysts to land on the same side.";
+    return "The checks disagree, so this is a coin toss dressed up as a trend. Wait until the news and the experts land on the same side.";
   }
   if (state.thin) {
-    return "Only one source has an opinion so far. A second signal turning the same way would make this worth attention.";
+    return "Only one check has a view so far. A second one pointing the same way would make this worth your time.";
   }
   if (row.agree >= 3) {
-    return "Three of four sources already agree. The thing that would break it is analysts starting to cut, because ratings turn before revenue does.";
+    return "Three of the four checks already agree. What would break it is experts starting to downgrade, because ratings usually turn before sales do.";
   }
-  return "Two sources agree. A third turning the same way would make this worth real attention.";
+  return "Two checks agree. A third one turning the same way would make this worth a proper look.";
 }
 
 export function splitByBacking(rows: AgreementRow[]): { strong: AgreementRow[]; alone: AgreementRow[] } {

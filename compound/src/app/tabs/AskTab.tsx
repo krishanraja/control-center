@@ -7,6 +7,8 @@ import { loadAskSnapshotId } from "../../lib/askSnapshot";
 import { streamCompoundAnswer } from "../../lib/stream";
 import { getSupabase } from "../../lib/supabase";
 import type { ChatEvidence, Snapshot } from "../../types";
+import { useSplit } from "../DeviceProvider";
+import { ChevronIcon } from "../components/Icons";
 import { RichText } from "../components/RichText";
 
 interface Props {
@@ -19,6 +21,7 @@ interface Props {
 }
 
 export function AskTab({ snapshot, config, session, pending, onConsumed }: Props) {
+  const split = useSplit();
   const answers = useMemo(() => buildAnswers(snapshot), [snapshot]);
   const [input, setInput] = useState("");
   const [question, setQuestion] = useState("");
@@ -43,10 +46,10 @@ export function AskTab({ snapshot, config, session, pending, onConsumed }: Props
       .then((id) => {
         if (!mounted) return;
         setAskId(id);
-        if (!id) setAskIdError("There is no stored view to answer against yet, so live answers are off today.");
+        if (!id) setAskIdError("There are no saved numbers to answer against yet, so live answers are off today.");
       })
       .catch((reason: unknown) => {
-        if (mounted) setAskIdError(reason instanceof Error ? reason.message : "Live answers are unavailable.");
+        if (mounted) setAskIdError(reason instanceof Error ? reason.message : "Live answers are not available.");
       });
     return () => { mounted = false; };
   }, [config, live, session]);
@@ -67,8 +70,8 @@ export function AskTab({ snapshot, config, session, pending, onConsumed }: Props
       setOffline(canned ?? null);
       if (!canned) {
         setError(live
-          ? (askIdError || "Live answers are not connected, so only the suggested questions can be answered.")
-          : "That one needs a live session. Pick one of the suggested questions to see how answers are put together.");
+          ? (askIdError || "Live answers are not connected, so only the questions below can be answered right now.")
+          : "That one needs you to be signed in. Pick a question below to see how an answer gets built.");
       }
       return;
     }
@@ -94,7 +97,7 @@ export function AskTab({ snapshot, config, session, pending, onConsumed }: Props
         controller.signal,
       );
     } catch (reason) {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "COMPOUND could not answer right now.");
+      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "COMPOUND could not answer just now.");
     } finally {
       abortRef.current = null;
       setBusy(false);
@@ -117,70 +120,96 @@ export function AskTab({ snapshot, config, session, pending, onConsumed }: Props
 
   const answered = Boolean(offline || streamed || busy || error);
 
-  return (
-    <>
-      <p className="eyebrow">Follow anything up</p>
-      <h2 className="big">Ask.</h2>
-      <p className="sub">Answers use today's data and show what they used.</p>
+  const suggestions = (
+    <div className="pills">
+      {answers.map((answer) => (
+        <button key={answer.question} type="button" className="pill" onClick={() => void ask(answer.question)}>
+          {answer.question}
+          <ChevronIcon />
+        </button>
+      ))}
+    </div>
+  );
 
-      <div className="pills">
-        {answers.map((answer) => (
-          <button key={answer.question} type="button" className="pill" onClick={() => void ask(answer.question)}>
-            {answer.question}
-          </button>
-        ))}
+  const composer = (
+    <form className="composer" onSubmit={submit}>
+      <label htmlFor="ask-input">{question ? "Ask another question" : "Ask your own question"}</label>
+      <div className="composer-row">
+        <input
+          id="ask-input"
+          name="question"
+          autoComplete="off"
+          maxLength={800}
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder="Type your question here"
+        />
+        <button type="submit" disabled={busy || !input.trim()}>Ask</button>
       </div>
+    </form>
+  );
 
-      {answered && (
-        <div className="ans" aria-live="polite">
-          <div className="eyebrow">{question}</div>
-          {busy && !streamed && <p className="mut">Answering now…</p>}
-          {offline?.paragraphs.map((paragraph) => <p key={paragraph}><RichText text={paragraph} /></p>)}
-          {streamed && <p className={busy ? "streaming" : undefined}>{streamed}</p>}
-          {error && <p className="dn">{error}</p>}
+  const answer = answered && (
+    <div className="ans" aria-live="polite">
+      <div className="asked">{question}</div>
+      {busy && !streamed && <p className="mut">Working on it…</p>}
+      {offline?.paragraphs.map((paragraph) => <p key={paragraph}><RichText text={paragraph} /></p>)}
+      {streamed && <p className={busy ? "streaming" : undefined}>{streamed}</p>}
+      {error && <p className="dn">{error}</p>}
 
-          {(offline || evidence.length > 0) && (
-            <div className="used">
-              <div className="ctag">What this used</div>
-              {offline?.evidence.map((item) => (
-                <div className="evline" key={item.label}>
-                  <span>{item.label}</span>
-                  <span className="mono mut">{item.source}</span>
-                </div>
-              ))}
-              {evidence.map((item) => (
-                <div className="evline" key={item.id}>
-                  <span>{item.label}</span>
-                  <span className="mono mut">{item.source} · checked {item.checkedAt}</span>
-                </div>
-              ))}
+      {(offline || evidence.length > 0) && (
+        <div className="used">
+          <div className="ctag">Where this came from</div>
+          {offline?.evidence.map((item) => (
+            <div className="evline" key={item.label}>
+              <span>{item.label}</span>
+              <span className="mono mut">{item.source}</span>
             </div>
-          )}
-          {excluded.map((item) => <p className="excluded" key={item}>{item}</p>)}
+          ))}
+          {evidence.map((item) => (
+            <div className="evline" key={item.id}>
+              <span>{item.label}</span>
+              <span className="mono mut">{item.source} · checked {item.checkedAt}</span>
+            </div>
+          ))}
         </div>
       )}
+      {excluded.map((item) => <p className="excluded" key={item}>{item}</p>)}
+    </div>
+  );
 
-      <form className="composer" onSubmit={submit}>
-        <label htmlFor="ask-input">{question ? "Ask another question" : "Ask a question"}</label>
-        <div className="composer-row">
-          <input
-            id="ask-input"
-            name="question"
-            autoComplete="off"
-            maxLength={800}
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="Ask anything about today's data"
-          />
-          <button type="submit" disabled={busy || !input.trim()}>Ask</button>
-        </div>
-      </form>
+  return (
+    <>
+      <p className="eyebrow">Ask about anything on these screens</p>
+      <h2 className="big">Ask.</h2>
+      <p className="sub">Every answer uses today's numbers and shows you where they came from.</p>
+
+      {/* The answer lands right under whatever you used to ask for it. A
+          desktop types at the top, so the box goes first. A phone taps a
+          suggestion with its thumb, so the suggestions go first and the
+          keyboard stays at the bottom of the screen where it opens. */}
+      {split
+        ? (
+          <>
+            {composer}
+            {answer}
+            <p className="eyebrow" style={{ marginTop: 26 }}>Or start with one of these</p>
+            {suggestions}
+          </>
+        )
+        : (
+          <>
+            {suggestions}
+            {answer}
+            {composer}
+          </>
+        )}
 
       <div className="footnote">
         {live && askId
-          ? "Live answers read today's stored view and cite the numbers behind them."
-          : "Suggested answers are built from the same file the cards read, so the numbers match."}{" "}
-        COMPOUND explains the data and never places a trade.
+          ? "Answers read today's saved numbers and name the ones they used."
+          : "The suggested answers are built from the same file the cards read, so the numbers always match."}{" "}
+        COMPOUND explains the numbers. It never buys or sells anything.
       </div>
     </>
   );
