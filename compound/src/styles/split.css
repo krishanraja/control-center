@@ -286,6 +286,9 @@
 .split .seg button:hover { border-color: var(--sig); color: var(--sig); }
 .split .seg button.on { border-color: var(--sig); background: var(--sig); color: #101112; font-weight: 620; }
 .split .seg .count { margin-left: 7px; font-family: var(--mono); font-size: 12px; opacity: .75; }
+/* Secondary control (industry groups on Trends): 80% of the base label size. */
+.split .seg.sm button { font-size: 10.8px; }
+.split .seg.sm .count { font-size: 9.6px; }
 .split .pills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin: 18px 0 6px; }
 .split .pill {
   display: flex;
@@ -451,6 +454,20 @@
 .split .sw i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #8d949e; transition: left .16s, background .16s; }
 .split .sw.on { background: rgb(250 178 25 / 32%); }
 .split .sw.on i { left: 19px; background: var(--sig); }
+/* Industry families: a header row (open control + family switch) with the
+   member industries indented beneath it when the family is opened. */
+.split .group { border-bottom: 1px solid var(--line); }
+.split .group:last-child { border-bottom: 0; }
+.split .grouprow { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.split .groupname { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 48px; padding: 10px 0 10px 16px; border: 0; background: none; text-align: left; }
+.split button.groupname:hover { background: var(--surf2); }
+.split .grouprow .sw { margin-right: 16px; }
+.split .chev { display: flex; flex: none; color: var(--mut); transition: transform .16s; }
+.split .chev.open { transform: rotate(90deg); }
+.split .chev svg { width: 16px; height: 16px; }
+.split .group .tog.member { padding-left: 36px; background: var(--surf2); }
+.split .group .tog.member:last-child { border-bottom: 0; }
+.split .sub.note { margin-top: 6px; color: var(--mut); }
 
 /* ---- verdicts, warnings, answers ---- */
 .split .verdict {

@@ -314,6 +314,10 @@
 }
 .stack .seg button.on { background: var(--sig); color: #101112; font-weight: 640; }
 .stack .seg .count { margin-left: calc(6 * var(--px)); font-family: var(--mono); font-size: calc(12.5 * var(--px)); opacity: .75; }
+/* A secondary control (the industry groups on Trends) sits below a primary one
+   and reads at 80% of its label size so the hierarchy is obvious at a glance. */
+.stack .seg.sm button { font-size: calc(12 * var(--px)); }
+.stack .seg.sm .count { font-size: calc(10 * var(--px)); }
 
 /* ---- suggested questions ---- */
 .stack .pills { display: grid; gap: calc(8 * var(--px)); margin: calc(18 * var(--px)) 0 calc(6 * var(--px)); }
@@ -471,6 +475,20 @@
 .stack .sw i { position: absolute; top: calc(3 * var(--px)); left: calc(3 * var(--px)); width: calc(22 * var(--px)); height: calc(22 * var(--px)); border-radius: 50%; background: #8d949e; transition: left .16s, background .16s; }
 .stack .sw.on { background: rgb(250 178 25 / 32%); }
 .stack .sw.on i { left: calc(21 * var(--px)); background: var(--sig); }
+/* Industry families: a header row (open control + family switch) with the
+   member industries indented beneath it when the family is opened. */
+.stack .group { border-bottom: calc(1 * var(--px)) solid var(--line); }
+.stack .group:last-child { border-bottom: 0; }
+.stack .grouprow { display: flex; align-items: center; justify-content: space-between; gap: calc(14 * var(--px)); }
+.stack .groupname { display: flex; align-items: center; gap: calc(10 * var(--px)); flex: 1; min-width: 0; min-height: calc(60 * var(--px)); padding: calc(13 * var(--px)) 0 calc(13 * var(--px)) calc(16 * var(--px)); border: 0; background: none; text-align: left; }
+.stack button.groupname:active { background: var(--surf2); }
+.stack .grouprow .sw { margin-right: calc(16 * var(--px)); }
+.stack .chev { display: flex; flex: none; color: var(--mut); transition: transform .16s; }
+.stack .chev.open { transform: rotate(90deg); }
+.stack .chev svg { width: calc(16 * var(--px)); height: calc(16 * var(--px)); }
+.stack .group .tog.member { padding-left: calc(38 * var(--px)); background: var(--surf2); }
+.stack .group .tog.member:last-child { border-bottom: 0; }
+.stack .sub.note { margin-top: calc(6 * var(--px)); color: var(--mut); }
 
 /* ---- verdicts, warnings, answers ---- */
 .stack .verdict {
