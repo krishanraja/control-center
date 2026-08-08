@@ -137,6 +137,10 @@
   letter-spacing: -.022em;
   line-height: 1.16;
 }
+/* One line, whatever the screen. The size gives way before the line does, and
+   the share of the viewport is set to leave about a tenth of the width spare,
+   because a phone renders this in Roboto and a laptop does not. */
+.stack h2.big.oneline { font-size: min(var(--t-title), 6.6vw); white-space: nowrap; }
 .stack h2.nomargin { margin-top: 0; }
 .stack .sub { margin: calc(10 * var(--px)) 0 0; color: var(--ink2); font-size: var(--t-lead); line-height: 1.45; }
 .stack .sub.empty { padding: calc(18 * var(--px)) calc(16 * var(--px)); color: var(--mut); font-size: var(--t-body); }

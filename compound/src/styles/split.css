@@ -137,6 +137,8 @@
   letter-spacing: -.026em;
   line-height: 1.14;
 }
+/* max-width in characters would wrap this one, so it does not apply here. */
+.split h2.big.oneline { max-width: none; white-space: nowrap; }
 .split h2.nomargin { margin-top: 0; }
 .split .sub { max-width: 68ch; margin: 10px 0 0; color: var(--ink2); font-size: var(--t-lead); line-height: 1.5; }
 .split .sub.empty { padding: 16px; color: var(--mut); font-size: var(--t-body); }

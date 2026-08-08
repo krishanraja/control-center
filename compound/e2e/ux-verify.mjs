@@ -221,6 +221,21 @@ async function checkNoSideways(page, name, device) {
   if (found.length) throw new Error(`${name} has content off the side: ${JSON.stringify(found)}`);
 }
 
+/**
+ * Headings marked one line have to hold one line. A Range over the text
+ * reports a rect per line box, so two rects means it wrapped, whatever the
+ * width or the device.
+ */
+async function checkOneLineHeadings(page, name) {
+  const wrapped = await page.evaluate(() => Array.from(document.querySelectorAll(".oneline")).flatMap((element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const lines = range.getClientRects().length;
+    return lines > 1 ? [{ text: (element.textContent ?? "").trim(), lines }] : [];
+  }));
+  if (wrapped.length) throw new Error(`${name} wrapped a one line heading: ${JSON.stringify(wrapped)}`);
+}
+
 /** Nothing a reader sees may be cut off with an ellipsis by the layout. */
 async function checkTruncation(page, name) {
   const clipped = await page.evaluate(() => Array.from(document.querySelectorAll(".rowname, .ch, .tn, h2, h3, .cnext, .sub"))
@@ -245,6 +260,7 @@ async function verifyTabs(page, device) {
     }
     await checkOverflow(page, `${label} section`, "while open");
     await checkNoSideways(page, `${label} section`, device);
+    await checkOneLineHeadings(page, `${label} section`);
     await checkTruncation(page, `${label} section`);
   }
   await nav.getByRole("button", { name: device.tabs.now, exact: true }).click();
@@ -252,7 +268,7 @@ async function verifyTabs(page, device) {
 
 /** Folded by default, one press to the working, source named next to it. */
 async function verifyCardDepth(page) {
-  await page.getByRole("heading", { name: "What changed while you were away." }).waitFor();
+  await page.getByRole("heading", { name: "Your AI Fund Strategist" }).waitFor();
   const card = page.locator(".chead").first();
   if (await card.getAttribute("aria-expanded") !== "false") throw new Error("A card was open before it was asked to be");
   await card.click();
@@ -385,7 +401,7 @@ async function verifyKeyboard(page, device) {
   await page.keyboard.press("Escape");
   if (await page.locator(device.detail).count()) throw new Error("Escape did not close the panel");
   await page.keyboard.press("1");
-  await page.getByRole("heading", { name: "What changed while you were away." }).waitFor();
+  await page.getByRole("heading", { name: "Your AI Fund Strategist" }).waitFor();
 }
 
 async function verifyEverything(page, device) {

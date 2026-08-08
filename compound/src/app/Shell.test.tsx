@@ -44,7 +44,7 @@ describe("Shell", () => {
 
   it("leads with a forward claim and keeps the working folded away", () => {
     renderShell();
-    expect(screen.getByRole("heading", { name: "What changed while you were away." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Your AI Fund Strategist" })).toBeInTheDocument();
 
     const card = screen.getByRole("button", { name: /should be dying/ });
     expect(card).toHaveAttribute("aria-expanded", "false");
