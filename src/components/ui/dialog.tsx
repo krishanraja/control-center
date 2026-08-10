@@ -1,0 +1,135 @@
+import * as React from 'react'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { X } from 'lucide-react'
+
+import { cn } from '@/lib/utils'
+
+// Vendored from Relume, re-skinned and taught two house rules Relume knows
+// nothing about.
+//
+// 1. THE MOBILE ZOOM CONTRACT. App.tsx renders the whole mobile tree inside
+//    `.mobile-zoom-root` (`zoom: 1.2`), which publishes `--z`. Radix portals to
+//    document.body by default, which sits OUTSIDE that wrapper, so a dialog
+//    would render at native scale against a 1.2x app. We portal into the zoom
+//    root when it exists, and size against `calc(100dvh / var(--z, 1))` so the
+//    box still fits the viewport. On desktop there is no zoom root and `--z` is
+//    unset, so both fall back to plain body / 100dvh with no special-casing.
+//
+// 2. MOTION. Relume ships `data-[state=open]:animate-in fade-in-0`, which are
+//    tailwindcss-animate classes this project does not install; they would
+//    silently compile to nothing. The house keyframes in index.css are used
+//    instead, and those are already switched off under prefers-reduced-motion.
+
+/** The mobile zoom wrapper, when the mobile shell is mounted. */
+function zoomRoot(): HTMLElement | undefined {
+  if (typeof document === 'undefined') return undefined
+  return (document.querySelector('.mobile-zoom-root') as HTMLElement | null) ?? undefined
+}
+
+const Dialog = DialogPrimitive.Root
+const DialogTrigger = DialogPrimitive.Trigger
+const DialogPortal = DialogPrimitive.Portal
+const DialogClose = DialogPrimitive.Close
+
+function DialogOverlay({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+  return (
+    <DialogPrimitive.Overlay
+      data-slot="dialog-overlay"
+      className={cn(
+        'fixed inset-0 z-50 bg-base/80 backdrop-blur-sm animate-fade-in',
+        'h-[calc(100dvh/var(--z,1))] w-[calc(100vw/var(--z,1))]',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+function DialogContent({
+  className,
+  children,
+  showClose = true,
+  container,
+  overlayClassName,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  showClose?: boolean
+  container?: HTMLElement
+  overlayClassName?: string
+}) {
+  return (
+    <DialogPortal container={container ?? zoomRoot()}>
+      <DialogOverlay className={overlayClassName} />
+      <DialogPrimitive.Content
+        data-slot="dialog-content"
+        className={cn(
+          'surface fixed left-1/2 top-1/2 z-50 w-[min(92vw,32rem)] -translate-x-1/2 -translate-y-1/2',
+          'max-h-[calc(100dvh/var(--z,1)-2rem)] overflow-y-auto rounded-card p-5',
+          'animate-scale-in focus:outline-none',
+          className,
+        )}
+        {...props}
+      >
+        {children}
+        {showClose && (
+          <DialogPrimitive.Close
+            className="absolute right-3 top-3 rounded-lg p-1.5 text-white/45 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+            aria-label="Close"
+          >
+            <X size={16} />
+          </DialogPrimitive.Close>
+        )}
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  )
+}
+
+function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
+  return <div data-slot="dialog-header" className={cn('flex flex-col gap-1 pr-8', className)} {...props} />
+}
+
+function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="dialog-footer"
+      className={cn('flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end', className)}
+      {...props}
+    />
+  )
+}
+
+function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
+  return (
+    <DialogPrimitive.Title
+      data-slot="dialog-title"
+      className={cn('text-[16px] font-semibold tracking-tight text-white', className)}
+      {...props}
+    />
+  )
+}
+
+function DialogDescription({
+  className,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Description>) {
+  return (
+    <DialogPrimitive.Description
+      data-slot="dialog-description"
+      className={cn('text-[13px] leading-relaxed text-white/55', className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  Dialog,
+  DialogPortal,
+  DialogOverlay,
+  DialogClose,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+}
