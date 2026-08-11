@@ -4,14 +4,14 @@
 
 ## Current status
 
-- Phase: daily history implementation and calm-brief material mock
-- State: the existing production vertical slice remains live on static 2026-08-06 starter data; the Deno daily pipeline, immutable archive migration, authenticated history APIs, and bounded historical Ask are implemented and verified locally but have not mutated production
-- Base revision: `c13c08db5a069632924bb224e1af70491691cf3c`
-- Working branch: `codex/compound-daily-history`
+- Phase: daily history draft release plus approved calm-brief implementation
+- State: pipeline draft PR #238 is green and unmerged; the approved four-destination Calm Brief is implemented locally with restrained custom iconography and rendered stack/split evidence; production remains on the existing vertical slice and static 2026-08-06 starter data
+- Base revision: `eb313a612fafec16319020f67d77bb2f49cdfbf2` from `codex/compound-daily-history`
+- Working branch: `codex/compound-calm-brief`
 - Production release: unchanged; the current production deployment remains the rollback target
 - Supabase production mutation: gated; the new archive migration may be authored and verified locally but not applied without exact action-time approval
 - Vercel and provider mutation: gated; Resend installation, secret provisioning, deployment promotion, and merge remain separate approvals
-- Next action: review draft pipeline PR #238 and the cold 390px representative, stale, and quiet Brief mocks, then obtain separate approval for the production migration, GitHub secret provisioning, Resend installation, and UI implementation
+- Next action: finish the UI draft PR and preview verification; review pipeline draft PR #238; then obtain separate approval for the production migration, GitHub secret provisioning, Resend installation, and eventual merges
 
 ## Calm brief and history delivery preflight
 
@@ -91,20 +91,20 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 ## Current local verification
 
 - COMPOUND source and Supabase boundary checks: pass.
-- Frontend and server helper tests: 96 pass, 0 fail across 12 files.
+- Frontend and server helper tests: 89 pass, 0 fail across 12 files on the UI branch.
 - Daily pipeline tests: 15 pass, 0 fail; Deno type-check passes.
 - Edge Function protocol tests: 10 pass, 0 fail; Deno type-check passes.
 - Frontend TypeScript and production build: pass.
 - Edge Function Deno type-check: pass.
 - Dependency advisory audit: 0 known vulnerabilities.
 - Device systems: `stack` (phone) and `split` (desktop) render different component trees over one data layer; see docs/plans/compound/DEVICE_SYSTEMS.md.
-- Browser UX: 14 route, device and data-state cases pass, covering 320 to 1920 and both systems; reading level passes at grade 9 ceiling with screens between 2.2 and 4.8; the live public sign-in separately passes at 320, 360, 390, 412, 430, 768 and Android-scaled widths with no overflow or console errors.
+- Browser UX: the Calm Brief passes 24 state/viewport combinations across 320, 390, 430, 1024, 1440, and 1920 pixels in Chromium, with exactly three positions, 11 collapsed sectors, story detail and citations, four destinations, history, Ask scopes, keyboard shortcuts, focus restoration, reduced motion, and no horizontal overflow. The existing live sign-in evidence remains separate because production has not been changed.
 - Credential-pattern scan and JSON configuration parse: pass.
 - Supabase production migrations: pass; exactly `20260806220210`, `20260806223500`, `20260806231230`, `20260807002034`, `20260807010239` and `20260807015930` applied through the guarded ledger.
 - Edge Functions: `compound-ask` remains JWT-protected; `compound-login` is active at version 7, rejects direct calls without the private server-proxy token and stores only one-way client fingerprints for throttling.
 - Vercel: project `compound`, root `compound/`, GitHub connected, production deployment `dpl_13WDSnx7djCoAZKcbe24QzTTjysK` ready, Node 24.x, OIDC enabled.
 - Vercel CLI: 58.9.2 installed; `compound/.vercel/project.json` resolves to project `compound` (`prj_RQ4jFPW4LmBukLPNyhzz71kFkJpp`) in the intended team. No deployment or environment mutation has been made.
-- Calm Brief artifacts: `representative-390.png`, `stale-390.png`, and `quiet-390.png` in `C:\Users\krish\.scratch\compound-calm-brief\` render at 390 by 844 with no overflow using the real 6 August snapshot; explicit visual approval is pending.
+- Calm Brief artifacts: the cold mocks in `C:\Users\krish\.scratch\compound-calm-brief\` are approved. Actual React evidence for representative, stale, quiet, partial, story detail, Markets, Portfolio, and collapsed Settings in both device systems is in `C:\Users\krish\.scratch\compound-calm-brief\after\`.
 - Live domain: `https://compound.krishraja.com` verified; HTTPS 200, title `COMPOUND`, CSP present, `noindex, nofollow`, API returns 401 without a user session.
 - Live browser: sign-in shell renders with zero console warnings/errors.
 - Auth: the public app no longer requests an email or sends a link. The approved word is normalized and compared to a protected one-way digest, then exchanged for a one-time Supabase session. Project-wide public signup remains disabled.

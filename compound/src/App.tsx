@@ -1,19 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { Shell } from "./app/Shell";
+import { loadCompoundDay } from "./lib/brief";
 import { readConfig } from "./lib/env";
-import { loadSnapshot } from "./lib/snapshot";
 import { getSupabase } from "./lib/supabase";
 import { SignInPage } from "./pages/SignInPage";
-import type { Snapshot, TabKey } from "./types";
+import type { CompoundDay, TabKey } from "./types";
 
-const TAB_KEYS: TabKey[] = ["now", "shifts", "stocks", "mine", "ask"];
+const TAB_KEYS: TabKey[] = ["brief", "markets", "portfolio", "ask"];
 
 /** The tab lives in the URL so a shared link and the back button both work. */
 function tabFromLocation(): TabKey {
   if (window.location.pathname === "/ask") return "ask";
   const requested = new URLSearchParams(window.location.search).get("tab");
-  return TAB_KEYS.find((key) => key === requested) ?? "now";
+  if (requested === "now") return "brief";
+  if (requested === "shifts" || requested === "stocks") return "markets";
+  if (requested === "mine") return "portfolio";
+  return TAB_KEYS.find((key) => key === requested) ?? "brief";
 }
 
 export function App() {
@@ -21,7 +24,7 @@ export function App() {
   const [tab, setTab] = useState<TabKey>(tabFromLocation);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(config.mode === "demo" || Boolean(config.error));
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [day, setDay] = useState<CompoundDay | null>(null);
   const [snapshotError, setSnapshotError] = useState("");
 
   useEffect(() => {
@@ -55,19 +58,19 @@ export function App() {
     if (config.error || !signedIn) return;
     const controller = new AbortController();
     setSnapshotError("");
-    void loadSnapshot(controller.signal)
-      .then(setSnapshot)
+    void loadCompoundDay({ mode: config.mode, accessToken: session?.access_token, signal: controller.signal })
+      .then(setDay)
       .catch((reason: unknown) => {
         if (controller.signal.aborted) return;
         setSnapshotError(reason instanceof Error ? reason.message : "Today's numbers could not be read.");
       });
     return () => controller.abort();
-  }, [config.error, signedIn]);
+  }, [config.error, config.mode, session?.access_token, signedIn]);
 
   const changeTab = useCallback((next: TabKey) => {
     setTab(next);
     const params = new URLSearchParams(window.location.search);
-    if (next === "now") params.delete("tab");
+    if (next === "brief") params.delete("tab");
     else params.set("tab", next);
     const query = params.toString();
     window.history.pushState({}, "", query ? `/?${query}` : "/");
@@ -78,9 +81,9 @@ export function App() {
   if (!authReady) return <Notice eyebrow="COMPOUND" title="Checking who you are…" />;
   if (config.mode === "live" && !session) return <SignInPage config={config} />;
   if (snapshotError) return <Notice eyebrow="COMPOUND" title="Nothing to show right now." body={snapshotError} />;
-  if (!snapshot) return <Notice eyebrow="COMPOUND" title="Getting today's numbers…" />;
+  if (!day) return <Notice eyebrow="COMPOUND" title="Preparing your market brief…" />;
 
-  return <Shell snapshot={snapshot} config={config} session={session} tab={tab} onTab={changeTab} />;
+  return <Shell day={day} config={config} session={session} tab={tab} onTab={changeTab} />;
 }
 
 function Notice({ eyebrow, title, body }: { eyebrow: string; title: string; body?: string }) {

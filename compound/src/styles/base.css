@@ -91,3 +91,29 @@ h1, h2, h3, p { overflow-wrap: anywhere; }
     transition-duration: .01ms !important;
   }
 }
+
+/* Calm Brief shared atoms. Device-specific rhythm remains in stack/split. */
+.domain-glyph,
+.detail-domain,
+.sector-icon,
+.truth-icon,
+.story-kind,
+.story-source,
+.source-links a,
+.compare-item {
+  display: inline-flex;
+  align-items: center;
+}
+.domain-glyph svg,
+.detail-domain svg,
+.sector-icon svg,
+.truth-icon svg,
+.story-kind svg,
+.story-source svg,
+.source-links svg,
+.compare-item > svg { flex: none; stroke-linecap: round; stroke-linejoin: round; }
+.story-meta { text-transform: uppercase; }
+.story-kind { gap: .45em; }
+.story-source { text-transform: uppercase; }
+.world-proof { display: block; }
+.detail-label { text-transform: uppercase; }

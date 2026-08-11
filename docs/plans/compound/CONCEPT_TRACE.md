@@ -156,4 +156,16 @@ Artifacts:
 
 All three render at 390 by 844 with no horizontal overflow. The quiet state replaces the lead signal with “Nothing needs action” and two stable checkpoints rather than filling the calm day with weaker stories.
 
-Status: awaiting explicit visual approval. No production UI implementation has begun.
+## Approval and icon refinement
+
+Krish approved the Editorial Front Page direction and added one same-system refinement:
+
+> I like it, but it would be nice to have some relevant sophisticated iconography where relevant/not too overbearing, so its all not all text
+
+- Approval state: approved for local and preview implementation.
+- Icon rule: bespoke line glyphs identify domain, classification, provenance, state, and navigation only. They do not decorate prose or create a second visual hierarchy.
+- No icon library was added. The existing SVG component system now carries rates, equities, credit, currencies, commodities, crypto, macro, source, calendar, history, and attention glyphs.
+- Rendered implementation evidence: `C:\Users\krish\.scratch\compound-calm-brief\after\stack-390-representative.png`, `split-1440-representative.png`, `stack-390-story-detail.png`, and `split-1440-settings-collapsed.png`.
+- Acceptance: six viewports from 320 to 1920 pixels, four brief states, both device systems, zero horizontal overflow, and no browser assertion failures.
+
+Status: the approved stack implementation and derived split system are complete locally on `codex/compound-calm-brief`; production remains unchanged.
