@@ -90,7 +90,17 @@ channel rename affects existing links, so it is your call.
 
 ---
 
-## 5. Two credentials to rotate — UNRELATED TO THIS WORK, but found on the way
+## 5. Plinth is retired (Krish, 2026-08-11) — deployments may still be up
+
+Plinth had been renamed **Legibility**, so the inactive `legibility` row in `venture_registry` IS Plinth. That row was already inactive, and it is now out of the goal picker, the memory index and the orientation card.
+
+Not done, because taking a deployment down is outward and irreversible:
+
+- [ ] `plinth-tan.vercel.app` and the `plinth-worker` may still be deployed. Decide: leave dormant, or delete the Vercel projects.
+- [ ] The `plinth` repo and its `_STATE.md` are kept as history, per the usual rule. Nothing needs deleting there.
+- [ ] There is an unmerged `claude/rename-plinth-to-legibility` branch on control-center. It is moot now; close or delete it at your convenience.
+
+## 6. Two credentials to rotate — UNRELATED TO THIS WORK, but found on the way
 
 - [ ] A plaintext `service_role` JWT is hardcoded in the VPS scripts
       `sync-briefs-to-skills.sh` and `regenerate-standards-digest.py`. This was
