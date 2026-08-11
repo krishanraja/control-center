@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { emailNorm, linkedinNorm } from '../_text.js'
+import { parseDelimited } from '../_csv.js'
 
 // POST /api/contacts/import — Relationship Engine CSV import with provenance.
 //
@@ -132,7 +133,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     toInsert.push({
       full_name: r.full_name || null,
       email: r.email || null,
-      email_normalized: en,
+      // NOT email_normalized: it is GENERATED ALWAYS AS lower(btrim(email)),
+      // so naming it in an INSERT makes Postgres reject the whole statement
+      // (428C9). Every import through this route has been failing on it. The
+      // column still populates itself from `email` above.
       linkedin_url: r.linkedin_url || null,
       linkedin_url_norm: ln,
       company: r.company || null,
@@ -254,43 +258,3 @@ function parseCsv(text: string): ParsedRow[] {
 
 // Minimal RFC-4180-ish parser: handles quoted fields, escaped quotes, and
 // both comma and tab delimiters. No external deps.
-function parseDelimited(text: string): string[][] {
-  const clean = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  // Detect delimiter from the first non-empty line.
-  const firstLine = clean.split('\n').find(l => l.trim().length > 0) || ''
-  const delim = firstLine.split('\t').length > firstLine.split(',').length ? '\t' : ','
-
-  const rows: string[][] = []
-  let field = ''
-  let row: string[] = []
-  let inQuotes = false
-
-  for (let i = 0; i < clean.length; i++) {
-    const ch = clean[i]
-    if (inQuotes) {
-      if (ch === '"') {
-        if (clean[i + 1] === '"') { field += '"'; i++ }
-        else inQuotes = false
-      } else {
-        field += ch
-      }
-    } else {
-      if (ch === '"') {
-        inQuotes = true
-      } else if (ch === delim) {
-        row.push(field); field = ''
-      } else if (ch === '\n') {
-        row.push(field); field = ''
-        rows.push(row); row = []
-      } else {
-        field += ch
-      }
-    }
-  }
-  // flush trailing field/row
-  if (field.length > 0 || row.length > 0) {
-    row.push(field)
-    rows.push(row)
-  }
-  return rows
-}

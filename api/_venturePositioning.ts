@@ -48,8 +48,30 @@ export const VENTURE_POSITIONING: Record<string, VenturePositioning> = {
   },
 }
 
+// Slug drift, resolved rather than renamed. The contact venture pickers send
+// `fractionl_pulse`; this map, `contacts.primary_venture` (19 rows) and
+// `contacts.fit_scores` (414 rows) all say `fractionl`, and NO row anywhere uses
+// `fractionl_pulse`. So ventureOffer('fractionl_pulse') returned null and the
+// Fractionl angle silently never reached an outreach prompt.
+//
+// Aliased instead of renamed on purpose: `fractionl_pulse` is a real and
+// correct slug in the acquisition-lane and customer-product namespaces
+// (api/growth/council-run.ts, hooks/useCustomers.ts). Renaming it globally to
+// fix a contacts bug would break those.
+const VENTURE_ALIAS: Record<string, string> = {
+  fractionl_pulse: 'fractionl',
+  fractionl_circle: 'fractionl',
+}
+
+/** Canonical venture slug for a contact. */
+export function canonicalVenture(slug?: string | null): string | null {
+  if (!slug) return null
+  return VENTURE_ALIAS[slug] ?? slug
+}
+
 /** Resolve the positioning line for a venture slug, with a safe generic fallback. */
 export function ventureOffer(slug?: string | null): VenturePositioning | null {
-  if (!slug) return null
-  return VENTURE_POSITIONING[slug] ?? null
+  const s = canonicalVenture(slug)
+  if (!s) return null
+  return VENTURE_POSITIONING[s] ?? null
 }

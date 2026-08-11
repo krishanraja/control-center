@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
+import { canonicalVenture } from '../../_venturePositioning.js'
 
 // PATCH /api/contacts/:id — light edits from the Network detail sheet.
 // Primary use: reassign a contact's venture (e.g. a recorded Signal & Noise
@@ -32,10 +33,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if ('primary_venture' in body) {
     const v = body.primary_venture
     if (v === null) updates.primary_venture = null
-    else if (typeof v === 'string' && KNOWN_VENTURES.has(v)) updates.primary_venture = v
+    // Accept what the pickers send, store what the data uses. Every venture
+    // reader (fit_scores, VENTURE_POSITIONING, the network importer) says
+    // `fractionl`; only the contact pickers say `fractionl_pulse`, and writing
+    // that put a slug in the column that nothing else could resolve.
+    else if (typeof v === 'string' && KNOWN_VENTURES.has(v)) updates.primary_venture = canonicalVenture(v)
     else return res.status(400).json({ error: `invalid primary_venture: ${String(v)}` })
   }
-  if (typeof body.notes === 'string') updates.notes = body.notes
+  // NOTE: no `notes` handling. contacts has no notes column, so the branch that
+  // used to be here made every PATCH carrying notes a 500. Nothing sends it;
+  // accepting a field that cannot be stored is worse than not offering it.
 
   if (Object.keys(updates).length === 0) {
     return res.status(400).json({ error: 'no updatable fields supplied' })
