@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from 'react'
 import { ErrorBoundary } from '../ErrorBoundary'
+import { isUiV2 } from '../../lib/uiV2'
 import { BoardSkeleton, MobileTabSkeleton } from '../shared/Skeleton'
 
 // People: the one tab for every human pipeline. Pipeline (leads), Network
@@ -10,6 +11,9 @@ import { BoardSkeleton, MobileTabSkeleton } from '../shared/Skeleton'
 
 const DesktopLeads = lazy(() => import('../desktop/DesktopLeads').then(m => ({ default: m.DesktopLeads })))
 const DesktopLeadsRE = lazy(() => import('../desktop/DesktopLeadsRE').then(m => ({ default: m.DesktopLeadsRE })))
+// UI v2 Network: one server-ranked surface for both device classes. The old
+// lane keeps its own chunk so the flag can be flipped back without a rebuild.
+const NetworkTab = lazy(() => import('../network/NetworkTab').then(m => ({ default: m.NetworkTab })))
 const DesktopGuests = lazy(() => import('../desktop/DesktopGuests').then(m => ({ default: m.DesktopGuests })))
 const MobileLeads = lazy(() => import('../mobile/MobileLeads').then(m => ({ default: m.MobileLeads })))
 const MobileLeadsRE = lazy(() => import('../mobile/MobileLeadsRE').then(m => ({ default: m.MobileLeadsRE })))
@@ -103,7 +107,9 @@ export function PeopleTab({ narrow, params, onNavigate }: Props) {
         )}
         {lane === 'network' && (
           <ErrorBoundary label="Network">
-            {narrow ? <MobileLeadsRE onNavigate={onNavigate} /> : <DesktopLeadsRE onNavigate={onNavigate} />}
+            {isUiV2()
+              ? <NetworkTab narrow={narrow} />
+              : narrow ? <MobileLeadsRE onNavigate={onNavigate} /> : <DesktopLeadsRE onNavigate={onNavigate} />}
           </ErrorBoundary>
         )}
         {lane === 'visibility' && (

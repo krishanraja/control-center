@@ -34,7 +34,7 @@ const buttonVariants = cva(
         secondary: 'bg-white/[0.07] text-white hover:bg-white/[0.10] active:bg-white/[0.12]',
         outline: 'border border-white/10 text-white hover:border-white/20 hover:bg-white/[0.04]',
         ghost: 'bg-transparent text-white/70 hover:text-white active:bg-white/[0.06]',
-        danger: 'bg-red-500/15 text-red-300 hover:bg-red-500/20 active:bg-red-500/25',
+        danger: 'bg-rose-500/15 text-rose-200 hover:bg-rose-500/20 active:bg-rose-500/25',
         link: 'gap-1.5 p-0 text-white/70 underline underline-offset-4 hover:text-white',
         none: '',
       },
