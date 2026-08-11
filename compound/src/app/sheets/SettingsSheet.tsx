@@ -172,7 +172,7 @@ export function SettingsSheet({ entries, excluded, saveError, onToggle, onBulk }
                   type="button"
                   role="checkbox"
                   aria-checked={partial ? "mixed" : allVisible}
-                  aria-label={allVisible ? `Hide all ${group.group} industries` : `Show all ${group.group} industries`}
+                  aria-label={`Show ${group.group} industries`}
                   className="groupcontrol"
                   onClick={() => onBulk(memberNames, allVisible)}
                 >

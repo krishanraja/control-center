@@ -103,7 +103,7 @@ describe("Markets, Portfolio and Ask", () => {
     fireEvent.click(screen.getByRole("button", { name: /Technology/ }));
     const member = screen.getByRole("switch", { name: /Software - Infrastructure/ });
     fireEvent.click(member);
-    expect(screen.getByRole("checkbox", { name: "Show all Technology industries" })).toHaveAttribute("aria-checked", "mixed");
+    expect(screen.getByRole("checkbox", { name: "Show Technology industries" })).toHaveAttribute("aria-checked", "mixed");
   });
 
   it("makes portfolio analysis visibly separate from Brief ranking", () => {
@@ -137,6 +137,7 @@ describe("device systems", () => {
     renderShell();
     fireEvent.click(screen.getByRole("button", { name: /Open signal:/ }));
     expect(document.querySelector(".panel")).toBeInTheDocument();
+    expect(document.querySelector(".workspace.with-panel")).toBeInTheDocument();
     expect(document.querySelector(".sheet")).not.toBeInTheDocument();
     expect(screen.getAllByRole("heading", { name: "Markets are calm, but money is still expensive." })).toHaveLength(2);
   });

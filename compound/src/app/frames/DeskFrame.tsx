@@ -77,7 +77,7 @@ export function DeskFrame({ tab, onTab, onSettings, onHistory, generated, demo, 
           </span>
         </div>
 
-        <div className="workspace">
+        <div className={panel ? "workspace with-panel" : "workspace"}>
           <div className="scroll">{children}</div>
           {panel && (
             <aside className="panel" aria-label={panel.title}>
