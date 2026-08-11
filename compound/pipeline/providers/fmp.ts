@@ -22,6 +22,7 @@ interface FmpHistoryResponse {
 
 interface FmpIndustryRow {
   industry?: string;
+  averageChange?: number | string;
   changesPercentage?: number | string;
   changePercentage?: number | string;
   date?: string;
@@ -62,16 +63,24 @@ export async function collectFmp(context: ProviderContext): Promise<ProviderEvid
   industryUrl.searchParams.set("date", context.asOf);
   industryUrl.searchParams.set("apikey", apiKey);
   const industryPayload = await fetchJson<FmpIndustryRow[]>(industryUrl, context.signal);
-  const industries = industryPayload.flatMap((row) => {
-    const changePercent = parseNumber(row.changesPercentage ?? row.changePercentage);
-    if (!row.industry || changePercent === undefined) return [];
-    return [{
-      industry: row.industry,
-      changePercent,
-      sourceDate: row.date ?? context.asOf,
+  const industryGroups = new Map<string, { total: number; count: number; sourceDate: string }>();
+  for (const row of industryPayload) {
+    const changePercent = parseNumber(row.averageChange ?? row.changesPercentage ?? row.changePercentage);
+    if (!row.industry || changePercent === undefined) continue;
+    const current = industryGroups.get(row.industry) ?? { total: 0, count: 0, sourceDate: row.date ?? context.asOf };
+    current.total += changePercent;
+    current.count += 1;
+    if (row.date && row.date > current.sourceDate) current.sourceDate = row.date;
+    industryGroups.set(row.industry, current);
+  }
+  const industries = [...industryGroups.entries()]
+    .map(([industry, values]) => ({
+      industry,
+      changePercent: values.total / values.count,
+      sourceDate: values.sourceDate,
       sourceUrl: "https://financialmodelingprep.com/stable/industry-performance-snapshot",
-    }];
-  });
+    }))
+    .sort((a, b) => a.industry.localeCompare(b.industry));
   const latestAssetDate = metrics.map((metric) => metric.points.at(-1)?.date ?? "").sort().at(-1);
   const equityStatus = latestAssetDate === context.asOf ? "available" : "carried";
   return {

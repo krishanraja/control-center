@@ -40,6 +40,17 @@ describe("calm brief", () => {
     expect(onTab).toHaveBeenCalledWith("markets");
   });
 
+  it("keeps all 123 industries explorable when a partial capture has no industry moves", () => {
+    const day = buildDemoDay(fixture, "partial");
+    delete day.legacy;
+    day.archive.payload.evidence = { ...day.archive.payload.evidence, industries: [] };
+    renderShell("markets", day);
+    expect(document.querySelectorAll(".sector-row")).toHaveLength(11);
+    expect(screen.getByText("123")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(screen.getByText("11 sectors. Open a sector to choose individual industries.")).toBeInTheDocument();
+  });
+
   it("shows exactly three icon-led positions and an honest stale status", () => {
     renderShell();
     expect(screen.getAllByRole("button", { name: /Open signal:|IT services are|Crypto is moving/ })).toHaveLength(3);

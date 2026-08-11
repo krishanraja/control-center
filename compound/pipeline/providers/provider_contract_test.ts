@@ -26,11 +26,11 @@ Deno.test("FMP weekend evidence carries the exact prior source date and never re
     const url = new URL(String(input));
     requested.push(url);
     if (url.pathname.endsWith("industry-performance-snapshot")) {
-      return Promise.resolve(Response.json([{
-        industry: "Software - Application",
-        changesPercentage: 1.2,
-        date: "2026-08-07",
-      }]));
+      return Promise.resolve(Response.json([
+        { industry: "Software - Application", averageChange: 1, date: "2026-08-07" },
+        { industry: "Software - Application", averageChange: 3, date: "2026-08-07" },
+        { industry: "Semiconductors", averageChange: -1.5, date: "2026-08-07" },
+      ]));
     }
     return Promise.resolve(Response.json([
       { date: "2026-08-06", close: 99 },
@@ -47,6 +47,11 @@ Deno.test("FMP weekend evidence carries the exact prior source date and never re
     assert(equities?.status === "carried", "Saturday equities must be marked carried");
     assert(equities.sourceDate === "2026-08-07", "Friday must remain the visible source date");
     assert(equities.limitation?.includes("2026-08-07"), "carry-forward limitation must name the date");
+    assert(evidence.industries.length === 2, "exchange rows must collapse to unique FMP industries");
+    assert(
+      evidence.industries.find((row) => row.industry === "Software - Application")?.changePercent === 2,
+      "the current FMP averageChange field must be averaged across exchanges",
+    );
     assert(
       requested.filter((url) => url.pathname.endsWith("historical-price-eod/full"))
         .every((url) => url.searchParams.get("to") === "2026-08-08"),

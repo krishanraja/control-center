@@ -161,6 +161,9 @@ export const FMP_INDUSTRY_TO_SECTOR: Readonly<Record<string, IndustrySector>> = 
   "Telecommunications Services": "Communication Services",
 };
 
+/** Stable explorer fallback when a partial daily capture has no industry rows. */
+export const KNOWN_FMP_INDUSTRIES: readonly string[] = Object.freeze(Object.keys(FMP_INDUSTRY_TO_SECTOR));
+
 export function groupOf(industry: string): IndustryTopGroup {
   return FMP_INDUSTRY_TO_SECTOR[industry] ?? "Other";
 }

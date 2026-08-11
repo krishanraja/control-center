@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import type { Session } from "@supabase/supabase-js";
 import { useDevice } from "../lib/device";
 import type { CompoundConfig } from "../lib/env";
-import { buildGroups, type IndustryEntry } from "../lib/industryGroups";
+import { buildGroups, KNOWN_FMP_INDUSTRIES, type IndustryEntry } from "../lib/industryGroups";
 import { loadExclusions, readLocalExclusions, saveExclusions, toggleIn, writeLocalExclusions } from "../lib/settings";
 import { getSupabase } from "../lib/supabase";
 import { SECTION_ORDER } from "../lib/words";
@@ -56,7 +56,9 @@ export function Shell({ day, config, session, tab, onTab }: Props) {
       for (const row of day.legacy.agreement) counts.set(row.industry, (counts.get(row.industry) ?? 0) + 1);
       return [...names].map((industry) => ({ industry, names: counts.get(industry) ?? 0 }));
     }
-    return (day.archive.payload.evidence?.industries ?? []).map((row) => ({ industry: row.industry, names: 0 }));
+    const captured = day.archive.payload.evidence?.industries ?? [];
+    const industries = captured.length > 0 ? captured.map((row) => row.industry) : KNOWN_FMP_INDUSTRIES;
+    return industries.map((industry) => ({ industry, names: 0 }));
   }, [day]);
 
   const industryRows = useMemo(

@@ -4,10 +4,16 @@ import {
   buildGroups,
   FMP_INDUSTRY_TO_SECTOR,
   groupOf,
+  KNOWN_FMP_INDUSTRIES,
   SECTOR_ORDER,
 } from "./industryGroups";
 
 describe("industry taxonomy", () => {
+  it("keeps the stable live explorer exhaustive during a partial capture", () => {
+    expect(KNOWN_FMP_INDUSTRIES).toHaveLength(123);
+    expect(new Set(KNOWN_FMP_INDUSTRIES).size).toBe(123);
+  });
+
   it("maps every real snapshot industry to one known sector", () => {
     const industries = fixture.industries.map((row) => row.industry);
     expect(industries).toHaveLength(123);
