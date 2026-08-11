@@ -15,8 +15,8 @@ const ASSIGNEE_OPTIONS = ['felix', 'maya', 'nell', 'krish'] as const
 const AUDIENCE_SOURCE_LABELS: Record<string, string> = {
   ctrl: 'CTRL',
   mindmaker_site: 'Site',
-  mindmaker_live: 'Substack',
-  builder_economy: 'Builder Economy',
+  mindmaker_live: 'Mindmaker Live',
+  builder_economy: 'Builder Economy (retired)',
 }
 function audienceSourceLabel(s: string): string {
   if (s.startsWith('churn:')) return 'ex ' + (AUDIENCE_SOURCE_LABELS[s.slice(6)] || s.slice(6).replace(/_/g, ' '))

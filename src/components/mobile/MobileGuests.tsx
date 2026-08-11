@@ -420,7 +420,7 @@ function TriageEntry({ count, label, onClick }: { count: number; label: string; 
 }
 
 const GUEST_TARGET_LABEL: Record<GuestRow['podcast_target'], string> = {
-  signal_noise: 'Signal & Noise', builder_economy: 'Builder Economy', either: 'Either show',
+  signal_noise: 'Signal & Noise', builder_economy: 'Builder Economy (retired)', either: 'Either show',
 }
 
 // Card interior for a guest in the swipe deck (no action buttons — the swipe is the action).

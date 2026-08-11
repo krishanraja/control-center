@@ -131,7 +131,7 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
             Content
           </h1>
           <p className="text-[13px] text-white/55 mt-1">
-            LinkedIn, newsletter, Signal &amp; Noise, Builder Economy. From idea to live, in one lane.
+            Paid and Built, lifted to the newsletter, LinkedIn and the Signal &amp; Noise feed. From idea to live, in one lane.
           </p>
         </div>
         <div className="flex items-center gap-3">
