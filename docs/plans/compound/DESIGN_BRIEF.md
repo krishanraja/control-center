@@ -1,9 +1,11 @@
 # COMPOUND dashboard design brief
 
+> Superseded product brief. This document preserves the 2026-08-08 portfolio-led dashboard requirements for design history. The approved market-wide Calm Brief and current release state are defined in `STATE.md` and `CONCEPT_TRACE.md`; do not use the requirements or approval lines below as current instructions.
+
 - Revision: DB-003
 - Date: 2026-08-08
 - Materiality: material redesign of every surface
-- Approval state: two device native systems implemented and rendered on `claude/compound-responsive-redesign-tayh7v`; Krish's visual approval outstanding
+- Historical approval state: two device-native systems were implemented and rendered on `claude/compound-responsive-redesign-tayh7v`; visual approval was outstanding at that point
 - Companion: DEVICE_SYSTEMS.md carries the two systems and their proof
 
 ## State of use

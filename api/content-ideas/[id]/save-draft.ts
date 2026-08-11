@@ -65,16 +65,20 @@ interface FinalPassShip {
   lenses_demanded?: string[]
 }
 
-// lane (+slot) -> factory channel. Mirrors src/lib/contentEngine.ts LANES.
+// lane (+slot) -> factory channel. Mirrors src/lib/contentEngine.ts LANES and
+// laneToFactoryChannel. This is a deliberate duplicate rather than an import
+// because api/ and src/ do not share a build, so keep the two in step: it had
+// already drifted to values (makeyourmindup, builder_economy) that stopped
+// being live channels, and only kept working because RETIRED_CHANNELS above
+// caught them on the way out.
 function laneToChannel(lane?: string | null, slot?: string | null): string {
+  // The live model: one venture, two formats carried in the slot.
+  if (lane === 'mindmaker_live') return slot === 'built' ? 'built' : 'paid'
   if (lane === 'signal_noise') return 'signal_noise'
-  // Both the weekly shapes and MYMU: Teardown publish to the same channel; the
-  // teardown slot differs by rubric and corpus playbook, not by destination.
-  if (lane === 'mindmaker') return slot === 'field_learning' ? 'linkedin' : 'makeyourmindup'
-  if (lane === 'builder_economy_ig') return 'builder_economy'
-  // Legacy stored lanes: both the retired brand and the value its rows were
-  // re-laned to now polish into the MYMU format.
-  if (lane === 'techonomic' || lane === 'mindmaker_live' || lane === 'makeyourmindup') return 'makeyourmindup'
+  // Legacy stored lanes, mapped forward and never rejected.
+  if (lane === 'mindmaker') return slot === 'field_learning' ? 'linkedin' : 'paid'
+  if (lane === 'builder_economy_ig' || lane === 'builder_economy') return 'built'
+  if (lane === 'techonomic' || lane === 'makeyourmindup' || lane === 'mymu') return 'paid'
   return 'dynamic'
 }
 

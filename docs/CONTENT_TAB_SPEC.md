@@ -1,5 +1,31 @@
 # Content Tab Upgrade — Lanes Spec
 
+> ## ⚠ HISTORICAL SPEC. The lane model below is SUPERSEDED.
+>
+> **Read this before anything else in this file.** This is the June 2026 build
+> spec. It shipped, and the sections on the Composer, cadence, pillars and the
+> Transform engine are still broadly accurate. But **its taxonomy is dead**: it
+> describes four lanes (`signal_noise`, `mindmaker`, `builder_economy_ig`,
+> `techonomic`) that no longer exist as ventures.
+>
+> **The live model, as of 2026-08-11:** ONE content venture, **Mindmaker Live**
+> (`mindmaker_live`), with exactly two formats carried in `lane_slot`:
+> **Paid** (the investigation, carrying Techonomic's register) and **Built**
+> (builder conversations, carrying the builder economy thesis). Signal & Noise
+> is a distribution CHANNEL, not a lane. Builder Economy is fully retired.
+> "Make Your Mind Up" is the CTRL lead magnet, not a content brand.
+>
+> **Current truth lives in code, not here:** `src/lib/contentEngine.ts`
+> (`VENTURE_FORMATS`, `LANES`, `FACTORY_CHANNELS`), `src/lib/contentLanes.ts`
+> (`normalizeLane` and the legacy aliases), and `api/_content.ts`
+> (`CHANNEL_HEADING`, `laneToCorpusChannel`). The guard
+> `scripts/check-content-taxonomy.mts` is what keeps those in step.
+> Section 20 of `MINDMAKER_OS_ARCHITECTURE.md` records why it changed.
+>
+> Every lane name below is left unedited **on purpose**, because rewriting a
+> shipped spec to look current would misrepresent what was actually built.
+
+
 **Status:** SHIPPED · 2026-06-02 · all phases live on `main`
 **Author:** Claude (Opus 4.8) on behalf of Krish
 

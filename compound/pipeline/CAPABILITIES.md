@@ -1,37 +1,51 @@
 # COMPOUND provider capability matrix
 
-This matrix records what the existing provider set can support before any new paid market-data provider is
-proposed. A green cell still requires the named credential in the GitHub Actions environment and a
-contract-fixture readback before production publication is enabled.
+- Last updated: 2026-08-11 EDT
+- Status: implemented and locally verified; first production capture pending PR #238 merge
+- Commercial boundary: use the existing provider set; no new paid market-data provider is approved
 
-| Domain                 | Daily captured evidence                                                   | Historical evidence without look-ahead         | News or world context                   | Current provider                | Material limitation                                             |
-| ---------------------- | ------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------- | ------------------------------- | --------------------------------------------------------------- |
-| US and global equities | US, developed, emerging, small-cap proxies; company and 123-industry data | Dated EOD prices and dated industry snapshots  | MarketAux; Perplexity with Exa fallback | FMP, MarketAux, Perplexity, Exa | Proxy universe is US-led rather than every local market         |
-| Rates                  | Nominal and real Treasury yields                                          | FRED real-time vintage parameters              | Perplexity with Exa fallback            | FRED, Perplexity, Exa           | Revised series require ALFRED-compatible vintage verification   |
-| Credit                 | High-yield spread and HYG price confirmation                              | FRED vintage observations and dated ETF closes | Perplexity with Exa fallback            | FRED, FMP, Perplexity, Exa      | Investment-grade and sovereign breadth are not yet first-class  |
-| Currencies             | Trade-weighted dollar                                                     | FRED dated observations                        | Perplexity with Exa fallback            | FRED, Perplexity, Exa           | Cross rates beyond FMP plan coverage need contract readback     |
-| Commodities            | Gold and broad commodity proxies                                          | Dated FMP closes                               | Perplexity with Exa fallback            | FMP, Perplexity, Exa            | Physical curves and positioning are unavailable                 |
-| Crypto markets         | Bitcoin, Ether, and Solana dated prices                                   | CoinGecko date endpoint                        | Perplexity with Exa fallback            | CoinGecko, Perplexity, Exa      | Historical global market breadth depends on plan limits         |
-| Crypto usage           | Aggregate DeFi daily fees                                                 | DefiLlama dated series                         | Perplexity with Exa fallback            | DefiLlama, Perplexity, Exa      | Protocol-level historical methodology changes need source notes |
+| Domain | Daily captured evidence | Historical evidence without look-ahead | Current context | Implemented provider | Material limitation |
+|---|---|---|---|---|---|
+| US-led global equities | US, developed, emerging, and small-cap proxies plus FMP's 123-industry snapshot | Dated EOD prices and dated industry snapshots | Perplexity with Exa fallback | FMP | Proxy universe is US-led rather than every local market |
+| Rates | Nominal and real Treasury yields | FRED observations with date controls | Perplexity with Exa fallback | FRED | Revised series need ALFRED-compatible vintage proof before backfill |
+| Credit | High-yield spread plus available market confirmation | Dated FRED observations and FMP closes | Perplexity with Exa fallback | FRED and FMP | Investment-grade and sovereign breadth are not first-class |
+| Currencies | Trade-weighted dollar plus available FMP symbols | Dated FRED observations and FMP closes | Perplexity with Exa fallback | FRED and FMP | Cross-rate breadth depends on the current FMP plan |
+| Commodities | Gold and broad commodity proxies | Dated FMP closes | Perplexity with Exa fallback | FMP | Physical curves and positioning are unavailable |
+| Crypto markets | Bitcoin, Ether, and Solana dated prices | CoinGecko date endpoint | Perplexity with Exa fallback | CoinGecko | Historical breadth and rate limits require batch readback |
+| Crypto usage | Aggregate DeFi daily fees | DefiLlama dated series | Perplexity with Exa fallback | DefiLlama | Methodology changes need source notes |
 
-## Credential and contract gate
+MarketAux, Brave, and NewsAPI are not part of the implemented daily collector. They must not be described as active pipeline evidence.
 
-The scheduled workflow requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `FMP_API_KEY`, and
-`FRED_API_KEY`. CoinGecko can use its public endpoint; `COINGECKO_API_KEY` and `COINGECKO_PRO_API_KEY` are
-supported for the demo and pro hosts respectively. `PERPLEXITY_API_KEY` and `EXA_API_KEY` add cached context
-after deterministic selection. Resend remains an explicit installation and environment-provisioning gate.
+## Production credentials
 
-Read-only verification on 11 August 2026 found that the GitHub environment `Production – compound` exists but
-currently contains zero secrets. The workflow therefore fails closed until the named credentials are
-provisioned under the explicit production gate.
+The GitHub Actions environment is named `Production – compound`. As of 2026-08-11 it contains:
 
-## Gaps before proposing another paid feed
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `FMP_API_KEY`
+- `FRED_API_KEY`
+- `PERPLEXITY_API_KEY`
+- `EXA_API_KEY`
 
-1. Confirm the current FMP plan returns the full dated industry snapshot and the listed cross-asset symbols.
-2. Confirm FRED vintage behavior for every reconstructed series, particularly revised macro series added
-   later.
-3. Measure CoinGecko and DefiLlama historical rate limits during a 30-day dry batch.
-4. Add MarketAux only after its historical as-of contract is verified. Current Perplexity and Exa search must
-   never be used to reconstruct historical news context.
+CoinGecko uses its public endpoint. `COINGECKO_API_KEY` and `COINGECKO_PRO_API_KEY` remain optional and are not configured.
 
-No new paid market-data provider is proposed in this release.
+No secret value belongs in source, documentation, logs, screenshots, fixtures, or chat.
+
+## Context and alert boundaries
+
+- Deterministic rules rank stories before any language model call.
+- Perplexity with Exa fallback may compress current supplied evidence and add citations. It cannot change ranking, stance, decisive metric, or falsifier.
+- Context is cached by member, date, and story key.
+- Current search must never reconstruct historical news evidence.
+- Resend is intentionally dormant. No Marketplace resource, paid plan, domain, API key, or GitHub secret exists, and the scheduled workflow does not receive Resend variables.
+- GitHub's native failed-workflow notification is the active operational alert.
+
+## Production proof still required
+
+1. Confirm the current FMP plan returns all requested cross-asset symbols and the full 123-industry snapshot.
+2. Confirm the FRED source-date behavior for every live series.
+3. Publish one current capture and read back provider coverage, source dates, two horizon snapshots, and exactly three supported positions.
+4. Observe two scheduled 6:30 a.m. Eastern runs.
+5. Before backfill, prove FRED vintage handling and measure CoinGecko and DefiLlama limits with one bounded 30-day batch.
+
+No five-year historical record exists yet. Existing starter rows are examples and are excluded from historical truth.

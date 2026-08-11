@@ -2,7 +2,7 @@
 
 > **HISTORICAL (2026-07-10):** advisory sales were retired 2026-07-10 and REOPENED 2026-08-05 under a new thesis; the
 > `mindmaker_buyer` lane and the Apollo burn-down are no longer live. Kept for the
-> record. The guest/content lanes (`signal_noise_guest`, `builder_economy_guest`)
+> record. The guest/content lanes (`signal_noise_guest`, `built_guest`)
 > are still referenced by Nell/Nova.
 
 > Portable ICP spec for the whole fleet. Any agent that sources, scores, routes,
@@ -24,7 +24,7 @@ the deck. Absent a signal, that dimension scores low; never invent intent.
 
 Multi-tag is allowed (a person can fit several lanes). The single
 `primary_venture` is the registry slug of their best lane (`mindmaker`,
-`signal_noise`, or `builder_economy`).
+`mindmaker_live`).
 
 ---
 
@@ -54,7 +54,7 @@ the raw pool and score low).
 hosts, heads of content at media/publishing orgs covering AI.
 **Best evidence:** a real outlet + a track record writing/speaking on AI.
 
-### 4. `builder_economy_guest` → primary_venture `builder_economy`  (podcast: AI builders)
+### 4. `built_guest` → primary_venture `mindmaker_live`  (podcast: AI builders)
 **Who:** People doing something that was **impossible before AI** — a tiny team
 shipping what used to take many, a net-new AI-native product, novel craft — with
 real audience/traction. Founders at AI-era (founded 2022+) companies.
@@ -73,7 +73,7 @@ they are the worst fit for an external decision-clarity product. (Live proof: v1
 surfaced only AI-company COOs and all were wrong; v2 on construction/manufacturing/
 logistics ops leaders landed.)
 
-### 6. `ecosystem_partner` → primary_venture `mindmaker` / `builder_economy`  (channel/referrals)
+### 6. `ecosystem_partner` → primary_venture `mindmaker` / `mindmaker_live`  (channel/referrals)
 **Who:** Startup accelerators, VC platform leads, and operator communities who can
 channel **many** buyers or guests — one good partner is leverage.
 **Who it is NOT:** government procurement programs and nonprofit/civic "accelerators"
@@ -91,7 +91,7 @@ API callers). Geography default: US / UK / Australia.
 | `mindmaker_buyer` | CDO, Chief Transformation Officer, CIO, Head of AI / Digital Transformation / Innovation | c_suite, vp, head | 51–5000 | **exclude NAICS 5415/5112/5182** (drop AI/software vendors) |
 | `fractional_network` | Fractional CTO/CMO/CAIO, AI Advisor, Principal Consultant | owner, founder, partner, c_suite | 1–200 | keyword `AI` |
 | `signal_noise_guest` | Editor-in-Chief, Journalist, Podcast Host, Head of Content | c_suite, vp, head, senior | any | keyword `AI`, media/publishing |
-| `builder_economy_guest` | Founder, Co-Founder, Creator | owner, founder | 1–50 | **founded 2022+**, keyword `AI`, + web pass |
+| `built_guest` | Founder, Co-Founder, Creator | owner, founder | 1–50 | **founded 2022+**, keyword `AI`, + web pass |
 | `mm_ctrl_buyer` | CEO, COO, President, GM, VP/Head Operations | owner, c_suite, vp, head | 51–5000 | org keywords manufacturing/healthcare/logistics/construction; **exclude NAICS 5415/5112/5182** |
 | `ecosystem_partner` | Partner, Program/Managing Director, Head of Community | owner, founder, partner, c_suite, director | any | org keywords accelerator/VC/startup; **exclude NAICS 92/813** (govt/nonprofit) |
 
@@ -107,7 +107,7 @@ where possible and always against `lower(email)`.
 - `mindmaker_buyer`: role_fit .30, intent_signals .25, ai_fluency_gap .20, budget_signal .15, audience_overlap .10
 - `fractional_network`: role_fit .30, referral_reach .25, ai_delivery_fit .20, independence_signal .15, audience_overlap .10
 - `signal_noise_guest`: narrative_strength .35, novelty .25, audience_pull .20, availability_signal .10, krish_curiosity .10
-- `builder_economy_guest`: leverage_score .35, ship_cadence .25, infra_thesis .20, audience_pull .10, krish_curiosity .10
+- `built_guest`: leverage_score .35, ship_cadence .25, infra_thesis .20, audience_pull .10, krish_curiosity .10
 - `mm_ctrl_buyer`: decision_load .30, seniority_fit .25, ai_curiosity .20, budget_signal .15, reachability .10
 - `ecosystem_partner`: channel_leverage .35, audience_overlap .25, collaboration_fit .20, reachability .10, krish_curiosity .10
 
@@ -123,7 +123,7 @@ employer → cap `mindmaker_buyer` and `mm_ctrl_buyer` ≤ 25.
   vendors and target intent roles inside operating companies.
 - Corrected `mindmaker_buyer` converted **11/15** (vs 1/7 before); corrected
   `mm_ctrl_buyer` **8/12** (vs 0 right before).
-- `builder_economy` needs a web pass — Apollo data alone can't separate a landmark
+- `built_guest` needs a web pass — Apollo data alone can't separate a landmark
   guest from a generic AI founder.
 - Universities and government/nonprofit "accelerators" look on-target but convert
   to nothing — exclude or down-rank.

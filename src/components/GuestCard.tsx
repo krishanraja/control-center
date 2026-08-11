@@ -9,7 +9,7 @@ import type { GuestRow, GuestStatus } from '../hooks/useRealtimeGuests'
 
 const TARGET_LABEL: Record<GuestRow['podcast_target'], string> = {
   signal_noise: 'Signal & Noise',
-  builder_economy: 'Builder Economy',
+  builder_economy: 'Builder Economy (retired)',
   either: 'Either show',
 }
 

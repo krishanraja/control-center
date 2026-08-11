@@ -1,5 +1,7 @@
 # COMPOUND concept trace
 
+> Versioned design record, not a live release dashboard. Each section's status line is true for the point in the design sequence when it was written. `STATE.md` is the only current source for implementation, production, data, and release status.
+
 - Sanitized brief: `DESIGN_BRIEF.md` revision DB-001
 - Surface: daily dashboard
 - Human review state: V1 reviewed; same-spine copy revision 1 in progress

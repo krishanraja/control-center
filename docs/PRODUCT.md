@@ -178,7 +178,7 @@ Inline action surface (`InlineActions`):
 
 ### Layout
 - **Per-venture lanes** - one column per active venture in `venture_registry`
-  (`mindmaker`, `signal_noise`, `builder_economy`), rendered by
+  (the active rows, from the shared `src/lib/ventureOptions.ts`), rendered by
   `LeadVentureLane`. The `assignee_agent` column is independent and can
   route a row to any agent regardless of the venture lane.
 - **LeadCard** - each card shows venture pill + per-venture ICP chips
