@@ -17,7 +17,7 @@ Independent generators:
 The set failed conceptual-distance requirements before human review.
 
 | Pair | Sequencing | Primary interaction | Information structure | State model | Result |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | G-A vs G-B | ordered daily changes | tap row to expand proof | continuous ledger | analytical plus review plus feed state | convergent |
 | G-A vs G-C | ordered daily changes | tap line to expand proof | continuous ruled docket | materiality plus disposition plus feed state | convergent |
 | G-B vs G-C | ordered daily changes | next unresolved plus inline proof | continuous ledger | review plus evidence integrity | convergent |
@@ -45,7 +45,7 @@ Independent generators:
 The set differs on at least two load-bearing axes per candidate:
 
 | Candidate | Sequencing | Primary interaction | Information structure | State model |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | G-D | verdict -> pressure -> disturbances -> review verbs | slide evidence lens | deformable topology | stress, fracture and contour crossing |
 | G-E | hub -> exposure mass -> ring breaks -> review gates | optional radial alignment plus direct tap | fixed concentric instrument | ring depth, segment state and trust gaps |
 | G-F | verdict -> spatial cluster -> temporal path -> review vectors | time scrub plus vector selection | anchored gravitational field | mass, distance, trail and tier orbit |
@@ -103,3 +103,51 @@ Exact feedback:
 - Rendered evidence: `compound-mock-v2-mobile-partial.png`, `compound-mock-v2-desktop-partial.png`, `compound-mock-v2-mobile-quiet.png` and `compound-mock-v2-desktop-stale.png`.
 - Verification: no horizontal overflow at 390 or 1440 pixels; time-period control and full-list control pass; representative, quiet and stale wording inspected in the rendered artifact.
 - Approval state: awaiting Krish's first reaction to V2.
+
+## Calm brief redesign
+
+## Locked brief
+
+- State of use: a one-handed, distracted morning glance with 15 to 30 seconds of attention.
+- Governing rule: exactly three market-wide positions ranked by significance. Holdings never enter selection or face hierarchy.
+- Data truth: the current 123-industry snapshot is dated 6 August 2026 and is stale.
+- Face contract: one lead story, two compact briefs, provenance only, four destinations, and no portfolio strip or completion mechanics.
+- Visual contract: deep ink, modern grotesk, monospace only for dates, sources, and figures; amber only for genuine attention.
+- Proof target: one cold 390 by 844 render before any production UI implementation.
+
+## Divergent concept spines
+
+| Anonymous concept | Interaction metaphor | Information sequence | Density posture |
+| --- | --- | --- | --- |
+| A | Market Lens | One regime with two visibly branching consequences | Geometric and causal |
+| B | Editorial Front Page | One dominant judgment followed by two headline rows | Spacious and typographic |
+| C | Signal Tape | Three numbered signals inside a continuous bulletin rail | Compact and instrument-like |
+
+The concepts differ on metaphor, sequence, geometry, density, and how causality is expressed.
+
+## Independent judging
+
+Two fresh-context judges received the complete locked brief, anonymized concepts, and different review orders. Both selected concept B.
+
+| Judge | Concept A | Concept B | Concept C | Selection |
+| --- | ---: | ---: | ---: | --- |
+| Judge 1 | 52/80 | 71/80 | 58/80 | B |
+| Judge 2 | 55/80 | 73/80 | 59/80 | B |
+
+The judges agreed that B was the calmest and clearest for repeated daily use and the most natural basis for a stack-to-split derivation. They independently flagged C as too dense and A as visually implying causality that the evidence may not support.
+
+## Synthesis
+
+Selected spine: Editorial Front Page.
+
+Borrowed element: a compact truth line from Signal Tape for unmistakable freshness and source limitations. The numbered rail and bulletin density were not carried forward. Causal relationships from Market Lens are reserved for evidence-backed detail, not the mobile face.
+
+The cold artifact uses real 6 August 2026 evidence and renders the surface honestly as stale:
+
+- 2.41% US 10-year real yield from FRED.
+- Four of five tracked IT-services firms accelerated sales growth in the supplied company accounts.
+- Crypto market value moved only 0.38% while tracked assets diverged.
+
+Artifact: `C:\Users\krish\.scratch\compound-calm-brief\stale-390.png`
+
+Status: awaiting explicit visual approval. No production UI implementation has begun.

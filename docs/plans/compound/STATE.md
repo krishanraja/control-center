@@ -4,13 +4,26 @@
 
 ## Current status
 
-- Phase: production vertical slice live
-- State: repository, magic-word sign-in, Supabase migrations, private snapshots, Edge Functions, standalone Vercel project, custom domain and grounded live-answer path are deployed and verified
-- Base revision: `09c0f88750774f014a91d493e86d9acc50065a7c`
-- Production release: authorised and deployed
-- Supabase production mutation: completed through a guarded migration ledger; only COMPOUND migrations ran
-- Vercel project or domain mutation: completed in standalone project `compound`
-- Next action: Krish reviews the two device native systems on `claude/compound-responsive-redesign-tayh7v` (rendered phone and desktop evidence produced, nothing merged or deployed), then replace the two deterministic starter snapshots with the separately scoped daily market-data pipeline when rotated Financial Modeling Prep credentials are available
+- Phase: daily history implementation and calm-brief material mock
+- State: the existing production vertical slice remains live on static 2026-08-06 starter data; the Deno daily pipeline, immutable archive migration, authenticated history APIs, and bounded historical Ask are implemented and verified locally but have not mutated production
+- Base revision: `c13c08db5a069632924bb224e1af70491691cf3c`
+- Working branch: `codex/compound-daily-history`
+- Production release: unchanged; the current production deployment remains the rollback target
+- Supabase production mutation: gated; the new archive migration may be authored and verified locally but not applied without exact action-time approval
+- Vercel and provider mutation: gated; Resend installation, secret provisioning, deployment promotion, and merge remain separate approvals
+- Next action: open the draft pipeline PR, review the cold 390px stale Brief mock, then obtain separate approval for the production migration, GitHub secret provisioning, Resend installation, and UI implementation
+
+## Calm brief and history delivery preflight
+
+```text
+STATE_ROUTE: docs/plans/compound/STATE.md
+SOURCE_LAYERS: krish-principles and the approved calm-brief plan are durable doctrine; current main, production latest.json, Supabase migrations, and live provider metadata are current truth; the earlier claim that a daily job already runs is obsolete
+PRODUCT_TRUTH: COMPOUND is a private, global US-led cross-asset intelligence brief that selects exactly three market-significant positions without using holdings to rank them, preserves the evidence and verdict seen on every captured day, and exposes portfolio relevance only after selection
+NON_GOALS: no trade execution; no holdings-led ranking; no new paid market-data provider without a separately approved coverage-gap case; no production migration, secret change, Resend installation, deployment promotion, or merge without its named gate
+SURFACE_DEPENDENCIES: immutable daily capture -> authenticated latest/history reads -> one approved mobile Brief -> stack implementation -> split derivation -> Markets/Portfolio/Ask/history surfaces -> preview and production verification
+VERTICAL_SLICE: one scheduled or manual idempotent run publishes one member-scoped immutable snapshot with coverage, exactly three deterministic positions, verdicts, falsifiers, citations, and version metadata; the authenticated client reads it as latest and can list prior dates
+FIRST_SURFACE: one cold 390px Today in markets mock using the real 123-industry snapshot, with representative, stale, and quiet truth defined; implementation waits for explicit approval
+```
 
 ## Preflight record
 
@@ -70,16 +83,17 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 | P2 Daily dashboard concept and rendered mock | Locked | COMPOUND-DASHBOARD-MOCK-V2 approved by Krish after responsive, state and copy checks |
 | P2B Live-question interaction and rendered mock | Locked | COMPOUND-ASK-MOCK-V1 approved as a separate `/ask` route; the dashboard remains `/` |
 | P3 Supabase schema and RLS | Live pass | six COMPOUND-only migrations applied; schema exposed additively; service read succeeds and anonymous read returns 401 |
-| P4 Feed adapters and engines 1 to 2 | Pending | deterministic fixtures, score and failure tests |
+| P4 Feed adapters and engines 1 to 2 | Local pass | 15 Deno tests cover deterministic ranking, holdings invariance, provider contracts, weekend source dates, partial failures, DST scheduling, backfill resume, and alert deduplication |
 | P5 Authenticated frontend vertical slice | Live pass | one server-held magic word exchanges for a one-time session without sending email; `hello@krishraja.com` remains the sole internal Auth identity and member; two private snapshots are RLS-readable only by that session |
-| P6 Engines 3 to 4 and falsifier audit | Pending | model contract, suppression and historical check tests |
+| P6 Engines 3 to 4 and falsifier audit | Local pass | versioned story contract, stored verdict/falsifier/citations, compare-first API, and compact exact-date historical Ask grounding pass locally; production readback remains gated |
 | P7 Release verification | Live pass | feature branch pushed; `compound-login` active with server-proxy authentication and rate limiting; Vercel deployment ready; custom domain verified; HTTPS/CSP/noindex, wrong-word denial, one-time session, signed-in streaming, persistence and idempotent retry pass |
 
 ## Current local verification
 
 - COMPOUND source and Supabase boundary checks: pass.
-- Frontend unit and component tests: 70 pass, 0 fail.
-- Edge Function protocol tests: 4 pass, 0 fail.
+- Frontend and server helper tests: 96 pass, 0 fail across 12 files.
+- Daily pipeline tests: 15 pass, 0 fail; Deno type-check passes.
+- Edge Function protocol tests: 10 pass, 0 fail; Deno type-check passes.
 - Frontend TypeScript and production build: pass.
 - Edge Function Deno type-check: pass.
 - Dependency advisory audit: 0 known vulnerabilities.
@@ -88,7 +102,9 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 - Credential-pattern scan and JSON configuration parse: pass.
 - Supabase production migrations: pass; exactly `20260806220210`, `20260806223500`, `20260806231230`, `20260807002034`, `20260807010239` and `20260807015930` applied through the guarded ledger.
 - Edge Functions: `compound-ask` remains JWT-protected; `compound-login` is active at version 7, rejects direct calls without the private server-proxy token and stores only one-way client fingerprints for throttling.
-- Vercel: project `compound`, root `compound/`, GitHub connected, production deployment `dpl_FaySdeVkLf2BVNxNv4zHMwRfDZyC` ready, OIDC enabled.
+- Vercel: project `compound`, root `compound/`, GitHub connected, production deployment `dpl_13WDSnx7djCoAZKcbe24QzTTjysK` ready, Node 24.x, OIDC enabled.
+- Vercel CLI: 58.9.2 installed; `compound/.vercel/project.json` resolves to project `compound` (`prj_RQ4jFPW4LmBukLPNyhzz71kFkJpp`) in the intended team. No deployment or environment mutation has been made.
+- Calm Brief artifact: `C:\Users\krish\.scratch\compound-calm-brief\stale-390.png` renders at 390 by 844 with no overflow using the real 6 August snapshot; explicit visual approval is pending.
 - Live domain: `https://compound.krishraja.com` verified; HTTPS 200, title `COMPOUND`, CSP present, `noindex, nofollow`, API returns 401 without a user session.
 - Live browser: sign-in shell renders with zero console warnings/errors.
 - Auth: the public app no longer requests an email or sends a link. The approved word is normalized and compared to a protected one-way digest, then exchanged for a one-time Supabase session. Project-wide public signup remains disabled.
@@ -103,8 +119,8 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 - Same Supabase project, isolated through a dedicated `compound` schema and RLS.
 - Separate Vercel project at `compound.krishraja.com`.
 - A server-held shared magic word plus a `compound.members` allowlist; email delivery is not part of the user journey.
-- GitHub Actions runs the daily Python pipeline and writes Supabase without committing generated data.
-- One material dashboard render must be approved before frontend implementation.
+- GitHub Actions runs the daily Deno/TypeScript pipeline and writes Supabase without committing generated data.
+- The cold editorial Brief render must be explicitly approved before the four-destination frontend redesign begins.
 - Questions stream through a same-origin Vercel OIDC proxy to a Supabase server-side function and use only authenticated COMPOUND evidence.
 - The dashboard is the home screen. Ask is additive and may not replace, hide or collapse the approved dashboard.
 
@@ -117,4 +133,4 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 - Supabase Auth now has one explicitly approved COMPOUND member. Public signup is disabled; additional members require a deliberate admin action and allowlist row.
 - The shared word is convenience access, not high-assurance authentication. Five failed attempts per client fingerprint trigger a 15-minute pause, but anyone who learns the word can enter.
 - The shared Auth configuration was diffed before release and read back afterward. COMPOUND's redirect was added while hosted email and TOTP protections were preserved.
-- Full daily feed adapters and engines remain outside this vertical-slice release. The two private starter snapshots are deterministic examples, not a live market-data feed.
+- Production still lacks the new GitHub Environment credentials, archive migration, Resend installation, and scheduled-run readback. The two existing private starter snapshots remain examples and are excluded from historical truth by the new schema.
