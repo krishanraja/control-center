@@ -1,54 +1,33 @@
 // The facts a goal gets judged against.
 //
-// Deliberately read from the real tables, never from a display layer. Home's
-// headline MRR is currently pinned by MRR_DISPLAY_OVERRIDE in
-// src/lib/mrrDisplay.ts (16500) while `customers` sums to a very different
-// number. A gate that judged achievability against a pinned figure would be
-// validating goals against a value nobody can move, so this reports what is
-// actually in the database and lets the caller say so.
+// Sourced from revenue_events / revenue_subscriptions, which are pulled
+// straight from Stripe, never from customers.mrr_usd and never from a display
+// layer. Both of those were wrong in different directions: the column treats a
+// Checkout grand total as monthly revenue, and the UI used to pin the headline
+// at $16,500. A gate judging achievability against either would be validating
+// goals against a number nobody can move.
+//
+// Two figures, deliberately separate. Most of the money collected to date came
+// from one one-off payment, so a revenue goal has to say which one it means.
 
 export interface GoalMetrics {
-  live_mrr_usd: number
-  paying_customers: number
-  mrr_delta_7d_usd: number
+  committed_mrr_usd: number
+  collected_30d_net_usd: number
+  collected_all_time_net_usd: number
+  one_time_share_pct: number | null
+  active_subscriptions: number
   active_goals_by_horizon: Record<string, number>
   as_of: string
 }
 
-function n(v: unknown): number {
-  const x = typeof v === 'number' ? v : Number(v)
-  return Number.isFinite(x) ? x : 0
-}
-
 export async function loadGoalMetrics(): Promise<GoalMetrics> {
-  // Imported lazily, the way api/_worry-prompt.ts resolves its key: _supabase
-  // throws at module load without service-role env, and the deterministic half
-  // of the gate is pure logic that must stay importable in CI, which has no
-  // secrets. scripts/check-goal-gate.mts depends on that.
   const { supabase } = await import('./_supabase.js')
-  const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
+  const { loadRevenue } = await import('./_revenue.js')
 
-  const [custRes, goalRes] = await Promise.all([
-    supabase.from('customers').select('mrr_usd, churned_at, became_paid_at').limit(5000),
+  const [rev, goalRes] = await Promise.all([
+    loadRevenue(),
     supabase.from('goals').select('horizon').eq('status', 'active'),
   ])
-
-  const customers = custRes.data || []
-  let live = 0
-  let paying = 0
-  let gained = 0
-  let lost = 0
-  for (const c of customers as Array<Record<string, unknown>>) {
-    const mrr = n(c.mrr_usd)
-    const churned = c.churned_at ? String(c.churned_at) : null
-    if (!churned) {
-      live += mrr
-      if (mrr > 0) paying += 1
-      if (c.became_paid_at && String(c.became_paid_at) >= weekAgo) gained += mrr
-    } else if (churned >= weekAgo) {
-      lost += mrr
-    }
-  }
 
   const byHorizon: Record<string, number> = {}
   for (const g of (goalRes.data || []) as Array<{ horizon: string }>) {
@@ -56,9 +35,11 @@ export async function loadGoalMetrics(): Promise<GoalMetrics> {
   }
 
   return {
-    live_mrr_usd: Math.round(live * 100) / 100,
-    paying_customers: paying,
-    mrr_delta_7d_usd: Math.round((gained - lost) * 100) / 100,
+    committed_mrr_usd: rev.committed_mrr_usd_cents / 100,
+    collected_30d_net_usd: rev.collected_30d_net_cents / 100,
+    collected_all_time_net_usd: rev.collected_all_time_net_cents / 100,
+    one_time_share_pct: rev.one_time_share_pct,
+    active_subscriptions: rev.active_subscriptions,
     active_goals_by_horizon: byHorizon,
     as_of: new Date().toISOString().slice(0, 10),
   }
@@ -67,16 +48,22 @@ export async function loadGoalMetrics(): Promise<GoalMetrics> {
 /** The grounding block handed to the model. Plain facts, no interpretation. */
 export function metricsPrompt(m: GoalMetrics): string {
   return [
-    `LIVE FACTS (as of ${m.as_of}, read from the database):`,
-    `- MRR: $${m.live_mrr_usd}/mo across ${m.paying_customers} paying customers`,
-    `- MRR change over the last 7 days: ${m.mrr_delta_7d_usd >= 0 ? '+' : ''}$${m.mrr_delta_7d_usd}`,
+    `LIVE FACTS (as of ${m.as_of}, pulled from Stripe):`,
+    `- Committed MRR: $${m.committed_mrr_usd.toFixed(2)}/mo across ${m.active_subscriptions} live subscription(s)`,
+    `- Cash collected, last 30 days, net of fees: $${m.collected_30d_net_usd.toFixed(2)}`,
+    `- Cash collected, all time, net of fees: $${m.collected_all_time_net_usd.toFixed(2)}`,
+    m.one_time_share_pct == null
+      ? '- No revenue recorded yet.'
+      : `- ${m.one_time_share_pct}% of all revenue was one-off, not recurring.`,
     `- Active goals already set: ${
       Object.keys(m.active_goals_by_horizon).length === 0
         ? 'none'
         : Object.entries(m.active_goals_by_horizon).map(([h, c]) => `${h}=${c}`).join(', ')
     }`,
     '',
-    'Use these when judging Achievable. If a target implies a multiple of the',
+    'Use these when judging Achievable. A revenue goal must say WHICH figure it',
+    'means: committed MRR and cash collected are different things here, and most',
+    'of the money to date was one-off. If a target implies a multiple of the',
     'current figure, say the multiple and what would have to change. Do not',
     'soften it and do not invent numbers that are not above.',
   ].join('\n')

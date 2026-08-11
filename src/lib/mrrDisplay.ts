@@ -1,14 +1,15 @@
-// Manual DISPLAY override for the headline MRR figure. The live number is derived
-// from customers.mrr_usd (see useRevenueAttribution) and reads $0 until paid
-// customer rows exist; this pins the shown figure without touching data. Set to
-// `null` to revert to the live sum. Display-only — the Customers tab still shows
-// the real underlying rows.
-export const MRR_DISPLAY_OVERRIDE: number | null = 16500
-
-/** Resolve the figure to display: the override when set, else the live value. */
-export function displayMrr(live: number): number {
-  return MRR_DISPLAY_OVERRIDE ?? live
-}
+// The headline MRR figure used to be pinned here:
+//
+//   export const MRR_DISPLAY_OVERRIDE: number | null = 16500
+//
+// It was removed 2026-08-11. It existed because the live figure read near zero,
+// which was itself a symptom: the money was real, but most of it was one-off
+// payments that customers.mrr_usd could never represent, and the rest was
+// Substack subscriptions net of a 10% platform fee.
+//
+// Revenue now comes from Stripe directly. See api/_revenue.ts and
+// src/hooks/useRevenue.ts, which expose two figures that are never added
+// together: cash collected, and committed MRR. This file is a formatter now.
 
 /** Abbreviated money — 16500 → "$16.5k", 100000 → "$100k", 950 → "$950". */
 export function formatMrr(n: number): string {

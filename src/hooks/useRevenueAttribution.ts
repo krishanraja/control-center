@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useCustomers, type CustomerRow, type CustomerProduct } from './useCustomers'
-import { displayMrr } from '../lib/mrrDisplay'
+import { useRevenue } from './useRevenue'
 
 /**
  * Pillar 1 — Money Machine.
@@ -84,6 +84,7 @@ export function useRevenueAttribution() {
   const [tasksById, setTasksById]   = useState<Map<string, any>>(new Map())
   const [mrrGoal,   setMrrGoal]     = useState<number>(100_000)
   const [loading,   setLoading]     = useState(true)
+  const { revenue } = useRevenue()
 
   useEffect(() => {
     let cancelled = false
@@ -123,7 +124,10 @@ export function useRevenueAttribution() {
     })
   }, [customers, leadsById, tasksById])
 
-  const liveMrr     = displayMrr(totals.mrrUsd)
+  // Committed MRR from Stripe subscriptions, not a sum over customers.mrr_usd.
+  // That column treats a Checkout grand total as monthly revenue, so a single
+  // one-off payment used to read as thousands per month.
+  const liveMrr     = revenue ? revenue.committed_mrr_usd_cents / 100 : 0
   const mrrDelta7d  = useMemo(() => deltaMrr(customers, 7),  [customers])
   const mrrDelta28d = useMemo(() => deltaMrr(customers, 28), [customers])
   const projection  = useMemo(() => project90d(liveMrr, customers), [liveMrr, customers])
@@ -171,6 +175,7 @@ export function useRevenueAttribution() {
   return {
     customers: attributed,
     liveMrr, mrrDelta7d, mrrDelta28d, projection,
+    revenue,
     mrrGoal, gapToGoal, goalPct,
     buckets,
     loading: customersLoading || loading,

@@ -3,7 +3,8 @@ import { MoreHorizontal, type LucideIcon } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { DESKTOP_PRIMARY_TABS, DESKTOP_DRAWER_TABS } from '../lib/tabs'
 import { isSimplifiedIA } from '../lib/iaV3'
-import { displayMrr, formatMrr } from '../lib/mrrDisplay'
+import { formatMrr } from '../lib/mrrDisplay'
+import { useRevenue } from '../hooks/useRevenue'
 import { usePressable } from './shared/usePressable'
 import { ThemeToggle } from './shared/ThemeToggle'
 import { TimezoneToggle } from './shared/TimezoneToggle'
@@ -19,26 +20,25 @@ export function DesktopSidebar({ active, onChange }: Props) {
   const [badge, setBadge] = useState<'green' | 'amber' | 'red' | 'unknown'>('unknown')
   const [badgeStatus, setBadgeStatus] = useState<string>('unknown')
   const [alertCount, setAlertCount] = useState(0)
-  const [mrr, setMrr] = useState<string | null>(null)
   const [unhealthyCount, setUnhealthyCount] = useState(0)
+  // The sidebar used to run its OWN sum over customers.mrr_usd: any non-churned
+  // row of any kind, no test-row filter, no limit. One of five incompatible
+  // definitions. It reads the shared figure now.
+  const { revenue } = useRevenue()
+  const mrr = revenue && revenue.committed_mrr_usd_cents > 0
+    ? `${formatMrr(revenue.committed_mrr_usd_cents / 100)}/mo`
+    : null
 
   useEffect(() => {
     const loadSys = async () => {
-      const [healthRes, custRes] = await Promise.all([
-        supabase.from('system_health').select('status'),
-        supabase.from('customers').select('mrr_usd,churned_at'),
-      ])
+      const healthRes = await supabase.from('system_health').select('status')
       const health = (healthRes.data as Array<{ status?: string }> | null) || []
       setUnhealthyCount(health.filter(r => r.status === 'critical' || r.status === 'warning').length)
-      const customers = (custRes.data as Array<{ mrr_usd?: number | null; churned_at?: string | null }> | null) || []
-      const active = displayMrr(customers.filter(c => !c.churned_at).reduce((sum, c) => sum + (Number(c.mrr_usd) || 0), 0))
-      setMrr(active > 0 ? `${formatMrr(active)}/mo` : null)
     }
     loadSys()
     const ch = supabase
       .channel('sidebar-health')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'system_health' }, loadSys)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, loadSys)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [])

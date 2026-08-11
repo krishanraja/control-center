@@ -2,6 +2,7 @@ import React from 'react'
 import { TrendingUp, TrendingDown, Target } from 'lucide-react'
 import { useRevenueAttribution } from '../hooks/useRevenueAttribution'
 import { formatMrr } from '../lib/mrrDisplay'
+import { formatCommittedMrr } from '../hooks/useRevenue'
 import { useHomeIntelligence } from '../hooks/useHomeIntelligence'
 import { useMoodSource } from './shared/AmbientField'
 
@@ -19,7 +20,7 @@ interface Props {
  * driven by `home_intelligence.momentum.mrr` (Marcus, daily brief).
  */
 export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
-  const { liveMrr, mrrDelta7d, projection, mrrGoal, gapToGoal, goalPct, loading } = useRevenueAttribution()
+  const { liveMrr, mrrDelta7d, mrrGoal, gapToGoal, goalPct, loading, revenue } = useRevenueAttribution()
   const { intel } = useHomeIntelligence()
   const sparkline = intel.momentum?.mrr ?? []
 
@@ -35,33 +36,50 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
   return (
     <div
       className={`rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-emerald-500/[0.06] via-emerald-500/[0.02] to-transparent shadow-e2 p-5 ${className}`}
-      aria-label="Live MRR ticker"
+      aria-label="Revenue"
     >
       <div className="flex items-end justify-between gap-3 flex-wrap">
+        {/* Cash collected leads, because most of the money to date arrived as
+            one-off payments that no MRR figure can represent. Committed MRR
+            sits beside it. The two are never added together. */}
         <div className="min-w-0">
           <p className="text-[10px] font-display font-bold uppercase tracking-[0.2em] text-emerald-300/70 mb-1.5">
-            Live MRR
+            Collected · 30 days
           </p>
           <p className={`${isMobile ? 'text-[46px]' : 'text-[36px]'} font-display font-bold tabular-nums leading-none`}>
-            <span className="money-text">{formatMrr(liveMrr)}</span>
-            <span className="text-white/35 text-[18px] font-medium">/mo</span>
-          </p>
-          <div className={`flex items-center gap-1.5 mt-2 ${deltaColor}`}>
-            <DeltaIcon size={isMobile ? 14 : 12} />
-            <span className={`${isMobile ? 'text-[14px]' : 'text-[12px]'} font-semibold tabular-nums`}>
-              {deltaPositive ? '+' : ''}${Math.round(mrrDelta7d).toLocaleString()} this week
+            <span className="money-text">
+              {formatMrr((revenue?.collected_30d_net_cents ?? 0) / 100)}
             </span>
-          </div>
+            <span className="text-white/35 text-[18px] font-medium"> net</span>
+          </p>
+          <p className="text-[11px] text-white/40 mt-2 tabular-nums">
+            {revenue
+              ? `$${(revenue.collected_all_time_net_cents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })} all time`
+              : 'loading…'}
+            {revenue?.one_time_share_pct != null && revenue.one_time_share_pct > 0 && (
+              <span className="text-white/30"> · {revenue.one_time_share_pct}% one-off</span>
+            )}
+          </p>
         </div>
 
         <div className="text-right flex-shrink-0 flex flex-col items-end gap-1.5">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35 mb-1">
-              90d projected
+              Committed MRR
             </p>
             <p className={`${isMobile ? 'text-[22px]' : 'text-[18px]'} font-semibold tabular-nums text-white/85`}>
-              ${Math.round(projection).toLocaleString()}
+              {formatCommittedMrr(revenue)}
+              <span className="text-white/30 text-[13px] font-medium">/mo</span>
             </p>
+            <p className="text-[10px] text-white/30 mt-0.5 tabular-nums">
+              {revenue ? `${revenue.active_subscriptions} live subscription${revenue.active_subscriptions === 1 ? '' : 's'}` : ''}
+            </p>
+          </div>
+          <div className={`flex items-center gap-1.5 ${deltaColor}`}>
+            <DeltaIcon size={isMobile ? 14 : 12} />
+            <span className={`${isMobile ? 'text-[13px]' : 'text-[11px]'} font-semibold tabular-nums`}>
+              {deltaPositive ? '+' : ''}${Math.round(mrrDelta7d).toLocaleString()}/wk
+            </span>
           </div>
           {sparkline.length > 0 && (
             <Sparkline data={sparkline} positive={deltaPositive} />
@@ -69,7 +87,9 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
         </div>
       </div>
 
-      {/* Goal bar */}
+      {/* Goal bar. Only when a target exists: a progress bar against a default
+          nobody set is decoration, not information. */}
+      {mrrGoal > 0 && (
       <div className="mt-4">
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">
@@ -87,10 +107,11 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
           />
         </div>
         <p className="text-[10px] text-white/35 mt-1.5 tabular-nums">
-          {goalPct.toFixed(1)}% of goal
+          {goalPct.toFixed(1)}% of goal, on committed MRR
           {loading ? ' · loading…' : ''}
         </p>
       </div>
+      )}
     </div>
   )
 }
