@@ -21,12 +21,18 @@ const INTENTS: Array<[string, string]> = [
   ['investor', 'to raise from'],
 ]
 
-function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+function Chip({ on, onClick, testId, children }: {
+  on: boolean
+  onClick: () => void
+  testId?: string
+  children: React.ReactNode
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={on}
+      data-testid={testId}
       className={`min-h-[30px] rounded-full border px-2.5 text-[11.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
         on ? 'border-violet-400/40 bg-violet-500/15 text-violet-100'
            : 'border-white/10 text-white/50 hover:border-white/20 hover:text-white/80'}`}
@@ -45,7 +51,7 @@ export function VentureRecommender({ onRecommend, loading, active }: {
   const [intent, setIntent] = useState<string>(active?.intent ?? 'buyer')
 
   return (
-    <div className="border-t border-white/[0.06] px-4 py-3">
+    <div className="border-t border-white/[0.06] px-4 py-3" data-testid="network-recommender">
       <div className="mb-2 flex items-center gap-1.5">
         <Sparkles size={12} className="text-violet-300/70" aria-hidden />
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
@@ -55,7 +61,12 @@ export function VentureRecommender({ onRecommend, loading, active }: {
 
       <div className="flex flex-wrap gap-1.5">
         {VENTURES.map(([slug, label]) => (
-          <Chip key={slug} on={venture === slug} onClick={() => setVenture(venture === slug ? null : slug)}>
+          <Chip
+            key={slug}
+            testId={`network-recommend-venture-${slug}`}
+            on={venture === slug}
+            onClick={() => setVenture(venture === slug ? null : slug)}
+          >
             {label}
           </Chip>
         ))}
@@ -65,12 +76,15 @@ export function VentureRecommender({ onRecommend, loading, active }: {
         <>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {INTENTS.map(([id, verb]) => (
-              <Chip key={id} on={intent === id} onClick={() => setIntent(id)}>{verb}</Chip>
+              <Chip key={id} testId={`network-recommend-intent-${id}`} on={intent === id} onClick={() => setIntent(id)}>
+                {verb}
+              </Chip>
             ))}
           </div>
           <button
             type="button"
             disabled={loading}
+            data-testid="network-recommend-go"
             onClick={() => onRecommend(venture, intent)}
             className="aurora-btn mt-2.5 inline-flex min-h-[34px] items-center gap-1.5 rounded-full px-3.5 text-[12px] font-semibold transition-colors disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
           >

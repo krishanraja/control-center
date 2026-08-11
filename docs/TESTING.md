@@ -18,19 +18,37 @@ merge, because `--max-warnings 0`.
 
 ## e2e
 
-`e2e/growth.spec.ts`, 9 specs, desktop viewport only (1280x800), against the
-production build via `npm run preview`. All `/api/*`, `**/rest/v1/**` and
-`**/realtime/**` traffic is mocked, so panels settle on their honest empty
-states without a live database.
+15 specs against the production build via `npm run preview`. All `/api/*`,
+`**/rest/v1/**` and `**/realtime/**` traffic is mocked, so panels settle on
+their honest empty states without a live database and no spec spends an
+embedding or a model call.
+
+| Spec | Covers | Viewport |
+|---|---|---|
+| `e2e/growth.spec.ts` | the merged Growth tab, its five sections and the governance control plane | 1280x800 |
+| `e2e/network.spec.ts` | the Network search lifecycle: ask, read, clear, ask again | 1280x800, one at 390x844 |
 
 ```bash
+VITE_UI_V2_ENABLED=true \
 VITE_SUPABASE_URL=https://placeholder.supabase.co \
 VITE_SUPABASE_ANON_KEY=placeholder npx vite build
 PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test
 ```
 
-The app needs `VITE_SUPABASE_*` to boot at all (`src/lib/supabase.ts` calls
-`createClient` at module load). Placeholders are enough.
+Both build-time vars are load-bearing:
+
+- `VITE_SUPABASE_*` because the app will not boot without them
+  (`src/lib/supabase.ts` calls `createClient` at module load). Placeholders are
+  enough; nothing connects.
+- `VITE_UI_V2_ENABLED=true` because the Network lane falls back to the pre-v2
+  substring list when the flag is off, and `network.spec.ts` would then be
+  asserting against a surface that is not there. The symptom is every spec in
+  that file failing on a missing search field, which reads like an app crash
+  and is not one.
+
+`playwright.config.ts` sets `reuseExistingServer: true`, so a preview server
+you left running serves a **stale `dist`**. Rebuild before you re-run, or kill
+the server and let Playwright start its own.
 
 ## The selector rule
 
@@ -49,6 +67,14 @@ Stable ids in use:
 | `people-lane-<id>` | Pipeline / Network / Visibility |
 | `os-sub-<id>` | Org / Intel / Flows / Systems |
 | `content-room-<id>` | the Content v2 rooms |
+| `network-search-input` / `-submit` / `-clear` | the Network search field and its two buttons |
+| `network-recommender` | the venture picker, which is also the marker for "back to the starting state" |
+| `network-recommend-venture-<slug>` / `-intent-<id>` / `network-recommend-go` | the recommend path |
+
+The Network ids are not optional politeness. The filter bar and the recommender
+both render a chip reading "Mindmaker", and the clear button's accessible name
+("Clear search") contains the submit button's ("Search"), so every plausible
+role-and-name selector on this surface is ambiguous by construction.
 
 `shared/SegmentedNav` emits these from a `testIdPrefix` prop. **If you add a
 switcher, pass one.** An id is not user-facing, so it cannot drift with copy.
@@ -83,7 +109,13 @@ Run it against any database with the two network migrations applied.
 ## Known gaps
 
 - **CI runs no tests.** Playwright and the compound vitest suite are local-only.
-- **e2e covers one tab.** Growth. Nothing tests Home, Content, People, OS, the
-  command palette, theming or mobile.
-- **Desktop viewport only.** No mobile project in `playwright.config.ts`, so the
-  `zoom: 1.2` shell is verified by hand.
+- **e2e covers two tabs.** Growth and Network. Nothing tests Home, Content,
+  Pipeline, OS, the command palette or theming.
+- **No mobile project.** `playwright.config.ts` has a single desktop project;
+  the one phone-sized spec sets its own viewport with `page.setViewportSize`.
+  That still runs outside the `zoom: 1.2` wrapper's real device conditions, so
+  the mobile shell is verified by hand.
+- **The scorer is not in the e2e suite.** `network.spec.ts` mocks
+  `/api/network/*` outright. Ranking quality lives in `probes.sql`, and the two
+  suites are deliberately disjoint: one asserts the UI never traps you, the
+  other asserts the answer is right.

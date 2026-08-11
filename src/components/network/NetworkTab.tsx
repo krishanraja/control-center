@@ -56,6 +56,21 @@ export function NetworkTab({ narrow, onOpenPerson }: {
     s.recommend(venture, intent)
   }
 
+  // Clearing puts the tab back to the state it opens in: no query, no results,
+  // no filters, examples and the venture picker visible again. `s.reset` also
+  // bumps the request sequence, so a search still in flight lands on a stale
+  // sequence and is discarded rather than repopulating the list a second later.
+  //
+  // Filters reset with everything else on purpose. Leaving a tier chip lit over
+  // an empty field is the same trap the old surface had: the next query comes
+  // back quietly narrowed by something set two questions ago.
+  const onClear = useCallback(() => {
+    setLastQuestion('')
+    setRecommendation(null)
+    setFilters(EMPTY_FILTERS)
+    s.reset()
+  }, [s])
+
   const hasRun = Boolean(s.restated || s.results.length || s.error)
 
   return (
@@ -64,9 +79,11 @@ export function NetworkTab({ narrow, onOpenPerson }: {
         <NetworkSearchBar
           onSearch={q => runSearch(q, filters)}
           onVoice={s.searchByVoice}
+          onClear={onClear}
           loading={s.loading}
           restated={s.restated}
           transcript={s.transcript}
+          hasResults={s.results.length > 0 || Boolean(recommendation)}
         />
         <NetworkFilters value={filters} onChange={setFilters} collapsible={narrow} />
         {!hasRun && <VentureRecommender onRecommend={onRecommend} loading={s.loading} active={recommendation} />}

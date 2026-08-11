@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Search, Mic, Square, Loader2, CornerDownLeft } from 'lucide-react'
+import { Search, Mic, Square, Loader2, CornerDownLeft, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { browserCanRecord } from '../shared/VoiceCapture'
 
@@ -18,17 +18,21 @@ const EXAMPLES = [
   'Podcast guests who have actually shipped an AI product',
 ]
 
-export function NetworkSearchBar({ onSearch, onVoice, loading, restated, transcript }: {
+export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated, transcript, hasResults }: {
   onSearch: (q: string) => void
   onVoice: (audio: Blob) => void
+  /** Drop the query AND the results, back to the starting state. */
+  onClear: () => void
   loading: boolean
   restated?: string
   transcript?: string
+  hasResults?: boolean
 }) {
   const [q, setQ] = useState('')
   const [recording, setRecording] = useState(false)
   const [micError, setMicError] = useState<string | null>(null)
   const recRef = useRef<MediaRecorder | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const chunks = useRef<Blob[]>([])
   const canRecord = browserCanRecord()
 
@@ -57,19 +61,50 @@ export function NetworkSearchBar({ onSearch, onVoice, loading, restated, transcr
 
   const submit = () => { if (q.trim() && !loading) onSearch(q.trim()) }
 
+  // Clearing has to drop the RESULTS too, not just the text. Emptying the field
+  // and leaving twenty rows underneath reads as a broken search rather than a
+  // fresh start, and it hides the examples and the venture picker behind a
+  // query that is no longer there.
+  const clear = () => {
+    setQ('')
+    onClear()
+    inputRef.current?.focus()
+  }
+  const dirty = q.length > 0 || Boolean(restated) || Boolean(hasResults)
+
   return (
     <div className="px-4 pt-4">
       <div className="flex items-center gap-2">
-        <Input
-          value={q}
-          onChange={e => setQ(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') submit() }}
-          placeholder="Ask your network anything"
-          aria-label="Ask your network anything"
-          icon={<Search size={14} />}
-          disabled={recording}
-          className="min-h-[44px] text-[14px]"
-        />
+        <div className="relative flex-1">
+          <Input
+            ref={inputRef}
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') submit()
+              // Escape is the keyboard's clear. It matches every search field
+              // the operator already uses and costs nothing to support.
+              if (e.key === 'Escape' && dirty) { e.preventDefault(); clear() }
+            }}
+            placeholder="Ask your network anything"
+            aria-label="Ask your network anything"
+            data-testid="network-search-input"
+            icon={<Search size={14} />}
+            disabled={recording}
+            className={`min-h-[44px] text-[14px] ${dirty ? 'pr-10' : ''}`}
+          />
+          {dirty && !recording && (
+            <button
+              type="button"
+              onClick={clear}
+              aria-label="Clear search"
+              data-testid="network-search-clear"
+              className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
         {canRecord && (
           <button
             type="button"
@@ -89,6 +124,7 @@ export function NetworkSearchBar({ onSearch, onVoice, loading, restated, transcr
           onClick={submit}
           disabled={loading || !q.trim()}
           aria-label="Search"
+          data-testid="network-search-submit"
           className="aurora-btn inline-flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-form transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 disabled:opacity-40"
         >
           {loading ? <Loader2 size={15} className="animate-spin" /> : <CornerDownLeft size={15} />}
