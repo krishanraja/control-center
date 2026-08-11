@@ -116,27 +116,31 @@ export async function loadCorpus(): Promise<string> {
  *  does it go". Before this, `lane` fused venture and channel, which is why
  *  signal_noise and builder_economy existed as both a venture and a lane. */
 export function laneToCorpusChannel(lane?: string | null, slot?: string | null): string | null {
-  if (lane === 'signal_noise') return 'signal_noise'
-  if (lane === 'builder_economy') return 'built'
-  if (lane === 'mymu') {
-    // Teardown carries the investigation playbook and its harder bar. The slot
-    // key stays 'investigation' to match content_cadence and venture_formats.
-    if (slot === 'teardown' || slot === 'investigation') return 'investigation'
+  // THE LIVE MODEL. One media venture, two formats carried in `slot`.
+  if (lane === 'mindmaker_live') {
+    if (slot === 'paid' || slot === 'teardown' || slot === 'investigation') return 'paid'
     if (slot === 'built') return 'built'
-    if (slot === 'weekly') return 'mymu_weekly'
-    return 'makeyourmindup'   // the house register
+    return 'mindmaker_live'   // the house register
   }
-  // Legacy stored values, mapped never rejected. `mindmaker` was the lane before
-  // MYMU became a venture; `techonomic` was the retired brand; `mindmaker_live`
-  // was the interim channel slug.
+  // ── Legacy stored values, mapped never rejected ───────────────────────────
+  // 'mindmaker' was the content lane before the venture split; 'mymu' and
+  // 'makeyourmindup' were the content brand before it became the CTRL lead
+  // magnet; 'techonomic' was the retired investigative brand; signal_noise and
+  // builder_economy were ventures until 2026-08-11.
+  if (lane === 'mymu' || lane === 'makeyourmindup') {
+    if (slot === 'teardown' || slot === 'investigation' || slot === 'paid') return 'paid'
+    if (slot === 'built') return 'built'
+    return 'mindmaker_live'
+  }
   if (lane === 'mindmaker') {
     if (slot === 'field_learning') return 'linkedin'
-    if (slot === 'investigation' || slot === 'teardown') return 'investigation'
-    return 'makeyourmindup'
+    if (slot === 'investigation' || slot === 'teardown') return 'paid'
+    return 'mindmaker_live'
   }
-  if (lane === 'builder_economy_ig') return 'built'
-  if (lane === 'techonomic') return 'investigation'
-  if (lane === 'mindmaker_live' || lane === 'makeyourmindup') return 'makeyourmindup'
+  if (lane === 'techonomic') return 'paid'
+  if (lane === 'builder_economy' || lane === 'builder_economy_ig') return 'built'
+  // Still a real corpus playbook, just a channel rather than a venture now.
+  if (lane === 'signal_noise') return 'signal_noise'
   return null
 }
 

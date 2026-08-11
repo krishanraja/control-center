@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronDown, SlidersHorizontal } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { VENTURE_OPTIONS } from '../../lib/ventureOptions'
 
 // Filters, and a switch for what a filter MEANS.
 //
@@ -20,10 +21,13 @@ const ROLES: Array<[string, string]> = [
   ['buyer', 'Buyer'], ['partner', 'Partner'], ['introducer', 'Introducer'],
   ['guest', 'Guest'], ['investor', 'Investor'], ['operator_peer', 'Peer'], ['hire', 'Hire'],
 ]
-export const VENTURES: Array<[string, string]> = [
-  ['mindmaker', 'Mindmaker'], ['adfixus', 'AdFixus'],
-  ['signal_noise', 'Signal & Noise'], ['builder_economy', 'Builder Economy'],
-]
+// Filter chips for the live portfolio only. Retired ventures are deliberately
+// absent: a contact tagged with one still SHOWS its pill (the label maps keep
+// resolving), it just cannot be filtered for, which is the honest trade for
+// not putting a dead brand back in the UI.
+export const VENTURES: Array<[string, string]> = VENTURE_OPTIONS.map(
+  v => [v.slug, v.label] as [string, string],
+)
 
 function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (

@@ -26,14 +26,9 @@ const INTENTS: Array<{ id: Intent; label: string; hint: string }> = [
   { id: 'follow_up', label: 'Follow up', hint: 'Continue a prior thread' },
 ]
 
-// Kept in sync with the venture chips on the Leads tab.
-const VENTURES: Array<{ slug: string; label: string }> = [
-  { slug: 'mindmaker', label: 'Mindmaker' },
-  { slug: 'signal_noise', label: 'Signal & Noise' },
-  { slug: 'builder_economy', label: 'Builder Economy' },
-  { slug: 'fractionl_pulse', label: 'Fractionl Pulse' },
-  { slug: 'investor', label: 'Investor' },
-]
+// The venture chips on the Leads tab, from the one shared source so this can
+// never drift out of sync with them again.
+import { VENTURE_OPTIONS as VENTURES } from '../lib/ventureOptions'
 
 const LENGTHS: Array<{ id: Length; label: string }> = [
   { id: 'short', label: 'Short' },
