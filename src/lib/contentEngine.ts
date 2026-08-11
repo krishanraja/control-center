@@ -299,7 +299,7 @@ export const TONE_PRESETS: AxisOption[] = [
 
 export const LENGTH_PRESETS: AxisOption[] = [
   { value: 'short', label: 'Short (LinkedIn)', hint: 'Cut to 150-250 words. Scroll-stopping claim or scene first. No hook-line-gap-explanation pattern.' },
-  { value: 'mid', label: 'Mid (MYMU)', hint: 'Tighten to ~400-700 words. Teaching voice, every paragraph advances the argument, each item carries a so-what.' },
+  { value: 'mid', label: 'Mid (Built)', hint: 'Tighten to ~400-700 words. Teaching voice, every paragraph advances the argument, each item carries a so-what.' },
   { value: 'long', label: 'Full essay', hint: 'Expand to a 600-1000 word investigative essay. Slower structural open that earns the depth, take the claim apart and check each part against dated evidence, hold one genuine counterpoint, say where the knowable ends, end on a hard verdict. No summary ending.' },
 ]
 
@@ -345,7 +345,7 @@ export interface LaneDef {
   factoryChannel: FactoryChannel
 }
 
-// ── Venture / format / channel (Krish, 2026-08-06) ────────────────────────
+// ── Venture / format / channel (Krish, 2026-08-06; refocused 2026-08-11) ──
 // Three layers, deliberately separate, because they used to be two:
 //   VENTURE  what am I working on?     picked FIRST
 //   FORMAT   what shape is this?       picked second, scoped to the venture
@@ -354,11 +354,25 @@ export interface LaneDef {
 // builder_economy existed as BOTH a venture and a lane, and why Instagram was
 // buried inside a venture value ('builder_economy_ig'). A channel is never a
 // venture again.
+//
+// REFOCUS 2026-08-11. All content now publishes under ONE media venture,
+// Mindmaker Live, the content arm of the Mindmaker advisory, at
+// live.themindmaker.ai. It has exactly two signature formats:
+//   PAID   the investigation, folding in Techonomic's investigative register
+//   BUILT  builder conversations, folding in the Builder Economy thesis
+// Three things went, and none of them are coming back as a venture:
+//   - MYMU. "Make Your Mind Up" is now the lead magnet and URL into the CTRL
+//     app at makeyourmindup.ai. It is a product surface, not a content brand,
+//     so it is absent from this file by design.
+//   - Builder Economy. Fully retired, feed and all.
+//   - Signal & Noise. Demoted from venture to distribution CHANNEL: it is a
+//     co-hosted feed that carries Mindmaker Live material. Nothing is
+//     commissioned "for" it, which is why it now sits in MEDIA_CHANNELS.
 
 /** Media ventures: the ones that produce content. Mirrors venture_registry
- *  where kind='media'. Product ventures (ctrl, circle, pulse...) also publish,
- *  but through these. */
-export type MediaVenture = 'mymu' | 'signal_noise' | 'builder_economy'
+ *  where kind='media'. Product ventures (mm_ctrl, fractionl_circle,
+ *  fractionl_pulse, full_time) also publish, but through this one. */
+export type MediaVenture = 'mindmaker_live'
 
 export interface VentureFormat {
   venture: MediaVenture
@@ -373,17 +387,12 @@ export interface VentureFormat {
 /** Mirrors the `venture_formats` table. The composer picks one of these AFTER
  *  the venture and BEFORE the channels. */
 export const VENTURE_FORMATS: VentureFormat[] = [
-  { venture: 'mymu', slot: 'teardown', label: 'MYMU: Teardown', hero: true, gear: 'A', corpusKey: 'investigation' },
-  { venture: 'mymu', slot: 'weekly', label: 'Make Your Mind Up', gear: 'A', corpusKey: 'mymu_weekly' },
-  { venture: 'mymu', slot: 'built', label: 'MYMU: Built', gear: 'B', corpusKey: 'built' },
-  { venture: 'signal_noise', slot: 'episode', label: 'Signal & Noise episode', gear: 'B', corpusKey: 'signal_noise' },
-  { venture: 'builder_economy', slot: 'episode', label: 'Builder Economy episode', gear: 'B', corpusKey: 'built' },
+  { venture: 'mindmaker_live', slot: 'paid', label: 'Paid', hero: true, gear: 'A', corpusKey: 'paid' },
+  { venture: 'mindmaker_live', slot: 'built', label: 'Built', gear: 'B', corpusKey: 'built' },
 ]
 
 export const MEDIA_VENTURES: { value: MediaVenture; label: string }[] = [
-  { value: 'mymu', label: 'MYMU' },
-  { value: 'signal_noise', label: 'Signal & Noise' },
-  { value: 'builder_economy', label: 'Builder Economy' },
+  { value: 'mindmaker_live', label: 'Mindmaker Live' },
 ]
 
 export function formatsForVenture(v?: string | null): VentureFormat[] {
@@ -394,6 +403,7 @@ export function formatsForVenture(v?: string | null): VentureFormat[] {
  *  one piece is produced once and lifted to several of these. */
 export type MediaChannel =
   | 'substack' | 'instagram' | 'tiktok' | 'youtube' | 'linkedin' | 'podcast'
+  | 'signal_noise'
 
 export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: boolean }[] = [
   { value: 'substack', label: 'Substack', shortForm: false },
@@ -402,29 +412,38 @@ export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: bo
   { value: 'youtube', label: 'YouTube', shortForm: false },
   { value: 'linkedin', label: 'LinkedIn', shortForm: true },
   { value: 'podcast', label: 'Podcast', shortForm: false },
+  // Demoted from venture to channel 2026-08-11. Co-hosted with Rio Longacre
+  // and Brett House; the feed, its GUID and its subscribers are deliberately
+  // untouched, and no public repositioning of the show has been made.
+  { value: 'signal_noise', label: 'Signal & Noise', shortForm: false },
 ]
 
 /** Default distribution per format, so the composer pre-ticks the sane set. */
 export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
-  'mymu:teardown': ['substack', 'linkedin'],
-  'mymu:weekly': ['substack', 'instagram', 'tiktok', 'youtube', 'linkedin'],
-  'mymu:built': ['substack', 'instagram', 'tiktok', 'youtube'],
-  'signal_noise:episode': ['podcast', 'youtube', 'linkedin'],
-  'builder_economy:episode': ['podcast', 'instagram', 'tiktok', 'youtube'],
+  'mindmaker_live:paid': ['substack', 'linkedin'],
+  'mindmaker_live:built': ['substack', 'instagram', 'tiktok', 'youtube', 'signal_noise'],
 }
 
 // The factory channel is what the Omnichannel Content Factory polishes INTO.
 // It is a production target, not a distribution surface, and it is kept
 // separate from MediaChannel on purpose.
+// NOTE: these values are a WIRE CONTRACT with the Omnichannel Content Factory
+// in n8n cloud, which switches on `target_channel`. They are renamed here and
+// in the factory together; changing one side alone silently drops a piece into
+// the factory's fallback branch.
+// This namespace deliberately mixes the two FORMATS (paid, built) with real
+// distribution surfaces (linkedin, signal_noise, vertical_video), because the
+// factory produces a draft styled FOR a destination. That is not the same list
+// as MEDIA_CHANNELS and must not be collapsed into it.
 export type FactoryChannel =
-  | 'signal_noise' | 'makeyourmindup' | 'linkedin'
-  | 'builder_economy' | 'vertical_video' | 'dynamic'
+  | 'paid' | 'built' | 'linkedin' | 'signal_noise'
+  | 'vertical_video' | 'dynamic'
 
 export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
-  { value: 'signal_noise', label: 'Signal & Noise' },
-  { value: 'makeyourmindup', label: 'MYMU' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'built', label: 'Built' },
   { value: 'linkedin', label: 'LinkedIn' },
-  { value: 'builder_economy', label: 'Built' },
+  { value: 'signal_noise', label: 'Signal & Noise' },
   { value: 'vertical_video', label: 'Vertical Video' },
 ]
 
@@ -432,11 +451,8 @@ export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
 // which is why 'builder_economy_ig' is gone: Instagram was a channel wearing a
 // venture's clothes, and it now lives in MEDIA_CHANNELS where it belongs.
 export const LANES: LaneDef[] = [
-  { lane: 'mymu', slot: 'teardown', label: 'MYMU: Teardown', gear: 'A', factoryChannel: 'makeyourmindup' },
-  { lane: 'mymu', slot: 'weekly', label: 'Make Your Mind Up', gear: 'A', factoryChannel: 'makeyourmindup' },
-  { lane: 'mymu', slot: 'built', label: 'MYMU: Built', gear: 'B', factoryChannel: 'builder_economy' },
-  { lane: 'signal_noise', slot: 'episode', label: 'Signal & Noise episode', gear: 'B', factoryChannel: 'signal_noise' },
-  { lane: 'builder_economy', slot: 'episode', label: 'Builder Economy episode', gear: 'B', factoryChannel: 'builder_economy' },
+  { lane: 'mindmaker_live', slot: 'paid', label: 'Paid', gear: 'A', factoryChannel: 'paid' },
+  { lane: 'mindmaker_live', slot: 'built', label: 'Built', gear: 'B', factoryChannel: 'built' },
 ]
 
 // ── Adapt-to-lane (composer Refine) ──────────────────────────────────────
@@ -463,38 +479,42 @@ export const LANE_ADAPTS: LaneAdapt[] = [
     label: 'Signal & Noise',
     hint: 'Adapt this for the Signal & Noise audience. Exec-to-exec authority (Gear A), ~300-500 words, separate the durable signal from the noise, name what most people get wrong ("Not X, Y"), commercially grounded, hard verdict ending.',
   },
-  // MYMU is a venture, never an adapt target. Adapting to "MYMU" was
-  // meaningless: it has three formats with three different registers, and
-  // offering the venture as one option is what made the composer feel stale.
+  // Mindmaker Live is a venture, never an adapt target. Adapting to the
+  // venture was meaningless: it has two formats with two different registers,
+  // and offering the venture as one option is what made the composer feel
+  // stale. Adapt to a FORMAT.
   {
-    value: 'investigation',
-    label: 'MYMU: Teardown',
-    hint: 'Adapt this into a MYMU: Teardown, the investigative register that came over from Techonomic. Take one load-bearing claim apart and check each part against dated evidence. Attribute every number to the party that produced it. Hold one genuine counterpoint. Say plainly where the knowable record ends rather than papering over it, and end on the terminal question the evidence actually leaves open. No summary ending, no vendor framing. The register is dry and sarcastic; the evidence handling is not. The joke is never the finding.',
-  },
-  {
-    value: 'mymu_weekly',
-    label: 'Make Your Mind Up',
-    hint: 'Adapt this into the Make Your Mind Up weekly. Open on the Best / Worst / Ugliest triptych, then ONE real decision a leader faces this week with two genuinely defensible answers, then commit to one in public with a date, then Wrong Last Week. 500-800 words, Gear A with the house register on. Sarcasm aims at claims and incentives, never at a named person. The commitment and the revisit are the format, so never soften them into "it depends".',
+    value: 'paid',
+    label: 'Paid',
+    hint: 'Adapt this into a Paid piece, the investigative register that came over from Techonomic. Follow the money: who pays, who collects, and what the shift does to pricing, unit economics, positioning and human labour. Take one load-bearing claim apart and check each part against dated evidence. Attribute every number to the party that produced it. Hold one genuine counterpoint. Say plainly where the knowable record ends rather than papering over it, and end on the terminal question the evidence actually leaves open. No summary ending, no vendor framing. The register is dry and sarcastic; the evidence handling is not. The joke is never the finding.',
   },
   {
     value: 'built',
-    label: 'MYMU: Built',
-    hint: 'Adapt this into a MYMU: Built piece. A conversation with someone who actually built something in the AI era, dug past what they built to why they really built it. Gear B, generous and human, 400-800 words. This is the one MYMU format where the house sarcasm dials down: aim any irony at the industry around the builder, never at the builder. The guest must finish the piece looking more human, not more foolish.',
+    label: 'Built',
+    hint: 'Adapt this into a Built piece. A conversation with someone who actually built something in the AI era, dug past what they built to why they really built it. Gear B, generous and human, 400-800 words. This is the format where the house sarcasm dials down: aim any irony at the industry around the builder, never at the builder. The guest must finish the piece looking more human, not more foolish.',
   },
 ]
 
-// Lane values that no longer exist but are still stored on rows. Techonomic was
-// retired 2026-08-06 and folded into MYMU, and 'mindmaker_live' was the interim
-// value its rows were re-laned to before the channel itself was renamed to
-// 'makeyourmindup' the same day. Both map forward, never rejected.
+// Lane values that no longer exist but may still be stored on old rows. Every
+// one maps FORWARD onto a live format so a historical row keeps a home on the
+// board; none is ever rejected, and none is offered as a choice for new work.
+// Note 'mindmaker_live' is deliberately ABSENT: it is the live venture now, so
+// it resolves through LANES above rather than through this table.
 const LEGACY_LANE_CHANNEL: Record<string, FactoryChannel> = {
-  techonomic: 'makeyourmindup',
-  mindmaker_live: 'makeyourmindup',
-  makeyourmindup: 'makeyourmindup',
-  // 'mindmaker' was the lane before MYMU became its own venture (2026-08-06).
-  mindmaker: 'makeyourmindup',
-  // Instagram was buried inside this venture value; it is a channel now.
-  builder_economy_ig: 'builder_economy',
+  // Retired 2026-08-06 into MYMU, then 2026-08-11 into Mindmaker Live: Paid.
+  techonomic: 'paid',
+  // The MYMU venture and its channel slug. MYMU is a product surface now.
+  makeyourmindup: 'paid',
+  mymu: 'paid',
+  // 'mindmaker' was the content lane before the venture split.
+  mindmaker: 'paid',
+  // Instagram was buried inside this venture value; it is a channel now, and
+  // the Builder Economy thesis lives on as the Built format.
+  builder_economy_ig: 'built',
+  builder_economy: 'built',
+  // Signal & Noise stopped being a VENTURE, but it is still a real factory
+  // destination (a channel), so a historical row keeps producing for it.
+  signal_noise: 'signal_noise',
 }
 
 /** Map a generated variant's lane (+slot) onto a content-factory channel. */

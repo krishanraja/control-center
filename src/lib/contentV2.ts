@@ -128,16 +128,16 @@ export const VERDICT_LABEL: Record<ShiftVerdict, string> = {
 // SynthesisModal did not change what he was looking at: v2 is the live system
 // and v1 does not render while VITE_CONTENT_V2_ENABLED is on.
 //
-// MYMU is a VENTURE with three formats and three registers, so offering it as
-// one destination was the same mistake as offering "Builder Economy IG", a
-// channel wearing a venture's name.
+// Mindmaker Live is a VENTURE with two formats and two registers, so offering
+// it as one destination would be the same mistake as offering "Builder Economy
+// IG", a channel wearing a venture's name. Fan out to FORMATS (paid, built)
+// plus real distribution channels, never to the venture.
 // `short` is the name used where the full label will not fit, notably the
 // collapsed one-line fan-out summary on a phone. It exists so that summary can
 // name every selected format instead of ellipsing after the first.
 export const FACTORY_FANOUT: Array<{ channel: string; label: string; short: string; defaultOn: boolean }> = [
-  { channel: 'investigation', label: 'MYMU: Teardown', short: 'Teardown', defaultOn: false },
-  { channel: 'mymu_weekly', label: 'Make Your Mind Up (weekly)', short: 'MYMU weekly', defaultOn: true },
-  { channel: 'built', label: 'MYMU: Built', short: 'Built', defaultOn: false },
+  { channel: 'paid', label: 'Paid', short: 'Paid', defaultOn: true },
+  { channel: 'built', label: 'Built', short: 'Built', defaultOn: false },
   { channel: 'linkedin', label: 'LinkedIn post', short: 'LinkedIn', defaultOn: true },
   { channel: 'signal_noise', label: 'Signal & Noise', short: 'Signal & Noise', defaultOn: false },
 ]

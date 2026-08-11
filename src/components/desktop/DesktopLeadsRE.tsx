@@ -24,13 +24,7 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { SwipeCockpit } from '../shared/SwipeCockpit'
 import { buildContactsTriageConfig } from '../../lib/triageConfig'
 
-const VENTURES: Array<{ slug: string; label: string }> = [
-  { slug: 'mindmaker', label: 'Mindmaker' },
-  { slug: 'signal_noise', label: 'Signal & Noise' },
-  { slug: 'builder_economy', label: 'Builder Economy' },
-  { slug: 'fractionl_pulse', label: 'Fractionl Pulse' },
-  { slug: 'investor', label: 'Investor' },
-]
+import { VENTURE_OPTIONS as VENTURES } from '../../lib/ventureOptions'
 
 const TIERS: Array<{ value: ConsentTier; label: string }> = [
   { value: 'customer', label: 'Customer' },

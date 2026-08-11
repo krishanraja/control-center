@@ -1,21 +1,22 @@
 import React, { useMemo, useState } from 'react'
 import { Search, Wand2, ExternalLink, Loader2 } from 'lucide-react'
 import type { ContentIdeaRow, ContentLane } from '../../hooks/useRealtimeContentIdeas'
+import { VENTURE_FORMATS } from '../../lib/contentEngine'
 import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 
 interface DeepDive { query: string; findings: string; citations?: string[]; at: string }
 
 interface TransformTarget { lane: ContentLane; slot?: string; label: string }
-// Venture + format, mirroring venture_formats. Transform moves a researched
-// idea into another venture's format, each in that format's krish-voice gear.
-const TRANSFORM_TARGETS: TransformTarget[] = [
-  { lane: 'mymu', slot: 'teardown', label: 'MYMU: Teardown' },
-  { lane: 'mymu', slot: 'weekly', label: 'Make Your Mind Up' },
-  { lane: 'mymu', slot: 'built', label: 'MYMU: Built' },
-  { lane: 'signal_noise', slot: 'episode', label: 'Signal & Noise' },
-  { lane: 'builder_economy', slot: 'episode', label: 'Builder Economy' },
-]
+// DERIVED from VENTURE_FORMATS on purpose. This list used to be hand-maintained
+// and drifted every time the taxonomy moved, offering retired formats long after
+// they were gone. Transform moves a researched idea into another format, each in
+// that format's krish-voice gear.
+const TRANSFORM_TARGETS: TransformTarget[] = VENTURE_FORMATS.map(f => ({
+  lane: f.venture as ContentLane,
+  slot: f.slot,
+  label: f.label,
+}))
 
 /**
  * Research transparency + drill-down + Transform (CONTENT_TAB_SPEC §4.3a, §5.5).
