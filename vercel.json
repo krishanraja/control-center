@@ -17,6 +17,7 @@
     { "path": "/api/briefs/assemble", "schedule": "0 18 * * 5" },
     { "path": "/api/purge/run", "schedule": "0 14 * * 1" },
     { "path": "/api/acquisition/governor", "schedule": "0 */6 * * *" },
+    { "path": "/api/revenue/sync", "schedule": "0 8 * * *" },
     { "path": "/api/growth/snapshot", "schedule": "30 5 * * *" },
     { "path": "/api/growth/stall-check", "schedule": "0 7 * * *" },
     { "path": "/api/growth/geo-probe", "schedule": "0 6 * * 1" },
