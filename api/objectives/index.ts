@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { syncNorthStar } from '../_northStar.js'
 import { gateGoal, type Horizon } from '../_goalGate.js'
+import { logGoalChange } from '../_goals.js'
 
 // Objective Layer, Phase 4.
 // GET  /api/objectives           list active objectives (plus optional nominations)
@@ -214,6 +215,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         notes: 'Krish saved a goal the gate did not pass. Repeated overrides on one dimension mean the rubric is wrong, not the goal.',
       })
     }
+
+    await logGoalChange('set', {
+      id: String(row.id), title: String(row.title), horizon: String(row.horizon),
+    }, { gate_overridden: overridden })
 
     // Keep system_config.north_star resolvable for readers outside this repo.
     if (row.horizon === 'os') await syncNorthStar()

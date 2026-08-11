@@ -140,3 +140,34 @@ export async function goalsSpine(context: string): Promise<{ prompt: string; spi
   const spine = await loadActiveGoals()
   return { prompt: goalsPrompt(spine, context), spine }
 }
+
+/**
+ * Record a goal change on the activity feed.
+ *
+ * Home reads audit_log directly (DesktopHome subscribes to INSERTs), so this is
+ * what makes "the goals changed" visible at the moment it happens rather than
+ * only on the next ladder fetch. audit_log.id has no default, so it is minted
+ * here the way api/goals.ts mints goal ids.
+ *
+ * Never throws: a goal write must not fail because its audit line did.
+ */
+export async function logGoalChange(
+  action: 'set' | 'changed' | 'retired',
+  goal: { id: string; title: string; horizon: string },
+  extra: Record<string, unknown> = {},
+): Promise<void> {
+  try {
+    const { supabase } = await import('./_supabase.js')
+    const verb = action === 'set' ? 'set' : action === 'retired' ? 'retired' : 'changed'
+    await supabase.from('audit_log').insert({
+      id: `goal-${action}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      event_type: 'goal_change',
+      actor: 'krish',
+      target: goal.id,
+      changes: { horizon: goal.horizon, title: goal.title, action, ...extra },
+      display_message: `Goal ${verb} (${goal.horizon}): ${goal.title}`,
+    })
+  } catch {
+    // Intentionally silent. See above.
+  }
+}

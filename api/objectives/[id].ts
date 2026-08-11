@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { syncNorthStar } from '../_northStar.js'
+import { logGoalChange } from '../_goals.js'
 
 // GET   /api/objectives/:id
 //   Returns the objective tree via get_objective_tree:
@@ -110,6 +111,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .select()
       .single()
     if (error) return res.status(500).json({ ok: false, error: error.message })
+
+    await logGoalChange(
+      patch.status === 'dropped' || patch.status === 'done' ? 'retired' : 'changed',
+      { id, title: String(patch.title ?? existing.title), horizon: String(existing.horizon) },
+      { fields: Object.keys(patch) },
+    )
 
     // Retitling or retiring an OS goal changes what the north_star mirror says.
     if (existing.horizon === 'os') await syncNorthStar()
