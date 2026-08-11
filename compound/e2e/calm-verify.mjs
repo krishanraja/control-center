@@ -32,18 +32,14 @@ async function pageErrors(page, label) {
     if (message.type() === "error") errors.push(`console: ${message.text()}`);
   });
   page.on("requestfailed", (request) => {
-    const expectedDevAbort = request.url().endsWith("/latest.json") && request.failure()?.errorText === "net::ERR_ABORTED";
-    if (!request.url().includes("favicon") && !expectedDevAbort) errors.push(`request: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? "failed"}`);
+    if (!request.url().includes("favicon")) errors.push(`request: ${request.method()} ${request.url()} ${request.failure()?.errorText ?? "failed"}`);
   });
   return () => errors.forEach((error) => failures.push(`${label} ${error}`));
 }
 
 async function openState(page, viewport, state) {
   const query = `?demoState=${state}`;
-  await Promise.all([
-    page.waitForResponse((response) => response.url().endsWith("/latest.json") && response.ok()),
-    page.goto(`${baseUrl}/${query}`, { waitUntil: "domcontentloaded" }),
-  ]);
+  await page.goto(`${baseUrl}/${query}`, { waitUntil: "domcontentloaded" });
   await page.getByRole("navigation", { name: "Sections" }).waitFor();
   const overflow = await page.evaluate(() => ({
     document: document.documentElement.scrollWidth - document.documentElement.clientWidth,

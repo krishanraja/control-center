@@ -132,8 +132,8 @@ replacement. Current reading grades: 2.2 to 4.8 per screen, 4.6 overall.
 
 ## Known limits
 
-- `placed[].note` and `stages[].name` arrive as data. The starter snapshot in
-  `compound/public/latest.json` was rewritten into plain words, and known stage
+- `placed[].note` and `stages[].name` arrive as data. The archived demo snapshot
+  was rewritten into plain words, and known stage
   names map through `plainStage` in `words.ts`, but the daily pipeline can
   still write a sentence the reading level gate never sees. The pipeline should
   adopt the same vocabulary when it replaces the starter snapshots.

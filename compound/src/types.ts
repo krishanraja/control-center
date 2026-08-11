@@ -1,10 +1,10 @@
 /**
- * The shape of `latest.json`, the single file the app reads.
+ * The validated legacy market-data shape embedded in each COMPOUND snapshot.
  *
- * The daily job writes `data/YYYY-MM-DD.json` for history and
- * `public/latest.json` for the app. Every field below is produced by one named
- * feed or one named engine, so every number on screen can be traced back to a
- * source shown next to it.
+ * Live mode receives this data through authenticated snapshot APIs. Demo mode
+ * bundles a local fixture from `src/demo/latest.json`; it is never emitted as a
+ * public production data route. Every field below is produced by one named feed
+ * or engine so each number can be traced to a source.
  */
 
 export type SignalName = "price" | "analysts" | "news" | "revenue";

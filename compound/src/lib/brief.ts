@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { DEMO_CONTEXT } from "./contextDemo";
-import { loadSnapshot } from "./snapshot";
+import { loadDemoSnapshot } from "./snapshot";
 import type {
   BriefStory,
   CompoundDay,
@@ -283,7 +283,7 @@ export async function loadCompoundDay(options: {
   signal?: AbortSignal;
 }): Promise<CompoundDay> {
   if (options.mode === "demo") {
-    const snapshot = await loadSnapshot(options.signal);
+    const snapshot = loadDemoSnapshot();
     const requested = new URLSearchParams(window.location.search).get("demoState");
     return buildDemoDay(snapshot, requested);
   }
