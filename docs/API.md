@@ -394,7 +394,10 @@ All `api/*` functions auto-deploy on push to `main`.
 | `/api/customer-contacts/*` | Customer conversation log |
 | `/api/data` | Aggregated dashboard payload |
 | `/api/feedback` | Routes rejections into `feedback_queue` |
-| `/api/goals` | Weekly/monthly goals |
+| `/api/goals` | GET returns weekly goals only and has no caller in `src/`; PATCH is live for `team_focus` and goal mutations. See `docs/GOALS-DUPLICATION-AUDIT.md` |
+| `/api/goals/ladder` | The one read for the whole goal ladder: all four rungs joined to `goals_health` |
+| `/api/goals/gate` | Judge a goal against its rung's rubric without writing it. Preview only; `POST /api/objectives` enforces |
+| `/api/goals/digest` | The rendered ladder as text (`?format=json` for structure). One canonical URL for any consumer |
 | `/api/guests/*` | Guest CRUD, confirm cascade |
 | `/api/health` | Live aggregate health (worst component wins) |
 | `/api/leads/*` | Lead CRUD, promote, deep-enrich trigger |

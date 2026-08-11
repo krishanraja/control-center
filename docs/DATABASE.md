@@ -95,18 +95,46 @@ to agents or waiting for human review.
 
 ### `goals`
 
-Weekly/monthly goals with progress tracking.
+The goal ladder: one table, four rungs, discriminated by `horizon`. The
+objective layer repurposed this table in May 2026
+(`scripts/migrations/2026-05-29-objective-layer-1b-repurpose-goals.sql`);
+this section had still described the pre-May shape, including a `period`
+column and a `team_focus` column that never existed here. `team_focus`
+is a `system_config` key, not a goals column, and `id` is text, not uuid.
+
+`GET /api/goals/ladder` is the one read. `POST /api/objectives` is the one
+create, gated by `api/_goalGate.ts`. Entry is guarded structurally by
+`scripts/check-goal-ladder.mts`.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | uuid | Primary key |
-| `title` | text | Goal title |
-| `current` | text | Current status description |
-| `progress` | int | Progress percentage (0-100) |
-| `status` | text | `active`, `done`, `paused` |
-| `period` | text | `weekly`, `monthly`, `quarterly` |
-| `team_focus` | text | "This week's focus" string for the OS Mission card |
-| `created_at` | timestamp | |
+| `id` | **text** | Primary key. Namespaced, e.g. `os:licensable`, `obj:venture:slug` |
+| `title` | text | The goal |
+| `horizon` | text | `os` \| `mid_term` \| `weekly` \| `venture_objective`. The rung |
+| `parent_id` | text | What this serves. Required for every rung except `os` |
+| `status` | text | `proposed` \| `active` \| `paused` \| `done` \| `dropped` |
+| `venture` | text | For `venture_objective` |
+| `target` / `current` / `progress` / `notes` | text/int | Legacy weekly-goal fields, still written by the ladder's inline edit |
+| `owner` / `week_of` | text | Legacy, pre-ladder |
+| `objective_kind`, `definition_of_done`, `why_now`, `target_horizon`, `primary_kpi`, `secondary_kpi` | | Objective-layer detail |
+| `priority` | int | Sort order within a rung |
+| `is_auto`, `created_by`, `source` | | Provenance. `source` is `krish_declared` \| `marcus_nominated` \| `agatha_decomposed` |
+| `concept_id` | text | Closure cascade |
+| `gate_verdict` | jsonb | The gate's judgment at save time |
+| `gate_overridden` | boolean | True when saved despite a failing verdict |
+| `activated_at`, `completed_at`, `review_due_at`, `created_at`, `updated_at` | timestamptz | |
+
+`gate_verdict` and `gate_overridden`, the `horizon` NOT NULL constraint,
+and the corrected `goals_health` view ship in
+`supabase/migrations/20260811210000_goals_ladder_integrity.sql`.
+
+### `goals_health`
+
+View over `goals`. Staleness thresholds by rung: weekly 10d,
+venture_objective 30d, mid_term 45d, os 90d. `orphaned` is a non-OS goal
+with no parent. Covers `status IN ('active','proposed')` only; paused,
+done and dropped goals get no row, and `api/goals/ladder.ts` reads a
+missing row as not-stale, which is correct for all three.
 
 ### `agent_plans`
 
