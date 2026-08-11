@@ -128,10 +128,18 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
 
   let results = (data || []) as NetworkResult[]
 
-  // Weakness is a property of the BEST result, not the average: one strong
-  // match among twenty weak ones is a successful search.
-  const topRelevance = results.length ? Math.max(...results.map(r => Number(r.query_relevance ?? 0))) : 0
-  const weak = results.length === 0 || topRelevance < WEAK_RELEVANCE
+  // Weakness is a property of the BEST result, not the average: one strong match
+  // among twenty weak ones is a successful search.
+  //
+  // It is also only meaningful when a question was ASKED. network_search returns
+  // query_relevance NULL when neither the semantic nor the lexical tier ran,
+  // which is exactly recommend mode: there is no question, so there is nothing
+  // to have failed to understand. Treating that as weak made the venture
+  // recommender always render "nothing matches this closely" over a perfectly
+  // good list of buyers.
+  const scored = results.filter(r => r.query_relevance !== null && r.query_relevance !== undefined)
+  const topRelevance = scored.length ? Math.max(...scored.map(r => Number(r.query_relevance))) : null
+  const weak = results.length === 0 || (topRelevance !== null && topRelevance < WEAK_RELEVANCE)
 
   // 4. Rerank + explain. Skipped when the query signal is noise anyway: asking a
   //    model to justify twenty arbitrary matches produces twenty plausible

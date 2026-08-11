@@ -72,7 +72,9 @@ Rules:
 - Controlled vocabularies. roles: ${JSON.stringify(ROLES)}. seniority: ${JSON.stringify(SENIORITY)}. network_tier: ${JSON.stringify(TIERS)}. confidence: ["high","medium","low"]. best_channel: ["email","linkedin_dm","instagram_dm","phone"].
 - "industry", "company" and "title" match on substring, so prefer a short distinctive fragment: "media agency", not "independent media agency group".
 - Set "venture" only when the question is actually about one of his ventures. It re-ranks everyone, so a wrong guess is expensive.
-- Never invent a person, a company, or a filter he did not imply.`
+- Never invent a person, a company, or a filter he did not imply.
+- If the question carries no discernible intent, say so plainly in "restated" and leave the other fields empty rather than guessing at constraints.
+- No em dashes anywhere in "restated". Use a comma, a full stop, or a semicolon. This is a house copy standard and it applies to model output as much as to hand-written text.`
 
 function clampWeight(w: unknown): number {
   const n = Number(w)
@@ -106,7 +108,9 @@ export function sanitizePlan(raw: unknown, fallbackQuery: string): QueryPlan {
     : null
 
   return {
-    restated: String(o.restated || fallbackQuery).slice(0, 300),
+    // Em dashes stripped rather than merely discouraged. The prompt asks; this
+    // enforces, the same way sanitizeVoice does for outbound prose.
+    restated: String(o.restated || fallbackQuery).replace(/\s*[—–]\s*/g, ', ').slice(0, 300),
     // Falling back to the raw question is right: an unusable plan should
     // degrade the ranking, never blank the search.
     semantic_query: String(o.semantic_query || fallbackQuery).slice(0, 1200),
