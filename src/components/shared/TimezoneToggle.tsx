@@ -8,27 +8,44 @@ import { useHaptics } from '../../hooks/useHaptics'
  * pilot gate and shutdown, the focus spine's week and day, daily_focus, the
  * ships rollup, and the pilot_daily view.
  *
- * Cycles rather than opening a menu, because there are only three and a cycle
- * is one thumb tap. Sits beside ThemeToggle in both navs, since it is the same
+ * AUTO IS THE RESTING STATE and the cycle always returns to it. This used to be
+ * a three-city cycle with no auto, so the operator carried the job of telling
+ * the app where he was, and the app silently used a stale answer whenever he
+ * forgot. Now it follows the device and the pins exist only for the case where
+ * he wants the day boundary somewhere other than where he is standing.
+ *
+ * Cycles rather than opening a menu, because it is four states and a cycle is
+ * one thumb tap. Sits beside ThemeToggle in both navs, since it is the same
  * class of thing: a global switch the operator owns.
  */
 export function TimezoneToggle({ expanded = true }: { expanded?: boolean }) {
-  const { zone, meta, setZone } = useZone()
+  const { zone, meta, auto, setZone } = useZone()
   const h = useHaptics()
 
+  // Auto, then the three pins, then back to auto.
   const cycle = () => {
     h.select()
+    if (auto) return setZone(ZONES[0].id)
     const i = ZONES.findIndex(z => z.id === zone)
-    setZone(ZONES[(i + 1) % ZONES.length].id)
+    setZone(i === -1 || i === ZONES.length - 1 ? null : ZONES[i + 1].id)
   }
+
+  // Auto shows where it has landed, not the word "auto". What he needs at a
+  // glance is which day the app thinks it is on, and a label saying "Auto"
+  // withholds exactly that.
+  const label = meta.label
+  const hint = auto ? 'auto' : meta.hint
+  const description = auto
+    ? `Timezone: ${meta.label}, following this device. Tap to pin one.`
+    : `Timezone: pinned to ${meta.label}. Tap to change.`
 
   if (!expanded) {
     return (
       <button
         type="button"
         onClick={cycle}
-        aria-label={`Timezone: ${meta.label}. Tap to change.`}
-        title={`Timezone: ${meta.label} (${meta.hint})`}
+        aria-label={description}
+        title={description}
         className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
       >
         <Globe className="w-4 h-4" strokeWidth={1.8} />
@@ -40,13 +57,13 @@ export function TimezoneToggle({ expanded = true }: { expanded?: boolean }) {
     <button
       type="button"
       onClick={cycle}
-      aria-label={`Timezone: ${meta.label}. Tap to change.`}
-      title="Every day boundary follows this"
+      aria-label={description}
+      title={auto ? 'Following this device. Every day boundary follows it.' : 'Pinned. Every day boundary follows this.'}
       className="w-full min-h-[44px] flex items-center gap-2 px-2.5 rounded-lg text-white/55 hover:text-white/85 hover:bg-white/[0.06] transition-colors touch-manipulation"
     >
       <Globe className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-      <span className="text-[12px] truncate">{meta.label}</span>
-      <span className="ml-auto text-[10px] text-white/30 shrink-0">{meta.hint}</span>
+      <span className="text-[12px] truncate">{label}</span>
+      <span className={`ml-auto text-[10px] shrink-0 ${auto ? 'text-white/25' : 'text-violet-200/60'}`}>{hint}</span>
     </button>
   )
 }

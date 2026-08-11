@@ -97,19 +97,24 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
   const back = () => { h.tap(); setStage(stages[Math.max(0, idx - 1)]) }
   const forward = () => go(stages[Math.min(stages.length - 1, idx + 1)])
 
-  // Optional skip. The gate blocks the whole dashboard until today's check-in
-  // exists, so "not now" has to still write a row or the operator is locked out
-  // of his own control center by a question he chose not to answer.
+  // Optional skip. The gate holds the dashboard until today's row exists, so
+  // "not now" has to still write one, or a question he chose not to answer
+  // becomes a lock on his own control center.
   //
-  // It writes a NEUTRAL reading (3/3) and green mode, not a real one. The
-  // capacity layer only ever reduces what the screen demands, so a neutral
-  // reading is the honest default: it asks for nothing extra and hides nothing.
-  // `one_word: ''` keeps the row identifiable as skipped rather than answered.
+  // The row carries NO reading. The first version wrote a neutral 3/3, which
+  // opened the gate and then lied to everything downstream: the capacity layer
+  // read it as a genuine steady day and tomorrow's recap told him he had felt
+  // fine on a morning he never answered. capacityFor(null, null) already
+  // resolves to steady, so the behaviour is identical without the invented data
+  // point.
+  //
+  // It closes TODAY and only today. Tomorrow the gate is back, which is the
+  // difference between skippable and dismissible.
   const skip = async () => {
     setSaving(true)
     setError(null)
     try {
-      await saveMorning({ energy: 3, anxiety: 3, one_word: '', mode: 'green', intent: undefined, venture: undefined })
+      await saveMorning({ energy: null, anxiety: null, one_word: '', mode: 'green', skipped: true })
       h.tap()
       onDone('green', null)
     } catch (e) {
@@ -385,6 +390,11 @@ function Fade({ children }: { children: React.ReactNode }) {
 
 /** Yesterday in one line, or a quiet placeholder on the first ever day. */
 function yesterdayLine(y: YesterdayRecap | null): string {
+  // A skipped day still shipped, or did not. Say so without a reading, and
+  // without the reproach a "you skipped this" line would carry.
+  if (y?.skipped) {
+    return y.ships === 0 ? 'Yesterday: no reading.' : `Yesterday: no reading. ${y.ships} ${y.ships === 1 ? 'ship' : 'ships'}.`
+  }
   if (!y || y.energy === null || y.anxiety === null) return 'First light.'
   const state = readingFor(y.energy, y.anxiety).replace(/\.$/, '')
   const word = y.one_word ? `, ${y.one_word}` : ''

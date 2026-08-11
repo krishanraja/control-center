@@ -53,7 +53,7 @@ async function get(req: VercelRequest, res: VercelResponse) {
   const tz = await resolveTz(req)
   const today = ymdIn(now, tz)
   const yesterday = shiftYmd(today, -1)
-  const [morningRes, eveningRes, eveningTodayRes, lastMorningRes, ydayRes, yshipRes] = await Promise.all([
+  const [morningRes, eveningRes, eveningTodayRes, ydayRes, yshipRes] = await Promise.all([
     supabase.from('pilot_checkins').select('*')
       .eq('kind', 'morning').eq('checkin_date', today).maybeSingle(),
     // A tomorrow_one is FOR the day after it was filed (last night's shutdown)
@@ -67,11 +67,8 @@ async function get(req: VercelRequest, res: VercelResponse) {
       .order('created_at', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('pilot_checkins').select('id')
       .eq('kind', 'evening').eq('checkin_date', today).maybeSingle(),
-    supabase.from('pilot_checkins').select('created_at')
-      .eq('kind', 'morning').order('created_at', { ascending: false })
-      .limit(1).maybeSingle(),
     // Yesterday, for the one-line recap the gate opens with.
-    supabase.from('pilot_checkins').select('energy, anxiety, mode, one_word, intent')
+    supabase.from('pilot_checkins').select('energy, anxiety, mode, one_word, intent, skipped')
       .eq('kind', 'morning').eq('checkin_date', yesterday).maybeSingle(),
     supabase.from('ships').select('id', { count: 'exact', head: true })
       .gte('occurred_at', dayStartUtcIn(yesterday, tz).toISOString())
@@ -86,7 +83,6 @@ async function get(req: VercelRequest, res: VercelResponse) {
     morning: morningRes.data || null,
     last_evening: eveningRes.data || null,
     evening_done_today: Boolean(eveningTodayRes.data),
-    last_morning_at: lastMorningRes.data?.created_at || null,
     yesterday: ydayRes.data
       ? { ...ydayRes.data, ships: yshipRes.count ?? 0, date: yesterday }
       : null,
@@ -111,11 +107,17 @@ async function post(req: VercelRequest, res: VercelResponse) {
     if (mode !== 'green' && mode !== 'red') {
       return res.status(400).json({ ok: false, error: '"mode" must be "green" or "red"' })
     }
+    // A skipped morning is not a reading. It records that the day was seen and
+    // closed, and deliberately carries no energy or anxiety, because inventing
+    // a neutral one puts a number he never gave into his own history.
+    const skipped = body.skipped === true
+
     const row = {
       kind: 'morning' as const,
       checkin_date: today,
-      energy: clampScore(body.energy),
-      anxiety: clampScore(body.anxiety),
+      skipped,
+      energy: skipped ? null : clampScore(body.energy),
+      anxiety: skipped ? null : clampScore(body.anxiety),
       one_word: typeof body.one_word === 'string' && body.one_word.trim() ? body.one_word.trim() : null,
       mode,
       intent: typeof body.intent === 'string' && body.intent.trim() ? body.intent.trim() : null,
