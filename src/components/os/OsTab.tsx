@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react'
 import { ErrorBoundary } from '../ErrorBoundary'
 import { BoardSkeleton, MobileTabSkeleton } from '../shared/Skeleton'
+import { SegmentedNav } from '../shared/SegmentedNav'
 
 // OS: the back office behind one drawer entry. Org (agents + corrections),
 // Intel (Marcus + signals), Flows (workflows + Skill Forge), and Systems
@@ -48,31 +49,15 @@ export function OsTab({ narrow, params, onNavigate }: Props) {
   const setSub = (next: OsSub) => onNavigate('os', { sub: next })
 
   const switcher = (
-    <div
-      role="tablist"
-      aria-label="OS sections"
-      className={narrow
-        ? 'fixed top-2 right-3 z-40 flex gap-0.5 rounded-full border border-white/10 bg-black/70 backdrop-blur px-1 py-0.5'
-        : 'flex gap-1 mb-4'}
-    >
-      {SUBS.map(s => (
-        <button
-          key={s.id}
-          role="tab"
-          aria-selected={sub === s.id}
-          onClick={() => setSub(s.id)}
-          className={narrow
-            ? `px-2 py-1 rounded-full text-[10px] font-semibold transition-colors ${sub === s.id ? 'bg-white/15 text-white' : 'text-white/45'}`
-            : `px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors ${
-                sub === s.id
-                  ? 'border-white/20 bg-white/[0.08] text-white'
-                  : 'border-white/[0.06] text-white/45 hover:text-white/75 hover:border-white/15'
-              }`}
-        >
-          {s.label}
-        </button>
-      ))}
-    </div>
+    <SegmentedNav<OsSub>
+      segments={SUBS}
+      value={sub}
+      onChange={setSub}
+      label="OS sections"
+      variant={narrow ? 'segmented' : 'bordered'}
+      className={narrow ? 'mb-3' : 'mb-4'}
+      testIdPrefix="os-sub"
+    />
   )
 
   const fallback = narrow
