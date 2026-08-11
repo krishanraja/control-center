@@ -2,6 +2,8 @@ import React from 'react'
 import { usePressable, type UsePressableOpts } from './usePressable'
 import { useDeviceClass } from './motion'
 import { DrawnCheck } from './DrawnCheck'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 /**
  * Pressable — the shared body for tactile buttons.
@@ -28,12 +30,20 @@ interface PressableProps extends UsePressableOpts {
   'aria-label'?: string
 }
 
-const VARIANT: Record<Variant, { base: string; checkStroke: string }> = {
-  // Primary is the aurora — a lit violet→indigo gradient with a soft accent glow.
-  primary:   { base: 'aurora-btn', checkStroke: '#ffffff' },
-  secondary: { base: 'bg-white/[0.07] text-white active:bg-white/[0.12]', checkStroke: '#a99bff' },
-  danger:    { base: 'bg-red-500/15 text-red-300 active:bg-red-500/25', checkStroke: '#fca5a5' },
-  ghost:     { base: 'bg-transparent text-white/70 active:bg-white/[0.06]', checkStroke: '#a99bff' },
+// Colour comes from ui/button now, so a button variant is defined once rather
+// than once here and again in every panel that hand-rolls its own. The check
+// stroke stays local because it is the only piece the shared variants have no
+// concept of.
+//
+// The old local `danger` was `text-red-300`, a fixed hex tuned for the dark
+// surface. Only accent shades 50/100/200 map to the --ac-* channels that flip
+// with the theme, so it washed out on the light background. ui/button's danger
+// is rose-200 and flips correctly.
+const CHECK_STROKE: Record<Variant, string> = {
+  primary: '#ffffff',
+  secondary: '#a99bff',
+  danger: '#fca5a5',
+  ghost: '#a99bff',
 }
 
 export function Pressable({
@@ -50,24 +60,21 @@ export function Pressable({
 }: PressableProps) {
   const device = useDeviceClass()
   const { state, bind, pressClass } = usePressable({ onPress, haptic, disabled, successHold })
-  const v = VARIANT[variant]
 
   // When a custom className is supplied we respect it wholesale (used for
   // bespoke surfaces like nav rows); otherwise compose the standard button.
   const composed =
     className ??
-    [
+    cn(
+      buttonVariants({ variant, size: device === 'desktop' ? 'default' : 'touch' }),
+      // The house pressable is softer-cornered than the base button and always
+      // full width in a stacked sheet. twMerge resolves both against the
+      // variant string rather than letting source order decide.
       block ? 'w-full' : 'inline-flex',
-      'relative overflow-hidden rounded-2xl text-[15px] font-semibold transition-colors',
-      device === 'desktop'
-        ? 'py-2.5 px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50'
-        : 'py-3.5',
-      v.base,
+      'relative overflow-hidden rounded-2xl',
       pressClass,
       bind.disabled ? 'opacity-90 cursor-default' : '',
-    ]
-      .filter(Boolean)
-      .join(' ')
+    )
 
   return (
     <button
@@ -91,7 +98,7 @@ export function Pressable({
       {/* Success: the earned moment — a check drawing itself, centered. */}
       {state === 'success' && (
         <span className="absolute inset-0 flex items-center justify-center">
-          <DrawnCheck size={22} stroke={v.checkStroke} ring={false} />
+          <DrawnCheck size={22} stroke={CHECK_STROKE[variant]} ring={false} />
         </span>
       )}
 

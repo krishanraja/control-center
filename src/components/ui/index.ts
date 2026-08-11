@@ -13,6 +13,7 @@ export { Badge, badgeVariants } from './badge'
 export {
   Dialog, DialogPortal, DialogOverlay, DialogClose, DialogTrigger,
   DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
+  DialogSrTitle,
 } from './dialog'
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs'
 export {

@@ -45,29 +45,45 @@ function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dial
   )
 }
 
+// Where the panel sits. `center` is the modal default; `right` backs
+// shared/SlideOver and `bottom` backs mobile/BottomSheet, so those two keep
+// their established shape while inheriting the focus trap, scroll lock,
+// aria-modal and focus restoration that hand-rolled overlays do not have.
+const POSITION: Record<'center' | 'right' | 'bottom', string> = {
+  // `surface` is applied by the variant, not baked into the base, so a caller
+  // that brings its own material (the command palette) can drop it with a
+  // `bg-transparent border-0` override and twMerge will resolve cleanly.
+  center:
+    'surface left-1/2 top-1/2 w-[min(92vw,32rem)] -translate-x-1/2 -translate-y-1/2 ' +
+    'max-h-[calc(100dvh/var(--z,1)-2rem)] overflow-y-auto rounded-card p-5 animate-scale-in',
+  right:
+    'right-0 top-0 h-[calc(100dvh/var(--z,1))] w-[480px] max-w-[92vw] overflow-y-auto ' +
+    'border-l border-white/10 bg-base animate-fade-in',
+  bottom:
+    'bottom-0 left-1/2 w-full max-w-xl -translate-x-1/2 rounded-t-[28px] ' +
+    'border-t border-white/[0.08] bg-base shadow-2xl shadow-black/60 animate-sheet-up',
+}
+
 function DialogContent({
   className,
   children,
   showClose = true,
   container,
   overlayClassName,
+  position = 'center',
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showClose?: boolean
   container?: HTMLElement
   overlayClassName?: string
+  position?: keyof typeof POSITION
 }) {
   return (
     <DialogPortal container={container ?? zoomRoot()}>
       <DialogOverlay className={overlayClassName} />
       <DialogPrimitive.Content
         data-slot="dialog-content"
-        className={cn(
-          'surface fixed left-1/2 top-1/2 z-50 w-[min(92vw,32rem)] -translate-x-1/2 -translate-y-1/2',
-          'max-h-[calc(100dvh/var(--z,1)-2rem)] overflow-y-auto rounded-card p-5',
-          'animate-scale-in focus:outline-none',
-          className,
-        )}
+        className={cn('fixed z-50 focus:outline-none', POSITION[position], className)}
         {...props}
       >
         {children}
@@ -121,8 +137,18 @@ function DialogDescription({
   )
 }
 
+/** Screen-reader-only title. Radix requires a Title inside every Content for
+ *  the dialog to be announced; surfaces whose design has no visible heading
+ *  (a slide-over, a sheet) use this instead of shipping an unlabelled dialog. */
+function DialogSrTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <DialogPrimitive.Title className="sr-only">{children}</DialogPrimitive.Title>
+  )
+}
+
 export {
   Dialog,
+  DialogSrTitle,
   DialogPortal,
   DialogOverlay,
   DialogClose,
