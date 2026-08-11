@@ -226,6 +226,8 @@ export function corpusForChannel(corpus: string, channel?: string | null, cap = 
 }
 
 export interface ClaudeOpts {
+  /** Abort after this many ms. Omit for no deadline (batch/cron callers). */
+  timeoutMs?: number
   system: string
   user: string
   model?: string
@@ -237,20 +239,34 @@ export interface ClaudeOpts {
 export async function callClaude(opts: ClaudeOpts): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: opts.model || 'claude-sonnet-4-6',
-      max_tokens: opts.maxTokens ?? 4000,
-      temperature: opts.temperature ?? 0.5,
-      system: opts.system,
-      messages: [{ role: 'user', content: opts.user }],
-    }),
-  })
-  const j: any = await r.json().catch(() => ({}))
-  if (!r.ok) throw new Error(`anthropic_${r.status}:${(j?.error?.message || '').slice(0, 120)}`)
-  return j?.content?.[0]?.text || ''
+  // A deadline, because there was none. An upstream that stalls otherwise burns
+  // the entire 60s function budget and the caller gets no response at all, which
+  // on a phone is indistinguishable from the app being broken. Callers on a
+  // user-facing path should pass something well under maxDuration.
+  const ctrl = new AbortController()
+  const tid = opts.timeoutMs ? setTimeout(() => ctrl.abort(), opts.timeoutMs) : null
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: opts.model || 'claude-sonnet-4-6',
+        max_tokens: opts.maxTokens ?? 4000,
+        temperature: opts.temperature ?? 0.5,
+        system: opts.system,
+        messages: [{ role: 'user', content: opts.user }],
+      }),
+      signal: opts.timeoutMs ? ctrl.signal : undefined,
+    })
+    const j: any = await r.json().catch(() => ({}))
+    if (!r.ok) throw new Error(`anthropic_${r.status}:${(j?.error?.message || '').slice(0, 120)}`)
+    return j?.content?.[0]?.text || ''
+  } catch (e: unknown) {
+    if ((e as Error)?.name === 'AbortError') throw new Error(`anthropic_timeout_${opts.timeoutMs}ms`)
+    throw e
+  } finally {
+    if (tid) clearTimeout(tid)
+  }
 }
 
 export interface ChatTurn { role: 'user' | 'assistant'; content: string }

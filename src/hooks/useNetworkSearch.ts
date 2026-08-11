@@ -59,13 +59,20 @@ export interface SearchState {
    *  one. */
   degraded: string[]
   loading: boolean
+  /** The ranked list is on screen and the per-person reasons are still arriving. */
+  explaining: boolean
   error: string | null
   transcript?: string
 }
 
 const EMPTY: SearchState = {
-  results: [], restated: '', weak: false, degraded: [], loading: false, error: null,
+  results: [], restated: '', weak: false, degraded: [], loading: false, explaining: false, error: null,
 }
+
+// The request can never outlive this. Without it a stalled server left the
+// spinner up forever, which is what "the search hangs" actually was.
+const REQUEST_TIMEOUT_MS = 30_000
+const EXPLAIN_TIMEOUT_MS = 30_000
 
 export interface Filters {
   venture?: string | null
@@ -80,6 +87,37 @@ export function useNetworkSearch() {
   // overwrite a fast second one.
   const seq = useRef(0)
 
+  // Phase two. Merges `why_match` into rows that are already on screen. It is
+  // deliberately silent on failure: the list is rendered and every row already
+  // carries the stored `why_them`, so a missing sentence is a smaller loss than
+  // an error banner over good results.
+  const explain = useCallback(async (question: string, results: NetworkResult[], mine: number) => {
+    const ids = results.slice(0, 12).map(r => r.contact_id)
+    if (!question || !ids.length) { setState(s => ({ ...s, explaining: false })); return }
+    const ctrl = new AbortController()
+    const tid = setTimeout(() => ctrl.abort(), EXPLAIN_TIMEOUT_MS)
+    try {
+      const r = await fetch('/api/network/explain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, contact_ids: ids }),
+        signal: ctrl.signal,
+      })
+      const j = await r.json().catch(() => ({})) as { explanations?: Record<string, string> }
+      if (mine !== seq.current) return
+      const map = j.explanations || {}
+      setState(s => ({
+        ...s,
+        explaining: false,
+        results: s.results.map(x => (map[x.contact_id] ? { ...x, why_match: map[x.contact_id] } : x)),
+      }))
+    } catch {
+      if (mine === seq.current) setState(s => ({ ...s, explaining: false }))
+    } finally {
+      clearTimeout(tid)
+    }
+  }, [])
+
   const run = useCallback(async (
     path: string,
     body: Record<string, unknown> | Blob,
@@ -89,11 +127,19 @@ export function useNetworkSearch() {
     setState(s => ({ ...s, loading: true, error: null, ...extra }))
     try {
       const isBlob = body instanceof Blob
-      const r = await fetch(path, {
-        method: 'POST',
-        headers: isBlob ? { 'Content-Type': body.type || 'audio/webm' } : { 'Content-Type': 'application/json' },
-        body: isBlob ? body : JSON.stringify(body),
-      })
+      const ctrl = new AbortController()
+      const tid = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS)
+      let r: Response
+      try {
+        r = await fetch(path, {
+          method: 'POST',
+          headers: isBlob ? { 'Content-Type': body.type || 'audio/webm' } : { 'Content-Type': 'application/json' },
+          body: isBlob ? body : JSON.stringify(body),
+          signal: ctrl.signal,
+        })
+      } finally {
+        clearTimeout(tid)
+      }
       const j = await r.json().catch(() => ({})) as Record<string, unknown>
       if (mine !== seq.current) return
       if (r.status === 401) {
@@ -108,18 +154,36 @@ export function useNetworkSearch() {
         })
         return
       }
+      const results = (j.results as NetworkResult[]) || []
+      const question = typeof j.restated === 'string' ? j.restated : ''
+      // Render the ranked list NOW. The per-person reasons are a second request
+      // that fills in behind it; they used to be inline and cost ~25s, which on
+      // a phone read as a hang rather than as thinking.
+      const wantsExplain = !isBlob && results.length > 0 && !j.weak && path !== '/api/network/recommend'
       setState({
-        results: (j.results as NetworkResult[]) || [],
-        restated: String(j.restated || ''),
+        results,
+        restated: question,
         weak: Boolean(j.weak),
         degraded: (j.degraded as string[]) || [],
         loading: false,
+        explaining: wantsExplain,
         error: null,
         transcript: typeof j.transcript === 'string' ? j.transcript : undefined,
       })
-    } catch {
+      if (wantsExplain) {
+        const askedFor = (!isBlob && typeof (body as Record<string, unknown>).question === 'string'
+          ? String((body as Record<string, unknown>).question) : question)
+        void explain(askedFor, results, mine)
+      }
+    } catch (e: unknown) {
       if (mine !== seq.current) return
-      setState({ ...EMPTY, error: 'Could not reach the network search.' })
+      const timedOut = (e as Error)?.name === 'AbortError'
+      setState({
+        ...EMPTY,
+        error: timedOut
+          ? 'That took too long and was stopped. Try a shorter question.'
+          : 'Could not reach the network search.',
+      })
     }
   }, [])
 

@@ -88,9 +88,13 @@ WITH q AS (
     CASE WHEN p_keywords IS NULL OR btrim(p_keywords) = '' THEN NULL
          ELSE websearch_to_tsquery('english',
                 regexp_replace(btrim(p_keywords), '\s+', ' or ', 'g')) END AS tsq,
+    -- Pre-PARSED, not just pre-split. The coverage term below runs once per
+    -- candidate row, and building a tsquery from text is not free: parsing the
+    -- same six words a thousand times was measurable. Parse once here, match
+    -- many times below.
     CASE WHEN p_keywords IS NULL OR btrim(p_keywords) = '' THEN NULL
-         ELSE (SELECT array_agg(lexeme)
-               FROM unnest(to_tsvector('english', p_keywords))) END AS lexemes
+         ELSE (SELECT array_agg(plainto_tsquery('english', lexeme))
+               FROM unnest(to_tsvector('english', p_keywords))) END AS lexqueries
 ),
 cand AS (
   -- Candidate recall.
@@ -207,11 +211,11 @@ scored AS (
     -- contain one of those words. Coverage is what separates "matched the
     -- query" from "matched a word in the query".
     CASE
-      WHEN q.lexemes IS NULL THEN NULL
+      WHEN q.lexqueries IS NULL THEN NULL
       ELSE (
-        SELECT count(*)::float8 / greatest(array_length(q.lexemes, 1), 1)
-        FROM unnest(q.lexemes) lx
-        WHERE ci.intel_tsv @@ plainto_tsquery('english', lx)
+        SELECT count(*)::float8 / greatest(array_length(q.lexqueries, 1), 1)
+        FROM unnest(q.lexqueries) lq
+        WHERE ci.intel_tsv @@ lq
       )
     END AS lex_coverage,
 

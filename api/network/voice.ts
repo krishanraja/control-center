@@ -38,7 +38,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const out = await runNetworkSearch({
       question: transcript,
       limit: 20,
-      rerank: true,
+      // Same two-phase shape as the typed path: get the ranked list back fast,
+      // let the client fetch explanations behind it. Someone who just spoke a
+      // question is waiting on a phone, which is the worst place to spend 15s.
+      rerank: false,
     })
     return res.status(200).json({ ...out, transcript })
   } catch (e: unknown) {

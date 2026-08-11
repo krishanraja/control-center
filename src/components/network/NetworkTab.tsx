@@ -79,7 +79,12 @@ export function NetworkTab({ narrow, onOpenPerson }: {
           </Card>
         )}
 
-        {s.loading && <div className="px-4 pt-3"><SkeletonList rows={6} /></div>}
+        {s.loading && (
+          <div className="px-4 pt-3">
+            <p className="pb-2 text-[11.5px] text-white/35">Searching 10,670 people.</p>
+            <SkeletonList rows={5} />
+          </div>
+        )}
 
         {/* Weak is not empty. The scorer still returns the strongest people it
             has; they simply do not answer what was asked. Saying that plainly
@@ -102,6 +107,15 @@ export function NetworkTab({ narrow, onOpenPerson }: {
 
         {!s.loading && s.results.length > 0 && (
           <div className="mt-3">
+            {/* The ranked list renders as soon as the scorer answers. The
+                per-person reasons arrive in a second request, so this line is
+                the honest account of what is still happening rather than a
+                spinner over results that are already usable. */}
+            {s.explaining && (
+              <p className="px-4 pb-2 text-[11.5px] text-white/35">
+                Ranked. Working out why each one matches.
+              </p>
+            )}
             {s.results.map(r => (
               <NetworkResultRow key={r.contact_id} r={r} onOpen={onOpenPerson} weak={s.weak} />
             ))}

@@ -8,7 +8,20 @@ import { callClaude, robustJson } from './_content.js'
 // emit hard filters it would be able to return an empty result for a reasonable
 // question, which is the exact failure this feature exists to remove.
 
-const MODEL = 'claude-sonnet-4-6'
+// Haiku, not Sonnet. Planning is extraction into a fixed JSON shape, which is
+// what this repo already uses Haiku for elsewhere (_relevance.ts,
+// content-ideas/cluster.ts, pilot/resolve-ask.ts).
+//
+// Measured on the same three queries: Sonnet 4.6-5.0s, Haiku 2.1-2.7s. On a
+// user-facing search that ran on every keystroke-to-answer, the planner was the
+// single largest remaining cost once the explanation pass moved off the critical
+// path, and 2.5s per search is worth more than the marginal plan quality.
+//
+// The trade is real and small: Haiku occasionally omits a venture inference that
+// Sonnet makes. That costs less than it sounds, because the venture multiplier
+// is penalty-only [0.65, 1.0], so a missed venture means no demotion rather than
+// a missed boost. Constraints are soft either way.
+const MODEL = 'claude-haiku-4-5-20251001'
 
 // Fields the planner may constrain on. This is an allow-list, not documentation:
 // anything outside it is dropped before the plan reaches Postgres, so a
@@ -144,11 +157,15 @@ export async function planQuery(question: string): Promise<{ plan: QueryPlan; pl
       model: MODEL,
       system: SYSTEM,
       user: q,
-      maxTokens: 900,
+      maxTokens: 700,
       // Planning is extraction, not writing. Temperature 0 keeps the same
       // question producing the same plan, so a result set that looks wrong can
       // actually be debugged.
       temperature: 0,
+      // The plan is on the critical path of a user-facing search. If it has not
+      // arrived in 8s the raw question is a perfectly serviceable query, and a
+      // degraded ranking beats a spinner.
+      timeoutMs: 8_000,
     })
     const parsed = robustJson(text)
     if (!parsed) return { plan: fallback, planned: false, reason: 'planner_unparseable' }
