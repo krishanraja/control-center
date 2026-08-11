@@ -10,7 +10,11 @@ import type { ContactRow } from '../hooks/useRealtimeContacts'
 // from every venture picker, so nothing new can be filed against them.
 export const VENTURE_LABEL: Record<string, string> = {
   mindmaker: 'Mindmaker', meliora: 'Meliora (retired)', adfixus: 'AdFixus (retired)', signal_noise: 'Signal & Noise',
-  builder_economy: 'Builder Economy', fractionl_pulse: 'Fractionl Pulse', investor: 'Investor',
+  builder_economy: 'Builder Economy', investor: 'Investor',
+  // Both spellings. `fractionl` is what the database holds (19 primary_venture
+  // rows, 414 fit_scores keys); `fractionl_pulse` is what the pickers have been
+  // sending. Labelling only one left the other rendering a raw slug.
+  fractionl: 'Fractionl', fractionl_pulse: 'Fractionl Pulse',
 }
 
 export function ventureLabel(v?: string | null): string | null {
