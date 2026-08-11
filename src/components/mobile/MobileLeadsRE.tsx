@@ -21,13 +21,7 @@ import { feedbackVote } from '../../lib/triageActions'
 import { topFit, dossierMove, contactRationale, ventureLabel } from '../../lib/contactSignals'
 import { SuggestedMoveChip } from '../ContactCard'
 
-const VENTURES: Array<{ slug: string; label: string }> = [
-  { slug: 'mindmaker', label: 'Mindmaker' },
-  { slug: 'signal_noise', label: 'Signal & Noise' },
-  { slug: 'builder_economy', label: 'Builder Economy' },
-  { slug: 'fractionl_pulse', label: 'Fractionl Pulse' },
-  { slug: 'investor', label: 'Investor' },
-]
+import { VENTURE_OPTIONS as VENTURES } from '../../lib/ventureOptions'
 
 function heatDot(score?: number | null): string {
   const s = score ?? 0

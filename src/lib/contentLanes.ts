@@ -5,11 +5,12 @@ import type { ContentIdeaRow, ContentLane } from '../hooks/useRealtimeContentIde
 // (how often Krish has committed to publish) and a voice gear (krish-voice).
 // Pillars remain the orthogonal *theme* layer.
 //
-// Techonomic was retired as a brand on 2026-08-06 and folded into MYMU
-// (makeyourmindup): fewer brands, and the investigative register ships as the
-// MYMU: Teardown format. It is not a lane any more. Rows that still carry the
-// old value, the interim 'mindmaker_live' value they were re-laned to, or the
-// channel slug 'makeyourmindup' all read as Mindmaker via normalizeLane, so
+// REFOCUS 2026-08-11. There is now ONE content venture, Mindmaker Live, the
+// content arm of the Mindmaker advisory. Techonomic's investigative register
+// ships as the Paid format and the Builder Economy thesis ships as Built.
+// MYMU is no longer a content brand at all: "Make Your Mind Up" is the lead
+// magnet and URL into the CTRL app. Signal & Noise is a distribution channel.
+// Every retired value still reads as Mindmaker Live via normalizeLane, so
 // nothing disappears from the board.
 
 export interface LaneDef {
@@ -33,34 +34,14 @@ export interface LaneDef {
 // same list as two ventures.
 export const LANES: LaneDef[] = [
   {
-    slug: 'mymu',
-    label: 'MYMU',
-    short: 'MYMU',
+    slug: 'mindmaker_live',
+    label: 'Mindmaker Live',
+    short: 'Live',
     accent: 'text-violet-300',
     activeBg: 'bg-violet-500/20 border-violet-400/50 text-violet-100',
-    cadenceLabel: '2 / week',
-    targetPerWeek: 2,
-    voice: 'Gear A · Teardown, the weekly, and Built',
-  },
-  {
-    slug: 'signal_noise',
-    label: 'Signal & Noise',
-    short: 'S&N',
-    accent: 'text-sky-300',
-    activeBg: 'bg-sky-500/20 border-sky-400/50 text-sky-100',
-    cadenceLabel: '1 every ~2 weeks',
-    targetPerWeek: 0.5,
-    voice: 'Gear B · co-hosted, its own feed',
-  },
-  {
-    slug: 'builder_economy',
-    label: 'Builder Economy',
-    short: 'BE',
-    accent: 'text-emerald-300',
-    activeBg: 'bg-emerald-500/20 border-emerald-400/50 text-emerald-100',
-    cadenceLabel: 'per episode',
-    targetPerWeek: 0.5,
-    voice: 'Gear B · its own show and feed; feeds MYMU: Built',
+    cadenceLabel: '1.5 / week',
+    targetPerWeek: 1.5,
+    voice: 'Paid (Gear A) and Built (Gear B)',
   },
 ]
 
@@ -70,21 +51,22 @@ export const LANE_BY_SLUG: Record<ContentLane, LaneDef> = Object.fromEntries(
 
 /**
  * Stored lane value -> the lane it displays under. Legacy values map instead of
- * throwing: 'techonomic' is the retired brand and 'mindmaker_live' is where its
- * rows were re-laned, and both belong to Mindmaker now. Anything unrecognised
- * returns null so callers can treat it as unlaned rather than crash.
+ * throwing, so a historical row always keeps a home on the board. Anything
+ * unrecognised returns null so callers can treat it as unlaned rather than
+ * crash. Every content venture the OS has ever had now folds into Mindmaker
+ * Live, which is the only one left.
  */
 const LEGACY_LANE_ALIAS: Record<string, ContentLane> = {
-  techonomic: 'mymu',
-  mindmaker_live: 'mymu',
-  makeyourmindup: 'mymu',
-  // 2026-08-06 venture/format/channel split: MYMU is its own venture now, and
-  // Instagram stopped being one. Both still read as the Mindmaker display lane
-  // so historical rows keep a home on the board.
-  // Everything that used to be a Mindmaker-lane row now displays under MYMU.
-  mindmaker: 'mymu',
-  // Instagram stopped being a venture; those rows belong to MYMU now.
-  builder_economy_ig: 'mymu',
+  techonomic: 'mindmaker_live',
+  makeyourmindup: 'mindmaker_live',
+  mymu: 'mindmaker_live',
+  mindmaker: 'mindmaker_live',
+  // Instagram was a channel wearing a venture's clothes.
+  builder_economy_ig: 'mindmaker_live',
+  // Retired 2026-08-11. Builder Economy is gone entirely; Signal & Noise is a
+  // distribution channel now, so a row commissioned "for" it is a Live piece.
+  builder_economy: 'mindmaker_live',
+  signal_noise: 'mindmaker_live',
 }
 
 export function normalizeLane(lane?: string | null): ContentLane | null {

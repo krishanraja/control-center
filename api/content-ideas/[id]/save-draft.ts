@@ -21,20 +21,30 @@ import {
 // word (no auto-publish; PUB-001 intact).
 
 // Distribution surfaces a piece can be lifted to. Mirrors media_channels.
+// signal_noise joined 2026-08-11 when it was demoted from venture to channel.
 const MEDIA_CHANNEL_SLUGS = new Set([
   'substack', 'instagram', 'tiktok', 'youtube', 'linkedin', 'podcast',
+  'signal_noise',
 ])
 
+// Mirrors FactoryChannel in src/lib/contentEngine.ts. Keep the two in step.
 const FACTORY_CHANNELS = new Set([
-  'signal_noise', 'makeyourmindup', 'linkedin',
-  'builder_economy', 'vertical_video', 'dynamic',
+  'paid', 'built', 'linkedin', 'signal_noise',
+  'vertical_video', 'dynamic',
 ])
 
-// Retired channels a stored row or a stale browser tab can still send. Techonomic
-// was retired 2026-08-06 and folded into MYMU, and 'mindmaker_live' was the
-// interim channel slug before the rename, so both map instead of 400-ing: a
-// draft in flight when the brand went away still saves.
-const RETIRED_CHANNELS: Record<string, string> = { techonomic: 'makeyourmindup', mindmaker_live: 'makeyourmindup' }
+// Retired channels a stored row or a stale browser tab can still send. All map
+// instead of 400-ing, so a draft in flight when a brand went away still saves.
+const RETIRED_CHANNELS: Record<string, string> = {
+  techonomic: 'paid',
+  makeyourmindup: 'paid',
+  mymu: 'paid',
+  mindmaker_live: 'paid',
+  mymu_weekly: 'paid',
+  investigation: 'paid',
+  builder_economy: 'built',
+  builder_economy_ig: 'built',
+}
 
 function resolveChannel(c?: string | null): string | null {
   if (!c) return null

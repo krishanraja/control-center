@@ -143,34 +143,38 @@ export function laneToCorpusChannel(lane?: string | null, slot?: string | null):
 // channel key -> a matcher against the playbook heading text in the corpus.
 const CHANNEL_HEADING: Record<string, RegExp> = {
   // COLLISION RULE. These patterns are tested against every `##` heading in the
-  // corpus and the FIRST match wins, so a heading must match exactly one key.
-  // The corpus headings are deliberately disjoint to guarantee that:
-  //   ## 0. MYMU house register   ## 1. Teardown   ## 2. Built
-  //   ## 3. Make Your Mind Up (the weekly)   ## 4. Signal & Noise   ## 5. Maven
-  // Two traps, both of which have actually happened:
-  //   1. Never title the investigation section with "MYMU" or "Mindmaker Live".
-  //      It precedes the weekly section and would capture its lookup, handing
-  //      every weekly piece the teardown bar.
-  //   2. Never title the weekly section with "Teardown" or "Investigation". The
-  //      hero format is literally called "MYMU: Teardown", so this is the easy
-  //      mistake, and the investigation pattern is tested first.
-  // The house register is matched on the exact phrase "MYMU house register"
-  // precisely so that a bare "MYMU" in any other heading cannot claim it.
-  investigation: /Techonomic|Investigation|Teardown/i,
-  built: /^#*\s*\d*\.?\s*Built\b|Builder Economy/i,
-  mymu_weekly: /Make\s*Your\s*Mind\s*Up\s*\(the weekly\)/i,
-  makeyourmindup: /MYMU house register/i,
+  // corpus (the heading TEXT, with the # markers already stripped) and the
+  // FIRST match wins, so a heading must match exactly one key. The live corpus
+  // headings are deliberately disjoint:
+  //   ## 0. Mindmaker Live house register   ## 1. Paid   ## 2. Built
+  //   ## 3. Signal & Noise   ## 4. Maven
+  //
+  // THE TRAP, which has now bitten three times. A format name is also an
+  // ordinary English word, so an UNANCHORED pattern captures the wrong section:
+  //   - "Built" appears inside "How a piece gets built (the pipeline)", which
+  //     is a real heading in this corpus and sits ABOVE the playbooks.
+  //   - "Paid" appears in prose about the publication's paid tiers.
+  // Both format patterns are therefore anchored to the START of the heading
+  // text, past an optional section numeral. Never relax that anchor, and never
+  // give a format an alternation that can match mid-heading.
+  //
+  // The house register is matched on the exact phrase "Mindmaker Live house
+  // register" so a bare "Mindmaker Live" elsewhere cannot claim it.
+  paid: /^#*\s*\d*\.?\s*Paid\b/i,
+  built: /^#*\s*\d*\.?\s*Built\b/i,
+  mindmaker_live: /Mindmaker Live house register/i,
   signal_noise: /Signal\s*&?\s*Noise/i,
-  // Legacy key kept so a corpus copy that has not been resynced still resolves.
-  mindmaker_live: /MYMU house register|Mindmaker Live/i,
-  // The "Builder Economy" playbook became "Built" when Builder Economy stopped
-  // being a lane and became a venture with its own feed. Old name kept in the
-  // pattern for an un-resynced corpus copy.
-  builder_economy: /^#*\s*\d*\.?\s*Built\b|Builder Economy/i,
+  maven: /Maven/i,
   // Social cutdowns (LinkedIn, Instagram) ride the Built register, so they
   // borrow that playbook.
-  linkedin: /^#*\s*\d*\.?\s*Built\b|Builder Economy/i,
-  maven: /Maven Sales Surface/i,
+  linkedin: /^#*\s*\d*\.?\s*Built\b/i,
+  // ── Legacy keys ────────────────────────────────────────────────────────
+  // Kept ONLY so a corpus copy that has not been resynced, or an old stored
+  // row, still resolves to something sane. Never offer these as a choice.
+  investigation: /^#*\s*\d*\.?\s*Paid\b|Techonomic|Investigation|Teardown/i,
+  makeyourmindup: /Mindmaker Live house register|MYMU house register/i,
+  mymu_weekly: /Mindmaker Live house register|Make\s*Your\s*Mind\s*Up\s*\(the weekly\)/i,
+  builder_economy: /^#*\s*\d*\.?\s*Built\b|Builder Economy/i,
 }
 
 /** Split markdown into level-1/2 sections (### stays inside its ## parent). */

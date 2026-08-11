@@ -12,15 +12,25 @@ import { preamble, sanitizeVoice } from '../../_content.js'
 // approval to PRODUCE docs (never to publish; PUB-001 intact), so the brief
 // must be `approved` first.
 
+// Mirrors FactoryChannel in src/lib/contentEngine.ts. Keep the two in step.
 const FACTORY_CHANNELS = new Set([
-  'signal_noise', 'makeyourmindup', 'linkedin',
-  'builder_economy', 'vertical_video', 'dynamic',
+  'paid', 'built', 'linkedin', 'signal_noise',
+  'vertical_video', 'dynamic',
 ])
 
-// Techonomic was retired 2026-08-06 and folded into Mindmaker LIVE. A saved
-// fan-out selection that still names it collapses onto MYMU (the
-// dedupe below keeps the push from producing the same Doc twice).
-const RETIRED_CHANNELS: Record<string, string> = { techonomic: 'mindmaker_live' }
+// Retired channels a saved fan-out selection can still name. All map forward
+// rather than 400-ing, and the dedupe below keeps the push from producing the
+// same Doc twice when two retired values collapse onto one live channel.
+const RETIRED_CHANNELS: Record<string, string> = {
+  techonomic: 'paid',
+  makeyourmindup: 'paid',
+  mymu: 'paid',
+  mindmaker_live: 'paid',
+  mymu_weekly: 'paid',
+  investigation: 'paid',
+  builder_economy: 'built',
+  builder_economy_ig: 'built',
+}
 
 function extractDocUrl(payload: any, depth = 0): string | null {
   if (!payload || typeof payload !== 'object' || depth > 4) return null
@@ -73,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       source: 'control-center',
       brief_week: week,
       target_channel: channel,
-      title: brief.title || `MYMU ${week}`,
+      title: brief.title || `Mindmaker Live ${week}`,
       hook,
       target_audience: 'Business leaders making real AI decisions',
       contrarian_angle: (sections.meaning_md || '').slice(0, 400),

@@ -15,13 +15,7 @@ interface PendingFile {
   message?: string
 }
 
-const VENTURE_OPTIONS: Array<{ slug: string; label: string }> = [
-  { slug: 'mindmaker', label: 'Mindmaker' },
-  { slug: 'signal_noise', label: 'Signal & Noise' },
-  { slug: 'builder_economy', label: 'Builder Economy' },
-  { slug: 'fractionl_pulse', label: 'Fractionl Pulse' },
-  { slug: 'investor', label: 'Investor' },
-]
+import { VENTURE_OPTIONS } from '../lib/ventureOptions'
 
 const TIER_OPTIONS: Array<{ value: ConsentTier; label: string; hint: string }> = [
   { value: 'permissioned', label: 'Permissioned', hint: 'Owned list — e.g. Substack subscribers' },

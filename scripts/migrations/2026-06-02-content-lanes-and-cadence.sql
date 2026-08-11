@@ -43,10 +43,17 @@ do $$ begin
   end if;
 end $$;
 
+-- REFOCUSED 2026-08-11. All content now lives under the Mindmaker Live venture,
+-- which has exactly two signature formats: Paid (the investigation, folding in
+-- Techonomic) and Built (folding in the Builder Economy thesis). Signal & Noise
+-- became a distribution channel, not a lane, and the Make Your Mind Up weekly
+-- retired because that name is now the CTRL lead magnet at makeyourmindup.ai.
+--
+-- The two surviving ids are DELIBERATELY the old ones. This file is hand-run and
+-- uses `on conflict (id) do nothing`, so reusing the ids means a re-run of any
+-- older checkout of this script cannot resurrect a retired lane. Do not "tidy"
+-- them to match their new lane; the mismatch is the guard.
 insert into public.content_cadence (id,lane,slot,label,interval_days,target_per_week) values
- ('cadence:signal_noise',            'signal_noise',       null,            'Signal & Noise deep-dive',       14, 0.5),
- ('cadence:mindmaker:roundup',       'mindmaker',          'roundup',       'Mindmaker: AI-leader roundup',    4, 1),
- ('cadence:mindmaker:field_learning','mindmaker',          'field_learning','Mindmaker: live field learning',  4, 1),
- ('cadence:techonomic',              'techonomic',         null,            'Techonomic investigation',        7, 1),
- ('cadence:builder_economy_ig',      'builder_economy_ig', null,            'Builder Economy (Instagram)',     1, 7)
+ ('cadence:techonomic',              'mindmaker_live',     'paid',          'Paid',                            7, 1),
+ ('cadence:builder_economy_ig',      'mindmaker_live',     'built',         'Built',                          14, 0.5)
 on conflict (id) do nothing;

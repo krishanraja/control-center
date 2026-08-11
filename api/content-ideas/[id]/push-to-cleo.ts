@@ -14,14 +14,24 @@ import { loadConfig, pathId, preamble } from '../../_content.js'
 // Research/diligence is fetched INSIDE the workflow per channel, so we only need
 // the idea's hook/audience/angle. Webhook URL is server-side + rotatable.
 
+// Mirrors FactoryChannel in src/lib/contentEngine.ts. Keep the two in step.
 const FACTORY_CHANNELS = new Set([
-  'signal_noise', 'makeyourmindup', 'linkedin',
-  'builder_economy', 'vertical_video', 'dynamic',
+  'paid', 'built', 'linkedin', 'signal_noise',
+  'vertical_video', 'dynamic',
 ])
 
-// Techonomic was retired 2026-08-06 and folded into Mindmaker LIVE. A stale
-// client that still asks for it gets mapped, not rejected.
-const RETIRED_CHANNELS: Record<string, string> = { techonomic: 'mindmaker_live' }
+// A stale client that still asks for a retired channel gets mapped, not
+// rejected: a draft in flight when a brand went away still pushes.
+const RETIRED_CHANNELS: Record<string, string> = {
+  techonomic: 'paid',
+  makeyourmindup: 'paid',
+  mymu: 'paid',
+  mindmaker_live: 'paid',
+  mymu_weekly: 'paid',
+  investigation: 'paid',
+  builder_economy: 'built',
+  builder_economy_ig: 'built',
+}
 
 function firstLine(s?: string | null): string {
   if (!s) return ''

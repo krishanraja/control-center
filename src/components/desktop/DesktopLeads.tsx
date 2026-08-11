@@ -259,7 +259,7 @@ const SOURCE_META: Record<LeadSourceType, { title: string; description: string }
   apollo: { title: 'Apollo / outbound', description: 'Enriched contacts from Apollo + Instantly sequences.' },
   nell_candidate: { title: 'Nell candidates', description: 'Auto-surfaced contacts from Nell\'s daily scout.' },
   signal_inbox: { title: 'Signal Inbox', description: 'Drive Signal Inbox folder, processed by Layer 1.' },
-  audience: { title: 'Audience', description: 'Inbound signups from CTRL, the site, Substack, and Builder Economy.' },
+  audience: { title: 'Audience', description: 'Inbound signups from CTRL, the site, and Mindmaker Live on Substack.' },
   manual: { title: 'Manual', description: 'Anything you added by hand.' },
 }
 
