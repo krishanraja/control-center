@@ -51,7 +51,7 @@ slug-as-key rule.
   archived (`adfixus`, `onalert`). Filter on `status = 'active'`;
   archived rows are kept so historical attribution still resolves.
 - **`venture_registry`** — 3-row table (`mindmaker`, `signal_noise`,
-  `builder_economy`) that drives multi-tag leads and per-venture lanes
+  the active rows) that drives multi-tag leads and per-venture lanes
   on the Leads tab.
 
 ---
@@ -153,7 +153,7 @@ Sales pipeline. Multi-tag, per-venture ICP scoring.
 
 ### `guests` (PR #52)
 
-Podcast guest candidates for Builder Economy and Signal & Noise.
+Podcast guest candidates for Built conversations, carried on the Signal & Noise feed.
 Replaces the dropped `nell_candidates` table.
 
 | Column | Type | Description |
@@ -204,7 +204,7 @@ Guest Confirmed Cascade.
 | `confidence` | numeric | 0-1, hard contract `>= 0.5` for insert |
 | `quality_score` | text | `green` / `amber` / `red` |
 | `body` | text | Long-form draft (sanitized on save: no em dashes). Edited in the Composer; written via the API, never the anon client (RLS blocks anon writes) |
-| `lane` | text | `signal_noise` / `mindmaker` / `builder_economy_ig`. Legacy rows may still hold `techonomic` (retired 2026-08-06) or `mindmaker_live` (where those rows were re-laned); both read as Mindmaker |
+| `lane` | text | `mindmaker_live`, the only content venture since the 2026-08-11 refocus, with the format in `lane_slot` (`paid` / `built`). Legacy rows may still hold `techonomic`, `mymu`, `makeyourmindup`, `mindmaker`, `signal_noise`, `builder_economy` or `builder_economy_ig`; all map forward via `normalizeLane` and read as Mindmaker |
 | `lane_slot` | text | Mindmaker: `roundup` / `field_learning`; null elsewhere |
 | `state` | text | `seeded` → `researching` → `drafting` → `review` → `approved` → `published` / `dropped` |
 | `cadence_due_at` | timestamptz | Next-due for the lane/slot; drives mobile "urgent" + the All-view sort |

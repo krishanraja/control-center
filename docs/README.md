@@ -89,7 +89,7 @@ Eleven primary tabs, routed by `App.tsx` via a hash-based router.
 |---|---|---|---|
 | Home | `#home` | DecisionsWaitingPanel, CriticalAlertBanner, MrrTicker, Marcus headline, StreakPills, KillListModal | `decisions_waiting`, `home_intelligence`, `silent_failures`, `customers`, `bets` |
 | Today | `#today` | Active / blocked / waiting tasks with inline actions | `tasks` |
-| Leads | `#leads` | Per-venture lanes (Mindmaker / Signal & Noise / Builder Economy) of enriched leads | `leads`, `venture_registry` |
+| Leads | `#leads` | Per-venture lanes of enriched leads, one per active venture | `leads`, `venture_registry` |
 | Customers | `#customers` | MrrTicker, CustomerSourcesPanel, CustomerCouncilCard, ExpansionRadar, per-product feeds | `customers`, `customer_contacts` |
 | Guests | `#guests` | Podcast guests + visibility targets; bulk import, pitch drafts, status lanes | `guests`, `visibility_targets` |
 | Content | `#content` | Cleo's content-ideas backlog with idea capture | `content_ideas` |

@@ -44,7 +44,7 @@ const STATUS_META: Record<GuestStatus, { title: string; description: string }> =
 
 const TARGET_META: Record<GuestPodcastTarget, { title: string }> = {
   signal_noise: { title: 'Signal & Noise' },
-  builder_economy: { title: 'Builder Economy' },
+  builder_economy: { title: 'Builder Economy (retired)' },
   either: { title: 'Either show' },
 }
 

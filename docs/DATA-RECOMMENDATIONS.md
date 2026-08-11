@@ -24,7 +24,7 @@ conversions still fall into `attribution_channel='unknown'` more often
 than they should.
 
 **Recommendation:** Add a lightweight UTM ingestion path on the marketing
-sites (Mindmaker, Builder Economy, Signal & Noise) and an `/api/*`
+sites (Mindmaker, Mindmaker Live) and an `/api/*`
 endpoint that lands UTM events into a `marketing_touches` table. Match
 during the Stripe webhook step.
 

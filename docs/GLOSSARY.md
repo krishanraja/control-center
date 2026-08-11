@@ -46,9 +46,12 @@ mandate. Stored as `agents.brief_content`. Rendered to
 **Blocker** — A task with `status='blocked'` whose progress depends on
 an external action. Blockers age and are surfaced on Home / Today.
 
-**Builder Economy** — Krish's podcast brand and Instagram account for AI
-builders. One of the venture targets for guest booking. Slug
-`builder_economy` in `venture_registry`.
+**Built** — One of the two Mindmaker Live formats: conversations with
+people who have actually built something with AI, dug past what they
+built to why they really built it. Carries the builder economy thesis.
+Corpus key `built`. It replaced the Builder Economy podcast brand, which
+was fully retired on 2026-08-11 (`builder_economy` is inactive in
+`venture_registry`, kept only so historical rows resolve).
 
 ---
 
@@ -159,8 +162,8 @@ progress bar.
 visibility, and content. Members: Cleo, Felix, Maya, Nell, Nova, Zara,
 Hunter.
 
-**Guest** — A row in the `guests` table. A podcast guest candidate for
-Builder Economy or Signal & Noise. Lifecycle: `new` → `enriched` →
+**Guest** — A row in the `guests` table. A podcast guest candidate for a
+Built conversation, carried on the Signal & Noise feed. Lifecycle: `new` → `enriched` →
 `confirmed` → `done` (or `skipped`). Replaces the deprecated
 `nell_candidates` table (dropped in PR #56).
 
@@ -208,8 +211,8 @@ actor for every manual action (`actor='krish'`).
 ## L
 
 **Lane** — A column on the Leads tab. One per active row in
-`venture_registry` (`mindmaker`, `signal_noise`, `builder_economy`).
-Rendered by `LeadVentureLane`.
+`venture_registry`. Rendered by `LeadVentureLane`, and the options come
+from the single shared list in `src/lib/ventureOptions.ts`.
 
 **Lead** — A row in the `leads` table. A sales prospect with
 `assignee_agent`, `tags[]`, per-venture `icp_scores` jsonb,
@@ -397,16 +400,21 @@ cannot be checked. Excluded from the worst-component overall rollup.
 
 ## V
 
-**Venture** — A business project. `ventures` holds eight rows: six
-active (`mindmaker`, `fractionl`, `builder-economy`, `signal-noise`,
-`personal-brand`, `ops`) and two archived (`adfixus`, `onalert`). Read
-`status` rather than assuming every row is live. Meliora, Gutted and
-Merciless were retired in July 2026 and have no rows. Techonomic was
-retired 2026-08-06 and folded into Mindmaker LIVE.
+**Venture** — A business project. The legacy `ventures` table holds 9
+rows, 3 active (`mindmaker`, `mindmaker-live`, `fractionl`) and 6
+archived. Read `status` rather than assuming every row is live. Meliora,
+Gutted and Merciless were retired in July 2026 and have no rows.
+Techonomic retired 2026-08-06; Builder Economy, Signal & Noise and MYMU
+stopped being ventures on 2026-08-11 (see **Venture Registry**).
 
-**Venture Registry** — The 3-row `venture_registry` table
-(`mindmaker`, `signal_noise`, `builder_economy`) that drives multi-tag
-leads and per-venture lanes on Leads.
+**Venture Registry** — The canonical `venture_registry` table: 12 rows,
+7 active (`mindmaker`, `mindmaker_live`, `mm_ctrl`, `fractionl_circle`,
+`fractionl_pulse`, `full_time`, `investor`) and 5 inactive (`mymu`
+having been renamed to `mindmaker_live`, plus `builder_economy`,
+`signal_noise`, `legibility`, `adfixus`, `meliora`). It drives multi-tag
+leads and per-venture lanes. Inactive rows are kept, never deleted, so
+historical contacts and leads still resolve their pill; what they must
+never do is appear as a choice for new work.
 
 **Vera** — The Chief of Staff / Quality agent. Owns standards
 compliance, drift detection, and audit closure. Runs daily,

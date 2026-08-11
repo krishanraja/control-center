@@ -32,7 +32,7 @@ encode the fixes:
 4. **`mm_ctrl_buyer` = leaders at NON-AI operating companies.** A COO at an AI
    company is the worst fit for an external decision-clarity product. Now filters
    to traditional decision-heavy industries and excludes AI/software vendors.
-5. **`builder_economy` = "impossible before AI" builders**, not "AI engineers."
+5. **`built` = "impossible before AI" builders**, not "AI engineers."
    Now requires founders at AI-era companies (`organization_founded_year_range`
    2022+) and leans on a web/social novelty pass — Apollo has no audience signal.
 6. **`ecosystem_partner`** excludes government/nonprofit programs (NAICS `92`,
@@ -78,9 +78,9 @@ registry venture (fractional, mm-ctrl, ecosystem) still set a `tag` and an
 | **Mindmaker buyer** | `mindmaker_buyer` | `mindmaker` | AI consulting sprint buyers | **O-2** ($20K/mo consulting) |
 | **Fractional network** *(new)* | `fractional_network` | `mindmaker` | Fractional execs / independent advisors / boutique AI consultancies — referral, co-delivery, and buyers | O-2 + O-3 |
 | **Signal & Noise guest** | `signal_noise_guest` | `signal_noise` | AI-in-media voices for the podcast | content / audience |
-| **Builder Economy guest** | `builder_economy_guest` | `builder_economy` | AI builders / indie hackers / technical founders | content / audience |
+| **Built guest** | `built_guest` | `mindmaker_live` | AI builders / indie hackers / technical founders | content / audience |
 | **mm-ctrl buyer** *(outside-box)* | `mm_ctrl_buyer` | `mindmaker` | Leaders who'd buy the decision-clarity product (CTRL) | builder-product growth |
-| **Ecosystem partner** *(outside-box)* | `ecosystem_partner` | `mindmaker` / `builder_economy` | Accelerators, communities, agencies, VC platform leads who channel buyers + guests | O-2 + audience compounding |
+| **Ecosystem partner** *(outside-box)* | `ecosystem_partner` | `mindmaker` / `mindmaker_live` | Accelerators, communities, agencies, VC platform leads who channel buyers + guests | O-2 + audience compounding |
 
 *Outside-the-box rationale:* the OS sells six builder products and runs three
 content brands, not just consulting. mm-ctrl's ICP (senior operators drowning in
@@ -103,7 +103,7 @@ markets) unless widened.
 | `mindmaker_buyer` | Founder, CEO, COO, President, CMO, CTO, Chief of Staff, VP/Head (Ops/Marketing/Product/Strategy) | owner, founder, c_suite, partner, vp, head | `11,50` `51,200` `201,500` `501,1000` `1001,5000` | SaaS, software, professional services, media, fintech; kw "AI", "transformation", "digital" |
 | `fractional_network` | Fractional CxO, Fractional CTO/CMO/CPO/CAIO, Independent Advisor, Principal Consultant, Managing Partner | owner, founder, partner, c_suite | `1,10` `11,50` `51,200` | kw "fractional", "advisory", "consultant", "interim", boutique/agency orgs |
 | `signal_noise_guest` | Editor, Editor-in-Chief, Journalist, Podcast Host, Head of Content, Producer, Media/Comms Director | owner, founder, c_suite, vp, head, senior | any | publishing, media, broadcasting, marketing; kw "AI", "media", "journalism", "creator" |
-| `builder_economy_guest` | Founder, Co-Founder, Indie Hacker, Software Engineer, AI Engineer, Developer, Maker | owner, founder, c_suite, senior, entry | `1,10` `11,50` | kw "AI", "build in public", "indie", "developer", "open source", "agents" |
+| `built_guest` | Founder, Co-Founder, Indie Hacker, Software Engineer, AI Engineer, Developer, Maker | owner, founder, c_suite, senior, entry | `1,10` `11,50` | kw "AI", "build in public", "indie", "developer", "open source", "agents" |
 | `mm_ctrl_buyer` | CEO, COO, Founder, VP/Head (Strategy/Ops), Director | owner, founder, c_suite, vp, head, director | `11,50` `51,200` `201,1000` | leadership-heavy orgs; kw "decision", "strategy", "leadership", "AI" |
 | `ecosystem_partner` | Partner, Program Director, Community Lead, Platform Lead, Managing Director | owner, founder, partner, c_suite, director | any | kw "accelerator", "community", "venture", "agency", "ecosystem" |
 
@@ -130,7 +130,7 @@ independence_signal **0.15** (independent vs. captive), audience_overlap **0.10*
 novelty **0.25**, audience_pull **0.20**, availability_signal **0.10**,
 krish_curiosity **0.10**.
 
-**`builder_economy_guest`** (matches seed) — leverage_score **0.35**,
+**`built_guest`** (matches seed) — leverage_score **0.35**,
 ship_cadence **0.25**, infra_thesis **0.20**, audience_pull **0.10**,
 krish_curiosity **0.10**.
 
@@ -169,7 +169,7 @@ become an A/B lead you can act on).
     "mindmaker": 0-100,           // keyed by lane; registry slugs use the slug,
     "fractional_network": 0-100,  // non-registry lanes use the tag name
     "signal_noise": 0-100,
-    "builder_economy": 0-100,
+    "mindmaker_live": 0-100,
     "mm_ctrl_buyer": 0-100,
     "ecosystem_partner": 0-100
   },
