@@ -41,8 +41,13 @@ ALTER TABLE public.contacts
 COMMENT ON COLUMN public.contacts.identity_embedding IS
   'Identity embedding (name + title + company) for dedup_nearest. Distinct from contact_intelligence.embedding, which embeds the judgment text for search.';
 
-CREATE INDEX IF NOT EXISTS contacts_identity_embedding_ivfflat
-  ON public.contacts USING ivfflat (identity_embedding vector_cosine_ops) WITH (lists = 100);
+-- No index yet, and that is not an oversight. The column ships NULL on all
+-- 2,470 rows and nothing in this change populates it, so an ivfflat built here
+-- would train its centroids on zero vectors and permanently mis-cluster
+-- everything a later backfill writes. Build it in the same change that fills
+-- the column:
+--   CREATE INDEX contacts_identity_embedding_ivfflat ON public.contacts
+--     USING ivfflat (identity_embedding vector_cosine_ops) WITH (lists = 100);
 
 -- ── 2. The judgment layer ──────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.contact_intelligence (
@@ -130,10 +135,33 @@ COMMENT ON COLUMN public.contact_intelligence.network_tier IS
   'Evidence tier from source overlap. Distinct from contacts.consent_tier, which states what we are permitted to do.';
 
 -- ── 3. Indexes ─────────────────────────────────────────────────────────────
--- lists = 100 for ~10.7k rows: pgvector's guidance is rows/1000 for under a
--- million, and 100 keeps probe recall sane at this size.
-CREATE INDEX IF NOT EXISTS ci_embedding_ivfflat ON public.contact_intelligence
-  USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+-- HNSW, not ivfflat. ivfflat needs training data: built here on an empty table
+-- its centroids would be garbage, and the importer adds all 10,670 rows
+-- immediately afterwards ("ivfflat index created with little data ... this will
+-- cause low recall"). HNSW has no training step and builds incrementally, so
+-- creating it before the load is correct rather than merely tolerable — which
+-- means this migration stays order-independent.
+--
+-- network_search uses it for its semantic recall path. Measured: scoring all
+-- 10,670 rows with a query vector took 4.6s because 64MB of vectors must be
+-- detoasted per search; the indexed top-k path is what makes the endpoint
+-- interactive.
+CREATE INDEX IF NOT EXISTS ci_embedding_hnsw ON public.contact_intelligence
+  USING hnsw (embedding vector_cosine_ops);
+
+-- Historical note on what is NOT here.
+--
+-- network_search scores EVERY row and orders by a composite expression, so
+-- there is no `ORDER BY embedding <=> q LIMIT k` for an index to serve; Postgres
+-- would never choose one. An ivfflat here would also be trained on an empty
+-- table at migration time and then have its centroids invalidated by the 10,670
+-- rows the importer adds immediately after ("ivfflat index created with little
+-- data ... this will cause low recall"), so it would be worse than nothing:
+-- write cost and disk for an index that is never read and would mislead if it
+-- were. Add HNSW here if a candidate-generation stage is ever introduced.
+--
+-- contacts.identity_embedding above DOES get one, because dedup_nearest issues
+-- exactly the top-k ordering that an ivfflat serves.
 CREATE INDEX IF NOT EXISTS ci_intel_tsv_gin  ON public.contact_intelligence USING gin (intel_tsv);
 CREATE INDEX IF NOT EXISTS ci_roles_gin      ON public.contact_intelligence USING gin (roles);
 CREATE INDEX IF NOT EXISTS ci_surface_gin    ON public.contact_intelligence USING gin (surface_when);

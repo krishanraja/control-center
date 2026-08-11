@@ -112,6 +112,14 @@ function num(s: string): number | null {
   const n = Number(s)
   return Number.isFinite(n) ? n : null
 }
+/** Integer columns must receive integers. The file writes whole numbers in
+ *  float form ("100.0" for tier_weight), which Postgres tolerates through
+ *  PostgREST but rejects outright in COPY — so it is normalised here rather
+ *  than left to depend on which write path happens to be used. */
+function int(s: string): number | null {
+  const n = num(s)
+  return n === null ? null : Math.round(n)
+}
 function bool(s: string): boolean {
   return /^(true|1|yes)$/i.test((s || '').trim())
 }
@@ -354,10 +362,10 @@ async function main() {
       primary_venture: r.primary_venture && r.primary_venture !== 'none' ? r.primary_venture : null,
       mindmaker_buyer_family: r.mindmaker_buyer_family && r.mindmaker_buyer_family !== 'none' ? r.mindmaker_buyer_family : null,
       network_tier: tier,
-      tier_weight: num(r.tier_weight) ?? 0,
+      tier_weight: int(r.tier_weight) ?? 0,
       priority: num(r.priority),
       fit: num(r.fit),
-      warmth: num(r.warmth),
+      warmth: int(r.warmth),
       confidence: r.confidence || 'low',
       intel_method: r.intel_method || 'rules_v1',
       evidence: jsonArray(r.evidence),
@@ -366,13 +374,13 @@ async function main() {
       industry: r.industry || null,
       reachable_via: pipeList(r.reachable_via),
       best_channel: r.best_channel && r.best_channel !== 'none' ? r.best_channel : null,
-      source_count: num(r.source_count) ?? 0,
+      source_count: int(r.source_count) ?? 0,
       source_list: pipeList(r.source_list),
       is_person: bool(r.is_person),
       name_quality: r.name_quality || 'missing',
       reciprocated_email: bool(r.reciprocated_email),
-      email_inbound: num(r.email_inbound) ?? 0,
-      email_outbound: num(r.email_outbound) ?? 0,
+      email_inbound: int(r.email_inbound) ?? 0,
+      email_outbound: int(r.email_outbound) ?? 0,
       email_last: r.email_last || null,
       intel_doc: intelDoc || null,
     })
