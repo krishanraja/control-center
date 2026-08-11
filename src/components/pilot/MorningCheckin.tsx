@@ -49,11 +49,11 @@ const MOOD_CHIPS_BY_BUCKET: Record<StateBucket, string[]> = {
 // at 7am, not a picker.
 const VENTURE_CHOICES: Array<{ slug: string; label: string }> = [
   { slug: 'mindmaker', label: 'Mindmaker' },
-  { slug: 'mymu', label: 'MYMU' },
+  { slug: 'mindmaker_live', label: 'Live' },
   { slug: 'mm_ctrl', label: 'CTRL' },
   { slug: 'full_time', label: 'Full Time' },
+  { slug: 'fractionl_circle', label: 'Circle' },
   { slug: 'fractionl_pulse', label: 'Pulse' },
-  { slug: 'legibility', label: 'Legibility' },
 ]
 
 /** Fallback only for the case where the reading is somehow missing. */

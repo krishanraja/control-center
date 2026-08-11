@@ -3,21 +3,19 @@ import { Sparkles, X, Loader2, GitMerge } from 'lucide-react'
 import { useToast } from '../shared/Toast'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 
-// Venture + format, mirroring venture_formats. These were lanes from the old
-// model, which is why Instagram (a channel) appeared here as a venture value.
+// Venture + format, mirroring venture_formats. There is ONE content venture,
+// Mindmaker Live, with two formats. Synthesis targets a FORMAT, never the
+// venture, because the two carry different registers.
 interface LaneChoice {
-  lane: 'mymu' | 'signal_noise' | 'builder_economy'
+  lane: 'mindmaker_live'
   slot?: string | null
   label: string
   description: string
 }
 
 const LANES: LaneChoice[] = [
-  { lane: 'mymu', slot: 'investigation', label: 'MYMU: Teardown', description: 'The hero. Take one load-bearing claim apart against dated evidence, end where the record runs out.' },
-  { lane: 'mymu', slot: 'weekly', label: 'Make Your Mind Up', description: 'The weekly. Best / Worst / Ugliest, then one real decision you commit to in public with a date.' },
-  { lane: 'mymu', slot: 'built', label: 'MYMU: Built', description: 'Someone who actually built something, and why they really built it. Warm, Gear B.' },
-  { lane: 'signal_noise', slot: 'episode', label: 'Signal & Noise', description: 'Exec-to-exec, ~300-500 words. Separate the durable signal from the noise.' },
-  { lane: 'builder_economy', slot: 'episode', label: 'Builder Economy', description: 'Its own show and feed. Feeds MYMU: Built rather than being replaced by it.' },
+  { lane: 'mindmaker_live', slot: 'paid', label: 'Paid', description: 'The investigation. Follow the money: take one load-bearing claim apart against dated evidence, and end where the record runs out.' },
+  { lane: 'mindmaker_live', slot: 'built', label: 'Built', description: 'Someone who actually built something, and why they really built it. Warm, Gear B.' },
 ]
 
 interface Props {

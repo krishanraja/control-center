@@ -39,15 +39,18 @@ export interface PublishCandidate {
 /** Display names for the brand lanes, kept local so the pilot layer does not
  *  pull the whole content engine into its bundle. Unknown lanes pass through. */
 const LANE_LABELS: Record<string, string> = {
-  signal_noise: 'Signal & Noise',
+  mindmaker_live: 'Mindmaker Live',
   mindmaker: 'Mindmaker',
-  mindmaker_live: 'MYMU',
-  makeyourmindup: 'MYMU',
-  builder_economy_ig: 'Builder Economy (IG)',
-  // Retired 2026-08-06: the Techonomic lane was folded into MYMU as the
-  // MYMU: Teardown format. Stored rows still carry the old value, so label
-  // them where they now live.
-  techonomic: 'MYMU',
+  // Retired values. Stored rows still carry them, so label them where they now
+  // live rather than showing a raw slug. Techonomic folded into MYMU on
+  // 2026-08-06, and the whole content arm became Mindmaker Live on 2026-08-11;
+  // Builder Economy and Signal & Noise stopped being ventures on the same day.
+  techonomic: 'Mindmaker Live',
+  makeyourmindup: 'Mindmaker Live',
+  mymu: 'Mindmaker Live',
+  builder_economy_ig: 'Mindmaker Live',
+  builder_economy: 'Mindmaker Live',
+  signal_noise: 'Mindmaker Live',
 }
 
 export function laneLabel(lane: string | null): string | null {

@@ -17,8 +17,8 @@ import { embed, vectorLiteral } from '../_embeddings.js'
 // Body:
 //   {
 //     source_idea_ids: string[],           // 2..25 cards to fold into one narrative
-//     target_lane: 'signal_noise' | 'mindmaker' | 'builder_economy_ig',
-//     lane_slot?: string,                  // e.g. 'roundup' for mindmaker
+//     target_lane: 'mindmaker_live',
+//     lane_slot?: string,                  // the format: 'paid' or 'built'
 //     angle_hint?: string,                 // optional: Krish's steer for the take
 //   }
 //
@@ -48,10 +48,19 @@ import { embed, vectorLiteral } from '../_embeddings.js'
 // ContentComposer, eyeball the citations, and accept. The Five Standards
 // autoscore trigger fires on body insert.
 
-// Techonomic was retired 2026-08-06 and folded into Mindmaker LIVE. Not a
-// synthesis target any more; a stale client asking for it is mapped, not 400'd.
-const RETIRED_LANES: Record<string, string> = { techonomic: 'mindmaker', mindmaker_live: 'mindmaker' }
-const VALID_LANES = new Set(['signal_noise', 'mindmaker', 'builder_economy_ig'])
+// There is one content venture now, Mindmaker Live, with two formats carried in
+// `lane_slot` (paid, built). Every retired lane maps forward rather than 400ing,
+// so a stale client or an old saved cluster still synthesizes.
+const RETIRED_LANES: Record<string, string> = {
+  techonomic: 'mindmaker_live',
+  makeyourmindup: 'mindmaker_live',
+  mymu: 'mindmaker_live',
+  mindmaker: 'mindmaker_live',
+  signal_noise: 'mindmaker_live',
+  builder_economy: 'mindmaker_live',
+  builder_economy_ig: 'mindmaker_live',
+}
+const VALID_LANES = new Set(['mindmaker_live'])
 const MIN_SOURCES = 2
 const MAX_SOURCES = 25
 

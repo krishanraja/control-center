@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
+// Builder Economy was fully retired 2026-08-11 and Signal & Noise is now a
+// distribution channel carrying Mindmaker Live's Built conversations. The old
+// value stays in the union because scouted guests still carry it; it is no
+// longer offered as a choice.
 export type GuestPodcastTarget = 'signal_noise' | 'builder_economy' | 'either'
 
 export type GuestStatus =

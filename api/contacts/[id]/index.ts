@@ -10,8 +10,13 @@ import { canonicalVenture } from '../../_venturePositioning.js'
 // before the July 2026 retirement still PATCH their existing venture back on an
 // unrelated edit, and rejecting it would 400 those saves. The pickers no longer
 // offer them, so this set only ever readmits a value that is already on the row.
+// Same reasoning applies to signal_noise and builder_economy, retired as
+// ventures on 2026-08-11: still accepted, no longer offered.
 const KNOWN_VENTURES = new Set([
-  'mindmaker', 'meliora', 'adfixus', 'signal_noise', 'builder_economy', 'fractionl_pulse', 'investor',
+  // live
+  'mindmaker', 'mindmaker_live', 'mm_ctrl', 'fractionl_circle', 'fractionl_pulse', 'full_time', 'investor',
+  // retired, accepted so historical rows can still PATCH
+  'meliora', 'adfixus', 'signal_noise', 'builder_economy', 'mymu', 'legibility',
 ])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

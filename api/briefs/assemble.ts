@@ -17,13 +17,19 @@ import { loadStandingNotes, standingNotesPrompt } from '../_briefNotes.js'
 // (pricing, margin, who pays, build vs buy, competitive position), never model
 // capability for its own sake.
 //
-// Voice is krish-voice + the makeyourmindup corpus mandate. The argument order
+// Voice is krish-voice + the Mindmaker Live house mandate. The argument order
 // is the Signal & Noise rule: steelman the consensus and credit what it gets
 // right BEFORE challenging it, so the piece never wins against a strawman. The
-// investigation traces a mechanism (the Techonomic register, folded into MYMU
-// when the Techonomic destination retired 2026-08-06). The result is one
+// investigation traces a mechanism (the Techonomic register, which ships as the
+// Paid format since the 2026-08-11 refocus). The result is one
 // weekly_briefs row (status 'ready', version 1) plus the weekend decision
 // cards: brief_review, purge_preview, graduation candidates.
+//
+// NOTE (2026-08-11): this is the internal weekly BRIEF, not the retired "Make
+// Your Mind Up" weekly format. The brief is the editorial artifact Krish works
+// from; it fans out into the two live formats (Paid, Built) plus channels via
+// briefs/[week]/push.ts. Retiring the weekly format did not retire this, and
+// the investigative shape above IS the Paid register.
 //
 //   GET (CRON_SECRET) — Fri 18:00 UTC   ·   POST — manual re-assemble (only
 //   while status is 'assembling'/'ready'; never clobbers a brief Krish touched)
@@ -161,10 +167,10 @@ export async function runAssemble(force = false) {
   const [voice, corpus, register, krishWeek, standingNotes] = await Promise.all([
     loadVoiceBlock(), loadCorpus(), loadRegisterSummary(), loadKrishWeek(weekStart), loadStandingNotes(),
   ])
-  const channelMandate = corpusForChannel(corpus, 'makeyourmindup', 3000)
+  const channelMandate = corpusForChannel(corpus, 'mindmaker_live', 3000)
 
   const system = [
-    'You write the MYMU weekly for business leaders making real AI decisions. You write as Krish.',
+    'You write the Mindmaker Live weekly brief for business leaders making real AI decisions. You write as Krish.',
     voice ? `VOICE:\n${voice}` : '',
     channelMandate ? `CHANNEL MANDATE:\n${channelMandate}` : '',
     standingNotesPrompt(standingNotes),

@@ -58,7 +58,10 @@ const RUNGS: Array<{ id: Horizon; label: string; noun: string; blurb: string }> 
   { id: 'venture_objective', label: 'Per venture', noun: 'a venture objective', blurb: 'One venture’s slice of a mid-term goal. Sits beside the week, not under it.' },
 ]
 
-const VENTURES = ['mindmaker', 'mymu', 'mm_ctrl', 'full_time', 'fractionl_pulse', 'legibility', 'signal_noise', 'builder_economy']
+// The live portfolio, mirroring venture_registry where active=true. Refocused
+// 2026-08-11: mymu, signal_noise and builder_economy are retired as ventures,
+// and Circle is back because the OS manages it.
+const VENTURES = ['mindmaker', 'mindmaker_live', 'mm_ctrl', 'full_time', 'fractionl_circle', 'fractionl_pulse', 'plinth', 'investor']
 
 function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48)

@@ -33,21 +33,25 @@ export type IdeaState =
  *  work (Krish 2026-08-06). Not destinations. Where a piece goes is a channel
  *  (MediaChannel), and the theme layer is still pillars. */
 export type ContentLane =
-  | 'mymu'
-  | 'signal_noise'
-  | 'builder_economy'
+  | 'mindmaker_live'
 
 /**
- * Lane values that can still be sitting on a stored row. Techonomic was retired
- * as a brand on 2026-08-06 and folded into MYMU; its rows were first re-laned to
- * 'mindmaker_live', which was then itself renamed to the channel slug
- * 'makeyourmindup' the same day. None of the three is offered as a new choice;
- * all normalize to 'mindmaker' for display (contentLanes.normalizeLane).
+ * Lane values that can still be sitting on a stored row, none of which is
+ * offered as a new choice; all normalize to 'mindmaker_live' for display
+ * (contentLanes.normalizeLane).
+ *
+ * The trail, because it is genuinely confusing: Techonomic retired 2026-08-06
+ * and folded into MYMU. Its rows were re-laned to 'mindmaker_live', which was
+ * then renamed to the channel slug 'makeyourmindup' the same day. On
+ * 2026-08-11 the whole content arm became Mindmaker Live, so 'mindmaker_live'
+ * is the CANONICAL value again, and 'makeyourmindup' is now a product surface
+ * (the lead magnet into CTRL) rather than a content brand.
  */
 export type StoredContentLane =
   | ContentLane
   | 'mindmaker' | 'builder_economy_ig'   // pre venture/channel split
-  | 'makeyourmindup' | 'mindmaker_live' | 'techonomic'
+  | 'makeyourmindup' | 'mymu' | 'techonomic'
+  | 'signal_noise' | 'builder_economy'   // retired 2026-08-11
 
 /**
  * Container for Cleo's derivative outputs keyed by target format. Cleo's
