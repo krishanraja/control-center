@@ -616,6 +616,15 @@
 .split .lead-story:hover h1 { color: #fff6df; }
 .split .is-quiet .lead-story h1 { max-width: 650px; font-size: clamp(60px, 5vw, 86px); }
 
+/* A detail panel deliberately keeps the source story in view. Collapse the
+   two-column brief behind it so that the remaining canvas stays editorial,
+   instead of squeezing the lead into a headline-width sliver. */
+.split .workspace.with-panel .brief-page { grid-template-columns: minmax(0, 1fr); column-gap: 0; }
+.split .workspace.with-panel .brief-rows { display: none; }
+.split .workspace.with-panel .lead-story { min-height: 680px; padding-right: 0; border-right: 0; }
+.split .workspace.with-panel .lead-story h1 { max-width: 720px; font-size: clamp(36px, 4vw, 56px); overflow-wrap: normal; }
+.split .workspace.with-panel .lead-metric strong { font-size: clamp(64px, 6vw, 88px); }
+
 .split .panel { width: var(--panel); }
 .split .story-detail { padding: 28px 28px 48px; }
 .split .detail-domain { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 20px; border: 1px solid var(--line2); border-radius: 50%; color: var(--ink2); }
