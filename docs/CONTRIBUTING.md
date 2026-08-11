@@ -380,3 +380,15 @@ the Realtime WebSocket.
   the VPS workspace root.
 - Search closed issues / PRs.
 - For bugs, file a GitHub issue.
+
+## Primitives (non-optional)
+
+- **Overlays** go through `shared/Modal`, `SlideOver` or `BottomSheet`. A bare
+  `fixed inset-0` has no dialog role, focus trap, scroll lock or focus
+  restoration. 14 surfaces had that problem; the only `fixed inset-0` left is
+  on two things that are genuinely not modals (a menu and a click-away scrim).
+- **Tab switchers** go through `shared/SegmentedNav`, and always pass
+  `testIdPrefix` so the e2e suite has something stable to select.
+- **Accent foregrounds use shade 200, never 300.** Only 50/100/200 map to the
+  `--ac-*` channels that flip between themes; 300 and up are fixed hexes tuned
+  for the dark surface and wash out on paper.

@@ -24,6 +24,8 @@
 | [007](./007-obsidian-aurora-design-system.md) | Obsidian Aurora design system + adaptive light/dark theming | Accepted |
 | [008](./008-security-hardening-and-auth-rls-scope.md) | DB security hardening now; auth + RLS deferred, scoped | Accepted |
 | [009](./009-compound-isolated-application-boundary.md) | COMPOUND isolated application boundary | Accepted |
+| [010](./010-vendored-primitive-layer.md) | Vendor Relume's primitives, reject its design system | Accepted |
+| [011](./011-contact-intelligence-sibling-table.md) | Network judgment layer is a sibling table, not columns on `contacts` | Accepted |
 
 ---
 

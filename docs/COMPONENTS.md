@@ -400,3 +400,103 @@ px-3 py-4     /* Mobile content padding */
 8. **Document data flow in PRODUCT.md.** When you add a new component to
    a tab, update [`PRODUCT.md`](./PRODUCT.md) so the data feeding it is
    documented.
+
+---
+
+## The primitive layer (`src/components/ui/`)
+
+Vendored from Relume, re-skinned to Obsidian Aurora, owned here. See
+[ADR-010](./DECISIONS/010-vendored-primitive-layer.md) for why the Relume
+Tailwind preset, icon set and animation library are deliberately absent.
+
+`ui/` sits **beneath** `shared/`. It is the implementation layer; `shared/` is
+the product layer. Reach for `shared/` at a call site.
+
+| Primitive | Notes |
+|---|---|
+| `Button` / `buttonVariants` | 8 variants, 6 sizes. The single definition of button colour; `Pressable` composes it. |
+| `Card` | Variants map onto `.surface` / `.surface-2` / `.glass-card`, not re-invented with utilities. |
+| `Input`, `Textarea` | The 16px floor on coarse pointers is enforced globally in `index.css`; do not fight it. |
+| `Badge` | Neutral pill, colour in the text. Foregrounds are shade **200**. |
+| `Dialog` | 4 positions: `center`, `right`, `bottom`, `responsive`. Portals into `.mobile-zoom-root`. |
+| `DropdownMenu`, `Popover`, `Tooltip` | Same portal rule. |
+| `Tabs` | Radix tabs, for surfaces whose panels can live inside one root. |
+
+### The mobile zoom contract
+
+`App.tsx` renders the whole mobile tree inside `.mobile-zoom-root`
+(`zoom: 1.2`), which publishes `--z`. Radix portals to `document.body` by
+default, which is **outside** that wrapper, so a menu would render at native
+scale beside a 1.2x trigger.
+
+Every portalled primitive here resolves `.mobile-zoom-root` and portals into it
+when present, and sizes against `calc(100dvh / var(--z, 1))`. On desktop there
+is no zoom root and `--z` is unset, so both fall back with no special-casing.
+
+**If you add a portalled primitive, copy that.**
+
+## `shared/Modal`: never hand-roll an overlay
+
+Eleven surfaces used to hand-roll `<div className="fixed inset-0 ...">` with
+their own scrim, centring and close path. Nine had no dialog role: nothing
+announced them, Tab walked out into the page behind, the body kept scrolling,
+focus was never returned.
+
+Every **modal** now goes through this. Two `fixed inset-0` overlays remain and
+are deliberate, because neither is a modal: `CaptureSpeedDial` is a menu
+(`role="menu"`, `aria-haspopup`, Escape) and `DesktopToday` has a click-away
+scrim behind a popover.
+
+```tsx
+<Modal open={open} onClose={close} title="Flag firing soon" variant="responsive">
+  {/* your existing body markup, unchanged */}
+</Modal>
+```
+
+| Prop | Purpose |
+|---|---|
+| `variant` | `responsive` (default: sheet on a phone, centred card on the desk), `center`, `full` |
+| `hideTitle` | Keep the title for screen readers when the surface draws its own header |
+| `dismissible={false}` | Escape and outside-press are prevented. For a decision that must actually be made. |
+| `overlayClassName` | Scrim override, for surfaces that dim with the theme base rather than black |
+
+`SlideOver` (right panel) and `BottomSheet` (draggable sheet) are the other two
+shells. `DetailSheet` composes `BottomSheet`.
+
+## `shared/SegmentedNav`: never hand-roll a tab switcher
+
+Four tabs used to. Two had no tab semantics at all; none had roving focus.
+
+```tsx
+<SegmentedNav<LaneId>
+  segments={LANES} value={lane} onChange={setLane}
+  label="People lanes" variant="segmented" testIdPrefix="people-lane"
+/>
+```
+
+Gives `role="tablist"`, `aria-selected`, roving `tabIndex` (only the active tab
+is in the Tab order), arrow keys with wrap, Home/End, and a stable test id per
+tab. Variants: `pill`, `bordered`, `segmented`.
+
+**Always pass `testIdPrefix`.** The e2e suite selects on it. It used to select
+on visible labels, and a rename took 7 of 9 specs out silently.
+
+## Network surface (`src/components/network/`)
+
+| Component | Renders |
+|---|---|
+| `NetworkTab` | Composes the surface. Both device classes. |
+| `NetworkSearchBar` | The one input. Text plus mic. Shows `Heard` then `Understood` then results. |
+| `NetworkResultRow` | One person: score ring, judgment, hook, risk, tier and thin-evidence badges. |
+| `ScoreBreakdown` | Popover over the score ring. Five bars, one per scoring term. |
+| `NetworkFilters` | Soft by default, with an explicit hard-filter toggle. Collapses on narrow. |
+| `VentureRecommender` | Venture, then intent, then one verb. Not a cross-product. |
+
+Two rules this surface holds and future work should keep:
+
+1. **`thin_evidence` is a visible badge, never a filter.** `rules_v1` means
+   nobody read a profile. Saying so is the difference between a ranked list and
+   a confident wrong answer.
+2. **Weak is not empty.** When the query signal is noise the strongest people
+   are still returned, with a banner saying they are ranked by relationship
+   rather than by the question.

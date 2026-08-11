@@ -422,3 +422,73 @@ n8n, but accept a `{ "mode": "direct" }` body to bypass n8n and run server-side
 
 Apollo lead **search + bulk reveal** (not exposed as an API route) runs via
 `scripts/apollo/burn.ts` — see `docs/APOLLO_CREDIT_BURNDOWN.md`.
+
+---
+
+## Network intelligence (`/api/network/*`)
+
+Ask the network anything, by text or voice. These are the only routes in the
+repo behind an auth gate, because they return `why_them` and `risk`: private
+assessments of real, named people. See
+[ADR-011](./DECISIONS/011-contact-intelligence-sibling-table.md).
+
+### Auth
+
+`api/_auth.ts` re-checks the same `cc_access` cookie `middleware.ts` already
+issues at the edge (`sha256(ACCESS_CODE)`, compared in constant time). No new
+secret and nothing for the operator to do: if they can see the dashboard they
+can query the network.
+
+CORS origin is pinned (`APP_ORIGIN`, defaulting to the production host) rather
+than `*`. A wildcard next to a cookie gate is how the gate gets read by any page
+the browser happens to be on.
+
+It **fails open when `ACCESS_CODE` is unset**, matching `middleware.ts` exactly.
+Diverging would mean a deploy that drops the var leaves the UI reachable and the
+Network tab silently broken, which is the worse failure.
+
+| Route | Method | Body | Returns |
+|---|---|---|---|
+| `/api/network/search` | POST | `{ question, venture?, roles?, tiers?, min_confidence?, limit?, rerank? }` | `{ ok, restated, results[], weak, total, plan, degraded[] }` |
+| `/api/network/recommend` | POST | `{ venture, intent?, limit? }` | same envelope |
+| `/api/network/voice` | POST | raw audio body (`bodyParser` off) | same envelope plus `transcript` |
+| `/api/network/person/[id]` | GET | — | `{ ok, contact, intelligence }` |
+
+### The pipeline
+
+```
+question -> plan (Claude) -> embed (OpenAI) -> network_search (Postgres) -> rerank (Claude)
+```
+
+Every stage degrades and reports itself in `degraded[]`. No `ANTHROPIC_API_KEY`:
+the raw question becomes the query. No `OPENAI_API_KEY`: the semantic term is
+skipped, weights renormalise, and the scan is actually *cheaper* without a
+vector. Rerank fails: scorer order stands. `/recommend` needs no model at all.
+
+**The one outcome ruled out everywhere is an empty result for a reasonable
+question.**
+
+### `restated` and `weak`
+
+`restated` is one line stating what the planner understood, rendered above the
+results so a misreading is caught by reading a sentence rather than by
+distrusting twenty rows.
+
+`weak: true` means the query signal was indistinguishable from noise. The
+results are still real people ranked by relationship value; they just do not
+answer what was asked. **It is never an empty list.**
+
+Weakness is thresholded on `query_relevance`, not `match_score`. `match_score`
+cannot answer "did we understand the question", because a well-connected person
+scores ~38 on relationship and evidence no matter what was asked.
+
+### The planner is untrusted input
+
+`api/_networkQuery.ts` sits between a language model and a database call, so
+`sanitizePlan` is written as a boundary: field names checked against an
+allow-list, weights clamped to [0.1, 1], values and strings length-capped, the
+constraint list capped at 8, unknown venture nulled, em dashes stripped.
+
+The planner **cannot emit a hard filter**. If it could, it could return an empty
+result for a reasonable question, which is the exact failure this feature exists
+to remove.

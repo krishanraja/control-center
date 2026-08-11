@@ -573,3 +573,93 @@ References to them should be updated.
 | `nell_candidates` | `guests` | PR #56 (2026-05-22) |
 | `nova_target_conferences` | `visibility_targets` | PR #56 (2026-05-22) |
 | `tasks.json` / `goals.json` etc. (local JSON state) | Supabase tables | OS v3 migration (2026-04) |
+
+---
+
+## `contact_intelligence` — the network judgment layer
+
+1:1 with `contacts` (`contact_id` is both PK and FK, `ON DELETE CASCADE`).
+10,649 rows, all embedded.
+
+**RLS: service-role only. No anon policy, deliberately.** `contacts` is
+anon-readable (`contacts_anon_select ... USING (true)`), and `why_them` and
+`risk` are private assessments of named people. See
+[ADR-011](./DECISIONS/011-contact-intelligence-sibling-table.md).
+
+| Column group | Columns |
+|---|---|
+| Judgment | `who`, `why_them`, `hook`, `risk` |
+| Routing | `roles[]`, `surface_when[]`, `best_channel`, `reachable_via[]` |
+| Venture | `venture_scores` (jsonb, 0-100 per venture), `primary_venture`, `mindmaker_buyer_family` |
+| Evidence tier | `network_tier`, `tier_weight`, `priority`, `fit`, `warmth` |
+| Provenance | `confidence`, `intel_method`, `evidence[]`, `source_count`, `source_list[]` |
+| Firmographic | `seniority`, `country`, `industry` |
+| Hygiene | `is_person`, `name_quality`, `reciprocated_email`, `email_inbound/outbound/last` |
+| Retrieval | `intel_doc`, `intel_tsv` (generated), `embedding vector(1536)` |
+
+`network_tier` is an **evidence** statement (how many independent sources assert
+this person). `contacts.consent_tier` is a **permission** statement (what we are
+allowed to do). They are different axes and the mapping between them is
+deliberately lossy and one-way: a bulk file can promote a tier, never demote
+one.
+
+`intel_doc` is the single retrieval surface. Both `intel_tsv` and `embedding`
+derive from it, so the lexical and semantic tiers can never disagree about what
+was indexed.
+
+### Indexes
+
+`hnsw (embedding vector_cosine_ops)` — **HNSW, not ivfflat**. ivfflat needs
+training data; built on an empty table at migration time its centroids would be
+garbage, and the importer adds all 10,649 rows immediately afterwards. HNSW has
+no training step, so creating it before the load is correct rather than merely
+tolerable, which keeps the migration order-independent.
+
+Plus GIN on `intel_tsv`, `roles`, `surface_when`, `venture_scores`, btree on
+`network_tier` / `primary_venture` / `seniority` / `country`, and a partial index
+on the browse default (tiers 1-3, real judgment, actual humans).
+
+## `network_search()` — the scorer
+
+`SECURITY INVOKER`, granted to `service_role` only.
+
+```
+match_score = 100 x venture_multiplier x weighted_mean(
+    0.34 semantic       cosine, rescaled onto the measured band [0.30, 0.62]
+    0.16 lexical        ts_rank_cd, rescaled in-set, x coverage squared
+    0.22 constraint     weighted partial credit, 0.5 when unconstrained
+    0.18 relationship   tier_weight, warmth, reciprocated, log(source_count)
+    0.10 actionability  reachable, confidence, intel_method, name_quality
+)
+```
+
+Weights renormalise over the terms actually present, so a recommend-mode call
+with no text query is not silently scored out of 0.50.
+
+**Constraints are SOFT.** They contribute weighted partial credit; they never
+filter. The only hard filters are `is_person`, `do_not_contact`, and whatever
+the operator sets explicitly in the UI. This is what makes "always return
+answers" structural rather than a promise the caller has to keep.
+
+Candidate recall is a UNION of orthogonal paths, one of which is
+**query-independent** (the strongest relationships in the network). That is what
+a nonsense query falls back to. The no-vector path stays fully exhaustive.
+
+### Calibration
+
+The semantic band is measured, not assumed. `public.cosine_probe(p_vec)` samples
+2,500 embedded rows and reports the percentile distribution for a query vector.
+Measured against this corpus:
+
+```
+query                          p50    p99    max
+CMO at a bank, AI governance   0.351  0.556  0.657
+publisher identity             0.329  0.491  0.596
+podcast guest thesis           0.308  0.471  0.525
+"purple monkey dishwasher"     0.100  0.199  0.275
+```
+
+The first band was guessed at `[0.55, 0.95]`, which sat above the 99th
+percentile of every real query and disabled the entire semantic tier.
+**Re-measure with `cosine_probe` if the embedding model or the `intel_doc` shape
+changes; both move this band.**
