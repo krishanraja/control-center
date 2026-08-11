@@ -42,6 +42,7 @@ async function rest<T>(
       apikey: serviceRoleKey,
       Authorization: `Bearer ${serviceRoleKey}`,
       Accept: "application/json",
+      "Content-Type": "application/json",
       "Accept-Profile": profile,
       "Content-Profile": profile,
       ...(init.headers ?? {}),
