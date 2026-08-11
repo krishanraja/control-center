@@ -87,30 +87,36 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
   const degraded: string[] = []
   const limit = Math.max(1, Math.min(100, opts.limit ?? 20))
 
-  // 1. Plan.
-  let plan: QueryPlan
-  if (opts.plan) {
-    plan = opts.plan
-  } else {
-    const planned = await planQuery(opts.question || '')
-    plan = planned.plan
-    if (!planned.planned && planned.reason) degraded.push(`planner:${planned.reason}`)
-  }
-  if (opts.venture) plan = { ...plan, venture: opts.venture }
+  // 1 + 2. Plan and embed CONCURRENTLY.
+  //
+  // These used to be sequential, because the embedding was taken of the
+  // planner's `semantic_query`. That made the planner's ~4s a hard prefix on
+  // the embedding's ~2s for no retrieval benefit worth 4 seconds: embedding the
+  // operator's own words retrieves nearly as well, and the plan is still used
+  // for everything it is actually good at (constraints, venture, keywords, and
+  // the `restated` line).
+  //
+  // The wait is now max(plan, embed) instead of plan + embed.
+  const planPromise: Promise<QueryPlan> = opts.plan
+    ? Promise.resolve(opts.plan)
+    : planQuery(opts.question || '').then(r => {
+        if (!r.planned && r.reason) degraded.push(`planner:${r.reason}`)
+        return r.plan
+      })
 
-  // 2. Embed. A null vector is fine — network_search skips the semantic term,
-  //    renormalises the remaining weights, and falls back to an exhaustive scan
-  //    (which is CHEAPER without a vector, so degrading here costs nothing).
-  let qvec: string | null = null
-  if (plan.semantic_query) {
-    try {
-      const v = await embed({ title: null, body: plan.semantic_query })
-      if (v) qvec = vectorLiteral(v)
-      else degraded.push('embedding:unavailable')
-    } catch (e: unknown) {
-      degraded.push(`embedding:${(e as Error)?.message?.slice(0, 60) || 'error'}`)
-    }
-  }
+  // A null vector is fine: network_search skips the semantic term, renormalises
+  // the remaining weights, and falls back to an exhaustive scan, which is
+  // CHEAPER without a vector. Degrading here costs latency, not answers.
+  const embedText = opts.plan?.semantic_query || opts.question || ''
+  const vecPromise: Promise<string | null> = embedText
+    ? embed({ title: null, body: embedText })
+        .then(v => { if (!v) degraded.push('embedding:unavailable'); return v ? vectorLiteral(v) : null })
+        .catch((e: unknown) => { degraded.push(`embedding:${(e as Error)?.message?.slice(0, 60) || 'error'}`); return null })
+    : Promise.resolve(null)
+
+  const [planned, qvec] = await Promise.all([planPromise, vecPromise])
+  let plan = planned
+  if (opts.venture) plan = { ...plan, venture: opts.venture }
 
   // 3. Score. Over-fetch so the rerank has something to reorder.
   const poolSize = Math.min(100, Math.max(limit * 2, 40))
@@ -141,10 +147,19 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
   const topRelevance = scored.length ? Math.max(...scored.map(r => Number(r.query_relevance))) : null
   const weak = results.length === 0 || (topRelevance !== null && topRelevance < WEAK_RELEVANCE)
 
-  // 4. Rerank + explain. Skipped when the query signal is noise anyway: asking a
-  //    model to justify twenty arbitrary matches produces twenty plausible
-  //    fictions, which is worse than saying nothing matched.
-  if (opts.rerank !== false && results.length > 0 && !weak) {
+  // 4. Rerank + explain, OFF the critical path by default.
+  //
+  //    Measured on production: this endpoint took 33.5s with the rerank and 8.2s
+  //    without. Generating a sentence per candidate is ~25s of model output, and
+  //    on a phone that is indistinguishable from the app having hung. Worse, the
+  //    function's ceiling is 60s, so a slow upstream turned a slow search into a
+  //    failed one.
+  //
+  //    Explanations are now a second, separate request (/api/network/explain)
+  //    that fills `why_match` in behind an already-rendered list. Ranking does
+  //    not depend on them: the scorer decides the order, the model only says
+  //    why. Pass rerank:true to keep both in one round trip.
+  if (opts.rerank === true && results.length > 0 && !weak) {
     try {
       results = await rerank(opts.question || plan.restated, results, limit)
     } catch (e: unknown) {
@@ -180,8 +195,9 @@ Rules:
 async function rerank(question: string, rows: NetworkResult[], limit: number): Promise<NetworkResult[]> {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('missing_anthropic_key')
   // Only the head of the list is worth a model's attention; the tail is
-  // returned in scorer order.
-  const head = rows.slice(0, Math.min(rows.length, Math.max(limit, 20)))
+  // returned in scorer order. Twelve, not twenty: output length is what this
+  // costs, and nobody reads a justification for result nineteen.
+  const head = rows.slice(0, Math.min(rows.length, 12))
 
   const candidates = head.map((r, i) => ({
     i,
@@ -201,8 +217,9 @@ async function rerank(question: string, rows: NetworkResult[], limit: number): P
     model: RERANK_MODEL,
     system: RERANK_SYSTEM,
     user: `QUESTION:\n${question}\n\nCANDIDATES:\n${JSON.stringify(candidates, null, 1)}`,
-    maxTokens: 2000,
+    maxTokens: 900,
     temperature: 0,
+    timeoutMs: 20_000,
   })
   const parsed = robustJson(text) as { ranked?: { i: number; why_match: string }[] } | null
   if (!parsed || !Array.isArray(parsed.ranked)) throw new Error('rerank_unparseable')

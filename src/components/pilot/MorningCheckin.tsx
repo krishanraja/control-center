@@ -97,6 +97,27 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
   const back = () => { h.tap(); setStage(stages[Math.max(0, idx - 1)]) }
   const forward = () => go(stages[Math.min(stages.length - 1, idx + 1)])
 
+  // Optional skip. The gate blocks the whole dashboard until today's check-in
+  // exists, so "not now" has to still write a row or the operator is locked out
+  // of his own control center by a question he chose not to answer.
+  //
+  // It writes a NEUTRAL reading (3/3) and green mode, not a real one. The
+  // capacity layer only ever reduces what the screen demands, so a neutral
+  // reading is the honest default: it asks for nothing extra and hides nothing.
+  // `one_word: ''` keeps the row identifiable as skipped rather than answered.
+  const skip = async () => {
+    setSaving(true)
+    setError(null)
+    try {
+      await saveMorning({ energy: 3, anxiety: 3, one_word: '', mode: 'green', intent: undefined, venture: undefined })
+      h.tap()
+      onDone('green', null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save')
+      setSaving(false)
+    }
+  }
+
   const commit = async () => {
     if (energy === null || anxiety === null || !mode) return
     setSaving(true)
@@ -136,6 +157,21 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
 
         {/* Header: progress and yesterday, both fixed height */}
         <header className="shrink-0 pt-[calc(env(safe-area-inset-top,0px)+22px)] pb-2">
+          {/* Skip sits on the first screen only. Once a reading has been given
+              the later stages already have their own way forward, and offering
+              an exit next to them would just be a second Next. */}
+          {stage === 'read' && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={skip}
+                disabled={saving}
+                className="-mr-2 -mt-1 mb-1 min-h-[36px] px-2 text-[12px] text-ink-faint transition-colors hover:text-ink-muted disabled:opacity-40 touch-manipulation"
+              >
+                Skip
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-1.5" aria-label={`Step ${idx + 1} of ${stages.length}`}>
             {stages.map((s, i) => (
               <span

@@ -144,11 +144,15 @@ export async function planQuery(question: string): Promise<{ plan: QueryPlan; pl
       model: MODEL,
       system: SYSTEM,
       user: q,
-      maxTokens: 900,
+      maxTokens: 700,
       // Planning is extraction, not writing. Temperature 0 keeps the same
       // question producing the same plan, so a result set that looks wrong can
       // actually be debugged.
       temperature: 0,
+      // The plan is on the critical path of a user-facing search. If it has not
+      // arrived in 8s the raw question is a perfectly serviceable query, and a
+      // degraded ranking beats a spinner.
+      timeoutMs: 8_000,
     })
     const parsed = robustJson(text)
     if (!parsed) return { plan: fallback, planned: false, reason: 'planner_unparseable' }
