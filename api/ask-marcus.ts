@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from './_supabase.js'
+import { goalsSpine } from './_goals.js'
 
 /**
  * POST /api/ask-marcus
@@ -80,7 +81,11 @@ Rules:
 - If the question is unanswerable from the grounding alone, say so and propose the one thing Krish should measure first.
 - Currency: USD. Dates: relative ("3 days ago", "last week").`
 
-  const userMessage = `Question: ${question}\n\nGrounding (live data):\n${grounding}`
+  // The ladder rides along with the live data. Marcus answering "should I do X"
+  // without knowing what the system is currently for was the gap.
+  const { prompt: goalsBlock } = await goalsSpine('answering this question')
+
+  const userMessage = `Question: ${question}\n\n${goalsBlock}\n\nGrounding (live data):\n${grounding}`
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { goalsSpine } from '../_goals.js'
 import {
   callClaude,
   corpusForChannel,
@@ -56,7 +57,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.json({ ok: true, reused: true, ...existing })
   }
 
-  const [voice, corpus] = await Promise.all([loadVoiceBlock(), loadCorpus()])
+  const [voice, corpus, goals] = await Promise.all([
+    loadVoiceBlock(), loadCorpus(), goalsSpine('choosing what to write today'),
+  ])
   const today = new Date().toISOString().slice(0, 10)
 
   const system = [
@@ -64,6 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     voice ? `\nKRISH VOICE\n${voice.slice(0, 4000)}` : '',
     `\n${VOICE_GUARDRAILS}`,
     corpus ? `\nCHANNEL CORPUS (pick the one lane this piece belongs to, and clear the Five Standards)\n${corpusForChannel(corpus, null, 5000)}` : '',
+    `\n${goals.prompt}`,
     '\nNever invent numbers, quotes, or events. If the ask needs evidence you do not have, build the piece from Krish\'s operating reality (building and running an autonomous agent fleet, AI advisory, the builder economy) where his own experience IS the evidence.',
   ].filter(Boolean).join('\n')
 

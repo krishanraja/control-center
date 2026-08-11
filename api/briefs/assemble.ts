@@ -4,6 +4,7 @@ import { callClaude, robustJson, sanitizeVoice, loadVoiceBlock, loadCorpus, corp
 import { isoWeekLabel, startOfIsoWeek } from '../_weeks.js'
 import { realSource } from '../shifts/detect.js'
 import { loadStandingNotes, standingNotesPrompt } from '../_briefNotes.js'
+import { goalsSpine } from '../_goals.js'
 
 // Weekly brief assembly (Content Engine v2, spec §4). Fri 18:00 UTC.
 //
@@ -164,8 +165,9 @@ export async function runAssemble(force = false) {
     return { week, items: items.length, skipped: 'fewer than 5 items this week (honest skip)' }
   }
 
-  const [voice, corpus, register, krishWeek, standingNotes] = await Promise.all([
+  const [voice, corpus, register, krishWeek, standingNotes, goals] = await Promise.all([
     loadVoiceBlock(), loadCorpus(), loadRegisterSummary(), loadKrishWeek(weekStart), loadStandingNotes(),
+    goalsSpine('choosing what the brief argues this week'),
   ])
   const channelMandate = corpusForChannel(corpus, 'mindmaker_live', 3000)
 
@@ -174,6 +176,7 @@ export async function runAssemble(force = false) {
     voice ? `VOICE:\n${voice}` : '',
     channelMandate ? `CHANNEL MANDATE:\n${channelMandate}` : '',
     standingNotesPrompt(standingNotes),
+    goals.prompt,
     BRIEF_SHAPE,
     BRIEF_LENS,
     BRIEF_HONESTY,
