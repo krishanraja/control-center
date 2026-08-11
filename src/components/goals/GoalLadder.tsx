@@ -21,6 +21,20 @@ const API = import.meta.env.VITE_API_URL ?? ''
 
 export type Horizon = 'os' | 'mid_term' | 'weekly' | 'venture_objective'
 
+/**
+ * The gate's verdict, as it comes back from the API. Declared here rather than
+ * imported from api/: this is the wire format, and src/ does not compile
+ * against the serverless functions.
+ */
+export interface GateVerdict {
+  verdict: 'pass' | 'revise' | 'wrong_tier'
+  issues: Array<{ dimension: string; problem: string; fix: string }>
+  suggested_rewrite: string | null
+  suggested_tier: Horizon | null
+  reasoning: string
+  model_used: boolean
+}
+
 export interface LadderGoal {
   id: string
   title: string
@@ -104,6 +118,10 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
   const [edit, setEdit] = useState({ title: '', current: '', progress: '0', notes: '' })
   const [editingFocus, setEditingFocus] = useState(false)
   const [focusText, setFocusText] = useState('')
+  // The gate's verdict on the goal currently being typed. Held rather than
+  // thrown, because the whole point is that the form stays open with the
+  // specific failures attached to it.
+  const [gate, setGate] = useState<GateVerdict | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -139,15 +157,17 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
 
   const openAdd = (hz: Horizon) => {
     h.select()
-    setAdding(hz); setTitle(''); setVenture('')
+    setAdding(hz); setTitle(''); setVenture(''); setGate(null)
     const pr = parentRung(hz)
     const opts = pr && data ? (data.by_horizon[pr] || []) : []
     setParentId(opts.length === 1 ? opts[0].id : '')
   }
 
-  const save = async () => {
-    if (!adding || !title.trim() || saving) return
-    const needsParent = adding !== 'os'
+  const save = async (opts: { override?: boolean; horizon?: Horizon; text?: string } = {}) => {
+    const hz = opts.horizon ?? adding
+    const raw = (opts.text ?? title).trim()
+    if (!hz || !raw || saving) return
+    const needsParent = hz !== 'os'
     if (needsParent && !parentId) return
     setSaving(true)
     try {
@@ -155,18 +175,26 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: `${adding}:${slugify(title)}`,
-          title: title.trim(),
-          horizon: adding,
+          id: `${hz}:${slugify(raw)}`,
+          title: raw,
+          horizon: hz,
           parent_id: needsParent ? parentId : null,
-          venture: adding === 'venture_objective' ? (venture || null) : null,
+          venture: hz === 'venture_objective' ? (venture || null) : null,
           status: 'active',
+          override: opts.override === true,
         }),
       })
       const j = await r.json().catch(() => ({}))
+      // 422 is the gate, not a failure. Keep the form open and attach the
+      // verdict to it so the fix is one edit away.
+      if (r.status === 422 && j?.error === 'goal_gate') {
+        setGate(j.gate as GateVerdict)
+        h.error()
+        return
+      }
       if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
       h.success()
-      setAdding(null); setTitle(''); setParentId(''); setVenture('')
+      setAdding(null); setTitle(''); setParentId(''); setVenture(''); setGate(null)
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save')
@@ -485,7 +513,7 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
             <span className="text-[12px] font-semibold text-violet-200">
               New {RUNGS.find(r => r.id === adding)?.noun.replace(/^an? /, '')}
             </span>
-            <button type="button" onClick={() => setAdding(null)} aria-label="Cancel" className="text-white/35 hover:text-white/70">
+            <button type="button" onClick={() => { setAdding(null); setGate(null) }} aria-label="Cancel" className="text-white/35 hover:text-white/70">
               <X size={14} />
             </button>
           </div>
@@ -493,8 +521,8 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
           <input
             autoFocus
             value={title}
-            onChange={e => setTitle(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') void save(); if (e.key === 'Escape') setAdding(null) }}
+            onChange={e => { setTitle(e.target.value); if (gate) setGate(null) }}
+            onKeyDown={e => { if (e.key === 'Enter') void save(); if (e.key === 'Escape') { setAdding(null); setGate(null) } }}
             placeholder={adding === 'os' ? 'What is the whole system for?' : 'What is the goal?'}
             className="w-full min-h-[40px] px-3 rounded-lg bg-white/[0.04] border border-white/10 text-[13px] text-white/90 placeholder:text-white/25 outline-none focus:border-violet-400/40"
           />
@@ -528,6 +556,72 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
                 <option value="">No single venture</option>
                 {VENTURES.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
+            </div>
+          )}
+
+          {/* The gate did not pass. The form stays open with the specific
+              failures attached, a one-click fix where the gate could suggest
+              one, and an explicit way through that gets recorded. */}
+          {gate && (
+            <div className="mt-2.5 rounded-lg border border-amber-400/25 bg-amber-500/[0.07] p-2.5">
+              <p className="text-[11px] uppercase tracking-[0.14em] font-semibold text-amber-200/85">
+                {gate.verdict === 'wrong_tier' ? 'Wrong rung' : 'Not saved yet'}
+              </p>
+              {gate.reasoning && (
+                <p className="mt-1 text-[12px] text-white/70 leading-snug">{gate.reasoning}</p>
+              )}
+
+              {gate.issues.length > 0 && (
+                <ul className="mt-2 space-y-1.5">
+                  {gate.issues.map((it, i) => (
+                    <li key={i} className="text-[12px] leading-snug">
+                      <span className="text-amber-200/80 font-medium">{it.dimension}: </span>
+                      <span className="text-white/70">{it.problem}</span>
+                      {it.fix && <span className="text-white/45"> {it.fix}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                {gate.suggested_tier && gate.suggested_tier !== adding && (
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => { const t = gate.suggested_tier!; setGate(null); setAdding(t); }}
+                    className="min-h-[30px] px-2.5 rounded-md bg-amber-400/15 border border-amber-300/30 text-[12px] text-amber-100 hover:bg-amber-400/25 disabled:opacity-50"
+                  >
+                    Move to {RUNGS.find(r => r.id === gate.suggested_tier)?.label ?? gate.suggested_tier}
+                  </button>
+                )}
+                {gate.suggested_rewrite && (
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => { setTitle(gate.suggested_rewrite!); setGate(null) }}
+                    className="min-h-[30px] px-2.5 rounded-md bg-white/[0.07] border border-white/15 text-[12px] text-white/85 hover:bg-white/[0.12] disabled:opacity-50"
+                  >
+                    Use the suggested wording
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void save({ override: true })}
+                  className="min-h-[30px] px-2.5 rounded-md text-[12px] text-white/45 hover:text-white/80 underline underline-offset-2 disabled:opacity-50"
+                >
+                  Save as written
+                </button>
+              </div>
+
+              {gate.suggested_rewrite && (
+                <p className="mt-2 text-[11.5px] text-white/45 leading-snug italic">{gate.suggested_rewrite}</p>
+              )}
+              {!gate.model_used && (
+                <p className="mt-2 text-[11px] text-white/35 leading-snug">
+                  Structural checks only. The judgment pass did not run, so this goal was not fully assessed.
+                </p>
+              )}
             </div>
           )}
 

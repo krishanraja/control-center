@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { syncNorthStar } from '../_northStar.js'
+import { gateGoal, type Horizon } from '../_goalGate.js'
 
 // Objective Layer, Phase 4.
 // GET  /api/objectives           list active objectives (plus optional nominations)
@@ -26,6 +27,8 @@ interface CreateBody {
   concept_id?: string | null
   /** Which rung of the ladder. Defaults to venture_objective. */
   horizon?: 'os' | 'mid_term' | 'weekly' | 'venture_objective'
+  /** Save despite a failing gate verdict. Recorded, never silent. */
+  override?: boolean
   /** Required for every horizon except 'os': what this goal serves. */
   parent_id?: string | null
 }
@@ -156,12 +159,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (row.status === 'active') row.activated_at = new Date().toISOString()
 
+    // The gate runs HERE, not only in the editor. /api/goals/gate is a preview
+    // for live feedback while typing; this is the enforcement point, so a
+    // client that skipped the preview cannot smuggle an ungated goal in.
+    //
+    // It blocks rather than advises, because a goal that fails silently stays
+    // failed: that is how north_star sat unmeasurable from April to August.
+    // `override: true` still saves, and is recorded rather than waved through,
+    // so repeated overrides of one dimension become evidence that the rubric
+    // is wrong instead of a habit nobody can see.
+    let parentTitle: string | null = null
+    if (row.parent_id) {
+      const { data: p } = await supabase.from('goals').select('title').eq('id', row.parent_id as string).maybeSingle()
+      parentTitle = (p as { title?: string } | null)?.title ?? null
+    }
+    const verdict = await gateGoal(String(row.title), row.horizon as Horizon, {
+      parentId: (row.parent_id as string | null) ?? null,
+      parentTitle,
+      venture: (row.venture as string | null) ?? null,
+    })
+    const overridden = body.override === true && verdict.verdict !== 'pass'
+    if (verdict.verdict !== 'pass' && !overridden) {
+      return res.status(422).json({ ok: false, error: 'goal_gate', gate: verdict })
+    }
+    row.gate_verdict = verdict
+    row.gate_overridden = overridden
+
     const { data, error } = await supabase
       .from('goals')
       .insert(row)
       .select()
       .single()
     if (error) return res.status(500).json({ ok: false, error: error.message })
+
+    // An override is the tuning signal for the rubric, so it is evidence, not
+    // a shrug. Best-effort: the goal is already written, and losing the signal
+    // must not lose the goal.
+    if (overridden) {
+      await supabase.from('learning_events').insert({
+        event_type: 'rejection',
+        source: 'manual',
+        classification: 'krish_pattern',
+        pattern_text: String(row.title),
+        evidence: {
+          horizon: row.horizon,
+          verdict: verdict.verdict,
+          issues: verdict.issues,
+          suggested_tier: verdict.suggested_tier,
+          model_used: verdict.model_used,
+          goal_id: row.id,
+        },
+        recommended_target: 'api/_goalGate.ts',
+        recommended_change: 'update',
+        notes: 'Krish saved a goal the gate did not pass. Repeated overrides on one dimension mean the rubric is wrong, not the goal.',
+      })
+    }
 
     // Keep system_config.north_star resolvable for readers outside this repo.
     if (row.horizon === 'os') await syncNorthStar()
