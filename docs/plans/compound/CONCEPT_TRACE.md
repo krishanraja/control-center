@@ -142,12 +142,18 @@ Selected spine: Editorial Front Page.
 
 Borrowed element: a compact truth line from Signal Tape for unmistakable freshness and source limitations. The numbered rail and bulletin density were not carried forward. Causal relationships from Market Lens are reserved for evidence-backed detail, not the mobile face.
 
-The cold artifact uses real 6 August 2026 evidence and renders the surface honestly as stale:
+The cold artifacts use real 6 August 2026 evidence and render the same surface in representative, stale, and quiet states:
 
 - 2.41% US 10-year real yield from FRED.
 - Four of five tracked IT-services firms accelerated sales growth in the supplied company accounts.
 - Crypto market value moved only 0.38% while tracked assets diverged.
 
-Artifact: `C:\Users\krish\.scratch\compound-calm-brief\stale-390.png`
+Artifacts:
+
+- `C:\Users\krish\.scratch\compound-calm-brief\representative-390.png`
+- `C:\Users\krish\.scratch\compound-calm-brief\stale-390.png`
+- `C:\Users\krish\.scratch\compound-calm-brief\quiet-390.png`
+
+All three render at 390 by 844 with no horizontal overflow. The quiet state replaces the lead signal with “Nothing needs action” and two stable checkpoints rather than filling the calm day with weaker stories.
 
 Status: awaiting explicit visual approval. No production UI implementation has begun.

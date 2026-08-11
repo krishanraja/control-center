@@ -11,7 +11,7 @@
 - Production release: unchanged; the current production deployment remains the rollback target
 - Supabase production mutation: gated; the new archive migration may be authored and verified locally but not applied without exact action-time approval
 - Vercel and provider mutation: gated; Resend installation, secret provisioning, deployment promotion, and merge remain separate approvals
-- Next action: open the draft pipeline PR, review the cold 390px stale Brief mock, then obtain separate approval for the production migration, GitHub secret provisioning, Resend installation, and UI implementation
+- Next action: review draft pipeline PR #238 and the cold 390px representative, stale, and quiet Brief mocks, then obtain separate approval for the production migration, GitHub secret provisioning, Resend installation, and UI implementation
 
 ## Calm brief and history delivery preflight
 
@@ -104,7 +104,7 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 - Edge Functions: `compound-ask` remains JWT-protected; `compound-login` is active at version 7, rejects direct calls without the private server-proxy token and stores only one-way client fingerprints for throttling.
 - Vercel: project `compound`, root `compound/`, GitHub connected, production deployment `dpl_13WDSnx7djCoAZKcbe24QzTTjysK` ready, Node 24.x, OIDC enabled.
 - Vercel CLI: 58.9.2 installed; `compound/.vercel/project.json` resolves to project `compound` (`prj_RQ4jFPW4LmBukLPNyhzz71kFkJpp`) in the intended team. No deployment or environment mutation has been made.
-- Calm Brief artifact: `C:\Users\krish\.scratch\compound-calm-brief\stale-390.png` renders at 390 by 844 with no overflow using the real 6 August snapshot; explicit visual approval is pending.
+- Calm Brief artifacts: `representative-390.png`, `stale-390.png`, and `quiet-390.png` in `C:\Users\krish\.scratch\compound-calm-brief\` render at 390 by 844 with no overflow using the real 6 August snapshot; explicit visual approval is pending.
 - Live domain: `https://compound.krishraja.com` verified; HTTPS 200, title `COMPOUND`, CSP present, `noindex, nofollow`, API returns 401 without a user session.
 - Live browser: sign-in shell renders with zero console warnings/errors.
 - Auth: the public app no longer requests an email or sends a link. The approved word is normalized and compared to a protected one-way digest, then exchanged for a one-time Supabase session. Project-wide public signup remains disabled.
