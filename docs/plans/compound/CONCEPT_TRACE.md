@@ -168,4 +168,4 @@ Krish approved the Editorial Front Page direction and added one same-system refi
 - Rendered implementation evidence: `C:\Users\krish\.scratch\compound-calm-brief\after\stack-390-representative.png`, `split-1440-representative.png`, `stack-390-story-detail.png`, and `split-1440-settings-collapsed.png`.
 - Acceptance: six viewports from 320 to 1920 pixels, four brief states, both device systems, zero horizontal overflow, and no browser assertion failures.
 
-Status: the approved stack implementation and derived split system are complete locally on `codex/compound-calm-brief`; production remains unchanged.
+Status: the approved stack implementation and derived split system are in draft PR #239 on `codex/compound-calm-brief`; local acceptance and the matching Vercel preview build pass, while authenticated preview UI readback awaits Krish's private-access handoff. Production remains unchanged.

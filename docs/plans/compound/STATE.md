@@ -5,13 +5,13 @@
 ## Current status
 
 - Phase: daily history draft release plus approved calm-brief implementation
-- State: pipeline draft PR #238 is green and unmerged; the approved four-destination Calm Brief is implemented locally with restrained custom iconography and rendered stack/split evidence; production remains on the existing vertical slice and static 2026-08-06 starter data
+- State: pipeline draft PR #238 and dependent UI draft PR #239 are green and unmerged; the approved four-destination Calm Brief is implemented with restrained custom iconography, rendered stack/split evidence, and a matching READY Vercel preview; authenticated preview dashboard readback awaits Krish's private-access handoff; production remains on the existing vertical slice and static 2026-08-06 starter data
 - Base revision: `eb313a612fafec16319020f67d77bb2f49cdfbf2` from `codex/compound-daily-history`
 - Working branch: `codex/compound-calm-brief`
 - Production release: unchanged; the current production deployment remains the rollback target
 - Supabase production mutation: gated; the new archive migration may be authored and verified locally but not applied without exact action-time approval
 - Vercel and provider mutation: gated; Resend installation, secret provisioning, deployment promotion, and merge remain separate approvals
-- Next action: finish the UI draft PR and preview verification; review pipeline draft PR #238; then obtain separate approval for the production migration, GitHub secret provisioning, Resend installation, and eventual merges
+- Next action: complete authenticated preview dashboard readback after Krish opens private access; review draft PRs #238 and #239; then obtain separate approval for the production migration, GitHub secret provisioning, Resend installation, and eventual merges
 
 ## Calm brief and history delivery preflight
 
@@ -104,6 +104,7 @@ AUTHORITY: the rejected cross-boundary key-copy path was abandoned; Control Cent
 - Edge Functions: `compound-ask` remains JWT-protected; `compound-login` is active at version 7, rejects direct calls without the private server-proxy token and stores only one-way client fingerprints for throttling.
 - Vercel: project `compound`, root `compound/`, GitHub connected, production deployment `dpl_13WDSnx7djCoAZKcbe24QzTTjysK` ready, Node 24.x, OIDC enabled.
 - Vercel CLI: 58.9.2 installed; `compound/.vercel/project.json` resolves to project `compound` (`prj_RQ4jFPW4LmBukLPNyhzz71kFkJpp`) in the intended team. No deployment or environment mutation has been made.
+- UI preview: deployment `dpl_EjR2oagWjFWRpy7DRFUSupNMQX92` is READY for commit `0eac900f`; branch alias `compound-git-codex-compound-calm-brief-krish-rajas-projects.vercel.app`; GitHub CI and both Vercel checks pass. The public deployment layer and private-access screen were read back; the signed-in dashboard remains pending user handoff.
 - Calm Brief artifacts: the cold mocks in `C:\Users\krish\.scratch\compound-calm-brief\` are approved. Actual React evidence for representative, stale, quiet, partial, story detail, Markets, Portfolio, and collapsed Settings in both device systems is in `C:\Users\krish\.scratch\compound-calm-brief\after\`.
 - Live domain: `https://compound.krishraja.com` verified; HTTPS 200, title `COMPOUND`, CSP present, `noindex, nofollow`, API returns 401 without a user session.
 - Live browser: sign-in shell renders with zero console warnings/errors.
