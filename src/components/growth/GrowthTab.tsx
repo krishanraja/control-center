@@ -103,6 +103,12 @@ export function GrowthTab({
           return (
             <button
               key={s.id}
+              // Stable hook for the e2e suite. The labels here have already been
+              // renamed once ("Map" -> "Where they are"), which silently broke 7
+              // of the 9 growth specs because they selected on visible text. An
+              // id that is not user-facing cannot drift with copy.
+              data-testid={`growth-section-${s.id}`}
+              aria-current={active ? 'true' : undefined}
               onClick={() => setSection(s.id)}
               className={`px-3.5 py-1.5 rounded-full text-[13px] whitespace-nowrap border transition-colors ${
                 active ? 'btn-contrast border-white font-semibold' : 'border-white/10 text-white/65 hover:bg-white/[0.06]'
@@ -121,7 +127,11 @@ export function GrowthTab({
         })}
       </nav>
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      {/* The scroll container announces which section is mounted. Asserting on a
+          heading meant the specs broke when "Touchpoint map" was renamed along
+          with the section labels; a panel id says WHICH section is showing
+          without depending on any word inside it. */}
+      <div data-testid={`growth-panel-${section}`} className="flex-1 min-h-0 overflow-y-auto">
         {section === 'map' ? (
           <TouchpointMap g={g} variant={variant} />
         ) : section === 'work' ? (
