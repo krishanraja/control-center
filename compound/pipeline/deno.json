@@ -1,7 +1,7 @@
 {
   "tasks": {
     "check": "deno check main.ts backfill.ts schedule_guard.ts",
-    "test": "deno test --allow-env intelligence_test.ts schedule_test.ts operations_test.ts providers/provider_contract_test.ts",
+    "test": "deno test --allow-env intelligence_test.ts schedule_test.ts operations_test.ts supabase_test.ts providers/provider_contract_test.ts",
     "run": "deno run --allow-env --allow-net main.ts",
     "backfill": "deno run --allow-env --allow-net backfill.ts",
     "guard": "deno run --allow-env --allow-write schedule_guard.ts"
