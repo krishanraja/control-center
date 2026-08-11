@@ -76,6 +76,10 @@ export interface SearchOptions {
 export interface SearchResponse {
   ok: true
   restated: string
+  /** Per-stage milliseconds. Kept in the response, not just a log line: when
+   *  this endpoint is slow the question is always WHICH stage, and answering it
+   *  from the outside otherwise means guessing or redeploying. */
+  timings: Record<string, number>
   results: NetworkResult[]
   weak: boolean
   total: number
@@ -85,6 +89,9 @@ export interface SearchResponse {
 
 export async function runNetworkSearch(opts: SearchOptions): Promise<SearchResponse> {
   const degraded: string[] = []
+  const timings: Record<string, number> = {}
+  const t0 = Date.now()
+  const mark = (k: string, from: number) => { timings[k] = Date.now() - from }
   const limit = Math.max(1, Math.min(100, opts.limit ?? 20))
 
   // 1 + 2. Plan and embed CONCURRENTLY.
@@ -114,12 +121,18 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
         .catch((e: unknown) => { degraded.push(`embedding:${(e as Error)?.message?.slice(0, 60) || 'error'}`); return null })
     : Promise.resolve(null)
 
-  const [planned, qvec] = await Promise.all([planPromise, vecPromise])
+  const tPlan = Date.now()
+  const [planned, qvec] = await Promise.all([
+    planPromise.then(r => { mark('plan', tPlan); return r }),
+    vecPromise.then(r => { mark('embed', tPlan); return r }),
+  ])
+  mark('plan_and_embed', tPlan)
   let plan = planned
   if (opts.venture) plan = { ...plan, venture: opts.venture }
 
   // 3. Score. Over-fetch so the rerank has something to reorder.
   const poolSize = Math.min(100, Math.max(limit * 2, 40))
+  const tRpc = Date.now()
   const { data, error } = await supabase.rpc('network_search', {
     p_query_vec: qvec,
     p_keywords: plan.keywords || null,
@@ -130,6 +143,7 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
     p_roles: opts.roles && opts.roles.length ? opts.roles : null,
     p_limit: poolSize,
   })
+  mark('rpc', tRpc)
   if (error) throw new Error(`network_search: ${error.message}`)
 
   let results = (data || []) as NetworkResult[]
@@ -161,15 +175,19 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
   //    why. Pass rerank:true to keep both in one round trip.
   if (opts.rerank === true && results.length > 0 && !weak) {
     try {
+      const tRe = Date.now()
       results = await rerank(opts.question || plan.restated, results, limit)
+      mark('rerank', tRe)
     } catch (e: unknown) {
       degraded.push(`rerank:${(e as Error)?.message?.slice(0, 60) || 'error'}`)
     }
   }
 
+  mark('total', t0)
   return {
     ok: true,
     restated: plan.restated,
+    timings,
     results: results.slice(0, limit),
     weak,
     total: results.length,
