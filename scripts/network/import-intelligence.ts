@@ -253,16 +253,55 @@ async function main() {
   })
 
   // ── Pass 2: settle collisions ─────────────────────────────────────────────
+  // TWO kinds, and missing the second one aborted a production import 1,500 rows
+  // in with a contacts_email_normalized_uidx violation.
+  //
+  //   (a) two file rows resolving to the same EXISTING contact
+  //   (b) two file rows that are both NEW and share an identity
+  //
+  // (b) has no contact id to collide on, so the first version queued both for
+  // insert and let the unique index reject the batch. 21 addresses appear twice
+  // in the source file. They are keyed by identity here instead, which is what
+  // the database will key them by whether the importer likes it or not.
   const best = new Map<string, Resolved>()
   const collisionNotes: string[] = []
+
+  /** EVERY key the database could enforce uniqueness on, not just the first.
+   *
+   *  Returning one key was not enough and the pre-flight caught it: two rows
+   *  sharing lauren@reverve.xyz keyed differently because one also carried a
+   *  LinkedIn URL, so they never met. A row must collide on ANY shared
+   *  identity, because the database will reject on any of them. */
+  const identityKeys = (x: Resolved): string[] => {
+    const keys: string[] = []
+    if (x.contactId) keys.push(`id:${x.contactId}`)
+    const em = emailNorm(x.row.email)
+    if (em) keys.push(`email:${em}`)
+    const ln = linkedinNorm(x.row.linkedin_url)
+    if (ln) keys.push(`li:${ln}`)
+    // No enforceable identity. Two same-named strangers stay two rows, which is
+    // the honest outcome: nothing here proves they are the same person.
+    return keys
+  }
+
+  const claimedBy = new Map<string, Resolved>()
   for (const x of resolved) {
-    if (!x.contactId) continue
-    const prev = best.get(x.contactId)
-    if (!prev) { best.set(x.contactId, x); continue }
+    const keys = identityKeys(x)
+    if (!keys.length) continue
+    // A row can clash with more than one earlier row (one on email, another on
+    // LinkedIn). Beat the strongest of them or lose.
+    const rivals = [...new Set(keys.map(k => claimedBy.get(k)).filter(Boolean) as Resolved[])]
+    if (!rivals.length) { keys.forEach(k => claimedBy.set(k, x)); best.set(keys[0], x); continue }
     stats.collisions++
-    const winner = x.rank > prev.rank ? x : prev
-    const loser  = x.rank > prev.rank ? prev : x
-    best.set(x.contactId, winner)
+    const strongest = rivals.reduce((a, b) => (b.rank > a.rank ? b : a))
+    const winner = x.rank > strongest.rank ? x : strongest
+    const loser  = x.rank > strongest.rank ? strongest : x
+    // The winner takes every key involved, so a third row sharing any of them
+    // meets the winner rather than a displaced row.
+    const allKeys = new Set([...keys, ...rivals.flatMap(identityKeys)])
+    allKeys.forEach(k => claimedBy.set(k, winner))
+    for (const [k, v] of best) if (rivals.includes(v) || v === x) best.set(k, winner)
+    best.set(identityKeys(winner)[0], winner)
     collisionNotes.push(
       `kept ${winner.row.full_name || '(unnamed)'} [${winner.via}/${winner.row.name_quality}] ` +
       `over ${loser.row.full_name || '(unnamed)'} [${loser.via}/${loser.row.name_quality}]`,
@@ -276,8 +315,14 @@ async function main() {
   // a genuine duplicate of the winner, and only those are dropped.
   const survivors: Resolved[] = []
   for (const x of resolved) {
-    if (!x.contactId || best.get(x.contactId) === x) { survivors.push(x); continue }
-    if (x.via === 'name') {
+    const keys = identityKeys(x)
+    if (!keys.length || keys.every(k => claimedBy.get(k) === x)) { survivors.push(x); continue }
+    // A row that lost on a NAME guess was never proven to be that contact, so it
+    // becomes its own record rather than vanishing. A row that lost while
+    // holding an email or LinkedIn claim IS the winner's duplicate, and a row
+    // that lost on identityKey shares an address with the winner, which the
+    // unique index treats as the same person either way.
+    if (x.via === 'name' && x.contactId) {
       survivors.push({ ...x, contactId: null, live: null, via: 'none' })
       stats.collisionsDemoted++
     } else {
@@ -457,6 +502,30 @@ async function applyWrites(
 ) {
   const CHUNK = 500
   console.log('\n── WRITING ' + '─'.repeat(55))
+
+  // Pre-flight. The database enforces uniqueness on email_normalized whatever
+  // this script believes, and a violation mid-batch leaves production holding a
+  // partial import: the first run of this aborted after 1,500 contacts with zero
+  // intelligence rows attached to them. Checking here turns that into a refusal
+  // to start, which is recoverable, instead of a half-write, which is not.
+  const seenIdentity = new Map<string, number>()
+  const clashes: string[] = []
+  inserts.forEach((row, i) => {
+    const em = emailNorm(row.email as string | null)
+    const ln = row.linkedin_url_norm as string | null
+    for (const key of [em ? `email:${em}` : null, ln ? `li:${ln}` : null]) {
+      if (!key) continue
+      const prev = seenIdentity.get(key)
+      if (prev !== undefined) clashes.push(`${key} (rows ${prev} and ${i})`)
+      else seenIdentity.set(key, i)
+    }
+  })
+  if (clashes.length) {
+    console.error(`\n  REFUSING TO WRITE: ${clashes.length} duplicate identities in the insert set.`)
+    clashes.slice(0, 10).forEach(c => console.error(`      ${c}`))
+    throw new Error('duplicate identities in insert set, nothing written')
+  }
+  console.log(`  pre-flight OK: ${inserts.length} inserts, no duplicate identities`)
 
   // 1. New contacts. Chunked, and the returned ids are mapped straight back
   //    onto the intelligence rows so nothing has to be re-resolved.
