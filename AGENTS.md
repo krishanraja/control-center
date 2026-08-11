@@ -52,13 +52,16 @@ This repo contains **two independent frontends**, each with its own
   `PLAYWRIGHT_CHROMIUM_PATH` at the system Chrome
   (`/usr/bin/google-chrome-stable`). The Playwright browser download is not in
   the update script (heavy/network-dependent), so install it on demand.
-- **Known stale specs:** `e2e/growth.spec.ts` is out of date with the app. The
-  Growth tab's section nav was renamed to `Where they are` / `To do` /
-  `What's moving` / `Weekly review` / `Spend limits` (see
-  `src/components/growth/GrowthTab.tsx`), but the specs still click the old
-  labels `Map` / `Work` / `Signals` / `Council` / `Governance`, so 7 of 9
-  specs fail on selectors. This is pre-existing test drift, not an environment
-  problem; the harness itself (browser + preview server) works.
+- **`e2e/growth.spec.ts` is green (9/9).** It used to be 2 of 9: the specs
+  selected the Growth sections by their visible labels, and those labels were
+  renamed. Selection now goes through `data-testid` and content stays as
+  content:
+  - `growth-section-<id>` — the five section controls
+  - `growth-panel-<id>` — which panel actually mounted
+  - `people-lane-<id>`, `os-sub-<id>`, `content-room-<id>` — the other switchers
+  Keep it that way. If you add a switcher, give it a `testIdPrefix` (see
+  `src/components/shared/SegmentedNav.tsx`) rather than letting a spec click a
+  word, or the next copy change silently takes the suite out again.
 - **compound** unit/component tests: `npm run test:run` (vitest, jsdom) from
   `compound/` — fast and self-contained.
 
