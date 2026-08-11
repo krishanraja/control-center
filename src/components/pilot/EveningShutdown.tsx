@@ -5,6 +5,7 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { OneActionPicker } from './OneActionPicker'
 import { WorryCompilerButton } from './WorryCompiler'
 import { Tap, VoiceField, PilotDock, DockButton } from './controls'
+import { Modal } from '../shared/Modal'
 
 // The evening shutdown. Three fields, and the only required one is tomorrow's
 // ONE, because choosing at night at higher capacity is what lets the morning
@@ -76,6 +77,7 @@ function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    // Escape is the dialog's now (Radix). Kept only for the non-modal path.
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -101,8 +103,14 @@ function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:px-5 sm:py-8 bg-base/80 backdrop-blur-sm">
-      <div className="w-full sm:max-w-[430px] max-h-[92dvh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-base border border-white/[0.10] p-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)] sm:pb-6 flex flex-col gap-6 text-ink">
+    <Modal
+      open
+      onClose={onClose}
+      title="Shutdown"
+      hideTitle
+      overlayClassName="bg-base/80 backdrop-blur-sm"
+      className="sm:max-w-[430px] max-h-[92dvh] p-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)] sm:pb-6 flex flex-col gap-6 text-ink"
+    >
         <div>
           <h2 className="font-display text-[20px] leading-tight">Shutdown</h2>
           <p className="text-[13px] text-ink-faint mt-1">Choose tomorrow now, so the morning does not have to.</p>
@@ -134,7 +142,6 @@ function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSaved: () 
         <Tap variant="quiet" className="!min-h-[48px] text-[13px] self-start flex items-center" onTap={() => { h.tap(); onClose() }}>
           Not now
         </Tap>
-      </div>
-    </div>
+    </Modal>
   )
 }

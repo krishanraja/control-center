@@ -40,9 +40,15 @@ export function CaptureSpeedDial() {
           />
         )}
 
-        {/* Sub-actions — only mount while open so they can transition in cleanly. */}
+        {/* Sub-actions, only mounted while open so they can transition in
+            cleanly. This is a menu, not a dialog: it does not take over the
+            screen and Escape-to-close plus a labelled group is the whole
+            accessibility contract it needs. */}
         {dialOpen && (
           <div
+            role="menu"
+            aria-label="Capture"
+            onKeyDown={e => { if (e.key === 'Escape') setDialOpen(false) }}
             className="fixed right-4 z-40 flex flex-col items-end gap-3"
             style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 172px)' }}
           >
@@ -69,6 +75,7 @@ export function CaptureSpeedDial() {
           type="button"
           aria-label={dialOpen ? 'Close capture menu' : 'Capture'}
           aria-expanded={dialOpen}
+          aria-haspopup="menu"
           onClick={() => { h.select(); setDialOpen(o => !o) }}
           className={`fixed right-4 z-40 w-14 h-14 rounded-full shadow-2xl border inline-flex items-center justify-center text-white transition-colors ${
             dialOpen

@@ -3,6 +3,7 @@ import { X, Check, AlertTriangle, Loader2, RefreshCw, Send, Wand2, RotateCcw } f
 import type { SkillData, QualityGateResult } from './types'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import { useToast } from '../shared/Toast'
+import { Modal } from '../shared/Modal'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -97,9 +98,15 @@ export function SkillReviewModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <Modal
+      open
+      onClose={onClose}
+      variant="center"
+      title="Skill review"
+      hideTitle
+      className="max-w-6xl max-h-[92vh] flex flex-col overflow-hidden p-0"
+    >
       {(shipping || regenerating || refining) && <ProcessingOverlay label={shipping ? 'Shipping skills' : refining ? 'Refining this skill' : 'Regenerating skills'} sub={shipping ? 'Saving and emailing the client' : refining ? 'Applying your instruction' : 'Cleo is rebuilding them'} />}
-      <div className="relative w-full max-w-6xl max-h-[92vh] rounded-2xl border border-white/[0.08] bg-base shadow-2xl flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5">
@@ -308,8 +315,7 @@ export function SkillReviewModal({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

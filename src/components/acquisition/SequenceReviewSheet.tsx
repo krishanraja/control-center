@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Layers, X } from 'lucide-react'
 import { useToast } from '../shared/Toast'
+import { Modal } from '../shared/Modal'
 
 /**
  * Sequence Review — the amend-then-rule surface for a proposed sequence
@@ -84,12 +85,15 @@ export function SequenceReviewSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
-      <div
-        className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-white/[0.1] bg-[#101014] shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <header className="sticky top-0 bg-[#101014] px-5 py-4 flex items-center gap-2 border-b border-white/[0.07]">
+    <Modal
+      open
+      onClose={onClose}
+      variant="center"
+      title="Sequence review"
+      hideTitle
+      className="max-w-2xl max-h-[85vh] overflow-y-auto p-0"
+    >
+        <header className="sticky top-0 bg-base px-5 py-4 flex items-center gap-2 border-b border-white/[0.07]">
           <Layers size={14} className="text-violet-400" />
           <div className="flex-1 min-w-0">
             <h2 className="text-[14px] font-semibold text-white truncate">
@@ -177,7 +181,6 @@ export function SequenceReviewSheet({
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   )
 }

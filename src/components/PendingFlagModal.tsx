@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { Modal } from './shared/Modal'
 
 interface PendingFlag {
   id: string | number
@@ -59,9 +60,19 @@ export function PendingFlagModal() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-command-card border border-command-border rounded-xl p-5 max-w-md w-full mx-4 space-y-3">
-        <div className="text-amber-400 font-semibold">Flag firing soon</div>
+    // dismissible={false} is the whole point of this surface: a flag about to
+    // fire is a decision, not a notification, so Escape and the scrim are both
+    // disarmed. The hand-rolled version achieved that by having no close path
+    // at all, which also meant no dialog role and no focus trap.
+    <Modal
+      open
+      onClose={() => {}}
+      dismissible={false}
+      variant="center"
+      title="Flag firing soon"
+      className="max-w-md"
+    >
+      <div className="space-y-3">
         {imminent.map(f => {
           const t = f.fires_at ? new Date(f.fires_at).getTime() : now
           const secs = Math.max(0, Math.round((t - now) / 1000))
@@ -69,7 +80,7 @@ export function PendingFlagModal() {
             <div key={String(f.id)} className="border border-command-border/50 rounded-lg p-3 space-y-2">
               <div className="text-sm text-white">
                 {f.agent ? <span className="font-medium">{f.agent}</span> : null}
-                {f.agent && f.reason ? ' — ' : null}
+                {f.agent && f.reason ? ': ' : null}
                 {f.reason || 'Pending flag'}
               </div>
               <div className="text-xs text-command-text/60">Fires in {secs}s</div>
@@ -84,6 +95,6 @@ export function PendingFlagModal() {
           )
         })}
       </div>
-    </div>
+    </Modal>
   )
 }

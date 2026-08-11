@@ -4,6 +4,7 @@ import { useHaptics } from '../hooks/useHaptics'
 import { ThemeToggle } from './shared/ThemeToggle'
 import { TimezoneToggle } from './shared/TimezoneToggle'
 import { MOBILE_PRIMARY_TABS, MOBILE_DRAWER_TABS, type TabDef } from '../lib/tabs'
+import { Dialog, DialogContent, DialogSrTitle } from '@/components/ui/dialog'
 
 interface Props {
   active: string
@@ -110,9 +111,19 @@ function MobileMoreDrawer({
   onClose: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-[60]">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="absolute bottom-0 left-0 right-0 bg-base border-t border-white/[0.08] rounded-t-2xl pb-safe">
+    // The More drawer dims the page and has to be dismissed before anything
+    // else can be used, which makes it a modal whatever it is called. It had a
+    // scrim and a click handler and no role, so a screen reader never learned
+    // it opened and Tab walked behind it into the nav it was covering.
+    <Dialog open onOpenChange={o => { if (!o) onClose() }}>
+      <DialogContent
+        position="bottom"
+        showClose={false}
+        overlayClassName="bg-black/60 backdrop-blur-sm"
+        aria-label="More"
+        className="z-[60] pb-safe"
+      >
+        <DialogSrTitle>More</DialogSrTitle>
         <div className="flex items-center justify-center pt-3 pb-2">
           <div className="w-10 h-1 bg-white/20 rounded-full" />
         </div>
@@ -137,7 +148,7 @@ function MobileMoreDrawer({
             </button>
           ))}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

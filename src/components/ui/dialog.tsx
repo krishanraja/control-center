@@ -49,7 +49,7 @@ function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dial
 // shared/SlideOver and `bottom` backs mobile/BottomSheet, so those two keep
 // their established shape while inheriting the focus trap, scroll lock,
 // aria-modal and focus restoration that hand-rolled overlays do not have.
-const POSITION: Record<'center' | 'right' | 'bottom', string> = {
+const POSITION: Record<'center' | 'right' | 'bottom' | 'responsive', string> = {
   // `surface` is applied by the variant, not baked into the base, so a caller
   // that brings its own material (the command palette) can drop it with a
   // `bg-transparent border-0` override and twMerge will resolve cleanly.
@@ -62,6 +62,15 @@ const POSITION: Record<'center' | 'right' | 'bottom', string> = {
   bottom:
     'bottom-0 left-1/2 w-full max-w-xl -translate-x-1/2 rounded-t-[28px] ' +
     'border-t border-white/[0.08] bg-base shadow-2xl shadow-black/60 animate-sheet-up',
+  // The shape most of this product's modals already had: a sheet rising from
+  // the bottom edge on a phone, a centred card on the desk. Written once here
+  // instead of as `flex items-end sm:items-center justify-center` repeated in
+  // every overlay that wanted it.
+  responsive:
+    'surface inset-x-0 bottom-0 max-h-[calc(100dvh/var(--z,1)-2rem)] overflow-y-auto ' +
+    'rounded-t-[28px] p-5 animate-sheet-up ' +
+    'sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[min(92vw,32rem)] ' +
+    'sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-card sm:animate-scale-in',
 }
 
 function DialogContent({

@@ -9,6 +9,7 @@ import { getZone } from '../../lib/civilDate'
 import { LogShipForm } from './LogShipForm'
 import { useHaptics } from '../../hooks/useHaptics'
 import { Tap, VoiceField, DockButton } from './controls'
+import { Modal } from '../shared/Modal'
 
 // Capture and close. One textarea in, one terminal state out, then the modal
 // shuts. Nothing here ever lists past worries: the only rows this component
@@ -127,8 +128,14 @@ export function WorryCompiler({ open, onClose }: Props) {
   const finish = (message: string) => { setClosingMessage(message); setPhase('done') }
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:px-5 sm:py-8 bg-base/80 backdrop-blur-sm">
-      <div className="w-full sm:max-w-[460px] max-h-[92dvh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-base border border-white/[0.10] p-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)] sm:pb-6 flex flex-col gap-5 text-ink">
+    <Modal
+      open
+      onClose={onClose}
+      title="Compile a worry"
+      hideTitle
+      overlayClassName="bg-base/80 backdrop-blur-sm"
+      className="sm:max-w-[460px] max-h-[92dvh] p-6 pb-[calc(env(safe-area-inset-bottom,0px)+24px)] sm:pb-6 flex flex-col gap-5 text-ink"
+    >
 
         {phase === 'capture' && (
           <>
@@ -242,8 +249,7 @@ export function WorryCompiler({ open, onClose }: Props) {
             </Tap>
           </>
         )}
-      </div>
-    </div>
+    </Modal>
   )
 }
 

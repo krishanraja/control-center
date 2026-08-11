@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react'
 import { DEFER_CHOICES, type DeferChoice } from '../../lib/taskQueue'
+import { Modal } from '../shared/Modal'
 
 /**
  * Shared note / defer prompts for the ruling verbs (Send back, Defer) that the
@@ -39,9 +40,14 @@ export function useRulingPrompts() {
   }), [])
 
   const overlay = active == null ? null : (
-    <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => settle(null)} />
-      <div className="relative w-full sm:max-w-md mx-0 sm:mx-4 rounded-t-2xl sm:rounded-2xl border border-white/10 bg-zinc-900 p-4 space-y-3">
+    <Modal
+      open
+      onClose={() => settle(null)}
+      title={active.type === 'note' ? 'Send back with a note' : 'Defer this'}
+      hideTitle
+      overlayClassName="bg-black/60 backdrop-blur-sm"
+      className="sm:max-w-md p-4 space-y-3"
+    >
         {active.type === 'note' ? (
           <>
             <div className="text-[13px] font-semibold text-white/85">Send back with a note</div>
@@ -82,8 +88,7 @@ export function useRulingPrompts() {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </Modal>
   )
 
   return { promptNote, promptDefer, overlay }
