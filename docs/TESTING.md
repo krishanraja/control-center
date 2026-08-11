@@ -11,7 +11,7 @@ What exists, how to run it, and the one rule that keeps it from rotting.
 | e2e (Playwright) | `npx playwright test` | **no** |
 | Contract tests | `npx tsx scripts/network/verify-contracts.ts` | no |
 | Scorer probes | `psql "$DATABASE_URL" -f scripts/network/probes.sql` | no |
-| compound units | `npm run test:run` from `compound/` | no |
+| COMPOUND full verification | `npm run verify` from `compound/` | no |
 
 `.github/workflows/ci.yml` runs lint and types only. A lint **warning** blocks
 merge, because `--max-warnings 0`.
