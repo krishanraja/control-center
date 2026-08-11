@@ -12,22 +12,23 @@ import { cn } from '@/lib/utils'
 // (`input, select, textarea { font-size: 16px !important }`) to stop iOS
 // zooming on focus. Do not fight it with a smaller text-[13px] here and expect
 // it to win on a phone.
-function Input({
-  className,
-  type,
-  icon,
-  iconPosition = 'left',
-  ...props
-}: React.ComponentProps<'input'> & {
-  icon?: React.ReactNode
-  iconPosition?: 'left' | 'right'
-}) {
+// The ref forwards to the <input>, not to the wrapper. Callers that own a
+// clear button need to put focus back in the field afterwards, and a ref to a
+// div cannot do that.
+const Input = React.forwardRef<
+  HTMLInputElement,
+  React.ComponentProps<'input'> & {
+    icon?: React.ReactNode
+    iconPosition?: 'left' | 'right'
+  }
+>(function Input({ className, type, icon, iconPosition = 'left', ...props }, ref) {
   return (
     <div className="relative flex w-full items-center">
       {icon && iconPosition === 'left' && (
         <div className="pointer-events-none absolute left-3 flex text-white/35">{icon}</div>
       )}
       <input
+        ref={ref}
         type={type}
         data-slot="input"
         className={cn(
@@ -46,6 +47,6 @@ function Input({
       )}
     </div>
   )
-}
+})
 
 export { Input }

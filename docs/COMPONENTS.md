@@ -416,7 +416,7 @@ the product layer. Reach for `shared/` at a call site.
 |---|---|
 | `Button` / `buttonVariants` | 8 variants, 6 sizes. The single definition of button colour; `Pressable` composes it. |
 | `Card` | Variants map onto `.surface` / `.surface-2` / `.glass-card`, not re-invented with utilities. |
-| `Input`, `Textarea` | The 16px floor on coarse pointers is enforced globally in `index.css`; do not fight it. |
+| `Input`, `Textarea` | The 16px floor on coarse pointers is enforced globally in `index.css`; do not fight it. `Input` forwards its ref to the `<input>`, not to the icon wrapper, so a caller owning a clear button can restore focus. |
 | `Badge` | Neutral pill, colour in the text. Foregrounds are shade **200**. |
 | `Dialog` | 4 positions: `center`, `right`, `bottom`, `responsive`. Portals into `.mobile-zoom-root`. |
 | `DropdownMenu`, `Popover`, `Tooltip` | Same portal rule. |
@@ -486,13 +486,13 @@ on visible labels, and a rename took 7 of 9 specs out silently.
 | Component | Renders |
 |---|---|
 | `NetworkTab` | Composes the surface. Both device classes. |
-| `NetworkSearchBar` | The one input. Text plus mic. Shows `Heard` then `Understood` then results. |
+| `NetworkSearchBar` | The one input. Text plus mic. Shows `Heard` then `Understood` then results. Owns the clear affordance. |
 | `NetworkResultRow` | One person: score ring, judgment, hook, risk, tier and thin-evidence badges. |
 | `ScoreBreakdown` | Popover over the score ring. Five bars, one per scoring term. |
 | `NetworkFilters` | Soft by default, with an explicit hard-filter toggle. Collapses on narrow. |
 | `VentureRecommender` | Venture, then intent, then one verb. Not a cross-product. |
 
-Two rules this surface holds and future work should keep:
+Three rules this surface holds and future work should keep:
 
 1. **`thin_evidence` is a visible badge, never a filter.** `rules_v1` means
    nobody read a profile. Saying so is the difference between a ranked list and
@@ -500,3 +500,20 @@ Two rules this surface holds and future work should keep:
 2. **Weak is not empty.** When the query signal is noise the strongest people
    are still returned, with a banner saying they are ranked by relationship
    rather than by the question.
+3. **Clearing means clearing.** The X inside the field, and Escape, drop the
+   query, the results, the interpretation and the filters in one action, then
+   put focus back in the field. Three details matter:
+   - It drops the **results**, not just the text. Emptying the field and
+     leaving twenty rows underneath reads as a broken search, and it hides the
+     examples and the venture picker behind a query that is no longer there.
+   - It resets the **filters**. A tier chip left lit over an empty field is how
+     the next question comes back quietly narrowed by something set two
+     questions ago.
+   - It appears whenever there is anything to clear, which includes a voice
+     search or a recommendation where nothing was ever typed. `hasResults`
+     exists for exactly that case, since the input value is empty.
+
+   `useNetworkSearch.reset` bumps the request sequence, so clearing also
+   abandons a search still in flight rather than letting it repopulate the list
+   a second later. That makes the X the escape hatch from a slow query as well
+   as the way to start a new one.
