@@ -121,17 +121,20 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
         .catch((e: unknown) => { degraded.push(`embedding:${(e as Error)?.message?.slice(0, 60) || 'error'}`); return null })
     : Promise.resolve(null)
 
+  mark('setup', t0)
   const tPlan = Date.now()
   const [planned, qvec] = await Promise.all([
     planPromise.then(r => { mark('plan', tPlan); return r }),
     vecPromise.then(r => { mark('embed', tPlan); return r }),
   ])
   mark('plan_and_embed', tPlan)
+  const tAfterAll = Date.now()
   let plan = planned
   if (opts.venture) plan = { ...plan, venture: opts.venture }
 
   // 3. Score. Over-fetch so the rerank has something to reorder.
   const poolSize = Math.min(100, Math.max(limit * 2, 40))
+  mark('between_plan_and_rpc', tAfterAll)
   const tRpc = Date.now()
   const { data, error } = await supabase.rpc('network_search', {
     p_query_vec: qvec,
@@ -183,6 +186,7 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
     }
   }
 
+  mark('tail', tRpc)
   mark('total', t0)
   return {
     ok: true,
