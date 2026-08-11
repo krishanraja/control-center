@@ -1,73 +1,55 @@
 # COMPOUND production release gate
 
-- Prepared: 2026-08-06 EDT
-- Status: production vertical slice deployed; magic-word sign-in and private dashboard verification passed
-- Target repository: `krishanraja/control-center`, Vercel root directory `compound/`
-- Target Supabase project: linked project recorded in `STATE.md`
+- Last updated: 2026-08-11 EDT
+- Target repository: `krishanraja/control-center`
+- Vercel project: `compound`, root `compound/`
+- Supabase project: `gojpffsrxybbpbdzzrvs`
+- Product scope: one internal user; no signup, pricing, billing, or external access
 
-## Supabase release result
+## Rollback ready
 
-The repository migration history remains divergent. Production was released from a temporary guarded ledger containing inert placeholders for the pre-existing remote versions and only the reviewed COMPOUND migrations as pending files.
+- Known-good production revision: `270c0089ce31301b93cf0b51ffa6409b5ea66165`.
+- Known-good Vercel deployment: `dpl_C8FBD2bzg6yUwN4LGRmgCAv8mhqW`.
+- Recovery: restore that deployment through Vercel, then verify `compound.krishraja.com`, the sign-in shell, and unauthenticated API denial.
+- Database changes roll forward. The archive migration is additive and has already been read back successfully.
 
-Do not replace this with a normal repository `db push`, `--include-all`, migration repair or bulk history rewrite.
+## Completed production gates
 
-## Exact database release path
+1. The original COMPOUND foundation, schema exposure, login audit, magic-word access, and rate-limit migrations are live.
+2. Archive migration `20260811120000_compound_snapshot_archive` is live.
+3. Existing snapshots are labelled `starter`; there are no captured or reconstructed rows yet.
+4. New archive tables have forced RLS, member-scoped read policies, and service-role write access.
+5. The one approved internal member can enter through the server-held magic-word flow. Public signup and email login are absent.
+6. The GitHub `Production – compound` environment has the six required database, market-data, and context secrets.
+7. PRs #238 and #239 are green in CI and their Vercel previews are ready.
 
-Completed:
+## Intentionally dormant
 
-1. Applied `20260806220210_compound_foundation.sql` only.
-2. Applied additive schema exposure `20260806223500_compound_expose_schema.sql` only.
-3. Applied schema-cache reload `20260806231230_compound_reload_schema.sql` only.
-4. Applied login audit `20260807002034_compound_login_delivery.sql` only.
-5. Applied protected access-attempt audit `20260807010239_compound_magic_word_access.sql` only.
-6. Applied the qualified rate-limit function repair `20260807015930_compound_magic_word_rate_limit_fix.sql` only.
-7. Read back service access to `compound.daily_snapshots`; anonymous access returns 401.
-8. No unrelated migration-history row was repaired or changed.
+- Resend is not installed or billed.
+- No sending domain, `RESEND_API_KEY`, or `COMPOUND_ALERT_FROM` is configured.
+- The scheduled workflow cannot inject Resend variables. Attempt three records failure and lets GitHub mark the workflow failed.
+- GitHub workflow failure notifications are the only alert until Krish explicitly decides to externalize COMPOUND or approve a paid alert channel.
 
-## Authentication gate
+## Remaining merge gate
 
-Completed:
+1. Review the exact pipeline diff and confirm the worktree is clean except for intended COMPOUND files.
+2. Run `cd compound && npm run verify`.
+3. Run pipeline `deno check` and `deno test`.
+4. Run `deno check` and `deno test` in `supabase/functions/compound-ask`.
+5. Mark PR #238 ready and merge it with a merge commit so the dependent UI branch retains ancestry.
+6. Wait for the Vercel production deployment and GitHub Actions workflow registration.
+7. Dispatch one current daily run and verify the actual Supabase rows, not only the workflow status.
+8. Retarget PR #239 to main, rerun required checks, and merge it.
+9. Verify the authenticated production UI in stack and split layouts and prove `/latest.json` is no longer public.
 
-1. Created and confirmed the explicitly designated Auth user `hello@krishraja.com`.
-2. Inserted only that user's id into `compound.members` and seeded the 3-month and 1-year private starter snapshots.
-3. Removed email entry and delivery from the public sign-in journey while retaining the existing internal Auth identity.
-4. Stored only the normalized word's one-way digest as a protected Supabase secret; no plaintext word is present in source or database rows.
-5. Added an atomic five-failure, 15-minute limit using one-way client fingerprints with forced RLS and no public table access.
-6. Verified wrong-word requests return 401 without creating a user, the approved word creates a one-time session, the member can read a private snapshot, and the Auth user count remains exactly one.
-7. Verified a real 390-pixel browser reaches the private dashboard and Ask entry point without email.
+## Release blockers
 
-## Live-answer gate
+- A failed or unsupported first capture.
+- Fewer or more than three Brief positions when the state is not quiet.
+- Holdings affecting ranking.
+- Anonymous access to snapshot or history data.
+- Production serving the committed private fixture.
+- Source and deployment revisions not matching.
+- Any new paid service, customer access, additional member, or credential expansion without a separate explicit decision.
 
-The live route uses Vercel AI Gateway with a short-lived project OIDC token. No static provider key is stored or copied.
-
-Completed:
-
-1. Deployed only `compound-ask`; it is active with JWT verification enabled.
-2. Set `openai/gpt-5.4-mini` as the current Gateway model based on the live Vercel model catalog.
-3. Verified the same-origin proxy denies unauthenticated calls with 401.
-4. Verified signed-in streaming through the live custom domain using a temporary synthetic snapshot with no personal or portfolio content.
-5. Verified `meta`, `delta`, `evidence` and `done` events, one persisted user/assistant pair and idempotent retry behavior.
-6. Deleted the synthetic snapshot and its chat rows; production readback returned two starter snapshots and zero synthetic test messages.
-
-## Vercel gate
-
-1. Completed: separate project `compound`, same GitHub repository, root `compound/`.
-2. Completed: only the two public Supabase values were added to development, preview and production; demo mode is absent.
-3. Completed: production build `dpl_FaySdeVkLf2BVNxNv4zHMwRfDZyC` ready; `/`, `/api/compound-login` and `/api/compound-ask` verified; CSP/noindex/security headers pass.
-4. Completed: `compound.krishraja.com` is verified and serves the latest production deployment over HTTPS.
-5. Completed for the live sign-in shell at seven viewport configurations and the signed-in private data and Ask routes.
-
-## Repository gate
-
-Feature commits `12ee977d` and `4e3b047b` are pushed to `feat/compound-foundation`. Main remains untouched pending a separate merge decision.
-
-Before any later commit or push:
-
-1. Review the complete untracked/modified file set.
-2. Keep `supabase/.temp/`, local environments, test output and screenshots uncommitted.
-3. Confirm no credential pattern is present.
-4. Commit on `feat/compound-foundation`; do not merge to the default branch without a separate decision.
-
-## Credentials
-
-Previously pasted GitHub, Supabase and Vercel tokens are treated as compromised and are not used. Rotate or revoke them outside this task before any production release.
+The five-year historical reconstruction is not part of the merge gate. It begins only after reliable live capture and runs as separately monitored, resumable 30-day batches.

@@ -1,0 +1,114 @@
+name: COMPOUND daily brief
+
+on:
+  schedule:
+    - cron: "30 10 * * *"
+    - cron: "30 11 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Daily capture or a resumable 30-day backfill batch"
+        required: true
+        default: "daily"
+        type: choice
+        options: [daily, backfill]
+      date:
+        description: "Daily snapshot date (YYYY-MM-DD); blank uses Eastern today"
+        required: false
+        type: string
+      range_start:
+        description: "Backfill start date (YYYY-MM-DD)"
+        required: false
+        type: string
+      range_end:
+        description: "Backfill end date (YYYY-MM-DD)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compound-daily-${{ github.event_name == 'schedule' && 'scheduled' || inputs.mode }}
+  cancel-in-progress: false
+
+jobs:
+  daily:
+    if: github.event_name == 'schedule' || inputs.mode == 'daily'
+    runs-on: ubuntu-latest
+    environment: Production – compound
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Guard the Eastern publication time
+        id: guard
+        if: github.event_name == 'schedule'
+        working-directory: compound/pipeline
+        run: deno task guard --cron "${{ github.event.schedule }}"
+      - name: Set manual date
+        id: manual
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: echo "snapshot_date=${{ inputs.date }}" >> "$GITHUB_OUTPUT"
+      - name: Attempt 1
+        id: attempt1
+        if: github.event_name == 'workflow_dispatch' || steps.guard.outputs.should_run == 'true'
+        continue-on-error: true
+        working-directory: compound/pipeline
+        env: &compound_env
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
+          COINGECKO_PRO_API_KEY: ${{ secrets.COINGECKO_PRO_API_KEY }}
+          PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+        run: deno task run --mode ${{ github.event_name == 'schedule' && 'scheduled' || 'manual' }} --attempt 1 --force ${{ (steps.guard.outputs.snapshot_date || steps.manual.outputs.snapshot_date) && format('--date {0}', steps.guard.outputs.snapshot_date || steps.manual.outputs.snapshot_date) || '' }}
+      - name: Wait before attempt 2
+        if: steps.attempt1.outcome == 'failure'
+        run: sleep 900
+      - name: Attempt 2
+        id: attempt2
+        if: steps.attempt1.outcome == 'failure'
+        continue-on-error: true
+        working-directory: compound/pipeline
+        env: *compound_env
+        run: deno task run --mode ${{ github.event_name == 'schedule' && 'scheduled' || 'manual' }} --attempt 2 --force ${{ (steps.guard.outputs.snapshot_date || steps.manual.outputs.snapshot_date) && format('--date {0}', steps.guard.outputs.snapshot_date || steps.manual.outputs.snapshot_date) || '' }}
+      - name: Wait before attempt 3
+        if: steps.attempt2.outcome == 'failure'
+        run: sleep 900
+      - name: Attempt 3
+        id: attempt3
+        if: steps.attempt2.outcome == 'failure'
+        continue-on-error: true
+        working-directory: compound/pipeline
+        env: *compound_env
+        run: deno task run --mode ${{ github.event_name == 'schedule' && 'scheduled' || 'manual' }} --attempt 3 --force ${{ (steps.guard.outputs.snapshot_date || steps.manual.outputs.snapshot_date) && format('--date {0}', steps.guard.outputs.snapshot_date || steps.manual.outputs.snapshot_date) || '' }}
+      - name: Preserve GitHub failure notification
+        if: steps.attempt3.outcome == 'failure'
+        run: exit 1
+
+  backfill:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'backfill'
+    runs-on: ubuntu-latest
+    environment: Production – compound
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Run one resumable 30-day batch
+        working-directory: compound/pipeline
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
+          COINGECKO_PRO_API_KEY: ${{ secrets.COINGECKO_PRO_API_KEY }}
+        run: deno task backfill --range-start "${{ inputs.range_start }}" --range-end "${{ inputs.range_end }}"

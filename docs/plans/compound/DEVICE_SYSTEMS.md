@@ -1,9 +1,11 @@
 # COMPOUND device systems
 
+> The `stack` and `split` architecture remains current. Component examples and approval notes below record the 2026-08-08 dashboard that preceded the Calm Brief. Current navigation, surfaces, release state, and browser proof are in `STATE.md` and `CONCEPT_TRACE.md`.
+
 - Revision: DS-003
 - Date: 2026-08-08
 - Applies to: `compound/` only
-- Approval state: implemented on `claude/compound-responsive-redesign-tayh7v`, rendered evidence produced, material visual approval outstanding
+- Historical approval state: implemented on `claude/compound-responsive-redesign-tayh7v`, with rendered evidence produced and material visual approval outstanding at that point
 
 ## The problem this replaces
 

@@ -27,6 +27,6 @@ COMPOUND is a standalone package under `compound/`, deployed as its own Vercel p
 
 ## Follow-ups
 
-- Add an automated import and database-schema boundary check.
-- Configure path-aware Vercel build skipping before production release.
-- Verify RLS with anonymous, non-member, member and service-role identities.
+- Completed: automated import and Supabase-schema boundary checks run through `compound/npm run verify`.
+- Completed: COMPOUND deploys from the `compound/` Vercel root as a separate project.
+- Completed: anonymous denial, approved-member access, and service-role pipeline access have been verified. Additional members remain intentionally unsupported.

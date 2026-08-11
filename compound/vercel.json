@@ -3,7 +3,8 @@
   "trailingSlash": false,
   "functions": {
     "api/compound-ask.js": { "maxDuration": 60 },
-    "api/compound-login.js": { "maxDuration": 30 }
+    "api/compound-login.js": { "maxDuration": 30 },
+    "api/snapshots/*.js": { "maxDuration": 30 }
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
