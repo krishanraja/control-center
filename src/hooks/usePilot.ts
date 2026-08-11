@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { LogShipInput, PilotMode, PilotState, ShipSummary } from '../types/pilot'
-import { adoptServerZone, getZone } from '../lib/civilDate'
+import { syncZoneToServer, getZone } from '../lib/civilDate'
 
 // Single reader of pilot state. Deliberately thin: no realtime channel, no
 // shared cache across mounts. The gate reads once on load and the widget reads
@@ -32,13 +32,14 @@ export function usePilotState(): PilotStateResult {
       const res = await fetch(withTz('/api/pilot/checkin'))
       const json = await res.json()
       if (!res.ok || !json.ok) throw new Error(json.error || `Request failed (${res.status})`)
-      // A zone set on the laptop shows up on the phone without a second call.
-      adoptServerZone(json.timezone)
+      // The device is the authority on what day it is. Push, never adopt: the
+      // old call did the reverse and let a zone stored from the laptop overrule
+      // a phone that had physically moved.
+      syncZoneToServer(json.timezone)
       setState({
         morning: json.morning,
         last_evening: json.last_evening,
         evening_done_today: json.evening_done_today,
-        last_morning_at: json.last_morning_at ?? null,
         yesterday: json.yesterday ?? null,
         today: json.today,
       })
@@ -69,13 +70,15 @@ export function modeReason(energy: number, anxiety: number): string {
 }
 
 export async function saveMorning(input: {
-  energy: number
-  anxiety: number
+  energy: number | null
+  anxiety: number | null
   one_word: string
   mode: PilotMode
   intent?: string
   /** Which venture today is for. Accountability, not scoping. */
   venture?: string | null
+  /** Closes the day without a reading. Sends no energy or anxiety. */
+  skipped?: boolean
 }): Promise<void> {
   const res = await fetch(`${API}/api/pilot/checkin`, {
     method: 'POST',

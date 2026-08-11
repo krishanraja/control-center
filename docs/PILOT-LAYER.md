@@ -21,7 +21,22 @@ The `ShipLedgerCard` in particular contains no branch anywhere that changes colo
 
 Four things, all built and live.
 
-**1. State gate.** `src/components/pilot/PilotGate.tsx` wraps the entire app inside `App.tsx`. No morning check-in for today means no dashboard. Three inputs: energy 1 to 5, anxiety 1 to 5, one optional word. Routing is `energy <= 2 || anxiety >= 4` to red, otherwise green, shown with a one-line reason and overridable in one tap either way. The `mode` column stores what was actually chosen, not what was computed. The gate **fails open**: if the pilot routes are unreachable the dashboard renders normally, because a broken check-in service must never lock the operator out of his own control center.
+**1. State gate.** `src/components/pilot/PilotGate.tsx` wraps the entire app inside `App.tsx`. Three inputs: energy 1 to 5, anxiety 1 to 5, one optional word. Routing is `energy <= 2 || anxiety >= 4` to red, otherwise green, shown with a one-line reason and overridable in one tap either way. The `mode` column stores what was actually chosen, not what was computed.
+
+The gate **fails open**, four ways: an unreachable pilot route, a check-in already filed for today, a skip, and the clock reading past midday all render the dashboard untouched. A morning ritual that can lock the operator out of his own control center has stopped being a ritual and become a login.
+
+**When the gate appears.** Exactly when both hold:
+
+| | |
+|---|---|
+| No morning row for **today's civil date** | Skipping writes a row, so a skip closes today and only today |
+| The civil hour is in `[4, 12)` | Krish: "if I have not logged in by midday then it just goes straight to the dash" |
+
+The window is read **once at mount** and held for the session. A live clock would yank a half-answered check-in off the screen at 12:00:00, and would re-gate at midnight over a session that had been open since the evening.
+
+> **Do not reintroduce a rolling suppression.** The window replaced a 20-hour timer measured from the previous check-in's `created_at`. Because it counted from when the check-in *happened* rather than from the civil day, any check-in filed after roughly midday silently ate the next morning: a row created 19:25 UTC on 2026-08-08 suppressed the gate until 15:25 on the 9th, and the 9th has no row. The 5th went the same way. Three days vanished from a real ledger before it was reported, because a gate that does not appear is indistinguishable from a gate that was answered. The 04:00 floor is what that timer was actually needed for, and it costs nothing.
+
+**Skipping.** The Skip control sits on the first screen only and writes a row with `skipped = true` and **null** energy and anxiety. It deliberately records no reading. The first version wrote a neutral 3/3, which opened the gate and then lied to everything downstream: `capacityFor` read it as a genuine steady day and the next morning's recap told him he had felt fine on a morning he never answered. `capacityFor(null, null)` already returns `steady`, so the behaviour is identical without the invented data point. Anything that averages or plots a reading must exclude `skipped` rows.
 
 **2. Red mode.** `src/components/pilot/RedMode.tsx`. Renders `tomorrow_one` from the most recent evening check-in as the only visible task. A `tomorrow_one_url` becomes one large primary button, so the doing is embedded and not just the description. Mark done opens the shared ship log form, writes a `ships` row with source `manual`, then unlocks the dashboard. Shipping is the key that opens the rest of the app on a red day. If no evening entry exists, red mode asks exactly one question, applies the same concreteness validation, and locks to the answer. The escape hatch writes `override_at`, which persists for the day so it is taken once rather than once per page load. There is no red in the palette anywhere in red mode.
 
@@ -42,6 +57,8 @@ Deterministic, no LLM call. The point is not accuracy, it is friction in one dir
 `scripts/migrations/2026-07-27-pilot-layer.sql`, applied live 2026-07-27 as `pilot_layer_v1`.
 
 `pilot_checkins` holds both morning and evening rows, distinguished by `kind`. One row per kind per civil day, enforced by the route rather than a constraint, so a reload can never re-gate.
+
+`skipped` (added `20260811150000_pilot_checkin_skipped.sql`) marks a morning that was dismissed rather than answered. Those rows carry **null** energy and anxiety by construction. `pilot_daily` exposes the flag so a skipped day is legible as skipped rather than inferred from a null reading sitting next to a green mode.
 
 `ships` is the ledger. `dedup_key` is unique, which is what makes webhook ingestion idempotent: n8n retries upsert onto the same row instead of double counting. Manual logs leave it null.
 
@@ -64,7 +81,13 @@ One column exists beyond the original specification: `pilot_checkins.override_at
 
 Recorded so they are not mistaken for bugs.
 
-**Timezone.** The pilot layer runs on `America/New_York` via `src/lib/pilotDay.ts`. The rest of the app runs on `Europe/London` via `src/lib/londonDate.ts`, which is shared by `useWeeklyFocus`, `useAltitudes`, and `FocusRitual`. This is deliberate and confirmed. The zone is a single exported constant, `PILOT_TZ`, and changing that one line moves both the gate and the shutdown together.
+**Timezone.** No longer a divergence. `src/lib/civilDate.ts` is the one clock for the whole product, and it replaced three implementations that disagreed (`pilotDay.ts` on Eastern, `londonDate.ts` on London, and a bare UTC `slice(0,10)` for `daily_focus.focus_date`).
+
+**The device is the authority on what day it is.** `civilDate` resolves the zone from `Intl.DateTimeFormat().resolvedOptions().timeZone`, re-reads it on `visibilitychange` so a flight is noticed, and mirrors the result **up** to `system_config.operator_timezone` for the callers that have no browser (n8n, cron, `public.operator_tz()` and the SQL views). An explicit pin is available in `TimezoneToggle` but auto is the resting state and the cycle always returns to it.
+
+> **The mirror is one-way, and the direction is load-bearing.** It used to run the other way: `adoptServerZone` pushed the *stored* zone onto the device on every load and persisted it. A value written from a laptop in New York therefore overrode a phone standing in Sydney that already knew where it was. The damage showed on the *next* load, not the one that caused it, and it was not cosmetic: a check-in filed at 22:08 UTC landed on `checkin_date` **2026-08-11** while the operator's actual evening was the 10th, so the following morning the gate found today already answered and never appeared. There is a spec for this in `e2e/pilot-gate.spec.ts` that reloads the page specifically because a single load cannot see it.
+
+The zone is also no longer an allow-list. `isValidTz` (server) and `isValidZone` (client) accept anything `Intl` accepts, because a three-city list is wrong the first time he lands anywhere else, and the failure was silent: the browser sent its real zone, the server rejected it as unsupported, and the day boundary quietly stayed on whichever of the three was stored.
 
 **Streaks.** `useStreaks.ts` and `StreakPills` already existed and are untouched. The no-streaks rule is a rule about the pilot layer, not a retroactive rule about the rest of the dashboard.
 

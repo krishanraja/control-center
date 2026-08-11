@@ -23,6 +23,9 @@ export interface PilotCheckin {
   override_at: string | null
   checkin_date: string | null
   intent: string | null
+  /** Morning rows only. The day was closed without a reading; energy and
+   *  anxiety are null and are not a measurement of anything. */
+  skipped?: boolean
 }
 
 export interface Ship {
@@ -54,8 +57,6 @@ export interface PilotState {
   last_evening: PilotCheckin | null
   /** True once an evening row exists for today, so the shutdown stops prompting. */
   evening_done_today: boolean
-  /** Newest morning row of any date, used to suppress the gate across a rollover. */
-  last_morning_at: string | null
   /** Yesterday's reading and output, for the one-line recap. */
   yesterday: YesterdayRecap | null
   today: string
@@ -68,6 +69,7 @@ export interface YesterdayRecap {
   mode: PilotMode | null
   one_word: string | null
   intent: string | null
+  skipped?: boolean
   ships: number
 }
 

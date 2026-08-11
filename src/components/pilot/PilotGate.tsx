@@ -3,27 +3,40 @@ import type { PilotMode } from '../../types/pilot'
 import { usePilotState } from '../../hooks/usePilot'
 import { intentByKey, type Intent } from '../../lib/pilotIntent'
 import { PilotStateProvider } from '../../contexts/PilotStateContext'
+import { civilHour } from '../../lib/civilDate'
 import { MorningCheckin } from './MorningCheckin'
 import { RedMode } from './RedMode'
 
-// Wraps the entire app. Nothing renders behind it until today's morning
-// check-in exists, and on a red day nothing renders behind it until either a
-// ship is logged or the escape hatch is taken.
+// Wraps the entire app. During the morning window nothing renders behind it
+// until today's check-in exists, and on a red day nothing renders behind it
+// until either a ship is logged or the escape hatch is taken.
 //
-// Fails OPEN. If the pilot routes are unreachable the dashboard renders
-// normally, because a broken check-in service must never be the thing that
-// locks the operator out of his own control center.
+// Fails OPEN, three ways over. If the pilot routes are unreachable the dashboard
+// renders untouched. If it is past midday the dashboard renders untouched. If
+// the check-in is skipped the dashboard renders untouched. A morning ritual
+// that can lock the operator out of his own control center has stopped being a
+// ritual and become a login.
 
 /**
- * Once a day means once a day.
+ * The morning window, in the operator's own civil hours.
  *
- * The date check alone was not enough. The civil day can roll over while the
- * operator is mid-session, and the gate would reappear on a day he had already
- * answered. So a morning row inside this window suppresses the gate regardless
- * of what date it was filed under. Slightly under a full day, so a genuine next
- * morning is never suppressed.
+ * This replaces a 20-hour rolling suppression on the last check-in, which was
+ * measured from when the last one HAPPENED rather than from the civil day, and
+ * silently ate the next morning whenever a check-in landed after about midday.
+ * The evidence was in the data: a check-in filed 19:25 UTC on the 8th suppressed
+ * the gate until 15:25 on the 9th, and the 9th has no row. Same shape on the
+ * 5th. Days went missing without anything ever telling him why.
+ *
+ * A window fixes that and answers the other half at the same time. Krish: "if I
+ * have not logged in by midday then it just goes straight to the dash." Midday
+ * is the close. The 04:00 open is what the rolling window was really for: the
+ * civil day can roll over while he is mid-session, and without a floor the gate
+ * would appear at midnight over a session already in progress. Nobody starts
+ * their morning at 00:30, so the floor costs nothing and the rollover stops
+ * being a special case.
  */
-const SUPPRESS_MS = 20 * 60 * 60 * 1000
+const MORNING_OPENS_AT = 4
+const MORNING_CLOSES_AT = 12
 
 interface Props {
   children: React.ReactNode
@@ -36,6 +49,16 @@ export function PilotGate({ children, onIntent }: Props) {
   const [unlocked, setUnlocked] = useState(false)
   const [justChose, setJustChose] = useState<PilotMode | null>(null)
   const [routed, setRouted] = useState(false)
+
+  // Read once, at mount, and hold it for the session. Re-reading live would
+  // yank a half-answered check-in off the screen the moment the clock struck
+  // twelve, and would re-gate at midnight on a session that has been open since
+  // the evening. The window decides whether this VISIT is a morning; it is not
+  // a live clock.
+  const [inMorningWindow] = useState(() => {
+    const h = civilHour()
+    return h >= MORNING_OPENS_AT && h < MORNING_CLOSES_AT
+  })
 
   // Route to the day's intent once, after the gate clears. Only on a green day:
   // red mode owns the screen and must not be navigated out from under.
@@ -53,12 +76,13 @@ export function PilotGate({ children, onIntent }: Props) {
   // with no provider, which resolves every consumer to `steady`.
   if (error || !state) return <>{children}</>
 
-  const recentMorning = state.last_morning_at
-    ? Date.now() - new Date(state.last_morning_at).getTime() < SUPPRESS_MS
-    : false
-  const answered = Boolean(state.morning) || recentMorning
+  // Today's civil date is the only thing that counts as answered. Skipping
+  // writes a row too, so a skip closes today and nothing else: tomorrow the
+  // gate is back, which is the whole point of it being skippable rather than
+  // dismissible.
+  const answered = Boolean(state.morning)
 
-  if (!answered) {
+  if (!answered && inMorningWindow) {
     return (
       <MorningCheckin
         yesterday={state.yesterday}

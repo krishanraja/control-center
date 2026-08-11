@@ -17,14 +17,35 @@ import { supabase } from './_supabase.js'
 
 export const DEFAULT_TZ = 'America/New_York'
 
-const VALID = new Set(['America/New_York', 'Europe/London', 'Australia/Sydney'])
-
 let cached: string | undefined
 let cachedAt = 0
 const TTL_MS = 60_000
 
+/**
+ * Any zone this runtime's Intl accepts.
+ *
+ * This was a three-city allow-list, matched to a three-city picker in the UI.
+ * The operator travels, so the list was wrong the first time he landed anywhere
+ * else: the browser would send its real zone, the server would reject it as
+ * "unsupported", and the day boundary silently stayed on whichever of the three
+ * was last stored. Intl is the authority on what is a zone; a hand-kept list
+ * beside it is just a list that goes stale.
+ *
+ * The value still reaches SQL through public.operator_tz(), which passes it to
+ * AT TIME ZONE, so an accepted string has to be one Postgres also knows.
+ * Postgres carries the full IANA database, which is the same source Intl reads.
+ */
 export function isValidTz(tz: unknown): tz is string {
-  return typeof tz === 'string' && VALID.has(tz)
+  if (typeof tz !== 'string' || !tz) return false
+  // Cheap structural guard first: AT TIME ZONE takes an identifier, and this
+  // value is interpolated into date maths on both sides of the wire.
+  if (!/^[A-Za-z][A-Za-z0-9+_-]*(\/[A-Za-z0-9+_-]+){0,2}$/.test(tz)) return false
+  try {
+    new Intl.DateTimeFormat('en-GB', { timeZone: tz })
+    return true
+  } catch {
+    return false
+  }
 }
 
 /**

@@ -27,6 +27,13 @@ embedding or a model call.
 |---|---|---|
 | `e2e/growth.spec.ts` | the merged Growth tab, its five sections and the governance control plane | 1280x800 |
 | `e2e/network.spec.ts` | the Network search lifecycle: ask, read, clear, ask again | 1280x800, one at 390x844 |
+| `e2e/pilot-gate.spec.ts` | when the morning check-in appears, skipping, and the device clock | per-test `timezoneId` + fixed clock |
+
+`pilot-gate.spec.ts` is the one suite that owns its own context per test, because
+its subject **is** the clock: it pairs `browser.newContext({ timezoneId })` with
+`page.clock.setFixedTime()` so `Intl.DateTimeFormat().resolvedOptions().timeZone`
+and the wall clock are both pinned. Nothing about that gate is testable without
+controlling those two.
 
 ```bash
 VITE_UI_V2_ENABLED=true \
@@ -49,6 +56,25 @@ Both build-time vars are load-bearing:
 `playwright.config.ts` sets `reuseExistingServer: true`, so a preview server
 you left running serves a **stale `dist`**. Rebuild before you re-run, or kill
 the server and let Playwright start its own.
+
+## Route mocks: register broadest first
+
+`page.route` handlers match in **reverse** registration order, so a
+`'**/api/**'` catch-all registered last silently outranks every specific route
+before it. This is not theoretical: three specs in `pilot-gate.spec.ts` passed
+against the catch-all's `{ ok: true }` before the ordering was fixed, and two of
+them would have passed against the very bug they were written to catch.
+
+Register the catch-all first, then the specific routes.
+
+## Prove the test fails without the fix
+
+The corollary of the above. A new regression spec is not finished until you have
+watched it go **red** against the old behaviour. The clear-across-loads spec in
+`pilot-gate.spec.ts` passed against a faithful stub of the bug it was written
+for, because a single page load could not observe damage that only landed in
+localStorage for the *next* load. It needed a `page.reload()` to have any teeth,
+and nothing but a negative check would have revealed that.
 
 ## The selector rule
 

@@ -9,8 +9,12 @@ import { getOperatorTz, setOperatorTz, isValidTz } from '../_timezone.js'
  * One setting drives every day boundary in the product: the pilot gate and
  * shutdown, the focus spine's week and day, daily_focus.focus_date, the ships
  * rollup, and the pilot_daily view through public.operator_tz(). Unauthenticated,
- * matching every other operator-facing route, and validated against a fixed list
- * so a bad value cannot poison the date maths everywhere at once.
+ * matching every other operator-facing route.
+ *
+ * The browser PUTs here whenever its resolved zone and the stored one disagree,
+ * which on a travelling operator is "after most flights". The stored value is
+ * only the fallback for callers with no browser (n8n, cron, the SQL views); the
+ * device is the authority. See src/lib/civilDate.ts.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
