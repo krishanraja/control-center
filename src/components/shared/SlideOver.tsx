@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { X } from 'lucide-react'
+import { Dialog, DialogContent, DialogSrTitle, DialogClose } from '@/components/ui/dialog'
 
 interface Props {
   open: boolean
@@ -11,41 +12,34 @@ interface Props {
 // Right-side overlay panel for detail views. Unlike an inline detail section,
 // the underlying list never unmounts or reflows, so scroll position survives
 // opening and closing.
+//
+// Now on ui/dialog. The hand-rolled version had role="dialog" and an Escape
+// listener and nothing else: no focus trap, so Tab walked straight out of the
+// panel into the list behind it; no aria-modal, so a screen reader read the
+// page underneath as still available; no scroll lock; and focus was never
+// returned to whatever opened it. Radix supplies all four. The visual shape,
+// the props and the call sites are unchanged.
 export function SlideOver({ open, onClose, children, ariaLabel = 'Detail' }: Props) {
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-
-  if (!open) return null
-
   return (
-    <>
-      <div
-        className="fixed inset-0 z-40 bg-black/40 animate-fade-in"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div
-        role="dialog"
+    <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
+      <DialogContent
+        position="right"
+        showClose={false}
+        overlayClassName="bg-black/40"
         aria-label={ariaLabel}
-        className="fixed right-0 top-0 bottom-0 z-50 w-[480px] max-w-[92vw] overflow-y-auto bg-base border-l border-white/10 animate-fade-in"
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2.5 bg-base/95 backdrop-blur border-b border-white/[0.06]">
+        <DialogSrTitle>{ariaLabel}</DialogSrTitle>
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.06] bg-base/95 px-4 py-2.5 backdrop-blur">
           <span className="text-[11px] uppercase tracking-[0.16em] text-violet-300/85">Detail</span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-white/50 hover:text-white/85 inline-flex items-center gap-1 text-[12px]"
+          <DialogClose
+            className="inline-flex items-center gap-1 text-[12px] text-white/50 transition-colors hover:text-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 rounded"
             aria-label="Close detail"
           >
             <X size={14} /> Close
-          </button>
+          </DialogClose>
         </div>
         <div className="p-4">{children}</div>
-      </div>
-    </>
+      </DialogContent>
+    </Dialog>
   )
 }

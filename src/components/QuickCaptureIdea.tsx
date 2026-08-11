@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Sparkles, X, Loader2 } from 'lucide-react'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
+import { Modal } from './shared/Modal'
 
 /**
  * Content-idea capture modal. Pure presentation — owner passes open + onClose.
@@ -61,16 +62,15 @@ export function ContentIdeaModal({ open, onClose }: { open: boolean; onClose: ()
     setBusy(false)
   }
 
-  if (!open) return null
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-start justify-center pt-[12vh] px-4"
-      onClick={onClose}
+    <Modal
+      open={open}
+      onClose={onClose}
+      variant="center"
+      title="Capture content idea"
+      hideTitle
+      className="max-w-xl top-[12vh] translate-y-0 p-0"
     >
-      <div
-        className="w-full max-w-xl rounded-2xl border border-white/10 bg-sunk shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
         <header className="flex items-center gap-2 px-5 pt-4 pb-2">
           <Sparkles size={14} className="text-rose-300" />
           <h2 className="text-[13px] font-semibold text-white">Capture content idea</h2>
@@ -100,7 +100,7 @@ export function ContentIdeaModal({ open, onClose }: { open: boolean; onClose: ()
               }
             }}
             rows={4}
-            placeholder='e.g. "Why senior media leaders are abandoning Substack — platform lock-in is the new creator-economy story"'
+            placeholder='e.g. "Why senior media leaders are abandoning Substack: platform lock-in is the new creator-economy story"'
             className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-white placeholder-white/30 focus:outline-none focus:border-rose-500/40 resize-none"
           />
 
@@ -119,8 +119,7 @@ export function ContentIdeaModal({ open, onClose }: { open: boolean; onClose: ()
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

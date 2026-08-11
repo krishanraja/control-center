@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { AgentAvatar } from './shared/AgentAvatar'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
+import { Modal } from './shared/Modal'
 
 interface Props {
   agentId: string
@@ -55,38 +56,37 @@ export function FlagAgentModal({ agentId, agentDisplayName, onClose }: Props) {
         if (insertErr) throw insertErr
 
         h.success()
-        toast(`Agent flagged — task fires in 20 minutes`, 'success')
+        toast('Agent flagged. The task fires in 20 minutes.', 'success')
       }
 
       onClose()
     } catch (err) {
       console.error('FlagAgentModal submit error:', err)
       h.error()
-      toast('Failed to flag agent — try again', 'error')
+      toast('Could not flag the agent. Try again.', 'error')
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-      <div
-        className="relative w-full max-w-[420px] rounded-xl border border-white/[0.08] bg-base shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
+    <Modal
+      open
+      onClose={onClose}
+      variant="center"
+      title={`Flag ${agentDisplayName}`}
+      hideTitle
+      className="max-w-[420px] p-0"
+    >
         <div className="flex items-center gap-3 px-5 pt-5 pb-3">
           <AgentAvatar agent={agentId} size="md" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <Zap size={14} className="text-amber-400" />
+              <Zap size={14} className="text-amber-200" />
               <h2 className="text-[14px] font-semibold text-white">Flag {agentDisplayName}</h2>
             </div>
-            <p className="text-[11px] text-white/35 mt-0.5">Send a note — fires as a task in 20 min</p>
+            <p className="text-[11px] text-white/35 mt-0.5">Send a note. It fires as a task in 20 min.</p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-md hover:bg-white/[0.06] text-white/30 hover:text-white/60 transition-colors">
-            <X size={16} />
-          </button>
         </div>
         <div className="px-5 py-3">
           <textarea
@@ -108,13 +108,12 @@ export function FlagAgentModal({ agentId, agentDisplayName, onClose }: Props) {
           <button
             onClick={handleSubmit}
             disabled={!note.trim() || submitting}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[12px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/25 hover:bg-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[12px] font-medium bg-amber-500/15 text-amber-200 border border-amber-500/25 hover:bg-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
             {submitting ? 'Flagging…' : 'Flag Agent'}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

@@ -13,6 +13,7 @@ export { Badge, badgeVariants } from './badge'
 export {
   Dialog, DialogPortal, DialogOverlay, DialogClose, DialogTrigger,
   DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
+  DialogSrTitle,
 } from './dialog'
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs'
 export {
@@ -22,3 +23,6 @@ export {
 } from './dropdown-menu'
 export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './popover'
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './tooltip'
+
+// The house modal lives in shared/, not here: it is a composition of these
+// primitives plus product decisions (dismissibility, the responsive shape).

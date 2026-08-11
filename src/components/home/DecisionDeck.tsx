@@ -8,6 +8,7 @@ import { useRulingPrompts } from './RulingPrompts'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import type { SheetAction } from '../mobile/DetailSheet'
+import { Modal } from '../shared/Modal'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -104,10 +105,16 @@ export function DecisionDeck({
     : 'bg-white/[0.06] text-white/75 border border-white/10'
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative w-full ${narrow ? 'h-full flex flex-col' : 'sm:max-w-lg sm:mx-4'} `}>
-        <div className={`relative bg-zinc-950 border border-white/10 ${narrow ? 'flex-1 flex flex-col rounded-none p-5 pt-6' : 'rounded-2xl p-6'} overflow-y-auto`}>
+    <Modal
+      open
+      onClose={onClose}
+      title="Decisions"
+      hideTitle
+      overlayClassName="bg-black/70 backdrop-blur-sm"
+      className={narrow
+        ? 'h-[calc(100dvh/var(--z,1))] max-h-none rounded-none p-5 pt-6 flex flex-col'
+        : 'sm:max-w-lg p-6'}
+    >
           {/* header: progress + close */}
           <div className="flex items-center justify-between mb-4">
             <div className="text-[11px] text-white/45 tabular-nums">
@@ -178,10 +185,8 @@ export function DecisionDeck({
               </button>
             </div>
           )}
-        </div>
-      </div>
       {overlay}
-    </div>
+    </Modal>
   )
 }
 

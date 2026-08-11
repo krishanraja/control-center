@@ -12,6 +12,7 @@ import { RejectReasonBar } from '../shared/RejectReasonBar'
 import { reasonsFor } from '../../lib/triageReasons'
 import { useLikelyReasons } from '../../hooks/useLikelyReasons'
 import { supabase } from '../../lib/supabase'
+import { Modal } from '../shared/Modal'
 
 interface StandingNote { id: string; text: string; at: string }
 
@@ -362,7 +363,14 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   }, [week, toast, onClose])
 
   return (
-    <div className="fixed inset-0 z-50 bg-base flex flex-col" style={{ height: 'calc(100dvh / var(--z, 1))' }}>
+    <Modal
+      open
+      onClose={onClose}
+      variant="full"
+      title="Brief editor"
+      hideTitle
+      className="flex flex-col bg-base"
+    >
       {/* header */}
       <header className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-white/[0.07] flex-shrink-0">
         <button onClick={onClose} className="text-white/50 hover:text-white text-[13px]">← Back</button>
@@ -732,6 +740,6 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
           )}
         </footer>
       ) : null}
-    </div>
+    </Modal>
   )
 }

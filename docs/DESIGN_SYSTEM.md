@@ -160,3 +160,29 @@ both device classes and both themes stay coherent.
 | Fonts | `src/main.tsx` |
 | Device intent + reduced motion | `src/components/shared/motion.ts` |
 | Pod / status colour maps | `src/components/shared/tokens.ts` |
+
+## The primitive layer (`src/components/ui/`)
+
+Vendored from Relume, re-skinned to Obsidian Aurora, and owned here. Relume's
+Tailwind preset, icon set and animation library are deliberately NOT installed:
+the preset ships a rival token system, and this config remaps `white` to the
+`--fg` channel, which is what makes the thousands of existing `text-white/NN`
+utilities theme-adaptive.
+
+`ui/` sits BENEATH `shared/`. `Pressable`, `HeroCard`, `SwipeCard` and
+`DoThisNextHero` keep their public API and are implemented on top of it, so both
+device classes and both themes stay coherent from one place.
+
+Three rules that are easy to get wrong, each of which has already been got
+wrong once here:
+
+1. **Accent foregrounds use shade 200, never 300.** Only 50/100/200 of the
+   accent ramps map to the `--ac-*` channels that flip between themes. 300 and
+   up are fixed hexes tuned for the dark surface, so a 300 foreground looks
+   correct at night and washes out to illegible on paper.
+2. **Never hand-roll an overlay.** `shared/Modal` for a modal, `SlideOver` for a
+   right panel, `BottomSheet` for a sheet. A bare `fixed inset-0` has no dialog
+   role, no focus trap, no scroll lock and no focus restoration; there were
+   fourteen of them and now there are none.
+3. **Never hand-roll a tab switcher.** `shared/SegmentedNav` gives roving focus,
+   arrow keys, Home/End and a `testIdPrefix` for the e2e suite.

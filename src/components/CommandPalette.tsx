@@ -5,6 +5,7 @@ import { supabase, logKrishAction } from '../lib/supabase'
 import { useHaptics } from '../hooks/useHaptics'
 import { setMode, setAmbient, getAmbient } from '../lib/theme'
 import { TABS as CANONICAL_TABS } from '../lib/tabs'
+import { Dialog, DialogContent, DialogSrTitle } from '@/components/ui/dialog'
 
 interface Props {
   open: boolean
@@ -40,11 +41,20 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
     onClose()
   }
 
-  if (!open) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-md animate-fade-in" onClick={onClose}>
-      <div className="w-[640px] max-w-[92vw] animate-scale-in" onClick={(e) => e.stopPropagation()}>
+    // On ui/dialog. The palette was a bare scrim div with a click handler: no
+    // dialog role, so a screen reader never announced it opened; no focus trap,
+    // so Tab left the palette and walked the page behind it; and focus was not
+    // returned to whatever had it before ⌘K. cmdk still owns the list, the
+    // filtering and the arrow keys, which is what it is good at.
+    <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
+      <DialogContent
+        showClose={false}
+        overlayClassName="bg-black/60 backdrop-blur-md"
+        aria-label="Global command"
+        className="top-[15vh] w-[640px] max-w-[92vw] translate-y-0 border-0 bg-transparent p-0 shadow-none"
+      >
+        <DialogSrTitle>Global command</DialogSrTitle>
         <Command
           className="rounded-2xl border border-white/[0.10] bg-base/95 backdrop-blur-2xl shadow-e3 aurora-ring overflow-hidden
             [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-display [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.2em] [&_[cmdk-group-heading]]:text-accent/60"
@@ -108,7 +118,7 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
             </Command.Group>
           </Command.List>
         </Command>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

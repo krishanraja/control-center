@@ -113,11 +113,25 @@ async function mockGrowthApis(
   await page.route('**/realtime/**', r => r.abort())
 }
 
+// The five section ids, which are stable, paired with the labels currently
+// rendered. Selection goes through data-testid; the labels are only asserted as
+// content. The previous version clicked visible text and went red the moment
+// those labels were rewritten (AGENTS.md documented 7 of 9 specs failing on it).
+const SECTIONS = [
+  { id: 'map', label: 'Where they are' },
+  { id: 'work', label: 'To do' },
+  { id: 'signals', label: "What's moving" },
+  { id: 'council', label: 'Weekly review' },
+  { id: 'governance', label: 'Spend limits' },
+] as const
+
+type SectionId = (typeof SECTIONS)[number]['id']
+
 /** Open the merged Growth tab and switch to one of its five sections. */
-async function openSection(page: Page, label: string, hash = '/#/growth') {
+async function openSection(page: Page, id: SectionId, hash = '/#/growth') {
   await page.goto(hash)
   await expect(page.getByRole('heading', { name: 'Growth' })).toBeVisible()
-  await page.getByRole('button', { name: label, exact: true }).click()
+  await page.getByTestId(`growth-section-${id}`).click()
 }
 
 test('one Growth tab, five sections, Map first', async ({ page }) => {
@@ -127,11 +141,16 @@ test('one Growth tab, five sections, Map first', async ({ page }) => {
   // Exactly one sidebar entry reads "Growth". The old "Growth map" twin is gone.
   await expect(page.getByRole('navigation').getByText('Growth', { exact: true })).toHaveCount(1)
   await expect(page.getByText('Growth map')).toHaveCount(0)
-  for (const label of ['Map', 'Work', 'Signals', 'Council', 'Governance']) {
-    await expect(page.getByRole('button', { name: label, exact: true })).toBeVisible()
+  for (const { id, label } of SECTIONS) {
+    const tab = page.getByTestId(`growth-section-${id}`)
+    await expect(tab).toBeVisible()
+    await expect(tab).toHaveText(new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   }
-  // Map is the landing section: the touchpoint spine, honest about an empty read.
-  await expect(page.getByText('Touchpoint map')).toBeVisible()
+  // Map is the landing section. Asserted by which panel mounted, not by a word
+  // inside it: the previous assertion looked for "Touchpoint map", which was
+  // renamed out of existence along with the section labels.
+  await expect(page.getByTestId('growth-panel-map')).toBeVisible()
+  await expect(page.getByTestId('growth-section-map')).toHaveAttribute('aria-current', 'true')
 })
 
 test('the #/acquisition bookmark lands on Growth, on Governance', async ({ page }) => {
@@ -156,7 +175,7 @@ test('the retired outbound machinery is not on the tab', async ({ page }) => {
 
 test('work says plainly that the board is empty', async ({ page }) => {
   await mockGrowthApis(page)
-  await openSection(page, 'Work')
+  await openSection(page, 'work')
   await expect(page.getByText('Creative board')).toBeVisible()
   await expect(page.getByText(/No creative cards yet/)).toBeVisible()
   await expect(page.getByText(/Nothing queued for this week/)).toBeVisible()
@@ -164,7 +183,7 @@ test('work says plainly that the board is empty', async ({ page }) => {
 
 test('promote shows the mechanical 422 criteria checklist', async ({ page }) => {
   await mockGrowthApis(page, { status: 422, body: PROMOTE_422 })
-  await openSection(page, 'Governance')
+  await openSection(page, 'governance')
   await page.getByRole('button', { name: 'Promote', exact: true }).click()
   await expect(page.getByText('≥ 20 approved sends in 30d')).toBeVisible()
   await expect(page.getByText('Rejection rate < 5% (30d)')).toBeVisible()
@@ -174,7 +193,7 @@ test('promote shows the mechanical 422 criteria checklist', async ({ page }) => 
 
 test('profit governor renders margin, cost stack and burn bar', async ({ page }) => {
   await mockGrowthApis(page)
-  await openSection(page, 'Governance')
+  await openSection(page, 'governance')
   await expect(page.getByText('Profit governor')).toBeVisible()
   await expect(page.getByText('+$23.25/mo')).toBeVisible()
   await expect(page.getByText('Attributed MRR')).toBeVisible()
@@ -185,7 +204,7 @@ test('profit governor renders margin, cost stack and burn bar', async ({ page })
 test('direction studio shows the locked direction and locks a new version', async ({ page }) => {
   let lanePost: any = null
   await mockGrowthApis(page, undefined, body => { lanePost = body })
-  await openSection(page, 'Governance')
+  await openSection(page, 'governance')
   // Locked direction is visible with its version badge and positioning
   await expect(page.getByText('Direction studio')).toBeVisible()
   await expect(page.getByText('v1 locked')).toBeVisible()
@@ -207,9 +226,11 @@ test('signals merges the GEO citation rate with the SEO rank sweep', async ({ pa
         { id: 'r2', product: 'fractionl_pulse', query: 'AI tools for executives', current_position: null, previous_position: null, search_volume: 2400, priority: 40, last_checked_at: new Date().toISOString() },
       ],
     }))
-  await openSection(page, 'Signals')
+  await openSection(page, 'signals')
   // GEO leads the section and stays honest when no probe has run.
-  await expect(page.getByText('GEO probes')).toBeVisible()
+  // Heading, not free text: "GEO probes" also appears inside the empty-state
+  // sentence below it, so a bare text match is a strict-mode violation.
+  await expect(page.getByRole('heading', { name: 'GEO probes' })).toBeVisible()
   await expect(page.getByText(/No GEO probes have been run yet/)).toBeVisible()
   // The SEO sweep sits under it, cross-product, each row labelled with its lane.
   await expect(page.getByText('SEO rank')).toBeVisible()
@@ -222,7 +243,7 @@ test('signals merges the GEO citation rate with the SEO rank sweep', async ({ pa
 
 test('integrations panel groups tools by status and shows gated reasons', async ({ page }) => {
   await mockGrowthApis(page)
-  await openSection(page, 'Governance')
+  await openSection(page, 'governance')
   await expect(page.getByText('Integrations')).toBeVisible()
   // Org-shared wired tool shows on the lane
   await expect(page.getByText('PostHog')).toBeVisible()

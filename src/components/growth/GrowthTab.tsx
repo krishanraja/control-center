@@ -6,6 +6,7 @@ import { CreativeBoard } from './CreativeBoard'
 import { CouncilFeed } from './CouncilFeed'
 import { SignalsPanel } from './SignalsPanel'
 import { GovernancePanel } from './GovernancePanel'
+import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
 
 /**
  * The Growth tab. ONE surface, five sections, in the order of the weekly loop.
@@ -95,33 +96,30 @@ export function GrowthTab({
         {g.error && <p className="text-[11.5px] text-rose-300 mt-1">Could not read growth data: {g.error}</p>}
       </div>
 
-      <nav className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1 flex-shrink-0">
-        {SECTIONS.map(s => {
-          const active = section === s.id
-          const count = counts[s.id]
-          const alarm = s.id === 'work' && overCap
-          return (
-            <button
-              key={s.id}
-              onClick={() => setSection(s.id)}
-              className={`px-3.5 py-1.5 rounded-full text-[13px] whitespace-nowrap border transition-colors ${
-                active ? 'btn-contrast border-white font-semibold' : 'border-white/10 text-white/65 hover:bg-white/[0.06]'
-              }`}
-            >
-              {s.label}
-              {count > 0 ? (
-                <span className={`ml-1.5 text-[10.5px] tabular-nums rounded-full px-1.5 py-0.5 align-middle ${
-                  alarm ? 'bg-rose-500/25 text-rose-200' : 'bg-white/10'
-                }`}>
-                  {count}
-                </span>
-              ) : null}
-            </button>
-          )
-        })}
-      </nav>
+      <SegmentedNav<GrowthSectionId>
+        segments={SECTIONS.map((sec): Segment<GrowthSectionId> => ({
+          id: sec.id,
+          label: sec.label,
+          badge: counts[sec.id] > 0 ? (
+            <span className={`ml-1.5 rounded-full px-1.5 py-0.5 align-middle text-[10.5px] tabular-nums ${
+              sec.id === 'work' && overCap ? 'bg-rose-500/25 text-rose-200' : 'bg-white/10'
+            }`}>
+              {counts[sec.id]}
+            </span>
+          ) : undefined,
+        }))}
+        value={section}
+        onChange={setSection}
+        label="Growth sections"
+        variant="pill"
+        testIdPrefix="growth-section"
+      />
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      {/* The scroll container announces which section is mounted. Asserting on a
+          heading meant the specs broke when "Touchpoint map" was renamed along
+          with the section labels; a panel id says WHICH section is showing
+          without depending on any word inside it. */}
+      <div data-testid={`growth-panel-${section}`} className="flex-1 min-h-0 overflow-y-auto">
         {section === 'map' ? (
           <TouchpointMap g={g} variant={variant} />
         ) : section === 'work' ? (

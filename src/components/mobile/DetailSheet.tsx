@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect } from 'react'
 import { X, ExternalLink } from 'lucide-react'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { StatusPill } from '../shared/StatusPill'
 import { Pressable } from '../shared/Pressable'
 import { useReducedMotion, useDeviceClass } from '../shared/motion'
-import { useHaptics } from '../../hooks/useHaptics'
+import { BottomSheet } from './BottomSheet'
 
 export interface SheetAction {
   label: string
@@ -37,44 +37,20 @@ interface Props {
 export function DetailSheet({
   open, onClose, eyebrow, title, body, agent, status, meta, docUrl, actions = [],
 }: Props) {
-  const [mounted, setMounted] = useState(open)
-  const [visible, setVisible] = useState(false)
-  const [dragY, setDragY] = useState(0)
-  const startY = useRef<number | null>(null)
   const reduced = useReducedMotion()
   const device = useDeviceClass()
-  const h = useHaptics()
 
+  // Keyboard-first on the desk: Enter commits the primary action. Escape is
+  // BottomSheet's (via Radix) rather than a second listener racing it.
+  //
+  // Only the affirmative primary auto-fires, never a 'danger' action, so a
+  // stray Enter cannot drop, kill or reject anything. That always stays a
+  // deliberate click.
   useEffect(() => {
-    if (open) {
-      setMounted(true)
-      // Allow the element to mount then transition in on next frame.
-      requestAnimationFrame(() => setVisible(true))
-    } else if (mounted) {
-      setVisible(false)
-      const t = setTimeout(() => setMounted(false), 220)
-      return () => clearTimeout(t)
-    }
-  }, [open, mounted])
-
-  // Prevent body scroll while open
-  useEffect(() => {
-    if (!mounted) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
-  }, [mounted])
-
-  // Keyboard-first on the desk: Esc dismisses, Enter commits the primary action.
-  // We only auto-fire the affirmative primary (never a 'danger' action), so a
-  // stray Enter can't drop/kill/reject anything — that always stays a deliberate
-  // click. Reuses the exact action handlers the buttons use.
-  useEffect(() => {
-    if (!mounted || !visible) return
+    if (!open) return
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
-      if (e.key === 'Escape') { e.preventDefault(); onClose(); return }
       if (e.key === 'Enter') {
         const primary = actions.find(a => a.variant === 'primary')
         if (primary) { e.preventDefault(); primary.onClick() }
@@ -82,55 +58,11 @@ export function DetailSheet({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [mounted, visible, actions, onClose])
-
-  if (!mounted) return null
-
-  const onTouchStart = (e: React.TouchEvent) => { startY.current = e.touches[0].clientY }
-  const onTouchMove  = (e: React.TouchEvent) => {
-    if (startY.current == null) return
-    const dy = e.touches[0].clientY - startY.current
-    if (dy > 0) setDragY(dy)
-  }
-  const onTouchEnd = () => {
-    if (dragY > 120) { h.soft(); onClose() }
-    setDragY(0)
-    startY.current = null
-  }
-
-  const translate = visible ? dragY : 1000
+  }, [open, actions])
 
   return (
-    <div
-      className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[70] flex items-end justify-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-    >
-      {/* Backdrop */}
-      <button
-        aria-label="Dismiss"
-        onClick={onClose}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-        style={{ opacity: visible ? 1 : 0 }}
-      />
-
-      {/* Sheet */}
-      <div
-        className="relative w-full max-w-xl bg-base border-t border-white/[0.08] rounded-t-[28px] shadow-2xl shadow-black/60 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]"
-        style={{
-          transform: `translateY(${translate}px)`,
-          transition: startY.current == null ? 'transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
-        }}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
-        {/* Drag handle */}
-        <div className="pt-3 pb-2 flex items-center justify-center">
-          <span className="block w-10 h-1 rounded-full bg-white/15" />
-        </div>
-
+    <BottomSheet open={open} onClose={onClose} fullHeight={false} ariaLabel={title}>
+      <div className="pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
         {/* Header */}
         <div className={`px-5 pb-4 flex items-start gap-3 border-b border-white/[0.06] ${reduced ? '' : 'animate-rise stagger-1'}`}>
           {agent && <AgentAvatar agent={agent} size="lg" />}
@@ -196,6 +128,6 @@ export function DetailSheet({
           )}
         </div>
       </div>
-    </div>
+    </BottomSheet>
   )
 }
