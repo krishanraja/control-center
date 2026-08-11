@@ -1,6 +1,6 @@
 # COMPOUND delivery state
 
-> Current source of truth for COMPOUND delivery and production state. Update this file in the same commit as every phase transition. Historical briefs and QA records under this directory are explicitly labelled and must not be used as current status.
+> Current source of truth for COMPOUND delivery and production state. Update this file with every phase transition. Historical briefs and QA records under this directory are explicitly labelled and are not current status.
 
 - Last updated: 2026-08-11 EDT
 - Product: private, single-user market intelligence for Krish
@@ -9,68 +9,72 @@
 
 ## Current release state
 
-- Pipeline release: draft PR #238, branch `codex/compound-daily-history`, green and unmerged.
-- Calm Brief release: draft PR #239, branch `codex/compound-calm-brief`, green and dependent on PR #238.
-- Production code: main revision `270c0089ce31301b93cf0b51ffa6409b5ea66165` on Vercel deployment `dpl_C8FBD2bzg6yUwN4LGRmgCAv8mhqW`.
-- Production data: two private starter snapshots dated 2026-08-06. They are labelled `origin = starter` and excluded from historical truth.
-- Live capture: no captured snapshot has been published yet.
-- Historical reconstruction: not started. The five-year backfill remains a later, resumable operation after reliable live capture.
-- UI preview: PR #239 is available at `https://compound-git-codex-compound-calm-brief-krish-rajas-projects.vercel.app` and has passed stack and split acceptance checks.
+- Daily archive release: PR #238 merged as `716f275fa5fe61dd87ed767cd1ad0bedaf7705e9`.
+- Capture hotfix: PR #240 merged as `310b77a4f2e3017ef4f58d61c27f5bc93918d6bd`; production deployment `dpl_9pPPVNH3pmVECW1WbNMSGXucftQj` is ready.
+- First capture: workflow run `31533242283` published 2026-08-11 on attempt one after the JSON content-type repair.
+- Captured archive: one 3-month and one 1-year row, both `origin = captured`, `schema_version = 2`, `engine_version = compound-brief/1.0.0`, and `status = partial`.
+- Partial limitation: the public CoinGecko endpoint returned HTTP 429 for Solana. The unsupported crypto claim was suppressed; FMP, FRED, and DefiLlama evidence remained available.
+- Brief proof: each horizon contains exactly three stories and all three have citations. FRED source dates are 2026-08-10 for rates and credit and 2026-08-07 for currencies; FMP and DefiLlama source dates are 2026-08-11.
+- Industry proof: the first captured row contains zero industry moves because the collector did not parse FMP's current `averageChange` field. The Calm Brief branch fixes that field and exchange aggregation. Until the next capture, the live explorer uses the exhaustive static 123-name taxonomy and shows no unsupported move.
+- Calm Brief release: PR #239 is green, merge-clean, retargeted to main, and ready for merge.
+- Historical reconstruction: not started. The five-year backfill remains gated on reliable live capture and historical-vintage proof.
 
 ## Production infrastructure
 
-- Vercel project: `compound`, root directory `compound/`, project id `prj_RQ4jFPW4LmBukLPNyhzz71kFkJpp`, Node 24.x.
-- Supabase project: `gojpffsrxybbpbdzzrvs`, dedicated `compound` schema.
-- Archive migration: `20260811120000_compound_snapshot_archive` is applied in production and present in the migration ledger.
-- Archive readback: seven archive columns, `snapshot_runs`, `snapshot_backfill_checkpoints`, and `snapshot_context_cache` exist; RLS is enabled and forced; three member-read policies, the immutable-snapshot trigger, and the unique member/date/horizon index are present.
-- GitHub Actions environment: `Production – compound` contains `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `FMP_API_KEY`, `FRED_API_KEY`, `PERPLEXITY_API_KEY`, and `EXA_API_KEY`.
-- Optional CoinGecko keys are absent; the pipeline uses CoinGecko's public endpoint.
-- Resend is intentionally dormant. Marketplace terms were accepted, but no resource, domain, paid plan, API key, or GitHub secret was provisioned. The workflow does not receive Resend variables. GitHub's native workflow failure notification remains the operational alert.
+- Vercel project: `compound`, root `compound/`, project id `prj_RQ4jFPW4LmBukLPNyhzz71kFkJpp`, Node 24.x.
+- Supabase project: `gojpffsrxybbpbdzzrvs`, isolated `compound` schema.
+- Archive migration `20260811120000_compound_snapshot_archive` is live and present in the migration ledger.
+- Archive RLS is enabled and forced. Member reads, service writes, immutable captured rows, and the unique member/date/horizon constraint have been read back.
+- GitHub environment `Production – compound` contains the six required database, market-data, and context secret names.
+- CoinGecko uses its public endpoint; no paid CoinGecko key is configured.
+- Resend is dormant. There is no resource, paid plan, domain, API key, or workflow variable. GitHub's failed-workflow notification is the operational alert.
 
 ## Access model
 
-- COMPOUND has exactly one approved Supabase Auth identity and one `compound.members` row.
-- Public signup is disabled. There is no email field, email delivery, social login, pricing, or account-creation route.
-- Entry requires the server-held magic word. The browser sends it only to the same-origin login function; source, documentation, database rows, and logs do not contain the plaintext word.
-- The normalized word is checked against a protected one-way digest. A successful match creates a one-time Supabase session for the approved internal identity.
-- Five failed attempts per one-way client fingerprint cause a 15-minute pause. Client IP addresses and the word are not stored.
-- The shared word is convenience access for an internal tool, not high-assurance authentication. Externalization requires replacing or strengthening this model before any customer access.
+- COMPOUND has exactly one approved Supabase identity and one member row.
+- Public signup, email entry, email delivery, social login, pricing, and account creation are absent.
+- Entry uses a server-held magic-word digest. The plaintext word is not stored in source, documentation, database rows, logs, screenshots, or fixtures.
+- A correct word creates a one-time Supabase session for the approved identity. Five failed attempts per one-way client fingerprint cause a 15-minute pause.
+- This is convenience access for one internal user, not customer-grade identity. Externalization requires a separately approved identity and security model.
 
 ## Product contract
 
 - COMPOUND is market-wide and global with a US-led cross-asset universe. Holdings never influence story selection or ranking.
-- Today in markets shows exactly three positions: one lead story and two compact briefs. Quiet days show `Nothing needs action` plus two stable checkpoints.
-- The product has four destinations: Today in markets, Markets, Portfolio, and Ask. Old tab URLs retain compatibility redirects.
+- Today in markets has exactly three positions: one lead story and two compact briefs. Quiet days say `Nothing needs action` and show two stable checkpoints.
+- The four destinations are Today in markets, Markets, Portfolio, and Ask. Old URLs keep compatibility redirects.
 - `stack` and `split` are separate component systems over one data layer.
-- The 123-industry explorer uses the exhaustive 11-sector taxonomy. Industry hiding declutters exploration but cannot suppress a materially significant Brief story.
-- Every captured or reconstructed snapshot stores the wording, evidence, citations, falsifier, coverage, schema version, engine version, and publication time that COMPOUND used that day.
-- Production runtime reads are authenticated and private. The committed demo fixture is for local demo mode only and is removed from the production public path by PR #239.
-- COMPOUND never executes a trade and never imports Control Center application code or data.
+- The 123-industry explorer uses the exhaustive 11-sector taxonomy. Hiding an industry declutters exploration but cannot suppress a materially significant Brief story.
+- Captured wording, evidence, citations, falsifier, coverage, schema version, engine version, and publication time are immutable historical evidence.
+- Live reads use authenticated APIs. Demo mode bundles `src/demo/latest.json` only when `VITE_COMPOUND_DEMO_MODE=true`; production has no public fixture route or private fixture chunk.
+- COMPOUND never executes a trade and does not import Control Center application data.
 
 ## Daily pipeline contract
 
-- Schedule: 6:30 a.m. `America/New_York`, seven days a week, using dual UTC cron entries plus an Eastern-time guard.
-- Retry policy: at most three attempts within 45 minutes. The last successful snapshot remains untouched after failure.
-- Publication states: `complete`, `partial`, or `quiet`; staleness is derived at read time after 30 hours.
-- Partial publication is allowed only when every visible claim remains supported. Failed-feed stories are suppressed and exact limitations are stored.
-- Providers in the implemented collector: FMP, FRED, CoinGecko, and DefiLlama. Perplexity with Exa fallback adds cached current-world context only after deterministic story selection.
-- Live capture must be verified before any backfill. Backfill runs in resumable 30-day batches and must not use look-ahead evidence.
+- Schedule: 6:30 a.m. `America/New_York`, every day, with dual UTC cron entries and an Eastern-time guard.
+- Retry policy: at most three attempts within 45 minutes. Failure leaves the last successful snapshot untouched.
+- Status is `complete`, `partial`, or `quiet`; staleness is derived after 30 hours.
+- Partial publication is allowed only when every visible claim remains supported and exact source limitations are stored.
+- Implemented collectors: FMP, FRED, CoinGecko, and DefiLlama. Perplexity with Exa fallback adds current context only after deterministic ranking.
+- Backfill runs in resumable 30-day batches and must not use later evidence or revisions.
 
-## Verification already completed
+## Verification evidence
 
-- `compound/npm run verify`: boundary checks, Supabase boundary checks, Vitest, TypeScript, and production build pass.
-- Pipeline: Deno type-check and 15 tests pass.
-- `compound-ask`: Deno type-check and 10 tests pass.
-- Calm Brief browser acceptance: 24 combinations across 320, 390, 430, 1024, 1440, and 1920 pixels, covering representative, stale, quiet, and partial states with no horizontal overflow.
-- Production schema readback passed after the archive migration.
+- Calm Brief app: 91 Vitest tests, boundary checks, Supabase boundary checks, TypeScript, and production build pass under Node 24.
+- Pipeline: Deno type-check and 16 tests pass, including the production PostgREST regression and the current FMP `averageChange` contract.
+- `compound-ask`: Deno type-check and 10 tests pass. `compound-login`: Deno type-check passes.
+- Browser matrix: 24 representative, quiet, stale, and partial combinations pass at 320, 390, 430, 1024, 1440, and 1920 pixels with no horizontal overflow.
+- Updated screenshots from the private-fixture build are under `C:\Users\krish\.scratch\compound-calm-brief\after-private-fixture`.
+- Live anonymous `/api/snapshots/latest` returns 401 with `Cache-Control: private, no-store`.
+- Production authentication previously passed wrong-word denial, one-time session exchange, private snapshot read, and signed-in Ask streaming without storing the word.
 
 ## Remaining release order
 
-1. Merge PR #238 with history preserved so PR #239 retains a clean base.
-2. Wait for the pipeline production deployment to become ready.
-3. Dispatch one current-date daily capture and read back the run, two horizon snapshots, provider coverage, exactly three positions, citations, and source dates.
-4. Retarget PR #239 to main, rerun checks, and merge it.
-5. Verify production authentication, private snapshot APIs, stack and split rendering, history, Settings, Ask, removal of public `/latest.json`, and runtime errors.
-6. Observe at least two scheduled daily runs before calling the pipeline reliable.
+1. Merge PR #239 and wait for the production deployment.
+2. Verify authenticated production Brief, Markets, Portfolio, History, Settings, and Ask in stack and split layouts.
+3. Prove production `/latest.json` is unavailable and the private snapshot API remains anonymous-denied.
+4. Verify the live Brief card face shows cited context without expansion and inspect Vercel runtime errors.
+5. Observe two scheduled 6:30 a.m. Eastern runs. The next run must prove the corrected 123-industry capture.
+6. Seed and archive holdings evidence before calling the Portfolio surface complete; the current live surface honestly shows an empty state when no supported holdings evidence exists.
+7. Begin five-year backfill only after the scheduled-run and vintage gates pass.
 
-The five-year backfill and any external product, billing, paid email alert, additional member, or stronger customer authentication remain separate future decisions.
+Any external product, billing, paid email alert, additional member, or stronger customer authentication is a separate future decision.

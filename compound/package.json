@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json --pretty false && tsc --noEmit -p tsconfig.node.json --pretty false",
     "test": "vitest",
     "test:run": "vitest run",
-    "qa:ux": "node e2e/ux-verify.mjs",
+    "qa:ux": "node e2e/calm-verify.mjs",
     "qa:language": "node e2e/language-check.mjs",
     "qa:render": "node e2e/render-evidence.mjs",
     "qa:auth": "node e2e/auth-responsive.mjs",

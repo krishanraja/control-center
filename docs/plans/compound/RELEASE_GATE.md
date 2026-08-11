@@ -1,55 +1,45 @@
 # COMPOUND production release gate
 
 - Last updated: 2026-08-11 EDT
-- Target repository: `krishanraja/control-center`
-- Vercel project: `compound`, root `compound/`
+- Repository: `krishanraja/control-center`
+- Vercel project/root: `compound` / `compound/`
 - Supabase project: `gojpffsrxybbpbdzzrvs`
 - Product scope: one internal user; no signup, pricing, billing, or external access
 
-## Rollback ready
+## Rollback
 
-- Known-good production revision: `270c0089ce31301b93cf0b51ffa6409b5ea66165`.
-- Known-good Vercel deployment: `dpl_C8FBD2bzg6yUwN4LGRmgCAv8mhqW`.
-- Recovery: restore that deployment through Vercel, then verify `compound.krishraja.com`, the sign-in shell, and unauthenticated API denial.
-- Database changes roll forward. The archive migration is additive and has already been read back successfully.
+- Pre-Calm production revision: `310b77a4f2e3017ef4f58d61c27f5bc93918d6bd`.
+- Pre-Calm Vercel deployment: `dpl_9pPPVNH3pmVECW1WbNMSGXucftQj`.
+- Earlier vertical-slice fallback: revision `270c0089ce31301b93cf0b51ffa6409b5ea66165`, deployment `dpl_C8FBD2bzg6yUwN4LGRmgCAv8mhqW`.
+- Database changes roll forward. The archive migration is additive and captured rows are immutable.
 
-## Completed production gates
+## Completed gates
 
-1. The original COMPOUND foundation, schema exposure, login audit, magic-word access, and rate-limit migrations are live.
-2. Archive migration `20260811120000_compound_snapshot_archive` is live.
-3. Existing snapshots are labelled `starter`; there are no captured or reconstructed rows yet.
-4. New archive tables have forced RLS, member-scoped read policies, and service-role write access.
-5. The one approved internal member can enter through the server-held magic-word flow. Public signup and email login are absent.
-6. The GitHub `Production – compound` environment has the six required database, market-data, and context secrets.
-7. PRs #238 and #239 are green in CI and their Vercel previews are ready.
-
-## Intentionally dormant
-
-- Resend is not installed or billed.
-- No sending domain, `RESEND_API_KEY`, or `COMPOUND_ALERT_FROM` is configured.
-- The scheduled workflow cannot inject Resend variables. Attempt three records failure and lets GitHub mark the workflow failed.
-- GitHub workflow failure notifications are the only alert until Krish explicitly decides to externalize COMPOUND or approve a paid alert channel.
+1. Foundation, login, rate-limit, schema-exposure, and archive migrations are live.
+2. Archive RLS, immutability, unique publication constraints, and member/service boundaries passed readback.
+3. GitHub environment `Production – compound` has the six required secret names.
+4. Daily-history PR #238 and capture repair PR #240 are merged.
+5. Workflow run `31533242283` published two cited, three-position snapshots for 2026-08-11.
+6. The partial state names the CoinGecko 429 limitation and keeps supported FMP, FRED, and DefiLlama claims.
+7. Calm Brief PR #239 is green and merge-clean against main.
+8. The demo fixture is removed from `public/`; production mode compiles it to `null`, while explicit demo mode bundles it locally.
+9. All 123 known FMP industries map to exactly 11 top-level sectors. A partial capture with no industry moves still renders the full taxonomy without inventing a move.
+10. Resend remains uninstalled, unbilled, and unreachable from the workflow.
 
 ## Remaining merge gate
 
-1. Review the exact pipeline diff and confirm the worktree is clean except for intended COMPOUND files.
-2. Run `cd compound && npm run verify`.
-3. Run pipeline `deno check` and `deno test`.
-4. Run `deno check` and `deno test` in `supabase/functions/compound-ask`.
-5. Mark PR #238 ready and merge it with a merge commit so the dependent UI branch retains ancestry.
-6. Wait for the Vercel production deployment and GitHub Actions workflow registration.
-7. Dispatch one current daily run and verify the actual Supabase rows, not only the workflow status.
-8. Retarget PR #239 to main, rerun required checks, and merge it.
-9. Verify the authenticated production UI in stack and split layouts and prove `/latest.json` is no longer public.
+1. Merge PR #239 and confirm the main deployment is ready.
+2. Verify `/latest.json` is not served and anonymous snapshot/history calls return 401 with private no-store headers.
+3. Sign in through the one-user magic-word flow without exposing the word to automation or documentation.
+4. Verify the cited Brief face, detail context, 11 collapsed Settings sectors, 123-industry explorer, History, Ask, and honest empty Portfolio state in stack and split.
+5. Check production runtime errors and preserve final screenshots.
+6. Observe two scheduled runs; the next run must capture industry rows through FMP's `averageChange` contract.
 
-## Release blockers
+## Blockers after UI merge
 
-- A failed or unsupported first capture.
-- Fewer or more than three Brief positions when the state is not quiet.
-- Holdings affecting ranking.
-- Anonymous access to snapshot or history data.
-- Production serving the committed private fixture.
-- Source and deployment revisions not matching.
-- Any new paid service, customer access, additional member, or credential expansion without a separate explicit decision.
+- Two scheduled runs have not yet been observed.
+- The first captured day has zero industry moves; this is disclosed and the parser is fixed, but live 123-row evidence awaits the next capture.
+- `compound.holdings` has no active rows, so Portfolio history has no supported holdings evidence yet.
+- Five-year reconstruction has not started and remains gated on vintage proof.
 
-The five-year historical reconstruction is not part of the merge gate. It begins only after reliable live capture and runs as separately monitored, resumable 30-day batches.
+These blockers do not change the internal-only Brief release boundary. They prevent claims that the scheduler, captured industry history, Portfolio history, or five-year backfill are complete.

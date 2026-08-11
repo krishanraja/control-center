@@ -4,7 +4,7 @@ import type { Horizon } from "./horizon";
 /**
  * Live answers stream through the existing COMPOUND Edge Function, which needs
  * the id of a stored snapshot row so the answer and its evidence are pinned to
- * one dataset. The market data on screen comes from `latest.json`; this is only
+ * one dataset. The market data on screen comes from the authenticated snapshot; this is only
  * the handle the answer is recorded against.
  */
 export async function loadAskSnapshotId(client: SupabaseClient, horizon: Horizon): Promise<string | null> {

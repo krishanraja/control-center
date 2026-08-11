@@ -42,31 +42,28 @@ export const EXPLAIN = {
 
 /** Section names. The bar gets one word, the rail gets the full name. */
 export const SECTION_SHORT: Record<TabKey, string> = {
-  now: "Today",
-  shifts: "Trends",
-  stocks: "Stocks",
-  mine: "Money",
+  brief: "Brief",
+  markets: "Markets",
+  portfolio: "Portfolio",
   ask: "Ask",
 };
 
 export const SECTION_LONG: Record<TabKey, string> = {
-  now: "Today",
-  shifts: "Big trends",
-  stocks: "Stocks",
-  mine: "My money",
-  ask: "Ask a question",
+  brief: "Today in markets",
+  markets: "Markets",
+  portfolio: "Portfolio",
+  ask: "Ask COMPOUND",
 };
 
 /** One line on what each section is for. The rail has room to say it. */
 export const SECTION_BLURB: Record<TabKey, string> = {
-  now: "What changed since yesterday",
-  shifts: "What is pushing prices around",
-  stocks: "Which names have real backing",
-  mine: "What you own and what it is doing",
-  ask: "Answers built from today's numbers",
+  brief: "The three signals that matter",
+  markets: "Opportunities and the full market",
+  portfolio: "Exposure, concentration and capacity",
+  ask: "Answers across today or history",
 };
 
-export const SECTION_ORDER: TabKey[] = ["now", "shifts", "stocks", "mine", "ask"];
+export const SECTION_ORDER: TabKey[] = ["brief", "markets", "portfolio", "ask"];
 
 /** The four groups an industry can land in. Direction first, price second. */
 export const GROUP_NAME: Record<Quadrant, string> = {
