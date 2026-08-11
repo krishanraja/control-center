@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { GoalLadder } from '../goals/GoalLadder'
+import { GoalLadder, type LadderGoal } from '../goals/GoalLadder'
 import {
   Activity as ActivityIcon, ChevronRight,
   Pencil, Check, X, Compass,
@@ -87,7 +87,14 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
   const v2 = isHomeV2Enabled()
   const { intel } = useHomeIntelligence()
   const [events, setEvents] = useState<AuditEvent[]>([])
-  const [goalsData, setGoalsData] = useState<{ north_star: string; team_focus: string; week_of: string } | null>(null)
+  // The hero reads the OS rung straight off the ladder's payload. It used to
+  // render system_config.north_star, a second store for the same concept with
+  // no editor anywhere in the UI, so it could only ever go stale.
+  const [goalsData, setGoalsData] = useState<{
+    os_goals: LadderGoal[]
+    team_focus: string
+    week_of: string
+  } | null>(null)
   const { tasks: waitingRaw } = useRealtimeTasks({ statusIn: ['waiting'] })
   // The shared queue rule (unreviewed, unburied, not deferred to a future
   // date) so the strip's Today tile and the ruling queue can never disagree.
@@ -157,7 +164,7 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
             collapse the way the old objectives panel did. */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <OsMissionHero
-            northStar={goalsData?.north_star}
+            osGoals={goalsData?.os_goals}
             teamFocus={goalsData?.team_focus}
             weekOf={goalsData?.week_of}
             recommendedFocus={recommendedFocus}
@@ -244,7 +251,7 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
           above the ambient fold. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <OsMissionHero
-          northStar={goalsData?.north_star}
+          osGoals={goalsData?.os_goals}
           teamFocus={goalsData?.team_focus}
           weekOf={goalsData?.week_of}
           recommendedFocus={recommendedFocus}
@@ -292,9 +299,9 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
 }
 
 function OsMissionHero({
-  northStar, teamFocus, weekOf, recommendedFocus, onSaveFocus,
+  osGoals, teamFocus, weekOf, recommendedFocus, onSaveFocus,
 }: {
-  northStar?: string
+  osGoals?: LadderGoal[]
   teamFocus?: string
   weekOf?: string
   recommendedFocus?: string
@@ -332,12 +339,28 @@ function OsMissionHero({
       </div>
 
       <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-6 md:p-7 space-y-4">
-        {northStar ? (
-          <p className="text-[17px] md:text-[19px] font-serif text-white/88 leading-relaxed">
-            {northStar}
-          </p>
+        {osGoals && osGoals.length > 0 ? (
+          <ul className="space-y-2.5">
+            {osGoals.map(g => (
+              <li key={g.id} className="flex items-baseline gap-2.5">
+                <span className="text-[17px] md:text-[19px] font-serif text-white/88 leading-relaxed">
+                  {g.title}
+                </span>
+                {g.is_stale && (
+                  <span
+                    className="shrink-0 text-[10px] uppercase tracking-[0.14em] font-semibold text-amber-300/70"
+                    title={g.days_since_touch != null ? `Untouched for ${g.days_since_touch} days` : 'Stale'}
+                  >
+                    stale
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
         ) : (
-          <p className="text-[15px] font-serif text-white/30 italic">No north star set yet.</p>
+          <p className="text-[15px] font-serif text-white/30 italic">
+            No OS goal yet. Add one in the ladder beside this. Everything else hangs off it.
+          </p>
         )}
 
         <div className="h-px bg-white/[0.05]" />

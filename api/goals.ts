@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { weekOfLabel } from './_week.js'
 import { supabase } from './_supabase.js'
+import { syncNorthStar } from './_northStar.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -107,8 +108,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (body.team_focus !== undefined) {
       await supabase.from('system_config').upsert({ key: 'team_focus', value: body.team_focus, updated_at: new Date().toISOString() })
     }
+    // north_star is NOT writable here any more. It is a mirror of the ladder's
+    // OS rung (api/_northStar.ts), not a store. It had a write path that no UI
+    // ever called, which is exactly how it came to sit unchanged from April to
+    // August while Home rendered it as the mission.
     if (body.north_star !== undefined) {
-      await supabase.from('system_config').upsert({ key: 'north_star', value: body.north_star, updated_at: new Date().toISOString() })
+      return res.status(400).json({
+        ok: false,
+        error: 'north_star is derived from the OS rung of the goal ladder. Edit the OS goal instead.',
+      })
     }
 
     if (body.goalId) {
@@ -117,7 +125,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // (provenance survives acceptance — see api/objectives/[id]/nominate-accept.ts).
       const { data: existing } = await supabase
         .from('goals')
-        .select('title, current, source, venture, objective_kind')
+        .select('title, current, source, venture, objective_kind, horizon')
         .eq('id', body.goalId)
         .single()
 
@@ -146,6 +154,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (error) {
         return res.status(500).json({ ok: false, error: error.message })
       }
+
+      // Editing or retiring an OS goal changes what the mirror should say.
+      if (existing?.horizon === 'os') await syncNorthStar()
 
       // Amendment-as-feedback: reshaping the *title* of a Marcus-nominated goal
       // is an objective-altitude override that should feed his learning loop.

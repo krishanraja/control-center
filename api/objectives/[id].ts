@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { syncNorthStar } from '../_northStar.js'
 
 // GET   /api/objectives/:id
 //   Returns the objective tree via get_objective_tree:
@@ -67,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const { data: existing, error: exErr } = await supabase
       .from('goals')
-      .select('id, title, priority, venture, objective_kind, source, status')
+      .select('id, title, priority, venture, objective_kind, source, status, horizon')
       .eq('id', id)
       .single()
     if (exErr) return res.status(500).json({ ok: false, error: exErr.message })
@@ -109,6 +110,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .select()
       .single()
     if (error) return res.status(500).json({ ok: false, error: error.message })
+
+    // Retitling or retiring an OS goal changes what the north_star mirror says.
+    if (existing.horizon === 'os') await syncNorthStar()
 
     // Objective-altitude learning signal on a title reshape. Caller can override
     // the reason_code (the voice flow sends marcus_objective_releveled when it

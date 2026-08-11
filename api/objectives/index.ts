@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { syncNorthStar } from '../_northStar.js'
 
 // Objective Layer, Phase 4.
 // GET  /api/objectives           list active objectives (plus optional nominations)
@@ -161,6 +162,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .select()
       .single()
     if (error) return res.status(500).json({ ok: false, error: error.message })
+
+    // Keep system_config.north_star resolvable for readers outside this repo.
+    if (row.horizon === 'os') await syncNorthStar()
+
     return res.json({ ok: true, objective: data })
   }
 

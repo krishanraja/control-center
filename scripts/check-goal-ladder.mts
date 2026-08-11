@@ -95,5 +95,94 @@ if (!/needsParent/.test(ladder) || !/What does it serve\?/.test(ladder)) {
   bad('the ladder no longer forces a non-OS goal to name its parent; orphans will return')
 }
 
-console.log(fail === 0 ? 'PASS  one editor, four rungs, parents enforced' : `${fail} FAILURE(S)`)
+// ── 6. no second DISPLAY of the OS rung ────────────────────────────────────
+// The original invariant guarded goal ENTRY, and that is what let this
+// regress. `system_config.north_star` was a second store for "what the OS is
+// for": one string, an API write path no UI ever called, rendered read-only in
+// Home's hero beside the ladder's live OS rung. It POSTed nothing and was named
+// neither retired component, so it passed every check above while showing a
+// stale second version of the same concept. It went unwritten from 2026-04-14
+// to 2026-08-11.
+//
+// north_star is now a derived mirror (api/_northStar.ts) kept only for readers
+// outside this repo. Nothing in src/ may read it.
+// Comments are stripped first: this file's own explanation of WHY north_star is
+// gone would otherwise trip the rule that removed it. (Crude stripper -- a `//`
+// inside a string literal drops the rest of that line. Good enough here, and it
+// errs toward false PASS on that one line, never a false FAIL.)
+const stripComments = (src: string) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
+
+for (const f of files) {
+  const src = stripComments(readFileSync(f, 'utf8'))
+  if (/north_?[Ss]tar/.test(src)) {
+    bad(`${f} references north_star; the OS rung of the ladder is the store, and the hero reads os_goals`)
+  }
+}
+
+// The hero must take its OS goals from the ladder's payload, not from anywhere
+// else. If this binding is removed, the display has drifted off the one store
+// again even if no new editor appeared.
+{
+  const home = 'src/components/desktop/DesktopHome.tsx'
+  const src = readFileSync(home, 'utf8')
+  // EVERY hero, not just one of them. Home renders OsMissionHero once per
+  // feature-flag branch, so checking "does the binding appear anywhere" would
+  // pass with one branch correct and the other drifted.
+  const heroes = Array.from(src.matchAll(/<OsMissionHero\b[\s\S]*?\/>/g))
+  if (heroes.length === 0) bad(`${home} no longer renders <OsMissionHero>`)
+  for (const m of heroes) {
+    if (!/osGoals=\{goalsData\?\.os_goals\}/.test(m[0])) {
+      bad(`${home} renders an <OsMissionHero> that does not take os_goals from the ladder read`)
+    }
+  }
+}
+
+// ── 7. exactly one focus editor per surface ────────────────────────────────
+// Deliberate split, not an accident: the desktop hero owns the focus line
+// because its editor offers Marcus's recommendation, so the ladder is passed
+// showFocus={false} there. Mobile has no hero, so the ladder owns it. Asserted
+// rather than left to convention, because "two editors for one field" is the
+// exact bug this file exists to prevent.
+{
+  const desktop = readFileSync('src/components/desktop/DesktopHome.tsx', 'utf8')
+  for (const m of desktop.matchAll(/<GoalLadder\b[^>]*>/g)) {
+    if (!/showFocus=\{false\}/.test(m[0])) {
+      bad(`DesktopHome renders <GoalLadder> without showFocus={false}; the hero already owns the focus line`)
+    }
+  }
+  const mobile = readFileSync('src/components/mobile/MobileHome.tsx', 'utf8')
+  for (const m of mobile.matchAll(/<GoalLadder\b[^>]*>/g)) {
+    if (/showFocus=\{false\}/.test(m[0])) {
+      bad(`MobileHome disables the ladder's focus editor, and mobile has no hero to own it instead`)
+    }
+  }
+}
+
+// ── 8. one horizon vocabulary, everywhere ──────────────────────────────────
+// The rungs are a closed set. Three places name them independently and a fourth
+// enforces them in Postgres (goals_horizon_check). If they drift, a goal can be
+// written at an altitude some surface does not filter for, which is how rows
+// end up belonging to no surface and showing up on all of them.
+{
+  const CANON = ['os', 'mid_term', 'weekly', 'venture_objective']
+  const sources: Array<[string, RegExp]> = [
+    ['api/goals/ladder.ts', /const HORIZONS = \[([^\]]*)\]/],
+    ['api/objectives/index.ts', /const ALLOWED_HORIZON = new Set\(\[([^\]]*)\]/],
+  ]
+  for (const [file, re] of sources) {
+    const m = readFileSync(file, 'utf8').match(re)
+    if (!m) { bad(`${file} no longer declares its horizon list where the guard can read it`); continue }
+    const found = Array.from(m[1].matchAll(/'([a-z_]+)'/g)).map(x => x[1])
+    if (found.join(',') !== CANON.join(',')) {
+      bad(`${file} horizons are [${found.join(', ')}]; canon is [${CANON.join(', ')}]`)
+    }
+  }
+  const rungIds = Array.from(ladder.matchAll(/id:\s*'([a-z_]+)'/g)).map(x => x[1])
+  for (const id of rungIds) {
+    if (!CANON.includes(id)) bad(`the ladder has a rung '${id}' that is not a canonical horizon`)
+  }
+}
+
+console.log(fail === 0 ? 'PASS  one editor, one display, four rungs, parents enforced' : `${fail} FAILURE(S)`)
 process.exit(fail ? 1 : 0)

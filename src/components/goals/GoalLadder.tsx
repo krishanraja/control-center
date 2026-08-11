@@ -43,7 +43,6 @@ interface LadderData {
   goals: LadderGoal[]
   stale_count: number
   orphan_count: number
-  north_star: string
   team_focus: string
   week_of: string
 }
@@ -77,8 +76,17 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
    * focus). Mobile has no hero, so the ladder owns it.
    */
   showFocus?: boolean
-  /** Home's hero still needs north_star / team_focus / week_of. */
-  onDataLoaded?: (d: { north_star: string; team_focus: string; week_of: string }) => void
+  /**
+   * Home's hero renders the OS rung and the focus line, so it needs the
+   * resolved OS goals rather than a separate mission string: one store, two
+   * views. The API still returns the derived north_star mirror for readers
+   * outside this repo; nothing in src/ may consume it.
+   */
+  onDataLoaded?: (d: {
+    os_goals: LadderGoal[]
+    team_focus: string
+    week_of: string
+  }) => void
 }) {
   const h = useHaptics()
   const [data, setData] = useState<LadderData | null>(null)
@@ -103,7 +111,11 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
       const j = await r.json()
       if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
       setData(j)
-      onDataLoaded?.({ north_star: j.north_star, team_focus: j.team_focus, week_of: j.week_of })
+      onDataLoaded?.({
+        os_goals: j.by_horizon?.os ?? [],
+        team_focus: j.team_focus,
+        week_of: j.week_of,
+      })
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load goals')
