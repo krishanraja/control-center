@@ -164,13 +164,31 @@ scored AS (
     (ci.intel_method = 'rules_v1') AS thin_evidence,
 
     -- ── Semantic ────────────────────────────────────────────────────────────
-    -- Cosine similarity, rescaled from the band real matches actually occupy.
-    -- Raw cosine over short profile text clusters around 0.6-0.9, so mapping
-    -- [0.55, 0.95] onto [0,1] spreads the signal instead of compressing every
-    -- result into the top of the range.
+    -- Cosine similarity, rescaled onto the band real queries actually occupy.
+    --
+    -- MEASURED, after the first band was guessed and was wrong. [0.55, 0.95]
+    -- assumed raw cosine clusters high; against 2,500 real embeddings it does
+    -- not. text-embedding-3-small over short profile text gives:
+    --
+    --   query                          p50    p99    max
+    --   CMO at a bank, AI governance   0.351  0.556  0.657
+    --   publisher identity             0.329  0.491  0.596
+    --   podcast guest thesis           0.308  0.471  0.525
+    --   mindmaker buyer thesis         0.336  0.520  0.565
+    --   "purple monkey dishwasher"     0.100  0.199  0.275
+    --
+    -- So a 0.55 floor sat above the 99th percentile of every real query and the
+    -- whole tier emitted ~0. Symptom: recommend mode and "who should I talk to
+    -- for the podcast" both came back flagged weak, over correct results.
+    --
+    -- [0.30, 0.62] is read straight off that table. The floor sits between the
+    -- nonsense ceiling (0.275) and the real-query median (~0.33), so noise still
+    -- lands at exactly 0 while a genuine top match reaches ~1.0. Re-measure with
+    -- public.cosine_probe() if the embedding model or the intel_doc shape
+    -- changes; both would move this band.
     CASE
       WHEN q.qvec IS NULL OR ci.embedding IS NULL THEN NULL
-      ELSE greatest(0, least(1, (((1 - (ci.embedding <=> q.qvec)) - 0.55) / 0.40)))
+      ELSE greatest(0, least(1, (((1 - (ci.embedding <=> q.qvec)) - 0.30) / 0.32)))
     END AS s_semantic,
 
     -- ── Lexical ─────────────────────────────────────────────────────────────
@@ -358,3 +376,34 @@ COMMENT ON FUNCTION public.network_search IS
 -- is through the access-gated /api/network/* routes.
 REVOKE ALL ON FUNCTION public.network_search FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.network_search TO service_role;
+
+
+-- ── cosine_probe ────────────────────────────────────────────────────────────
+-- The calibration instrument for the band above. Committed rather than left as
+-- an untracked production object, because untracked schema is precisely the
+-- drift this repo already carries (the core public tables have no CREATE TABLE
+-- in version control).
+--
+-- Samples 2,500 embedded rows rather than scanning all of them: the full scan
+-- exceeds the PostgREST statement timeout, and percentiles do not need the
+-- population.
+DROP FUNCTION IF EXISTS public.cosine_probe(text);
+CREATE FUNCTION public.cosine_probe(p_vec text)
+RETURNS TABLE(p50 numeric, p90 numeric, p99 numeric, p999 numeric, mx numeric, above55 bigint, n bigint)
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = public, pg_temp AS $probe$
+  WITH samp AS (
+    SELECT embedding FROM public.contact_intelligence WHERE embedding IS NOT NULL LIMIT 2500
+  ), sims AS (
+    SELECT 1 - (embedding <=> p_vec::vector) AS cos FROM samp
+  )
+  SELECT round(percentile_cont(0.50) WITHIN GROUP (ORDER BY cos)::numeric, 3),
+         round(percentile_cont(0.90) WITHIN GROUP (ORDER BY cos)::numeric, 3),
+         round(percentile_cont(0.99) WITHIN GROUP (ORDER BY cos)::numeric, 3),
+         round(percentile_cont(0.999) WITHIN GROUP (ORDER BY cos)::numeric, 3),
+         round(max(cos)::numeric, 3),
+         count(*) FILTER (WHERE cos >= 0.55), count(*)
+  FROM sims;
+$probe$;
+
+REVOKE ALL ON FUNCTION public.cosine_probe(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.cosine_probe(text) TO service_role;
