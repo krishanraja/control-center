@@ -67,8 +67,6 @@ jobs:
           COINGECKO_PRO_API_KEY: ${{ secrets.COINGECKO_PRO_API_KEY }}
           PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          COMPOUND_ALERT_FROM: ${{ secrets.COMPOUND_ALERT_FROM }}
         run: deno task run --mode ${{ github.event_name == 'schedule' && 'scheduled' || 'manual' }} --attempt 1 --force ${{ (steps.guard.outputs.snapshot_date || steps.manual.outputs.snapshot_date) && format('--date {0}', steps.guard.outputs.snapshot_date || steps.manual.outputs.snapshot_date) || '' }}
       - name: Wait before attempt 2
         if: steps.attempt1.outcome == 'failure'
@@ -83,7 +81,7 @@ jobs:
       - name: Wait before attempt 3
         if: steps.attempt2.outcome == 'failure'
         run: sleep 900
-      - name: Attempt 3 and product alert
+      - name: Attempt 3
         id: attempt3
         if: steps.attempt2.outcome == 'failure'
         continue-on-error: true
