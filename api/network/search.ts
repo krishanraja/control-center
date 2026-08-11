@@ -32,7 +32,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tiers: Array.isArray(body.tiers) ? body.tiers.map(String) : null,
       minConfidence: typeof body.min_confidence === 'string' ? body.min_confidence : null,
       limit: typeof body.limit === 'number' ? body.limit : 20,
-      rerank: body.rerank !== false,
+      // OPT-IN, not opt-out. This read `body.rerank !== false`, so an omitted
+      // flag became true and the explanation pass stayed on the critical path
+      // even after the executor's default was changed. That single coercion is
+      // why the endpoint still measured 22s: `tail` (everything after the RPC)
+      // was 18s of it.
+      rerank: body.rerank === true,
     })
     return res.status(200).json(out)
   } catch (e: unknown) {
