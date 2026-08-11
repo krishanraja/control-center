@@ -16,3 +16,9 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
+      # Structural invariants. These guard shapes the type checker cannot see:
+      # that one component owns goal entry AND goal display, and that the SMART
+      # rubric stays calibrated per rung. Both encode bugs that already shipped
+      # once, so they run on every push rather than by hand.
+      - run: npx tsx scripts/check-goal-ladder.mts
+      - run: npx tsx scripts/check-goal-gate.mts
