@@ -21,21 +21,23 @@
 4. Daily-history PR #238 and capture repair PR #240 are merged.
 5. Workflow run `31533242283` published two cited, three-position snapshots for 2026-08-11.
 6. The partial state names the CoinGecko 429 limitation and keeps supported FMP, FRED, and DefiLlama claims.
-7. Calm Brief PR #239 is green and merge-clean against main.
+7. Calm Brief PR #239 and production-readback correction PR #241 are merged. Current application revision: `8a71bfa925e6b084598cd5019248967507580dc6`.
 8. The demo fixture is removed from `public/`; production mode compiles it to `null`, while explicit demo mode bundles it locally.
 9. All 123 known FMP industries map to exactly 11 top-level sectors. A partial capture with no industry moves still renders the full taxonomy without inventing a move.
 10. Resend remains uninstalled, unbilled, and unreachable from the workflow.
+11. Certified production application deployment `dpl_BfJe3aMhW9sd2Vz1wtnPuHGJageV` is ready on `compound.krishraja.com`.
+12. `/latest.json` returns the HTML app shell rather than JSON or the former fixture. Anonymous `/api/snapshots/latest` returns 401 with private no-store headers.
+13. Authenticated production readback passed the cited Brief face, full detail context and sources, 11 collapsed Settings sectors, 123-industry explorer, History, Ask, and honest empty Portfolio state in stack and split.
+14. Production checks passed at 390, 1024, and 1440 pixels with no horizontal overflow. PR #241 removed the split-panel headline squeeze found during that readback.
+15. Vercel reported no runtime-error clusters in the two-hour release window.
 
-## Remaining merge gate
+## Remaining operational truth gates
 
-1. Merge PR #239 and confirm the main deployment is ready.
-2. Verify `/latest.json` is not served and anonymous snapshot/history calls return 401 with private no-store headers.
-3. Sign in through the one-user magic-word flow without exposing the word to automation or documentation.
-4. Verify the cited Brief face, detail context, 11 collapsed Settings sectors, 123-industry explorer, History, Ask, and honest empty Portfolio state in stack and split.
-5. Check production runtime errors and preserve final screenshots.
-6. Observe two scheduled runs; the next run must capture industry rows through FMP's `averageChange` contract.
+1. Observe two scheduled runs; the next run must capture industry rows through FMP's `averageChange` contract.
+2. Seed an approved holdings source before claiming Portfolio history is complete.
+3. Prove historical-vintage behavior before starting the five-year backfill.
 
-## Blockers after UI merge
+## Open evidence gaps
 
 - Two scheduled runs have not yet been observed.
 - The first captured day has zero industry moves; this is disclosed and the parser is fixed, but live 123-row evidence awaits the next capture.

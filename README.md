@@ -24,6 +24,18 @@ rows (`agents.brief_content`) plus ~76 N8N workflows; they live in the
 broader Mindmaker OS, hosted on a VPS and N8N Cloud. The Control Center is
 the dashboard slice. See [§Place in the broader OS](#place-in-the-broader-os).
 
+### Sibling application: COMPOUND
+
+`compound/` is a separate React + TypeScript + Vite application deployed to
+[`compound.krishraja.com`](https://compound.krishraja.com). It is Krish's
+private, single-user, market-wide investing brief; it is not a Control Center
+feature and does not read Control Center application data. Production reads
+authenticated immutable snapshots from the isolated `compound` Supabase
+schema. There is no public signup, pricing, billing, customer access, or paid
+email tier. Start with [`docs/plans/compound/STATE.md`](docs/plans/compound/STATE.md)
+for current release truth and [`docs/DECISIONS/009-compound-isolated-application-boundary.md`](docs/DECISIONS/009-compound-isolated-application-boundary.md)
+for the boundary contract.
+
 ## What this repo should be
 
 The promise the dashboard exists to keep:

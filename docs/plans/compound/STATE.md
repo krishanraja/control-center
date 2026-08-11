@@ -10,13 +10,14 @@
 ## Current release state
 
 - Daily archive release: PR #238 merged as `716f275fa5fe61dd87ed767cd1ad0bedaf7705e9`.
-- Capture hotfix: PR #240 merged as `310b77a4f2e3017ef4f58d61c27f5bc93918d6bd`; production deployment `dpl_9pPPVNH3pmVECW1WbNMSGXucftQj` is ready.
+- Capture hotfix: PR #240 merged as `310b77a4f2e3017ef4f58d61c27f5bc93918d6bd`.
 - First capture: workflow run `31533242283` published 2026-08-11 on attempt one after the JSON content-type repair.
 - Captured archive: one 3-month and one 1-year row, both `origin = captured`, `schema_version = 2`, `engine_version = compound-brief/1.0.0`, and `status = partial`.
 - Partial limitation: the public CoinGecko endpoint returned HTTP 429 for Solana. The unsupported crypto claim was suppressed; FMP, FRED, and DefiLlama evidence remained available.
 - Brief proof: each horizon contains exactly three stories and all three have citations. FRED source dates are 2026-08-10 for rates and credit and 2026-08-07 for currencies; FMP and DefiLlama source dates are 2026-08-11.
-- Industry proof: the first captured row contains zero industry moves because the collector did not parse FMP's current `averageChange` field. The Calm Brief branch fixes that field and exchange aggregation. Until the next capture, the live explorer uses the exhaustive static 123-name taxonomy and shows no unsupported move.
-- Calm Brief release: PR #239 is green, merge-clean, retargeted to main, and ready for merge.
+- Industry proof: the first captured row contains zero industry moves because the collector did not parse FMP's current `averageChange` field. The production collector now parses that field and aggregates duplicate exchange rows. Until the next capture, the live explorer uses the exhaustive static 123-name taxonomy and shows no unsupported move.
+- Calm Brief release: PR #239 merged as `7a93172ee4c2ccd8785512a88bb2cf748565db2c`.
+- Production-readback correction: PR #241 merged as `8a71bfa925e6b084598cd5019248967507580dc6`. Its certified application deployment is `dpl_BfJe3aMhW9sd2Vz1wtnPuHGJageV`.
 - Historical reconstruction: not started. The five-year backfill remains gated on reliable live capture and historical-vintage proof.
 
 ## Production infrastructure
@@ -28,6 +29,7 @@
 - GitHub environment `Production – compound` contains the six required database, market-data, and context secret names.
 - CoinGecko uses its public endpoint; no paid CoinGecko key is configured.
 - Resend is dormant. There is no resource, paid plan, domain, API key, or workflow variable. GitHub's failed-workflow notification is the operational alert.
+- Vercel Authentication protects non-custom deployment URLs. The custom domain uses COMPOUND's one-user application gate. Project password protection and trusted-IP filtering are off.
 
 ## Access model
 
@@ -63,18 +65,19 @@
 - Pipeline: Deno type-check and 16 tests pass, including the production PostgREST regression and the current FMP `averageChange` contract.
 - `compound-ask`: Deno type-check and 10 tests pass. `compound-login`: Deno type-check passes.
 - Browser matrix: 24 representative, quiet, stale, and partial combinations pass at 320, 390, 430, 1024, 1440, and 1920 pixels with no horizontal overflow.
-- Updated screenshots from the private-fixture build are under `C:\Users\krish\.scratch\compound-calm-brief\after-private-fixture`.
+- Updated stack and split screenshots from the private-fixture build are under `C:\Users\krish\.scratch\compound-calm-brief\after-private-fixture`.
 - Live anonymous `/api/snapshots/latest` returns 401 with `Cache-Control: private, no-store`.
+- Live `/latest.json` returns the 562-byte HTML application shell, not JSON or the former private fixture. The production bundle contains no private demo snapshot.
+- Authenticated production readback passed at 390, 1024, and 1440 pixels: exactly three cited Brief positions, face-level wider-world provenance, full cited detail, 11 collapsed Settings sectors, the 123-industry Markets explorer, the captured History day, scoped Ask, and the honest empty Portfolio state. No horizontal overflow was present.
+- The split detail panel found during readback was corrected in PR #241; the remaining Brief collapses to one readable lead rather than squeezing its headline.
+- Vercel reported no production runtime-error clusters in the two-hour release window.
 - Production authentication previously passed wrong-word denial, one-time session exchange, private snapshot read, and signed-in Ask streaming without storing the word.
 
 ## Remaining release order
 
-1. Merge PR #239 and wait for the production deployment.
-2. Verify authenticated production Brief, Markets, Portfolio, History, Settings, and Ask in stack and split layouts.
-3. Prove production `/latest.json` is unavailable and the private snapshot API remains anonymous-denied.
-4. Verify the live Brief card face shows cited context without expansion and inspect Vercel runtime errors.
-5. Observe two scheduled 6:30 a.m. Eastern runs. The next run must prove the corrected 123-industry capture.
-6. Seed and archive holdings evidence before calling the Portfolio surface complete; the current live surface honestly shows an empty state when no supported holdings evidence exists.
-7. Begin five-year backfill only after the scheduled-run and vintage gates pass.
+1. Observe two scheduled 6:30 a.m. Eastern runs. The next run must prove the corrected 123-industry capture.
+2. Seed and archive holdings evidence before calling the Portfolio surface complete; the current live surface honestly shows an empty state when no supported holdings evidence exists.
+3. Prove historical-vintage handling for every reconstructed series.
+4. Begin the resumable five-year backfill only after the scheduled-run and vintage gates pass.
 
 Any external product, billing, paid email alert, additional member, or stronger customer authentication is a separate future decision.

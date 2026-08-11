@@ -27,6 +27,8 @@
 | [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Dev workflow + code standards |
 | [`DATA-RECOMMENDATIONS.md`](./DATA-RECOMMENDATIONS.md) | Forward-looking data pipeline improvements |
 | [`TESTING.md`](./TESTING.md) | What is tested, how to run it, and the selector rule that keeps it green |
+| [`plans/compound/STATE.md`](./plans/compound/STATE.md) | Current production truth for the private COMPOUND sibling application |
+| [`plans/compound/RELEASE_GATE.md`](./plans/compound/RELEASE_GATE.md) | Completed release evidence and genuinely open operational gates for COMPOUND |
 
 The `pr-*.md` files (e.g. `pr-7-living-plans-decisions-view.md`) and the
 `visibility-followups-2026-05.md` file are rolling change notes from the
