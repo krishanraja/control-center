@@ -31,7 +31,12 @@
     <meta name="description" content="Decisions, not admin — autonomous operations command center." />
     <style>
       html, body { background: #08070d; }
-      html[data-theme='light'], html[data-theme='light'] body { background: #fbfaf7; }
+      /* Must match --bg-base in src/index.css exactly. This block paints
+         before hydration so the page never flashes; when it disagrees with the
+         stylesheet it produces the very flash it exists to prevent, which it
+         did: #fbfaf7 here against #f2f1f8 there, two different off-whites on
+         every light-mode load. */
+      html[data-theme='light'], html[data-theme='light'] body { background: #f2f1f8; }
       html[data-theme='light'] #brand-splash { background: radial-gradient(120% 90% at 50% 38%, #ffffff 0%, #f4f2ed 62%); }
       html[data-theme='light'] #brand-splash .ring { border-color: rgba(20,18,40,0.08); }
       html[data-theme='light'] #brand-splash .particle { background: #6354e0; box-shadow: 0 0 14px 3px rgba(99,84,224,0.5); }

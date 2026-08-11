@@ -80,7 +80,7 @@ and `:root[data-theme='light']` (day), mapped into semantic Tailwind names in
 ### Colour
 | Token | Dark | Light | Tailwind |
 |---|---|---|---|
-| `--bg-base` | `#08070D` obsidian | `#FBFAF7` paper | `bg-base` |
+| `--bg-base` | `#08070D` obsidian | `#F2F1F8` lavender paper | `bg-base` |
 | `--bg-sunk` | `#060509` | `#F4F2ED` | `bg-sunk` |
 | `--ink` / muted / faint | `#ECEAF5` / `#A7A3B8` / `#6E6A80` | `#161620` / `#5C5868` / `#8C8898` | `text-ink` / `text-ink-muted` / `text-ink-faint` |
 | `--fg` (white remap) | `255 255 255` | `24 22 32` | `*-white/NN` |
@@ -182,7 +182,8 @@ wrong once here:
    correct at night and washes out to illegible on paper.
 2. **Never hand-roll an overlay.** `shared/Modal` for a modal, `SlideOver` for a
    right panel, `BottomSheet` for a sheet. A bare `fixed inset-0` has no dialog
-   role, no focus trap, no scroll lock and no focus restoration; there were
-   fourteen of them and now there are none.
+   role, no focus trap, no scroll lock and no focus restoration. Fourteen
+   surfaces had that problem. The two `fixed inset-0` overlays left are a menu
+   and a click-away scrim, neither of which is a modal.
 3. **Never hand-roll a tab switcher.** `shared/SegmentedNav` gives roving focus,
    arrow keys, Home/End and a `testIdPrefix` for the e2e suite.
