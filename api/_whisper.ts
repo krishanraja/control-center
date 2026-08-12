@@ -7,8 +7,21 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 // timeout; never throws — the caller's frontend always has a text fallback.
 
 const WHISPER_URL = 'https://api.openai.com/v1/audio/transcriptions'
-const WHISPER_MODEL = 'whisper-1'
-const TIMEOUT_MS = 10_000
+const WHISPER_MODEL = 'gpt-4o-transcribe'
+// 10s cut off any dictation longer than a sentence or two and silently fell
+// back to text, which read as "voice capture is bad" rather than "it timed
+// out". A voice note is allowed to be a minute long.
+const TIMEOUT_MS = 45_000
+
+// Whisper decodes proper nouns cold unless you bias it. Every one of these was
+// being mangled: the prompt is a decoding hint, not a transcript, so it only
+// needs to name the vocabulary this house actually uses.
+const VOCAB_PROMPT = [
+  'Mindmaker, Mindmaker Live, Mindmaker OS, Krish Raja, CTRL, Fractionl,',
+  'Legibility, Techonomic, Maven, Substack, Signal and Noise, COMPOUND.',
+  'Agents: Cleo, Marcus, Vera, Agatha, Nell, Nova, Zara, Kai, Priya, Leo,',
+  'Felix, Hunter, Arlo, Maya. Formats: Built, Paid, Teardown, field learning.',
+].join(' ')
 
 interface WhisperOk {
   ok: true
@@ -67,32 +80,50 @@ export async function transcribeRequest(req: VercelRequest): Promise<TranscribeO
 
   const { mime, ext } = inferMime(req.headers['content-type'] as string | undefined)
 
-  const form = new FormData()
-  form.append('file', new Blob([new Uint8Array(body)], { type: mime }), `voice.${ext}`)
-  form.append('model', WHISPER_MODEL)
+  // One attempt, then one retry. Every other model path in this repo retries
+  // once; this one did not, so a single blip became a silent text fallback.
+  let last: WhisperResult = { ok: false, fallback: 'text', reason: 'whisper_error' }
+  let lastStatus = 502
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const form = new FormData()
+    form.append('file', new Blob([new Uint8Array(body)], { type: mime }), `voice.${ext}`)
+    form.append('model', WHISPER_MODEL)
+    form.append('language', 'en')
+    form.append('prompt', VOCAB_PROMPT)
 
-  const ctrl = new AbortController()
-  const tid = setTimeout(() => ctrl.abort('whisper_timeout'), TIMEOUT_MS)
-  try {
-    const r = await fetch(WHISPER_URL, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}` },
-      body: form,
-      signal: ctrl.signal,
-    })
-    if (!r.ok) {
-      return { status: 502, result: { ok: false, fallback: 'text', reason: `whisper_${r.status}` } }
+    const ctrl = new AbortController()
+    const tid = setTimeout(() => ctrl.abort('whisper_timeout'), TIMEOUT_MS)
+    try {
+      const r = await fetch(WHISPER_URL, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}` },
+        body: form,
+        signal: ctrl.signal,
+      })
+      if (!r.ok) {
+        lastStatus = 502
+        last = { ok: false, fallback: 'text', reason: `whisper_${r.status}` }
+        // 4xx is a bad request; retrying sends the identical body for the
+        // identical answer. Only a 5xx or a network fault is worth a second go.
+        if (r.status < 500) return { status: lastStatus, result: last }
+        continue
+      }
+      const j = (await r.json()) as { text?: string }
+      const text = (j.text || '').trim()
+      if (!text) return { status: 502, result: { ok: false, fallback: 'text', reason: 'whisper_empty' } }
+      return { status: 200, result: { ok: true, text } }
+    } catch (e: unknown) {
+      const timedOut = (e as Error)?.name === 'AbortError'
+      lastStatus = 502
+      last = { ok: false, fallback: 'text', reason: timedOut ? 'whisper_timeout' : 'whisper_error' }
+      // A timeout means the recording was long or the network was slow. Say so
+      // rather than emptying the box with no explanation.
+      if (timedOut) return { status: lastStatus, result: last }
+    } finally {
+      clearTimeout(tid)
     }
-    const j = (await r.json()) as { text?: string }
-    const text = (j.text || '').trim()
-    if (!text) return { status: 502, result: { ok: false, fallback: 'text', reason: 'whisper_empty' } }
-    return { status: 200, result: { ok: true, text } }
-  } catch (e: unknown) {
-    const reason = (e as Error)?.name === 'AbortError' ? 'whisper_timeout' : 'whisper_error'
-    return { status: 502, result: { ok: false, fallback: 'text', reason } }
-  } finally {
-    clearTimeout(tid)
   }
+  return { status: lastStatus, result: last }
 }
 
 export async function handleWhisper(req: VercelRequest, res: VercelResponse): Promise<void> {
