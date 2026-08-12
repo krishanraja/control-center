@@ -11,11 +11,32 @@ import { supabase } from './_supabase.js'
  * Intel tab. See docs/MINDMAKER_OS_ARCHITECTURE.md section 11.4.
  */
 
-const APPS = ['circle', 'pulse', 'ctrl', 'gutted', 'merciless', 'onalert']
+// The app list comes from venture_registry, not a literal. The literal here
+// still named gutted, merciless and onalert, all retired from the control plane
+// 2026-07-06, so the panel kept a column for three dead products.
+//
+// `app_key` is the binding: venture_registry.slug uses lane slugs (mm_ctrl,
+// fractionl_pulse) while attribution.events.app uses short keys (ctrl, pulse),
+// and nothing joined them. Falls back to the live three if the column is not
+// populated yet, so this degrades to a correct subset rather than to nothing.
+const FALLBACK_APPS = ['circle', 'pulse', 'ctrl']
+
+async function activeApps(): Promise<string[]> {
+  const { data } = await supabase
+    .from('venture_registry')
+    .select('app_key')
+    .eq('active', true)
+    .not('app_key', 'is', null)
+  const keys = (data || [])
+    .map(r => String((r as { app_key?: unknown }).app_key || '').trim())
+    .filter(Boolean)
+  return keys.length ? [...new Set(keys)] : FALLBACK_APPS
+}
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {
-    const [funnel, revenue, health] = await Promise.all([
+    const [APPS, funnel, revenue, health] = await Promise.all([
+      activeApps(),
       supabase.from('fleet_funnel_by_campaign').select('*'),
       supabase.from('fleet_revenue_by_campaign').select('*'),
       supabase.from('attribution_app_health').select('*'),

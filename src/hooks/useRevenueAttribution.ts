@@ -35,11 +35,16 @@ export interface AttributionBucket {
 
 const MS_PER_DAY = 86_400_000
 
+// Defaults to 0, meaning "no goal set", so the goal bar hides rather than
+// measuring against a number nobody chose. system_config.mrr_goal_usd held
+// 100000 while the retired north_star string said $20K: two revenue goals, in
+// two stores, contradicting each other on the same screen. Revenue targets
+// belong on the goal ladder now (docs/GOALS-DUPLICATION-AUDIT.md section A).
 function mrrGoalFromConfig(rows: any[]): number {
   const row = rows.find(r => r.key === 'mrr_goal_usd')
-  if (!row) return 100_000
+  if (!row) return 0
   const n = Number(row.value)
-  return Number.isFinite(n) ? n : 100_000
+  return Number.isFinite(n) && n > 0 ? n : 0
 }
 
 function startOfDay(d: Date): Date {
@@ -82,7 +87,7 @@ export function useRevenueAttribution() {
   const { customers, totals, loading: customersLoading } = useCustomers()
   const [leadsById, setLeadsById]   = useState<Map<string, any>>(new Map())
   const [tasksById, setTasksById]   = useState<Map<string, any>>(new Map())
-  const [mrrGoal,   setMrrGoal]     = useState<number>(100_000)
+  const [mrrGoal,   setMrrGoal]     = useState<number>(0)
   const [loading,   setLoading]     = useState(true)
   const { revenue } = useRevenue()
 

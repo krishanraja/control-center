@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Method not allowed' })
 
-  const [goalsRes, healthRes, cfgRes] = await Promise.all([
+  const [goalsRes, healthRes, cfgRes, ventureRes] = await Promise.all([
     supabase
       .from('goals')
       .select('id, title, horizon, parent_id, venture, status, priority, progress, target, current, notes, why_now, definition_of_done, target_horizon, updated_at, created_at')
@@ -31,6 +31,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .order('created_at', { ascending: true }),
     supabase.from('goals_health').select('id, is_stale, orphaned, days_since_touch, stale_after_days'),
     supabase.from('system_config').select('key, value').in('key', ['north_star', 'team_focus']),
+    // The venture list belongs to the registry, not to a literal in the editor.
+    supabase.from('venture_registry').select('slug').eq('active', true).order('sort_order'),
   ])
 
   const err = goalsRes.error || healthRes.error || cfgRes.error
@@ -64,6 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Counts the UI shows without recomputing; staleness is urgent by design.
     stale_count: rows.filter(r => r.is_stale).length,
     orphan_count: rows.filter(r => r.orphaned).length,
+    ventures: (ventureRes.data || []).map(v => String((v as { slug: string }).slug)),
     north_star: cfg.north_star || '',
     team_focus: cfg.team_focus || '',
     // Derived, never read from config: a stored week label is wrong the

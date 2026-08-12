@@ -57,6 +57,7 @@ interface LadderData {
   goals: LadderGoal[]
   stale_count: number
   orphan_count: number
+  ventures: string[]
   team_focus: string
   week_of: string
 }
@@ -71,11 +72,11 @@ const RUNGS: Array<{ id: Horizon; label: string; noun: string; blurb: string }> 
   { id: 'venture_objective', label: 'Per venture', noun: 'a venture objective', blurb: 'One venture’s slice of a mid-term goal. Sits beside the week, not under it.' },
 ]
 
-// The live portfolio, mirroring venture_registry where active=true. Refocused
-// 2026-08-11: mymu, signal_noise and builder_economy are retired as ventures,
-// Circle is back because the OS manages it, and Plinth (which had been renamed
-// Legibility) is retired.
-const VENTURES = ['mindmaker', 'mindmaker_live', 'mm_ctrl', 'full_time', 'fractionl_circle', 'fractionl_pulse', 'investor']
+// The venture list arrives from venture_registry via the ladder read. It used
+// to be a hand-maintained literal here whose own comment said it mirrored
+// `venture_registry where active=true`, which is a copy that goes stale rather
+// than a mirror. FALLBACK only covers a cold read.
+const FALLBACK_VENTURES = ['mindmaker', 'mindmaker_live', 'mm_ctrl', 'full_time', 'fractionl_circle', 'fractionl_pulse']
 
 function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48)
@@ -554,7 +555,7 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
                 className="w-full min-h-[38px] px-2 rounded-lg bg-white/[0.04] border border-white/10 text-[12.5px] text-white/85 outline-none focus:border-violet-400/40"
               >
                 <option value="">No single venture</option>
-                {VENTURES.map(v => <option key={v} value={v}>{v}</option>)}
+                {(data?.ventures?.length ? data.ventures : FALLBACK_VENTURES).map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
           )}

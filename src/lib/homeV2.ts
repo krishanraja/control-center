@@ -4,7 +4,11 @@
 // (VITE_HOME_V2_ENABLED=true) + redeploy to roll out. Mirrors the
 // VITE_FOCUS_MODE_ENABLED pattern in useFocusMode.ts.
 export function isHomeV2Enabled(): boolean {
-  return import.meta.env.VITE_HOME_V2_ENABLED === 'true'
+  // Reads VITE_UI_V2_ENABLED, not VITE_HOME_V2_ENABLED. The latter is set in no
+  // environment and appears nowhere in .env.example: the name drifted, so this
+  // returned false everywhere while Vercel carried VITE_UI_V2_ENABLED=true and
+  // the branches it gates never rendered.
+  return import.meta.env.VITE_UI_V2_ENABLED === 'true'
 }
 
 // Gates the unified Focus Ritual: one guided stepper across all three altitudes

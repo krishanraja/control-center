@@ -11,45 +11,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'OPTIONS') return res.status(200).end()
 
+  // GET was removed 2026-08-11. It returned ONLY horizon='weekly' rows joined
+  // to tasks, which is a third answer to "what are the goals" beside
+  // /api/goals/ladder and /api/objectives. It had zero callers in src/ and no
+  // checked-in n8n workflow referenced it. GET /api/goals/ladder is the one
+  // read. PATCH below stays: it is the ladder's mutation path.
   if (req.method === 'GET') {
-    const [goalsRes, configRes, tasksRes] = await Promise.all([
-      // This endpoint backs the WEEKLY surface only. `horizon` is the
-      // discriminator (canon §0a.2): without it, select('*') returned every
-      // goal at every altitude and WeeklyGoals rendered venture objectives
-      // as weekly goals, which is why it never felt like one source of truth.
-      supabase.from('goals').select('*').eq('horizon', 'weekly').order('created_at'),
-      supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus']),
-      supabase.from('tasks').select('id, title, status, agent, weekly_goal_id').not('weekly_goal_id', 'is', null)
-    ])
-
-    const config: Record<string, string> = {}
-    for (const c of configRes.data || []) config[c.key] = c.value
-
-    const goals = goalsRes.data || []
-    const allTasks = tasksRes.data || []
-    
-    // Attach tasks and auto-calculate progress
-    for (const g of goals) {
-      const gTasks = allTasks.filter(t => t.weekly_goal_id === g.id)
-      g.tasks = gTasks
-      if (gTasks.length > 0) {
-        const completed = gTasks.filter(t => t.status === 'Complete' || t.status === 'Closed' || t.status === 'Done').length
-        g.calculated_progress = Math.round((completed / gTasks.length) * 100)
-      } else {
-        g.calculated_progress = g.progress || 0 // fallback
-      }
-    }
-
-    return res.json({
-      goals,
-      north_star: config.north_star || '',
-      team_focus: config.team_focus || '',
-      week_of: weekOfLabel(),
-      updated_at: new Date().toISOString()
+    return res.status(410).json({
+      ok: false,
+      error: 'GET /api/goals is retired. Use GET /api/goals/ladder for the whole ladder.',
     })
   }
 
-  
   if (req.method === 'POST') {
     const body = req.body || {}
     // goals.id is TEXT per the schema audit — we keep generating a
