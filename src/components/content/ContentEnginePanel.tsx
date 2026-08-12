@@ -5,6 +5,8 @@ import {
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
+import { useAsyncAction } from '../../hooks/useAsyncAction'
+import { Pending } from '../shared/Pending'
 import { lintVoice, type LintIssue } from '../../lib/voiceLint'
 import {
   FACTORY_CHANNELS, FIVE_STANDARDS, HUMOR_PRESETS, ITERATE_CHIPS, LANES, LENGTH_PRESETS, TONE_PRESETS,
@@ -22,7 +24,13 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
   const h = useHaptics()
   const [working, setWorking] = useState<string>(i.body || '')
   const [preview, setPreview] = useState<string | null>(null)
-  const [busy, setBusy] = useState<string | null>(null)
+  // One vocabulary for waiting (useAsyncAction + Pending). These operations run
+  // 30 to 60 seconds against a model, and the old bare '…' was indistinguishable
+  // from a hang. setBusy is kept as the escape hatch for the child panels that
+  // still take it as a prop; they get the elapsed counter for free.
+  const act = useAsyncAction()
+  const busy = act.busyKey
+  const setBusy = act.setBusyKey
   const [feedback, setFeedback] = useState('')
   const [sel, setSel] = useState('')
   const [openSection, setOpenSection] = useState<null | 'edit' | 'standards' | 'challenge' | 'variants' | 'cleo'>(null)
@@ -127,7 +135,7 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
       onClick={(e) => { e.stopPropagation(); revise(mode, o.value, o.hint) }}
       className={`text-[10px] px-2 py-1 rounded-md border ${accent} disabled:opacity-40 transition-colors min-h-[36px]`}
     >
-      {busy === `${mode}:${o.value}` ? '…' : o.label}
+      {busy === `${mode}:${o.value}` ? <Pending label={o.label} elapsedMs={act.elapsedMs} /> : o.label}
     </button>
   )
 
@@ -166,7 +174,7 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
               <button key={o.value} type="button" title={o.hint} disabled={busy !== null}
                 onClick={() => revise(mode, o.value, o.hint, undefined, sel)}
                 className="text-[10px] px-2 py-1 rounded-md border border-amber-500/30 text-amber-100 hover:bg-amber-500/15 disabled:opacity-40 min-h-[32px]">
-                {busy === `${mode}:${o.value}` ? '…' : o.label}
+                {busy === `${mode}:${o.value}` ? <Pending label={o.label} elapsedMs={act.elapsedMs} /> : o.label}
               </button>
             ))}
           </div>
@@ -192,7 +200,7 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
           <button type="button" disabled={busy !== null}
             onClick={(e) => { e.stopPropagation(); revise('zoom', 'contrarian-angle', ZOOM_DEFAULT_HINT) }}
             className="text-[10px] px-2 py-1 rounded-md border border-amber-500/25 text-amber-200 hover:bg-amber-500/10 disabled:opacity-40 min-h-[36px]">
-            {busy === 'zoom:contrarian-angle' ? '…' : 'Sharpest angle'}
+            {busy === 'zoom:contrarian-angle' ? <Pending label="Finding the angle" elapsedMs={act.elapsedMs} /> : 'Sharpest angle'}
           </button>
         </div>
       </div>
@@ -259,7 +267,7 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
             {[['challenge', 'Challenge this'], ['counter', 'Counter-argument'], ['hook', 'Commercial hook'], ['sources', 'Add sources']].map(([m, label]) => (
               <button key={m} type="button" disabled={busy !== null} onClick={() => challenge(m)}
                 className="text-[10px] px-2 py-1 rounded-md border border-amber-500/25 text-amber-200 hover:bg-amber-500/10 disabled:opacity-40 min-h-[36px]">
-                {busy === `challenge:${m}` ? '…' : label}
+                {busy === `challenge:${m}` ? <Pending label={label} elapsedMs={act.elapsedMs} /> : label}
               </button>
             ))}
           </div>
@@ -290,7 +298,7 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
         <div className="space-y-2">
           <button type="button" onClick={score} disabled={busy !== null}
             className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] border border-emerald-500/25 text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-40 min-h-[36px]">
-            <Gauge size={11} /> {busy === 'score' ? 'Scoring…' : 'Score the five standards'}
+            <Gauge size={11} /> {busy === 'score' ? <Pending label="Scoring" elapsedMs={act.elapsedMs} /> : 'Score the five standards'}
           </button>
           {standards && (
             <div className="rounded-md border border-white/[0.06] bg-black/30 p-2 space-y-1">
@@ -325,7 +333,7 @@ export function ContentEnginePanel({ idea: i }: { idea: ContentIdeaRow }) {
             {FACTORY_CHANNELS.map(c => (
               <button key={c.value} type="button" disabled={busy !== null} onClick={() => pushToCleo(c.value)}
                 className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border border-emerald-500/25 text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-40 min-h-[36px]">
-                <Flame size={10} /> {busy === 'push' ? '…' : c.label}
+                <Flame size={10} /> {busy === 'push' ? <Pending label="Sending" elapsedMs={act.elapsedMs} /> : c.label}
               </button>
             ))}
           </div>
