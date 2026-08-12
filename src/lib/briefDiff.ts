@@ -5,7 +5,7 @@
 // ending but keep the headlines you already liked. This splits both drafts on
 // their markdown headings, shows what actually changed per section, and lets
 // each change be kept or dropped independently. The brief's structure is stable
-// (Title / Headlines / What this actually means / Perspectives / Sources), so
+// (Title / Headlines / What this actually means / Position / Sources), so
 // heading keys line the two drafts up cleanly.
 
 export type SectionStatus = 'same' | 'changed' | 'added' | 'removed'

@@ -23,10 +23,16 @@
 // corpus prose implies, in a form the prompt can lean on hard.
 
 // ── Ventures ────────────────────────────────────────────────────────────────
-// Mindmaker is one lane with two shapes, so it is two ventures here: the Live
-// roundup/perspective/resource surface and the LinkedIn field-learning post.
+// Mindmaker Live is one venture carrying two formats in `slot`: 'built' (how a
+// thing was actually built) and 'paid' (how it actually makes money). The house
+// register, 'mindmaker_live', grades anything that is neither. The LinkedIn
+// field-learning post is its own shape.
 //
-// 'investigation' is the MYMU: Teardown shape: the long-form teardown that
+// Until 2026-08-12 this file had no rubric for either format and still graded
+// against MYMU's retired taxonomy (headlines / perspectives / resources), which
+// is why the engine kept producing Perspectives long after the brand retired.
+//
+// 'investigation' is the Teardown shape: the long-form teardown that
 // takes a claim apart, checks each part against dated evidence, and publishes
 // where the knowable ends. It used to be a separate brand (Techonomic, retired
 // 2026-08-06). It is a FORMAT now, not a destination, and it keeps the hardest
@@ -35,25 +41,47 @@
 export type VentureKey =
   | 'investigation'
   | 'signal_noise'
-  | 'makeyourmindup'
+  | 'built'
+  | 'paid'
+  | 'mindmaker_live'
   | 'mindmaker_field'
   | 'builder_economy'
   | 'dynamic'
 
-/** lane (+slot) -> venture rubric key. Mirrors laneToFactoryChannel / save-draft. */
+/** lane (+slot) -> venture rubric key. Mirrors laneToCorpusChannel / save-draft.
+ *
+ *  One media venture, two formats carried in `slot` (Krish, 2026-08-06): venture
+ *  is what I am working on, format is what shape this is, channel is where it
+ *  goes. api/_content.ts has spoken this since the split; this grader had not
+ *  caught up, and was still judging drafts against MYMU's retired
+ *  headlines/perspectives/resources taxonomy. */
 export function laneToVenture(lane?: string | null, slot?: string | null): VentureKey {
   if (lane === 'signal_noise') return 'signal_noise'
+  // THE LIVE MODEL.
+  if (lane === 'mindmaker_live') {
+    if (slot === 'teardown' || slot === 'investigation') return 'investigation'
+    if (slot === 'paid') return 'paid'
+    if (slot === 'built') return 'built'
+    if (slot === 'field_learning') return 'mindmaker_field'
+    return 'mindmaker_live'
+  }
   if (lane === 'mindmaker') {
     if (slot === 'field_learning') return 'mindmaker_field'
-    // MYMU: Teardown is the investigation register, so it takes the hard rubric.
-    if (slot === 'investigation') return 'investigation'
-    return 'makeyourmindup'
+    if (slot === 'investigation' || slot === 'teardown') return 'investigation'
+    if (slot === 'paid') return 'paid'
+    if (slot === 'built') return 'built'
+    return 'mindmaker_live'
   }
-  if (lane === 'builder_economy_ig') return 'builder_economy'
   // Legacy stored values, mapped rather than rejected. Rows laned to the retired
   // Techonomic brand keep the investigation rubric they were written against.
+  if (lane === 'builder_economy_ig' || lane === 'builder_economy') return 'built'
   if (lane === 'techonomic') return 'investigation'
-  if (lane === 'mindmaker_live' || lane === 'makeyourmindup') return 'makeyourmindup'
+  if (lane === 'mymu' || lane === 'makeyourmindup') {
+    if (slot === 'teardown' || slot === 'investigation') return 'investigation'
+    if (slot === 'paid') return 'paid'
+    if (slot === 'built') return 'built'
+    return 'mindmaker_live'
+  }
   return 'dynamic'
 }
 
@@ -173,22 +201,68 @@ const RUBRICS: Record<VentureKey, VentureRubric> = {
     unverifiedClaim: 'flag',
   },
 
-  makeyourmindup: {
-    key: 'makeyourmindup',
-    label: 'MYMU',
-    corpusChannel: 'makeyourmindup',
-    mandate: 'One of three shapes: (1) current headlines a leader must be across, (2) perspectives on the future of AI in business (opinion and experience led), or (3) resources (kits, packs, videos, templates).',
-    leadWith: 'The shape decides the open. Headlines: the headline and why it matters now. Perspective: the claim. Resource: what it is and who it is for.',
+  built: {
+    key: 'built',
+    label: 'Built',
+    corpusChannel: 'built',
+    mandate: 'How a thing was actually built. One artifact, taken apart: what it does, how it was assembled, what it cost, what broke. Builder-in-the-room (Gear B), from inside the work.',
+    leadWith: 'The thing itself, already in motion. What it is and what it does, before any framing.',
+    instantFail: [
+      'Describes something that was not actually built, or that Krish did not build or watch being built.',
+    ],
+    evidenceBar:
+      'Grounded in a real build: real tools, real sequence, real numbers where numbers are claimed. "I wired X to Y and it broke on Z" beats any amount of theory. No invented stacks, no imagined costs.',
+    mustHave: [
+      'The actual mechanism: not that it works, but HOW it works.',
+      'At least one thing that did not go to plan. A build with no friction reads as marketing.',
+    ],
+    notes: [
+      'Built is the answer to "how did you do that", and the reader should be able to go and do it.',
+      'Cost, time and tool names are the texture. Vague competence is the failure mode.',
+      'If the piece is really about whether the thing makes money, it is Paid, not Built.',
+    ],
+    unverifiedClaim: 'flag',
+  },
+
+  paid: {
+    key: 'paid',
+    label: 'Paid',
+    corpusChannel: 'paid',
+    mandate: 'How a thing actually makes money. The economics taken apart: who pays, for what, how much, and whether the model holds. Exec-to-exec (Gear A).',
+    leadWith: 'The claim about the money. Not the company, not the market, the mechanism by which cash arrives.',
+    instantFail: [
+      'A revenue or pricing figure presented as fact without a dated, checkable source.',
+    ],
+    evidenceBar:
+      'Every number is dated and sourced. Where the public record stops, say so plainly rather than estimating into the gap. An unverifiable load-bearing number is not a rounding problem, it is the whole argument failing.',
+    mustHave: [
+      'Who pays, for what, and how often. The unit of revenue, named.',
+      'The part of the model that is fragile, not just the part that works.',
+    ],
+    notes: [
+      'Paid is the answer to "does this actually work as a business".',
+      'Counter-evidence belongs in the piece. A one-sided economic case is a pitch, not an analysis.',
+      'If the piece is really about how it was assembled, it is Built, not Paid.',
+    ],
+    unverifiedClaim: 'block',
+  },
+
+  mindmaker_live: {
+    key: 'mindmaker_live',
+    label: 'Mindmaker Live (house register)',
+    corpusChannel: 'mindmaker_live',
+    mandate: 'The house register: what a leader must be across right now, and what it means. Used when the draft is neither a Built teardown nor a Paid economic case.',
+    leadWith: 'The thing that happened and why it matters today. No warm-up.',
     instantFail: [],
     evidenceBar:
-      'Headlines must be real and current, dated, and accurately summarized (no invented detail). Perspectives are opinion and experience led, lighter evidence bar, but still grounded in something Krish has seen. Resources must describe a real asset.',
+      'Anything presented as current must be real, dated and accurately summarized. No invented detail. Opinion is allowed and welcome, but it is labelled as judgement, not smuggled in as fact.',
     mustHave: [
       'A clear so-what for a busy leader: why this is on their radar today.',
     ],
     notes: [
-      'This venture flexes on tone and structure across its three shapes. It does NOT flex on the voice absolutes (no em dashes, no two-word stacks, dropped pronouns, no warm-up, hard ending).',
-      'Detect the shape first (headline / perspective / resource) and judge it against that shape, not a generic essay.',
-      'The long-form investigation is a fourth MYMU shape, published as MYMU: Teardown, with its own harder rubric (venture "investigation"). If this draft is a full teardown, it belongs there, not here.',
+      'This is the register, not a dumping ground. If the draft is really about how something was built, grade it as Built; if about how it makes money, grade it as Paid.',
+      'Flexes on tone and structure. Does NOT flex on the voice absolutes (no em dashes, no two-word stacks, dropped pronouns, no warm-up, hard ending).',
+      'A full teardown belongs in the investigation rubric, which has the harder bar.',
     ],
     unverifiedClaim: 'flag',
   },

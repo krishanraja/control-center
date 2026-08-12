@@ -72,6 +72,9 @@ export interface BriefSections {
   meaning_md?: string
   next_year_md?: string
   position_md?: string
+  /** @deprecated The brief's opinion section is `position_md`. This mirror is
+   *  written by the assembler so briefs stored before 2026-08-12 still render;
+   *  read `position_md` and fall back to this, never the other way round. */
   perspectives_md?: string
 }
 
