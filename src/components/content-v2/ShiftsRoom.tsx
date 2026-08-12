@@ -118,11 +118,20 @@ function Dossier({ shift, v2, onClose }: {
   )
 }
 
-export function ShiftsRoom({ v2, variant }: { v2: ReturnType<typeof useContentV2>; variant: 'desktop' | 'mobile' }) {
+export function ShiftsRoom({ v2, variant, lane }: {
+  v2: ReturnType<typeof useContentV2>
+  variant: 'desktop' | 'mobile'
+  /** Scope to one format. Omit for the whole register. A shift with no lane is
+   *  shown in every lane rather than hidden: the detector has not classified it,
+   *  and dropping it would silently shrink the register. */
+  lane?: 'built' | 'paid'
+}) {
   const [openId, setOpenId] = useState<string | null>(null)
   const shifts = useMemo(
-    () => v2.shifts.filter(s => ['proposed', 'active', 'fading'].includes(s.status)),
-    [v2.shifts],
+    () => v2.shifts
+      .filter(s => ['proposed', 'active', 'fading'].includes(s.status))
+      .filter(s => !lane || !s.lane || s.lane === lane),
+    [v2.shifts, lane],
   )
   const open = shifts.find(s => s.id === openId) || null
 

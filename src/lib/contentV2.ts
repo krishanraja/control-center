@@ -25,6 +25,9 @@ export interface ShiftRow {
   summary: string
   implication: string
   category: string
+  /** 'built' | 'paid', or null when the detector has not classified it. Null
+   *  shows in every lane rather than being hidden or forced into one. */
+  lane?: string | null
   status: ShiftStatus
   first_seen_on: string
   last_evidence_on: string | null

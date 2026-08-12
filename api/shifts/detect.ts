@@ -6,6 +6,7 @@ import { isoWeekLabel } from '../_weeks.js'
 import {
   buildCorpus, buildDetectionPrompt, verifyShift, slugifyShift, titleJaccard,
   computeMomentum, WINDOW_DAYS, MATCH_COSINE, MATCH_TITLE_JACCARD, FADING_AFTER_DAYS,
+  laneForShift,
   type CorpusItem, type ProposedShift, type VerifiedShift,
 } from '../_trendGate.js'
 
@@ -157,6 +158,7 @@ async function applyToRegister(v: VerifiedShift, registry: ShiftRow[], vec: numb
       summary: v.summary,
       implication: v.implication,
       category: v.category,
+      lane: laneForShift(v.category),
       status: 'proposed',
       first_seen_on: oldest,
       last_evidence_on: newestEvidence,

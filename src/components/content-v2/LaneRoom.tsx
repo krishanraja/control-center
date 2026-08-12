@@ -1,0 +1,89 @@
+import { useMemo } from 'react'
+import type { useContentV2 } from '../../hooks/useContentV2'
+import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
+import { ShiftsRoom } from './ShiftsRoom'
+import { FeedRoom } from './FeedRoom'
+import { laneOf, type RoomId } from './ContentV2Tab'
+
+// One format, everything about it in one column.
+//
+// Shifts used to be a room beside the feed. That made the detector answer one
+// unscoped question and then filtered the answer twice. Inside a format it has
+// a thesis: Built asks how AI decisions actually get made, Paid asks how AI
+// actually gets monetized, and a signal that does not move either is noise.
+
+const COPY: Record<Exclude<RoomId, 'library'>, { title: string; question: string }> = {
+  built: {
+    title: 'Built',
+    question: 'How a thing was actually built. The mechanism, the sequence, the part that broke.',
+  },
+  paid: {
+    title: 'Paid',
+    question: 'How a thing actually makes money. Who pays, for what, and whether the model holds.',
+  },
+}
+
+export function LaneRoom({
+  lane, v2, ideas, variant,
+}: {
+  lane: Exclude<RoomId, 'library'>
+  v2: ReturnType<typeof useContentV2>
+  ideas: ContentIdeaRow[]
+  variant: 'desktop' | 'mobile'
+}) {
+  const copy = COPY[lane]
+
+  const { mine, unclassified } = useMemo(() => {
+    const live = ideas.filter(i => !i.library_at)
+    return {
+      mine: live.filter(i => laneOf(i.lane) === lane),
+      unclassified: live.filter(i => laneOf(i.lane) === null),
+    }
+  }, [ideas, lane])
+
+  return (
+    <div className="flex flex-col gap-5 max-w-3xl">
+      <header>
+        <h2 className="text-[15px] font-semibold text-white/90">{copy.title}</h2>
+        <p className="text-[12.5px] text-white/50 mt-0.5">{copy.question}</p>
+      </header>
+
+      <section>
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40 mb-2">
+          Shifts in {copy.title.toLowerCase()}
+        </h3>
+        <ShiftsRoom v2={v2} variant={variant} lane={lane} />
+      </section>
+
+      <section>
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40 mb-2">
+          Evidence
+        </h3>
+        <FeedRoom ideas={mine} />
+      </section>
+
+      {/* The lane axis is newer than most of the corpus. Cleo | Content Lane
+          Sourcing is what assigns a lane, and it was dead from 2026-07-26 to
+          2026-08-12, so ideas gathered in between have none. Surfacing them as
+          unclassified is the honest move: hiding them would make a full tab
+          look empty, and defaulting them into a lane would invent a judgement
+          the detector never made. This section disappears on its own as Cleo
+          lanes new work. */}
+      {unclassified.length > 0 && (
+        <section>
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40 mb-2">
+            Not yet laned
+            <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 text-[10.5px] tabular-nums normal-case tracking-normal">
+              {unclassified.length}
+            </span>
+          </h3>
+          <p className="text-[12px] text-white/45 mb-2">
+            Gathered while lane sourcing was down. They belong to Built or Paid,
+            nobody has said which yet.
+          </p>
+          <FeedRoom ideas={unclassified} />
+        </section>
+      )}
+    </div>
+  )
+}
