@@ -15,6 +15,10 @@ export default defineConfig(({ mode }) => {
     : null;
 
   return {
+    server: {
+      host: true,
+      allowedHosts: [".vercel.run"],
+    },
     plugins: [
       react(),
       {
