@@ -22,3 +22,8 @@ jobs:
       # once, so they run on every push rather than by hand.
       - run: npx tsx scripts/check-goal-ladder.mts
       - run: npx tsx scripts/check-goal-gate.mts
+      # Same reason: 274 of 323 content ideas were unpurgeable because eleven
+      # insert paths could each forget an expiry. The invariant now lives in a
+      # column default, and this checks the default, the reserved meaning of
+      # NULL, and the purge that depends on both.
+      - run: npx tsx scripts/check-content-expiry.mts
