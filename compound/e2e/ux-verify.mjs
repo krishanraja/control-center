@@ -65,8 +65,7 @@ async function openCase(name, width, height, route, device, test, emulation = {}
     if (response.status() >= 400) consoleErrors.push(`HTTP ${response.status()} ${response.url()}`);
   });
   await page.goto(`${baseUrl}${route}`, { waitUntil: "networkidle" });
-  // The app renders after latest.json arrives, which is a second request that
-  // can land after networkidle. Measure the app, not the loading notice.
+  // The app renders after the bundled demo snapshot is validated.
   await page.getByRole("navigation", { name: "Sections" }).waitFor();
   await page.getByRole("heading", { level: 2 }).first().waitFor();
 

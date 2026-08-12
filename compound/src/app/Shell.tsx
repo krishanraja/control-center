@@ -1,48 +1,43 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { indexBySymbol } from "../lib/agreement";
 import { useDevice } from "../lib/device";
 import type { CompoundConfig } from "../lib/env";
-import { themesFor } from "../lib/migration";
-import { degradedFeeds } from "../lib/snapshot";
+import { buildGroups, KNOWN_FMP_INDUSTRIES, type IndustryEntry } from "../lib/industryGroups";
 import { loadExclusions, readLocalExclusions, saveExclusions, toggleIn, writeLocalExclusions } from "../lib/settings";
 import { getSupabase } from "../lib/supabase";
 import { SECTION_ORDER } from "../lib/words";
-import type { Quadrant, Snapshot, TabKey } from "../types";
+import type { BriefStory, CompoundDay, IndustryRow, TabKey } from "../types";
 import { DeviceProvider } from "./DeviceProvider";
+import { SectorDetail } from "./components/SectorDetail";
+import { StoryDetail } from "./components/StoryDetail";
 import { DeskFrame } from "./frames/DeskFrame";
 import { PhoneFrame } from "./frames/PhoneFrame";
+import { HistorySheet } from "./sheets/HistorySheet";
 import { SettingsSheet } from "./sheets/SettingsSheet";
-import { StockSheet } from "./sheets/StockSheet";
-import { ThemeSheet } from "./sheets/ThemeSheet";
 import { AskTab } from "./tabs/AskTab";
-import { MineTab } from "./tabs/MineTab";
-import { NowTab } from "./tabs/NowTab";
-import { ShiftsTab } from "./tabs/ShiftsTab";
-import { StocksTab } from "./tabs/StocksTab";
+import { BriefTab } from "./tabs/BriefTab";
+import { MarketsTab } from "./tabs/MarketsTab";
+import { PortfolioTab } from "./tabs/PortfolioTab";
 
 type Sheet =
   | { kind: "settings" }
-  | { kind: "stock"; symbol: string }
-  | { kind: "theme"; id: string }
+  | { kind: "history" }
+  | { kind: "story"; story: BriefStory }
+  | { kind: "sector"; sector: string }
   | null;
 
 interface Props {
-  snapshot: Snapshot;
+  day: CompoundDay;
   config: CompoundConfig;
   session: Session | null;
   tab: TabKey;
   onTab: (tab: TabKey) => void;
 }
 
-export function Shell({ snapshot, config, session, tab, onTab }: Props) {
+export function Shell({ day, config, session, tab, onTab }: Props) {
   const device = useDevice();
   const split = device.layout === "split";
   const userId = session?.user.id ?? null;
-
-  const [force, setForce] = useState("ai");
-  const [quadrant, setQuadrant] = useState<Quadrant>("early");
-  const [open, setOpen] = useState<Record<string, boolean>>({});
   const [sheet, setSheet] = useState<Sheet>(null);
   const [pendingAsk, setPendingAsk] = useState<string | null>(null);
   const [excluded, setExcluded] = useState<string[]>(() => readLocalExclusions(userId));
@@ -50,7 +45,27 @@ export function Shell({ snapshot, config, session, tab, onTab }: Props) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
-  // The saved row is the record. The local copy only keeps a toggle instant.
+  const industryEntries = useMemo<IndustryEntry[]>(() => {
+    if (day.legacy) {
+      const names = new Set<string>([
+        ...day.legacy.industries.map((row) => row.industry),
+        ...day.legacy.agreement.map((row) => row.industry),
+        ...day.legacy.companies.map((row) => row.industry),
+      ]);
+      const counts = new Map<string, number>();
+      for (const row of day.legacy.agreement) counts.set(row.industry, (counts.get(row.industry) ?? 0) + 1);
+      return [...names].map((industry) => ({ industry, names: counts.get(industry) ?? 0 }));
+    }
+    const captured = day.archive.payload.evidence?.industries ?? [];
+    const industries = captured.length > 0 ? captured.map((row) => row.industry) : KNOWN_FMP_INDUSTRIES;
+    return industries.map((industry) => ({ industry, names: 0 }));
+  }, [day]);
+
+  const industryRows = useMemo(
+    () => new Map<string, IndustryRow>((day.legacy?.industries ?? []).map((row) => [row.industry, row])),
+    [day],
+  );
+
   useEffect(() => {
     if (config.mode !== "live" || !userId) return;
     let mounted = true;
@@ -66,9 +81,6 @@ export function Shell({ snapshot, config, session, tab, onTab }: Props) {
     return () => { mounted = false; };
   }, [config, userId]);
 
-  // Focus follows the sheet in both directions. Restoring focus has to wait
-  // for the frame to release the content it made inert while the sheet was up,
-  // which is why this runs as an effect and not inside the close handler.
   useEffect(() => {
     if (sheet) closeRef.current?.focus();
     else returnFocusRef.current?.focus();
@@ -78,11 +90,8 @@ export function Shell({ snapshot, config, session, tab, onTab }: Props) {
     returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSheet(next);
   }, []);
-
   const closeSheet = useCallback(() => setSheet(null), []);
 
-  // Keyboard is a desktop input. A number key moves between sections and
-  // Escape closes the panel, so a mouse is never the only way through.
   useEffect(() => {
     if (!split) return;
     function onKey(event: KeyboardEvent) {
@@ -91,7 +100,7 @@ export function Shell({ snapshot, config, session, tab, onTab }: Props) {
       const typing = target instanceof HTMLElement
         && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
       if (event.key === "Escape") {
-        setSheet((current) => (current ? null : current));
+        setSheet((current) => current ? null : current);
         return;
       }
       if (typing) return;
@@ -105,16 +114,6 @@ export function Shell({ snapshot, config, session, tab, onTab }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [split, onTab]);
 
-  function toggleCard(id: string) {
-    setOpen((current) => ({ ...current, [id]: !current[id] }));
-  }
-
-  function askAbout(question: string) {
-    setSheet(null);
-    setPendingAsk(question);
-    onTab("ask");
-  }
-
   function persist(next: string[]) {
     setExcluded(next);
     writeLocalExclusions(userId, next);
@@ -126,13 +125,18 @@ export function Shell({ snapshot, config, session, tab, onTab }: Props) {
     }
   }
 
-  const degraded = degradedFeeds(snapshot);
+  function askAbout(question: string) {
+    setSheet(null);
+    setPendingAsk(question);
+    onTab("ask");
+  }
 
   function sheetTitle(): string {
     if (!sheet) return "";
-    if (sheet.kind === "settings") return "Settings";
-    if (sheet.kind === "stock") return sheet.symbol;
-    return themesFor(snapshot).find((entry) => entry.definition.id === sheet.id)?.definition.name ?? "Trend";
+    if (sheet.kind === "settings") return "Industry settings";
+    if (sheet.kind === "history") return "Market history";
+    if (sheet.kind === "sector") return sheet.sector;
+    return sheet.story.title;
   }
 
   function sheetBody() {
@@ -140,7 +144,7 @@ export function Shell({ snapshot, config, session, tab, onTab }: Props) {
     if (sheet.kind === "settings") {
       return (
         <SettingsSheet
-          snapshot={snapshot}
+          entries={industryEntries}
           excluded={excluded}
           saveError={saveError}
           onToggle={(industry) => persist(toggleIn(excluded, industry))}
@@ -150,52 +154,38 @@ export function Shell({ snapshot, config, session, tab, onTab }: Props) {
         />
       );
     }
-    if (sheet.kind === "stock") {
-      const row = indexBySymbol(snapshot.agreement)[sheet.symbol];
-      const company = snapshot.companies.find((entry) => entry.symbol === sheet.symbol);
-      if (!row) return <div className="page"><p className="sub">Nothing came back for {sheet.symbol} today.</p></div>;
-      return <StockSheet row={row} company={company} onAsk={askAbout} />;
-    }
-    const theme = themesFor(snapshot).find((entry) => entry.definition.id === sheet.id);
-    if (!theme) return <div className="page"><p className="sub">That trend is not in today's numbers.</p></div>;
-    return <ThemeSheet theme={theme} snapshot={snapshot} onAsk={askAbout} />;
+    if (sheet.kind === "history") return <HistorySheet day={day} session={session} demo={config.mode === "demo"} />;
+    if (sheet.kind === "story") return <StoryDetail story={sheet.story} onAsk={askAbout} />;
+    const group = buildGroups(industryEntries).find((item) => item.group === sheet.sector);
+    if (!group) return <div className="page"><p className="sub">That sector is not in this snapshot.</p></div>;
+    return (
+      <SectorDetail
+        sector={group.group}
+        members={group.members}
+        rows={industryRows}
+        excluded={excluded}
+        onToggle={(industry) => persist(toggleIn(excluded, industry))}
+      />
+    );
   }
 
   function tabBody() {
-    if (tab === "now") return <NowTab snapshot={snapshot} config={config} open={open} onToggle={toggleCard} onAsk={askAbout} />;
-    if (tab === "shifts") {
+    if (tab === "brief") return <BriefTab day={day} onStory={(story) => openSheet({ kind: "story", story })} />;
+    if (tab === "markets") {
       return (
-        <ShiftsTab
-          snapshot={snapshot}
-          force={force}
-          quadrant={quadrant}
+        <MarketsTab
+          day={day}
+          entries={industryEntries}
           excluded={excluded}
-          open={open}
-          onForce={setForce}
-          onQuadrant={setQuadrant}
-          onToggle={toggleCard}
-          onAsk={askAbout}
-          onTheme={(id) => openSheet({ kind: "theme", id })}
+          onStory={(story) => openSheet({ kind: "story", story })}
+          onSector={(sector) => openSheet({ kind: "sector", sector })}
         />
       );
     }
-    if (tab === "stocks") {
-      return <StocksTab snapshot={snapshot} excluded={excluded} onStock={(symbol) => openSheet({ kind: "stock", symbol })} />;
-    }
-    if (tab === "mine") {
-      return (
-        <MineTab
-          snapshot={snapshot}
-          open={open}
-          onToggle={toggleCard}
-          onAsk={askAbout}
-          onStock={(symbol) => openSheet({ kind: "stock", symbol })}
-        />
-      );
-    }
+    if (tab === "portfolio") return <PortfolioTab day={day} />;
     return (
       <AskTab
-        snapshot={snapshot}
+        day={day}
         config={config}
         session={session}
         pending={pendingAsk}
@@ -204,55 +194,42 @@ export function Shell({ snapshot, config, session, tab, onTab }: Props) {
     );
   }
 
-  const page = (
-    <div className="page">
-      {degraded.length > 0 && (
-        <div className="degraded" role="status">
-          <span className="ctag dnc">Some data is out of date</span>
-          <p>{degraded.join(" · ")}. Anything that needs it says so instead of showing you an old number.</p>
-        </div>
-      )}
-      {tabBody()}
-    </div>
-  );
-
+  const page = <div className="page calm-page">{tabBody()}</div>;
   const panel = sheet ? { title: sheetTitle(), body: sheetBody() } : null;
+  const generated = `${day.archive.snapshot_date}T12:00:00.000Z`;
 
   return (
     <DeviceProvider device={device}>
-      <div
-        className={`shell ${device.layout} ${device.input}`}
-        style={{ "--px": `${device.scale}px` } as CSSProperties}
-      >
-        {split
-          ? (
-            <DeskFrame
-              tab={tab}
-              onTab={(next) => { onTab(next); setSheet(null); }}
-              onSettings={() => openSheet({ kind: "settings" })}
-              generated={snapshot.generated}
-              demo={config.mode === "demo"}
-              panel={panel}
-              onClosePanel={closeSheet}
-              closeRef={closeRef}
-            >
-              {page}
-            </DeskFrame>
-          )
-          : (
-            <PhoneFrame
-              tab={tab}
-              onTab={(next) => { onTab(next); setSheet(null); }}
-              onSettings={() => openSheet({ kind: "settings" })}
-              generated={snapshot.generated}
-              demo={config.mode === "demo"}
-              sheet={panel}
-              onCloseSheet={closeSheet}
-              closeRef={closeRef}
-            >
-              {page}
-            </PhoneFrame>
-          )}
+      <div className={`shell ${device.layout} ${device.input}`} style={{ "--px": `${device.scale}px` } as CSSProperties}>
+        {split ? (
+          <DeskFrame
+            tab={tab}
+            onTab={(next) => { onTab(next); setSheet(null); }}
+            onSettings={() => openSheet({ kind: "settings" })}
+            onHistory={() => openSheet({ kind: "history" })}
+            generated={generated}
+            demo={config.mode === "demo"}
+            panel={panel}
+            onClosePanel={closeSheet}
+            closeRef={closeRef}
+          >
+            {page}
+          </DeskFrame>
+        ) : (
+          <PhoneFrame
+            tab={tab}
+            onTab={(next) => { onTab(next); setSheet(null); }}
+            onSettings={() => openSheet({ kind: "settings" })}
+            onHistory={() => openSheet({ kind: "history" })}
+            generated={generated}
+            demo={config.mode === "demo"}
+            sheet={panel}
+            onCloseSheet={closeSheet}
+            closeRef={closeRef}
+          >
+            {page}
+          </PhoneFrame>
+        )}
       </div>
     </DeviceProvider>
   );

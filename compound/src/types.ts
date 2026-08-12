@@ -1,10 +1,10 @@
 /**
- * The shape of `latest.json`, the single file the app reads.
+ * The validated legacy market-data shape embedded in each COMPOUND snapshot.
  *
- * The daily job writes `data/YYYY-MM-DD.json` for history and
- * `public/latest.json` for the app. Every field below is produced by one named
- * feed or one named engine, so every number on screen can be traced back to a
- * source shown next to it.
+ * Live mode receives this data through authenticated snapshot APIs. Demo mode
+ * bundles a local fixture from `src/demo/latest.json`; it is never emitted as a
+ * public production data route. Every field below is produced by one named feed
+ * or engine so each number can be traced to a source.
  */
 
 export type SignalName = "price" | "analysts" | "news" | "revenue";
@@ -190,7 +190,112 @@ export interface Snapshot {
   placed: Placed[];
 }
 
-export type TabKey = "now" | "shifts" | "stocks" | "mine" | "ask";
+export type TabKey = "brief" | "markets" | "portfolio" | "ask";
+
+export type StoryDomain = "equities" | "rates" | "credit" | "currencies" | "commodities" | "crypto" | "macro";
+export type StoryClassification = "opportunity" | "risk" | "regime";
+export type StoryStance = "consider" | "wait" | "avoid";
+
+export interface BriefCitation {
+  publisher: string;
+  title: string;
+  url: string;
+  sourceDate: string;
+  retrievedAt: string;
+  evidenceType: "primary" | "secondary";
+}
+
+export interface BriefStory {
+  id: string;
+  rank: 1 | 2 | 3;
+  domain: StoryDomain;
+  classification: StoryClassification;
+  title: string;
+  verdict: string;
+  stance: StoryStance;
+  significance: number;
+  confidence: number;
+  decisiveMetric: {
+    value: string;
+    label: string;
+    sourceDate: string;
+    direction?: "up" | "down" | "flat";
+  };
+  falsifier: string;
+  falsifierState: "untriggered" | "triggered" | "resolved";
+  entityRefs: string[];
+  coverage: string[];
+  citations: BriefCitation[];
+  emerging?: boolean;
+  portfolioAnnotation?: string;
+  worldContext?: {
+    summary: string;
+    citations: Array<{ title: string; url: string }>;
+    asOf: string;
+    via: "perplexity" | "exa" | "demo";
+  };
+}
+
+export interface DailyBrief {
+  state: "representative" | "quiet";
+  asOf: string;
+  generatedAt: string;
+  engineVersion: string;
+  stories: [BriefStory, BriefStory, BriefStory];
+  coverageLimitations: string[];
+}
+
+export interface CoverageSource {
+  provider: string;
+  domain: StoryDomain;
+  status: "available" | "carried" | "failed" | "not_configured";
+  sourceDate?: string;
+  limitation?: string;
+  latencyMs?: number;
+}
+
+export interface ArchivedSnapshotRow {
+  id: string;
+  snapshot_date: string;
+  published_at: string;
+  schema_version: number;
+  engine_version: string;
+  origin: "captured" | "reconstructed" | "starter";
+  status: "complete" | "partial" | "quiet";
+  horizon: "3m" | "1y";
+  coverage: {
+    asOf: string;
+    sources: CoverageSource[];
+    limitations: string[];
+  };
+  brief: DailyBrief;
+  payload: {
+    evidence?: {
+      metrics?: Array<{
+        id: string;
+        label: string;
+        domain: StoryDomain;
+        unit: string;
+        provider: string;
+        sourceUrl: string;
+        points: Array<{ date: string; value: number }>;
+      }>;
+      industries?: Array<{
+        industry: string;
+        changePercent: number;
+        sourceDate: string;
+        sourceUrl: string;
+      }>;
+      portfolio?: Snapshot["portfolio"];
+      holdings?: Holding[];
+    };
+  };
+}
+
+export interface CompoundDay {
+  archive: ArchivedSnapshotRow;
+  legacy?: Snapshot;
+}
 
 export interface ChatEvidence {
   id: string;

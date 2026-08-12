@@ -1,9 +1,11 @@
 # COMPOUND device systems
 
+> The `stack` and `split` architecture remains current. Component examples and approval notes below record the 2026-08-08 dashboard that preceded the Calm Brief. Current navigation, surfaces, release state, and browser proof are in `STATE.md` and `CONCEPT_TRACE.md`.
+
 - Revision: DS-003
 - Date: 2026-08-08
 - Applies to: `compound/` only
-- Approval state: implemented on `claude/compound-responsive-redesign-tayh7v`, rendered evidence produced, material visual approval outstanding
+- Historical approval state: implemented on `claude/compound-responsive-redesign-tayh7v`, with rendered evidence produced and material visual approval outstanding at that point
 
 ## The problem this replaces
 
@@ -130,8 +132,8 @@ replacement. Current reading grades: 2.2 to 4.8 per screen, 4.6 overall.
 
 ## Known limits
 
-- `placed[].note` and `stages[].name` arrive as data. The starter snapshot in
-  `compound/public/latest.json` was rewritten into plain words, and known stage
+- `placed[].note` and `stages[].name` arrive as data. The archived demo snapshot
+  was rewritten into plain words, and known stage
   names map through `plainStage` in `words.ts`, but the daily pipeline can
   still write a sentence the reading level gate never sees. The pipeline should
   adopt the same vocabulary when it replaces the starter snapshots.

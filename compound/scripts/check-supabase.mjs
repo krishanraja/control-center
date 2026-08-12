@@ -10,6 +10,7 @@ const reloadMigration = await readFile(join(repositoryRoot, "supabase", "migrati
 const loginMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260807002034_compound_login_delivery.sql"), "utf8");
 const accessMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260807010239_compound_magic_word_access.sql"), "utf8");
 const accessFixMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260807015930_compound_magic_word_rate_limit_fix.sql"), "utf8");
+const archiveMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260811120000_compound_snapshot_archive.sql"), "utf8");
 const edgeFunction = await readFile(join(repositoryRoot, "supabase", "functions", "compound-ask", "index.ts"), "utf8");
 const loginFunction = await readFile(join(repositoryRoot, "supabase", "functions", "compound-login", "index.ts"), "utf8");
 const loginProxy = await readFile(join(compoundRoot, "api", "compound-login.js"), "utf8");
@@ -50,6 +51,13 @@ if (!loginFunction.includes("COMPOUND_MAGIC_WORD_HASH") || !loginFunction.includ
 if (loginFunction.includes("RESEND_API_KEY") || loginFunction.includes("api.resend.com")) failures.push("magic-word login still depends on email delivery");
 if (!loginProxy.includes("X-Compound-Client-Fingerprint") || !loginProxy.includes('createHash("sha256")')) failures.push("login proxy does not create a server-peppered client fingerprint");
 if (!/\[functions\.compound-login\][\s\S]*?verify_jwt = false/.test(config)) failures.push("compound-login platform auth posture is not explicit");
+for (const table of ["snapshot_runs", "snapshot_backfill_checkpoints", "snapshot_context_cache"]) {
+  if (!archiveMigration.includes(`alter table compound.${table} enable row level security;`)) failures.push(`${table} does not enable RLS`);
+  if (!archiveMigration.includes(`alter table compound.${table} force row level security;`)) failures.push(`${table} does not force RLS`);
+}
+if (!archiveMigration.includes("prevent_published_snapshot_mutation")) failures.push("published snapshots are not immutable");
+if (!archiveMigration.includes("origin in ('captured', 'reconstructed')")) failures.push("starter snapshots are not excluded from published uniqueness");
+if (!archiveMigration.includes("request_scope jsonb")) failures.push("historical Ask requests do not preserve their scope");
 
 if (failures.length) {
   console.error(failures.join("\n"));

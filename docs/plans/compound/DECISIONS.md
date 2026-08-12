@@ -37,3 +37,20 @@ Append-only project decisions. Architecture-wide decisions also receive a reposi
 - Non-goals: no Control Center context, no unrestricted database retrieval, no trade execution and no answer that silently ignores missing or old data.
 - Rejected alternative: call an LLM directly from the browser or give the model general access to the shared Supabase project.
 - Revisit trigger: the available Supabase runtime cannot stream reliably or cannot keep the shared-project data boundary narrow enough.
+
+## C-005: COMPOUND remains an internal single-user tool
+
+- Date: 2026-08-11
+- Status: locked by Krish
+- Decision: COMPOUND is private to Krish. It has no pricing, paid tier, signup, additional member, customer access, or external launch surface.
+- Access: one approved Supabase member enters through a server-held magic-word digest. The plaintext word is never written to source, documentation, database rows, logs, or fixtures.
+- Reason: the product must prove that its daily market-wide intelligence is useful before commercialization creates customer, billing, support, and security obligations.
+- Revisit trigger: Krish judges the private product useful enough to externalize and separately approves the customer identity, billing, support, privacy, and security model.
+
+## C-006: Paid email alerts are dormant
+
+- Date: 2026-08-11
+- Status: locked by Krish
+- Decision: do not provision or pay for Resend while COMPOUND is internal only. The scheduled workflow does not receive Resend variables; GitHub's failed-workflow notification is the active alert.
+- Existing code: the Resend adapter remains an inert future integration point and returns without sending when runtime variables are absent.
+- Revisit trigger: externalization or repeated operational misses make a product-branded alert worth a separately approved paid plan.

@@ -1,5 +1,7 @@
 # UX Test Report: COMPOUND local implementation V1
 
+> Historical acceptance record for the original private vertical slice. Deployment ids, fixture state, test counts, and remaining-work statements below are evidence from that release and are not current status. See `STATE.md` and `RELEASE_GATE.md` for the active Calm Brief and daily-history release.
+
 ## Verdict
 
 The approved dashboard remains the complete home screen and the question flow remains a separate, reversible route. Local mobile and desktop cases pass. Production is live at `https://compound.krishraja.com`; the large mobile sign-in shell, magic-word gate, Supabase schema, wrong-word denial, approved session, private snapshot read, streamed model answer, persistence and idempotent retry are certified.

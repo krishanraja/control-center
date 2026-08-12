@@ -2,12 +2,13 @@ import type { ReactNode, RefObject } from "react";
 import { longDate } from "../../lib/format";
 import { SECTION_BLURB, SECTION_LONG, SECTION_ORDER } from "../../lib/words";
 import type { TabKey } from "../../types";
-import { ChevronIcon, GearIcon, TabIcon } from "../components/Icons";
+import { CalendarIcon, ChevronIcon, GearIcon, TabIcon } from "../components/Icons";
 
 interface Props {
   tab: TabKey;
   onTab: (tab: TabKey) => void;
   onSettings: () => void;
+  onHistory: () => void;
   generated: string;
   demo: boolean;
   /** Opens beside the content instead of on top of it. */
@@ -27,7 +28,7 @@ interface Props {
  * it throws away the reason you have a wide screen, so the list you clicked
  * from stays visible next to what you clicked.
  */
-export function DeskFrame({ tab, onTab, onSettings, generated, demo, panel, onClosePanel, closeRef, children }: Props) {
+export function DeskFrame({ tab, onTab, onSettings, onHistory, generated, demo, panel, onClosePanel, closeRef, children }: Props) {
   return (
     <div className="app">
       <nav className="sidenav" aria-label="Sections">
@@ -57,7 +58,7 @@ export function DeskFrame({ tab, onTab, onSettings, generated, demo, panel, onCl
             <span aria-hidden="true"><span className="navname">Settings</span></span>
             <span className="key" aria-hidden="true" />
           </button>
-          <p className="railnote">Press 1 to 5 to move between sections.</p>
+        <p className="railnote">Press 1 to 4 to move between sections.</p>
         </div>
       </nav>
 
@@ -67,10 +68,16 @@ export function DeskFrame({ tab, onTab, onSettings, generated, demo, panel, onCl
             <strong>{SECTION_LONG[tab]}</strong>
             <span>Updated {longDate(generated)}</span>
           </span>
-          {demo && <span className="chip">Sample data</span>}
+          <span className="deskhead-actions">
+            {demo && <span className="chip">Sample data</span>}
+            <button type="button" className="historybtn" onClick={onHistory} aria-label={`Open market history for ${longDate(generated)}`}>
+              <CalendarIcon />
+              {longDate(generated)}
+            </button>
+          </span>
         </div>
 
-        <div className="workspace">
+        <div className={panel ? "workspace with-panel" : "workspace"}>
           <div className="scroll">{children}</div>
           {panel && (
             <aside className="panel" aria-label={panel.title}>

@@ -1,14 +1,10 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { buildDemoDay } from "../lib/brief";
 import { fixture } from "../test/snapshot-fixture";
-import type { TabKey } from "../types";
+import type { CompoundDay, TabKey } from "../types";
 import { Shell } from "./Shell";
 
-/**
- * jsdom reports every media query as false, so these render the stack system.
- * `asSplit` flips the two queries the device hook reads, which is how the
- * desktop system gets covered without a browser.
- */
 function asSplit() {
   vi.stubGlobal("matchMedia", (query: string) => ({
     matches: query.includes("min-width: 900px") || query.includes("min-width: 1400px"),
@@ -18,246 +14,138 @@ function asSplit() {
   }));
 }
 
-function renderShell(tab: TabKey = "now") {
+function renderShell(tab: TabKey = "brief", day: CompoundDay = buildDemoDay(fixture)) {
   const onTab = vi.fn();
-  const view = render(<Shell snapshot={fixture} config={{ mode: "demo" }} session={null} tab={tab} onTab={onTab} />);
-  return { onTab, view };
+  const view = render(<Shell day={day} config={{ mode: "demo" }} session={null} tab={tab} onTab={onTab} />);
+  return { onTab, view, day };
 }
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  window.localStorage.clear();
 });
 
-describe("Shell", () => {
-  it("offers all five sections and reports the current one", () => {
+describe("calm brief", () => {
+  it("offers four destinations and keeps the Brief market-wide", () => {
     const { onTab } = renderShell();
     const nav = screen.getByRole("navigation", { name: "Sections" });
-    for (const name of ["Today", "Trends", "Stocks", "Money", "Ask"]) {
+    for (const name of ["Brief", "Markets", "Portfolio", "Ask"]) {
       expect(within(nav).getByRole("button", { name })).toBeInTheDocument();
     }
-    expect(within(nav).getByRole("button", { name: "Today" })).toHaveAttribute("aria-current", "page");
-
-    fireEvent.click(within(nav).getByRole("button", { name: "Stocks" }));
-    expect(onTab).toHaveBeenCalledWith("stocks");
+    expect(within(nav).getByRole("button", { name: "Brief" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("heading", { name: "Markets are calm, but money is still expensive." })).toBeInTheDocument();
+    expect(screen.queryByText(/Everything you own:/)).not.toBeInTheDocument();
+    fireEvent.click(within(nav).getByRole("button", { name: "Markets" }));
+    expect(onTab).toHaveBeenCalledWith("markets");
   });
 
-  it("leads with a forward claim and keeps the working folded away", () => {
+  it("keeps all 123 industries explorable when a partial capture has no industry moves", () => {
+    const day = buildDemoDay(fixture, "partial");
+    delete day.legacy;
+    day.archive.payload.evidence = { ...day.archive.payload.evidence, industries: [] };
+    renderShell("markets", day);
+    expect(document.querySelectorAll(".sector-row")).toHaveLength(11);
+    expect(screen.getByText("123")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(screen.getByText("11 sectors. Open a sector to choose individual industries.")).toBeInTheDocument();
+  });
+
+  it("shows exactly three icon-led positions and an honest stale status", () => {
     renderShell();
-    expect(screen.getByRole("heading", { name: "Your AI Fund Strategist" })).toBeInTheDocument();
-
-    const card = screen.getByRole("button", { name: /should be dying/ });
-    expect(card).toHaveAttribute("aria-expanded", "false");
-    fireEvent.click(card);
-    expect(card).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText(/Company accounts through FMP/)).toBeVisible();
+    expect(screen.getAllByRole("button", { name: /Open signal:|IT services are|Crypto is moving/ })).toHaveLength(3);
+    expect(screen.getByRole("status")).toHaveTextContent(/Update delayed/);
+    expect(document.querySelectorAll(".domain-glyph svg")).toHaveLength(3);
+    expect(screen.getByText("Wider world · 1 citation")).toBeInTheDocument();
+    expect(screen.getAllByText("Wider world · 2 citations")).toHaveLength(2);
   });
 
-  it("splits stocks by whether the checks agree", () => {
-    renderShell("stocks");
-    expect(screen.getByRole("heading", { name: "Most checks agree" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Only the price says so" })).toBeInTheDocument();
-    // Palantir has price, experts and news pointing the same way.
-    expect(screen.getByRole("button", { name: /PLTR/ })).toBeInTheDocument();
+  it("renders a quiet day without inventing weak stories", () => {
+    renderShell("brief", buildDemoDay(fixture, "quiet"));
+    expect(screen.getByRole("heading", { name: "Nothing needs action" })).toBeInTheDocument();
+    expect(screen.getByText("IT services growth held its recent pace.")).toBeInTheDocument();
+    expect(screen.getByText("High-yield spreads stayed contained.")).toBeInTheDocument();
+    expect(screen.queryByText("2.41%")).not.toBeInTheDocument();
   });
 
-  it("opens a stock as a sheet with a way back, not a new route", () => {
-    renderShell("stocks");
-    fireEvent.click(screen.getByRole("button", { name: /PLTR/ }));
-    expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
+  it("opens full evidence and cited world context from the card face", () => {
+    renderShell();
+    fireEvent.click(screen.getByRole("button", { name: /IT services are outrunning/ }));
+    expect(screen.getByRole("dialog", { name: /IT services are outrunning/ })).toBeInTheDocument();
+    expect(screen.getByText("In the wider world")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Reuters/ })).toHaveAttribute("target", "_blank");
     expect(screen.getByText("What would change this")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(screen.getByRole("heading", { name: "Which ones have real backing." })).toBeInTheDocument();
   });
 
-  it("hides an industry everywhere once it is switched off", () => {
-    renderShell("stocks");
-    const before = screen.getByText(/^\d+ companies/).textContent ?? "";
+  it("opens history from the dated control", () => {
+    renderShell();
+    fireEvent.click(screen.getByRole("button", { name: /Open history for/ }));
+    expect(screen.getByRole("heading", { name: "Market history" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /Aug 06, 2026/ })).toHaveTextContent("captured");
+  });
+});
 
-    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
-    // Searching flattens the family rollup to the individual industries.
-    fireEvent.change(screen.getByLabelText("Search industries"), { target: { value: "Software - Infrastructure" } });
-    const toggle = screen.getByRole("switch", { name: /Software - Infrastructure/ });
-    expect(toggle).toHaveAttribute("aria-checked", "true");
-    fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute("aria-checked", "false");
-
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    const after = screen.getByText(/^\d+ companies/).textContent ?? "";
-    expect(after).not.toBe(before);
-    expect(after).toContain("1 industry hidden");
-    expect(screen.queryByRole("button", { name: /PLTR/ })).not.toBeInTheDocument();
+describe("Markets, Portfolio and Ask", () => {
+  it("keeps the exhaustive taxonomy behind 11 sector rows", () => {
+    renderShell("markets");
+    expect(screen.getByRole("heading", { name: "Opportunities first." })).toBeInTheDocument();
+    expect(document.querySelectorAll(".sector-row")).toHaveLength(11);
+    fireEvent.click(screen.getByRole("button", { name: /Technology/ }));
+    expect(screen.getByRole("heading", { name: "Technology" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: /Software - Infrastructure/ })).toBeInTheDocument();
   });
 
-  it("hides a whole list of industries at once", () => {
-    renderShell("stocks");
+  it("keeps flat industry settings and the all/some/none sector state", () => {
+    renderShell("markets");
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
-
-    // Narrow to what today actually carries, then hide all of it in one press.
-    fireEvent.change(screen.getByLabelText("Search industries"), { target: { value: "software" } });
-    const listed = screen.getAllByRole("switch");
-    expect(listed.length).toBeGreaterThan(1);
-    for (const toggle of listed) expect(toggle).toHaveAttribute("aria-checked", "true");
-
-    fireEvent.click(screen.getByRole("button", { name: `Hide listed ${listed.length}` }));
-    for (const toggle of screen.getAllByRole("switch")) expect(toggle).toHaveAttribute("aria-checked", "false");
-
-    fireEvent.click(screen.getByRole("button", { name: "Show all industries" }));
-    for (const toggle of screen.getAllByRole("switch")) expect(toggle).toHaveAttribute("aria-checked", "true");
-  });
-
-  it("lists only the industries carrying companies when asked", () => {
-    renderShell("stocks");
-    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
-
-    const filter = screen.getByRole("group", { name: "Show" });
-    fireEvent.click(within(filter).getByRole("button", { name: /Active/ }));
-    const active = screen.getAllByRole("switch");
-    expect(active.length).toBeGreaterThan(0);
-    for (const toggle of active) expect(toggle).not.toHaveTextContent("No companies today");
-  });
-
-  it("shows only 11 collapsed sectors, then drills into one", () => {
-    renderShell("stocks");
-    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
-
     expect(screen.getAllByRole("checkbox")).toHaveLength(11);
     expect(screen.queryAllByRole("switch")).toHaveLength(0);
-    expect(screen.getByText("11 sectors. Open a sector to choose individual industries.")).toBeInTheDocument();
-    expect(screen.queryByRole("switch", { name: /Software - Infrastructure/ })).not.toBeInTheDocument();
-
     fireEvent.click(screen.getByRole("button", { name: /Technology/ }));
-    expect(screen.getAllByRole("switch")).toHaveLength(10);
-    expect(screen.getByRole("switch", { name: /Software - Infrastructure/ })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("checkbox", { name: "Hide all Technology industries" }));
-    expect(screen.getByRole("switch", { name: /Software - Infrastructure/ })).toHaveAttribute("aria-checked", "false");
+    const member = screen.getByRole("switch", { name: /Software - Infrastructure/ });
+    fireEvent.click(member);
+    expect(screen.getByRole("checkbox", { name: "Show Technology industries" })).toHaveAttribute("aria-checked", "mixed");
   });
 
-  it("reports all, some and none for a sector and makes mixed-state clicks show all", () => {
-    renderShell("stocks");
-    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
-    fireEvent.click(screen.getByRole("button", { name: /Technology/ }));
-
-    const firstMember = screen.getByRole("switch", { name: /Communication Equipment/ });
-    fireEvent.click(firstMember);
-    const mixed = screen.getByRole("checkbox", { name: "Show all Technology industries" });
-    expect(mixed).toHaveAttribute("aria-checked", "mixed");
-    expect(screen.getByText("Some")).toBeInTheDocument();
-
-    fireEvent.click(mixed);
-    expect(screen.getByRole("checkbox", { name: "Hide all Technology industries" })).toHaveAttribute("aria-checked", "true");
-    for (const toggle of screen.getAllByRole("switch")) expect(toggle).toHaveAttribute("aria-checked", "true");
+  it("makes portfolio analysis visibly separate from Brief ranking", () => {
+    renderShell("portfolio");
+    expect(screen.getByRole("heading", { name: "Exposure before performance." })).toBeInTheDocument();
+    expect(screen.getByText("This is where your holdings matter. They never choose the Brief.")).toBeInTheDocument();
+    expect(screen.getByText("Available capacity")).toBeInTheDocument();
+    expect(screen.getByText("Correlated exposure")).toBeInTheDocument();
   });
 
-  it("weaves cited real-world context into the Today cards", () => {
-    renderShell();
-    const visibleKickers = screen.getAllByText(/In the wider world/).filter((node) => !node.closest("[hidden]"));
-    expect(visibleKickers).toHaveLength(3);
-    expect(screen.getByText("IT services firms are leaning into AI rather than being replaced by it.")).toBeVisible();
-    expect(screen.queryByRole("link", { name: /Reuters/ })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /should be dying/ }));
-    const cite = screen.getByRole("link", { name: /Reuters/ });
-    expect(cite.getAttribute("href")).toContain("reuters.com");
-    expect(cite).toHaveAttribute("target", "_blank");
-  });
-
-  it("keeps cited context visible on closed desktop cards too", () => {
-    asSplit();
-    renderShell();
-    const visibleKickers = screen.getAllByText(/In the wider world/).filter((node) => !node.closest("[hidden]"));
-    expect(visibleKickers).toHaveLength(3);
-    expect(screen.getAllByRole("button", { name: "Show the working" })).toHaveLength(3);
-  });
-
-  it("hands a card's question to Ask and answers it", () => {
-    const { onTab, view } = renderShell();
-    fireEvent.click(screen.getByRole("button", { name: /should be dying/ }));
-    fireEvent.click(screen.getAllByRole("button", { name: "Ask about this" })[0]);
-    expect(onTab).toHaveBeenCalledWith("ask");
-
-    // The parent owns the tab, so replay what it would do next.
-    view.rerender(<Shell snapshot={fixture} config={{ mode: "demo" }} session={null} tab="ask" onTab={onTab} />);
-    expect(screen.getByRole("heading", { name: "Ask." })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "What is my biggest risk?" }));
-    expect(screen.getByText(/Having too much in one thing/)).toBeInTheDocument();
-    expect(screen.getByText("Where this came from")).toBeInTheDocument();
-  });
-
-  it("drills from a trend into the companies on each side", () => {
-    renderShell("shifts");
-    expect(screen.getByRole("heading", { name: "The three forces." })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /AI chips against IT services/i }));
-    fireEvent.click(screen.getAllByRole("button", { name: "See both sides" })[0]);
-    expect(screen.getByText("the story says this side wins")).toBeInTheDocument();
-    expect(screen.getByText("the story says this side loses")).toBeInTheDocument();
-    expect(screen.getByText("CTSH")).toBeInTheDocument();
-  });
-
-  it("groups industries by direction first, never by a bounce", () => {
-    renderShell("shifts");
-    const group = screen.getByRole("group", { name: "Which group" });
-    // The phone track is two across, so the names are short enough to fit one.
-    expect(within(group).getByRole("button", { name: /Up, still cheap \(27\)/ })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(within(group).getByRole("button", { name: /Down, slowing \(17\)/ }));
-    expect(screen.getByText(/Still down over three months/)).toBeInTheDocument();
+  it("starts Ask with the current brief and supports historical scopes", () => {
+    renderShell("ask");
+    expect(screen.getByRole("heading", { name: "Ask COMPOUND." })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Compare" }));
+    expect(screen.getByLabelText("From")).toHaveAttribute("type", "date");
+    fireEvent.click(screen.getByRole("button", { name: /What would change the call/ }));
+    expect(screen.getByText(/Choose an earlier start date/)).toBeInTheDocument();
   });
 });
 
 describe("device systems", () => {
-  it("puts the tabs at the bottom and the detail over the screen on a phone", () => {
-    renderShell("stocks");
-    expect(document.querySelector(".shell.stack")).toBeInTheDocument();
-    expect(document.querySelector(".botnav")).toBeInTheDocument();
-    expect(document.querySelector(".sidenav")).not.toBeInTheDocument();
-    // No column headings: a phone list has no columns to head.
-    expect(document.querySelector(".dthead")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /PLTR/ }));
+  it("uses a full-screen story sheet on stack", () => {
+    renderShell();
+    fireEvent.click(screen.getByRole("button", { name: /Open signal:/ }));
     expect(document.querySelector(".sheet")).toBeInTheDocument();
     expect(document.querySelector(".panel")).not.toBeInTheDocument();
   });
 
-  it("puts the sections in a rail and the detail beside the list on a desktop", () => {
+  it("uses a right-side story panel on split", () => {
     asSplit();
-    renderShell("stocks");
-    expect(document.querySelector(".shell.split")).toBeInTheDocument();
-    expect(document.querySelector(".sidenav")).toBeInTheDocument();
-    expect(document.querySelector(".botnav")).not.toBeInTheDocument();
-    // The rail has room for the long section names and what each one is for.
-    const nav = screen.getByRole("navigation", { name: "Sections" });
-    expect(within(nav).getByText("My money")).toBeInTheDocument();
-    expect(within(nav).getByText("What you own and what it is doing")).toBeInTheDocument();
-    expect(document.querySelector(".dthead")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /PLTR/ }));
+    renderShell();
+    fireEvent.click(screen.getByRole("button", { name: /Open signal:/ }));
     expect(document.querySelector(".panel")).toBeInTheDocument();
+    expect(document.querySelector(".workspace.with-panel")).toBeInTheDocument();
     expect(document.querySelector(".sheet")).not.toBeInTheDocument();
-    // The list stays on screen next to the panel rather than being covered.
-    expect(screen.getByRole("heading", { name: "Which ones have real backing." })).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { name: "Markets are calm, but money is still expensive." })).toHaveLength(2);
   });
 
-  it("spells the group names out where there is width for them", () => {
-    asSplit();
-    renderShell("shifts");
-    const group = screen.getByRole("group", { name: "Which group" });
-    expect(within(group).getByRole("button", { name: /Going up, still cheap/ })).toBeInTheDocument();
-    expect(within(group).getByRole("button", { name: /Going down, but slowing/ })).toBeInTheDocument();
-  });
-
-  it("moves between sections with the number keys on a desktop", () => {
+  it("maps number keys to the four destinations only on split", () => {
     asSplit();
     const { onTab } = renderShell();
     fireEvent.keyDown(window, { key: "3" });
-    expect(onTab).toHaveBeenCalledWith("stocks");
-  });
-
-  it("leaves the number keys alone on a phone, where there is no keyboard", () => {
-    const { onTab } = renderShell();
-    fireEvent.keyDown(window, { key: "3" });
-    expect(onTab).not.toHaveBeenCalled();
+    expect(onTab).toHaveBeenCalledWith("portfolio");
   });
 });
