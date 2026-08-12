@@ -394,7 +394,9 @@ All `api/*` functions auto-deploy on push to `main`.
 | `/api/customer-contacts/*` | Customer conversation log |
 | `/api/data` | Aggregated dashboard payload |
 | `/api/feedback` | Routes rejections into `feedback_queue` |
-| `/api/goals` | GET returns weekly goals only and has no caller in `src/`; PATCH is live for `team_focus` and goal mutations. See `docs/GOALS-DUPLICATION-AUDIT.md` |
+| `/api/goals` | PATCH only (`team_focus` + goal mutations). GET was retired 2026-08-11 and now 410s; use `/api/goals/ladder` |
+| `/api/revenue` | The two revenue figures: cash collected and committed MRR. Reads the service-role revenue tables |
+| `/api/revenue/sync` | Cron (`0 8 * * *`) + POST backstop. Pulls balance transactions and subscriptions from Stripe. Needs `STRIPE_API_KEY` |
 | `/api/goals/ladder` | The one read for the whole goal ladder: all four rungs joined to `goals_health` |
 | `/api/goals/gate` | Judge a goal against its rung's rubric without writing it. Preview only; `POST /api/objectives` enforces |
 | `/api/goals/digest` | The rendered ladder as text (`?format=json` for structure). One canonical URL for any consumer |

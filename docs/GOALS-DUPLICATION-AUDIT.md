@@ -4,6 +4,28 @@ Audit date 2026-08-11. Written while deduplicating the two OS-goal
 surfaces on Home. **Nothing here is deleted.** Each item is a decision,
 and several have external consumers this repo cannot see.
 
+## Status, 2026-08-12
+
+Most of this is now closed. Items were checked against the **real Vercel env
+and the live Stripe account**, not against `.env.example`, and that changed two
+of the findings below.
+
+| Item | Status |
+|---|---|
+| A. Contradicting revenue goals | **Closed.** `mrr_goal_usd` no longer defaults to 100000; the goal bar hides until a target is actually set |
+| B. `GET /api/goals` | **Closed.** Returns 410; `/api/goals/ladder` is the one read |
+| C. `objectives` vs `goals` noun | **Open.** Still one table, two route trees. The lowest-risk fix is aliasing, not renaming |
+| D. Four focus subsystems | **Open by choice**, and worse than reported: all four flags are `true` in production |
+| E. `VITE_HOME_V2_ENABLED` | **Closed, and it was a live bug.** The name is set nowhere; Vercel carries `VITE_UI_V2_ENABLED=true`, so a flag Krish turned on never rendered |
+| F. Hardcoded lists | **Closed.** `fleet-funnel` and `GoalLadder` read `venture_registry`; new `app_key` column binds lane slugs to short app keys |
+| G. Pinned MRR | **Closed.** `MRR_DISPLAY_OVERRIDE` removed; revenue now comes from Stripe |
+
+**What the pin was hiding.** Real revenue, all time: **$911.45 gross, $842.56
+net**, of which **76.9% was one single one-off payment** (A$1,000, no invoice,
+no customer object). Committed MRR is **US$14.75 + A$9.58/mo** across three
+live subscriptions, and the recurring revenue that exists is Substack
+newsletter subscriptions net of Substack's 10% cut. The dashboard read $16,500.
+
 ## A. Goal stores
 
 Four stores held something goal-shaped. This pass retired one.

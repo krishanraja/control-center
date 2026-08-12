@@ -136,6 +136,36 @@ with no parent. Covers `status IN ('active','proposed')` only; paused,
 done and dropped goals get no row, and `api/goals/ladder.ts` reads a
 missing row as not-stale, which is correct for all three.
 
+### `revenue_events` / `revenue_subscriptions`
+
+Revenue pulled straight from Stripe by `api/revenue/sync.ts`. **Service-role
+only** (anon and authenticated hold no grants); the dashboard reads them
+through `GET /api/revenue`.
+
+They answer different questions and are never summed together:
+
+- **`revenue_events`** — one row per Stripe **balance transaction**, so the
+  fees are settled: `stripe_fee_cents`, `app_fee_cents` (Substack takes 10%),
+  `net_cents`. `kind` is derived, not guessed: refunds are `refund`, an invoice
+  resolving to a subscription is `recurring`, everything else is `one_time`.
+  Idempotent on the transaction id, so a re-sync is a no-op.
+- **`revenue_subscriptions`** — current state of every subscription. This, and
+  only this, produces MRR. `mrr_cents` normalises the price to one month
+  (year ÷ 12, week × 52 ÷ 12).
+
+**Currency.** Stripe settles into the account currency and reports the
+`exchange_rate` it used, so `currency`/`gross_cents` are already settled;
+`presented_currency`/`presented_gross_cents` keep what the customer actually
+paid (A$1,000 rather than US$701.30). `mrr_usd_cents` is **NULL** for non-USD
+plans rather than converted at a guessed rate.
+
+**Why these exist.** `customers.mrr_usd` is written by an n8n expression that
+falls back to the Checkout session grand total, so a one-off advisory invoice
+lands as "per month" revenue. Nothing in the old schema separated recurring
+from one-off. As of 2026-08-11 the live account had collected $842.56 net all
+time, **76.9% of it from a single one-time payment**, against a dashboard that
+read $16,500.
+
 ### `agent_plans`
 
 One sprint plan per agent (14 rows). Refreshed weekly by Agatha Weekly
@@ -254,26 +284,34 @@ Guest Confirmed Cascade.
 Cross-product customer ledger. Owned by Stripe webhooks + Maya
 Customer Acquisition Sweeper (nightly).
 
+This section previously described columns that do not exist: `customer_kind`,
+`customer_product`, `name`, `signup_at`, `tenure_days`, and
+`attribution_confidence` as numeric. The real columns are below; the
+authoritative DDL is `scripts/migrations/2026-05-22-customers.sql`.
+
 | Column | Type | Description |
 |---|---|---|
 | `id` | uuid | Primary key |
-| `customer_kind` | enum | `paid`, `free_signup`, `trial`, `waitlist`, `churned` |
-| `customer_product` | enum | `mindmaker`, `mm_ctrl`, `fractionl_circle`, `fractionl_pulse`, `onalert`, `gutted`, `merciless` |
-| `email` | text | (lowercased; dedupe key) |
-| `name` | text | |
-| `mrr_usd` | numeric | Per-customer MRR contribution |
-| `stripe_customer_id` | text | (dedupe key) |
+| `kind` | enum `customer_kind` | `paid`, `free_signup`, `trial`, `waitlist`, `churned`. Lifecycle, NOT a revenue type |
+| `product` | enum `customer_product` | Eleven values today; `legibility` replaced `plinth` 2026-08-07 |
+| `email` / `full_name` | text | email lowercased, dedupe key |
+| **`mrr_usd`** | numeric(10,2) | **Not trustworthy as MRR.** Written by an n8n expression that falls back to the Checkout session grand total, so a one-off payment lands as "per month" and an annual charge lands as one month. Use `revenue_events` / `revenue_subscriptions` instead |
+| `plan` | text | Free-text Stripe nickname, not a recurrence indicator |
+| `ltv_usd` | numeric(10,2) | Never written by anything in this repo |
+| `stripe_customer_id` | text | dedupe key |
+| `stripe_subscription_id` | text | Falls back to the session/invoice id on `checkout.session.completed`, so it holds non-subscription ids for one-time purchases |
 | `attribution_lead_id` | uuid | FK → `leads.id` |
 | `attribution_task_id` | text | FK → `tasks.id` |
-| `attribution_channel` | text | `cold_email`, `podcast`, `content`, `referral`, `direct`, `unknown` |
-| `attribution_confidence` | numeric | 0-1 |
-| `signup_at` | timestamp | |
-| `churned_at` | timestamp | |
-| `tenure_days` | int | Computed |
-| `created_at` | timestamp | |
+| `attribution_channel` | text | `utm_source`, else `agent:<assignee>` |
+| `attribution_confidence` | **text** | `exact_email` / `utm` / `fuzzy_name` / `unattributed` / `reconciled` |
+| `signed_up_at` / `became_paid_at` / `churned_at` | timestamptz | Webhook receipt time, not Stripe's timestamp |
+| `source`, `country`, `raw` | text/jsonb | `raw` is the only place the full Stripe event survives |
+| `created_at` / `updated_at` | timestamptz | `updated_at` via trigger |
 
-**Dedupe indexes:** `(customer_product, stripe_customer_id)` and
-`(customer_product, lower(email))`.
+**Dedupe indexes:** `(product, stripe_customer_id)` and `(product, lower(email))`.
+
+**No `stripe_account` column**, so account identity here is inferred from
+`product`. Only the warehouse (`attribution.events`) carries it explicitly.
 
 ### `customer_contacts`
 
