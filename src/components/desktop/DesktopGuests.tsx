@@ -177,7 +177,7 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
             <Mic size={20} className="text-violet-300" />
             Visibility
           </h1>
-          <p className="text-[13px] text-white/55 mt-1">Gathering inbound guests + outbound targets…</p>
+          <p className="text-[13px] text-white/55 mt-1">Gathering people and events…</p>
         </header>
         <BoardSkeleton lanes={2} cardsPerLane={3} hero={false} />
       </div>

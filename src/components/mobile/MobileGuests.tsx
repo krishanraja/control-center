@@ -188,7 +188,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
 
   // First paint loads single-focus — one column shimmering in — not a blank flash.
   if ((guestsLoading || targetsLoading) && guests.length === 0 && allTargets.length === 0) {
-    return <MobileLoadingScreen title="Visibility" subtitle="Gathering inbound + outbound…" />
+    return <MobileLoadingScreen title="Visibility" subtitle="Gathering people and events…" />
   }
 
   if (activeTriage.mode === 'deck') {
@@ -352,7 +352,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
 
             {!targetsLoading && outboundCount === 0 && (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-6 text-center">
-                <p className="text-[12px] text-white/55">No outbound opportunities yet.</p>
+                <p className="text-[12px] text-white/55">No events yet.</p>
                 <p className="text-[11px] text-white/35 mt-1">Nova&rsquo;s sweeper will surface them.</p>
               </div>
             )}
