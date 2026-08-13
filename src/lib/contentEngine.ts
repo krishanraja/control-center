@@ -408,7 +408,10 @@ export type MediaChannel =
 export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: boolean }[] = [
   { value: 'substack', label: 'Substack', shortForm: false },
   { value: 'instagram', label: 'Instagram', shortForm: true },
-  { value: 'tiktok', label: 'TikTok', shortForm: true },
+  // TikTok is deliberately absent from the SELECTABLE list while it has no
+  // register in the corpus: a channel you can tick but never cut for is a
+  // checkbox that does nothing. It stays in MediaChannel above so stored rows
+  // still type-check, and media_channels.active is false to match.
   { value: 'youtube', label: 'YouTube', shortForm: false },
   { value: 'linkedin', label: 'LinkedIn', shortForm: true },
   { value: 'podcast', label: 'Podcast', shortForm: false },
@@ -421,7 +424,7 @@ export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: bo
 /** Default distribution per format, so the composer pre-ticks the sane set. */
 export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
   'mindmaker_live:paid': ['substack', 'linkedin'],
-  'mindmaker_live:built': ['substack', 'instagram', 'tiktok', 'youtube', 'signal_noise'],
+  'mindmaker_live:built': ['substack', 'instagram', 'youtube', 'signal_noise'],
 }
 
 // The factory channel is what the Omnichannel Content Factory polishes INTO.
