@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle, ArrowLeft, BookOpen, Check, ExternalLink, FileText, Link2, Loader2, MessageSquare, Paperclip, PenLine, RotateCcw,
-  Save, Search, Send, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Wand2, X, Gauge,
+  Save, Scissors, Search, Send, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Wand2, X, Gauge,
 } from 'lucide-react'
 import { RichText, SelectableDraft } from './RichText'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
@@ -25,7 +25,7 @@ import {
 // order, never rigid. Esc / back returns to the pipeline.
 // ─────────────────────────────────────────────────────────────────────────
 
-type RailTab = 'cleo' | 'refine' | 'materials' | 'research' | 'standards'
+type RailTab = 'cleo' | 'refine' | 'cuts' | 'materials' | 'research' | 'standards'
 
 interface Material {
   id: string
@@ -48,6 +48,10 @@ interface Props {
 const RAIL_TABS: { id: RailTab; label: string; icon: React.ReactNode }[] = [
   { id: 'cleo', label: 'Cleo', icon: <MessageSquare size={14} /> },
   { id: 'refine', label: 'Refine', icon: <Wand2 size={14} /> },
+  // Sits next to Refine because that is where the cuts are made. Without this
+  // tab a channel cut was generated, stored and never seen again: nothing in
+  // the UI read transformed_outputs.
+  { id: 'cuts', label: 'Cuts', icon: <Scissors size={14} /> },
   { id: 'materials', label: 'Materials', icon: <Paperclip size={14} /> },
   { id: 'research', label: 'Research', icon: <Search size={14} /> },
   { id: 'standards', label: 'Standards', icon: <Gauge size={14} /> },
@@ -375,7 +379,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
   const [busy, setBusy] = useState<string | null>(null)
   const [busyLabel, setBusyLabel] = useState<string>('')
   const [preview, setPreview] = useState<{ label: string; text: string } | null>(null)
-  const [sheet, setSheet] = useState<null | 'cleo' | 'materials' | 'research'>(null)
+  const [sheet, setSheet] = useState<null | 'cleo' | 'cuts' | 'materials' | 'research'>(null)
   const [adjust, setAdjust] = useState(false)
   // Undo stack of prior draft bodies — every applied iteration is reversible.
   const [history, setHistory] = useState<string[]>([])
@@ -530,6 +534,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
       {/* Secondary actions */}
       <div className="px-3 pb-1 flex items-center gap-1.5 flex-shrink-0 text-white/60">
         <MobileTool icon={<MessageSquare size={14} />} label="Cleo" onClick={() => setSheet('cleo')} />
+        <MobileTool icon={<Scissors size={14} />} label="Cuts" onClick={() => setSheet('cuts')} />
         <MobileTool icon={<Paperclip size={14} />} label="Materials" onClick={() => setSheet('materials')} />
         <MobileTool icon={<Search size={14} />} label="Research" onClick={() => setSheet('research')} />
         <MobileTool icon={<PenLine size={14} />} label={edit ? 'Done' : 'Edit'} onClick={() => setEdit(e => !e)} active={edit} />
@@ -643,12 +648,13 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
             <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
             <div className="flex items-center justify-between pl-4 pr-2 py-1.5 flex-shrink-0">
               <div className="flex items-center gap-2 text-[15px] font-medium text-white/90">
-                {sheet === 'cleo' ? <><MessageSquare size={16} className="text-violet-300" /> Cleo</> : sheet === 'materials' ? <><Paperclip size={16} className="text-emerald-300" /> Materials</> : <><Search size={16} className="text-emerald-300" /> Research</>}
+                {sheet === 'cleo' ? <><MessageSquare size={16} className="text-violet-300" /> Cleo</> : sheet === 'cuts' ? <><Scissors size={16} className="text-teal-300" /> Channel cuts</> : sheet === 'materials' ? <><Paperclip size={16} className="text-emerald-300" /> Materials</> : <><Search size={16} className="text-emerald-300" /> Research</>}
               </div>
               <button onClick={() => setSheet(null)} aria-label="Close" className="flex items-center justify-center w-10 h-10 rounded-full text-white/50 active:bg-white/[0.08]"><X size={20} /></button>
             </div>
             <div className={`flex-1 min-h-0 px-4 pb-safe ${sheet === 'cleo' ? 'flex flex-col' : 'overflow-y-auto'}`}>
               {sheet === 'cleo' && <CleoChat idea={idea} draft={draft} mobile onUseAsDraft={(t) => { onApplyDraft(t); setSheet(null) }} />}
+              {sheet === 'cuts' && <ChannelCutsPanel idea={idea} />}
               {sheet === 'materials' && <MaterialsPanel idea={idea} />}
               {sheet === 'research' && <ResearchPanel idea={idea} />}
             </div>
@@ -1418,9 +1424,88 @@ function RailContent({ tab, idea, draft, onApplyDraft, selection, onClearSelecti
 }) {
   if (tab === 'cleo') return <CleoChat idea={idea} draft={draft} onUseAsDraft={onApplyDraft} />
   if (tab === 'refine') return <RefinePanel idea={idea} draft={draft} onApplyDraft={onApplyDraft} selection={selection} onClearSelection={onClearSelection} />
+  if (tab === 'cuts') return <ChannelCutsPanel idea={idea} />
   if (tab === 'materials') return <MaterialsPanel idea={idea} />
   if (tab === 'research') return <ResearchPanel idea={idea} />
   return <StandardsPanel idea={idea} draft={draft} />
+}
+
+// ── Channel cuts ─────────────────────────────────────────────────────────
+
+/**
+ * The per-channel cuts stored on content_ideas.transformed_outputs.
+ *
+ * These are read-only here on purpose. A cut is a derivative: the way to change
+ * one is to fix the source draft and cut again, not to edit the cut and let it
+ * drift from the piece it claims to be a version of. What this panel owes Krish
+ * is the text to copy, the age of it, and any figure the generator could not
+ * account for against the source.
+ */
+function ChannelCutsPanel({ idea }: { idea: ContentIdeaRow }) {
+  const { toast } = useToast()
+  const [open, setOpen] = useState<string | null>(null)
+  const cuts = useMemo(() => {
+    const t = (idea.transformed_outputs || {}) as Record<string, any>
+    return CHANNEL_ADAPTS
+      .map(c => ({ key: c.value, label: c.label, cut: t[c.value] }))
+      .filter(x => x.cut && typeof x.cut.body === 'string')
+  }, [idea.transformed_outputs])
+
+  if (!cuts.length) {
+    return (
+      <div className="p-4 text-[12px] text-white/45 leading-relaxed">
+        No channel cuts yet. Open <span className="text-white/70">Refine</span> and pick one under
+        <span className="text-teal-200"> Cut for a channel</span>. Each cut is saved against this
+        piece, so the draft you are working on is left alone and one piece can hold several.
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-3 space-y-2">
+      {cuts.map(({ key, label, cut }) => {
+        const words = String(cut.body).trim().split(/\s+/).length
+        const bad: string[] = Array.isArray(cut.unsupported_numbers) ? cut.unsupported_numbers : []
+        const isOpen = open === key
+        return (
+          <div key={key} className="rounded-lg border border-white/[0.08] bg-white/[0.02]">
+            <button
+              type="button" onClick={() => setOpen(isOpen ? null : key)}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
+            >
+              <span className="text-[12px] text-white/85">{label}</span>
+              <span className="text-[10px] text-white/40 tabular-nums">
+                {bad.length > 0 && <span className="text-amber-300/90 mr-2">check {bad.length}</span>}
+                {words}w
+              </span>
+            </button>
+            {isOpen && (
+              <div className="px-3 pb-3 space-y-2">
+                {cut.notes && (
+                  <p className="text-[11px] text-amber-200/80 leading-snug">{cut.notes}</p>
+                )}
+                {cut.visual_suggestion && (
+                  <p className="text-[11px] text-white/45 leading-snug">Visual: {cut.visual_suggestion}</p>
+                )}
+                <RichText text={String(cut.body)} className="text-[12px] leading-relaxed text-white/80" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(String(cut.body))
+                      .then(() => toast(`${label} cut copied.`, 'success'))
+                      .catch(() => toast('Could not copy.', 'error'))
+                  }}
+                  className="text-[11px] px-2 py-1 rounded-md border border-teal-500/25 text-teal-200 hover:bg-teal-500/10"
+                >
+                  Copy
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 // ── Cleo chat ────────────────────────────────────────────────────────────
