@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import {
-  callClaude, corpusForChannel, loadCorpus, loadVoiceBlock, pathId, preamble, robustJson, sanitizeVoice,
+  callClaude, corpusForChannel, loadCorpus, loadVoiceBlock, materialsContext, pathId, preamble,
+  readMaterials, robustJson, sanitizeVoice,
 } from '../../_content.js'
 
 // POST /api/content-ideas/:id/channel-cut
@@ -33,6 +34,46 @@ import {
 const VALID_CHANNELS = new Set([
   'substack', 'linkedin', 'youtube', 'instagram', 'podcast', 'signal_noise',
 ])
+
+/** Numbers in the text, normalised so "$606" and "606" compare equal and
+ *  thousands separators do not create false mismatches. */
+function numbersIn(text: string): string[] {
+  return (text.match(/\d[\d,]*(?:\.\d+)?/g) || []).map(n => n.replace(/,/g, '').replace(/\.0+$/, ''))
+}
+
+/**
+ * Which figures in a cut are NOT present in what it was cut from.
+ *
+ * The system prompt tells the model every number must appear verbatim in the
+ * source. It mostly obeys and then quietly does not: a cut of a piece stating
+ * 606 and 470 produced "142 saved" (the arithmetic is 136), and a later run
+ * produced a "40 minutes" that existed nowhere. Both read as researched facts.
+ *
+ * So this checks rather than trusts. It does not block: a channel cut is a
+ * draft Krish reads, and a false positive that refused to save would be worse
+ * than a flag he can glance at. The unmatched figures go into the cut's notes
+ * and into the toast, which is the difference between an invented number he
+ * catches now and one he catches after publishing.
+ *
+ * Small integers are ignored deliberately. Numbers under 13 are overwhelmingly
+ * ordinary prose ("three retry loops", "one config change") rather than claims,
+ * and flagging them buries the real finding in noise.
+ */
+function unsupportedNumbers(cut: string, source: string): string[] {
+  const inSource = new Set(numbersIn(source))
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const n of numbersIn(cut)) {
+    if (inSource.has(n) || seen.has(n)) continue
+    if (Number(n) < 13) continue
+    // A year the source does not mention is still worth flagging, but a
+    // percentage the source states as a decimal is not: check both readings.
+    if (inSource.has(String(Number(n) / 100)) || inSource.has(String(Number(n) * 100))) continue
+    seen.add(n)
+    out.push(n)
+  }
+  return out.slice(0, 8)
+}
 
 // Retired channel keys that may still arrive from an old client or a stored
 // row. Mapped forward so nothing 400s; never offered as a choice.
@@ -93,6 +134,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sources = Array.isArray(meta.sources) ? (meta.sources as string[]) : []
   const citations = [...new Set([idea.source_url, ...research, ...sources].filter(Boolean))] as string[]
 
+  // Krish's own pasted research, the same meta.materials[] the composer shows
+  // and /revise grounds on. A cut that cannot see it would quietly drop the one
+  // source he cared enough about to paste in by hand, and the shorter the cut
+  // the more likely his specific number is the thing that gets cut.
+  const materials = readMaterials(idea.meta)
+  const materialsBlock = materials.length ? `\n\n${materialsContext(materials)}` : ''
+
   const system = [
     voice,
     channelCorpus
@@ -100,6 +148,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : '',
     '\n\nYou are cutting an existing piece for one channel. The argument does not change. The length, register and scaffolding do. ' +
     'You may cut, compress, reorder and re-voice. You may NOT add a claim the source piece did not earn: if the channel wants a fact the source does not have, that is a gap in the source, not licence to invent one. ' +
+    // Every number has to be one the source already states. A cut that does its
+    // own arithmetic will get it wrong and the error is invisible, because it
+    // looks like a figure that came from the research. Caught live: a source
+    // saying 606 and 470 produced "142 saved" in two different cuts.
+    'EVERY NUMBER MUST APPEAR VERBATIM IN THE SOURCE. Do not compute totals, differences, percentages or rates, even when the arithmetic looks obvious. ' +
+    'If a number you want is not written in the source, leave it out and say the thing without it. ' +
     'No em dashes.',
   ].filter(Boolean).join('')
 
@@ -112,6 +166,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `SOURCE PIECE: ${idea.idea}\n` +
         `${idea.thesis ? `Thesis: ${idea.thesis}\n` : ''}` +
         `${citations.length ? `Citations available: ${citations.slice(0, 8).join(', ')}\n` : ''}` +
+        `${materialsBlock}` +
         `\nDRAFT:\n${source.slice(0, 14_000)}\n\n` +
         `INSTRUCTION: ${b.hint || FALLBACK_HINT[channel]}\n\n` +
         'Return ONLY a single JSON object: {"body":string,"visual_suggestion":string|null,"notes":string|null}. ' +
@@ -128,6 +183,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const body = sanitizeVoice(String(parsed?.body || text || '').trim())
   if (!body) return res.status(502).json({ ok: false, error: 'empty_generation' })
 
+  // Verify the figures against what this was cut from, and against Krish's own
+  // pasted material, before storing anything.
+  const grounded = [source, materials.map(m => `${m.title} ${m.content || ''} ${m.url || ''}`).join(' '), citations.join(' ')].join('\n')
+  const unsupported = unsupportedNumbers(body, grounded)
+  const numberWarning = unsupported.length
+    ? `Figures not found in the source: ${unsupported.join(', ')}. Check before publishing.`
+    : null
+
   // Merge, never replace: the other channels' cuts of this piece must survive.
   const existing = (idea.transformed_outputs || {}) as Record<string, unknown>
   const next = {
@@ -136,7 +199,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body,
       generated_at: new Date().toISOString(),
       model: 'claude-sonnet-4-6',
-      notes: parsed?.notes ? String(parsed.notes).slice(0, 600) : null,
+      notes: [parsed?.notes ? String(parsed.notes).slice(0, 600) : null, numberWarning]
+        .filter(Boolean).join(' ') || null,
+      unsupported_numbers: unsupported,
       visual_suggestion: parsed?.visual_suggestion ? String(parsed.visual_suggestion).slice(0, 300) : null,
     },
   }

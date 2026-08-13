@@ -59,6 +59,24 @@ export const normLinkedIn = (s: string | null | undefined): string => {
     .replace(/\?.*$/, '')
 }
 
+// A LinkedIn keyword search for "AI agent architecture" returns as many job ads
+// as opinions, and a job ad is dense in exactly the vocabulary the format
+// scorer rewards, so recruiters were outranking builders. The first live run
+// wrote three: "Hiring: Agentforce Architect", "We're hiring a Staff Software
+// Developer". The author of a job ad is a recruiter, not someone with a view on
+// the thing, so the post is dropped before it ever reaches scoring.
+const RECRUITING_POST = /\b(hiring|we are hiring|we're hiring|now hiring|job alert|apply now|job opening|open role|open position|join our team|send your (cv|resume)|recruiting for|vacancy|jd\b|full[- ]time role|contract role)\b/i
+
+/** True for posts that are recruitment advertising rather than a point of view. */
+export function isRecruitingPost(text: string): boolean {
+  const t = (text || '').slice(0, 600)
+  if (!t) return false
+  if (RECRUITING_POST.test(t)) return true
+  // Job ads are also recognisable by shape: a stack of labelled fields.
+  const fieldish = (t.match(/(location|salary|experience|years?|onsite|hybrid|remote|apply|role|position)\s*[:|]/gi) || []).length
+  return fieldish >= 3
+}
+
 /** A person name has to look like one. Web and LinkedIn sources otherwise
  *  return company names, article titles and "Read more" as people. */
 export function looksLikePerson(name: string): boolean {
@@ -344,6 +362,31 @@ export async function fromWeb(
 // on the format's subject this month are, by construction, people with a
 // current opinion worth recording.
 
+// Each actor has its OWN input schema and they are not interchangeable. Both
+// were being sent `{ keywords, searchQuery, maxItems }`, which neither declares,
+// so the actor ran, parsed an empty search and exited 0 with an empty dataset.
+// A successful run returning nothing is indistinguishable from a bad query
+// unless you read the actor log, which is how this stayed invisible.
+//
+// Verified against each actor's published input schema on 2026-08-13.
+function actorInput(slug: string, keywords: string[], maxPosts: number): Record<string, unknown> {
+  if (slug.startsWith('benjarapi/')) {
+    return {
+      keywords: keywords.join(' OR '),
+      maxPosts,
+      datePosted: 'past-month',
+      sortBy: 'relevance',
+    }
+  }
+  // harvestapi/linkedin-post-search and anything else registry-shaped.
+  return {
+    searchQueries: keywords,
+    maxPosts,
+    postedLimit: 'month',
+    sortBy: 'relevance',
+  }
+}
+
 export async function fromLinkedIn(
   keywords: string[],
   maxPosts: number,
@@ -351,9 +394,12 @@ export async function fromLinkedIn(
   const token = process.env.APIFY_TOKEN
   if (!token) return { candidates: [], note: 'linkedin: SKIPPED (no APIFY_TOKEN)' }
 
-  // Resolve the actor from the registry rather than hardcoding it, so a kill
-  // switch on a misbehaving actor takes effect without a deploy.
-  let actor = 'harvestapi~linkedin-post-search'
+  // Resolve actors from the registry rather than hardcoding, so a kill switch
+  // on a misbehaving actor takes effect without a deploy. Primary first, then
+  // the registered fallback: a zero-result primary is worth one retry
+  // elsewhere, because "LinkedIn returned nothing" and "this actor is broken"
+  // look identical from one run.
+  let slugs = ['harvestapi/linkedin-post-search', 'benjarapi/linkedin-post-search']
   try {
     const { data } = await supabase
       .from('apify_actor_registry')
@@ -361,58 +407,73 @@ export async function fromLinkedIn(
       .eq('task_category', 'linkedin_post_search')
       .eq('killed', false)
       .order('is_primary', { ascending: false })
-      .limit(1)
-    const slug = (data?.[0] as { actor_slug?: string } | undefined)?.actor_slug
-    if (slug) actor = slug.replace('/', '~')
-  } catch { /* keep the default */ }
+    const registered = ((data ?? []) as { actor_slug: string }[]).map(r => r.actor_slug).filter(Boolean)
+    if (registered.length) slugs = registered
+  } catch { /* keep the defaults */ }
 
   const out: GuestCandidate[] = []
   const seen = new Set<string>()
-  try {
-    const r = await fetch(
-      `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${token}&timeout=90&maxItems=${maxPosts}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keywords,
-          searchQuery: keywords.join(' OR '),
-          maxItems: maxPosts,
-          postedLimit: 'month',
-          sortBy: 'relevance',
-        }),
-      },
-    )
-    if (!r.ok) {
-      const t = await r.text().catch(() => '')
-      return { candidates: [], note: `linkedin: FAILED apify_${r.status} ${t.slice(0, 120)}` }
+  const tried: string[] = []
+  let skippedAds = 0
+
+  for (const slug of slugs.slice(0, 2)) {
+    const actor = slug.replace('/', '~')
+    try {
+      const r = await fetch(
+        `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${token}&timeout=90`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(actorInput(slug, keywords, maxPosts)),
+        },
+      )
+      if (!r.ok) {
+        const t = await r.text().catch(() => '')
+        tried.push(`${slug} HTTP ${r.status} ${t.slice(0, 60)}`)
+        continue
+      }
+      const items: any[] = await r.json().catch(() => [])
+      const count = Array.isArray(items) ? items.length : 0
+      tried.push(`${slug} ${count} posts`)
+      for (const it of Array.isArray(items) ? items : []) {
+        const a = it?.author || it?.actor || {}
+        const name = String(a.name || a.fullName || [a.firstName, a.lastName].filter(Boolean).join(' ') || '').trim()
+        if (!looksLikePerson(name) || seen.has(normName(name))) continue
+        const postText = String(it?.content || it?.text || it?.postContent || '')
+        if (isRecruitingPost(postText)) { skippedAds++; continue }
+        seen.add(normName(name))
+        const url = a.linkedinUrl || a.url || a.profileUrl || it?.authorProfileUrl || null
+        out.push({
+          name,
+          linkedin: url ? String(url) : null,
+          email: null,
+          company: a.companyName || a.company || null,
+          title: a.headline || a.occupation || a.position || null,
+          context: postText.replace(/\s+/g, ' ').slice(0, 700),
+          discoverySource: 'linkedin', inNetwork: false, contactId: null,
+          evidence: [{
+            kind: 'linkedin',
+            label: `Posted on this in the last month: ${postText.replace(/\s+/g, ' ').slice(0, 160)}`,
+            url: it?.url || it?.postUrl || url || null,
+          }],
+          sourceScore: 0.58,
+        })
+      }
+      if (out.length) break
+    } catch (e) {
+      tried.push(`${slug} FAILED ${(e as Error)?.message?.slice(0, 60)}`)
     }
-    const items: any[] = await r.json().catch(() => [])
-    for (const it of Array.isArray(items) ? items : []) {
-      const a = it?.author || it?.actor || {}
-      const name = String(a.name || a.fullName || [a.firstName, a.lastName].filter(Boolean).join(' ') || '').trim()
-      if (!looksLikePerson(name) || seen.has(normName(name))) continue
-      seen.add(normName(name))
-      const url = a.linkedinUrl || a.url || a.profileUrl || it?.authorProfileUrl || null
-      out.push({
-        name,
-        linkedin: url ? String(url) : null,
-        email: null,
-        company: a.companyName || a.company || null,
-        title: a.headline || a.occupation || a.position || null,
-        context: String(it?.content || it?.text || it?.postContent || '').replace(/\s+/g, ' ').slice(0, 700),
-        discoverySource: 'linkedin', inNetwork: false, contactId: null,
-        evidence: [{
-          kind: 'linkedin',
-          label: `Posted on this in the last month: ${String(it?.content || it?.text || '').replace(/\s+/g, ' ').slice(0, 160)}`,
-          url: it?.url || it?.postUrl || url || null,
-        }],
-        sourceScore: 0.58,
-      })
-    }
-    return { candidates: out, note: `linkedin: ${out.length} authors from ${Array.isArray(items) ? items.length : 0} posts via ${actor}` }
-  } catch (e) {
-    return { candidates: [], note: `linkedin: FAILED ${(e as Error)?.message?.slice(0, 120)}` }
+  }
+
+  // Zero is reported as DEGRADED, never as a clean empty. These actors exit 0
+  // with an empty dataset when a query simply matches nothing on LinkedIn, so a
+  // healthy run and a broken one look identical from the status code alone.
+  // Naming the actor and its post count in the note is what separates them.
+  return {
+    candidates: out,
+    note: out.length
+      ? `linkedin: ${out.length} authors${skippedAds ? `, ${skippedAds} job ads skipped` : ''} (${tried.join('; ')})`
+      : `linkedin: DEGRADED 0 authors${skippedAds ? `, ${skippedAds} job ads skipped` : ''}, actors ran but yielded no usable posts (${tried.join('; ')})`,
   }
 }
 

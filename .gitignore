@@ -11,3 +11,5 @@ test-results/
 
 # Supabase CLI scratch state, never committed
 supabase/.temp/
+.vercel
+.env*

@@ -41,8 +41,15 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const FRESH_DAYS = 45
-const MAX_DRAFTS_PER_FORMAT = 6      // cap the LLM drafting per run (cost discipline)
-const MAX_WRITE_PER_FORMAT = 12
+// Only DRAFTED candidates get written, so these two are deliberately equal.
+//
+// They were 6 and 12, and the first live run showed why that was wrong: the six
+// undrafted rows fell back to their raw evidence string as why_fit, so the queue
+// filled with entries whose stated reason was a truncated LinkedIn post. Half a
+// reason is worse than no candidate. It also means the model's veto applies to
+// every row that lands, rather than to the first six.
+const MAX_DRAFTS_PER_FORMAT = 8      // caps LLM spend per run
+const MAX_WRITE_PER_FORMAT = 8
 const NETWORK_LIMIT = 25
 const LINKEDIN_POSTS = 40
 const MAX_EVENTS = 12
@@ -94,14 +101,25 @@ async function loadBriefs(): Promise<FormatBrief[]> {
   // Recent shifts give the scout something CURRENT to hunt against, so it finds
   // people who are in the middle of the thing rather than people who were
   // relevant when the term list was written.
+  //
+  // Filter by what a shift is NOT, rather than listing live statuses. The first
+  // version listed ['active','building','watching'], none of which this table
+  // has ever contained (the real set is proposed / fading / retired), so it
+  // matched nothing and the shift-driven web queries silently never ran.
+  // Excluding the dead states keeps working when a new live state appears.
   const { data: shifts } = await supabase
     .from('shifts')
     .select('title,summary,lane,status')
-    .in('status', ['active', 'building', 'watching'])
+    .not('status', 'in', '("retired","library")')
     .order('momentum', { ascending: false })
-    .limit(6)
-  const shiftTitles = ((shifts ?? []) as { title: string | null }[])
-    .map(s => s.title).filter((t): t is string => Boolean(t))
+    .limit(24)
+  const allShifts = (shifts ?? []) as { title: string | null; lane: string | null }[]
+  /** Shifts for one format. A shift with no lane is unclassified, not
+   *  irrelevant, so it shows for both rather than being dropped. */
+  const shiftsFor = (fmt: string): string[] => allShifts
+    .filter(s => s.lane === fmt || !s.lane)
+    .map(s => s.title)
+    .filter((t): t is string => Boolean(t))
 
   return FORMATS.map((format): FormatBrief => {
     const meta = byslug.get(format)
@@ -119,7 +137,7 @@ async function loadBriefs(): Promise<FormatBrief[]> {
         webQueries: [
           'executives who changed their pricing model because of AI costs, named with company and date',
           'founders publicly discussing AI unit economics, gross margin or inference cost in their business',
-          ...shiftTitles.slice(0, 2).map(t => `who is capturing the money in this shift: ${t}. Name the operators, not the analysts.`),
+          ...shiftsFor('paid').slice(0, 2).map(t => `who is capturing the money in this shift: ${t}. Name the operators, not the analysts.`),
         ],
         keywords: ['AI pricing', 'unit economics AI', 'AI margin', 'inference cost', 'AI monetisation'],
         terms: PAID_TERMS,
@@ -133,7 +151,7 @@ async function loadBriefs(): Promise<FormatBrief[]> {
       webQueries: [
         'founders who shipped an AI agent system into production and wrote about what broke',
         'operators rebuilding their company around AI with specific architecture details, named',
-        ...shiftTitles.slice(0, 2).map(t => `who actually built the thing behind this shift: ${t}. Name the builders.`),
+        ...shiftsFor('built').slice(0, 2).map(t => `who actually built the thing behind this shift: ${t}. Name the builders.`),
       ],
       keywords: ['built with AI agents', 'shipped AI production', 'AI agent architecture', 'AI evals production'],
       terms: BUILT_TERMS,
@@ -355,13 +373,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let drafted = 0
       const kept: Record<string, unknown>[] = []
       for (const { c, score } of scored) {
-        const draft = drafted < MAX_DRAFTS_PER_FORMAT ? await draftFor(c, brief) : null
-        if (draft) drafted++
+        if (drafted >= MAX_DRAFTS_PER_FORMAT) break
+        const draft = await draftFor(c, brief)
+        // No draft, no row. An undrafted candidate has no reasoned why_fit and
+        // no angles, so it would arrive in the queue stating a raw search
+        // result as its reason. That is what the first live run produced.
+        if (!draft) continue
+        drafted++
         // The model is allowed to veto. A scout that never rejects is a scout
         // that fills the queue with people Krish will not book.
-        if (draft?.format === 'reject') continue
+        if (draft.format === 'reject') continue
 
-        const resolvedFormat: GuestFormat = draft?.format === 'either' ? 'either' : brief.format
+        const resolvedFormat: GuestFormat = draft.format === 'either' ? 'either' : brief.format
         kept.push({
           name: c.name,
           linkedin_url: c.linkedin,
@@ -372,9 +395,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           // `format` carries the real distinction.
           podcast_target: 'either',
           target_type: 'podcast_guest',
-          one_liner: sanitizeVoice(String(draft?.one_liner || draft?.angles?.[0] || c.context.slice(0, 200))).slice(0, 240),
-          why_fit: sanitizeVoice(String(draft?.why_fit || c.evidence[0]?.label || '')).slice(0, 500),
-          pitch_draft: draft?.pitch ? sanitizeVoice(draft.pitch).slice(0, 1200) : null,
+          one_liner: sanitizeVoice(String(draft.one_liner || draft.angles?.[0] || c.context.slice(0, 200))).slice(0, 240),
+          why_fit: sanitizeVoice(String(draft.why_fit || c.evidence[0]?.label || '')).slice(0, 500),
+          pitch_draft: draft.pitch ? sanitizeVoice(draft.pitch).slice(0, 1200) : null,
           fit_score: Math.round(score * 100),
           attainability_score: c.inNetwork ? 75 : 40,
           status: 'scouted',
@@ -389,7 +412,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             discovered_by: 'guest_scout_v2',
             format: brief.format,
             discovery_source: c.discoverySource,
-            suggested_angles: draft?.angles ?? [],
+            suggested_angles: draft.angles ?? [],
             score,
             company: c.company,
             title: c.title,
