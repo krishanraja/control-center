@@ -101,7 +101,13 @@
   --accent: 108 95 165;      /* muted violet, deepened for paper (was #6354E0) */
   --accent-2: 96 88 158;     /* muted indigo                           */
   --accent-3: 70 120 135;    /* muted teal   (was deep cyan #0891B2)    */
-  --fg: 23 21 33;            /* flips every *-white/NN utility to ink   */
+  /* Pure black, NOT --ink. Every muted tier in this app is an opacity of --fg
+     (text-white/45, border-white/10, bg-white/[0.04]), and those ratios were
+     tuned for white-on-obsidian. Inverted onto pale paper the same opacities
+     read washed out: near-black at 45% measures about 4.3:1 here. True black
+     lifts every tier at once, app-wide, with no per-component edits. --ink
+     stays 23 21 33 for the explicit ink utilities. */
+  --fg: 0 0 0;               /* flips every *-white/NN utility to ink   */
 
   /* Muted deep accent-text (light) — legible on pale tinted cards, off-neon. */
   --ac-violet: 104 82 140;   --ac-amber: 132 100 60;   --ac-emerald: 44 108 88;

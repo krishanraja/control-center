@@ -15,9 +15,15 @@ import { loadConfig, pathId, preamble } from '../../_content.js'
 // the idea's hook/audience/angle. Webhook URL is server-side + rotatable.
 
 // Mirrors FactoryChannel in src/lib/contentEngine.ts. Keep the two in step.
+// Verified against the live workflow on 2026-08-13: `Cleo | Mindmaker OS |
+// Omnichannel Content Factory` (AnhkJrJBvmohfqjJ) switches on these five and
+// only these five. 'dynamic' used to be here and in the default below, and the
+// factory has ZERO references to it, so every push that did not name a channel
+// went straight to the fallback branch and came back as a generic draft. A
+// value the other side of a wire contract does not know is not a default, it is
+// a silent misroute.
 const FACTORY_CHANNELS = new Set([
-  'paid', 'built', 'linkedin', 'signal_noise',
-  'vertical_video', 'dynamic',
+  'paid', 'built', 'linkedin', 'signal_noise', 'vertical_video',
 ])
 
 // A stale client that still asks for a retired channel gets mapped, not
@@ -31,6 +37,10 @@ const RETIRED_CHANNELS: Record<string, string> = {
   investigation: 'paid',
   builder_economy: 'built',
   builder_economy_ig: 'built',
+  // Retired 2026-08-13. It was the default, and the factory has no branch for
+  // it, so it resolved to whatever the fallback did. Pushes now derive the
+  // channel from the piece's own format instead.
+  dynamic: 'paid',
 }
 
 function firstLine(s?: string | null): string {
@@ -45,11 +55,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!id) return res.status(400).json({ ok: false, error: 'id required' })
 
   const b = (req.body || {}) as { target_channel?: string; source_text?: string }
-  const requested = b.target_channel || 'dynamic'
-  const channel = RETIRED_CHANNELS[requested] || requested
-  if (!FACTORY_CHANNELS.has(channel)) {
-    return res.status(400).json({ ok: false, error: `invalid target_channel (${[...FACTORY_CHANNELS].join('|')})` })
-  }
 
   const webhook = process.env.N8N_CONTENT_FACTORY_WEBHOOK_URL
   if (!webhook) return res.status(500).json({ ok: false, error: 'N8N_CONTENT_FACTORY_WEBHOOK_URL not configured' })
@@ -57,6 +62,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: idea, error } = await supabase
     .from('content_ideas').select('*').eq('id', id).single()
   if (error || !idea) return res.status(404).json({ ok: false, error: 'idea not found' })
+
+  // Resolve the channel AFTER the idea loads, so an unspecified push derives
+  // from the piece's own format rather than a placeholder the factory cannot
+  // route. A Built piece pushes as 'built'; a Paid piece as 'paid'.
+  const requested = b.target_channel || idea.lane_slot || 'paid'
+  const channel = RETIRED_CHANNELS[requested] || requested
+  if (!FACTORY_CHANNELS.has(channel)) {
+    return res.status(400).json({ ok: false, error: `invalid target_channel (${[...FACTORY_CHANNELS].join('|')})` })
+  }
 
   const meta = (idea.meta || {}) as any
 

@@ -109,7 +109,7 @@ export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }:
   // and keeps the passive pulse below.
   if (ritualOn) {
     return (
-      <MobileShellPrim header={<TabHeader leading={<Logomark size={56} />} trailing={<StaleHeaderCue />} />}>
+      <MobileShellPrim header={<TabHeader leading={<Logomark size={36} />} trailing={<StaleHeaderCue />} />}>
         <CriticalAlertBanner />
         {/* SHIP LEDGER: what left the machine. First, and always neutral. */}
         <ShipLedgerCard variant="mobile" />
@@ -157,7 +157,7 @@ export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }:
 
   if (v2) {
     return (
-      <MobileShellPrim header={<TabHeader leading={<Logomark size={56} />} />}>
+      <MobileShellPrim header={<TabHeader leading={<Logomark size={36} />} />}>
         <CriticalAlertBanner />
         {/* SHIP LEDGER: what left the machine. First, and always neutral. */}
         <ShipLedgerCard variant="mobile" />
@@ -205,7 +205,7 @@ export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }:
   // ── Legacy Home (fallback while HomeV2 is gated off) ──────────────────────
   return (
     <MobileShellPrim
-      header={<TabHeader leading={<Logomark size={56} />} />}
+      header={<TabHeader leading={<Logomark size={36} />} />}
     >
       <CriticalAlertBanner />
       {/* SHIP LEDGER: what left the machine. First, and always neutral. */}

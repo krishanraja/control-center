@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle, ArrowLeft, BookOpen, Check, ExternalLink, FileText, Link2, Loader2, MessageSquare, Paperclip, PenLine, RotateCcw,
-  Save, Search, Send, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Wand2, X, Gauge,
+  Save, Scissors, Search, Send, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Wand2, X, Gauge,
 } from 'lucide-react'
 import { RichText, SelectableDraft } from './RichText'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
@@ -11,8 +11,8 @@ import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { lintVoice, autoFixVoice, type LintIssue } from '../../lib/voiceLint'
 import {
-  DEFAULT_CHANNELS, FACTORY_CHANNELS, FIVE_STANDARDS, HUMOR_PRESETS, ITERATE_CHIPS, LANE_ADAPTS,
-  LENGTH_PRESETS, MEDIA_CHANNELS,
+  CHANNEL_ADAPTS, DEFAULT_CHANNELS, FACTORY_CHANNELS, FIVE_STANDARDS, FORMAT_ADAPTS,
+  HUMOR_PRESETS, ITERATE_CHIPS, LENGTH_PRESETS, MEDIA_CHANNELS,
   TONE_PRESETS, ZOOM_DEFAULT_HINT, laneToFactoryChannel, nextBestAction,
 } from '../../lib/contentEngine'
 // ─────────────────────────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ import {
 // order, never rigid. Esc / back returns to the pipeline.
 // ─────────────────────────────────────────────────────────────────────────
 
-type RailTab = 'cleo' | 'refine' | 'materials' | 'research' | 'standards'
+type RailTab = 'cleo' | 'refine' | 'cuts' | 'materials' | 'research' | 'standards'
 
 interface Material {
   id: string
@@ -48,6 +48,10 @@ interface Props {
 const RAIL_TABS: { id: RailTab; label: string; icon: React.ReactNode }[] = [
   { id: 'cleo', label: 'Cleo', icon: <MessageSquare size={14} /> },
   { id: 'refine', label: 'Refine', icon: <Wand2 size={14} /> },
+  // Sits next to Refine because that is where the cuts are made. Without this
+  // tab a channel cut was generated, stored and never seen again: nothing in
+  // the UI read transformed_outputs.
+  { id: 'cuts', label: 'Cuts', icon: <Scissors size={14} /> },
   { id: 'materials', label: 'Materials', icon: <Paperclip size={14} /> },
   { id: 'research', label: 'Research', icon: <Search size={14} /> },
   { id: 'standards', label: 'Standards', icon: <Gauge size={14} /> },
@@ -375,7 +379,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
   const [busy, setBusy] = useState<string | null>(null)
   const [busyLabel, setBusyLabel] = useState<string>('')
   const [preview, setPreview] = useState<{ label: string; text: string } | null>(null)
-  const [sheet, setSheet] = useState<null | 'cleo' | 'materials' | 'research'>(null)
+  const [sheet, setSheet] = useState<null | 'cleo' | 'cuts' | 'materials' | 'research'>(null)
   const [adjust, setAdjust] = useState(false)
   // Undo stack of prior draft bodies — every applied iteration is reversible.
   const [history, setHistory] = useState<string[]>([])
@@ -424,6 +428,39 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
     finally { setBusy(null) }
   }
 
+  // A channel cut is SAVED alongside the draft, not previewed over it.
+  //
+  // Channel chips used to run through runRevise, which opens a preview that
+  // replaces the working draft when applied. That meant cutting a piece for
+  // LinkedIn destroyed the Substack draft it came from, and only one cut could
+  // exist at a time. One piece is supposed to go to several channels, so the
+  // cuts are stored per channel on the row and the source is left alone.
+  const runChannelCut = async (opts: { label: string; value: string; hint?: string }) => {
+    if (!draft.trim()) { toast('Nothing to cut yet, write or generate the piece first.', 'error'); return }
+    const key = `channel:${opts.value}`
+    h.heavy(); setBusy(key); setBusyLabel(`${opts.label} cut`)
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/channel-cut`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: opts.value,
+          hint: opts.hint,
+          source_text: preview?.text ?? draft,
+        }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.hint || j.error || `HTTP ${r.status}`)
+      setAdjust(false); h.success()
+      toast(
+        j.cut?.notes
+          ? `${opts.label} cut saved. Note: ${String(j.cut.notes).slice(0, 90)}`
+          : `${opts.label} cut saved. ${j.channels.length} channel${j.channels.length === 1 ? '' : 's'} on this piece.`,
+        'success',
+      )
+    } catch (e: any) { h.error(); toast(`${opts.label} cut failed: ${e?.message || 'error'}`, 'error') }
+    finally { setBusy(null) }
+  }
+
   // The grouped Adjust palette — every family from contentEngine, filtered so
   // the current lane never offers "adapt to itself".
   const currentChannel = laneToFactoryChannel(idea.lane, idea.lane_slot)
@@ -432,7 +469,13 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
     { label: 'Humor', accent: 'border-fuchsia-500/30 text-fuchsia-200', items: HUMOR_PRESETS.map(o => ({ label: o.label, mode: 'humor', value: o.value, hint: o.hint })) },
     { label: 'Length', accent: 'border-sky-500/30 text-sky-200', items: LENGTH_PRESETS.map(o => ({ label: o.label, mode: 'length', value: o.value, hint: o.hint })) },
     { label: 'Sharpen', accent: 'border-amber-500/30 text-amber-200', items: [...ITERATE_CHIPS.map(o => ({ label: o.label, mode: 'feedback', value: o.value, hint: o.hint })), { label: 'Sharpest angle', mode: 'zoom', value: 'contrarian-angle', hint: ZOOM_DEFAULT_HINT }] },
-    { label: 'Adapt to channel', accent: 'border-violet-500/30 text-violet-200', items: LANE_ADAPTS.filter(l => l.value !== currentChannel).map(o => ({ label: o.label, mode: 'feedback', value: `adapt-${o.value}`, hint: o.hint })) },
+    // Two groups, not one. "Make this a Paid piece" and "cut this down for
+    // LinkedIn" are different decisions, and they were in the same row until
+    // 2026-08-13, which made picking one feel like it had answered both.
+    { label: 'Change the format', accent: 'border-violet-500/30 text-violet-200', items: FORMAT_ADAPTS.filter(l => l.value !== currentChannel).map(o => ({ label: o.label, mode: 'feedback', value: `adapt-${o.value}`, hint: o.hint })) },
+    // mode 'channel' is not a revise mode. It routes to runChannelCut, which
+    // SAVES the cut against the piece instead of previewing it over the draft.
+    { label: 'Cut for a channel', accent: 'border-teal-500/30 text-teal-200', items: CHANNEL_ADAPTS.map(o => ({ label: o.label, mode: 'channel', value: o.value, hint: o.hint })) },
   ]
 
   return (
@@ -491,6 +534,7 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
       {/* Secondary actions */}
       <div className="px-3 pb-1 flex items-center gap-1.5 flex-shrink-0 text-white/60">
         <MobileTool icon={<MessageSquare size={14} />} label="Cleo" onClick={() => setSheet('cleo')} />
+        <MobileTool icon={<Scissors size={14} />} label="Cuts" onClick={() => setSheet('cuts')} />
         <MobileTool icon={<Paperclip size={14} />} label="Materials" onClick={() => setSheet('materials')} />
         <MobileTool icon={<Search size={14} />} label="Research" onClick={() => setSheet('research')} />
         <MobileTool icon={<PenLine size={14} />} label={edit ? 'Done' : 'Edit'} onClick={() => setEdit(e => !e)} active={edit} />
@@ -541,11 +585,18 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
                   <div className="text-[10px] uppercase tracking-[0.1em] text-white/35 mb-1.5">{g.label}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {g.items.map(it => {
-                      const key = `${it.mode}:${it.value}`
+                      // Channel chips save a cut; everything else previews a
+                      // rewrite of the draft in front of you. Two verbs, so two
+                      // handlers, and the busy key has to match the one each
+                      // handler sets or the spinner lands on the wrong chip.
+                      const isCut = it.mode === 'channel'
+                      const key = isCut ? `channel:${it.value}` : `${it.mode}:${it.value}`
                       return (
                         <button
                           key={key} type="button" disabled={busy !== null}
-                          onClick={() => runRevise({ label: it.label, mode: it.mode, value: it.value, hint: it.hint })}
+                          onClick={() => isCut
+                            ? runChannelCut({ label: it.label, value: it.value, hint: it.hint })
+                            : runRevise({ label: it.label, mode: it.mode, value: it.value, hint: it.hint })}
                           className={`flex items-center gap-1 px-3 py-2 rounded-full text-[12px] border bg-white/[0.02] disabled:opacity-40 ${g.accent}`}
                         >
                           {busy === key ? <Loader2 size={12} className="animate-spin" /> : null} {it.label}
@@ -597,12 +648,13 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
             <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
             <div className="flex items-center justify-between pl-4 pr-2 py-1.5 flex-shrink-0">
               <div className="flex items-center gap-2 text-[15px] font-medium text-white/90">
-                {sheet === 'cleo' ? <><MessageSquare size={16} className="text-violet-300" /> Cleo</> : sheet === 'materials' ? <><Paperclip size={16} className="text-emerald-300" /> Materials</> : <><Search size={16} className="text-emerald-300" /> Research</>}
+                {sheet === 'cleo' ? <><MessageSquare size={16} className="text-violet-300" /> Cleo</> : sheet === 'cuts' ? <><Scissors size={16} className="text-teal-300" /> Channel cuts</> : sheet === 'materials' ? <><Paperclip size={16} className="text-emerald-300" /> Materials</> : <><Search size={16} className="text-emerald-300" /> Research</>}
               </div>
               <button onClick={() => setSheet(null)} aria-label="Close" className="flex items-center justify-center w-10 h-10 rounded-full text-white/50 active:bg-white/[0.08]"><X size={20} /></button>
             </div>
             <div className={`flex-1 min-h-0 px-4 pb-safe ${sheet === 'cleo' ? 'flex flex-col' : 'overflow-y-auto'}`}>
               {sheet === 'cleo' && <CleoChat idea={idea} draft={draft} mobile onUseAsDraft={(t) => { onApplyDraft(t); setSheet(null) }} />}
+              {sheet === 'cuts' && <ChannelCutsPanel idea={idea} />}
               {sheet === 'materials' && <MaterialsPanel idea={idea} />}
               {sheet === 'research' && <ResearchPanel idea={idea} />}
             </div>
@@ -1372,9 +1424,88 @@ function RailContent({ tab, idea, draft, onApplyDraft, selection, onClearSelecti
 }) {
   if (tab === 'cleo') return <CleoChat idea={idea} draft={draft} onUseAsDraft={onApplyDraft} />
   if (tab === 'refine') return <RefinePanel idea={idea} draft={draft} onApplyDraft={onApplyDraft} selection={selection} onClearSelection={onClearSelection} />
+  if (tab === 'cuts') return <ChannelCutsPanel idea={idea} />
   if (tab === 'materials') return <MaterialsPanel idea={idea} />
   if (tab === 'research') return <ResearchPanel idea={idea} />
   return <StandardsPanel idea={idea} draft={draft} />
+}
+
+// ── Channel cuts ─────────────────────────────────────────────────────────
+
+/**
+ * The per-channel cuts stored on content_ideas.transformed_outputs.
+ *
+ * These are read-only here on purpose. A cut is a derivative: the way to change
+ * one is to fix the source draft and cut again, not to edit the cut and let it
+ * drift from the piece it claims to be a version of. What this panel owes Krish
+ * is the text to copy, the age of it, and any figure the generator could not
+ * account for against the source.
+ */
+function ChannelCutsPanel({ idea }: { idea: ContentIdeaRow }) {
+  const { toast } = useToast()
+  const [open, setOpen] = useState<string | null>(null)
+  const cuts = useMemo(() => {
+    const t = (idea.transformed_outputs || {}) as Record<string, any>
+    return CHANNEL_ADAPTS
+      .map(c => ({ key: c.value, label: c.label, cut: t[c.value] }))
+      .filter(x => x.cut && typeof x.cut.body === 'string')
+  }, [idea.transformed_outputs])
+
+  if (!cuts.length) {
+    return (
+      <div className="p-4 text-[12px] text-white/45 leading-relaxed">
+        No channel cuts yet. Open <span className="text-white/70">Refine</span> and pick one under
+        <span className="text-teal-200"> Cut for a channel</span>. Each cut is saved against this
+        piece, so the draft you are working on is left alone and one piece can hold several.
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-3 space-y-2">
+      {cuts.map(({ key, label, cut }) => {
+        const words = String(cut.body).trim().split(/\s+/).length
+        const bad: string[] = Array.isArray(cut.unsupported_numbers) ? cut.unsupported_numbers : []
+        const isOpen = open === key
+        return (
+          <div key={key} className="rounded-lg border border-white/[0.08] bg-white/[0.02]">
+            <button
+              type="button" onClick={() => setOpen(isOpen ? null : key)}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
+            >
+              <span className="text-[12px] text-white/85">{label}</span>
+              <span className="text-[10px] text-white/40 tabular-nums">
+                {bad.length > 0 && <span className="text-amber-300/90 mr-2">check {bad.length}</span>}
+                {words}w
+              </span>
+            </button>
+            {isOpen && (
+              <div className="px-3 pb-3 space-y-2">
+                {cut.notes && (
+                  <p className="text-[11px] text-amber-200/80 leading-snug">{cut.notes}</p>
+                )}
+                {cut.visual_suggestion && (
+                  <p className="text-[11px] text-white/45 leading-snug">Visual: {cut.visual_suggestion}</p>
+                )}
+                <RichText text={String(cut.body)} className="text-[12px] leading-relaxed text-white/80" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(String(cut.body))
+                      .then(() => toast(`${label} cut copied.`, 'success'))
+                      .catch(() => toast('Could not copy.', 'error'))
+                  }}
+                  className="text-[11px] px-2 py-1 rounded-md border border-teal-500/25 text-teal-200 hover:bg-teal-500/10"
+                >
+                  Copy
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 // ── Cleo chat ────────────────────────────────────────────────────────────
@@ -1536,6 +1667,30 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
     finally { setBusy(null) }
   }
 
+  // Saves a cut for one channel against the piece. Unlike revise() this does not
+  // set a preview, because the point is that the source draft is left alone:
+  // one piece holds a Substack cut and a LinkedIn cut at the same time.
+  const channelCut = async (channel: string, label: string, hint?: string) => {
+    if (!draft.trim()) { toast('Nothing to cut yet, write or ask Cleo first.', 'error'); return }
+    h.heavy(); setBusy(`channel:${channel}`)
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/channel-cut`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel, hint, source_text: preview ?? draft }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.hint || j.error || `HTTP ${r.status}`)
+      h.success()
+      toast(
+        j.cut?.notes
+          ? `${label} cut saved. Note: ${String(j.cut.notes).slice(0, 90)}`
+          : `${label} cut saved (${j.channels.length} on this piece).`,
+        'success',
+      )
+    } catch (e: any) { h.error(); toast(`${label} cut failed: ${e?.message || 'error'}`, 'error') }
+    finally { setBusy(null) }
+  }
+
   const chip = (label: string, busyKey: string, onClick: () => void, accent: string) => (
     <button key={busyKey} type="button" disabled={busy !== null} onClick={onClick}
       className={`text-[10px] px-2 py-1 rounded-md border disabled:opacity-40 transition-colors min-h-[32px] ${accent}`}>
@@ -1603,9 +1758,16 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
       <Group label="Iterate">
         {ITERATE_CHIPS.map(o => chip(o.label, `feedback:${o.value}`, () => revise('feedback', o.value, o.hint), 'border-white/10 text-white/65 hover:bg-white/[0.06]'))}
       </Group>
-      <Group label="Adapt to lane">
-        {LANE_ADAPTS.filter(l => l.value !== laneToFactoryChannel(idea.lane, idea.lane_slot)).map(o =>
+      {/* Format and channel are separate questions, so they are separate rows.
+          The format row hides the format this piece already is; the channel row
+          never hides anything, because one piece is meant to go to several. */}
+      <Group label="Change the format">
+        {FORMAT_ADAPTS.filter(l => l.value !== laneToFactoryChannel(idea.lane, idea.lane_slot)).map(o =>
           chip(o.label, `feedback:adapt-${o.value}`, () => revise('feedback', `adapt-${o.value}`, o.hint), 'border-violet-500/25 text-violet-200 hover:bg-violet-500/10'))}
+      </Group>
+      <Group label="Cut for a channel">
+        {CHANNEL_ADAPTS.map(o =>
+          chip(o.label, `channel:${o.value}`, () => channelCut(o.value, o.label, o.hint), 'border-teal-500/25 text-teal-200 hover:bg-teal-500/10'))}
       </Group>
 
       <div className="flex items-end gap-1.5 pt-1">

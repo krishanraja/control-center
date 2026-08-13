@@ -177,7 +177,7 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
             <Mic size={20} className="text-violet-300" />
             Visibility
           </h1>
-          <p className="text-[13px] text-white/55 mt-1">Gathering inbound guests + outbound targets…</p>
+          <p className="text-[13px] text-white/55 mt-1">Gathering people and events…</p>
         </header>
         <BoardSkeleton lanes={2} cardsPerLane={3} hero={false} />
       </div>
@@ -214,7 +214,7 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
             Visibility
           </h1>
           <p className="text-[13px] text-white/55 mt-1">
-            Inbound podcast guests and outbound conference / CFP / newsletter appearances, side by side.
+            Guests worth interviewing, and the events worth being at. Side by side.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -238,10 +238,10 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
 
       <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.015] p-1">
         <LaneTab active={lane === 'inbound'} onClick={() => setLane('inbound')}>
-          Inbound <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{inboundActive}</span>
+          Guests <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{inboundActive}</span>
         </LaneTab>
         <LaneTab active={lane === 'outbound'} onClick={() => setLane('outbound')}>
-          Outbound <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{outboundActive}</span>
+          Events <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{outboundActive}</span>
         </LaneTab>
       </div>
 

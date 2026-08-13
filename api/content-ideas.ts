@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from './_supabase.js'
-import { sanitizeVoice } from './_content.js'
+import { callClaude, robustJson, sanitizeVoice } from './_content.js'
 import { checkDuplicate, recordDuplicateSource } from './_dedup.js'
 import { embed, vectorLiteral } from './_embeddings.js'
 import { canonicalUrl, titleNorm, contentHash } from './_text.js'
@@ -13,21 +13,18 @@ import { classifyRelevance, relevanceReasonCode } from './_relevance.js'
 //            embedding similarity) so the same story arriving via Gmail sweep,
 //            signal agents, and Cleo chat collapses to one row instead of
 //            three. On a hit we append provenance to meta.duplicate_sources
-//            and return the existing id. On a miss we forward to the N8N
-//            `Cleo | Content Idea Capture` workflow for extraction/enrichment,
-//            then fall back to a direct insert if the webhook is down.
+//            and return the existing id. On a miss we enrich in-process
+//            (thesis, distribution, confidence) and insert once.
 //   PATCH  — state transitions (seeded → drafting → published, etc.) and
 //            inline edits to idea/thesis/distribution/draft_link.
 //
-// The webhook destination is /webhook/idea-capture (one funnel for all six
-// source types — manual, signal_inbox, cleo_chat, agatha_chat,
-// openclaw_workspace, zara_signal).
+// One funnel for all six source types: manual, signal_inbox, cleo_chat,
+// agatha_chat, openclaw_workspace, zara_signal.
 
-const N8N_WEBHOOK_URL =
-  process.env.N8N_IDEA_CAPTURE_URL ||
-  'https://krishraja10101.app.n8n.cloud/webhook/idea-capture'
-
-const AGATHA_SECRET = process.env.AGATHA_WEBHOOK_SECRET || ''
+// The live distribution channels, mirroring media_channels where active=true
+// and MEDIA_CHANNELS in src/lib/contentEngine.ts. TikTok is absent on purpose:
+// it has no voice register, so nothing can be produced for it.
+const CAPTURE_CHANNELS = ['substack', 'linkedin', 'instagram', 'youtube', 'podcast', 'signal_noise']
 
 const ALLOWED_STATE = new Set([
   'seeded',
@@ -77,8 +74,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── Dedup gate ──────────────────────────────────────────────────────────
     // Single tiered check against canonical_url / title_norm / content_hash /
-    // embedding similarity. Runs BEFORE the N8N webhook so duplicates never
-    // even reach extraction. On a hit we attach the new source as provenance
+    // embedding similarity. Runs BEFORE enrichment so duplicates never
+    // reach a model call. On a hit we attach the new source as provenance
     // to the matched row and short-circuit with that id.
     try {
       const dedup = await checkDuplicate('content_ideas', {
@@ -186,72 +183,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Try the N8N webhook first (extraction + enrichment — dedup already ran).
-    // PR 1 hardening: if the webhook returns 200 but did not actually persist
-    // an idea (no id in payload), treat as silent failure and log to
-    // audit_log so we never lose visibility into broken extraction.
-    try {
-      const r = await fetch(N8N_WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(AGATHA_SECRET ? { 'X-Agatha-Secret': AGATHA_SECRET } : {}),
-        },
-        body: JSON.stringify({
-          source_type: sourceType,
-          source_ref: body.source_ref || null,
-          source_url: body.source_url || null,
-          source_snippet: body.source_snippet || rawText.slice(0, 280),
-          raw_text: rawText,
-          captured_at: new Date().toISOString(),
-          origin: sourceType === 'manual' ? 'user' : 'agent',
-        }),
-      })
-      if (r.ok) {
-        const payload = await r.json().catch(() => ({}))
-        const persistedId = (payload && (payload.id || (payload.idea && payload.idea.id))) || null
-        if (persistedId) {
-          return res.json({ ok: true, via: 'n8n', id: persistedId, idea: payload.idea || null })
+    // Enrich HERE, in one pass, then insert once.
+    //
+    // This used to POST to the `Cleo | Content Idea Capture` n8n workflow and
+    // fall back to a plain insert when that failed. It always failed. The
+    // workflow's extraction node is an OpenAI node pinned to gpt-5-nano with
+    // temperature 0.2, which that model rejects outright; once that was fixed
+    // its "Shape row" node then blew up on JSON.parse of an empty completion,
+    // because a reasoning model spent the 800-token cap before emitting any
+    // content. It had been switched off since 2026-08-12 and returned 200 with
+    // an empty body before that, so the API logged a silent_failure and fell
+    // through on every single capture.
+    //
+    // Keeping it would mean maintaining the channel vocabulary in two places
+    // (its prompt still listed builder-economy-pod and x, neither of which the
+    // app recognises, so any distribution it produced was silently discarded on
+    // read) and keeping a webhook hop that added a failure mode and no value.
+    // The fallback below already computes the dedup fingerprints the workflow
+    // never did. So enrichment moves in here and the hop is gone.
+    let enriched: { thesis?: string; distribution?: string[]; confidence?: number } = {}
+    if (process.env.ANTHROPIC_API_KEY) {
+      try {
+        const raw = await callClaude({
+          model: 'claude-sonnet-4-6',
+          system:
+            'You extract a structured content idea from raw text. Return JSON only.\n' +
+            '- thesis: 1-2 sentences on why this is interesting, true or useful right now.\n' +
+            '- distribution: the channels this best suits, from exactly this list and no other: ' +
+            `${CAPTURE_CHANNELS.join(', ')}.\n` +
+            '- confidence: 0.0-1.0. Low for a vague seed, high for an already-developed one.\n' +
+            'Never invent a fact that is not in the text.',
+          user: `${rawText.slice(0, 4000)}\n\nReply ONLY with {"thesis":string,"distribution":[string],"confidence":number}.`,
+          maxTokens: 500,
+          temperature: 0.3,
+          timeoutMs: 20_000,
+        })
+        const j = robustJson(raw) as typeof enriched | null
+        if (j) {
+          enriched = {
+            thesis: typeof j.thesis === 'string' ? sanitizeVoice(j.thesis).slice(0, 2000) : undefined,
+            distribution: Array.isArray(j.distribution)
+              ? j.distribution.filter((c): c is string => typeof c === 'string' && CAPTURE_CHANNELS.includes(c))
+              : undefined,
+            confidence: typeof j.confidence === 'number' ? Math.max(0, Math.min(1, j.confidence)) : undefined,
+          }
         }
-        await supabase.from('audit_log').insert({
-          event_type: 'idea_capture_webhook_silent_failure',
-          actor: 'control_center_api',
-          target: 'cleo-content-idea-capture-workflow',
-          details: JSON.stringify({
-            status: r.status,
-            payload,
-            raw_text_preview: rawText.slice(0, 100),
-            source_type: sourceType,
-          }),
-        })
-      } else {
-        await supabase.from('audit_log').insert({
-          event_type: 'idea_capture_webhook_non_2xx',
-          actor: 'control_center_api',
-          target: 'cleo-content-idea-capture-workflow',
-          details: JSON.stringify({
-            status: r.status,
-            raw_text_preview: rawText.slice(0, 100),
-            source_type: sourceType,
-          }),
-        })
+      } catch {
+        // Enrichment is a bonus, never a gate. A captured idea with no thesis
+        // is still captured; losing the capture because a model call timed out
+        // would be strictly worse than a thin row.
       }
-    } catch (e) {
-      await supabase.from('audit_log').insert({
-        event_type: 'idea_capture_webhook_exception',
-        actor: 'control_center_api',
-        target: 'cleo-content-idea-capture-workflow',
-        details: JSON.stringify({
-          error: String(e),
-          raw_text_preview: rawText.slice(0, 100),
-          source_type: sourceType,
-        }),
-      })
     }
 
-    // Fallback: direct insert with the raw text as the idea, so nothing is
-    // dropped if N8N is unavailable. State stays 'seeded' so the user can
-    // edit / re-trigger enrichment later.
+    // The one insert. State stays 'seeded': a captured line is a seed even when
+    // the enrichment above produced a thesis, and only a real draft may move it
+    // past that (see canEnterState in src/lib/contentEngine.ts).
     //
     // We populate the dedup fingerprint columns here so subsequent ingests
     // can match against this row. We deliberately re-derive the keys (rather
@@ -279,7 +265,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         source_snippet: snippetText,
         source_captured_at: new Date().toISOString(),
         state: 'seeded',
-        confidence: 0,
+        thesis: enriched.thesis ?? null,
+        distribution: enriched.distribution ?? [],
+        confidence: enriched.confidence ?? 0,
         origin: sourceType === 'manual' ? 'user' : 'agent',
         canonical_url,
         title_norm,
@@ -290,7 +278,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .single()
 
     if (error) return res.status(500).json({ ok: false, error: error.message })
-    return res.json({ ok: true, via: 'fallback', idea: data })
+    return res.json({ ok: true, via: enriched.thesis ? 'enriched' : 'raw', idea: data })
   }
 
   if (req.method === 'PATCH') {

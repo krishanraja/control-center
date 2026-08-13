@@ -158,7 +158,16 @@ export function useAboveNavOffset(): string {
 export function PilotDock({ children }: { children: React.ReactNode }) {
   const offset = useAboveNavOffset()
   return (
-    <div className={`fixed ${offset} left-1/2 -translate-x-1/2 z-40 pointer-events-none`}>
+    // The dock and the capture FAB were both z-40 at ~90px off the bottom, the
+    // dock centred and the FAB pinned right-4. On a 412px screen the centred
+    // dock ran straight under the FAB, so the two overlapped and the right-hand
+    // dock button was unreachable. The dock now ends before the FAB's column
+    // (right-4 + 56px wide, so 84px of reserved gutter) and centres itself in
+    // what is left. Desktop is unchanged: no FAB there, so it stays centred.
+    <div
+      className={`fixed ${offset} z-40 pointer-events-none flex justify-center
+                  left-3 right-[84px] lg:left-1/2 lg:right-auto lg:-translate-x-1/2`}
+    >
       {/* Fully opaque. A translucent dock let the cards behind it read straight
           through the labels, which looked like a rendering bug rather than
           chrome. The shadow lifts it off the content instead. */}

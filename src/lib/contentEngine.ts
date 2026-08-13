@@ -408,7 +408,10 @@ export type MediaChannel =
 export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: boolean }[] = [
   { value: 'substack', label: 'Substack', shortForm: false },
   { value: 'instagram', label: 'Instagram', shortForm: true },
-  { value: 'tiktok', label: 'TikTok', shortForm: true },
+  // TikTok is deliberately absent from the SELECTABLE list while it has no
+  // register in the corpus: a channel you can tick but never cut for is a
+  // checkbox that does nothing. It stays in MediaChannel above so stored rows
+  // still type-check, and media_channels.active is false to match.
   { value: 'youtube', label: 'YouTube', shortForm: false },
   { value: 'linkedin', label: 'LinkedIn', shortForm: true },
   { value: 'podcast', label: 'Podcast', shortForm: false },
@@ -421,7 +424,7 @@ export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: bo
 /** Default distribution per format, so the composer pre-ticks the sane set. */
 export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
   'mindmaker_live:paid': ['substack', 'linkedin'],
-  'mindmaker_live:built': ['substack', 'instagram', 'tiktok', 'youtube', 'signal_noise'],
+  'mindmaker_live:built': ['substack', 'instagram', 'youtube', 'signal_noise'],
 }
 
 // The factory channel is what the Omnichannel Content Factory polishes INTO.
@@ -468,17 +471,16 @@ export interface LaneAdapt { value: string; label: string; hint: string }
 // api/content-ideas/[id]/revise.ts (corpusForChannel(corpus, adaptMatch[1])).
 // It MUST be a key in CHANNEL_HEADING in api/_content.ts, or the adapt
 // silently loses its channel corpus and degrades to a generic rewrite.
-export const LANE_ADAPTS: LaneAdapt[] = [
-  {
-    value: 'linkedin',
-    label: 'LinkedIn',
-    hint: 'Adapt this for LinkedIn. Compress to 150-250 words. Open on a scroll-stopping claim or scene, no context-setting. Builder-in-the-room voice (Gear B), one sharp angle, end on a hard verdict. No hashtags, no "thoughts?" closer.',
-  },
-  {
-    value: 'signal_noise',
-    label: 'Signal & Noise',
-    hint: 'Adapt this for the Signal & Noise audience. Exec-to-exec authority (Gear A), ~300-500 words, separate the durable signal from the noise, name what most people get wrong ("Not X, Y"), commercially grounded, hard verdict ending.',
-  },
+// TWO LISTS, NOT ONE (2026-08-13). These used to be a single flat array that
+// mixed formats (Paid, Built) with channels (LinkedIn, Signal & Noise), which
+// is exactly the fusion the venture/format/channel split above exists to stop.
+// Picking "Paid" and picking "LinkedIn" answer different questions: the first
+// changes what the piece IS, the second changes what shape it takes on the way
+// out. Offering them in one row invited picking one and believing you had
+// answered both.
+
+/** What the piece IS. Changes the argument's register and its evidence bar. */
+export const FORMAT_ADAPTS: LaneAdapt[] = [
   // Mindmaker Live is a venture, never an adapt target. Adapting to the
   // venture was meaningless: it has two formats with two different registers,
   // and offering the venture as one option is what made the composer feel
@@ -494,6 +496,51 @@ export const LANE_ADAPTS: LaneAdapt[] = [
     hint: 'Adapt this into a Built piece. A conversation with someone who actually built something in the AI era, dug past what they built to why they really built it. Gear B, generous and human, 400-800 words. This is the format where the house sarcasm dials down: aim any irony at the industry around the builder, never at the builder. The guest must finish the piece looking more human, not more foolish.',
   },
 ]
+
+/** Where the piece GOES. Changes length, register and scaffolding, never the
+ *  argument. Each of these has its own playbook section in the corpus (## 5
+ *  Substack through ## 9 Podcast, plus ## 3 Signal & Noise) and its own key in
+ *  CHANNEL_HEADING, so the server-side corpusForChannel lookup returns a real
+ *  register instead of falling through to the generic one-paragraph synopsis.
+ *  Before 2026-08-13 only LinkedIn and Signal & Noise existed here, and
+ *  LinkedIn's corpus key pointed at the Built playbook, so it had no register
+ *  of its own either. */
+export const CHANNEL_ADAPTS: LaneAdapt[] = [
+  {
+    value: 'substack',
+    label: 'Substack',
+    hint: 'Adapt this for Substack, the long-form home. Expand to 1200-2500 words: this reader already chose to give it fifteen minutes, so attention is not the constraint and the evidence gets room. Sub-headings that are claims, not labels. Take the load-bearing claim apart and check each part separately, with dates and named parties. Hold one genuine counterpoint properly rather than knocking it down. Say plainly what is still unknown. End on a verdict, not a summary. Never pad: if there is not more evidence, there is not more piece.',
+  },
+  {
+    value: 'linkedin',
+    label: 'LinkedIn',
+    hint: 'Adapt this for LinkedIn. Compress to 150-250 words, one idea instead of four. Open mid-argument so the reader feels they walked into a conversation already happening, no context-setting. Short paragraphs, one or two sentences each, white space doing structural work. Cut context first and keep specifics: a named company, a number and a date survive. Builder-in-the-room voice (Gear B), end on a hard verdict. No hashtags, no "thoughts?" closer, no "here is what I learned" preamble, no hook-line-gap pattern. If it will not fit, narrow the claim, never vague it.',
+  },
+  {
+    value: 'youtube',
+    label: 'YouTube script',
+    hint: "Turn this into a YouTube script in Krish's spoken first person, 700-1300 words, roughly five to nine minutes. Genuinely spoken, not an essay read aloud: contractions, asides, sentences a person can say in one breath. Plain words even where the idea is not, and expand every acronym once. Pick ONE analogy and carry it the whole way, including through the part where it breaks, and say out loud where it stops working. Dry humour that makes the next idea easier to hold, aimed at the industry, the hype or Krish himself, never at the viewer for not knowing. Open in ten seconds on the surprising claim, no \"hey guys\", no \"in today's video\". Mark the beats. It has to pass a read-aloud test.",
+  },
+  {
+    value: 'instagram',
+    label: 'Instagram',
+    hint: 'Adapt this into an Instagram post about one genuinely surprising or genuinely encouraging shift in AI, shown through what it does to a real business. A hook line, four to eight short beats each readable in about a second, then a close. Propose a visual: the number, the before and after, or the object in the story. The honesty constraint is load-bearing: it rests on something specific and checkable, a named company, a real number, a dated change. Inspiring without a fact is a poster. Not a tip list, not definitions, not a prediction: the shift has already happened, which is what makes it worth showing. Open on the surprising fact itself with no framing in front of it.',
+  },
+  {
+    value: 'podcast',
+    label: 'Podcast',
+    hint: 'Adapt this into a podcast script for the Mindmaker Live feed, 800-1500 words for a solo read. Spoken register with no picture doing any work: everything the eye would have carried has to be said, so describe the number and then say what it means. No sentence that depends on punctuation the ear cannot hear, so parentheses, semicolons and nested clauses become separate sentences. Repeat names and numbers once, because a listener cannot scroll back. Drop in mid-thought on the sharpest thing in the piece, no "welcome back". Mark the beats.',
+  },
+  {
+    value: 'signal_noise',
+    label: 'Signal & Noise',
+    hint: 'Adapt this for the Signal & Noise audience. Exec-to-exec authority (Gear A), ~300-500 words, separate the durable signal from the noise, name what most people get wrong ("Not X, Y"), commercially grounded, hard verdict ending. The adversarial register belongs to the room, not the research: the finding still comes from the source format\'s evidence bar. Devil\'s-advocate the idea, never sneer at the people who hold it.',
+  },
+]
+
+/** Legacy flat list, formats first. Kept so existing call sites keep compiling;
+ *  new UI should render FORMAT_ADAPTS and CHANNEL_ADAPTS as separate groups. */
+export const LANE_ADAPTS: LaneAdapt[] = [...FORMAT_ADAPTS, ...CHANNEL_ADAPTS]
 
 // Lane values that no longer exist but may still be stored on old rows. Every
 // one maps FORWARD onto a live format so a historical row keeps a home on the
