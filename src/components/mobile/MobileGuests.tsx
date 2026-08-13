@@ -174,10 +174,10 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
   const laneTabs = (
     <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.015] p-1">
       <LaneTab active={lane === 'inbound'} onClick={() => { h.select(); setLane('inbound') }}>
-        <Mic size={11} className="inline mr-1" />Inbound
+        <Mic size={11} className="inline mr-1" />People
       </LaneTab>
       <LaneTab active={lane === 'outbound'} onClick={() => { h.select(); setLane('outbound') }}>
-        <Megaphone size={11} className="inline mr-1" />Outbound
+        <Megaphone size={11} className="inline mr-1" />Events
       </LaneTab>
     </div>
   )
@@ -257,17 +257,17 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
 
   return (
     <MobileShell
-      header={<TabHeader title="Visibility" subtitle="Inbound guests + outbound speaking" />}
+      header={<TabHeader title="Visibility" subtitle="People to interview + events to be at" />}
     >
       <div className="pb-6 space-y-4">
         <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.015] p-1 self-start">
           <LaneTab active={lane === 'inbound'} onClick={() => { h.select(); setLane('inbound') }}>
             <Mic size={11} className="inline mr-1" />
-            Inbound <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{inboundCount}</span>
+            People <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{inboundCount}</span>
           </LaneTab>
           <LaneTab active={lane === 'outbound'} onClick={() => { h.select(); setLane('outbound') }}>
             <Megaphone size={11} className="inline mr-1" />
-            Outbound <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{outboundCount}</span>
+            Events <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{outboundCount}</span>
           </LaneTab>
         </div>
 

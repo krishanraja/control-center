@@ -11,8 +11,8 @@ import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { lintVoice, autoFixVoice, type LintIssue } from '../../lib/voiceLint'
 import {
-  DEFAULT_CHANNELS, FACTORY_CHANNELS, FIVE_STANDARDS, HUMOR_PRESETS, ITERATE_CHIPS, LANE_ADAPTS,
-  LENGTH_PRESETS, MEDIA_CHANNELS,
+  CHANNEL_ADAPTS, DEFAULT_CHANNELS, FACTORY_CHANNELS, FIVE_STANDARDS, FORMAT_ADAPTS,
+  HUMOR_PRESETS, ITERATE_CHIPS, LENGTH_PRESETS, MEDIA_CHANNELS,
   TONE_PRESETS, ZOOM_DEFAULT_HINT, laneToFactoryChannel, nextBestAction,
 } from '../../lib/contentEngine'
 // ─────────────────────────────────────────────────────────────────────────
@@ -424,6 +424,39 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
     finally { setBusy(null) }
   }
 
+  // A channel cut is SAVED alongside the draft, not previewed over it.
+  //
+  // Channel chips used to run through runRevise, which opens a preview that
+  // replaces the working draft when applied. That meant cutting a piece for
+  // LinkedIn destroyed the Substack draft it came from, and only one cut could
+  // exist at a time. One piece is supposed to go to several channels, so the
+  // cuts are stored per channel on the row and the source is left alone.
+  const runChannelCut = async (opts: { label: string; value: string; hint?: string }) => {
+    if (!draft.trim()) { toast('Nothing to cut yet, write or generate the piece first.', 'error'); return }
+    const key = `channel:${opts.value}`
+    h.heavy(); setBusy(key); setBusyLabel(`${opts.label} cut`)
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/channel-cut`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: opts.value,
+          hint: opts.hint,
+          source_text: preview?.text ?? draft,
+        }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.hint || j.error || `HTTP ${r.status}`)
+      setAdjust(false); h.success()
+      toast(
+        j.cut?.notes
+          ? `${opts.label} cut saved. Note: ${String(j.cut.notes).slice(0, 90)}`
+          : `${opts.label} cut saved. ${j.channels.length} channel${j.channels.length === 1 ? '' : 's'} on this piece.`,
+        'success',
+      )
+    } catch (e: any) { h.error(); toast(`${opts.label} cut failed: ${e?.message || 'error'}`, 'error') }
+    finally { setBusy(null) }
+  }
+
   // The grouped Adjust palette — every family from contentEngine, filtered so
   // the current lane never offers "adapt to itself".
   const currentChannel = laneToFactoryChannel(idea.lane, idea.lane_slot)
@@ -432,7 +465,13 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
     { label: 'Humor', accent: 'border-fuchsia-500/30 text-fuchsia-200', items: HUMOR_PRESETS.map(o => ({ label: o.label, mode: 'humor', value: o.value, hint: o.hint })) },
     { label: 'Length', accent: 'border-sky-500/30 text-sky-200', items: LENGTH_PRESETS.map(o => ({ label: o.label, mode: 'length', value: o.value, hint: o.hint })) },
     { label: 'Sharpen', accent: 'border-amber-500/30 text-amber-200', items: [...ITERATE_CHIPS.map(o => ({ label: o.label, mode: 'feedback', value: o.value, hint: o.hint })), { label: 'Sharpest angle', mode: 'zoom', value: 'contrarian-angle', hint: ZOOM_DEFAULT_HINT }] },
-    { label: 'Adapt to channel', accent: 'border-violet-500/30 text-violet-200', items: LANE_ADAPTS.filter(l => l.value !== currentChannel).map(o => ({ label: o.label, mode: 'feedback', value: `adapt-${o.value}`, hint: o.hint })) },
+    // Two groups, not one. "Make this a Paid piece" and "cut this down for
+    // LinkedIn" are different decisions, and they were in the same row until
+    // 2026-08-13, which made picking one feel like it had answered both.
+    { label: 'Change the format', accent: 'border-violet-500/30 text-violet-200', items: FORMAT_ADAPTS.filter(l => l.value !== currentChannel).map(o => ({ label: o.label, mode: 'feedback', value: `adapt-${o.value}`, hint: o.hint })) },
+    // mode 'channel' is not a revise mode. It routes to runChannelCut, which
+    // SAVES the cut against the piece instead of previewing it over the draft.
+    { label: 'Cut for a channel', accent: 'border-teal-500/30 text-teal-200', items: CHANNEL_ADAPTS.map(o => ({ label: o.label, mode: 'channel', value: o.value, hint: o.hint })) },
   ]
 
   return (
@@ -541,11 +580,18 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
                   <div className="text-[10px] uppercase tracking-[0.1em] text-white/35 mb-1.5">{g.label}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {g.items.map(it => {
-                      const key = `${it.mode}:${it.value}`
+                      // Channel chips save a cut; everything else previews a
+                      // rewrite of the draft in front of you. Two verbs, so two
+                      // handlers, and the busy key has to match the one each
+                      // handler sets or the spinner lands on the wrong chip.
+                      const isCut = it.mode === 'channel'
+                      const key = isCut ? `channel:${it.value}` : `${it.mode}:${it.value}`
                       return (
                         <button
                           key={key} type="button" disabled={busy !== null}
-                          onClick={() => runRevise({ label: it.label, mode: it.mode, value: it.value, hint: it.hint })}
+                          onClick={() => isCut
+                            ? runChannelCut({ label: it.label, value: it.value, hint: it.hint })
+                            : runRevise({ label: it.label, mode: it.mode, value: it.value, hint: it.hint })}
                           className={`flex items-center gap-1 px-3 py-2 rounded-full text-[12px] border bg-white/[0.02] disabled:opacity-40 ${g.accent}`}
                         >
                           {busy === key ? <Loader2 size={12} className="animate-spin" /> : null} {it.label}
@@ -1536,6 +1582,30 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
     finally { setBusy(null) }
   }
 
+  // Saves a cut for one channel against the piece. Unlike revise() this does not
+  // set a preview, because the point is that the source draft is left alone:
+  // one piece holds a Substack cut and a LinkedIn cut at the same time.
+  const channelCut = async (channel: string, label: string, hint?: string) => {
+    if (!draft.trim()) { toast('Nothing to cut yet, write or ask Cleo first.', 'error'); return }
+    h.heavy(); setBusy(`channel:${channel}`)
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/channel-cut`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel, hint, source_text: preview ?? draft }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.hint || j.error || `HTTP ${r.status}`)
+      h.success()
+      toast(
+        j.cut?.notes
+          ? `${label} cut saved. Note: ${String(j.cut.notes).slice(0, 90)}`
+          : `${label} cut saved (${j.channels.length} on this piece).`,
+        'success',
+      )
+    } catch (e: any) { h.error(); toast(`${label} cut failed: ${e?.message || 'error'}`, 'error') }
+    finally { setBusy(null) }
+  }
+
   const chip = (label: string, busyKey: string, onClick: () => void, accent: string) => (
     <button key={busyKey} type="button" disabled={busy !== null} onClick={onClick}
       className={`text-[10px] px-2 py-1 rounded-md border disabled:opacity-40 transition-colors min-h-[32px] ${accent}`}>
@@ -1603,9 +1673,16 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
       <Group label="Iterate">
         {ITERATE_CHIPS.map(o => chip(o.label, `feedback:${o.value}`, () => revise('feedback', o.value, o.hint), 'border-white/10 text-white/65 hover:bg-white/[0.06]'))}
       </Group>
-      <Group label="Adapt to lane">
-        {LANE_ADAPTS.filter(l => l.value !== laneToFactoryChannel(idea.lane, idea.lane_slot)).map(o =>
+      {/* Format and channel are separate questions, so they are separate rows.
+          The format row hides the format this piece already is; the channel row
+          never hides anything, because one piece is meant to go to several. */}
+      <Group label="Change the format">
+        {FORMAT_ADAPTS.filter(l => l.value !== laneToFactoryChannel(idea.lane, idea.lane_slot)).map(o =>
           chip(o.label, `feedback:adapt-${o.value}`, () => revise('feedback', `adapt-${o.value}`, o.hint), 'border-violet-500/25 text-violet-200 hover:bg-violet-500/10'))}
+      </Group>
+      <Group label="Cut for a channel">
+        {CHANNEL_ADAPTS.map(o =>
+          chip(o.label, `channel:${o.value}`, () => channelCut(o.value, o.label, o.hint), 'border-teal-500/25 text-teal-200 hover:bg-teal-500/10'))}
       </Group>
 
       <div className="flex items-end gap-1.5 pt-1">

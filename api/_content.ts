@@ -151,7 +151,8 @@ const CHANNEL_HEADING: Record<string, RegExp> = {
   // FIRST match wins, so a heading must match exactly one key. The live corpus
   // headings are deliberately disjoint:
   //   ## 0. Mindmaker Live house register   ## 1. Paid   ## 2. Built
-  //   ## 3. Signal & Noise   ## 4. Maven
+  //   ## 3. Signal & Noise   ## 4. Maven   ## 5. Substack   ## 6. LinkedIn
+  //   ## 7. YouTube   ## 8. Instagram   ## 9. Podcast
   //
   // THE TRAP, which has now bitten three times. A format name is also an
   // ordinary English word, so an UNANCHORED pattern captures the wrong section:
@@ -169,9 +170,25 @@ const CHANNEL_HEADING: Record<string, RegExp> = {
   mindmaker_live: /Mindmaker Live house register/i,
   signal_noise: /Signal\s*&?\s*Noise/i,
   maven: /Maven/i,
-  // Social cutdowns (LinkedIn, Instagram) ride the Built register, so they
-  // borrow that playbook.
-  linkedin: /^#*\s*\d*\.?\s*Built\b/i,
+
+  // ── Distribution registers (added 2026-08-13) ──────────────────────────
+  // Each of these now has its OWN section in the corpus. Before this, LinkedIn
+  // pointed at the Built regex and the other four had no entry at all, so
+  // "adapt for Substack" silently fell through to the one-paragraph synopsis
+  // and produced a generic rewrite. A channel with no register is a channel
+  // the engine cannot actually write for.
+  //
+  // Same anchoring discipline as the formats: past an optional numeral, tied
+  // to the start of the heading text. "Podcast" in particular must not match
+  // "Visibility (Nova, speaking, podcasts, CFPs...)", which it cannot, both
+  // because that heading is an h3 (sliceSections only takes # and ##) and
+  // because the anchor holds.
+  substack: /^#*\s*\d*\.?\s*Substack\b/i,
+  linkedin: /^#*\s*\d*\.?\s*LinkedIn\b/i,
+  youtube: /^#*\s*\d*\.?\s*YouTube\b/i,
+  instagram: /^#*\s*\d*\.?\s*Instagram\b/i,
+  podcast: /^#*\s*\d*\.?\s*Podcast\b/i,
+
   // ── Legacy keys ────────────────────────────────────────────────────────
   // Kept ONLY so a corpus copy that has not been resynced, or an old stored
   // row, still resolves to something sane. Never offer these as a choice.
