@@ -297,6 +297,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const rowsToWrite: Record<string, unknown>[] = []
     let sourcesThatProduced = 0
     let sourcesRun = 0
+    let candidatesFound = 0
 
     for (const brief of briefs) {
       const found: GuestCandidate[] = []
@@ -371,6 +372,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .slice(0, MAX_WRITE_PER_FORMAT)
 
       let drafted = 0
+      let vetoed = 0
       const kept: Record<string, unknown>[] = []
       for (const { c, score } of scored) {
         if (drafted >= MAX_DRAFTS_PER_FORMAT) break
@@ -382,7 +384,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         drafted++
         // The model is allowed to veto. A scout that never rejects is a scout
         // that fills the queue with people Krish will not book.
-        if (draft.format === 'reject') continue
+        if (draft.format === 'reject') { vetoed++; continue }
 
         const resolvedFormat: GuestFormat = draft.format === 'either' ? 'either' : brief.format
         kept.push({
@@ -426,6 +428,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       rowsToWrite.push(...kept)
+      candidatesFound += found.length
       perFormat.push({
         format: brief.format,
         raw: found.length,
@@ -433,6 +436,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         fresh: fresh.length,
         kept: kept.length,
         drafted,
+        vetoed,
         inNetwork: kept.filter(k => k.in_network).length,
       })
     }
@@ -445,18 +449,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       written: 0,
       sourcesRun,
       sourcesThatProduced,
+      candidatesFound,
       notes,
     }
 
-    // The load-bearing change: nothing found is a failure, loudly.
-    if (rowsToWrite.length === 0) {
-      const detail = `Guest scout produced 0 candidates across ${sourcesRun} source runs. ${notes.join(' | ')}`
+    // Nothing FOUND is a failure. Everything found and then REJECTED is not.
+    //
+    // These were one branch, and the first run after the lens-radar fix showed
+    // why they cannot be: the radar source returned 16 on-thesis essayists,
+    // the model correctly vetoed all of them for Built (they write about
+    // builders, they did not build), and the endpoint reported a 502 and filed
+    // a silent_failures row for a filter doing exactly its job. An alarm that
+    // fires on correct behaviour is an alarm that gets ignored, which is the
+    // failure mode this whole endpoint exists to avoid.
+    if (candidatesFound === 0) {
+      const detail = `Guest scout found 0 candidates across ${sourcesRun} source runs. ${notes.join(' | ')}`
       if (!dryRun) await recordSilentFailure(detail)
       return res.status(502).json({
         ...summary,
         ok: false,
         error: 'no_candidates',
         hint: 'Every source returned empty. Check the per-source notes: a SKIPPED note means a missing key, a FAILED note means an upstream error.',
+      })
+    }
+
+    if (rowsToWrite.length === 0) {
+      // Found people, kept none. Worth reporting plainly, but it is a 200: the
+      // pipeline ran and the bar held.
+      return res.json({
+        ...summary,
+        outcome: 'all_rejected',
+        hint: 'Candidates were found but every one was rejected as off-format. That is the bar working, not a fault. Check perFormat.vetoed.',
       })
     }
 
