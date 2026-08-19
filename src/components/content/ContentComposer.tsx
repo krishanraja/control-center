@@ -260,6 +260,7 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
           idea={idea}
           draft={draft}
           emDashes={emDashes}
+          warns={warns}
           onApplyDraft={applyDraft}
           onEditChange={onDraftChange}
           onFixVoice={fixVoice}
@@ -364,10 +365,16 @@ const POLISH = {
   instruction: 'Final publish polish: tighten, sharpen the opening and the ending, strip any voice tells and em dashes. Stay true to the draft, never invent.',
 }
 
-function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange, onFixVoice, onNext }: {
+function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEditChange, onFixVoice, onNext }: {
   idea: ContentIdeaRow
   draft: string
   emDashes: number
+  /** Voice-lint warnings that are not em dashes. Passed down because the phone
+   *  used to be told only about em dashes: the desktop chip has three states
+   *  (em dashes / notes / clean) and the phone rendered one of them, so a draft
+   *  with voice notes and no em dashes looked identical to a clean one and the
+   *  fix was unreachable. */
+  warns: number
   onApplyDraft: (t: string) => void
   onEditChange: (t: string) => void
   onFixVoice: () => void
@@ -539,9 +546,19 @@ function MobileComposerBody({ idea, draft, emDashes, onApplyDraft, onEditChange,
         <MobileTool icon={<Search size={14} />} label="Research" onClick={() => setSheet('research')} />
         <MobileTool icon={<PenLine size={14} />} label={edit ? 'Done' : 'Edit'} onClick={() => setEdit(e => !e)} active={edit} />
         {history.length > 0 && !edit && <MobileTool icon={<RotateCcw size={14} />} label="Undo" onClick={undo} />}
-        {emDashes > 0 && (
-          <button type="button" onClick={onFixVoice} className="ml-auto flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] border border-rose-500/40 text-rose-200 bg-rose-500/10">
-            <Check size={12} /> Fix {emDashes}
+        {draft.trim() && (
+          <button
+            type="button"
+            onClick={onFixVoice}
+            disabled={!emDashes && !warns}
+            aria-label={emDashes ? `Fix ${emDashes} em dash${emDashes === 1 ? '' : 'es'}`
+              : warns ? `Fix ${warns} voice note${warns === 1 ? '' : 's'}` : 'Voice clean'}
+            className={`ml-auto flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-[11px] disabled:opacity-100 ${
+              emDashes ? 'border-rose-500/40 bg-rose-500/10 text-rose-200'
+                : warns ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+                  : 'border-white/10 text-white/45'}`}
+          >
+            <Check size={12} /> {emDashes ? `Fix ${emDashes}` : warns ? `Fix ${warns}` : 'voice ok'}
           </button>
         )}
       </div>
