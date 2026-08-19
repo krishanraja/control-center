@@ -19,7 +19,8 @@
             }
           ]
         }
-      }
+      },
+      "notes": "Morning pass. Paired with Intraday 18:00 UTC so material dropped during the working day is picked up the same day rather than up to 24h later. Both lanes are ledger-backed, so the second pass re-reads nothing."
     },
     {
       "id": "4e983234-cfd8-450e-9f8d-3298609971fa",
@@ -207,11 +208,11 @@
           "parameters": [
             {
               "name": "key",
-              "value": "eq.cleo_inspiration_folder_id"
+              "value": "in.(cleo_inspiration_folder_id,cleo_inspiration_drive_lookback_days,cleo_inspiration_max_docs_per_run,cleo_inspiration_max_image_bytes,cleo_inspiration_max_images_per_run)"
             },
             {
               "name": "select",
-              "value": "value"
+              "value": "key,value"
             }
           ]
         }
@@ -228,7 +229,7 @@
         384
       ],
       "parameters": {
-        "jsCode": "const items = $input.all();\nlet folder_id = '';\ntry {\n  const first = items[0] && items[0].json;\n  if (Array.isArray(first) && first.length > 0) folder_id = first[0].value || '';\n  else if (first && typeof first === 'object') folder_id = first.value || '';\n} catch (e) {}\nconst ok = folder_id && !/YOUR_|PLACEHOLDER|HERE/i.test(folder_id) && folder_id.length >= 12;\nreturn [{ json: { folder_id: ok ? folder_id : '' } }];"
+        "jsCode": "// Drive lane config. Before 2026-08-19 only folder_id was read here and the\n// lookback / page size were hardcoded in the nodes, so the matching\n// system_config keys were dead: editing them changed nothing. They are live now.\nconst raw = $input.all().map(i => i.json);\nconst rows = Array.isArray(raw[0]) ? raw[0] : raw;\nconst cfg = {};\nfor (const r of rows) { if (r && r.key) cfg[r.key] = r.value; }\n\nconst folder_id = cfg.cleo_inspiration_folder_id || '';\nconst usable = folder_id && !/YOUR_|PLACEHOLDER|HERE/i.test(folder_id) && folder_id.length >= 12;\nconst num = (v, d, lo, hi) => { const n = parseInt(v, 10); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };\n\nreturn [{ json: {\n  folder_id: usable ? folder_id : '',\n  lookback_days:   num(cfg.cleo_inspiration_drive_lookback_days, 14, 1, 90),\n  max_docs:        num(cfg.cleo_inspiration_max_docs_per_run, 15, 1, 100),\n  // Base64 inflates ~1.37x. 4.5MB of raw image keeps the request body near 6MB,\n  // which three phone screenshots already reach on their own.\n  max_image_bytes: num(cfg.cleo_inspiration_max_image_bytes, 4500000, 250000, 20000000),\n  max_images:      num(cfg.cleo_inspiration_max_images_per_run, 6, 1, 20),\n} }];"
       }
     },
     {
@@ -282,7 +283,7 @@
           "parameters": [
             {
               "name": "q",
-              "value": "={{ \"'\" + $json.folder_id + \"' in parents and trashed=false and modifiedTime > '\" + $now.minus({ days: 14 }).toISO() + \"'\" }}"
+              "value": "={{ \"'\" + $json.folder_id + \"' in parents and trashed=false and modifiedTime > '\" + $now.minus({ days: $json.lookback_days }).toISO() + \"'\" }}"
             },
             {
               "name": "orderBy",
@@ -290,11 +291,11 @@
             },
             {
               "name": "pageSize",
-              "value": "15"
+              "value": "={{ $json.max_docs }}"
             },
             {
               "name": "fields",
-              "value": "files(id,name,mimeType,modifiedTime)"
+              "value": "files(id,name,mimeType,modifiedTime,size)"
             }
           ]
         }
@@ -311,7 +312,7 @@
         192
       ],
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst first = (items[0] && items[0].json) || {};\nconst READABLE = new Set([\n  'application/vnd.google-apps.document',\n  'text/plain',\n  'text/markdown',\n  'application/vnd.google-apps.spreadsheet',\n  'image/jpeg',\n  'image/png',\n  'image/webp',\n  'image/gif',\n  'application/pdf',\n]);\nconst files = (first.files || []).filter(f => READABLE.has(f.mimeType));\nif (files.length === 0) return [{ json: { _empty: true } }];\nreturn files.map(f => ({ json: { id: f.id, name: f.name, mimeType: f.mimeType, modifiedTime: f.modifiedTime } }));"
+        "jsCode": "// Emits ONE item describing the whole candidate set.\n// It used to fan out one item per file and return a { _empty: true } sentinel\n// when the folder was quiet -- which then flowed into Drive Fetch Content and\n// requested /files/undefined?alt=media on every quiet day. Masked by\n// onError:continueRegularOutput, so a real Drive failure looked identical to an\n// empty folder. There is no sentinel now: an empty candidate list is just a\n// candidate list of length zero, routed by Has Drive Work?.\nconst first = ($input.all()[0] && $input.all()[0].json) || {};\nconst cfg = $('Normalize Folder Id').first().json;\nconst READABLE = new Set([\n  'application/vnd.google-apps.document',\n  'text/plain',\n  'text/markdown',\n  'application/vnd.google-apps.spreadsheet',\n  'image/jpeg',\n  'image/png',\n  'image/webp',\n  'image/gif',\n  'application/pdf',\n]);\nconst all = first.files || [];\nconst candidates = all.filter(f => READABLE.has(f.mimeType)).map(f => ({\n  id: f.id,\n  name: f.name,\n  mime_type: f.mimeType,\n  modified: f.modifiedTime,\n  // Native Google types report no size; they export as text and are small.\n  size_bytes: parseInt(f.size || '0', 10) || 0,\n  // Ledger key. modifiedTime is part of it so an EDITED file legitimately\n  // re-enters the sweep while an untouched one never does.\n  file_key: f.id + ':' + (f.modifiedTime || ''),\n}));\nreturn [{ json: {\n  candidates,\n  drive_listed: all.length,\n  drive_unreadable: all.length - candidates.length,\n  ...cfg,\n} }];"
       },
       "executeOnce": true
     },
@@ -321,11 +322,11 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1568,
-        192
+        2048,
+        288
       ],
       "parameters": {
-        "url": "={{ $json.mimeType === \"application/vnd.google-apps.document\" ? \"https://www.googleapis.com/drive/v3/files/\" + $json.id + \"/export?mimeType=text/plain\" : $json.mimeType === \"application/vnd.google-apps.spreadsheet\" ? \"https://www.googleapis.com/drive/v3/files/\" + $json.id + \"/export?mimeType=text/csv\" : \"https://www.googleapis.com/drive/v3/files/\" + $json.id + \"?alt=media\" }}",
+        "url": "={{ $json.mime_type === \"application/vnd.google-apps.document\" ? \"https://www.googleapis.com/drive/v3/files/\" + $json.id + \"/export?mimeType=text/plain\" : $json.mime_type === \"application/vnd.google-apps.spreadsheet\" ? \"https://www.googleapis.com/drive/v3/files/\" + $json.id + \"/export?mimeType=text/csv\" : \"https://www.googleapis.com/drive/v3/files/\" + $json.id + \"?alt=media\" }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleDriveOAuth2Api",
         "options": {
@@ -345,40 +346,25 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1792,
-        192
+        2168,
+        288
       ],
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst list = $('Drive Filter Readable').all().map(i => i.json);\nconst TEXT_MIMES = new Set(['application/vnd.google-apps.document','text/plain','text/markdown','application/vnd.google-apps.spreadsheet']);\nconst IMAGE_MIMES = new Set(['image/jpeg','image/png','image/webp','image/gif']);\nconst PDF_MIME = 'application/pdf';\nconst docs = [];\nconst images = [];\nconst pdfs = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const meta = list[i] || {};\n  const mime = meta.mimeType || '';\n  const item = items[i] || {};\n  let buf = null;\n  if (item.binary && item.binary.data) {\n    try { buf = await this.helpers.getBinaryDataBuffer(i, 'data'); } catch (e) { buf = null; }\n  }\n  const urlFor = (id) => mime === 'application/vnd.google-apps.document' ? 'https://docs.google.com/document/d/' + id + '/edit'\n    : mime === 'application/vnd.google-apps.spreadsheet' ? 'https://docs.google.com/spreadsheets/d/' + id + '/edit'\n    : 'https://drive.google.com/file/d/' + id + '/view';\n\n  if (TEXT_MIMES.has(mime)) {\n    let body = buf ? buf.toString('utf-8') : '';\n    if ((!body || body.length < 80) && item.json && typeof item.json.data === 'string') body = item.json.data;\n    body = String(body || '').replace(/\\u0000/g, '').slice(0, 8000);\n    if (body && body.length >= 80) {\n      docs.push({ id: meta.id, name: meta.name, mime_type: mime, modified: meta.modifiedTime, body, url: urlFor(meta.id) });\n    }\n  } else if (IMAGE_MIMES.has(mime) && buf) {\n    images.push({ id: meta.id, name: meta.name, mime_type: mime, modified: meta.modifiedTime, base64: buf.toString('base64'), url: 'https://drive.google.com/file/d/' + meta.id + '/view' });\n  } else if (mime === PDF_MIME && buf) {\n    pdfs.push({ id: meta.id, name: meta.name, mime_type: mime, modified: meta.modifiedTime, base64: buf.toString('base64'), url: 'https://drive.google.com/file/d/' + meta.id + '/view' });\n  }\n}\nreturn [{ json: { drive_docs: docs, drive_images: images, drive_pdfs: pdfs, drive_count: docs.length + images.length + pdfs.length } }];"
+        "jsCode": "const items = $input.all();\nconst list = $('Fan Drive Files').all().map(i => i.json);\nconst stats = $('Drive Emit Unseen').first().json || {};\n\nconst TEXT_MIMES = new Set(['application/vnd.google-apps.document','text/plain','text/markdown','application/vnd.google-apps.spreadsheet']);\nconst IMAGE_MIMES = new Set(['image/jpeg','image/png','image/webp','image/gif']);\nconst PDF_MIME = 'application/pdf';\nconst docs = [];\nconst images = [];\nconst pdfs = [];\n// Every selected file is accounted for: it either produced a content block, or\n// it carries a skip_reason. Both go to the ledger so nothing loops forever and\n// the reason a file produced nothing is inspectable afterwards.\nconst register = [];\n\nfor (let i = 0; i < list.length; i++) {\n  const meta = list[i] || {};\n  const mime = meta.mime_type || '';\n  const item = items[i] || {};\n  const entry = { id: meta.id, name: meta.name, mime_type: mime, modified: meta.modified, size_bytes: meta.size_bytes };\n  let buf = null;\n  if (item.binary && item.binary.data) {\n    try { buf = await this.helpers.getBinaryDataBuffer(i, 'data'); } catch (e) { buf = null; }\n  }\n  const urlFor = (id) => mime === 'application/vnd.google-apps.document' ? 'https://docs.google.com/document/d/' + id + '/edit'\n    : mime === 'application/vnd.google-apps.spreadsheet' ? 'https://docs.google.com/spreadsheets/d/' + id + '/edit'\n    : 'https://drive.google.com/file/d/' + id + '/view';\n\n  if (TEXT_MIMES.has(mime)) {\n    let body = buf ? buf.toString('utf-8') : '';\n    if ((!body || body.length < 80) && item.json && typeof item.json.data === 'string') body = item.json.data;\n    body = String(body || '').replace(/\\u0000/g, '').slice(0, 8000);\n    if (body && body.length >= 80) {\n      docs.push({ id: meta.id, name: meta.name, mime_type: mime, modified: meta.modified, body, url: urlFor(meta.id) });\n      register.push(entry);\n    } else {\n      register.push({ ...entry, skip_reason: 'empty_or_too_short' });\n    }\n  } else if (IMAGE_MIMES.has(mime) && buf) {\n    images.push({ id: meta.id, name: meta.name, mime_type: mime, modified: meta.modified, base64: buf.toString('base64'), url: urlFor(meta.id) });\n    register.push(entry);\n  } else if (mime === PDF_MIME && buf) {\n    pdfs.push({ id: meta.id, name: meta.name, mime_type: mime, modified: meta.modified, base64: buf.toString('base64'), url: urlFor(meta.id) });\n    register.push(entry);\n  } else {\n    register.push({ ...entry, skip_reason: buf ? 'unhandled_mime' : 'download_failed' });\n  }\n}\n\nconst blocks = docs.length + images.length + pdfs.length;\nreturn [{ json: {\n  drive_docs: docs, drive_images: images, drive_pdfs: pdfs,\n  drive_count: blocks,\n  drive_content_blocks: blocks,\n  register_files: register,\n  drive_listed:               stats.drive_listed || 0,\n  drive_unreadable:           stats.drive_unreadable || 0,\n  drive_seen_before:          stats.drive_seen_before || 0,\n  drive_new:                  stats.drive_new || 0,\n  drive_selected:             stats.drive_selected || 0,\n  drive_deferred_over_budget: stats.drive_deferred_over_budget || 0,\n  drive_selected_bytes:       stats.drive_selected_bytes || 0,\n} }];"
       }
     },
     {
-      "id": "2e8db22c-4476-4909-bb55-906dd0079002",
-      "name": "Drive Skip Empty",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        1792,
-        384
-      ],
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "ds1",
-              "name": "drive_docs",
-              "value": "={{ [] }}",
-              "type": "array"
-            },
-            {
-              "id": "ds2",
-              "name": "drive_count",
-              "value": 0,
-              "type": "number"
-            }
-          ]
-        }
-      }
+        "jsCode": "// Reached when the folder id is unset, or when nothing new survived the ledger.\n// Emits the same shape as Drive Aggregate so Build Extraction Prompt and the\n// heartbeats have one contract to read regardless of which path ran.\nlet s = {};\ntry { s = $('Drive Emit Unseen').first().json || {}; } catch (e) {}\nreturn [{ json: {\n  drive_docs: [], drive_images: [], drive_pdfs: [],\n  drive_count: 0, drive_content_blocks: 0, register_files: [],\n  drive_listed:               s.drive_listed || 0,\n  drive_unreadable:           s.drive_unreadable || 0,\n  drive_seen_before:          s.drive_seen_before || 0,\n  drive_new:                  s.drive_new || 0,\n  drive_selected:             0,\n  drive_deferred_over_budget: s.drive_deferred_over_budget || 0,\n  drive_selected_bytes:       0,\n} }];"
+      },
+      "id": "drive-skip-empty",
+      "name": "Drive Skip Empty",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2168,
+        480
+      ]
     },
     {
       "id": "c62a54e7-a75a-4d2f-a5e3-fcc25e4cfc00",
@@ -481,7 +467,7 @@
         192
       ],
       "parameters": {
-        "jsCode": "let newsletters = [];\ntry { const g = $('Apply Canonical Labels').first(); if (g && g.json && Array.isArray(g.json.newsletters)) newsletters = g.json.newsletters; } catch (e) {}\nif (!newsletters.length) { try { const g2 = $('Gmail Extract Body').first(); if (g2 && g2.json && Array.isArray(g2.json.newsletters)) newsletters = g2.json.newsletters; } catch (e) {} }\nlet drive_docs = [], drive_images = [], drive_pdfs = [];\ntry { const a = $('Drive Aggregate').first(); if (a && a.json) { drive_docs = a.json.drive_docs || []; drive_images = a.json.drive_images || []; drive_pdfs = a.json.drive_pdfs || []; } } catch (e) {}\nif (!drive_docs.length && !drive_images.length && !drive_pdfs.length) {\n  try { const s = $('Drive Skip Empty').first(); if (s && s.json && Array.isArray(s.json.drive_docs)) drive_docs = s.json.drive_docs; } catch (e) {}\n}\nconst pillarsRaw = $('Load Pillars').all().map(i => i.json);\nconst pillars = Array.isArray(pillarsRaw[0]) ? pillarsRaw[0] : pillarsRaw;\nconst briefRaw = $('Load Cleo Brief').all().map(i => i.json);\nconst briefArr = Array.isArray(briefRaw[0]) ? briefRaw[0] : briefRaw;\nconst brief = (briefArr[0] && briefArr[0].brief_content) || '';\nconst cfgRaw = $('Load Thresholds').all().map(i => i.json);\nconst cfgArr = Array.isArray(cfgRaw[0]) ? cfgRaw[0] : cfgRaw;\nconst cfg = {};\nfor (const row of cfgArr) cfg[row.key] = row.value;\nconst minFit = parseInt(cfg.cleo_inspiration_min_brand_fit || '6', 10);\nlet yieldRows = [];\ntry {\n  const yRaw = $('Load Source Yield').all().map(i => i.json);\n  const yArr = Array.isArray(yRaw[0]) ? yRaw[0] : yRaw;\n  yieldRows = yArr.filter(r => r && r.newsletter_key && r.newsletter_key !== 'unlabelled');\n} catch (e) {}\nconst trackBlock = yieldRows.map(r => '- ' + r.newsletter_key + ': ' + r.seeds + ' seeds, ' + r.advanced + ' advanced to drafting or beyond, ' + r.buried + ' buried, ' + r.recurrences + ' recurrences').join('\\n');\n\nconst pillarsBlock = pillars.map(p => {\n  const gl = p.good_looks_like || {};\n  const ap = (p.anti_patterns || []).map(x => '  - ' + x).join('\\n');\n  const er = (p.evidence_required || []).map(x => '  - ' + x).join('\\n');\n  return '### ' + p.name + ' (id: ' + p.id + ')\\n' +\n         '**Description:** ' + p.description + '\\n' +\n         '**Voice:** ' + (gl.voice || '') + '\\n' +\n         '**Source patterns:** ' + (gl.source_patterns || '') + '\\n' +\n         '**Angle patterns:** ' + (gl.angle_patterns || '') + '\\n' +\n         '**Good examples:** ' + (gl.good_examples || '') + '\\n' +\n         '**Anti-patterns (REJECT if matched):**\\n' + ap + '\\n' +\n         '**Evidence required (at least one must be present):**\\n' + er;\n}).join('\\n\\n');\n\nconst newslettersBlock = newsletters.length === 0\n  ? '(no NEW newsletters since the last run; previously-read messages are never re-read)'\n  : newsletters.map((n, i) => '--- NEWSLETTER ' + (i+1) + ' ---\\nFROM: ' + (n.canonical_label || n.from || 'unknown') + '\\nKEY: ' + (n.newsletter_key || 'unregistered') + '\\nSUBJECT: ' + (n.subject || '') + '\\nURL: ' + (n.url || '') + '\\nBODY:\\n' + n.body).join('\\n\\n');\n\nconst docsBlock = drive_docs.length === 0\n  ? '(no inspiration text docs in lookback window)'\n  : drive_docs.map((d, i) => '--- DOC ' + (i+1) + ' ---\\nFILE: ' + (d.name || '') + ' (' + (d.mime_type || '') + ')\\nURL: ' + (d.url || '') + '\\nBODY:\\n' + d.body).join('\\n\\n');\n\nconst imagesIntro = drive_images.length === 0 && drive_pdfs.length === 0\n  ? '(no image / PDF screenshots in lookback window)'\n  : 'The following ' + (drive_images.length + drive_pdfs.length) + ' file(s) are screenshots or PDFs from Krish inspiration folder. Most will be LinkedIn post screenshots. For each, EXTRACT: (a) who posted (name + handle/title if visible), (b) the post body/headline, (c) any visible engagement metrics, (d) why the post matters to one of Krish pillars. Apply the SAME pillar bar to image-derived seeds as to text-derived seeds. Source label should be the filename. Source url should be the Drive view url provided.';\n\nconst systemPrompt =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n---\\n\\n' : '') +\n  'You are reading raw inspiration material for Krish. Material may include newsletter bodies, text documents from a Drive folder, AND screenshots (mostly LinkedIn posts) or PDFs. Extract publish-ready content seeds mapped to one of Krish five pillars. The bar is high. Most input does NOT contain a seed worth surfacing. If nothing qualifies, return an empty array [].\\n\\n' +\n  '## KRISH PILLARS\\n\\n' + pillarsBlock + '\\n\\n' +\n  '## KRISH VOICE RULES\\n' +\n  '- Declarative and specific. No hedging.\\n' +\n  '- Real numbers, real artifacts, real anecdotes.\\n' +\n  '- One sharp thought per piece. No bullet-soup.\\n' +\n  '- NO em dashes anywhere. Use commas, colons, parentheses, or line breaks.\\n' +\n  '- Plain English. Banned: leveraging, unlocking, delve into, fast-paced world, navigating, robust, synergies.\\n\\n' +\n  '## THE BAR (CLO-020 v2)\\n' +\n  'Score each candidate brand_fit_score 1-10. Auto-reject below ' + minFit + '. Promote to researching at 9-10.\\n' +\n  '- 10: Krish exact voice; novel thesis with real artifact; clear distribution lane; perfect pillar fit.\\n' +\n  '- 9: Strong fit, original angle, satisfies pillar evidence_required, no anti-pattern triggers.\\n' +\n  '- 8: Plausible content needs one more piece of evidence.\\n' +\n  '- 7: Real candidate but generic in places.\\n' +\n  '- 6: Borderline. Surface but flag.\\n' +\n  '- <=5: Drop. Set is_idea=false.\\n\\n' +\n  '## EVIDENCE FLOOR\\n' +\n  'Reject any seed that does not satisfy its pillar evidence_required list. List evidence in evidence_present array.\\n\\n' +\n  '## ANTI-PATTERN FLOOR\\n' +\n  'Reject any seed whose framing matches any of the pillar anti_patterns. Score <=4 if it does.\\n\\n' +\n  '## SOURCE TRACK RECORD (how each newsletter has performed as a seed source)\\n' +\n  (trackBlock || '(no history yet)') + '\\n' +\n  'Seeds from sources whose output keeps getting buried need a HIGHER bar. Sources whose seeds advance to drafting deserve closer reading.\\n\\n' +\n  '## TEMPORAL CLASS (news vs trend)\\n' +\n  'Classify every seed:\\n' +\n  '- ephemeral: a single event (one launch, one funding round, one benchmark result). Worth an opinion this week, dead in two.\\n' +\n  '- developing: a storyline still unfolding across weeks; evidence is accumulating.\\n' +\n  '- durable: a structural change in how AI-first businesses operate; still true next quarter.\\n' +\n  'Set expires_in_days honestly: ephemeral 5-14, developing 21-45, durable null.\\n\\n' +\n  '## IMAGE / SCREENSHOT HANDLING\\n' +\n  imagesIntro + '\\n\\n' +\n  '## OUTPUT\\n' +\n  'Strict JSON array. No preamble, no markdown fence.\\n' +\n  '[\\n' +\n  '  {\\n' +\n  '    \"is_idea\": true,\\n' +\n  '    \"idea\": \"headline-style framing in Krish voice (12+ chars)\",\\n' +\n  '    \"thesis\": \"1-2 sentences. Why this lands now.\",\\n' +\n  '    \"pillar_id\": \"pillar:agentic_ops\",\\n' +\n  '    \"distribution\": [\"linkedin\", \"newsletter\"],\\n' +\n  '    \"brand_fit_score\": 9,\\n' +\n  '    \"confidence\": 0.9,\\n' +\n  '    \"quality_score\": \"green\",\\n' +\n  '    \"temporal_class\": \"ephemeral | developing | durable\",\\n' +\n  '    \"expires_in_days\": 10,\\n' +\n  '    \"newsletter_key\": \"the KEY provided with the newsletter this seed came from, null for doc/screenshot seeds\",\\n' +\n  '    \"source_label\": \"the canonical FROM label provided (or filename / post author for doc and screenshot seeds)\",\\n' +\n  '    \"source_url\": \"https://...\",\\n' +\n  '    \"source_excerpt\": \"<=280 chars of the original or transcribed image content\",\\n' +\n  '    \"evidence_present\": [\"named entity: X\", \"figure: $Y\", \"date: Z\"],\\n' +\n  '    \"image_source\": null,\\n' +\n  '    \"poster_name\": null,\\n' +\n  '    \"poster_handle\": null,\\n' +\n  '    \"rejection_reason\": null\\n' +\n  '  }\\n' +\n  ']\\n\\n' +\n  'For seeds extracted from a screenshot: set image_source to the filename, fill poster_name + poster_handle from what is visible in the image. For text-derived seeds: leave image_source, poster_name, poster_handle as null.\\n\\n' +\n  'If nothing qualifies, return [].';\n\nconst userContent = [];\nconst textBlock =\n  '=== NEW NEWSLETTERS (unread since last run, full bodies) ===\\n' + newslettersBlock + '\\n\\n' +\n  '=== INSPIRATION TEXT DOCS (last 14 days) ===\\n' + docsBlock + '\\n\\n' +\n  '=== INSPIRATION IMAGES / PDFs (last 14 days) ===\\n' + (drive_images.length + drive_pdfs.length === 0 ? '(none)' : 'See attached image and PDF blocks below. Filenames: ' + [...drive_images, ...drive_pdfs].map(x => x.name).join(', ')) + '\\n\\n' +\n  'Extract seeds now. Strict JSON array only.';\n\nuserContent.push({ type: 'text', text: textBlock });\nfor (const img of drive_images.slice(0, 10)) {\n  userContent.push({ type: 'image', source: { type: 'base64', media_type: img.mime_type, data: img.base64 } });\n  userContent.push({ type: 'text', text: '(above image: ' + img.name + ' - url: ' + img.url + ')' });\n}\nfor (const pdf of drive_pdfs.slice(0, 5)) {\n  userContent.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdf.base64 } });\n  userContent.push({ type: 'text', text: '(above PDF: ' + pdf.name + ' - url: ' + pdf.url + ')' });\n}\n\nconst anthropic_body = {\n  model: 'claude-sonnet-4-6',\n  max_tokens: 8000,\n  temperature: 0.2,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }],\n};\nreturn [{ json: { anthropic_body, newsletters_count: newsletters.length, docs_count: drive_docs.length, images_count: drive_images.length, pdfs_count: drive_pdfs.length, min_brand_fit: minFit, pillars_count: pillars.length } }];"
+        "jsCode": "let newsletters = [];\ntry { const g = $('Apply Canonical Labels').first(); if (g && g.json && Array.isArray(g.json.newsletters)) newsletters = g.json.newsletters; } catch (e) {}\nif (!newsletters.length) { try { const g2 = $('Gmail Extract Body').first(); if (g2 && g2.json && Array.isArray(g2.json.newsletters)) newsletters = g2.json.newsletters; } catch (e) {} }\nlet drive_docs = [], drive_images = [], drive_pdfs = [], drive_stats = {};\n// Drive Aggregate and Drive Skip Empty emit the same shape, so either satisfies\n// this. Whichever ran also carries the lane counters the heartbeats now report.\nfor (const nodeName of ['Drive Aggregate', 'Drive Skip Empty']) {\n  try {\n    const a = $(nodeName).first();\n    if (a && a.json && Array.isArray(a.json.drive_docs)) {\n      drive_docs = a.json.drive_docs || [];\n      drive_images = a.json.drive_images || [];\n      drive_pdfs = a.json.drive_pdfs || [];\n      drive_stats = {\n        drive_listed: a.json.drive_listed || 0,\n        drive_unreadable: a.json.drive_unreadable || 0,\n        drive_seen_before: a.json.drive_seen_before || 0,\n        drive_new: a.json.drive_new || 0,\n        drive_selected: a.json.drive_selected || 0,\n        drive_deferred_over_budget: a.json.drive_deferred_over_budget || 0,\n        drive_selected_bytes: a.json.drive_selected_bytes || 0,\n        drive_content_blocks: a.json.drive_content_blocks || 0,\n      };\n      break;\n    }\n  } catch (e) {}\n}\nconst pillarsRaw = $('Load Pillars').all().map(i => i.json);\nconst pillars = Array.isArray(pillarsRaw[0]) ? pillarsRaw[0] : pillarsRaw;\nconst briefRaw = $('Load Cleo Brief').all().map(i => i.json);\nconst briefArr = Array.isArray(briefRaw[0]) ? briefRaw[0] : briefRaw;\nconst brief = (briefArr[0] && briefArr[0].brief_content) || '';\nconst cfgRaw = $('Load Thresholds').all().map(i => i.json);\nconst cfgArr = Array.isArray(cfgRaw[0]) ? cfgRaw[0] : cfgRaw;\nconst cfg = {};\nfor (const row of cfgArr) cfg[row.key] = row.value;\nconst minFit = parseInt(cfg.cleo_inspiration_min_brand_fit || '6', 10);\nlet yieldRows = [];\ntry {\n  const yRaw = $('Load Source Yield').all().map(i => i.json);\n  const yArr = Array.isArray(yRaw[0]) ? yRaw[0] : yRaw;\n  yieldRows = yArr.filter(r => r && r.newsletter_key && r.newsletter_key !== 'unlabelled');\n} catch (e) {}\nconst trackBlock = yieldRows.map(r => '- ' + r.newsletter_key + ': ' + r.seeds + ' seeds, ' + r.advanced + ' advanced to drafting or beyond, ' + r.buried + ' buried, ' + r.recurrences + ' recurrences').join('\\n');\n\nconst pillarsBlock = pillars.map(p => {\n  const gl = p.good_looks_like || {};\n  const ap = (p.anti_patterns || []).map(x => '  - ' + x).join('\\n');\n  const er = (p.evidence_required || []).map(x => '  - ' + x).join('\\n');\n  return '### ' + p.name + ' (id: ' + p.id + ')\\n' +\n         '**Description:** ' + p.description + '\\n' +\n         '**Voice:** ' + (gl.voice || '') + '\\n' +\n         '**Source patterns:** ' + (gl.source_patterns || '') + '\\n' +\n         '**Angle patterns:** ' + (gl.angle_patterns || '') + '\\n' +\n         '**Good examples:** ' + (gl.good_examples || '') + '\\n' +\n         '**Anti-patterns (REJECT if matched):**\\n' + ap + '\\n' +\n         '**Evidence required (at least one must be present):**\\n' + er;\n}).join('\\n\\n');\n\nconst newslettersBlock = newsletters.length === 0\n  ? '(no NEW newsletters since the last run; previously-read messages are never re-read)'\n  : newsletters.map((n, i) => '--- NEWSLETTER ' + (i+1) + ' ---\\nFROM: ' + (n.canonical_label || n.from || 'unknown') + '\\nKEY: ' + (n.newsletter_key || 'unregistered') + '\\nSUBJECT: ' + (n.subject || '') + '\\nURL: ' + (n.url || '') + '\\nBODY:\\n' + n.body).join('\\n\\n');\n\nconst docsBlock = drive_docs.length === 0\n  ? '(no inspiration text docs in lookback window)'\n  : drive_docs.map((d, i) => '--- DOC ' + (i+1) + ' ---\\nFILE: ' + (d.name || '') + ' (' + (d.mime_type || '') + ')\\nURL: ' + (d.url || '') + '\\nBODY:\\n' + d.body).join('\\n\\n');\n\nconst imagesIntro = drive_images.length === 0 && drive_pdfs.length === 0\n  ? '(no image / PDF screenshots in lookback window)'\n  : 'The following ' + (drive_images.length + drive_pdfs.length) + ' file(s) are screenshots or PDFs from Krish inspiration folder. Most will be LinkedIn post screenshots. For each, EXTRACT: (a) who posted (name + handle/title if visible), (b) the post body/headline, (c) any visible engagement metrics, (d) why the post matters to one of Krish pillars. Apply the SAME pillar bar to image-derived seeds as to text-derived seeds. Source label should be the filename. Source url should be the Drive view url provided.';\n\nconst systemPrompt =\n  (brief ? 'AGENT BRIEF:\\n' + brief + '\\n\\n---\\n\\n' : '') +\n  'You are reading raw inspiration material for Krish. Material may include newsletter bodies, text documents from a Drive folder, AND screenshots (mostly LinkedIn posts) or PDFs. Extract publish-ready content seeds mapped to one of Krish five pillars. The bar is high. Most input does NOT contain a seed worth surfacing. If nothing qualifies, return an empty array [].\\n\\n' +\n  '## KRISH PILLARS\\n\\n' + pillarsBlock + '\\n\\n' +\n  '## KRISH VOICE RULES\\n' +\n  '- Declarative and specific. No hedging.\\n' +\n  '- Real numbers, real artifacts, real anecdotes.\\n' +\n  '- One sharp thought per piece. No bullet-soup.\\n' +\n  '- NO em dashes anywhere. Use commas, colons, parentheses, or line breaks.\\n' +\n  '- Plain English. Banned: leveraging, unlocking, delve into, fast-paced world, navigating, robust, synergies.\\n\\n' +\n  '## THE BAR (CLO-020 v2)\\n' +\n  'Score each candidate brand_fit_score 1-10. Auto-reject below ' + minFit + '. Promote to researching at 9-10.\\n' +\n  '- 10: Krish exact voice; novel thesis with real artifact; clear distribution lane; perfect pillar fit.\\n' +\n  '- 9: Strong fit, original angle, satisfies pillar evidence_required, no anti-pattern triggers.\\n' +\n  '- 8: Plausible content needs one more piece of evidence.\\n' +\n  '- 7: Real candidate but generic in places.\\n' +\n  '- 6: Borderline. Surface but flag.\\n' +\n  '- <=5: Drop. Set is_idea=false.\\n\\n' +\n  '## EVIDENCE FLOOR\\n' +\n  'Reject any seed that does not satisfy its pillar evidence_required list. List evidence in evidence_present array.\\n\\n' +\n  '## ANTI-PATTERN FLOOR\\n' +\n  'Reject any seed whose framing matches any of the pillar anti_patterns. Score <=4 if it does.\\n\\n' +\n  '## SOURCE TRACK RECORD (how each newsletter has performed as a seed source)\\n' +\n  (trackBlock || '(no history yet)') + '\\n' +\n  'Seeds from sources whose output keeps getting buried need a HIGHER bar. Sources whose seeds advance to drafting deserve closer reading.\\n\\n' +\n  '## TEMPORAL CLASS (news vs trend)\\n' +\n  'Classify every seed:\\n' +\n  '- ephemeral: a single event (one launch, one funding round, one benchmark result). Worth an opinion this week, dead in two.\\n' +\n  '- developing: a storyline still unfolding across weeks; evidence is accumulating.\\n' +\n  '- durable: a structural change in how AI-first businesses operate; still true next quarter.\\n' +\n  'Set expires_in_days honestly: ephemeral 5-14, developing 21-45, durable null.\\n\\n' +\n  '## IMAGE / SCREENSHOT HANDLING\\n' +\n  imagesIntro + '\\n\\n' +\n  '## OUTPUT\\n' +\n  'Strict JSON array. No preamble, no markdown fence.\\n' +\n  '[\\n' +\n  '  {\\n' +\n  '    \"is_idea\": true,\\n' +\n  '    \"idea\": \"headline-style framing in Krish voice (12+ chars)\",\\n' +\n  '    \"thesis\": \"1-2 sentences. Why this lands now.\",\\n' +\n  '    \"pillar_id\": \"pillar:agentic_ops\",\\n' +\n  '    \"distribution\": [\"linkedin\", \"newsletter\"],\\n' +\n  '    \"brand_fit_score\": 9,\\n' +\n  '    \"confidence\": 0.9,\\n' +\n  '    \"quality_score\": \"green\",\\n' +\n  '    \"temporal_class\": \"ephemeral | developing | durable\",\\n' +\n  '    \"expires_in_days\": 10,\\n' +\n  '    \"newsletter_key\": \"the KEY provided with the newsletter this seed came from, null for doc/screenshot seeds\",\\n' +\n  '    \"source_label\": \"the canonical FROM label provided (or filename / post author for doc and screenshot seeds)\",\\n' +\n  '    \"source_url\": \"https://...\",\\n' +\n  '    \"source_excerpt\": \"<=280 chars of the original or transcribed image content\",\\n' +\n  '    \"evidence_present\": [\"named entity: X\", \"figure: $Y\", \"date: Z\"],\\n' +\n  '    \"image_source\": null,\\n' +\n  '    \"poster_name\": null,\\n' +\n  '    \"poster_handle\": null,\\n' +\n  '    \"rejection_reason\": null\\n' +\n  '  }\\n' +\n  ']\\n\\n' +\n  'For seeds extracted from a screenshot: set image_source to the filename, fill poster_name + poster_handle from what is visible in the image. For text-derived seeds: leave image_source, poster_name, poster_handle as null.\\n\\n' +\n  'If nothing qualifies, return [].';\n\nconst userContent = [];\nconst textBlock =\n  '=== NEW NEWSLETTERS (unread since last run, full bodies) ===\\n' + newslettersBlock + '\\n\\n' +\n  '=== INSPIRATION TEXT DOCS (last 14 days) ===\\n' + docsBlock + '\\n\\n' +\n  '=== INSPIRATION IMAGES / PDFs (last 14 days) ===\\n' + (drive_images.length + drive_pdfs.length === 0 ? '(none)' : 'See attached image and PDF blocks below. Filenames: ' + [...drive_images, ...drive_pdfs].map(x => x.name).join(', ')) + '\\n\\n' +\n  'Extract seeds now. Strict JSON array only.';\n\nuserContent.push({ type: 'text', text: textBlock });\nfor (const img of drive_images.slice(0, 10)) {\n  userContent.push({ type: 'image', source: { type: 'base64', media_type: img.mime_type, data: img.base64 } });\n  userContent.push({ type: 'text', text: '(above image: ' + img.name + ' - url: ' + img.url + ')' });\n}\nfor (const pdf of drive_pdfs.slice(0, 5)) {\n  userContent.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdf.base64 } });\n  userContent.push({ type: 'text', text: '(above PDF: ' + pdf.name + ' - url: ' + pdf.url + ')' });\n}\n\nconst anthropic_body = {\n  model: 'claude-sonnet-4-6',\n  max_tokens: 8000,\n  temperature: 0.2,\n  system: systemPrompt,\n  messages: [{ role: 'user', content: userContent }],\n};\nreturn [{ json: { anthropic_body, newsletters_count: newsletters.length, docs_count: drive_docs.length, images_count: drive_images.length, pdfs_count: drive_pdfs.length, min_brand_fit: minFit, pillars_count: pillars.length, ...drive_stats } }];"
       }
     },
     {
@@ -530,7 +516,7 @@
         336
       ],
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst src = (items[0] && items[0].json) || {};\nconst body = src.anthropic_body || {};\nconst msgs = body.messages || [];\nlet promptText = (body.system || '') + '\\n\\n';\nfor (const m of msgs) {\n  const c = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);\n  promptText += (m.role === 'user' ? c : '[assistant]: ' + c) + '\\n\\n';\n}\nconst gemini_body = {\n  contents: [{ parts: [{ text: promptText.trim() }] }],\n  generationConfig: { maxOutputTokens: body.max_tokens || 3000, temperature: body.temperature || 0.2 },\n};\nreturn [{ json: { gemini_body } }];"
+        "jsCode": "// Fallback body, rebuilt 2026-08-19. Two bugs made this branch worse than useless.\n//\n// 1. It read $input.all()[0].json, but its input is the ERROR output of the\n//    Anthropic node, whose json is { error: ... }. So anthropic_body was always\n//    undefined and the fallback sent Gemini an empty prompt. It has never once\n//    produced a seed. It now reads Build Extraction Prompt directly.\n// 2. It flattened the message content with JSON.stringify, which for a\n//    multimodal request inlines every base64 image into a text prompt. The\n//    moment screenshots entered the folder that became megabytes of base64\n//    posted as prose. Images now travel as real inline_data parts.\n//\n// Gemini Fallback Extract has neverError:true, so any failure here surfaces as\n// zero seeds rather than a red run. That is exactly why it has to be correct.\nlet src = {};\ntry { src = $('Build Extraction Prompt').first().json || {}; } catch (e) {}\nconst body = src.anthropic_body || {};\nconst parts = [];\nif (body.system) parts.push({ text: body.system });\n\nfor (const m of (body.messages || [])) {\n  const content = m.content;\n  if (typeof content === 'string') { parts.push({ text: content }); continue; }\n  for (const block of (content || [])) {\n    if (!block) continue;\n    if (block.type === 'text') {\n      parts.push({ text: block.text });\n    } else if (block.type === 'image' && block.source && block.source.data) {\n      parts.push({ inline_data: { mime_type: block.source.media_type, data: block.source.data } });\n    } else if (block.type === 'document' && block.source && block.source.data) {\n      parts.push({ inline_data: { mime_type: 'application/pdf', data: block.source.data } });\n    }\n  }\n}\n\nconst gemini_body = {\n  contents: [{ role: 'user', parts }],\n  generationConfig: { maxOutputTokens: body.max_tokens || 8000, temperature: body.temperature || 0.2 },\n};\nreturn [{ json: { gemini_body, fallback_parts: parts.length } }];"
       }
     },
     {
@@ -657,11 +643,12 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Inspiration Sweep\", agent_id: \"cleo\", run_at: $now.toISO(), duration_ms: $now.toMillis() - $(\"Record Start\").item.json.run_start_ms, outcome: \"success\", status: \"success\", cost_estimate_usd: $(\"Parse + Filter Survivors\").item.json.cost_usd, api_calls_count: 8 + ($(\"Parse + Filter Survivors\").item.json.survivors_count * 2), metadata: { survivors_count: $(\"Parse + Filter Survivors\").item.json.survivors_count, rejected_count: $(\"Parse + Filter Survivors\").item.json.rejected_count, model_used: $(\"Parse + Filter Survivors\").item.json.model_used, gmail_listed: $(\"Apply Canonical Labels\").first().json.gmail_listed, gmail_new: $(\"Apply Canonical Labels\").first().json.gmail_new, gmail_overflow: $(\"Apply Canonical Labels\").first().json.gmail_overflow } } }}",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Inspiration Sweep\", agent_id: \"cleo\", run_at: $now.toISO(), duration_ms: $now.toMillis() - $(\"Record Start\").item.json.run_start_ms, outcome: \"success\", status: \"success\", cost_estimate_usd: $(\"Parse + Filter Survivors\").item.json.cost_usd, api_calls_count: 8 + ($(\"Parse + Filter Survivors\").item.json.survivors_count * 2), metadata: { survivors_count: $(\"Parse + Filter Survivors\").item.json.survivors_count, rejected_count: $(\"Parse + Filter Survivors\").item.json.rejected_count, model_used: $(\"Parse + Filter Survivors\").item.json.model_used, drive_listed: $('Build Extraction Prompt').first().json.drive_listed, drive_new: $('Build Extraction Prompt').first().json.drive_new, drive_selected: $('Build Extraction Prompt').first().json.drive_selected, drive_content_blocks: $('Build Extraction Prompt').first().json.drive_content_blocks, drive_deferred_over_budget: $('Build Extraction Prompt').first().json.drive_deferred_over_budget, drive_selected_bytes: $('Build Extraction Prompt').first().json.drive_selected_bytes, docs_count: $('Build Extraction Prompt').first().json.docs_count, images_count: $('Build Extraction Prompt').first().json.images_count, pdfs_count: $('Build Extraction Prompt').first().json.pdfs_count, gmail_listed: $(\"Apply Canonical Labels\").first().json.gmail_listed, gmail_new: $(\"Apply Canonical Labels\").first().json.gmail_new, gmail_overflow: $(\"Apply Canonical Labels\").first().json.gmail_overflow } } }}",
         "options": {
           "timeout": 15000
         }
-      }
+      },
+      "executeOnce": true
     },
     {
       "id": "7f4ff355-3498-47d8-9f40-21530a90bd32",
@@ -692,11 +679,12 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { event_type: \"workflow_executed\", actor: \"cleo\", target: \"Inspiration Sweep\", details: { survivors_count: $(\"Parse + Filter Survivors\").item.json.survivors_count, rejected_count: $(\"Parse + Filter Survivors\").item.json.rejected_count, rejected_reasons: $(\"Parse + Filter Survivors\").item.json.rejected_reasons, raw_count: $(\"Parse + Filter Survivors\").item.json.raw_count, model_used: $(\"Parse + Filter Survivors\").item.json.model_used, gmail_listed: $(\"Apply Canonical Labels\").first().json.gmail_listed, gmail_new: $(\"Apply Canonical Labels\").first().json.gmail_new, gmail_overflow: $(\"Apply Canonical Labels\").first().json.gmail_overflow } } }}",
+        "jsonBody": "={{ { event_type: \"workflow_executed\", actor: \"cleo\", target: \"Inspiration Sweep\", details: { survivors_count: $(\"Parse + Filter Survivors\").item.json.survivors_count, rejected_count: $(\"Parse + Filter Survivors\").item.json.rejected_count, rejected_reasons: $(\"Parse + Filter Survivors\").item.json.rejected_reasons, raw_count: $(\"Parse + Filter Survivors\").item.json.raw_count, model_used: $(\"Parse + Filter Survivors\").item.json.model_used, drive_listed: $('Build Extraction Prompt').first().json.drive_listed, drive_new: $('Build Extraction Prompt').first().json.drive_new, drive_selected: $('Build Extraction Prompt').first().json.drive_selected, drive_content_blocks: $('Build Extraction Prompt').first().json.drive_content_blocks, drive_deferred_over_budget: $('Build Extraction Prompt').first().json.drive_deferred_over_budget, drive_selected_bytes: $('Build Extraction Prompt').first().json.drive_selected_bytes, docs_count: $('Build Extraction Prompt').first().json.docs_count, images_count: $('Build Extraction Prompt').first().json.images_count, pdfs_count: $('Build Extraction Prompt').first().json.pdfs_count, gmail_listed: $(\"Apply Canonical Labels\").first().json.gmail_listed, gmail_new: $(\"Apply Canonical Labels\").first().json.gmail_new, gmail_overflow: $(\"Apply Canonical Labels\").first().json.gmail_overflow } } }}",
         "options": {
           "timeout": 15000
         }
-      }
+      },
+      "executeOnce": true
     },
     {
       "id": "bf5716e2-bf79-4677-a428-d1cd56645bc3",
@@ -767,7 +755,7 @@
             }
           ]
         },
-        "jsonBody": "={{ { p: { idea: $json.idea, thesis: $json.thesis, distribution: $json.distribution || [\"linkedin\"], confidence: $json.confidence || 0.8, quality_score: $json.quality_score || \"amber\", brand_fit_score: $json.brand_fit_score, source_ref: \"inspiration-sweep-\" + $now.toFormat(\"yyyy-LL-dd\"), source_url: $json.source_url, source_excerpt: $json.source_excerpt, day: $now.toFormat(\"yyyy-LL-dd\"), temporal_class: $json.temporal_class, expires_in_days: $json.expires_in_days, pillar_id: $json.pillar_id, source_label: $json.source_label, newsletter_key: $json.newsletter_key, contrarian: $json.contrarian, adjacent_stories: $json.adjacent_stories, evidence_present: $json.evidence_present, image_source: $json.image_source, poster_name: $json.poster_name } } }}",
+        "jsonBody": "={{ { p: { idea: $json.idea, thesis: $json.thesis, distribution: $json.distribution || [\"linkedin\"], confidence: $json.confidence || 0.8, quality_score: $json.quality_score || \"amber\", brand_fit_score: $json.brand_fit_score, source_ref: \"inspiration-sweep-\" + $now.toFormat(\"yyyy-LL-dd\"), source_url: $json.source_url, source_excerpt: $json.source_excerpt, day: $now.toFormat(\"yyyy-LL-dd\"), temporal_class: $json.temporal_class, expires_in_days: $json.expires_in_days, pillar_id: $json.pillar_id, source_label: $json.source_label, newsletter_key: $json.newsletter_key, contrarian: $json.contrarian, adjacent_stories: $json.adjacent_stories, evidence_present: $json.evidence_present, image_source: $json.image_source, poster_name: $json.poster_name, poster_handle: $json.poster_handle, drive_file_id: (() => { const m = String($json.source_url || \"\").match(/\\/d\\/([a-zA-Z0-9_-]+)/); return m ? m[1] : null; })() } } }}",
         "method": "POST",
         "nodeCredentialType": "supabaseApi",
         "options": {
@@ -823,7 +811,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Inspiration Sweep\", agent_id: \"cleo\", run_at: $now.toISO(), duration_ms: $now.toMillis() - $(\"Record Start\").item.json.run_start_ms, outcome: \"success\", status: \"success\", cost_estimate_usd: $(\"Parse + Filter Survivors\").item.json.cost_usd, api_calls_count: 8, metadata: { survivors_count: 0, rejected_count: $(\"Parse + Filter Survivors\").item.json.rejected_count, model_used: $(\"Parse + Filter Survivors\").item.json.model_used, note: \"bar not met\", gmail_listed: $(\"Apply Canonical Labels\").first().json.gmail_listed, gmail_new: $(\"Apply Canonical Labels\").first().json.gmail_new, gmail_overflow: $(\"Apply Canonical Labels\").first().json.gmail_overflow } } }}",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Inspiration Sweep\", agent_id: \"cleo\", run_at: $now.toISO(), duration_ms: $now.toMillis() - $(\"Record Start\").item.json.run_start_ms, outcome: \"success\", status: \"success\", cost_estimate_usd: $(\"Parse + Filter Survivors\").item.json.cost_usd, api_calls_count: 8, metadata: { survivors_count: 0, rejected_count: $(\"Parse + Filter Survivors\").item.json.rejected_count, model_used: $(\"Parse + Filter Survivors\").item.json.model_used, note: \"bar not met\", drive_listed: $('Build Extraction Prompt').first().json.drive_listed, drive_new: $('Build Extraction Prompt').first().json.drive_new, drive_selected: $('Build Extraction Prompt').first().json.drive_selected, drive_content_blocks: $('Build Extraction Prompt').first().json.drive_content_blocks, drive_deferred_over_budget: $('Build Extraction Prompt').first().json.drive_deferred_over_budget, drive_selected_bytes: $('Build Extraction Prompt').first().json.drive_selected_bytes, docs_count: $('Build Extraction Prompt').first().json.docs_count, images_count: $('Build Extraction Prompt').first().json.images_count, pdfs_count: $('Build Extraction Prompt').first().json.pdfs_count, gmail_listed: $(\"Apply Canonical Labels\").first().json.gmail_listed, gmail_new: $(\"Apply Canonical Labels\").first().json.gmail_new, gmail_overflow: $(\"Apply Canonical Labels\").first().json.gmail_overflow } } }}",
         "options": {
           "timeout": 15000
         }
@@ -858,7 +846,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { event_type: \"workflow_executed\", actor: \"cleo\", target: \"Inspiration Sweep\", details: { survivors_count: 0, rejected_count: $(\"Parse + Filter Survivors\").item.json.rejected_count, rejected_reasons: $(\"Parse + Filter Survivors\").item.json.rejected_reasons, raw_count: $(\"Parse + Filter Survivors\").item.json.raw_count, model_used: $(\"Parse + Filter Survivors\").item.json.model_used, note: \"bar not met this run\", gmail_listed: $(\"Apply Canonical Labels\").first().json.gmail_listed, gmail_new: $(\"Apply Canonical Labels\").first().json.gmail_new, gmail_overflow: $(\"Apply Canonical Labels\").first().json.gmail_overflow } } }}",
+        "jsonBody": "={{ { event_type: \"workflow_executed\", actor: \"cleo\", target: \"Inspiration Sweep\", details: { survivors_count: 0, rejected_count: $(\"Parse + Filter Survivors\").item.json.rejected_count, rejected_reasons: $(\"Parse + Filter Survivors\").item.json.rejected_reasons, raw_count: $(\"Parse + Filter Survivors\").item.json.raw_count, model_used: $(\"Parse + Filter Survivors\").item.json.model_used, note: \"bar not met this run\", drive_listed: $('Build Extraction Prompt').first().json.drive_listed, drive_new: $('Build Extraction Prompt').first().json.drive_new, drive_selected: $('Build Extraction Prompt').first().json.drive_selected, drive_content_blocks: $('Build Extraction Prompt').first().json.drive_content_blocks, drive_deferred_over_budget: $('Build Extraction Prompt').first().json.drive_deferred_over_budget, drive_selected_bytes: $('Build Extraction Prompt').first().json.drive_selected_bytes, docs_count: $('Build Extraction Prompt').first().json.docs_count, images_count: $('Build Extraction Prompt').first().json.images_count, pdfs_count: $('Build Extraction Prompt').first().json.pdfs_count, gmail_listed: $(\"Apply Canonical Labels\").first().json.gmail_listed, gmail_new: $(\"Apply Canonical Labels\").first().json.gmail_new, gmail_overflow: $(\"Apply Canonical Labels\").first().json.gmail_overflow } } }}",
         "options": {
           "timeout": 15000
         }
@@ -1100,6 +1088,223 @@
       "onError": "continueRegularOutput",
       "alwaysOutputData": true,
       "executeOnce": true
+    },
+    {
+      "parameters": {
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/inspiration_drive_files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "file_id",
+              "value": "=in.({{ ($json.candidates || []).length ? $json.candidates.map(c => c.id).join(\",\") : \"__none__\" }})"
+            },
+            {
+              "name": "select",
+              "value": "file_key"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "drive-seen-filter",
+      "name": "Drive Seen Filter",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1568,
+        384
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Subtract the ledger, then fit what is left inside the request budget.\n// Both halves are new. Without the ledger the same file was re-read on every run\n// for the whole lookback window -- fine for a text doc, 4.7MB of base64 a day for\n// fourteen days for three phone screenshots. Without the budget, fifteen\n// screenshots would build a ~24MB request that no model call survives.\nconst base = $('Drive Filter Readable').first().json;\nconst cands = base.candidates || [];\nconst seen = new Set($input.all().map(i => i.json && i.json.file_key).filter(Boolean));\nconst unseen = cands.filter(c => !seen.has(c.file_key));\n\nconst HEAVY = new Set(['image/jpeg','image/png','image/webp','image/gif','application/pdf']);\nconst maxBytes = base.max_image_bytes;\nconst maxImages = base.max_images;\n\nconst selected = [];\nlet bytes = 0, heavy = 0, deferred = 0;\n// Newest first (Drive List Files orders by modifiedTime desc), so the freshest\n// drop always wins the budget and anything cut is picked up on the next run --\n// deferred files are deliberately left OUT of the ledger.\nfor (const c of unseen) {\n  if (HEAVY.has(c.mime_type)) {\n    if (heavy >= maxImages || (bytes + c.size_bytes) > maxBytes) { deferred++; continue; }\n    heavy++; bytes += c.size_bytes;\n  }\n  selected.push(c);\n}\n\nreturn [{ json: {\n  selected,\n  drive_listed:               base.drive_listed,\n  drive_unreadable:           base.drive_unreadable,\n  drive_seen_before:          cands.length - unseen.length,\n  drive_new:                  unseen.length,\n  drive_selected:             selected.length,\n  drive_deferred_over_budget: deferred,\n  drive_selected_bytes:       bytes,\n} }];"
+      },
+      "id": "drive-emit-unseen",
+      "name": "Drive Emit Unseen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1688,
+        384
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dw1",
+              "leftValue": "={{ ($json.selected || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "has-drive-work",
+      "name": "Has Drive Work?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1808,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return (($input.first().json || {}).selected || []).map(f => ({ json: f }));"
+      },
+      "id": "fan-drive-files",
+      "name": "Fan Drive Files",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1928,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/rpc/register_inspiration_drive_files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { p: { run_ref: \"inspiration-sweep-\" + $now.toFormat(\"yyyy-LL-dd\"), files: ($json.register_files || []).map(f => ({ id: f.id, name: f.name, mime_type: f.mime_type, size_bytes: f.size_bytes, modified: f.modified, skip_reason: f.skip_reason || null })) } } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "register-drive-files",
+      "name": "Register Drive Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2288,
+        288
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ds1",
+              "leftValue": "={{ $('Drive Aggregate').first().json.drive_content_blocks }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "drive-silent",
+      "name": "Drive Silent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2408,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/silent_failures",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workflow_id: $workflow.id, workflow_name: \"Cleo Inspiration Sweep\", tier: 2, failure_type: \"drive_lane_no_content\", detail: \"Drive inspiration folder had \" + $('Drive Aggregate').first().json.drive_new + \" new file(s) and \" + $('Drive Aggregate').first().json.drive_selected + \" reached the fetcher, but ZERO produced a content block. Krish dropped material in the folder and none of it reached the extractor: check Drive OAuth scope, file permissions, and binary download. This is the failure that hid for two months because the Drive lane wrote no counters.\", run_count: 1 } }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "alert-drive-silent",
+      "name": "Alert Drive Silent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2408,
+        480
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * *"
+            }
+          ]
+        }
+      },
+      "id": "intraday-1800-utc",
+      "name": "Intraday 18:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        480
+      ]
     }
   ],
   "connections": {
@@ -1229,7 +1434,7 @@
       "main": [
         [
           {
-            "node": "Drive Fetch Content",
+            "node": "Drive Seen Filter",
             "type": "main",
             "index": 0
           }
@@ -1251,9 +1456,9 @@
       "main": [
         [
           {
-            "node": "Combine Inputs",
+            "node": "Register Drive Files",
             "type": "main",
-            "index": 1
+            "index": 0
           }
         ]
       ]
@@ -1593,6 +1798,108 @@
           }
         ]
       ]
+    },
+    "Drive Seen Filter": {
+      "main": [
+        [
+          {
+            "node": "Drive Emit Unseen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Emit Unseen": {
+      "main": [
+        [
+          {
+            "node": "Has Drive Work?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Drive Work?": {
+      "main": [
+        [
+          {
+            "node": "Fan Drive Files",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Drive Skip Empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fan Drive Files": {
+      "main": [
+        [
+          {
+            "node": "Drive Fetch Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Register Drive Files": {
+      "main": [
+        [
+          {
+            "node": "Drive Silent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drive Silent?": {
+      "main": [
+        [
+          {
+            "node": "Alert Drive Silent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Combine Inputs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Alert Drive Silent": {
+      "main": [
+        [
+          {
+            "node": "Combine Inputs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Intraday 18:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Record Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -1602,6 +1909,7 @@
   "_snapshot": {
     "workflow_id": "D4W5TF1sP9lE828c",
     "exported": "2026-07-27",
-    "note": "checked-in snapshot, credentials stripped; live n8n is the runtime source"
+    "patched": "2026-08-19",
+    "note": "checked-in snapshot, credentials stripped; live n8n is the runtime source. 2026-08-19 patch is repo-first and NOT yet deployed: run scripts/n8n/sync.sh --apply --filter=cleo-inspiration after applying migration 20260819230000_inspiration_drive_lane_hardening.sql."
   }
 }

@@ -326,6 +326,64 @@ Supabase: stamp guests.cascade_fired_at
 The cascade is idempotent — re-confirming a guest re-fires it (useful
 when a transient failure left tasks missing).
 
+## Inspiration lanes (how fresh intel arrives)
+
+`Cleo | Mindmaker OS | Inspiration Sweep` (`D4W5TF1sP9lE828c`, n8n) is the
+workflow that turns raw material into `content_ideas` rows with
+`source_type='inspiration_sweep'`. It runs twice a day (06:00 ET and 18:00
+UTC) and reads two independent lanes:
+
+| Lane | Source | Ledger | Zero-input alert |
+|---|---|---|---|
+| Gmail newsletters | Gmail label from `system_config.cleo_inspiration_gmail_label`, `newer_than:7d`, 50 listed / 20 new processed per run | `inspiration_messages` (`gmail_message_id`) | `Gmail Zero?` → tier-2 `silent_failures`, `failure_type='no_input'` |
+| Drive folder | Drive folder from `system_config.cleo_inspiration_folder_id`, `modifiedTime` within `cleo_inspiration_drive_lookback_days` | `inspiration_drive_files` (`file_id:modifiedTime`) | `Drive Silent?` → tier-2 `silent_failures`, `failure_type='drive_lane_no_content'` |
+
+Both ledgers exist so a source is read exactly once. The Drive key includes
+`modifiedTime`, so **editing** a file legitimately re-enters it into the sweep
+while an untouched file never does. Drive registration happens *after* the
+file reaches the extractor, so a mid-run failure retries rather than silently
+marking material read.
+
+The Drive lane carries images and PDFs as well as text. Screenshots are the
+common case (LinkedIn posts), so the request has a byte budget:
+`cleo_inspiration_max_image_bytes` (raw bytes, base64 inflates ~1.37x) and
+`cleo_inspiration_max_images_per_run`. Selection is newest-first; anything cut
+is reported as `drive_deferred_over_budget` and left out of the ledger so the
+next pass picks it up.
+
+### Checking a lane is alive
+
+```sql
+select * from inspiration_lane_health;
+```
+
+One row per lane, with `status`:
+
+- `ok` — material arrived and seeds came out of it.
+- `input_starved` — nothing arrived in 7 days. Not a bug: no newsletters
+  landed, or nothing was dropped in the folder.
+- `not_converting` — material arrived and produced **nothing** for a week.
+  This is the one to chase. It is the state the Drive lane sat in, unnoticed,
+  from 2026-06-25 to 2026-08-19, because the workflow wrote no Drive counters
+  at all.
+
+Per-run detail is in the heartbeat metadata:
+
+```sql
+select run_at, metadata from workflow_runs
+where workflow_id = 'D4W5TF1sP9lE828c' order by run_at desc limit 5;
+```
+
+`metadata` carries both lanes: `gmail_listed` / `gmail_new` / `gmail_overflow`
+and `drive_listed` / `drive_new` / `drive_selected` / `drive_content_blocks` /
+`drive_deferred_over_budget`. `drive_new > 0` with `drive_content_blocks = 0`
+means Krish dropped material and none of it reached the model — check Drive
+OAuth scope and the binary download.
+
+Two other lanes feed `content_ideas` without Krish providing anything:
+`/api/feed/ingest` (daily 11:30 UTC, `source_type='pool_headline'`) and
+Cleo's Content Lane Sourcing (`lane_sourcing`). Neither is part of the sweep.
+
 ## Self-healing pattern (four tiers)
 
 The OS's hardest class of failure is a workflow that "succeeds" (writes
