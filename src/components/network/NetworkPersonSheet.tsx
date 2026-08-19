@@ -6,6 +6,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { BottomSheet } from '../mobile/BottomSheet'
 import { useToast } from '../shared/Toast'
+import { ContactEditChips } from '../shared/ContactEditChips'
 import { useHaptics } from '../../hooks/useHaptics'
 import { resolveReach, type ReachOption, type ChannelId } from '../../lib/networkReach'
 import { geoLabel } from '../../hooks/useNetworkGeo'
@@ -43,6 +44,8 @@ interface PersonDetail {
     location?: string | null
     last_touch_at?: string | null
     first_met_context?: string | null
+    primary_venture?: string | null
+    status?: string | null
   } | null
 }
 
@@ -185,6 +188,20 @@ export function NetworkPersonSheet({ person, onClose }: {
             </p>
           )}
         </div>
+
+        {/* What you can change. The edits wait for the detail fetch because
+            venture and status live on the contact row, not on the search
+            result, and a chip seeded from a guess would show the wrong thing
+            for the second it took to learn otherwise. */}
+        {detail?.contact && (
+          <div className="mt-3 border-t border-white/[0.07] pt-3">
+            <ContactEditChips
+              contactId={person.contact_id}
+              venture={detail.contact.primary_venture ?? null}
+              status={detail.contact.status ?? null}
+            />
+          </div>
+        )}
 
         {/* Facts, small and last. */}
         {(person.roles.length > 0 || person.industry || person.seniority) && (

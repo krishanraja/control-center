@@ -31,6 +31,7 @@ export interface ChipItem {
 
 export function ChipOverflow({
   items, selected, onToggle, inline = 3, title, testIdPrefix, searchThreshold = 12, emptyNote,
+  single, busy,
 }: {
   items: ChipItem[]
   selected: string[]
@@ -45,6 +46,12 @@ export function ChipOverflow({
   /** Rendered under the sheet list. Use it to state what the options do NOT
    *  cover, which for geography is most of the network. */
   emptyNote?: string
+  /** One value at a time. Picking in the sheet closes it, since there is
+   *  nothing left to pick; a multi-select sheet stays open so several can be
+   *  turned on in one visit. */
+  single?: boolean
+  /** Disable every control while a write is in flight. */
+  busy?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
@@ -72,7 +79,8 @@ export function ChipOverflow({
         <Chip
           key={i.id}
           on={selected.includes(i.id)}
-          onClick={() => onToggle(i.id)}
+          onClick={() => { if (!busy) onToggle(i.id) }}
+          disabled={busy}
           testId={`${testIdPrefix}-chip-${i.id}`}
         >
           {i.label}
@@ -96,7 +104,7 @@ export function ChipOverflow({
         <div className="flex max-h-[70vh] flex-col px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
           <div className="flex items-center gap-2 pb-2">
             <h2 className="text-[15px] font-semibold text-white">{title}</h2>
-            {selected.length > 0 && (
+            {!single && selected.length > 0 && (
               <span className="text-[11.5px] text-white/40">{selected.length} on</span>
             )}
             <button
@@ -132,13 +140,21 @@ export function ChipOverflow({
                 <button
                   key={i.id}
                   type="button"
-                  onClick={() => onToggle(i.id)}
+                  onClick={() => {
+                    if (busy) return
+                    onToggle(i.id)
+                    // Single-select has nothing left to choose once chosen.
+                    if (single) setOpen(false)
+                  }}
+                  disabled={busy}
                   aria-pressed={on}
+                  role={single ? 'radio' : undefined}
                   data-testid={`${testIdPrefix}-row-${i.id}`}
                   className={`flex min-h-[42px] w-full items-center gap-2.5 rounded-lg px-3 text-left text-[13.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
                     on ? 'text-violet-100' : 'text-white/70 hover:bg-white/[0.03]'}`}
                 >
-                  <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                  <span className={`flex h-4 w-4 shrink-0 items-center justify-center border ${
+                    single ? 'rounded-full' : 'rounded'} ${
                     on ? 'border-violet-400/50 bg-violet-500/25' : 'border-white/15'}`}>
                     {on && <Check size={11} className="text-violet-100" aria-hidden />}
                   </span>
@@ -161,22 +177,29 @@ export function ChipOverflow({
   )
 }
 
-/** The filter chip, shared so the inline row and every caller stay identical. */
-export function Chip({ on, onClick, children, testId }: {
+/** The chip, shared so the inline row and every caller stay identical. */
+export function Chip({ on, onClick, children, testId, disabled, tone = 'accent' }: {
   on: boolean
   onClick: () => void
   children: React.ReactNode
   testId?: string
+  disabled?: boolean
+  /** 'danger' for a chip whose ON state is a consequence rather than a
+   *  preference, e.g. marking someone do-not-contact. */
+  tone?: 'accent' | 'danger'
 }) {
+  const onClass = tone === 'danger'
+    ? 'border-rose-400/40 bg-rose-500/15 text-rose-100'
+    : 'border-violet-400/40 bg-violet-500/15 text-violet-100'
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-pressed={on}
       data-testid={testId}
-      className={`min-h-[30px] rounded-full border px-2.5 text-[11.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
-        on ? 'border-violet-400/40 bg-violet-500/15 text-violet-100'
-           : 'border-white/10 text-white/50 hover:border-white/20 hover:text-white/80'}`}
+      className={`min-h-[30px] rounded-full border px-2.5 text-[11.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 disabled:opacity-50 ${
+        on ? onClass : 'border-white/10 text-white/50 hover:border-white/20 hover:text-white/80'}`}
     >
       {children}
     </button>

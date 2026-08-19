@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Flame, Sparkles, Mail, Loader2, Check, ExternalLink, Target } from 'lucide-react'
 import { BottomSheet } from './mobile/BottomSheet'
+import { ContactEditChips } from './shared/ContactEditChips'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import { humanAge } from '../lib/ageHelpers'
@@ -42,39 +43,15 @@ export function LeadSheet({
   const [queued, setQueued] = useState(false)
   const [busy, setBusy] = useState(false)
   const [venture, setVenture] = useState<string | null>(null)
-  const [savingVenture, setSavingVenture] = useState(false)
+  const [status, setStatus] = useState<string>('active')
 
   useEffect(() => {
     if (!contact) return
     setBusy(false)
     setQueued(contact.enrichment_status === 'queued' || contact.enrichment_status === 'enriching')
     setVenture(contact.primary_venture ?? null)
+    setStatus(contact.status ?? 'active')
   }, [contact?.id])
-
-  // Reassign which venture this contact belongs to — e.g. a recorded Signal &
-  // Noise guest who's actually a better fit for another venture.
-  const changeVenture = async (v: string | null) => {
-    if (!contact || v === venture) return
-    const prev = venture
-    setVenture(v)
-    setSavingVenture(true)
-    h.select()
-    try {
-      const r = await fetch(`/api/contacts/${contact.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ primary_venture: v }),
-      })
-      const j = await r.json().catch(() => ({}))
-      if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`)
-      toast('Venture updated.', 'success')
-    } catch (e: any) {
-      setVenture(prev)
-      toast(`Could not update venture: ${e?.message || 'try again'}`, 'error')
-    } finally {
-      setSavingVenture(false)
-    }
-  }
 
   const fit = useMemo(() => topFit(contact?.fit_scores), [contact?.fit_scores])
   const why = useMemo(() => (contact ? contactRationale(contact) : null), [contact?.id])
@@ -114,24 +91,6 @@ export function LeadSheet({
               <p className="text-[19px] font-semibold text-white leading-tight">{name}</p>
               {subtitle && <p className="text-[14px] text-white/55 mt-0.5">{subtitle}</p>}
               <div className="flex flex-wrap items-center gap-2 mt-2">
-                {/* Editable venture — reassign relationship to another venture */}
-                <div className="relative inline-flex items-center">
-                  <select
-                    value={venture ?? ''}
-                    onChange={(e) => changeVenture(e.target.value || null)}
-                    disabled={savingVenture}
-                    aria-label="Venture"
-                    className="appearance-none px-2.5 py-1 pr-7 rounded-full text-[12px] bg-violet-500/15 text-violet-200 border border-violet-400/30 focus:outline-none focus:border-violet-400/60 disabled:opacity-50"
-                  >
-                    <option value="">Unassigned</option>
-                    {Object.entries(VENTURE_LABEL).map(([slug, label]) => (
-                      <option key={slug} value={slug}>{label}</option>
-                    ))}
-                  </select>
-                  {savingVenture
-                    ? <Loader2 size={11} className="absolute right-2 animate-spin text-violet-200/70 pointer-events-none" />
-                    : <Target size={11} className="absolute right-2 text-violet-200/70 pointer-events-none" />}
-                </div>
                 {contact.consent_tier && (
                   <span className="px-2.5 py-1 rounded-full text-[12px] bg-white/[0.06] text-white/70">
                     {TIER_LABEL[contact.consent_tier] || contact.consent_tier}
@@ -150,6 +109,19 @@ export function LeadSheet({
                 )}
               </div>
             </div>
+
+            {/* What you can change. One component, shared with the network
+                person sheet, so an editable field is a line in a list rather
+                than a layout decision taken twice. */}
+            <ContactEditChips
+              contactId={contact.id}
+              venture={venture}
+              status={status}
+              onSaved={p => {
+                if ('primary_venture' in p) setVenture(p.primary_venture ?? null)
+                if (p.status) setStatus(p.status)
+              }}
+            />
 
             {/* Signal grid — everything you can judge on without spending a credit */}
             <div className="grid grid-cols-2 gap-2">

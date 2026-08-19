@@ -373,3 +373,49 @@ test('the row itself reaches someone without opening the sheet', async ({ page }
   await shortcut.click()
   await expect(page.getByTestId('network-reach-email')).toHaveCount(0)
 })
+
+test('the person sheet can change venture and status, and says what do-not-contact costs', async ({ page }) => {
+  const patches: any[] = []
+  await mockNetworkApis(page)
+  await page.route('**/api/network/person/**', r =>
+    r.fulfill({ json: { ok: true, contact: { primary_venture: 'mindmaker', status: 'active' }, intelligence: {} } }))
+  await page.route('**/api/contacts/**', r => {
+    patches.push({ method: r.request().method(), body: r.request().postDataJSON() })
+    return r.fulfill({ json: { ok: true, contact: {} } })
+  })
+
+  await openNetwork(page)
+  await runSearch(page)
+  await page.getByText('Person 1').click()
+
+  // Venture is a chip row, not a native select: the value on file reads at a
+  // glance and changing it is one tap rather than an OS picker.
+  await expect(page.getByTestId('contact-venture-chip-mindmaker')).toHaveAttribute('aria-pressed', 'true')
+  await page.getByTestId('contact-venture-chip-mm_ctrl').click()
+  await expect.poll(() => patches.length).toBe(1)
+  expect(patches[0]).toEqual({ method: 'PATCH', body: { primary_venture: 'mm_ctrl' } })
+
+  // do_not_contact is the edit with teeth, so the consequence is stated rather
+  // than left to be discovered when someone stops appearing in searches.
+  await page.getByTestId('contact-status-do_not_contact').click()
+  await expect.poll(() => patches.length).toBe(2)
+  expect(patches[1]).toEqual({ method: 'PATCH', body: { status: 'do_not_contact' } })
+  await expect(page.getByText('Excluded from network search and from every outreach surface.')).toBeVisible()
+})
+
+test('a failed edit reverts the chip rather than leaving it lit', async ({ page }) => {
+  await mockNetworkApis(page)
+  await page.route('**/api/network/person/**', r =>
+    r.fulfill({ json: { ok: true, contact: { primary_venture: 'mindmaker', status: 'active' }, intelligence: {} } }))
+  await page.route('**/api/contacts/**', r =>
+    r.fulfill({ status: 500, json: { ok: false, error: 'nope' } }))
+
+  await openNetwork(page)
+  await runSearch(page)
+  await page.getByText('Person 1').click()
+
+  await page.getByTestId('contact-status-closed').click()
+  // The database never took it, so the UI must not keep claiming it did.
+  await expect(page.getByTestId('contact-status-active')).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByTestId('contact-status-closed')).toHaveAttribute('aria-pressed', 'false')
+})

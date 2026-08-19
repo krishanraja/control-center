@@ -215,6 +215,49 @@ Action vocabulary (do not invent synonyms):
 Every action writes an `audit_log` row via `logKrishAction` (standard:
 action provenance).
 
+### `ChipOverflow`
+
+A chip group that does not grow without bound. The few options that matter
+render inline; the rest go behind a `+N` into a content-height bottom sheet that
+leaves the page visible behind it. Anything SELECTED stays inline regardless of
+rank, because a filter you cannot see is a filter you forget is on.
+
+Use it wherever a set of options outgrows one line on a phone: 72 countries in
+the network filter, seven ventures on a contact. The three alternatives are all
+worse — rendering everything pushes the content below the fold, wrapping to four
+lines does the same more slowly, and truncating hides options with no way back
+to them.
+
+```tsx
+<ChipOverflow
+  items={[{ id: 'GB', label: 'UK', fullLabel: 'United Kingdom', meta: '382' }]}
+  selected={countries} onToggle={toggle}
+  inline={3} title="Countries" testIdPrefix="network-geo"
+  emptyNote="6,392 people have no location on file."
+/>
+```
+
+`single` makes it one-at-a-time (radio rows, sheet closes on pick), `busy`
+disables everything while a write is in flight, `emptyNote` states what the
+options do NOT cover. Deliberately not a `<select>`: a native picker cannot show
+counts, cannot multi-select on iOS without a modal anyway, and opens at the top
+of the screen rather than under the thumb.
+
+### `ContactEditChips`
+
+Every edit you can make to a person, in one component, used by both the network
+person sheet (live) and `LeadSheet` (only rendered when `isUiV2()` is false).
+Venture and status, optimistic, reverting the chip on a failed write.
+
+Adding an editable field here is a line in a list rather than a layout decision
+taken twice. It replaced a native `<select>` carrying seven options at 12px,
+which is why there had only ever been one editable field.
+
+`status: 'do_not_contact'` is the one with teeth — `network_search` hard-filters
+it and `networkScore` drops them — so the UI states the consequence. Nothing
+could set it per person before: `api/contacts/bulk.ts` and the desktop leads
+table were the only routes, which is why all 10,767 contacts are `active`.
+
 ### `Toast` / `ToastProvider`
 
 Wraps the app at root. Toast on action success/failure, never on routine
