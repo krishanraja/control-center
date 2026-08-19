@@ -1,7 +1,8 @@
-import { Mail, Linkedin, Phone, Instagram, AlertTriangle, MapPin } from 'lucide-react'
+import { Mail, Linkedin, Phone, Instagram, AtSign, AlertTriangle, MapPin } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ScoreBreakdown } from './ScoreBreakdown'
 import { geoLabel } from '../../hooks/useNetworkGeo'
+import { resolveReach, type ChannelId } from '../../lib/networkReach'
 import type { NetworkResult } from '../../hooks/useNetworkSearch'
 
 // One person in a result list. Structure referenced from Relume's stacked-list6,
@@ -23,8 +24,8 @@ const TIER_VARIANT: Record<string, 'accent' | 'solid' | 'default' | 'outline'> =
   '4_owned_network': 'outline',
   '5_cold_lead': 'outline',
 }
-const CHANNEL_ICON: Record<string, typeof Mail> = {
-  email: Mail, linkedin_dm: Linkedin, phone: Phone, instagram_dm: Instagram,
+const CHANNEL_ICON: Record<ChannelId, typeof Mail> = {
+  email: Mail, linkedin_dm: Linkedin, phone: Phone, instagram_dm: Instagram, twitter: AtSign,
 }
 
 export function NetworkResultRow({ r, onOpen, weak }: {
@@ -40,7 +41,11 @@ export function NetworkResultRow({ r, onOpen, weak }: {
   // nothing about location is honest, a row that asserts unknown is noise on
   // most of the corpus.
   const place = r.geo_code ? geoLabel(r.geo_code, r.country || undefined) : null
-  const Channel = r.best_channel ? CHANNEL_ICON[r.best_channel] : null
+  // The best channel that can actually be ACTED on, which is not always the one
+  // on file: 368 people are recorded as best-reached by phone and this database
+  // has no phone column at all. See lib/networkReach.
+  const reach = resolveReach(r).best
+  const Channel = reach ? CHANNEL_ICON[reach.channel] : null
   // why_match is the reranker answering THIS question. why_them is the stored
   // judgment. Prefer the former; fall back so a row is never reasonless.
   const reason = r.why_match || r.why_them
@@ -56,7 +61,6 @@ export function NetworkResultRow({ r, onOpen, weak }: {
       >
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className="truncate text-[14px] font-semibold text-white">{name}</span>
-          {Channel && <Channel size={12} className="shrink-0 text-white/30" aria-hidden />}
           <Badge variant={TIER_VARIANT[r.network_tier] || 'outline'}>{TIER_LABEL[r.network_tier] || r.network_tier}</Badge>
           {r.thin_evidence && (
             // Never hidden, always labelled. rules_v1 means nobody read a
@@ -92,6 +96,24 @@ export function NetworkResultRow({ r, onOpen, weak }: {
           </p>
         )}
       </button>
+
+      {/* One tap to the person, without opening anything. The row still opens
+          the sheet; this is the shortcut for when the name alone was enough. It
+          renders only when there is an address a tap can complete, so it is
+          never a button that looks live and does nothing. */}
+      {reach && Channel && (
+        <a
+          href={reach.href}
+          {...(reach.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
+          onClick={e => e.stopPropagation()}
+          title={`${reach.label}: ${reach.address}`}
+          aria-label={`${reach.label} ${name}`}
+          data-testid="network-row-reach"
+          className="flex h-9 w-9 shrink-0 items-center justify-center self-center rounded-full border border-white/10 text-white/40 transition-colors hover:border-violet-400/40 hover:bg-violet-500/15 hover:text-violet-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+        >
+          <Channel size={14} aria-hidden />
+        </a>
+      )}
     </div>
   )
 }

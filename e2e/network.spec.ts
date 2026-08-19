@@ -292,3 +292,84 @@ test('clear works on a phone viewport, where the field is the only control in re
   await clear.click()
   await expect(page.getByText('Person 1')).toHaveCount(0)
 })
+
+test('tapping a person opens their detail with the best channel one tap away', async ({ page }) => {
+  await mockNetworkApis(page)
+  await page.route('**/api/network/person/**', r => r.fulfill({ json: { ok: true, contact: {}, intelligence: {} } }))
+  await openNetwork(page)
+  await runSearch(page)
+
+  await page.getByText('Person 1').click()
+
+  const email = page.getByTestId('network-reach-email')
+  await expect(email).toBeVisible()
+  await expect(email).toHaveAttribute('href', 'mailto:p1@example.com')
+  // The address is printed, not hidden behind the button: half of what this
+  // sheet is used for is pasting it somewhere else.
+  await expect(email).toContainText('p1@example.com')
+  await expect(email).toContainText('best channel')
+})
+
+test('a recorded best channel with no address on file says so instead of offering a dead button', async ({ page }) => {
+  await page.route('**/api/network/search', r =>
+    r.fulfill({
+      json: {
+        ok: true, restated: 'x', weak: false, degraded: [], geo: { countries: [], hard: false },
+        results: [person(1, {
+          // 368 real people look exactly like this: phone is the recommended way
+          // in and there is no phone column anywhere in the database.
+          best_channel: 'phone',
+          reachable_via: ['phone', 'email'],
+        })],
+      },
+    }))
+  await page.route('**/api/network/geo', r => r.fulfill({ json: { ok: true, countries: [], unknown: 0, known: 0, total: 0 } }))
+  await page.route('**/api/network/person/**', r => r.fulfill({ json: { ok: true, contact: {}, intelligence: {} } }))
+  await page.route('**/api/network/explain', r => r.fulfill({ json: { ok: true, explanations: [] } }))
+  await page.route('**/rest/v1/**', r => r.fulfill({ json: [] }))
+  await page.route('**/realtime/**', r => r.abort())
+
+  await openNetwork(page)
+  await runSearch(page)
+  await page.getByText('Person 1').click()
+
+  // Email is offered because email is what we hold, and the mismatch is named.
+  await expect(page.getByTestId('network-reach-email')).toHaveAttribute('href', 'mailto:p1@example.com')
+  await expect(page.getByTestId('network-reach-phone')).toHaveCount(0)
+  await expect(page.getByText(/Best channel on file is Phone, but no number is recorded/)).toBeVisible()
+})
+
+test('a person with no contact details at all is not offered a button that does nothing', async ({ page }) => {
+  await page.route('**/api/network/search', r =>
+    r.fulfill({
+      json: {
+        ok: true, restated: 'x', weak: false, degraded: [], geo: { countries: [], hard: false },
+        results: [person(1, { email: null, linkedin_url: null, best_channel: 'instagram_dm', reachable_via: ['instagram_dm'] })],
+      },
+    }))
+  await page.route('**/api/network/geo', r => r.fulfill({ json: { ok: true, countries: [], unknown: 0, known: 0, total: 0 } }))
+  await page.route('**/api/network/person/**', r => r.fulfill({ json: { ok: true, contact: {}, intelligence: {} } }))
+  await page.route('**/api/network/explain', r => r.fulfill({ json: { ok: true, explanations: [] } }))
+  await page.route('**/rest/v1/**', r => r.fulfill({ json: [] }))
+  await page.route('**/realtime/**', r => r.abort())
+
+  await openNetwork(page)
+  await runSearch(page)
+
+  // No shortcut on the row either, because there is nothing to shortcut to.
+  await expect(page.getByTestId('network-row-reach')).toHaveCount(0)
+  await page.getByText('Person 1').click()
+  await expect(page.getByText(/no address for it is recorded/)).toBeVisible()
+})
+
+test('the row itself reaches someone without opening the sheet', async ({ page }) => {
+  await mockNetworkApis(page)
+  await openNetwork(page)
+  await runSearch(page)
+
+  const shortcut = page.getByTestId('network-row-reach').first()
+  await expect(shortcut).toHaveAttribute('href', 'mailto:p1@example.com')
+  // It must not also open the sheet: the whole point is skipping it.
+  await shortcut.click()
+  await expect(page.getByTestId('network-reach-email')).toHaveCount(0)
+})

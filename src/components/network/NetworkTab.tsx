@@ -6,6 +6,7 @@ import { NetworkSearchBar } from './NetworkSearchBar'
 import { NetworkFilters, EMPTY_FILTERS, type FilterState } from './NetworkFilters'
 import { VentureRecommender } from './VentureRecommender'
 import { NetworkResultRow } from './NetworkResultRow'
+import { NetworkPersonSheet } from './NetworkPersonSheet'
 import { SkeletonList } from '../shared/Skeleton'
 import { useNetworkGeo, geoLabel } from '../../hooks/useNetworkGeo'
 
@@ -18,10 +19,14 @@ import { useNetworkGeo, geoLabel } from '../../hooks/useNetworkGeo'
 
 export function NetworkTab({ narrow, onOpenPerson }: {
   narrow?: boolean
+  /** Override where a tapped person goes. Unset, which is how both shells mount
+   *  this, it opens the person sheet: until now the prop was never passed and a
+   *  tap on a result did nothing at all. */
   onOpenPerson?: (r: NetworkResult) => void
 }) {
   const s = useNetworkSearch()
   const geoFacets = useNetworkGeo()
+  const [person, setPerson] = useState<NetworkResult | null>(null)
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS)
   const [lastQuestion, setLastQuestion] = useState('')
   const [recommendation, setRecommendation] = useState<{ venture: string; intent: string } | null>(null)
@@ -78,6 +83,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
     setLastQuestion('')
     setRecommendation(null)
     setFilters(EMPTY_FILTERS)
+    setPerson(null)
     s.reset()
   }, [s])
 
@@ -171,7 +177,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
               </p>
             )}
             {s.results.map(r => (
-              <NetworkResultRow key={r.contact_id} r={r} onOpen={onOpenPerson} weak={s.weak} />
+              <NetworkResultRow key={r.contact_id} r={r} onOpen={onOpenPerson || setPerson} weak={s.weak} />
             ))}
           </div>
         )}
@@ -208,6 +214,8 @@ export function NetworkTab({ narrow, onOpenPerson }: {
           </div>
         )}
       </div>
+
+      {!onOpenPerson && <NetworkPersonSheet person={person} onClose={() => setPerson(null)} />}
 
       {s.loading && narrow && (
         <div className="pointer-events-none absolute inset-x-0 bottom-24 flex justify-center">

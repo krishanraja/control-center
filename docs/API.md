@@ -519,6 +519,24 @@ reads as a statement about the network ("you know nobody in the UK") when it is
 a statement about the data ("we never recorded where these people are"), so the
 UI renders it next to every geography filter.
 
+### Reaching someone
+
+`best_channel` and `reachable_via` are a **judgment about how to approach
+someone**, never a promise that an address exists. Measured against the corpus:
+
+| recorded best channel | people | address actually stored |
+|---|---|---|
+| `phone` | 368 | none, there is no phone column |
+| `instagram_dm` | 198 | none, there is no handle column |
+| `email` | ~1,200 of them | no email on the row |
+
+So `src/lib/networkReach.ts` resolves the other way round: start from the
+addresses on the record (`email`, `linkedin_url`, `twitter_handle`), then let
+`best_channel` ORDER them. Every button it produces is one a tap can complete,
+and when the recommended channel is not among them the UI says which and why
+rather than quietly substituting a different one. A row with nothing actionable
+gets no button at all.
+
 ### The planner is untrusted input
 
 `api/_networkQuery.ts` sits between a language model and a database call, so
