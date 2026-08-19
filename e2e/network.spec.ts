@@ -34,6 +34,7 @@ function person(i: number, over: Record<string, unknown> = {}) {
     intel_method: 'llm_v2',
     seniority: 'founder_cxo',
     country: 'Australia',
+    geo_code: 'AU',
     industry: 'Financial services',
     venture_scores: { mindmaker: 80 },
     thin_evidence: false,
@@ -54,10 +55,27 @@ async function mockNetworkApis(page: Page, onSearch?: (body: any) => void) {
         restated: 'Marketing leaders at banks who care about AI governance.',
         weak: false,
         degraded: [],
+        geo: { countries: [], hard: false },
         results: [person(1), person(2), person(3)],
       },
     })
   })
+  await page.route('**/api/network/geo', r =>
+    r.fulfill({
+      json: {
+        ok: true,
+        countries: [
+          { code: 'GB', name: 'United Kingdom', featured: true, n: 382 },
+          { code: 'AU', name: 'Australia', featured: true, n: 1741 },
+          { code: 'US', name: 'United States', featured: true, n: 1150 },
+          { code: 'SG', name: 'Singapore', featured: false, n: 24 },
+          { code: 'IN', name: 'India', featured: false, n: 62 },
+        ],
+        unknown: 6392,
+        known: 3359,
+        total: 9751,
+      },
+    }))
   await page.route('**/api/network/recommend', r =>
     r.fulfill({
       json: {
@@ -65,6 +83,7 @@ async function mockNetworkApis(page: Page, onSearch?: (body: any) => void) {
         restated: 'People to sell Mindmaker to.',
         weak: false,
         degraded: [],
+        geo: { countries: [], hard: false },
         results: [person(7, { full_name: 'Recommended Person' })],
       },
     }))
@@ -148,6 +167,100 @@ test('a second search runs clean after a clear', async ({ page }) => {
   expect(sent[1].venture).toBeNull()
   expect(sent[1].roles).toBeNull()
   expect(sent[1].tiers).toBeNull()
+  expect(sent[1].countries).toBeNull()
+})
+
+test('a country chip narrows the search and says what it did', async ({ page }) => {
+  const sent: any[] = []
+  await mockNetworkApis(page, b => sent.push(b))
+  await openNetwork(page)
+  await runSearch(page)
+
+  await page.getByTestId('network-geo-chip-GB').click()
+  await expect.poll(() => sent.length).toBe(2)
+  expect(sent[1].countries).toEqual(['GB'])
+  // Soft by default. The chip ranks Britons up; it does not delete everyone
+  // else, which is the promise the mode label makes.
+  expect(sent[1].filter_mode).toBe('soft')
+})
+
+test('a hard country filter states how many people it cannot place', async ({ page }) => {
+  await page.route('**/api/network/search', r =>
+    r.fulfill({
+      json: {
+        ok: true,
+        restated: 'Marketing leaders at banks who care about AI governance.',
+        weak: false,
+        degraded: [],
+        geo: { countries: ['GB'], hard: true },
+        results: [person(1, { geo_code: 'GB', country: 'United Kingdom' })],
+      },
+    }))
+  await page.route('**/api/network/geo', r =>
+    r.fulfill({ json: { ok: true, countries: [{ code: 'GB', name: 'United Kingdom', featured: true, n: 382 }], unknown: 6392, known: 3359, total: 9751 } }))
+  await page.route('**/api/network/explain', r => r.fulfill({ json: { ok: true, explanations: [] } }))
+  await page.route('**/rest/v1/**', r => r.fulfill({ json: [] }))
+  await page.route('**/realtime/**', r => r.abort())
+
+  await openNetwork(page)
+  await runSearch(page)
+
+  // The count is the whole point. Without it "United Kingdom only" reads as a
+  // fact about the network rather than about how much of it has a location.
+  await expect(page.getByText(/6,392 people have no location on file/)).toBeVisible()
+})
+
+test('countries beyond the three markets are reachable through the overflow', async ({ page }) => {
+  const sent: any[] = []
+  await mockNetworkApis(page, b => sent.push(b))
+  await openNetwork(page)
+  await runSearch(page)
+
+  // Five countries, three of them featured, so exactly two sit behind the +2.
+  await page.getByTestId('network-geo-more').click()
+  await page.getByTestId('network-geo-row-SG').click()
+  await expect.poll(() => sent.length).toBe(2)
+  expect(sent[1].countries).toEqual(['SG'])
+})
+
+test('on a phone the filters open over the results instead of replacing them', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await mockNetworkApis(page)
+  await openNetwork(page)
+  await runSearch(page)
+
+  // Level 1: the three markets are one tap away without opening anything, and
+  // the results are on screen at the same time.
+  await expect(page.getByTestId('network-geo-chip-GB')).toBeVisible()
+  await expect(page.getByText('Person 1')).toBeVisible()
+
+  // Level 2: the sheet is content-height, so the list behind it survives. This
+  // is the assertion the old inline-expansion layout could not have passed.
+  await page.getByTestId('network-filters-open').click()
+  await expect(page.getByTestId('network-role-chip-buyer')).toBeVisible()
+  await expect(page.getByText('Person 1')).toBeVisible()
+
+  await page.getByTestId('network-filters-close').click()
+  await expect(page.getByTestId('network-role-chip-buyer')).toHaveCount(0)
+})
+
+test('an active filter can be removed on a phone without reopening the sheet', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  const sent: any[] = []
+  await mockNetworkApis(page, b => sent.push(b))
+  await openNetwork(page)
+  await runSearch(page)
+
+  await page.getByTestId('network-filters-open').click()
+  await page.getByTestId('network-role-chip-buyer').click()
+  await page.getByTestId('network-filters-close').click()
+
+  // The pill is the removal affordance. Reaching it must not cost a sheet.
+  const pill = page.getByRole('button', { name: 'Remove Buyer filter' })
+  await expect(pill).toBeVisible()
+  await pill.click()
+  await expect(pill).toHaveCount(0)
+  expect(sent[sent.length - 1].roles).toBeNull()
 })
 
 test('a recommendation can be cleared back to the venture picker', async ({ page }) => {

@@ -36,6 +36,9 @@ export interface NetworkResult extends ScoreBreakdown {
   intel_method: string
   seniority: string | null
   country: string | null
+  /** ISO-3166 alpha-2, resolved from country, then the contact's location, then
+   *  the email ccTLD. NULL means unknown, which is true of most of the corpus. */
+  geo_code: string | null
   industry: string | null
   venture_scores: Record<string, number>
   thin_evidence: boolean
@@ -63,10 +66,16 @@ export interface SearchState {
   explaining: boolean
   error: string | null
   transcript?: string
+  /** What geography the server applied, and whether it excluded or only ranked.
+   *  Comes back even when nothing was clicked, because the planner reads a place
+   *  out of the question itself, and a list narrowed by something the operator
+   *  did not click is exactly the thing that has to be visible. */
+  geo: { countries: string[]; hard: boolean }
 }
 
 const EMPTY: SearchState = {
   results: [], restated: '', weak: false, degraded: [], loading: false, explaining: false, error: null,
+  geo: { countries: [], hard: false },
 }
 
 // The request can never outlive this. Without it a stalled server left the
@@ -78,6 +87,11 @@ export interface Filters {
   venture?: string | null
   roles?: string[]
   tiers?: string[]
+  /** ISO-3166 alpha-2 country codes. */
+  countries?: string[]
+  /** 'soft' ranks matches higher and keeps close ones; 'hard' excludes. The
+   *  server defaults to 'hard', so this is always sent rather than omitted. */
+  mode?: 'soft' | 'hard'
   minConfidence?: string | null
 }
 
@@ -169,6 +183,7 @@ export function useNetworkSearch() {
         explaining: wantsExplain,
         error: null,
         transcript: typeof j.transcript === 'string' ? j.transcript : undefined,
+        geo: (j.geo as SearchState['geo']) || { countries: [], hard: false },
       })
       if (wantsExplain) {
         const askedFor = (!isBlob && typeof (body as Record<string, unknown>).question === 'string'
@@ -190,17 +205,34 @@ export function useNetworkSearch() {
   const search = useCallback((question: string, f: Filters = {}) => run('/api/network/search', {
     question,
     venture: f.venture ?? null,
+    // Sent in BOTH modes now. They used to be dropped entirely unless hard mode
+    // was on, which made a lit chip in soft mode do nothing at all while the
+    // label under it promised it was ranking matches higher. `filter_mode` is
+    // what decides whether they exclude or merely weigh.
     roles: f.roles?.length ? f.roles : null,
     tiers: f.tiers?.length ? f.tiers : null,
+    countries: f.countries?.length ? f.countries : null,
+    filter_mode: f.mode ?? 'soft',
     min_confidence: f.minConfidence ?? null,
     limit: 25,
   }), [run])
 
-  const recommend = useCallback((venture: string, intent?: string) =>
-    run('/api/network/recommend', { venture, intent, limit: 25 }), [run])
+  const recommend = useCallback((venture: string, intent?: string, f: Filters = {}) =>
+    run('/api/network/recommend', {
+      venture,
+      intent,
+      countries: f.countries?.length ? f.countries : null,
+      filter_mode: f.mode ?? 'soft',
+      limit: 25,
+    }), [run])
 
-  const searchByVoice = useCallback((audio: Blob) =>
-    run('/api/network/voice', audio), [run])
+  // The body is the audio blob, so the filters ride the query string.
+  const searchByVoice = useCallback((audio: Blob, f: Filters = {}) => {
+    const qs = new URLSearchParams()
+    if (f.countries?.length) qs.set('countries', f.countries.join(','))
+    qs.set('filter_mode', f.mode ?? 'soft')
+    return run(`/api/network/voice?${qs.toString()}`, audio)
+  }, [run])
 
   const reset = useCallback(() => { seq.current++; setState(EMPTY) }, [])
 

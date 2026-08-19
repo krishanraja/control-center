@@ -659,7 +659,7 @@ anon-readable (`contacts_anon_select ... USING (true)`), and `why_them` and
 | Venture | `venture_scores` (jsonb, 0-100 per venture), `primary_venture`, `mindmaker_buyer_family` |
 | Evidence tier | `network_tier`, `tier_weight`, `priority`, `fit`, `warmth` |
 | Provenance | `confidence`, `intel_method`, `evidence[]`, `source_count`, `source_list[]` |
-| Firmographic | `seniority`, `country`, `industry` |
+| Firmographic | `seniority`, `country`, `geo_code`, `industry` |
 | Hygiene | `is_person`, `name_quality`, `reciprocated_email`, `email_inbound/outbound/last` |
 | Retrieval | `intel_doc`, `intel_tsv` (generated), `embedding vector(1536)` |
 
@@ -673,6 +673,50 @@ one.
 derive from it, so the lexical and semantic tiers can never disagree about what
 was indexed.
 
+`geo_code` is ISO-3166 alpha-2, **resolved rather than stored**: it falls back
+through `country`, then `contacts.location`, then the email ccTLD
+(`network_geo_resolve`). The fallback is the point. `country` alone is populated
+for 3,679 of 10,597 people and for **9 of the 164 in tier 1**, the people who
+have actually replied, so a filter reading `country` directly would hide almost
+everyone Krish knows best the moment he picked a market. Resolution lifts known
+geography to roughly 4,600.
+
+It is denormalised onto this table, not computed per query, because
+`network_search`'s candidate recall paths read `contact_intelligence` alone and
+are capped at 400 rows each; an indexed column lets a country filter push down
+into them instead of being applied to an already-truncated pool. It cannot be a
+`GENERATED` column: the resolution reads `contacts` and `geo_country`, and a
+generated expression must be immutable and single-table.
+
+Kept current by two triggers (`ci_geo_code_trg` on this table's `country`,
+`contacts_geo_code_trg` on `contacts.location` / `email`) rather than only at
+import, so it cannot drift the way an import-time derived column silently does.
+`refresh_network_geo()` re-resolves the whole corpus and returns the number of
+rows changed; run it after an import or after `geo_country` gains an alias.
+
+**Whatever is unknown stays unknown.** `geo_code` is NULL for roughly 6,400
+people and is never guessed at: `.com`, `.io`, `.ai` and `.co` are sold
+worldwide and resolve to nothing. `network_geo_facets()` returns that count
+alongside the per-country totals, and `/api/network/geo` hands it to the UI, so
+a filtered list can say how many people it could not place.
+
+## `geo_country` — the country reference
+
+Anon-readable (a country list carries none of `contact_intelligence`'s privacy
+weight). `code` (ISO-2 PK), `name`, `aliases[]`, `cctld[]`, `featured`.
+
+Aliases are the resolution surface: informal names, demonyms and the major
+cities that turn up in a free-text location field, all lowercase. Two-letter US
+state codes are deliberately **absent** — "CA" is Canada far more often than
+California, and a wrong country is worse than an unknown one. Whole-string ISO
+codes are matched, but only for the whole string, so the UI's `CA` is Canada
+while `San Francisco, CA` resolves through the city alias to the US.
+
+`featured` marks GB, AU and US, matching the geography default already documented
+in [`ICP.md`](./ICP.md) and [`APOLLO_ICP_RUBRIC.md`](./APOLLO_ICP_RUBRIC.md);
+the filter chips and the sourcing rubric should not disagree about which three
+countries matter.
+
 ### Indexes
 
 `hnsw (embedding vector_cosine_ops)` — **HNSW, not ivfflat**. ivfflat needs
@@ -682,8 +726,8 @@ no training step, so creating it before the load is correct rather than merely
 tolerable, which keeps the migration order-independent.
 
 Plus GIN on `intel_tsv`, `roles`, `surface_when`, `venture_scores`, btree on
-`network_tier` / `primary_venture` / `seniority` / `country`, and a partial index
-on the browse default (tiers 1-3, real judgment, actual humans).
+`network_tier` / `primary_venture` / `seniority` / `country` / `geo_code`, and a
+partial index on the browse default (tiers 1-3, real judgment, actual humans).
 
 ## `network_search()` — the scorer
 
@@ -694,6 +738,7 @@ match_score = 100 x venture_multiplier x weighted_mean(
     0.34 semantic       cosine, rescaled onto the measured band [0.30, 0.62]
     0.16 lexical        ts_rank_cd, rescaled in-set, x coverage squared
     0.22 constraint     weighted partial credit, 0.5 when unconstrained
+                        (`geo` matches the RESOLVED geo_code; `country` folds into it)
     0.18 relationship   tier_weight, warmth, reciprocated, log(source_count)
     0.10 actionability  reachable, confidence, intel_method, name_quality
 )
@@ -704,12 +749,26 @@ with no text query is not silently scored out of 0.50.
 
 **Constraints are SOFT.** They contribute weighted partial credit; they never
 filter. The only hard filters are `is_person`, `do_not_contact`, and whatever
-the operator sets explicitly in the UI. This is what makes "always return
-answers" structural rather than a promise the caller has to keep.
+the operator sets explicitly in the UI (`p_tiers`, `p_roles`, `p_min_conf`,
+`p_countries`). This is what makes "always return answers" structural rather
+than a promise the caller has to keep.
 
 Candidate recall is a UNION of orthogonal paths, one of which is
 **query-independent** (the strongest relationships in the network). That is what
 a nonsense query falls back to. The no-vector path stays fully exhaustive.
+
+`p_countries` **pushes down into every recall path** rather than filtering their
+output. Each path is capped at `p_pool` (400) rows, so a UK search that filtered
+afterwards would examine 400 mostly-Australian neighbours and return the handful
+of Britons among them, out of 382. Scoping the paths spends those slots where
+the answer is. A soft `geo` constraint gets its own recall path for the same
+reason: the constraint term cannot promote someone who was never scored.
+
+Both `p_countries` and `geo` constraint values run through
+`network_geo_canon`, so ISO codes, country names and city names are one filter.
+Values that resolve to nothing **degrade rather than empty the result**: an
+unrecognised `p_countries` becomes no filter, and an unrecognised `geo`
+constraint is dropped instead of scoring zero against the whole corpus.
 
 ### Calibration
 

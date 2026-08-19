@@ -1,6 +1,7 @@
-import { Mail, Linkedin, Phone, Instagram, AlertTriangle } from 'lucide-react'
+import { Mail, Linkedin, Phone, Instagram, AlertTriangle, MapPin } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ScoreBreakdown } from './ScoreBreakdown'
+import { geoLabel } from '../../hooks/useNetworkGeo'
 import type { NetworkResult } from '../../hooks/useNetworkSearch'
 
 // One person in a result list. Structure referenced from Relume's stacked-list6,
@@ -33,6 +34,12 @@ export function NetworkResultRow({ r, onOpen, weak }: {
 }) {
   const name = r.full_name || r.company || 'Unnamed contact'
   const sub = [r.title, r.company].filter(Boolean).join(' · ')
+  // Where they are, when we know. Rendered from the RESOLVED code rather than
+  // the country column, so someone placed by their location or their email
+  // domain shows a country too. Absent rather than "Unknown": a row that says
+  // nothing about location is honest, a row that asserts unknown is noise on
+  // most of the corpus.
+  const place = r.geo_code ? geoLabel(r.geo_code, r.country || undefined) : null
   const Channel = r.best_channel ? CHANNEL_ICON[r.best_channel] : null
   // why_match is the reranker answering THIS question. why_them is the stored
   // judgment. Prefer the former; fall back so a row is never reasonless.
@@ -62,7 +69,17 @@ export function NetworkResultRow({ r, onOpen, weak }: {
           )}
         </div>
 
-        {sub && <p className="mt-0.5 truncate text-[12px] text-white/50">{sub}</p>}
+        {(sub || place) && (
+          <p className="mt-0.5 flex items-center gap-1.5 truncate text-[12px] text-white/50">
+            {sub && <span className="truncate">{sub}</span>}
+            {place && (
+              <span className="inline-flex shrink-0 items-center gap-0.5 text-white/35">
+                <MapPin size={10} aria-hidden />
+                {place}
+              </span>
+            )}
+          </p>
+        )}
         {reason && <p className="mt-1.5 text-[12.5px] leading-relaxed text-white/75">{reason}</p>}
         {r.hook && (
           <p className="mt-1 text-[12px] leading-relaxed text-white/45">

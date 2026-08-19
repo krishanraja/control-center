@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, SearchX, AlertTriangle } from 'lucide-react'
+import { Loader2, SearchX, AlertTriangle, MapPin } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { useNetworkSearch, type NetworkResult } from '../../hooks/useNetworkSearch'
 import { NetworkSearchBar } from './NetworkSearchBar'
@@ -7,6 +7,7 @@ import { NetworkFilters, EMPTY_FILTERS, type FilterState } from './NetworkFilter
 import { VentureRecommender } from './VentureRecommender'
 import { NetworkResultRow } from './NetworkResultRow'
 import { SkeletonList } from '../shared/Skeleton'
+import { useNetworkGeo, geoLabel } from '../../hooks/useNetworkGeo'
 
 // The Network surface.
 //
@@ -20,6 +21,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
   onOpenPerson?: (r: NetworkResult) => void
 }) {
   const s = useNetworkSearch()
+  const geoFacets = useNetworkGeo()
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS)
   const [lastQuestion, setLastQuestion] = useState('')
   const [recommendation, setRecommendation] = useState<{ venture: string; intent: string } | null>(null)
@@ -29,11 +31,13 @@ export function NetworkTab({ narrow, onOpenPerson }: {
     setRecommendation(null)
     s.search(q, {
       venture: f.venture,
-      // Hard mode is the ONLY path here that can return nothing, so it is the
-      // only one that sends filters as filters. Soft mode leaves them to the
-      // scorer, which trades them off against everything else.
-      roles: f.hard ? f.roles : undefined,
-      tiers: f.hard ? f.tiers : undefined,
+      // Filters go up in BOTH modes; `mode` says what they mean. They used to be
+      // sent only in hard mode, which made every chip inert while the label
+      // beneath it said it was ranking matches higher.
+      roles: f.roles,
+      tiers: f.tiers,
+      countries: f.countries,
+      mode: f.hard ? 'hard' : 'soft',
     })
   }, [s])
 
@@ -44,7 +48,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
   // `runSearch`. Depending on the object identity would re-fire on every render
   // that rebuilds it, and depending on runSearch would re-fire whenever the
   // search hook's state changed, i.e. on the response to this very effect.
-  const filterKey = `${filters.venture}|${filters.roles.join()}|${filters.tiers.join()}|${filters.hard}`
+  const filterKey = `${filters.venture}|${filters.roles.join()}|${filters.tiers.join()}|${filters.countries.join()}|${filters.hard}`
   useEffect(() => {
     if (!lastQuestion) return
     runSearch(lastQuestion, filters)
@@ -53,7 +57,13 @@ export function NetworkTab({ narrow, onOpenPerson }: {
   const onRecommend = (venture: string, intent: string) => {
     setLastQuestion('')
     setRecommendation({ venture, intent })
-    s.recommend(venture, intent)
+    // A recommendation obeys the geography that is on screen. "Who should I talk
+    // to for Mindmaker" and "...in the UK" are the same question with a market
+    // attached, and a lit chip that the recommender ignored would be a lie.
+    s.recommend(venture, intent, {
+      countries: filters.countries,
+      mode: filters.hard ? 'hard' : 'soft',
+    })
   }
 
   // Clearing puts the tab back to the state it opens in: no query, no results,
@@ -73,12 +83,32 @@ export function NetworkTab({ narrow, onOpenPerson }: {
 
   const hasRun = Boolean(s.restated || s.results.length || s.error)
 
+  // ── The honesty line for geography ────────────────────────────────────────
+  //
+  // Geography is resolved for well under half the corpus and for about 5% of
+  // tier 1, the people who have actually replied. So a country filter is not the
+  // clean cut it looks like: it silently drops several thousand people whose
+  // location was simply never recorded. Saying the number is the difference
+  // between "you know nobody in the UK" and "we do not know where 6,000 of your
+  // people are", and only one of those is true.
+  const geoNames = s.geo.countries.map(c => geoLabel(c, geoFacets.countries.find(x => x.code === c)?.name))
+  const geoLine = geoNames.length
+    ? (s.geo.hard
+        ? `${geoNames.join(', ')} only.${geoFacets.unknown
+            ? ` ${geoFacets.unknown.toLocaleString('en-AU')} people have no location on file and cannot match.`
+            : ''}`
+        : `Ranked for ${geoNames.join(', ')}. Everyone else still appears, lower down.`)
+    : null
+
   return (
     <div className={`flex h-full flex-col overflow-hidden ${narrow ? 'pb-[calc(env(safe-area-inset-bottom,0px)+120px)]' : ''}`}>
       <div className="shrink-0">
         <NetworkSearchBar
           onSearch={q => runSearch(q, filters)}
-          onVoice={s.searchByVoice}
+          onVoice={audio => s.searchByVoice(audio, {
+            countries: filters.countries,
+            mode: filters.hard ? 'hard' : 'soft',
+          })}
           onClear={onClear}
           loading={s.loading}
           restated={s.restated}
@@ -122,6 +152,13 @@ export function NetworkTab({ narrow, onOpenPerson }: {
           </div>
         )}
 
+        {!s.loading && hasRun && geoLine && (
+          <div className="mx-4 mt-3 flex items-start gap-2 rounded-card border border-white/[0.08] bg-white/[0.02] px-3 py-2">
+            <MapPin size={12} className="mt-0.5 shrink-0 text-white/35" aria-hidden />
+            <p className="text-[11.5px] leading-relaxed text-white/50">{geoLine}</p>
+          </div>
+        )}
+
         {!s.loading && s.results.length > 0 && (
           <div className="mt-3">
             {/* The ranked list renders as soon as the scorer answers. The
@@ -145,6 +182,15 @@ export function NetworkTab({ narrow, onOpenPerson }: {
           // feature was built to remove.
           <div className="px-4 py-10 text-center">
             <p className="text-[13px] text-white/60">No one matches every hard filter.</p>
+            {filters.countries.length > 0 && geoFacets.unknown > 0 && (
+              // Geography is the filter most likely to have caused this and the
+              // least likely to mean what it looks like, so it gets named rather
+              // than left for the operator to work out.
+              <p className="mx-auto mt-1.5 max-w-sm text-[12px] leading-relaxed text-white/40">
+                {geoFacets.unknown.toLocaleString('en-AU')} of your {geoFacets.total.toLocaleString('en-AU')} people
+                have no location on file, so a country filter cannot reach them.
+              </p>
+            )}
             <button
               type="button"
               onClick={() => setFilters({ ...filters, hard: false })}

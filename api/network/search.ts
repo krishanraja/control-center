@@ -3,7 +3,7 @@ import { guard } from '../_auth.js'
 import { runNetworkSearch } from '../_networkSearch.js'
 
 // POST /api/network/search
-//   { question, venture?, roles?, tiers?, min_confidence?, limit?, rerank? }
+//   { question, venture?, roles?, tiers?, countries?, filter_mode?, min_confidence?, limit?, rerank? }
 //
 // Ask the network anything. Returns ranked people with a score breakdown and a
 // per-person reason, plus `restated` so the interpretation is confirmable
@@ -30,6 +30,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       venture: typeof body.venture === 'string' ? body.venture : null,
       roles: Array.isArray(body.roles) ? body.roles.map(String) : null,
       tiers: Array.isArray(body.tiers) ? body.tiers.map(String) : null,
+      // Geography. The RPC canonicalises, so ISO-2 codes, country names and
+      // city names all work; the cap and the length slice are here for the same
+      // reason every other list is capped, which is that this is a public-shaped
+      // body reaching a database call.
+      countries: Array.isArray(body.countries)
+        ? body.countries.map(String).map(x => x.slice(0, 60)).filter(Boolean).slice(0, 20)
+        : null,
+      // Defaults to 'hard', which is what roles/tiers have always meant here.
+      // Only an explicit 'soft' relaxes them into weighted constraints.
+      filterMode: body.filter_mode === 'soft' ? 'soft' : 'hard',
       minConfidence: typeof body.min_confidence === 'string' ? body.min_confidence : null,
       limit: typeof body.limit === 'number' ? body.limit : 20,
       // OPT-IN, not opt-out. This read `body.rerank !== false`, so an omitted

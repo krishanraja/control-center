@@ -73,5 +73,27 @@ t('constraint list capped at 8', p4.constraints.length === 8)
 const p5 = sanitizePlan({ restated: 'x'.repeat(5000), semantic_query: 'y'.repeat(9000) }, 'q')
 t('strings are length-capped', p5.restated.length <= 300 && p5.semantic_query.length <= 1200)
 
+// Geography. Both field names survive sanitisation on purpose: 'geo' is what the
+// prompt asks for and 'country' is what a model that has seen the older shape
+// emits, and network_search folds the two together and canonicalises the values.
+// Dropping either here would silently discard a location the operator asked for.
+const p6 = sanitizePlan({
+  constraints: [
+    { field: 'geo', values: ['GB'], weight: 1 },
+    { field: 'country', values: ['Australia'], weight: 0.6 },
+  ],
+}, 'q')
+t('geo survives sanitisation', p6.constraints.some(c => c.field === 'geo' && c.values[0] === 'GB'))
+t('the legacy country field still survives', p6.constraints.some(c => c.field === 'country'))
+
+// The values are free text by design, because the canonicaliser in Postgres is
+// the one authority on what a place name means. What must NOT get through is an
+// unbounded string reaching a database call.
+const p7 = sanitizePlan({
+  constraints: [{ field: 'geo', values: ['x'.repeat(500), 'London', ''], weight: 1 }],
+}, 'q')
+t('geo values are length-capped and blanks dropped',
+  p7.constraints[0].values.length === 2 && p7.constraints[0].values[0].length <= 80)
+
 console.log(`\n${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)

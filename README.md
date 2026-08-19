@@ -77,7 +77,7 @@ does not belong.
 | Frontend | React 18 + TypeScript + Vite 4 |
 | Styling | Tailwind CSS 3, "Obsidian Aurora" design system with adaptive light/dark theming (see [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md)) |
 | UI primitives | Owned, vendored from Relume and re-skinned; Radix under the overlays and menus. `src/components/ui/` (see [ADR-010](./docs/DECISIONS/010-vendored-primitive-layer.md)) |
-| Network search | Postgres hybrid scorer over 10,649 enriched people: pgvector semantic + tsvector lexical + weighted soft constraints, with voice (see [`docs/API.md`](./docs/API.md)) |
+| Network search | Postgres hybrid scorer over 10,649 enriched people: pgvector semantic + tsvector lexical + weighted soft constraints, filterable by country (UK / AU / USA), with voice (see [`docs/API.md`](./docs/API.md)) |
 | Fonts | Bricolage Grotesque (display) · Fraunces (serif voice) · Geist + Geist Mono (body/numbers), self-hosted via Fontsource |
 | Icons | Lucide React |
 | Realtime | `@supabase/supabase-js` (`postgres_changes` subscriptions) |
