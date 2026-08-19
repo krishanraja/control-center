@@ -122,6 +122,17 @@ BEGIN
   );
 END $$;
 
+-- Match the two sibling sweep RPCs (register_inspiration_messages,
+-- upsert_inspiration_seed), which are service_role only. Left anon-executable,
+-- any holder of the publishable key could poison the ledger: inserting a
+-- file_key marks that file read, so the sweep would skip real material forever.
+-- The n8n supabaseApi credential is service_role, which is why the Gmail lane's
+-- Register Messages node already writes through the same restriction.
+REVOKE EXECUTE ON FUNCTION public.register_inspiration_drive_files(jsonb) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.register_inspiration_drive_files(jsonb) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.register_inspiration_drive_files(jsonb) FROM authenticated;
+GRANT  EXECUTE ON FUNCTION public.register_inspiration_drive_files(jsonb) TO service_role;
+
 -- ---------------------------------------------------------------------------
 -- 3. Seed upsert: stop dropping screenshot attribution
 -- ---------------------------------------------------------------------------

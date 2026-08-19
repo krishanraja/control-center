@@ -1910,6 +1910,7 @@
     "workflow_id": "D4W5TF1sP9lE828c",
     "exported": "2026-07-27",
     "patched": "2026-08-19",
-    "note": "checked-in snapshot, credentials stripped; live n8n is the runtime source. 2026-08-19 patch is repo-first and NOT yet deployed: run scripts/n8n/sync.sh --apply --filter=cleo-inspiration after applying migration 20260819230000_inspiration_drive_lane_hardening.sql."
+    "deployed": "2026-08-19T23:02:48Z",
+    "note": "checked-in snapshot, credentials stripped; live n8n is the runtime source. The 2026-08-19 Drive-lane patch is DEPLOYED and verified byte-for-byte against cloud (nodes, connections, settings all match; both schedule triggers live). Its DB dependencies ship in migration 20260819230000_inspiration_drive_lane_hardening.sql, applied the same day."
   }
 }
