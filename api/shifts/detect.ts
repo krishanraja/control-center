@@ -43,10 +43,13 @@ async function loadCorpus(): Promise<CorpusItem[]> {
   const sinceDay = sinceISO.slice(0, 10)
   const { data, error } = await supabase
     .from('content_ideas')
-    .select('id, idea, thesis, source_snippet, source_url, source_type, source_captured_at, created_at, meta, state')
+    .select('id, idea, thesis, source_snippet, source_url, source_type, source_captured_at, created_at, meta, state, buried_at, buried_reason')
     .in('source_type', ['pool_headline', 'inspiration_sweep', 'zara_signal', 'signal_inbox'])
     .not('state', 'in', '("dropped","absorbed")')
-    .is('buried_at', null)
+    // NOTE: buried rows are filtered in JS below, not here. The query already
+    // spends its one .or() on the date window, and stacking a second one is
+    // ambiguous in PostgREST. The table is small enough that the 1200 cap is
+    // nowhere near binding.
     // source_captured_at is refreshed when a story recurs, so a keeper row
     // older than the window stays in the corpus while its story is still live.
     .or(`created_at.gte.${sinceISO},source_captured_at.gte.${sinceISO}`)
@@ -54,6 +57,14 @@ async function loadCorpus(): Promise<CorpusItem[]> {
   if (error) throw new Error(error.message)
   const out: CorpusItem[] = []
   for (const r of data || []) {
+    // Archived-for-staleness rows STAY in the corpus. Krish stops being shown an
+    // idea he never actioned, but it was still a real dated citation and the
+    // trend gate must keep counting it, otherwise hiding the backlog silently
+    // erases the evidence that a story is building. Everything else buried stays
+    // out, and the dedupe burials especially: their citations were already
+    // folded into their keeper's meta.recurrences and would be double-counted.
+    const buried = (r as any).buried_at
+    if (buried && !String((r as any).buried_reason || '').startsWith('stale:')) continue
     const pool = (r as any).meta?.pool || {}
     // For sweep rows source_captured_at moves on recurrence; created_at is the
     // honest first-citation day. Other sources keep the original semantics.

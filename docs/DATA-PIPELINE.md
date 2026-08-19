@@ -384,6 +384,80 @@ Two other lanes feed `content_ideas` without Krish providing anything:
 `/api/feed/ingest` (daily 11:30 UTC, `source_type='pool_headline'`) and
 Cleo's Content Lane Sourcing (`lane_sourcing`). Neither is part of the sweep.
 
+## Runtime truth vs self-reported health
+
+The four tiers below are all written **by the workflows they measure**, and the
+heartbeat is the last node in a run. A workflow that dies partway writes no
+`workflow_runs` row at all, and no row is indistinguishable from "not scheduled
+today". That blind spot hid three broken credentials for three months while
+`credential_health` reported 20/20 healthy.
+
+`api/health/fleet-reconcile.ts` (Vercel cron, every 6h) closes it by asking the
+**n8n executions API** what actually happened, then writing `workflow_health`.
+It runs on Vercel rather than in n8n on purpose: a monitor inside the system it
+monitors cannot report its own death.
+
+```sql
+select * from fleet_failures;              -- what is broken, grouped by cause
+select workflow_name, status, error_rate, last_error_message
+from workflow_health where status <> 'healthy' order by errors_28d desc;
+```
+
+`status` is `healthy | degraded | failing | dead | idle`. **`dead` includes a
+scheduled, active workflow with zero executions in 28 days** — the case no
+self-reported heartbeat can ever produce. `failure_class` groups by cause
+(`credential | quota | logic | network`) so one expired key is one alert, not
+six. Quota is classified before credential deliberately: n8n wraps most non-2xx
+errors in "perhaps check your credentials?" and puts the real cause in
+`error.description`.
+
+If `N8N_API_KEY` is not set the route returns 503 and says fleet health is
+UNKNOWN. It never reports a green fleet it did not look at.
+
+## Content freshness: expiry vs staleness
+
+Two different clocks, and they catch different things.
+
+| | Monday purge (`api/purge/run.ts`) | Staleness archive (`api/content-ideas/archive-stale.ts`) |
+|---|---|---|
+| Cadence | Mon 14:00 UTC | Daily 10:00 UTC |
+| Clock | `expires_at`, set from the seed's temporal class | `state_changed_at`, moved only by a real state transition |
+| Measures | is the story still current | has Krish actually moved on it |
+| Action | hard delete | `buried_at` + `buried_reason` prefixed `stale:` |
+| Skips | drafting / review / approved / published | shift-linked, library-graduated, published |
+
+Staleness deliberately does **not** use `updated_at`: background re-scoring
+touches rows constantly, so 74-day-old abandoned items reported "touched 8 days
+ago" and nothing looked idle.
+
+**Archived is not forgotten.** `api/shifts/detect.ts` re-admits rows whose
+`buried_reason` starts with `stale:` to the trend corpus. Krish stops seeing an
+idea he never actioned; the trend gate keeps counting it as the real dated
+citation it was. Rows buried for any other reason stay out, and dedupe burials
+especially: their citations already live in the keeper's `meta.recurrences`.
+
+## The feedback loop, end to end
+
+```
+Krish rejects (FeedbackButton)  ->  feedback_queue
+    -> Vera Feedback Aggregation (Sun 06:00), clusters by agent+surface+reason_code
+       threshold: 3 matches, or 2 with an explicit reason_code
+    -> corrections  (status='analyzed', approval_state='pending')
+    -> decisions_waiting kind='correction'
+    -> POST api/corrections/approve  ->  edits agents.brief_content
+    -> next agent session loads the new rule
+```
+
+Every state string above is load-bearing. `decisions_waiting` selects
+corrections on `status='analyzed' AND approval_state='pending'`, and the approve
+endpoint rejects anything whose `approval_state` is not `pending`. A producer
+writing any other vocabulary produces corrections that are invisible and
+unapprovable. Vera wrote `open`/`proposed` from the day it shipped until
+2026-08-19, which is one of three reasons this loop had never closed.
+
+Nothing auto-applies. A correction changes agent behaviour only after Krish
+approves it.
+
 ## Self-healing pattern (four tiers)
 
 The OS's hardest class of failure is a workflow that "succeeds" (writes
