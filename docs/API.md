@@ -512,6 +512,11 @@ have actually replied. `contact_intelligence.geo_code` falls back through
 filtering their output instead would search a pool that is mostly the wrong
 country and return a fraction of the people who qualify.
 
+A soft geo constraint **prefers without excluding**: the named country scores
+1.0, an unknown location scores the 0.5 neutral, and known-to-be-elsewhere
+scores 0. Skipping that middle case made soft geo behave exactly like hard geo
+and buried the 151 tier-1 people with no location on file.
+
 **The unknowns are published, not hidden.** `/api/network/geo` returns the
 per-country counts and, separately, `unknown`: the people with no resolved
 location at all. Roughly 6,400 of them. Without that number a country filter

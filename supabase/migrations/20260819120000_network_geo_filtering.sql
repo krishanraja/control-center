@@ -709,14 +709,27 @@ scored AS (
       FROM (
         SELECT
           coalesce((el->>'weight')::float8, 1.0) AS w,
-          CASE el->>'field'
+          (CASE el->>'field'
             WHEN 'seniority'    THEN CASE WHEN ci.seniority = ANY(vals) THEN 1 ELSE 0 END
             WHEN 'country'      THEN CASE WHEN ci.country   = ANY(vals) THEN 1 ELSE 0 END
             -- Resolved geography, so "in the UK" also matches the people whose
             -- country column is empty but whose location or email says Britain.
-            -- A NULL geo_code scores 0 here: unknown is not a match, and it is
-            -- not a penalty beyond this one term either.
-            WHEN 'geo'          THEN CASE WHEN ci.geo_code = ANY(vals) THEN 1 ELSE 0 END
+            --
+            -- THREE outcomes, not two. An unknown location scores the same 0.5
+            -- neutral this term uses when there is no constraint at all, because
+            -- "we never recorded where they are" is not the same claim as "they
+            -- are definitely somewhere else" and must not be priced like it.
+            --
+            -- Measured on the corpus before this branch existed: a SOFT UK
+            -- constraint returned 200 Britons out of 200 rows and buried all 151
+            -- of the 164 tier-1 people whose location was never captured. That is
+            -- a hard filter wearing a soft label, and it is the exact failure
+            -- geo_code was introduced to avoid. The hard filter (p_countries) is
+            -- still strict: that is the operator saying "UK only" out loud, and
+            -- the UI tells them how many people it cannot place.
+            WHEN 'geo'          THEN CASE WHEN ci.geo_code = ANY(vals) THEN 1
+                                          WHEN ci.geo_code IS NULL THEN 0.5
+                                          ELSE 0 END
             WHEN 'network_tier' THEN CASE WHEN ci.network_tier = ANY(vals) THEN 1 ELSE 0 END
             WHEN 'best_channel' THEN CASE WHEN ci.best_channel = ANY(vals) THEN 1 ELSE 0 END
             WHEN 'confidence'   THEN CASE WHEN ci.confidence  = ANY(vals) THEN 1 ELSE 0 END
@@ -734,7 +747,9 @@ scored AS (
             WHEN 'title'    THEN CASE WHEN EXISTS (
               SELECT 1 FROM unnest(vals) v WHERE c.title    ILIKE '%' || v || '%') THEN 1 ELSE 0 END
             ELSE 0
-          END AS hit
+          -- Cast: the geo branch above returns 0.5, which makes this CASE
+          -- numeric, and `w` is float8. Postgres has no float8 * numeric.
+          END)::float8 AS hit
         FROM jsonb_array_elements(cons.c) el
         CROSS JOIN LATERAL (
           SELECT array(SELECT jsonb_array_elements_text(el->'values')) AS vals

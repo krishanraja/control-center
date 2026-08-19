@@ -103,7 +103,13 @@ export function NetworkTab({ narrow, onOpenPerson }: {
         ? `${geoNames.join(', ')} only.${geoFacets.unknown
             ? ` ${geoFacets.unknown.toLocaleString('en-AU')} people have no location on file and cannot match.`
             : ''}`
-        : `Ranked for ${geoNames.join(', ')}. Everyone else still appears, lower down.`)
+        // Measured, not assumed. A soft geo constraint puts the named country
+        // first and sinks people known to be elsewhere; what it does NOT do is
+        // bury the ones whose location was never recorded, which is most of the
+        // network and almost all of tier 1. That distinction is the whole
+        // difference between this and the hard filter, so it is what the line
+        // says.
+        : `Ranked for ${geoNames.join(', ')}, not limited to it. People with no location on file still rank.`)
     : null
 
   return (

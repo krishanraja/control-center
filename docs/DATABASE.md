@@ -764,6 +764,17 @@ of Britons among them, out of 382. Scoping the paths spends those slots where
 the answer is. A soft `geo` constraint gets its own recall path for the same
 reason: the constraint term cannot promote someone who was never scored.
 
+A soft `geo` constraint has **three** outcomes, not two: 1.0 in the named
+country, **0.5 for an unknown location** (the same neutral this term uses when
+there is no constraint at all), 0.0 for known-to-be-elsewhere. The middle case is
+load-bearing. With two outcomes, a soft "in the UK" returned 200 Britons out of
+200 rows and buried all 151 of the 164 tier-1 contacts whose location was never
+recorded, because scoring them 0 priced "we never collected this" identically to
+"they are definitely in Sydney". That is a hard filter wearing a soft label, and
+it is the exact failure `geo_code` exists to prevent. `p_countries` stays strict:
+that is the operator saying "UK only" out loud, and the UI tells them how many
+people it cannot place. Probe P8 in `scripts/network/probes.sql` guards it.
+
 Both `p_countries` and `geo` constraint values run through
 `network_geo_canon`, so ISO codes, country names and city names are one filter.
 Values that resolve to nothing **degrade rather than empty the result**: an
