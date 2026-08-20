@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import {
   TABLES, DOMAIN_OF, DEFAULT_WEIGHTS, SELECT_COLS, type Table,
@@ -251,12 +252,9 @@ async function runLearn(dryRun: boolean) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Cache-Control', 'no-store')
+  if (guardCronRoute(req, res)) return
 
   if (req.method === 'GET') {
-    const secret = process.env.CRON_SECRET || ''
-    const auth = req.headers.authorization || ''
-    if (!secret || auth !== `Bearer ${secret}`) return res.status(401).json({ ok: false, error: 'unauthorized' })
     try {
       const sweep = await runSweep(false)
       const purge = await runPurge(false)

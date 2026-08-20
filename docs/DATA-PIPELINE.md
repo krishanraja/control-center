@@ -416,11 +416,17 @@ UNKNOWN. It never reports a green fleet it did not look at. (It has been set on
 the Vercel project since 2026-04-07 and is valid; n8n permits several live API
 keys at once, so this one is not the same string as any given out interactively.)
 
-Both this route and the staleness archive go through `guardCronRoute` in
-`api/_auth.ts`: `CRON_SECRET` on GET, and either that secret or the edge-gate
-cookie on POST. The older cron routes in this repo still accept an
-unauthenticated POST, which for `api/purge/run.ts` means an anonymous caller can
-hard-delete content. Use the helper when you touch one.
+Every cron route goes through `guardCronRoute` in `api/_auth.ts`: `CRON_SECRET`
+on GET, and either that secret or the edge-gate cookie on POST, with a
+constant-time compare and an OPTIONS short-circuit. Use it when you add one.
+
+The POST arm used to be open on twelve of them, `api/purge/run.ts` (hard-deletes
+`content_ideas`) and `api/acquisition/governor.ts` (moves budget) included.
+Five routes carry a second, deliberate inner check on top of the guard: those
+distinguish a cron-authorised caller from a browser one. `api/growth/snapshot.ts`
+is the clearest case, where `action:'log'` is driven by the Scoreboard UI, which
+holds no `CRON_SECRET` and passes on the edge-gate cookie instead. Do not delete
+those inner checks when refactoring.
 
 ## Content freshness: expiry vs staleness
 
