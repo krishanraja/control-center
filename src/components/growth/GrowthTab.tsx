@@ -6,6 +6,9 @@ import { CreativeBoard } from './CreativeBoard'
 import { CouncilFeed } from './CouncilFeed'
 import { SignalsPanel } from './SignalsPanel'
 import { GovernancePanel } from './GovernancePanel'
+import { GrowthScoreboard } from './GrowthScoreboard'
+import { isGrowthScoreboardEnabled } from '../../hooks/useGrowthMetrics'
+import { DailyBriefBanner } from '../DailyBriefBanner'
 import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
 
 /**
@@ -125,9 +128,21 @@ export function GrowthTab({
         ) : section === 'work' ? (
           <CreativeBoard g={g} variant={variant} />
         ) : section === 'signals' ? (
-          <SignalsPanel g={g} />
+          <div className="space-y-4">
+            {/* Venture health at a glance — relocated from Home in the 2026-08-20
+                recompose; Growth owns venture-level signal. */}
+            {isGrowthScoreboardEnabled() && (
+              <GrowthScoreboard variant={variant === 'mobile' ? 'mobile' : 'desktop'} />
+            )}
+            <SignalsPanel g={g} />
+          </div>
         ) : section === 'council' ? (
-          <CouncilFeed g={g} />
+          <div className="space-y-4">
+            {/* The Friday retro — relocated from Home's ambient fold; the weekly
+                review is where a retro belongs. */}
+            <DailyBriefBanner blocking={false} variant={variant === 'mobile' ? 'mobile' : 'desktop'} retroOnly />
+            <CouncilFeed g={g} />
+          </div>
         ) : (
           <GovernancePanel
             variant={variant}

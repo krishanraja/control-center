@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase'
 import { AskMarcus } from '../AskMarcus'
 import { FleetFunnelPanel } from '../FleetFunnelPanel'
 import { NextIntelMobileHero } from '../intel/NextIntelMobileHero'
+import { BetsStrip } from '../intel/BetsStrip'
 
 type SignalUrgency = 'critical' | 'high' | 'medium' | 'low'
 
@@ -173,6 +174,10 @@ export function MobileIntel() {
           })}
         </FeedCard>
       )}
+
+      {/* BETS — falsifiable hypotheses with clocks. Relocated from Home's
+          ambient fold in the 2026-08-20 recompose; Intel owns hypotheses. */}
+      <BetsStrip />
 
       {rest.length > 0 && (
         <FeedCard title={`More signals · ${rest.length}`}>

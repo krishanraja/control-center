@@ -21,7 +21,7 @@ interface Props {
  * driven by `home_intelligence.momentum.mrr` (Marcus, daily brief).
  */
 export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
-  const { liveMrr, mrrDelta7d, mrrGoal, gapToGoal, goalPct, loading, revenue } = useRevenueAttribution()
+  const { liveMrr, mrrDelta7d, loading, revenue } = useRevenueAttribution()
   const { intel } = useHomeIntelligence()
   const sparkline = intel.momentum?.mrr ?? []
 
@@ -88,30 +88,9 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
         </div>
       </div>
 
-      {/* Goal bar. Only when a target exists: a progress bar against a default
-          nobody set is decoration, not information. */}
-      {mrrGoal > 0 && (
-      <div className="mt-4">
-        <div className="flex items-center justify-between mb-1.5">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">
-            <Target size={11} />
-            Path to ${Math.round(mrrGoal).toLocaleString()}
-          </div>
-          <span className="text-[11px] tabular-nums text-white/55">
-            Gap: ${Math.round(gapToGoal).toLocaleString()}
-          </span>
-        </div>
-        <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-emerald-400 via-emerald-300 to-violet-300 rounded-full transition-all duration-700"
-            style={{ width: `${goalPct}%` }}
-          />
-        </div>
-        <p className="text-[10px] text-white/35 mt-1.5 tabular-nums">
-          {goalPct.toFixed(1)}% of goal, on committed MRR
-        </p>
-      </div>
-      )}
+      {/* The goal bar is gone with system_config.mrr_goal_usd (2026-08-20):
+          a revenue target belongs on the goal ladder, judged by the gate,
+          not in a display setting beside the number. */}
     </div>
   )
 }

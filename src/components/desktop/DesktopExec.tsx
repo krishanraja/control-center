@@ -6,6 +6,7 @@ import { AgentAvatar } from '../shared/AgentAvatar'
 import { AskMarcus } from '../AskMarcus'
 import { FleetFunnelPanel } from '../FleetFunnelPanel'
 import { NextIntelDesktopHero, type ZaraSignal } from '../intel/NextIntelDesktopHero'
+import { BetsStrip } from '../intel/BetsStrip'
 import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'
 
@@ -131,6 +132,9 @@ export function DesktopExec() {
         </section>
 
         <section className="col-span-12 xl:col-span-5 space-y-4">
+          {/* BETS — falsifiable hypotheses with clocks. Relocated from Home's
+              ambient fold in the 2026-08-20 recompose; Intel owns hypotheses. */}
+          <BetsStrip />
           <div className="flex items-center gap-3">
             <SectionHeader icon={<Zap size={13} className="text-rose-400" />} label="Zara Signal Feed" />
             <div className="flex gap-1.5 ml-auto">

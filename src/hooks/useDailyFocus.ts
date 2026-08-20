@@ -129,5 +129,7 @@ export function useDailyFocus() {
 }
 
 export function isFocusEnabled(): boolean {
-  return import.meta.env.VITE_DAILY_FOCUS_ENABLED !== 'false'
+  // Committed with the 2026-08-20 recompose: today's 3 IS the third layer of
+  // the canon, so the surface is structural, not configured.
+  return true
 }

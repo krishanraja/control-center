@@ -28,31 +28,12 @@ export interface CapacityProfile {
    * reduces what the screen DEMANDS, never the shape of the day's commitment.
    */
   allowsHigherAltitudeDemand: boolean
-  /** Whether the ambient fold opens by default. */
-  foldOpen: boolean
-  /** The ambient fold's summary line, tuned to the state without moralising. */
-  foldSummary: string
 }
 
 const PROFILES: Record<Capacity, CapacityProfile> = {
-  low: {
-    level: 'low',
-    foldOpen: false,
-    allowsHigherAltitudeDemand: false,
-    foldSummary: 'the ambient room · closed today, nothing in here matters yet',
-  },
-  steady: {
-    level: 'steady',
-    foldOpen: false,
-    allowsHigherAltitudeDemand: true,
-    foldSummary: 'the ambient room · nothing below asks anything of you',
-  },
-  high: {
-    level: 'high',
-    foldOpen: false,
-    allowsHigherAltitudeDemand: true,
-    foldSummary: 'the ambient room · nothing below asks anything of you',
-  },
+  low:    { level: 'low',    allowsHigherAltitudeDemand: false },
+  steady: { level: 'steady', allowsHigherAltitudeDemand: true },
+  high:   { level: 'high',   allowsHigherAltitudeDemand: true },
 }
 
 /**

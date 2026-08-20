@@ -23,56 +23,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   }
 
+  // POST was removed 2026-08-20. It could still mint orphan weekly rows
+  // (hardcoded horizon, no gate, no parent requirement) and had zero callers:
+  // the guard even named it a forbidden creator. POST /api/objectives is the
+  // one gated create.
   if (req.method === 'POST') {
-    const body = req.body || {}
-    // goals.id is TEXT per the schema audit — we keep generating a
-    // namespaced id when the caller doesn't supply one, but we accept
-    // an explicit `id` so callers (e.g. seed scripts) can set their own.
-    const generatedId = 'goal-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9)
-    const newGoal: Record<string, any> = {
-      id: typeof body.id === 'string' && body.id.length > 0 ? body.id : generatedId,
-      title: body.title || 'New Goal',
-      current: body.current || '',
-      progress: 0,
-      notes: '',
-      status: 'active',
-      week_of: weekOfLabel(),
-    }
-    // Optional fields — only set when the caller provided them so we
-    // don't overwrite column defaults with nulls.
-    if (body.owner !== undefined) newGoal.owner = body.owner
-    if (body.target !== undefined) newGoal.target = body.target
-    if (body.weekly_goal_id !== undefined) newGoal.weekly_goal_id = body.weekly_goal_id
-
-    // Anything created here IS a weekly goal. Stamping the horizon at the
-    // point of creation is what stops orphans forming: a row with no
-    // horizon belongs to no surface and shows up on all of them.
-    newGoal.horizon = 'weekly'
-    if (body.parent_id !== undefined) newGoal.parent_id = body.parent_id
-
-    const { error } = await supabase.from('goals').insert(newGoal)
-    if (error) return res.status(500).json({ ok: false, error: error.message })
-
-    return res.json({ ok: true, id: newGoal.id })
+    return res.status(410).json({
+      ok: false,
+      error: 'POST /api/goals is retired. Create goals via POST /api/objectives (gated).',
+    })
   }
 
+  // DELETE was removed 2026-08-20. Retiring a goal is a status change
+  // (PATCH status: dropped), never a row deletion: the row carries history
+  // that learning signals and the chronicle hang off.
   if (req.method === 'DELETE') {
-    // Accept goalId from query string OR body so curl/REST clients and
-    // the fetch() caller can both hit this without friction.
-    const q = req.query || {}
-    const b = req.body || {}
-    const goalId =
-      (typeof q.goalId === 'string' && q.goalId) ||
-      (typeof q.id === 'string' && q.id) ||
-      (typeof b.goalId === 'string' && b.goalId) ||
-      (typeof b.id === 'string' && b.id) ||
-      ''
-    if (!goalId) {
-      return res.status(400).json({ ok: false, error: 'goalId is required (query or body)' })
-    }
-    const { error } = await supabase.from('goals').delete().eq('id', goalId)
-    if (error) return res.status(500).json({ ok: false, error: error.message })
-    return res.json({ ok: true, deleted: goalId })
+    return res.status(410).json({
+      ok: false,
+      error: 'DELETE /api/goals is retired. Retire a goal with PATCH { goalId, status: "dropped" }.',
+    })
   }
 
   if (req.method === 'PATCH') {

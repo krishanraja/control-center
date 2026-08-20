@@ -1,20 +1,20 @@
 /**
- * The goal spine. One place loads the ladder and renders it into the block
+ * The goal spine. One place loads the canon and renders it into the block
  * every reasoning path shares, in the same shape as api/_direction.ts:
  * getLaneDirection/directionPrompt for a lane's locked voice, loadActiveGoals/
  * goalsPrompt for what the system is currently for.
  *
- * Before this, goals were write-only. api/briefs/assemble.ts, api/ask-marcus.ts,
- * api/triage/sweep.ts, api/_direction.ts, api/_content.ts and
- * api/pilot/build-one.ts all read ZERO goals: the ladder was a place to record
- * intent that nothing downstream consulted.
+ * Two rungs since the 2026-08-20 recompose (os → weekly), PLUS today's 3 from
+ * daily_focus — the full canon, so ask-marcus, the weekly brief and the pilot
+ * builder reason from exactly what Home shows: OS goals → this week's
+ * objectives → today's 3.
  *
  * Staleness travels with the goals on purpose. A goal nobody has touched past
  * its rung's threshold is still the goal, but a reasoning path should know it
  * is running on an old instruction rather than treating it as fresh.
  */
 
-export type Horizon = 'os' | 'mid_term' | 'weekly' | 'venture_objective'
+export type Horizon = 'os' | 'weekly'
 
 export interface SpineGoal {
   id: string
@@ -22,28 +22,32 @@ export interface SpineGoal {
   horizon: Horizon
   parent_id: string | null
   venture: string | null
-  current: string | null
-  target: string | null
-  progress: number | null
   is_stale: boolean
   days_since_touch: number | null
 }
 
+export interface TodayPick {
+  slot: 1 | 2 | 3
+  text: string
+  done: boolean
+  goal_id: string | null
+}
+
 export interface GoalSpine {
   by_horizon: Record<Horizon, SpineGoal[]>
+  /** Today's 3 from daily_focus (operator-civil date); empty when not locked. */
+  today: TodayPick[]
   all: SpineGoal[]
   stale_count: number
   /** True when there is nothing to steer by, so callers can say so plainly. */
   empty: boolean
 }
 
-const ORDER: Horizon[] = ['os', 'mid_term', 'weekly', 'venture_objective']
+const ORDER: Horizon[] = ['os', 'weekly']
 
 const LABEL: Record<Horizon, string> = {
   os: 'OS GOALS (what the whole system is for)',
-  mid_term: 'MID-TERM (the next few months)',
-  weekly: 'THIS WEEK',
-  venture_objective: 'PER VENTURE',
+  weekly: 'THIS WEEK (each serves an OS goal above)',
 }
 
 /** Active goals only. Proposed, paused, done and dropped do not steer work. */
@@ -52,14 +56,19 @@ export async function loadActiveGoals(): Promise<GoalSpine> {
   // service-role env, and goalsPrompt() is a pure renderer that must stay
   // importable without secrets.
   const { supabase } = await import('./_supabase.js')
-  const [goalsRes, healthRes] = await Promise.all([
+  const { getOperatorTz, ymdIn } = await import('./_timezone.js')
+  const tz = await getOperatorTz()
+  const todayYmd = ymdIn(new Date(), tz)
+
+  const [goalsRes, healthRes, focusRes] = await Promise.all([
     supabase
       .from('goals')
-      .select('id, title, horizon, parent_id, venture, current, target, progress')
+      .select('id, title, horizon, parent_id, venture')
       .eq('status', 'active')
       .order('priority', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true }),
     supabase.from('goals_health').select('id, is_stale, days_since_touch'),
+    supabase.from('daily_focus').select('*').eq('focus_date', todayYmd).maybeSingle(),
   ])
 
   const health = new Map(
@@ -75,22 +84,43 @@ export async function loadActiveGoals(): Promise<GoalSpine> {
       horizon: g.horizon as Horizon,
       parent_id: (g.parent_id as string | null) ?? null,
       venture: (g.venture as string | null) ?? null,
-      current: (g.current as string | null) ?? null,
-      target: (g.target as string | null) ?? null,
-      progress: (g.progress as number | null) ?? null,
       is_stale: h?.is_stale ?? false,
       days_since_touch: h?.days_since_touch ?? null,
     }
   })
 
-  const by_horizon = { os: [], mid_term: [], weekly: [], venture_objective: [] } as Record<Horizon, SpineGoal[]>
+  const by_horizon = { os: [], weekly: [] } as Record<Horizon, SpineGoal[]>
   for (const g of all) if (by_horizon[g.horizon]) by_horizon[g.horizon].push(g)
 
-  return { by_horizon, all, stale_count: all.filter(g => g.is_stale).length, empty: all.length === 0 }
+  const today: TodayPick[] = []
+  const focus = focusRes.data as Record<string, unknown> | null
+  if (focus) {
+    for (const slot of [1, 2, 3] as const) {
+      const text = focus[`target_${slot}_text`]
+      if (typeof text === 'string' && text.trim()) {
+        today.push({
+          slot,
+          text: text.trim(),
+          done: Boolean(focus[`target_${slot}_completed_at`]),
+          goal_id: (focus[`target_${slot}_goal_id`] as string | null) ?? null,
+        })
+      }
+    }
+  }
+
+  return {
+    by_horizon,
+    today,
+    all,
+    stale_count: all.filter(g => g.is_stale).length,
+    // "Empty" means no goals to steer by; an unlocked day does not make the
+    // canon empty.
+    empty: all.length === 0,
+  }
 }
 
 /**
- * Render the ladder into a system-prompt block. Terse by design: this rides
+ * Render the canon into a system-prompt block. Terse by design: this rides
  * along on every reasoning call, and api/_harness.ts meters those.
  *
  * `context` names what the caller is about to do, so the instruction lands on
@@ -105,7 +135,7 @@ export function goalsPrompt(spine: GoalSpine, context: string): string {
     ].join('\n')
   }
 
-  const lines: string[] = ['CURRENT GOALS (the ladder Krish set. Everything below serves what is above it):']
+  const lines: string[] = ['CURRENT GOALS (the canon Krish set. Everything below serves what is above it):']
 
   for (const hz of ORDER) {
     const rows = spine.by_horizon[hz]
@@ -114,10 +144,15 @@ export function goalsPrompt(spine: GoalSpine, context: string): string {
     for (const g of rows) {
       const bits: string[] = []
       if (g.venture) bits.push(g.venture)
-      if (g.target) bits.push(`target ${g.target}`)
-      if (g.current) bits.push(`now ${g.current}`)
       if (g.is_stale) bits.push(`STALE, untouched ${g.days_since_touch ?? '?'}d`)
       lines.push(`- ${g.title}${bits.length ? ` (${bits.join(', ')})` : ''}`)
+    }
+  }
+
+  if (spine.today.length > 0) {
+    lines.push(`TODAY'S 3 (locked for today; ✓ = done):`)
+    for (const t of spine.today) {
+      lines.push(`- ${t.done ? '✓ ' : ''}${t.text}`)
     }
   }
 
@@ -144,11 +179,7 @@ export async function goalsSpine(context: string): Promise<{ prompt: string; spi
 /**
  * Record a goal change on the activity feed.
  *
- * Home reads audit_log directly (DesktopHome subscribes to INSERTs), so this is
- * what makes "the goals changed" visible at the moment it happens rather than
- * only on the next ladder fetch. audit_log.id has no default, so it is minted
- * here the way api/goals.ts mints goal ids.
- *
+ * audit_log.id has no default, so it is minted here.
  * Never throws: a goal write must not fail because its audit line did.
  */
 export async function logGoalChange(
