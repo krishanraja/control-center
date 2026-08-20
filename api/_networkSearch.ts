@@ -1,7 +1,7 @@
 import { supabase } from './_supabase.js'
 import { embed, vectorLiteral } from './_embeddings.js'
 import { callClaude, robustJson } from './_content.js'
-import { planQuery, type QueryPlan } from './_networkQuery.js'
+import { planQuery, type QueryPlan, type Constraint } from './_networkQuery.js'
 
 // The shared execution path behind /api/network/search, /recommend and /voice.
 //
@@ -44,6 +44,10 @@ export interface NetworkResult {
   intel_method: string
   seniority: string | null
   country: string | null
+  /** ISO-3166 alpha-2, resolved from country, then the contact's location, then
+   *  the email ccTLD. NULL means we do not know where this person is, which is
+   *  true of roughly 57% of the corpus and is never presented as a country. */
+  geo_code: string | null
   industry: string | null
   venture_scores: Record<string, number>
   thin_evidence: boolean
@@ -65,6 +69,22 @@ export interface SearchOptions {
   roles?: string[] | null
   tiers?: string[] | null
   minConfidence?: string | null
+  /** Geography. ISO-2 codes, country names or city names: the RPC canonicalises
+   *  all three. */
+  countries?: string[] | null
+  /** What the operator's own roles/tiers/countries MEAN.
+   *
+   *  'hard' excludes anyone who does not match, and is the only path in this
+   *  feature that can return nothing. 'soft' turns them into weighted
+   *  constraints the scorer trades off against everything else, so a close match
+   *  still appears.
+   *
+   *  Defaults to 'hard', which is what these arguments have always meant to this
+   *  function. The UI passes 'soft' explicitly, because its own toggle promises
+   *  "ranks matches higher, close matches still appear" and it previously kept
+   *  that promise by not sending the filters at all: a role chip lit in soft
+   *  mode changed nothing. */
+  filterMode?: 'soft' | 'hard'
   limit?: number
   /** Skip the LLM rerank. The UI uses this for instant filter changes, where a
    *  second of latency costs more than a sentence of explanation adds. */
@@ -84,7 +104,20 @@ export interface SearchResponse {
   weak: boolean
   total: number
   plan: { venture: string | null; constraints: QueryPlan['constraints']; keywords: string }
+  /** What geography was applied and how. Echoed back so a narrowed result set is
+   *  explainable from the response alone rather than from remembering which
+   *  chips were lit. */
+  geo: { countries: string[]; hard: boolean }
   degraded: string[]
+}
+
+/** The countries the PLANNER inferred, for the response's geo echo. These rank
+ *  rather than filter, so they are reported separately from a hard filter: the
+ *  UI has to be able to say "ranked for the UK" and "UK only" differently. */
+function geoFromPlan(plan: QueryPlan): string[] {
+  return plan.constraints
+    .filter(c => c.field === 'geo' || c.field === 'country')
+    .flatMap(c => c.values)
 }
 
 export async function runNetworkSearch(opts: SearchOptions): Promise<SearchResponse> {
@@ -132,6 +165,32 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
   let plan = planned
   if (opts.venture) plan = { ...plan, venture: opts.venture }
 
+  // The operator's own filters, and what they mean this time.
+  const hard = (opts.filterMode ?? 'hard') === 'hard'
+  const uiRoles = opts.roles?.length ? opts.roles : null
+  const uiTiers = opts.tiers?.length ? opts.tiers : null
+  const uiCountries = opts.countries?.length ? opts.countries : null
+
+  // In soft mode they become constraints instead of WHERE clauses. They REPLACE
+  // any the planner inferred for the same field: an explicit chip is a stated
+  // preference and a parsed one is a guess, and two constraints on one field
+  // would score as two independent tests where the operator made one choice.
+  if (!hard) {
+    const chosen: Constraint[] = []
+    if (uiCountries) chosen.push({ field: 'geo', values: uiCountries, weight: 1 })
+    if (uiRoles) chosen.push({ field: 'roles', values: uiRoles, weight: 1 })
+    if (uiTiers) chosen.push({ field: 'network_tier', values: uiTiers, weight: 1 })
+    if (chosen.length) {
+      // 'country' is the planner's older name for geography and network_search
+      // folds it into 'geo', so an explicit country chip has to displace both.
+      const replaced = new Set(chosen.flatMap(c => (c.field === 'geo' ? ['geo', 'country'] : [c.field])))
+      plan = {
+        ...plan,
+        constraints: [...plan.constraints.filter(c => !replaced.has(c.field)), ...chosen].slice(0, 12),
+      }
+    }
+  }
+
   // 3. Score. Over-fetch so the rerank has something to reorder.
   const poolSize = Math.min(100, Math.max(limit * 2, 40))
   mark('between_plan_and_rpc', tAfterAll)
@@ -141,9 +200,10 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
     p_keywords: plan.keywords || null,
     p_venture: plan.venture,
     p_constraints: plan.constraints,
-    p_tiers: opts.tiers && opts.tiers.length ? opts.tiers : null,
+    p_tiers: hard ? uiTiers : null,
     p_min_conf: opts.minConfidence || null,
-    p_roles: opts.roles && opts.roles.length ? opts.roles : null,
+    p_roles: hard ? uiRoles : null,
+    p_countries: hard ? uiCountries : null,
     p_limit: poolSize,
   })
   mark('rpc', tRpc)
@@ -196,6 +256,14 @@ export async function runNetworkSearch(opts: SearchOptions): Promise<SearchRespo
     weak,
     total: results.length,
     plan: { venture: plan.venture, constraints: plan.constraints, keywords: plan.keywords },
+    geo: {
+      // What the operator chose, or failing that what the planner read out of
+      // the question. The two are reported through one field with `hard` saying
+      // which kind it was, because the UI has to distinguish "UK only" from
+      // "ranked for the UK".
+      countries: uiCountries || geoFromPlan(plan),
+      hard: Boolean(uiCountries) && hard,
+    },
     degraded,
   }
 }

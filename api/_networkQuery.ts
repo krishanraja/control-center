@@ -28,7 +28,15 @@ const MODEL = 'claude-haiku-4-5-20251001'
 // hallucinated column degrades the score instead of the request. network_search
 // also ignores unknown fields, which makes this belt and braces on purpose.
 export const CONSTRAINT_FIELDS = [
-  'seniority', 'country', 'industry', 'company', 'title',
+  // 'geo' is where geography goes. 'country' is kept as an accepted alias
+  // because it is the older name and a model that has seen either will emit
+  // either; network_search normalises both to 'geo' and canonicalises the
+  // values, so "GB", "United Kingdom", "Britain" and "London" all land on the
+  // same country. Values are matched against the RESOLVED geo_code, which is
+  // wider than the country column: it falls back to the contact's location and
+  // then to the email ccTLD, and that fallback is the difference between 3,679
+  // people with a known country and roughly 4,600.
+  'seniority', 'geo', 'country', 'industry', 'company', 'title',
   'roles', 'surface_when', 'reachable_via', 'best_channel',
   'network_tier', 'confidence', 'primary_venture', 'mindmaker_buyer_family',
 ] as const
@@ -82,6 +90,7 @@ Rules:
 - "keywords" is a space-separated list of concrete literal terms worth matching exactly: company names, surnames, product names, industry words. Omit generic words like "people", "find", "someone". Empty string if there are none.
 - "constraints" are SOFT. They are weighted boosts, never filters, so include one whenever the question implies it even if you are unsure — a wrong constraint costs a little ranking, a missing one costs the right answer. Weight 1.0 for something stated outright, 0.5-0.7 for something implied.
 - Allowed "field" values, and nothing else: ${JSON.stringify(CONSTRAINT_FIELDS)}
+- Geography goes in a "geo" constraint. Emit the ISO-3166 alpha-2 country code where you know it: GB for the UK, Britain, England, Scotland or a British city; AU for Australia or an Australian city; US for the USA, America or an American city. Otherwise emit the plain English country name. A city is fine as a value ("London"), it resolves to its country. Add a geo constraint whenever a place is named. His three markets are the United States, the United Kingdom and Australia, so those are the ones that come up; do not invent a location he did not mention.
 - Controlled vocabularies. roles: ${JSON.stringify(ROLES)}. seniority: ${JSON.stringify(SENIORITY)}. network_tier: ${JSON.stringify(TIERS)}. confidence: ["high","medium","low"]. best_channel: ["email","linkedin_dm","instagram_dm","phone"].
 - "industry", "company" and "title" match on substring, so prefer a short distinctive fragment: "media agency", not "independent media agency group".
 - Set "venture" only when the question is actually about one of his ventures. It re-ranks everyone, so a wrong guess is expensive.

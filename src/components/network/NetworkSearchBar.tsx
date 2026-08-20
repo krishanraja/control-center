@@ -14,8 +14,10 @@ import { browserCanRecord } from '../shared/VoiceCapture'
 const EXAMPLES = [
   'Who should I talk to about identity at a publisher',
   'CMOs at banks who care about AI governance',
-  'Someone who can introduce me to a media agency CEO',
-  'Podcast guests who have actually shipped an AI product',
+  // Geography reads out of the sentence as well as off the chips, so at least
+  // one example has to demonstrate it or nobody discovers the typed form.
+  'Who do I know in the UK who could introduce me to a publisher',
+  'Podcast guests in Australia who have actually shipped an AI product',
 ]
 
 export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated, transcript, hasResults }: {

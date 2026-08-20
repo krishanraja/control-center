@@ -3,8 +3,8 @@ import { supabase } from '../../_supabase.js'
 import { canonicalVenture } from '../../_venturePositioning.js'
 
 // PATCH /api/contacts/:id — light edits from the Network detail sheet.
-// Primary use: reassign a contact's venture (e.g. a recorded Signal & Noise
-// guest who's actually a better fit for another venture).
+// Reassign a contact's venture (e.g. a recorded Signal & Noise guest who's
+// actually a better fit for another venture), or change their status.
 
 // 'meliora' and 'adfixus' are retired but stay accepted here: contacts tagged
 // before the July 2026 retirement still PATCH their existing venture back on an
@@ -18,6 +18,18 @@ const KNOWN_VENTURES = new Set([
   // retired, accepted so historical rows can still PATCH
   'meliora', 'adfixus', 'signal_noise', 'builder_economy', 'mymu', 'legibility',
 ])
+
+// The vocabulary already declared in src/hooks/useRealtimeContacts.ts. Kept in
+// step deliberately: `do_not_contact` is a HARD filter in network_search and in
+// networkScore, so a status this endpoint does not recognise would be a silent
+// no-op on the one field that actually suppresses someone.
+//
+// Until now nothing could set it per person. api/contacts/bulk.ts has a
+// do_not_contact action and the desktop leads table exposes it over a
+// selection, but a single contact on a phone had no route to it at all, so all
+// 10,767 rows are 'active' and a filter the scorer honours had never been
+// reachable.
+const KNOWN_STATUSES = new Set(['active', 'dormant', 'closed', 'do_not_contact'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -45,6 +57,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     else if (typeof v === 'string' && KNOWN_VENTURES.has(v)) updates.primary_venture = canonicalVenture(v)
     else return res.status(400).json({ error: `invalid primary_venture: ${String(v)}` })
   }
+  if ('status' in body) {
+    const v = body.status
+    if (typeof v === 'string' && KNOWN_STATUSES.has(v)) updates.status = v
+    else return res.status(400).json({ error: `invalid status: ${String(v)}` })
+  }
+
   // NOTE: no `notes` handling. contacts has no notes column, so the branch that
   // used to be here made every PATCH carrying notes a 500. Nothing sends it;
   // accepting a field that cannot be stored is worse than not offering it.

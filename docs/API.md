@@ -454,9 +454,10 @@ Network tab silently broken, which is the worse failure.
 
 | Route | Method | Body | Returns |
 |---|---|---|---|
-| `/api/network/search` | POST | `{ question, venture?, roles?, tiers?, min_confidence?, limit?, rerank? }` | `{ ok, restated, results[], weak, total, plan, degraded[] }` |
-| `/api/network/recommend` | POST | `{ venture, intent?, limit? }` | same envelope |
-| `/api/network/voice` | POST | raw audio body (`bodyParser` off) | same envelope plus `transcript` |
+| `/api/network/search` | POST | `{ question, venture?, roles?, tiers?, countries?, filter_mode?, min_confidence?, limit?, rerank? }` | `{ ok, restated, results[], weak, total, plan, geo, degraded[] }` |
+| `/api/network/recommend` | POST | `{ venture, intent?, countries?, filter_mode?, limit? }` | same envelope |
+| `/api/network/voice` | POST | raw audio body (`bodyParser` off); filters ride the query string (`?countries=GB,AU&filter_mode=soft`) | same envelope plus `transcript` |
+| `/api/network/geo` | GET | — | `{ ok, countries[], unknown, known, total }` |
 | `/api/network/person/[id]` | GET | — | `{ ok, contact, intelligence }` |
 
 ### The pipeline
@@ -487,6 +488,60 @@ Weakness is thresholded on `query_relevance`, not `match_score`. `match_score`
 cannot answer "did we understand the question", because a well-connected person
 scores ~38 on relationship and evidence no matter what was asked.
 
+### Geography
+
+`countries` takes ISO-3166 alpha-2 codes, country names or city names; Postgres
+canonicalises all three (`network_geo_canon`), so `GB`, `United Kingdom`,
+`Britain` and `London` are one filter. `filter_mode` decides what it means:
+
+- `soft` (what the UI sends by default) turns the operator's countries, roles
+  and tiers into weighted constraints. Matches rank higher, close ones still
+  appear, the list never empties.
+- `hard` makes them real `WHERE` clauses. This is the only path in the feature
+  that can return nothing, and it is always an explicit, labelled choice.
+
+The field defaults to `hard` at the API, which is what `roles` and `tiers` have
+always meant to `runNetworkSearch`; only an explicit `soft` relaxes them.
+
+**Geography is resolved, not read off one column.** `contact_intelligence.country`
+covers 3,679 of 10,597 people, and only 9 of the 164 in tier 1, the people who
+have actually replied. `contact_intelligence.geo_code` falls back through
+`contacts.location` and then the email ccTLD, which lifts coverage to roughly
+4,600. It is a stored, indexed column so the filter can push down into
+`network_search`'s candidate recall paths: each is capped at 400 rows, so
+filtering their output instead would search a pool that is mostly the wrong
+country and return a fraction of the people who qualify.
+
+A soft geo constraint **prefers without excluding**: the named country scores
+1.0, an unknown location scores the 0.5 neutral, and known-to-be-elsewhere
+scores 0. Skipping that middle case made soft geo behave exactly like hard geo
+and buried the 151 tier-1 people with no location on file.
+
+**The unknowns are published, not hidden.** `/api/network/geo` returns the
+per-country counts and, separately, `unknown`: the people with no resolved
+location at all. Roughly 6,400 of them. Without that number a country filter
+reads as a statement about the network ("you know nobody in the UK") when it is
+a statement about the data ("we never recorded where these people are"), so the
+UI renders it next to every geography filter.
+
+### Reaching someone
+
+`best_channel` and `reachable_via` are a **judgment about how to approach
+someone**, never a promise that an address exists. Measured against the corpus:
+
+| recorded best channel | people | address actually stored |
+|---|---|---|
+| `phone` | 368 | none, there is no phone column |
+| `instagram_dm` | 198 | none, there is no handle column |
+| `email` | ~1,200 of them | no email on the row |
+
+So `src/lib/networkReach.ts` resolves the other way round: start from the
+addresses on the record (`email`, `linkedin_url`, `twitter_handle`), then let
+`best_channel` ORDER them. Every button it produces is one a tap can complete,
+and when the recommended channel is not among them the UI says which and why
+rather than quietly substituting a different one. A row with nothing actionable
+gets no button at all.
+
 ### The planner is untrusted input
 
 `api/_networkQuery.ts` sits between a language model and a database call, so
@@ -496,4 +551,11 @@ constraint list capped at 8, unknown venture nulled, em dashes stripped.
 
 The planner **cannot emit a hard filter**. If it could, it could return an empty
 result for a reasonable question, which is the exact failure this feature exists
-to remove.
+to remove. That includes geography: a `geo` constraint parsed out of "who do I
+know in London" ranks Londoners up, it does not delete everyone else. Only the
+operator's own `countries` + `filter_mode: 'hard'` excludes.
+
+A `geo` constraint whose values resolve to no country at all is **dropped**
+rather than kept empty, and an unrecognised `countries` list degrades to no
+filter rather than to zero rows. Both follow the same rule as every other
+unparseable input here: a misunderstanding costs ranking, never answers.
