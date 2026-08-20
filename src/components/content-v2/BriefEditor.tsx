@@ -399,7 +399,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
       <header className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-white/[0.07] flex-shrink-0">
         <button onClick={onClose} className="text-white/50 hover:text-white text-[13px]">← Back</button>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300/80">Weekly brief · {week}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-200/80">Weekly brief · {week}</div>
           <div className="text-[14px] font-bold text-white truncate">
             {brief?.title ?? <Skeleton h={13} w={180} r={4} className="my-[3px]" />}
           </div>
@@ -411,7 +411,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
             title={citations ? 'Sources shown at the end — tap to hide' : 'Sources hidden — tap to show at the end'}
             className={`flex-shrink-0 rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition-colors ${
               citations
-                ? 'border-sky-400/30 bg-sky-400/10 text-sky-300'
+                ? 'border-sky-400/30 bg-sky-400/10 text-sky-200'
                 : 'border-white/15 text-white/45 hover:text-white/80 hover:border-white/25'
             }`}
           >
@@ -438,7 +438,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
       </header>
 
       {error ? (
-        <div className="mx-4 sm:mx-6 mt-3 rounded-lg bg-red-400/10 border border-red-400/25 text-red-300 text-[12px] px-3 py-2 flex justify-between gap-3">
+        <div className="mx-4 sm:mx-6 mt-3 rounded-lg bg-red-400/10 border border-red-400/25 text-rose-200 text-[12px] px-3 py-2 flex justify-between gap-3">
           <span>{error}</span>
           <button onClick={() => setError(null)} className="opacity-70">×</button>
         </div>
@@ -490,15 +490,20 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
               </div>
             ) : !narrow && !citations ? (
               <div className="mb-4 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/45 text-[12px] px-3 py-2">
-                Reading view — sources are hidden. Turn <span className="text-sky-300/90 font-semibold">Citations on</span> to edit.
+                Reading view — sources are hidden. Turn <span className="text-sky-200/90 font-semibold">Citations on</span> to edit.
               </div>
             ) : null}
+            {/* `prose prose-invert prose-sm` used to sit on this and did
+                nothing: @tailwindcss/typography is not installed
+                (tailwind.config.js plugins: []), so those classes emitted no
+                rules at all. Worse, `prose-invert` is the DARK variant — the
+                day it started working it would have painted light-grey body
+                text onto pale paper. brief-canvas (src/index.css) styles the
+                document from theme tokens instead, so it reads in both. */}
             <EditorContent
               editor={editor}
-              className="brief-canvas prose prose-invert prose-sm max-w-none
-                [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[50vh]
-                [&_.ProseMirror_h1]:text-[22px] [&_.ProseMirror_h2]:text-[17px] [&_.ProseMirror_h3]:text-[14.5px]
-                [&_.ProseMirror_a]:text-sky-300"
+              className="brief-canvas max-w-none
+                [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[50vh]"
             />
           </div>
         </div>
@@ -514,7 +519,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                   <span className="text-white/35">{new Date(v.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
                 {v.v !== (brief.versions?.length || 1) && v.body_md ? (
-                  <button onClick={() => restore(v.v)} className="mt-2 text-[11px] text-sky-300 hover:text-sky-200 font-semibold">Restore this version</button>
+                  <button onClick={() => restore(v.v)} className="mt-2 text-[11px] text-sky-200 hover:text-sky-200 font-semibold">Restore this version</button>
                 ) : null}
               </div>
             ))}
@@ -562,7 +567,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
               disabled={magicBusy !== null}
               title={listening ? 'Stop dictating' : 'Dictate an instruction for Cleo'}
               className={`rounded-full border px-2.5 py-1.5 text-[11.5px] font-semibold disabled:opacity-40 ${
-                listening ? 'border-red-400/40 bg-red-400/15 text-red-300' : 'border-sky-400/30 bg-sky-400/10 text-sky-300 hover:bg-sky-400/20'
+                listening ? 'border-red-400/40 bg-red-400/15 text-rose-200' : 'border-sky-400/30 bg-sky-400/10 text-sky-200 hover:bg-sky-400/20'
               }`}
             >
               {listening ? (narrow ? 'Tap to stop' : 'Listening... tap to stop') : (narrow ? '🎙 Cleo' : '🎙 Tell Cleo')}
@@ -587,7 +592,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                         <button
                           onClick={() => forgetNote(n.id)}
                           aria-label="Forget this note"
-                          className="text-white/30 hover:text-red-300 text-[13px] leading-none flex-shrink-0"
+                          className="text-white/30 hover:text-rose-200 text-[13px] leading-none flex-shrink-0"
                         >
                           ×
                         </button>
@@ -602,13 +607,13 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                 “{cleoNote.slice(0, 80)}”
                 <button
                   onClick={() => { runMagic('instruction', 'Tell Cleo', cleoNote); setCleoNote('') }}
-                  className="text-sky-300 font-semibold"
+                  className="text-sky-200 font-semibold"
                 >
                   Apply once
                 </button>
                 <button
                   onClick={() => { rememberNote(cleoNote); runMagic('instruction', 'Tell Cleo', cleoNote); setCleoNote('') }}
-                  className="text-emerald-300 font-semibold"
+                  className="text-emerald-200 font-semibold"
                   title="Apply now and honor this on every future brief"
                 >
                   Remember
@@ -622,7 +627,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
           {preview ? (
             <div className="mt-2.5 rounded-xl border border-dashed border-sky-400/35 bg-sky-400/[0.05] p-3.5">
               <div className="flex items-center justify-between mb-2 gap-3">
-                <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-sky-300">Preview · {preview.label}</div>
+                <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-sky-200">Preview · {preview.label}</div>
                 <div className="text-[10.5px] text-white/40 tabular-nums">
                   {changedDiffs.length === 0
                     ? 'no changes'
@@ -656,7 +661,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                               key={i}
                               className={
                                 op.type === 'add' ? 'bg-emerald-400/20 text-emerald-200 rounded px-0.5'
-                                : op.type === 'del' ? 'bg-red-400/15 text-red-300/70 line-through rounded px-0.5'
+                                : op.type === 'del' ? 'bg-red-400/15 text-rose-200/70 line-through rounded px-0.5'
                                 : 'text-white/55'
                               }
                             >
@@ -686,7 +691,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
           ) : null}
 
           {pushed ? (
-            <div className="text-[12.5px] text-emerald-300 mt-2.5">
+            <div className="text-[12.5px] text-emerald-200 mt-2.5">
               Pushed {pushed.length} format{pushed.length === 1 ? '' : 's'} to Google Docs.{' '}
               {pushed.filter(p => p.doc_url).map(p => (
                 <a key={p.channel} href={p.doc_url!} target="_blank" rel="noreferrer" className="underline mr-2">{p.channel}</a>
@@ -735,7 +740,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                   )
                 })}
                 {narrow ? (
-                  <button onClick={() => setFanoutOpen(false)} className="text-[11px] font-semibold text-sky-300 ml-auto">Done</button>
+                  <button onClick={() => setFanoutOpen(false)} className="text-[11px] font-semibold text-sky-200 ml-auto">Done</button>
                 ) : null}
               </div>
             ) : (
@@ -744,10 +749,10 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                 className="flex w-full items-baseline gap-2 mt-2.5 text-left"
               >
                 <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/40 flex-shrink-0">Publish as</span>
-                <span className={`text-[12px] truncate flex-1 ${fanout.size ? 'text-white/70' : 'text-amber-300/80'}`}>
+                <span className={`text-[12px] truncate flex-1 ${fanout.size ? 'text-white/70' : 'text-amber-200/80'}`}>
                   {fanoutSummary || 'nothing selected'}
                 </span>
-                <span className="text-[11px] font-semibold text-sky-300 flex-shrink-0">Change</span>
+                <span className="text-[11px] font-semibold text-sky-200 flex-shrink-0">Change</span>
               </button>
             )}
             {/* Both verdicts on one row. Ship it or bin it, reachable from the
@@ -757,7 +762,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
               <button
                 onClick={() => setBinning(true)}
                 disabled={binBusy}
-                className="rounded-lg border border-rose-400/25 bg-rose-500/[0.06] text-rose-300/85 hover:bg-rose-500/[0.12] px-3 py-2 text-[11.5px] font-semibold disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-300/60"
+                className="rounded-lg border border-rose-400/25 bg-rose-500/[0.06] text-rose-200/85 hover:bg-rose-500/[0.12] px-3 py-2 text-[11.5px] font-semibold disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-300/60"
               >
                 {narrow ? 'Bin' : 'Bin this brief'}
               </button>

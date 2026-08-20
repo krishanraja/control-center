@@ -4,6 +4,7 @@ import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import { Modal } from './shared/Modal'
 import { Working } from './shared/Working'
+import { isTypingTarget } from '../lib/hotkeys'
 
 /**
  * Content-idea capture modal. Pure presentation — owner passes open + onClose.
@@ -137,8 +138,10 @@ export function QuickCaptureIdea() {
     const onKey = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase()
       if ((e.metaKey || e.ctrlKey) && k === 'i') {
-        const target = e.target as HTMLElement | null
-        if (target && target.tagName === 'INPUT') return
+        // ⌘I is italic inside any editor. Never steal it from a typing surface:
+        // TipTap's canvas is a contenteditable, and this handler toggles, so a
+        // second press used to close the modal and discard what was typed.
+        if (isTypingTarget(e)) return
         e.preventDefault()
         setOpen(o => !o)
       }
@@ -153,7 +156,7 @@ export function QuickCaptureIdea() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden min-[900px]:flex fixed right-5 bottom-5 z-30 items-center gap-2 px-3 py-2 rounded-full border border-rose-500/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 shadow-lg backdrop-blur transition-colors"
+        className="capture-pill hidden min-[900px]:flex fixed right-5 bottom-5 z-30 items-center gap-2 px-3 py-2 rounded-full border border-rose-500/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 shadow-lg backdrop-blur transition-colors"
         title="Capture content idea (⌘+I)"
       >
         <Sparkles size={14} />

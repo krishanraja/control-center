@@ -19,6 +19,7 @@ import { isSimplifiedIA } from './lib/iaV3'
 import { VALID_TAB_IDS } from './lib/tabs'
 import { useHashRoute } from './hooks/useHashRoute'
 import { contentV2Enabled } from './lib/contentV2'
+import { isTypingTarget } from './lib/hotkeys'
 import { BOTTOM_NAV_PAD } from './components/mobile/primitives'
 import { MobileTabSkeleton, BoardSkeleton, SkeletonDetail, DeferredFallback } from './components/shared/Skeleton'
 import { isUiV2 } from './lib/uiV2'
@@ -164,10 +165,15 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // ⌘K and ⌘J are editor bindings too (link, and whatever the surface binds).
+      // Without this the brief canvas lost both to the palette and the inbox.
+      const typing = isTypingTarget(e)
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        if (typing) return
         e.preventDefault()
         setPaletteOpen(o => !o)
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j' && isInboxEnabled()) {
+        if (typing) return
         e.preventDefault()
         setInboxOpen(o => !o)
       } else if (e.key === 'Escape') {
@@ -249,7 +255,7 @@ export default function App() {
             ) : tab === 'content' ? (
               <Suspense fallback={<DeferredFallback><div className="p-6"><BoardSkeleton lanes={3} cardsPerLane={3} /></div></DeferredFallback>}>
                 {contentV2Enabled()
-                  ? <ErrorBoundary label="Content"><div className="h-full overflow-hidden px-6 py-6 flex flex-col"><ContentV2Tab variant="desktop" /></div></ErrorBoundary>
+                  ? <ErrorBoundary label="Content"><div className="h-full overflow-hidden px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))] flex flex-col"><ContentV2Tab variant="desktop" /></div></ErrorBoundary>
                   : <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>}
               </Suspense>
             ) : tab === 'growth' ? (
@@ -269,7 +275,7 @@ export default function App() {
                 </ErrorBoundary>
               </Suspense>
             ) : (
-              <div className="h-full overflow-y-auto px-6 py-6">
+              <div className="h-full overflow-y-auto px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))]">
                 <Suspense fallback={<DesktopRouteFallback />}>
                   {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome onNavigate={navigate} deepTask={params.task || null} deepDecision={params.decision || null} /></ErrorBoundary>}
                   {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday selectedTaskId={route.params.task || null} onSelectTask={(id) => navigate('today', id ? { task: id } : {})} lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
