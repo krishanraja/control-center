@@ -5,6 +5,7 @@ import { reasonsFor } from '../../lib/triageReasons'
 import { feedbackVote } from '../../lib/triageActions'
 import { useLikelyReasons } from '../../hooks/useLikelyReasons'
 import { RejectReasonBar } from '../shared/RejectReasonBar'
+import { Skeleton } from '../shared/Skeleton'
 
 // The whole mobile job (mockup set 2, pin 11): the week's finite decision
 // queue, one card at a time, every action in the bottom thumb zone. Finishable
@@ -175,7 +176,19 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
     })
   }
 
-  if (loading) return <div className="text-white/40 text-sm py-16 text-center">Loading the week...</div>
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full min-h-0 gap-4 animate-rise" aria-busy="true" role="status" aria-label="Loading">
+        <Skeleton h={12} w={132} r={5} />
+        <Skeleton h={22} w="70%" r={6} />
+        <div className="flex-1 min-h-0"><Skeleton h="100%" r={20} /></div>
+        <div className="flex gap-2.5">
+          <Skeleton h={48} r={16} className="flex-1" />
+          <Skeleton h={48} r={16} className="flex-1" />
+        </div>
+      </div>
+    )
+  }
 
   if (!current) {
     return (

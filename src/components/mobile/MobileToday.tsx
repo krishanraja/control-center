@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { isToday, isPast, parseISO } from 'date-fns'
 import { Mic } from 'lucide-react'
-import { MobileShell as MobileShellPrim, TabHeader, FeedCard, FeedRow } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader,
+  HeaderSubtitleSkeleton, FeedCard, FeedRow } from './primitives'
 import { MobileTabSkeleton } from '../shared/Skeleton'
 import { AllClear } from '../shared/AllClear'
 import { DetailSheet } from './DetailSheet'
@@ -220,7 +221,7 @@ export function MobileToday({
       header={
         <TabHeader
           title="Today"
-          subtitle={loading ? 'Loading…' : queue.length > 0 ? `${queue.length} to decide` : 'The day is decided'}
+          subtitle={loading ? <HeaderSubtitleSkeleton w={132} /> : queue.length > 0 ? `${queue.length} to decide` : 'The day is decided'}
         />
       }
     >

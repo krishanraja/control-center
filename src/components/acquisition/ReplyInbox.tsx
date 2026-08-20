@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { MessageSquare } from 'lucide-react'
 import { useToast } from '../shared/Toast'
+import { SkeletonList } from '../shared/Skeleton'
+import { useDeferredPending } from '../shared/useDeferredPending'
 
 /**
  * Reply Inbox — inbound replies to nurture sends. A reply always halts the
@@ -33,6 +35,8 @@ export function ReplyInbox({ lane, onChanged }: { lane: string; onChanged?: () =
   const { toast } = useToast()
   const [rows, setRows] = useState<ReplyRow[]>([])
   const [loaded, setLoaded] = useState(false)
+  // Reserve the rows immediately, shimmer only once the wait has earned it.
+  const waiting = useDeferredPending(!loaded)
   const [busy, setBusy] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -88,7 +92,7 @@ export function ReplyInbox({ lane, onChanged }: { lane: string; onChanged?: () =
       </header>
 
       {!loaded ? (
-        <div className="px-4 py-5 text-center text-[12px] text-white/35">Loading…</div>
+        <SkeletonList rows={3} card={false} quiet={!waiting} />
       ) : open.length === 0 ? (
         <div className="px-4 py-5 text-center text-[12px] text-white/35">
           No open replies. Replies pause the sender's sequence automatically.

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader,
+  HeaderSubtitleSkeleton, HeroCard, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
@@ -137,7 +138,7 @@ export function MobileOrg() {
       header={
         <TabHeader
           title="Organisation"
-          subtitle={loading ? 'Loading…' : `${agents.length} agents · ${runs.length} runs in last batch`}
+          subtitle={loading ? <HeaderSubtitleSkeleton w={196} /> : `${agents.length} agents · ${runs.length} runs in last batch`}
         />
       }
     >

@@ -13,6 +13,7 @@ import { reasonsFor } from '../../lib/triageReasons'
 import { useLikelyReasons } from '../../hooks/useLikelyReasons'
 import { supabase } from '../../lib/supabase'
 import { Modal } from '../shared/Modal'
+import { Skeleton } from '../shared/Skeleton'
 
 interface StandingNote { id: string; text: string; at: string }
 
@@ -376,7 +377,9 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
         <button onClick={onClose} className="text-white/50 hover:text-white text-[13px]">← Back</button>
         <div className="min-w-0 flex-1">
           <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300/80">Weekly brief · {week}</div>
-          <div className="text-[14px] font-bold text-white truncate">{brief?.title || 'Loading...'}</div>
+          <div className="text-[14px] font-bold text-white truncate">
+            {brief?.title ?? <Skeleton h={13} w={180} r={4} className="my-[3px]" />}
+          </div>
         </div>
         {brief ? (
           <button

@@ -5,6 +5,7 @@ import {
   type GeoProbeRow, type ProductSlug,
 } from '../../lib/growth'
 import type { GrowthData } from '../../hooks/useGrowth'
+import { SkeletonList } from '../shared/Skeleton'
 
 /**
  * D) GEO PROBE RESULTS: did the answer engines cite us.
@@ -30,7 +31,9 @@ export function GeoProbes({ g }: { g: GrowthData }) {
     [g.probes],
   )
 
-  if (g.loading) return <div className="text-white/40 text-sm py-10 text-center">Loading probes...</div>
+  if (g.loading) {
+    return <div className="space-y-4"><SkeletonList rows={4} /></div>
+  }
 
   // No bottom padding here: SignalsPanel owns the section's tail spacing so the
   // SEO rank panel sits directly under the GEO block rather than a gap away.

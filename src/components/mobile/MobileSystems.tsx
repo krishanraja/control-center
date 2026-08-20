@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader,
+  HeaderSubtitleSkeleton, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
@@ -108,7 +109,7 @@ export function MobileSystems() {
       header={
         <TabHeader
           title="Systems"
-          subtitle={loading ? 'Loading…' : `${services.length} services · monitored by Arlo`}
+          subtitle={loading ? <HeaderSubtitleSkeleton w={192} /> : `${services.length} services · monitored by Arlo`}
           trailing={
             <button
               onClick={liveRefresh}

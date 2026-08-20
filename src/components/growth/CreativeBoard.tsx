@@ -8,6 +8,7 @@ import {
   type CreativeCardRow, type ProductSlug, type Stage,
 } from '../../lib/growth'
 import type { GrowthData } from '../../hooks/useGrowth'
+import { BoardSkeleton } from '../shared/Skeleton'
 
 /**
  * B) THE CREATIVE BOARD: the Higgsfield kanban.
@@ -64,7 +65,14 @@ export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop
       ? 'border-emerald-500/25 bg-emerald-500/[0.04]'
       : 'border-white/[0.08] bg-white/[0.02]'
 
-  if (g.loading) return <div className="text-white/40 text-sm py-10 text-center">Loading the board...</div>
+  // The board is lanes of cards, which is exactly what BoardSkeleton restores.
+  if (g.loading) {
+    return (
+      <div className="space-y-4 pb-8">
+        <BoardSkeleton lanes={4} cardsPerLane={2} hero={false} />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4 pb-8 min-h-0 flex flex-col h-full">

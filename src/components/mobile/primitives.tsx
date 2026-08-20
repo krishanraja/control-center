@@ -44,7 +44,7 @@ export function MobileShell({
 }
 
 import { Logomark } from './Logomark'
-import { MobileTabSkeleton } from '../shared/Skeleton'
+import { MobileTabSkeleton, Skeleton } from '../shared/Skeleton'
 
 /**
  * First-paint loading screen for a mobile tab — the single-focus skeleton inside
@@ -72,7 +72,12 @@ export function TabHeader({
   trailing,
 }: {
   title?: string
-  subtitle?: string
+  /** A node, not a string, so a pending subtitle can be a bar in its own
+   *  footprint. Nine tab headers used to print the literal word "Loading…"
+   *  here and then swap it for a count, which reflows the header on arrival
+   *  and puts the least informative string in the product in its most-read
+   *  slot. Use <HeaderSubtitleSkeleton /> below. */
+  subtitle?: React.ReactNode
   leading?: React.ReactNode
   trailing?: React.ReactNode
 }) {
@@ -93,6 +98,15 @@ export function TabHeader({
       {trailing && <div className="flex-shrink-0 ml-3">{trailing}</div>}
     </div>
   )
+}
+
+/**
+ * The subtitle's own placeholder: a bar at the line's height, in a plausible
+ * width for the count that is coming. Sized so the header does not change
+ * height when the real string lands.
+ */
+export function HeaderSubtitleSkeleton({ w = 168 }: { w?: number }) {
+  return <Skeleton h={12} w={w} r={4} className="mt-2 mb-[3px]" />
 }
 
 /** The one thing that needs you — prominent, tappable, impossible to miss. */

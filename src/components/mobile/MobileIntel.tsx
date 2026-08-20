@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader,
+  HeaderSubtitleSkeleton, HeroCard, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
@@ -115,7 +116,7 @@ export function MobileIntel() {
           title="Intelligence"
           subtitle={
             state.loading
-              ? 'Loading…'
+              ? <HeaderSubtitleSkeleton w={176} />
               : state.headline || (state.generatedAt ? `Updated ${humanAgo(state.generatedAt)}` : 'Marcus synthesis')
           }
         />

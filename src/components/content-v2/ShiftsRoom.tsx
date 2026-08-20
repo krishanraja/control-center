@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { contentV2Api, useShiftEvidence, type useContentV2 } from '../../hooks/useContentV2'
 import { monthLabel, shiftVerdict, VERDICT_LABEL, type ShiftRow } from '../../lib/contentV2'
+import { SkeletonText, SkeletonList } from '../shared/Skeleton'
 
 // The long-term memory with receipts (mockup set 1, mock 3). A shift is one
 // durable object whose evidence and momentum accrue week over week; the
@@ -84,7 +85,7 @@ function Dossier({ shift, v2, onClose }: {
       </div>
 
       <div className="mt-4 max-h-64 overflow-y-auto pr-1">
-        {loading ? <div className="text-white/35 text-xs py-3">Loading evidence...</div> : evidence.map(e => (
+        {loading ? <SkeletonText lines={3} /> : evidence.map(e => (
           <div key={e.id} className="flex gap-3 items-baseline py-2 border-t border-emerald-400/10 text-[12px]">
             <span className="font-mono text-[10.5px] text-emerald-200/50 flex-shrink-0 w-20">{e.week_label || monthLabel(e.occurred_on)}</span>
             {e.url ? (
@@ -135,7 +136,7 @@ export function ShiftsRoom({ v2, variant, lane }: {
   )
   const open = shifts.find(s => s.id === openId) || null
 
-  if (v2.loading) return <div className="text-white/40 text-sm py-10 text-center">Loading the register...</div>
+  if (v2.loading) return <SkeletonList rows={4} />
   if (!shifts.length) {
     return (
       <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-6 text-white/50 text-sm max-w-xl">

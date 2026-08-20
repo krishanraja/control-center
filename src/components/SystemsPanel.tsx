@@ -175,7 +175,7 @@ export function SystemsPanel() {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-40 text-white/40 hover:text-white/60 text-[11px] transition-colors"
         >
           <RefreshCw className={`w-3 h-3 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
-          {refreshing ? 'Polling N8N…' : loading ? 'Loading…' : lastRefreshed ? `Refreshed ${timeAgo(lastRefreshed.toISOString())}` : 'Refresh'}
+          {refreshing ? 'Polling N8N…' : loading ? 'Reading services…' : lastRefreshed ? `Refreshed ${timeAgo(lastRefreshed.toISOString())}` : 'Refresh'}
         </button>
       </div>
 

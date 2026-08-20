@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Search, ArrowUp, ArrowDown } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { SkeletonList } from '../shared/Skeleton'
+import { useDeferredPending } from '../shared/useDeferredPending'
 
 /**
  * SEO rank: where the product ranks on Google for its ICP keywords, and the
@@ -72,6 +74,8 @@ const VISIBLE_ROWS = 8
 export function SeoRankPanel({ lane }: { lane?: string | null }) {
   const [rows, setRows] = useState<RankRow[]>([])
   const [loaded, setLoaded] = useState(false)
+  // Reserve the rows immediately, shimmer only once the wait has earned it.
+  const waiting = useDeferredPending(!loaded)
 
   useEffect(() => {
     let cancelled = false
@@ -114,7 +118,7 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
       </header>
 
       {!loaded ? (
-        <div className="px-4 py-5 text-center text-[12px] text-white/35">Loading…</div>
+        <SkeletonList rows={4} card={false} quiet={!waiting} />
       ) : rows.length === 0 ? (
         <div className="px-4 py-5 text-center text-[12px] text-white/35">
           No rank sweep results yet — Maya's weekly SEO rank sweep lands owned

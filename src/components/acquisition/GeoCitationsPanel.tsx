@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { Globe } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { SkeletonList } from '../shared/Skeleton'
+import { useDeferredPending } from '../shared/useDeferredPending'
 
 /**
  * RETIRED FROM RENDER 2026-08-04: zara_signals has never held a single
@@ -28,6 +30,8 @@ interface GeoSignal {
 export function GeoCitationsPanel({ lane }: { lane?: string | null }) {
   const [rows, setRows] = useState<GeoSignal[]>([])
   const [loaded, setLoaded] = useState(false)
+  // Reserve the rows immediately, shimmer only once the wait has earned it.
+  const waiting = useDeferredPending(!loaded)
 
   useEffect(() => {
     let cancelled = false
@@ -66,7 +70,7 @@ export function GeoCitationsPanel({ lane }: { lane?: string | null }) {
       </header>
 
       {!loaded ? (
-        <div className="px-4 py-5 text-center text-[12px] text-white/35">Loading…</div>
+        <SkeletonList rows={4} card={false} quiet={!waiting} />
       ) : rows.length === 0 ? (
         <div className="px-4 py-5 text-center text-[12px] text-white/35">
           No GEO sweep results yet — activate Zara's weekly geo-citation sweep

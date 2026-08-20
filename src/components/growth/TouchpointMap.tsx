@@ -8,6 +8,7 @@ import {
   type Channel, type Coverage, type ProductSlug, type TouchpointRow,
 } from '../../lib/growth'
 import type { GrowthData } from '../../hooks/useGrowth'
+import { Skeleton } from '../shared/Skeleton'
 
 /**
  * A) THE TOUCHPOINT MAP: the primary view of the Growth tab.
@@ -59,7 +60,28 @@ export function TouchpointMap({ g, variant }: { g: GrowthData; variant: 'desktop
     try { await g.patchTouchpoint(id, patch) } catch (e) { toast(`Could not save: ${String(e)}`, 'error') }
   }
 
-  if (g.loading) return <div className="text-white/40 text-sm py-10 text-center">Loading the map...</div>
+  // The map is a table, so the placeholder is a table: a header rule and rows
+  // at the real row height, rather than a centred word that reserves nothing
+  // and lets the whole grid drop into place on arrival.
+  if (g.loading) {
+    return (
+      <div className="space-y-4 pb-8" aria-busy="true" role="status" aria-label="Loading">
+        <Skeleton h={14} w={180} r={5} />
+        <div className="rounded-xl border border-white/[0.06] overflow-hidden">
+          <div className="px-3 py-2 border-b border-white/[0.05]"><Skeleton h={9} w="42%" r={4} /></div>
+          <div className="divide-y divide-white/[0.05]">
+            {[0, 1, 2, 3, 4].map(i => (
+              <div key={i} className="px-3 py-2.5 flex items-center gap-3">
+                <Skeleton h={11} w={104} r={4} />
+                <Skeleton h={11} w="34%" r={4} />
+                <Skeleton h={11} w={62} r={4} className="ml-auto" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4 pb-8">

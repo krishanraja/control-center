@@ -46,11 +46,11 @@ export function Skeleton({
 }
 
 /** A few staggered text lines — the last one short, like real prose. */
-export function SkeletonText({ lines = 2 }: { lines?: number }) {
+export function SkeletonText({ lines = 2, quiet = false }: { lines?: number; quiet?: boolean }) {
   return (
     <div className="space-y-2">
       {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton key={i} h={11} w={i === lines - 1 ? '55%' : '100%'} r={6} />
+        <Skeleton key={i} quiet={quiet} h={11} w={i === lines - 1 ? '55%' : '100%'} r={6} />
       ))}
     </div>
   )
@@ -62,13 +62,13 @@ function LoadingAnnounce({ label = 'Loading' }: { label?: string }) {
 }
 
 /** A single feed-row placeholder — matches FeedRow's anatomy (dot + 2 lines). */
-export function SkeletonRow() {
+export function SkeletonRow({ quiet = false }: { quiet?: boolean } = {}) {
   return (
     <div className="flex items-start gap-3 px-5 py-4" style={{ minHeight: 76 }}>
-      <Skeleton w={10} h={10} r={5} className="mt-1.5 flex-shrink-0" />
+      <Skeleton quiet={quiet} w={10} h={10} r={5} className="mt-1.5 flex-shrink-0" />
       <div className="flex-1 min-w-0 space-y-2">
-        <Skeleton h={14} w="78%" r={6} />
-        <Skeleton h={11} w="48%" r={6} />
+        <Skeleton quiet={quiet} h={14} w="78%" r={6} />
+        <Skeleton quiet={quiet} h={11} w="48%" r={6} />
       </div>
     </div>
   )
@@ -81,14 +81,14 @@ export function SkeletonRow() {
  * shared `animate-rise`. `card` matches spaced card lists (GuestCard/ContentCard);
  * the default matches divided feed rows.
  */
-export function SkeletonList({ rows = 3, card = true }: { rows?: number; card?: boolean }) {
+export function SkeletonList({ rows = 3, card = true, quiet = false }: { rows?: number; card?: boolean; quiet?: boolean }) {
   if (card) {
     return (
       <div className="space-y-2 animate-rise" aria-busy="true" role="status" aria-label="Loading">
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-2.5">
-            <Skeleton h={14} w="72%" r={6} />
-            <SkeletonText lines={2} />
+          <div key={i} className={`rounded-2xl border p-4 space-y-2.5 ${quiet ? 'border-transparent' : 'border-white/[0.06] bg-white/[0.02]'}`}>
+            <Skeleton quiet={quiet} h={14} w="72%" r={6} />
+            <SkeletonText quiet={quiet} lines={2} />
           </div>
         ))}
       </div>
@@ -96,7 +96,7 @@ export function SkeletonList({ rows = 3, card = true }: { rows?: number; card?: 
   }
   return (
     <div className="divide-y divide-white/[0.06] animate-rise" aria-busy="true" role="status" aria-label="Loading">
-      {Array.from({ length: rows }).map((_, i) => <SkeletonRow key={i} />)}
+      {Array.from({ length: rows }).map((_, i) => <SkeletonRow key={i} quiet={quiet} />)}
     </div>
   )
 }

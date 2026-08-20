@@ -4,6 +4,7 @@ import { useToast } from '../shared/Toast'
 import { BTN_GHOST, BTN_PRIMARY, Chip, EmptyNote, INPUT_CLS, ProductChip, SectionHead } from './atoms'
 import { asList, asPairs, dayLabel, shortDate, type CouncilReviewRow } from '../../lib/growth'
 import type { GrowthData } from '../../hooks/useGrowth'
+import { SkeletonList } from '../shared/Skeleton'
 
 /**
  * C) THE COUNCIL FEED: the weekly growth council, newest week first.
@@ -19,7 +20,9 @@ import type { GrowthData } from '../../hooks/useGrowth'
 export function CouncilFeed({ g }: { g: GrowthData }) {
   const undecided = g.reviews.filter(r => !r.krish_decision).length
 
-  if (g.loading) return <div className="text-white/40 text-sm py-10 text-center">Loading the council...</div>
+  if (g.loading) {
+    return <div className="space-y-4 pb-8"><SkeletonList rows={3} /></div>
+  }
 
   return (
     <div className="space-y-4 pb-8">

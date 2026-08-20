@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader,
+  HeaderSubtitleSkeleton, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase, logKrishAction } from '../../lib/supabase'
@@ -119,7 +120,7 @@ export function MobileFlows() {
       header={
         <TabHeader
           title="Flows"
-          subtitle={loading ? 'Loading…' : `${grouped.length} workflows · ${proposals.length} proposals waiting`}
+          subtitle={loading ? <HeaderSubtitleSkeleton w={208} /> : `${grouped.length} workflows · ${proposals.length} proposals waiting`}
         />
       }
     >

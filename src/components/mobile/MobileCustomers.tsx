@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader,
+  HeaderSubtitleSkeleton, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { BottomSheet } from './BottomSheet'
 import { Pressable } from '../shared/Pressable'
@@ -130,7 +131,7 @@ export function MobileCustomers() {
           title="Subscriptions"
           subtitle={
             loading
-              ? 'Loading…'
+              ? <HeaderSubtitleSkeleton w={200} />
               : totals.paid > 0
                 ? `${totals.paid} paid · $${Math.round(totals.mrrUsd).toLocaleString()}/mo`
                 : 'No paid customers yet; sweep + Stripe webhooks not wired.'

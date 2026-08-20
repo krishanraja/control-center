@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Users, Linkedin, Mail, ExternalLink, X, ThumbsUp, Sparkles, Layers, ChevronRight } from 'lucide-react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader,
+  HeaderSubtitleSkeleton, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { MobileShell as MobileStage } from './MobileShell'
 import { DetailSheet } from './DetailSheet'
 import { LeadImportDropzone } from '../LeadImportDropzone'
@@ -213,7 +214,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
       header={
         <TabHeader
           title="Pipeline"
-          subtitle={loading ? 'Loading…' : `${total} active across ${ventureCount} ventures`}
+          subtitle={loading ? <HeaderSubtitleSkeleton w={184} /> : `${total} active across ${ventureCount} ventures`}
           trailing={
             <button
               onClick={() => { h.tap(); setShowImport(s => !s) }}

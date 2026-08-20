@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Layers, X } from 'lucide-react'
 import { useToast } from '../shared/Toast'
 import { Modal } from '../shared/Modal'
+import { SkeletonList } from '../shared/Skeleton'
+import { useDeferredPending } from '../shared/useDeferredPending'
 
 /**
  * Sequence Review — the amend-then-rule surface for a proposed sequence
@@ -38,6 +40,8 @@ export function SequenceReviewSheet({
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState(false)
   const [missing, setMissing] = useState(false)
+  // Reserve the rows immediately, shimmer only once the wait has earned it.
+  const waiting = useDeferredPending(!seq && !missing)
 
   const load = useCallback(async () => {
     try {
@@ -115,7 +119,7 @@ export function SequenceReviewSheet({
             This sequence is gone or already ruled on.
           </p>
         ) : !seq ? (
-          <p className="px-5 py-8 text-center text-[12.5px] text-white/40">Loading…</p>
+          <SkeletonList rows={3} quiet={!waiting} />
         ) : (
           <div className="px-5 py-4 space-y-4">
             {seq.rationale && (

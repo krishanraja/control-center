@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { ChevronDown, ChevronRight, MailCheck, RefreshCw } from 'lucide-react'
 import { useToast } from '../shared/Toast'
+import { SkeletonList } from '../shared/Skeleton'
+import { useDeferredPending } from '../shared/useDeferredPending'
 
 /**
  * Send Approval Deck — the batch surface for queued nurture sends.
@@ -36,6 +38,8 @@ export function SendApprovalDeck({
   const { toast } = useToast()
   const [sends, setSends] = useState<DeckSend[]>([])
   const [loading, setLoading] = useState(true)
+  // Reserve the rows immediately, shimmer only once the wait has earned it.
+  const waiting = useDeferredPending(loading)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [expanded, setExpanded] = useState<string | null>(focusSendId || null)
   const [busy, setBusy] = useState(false)
@@ -131,7 +135,7 @@ export function SendApprovalDeck({
       )}
 
       {loading ? (
-        <div className="px-4 py-5 text-center text-[12px] text-white/35">Loading queue…</div>
+        <SkeletonList rows={3} card={false} quiet={!waiting} />
       ) : sends.length === 0 ? (
         <div className="px-4 py-5 text-center text-[12px] text-white/35">
           Queue is clear — nothing waiting on you.

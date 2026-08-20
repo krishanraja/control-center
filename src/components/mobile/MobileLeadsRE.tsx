@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Flame, Layers, ChevronRight, Target, Sparkles } from 'lucide-react'
-import { MobileShell, TabHeader, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+import { MobileShell, TabHeader,
+  HeaderSubtitleSkeleton, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { MobileShell as MobileStage } from './MobileShell'
 import { ContactImportDropzone } from '../ContactImportDropzone'
 import { ventureDisplayName } from '../ContactSourcePill'
@@ -258,7 +259,7 @@ export function MobileLeadsRE(_props: Props = {}) {
       header={
         <TabHeader
           title="Network"
-          subtitle={loading ? 'Loading…' : `${total} contacts`}
+          subtitle={loading ? <HeaderSubtitleSkeleton w={112} /> : `${total} contacts`}
           trailing={
             <button
               onClick={() => { h.tap(); setShowImport(s => !s) }}
