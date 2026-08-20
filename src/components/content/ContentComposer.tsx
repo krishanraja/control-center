@@ -18,6 +18,7 @@ import {
 import { Working } from '../shared/Working'
 import { useWork } from '../../lib/loadingVoice'
 import { useElapsed } from '../../hooks/useAsyncAction'
+import { streamText } from '../../lib/streamText'
 // ─────────────────────────────────────────────────────────────────────────
 // ContentComposer — the full-screen deep-work surface for ONE piece.
 //
@@ -424,19 +425,36 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
     const scoped = !!selection
     h.heavy(); setBusy(key); setBusyLabel(opts.label)
     try {
-      const r = await fetch(`/api/content-ideas/${idea.id}/revise`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: opts.mode, value: opts.value, hint: opts.hint, instruction: opts.instruction,
-          selection: selection || undefined,
-          source_text: scoped ? draft : (preview?.text ?? draft),
-        }),
-      })
-      const j = await r.json()
-      if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
+      const label = scoped ? `${opts.label} · selection` : opts.label
+      let live = ''
+      const { data } = await streamText<{ revised?: string }>(
+        `/api/content-ideas/${idea.id}/revise`,
+        {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: opts.mode, value: opts.value, hint: opts.hint, instruction: opts.instruction,
+            selection: selection || undefined,
+            source_text: scoped ? draft : (preview?.text ?? draft),
+          }),
+        },
+        {
+          onText: chunk => {
+            live += chunk
+            // Unscoped: the fragment IS the whole revised draft, so it can fill
+            // the preview as it is written. Scoped: the model returns only the
+            // selected passage while `revised` is the full draft with that
+            // passage spliced in, so streaming it here would replace the
+            // document with the paragraph.
+            if (!scoped) setPreview({ label, text: live })
+          },
+          jsonText: body => body.revised || '',
+        },
+      )
       setAdjust(false)
       if (scoped) setSelection('')
-      setPreview({ label: scoped ? `${opts.label} · selection` : opts.label, text: j.revised }); h.success()
+      // Always land on the server's finished text: it has been through
+      // sanitizeVoice and, when scoped, spliced back into the full draft.
+      setPreview({ label, text: data?.revised ?? live }); h.success()
     } catch (e: any) { h.error(); toast(`${opts.label} failed: ${e?.message || 'error'}`, 'error') }
     finally { setBusy(null) }
   }
@@ -1708,17 +1726,25 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
     const scoped = !!selection
     h.heavy(); setBusy(`${mode}:${value}`)
     try {
-      const r = await fetch(`/api/content-ideas/${idea.id}/revise`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode, value, hint, instruction,
-          selection: selection || undefined,
-          source_text: scoped ? draft : (preview ?? draft),
-        }),
-      })
-      const j = await r.json()
-      if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
-      setPreview(j.revised); h.success()
+      let live = ''
+      const { data } = await streamText<{ revised?: string }>(
+        `/api/content-ideas/${idea.id}/revise`,
+        {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode, value, hint, instruction,
+            selection: selection || undefined,
+            source_text: scoped ? draft : (preview ?? draft),
+          }),
+        },
+        {
+          // Same rule as runRevise: only the unscoped fragment is the whole
+          // draft, so only that one is safe to show as it arrives.
+          onText: chunk => { live += chunk; if (!scoped) setPreview(live) },
+          jsonText: body => body.revised || '',
+        },
+      )
+      setPreview(data?.revised ?? live); h.success()
       if (scoped) { onClearSelection(); toast('Revised just that passage.', 'success') }
     } catch (e: any) { h.error(); toast(`Refine failed: ${e?.message || 'error'}`, 'error') }
     finally { setBusy(null) }

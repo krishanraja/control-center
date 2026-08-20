@@ -14,6 +14,7 @@ import { useLikelyReasons } from '../../hooks/useLikelyReasons'
 import { supabase } from '../../lib/supabase'
 import { Modal } from '../shared/Modal'
 import { Skeleton } from '../shared/Skeleton'
+import { streamText } from '../../lib/streamText'
 
 interface StandingNote { id: string; text: string; at: string }
 
@@ -81,6 +82,9 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   const [saving, setSaving] = useState(false)
   const [preview, setPreview] = useState<{ label: string; md: string } | null>(null)
   const [magicBusy, setMagicBusy] = useState<string | null>(null)
+  // The revision as it arrives, shown while it is being written. Separate from
+  // `preview` on purpose: see runMagic.
+  const [magicStream, setMagicStream] = useState('')
   const [showVersions, setShowVersions] = useState(false)
   const [fanout, setFanout] = useState<Set<string>>(readFanoutPref)
   // The fan-out list is five checkboxes that wrap to three rows on a phone, for a
@@ -218,15 +222,30 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
       const selection = editor && !editor.state.selection.empty
         ? editor.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, '\n')
         : undefined
-      const r = await contentV2Api<{ preview: string }>(`/api/briefs/${week}/revise`, {
-        method: 'POST',
-        body: JSON.stringify({ mode: instruction ? undefined : mode, instruction, selection }),
-      })
-      setPreview({ label, md: r.preview })
+      // The revision streams, but it CANNOT stream into `preview`. That value
+      // feeds diffSections, and half a document diffed against a whole one reads
+      // as "everything deleted" on every chunk. So the arriving text goes to its
+      // own live panel, and the diff is computed once, on the finished markdown
+      // the server has already sanitised.
+      setMagicStream('')
+      const { data, text } = await streamText<{ preview?: string }>(
+        `/api/briefs/${week}/revise`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: instruction ? undefined : mode, instruction, selection }),
+        },
+        {
+          onText: chunk => setMagicStream(s => s + chunk),
+          jsonText: body => body.preview || '',
+        },
+      )
+      setPreview({ label, md: data?.preview ?? text })
     } catch (e) {
       setError(String((e as Error).message || e))
     } finally {
       setMagicBusy(null)
+      setMagicStream('')
     }
   }, [dirty, save, editor, week])
 
@@ -515,6 +534,17 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
           className="px-4 sm:px-6 pt-2.5 border-t border-white/[0.07] flex-shrink-0 bg-base"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
         >
+        {/* The rewrite, arriving. Sits directly above the buttons that started
+            it, so the answer is at the point of action rather than somewhere
+            else on the page. Reversed column keeps the newest line in view
+            without a scroll listener fighting the user. */}
+        {magicBusy && magicStream && (
+          <div className="mb-2.5 max-h-28 overflow-hidden rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2">
+            <p className="text-[11.5px] leading-relaxed text-white/50 whitespace-pre-wrap [direction:ltr]">
+              …{magicStream.slice(-320)}
+            </p>
+          </div>
+        )}
         {!editingClosed ? (
           <div className="flex gap-1.5 flex-wrap items-center">
             {MAGIC.map(m => (

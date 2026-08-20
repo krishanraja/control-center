@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from './_supabase.js'
 import { goalsSpine } from './_goals.js'
+import { openStream, send, fail, streamClaude } from './_stream.js'
 
 /**
  * POST /api/ask-marcus
@@ -87,38 +88,41 @@ Rules:
 
   const userMessage = `Question: ${question}\n\n${goalsBlock}\n\nGrounding (live data):\n${grounding}`
 
+  // Streamed. This is a question a human asked and is now sitting in front of,
+  // and the answer took 20 to 40 seconds to arrive in one piece. The first
+  // sentence exists about two seconds in; withholding it until the last
+  // sentence is written was the entire wait.
+  //
+  // The client falls back to JSON on any route that does not stream, so this
+  // conversion is local to this file.
+  openStream(res)
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 600,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userMessage }],
-      }),
-    })
-    if (!r.ok) {
-      const text = await r.text()
-      res.status(502).json({ error: `anthropic_${r.status}`, detail: text.slice(0, 500) })
-      return
-    }
-    const json = await r.json() as any
-    const reply = (json.content?.[0]?.text || '').trim()
+    const reply = (await streamClaude({
+      apiKey,
+      model: MODEL,
+      maxTokens: 600,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }],
+      onText: chunk => send(res, 'delta', { text: chunk }),
+    })).trim()
 
-    // Log to audit so we can see what Krish actually asks.
+    // Log to audit so we can see what Krish actually asks. After the stream, on
+    // the accumulated text: the ledger still wants the whole answer.
     await supabase.from('audit_log').insert({
       event_type: 'ask_marcus',
       actor: 'krish',
       details: { question, reply: reply.slice(0, 1000) },
     }).then(() => {}, () => {})
 
-    res.status(200).json({ reply, grounding_used: grounding })
+    send(res, 'done', { reply, grounding_used: grounding })
+    res.end()
   } catch (err: any) {
-    res.status(500).json({ error: 'anthropic_failed', detail: String(err?.message || err) })
+    // Headers are already out, so the status is 200 forever. Reported in-band
+    // or it reads to the client as a successful empty answer.
+    fail(res, 'anthropic_failed', String(err?.message || err))
   }
 }
+
+// Well inside the platform ceiling, and explicit: this route had no maxDuration
+// at all, so it inherited whatever the account default happened to be.
+export const config = { maxDuration: 120 }

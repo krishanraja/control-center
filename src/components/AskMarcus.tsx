@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Send, Sparkles } from 'lucide-react'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
+import { streamText } from '../lib/streamText'
+import { useWork } from '../lib/loadingVoice'
+import { useElapsed } from '../hooks/useAsyncAction'
+import { Pending } from './shared/Pending'
+import { Working } from './shared/Working'
 
 interface Exchange {
   id: string
@@ -26,6 +31,8 @@ export function AskMarcus() {
   const [question, setQuestion] = useState('')
   const [history, setHistory] = useState<Exchange[]>([])
   const [busy, setBusy] = useState(false)
+  const marcus = useWork('ask.marcus')
+  const elapsed = useElapsed(busy)
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
   const { toast } = useToast()
   const h = useHaptics()
@@ -41,15 +48,27 @@ export function AskMarcus() {
     setQuestion('')
     setBusy(true)
     try {
-      const r = await fetch('/api/ask-marcus', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q }),
-      })
-      const json = await r.json()
-      if (!r.ok) throw new Error(json.error || String(r.status))
+      await streamText<{ reply?: string }>(
+        '/api/ask-marcus',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: q }),
+        },
+        {
+          // Append as it lands. The exchange stops being `loading` on the first
+          // chunk, because from that moment there is something to read and a
+          // placeholder over the top of it would be a lie.
+          onText: chunk => setHistory(prev => prev.map(ex =>
+            ex.id === id ? { ...ex, reply: (ex.reply || '') + chunk, loading: false } : ex,
+          )),
+          // A route that has not been converted still answers with JSON; this
+          // is what makes it arrive as one delta instead of nothing.
+          jsonText: body => body.reply || '',
+        },
+      )
       h.success()
-      setHistory(prev => prev.map(ex => ex.id === id ? { ...ex, reply: json.reply, loading: false } : ex))
+      setHistory(prev => prev.map(ex => ex.id === id ? { ...ex, loading: false } : ex))
     } catch (err: any) {
       h.error()
       const msg = String(err?.message || err)
@@ -98,7 +117,7 @@ export function AskMarcus() {
             </div>
             <div className="flex items-start gap-2">
               <span className="text-[10px] uppercase tracking-[0.12em] text-violet-300 mt-0.5 flex-shrink-0">M</span>
-              {ex.loading && <p className="text-[12px] text-white/45 italic">Thinking…</p>}
+              {ex.loading && <Pending label={marcus.label} elapsedMs={elapsed} expectedMs={marcus.expectedMs} />}
               {ex.error   && <p className="text-[12px] text-red-300">{ex.error}</p>}
               {ex.reply   && <p className="text-[13px] text-white/85 leading-snug whitespace-pre-wrap">{ex.reply}</p>}
             </div>
@@ -130,8 +149,8 @@ export function AskMarcus() {
           disabled={busy || !question.trim()}
           className="px-3 py-2.5 rounded-lg text-[12px] font-semibold bg-violet-500/30 border border-violet-500/40 text-violet-100 hover:bg-violet-500/40 disabled:opacity-40 flex items-center gap-1"
         >
-          <Send size={12} />
-          {busy ? '…' : 'Ask'}
+          {busy ? <Working size={12} /> : <Send size={12} />}
+          Ask
         </button>
       </form>
     </section>

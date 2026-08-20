@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
-import { callClaude, corpusForChannel, laneToCorpusChannel, loadCorpus, loadVoiceBlock, materialsContext, pathId, preamble, readMaterials, sanitizeVoice, VOICE_GUARDRAILS } from '../../_content.js'
+import { openStream, send, fail, streamClaude } from '../../_stream.js'
+import { corpusForChannel, laneToCorpusChannel, loadCorpus, loadVoiceBlock, materialsContext, pathId, preamble, readMaterials, sanitizeVoice, VOICE_GUARDRAILS } from '../../_content.js'
 import { buildHumourSystem, isHumourRegister } from '../../_humor.js'
 
 // POST /api/content-ideas/:id/revise
@@ -82,16 +83,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ? `${ctx}Rewrite ONLY the SELECTED passage below. ${directive}${extra}\n\nFULL DRAFT (for context, do not return it):\n${sourceText}\n\nSELECTED PASSAGE (return only the rewritten version of this):\n${target}`
     : `${ctx}Rewrite the draft below. ${directive}${extra}\n\nDRAFT:\n${target}`
 
+  // Streamed. The user is watching their own draft being rewritten, which is
+  // the single best case for streaming in the product: the text appearing IS
+  // the progress indicator, and no honest placeholder can beat it.
+  //
+  // What streams is the raw fragment, as a preview. What the client APPLIES is
+  // the `revised` value in the `done` event, after sanitizeVoice and (for an
+  // in-place edit) the splice back into the full draft. Those cannot be done
+  // per-token, and applying half-sanitised text would put em dashes into the
+  // draft that the voice pass exists to remove.
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return res.status(503).json({ ok: false, error: 'ANTHROPIC_API_KEY not configured' })
+
+  openStream(res)
   let revisedFragment: string
   try {
-    revisedFragment = (await callClaude({
-      system, user,
-      model: humour ? 'claude-opus-4-8' : undefined,
+    revisedFragment = (await streamClaude({
+      apiKey,
+      model: humour ? 'claude-opus-4-8' : 'claude-sonnet-4-6',
       maxTokens: mode === 'length' && b.value === 'long' ? 3200 : 2200,
-      temperature: humour ? 0.8 : 0.55,
+      system,
+      messages: [{ role: 'user', content: user }],
+      onText: chunk => send(res, 'delta', { text: chunk }),
     })).trim()
   } catch (e: any) {
-    return res.status(502).json({ ok: false, error: String(e?.message || e) })
+    return fail(res, 'revise_failed', String(e?.message || e))
   }
   // Strip stray surrounding quotes / em dashes the model may have slipped in.
   revisedFragment = sanitizeVoice(revisedFragment.replace(/^["'`]+|["'`]+$/g, ''))
@@ -106,7 +122,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .update({ meta: { ...meta, revisions: revisions.slice(0, 20) }, updated_at: new Date().toISOString() })
     .eq('id', id)
 
-  return res.status(200).json({ ok: true, revised, mode, value: b.value || null })
+  send(res, 'done', { ok: true, revised, mode, value: b.value || null })
+  return res.end()
 }
 
 // Claude/webhook calls here can run 20-60s; raise the function ceiling above

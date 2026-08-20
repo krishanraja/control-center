@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
-import { callClaude, loadVoiceBlock, preamble, sanitizeVoice, VOICE_GUARDRAILS } from '../../_content.js'
+import { loadVoiceBlock, preamble, sanitizeVoice, VOICE_GUARDRAILS } from '../../_content.js'
+import { openStream, send, fail, streamClaude } from '../../_stream.js'
 import { loadStandingNotes, standingNotesPrompt } from '../../_briefNotes.js'
 
 // POST /api/briefs/:week/revise   body: { mode, instruction?, selection? }
@@ -64,13 +65,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     `DRAFT:\n${brief.body_md}`,
   ].filter(Boolean).join('\n\n')
 
+  // Streamed: a whole-brief revision is the longest of these, and the editor
+  // shows the result as a preview the user reads before accepting. Watching it
+  // arrive is strictly better than watching a rail for a minute.
+  //
+  // The raw text streams as the preview; the `done` payload carries the version
+  // that has been through sanitizeVoice and the fence strip, and that is the
+  // one the editor accepts. The length guard also only means anything against
+  // the finished text.
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return res.status(503).json({ ok: false, error: 'ANTHROPIC_API_KEY not configured' })
+
+  openStream(res)
   try {
-    const out = await callClaude({ model: 'claude-sonnet-4-6', maxTokens: 4000, temperature: 0.35, system, user })
+    const out = await streamClaude({
+      apiKey,
+      model: 'claude-sonnet-4-6',
+      maxTokens: 4000,
+      system,
+      messages: [{ role: 'user', content: user }],
+      onText: chunk => send(res, 'delta', { text: chunk }),
+    })
     const preview = sanitizeVoice(out.trim().replace(/^```(?:markdown|md)?\n?|\n?```$/g, ''))
-    if (!preview || preview.length < 100) return res.status(502).json({ ok: false, error: 'revision came back empty' })
-    return res.json({ ok: true, preview })
+    if (!preview || preview.length < 100) return fail(res, 'revision came back empty')
+    send(res, 'done', { ok: true, preview })
+    return res.end()
   } catch (e: unknown) {
-    return res.status(502).json({ ok: false, error: String((e as Error)?.message || e) })
+    return fail(res, 'revise_failed', String((e as Error)?.message || e))
   }
 }
 
