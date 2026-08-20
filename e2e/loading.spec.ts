@@ -161,3 +161,63 @@ test('a depleted day slows the wait rather than hurrying it', async ({ page }) =
   })
   expect(dial).toBe('2.2s')
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Rung 2, and the streaming path underneath it.
+
+/** A roster, so the loading voice can resolve a display name from a slug the
+ *  way it does in production. `tasks` is required: deriveStatus reads it
+ *  unguarded, so omitting it throws inside the map, the whole roster silently
+ *  stays empty, and every wait quietly falls back to neutral phrasing. Which is
+ *  the fallback behaving correctly, and impossible to tell apart from a bug. */
+async function withRoster(page: Page) {
+  await page.route('**/api/agents*', (r: Route) => r.fulfill({ json: {
+    updated_at: new Date().toISOString(),
+    agents: [
+      { id: 'marcus', name: 'marcus', human_name: 'Marcus', role: 'BD Intelligence', model: 'sonnet', pod: 'revenue', tasks: { blocked: 0, active: 0, total: 0, done: 0 } },
+      { id: 'cleo', name: 'cleo', human_name: 'Cleo', role: 'Content', model: 'sonnet', pod: 'growth', tasks: { blocked: 0, active: 0, total: 0, done: 0 } },
+    ],
+  } }))
+}
+
+for (const theme of ['dark', 'light'] as const) {
+  test(`a model wait names the agent, shows the clock, then streams (${theme})`, async ({ page }) => {
+    await setTheme(page, theme)
+    await mock(page, 0)
+    // Registered AFTER the catch-all: Playwright matches handlers in reverse
+    // registration order, so a specific route registered first never runs.
+    await withRoster(page)
+    await page.route('**/api/ask-marcus', async (r: Route) => {
+      await sleep(4500)
+      await r.fulfill({
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+        body:
+          'event: delta\ndata: {"text":"Raise it. "}\n\n' +
+          'event: delta\ndata: {"text":"Fractionl Circle is the only line with pricing power right now, "}\n\n' +
+          'event: delta\ndata: {"text":"and the last three renewals cleared without a discount ask."}\n\n' +
+          'event: done\ndata: {"reply":"ok"}\n\n',
+      })
+    })
+
+    await page.goto('/#/exec')
+    const ask = page.getByPlaceholder('Ask something pointed…')
+    await ask.waitFor({ timeout: 20_000 })
+    await ask.fill('Should I raise Fractionl Circle pricing?')
+    await ask.press('Enter')
+
+    const status = page.getByRole('status').filter({ hasText: /thinking/i }).first()
+    await expect(status).toBeVisible({ timeout: 5_000 })
+    await page.waitForTimeout(3400)
+    const line = await status.innerText()
+    // Krish's call: a model-backed wait names who is doing the work, resolved
+    // from the roster rather than typed into the component.
+    expect(line).toContain('Marcus is thinking')
+    // Past three seconds the wait admits how long it has been running, which is
+    // what separates "slow" from "hung".
+    expect(line).toMatch(/\d+s/)
+
+    // And the answer arrives in pieces rather than all at once at the end.
+    await expect(page.getByText(/pricing power right now/)).toBeVisible({ timeout: 15_000 })
+  })
+}
