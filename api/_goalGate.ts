@@ -17,10 +17,15 @@ import { loadGoalMetrics, metricsPrompt, type GoalMetrics } from './_goalMetrics
 //     not have.
 // So each rung requires different dimensions, and a goal entered at the wrong
 // rung is a distinct verdict from a goal that is badly written.
+//
+// TWO RUNGS (2026-08-20 recompose). mid_term and venture_objective retired with
+// zero rows: the canon is OS goals → this week's objectives → today's 3, and a
+// weekly goal names the OS goal it serves directly. A weekly goal may carry an
+// optional venture tag; it is no longer a separate rung.
 
-export type Horizon = 'os' | 'mid_term' | 'weekly' | 'venture_objective'
+export type Horizon = 'os' | 'weekly'
 
-export const HORIZONS: Horizon[] = ['os', 'mid_term', 'weekly', 'venture_objective']
+export const HORIZONS: Horizon[] = ['os', 'weekly']
 
 export interface GoalCheck { id: string; label: string; pass: boolean; detail: string }
 
@@ -94,17 +99,6 @@ export function runGoalChecks(
       opts.parentId ? 'parent set' : `a ${horizon} goal needs a parent`)
   }
 
-  if (horizon === 'venture_objective') {
-    add('has_venture', 'Names a venture', !!opts.venture, opts.venture || 'no venture set')
-  }
-
-  if (horizon === 'mid_term') {
-    add('has_number', 'Carries a numeric target', hasNumericTarget(t),
-      hasNumericTarget(t) ? 'target quantity present' : 'a mid-term goal needs a number to be measurable; a date alone is not one')
-    add('has_date', 'Carries a date or window', HAS_DATE.test(t),
-      HAS_DATE.test(t) ? 'date present' : 'a mid-term goal needs an explicit date')
-  }
-
   if (horizon === 'os') {
     add('not_a_task', 'Is not a task', !TASK_VERB.test(t),
       TASK_VERB.test(t) ? 'opens with a task verb; this reads like work, not direction' : 'reads as direction')
@@ -124,47 +118,40 @@ export const GOAL_GATE_SYSTEM_PROMPT = `You judge whether a goal belongs at the 
 is written well enough to steer an autonomous system. You are a gate, not a
 coach. No encouragement, no motivational language, no em dashes.
 
-THE FOUR RUNGS. They are different sizes and hold different kinds of thing.
+THE TWO RUNGS. They are different sizes and hold different kinds of thing.
 
-os                 What the whole system is for. Rarely changes. Either a
-                   measurable outcome on a horizon of six months or more, OR a
-                   standing constraint that holds indefinitely. A standing
-                   constraint correctly has NO end date. Never require one.
-                   Not a task. Not a project.
+os       What the whole system is for. Rarely changes. Either a measurable
+         outcome on a horizon of six months or more, OR a standing constraint
+         that holds indefinitely. A standing constraint correctly has NO end
+         date. Never require one. Not a task. Not a project.
 
-mid_term           The next few months. Serves an OS goal. REQUIRES a numeric
-                   target and an explicit date between one and six months out.
-
-weekly             What moves a mid-term goal this week. A deliverable that can
-                   be finished in the named week. Measured done or not done. A
-                   number is OPTIONAL and often wrong here. Never demand one.
-                   The week is implicit, so never demand a date.
-
-venture_objective  One venture's slice of a mid-term goal. Needs a numeric
-                   target and a named venture. Inherits its parent's date.
+weekly   What moves an OS goal this week. A deliverable that can be finished
+         in the named week. Measured done or not done. A number is OPTIONAL
+         and often wrong here. Never demand one. The week is implicit, so
+         never demand a date. May carry a venture tag; that is context, not a
+         requirement.
 
 WHAT TO CHECK, BY RUNG:
-- Specific: required at every rung.
-- Measurable: os needs a metric OR a standing threshold. mid_term and
-  venture_objective need a number. weekly needs a nameable deliverable.
+- Specific: required at both rungs.
+- Measurable: os needs a metric OR a standing threshold. weekly needs a
+  nameable deliverable.
 - Achievable: judge against the LIVE FACTS given below. If a target implies a
   multiple of the current figure, state the multiple plainly and name what
   would have to change. Do not soften and do not invent figures.
-- Relevant: os is self-justifying. Every other rung must serve its parent.
+- Relevant: os is self-justifying. weekly must serve its named OS goal.
 - Time-bound: os needs a horizon of six months or more OR is standing.
-  mid_term needs an explicit date. weekly and venture_objective inherit.
+  weekly inherits the week.
 
 ANTI-PATTERNS, each of which is a revise:
 - An OS goal that is really a single task.
 - A weekly goal that is really a multi-month project.
-- A mid-term goal with no number, or with a date already in the past.
 - Several goals mashed into one string.
 - A goal whose success nobody could adjudicate. "Becomes a licensable asset"
   has no threshold that decides whether it happened.
 
 VERDICTS. Choose exactly one.
 - "pass": belongs at this rung and is written well enough to steer work.
-- "wrong_tier": it is a real goal but sized for a different rung. Set
+- "wrong_tier": it is a real goal but sized for the other rung. Set
   suggested_tier. This is NOT a writing problem, so keep issues short.
 - "revise": right rung, but it fails one or more dimensions above.
 
@@ -175,7 +162,7 @@ Output STRICT JSON only, no prose:
              "problem": "<what is wrong, one sentence>",
              "fix": "<what would fix it, one sentence>"}],
  "suggested_rewrite": "<the goal rewritten to pass, or null if it already passes>",
- "suggested_tier": "os" | "mid_term" | "weekly" | "venture_objective" | null,
+ "suggested_tier": "os" | "weekly" | null,
  "reasoning": "<one sentence on why this verdict>"}
 
 On "pass", issues must be [] and suggested_rewrite must be null.`
@@ -298,10 +285,7 @@ export async function gateGoal(
     return {
       verdict: 'revise',
       issues: failed.map(c => ({
-        dimension: c.id === 'has_date' ? 'Time-bound'
-          : c.id === 'has_number' ? 'Measurable'
-          : c.id === 'has_parent' || c.id === 'has_venture' ? 'Relevant'
-          : 'Specific',
+        dimension: c.id === 'has_parent' ? 'Relevant' : 'Specific',
         problem: c.detail,
         fix: `Fix: ${c.label.toLowerCase()}.`,
       })),

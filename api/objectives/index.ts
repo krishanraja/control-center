@@ -26,15 +26,15 @@ interface CreateBody {
   priority?: number | null
   status?: 'proposed' | 'active' | 'paused' | 'done' | 'dropped'
   concept_id?: string | null
-  /** Which rung of the ladder. Defaults to venture_objective. */
-  horizon?: 'os' | 'mid_term' | 'weekly' | 'venture_objective'
+  /** Which rung of the ladder. Required: 'os' or 'weekly'. */
+  horizon?: 'os' | 'weekly'
   /** Save despite a failing gate verdict. Recorded, never silent. */
   override?: boolean
   /** Required for every horizon except 'os': what this goal serves. */
   parent_id?: string | null
 }
 
-const ALLOWED_HORIZON = new Set(['os', 'mid_term', 'weekly', 'venture_objective'])
+const ALLOWED_HORIZON = new Set(['os', 'weekly'])
 const ALLOWED_STATUS = new Set(['proposed', 'active', 'paused', 'done', 'dropped'])
 
 function setCors(res: VercelResponse) {
@@ -139,15 +139,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: body.status || 'active',
       created_by: 'krish',
       source: 'krish_declared',
-      // The ladder (canon §0a.2). Defaults to venture_objective because that is
-      // what this endpoint historically created, but it can now create at ANY
-      // altitude, which is what makes one-place-to-enter-a-goal true rather
-      // than aspirational: before this, no UI could create an OS or mid-term
-      // goal at all, so two of the four horizons were unreachable.
-      horizon: ALLOWED_HORIZON.has(body.horizon as string)
-        ? body.horizon
-        : 'venture_objective',
+      // The ladder (canon §0a.2), two rungs since the 2026-08-20 recompose.
+      // Horizon is explicit: an endpoint that silently guesses the altitude is
+      // how rows end up belonging to no surface.
+      horizon: body.horizon,
       parent_id: body.parent_id || null,
+    }
+    if (!ALLOWED_HORIZON.has(body.horizon as string)) {
+      return res.status(400).json({ ok: false, error: "horizon required: 'os' or 'weekly'" })
     }
     // A non-OS goal with no parent is an orphan and the whole point of the
     // ladder is that it cannot happen silently. goals_health flags these; here
@@ -171,8 +170,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // is wrong instead of a habit nobody can see.
     let parentTitle: string | null = null
     if (row.parent_id) {
-      const { data: p } = await supabase.from('goals').select('title').eq('id', row.parent_id as string).maybeSingle()
-      parentTitle = (p as { title?: string } | null)?.title ?? null
+      const { data: p } = await supabase.from('goals').select('title, horizon').eq('id', row.parent_id as string).maybeSingle()
+      const parent = p as { title?: string; horizon?: string } | null
+      if (!parent) {
+        return res.status(400).json({ ok: false, error: 'parent_id does not name an existing goal' })
+      }
+      // A weekly goal serves an OS goal directly; there is no intermediate rung.
+      if (row.horizon === 'weekly' && parent.horizon !== 'os') {
+        return res.status(400).json({ ok: false, error: 'a weekly goal must serve an OS goal' })
+      }
+      parentTitle = parent.title ?? null
     }
     const verdict = await gateGoal(String(row.title), row.horizon as Horizon, {
       parentId: (row.parent_id as string | null) ?? null,

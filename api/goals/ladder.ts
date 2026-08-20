@@ -12,7 +12,11 @@ import { weekOfLabel } from '../_week.js'
 // Returns every rung plus its health, so the UI never has to compute staleness
 // or orphanhood itself and cannot disagree with `goals_health` about either.
 
-const HORIZONS = ['os', 'mid_term', 'weekly', 'venture_objective'] as const
+// Two rungs since the 2026-08-20 recompose: OS goals → this week's objectives.
+// (Today's 3 live in daily_focus, not here.) mid_term and venture_objective
+// retired with zero rows; a weekly goal serves an OS goal directly and may
+// carry an optional venture tag.
+const HORIZONS = ['os', 'weekly'] as const
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -43,8 +47,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const h = health.get((g as any).id) as any
     return {
       ...g,
-      // Legacy rows predate the ladder and were venture objectives in practice.
-      horizon: (g as any).horizon || 'venture_objective',
       is_stale: h?.is_stale ?? false,
       orphaned: h?.orphaned ?? false,
       days_since_touch: h?.days_since_touch ?? null,

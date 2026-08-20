@@ -10,11 +10,9 @@ import { PendingFlagModal } from './components/PendingFlagModal'
 import { QuickCaptureIdea } from './components/QuickCaptureIdea'
 import { IdeaCaptureModal, isInboxEnabled } from './components/inbox/IdeaCaptureModal'
 import { CaptureSpeedDial } from './components/CaptureSpeedDial'
-import { WeeklyFocusTakeover } from './components/objectives/WeeklyFocusTakeover'
 import { FocusRitual } from './components/home/FocusRitual'
 import { PilotGate } from './components/pilot/PilotGate'
 import { EveningShutdown } from './components/pilot/EveningShutdown'
-import { isFocusRitualEnabled } from './lib/homeV2'
 import { isSimplifiedIA } from './lib/iaV3'
 import { VALID_TAB_IDS } from './lib/tabs'
 import { useHashRoute } from './hooks/useHashRoute'
@@ -231,7 +229,7 @@ export default function App() {
                 style={{ zoom: 1.2, width: 'calc(100vw / 1.2)', height: 'calc(100dvh / 1.2)', '--z': '1.2' } as React.CSSProperties}
               >
                 <Suspense fallback={<MobileRouteFallback />}>
-                  {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome onNavigate={navigate} deepTask={params.task || null} deepDecision={params.decision || null} /></ErrorBoundary>}
+                  {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'today'     && <ErrorBoundary label="Today"><MobileToday lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
                   {tab === 'leads'     && <ErrorBoundary label="Leads"><MobileLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'relationships' && <ErrorBoundary label="Network">{isUiV2() ? <NetworkTabV2 narrow /> : <MobileLeadsRE onNavigate={navigate} />}</ErrorBoundary>}
@@ -277,7 +275,7 @@ export default function App() {
             ) : (
               <div className="h-full overflow-y-auto px-6 py-6">
                 <Suspense fallback={<DesktopRouteFallback />}>
-                  {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome onNavigate={navigate} deepTask={params.task || null} deepDecision={params.decision || null} /></ErrorBoundary>}
+                  {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday selectedTaskId={route.params.task || null} onSelectTask={(id) => navigate('today', id ? { task: id } : {})} lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
                   {tab === 'leads'     && <ErrorBoundary label="Leads"><DesktopLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'relationships' && <ErrorBoundary label="Network">{isUiV2() ? <NetworkTabV2 /> : <DesktopLeadsRE onNavigate={navigate} />}</ErrorBoundary>}
@@ -345,14 +343,9 @@ export default function App() {
           <QuickCaptureIdea />
           <IdeaCaptureModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
           <CaptureSpeedDial />
-          {/* Focus Ritual (unified): one guided stepper across portfolio / week /
-              today, mounted once so it z-stacks above both shells. It subsumes the
-              standalone WeeklyFocusTakeover, so the two are mutually exclusive. */}
-          {isFocusRitualEnabled() ? (
-            <FocusRitual narrow={narrow} tab={tab} onNavigate={navigate} />
-          ) : (
-            <WeeklyFocusTakeover narrow={narrow} tab={tab} />
-          )}
+          {/* Focus Ritual (unified): one guided stepper across week / today,
+              mounted once so it z-stacks above both shells. */}
+          <FocusRitual narrow={narrow} tab={tab} onNavigate={navigate} />
           {/* Evening shutdown: the small header button plus the after-5pm prompt.
               Tomorrow's ONE is chosen here, which is what red mode reads. */}
           {/* Pilot dock: shutdown + worry compiler, one piece of chrome above

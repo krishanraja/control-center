@@ -28,28 +28,27 @@ function walk(dir: string, out: string[] = []): string[] {
 
 const files = walk('src')
 
-// ── 1. only the ladder CREATES a goal ──────────────────────────────────────
+// ── 1. only the ONE WIRE PATH creates a goal ───────────────────────────────
 // The invariant is about goal ENTRY, not about every write. Sub-resource
 // writes are fine and are not a second version of a goal:
-//   /api/objectives/:id/milestones      a step under an existing goal
 //   /api/objectives/:id/nominate-*      accept or reject a proposal
-//   /api/objectives/:id  (PATCH)        re-order, re-level, drop
-//   /api/goals  (PATCH team_focus)      system_config, not a goal row
+//   /api/goals  (PATCH)                 mutate an existing goal by id
 // What must stay singular is the POST to a bare collection endpoint, because
 // that is what mints a new goal.
+//
+// The original rule allowed exactly one COMPONENT. That held until the Focus
+// Ritual's weekly step also legitimately needed to create weekly goals, so the
+// rule is now one MODULE: every surface that writes a goal goes through
+// src/lib/goalsApi.ts, and only that module may speak the wire protocol.
 const CREATE = /fetch\(\s*[`'"](?:\$\{[^}]*\})?\/api\/(goals|objectives)[`'"][\s\S]{0,200}?method:\s*'POST'/
 
-// Ratifying Marcus's re-level promotes a proposed objective, so it necessarily
-// creates a row. It is not hand-entry: the title comes from the proposal and
-// Krish only approves. Allowed on purpose, and named here so it stays a
-// deliberate exception rather than drift.
-const ALLOWED_CREATORS = new Set([LADDER, 'src/components/objectives/ObjectiveProposalReview.tsx'])
+const ALLOWED_CREATORS = new Set(['src/lib/goalsApi.ts'])
 
 for (const f of files) {
   if (ALLOWED_CREATORS.has(f)) continue
   const src = readFileSync(f, 'utf8')
   if (CREATE.test(src)) {
-    bad(`${f} POSTs a new goal; entry belongs to the ladder (${LADDER})`)
+    bad(`${f} POSTs a new goal; entry belongs to the one wire path (src/lib/goalsApi.ts)`)
   }
 }
 
@@ -84,7 +83,7 @@ for (const home of ['src/components/desktop/DesktopHome.tsx', 'src/components/mo
 
 // ── 4. every horizon is reachable from the one editor ──────────────────────
 const ladder = readFileSync(LADDER, 'utf8')
-for (const hz of ['os', 'mid_term', 'weekly', 'venture_objective']) {
+for (const hz of ['os', 'weekly']) {
   if (!new RegExp(`id:\\s*'${hz}'`).test(ladder)) {
     bad(`horizon '${hz}' has no rung in the ladder, so it can never be entered`)
   }
@@ -165,10 +164,11 @@ for (const f of files) {
 // written at an altitude some surface does not filter for, which is how rows
 // end up belonging to no surface and showing up on all of them.
 {
-  const CANON = ['os', 'mid_term', 'weekly', 'venture_objective']
+  const CANON = ['os', 'weekly']
   const sources: Array<[string, RegExp]> = [
     ['api/goals/ladder.ts', /const HORIZONS = \[([^\]]*)\]/],
     ['api/objectives/index.ts', /const ALLOWED_HORIZON = new Set\(\[([^\]]*)\]/],
+    ['api/_goalGate.ts', /const HORIZONS: Horizon\[\] = \[([^\]]*)\]/],
   ]
   for (const [file, re] of sources) {
     const m = readFileSync(file, 'utf8').match(re)
@@ -184,5 +184,5 @@ for (const f of files) {
   }
 }
 
-console.log(fail === 0 ? 'PASS  one editor, one display, four rungs, parents enforced' : `${fail} FAILURE(S)`)
+console.log(fail === 0 ? 'PASS  one wire path, one display, two rungs, parents enforced' : `${fail} FAILURE(S)`)
 process.exit(fail ? 1 : 0)

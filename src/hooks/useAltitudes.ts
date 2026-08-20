@@ -1,32 +1,33 @@
 import { useCallback, useState } from 'react'
-import { useObjectives } from './useObjectives'
-import { useWeeklyFocus, isWeeklyFocusEnabled } from './useWeeklyFocus'
+import { useGoalCanon } from './useGoalCanon'
 import { useDailyFocus, isFocusEnabled } from './useDailyFocus'
-import { isFocusRitualEnabled } from '../lib/homeV2'
-import { civilYmd } from '../lib/civilDate'
+import { civilYmd, weekOf } from '../lib/civilDate'
 import { usePilotStateContext } from '../contexts/PilotStateContext'
 
-// The unifying state machine behind the Focus Ritual. Every altitude shares one
-// lifecycle — Marcus proposes -> Krish ratifies -> it's "set" until its cadence
-// expires -> it goes stale -> it re-enters the queue. This hook composes the
-// three already-shared singleton readers (useObjectives / useWeeklyFocus /
-// useDailyFocus) into one descriptor per altitude. It opens NO new realtime
-// channels or fetches — it only derives state from caches already mounted on Home.
+// The staleness machine behind the canon: OS goals → this week's objectives →
+// today's 3. Each layer shares one lifecycle — set, then its cadence expires,
+// then it asks again. This hook composes the shared canon reader and the daily
+// focus reader into one descriptor per layer plus THE single contextual CTA
+// Home shows (one ask per screen; the highest stale layer wins).
 
-export type AltitudeId = 'portfolio' | 'weekly' | 'daily'
+export type AltitudeId = 'os' | 'weekly' | 'daily'
 export type AltitudeState = 'set' | 'stale' | 'unset'
 
 export interface Altitude {
   id: AltitudeId
   label: string
-  // 'set' = ratified and fresh; 'stale' = was set but its cadence expired or
-  // something changed; 'unset' = never set.
   state: AltitudeState
-  // True when this altitude is asking for a decision right now (stale/unset AND
-  // its cadence is active AND not snoozed). Drives the spine's amber + the ritual.
+  // True when this layer is asking for a decision right now (stale/unset AND
+  // its cadence is active AND not snoozed). Drives the amber + the ritual.
   needsAttention: boolean
   summary: string   // the current commitment, one line
-  count: number     // open decisions at this altitude
+  count: number     // open decisions at this layer
+}
+
+export interface CanonCta {
+  /** Which layer the one CTA serves. 'os' opens the ladder; the rest open the ritual. */
+  target: AltitudeId
+  label: string
 }
 
 const DISMISS_KEY = 'focus_ritual_dismissed_date'
@@ -39,89 +40,84 @@ function safeSet(key: string, val: string): void {
 }
 
 export interface AltitudesResult {
-  altitudes: Altitude[]            // always [portfolio, weekly, daily]
-  portfolio: Altitude
+  altitudes: Altitude[]            // always [os, weekly, daily]
+  os: Altitude
   weekly: Altitude
   daily: Altitude
-  pending: Altitude[]              // needsAttention, in altitude order
+  pending: Altitude[]              // needsAttention, in layer order
+  /** The ONE contextual ask Home renders. Null when everything is fresh. */
+  cta: CanonCta | null
   allSet: boolean                  // nothing pending (and not loading)
   loading: boolean
-  isMonday: boolean
   dismissedToday: boolean
   dismissToday: () => void
 }
 
 export function useAltitudes(): AltitudesResult {
-  const obj = useObjectives()
-  const wf = useWeeklyFocus()
+  const { canon, loading: canonLoading } = useGoalCanon()
   const df = useDailyFocus()
   const pilot = usePilotStateContext()
   const [, setV] = useState(0)
 
   // Capacity gates DEMAND, not availability. On a depleted day the OS stops
-  // asking for portfolio and weekly decisions, because reviewing objectives is
-  // exactly the scope-expanding move the pilot layer exists to interrupt. The
-  // daily altitude is deliberately never suppressed: one commitment is the
-  // floor, and it is what red mode already runs on. Every altitude stays
-  // reachable by tapping its pill, so nothing is taken away.
+  // asking for weekly planning, because reviewing the week is exactly the
+  // scope-expanding move the pilot layer exists to interrupt. The daily layer
+  // is deliberately never suppressed: one commitment is the floor, and it is
+  // what red mode already runs on. Every layer stays reachable by tapping it.
   const demandOk = pilot.profile.allowsHigherAltitudeDemand
 
-  const loading = obj.loading || wf.loading || df.loading
+  const loading = canonLoading || df.loading
   const todayYmd = civilYmd(new Date())
   const dismissedToday = safeGet(DISMISS_KEY) === todayYmd
 
-  // ── Portfolio ──────────────────────────────────────────────────────────────
-  // Needs attention when Marcus has nominated objectives to ratify, when the
-  // board is empty, or when it's over the soft cap. Otherwise it's set.
-  const noms = obj.nominations.length
-  const noActive = obj.active_count === 0
-  const overCap = obj.active_count > obj.soft_cap
-  // Marcus-proposed milestones across the active board still awaiting accept/reject.
-  const proposedMilestones = obj.active.reduce((s, o) => s + (o.proposed_milestone_count || 0), 0)
-  const portfolioNeeds = demandOk && (noms > 0 || noActive || overCap || proposedMilestones > 0)
-  const portfolio: Altitude = {
-    id: 'portfolio',
-    // Labelled Portfolio, not OS. This altitude counts VENTURE objectives; the
-    // ladder's top rung is the OS goal. Both were called OS, so Home read as a
-    // contradiction: "No active objectives" next to a live OS goal.
-    label: 'Portfolio',
-    state: noActive ? 'unset' : portfolioNeeds ? 'stale' : 'set',
-    needsAttention: portfolioNeeds,
-    summary: noActive
-      ? 'No venture objectives'
-      : noms > 0
-        ? `${noms} proposed to review`
-        : proposedMilestones > 0
-          ? `${proposedMilestones} milestone${proposedMilestones === 1 ? '' : 's'} to review`
-          : overCap
-            ? `${obj.active_count} active · over cap`
-            : `${obj.active_count} active objective${obj.active_count === 1 ? '' : 's'}`,
-    count: noms + proposedMilestones,
+  // ── OS ─────────────────────────────────────────────────────────────────────
+  // The top of the canon. Rarely changes; stale after 90 untouched days
+  // (goals_health). Empty only at cold start, and then it blocks everything
+  // below (a weekly goal must name the OS goal it serves).
+  const osGoals = canon?.os ?? []
+  const osStaleCount = osGoals.filter(g => g.is_stale).length
+  const osEmpty = !canonLoading && osGoals.length === 0
+  const os: Altitude = {
+    id: 'os',
+    label: 'OS',
+    state: osEmpty ? 'unset' : osStaleCount > 0 ? 'stale' : 'set',
+    needsAttention: osEmpty || osStaleCount > 0,
+    summary: osEmpty
+      ? 'Set what the whole system is for'
+      : osStaleCount > 0
+        ? `${osStaleCount} stale`
+        : `${osGoals.length} standing`,
+    count: osEmpty ? 1 : osStaleCount,
   }
 
   // ── Weekly ─────────────────────────────────────────────────────────────────
-  // Participates when the weekly ritual is enabled (or the unified ritual flag is
-  // on, which subsumes it). Set once committed for the current ISO week; stale on
-  // a new uncommitted week with objectives to plan, until committed or snoozed.
-  const weeklyActive = isWeeklyFocusEnabled() || isFocusRitualEnabled()
-  const weeklySet = !!wf.thisWeek || wf.committedThisWeekLS
-  const weeklyNeeds = demandOk && weeklyActive && !weeklySet && obj.active.length > 0 && !wf.snoozedToday
+  // Active weekly rows ARE the current week's set: committing a new week
+  // retires the previous set. Fresh = at least one weekly row touched inside
+  // the current ISO week; anything else on a new week asks again.
+  const currentWeek = weekOf(new Date())
+  const weeklyRows = canon?.weekly ?? []
+  const touchedThisWeek = weeklyRows.some(g => {
+    try { return weekOf(new Date(g.updated_at)) === currentWeek } catch { return false }
+  })
+  const weeklySet = weeklyRows.length > 0 && touchedThisWeek
+  const weeklyDoneCount = weeklyRows.filter(g => (g.progress ?? 0) >= 100 || g.status === 'done').length
+  const weeklyNeeds = demandOk && !osEmpty && !weeklySet && !dismissedToday
   const weekly: Altitude = {
     id: 'weekly',
     label: 'Week',
-    state: weeklySet ? 'set' : weeklyActive ? 'stale' : 'unset',
+    state: weeklySet ? 'set' : weeklyRows.length > 0 ? 'stale' : 'unset',
     needsAttention: weeklyNeeds,
     summary: weeklySet
-      ? 'Week committed'
-      : obj.active.length === 0
-        ? 'No venture objectives to plan'
-        : 'Plan this week',
+      ? `${weeklyDoneCount}/${weeklyRows.length} done`
+      : weeklyRows.length > 0
+        ? 'New week. Set this week’s 3'
+        : 'Set this week’s objectives',
     count: weeklyNeeds ? 1 : 0,
   }
 
   // ── Daily ──────────────────────────────────────────────────────────────────
-  // The everyday altitude. Set once today's daily_focus row exists; unset (and
-  // demanding) until then, unless dismissed for the day.
+  // Set once today's daily_focus row exists; unset (and asking) until then,
+  // unless dismissed for the day. Always exactly 3 slots.
   const focusOn = isFocusEnabled()
   const dailySet = !!df.today
   const doneCount = df.today
@@ -133,15 +129,23 @@ export function useAltitudes(): AltitudesResult {
     label: 'Today',
     state: dailySet ? 'set' : 'unset',
     needsAttention: dailyNeeds,
-    summary: dailySet
-      ? `Today ${doneCount}/${pilot.profile.targets}`
-      : `Pick your ${pilot.profile.targets}`,
+    summary: dailySet ? `Today ${doneCount}/3` : 'Pick your 3',
     count: dailyNeeds ? 1 : 0,
   }
 
-  const altitudes = [portfolio, weekly, daily]
+  const altitudes = [os, weekly, daily]
   const pending = altitudes.filter(a => a.needsAttention)
   const allSet = !loading && pending.length === 0
+
+  // ── The ONE ask ────────────────────────────────────────────────────────────
+  // Highest stale layer wins; Home renders exactly one CTA. An empty OS rung
+  // outranks everything (nothing below can exist without it); OS staleness
+  // alone never interrupts (it shows as a quiet marker on the rung instead).
+  const cta: CanonCta | null = loading ? null
+    : osEmpty ? { target: 'os', label: 'Set your OS goals' }
+    : weeklyNeeds ? { target: 'weekly', label: 'Set this week’s 3' }
+    : dailyNeeds ? { target: 'daily', label: 'Pick your 3 for today' }
+    : null
 
   const dismissToday = useCallback(() => {
     safeSet(DISMISS_KEY, civilYmd(new Date()))
@@ -149,9 +153,8 @@ export function useAltitudes(): AltitudesResult {
   }, [])
 
   return {
-    altitudes, portfolio, weekly, daily,
-    pending, allSet, loading,
-    isMonday: wf.isMonday,
+    altitudes, os, weekly, daily,
+    pending, cta, allSet, loading,
     dismissedToday,
     dismissToday,
   }

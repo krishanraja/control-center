@@ -150,10 +150,11 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
   if (loading) return null
   if (today) return null
 
-  // How many targets today asks for. Capacity only ever lowers this. The daily
-  // altitude is never suppressed to zero: one commitment is the floor, and it
-  // is the same floor red mode already runs on.
-  const targetCount = pilot.profile.targets
+  // Today is always exactly 3. The daily_focus schema, the completion RPC and
+  // the calibrate route all hardcode 3 slots; a capacity-varied count is what
+  // shipped the "Pick your 2" lock the 3-only API rejected with an HTTP 400.
+  // Capacity still shapes the day upstream (demand suppression, red mode).
+  const targetCount = 3
 
   // Flatten Marcus's 7 picks (3 primary + up to 4 alternates) into a single
   // ordered list. Stable key per row.

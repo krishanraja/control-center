@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, ChevronDown, ChevronRight, Plus, Target, X } from 'lucide-react'
 import { useHaptics } from '../../hooks/useHaptics'
 import { Working } from '../shared/Working'
+import { createGoal, patchGoal, type GateVerdictWire } from '../../lib/goalsApi'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -20,21 +21,13 @@ const API = import.meta.env.VITE_API_URL ?? ''
 // and a non-OS goal must name its parent, so "what does this serve?" is asked
 // at creation instead of being audited later.
 
-export type Horizon = 'os' | 'mid_term' | 'weekly' | 'venture_objective'
+export type Horizon = 'os' | 'weekly'
 
 /**
- * The gate's verdict, as it comes back from the API. Declared here rather than
- * imported from api/: this is the wire format, and src/ does not compile
- * against the serverless functions.
+ * The gate's verdict, as it comes back from the API (wire format lives in
+ * src/lib/goalsApi.ts, the one goal wire path).
  */
-export interface GateVerdict {
-  verdict: 'pass' | 'revise' | 'wrong_tier'
-  issues: Array<{ dimension: string; problem: string; fix: string }>
-  suggested_rewrite: string | null
-  suggested_tier: Horizon | null
-  reasoning: string
-  model_used: boolean
-}
+export type GateVerdict = GateVerdictWire
 
 export interface LadderGoal {
   id: string
@@ -66,11 +59,13 @@ interface LadderData {
 // `noun` is the singular, article included, because it is interpolated into
 // button labels and empty states. Deriving it from `label` produced "Add a os
 // goals goal", which is how it read in production.
+// Two rungs since the 2026-08-20 recompose: the canon is OS goals → this
+// week's objectives → today's 3, and today's 3 live in daily_focus rather
+// than here. A weekly goal serves an OS goal directly and may carry an
+// optional venture tag.
 const RUNGS: Array<{ id: Horizon; label: string; noun: string; blurb: string }> = [
   { id: 'os', label: 'OS goals', noun: 'an OS goal', blurb: 'What the whole system is for. Rarely changes.' },
-  { id: 'mid_term', label: 'Mid-term', noun: 'a mid-term goal', blurb: 'The next few months. Serves an OS goal.' },
-  { id: 'weekly', label: 'This week', noun: 'a weekly goal', blurb: 'What moves a mid-term goal this week.' },
-  { id: 'venture_objective', label: 'Per venture', noun: 'a venture objective', blurb: 'One venture’s slice of a mid-term goal. Sits beside the week, not under it.' },
+  { id: 'weekly', label: 'This week', noun: 'a weekly goal', blurb: 'What moves an OS goal this week.' },
 ]
 
 // The venture list arrives from venture_registry via the ladder read. It used
@@ -78,10 +73,6 @@ const RUNGS: Array<{ id: Horizon; label: string; noun: string; blurb: string }> 
 // `venture_registry where active=true`, which is a copy that goes stale rather
 // than a mirror. FALLBACK only covers a cold read.
 const FALLBACK_VENTURES = ['mindmaker', 'mindmaker_live', 'mm_ctrl', 'full_time', 'fractionl_circle', 'fractionl_pulse']
-
-function slugify(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48)
-}
 
 export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded }: {
   variant?: 'desktop' | 'mobile'
@@ -147,9 +138,9 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
   useEffect(() => { void load() }, [load])
 
   // A non-OS rung must pick a parent, so the ladder can never be entered
-  // sideways. The valid parents for a rung are the rung above it.
+  // sideways. A weekly goal serves an OS goal directly.
   const parentRung = (hz: Horizon): Horizon | null =>
-    hz === 'os' ? null : hz === 'mid_term' ? 'os' : 'mid_term'
+    hz === 'os' ? null : 'os'
 
   const parentOptions = useMemo(() => {
     if (!adding || !data) return []
@@ -173,28 +164,21 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
     if (needsParent && !parentId) return
     setSaving(true)
     try {
-      const r = await fetch(`${API}/api/objectives`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: `${hz}:${slugify(raw)}`,
-          title: raw,
-          horizon: hz,
-          parent_id: needsParent ? parentId : null,
-          venture: hz === 'venture_objective' ? (venture || null) : null,
-          status: 'active',
-          override: opts.override === true,
-        }),
+      const result = await createGoal({
+        title: raw,
+        horizon: hz,
+        parentId: needsParent ? parentId : null,
+        venture: hz === 'weekly' ? (venture || null) : null,
+        override: opts.override === true,
       })
-      const j = await r.json().catch(() => ({}))
-      // 422 is the gate, not a failure. Keep the form open and attach the
-      // verdict to it so the fix is one edit away.
-      if (r.status === 422 && j?.error === 'goal_gate') {
-        setGate(j.gate as GateVerdict)
+      // A held gate is not a failure. Keep the form open and attach the
+      // verdict to it so the fix is one edit away. (`=== false`, not `!`:
+      // strict is off, so only the literal comparison narrows the union.)
+      if (result.ok === false) {
+        setGate(result.gate)
         h.error()
         return
       }
-      if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`)
       h.success()
       setAdding(null); setTitle(''); setParentId(''); setVenture(''); setGate(null)
       await load()
@@ -211,13 +195,7 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
   const patch = async (body: Record<string, unknown>) => {
     setSaving(true)
     try {
-      const r = await fetch(`${API}/api/goals`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const j = await r.json().catch(() => ({}))
-      if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`)
+      await patchGoal(body)
       await load()
       return true
     } catch (e) {
@@ -547,9 +525,9 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
             </div>
           )}
 
-          {adding === 'venture_objective' && (
+          {adding === 'weekly' && (
             <div className="mt-2">
-              <label className="block text-[11px] text-white/40 mb-1">Venture</label>
+              <label className="block text-[11px] text-white/40 mb-1">Venture (optional)</label>
               <select
                 value={venture}
                 onChange={e => setVenture(e.target.value)}

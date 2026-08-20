@@ -14,17 +14,12 @@ import { useFirstLoad } from '../shared/useDeferredPending'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { humanize } from '../shared/tokens'
 import { OsHealthStrip } from './OsHealthStrip'
-import { MrrTicker } from '../MrrTicker'
 import { DailyBriefBanner } from '../DailyBriefBanner'
 import { StreakPills } from '../StreakPills'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
 import { BetsStrip } from '../home/BetsStrip'
-import { CalibrationCard } from '../os/queue/CalibrationCard'
-import { DailyDriver } from '../focus/DailyDriver'
-import { GlanceHeader } from '../home/GlanceHeader'
-import { DecisionsInbox } from '../os/queue/DecisionsInbox'
 import { PulseGroup } from '../home/PulseGroup'
 import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
 import { splitDecisions } from '../../lib/decisionKinds'
@@ -33,8 +28,6 @@ import { BoardDaily } from '../home/BoardDaily'
 import { GrowthScoreboard } from '../home/GrowthScoreboard'
 import { isGrowthScoreboardEnabled } from '../../hooks/useGrowthMetrics'
 import { needsKrish } from '../../lib/taskQueue'
-import { isSimplifiedIA } from '../../lib/iaV3'
-import { isHomeV2Enabled, isFocusRitualEnabled } from '../../lib/homeV2'
 import { ShipLedgerCard } from '../pilot/ShipLedgerCard'
 import { DueTestsCard } from '../pilot/DueTestsCard'
 
@@ -70,25 +63,14 @@ function resolveMessage(ev: AuditEvent): string | null {
 const hasRenderableMessage = (ev: AuditEvent) => resolveMessage(ev) !== null
 
 /**
- * Mission Control. The CEO opens this once a day; within five seconds they
- * should know: "is the money up, what are my three plays today, and what are
- * my decisions." Everything that merely informs lives behind an explicit
- * ambient fold.
- *
- * Above the fold (the action loop): CriticalAlertBanner, GlanceHeader,
- * MrrTicker, ObjectivesPanel, DailyDriver, DecisionsInbox.
- * Behind the fold (PulseGroup, collapsed): RoomPreviews, CalibrationCard,
- * BetsStrip, MomentumStrip, StreakPills, OsHealthStrip, OsMissionHero +
- * WeeklyGoals, the Friday retro, ActivityTail. Nothing in there asks
- * anything of you.
+ * Home: where Krish locks in on what matters. The canon (OS goals → this
+ * week's objectives → today's 3) owns the screen; the ruling queue lives on
+ * OS → Queue and Home carries only its count. Everything that merely informs
+ * sits behind the ambient fold (retired entirely in the recompose).
  */
-export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }: {
+export function DesktopHome({ onNavigate }: {
   onNavigate?: NavigateFn
-  /** Legacy #/today deep links, forwarded by the simplified-IA alias layer. */
-  deepTask?: string | null
-  deepDecision?: string | null
 } = {}) {
-  const v2 = isHomeV2Enabled()
   const { intel, loading: intelLoading } = useHomeIntelligence()
   const [events, setEvents] = useState<AuditEvent[]>([])
   // The hero reads the OS rung straight off the ladder's payload. It used to
@@ -162,7 +144,6 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
   const firstPaint = useFirstLoad(intelLoading, Boolean(intel.generated_at))
   if (firstPaint) return <HomeSkeleton />
 
-  if (isFocusRitualEnabled()) {
     return (
       <div className="flex flex-col gap-4 max-w-[1280px] mx-auto w-full">
         <CriticalAlertBanner />
@@ -230,94 +211,6 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
         </PulseGroup>
       </div>
     )
-  }
-
-  return (
-    <div className="flex flex-col gap-4 max-w-[1280px] mx-auto w-full">
-
-      <CriticalAlertBanner />
-      {/* SHIP LEDGER: what left the machine. First, and always neutral. */}
-      <ShipLedgerCard variant="desktop" />
-      <DueTestsCard variant="desktop" />
-
-      <div className="flex items-center justify-end text-[10px] text-white/30 -mb-2 gap-3">
-        <span><kbd className="px-1 py-0.5 rounded bg-white/[0.05] border border-white/[0.08] text-white/55">⌘K</kbd> nav</span>
-        <span><kbd className="px-1 py-0.5 rounded bg-white/[0.05] border border-white/[0.08] text-white/55">⌘I</kbd> capture</span>
-      </div>
-
-      {/* GLANCE — money / today / waiting in one strip (HomeV2). */}
-      {v2 && <GlanceHeader variant="desktop" onNavigate={onNavigate} />}
-
-      {/* MONEY MACHINE — the only number that matters. */}
-      <MrrTicker variant="desktop" />
-
-      {/* GROWTH SCOREBOARD — the three engines: content subs / app subs / network. */}
-      {isGrowthScoreboardEnabled() && <GrowthScoreboard variant="desktop" />}
-
-      {/* OBJECTIVE LAYER: Krish's multi-week unlocks. The week sits structurally
-          above the day, so the daily spine below ladders up to it. */}
-
-      {/* DAILY SPINE — one journey: frame the day, lock 3, track, close.
-          Replaces the old NextAction / carry-over / bar / calibrator / top-three
-          pile-up with a single phase-driven orchestrator. */}
-      <div id="daily-driver" className="scroll-mt-4">
-        <DailyDriver />
-      </div>
-
-      {/* ACTION INBOX — what's waiting on you, acted on in one tap (HomeV2).
-          Under the simplified IA it renders unconditionally: Today is gone, so
-          Home must always carry the ruling queue regardless of the home flags. */}
-      {(v2 || isSimplifiedIA()) && <DecisionsInbox onNavigate={onNavigate} deepTask={deepTask} deepDecision={deepDecision} />}
-
-      {/* THE GOAL LADDER + the mission it serves. Asks for input, so it stays
-          above the ambient fold. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <OsMissionHero
-          osGoals={goalsData?.os_goals}
-          teamFocus={goalsData?.team_focus}
-          weekOf={goalsData?.week_of}
-          recommendedFocus={recommendedFocus}
-          onSaveFocus={handleSaveFocus}
-        />
-        <GoalLadder variant="desktop" showFocus={false} onDataLoaded={setGoalsData} />
-      </div>
-
-      {/* THE AMBIENT ROOM: everything below informs but never asks. Collapsed
-          behind an explicit fold so the action loop above owns the screen. */}
-      <PulseGroup>
-        {/* ROOM PREVIEWS: Content / Visibility / Leads. Two items per room,
-            one tap into the right detail. Replaces PipelineLanes. */}
-        <RoomPreviews onNavigate={onNavigate} variant="desktop" />
-
-        {/* GRADER: one-time calibration prompt; hides once all domains are fitted. */}
-        <CalibrationCard />
-
-        {/* BETS: compact strip replacing the standalone Bets tab. */}
-        <BetsStrip />
-
-        {/* MOMENTUM: 7-day pulse across MRR / leads / shipped / visibility. */}
-        <MomentumStrip
-          momentum={intel.momentum}
-          generatedAt={intel.momentum_at ?? intel.generated_at}
-          variant="desktop"
-        />
-
-        <StreakPills variant="desktop" />
-
-        <OsHealthStrip
-          onNavigate={onNavigate}
-          approvalCount={waiting.length}
-          live={live}
-        />
-
-        {/* WEEKLY RETRO: retro-only. The brief now lives in the daily spine's
-            ContextHeader, so this surface carries only the Friday retro. */}
-        <DailyBriefBanner blocking={false} variant="desktop" retroOnly />
-
-        <ActivityTail events={events} />
-      </PulseGroup>
-    </div>
-  )
 }
 
 function OsMissionHero({
