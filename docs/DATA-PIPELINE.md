@@ -412,7 +412,15 @@ errors in "perhaps check your credentials?" and puts the real cause in
 `error.description`.
 
 If `N8N_API_KEY` is not set the route returns 503 and says fleet health is
-UNKNOWN. It never reports a green fleet it did not look at.
+UNKNOWN. It never reports a green fleet it did not look at. (It has been set on
+the Vercel project since 2026-04-07 and is valid; n8n permits several live API
+keys at once, so this one is not the same string as any given out interactively.)
+
+Both this route and the staleness archive go through `guardCronRoute` in
+`api/_auth.ts`: `CRON_SECRET` on GET, and either that secret or the edge-gate
+cookie on POST. The older cron routes in this repo still accept an
+unauthenticated POST, which for `api/purge/run.ts` means an anonymous caller can
+hard-delete content. Use the helper when you touch one.
 
 ## Content freshness: expiry vs staleness
 
