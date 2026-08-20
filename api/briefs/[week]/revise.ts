@@ -81,6 +81,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const out = await streamClaude({
       apiKey,
       model: 'claude-sonnet-4-6',
+      // Matches briefs/assemble.ts, which writes the brief this route edits.
+      temperature: 0.4,
       maxTokens: 4000,
       system,
       messages: [{ role: 'user', content: user }],

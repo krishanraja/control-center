@@ -13,6 +13,7 @@
 //    returns a typed result with a verdict, including 'error' and 'budget'.
 //    Nothing here throws into the run loop.
 
+import { supportsSampling } from './_content.js'
 import { rootDomain } from './_trendGate.js'
 import { normalizeSpan, FETCH_BYTES, FETCH_TIMEOUT_MS, FETCH_CONCURRENCY } from './_gates.js'
 
@@ -65,9 +66,6 @@ export function budgetLeft(b: RunBudget): { model: number; search: number; fetch
 // report what it actually cost. Both matter here, so this is a separate, small,
 // metered client rather than a change to a helper twelve other routes rely on.
 
-/** Models that reject temperature/top_p/top_k with a 400. */
-const NO_SAMPLING_MODELS = /^claude-(opus-4-7|opus-4-8|opus-5|sonnet-5|fable-5|mythos-5)/
-
 /** USD per 1M tokens. Update alongside the model list. */
 export const MODEL_PRICES: Record<string, { in: number; out: number }> = {
   'claude-opus-4-8': { in: 5, out: 25 },
@@ -119,7 +117,7 @@ export async function callMetered(opts: MeteredOpts, budget: RunBudget): Promise
   // deliberately left OFF (omitting the field on opus-4-8 means no thinking),
   // because max_tokens caps thinking plus text together and this pipeline runs
   // on a bounded budget.
-  if (!NO_SAMPLING_MODELS.test(model)) body.temperature = opts.temperature ?? 0.2
+  if (supportsSampling(model)) body.temperature = opts.temperature ?? 0.2
 
   budget.modelCalls++
   try {

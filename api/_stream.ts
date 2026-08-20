@@ -1,4 +1,5 @@
 import type { VercelResponse } from '@vercel/node'
+import { supportsSampling } from './_content.js'
 
 /**
  * Server-sent events for the model calls a human sits and waits on.
@@ -49,6 +50,16 @@ export interface StreamClaudeOpts {
   maxTokens: number
   system: string
   messages: Array<{ role: 'user' | 'assistant'; content: string }>
+  /** Sampling temperature. Omit to let the caller inherit the provider default.
+   *
+   *  This was missing, and its absence was invisible: the non-streaming helpers
+   *  in _content.ts default to 0.5 / 0.6, and every route that uses them tunes
+   *  the value deliberately (0 for classifiers, 0.3 for graders, 0.5-0.6 for
+   *  drafting). The streaming path silently ran at the provider default instead,
+   *  so /content-ideas/:id/revise — the most-used rewrite surface in the
+   *  composer — was the one generative call in the content engine with no
+   *  temperature control at all. */
+  temperature?: number
   /** Called with each text delta, so the caller can both relay and accumulate. */
   onText: (chunk: string) => void
   signal?: AbortSignal
@@ -74,6 +85,7 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
       max_tokens: opts.maxTokens,
       system: opts.system,
       messages: opts.messages,
+      ...(opts.temperature !== undefined && supportsSampling(opts.model) ? { temperature: opts.temperature } : {}),
       stream: true,
     }),
     signal: opts.signal,

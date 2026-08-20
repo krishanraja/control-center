@@ -100,6 +100,10 @@ Rules:
     const reply = (await streamClaude({
       apiKey,
       model: MODEL,
+      // The answer has a rigid shape (one sentence, three bullets, a counter-take)
+      // and the prompt forbids hedging, so this sits at the low end of the Marcus
+      // range rather than the provider default it inherited before.
+      temperature: 0.4,
       maxTokens: 600,
       system: systemPrompt,
       messages: [{ role: 'user', content: userMessage }],
