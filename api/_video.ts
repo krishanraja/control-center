@@ -163,7 +163,8 @@ export async function buildVideoScript(o: {
     'You are cutting an existing piece into a spoken video script. The argument does not change. The length, register and scaffolding do.',
     voice ? `VOICE REFERENCE:\n${voice}` : '',
     register ? `CHANNEL REGISTER (bend the script toward THIS rather than doing a generic rewrite):\n${register}` : '',
-    `TARGET LENGTH: ${f.label}, about ${f.seconds} seconds, about ${f.words} spoken words. Treat the word count as a real budget: over it, the delivery stops being ${f.label} and becomes a longer video read quickly.`,
+    `TARGET LENGTH: ${f.label}. The spoken words across ALL beats must total no more than ${Math.round(f.words * 1.1)} words, and should land near ${f.words}. Count them before you answer.`,
+    `This is a hard ceiling, not a style note: ${f.words} words is what fits in ${f.seconds} seconds at an unhurried pace. Going over does not produce a longer ${f.label}, it produces a script that overruns, and at the short lengths that is the difference between a hook and a rambling clip. If the material will not fit, cut material. Do not speed up the delivery to make room.`,
     `STRUCTURE FOR THIS LENGTH (not a suggestion, this is what this length can carry):\n${f.shape}`,
     SPOKEN_RULES,
     'You may cut, compress, reorder and re-voice. You may NOT add a claim the source piece did not earn. EVERY NUMBER MUST APPEAR VERBATIM IN THE SOURCE. Do not compute totals, differences, percentages or rates, even when the arithmetic looks obvious.',
@@ -181,26 +182,48 @@ export async function buildVideoScript(o: {
     o.hint ? `INSTRUCTION: ${o.hint}` : '',
   ].filter(Boolean).join('\n\n')
 
-  const out = await callClaude({
-    timeoutMs: 110_000,
-    model: MODEL,
-    temperature: 0.5,
-    // A 20 minute script is ~3000 spoken words plus shot notes and JSON
-    // scaffolding, so the ceiling scales with the format or the long ones
-    // truncate mid-beat.
-    maxTokens: Math.min(8000, 1500 + f.words * 2),
-    system,
-    user,
-  })
-  const parsed = (robustJson(out) || {}) as { beats?: any[]; title?: string; hook?: string; notes?: string | null }
+  const ask = async (extra?: string) => {
+    const out = await callClaude({
+      timeoutMs: 110_000,
+      model: MODEL,
+      temperature: 0.5,
+      // A 20 minute script is ~3000 spoken words plus shot notes and JSON
+      // scaffolding, so the ceiling scales with the format or the long ones
+      // truncate mid-beat.
+      maxTokens: Math.min(8000, 1500 + f.words * 2),
+      system,
+      user: extra ? `${user}\n\n${extra}` : user,
+    })
+    const parsed = (robustJson(out) || {}) as { beats?: any[]; title?: string; hook?: string; notes?: string | null }
+    const beats: VideoBeat[] = (Array.isArray(parsed.beats) ? parsed.beats : [])
+      .map((x: any) => ({
+        t: String(x?.t || '').trim(),
+        say: sanitizeVoice(String(x?.say || '').trim()),
+        shot: String(x?.shot || '').trim(),
+      }))
+      .filter(x => x.say)
+    return { parsed, beats, words: beats.map(x => x.say).join(' ').split(/\s+/).filter(Boolean).length }
+  }
 
-  const beats: VideoBeat[] = (Array.isArray(parsed.beats) ? parsed.beats : [])
-    .map((x: any) => ({
-      t: String(x?.t || '').trim(),
-      say: sanitizeVoice(String(x?.say || '').trim()),
-      shot: String(x?.shot || '').trim(),
-    }))
-    .filter(x => x.say)
+  // Measure, then hold it to the budget. The word count is the one instruction
+  // the model reliably nods at and ignores: asked for a 15 second script at 40
+  // words it returned 77, which is a competent 31 second script and therefore
+  // the wrong object. One corrective pass with the real numbers in front of it
+  // fixes this where restating the rule up front does not.
+  const CEILING = 1.15
+  let attempt = await ask()
+  if (attempt.beats.length && attempt.words > f.words * CEILING) {
+    const trimmed = await ask(
+      `Your previous attempt ran to ${attempt.words} spoken words. The ceiling is ${Math.round(f.words * 1.1)} and the target is ${f.words}. ` +
+      `That is ${Math.round((attempt.words / f.words - 1) * 100)}% over, which at ${f.seconds} seconds overruns badly. ` +
+      'Cut material, do not compress delivery: drop the least load-bearing beat entirely, and shorten the sentences that remain. Keep the hook and the ending. Return the same JSON shape.',
+    ).catch(() => null)
+    // Keep the retry only if it actually helped; a shorter-but-empty answer is
+    // not an improvement.
+    if (trimmed?.beats.length && trimmed.words < attempt.words) attempt = trimmed
+  }
+
+  const { parsed, beats } = attempt
   if (!beats.length) throw new Error('script came back empty')
 
   const spoken = beats.map(x => x.say).join(' ')

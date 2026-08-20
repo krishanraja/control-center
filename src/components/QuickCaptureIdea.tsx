@@ -4,6 +4,7 @@ import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import { Modal } from './shared/Modal'
 import { Working } from './shared/Working'
+import { MicButton } from './shared/VoiceCapture'
 import { isTypingTarget } from '../lib/hotkeys'
 
 /**
@@ -110,6 +111,22 @@ export function ContentIdeaModal({ open, onClose }: { open: boolean; onClose: ()
             <p className="text-[11px] text-white/40">
               Enter to capture · Esc to close
             </p>
+            {/* Speaking an idea is the phone-shaped way to capture one, and the
+                mobile speed dial offered a mic on Task but not on Idea, which
+                is exactly backwards. Appends rather than replaces, matching
+                inbox/IdeaCaptureModal, so a second thought adds to the first
+                instead of wiping it. MicButton renders nothing where the
+                browser cannot record, so desktop loses nothing either. */}
+            <div className="flex items-center gap-2">
+              <MicButton
+                endpoint="/api/content-ideas/voice"
+                disabled={busy}
+                onJson={j => {
+                  const said = typeof j.text === 'string' ? j.text.trim() : ''
+                  if (said) setText(cur => (cur ? `${cur} ${said}` : said))
+                }}
+                onError={() => toast('Could not transcribe that. Type it instead.', 'error')}
+              />
             <button
               type="button"
               onClick={submit}
@@ -119,6 +136,7 @@ export function ContentIdeaModal({ open, onClose }: { open: boolean; onClose: ()
               {busy ? <Working size={12} /> : <Sparkles size={12} />}
               Capture
             </button>
+            </div>
           </div>
         </div>
     </Modal>

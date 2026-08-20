@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Sparkles } from 'lucide-react'
 import { useContentV2 } from '../../hooks/useContentV2'
 import { useRealtimeContentIdeas } from '../../hooks/useRealtimeContentIdeas'
 import { LaneRoom } from './LaneRoom'
@@ -6,6 +7,7 @@ import { LibraryRoom } from './LibraryRoom'
 import { ObligationStrip } from './ObligationStrip'
 import { MobileDecisionDeck } from './MobileDecisionDeck'
 import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
+import { StartFromResearch } from '../content/StartFromResearch'
 
 // The Content tab, organised around what Mindmaker Live actually publishes.
 //
@@ -36,6 +38,7 @@ const ROOMS: Array<{ id: RoomId; label: string }> = [
 
 export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
   const [room, setRoom] = useState<RoomId>('built')
+  const [starting, setStarting] = useState(false)
   const v2 = useContentV2()
   const { ideas } = useRealtimeContentIdeas()
 
@@ -58,29 +61,46 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
         ? <MobileDecisionDeck v2={v2} />
         : <ObligationStrip v2={v2} />}
 
-      <SegmentedNav<RoomId>
-        segments={ROOMS.map((r): Segment<RoomId> => {
-          const count = counts[r.id]
-          return {
-            id: r.id,
-            label: r.label,
-            badge: count ? (
-              <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 align-middle text-[10.5px] tabular-nums">{count}</span>
-            ) : undefined,
-          }
-        })}
-        value={room}
-        onChange={setRoom}
-        label="Content formats"
-        variant="pill"
-        testIdPrefix="content-room"
-      />
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <SegmentedNav<RoomId>
+            segments={ROOMS.map((r): Segment<RoomId> => {
+              const count = counts[r.id]
+              return {
+                id: r.id,
+                label: r.label,
+                badge: count ? (
+                  <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 align-middle text-[10.5px] tabular-nums">{count}</span>
+                ) : undefined,
+              }
+            })}
+            value={room}
+            onChange={setRoom}
+            label="Content formats"
+            variant="pill"
+            testIdPrefix="content-room"
+          />
+        </div>
+        {/* The only way into the engine that starts from something YOU have.
+            Everything else here is the machine's own findings, or a one-line
+            capture Cleo enriches later. */}
+        <button
+          type="button"
+          onClick={() => setStarting(true)}
+          data-testid="content-start-research"
+          className="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-[11.5px] font-semibold text-violet-200 hover:bg-violet-500/20"
+        >
+          <Sparkles size={12} /> Start from research
+        </button>
+      </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         {room === 'library'
           ? <LibraryRoom v2={v2} ideas={ideas} />
           : <LaneRoom lane={room} v2={v2} ideas={ideas} variant={variant} />}
       </div>
+
+      <StartFromResearch open={starting} onClose={() => setStarting(false)} />
     </div>
   )
 }
