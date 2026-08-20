@@ -8,6 +8,7 @@ import { usePendingCorrections, type PendingCorrection } from '../../hooks/usePe
 import { NextOrgHero } from '../org/NextOrgHero'
 import { SkillProposalsPanel } from '../shared/SkillProposalsPanel'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
+import { useElapsed } from '../../hooks/useAsyncAction'
 
 interface Agent {
   id: string
@@ -110,6 +111,7 @@ export function MobileOrg() {
   }
 
   const triggeringName = Object.entries(triggering).find(([, s]) => s === 'loading')?.[0] || null
+  const triggerElapsed = useElapsed(triggeringName !== null)
 
   const triggerAgent = async (name: string) => {
     h.heavy()
@@ -142,7 +144,14 @@ export function MobileOrg() {
         />
       }
     >
-      {triggeringName && <ProcessingOverlay label={`Triggering ${triggeringName}`} sub="Starting the agent run" />}
+      {triggeringName && (
+        <ProcessingOverlay
+          label={`Triggering ${triggeringName}`}
+          sub="Handing the run to n8n. It continues without you."
+          elapsedMs={triggerElapsed}
+          expectedMs={12_000}
+        />
+      )}
       <NextOrgHero
         corrections={pendingCorrections.data}
         agentCount={agents.length}

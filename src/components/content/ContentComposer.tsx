@@ -16,6 +16,8 @@ import {
   TONE_PRESETS, ZOOM_DEFAULT_HINT, laneToFactoryChannel, nextBestAction,
 } from '../../lib/contentEngine'
 import { Working } from '../shared/Working'
+import { useWork } from '../../lib/loadingVoice'
+import { useElapsed } from '../../hooks/useAsyncAction'
 // ─────────────────────────────────────────────────────────────────────────
 // ContentComposer — the full-screen deep-work surface for ONE piece.
 //
@@ -384,6 +386,11 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
   const [edit, setEdit] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [busyLabel, setBusyLabel] = useState<string>('')
+  // These run 30 to 60 seconds against a model. Without the clock they were
+  // indistinguishable from a hang, which is the exact failure useAsyncAction was
+  // written for and never reached.
+  const rewriteWork = useWork('content.revise')
+  const rewriteElapsed = useElapsed(busy !== null)
   const [preview, setPreview] = useState<{ label: string; text: string } | null>(null)
   const [sheet, setSheet] = useState<null | 'cleo' | 'cuts' | 'materials' | 'research'>(null)
   const [adjust, setAdjust] = useState(false)
@@ -486,7 +493,15 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      {busy && <ProcessingOverlay label={`Cleo is rewriting — ${busyLabel}`} sub="Locking the draft while it works" />}
+      {busy && (
+        <ProcessingOverlay
+          label={rewriteWork.label}
+          sub={rewriteWork.sub}
+          stage={busyLabel || null}
+          elapsedMs={rewriteElapsed}
+          expectedMs={rewriteWork.expectedMs}
+        />
+      )}
       {/* Draft: read by default, edit on demand */}
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         {!draft.trim() ? (
@@ -771,6 +786,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
   const h = useHaptics()
   const [running, setRunning] = useState(false)   // Final Review / direct save running
   const [runMsg, setRunMsg] = useState({ label: 'Cleo is reviewing your draft', sub: 'Final pass against the venture rubric' })
+  const runElapsed = useElapsed(running)
   const [menu, setMenu] = useState(false)
   const [pass, setPass] = useState<FinalPassData | null>(null) // review gate open
   const [result, setResult] = useState<SaveResult | null>(null)
@@ -876,7 +892,14 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
 
   return (
     <div className={`relative flex items-center ${block ? 'w-full' : ''}`}>
-      {running && <ProcessingOverlay label={runMsg.label} sub={runMsg.sub} />}
+      {running && (
+        <ProcessingOverlay
+          label={runMsg.label}
+          sub={runMsg.sub}
+          elapsedMs={runElapsed}
+          expectedMs={45_000}
+        />
+      )}
       <button
         type="button" onClick={runPass} disabled={running}
         title="Run Cleo's final review, then ship to Google Docs"
@@ -1056,6 +1079,10 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
   const [lensSel, setLensSel] = useState<Set<string>>(new Set(pass.lenses.map(l => l.key)))
   const [rerunning, setRerunning] = useState(false)
   const [shipping, setShipping] = useState(false)
+  const shipWork = useWork('docs.ship')
+  const rerunWork = useWork('content.rerun')
+  const shipElapsed = useElapsed(shipping)
+  const rerunElapsed = useElapsed(rerunning)
 
   // Re-seed when a re-run swaps the data.
   const reseed = (d: FinalPassData) => {
@@ -1105,8 +1132,22 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
 
   return (
     <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[100] flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-label="Final pass review">
-      {shipping && <ProcessingOverlay label="Shipping to Google Docs" sub="Building the formatted draft" />}
-      {rerunning && <ProcessingOverlay label="Cleo is re-reading" sub="Re-running with your lenses" />}
+      {shipping && (
+        <ProcessingOverlay
+          label={shipWork.label}
+          sub={shipWork.sub}
+          elapsedMs={shipElapsed}
+          expectedMs={shipWork.expectedMs}
+        />
+      )}
+      {rerunning && (
+        <ProcessingOverlay
+          label={rerunWork.label}
+          sub={rerunWork.sub}
+          elapsedMs={rerunElapsed}
+          expectedMs={rerunWork.expectedMs}
+        />
+      )}
       <button aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-fade-in" />
       <div className="relative w-full max-w-lg max-h-[92dvh] flex flex-col rounded-2xl border border-white/[0.1] bg-base shadow-2xl shadow-black/60">
         {/* Header */}

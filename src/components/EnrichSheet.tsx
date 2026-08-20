@@ -4,6 +4,8 @@ import { BottomSheet } from './mobile/BottomSheet'
 import { ProcessingOverlay } from './shared/ProcessingOverlay'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
+import { useWork } from '../lib/loadingVoice'
+import { useElapsed } from '../hooks/useAsyncAction'
 
 /** One target for the unified "Research this" sheet. Callers extract the existing
  *  brief from whatever field their entity stores it in (leads.raw_extraction,
@@ -68,13 +70,20 @@ export function EnrichSheet({ target, onClose }: { target: EnrichTarget | null; 
   }
 
   const brief = result?.summary || target?.existingBrief || null
+  const researchWork = useWork('lead.enrich')
+  const researchElapsed = useElapsed(busy && direct)
 
   return (
     <BottomSheet open={!!target} onClose={onClose} fullHeight={false} ariaLabel="Research this">
       {busy && (
         <ProcessingOverlay
-          label={direct ? 'Researching now' : 'Sending to enrich'}
-          sub={direct ? 'Apollo + web + Cleo are building a brief' : 'Queuing the deep-enrich workflow'}
+          label={direct ? researchWork.label : 'Sending to enrich'}
+          sub={direct ? researchWork.sub : 'Queuing the deep-enrich workflow'}
+          // Only the direct branch waits on real work. The queue branch returns
+          // as soon as the job is accepted, so a clock there would count the
+          // wrong thing.
+          elapsedMs={direct ? researchElapsed : 0}
+          expectedMs={direct ? researchWork.expectedMs : undefined}
         />
       )}
       {target && (

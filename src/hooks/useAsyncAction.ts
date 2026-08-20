@@ -97,6 +97,29 @@ export function useAsyncAction(): AsyncActionState {
 }
 
 /**
+ * Elapsed milliseconds for a boolean that some surface is already tracking.
+ *
+ * useAsyncAction is the better vocabulary and owns the busy state itself, but
+ * dozens of surfaces already have their own `busy` / `shipping` / `generating`
+ * flag wired through props and callbacks. Converting each one is a large,
+ * risky, unrelated refactor; the thing they are all missing is not a state
+ * machine, it is the number. So this reads the flag they already have.
+ *
+ * Zero when idle, so a call site can pass it straight through without guarding.
+ */
+export function useElapsed(active: boolean): number {
+  const [ms, setMs] = useState(0)
+  useEffect(() => {
+    if (!active) { setMs(0); return }
+    const started = Date.now()
+    setMs(0)
+    const id = window.setInterval(() => setMs(Date.now() - started), 250)
+    return () => window.clearInterval(id)
+  }, [active])
+  return active ? ms : 0
+}
+
+/**
  * Walk a fixed list of stage names on a timer, for work that genuinely cannot
  * report its own progress (a single opaque model call). It is honest about
  * being an estimate: it never claims completion, and it holds on the last stage

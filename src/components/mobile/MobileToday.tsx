@@ -225,7 +225,9 @@ export function MobileToday({
         />
       }
     >
-      {taskBusy && <ProcessingOverlay label="Updating" sub="Saving your decision" />}
+      {/* A short write, so no clock and no exit: both would be noise on an
+          operation that is normally over before the overlay finishes fading in. */}
+      {taskBusy && <ProcessingOverlay label="Saving your decision" sub="One moment…" />}
       {lane && (
         <div className="flex items-center gap-2 px-3 py-2 mb-3 bg-violet-500/10 border border-violet-400/20 rounded-lg text-sm">
           <span className="text-violet-200">Filtered to {lane}</span>

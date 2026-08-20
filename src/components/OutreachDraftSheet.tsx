@@ -30,6 +30,8 @@ const INTENTS: Array<{ id: Intent; label: string; hint: string }> = [
 // never drift out of sync with them again.
 import { VENTURE_OPTIONS as VENTURES } from '../lib/ventureOptions'
 import { Working } from './shared/Working'
+import { useWork } from '../lib/loadingVoice'
+import { useElapsed } from '../hooks/useAsyncAction'
 
 const LENGTHS: Array<{ id: Length; label: string }> = [
   { id: 'short', label: 'Short' },
@@ -89,6 +91,8 @@ export function OutreachDraftSheet({
   const [tone, setTone] = useState<Tone>('direct')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const draftWork = useWork('email.draft')
+  const draftElapsed = useElapsed(busy)
   // Work-outside-n8n: when on, skip the webhook and draft directly via Claude,
   // returning the email here for preview instead of landing it in Gmail. Auto
   // fallback still applies server-side if n8n is down even with this off.
@@ -158,7 +162,15 @@ export function OutreachDraftSheet({
 
   return (
     <BottomSheet open={!!target} onClose={onClose} fullHeight={false} ariaLabel="Draft outreach email">
-      {busy && <ProcessingOverlay label="Cleo is drafting the email" sub={directMode ? 'Composing in your voice for review' : "Composing in your voice — it'll open in Gmail"} />}
+      {busy && (
+        <ProcessingOverlay
+          label={draftWork.label}
+          // The non-direct copy carried an em dash, which krish-voice bans.
+          sub={directMode ? draftWork.sub : "Composing in your voice. It opens in Gmail."}
+          elapsedMs={draftElapsed}
+          expectedMs={draftWork.expectedMs}
+        />
+      )}
       {target && !preview && (
         <div className="flex flex-col">
           <div className="px-5 pb-4 flex flex-col gap-5 overflow-y-auto scrollbar-hide" style={{ maxHeight: '70vh' }}>

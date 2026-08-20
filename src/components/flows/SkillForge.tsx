@@ -7,6 +7,8 @@ import { SkillDeliveryHistory } from './SkillDeliveryHistory'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import type { SkillData, QualityGateResult, TriageResult, SkillDelivery } from './types'
 import { Working } from '../shared/Working'
+import { useWork } from '../../lib/loadingVoice'
+import { useElapsed } from '../../hooks/useAsyncAction'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -20,6 +22,8 @@ export function SkillForge() {
   const [additionalContext, setAdditionalContext] = useState('')
   const [showAdditional, setShowAdditional] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const draftWork = useWork('skills.draft')
+  const draftElapsed = useElapsed(generating)
   const [error, setError] = useState<string | null>(null)
 
   const [reviewOpen, setReviewOpen] = useState(false)
@@ -172,7 +176,14 @@ export function SkillForge() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-      {generating && !reviewOpen && <ProcessingOverlay label="Drafting skills" sub="Cleo is building them from the transcript" />}
+      {generating && !reviewOpen && (
+        <ProcessingOverlay
+          label={draftWork.label}
+          sub={draftWork.sub}
+          elapsedMs={draftElapsed}
+          expectedMs={draftWork.expectedMs}
+        />
+      )}
       {/* Left: input form (60%) */}
       <div className="lg:col-span-3 space-y-3">
         <header>

@@ -5,6 +5,8 @@ import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import { useToast } from '../shared/Toast'
 import { Modal } from '../shared/Modal'
 import { Working } from '../shared/Working'
+import { useWork } from '../../lib/loadingVoice'
+import { useElapsed } from '../../hooks/useAsyncAction'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -38,6 +40,13 @@ export function SkillReviewModal({
   const [refineInput, setRefineInput] = useState('')
   const [refining, setRefining] = useState(false)
   const [undo, setUndo] = useState<{ skills: SkillData[]; gate: QualityGateResult[] } | null>(null)
+  // Three different long operations share one overlay. Resolve which is
+  // running once, here, rather than a nested ternary in the render.
+  const shipWork = useWork('skills.ship')
+  const refineWork = useWork('skills.refine')
+  const regenWork = useWork('skills.regenerate')
+  const activeWork = shipping ? shipWork : refining ? refineWork : regenWork
+  const workElapsed = useElapsed(shipping || regenerating || refining)
 
   useEffect(() => {
     if (activeIdx >= skills.length) setActiveIdx(0)
@@ -107,7 +116,14 @@ export function SkillReviewModal({
       hideTitle
       className="max-w-6xl max-h-[92vh] flex flex-col overflow-hidden p-0"
     >
-      {(shipping || regenerating || refining) && <ProcessingOverlay label={shipping ? 'Shipping skills' : refining ? 'Refining this skill' : 'Regenerating skills'} sub={shipping ? 'Saving and emailing the client' : refining ? 'Applying your instruction' : 'Cleo is rebuilding them'} />}
+      {(shipping || regenerating || refining) && (
+        <ProcessingOverlay
+          label={activeWork.label}
+          sub={activeWork.sub}
+          elapsedMs={workElapsed}
+          expectedMs={activeWork.expectedMs}
+        />
+      )}
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5">
