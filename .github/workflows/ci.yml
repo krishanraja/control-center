@@ -27,3 +27,10 @@ jobs:
       # column default, and this checks the default, the reserved meaning of
       # NULL, and the purge that depends on both.
       - run: npx tsx scripts/check-content-expiry.mts
+      # Same reason again: the reject-reason taxonomy lived in three files that
+      # disagreed on 26 codes, and 18 codes the UI could emit were missing from
+      # the server's allow-list, so a whole class of rejection reached the
+      # learning loop with no usable reason on it. This checks the one
+      # vocabulary, the one surface set, and that anything you can refuse can
+      # also tell you why it was served.
+      - run: npx tsx scripts/check-served-surfaces.mts

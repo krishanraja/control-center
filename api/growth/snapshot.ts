@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 
 /**
@@ -211,21 +212,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   res.setHeader('Cache-Control', 'no-store')
-  if (req.method === 'OPTIONS') return res.status(204).end()
+  if (guardCronRoute(req, res)) return
 
   try {
     if (req.method === 'GET') {
-      const secret = process.env.CRON_SECRET || ''
-      const auth = req.headers.authorization || ''
-      // NOTE: x-vercel-cron is NOT stripped by Vercel on inbound external
-      // requests (verified 2026-08-05: a spoofed header returned 200 and ran
-      // the job), so it is not proof of anything. Vercel sends
-      // `Authorization: Bearer $CRON_SECRET` on cron invocations whenever
-      // CRON_SECRET is set, which it is. Bearer-only matches the proven
-      // pattern in api/feed/ingest.ts.
-      if (!secret || auth !== `Bearer ${secret}`) {
-        return res.status(401).json({ ok: false, error: 'unauthorized' })
-      }
       const result = await runSnapshot(req.query.dry_run === '1')
       return res.json({ ok: true, ...result })
     }

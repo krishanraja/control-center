@@ -199,6 +199,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
           {lane === 'inbound' ? (
             <SwipeDeck<GuestRow>
               deck={guestTriage.deck}
+              why={g => ({ table: 'guests', row: g })}
               getId={g => g.id}
               renderBody={renderGuestBody}
               ariaLabel={g => `Guest: ${g.name}`}
@@ -221,6 +222,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
           ) : (
             <SwipeDeck<VisibilityTargetRow>
               deck={targetTriage.deck}
+              why={t => ({ table: 'visibility_targets', row: t })}
               getId={t => t.id}
               renderBody={renderTargetBody}
               ariaLabel={t => `Target: ${t.title}`}

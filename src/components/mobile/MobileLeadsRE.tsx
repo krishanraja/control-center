@@ -231,6 +231,7 @@ export function MobileLeadsRE(_props: Props = {}) {
         <div className="flex-1 min-h-0 px-1">
           <SwipeDeck<ContactRow>
             deck={triage.deck}
+            why={c => ({ table: 'contacts', row: c })}
             getId={c => c.id}
             renderBody={renderContactBody}
             ariaLabel={c => `Contact: ${contactName(c)}`}

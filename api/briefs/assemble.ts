@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { callClaude, robustJson, sanitizeVoice, loadVoiceBlock, loadCorpus, corpusForChannel } from '../_content.js'
 import { isoWeekLabel, startOfIsoWeek } from '../_weeks.js'
@@ -340,16 +341,8 @@ export async function runAssemble(force = false) {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
-  let force = false
-  if (req.method === 'GET') {
-    const secret = process.env.CRON_SECRET || ''
-    const auth = req.headers.authorization || ''
-    if (!secret || auth !== `Bearer ${secret}`) return res.status(401).json({ ok: false, error: 'unauthorized' })
-  } else if (req.method === 'POST') {
-    force = Boolean((req.body || {}).force)
-  } else {
-    return res.status(405).json({ ok: false, error: 'GET (cron) or POST only' })
-  }
+  if (guardCronRoute(req, res)) return
+  const force = req.method === 'POST' ? Boolean((req.body || {}).force) : false
   try {
     const result = await runAssemble(force)
     return res.json({ ok: true, ...result })

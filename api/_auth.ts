@@ -112,6 +112,9 @@ export function guard(req: VercelRequest, res: VercelResponse, methods = ['POST'
  *  reached the app. */
 export function guardCronRoute(req: VercelRequest, res: VercelResponse): boolean {
   res.setHeader('Cache-Control', 'no-store')
+  // Preflight is answered before any auth check. Callers that set their own
+  // CORS headers do so before calling this, so those survive.
+  if (req.method === 'OPTIONS') { res.status(204).end(); return true }
   const secret = process.env.CRON_SECRET || ''
   const auth = req.headers.authorization || ''
   const hasSecret = Boolean(secret) && safeEqual(auth, `Bearer ${secret}`)

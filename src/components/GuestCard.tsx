@@ -6,6 +6,7 @@ import { useHaptics } from '../hooks/useHaptics'
 import { FeedbackButton } from './shared/FeedbackButton'
 import { buildLookupLinks } from '../lib/lookupLinks'
 import type { GuestRow, GuestStatus } from '../hooks/useRealtimeGuests'
+import { WhyBadge } from './shared/WhyBadge'
 
 const TARGET_LABEL: Record<GuestRow['podcast_target'], string> = {
   signal_noise: 'Signal & Noise',
@@ -318,6 +319,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
             </a>
           ))}
         <div className="flex items-center gap-1 ml-auto" onClick={(e) => e.stopPropagation()}>
+          <WhyBadge table="guests" row={g} />
           <FeedbackButton
             sourceTable="guests"
             sourceId={g.id}

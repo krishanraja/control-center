@@ -6,6 +6,7 @@ import { FeedbackButton } from './shared/FeedbackButton'
 import { useHaptics } from '../hooks/useHaptics'
 import { suggestedMove, type SuggestedMoveTone } from '../lib/contactSignals'
 import type { ContactRow } from '../hooks/useRealtimeContacts'
+import { WhyBadge } from './shared/WhyBadge'
 
 interface Props {
   contact: ContactRow
@@ -154,6 +155,7 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
         <ConsentTierBadge tier={c.consent_tier} />
         <HeatMeter score={heat} />
         <div className="ml-auto" onClick={(e) => e.stopPropagation()}>
+          <WhyBadge table="contacts" row={c} />
           <FeedbackButton sourceTable="contacts" sourceId={c.id} agentId={c.owner_agent} compact />
         </div>
       </div>

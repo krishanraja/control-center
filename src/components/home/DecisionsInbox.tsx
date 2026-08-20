@@ -18,6 +18,8 @@ import { splitTaskQueue, STALE_DAYS } from '../../lib/taskQueue'
 import { DecisionDeck } from './DecisionDeck'
 import { useRulingPrompts } from './RulingPrompts'
 import { isSimplifiedIA } from '../../lib/iaV3'
+import { WhyBadge } from '../shared/WhyBadge'
+import { whyForDecision } from '../../lib/servedSurfaces'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -201,6 +203,9 @@ export function DecisionsInbox({
                     <div className="flex flex-col items-end gap-1">
                       <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.1em] text-white/45">
                         <Icon size={11} /> {KIND_LABEL[d.kind]}
+                        <span onClick={e => e.stopPropagation()}>
+                          <WhyBadge why={whyForDecision(d)} label={KIND_LABEL[d.kind]?.toLowerCase() || 'item'} />
+                        </span>
                       </span>
                       {priorityChip && (
                         <span className={`text-[10px] uppercase tracking-[0.1em] ${d.priority === 'overdue' || d.priority === 'high' ? 'text-status-blocked' : 'text-status-needsYou'}`}>

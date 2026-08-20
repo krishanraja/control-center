@@ -14,6 +14,7 @@ import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
 import { Skeleton, SkeletonText } from '../shared/Skeleton'
 import { AllClear } from '../shared/AllClear'
+import { WhyBadge } from '../shared/WhyBadge'
 
 // Queue predicates live in the shared helper (src/lib/taskQueue.ts) so Home,
 // Today, and the decisions surfaces agree on what counts as "the day".
@@ -346,6 +347,9 @@ function QueueRow({ task, selected, busy, onClick, onVerb }: {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 overflow-hidden">
             <p className="text-[13px] text-white font-medium leading-snug truncate">{task.title}</p>
+            <span onClick={e => e.stopPropagation()} className="shrink-0">
+              <WhyBadge table="tasks" row={task} />
+            </span>
             {isDueNow(task) && <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium uppercase tracking-wide flex-shrink-0">Due</span>}
           </div>
           {task.next_step && <p className="text-[11px] text-white/45 mt-0.5 line-clamp-1">{task.next_step}</p>}

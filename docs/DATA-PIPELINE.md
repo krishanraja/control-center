@@ -416,11 +416,17 @@ UNKNOWN. It never reports a green fleet it did not look at. (It has been set on
 the Vercel project since 2026-04-07 and is valid; n8n permits several live API
 keys at once, so this one is not the same string as any given out interactively.)
 
-Both this route and the staleness archive go through `guardCronRoute` in
-`api/_auth.ts`: `CRON_SECRET` on GET, and either that secret or the edge-gate
-cookie on POST. The older cron routes in this repo still accept an
-unauthenticated POST, which for `api/purge/run.ts` means an anonymous caller can
-hard-delete content. Use the helper when you touch one.
+Every cron route goes through `guardCronRoute` in `api/_auth.ts`: `CRON_SECRET`
+on GET, and either that secret or the edge-gate cookie on POST, with a
+constant-time compare and an OPTIONS short-circuit. Use it when you add one.
+
+The POST arm used to be open on twelve of them, `api/purge/run.ts` (hard-deletes
+`content_ideas`) and `api/acquisition/governor.ts` (moves budget) included.
+Five routes carry a second, deliberate inner check on top of the guard: those
+distinguish a cron-authorised caller from a browser one. `api/growth/snapshot.ts`
+is the clearest case, where `action:'log'` is driven by the Scoreboard UI, which
+holds no `CRON_SECRET` and passes on the edge-gate cookie instead. Do not delete
+those inner checks when refactoring.
 
 ## Content freshness: expiry vs staleness
 
@@ -465,6 +471,40 @@ unapprovable. Vera wrote `open`/`proposed` from the day it shipped until
 
 Nothing auto-applies. A correction changes agent behaviour only after Krish
 approves it.
+
+### One vocabulary, and a receipt
+
+The loop above is only as good as the `reason_code` it clusters on, and that
+code used to be declared in three places that disagreed: `api/feedback.ts`
+(the allow-list the server validates against), `src/lib/triageReasons.ts` and
+a third copy inside `FeedbackButton.tsx`. They differed on 26 codes, and 18
+codes the UI could emit were absent from the server list entirely -- so every
+rejection of a task, bet, customer, opportunity or correction arrived with a
+code Vera could not use and was bucketed as `other`.
+
+`src/lib/servedSurfaces.ts` is now the single source. It declares, per served
+table, the reason chips, the default a bare Skip emits, and a `why` resolver
+that reads whatever column already holds the rationale (`leads.why_relevant`,
+`guests.why_fit`, `milestones.marcus_reasoning`, `goals.why_now`,
+`contacts.why_them`, `content_ideas.thesis`, `tasks.evidence`). `ServedTable`
+is a closed union over a `Record`, so a new surface cannot be added without
+declaring both -- the type checker refuses a partial record.
+`scripts/check-served-surfaces.mts` runs in CI and fails the build when the
+API mirror drifts, when a surface cannot explain itself, when a component
+declares a private reason list, or when something can be refused but never
+says why it was served.
+
+`<WhyBadge>` is the one affordance: the score where a surface genuinely ranks,
+a subtle `?` everywhere else, the same popover behind both. A surface with no
+recorded reason renders "No reason recorded" rather than hiding, because
+hiding makes the badge unreadable as a signal and conceals a generator that
+emits suggestions it cannot justify.
+
+`POST /api/feedback` returns a `pattern` block -- the live size of the cluster
+the rejection just joined, and its distance to the threshold Vera actually
+uses (3, or 2 once the row carries any code). The toast spends it: "2 more
+like this and Vera rewrites the brief." The compounding was always real; it
+was never visible.
 
 ## Self-healing pattern (four tiers)
 
