@@ -23,16 +23,27 @@ import { whyFor, surfaceFor, type Why } from '../../lib/servedSurfaces'
 // wired -- and it would hide the real defect, which is a generator that emits
 // suggestions it cannot justify.
 
-interface Props {
-  /** The served table this row came from, e.g. 'leads'. */
-  table: string
-  /** The row itself. The registry knows which columns hold the reason. */
-  row: Record<string, any> | null | undefined
-  /** Pre-resolved why, when the caller already has one (avoids re-deriving). */
-  why?: Why
+type Props = {
   align?: 'start' | 'center' | 'end'
   className?: string
-}
+  /** 'weak' cools the score ring for a row that is below the surface's bar
+   *  without hiding the number that explains its position. */
+  tone?: 'default' | 'weak'
+} & (
+  | {
+      /** The served table this row came from, e.g. 'leads'. */
+      table: string
+      /** The row itself. The registry knows which columns hold the reason. */
+      row: Record<string, any> | null | undefined
+      why?: Why
+      /** Overrides the noun in the aria label. */
+      label?: string
+    }
+  // A surface that computes its own richer breakdown (the network scorer's
+  // weighted terms) supplies a resolved Why instead of a table + row, so it
+  // gets the same affordance without a second component.
+  | { table?: undefined; row?: undefined; why: Why; label: string }
+)
 
 function Bar({ strength }: { strength: number }) {
   return (
@@ -45,15 +56,17 @@ function Bar({ strength }: { strength: number }) {
   )
 }
 
-function ringFor(score: number) {
+function ringFor(score: number, tone: 'default' | 'weak') {
+  if (tone === 'weak') return 'border-white/12 text-white/45'
   if (score >= 75) return 'border-violet-400/45 text-violet-100'
   if (score >= 50) return 'border-white/20 text-white/85'
   return 'border-white/12 text-white/55'
 }
 
-export function WhyBadge({ table, row, why: given, align = 'end', className = '' }: Props) {
-  const why = given ?? whyFor(table, row)
-  const label = surfaceFor(table)?.label ?? 'item'
+export function WhyBadge(props: Props) {
+  const { align = 'end', className = '', tone = 'default' } = props
+  const why = props.why ?? whyFor(props.table!, props.row)
+  const label = props.label ?? (props.table ? surfaceFor(props.table)?.label : null) ?? 'item'
   const scored = typeof why.score === 'number' && Number.isFinite(why.score)
 
   const trigger = scored
@@ -67,7 +80,7 @@ export function WhyBadge({ table, row, why: given, align = 'end', className = ''
         title={trigger}
         className={
           scored
-            ? `shrink-0 inline-flex h-11 w-11 items-center justify-center rounded-full border text-[13px] font-semibold tabular-nums transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${ringFor(why.score!)} ${className}`
+            ? `shrink-0 inline-flex h-11 w-11 items-center justify-center rounded-full border text-[13px] font-semibold tabular-nums transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${ringFor(why.score!, tone)} ${className}`
             : `shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/[0.14] text-[10px] font-semibold leading-none text-white/40 transition-colors hover:border-white/30 hover:bg-white/[0.06] hover:text-white/75 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-violet-400/60 ${className}`
         }
       >
@@ -108,6 +121,12 @@ export function WhyBadge({ table, row, why: given, align = 'end', className = ''
               </div>
             ))}
           </div>
+        ) : null}
+
+        {why.footnote ? (
+          <p className="mt-2.5 border-t border-white/[0.07] pt-2 text-[11px] leading-relaxed text-white/45">
+            {why.footnote}
+          </p>
         ) : null}
 
         {(why.agent || why.at || why.sourceLabel || why.sourceUrl) ? (

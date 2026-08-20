@@ -66,6 +66,8 @@ export interface Why {
   at?: string | null
   /** 0-100 where the surface genuinely ranks. Drives the badge's score face. */
   score?: number | null
+  /** A closing caveat the factors cannot express, e.g. a demoting multiplier. */
+  footnote?: string | null
 }
 
 export interface SurfaceContract {
@@ -551,6 +553,42 @@ export function whyFor(table: string, row: Record<string, any> | null | undefine
     // A malformed row must not take a card down over a tooltip.
     return { headline: NO_REASON, recorded: false }
   }
+}
+
+/**
+ * A `decisions_waiting` row, explained.
+ *
+ * The view has already done the normalising: its `description` column IS the
+ * surface's own reason (leads.why_relevant, guests.why_fit, content_ideas.thesis,
+ * content_decisions.payload->>summary), unioned into one slot so Home never has
+ * to know which table a row came from. So this reads the view's shape directly
+ * rather than routing back through a per-table resolver that would be looking
+ * for columns the view has already renamed.
+ */
+export function whyForDecision(d: {
+  description?: string | null
+  agent?: string | null
+  sort_at?: string | null
+  url?: string | null
+  source_table?: string | null
+  meta?: Record<string, any> | null
+}): Why {
+  const m = (d.meta && typeof d.meta === 'object' ? d.meta : {}) as Record<string, any>
+  return why(d.description || null, {
+    agent: d.agent || null,
+    at: d.sort_at || null,
+    sourceUrl: d.url || null,
+    sourceLabel: d.source_table || null,
+    factors: factors(
+      outOfTen('Fit', m.fit_score),
+      outOfTen('Relevance', m.relevance_score),
+      outOfTen('Lever', m.lever_score),
+      pct('Confidence', typeof m.confidence === 'number' ? m.confidence : undefined),
+      plain('Confidence', typeof m.confidence === 'string' ? m.confidence : undefined),
+      plain('Quality', m.quality_score),
+      plain('Tier', m.tier),
+    ),
+  })
 }
 
 /** Every code in the registry, deduped. The API mirror is checked against this. */
