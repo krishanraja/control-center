@@ -3,6 +3,7 @@ import { supabase } from '../../_supabase.js'
 import { loadVoiceBlock, preamble, sanitizeVoice, VOICE_GUARDRAILS } from '../../_content.js'
 import { openStream, send, fail, streamClaude } from '../../_stream.js'
 import { loadStandingNotes, standingNotesPrompt } from '../../_briefNotes.js'
+import { locateSpan } from '../../_selection.js'
 
 // POST /api/briefs/:week/revise   body: { mode, instruction?, selection? }
 //
@@ -39,10 +40,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: brief, error } = await supabase.from('weekly_briefs').select('week, body_md').eq('week', week).single()
   if (error || !brief?.body_md) return res.status(404).json({ ok: false, error: 'brief not found or empty' })
 
-  const selection = (b.selection || '').trim()
-  if (selection && !brief.body_md.includes(selection)) {
-    return res.status(409).json({ ok: false, error: 'selection no longer matches the draft' })
+  // The client hands over what the USER highlighted, which is rendered text:
+  // no markdown, citation markers that may or may not be in the stored copy,
+  // single newlines between blocks, and whatever sanitizeVoice has since done
+  // to the dashes. `body_md.includes(selection)` could never match that, and
+  // returning 409 made the one feature that worked look broken. Match on the
+  // words instead and resolve to the real markdown at those offsets, so the
+  // span handed to the model is a substring of the draft it is being given.
+  const rawSelection = (b.selection || '').trim()
+  const hit = rawSelection ? locateSpan(brief.body_md, rawSelection) : null
+  if (rawSelection && !hit) {
+    return res.status(409).json({
+      ok: false,
+      error: 'that passage is not in the saved draft',
+      detail: 'Save the brief and highlight it again. If it still fails, the passage may have been rewritten by another edit.',
+    })
   }
+  const selection = hit?.text || ''
 
   const [voice, standingNotes] = await Promise.all([loadVoiceBlock(), loadStandingNotes()])
   const system = [

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
+import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
 import { Markdown } from 'tiptap-markdown'
 import { contentV2Api } from '../../hooks/useContentV2'
@@ -112,6 +113,12 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   // Hiding citations is a lossy reading view, so we never re-derive from it —
   // we always render the display FROM this buffer.
   const canonicalRef = useRef<string>('')
+  // The passage the user has highlighted, if any. Short highlights are ignored
+  // rather than scoped: below a handful of words the words are not distinctive
+  // enough to locate safely, and scoping the wrong sentence is worse than
+  // scoping nothing. api/_selection.ts applies the same floor server-side.
+  const [selection, setSelection] = useState('')
+  const scoped = selection.replace(/[^a-zA-Z0-9]/g, '').length >= 8
   const { listening, supported, toggle } = useDictation(setCleoNote)
   const { toast } = useToast()
 
@@ -131,6 +138,13 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
       const md = storage.markdown?.getMarkdown()
       // Edits only happen with citations on, so the buffer stays canonical.
       if (md != null) canonicalRef.current = toEndnotes(md)
+    },
+    // Held in React state so the chips can SAY what they are about to rewrite.
+    // Before this the selection was read invisibly at click time, so a chip
+    // gave no clue whether it would touch the passage or the whole brief.
+    onSelectionUpdate: ({ editor }) => {
+      const { from, to, empty } = editor.state.selection
+      setSelection(empty ? '' : editor.state.doc.textBetween(from, to, '\n').trim())
     },
   }, [brief?.id])
 
@@ -217,11 +231,14 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     setPreview(null)
     setRejected(new Set())
     try {
+      // Read the highlight BEFORE saving. save() reloads the brief, which
+      // re-renders the document and collapses the selection, so reading it
+      // afterwards returned nothing and the edit silently rewrote the WHOLE
+      // draft with no warning. That was the quiet half of this bug; the 409
+      // was the loud half.
+      const span = scoped ? selection : undefined
       // Persist local edits first so the revise runs against what is on screen.
       if (dirty) await save()
-      const selection = editor && !editor.state.selection.empty
-        ? editor.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, '\n')
-        : undefined
       // The revision streams, but it CANNOT stream into `preview`. That value
       // feeds diffSections, and half a document diffed against a whole one reads
       // as "everything deleted" on every chunk. So the arriving text goes to its
@@ -233,21 +250,21 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: instruction ? undefined : mode, instruction, selection }),
+          body: JSON.stringify({ mode: instruction ? undefined : mode, instruction, selection: span }),
         },
         {
           onText: chunk => setMagicStream(s => s + chunk),
           jsonText: body => body.preview || '',
         },
       )
-      setPreview({ label, md: data?.preview ?? text })
+      setPreview({ label: span ? `${label} · selection` : label, md: data?.preview ?? text })
     } catch (e) {
       setError(String((e as Error).message || e))
     } finally {
       setMagicBusy(null)
       setMagicStream('')
     }
-  }, [dirty, save, editor, week])
+  }, [dirty, save, week, scoped, selection])
 
   // The revision, diffed against the current draft by section. A fresh preview
   // starts with every change accepted; `rejected` tracks the ones toggled off.
@@ -500,6 +517,34 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                 day it started working it would have painted light-grey body
                 text onto pale paper. brief-canvas (src/index.css) styles the
                 document from theme tokens instead, so it reads in both. */}
+            {/* Highlight, then edit that passage. The backend has always done
+                span-scoped rewrites; there was simply nothing in the UI that
+                said so, so the only way to discover the feature was to select
+                text, press a chip and hope. */}
+            {editor && !editingClosed ? (
+              <BubbleMenu
+                editor={editor}
+                updateDelay={120}
+                shouldShow={({ state }) => {
+                  const { from, to, empty } = state.selection
+                  if (empty) return false
+                  return state.doc.textBetween(from, to, ' ').replace(/[^a-zA-Z0-9]/g, '').length >= 8
+                }}
+                className="flex items-center gap-1 rounded-lg border border-white/12 bg-sunk/95 p-1 shadow-xl backdrop-blur"
+              >
+                {MAGIC.map(m => (
+                  <button
+                    key={m.mode}
+                    onClick={() => runMagic(m.mode, m.label)}
+                    disabled={magicBusy !== null}
+                    className="rounded-md px-2 py-1 text-[11.5px] font-semibold text-white/75 hover:bg-white/10 disabled:opacity-40"
+                    title={`${m.label} — this passage only`}
+                  >
+                    {magicBusy === m.mode ? m.busy : m.label}
+                  </button>
+                ))}
+              </BubbleMenu>
+            ) : null}
             <EditorContent
               editor={editor}
               className="brief-canvas max-w-none
@@ -550,6 +595,26 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
             </p>
           </div>
         )}
+        {/* What the next chip will touch. The selection used to be read
+            invisibly at click time, so there was no way to tell a passage
+            rewrite from a whole-brief rewrite until the result came back. */}
+        {!editingClosed && scoped ? (
+          <div className="mb-2 flex items-center gap-2 text-[11px]">
+            <span className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-1 font-semibold text-sky-200">
+              Selected
+            </span>
+            <span className="min-w-0 flex-1 truncate text-white/45" title={selection}>
+              {selection.replace(/\s+/g, ' ').slice(0, 120)}
+            </span>
+            <button
+              onClick={() => { editor?.commands.focus(); editor?.commands.setTextSelection(editor.state.selection.to) }}
+              className="flex-shrink-0 text-white/35 hover:text-white/70"
+              title="Clear the selection and edit the whole brief"
+            >
+              ×
+            </button>
+          </div>
+        ) : null}
         {!editingClosed ? (
           <div className="flex gap-1.5 flex-wrap items-center">
             {MAGIC.map(m => (
