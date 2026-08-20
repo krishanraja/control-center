@@ -20,9 +20,6 @@ export interface CanonGoal {
   venture: string | null
   status: string
   priority: number | null
-  progress: number | null
-  current: string | null
-  notes: string | null
   is_stale: boolean
   orphaned: boolean
   days_since_touch: number | null

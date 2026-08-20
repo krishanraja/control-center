@@ -27,7 +27,7 @@ type NavigateFn = (tab: string, params?: Record<string, string>) => void
  * The Log modal keeps the ledger facts (days since last, return rate, last
  * three) one tap away, so compressing the card lost no information.
  */
-export function VitalsLine({ onNavigate }: { onNavigate?: NavigateFn }) {
+export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: NavigateFn; compact?: boolean }) {
   const { liveMrr, mrrDelta7d, loading: revLoading } = useRevenueAttribution()
   const { summary, loading: shipsLoading, refresh } = useShipSummary()
   const { decisions } = useRealtimeDecisionsWaiting()
@@ -40,7 +40,7 @@ export function VitalsLine({ onNavigate }: { onNavigate?: NavigateFn }) {
   const lastThree = summary?.last_ten.slice(0, 3) ?? []
 
   return (
-    <div className="flex items-center gap-x-5 gap-y-1.5 flex-wrap min-h-[34px]">
+    <div className={`flex items-center flex-wrap ${compact ? 'gap-x-3.5 gap-y-1 min-h-[28px]' : 'gap-x-5 gap-y-1.5 min-h-[34px]'}`}>
       {/* MRR — a fact, not a mood. */}
       <span className="inline-flex items-baseline gap-2 min-w-0">
         <Eyebrow>MRR</Eyebrow>
@@ -48,8 +48,8 @@ export function VitalsLine({ onNavigate }: { onNavigate?: NavigateFn }) {
           ? <Skeleton quiet={!showBars} h={14} w={56} r={4} />
           : (
             <span className="font-mono tabular-nums text-ui text-white/90 whitespace-nowrap">
-              {formatMrr(liveMrr)}
-              <span className="ml-1.5 text-micro text-white/40">{delta >= 0 ? '+' : ''}{delta.toLocaleString()}/wk</span>
+              {formatMrr(Number.isFinite(liveMrr) ? liveMrr : 0)}
+              {!compact && <span className="ml-1.5 text-micro text-white/40">{delta >= 0 ? '+' : ''}{(Number.isFinite(delta) ? delta : 0).toLocaleString()}/wk</span>}
             </span>
           )}
       </span>
@@ -64,7 +64,7 @@ export function VitalsLine({ onNavigate }: { onNavigate?: NavigateFn }) {
           : (
             <span className="font-mono tabular-nums text-ui text-white/90 whitespace-nowrap">
               {summary?.this_week ?? 0}
-              <span className="ml-1.5 font-sans text-micro text-white/40">this week</span>
+              {!compact && <span className="ml-1.5 font-sans text-micro text-white/40">this week</span>}
             </span>
           )}
         <button
@@ -81,6 +81,7 @@ export function VitalsLine({ onNavigate }: { onNavigate?: NavigateFn }) {
       {/* The queue count. The list itself lives on OS → Queue. */}
       <button
         type="button"
+        data-testid="vitals-waiting"
         onClick={() => { h.select(); onNavigate?.('os', { sub: 'queue' }) }}
         className="inline-flex items-baseline gap-2 min-w-0 group"
       >

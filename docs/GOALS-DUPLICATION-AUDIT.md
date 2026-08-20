@@ -14,8 +14,8 @@ of the findings below.
 |---|---|
 | A. Contradicting revenue goals | **Closed.** `mrr_goal_usd` no longer defaults to 100000; the goal bar hides until a target is actually set |
 | B. `GET /api/goals` | **Closed.** Returns 410; `/api/goals/ladder` is the one read |
-| C. `objectives` vs `goals` noun | **Open.** Still one table, two route trees. The lowest-risk fix is aliasing, not renaming |
-| D. Four focus subsystems | **Open by choice**, and worse than reported: all four flags are `true` in production |
+| C. `objectives` vs `goals` noun | **Closed 2026-08-20.** The venture-filtered `GET /api/objectives` is a 410 tombstone; the tree keeps only the gated `POST` (the one creator) and the nominate arms. One read (`/api/goals/ladder`), one wire path (`src/lib/goalsApi.ts`) |
+| D. Four focus subsystems | **Closed 2026-08-20 — as the product decision it was waiting for.** The Home recompose committed the ritual branch in code and deleted the others: `homeV2.ts` gone, `WeeklyFocusTakeover`/`DailyDriver`/`FocusBar` deleted, daily focus + focus lanes always on, weekly focus IS the ladder's weekly rung (`team_focus` retired, writes 400) |
 | E. `VITE_HOME_V2_ENABLED` | **Closed, and it was a live bug.** The name is set nowhere; Vercel carries `VITE_UI_V2_ENABLED=true`, so a flag Krish turned on never rendered |
 | F. Hardcoded lists | **Closed.** `fleet-funnel` and `GoalLadder` read `venture_registry`; new `app_key` column binds lane slugs to short app keys |
 | G. Pinned MRR | **Closed.** `MRR_DISPLAY_OVERRIDE` removed; revenue now comes from Stripe |
@@ -47,8 +47,9 @@ Decision needed: does the revenue target become a `mid_term` goal on the
 ladder, with `MrrTicker` reading it from there, or does `mrr_goal_usd`
 stay a display setting that is explicitly not a goal?
 
-**`team_focus` has no row in production.** That is why the hero shows the
-"Set team focus for this week…" placeholder rather than a value.
+**`team_focus` is retired (2026-08-20).** The weekly rung of the ladder is
+the one answer to "what is this week about"; the config key is deleted by
+the home-canon migration and `PATCH /api/goals` rejects writes to it.
 
 ## B. Two read endpoints over one table, one of them dead
 

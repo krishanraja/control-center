@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const [goalsRes, healthRes, cfgRes, ventureRes] = await Promise.all([
     supabase
       .from('goals')
-      .select('id, title, horizon, parent_id, venture, status, priority, progress, target, current, notes, why_now, definition_of_done, target_horizon, updated_at, created_at')
+      .select('id, title, horizon, parent_id, venture, status, priority, why_now, definition_of_done, target_horizon, updated_at, created_at')
       .not('status', 'in', '("dropped","archived")')
       .order('priority', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true }),

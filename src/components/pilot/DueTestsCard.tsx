@@ -56,7 +56,10 @@ export function DueTestsCard({ variant = 'desktop' }: { variant?: 'desktop' | 'm
 
   if (!data) return null
 
-  const showCalibration = data.calibration.total_closed >= CALIBRATION_MIN_CLOSED
+  // Fail open: a worries response without a calibration block must render as
+  // "nothing due", never crash the Home error boundary (the pilot layer's
+  // failure posture — a broken pilot read never degrades the app).
+  const showCalibration = (data.calibration?.total_closed ?? 0) >= CALIBRATION_MIN_CLOSED
   if (data.due.length === 0 && !showCalibration) return null
 
   const compact = variant === 'mobile'

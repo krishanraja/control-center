@@ -42,7 +42,7 @@ The window is read **once at mount** and held for the session. A live clock woul
 
 **3. Evening shutdown.** `src/components/pilot/EveningShutdown.tsx`. Three fields, only tomorrow's ONE required. Auto-prompts after 5pm New York on first interaction, once per day, and never twice. This row is what tomorrow's red mode reads.
 
-**4. Ship ledger.** `api/pilot/ships.ts` plus `src/components/pilot/ShipLedgerCard.tsx`, positioned first on both home surfaces. Ships this week, days since last ship, last three, return rate, and one log button.
+**4. Ship ledger.** `api/pilot/ships.ts`. Since the 2026-08-20 Home recompose the ledger renders as the SHIPS segment of Home's `VitalsLine` (ships this week + the one-tap Log; days since last, return rate and the last three live one tap away in the Log modal). `ShipLedgerCard` remains for red mode. The v1 statement "positioned first on both home surfaces" is superseded — the vitals line is the first content row of Home, so the ledger is still the first fact the operator meets, in a fraction of the height. The non-negotiables carry over verbatim: VitalsLine contains no branch that changes colour, weight, or copy based on how any number looks. Do not add one.
 
 ## Concreteness rules
 

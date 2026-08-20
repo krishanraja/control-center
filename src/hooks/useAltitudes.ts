@@ -100,7 +100,7 @@ export function useAltitudes(): AltitudesResult {
     try { return weekOf(new Date(g.updated_at)) === currentWeek } catch { return false }
   })
   const weeklySet = weeklyRows.length > 0 && touchedThisWeek
-  const weeklyDoneCount = weeklyRows.filter(g => (g.progress ?? 0) >= 100 || g.status === 'done').length
+  const weeklyDoneCount = weeklyRows.filter(g => g.status === 'done').length
   const weeklyNeeds = demandOk && !osEmpty && !weeklySet && !dismissedToday
   const weekly: Altitude = {
     id: 'weekly',

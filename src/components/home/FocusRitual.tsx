@@ -311,7 +311,7 @@ function WeeklyStep() {
         ) : (
           <ul className="space-y-1.5">
             {weekly.map(g => {
-              const done = (g.progress ?? 0) >= 100 || g.status === 'done'
+              const done = g.status === 'done'
               const carried = !touchedThisWeek(g)
               return (
                 <li key={g.id} className="flex items-start gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
@@ -319,7 +319,7 @@ function WeeklyStep() {
                     type="button"
                     aria-label={done ? 'Mark not done' : 'Mark done'}
                     disabled={busy != null}
-                    onClick={() => void run(`done-${g.id}`, () => patchGoal({ goalId: g.id, progress: done ? 0 : 100 }))}
+                    onClick={() => void run(`done-${g.id}`, () => patchGoal({ goalId: g.id, status: done ? 'active' : 'done' }))}
                     className={`mt-[2px] w-4 h-4 shrink-0 rounded-[5px] border ${done ? 'bg-emerald-400/80 border-emerald-300/60' : 'border-white/25 hover:border-white/50'}`}
                   />
                   <span className="flex-1 min-w-0">

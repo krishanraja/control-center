@@ -29,7 +29,7 @@ export function MobileHome({ onNavigate }: {
   const { canon, loading } = useGoalCanon()
   const firstPaint = useFirstLoad(loading, Boolean(canon))
 
-  const frame = 'h-[calc(100dvh/var(--z,1))] overflow-hidden flex flex-col px-5 pt-4 pb-[calc((env(safe-area-inset-bottom,0px)+152px)/var(--z,1))]'
+  const frame = 'h-[calc(100dvh/var(--z,1))] overflow-hidden flex flex-col px-5 pt-3 pb-[calc((env(safe-area-inset-bottom,0px)+148px)/var(--z,1))]'
 
   if (firstPaint) {
     return (
@@ -45,9 +45,9 @@ export function MobileHome({ onNavigate }: {
   return (
     <div className={frame}>
       {/* Compact header: identity + the vitals line share one band. */}
-      <div className="shrink-0 flex items-start gap-3 mb-3">
-        <div className="pt-[3px]"><Logomark size={30} /></div>
-        <div className="flex-1 min-w-0"><VitalsLine onNavigate={onNavigate} /></div>
+      <div className="shrink-0 flex items-start gap-3 mb-2">
+        <div className="pt-[2px]"><Logomark size={26} /></div>
+        <div className="flex-1 min-w-0"><VitalsLine onNavigate={onNavigate} compact /></div>
       </div>
 
       <div className="shrink-0 flex flex-col gap-2.5">
@@ -55,10 +55,10 @@ export function MobileHome({ onNavigate }: {
         <DueTestsCard variant="mobile" />
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col gap-4 pt-2">
+      <div className="flex-1 min-h-0 flex flex-col gap-3 pt-1.5">
         <GoalLadder variant="mobile" />
         {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
-        <TodayList />
+        <TodayList compact />
         {cta && cta.target !== 'weekly' && <CanonCta cta={cta} />}
       </div>
     </div>

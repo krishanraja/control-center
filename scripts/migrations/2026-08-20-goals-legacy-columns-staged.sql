@@ -1,0 +1,30 @@
+-- ███ STAGED — DO NOT APPLY YET ███
+--
+-- Migration B of the home canon recompose (2026-08-20): drop the legacy
+-- pre-ladder columns from `goals`, plus the now-inert tasks.milestone_id.
+--
+-- WHY IT IS STAGED: 14 OpenClaw fleet agents read `goals` on wake (operating
+-- contract on the VPS at /root/.openclaw/CLAUDE.md, rail:
+-- agent_plans.weekly_goal_id -> goals.id). If any wake query names these
+-- columns explicitly — or deserializes strictly — dropping them bricks the
+-- fleet silently. The in-repo code stopped reading and writing them in the
+-- recompose change set, so the columns are dead weight but harmless.
+--
+-- GATE BEFORE APPLYING (mindmaker-os authority chain):
+--   1. On the VPS, confirm the agents' goals reads are `select *` or name
+--      none of: owner, week_of, target, current, progress.
+--      e.g.  grep -rn "from('goals')\|owner\|week_of" /root/.openclaw/ | grep -i goal
+--   2. Confirm no n8n workflow selects these columns from goals
+--      (n8n API: search workflow JSON for "goals" + the column names).
+--   3. Then apply, and delete the "STAGED" banner from this file in the same
+--      commit that records the application.
+--
+-- ALTER TABLE public.goals
+--   DROP COLUMN IF EXISTS owner,
+--   DROP COLUMN IF EXISTS week_of,
+--   DROP COLUMN IF EXISTS target,
+--   DROP COLUMN IF EXISTS "current",
+--   DROP COLUMN IF EXISTS progress,
+--   DROP COLUMN IF EXISTS weekly_goal_id;
+--
+-- ALTER TABLE public.tasks DROP COLUMN IF EXISTS milestone_id;

@@ -47,7 +47,7 @@ export function GoalLadder({ variant = 'desktop' }: {
   const ventures = canon?.ventures ?? []
   const compact = variant === 'mobile'
   const osTitle = useMemo(() => new Map(os.map(g => [g.id, g.title])), [os])
-  const weeklyActive = weekly.filter(g => g.status === 'active' && (g.progress ?? 0) < 100).length
+  const weeklyActive = weekly.filter(g => g.status === 'active').length
   const weeklyDone = weekly.length - weeklyActive
 
   const needsParent = (hz: Horizon) => hz !== 'os'
@@ -129,7 +129,7 @@ export function GoalLadder({ variant = 'desktop' }: {
 
   const toggleDone = async (g: CanonGoal) => {
     h.tap()
-    await patch({ goalId: g.id, progress: (g.progress ?? 0) >= 100 || g.status === 'done' ? 0 : 100 })
+    await patch({ goalId: g.id, status: g.status === 'done' ? 'active' : 'done' })
   }
 
   if (loading && !canon) {
@@ -368,7 +368,7 @@ export function GoalLadder({ variant = 'desktop' }: {
         ) : (
           <ul className="flex flex-col gap-1.5">
             {weekly.map(g => {
-              const done = (g.progress ?? 0) >= 100 || g.status === 'done'
+              const done = g.status === 'done'
               return (
                 <li key={g.id} className="flex items-start gap-3 min-w-0 group/row">
                   <button
@@ -395,16 +395,20 @@ export function GoalLadder({ variant = 'desktop' }: {
                     </div>
                   ) : (
                     <button type="button" onClick={() => startEdit(g)} className="flex-1 text-left min-w-0 pt-[1px]">
-                      <span className={`block text-body leading-snug break-words line-clamp-1 ${done ? 'text-white/40 line-through' : 'text-white/90'}`}>
-                        {g.title}
-                      </span>
-                      <span className="mt-0.5 flex flex-wrap items-center gap-2 text-micro text-white/40 min-w-0">
-                        {g.parent_id && osTitle.get(g.parent_id) && (
-                          <span className="inline-flex items-center gap-1 min-w-0"><Target size={9} className="opacity-60 flex-shrink-0" /><span className="truncate">{osTitle.get(g.parent_id)}</span></span>
-                        )}
-                        {g.venture && <span className="px-1 py-0.5 rounded bg-white/[0.06]">{g.venture}</span>}
+                      <span className="flex items-baseline gap-2 min-w-0">
+                        <span className={`text-body leading-snug truncate ${done ? 'text-white/40 line-through' : 'text-white/90'}`}>
+                          {g.title}
+                        </span>
+                        {g.venture && <span className="shrink-0 text-micro px-1 py-0.5 rounded bg-white/[0.06] text-white/40">{g.venture}</span>}
                         {staleChip(g)}
                       </span>
+                      {/* The serves-chip is a second line on desktop only; on
+                          mobile every row stays single-line so the canon fits. */}
+                      {!compact && g.parent_id && osTitle.get(g.parent_id) && (
+                        <span className="mt-0.5 flex items-center gap-1 text-micro text-white/40 min-w-0">
+                          <Target size={9} className="opacity-60 flex-shrink-0" /><span className="truncate">{osTitle.get(g.parent_id)}</span>
+                        </span>
+                      )}
                     </button>
                   )}
                 </li>

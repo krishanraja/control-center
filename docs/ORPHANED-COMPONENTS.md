@@ -10,6 +10,18 @@ rest are listed rather than deleted, because a file can be unreachable in this
 analysis and still be wanted: a component behind a flag that is currently off
 looks identical to a dead one from here. Each needs a decision, not a sweep.
 
+> **2026-08-20 home-canon recompose.** The sweep this document asked for
+> happened for the goal/focus family: `FocusBar`, `DailyDriver`,
+> `TrackStep`, `CloseStep`, `DailyLockBanner`, `GlanceHeader`,
+> `AltitudeSpine`, `BoardDaily`, `PulseGroup`, `StreakPills`,
+> `MomentumStrip`, `RoomPreviews`, `OsHealthStrip`, the whole
+> `components/objectives/` family, `useObjectives`, `useObjectiveTree`,
+> `useWeeklyFocus`, `useStreaks`, and `services/agentBriefs`/`agentData`
+> are deleted (ADR 012). The earlier note listing all of
+> `src/components/ui/*` as orphaned was already wrong (BottomNav imports
+> `ui/dialog`) and those files are load-bearing primitives — treat that
+> section as superseded.
+
 Most are v1 surfaces superseded by a v2 (`Sidebar` by `DesktopSidebar`,
 `DesktopAcquisition` by the folded Growth tab), which is the same class of
 leftover as the `content/` files removed in this pass.

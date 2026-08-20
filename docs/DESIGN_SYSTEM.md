@@ -115,12 +115,23 @@ and `:root[data-theme='light']` (day), mapped into semantic Tailwind names in
 | Role | Family | Tailwind |
 |---|---|---|
 | Headlines, hero titles, section eyebrows, big numbers | **Bricolage Grotesque Variable** | `font-display` (auto on `h1–h6`) |
-| The "partner's voice" — OS mission, Marcus brief, AllClear | **Fraunces Variable** (serif) | `font-serif` |
+| The "partner's voice" — morning check-in, AllClear (never on Home since the 2026-08-20 recompose) | **Fraunces Variable** (serif) | `font-serif` |
 | Body, labels, controls | **Geist Variable** | `font-sans` (default) |
 | Live tabular numbers / tickers | **Geist Mono Variable** | `font-mono tabular-nums` |
 
 Fonts are self-hosted via Fontsource (imported in `src/main.tsx`) — no external
-fetch. Role scale: 11/12/13/14/16/20/28/40/56.
+fetch. Role scale: 11/12/13/14/16/20/28/40/56 — **real tokens since the
+2026-08-20 recompose**: `text-micro / label / body / ui / lede / title /
+heading / display / hero` in `tailwind.config.js`, each with a tuned line
+height. Additive on purpose (they do not override `text-sm` etc., which
+would reflow ~180 files); new and rebuilt surfaces use the role names, and
+bracket-literal sizes retire as surfaces are touched.
+
+**The eyebrow is one primitive.** `<Eyebrow>` (`components/shared/Eyebrow.tsx`)
+is THE small-caps section label: `font-display text-micro font-semibold
+uppercase tracking-[0.14em]`. Six ad-hoc recipes used to coexist on Home
+alone (tracking 0.1–0.2em, three weights) — that inconsistency is what made
+the old page read as mixed type. Never hand-roll a new one.
 
 ---
 

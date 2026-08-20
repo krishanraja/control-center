@@ -12,7 +12,7 @@ import { Working } from '../shared/Working'
 // below the layer is the action; an empty layer never begs). Each pick shows
 // the weekly goal it serves when the link exists.
 
-export function TodayList() {
+export function TodayList({ compact = false }: { compact?: boolean } = {}) {
   const { today, refresh } = useDailyFocus()
   const { canon } = useGoalCanon()
   const h = useHaptics()
@@ -86,10 +86,10 @@ export function TodayList() {
                     : <span className="text-micro font-bold text-white/35 tabular-nums font-mono">{t.n}</span>}
               </button>
               <div className="flex-1 min-w-0 pt-[3px]">
-                <p className={`text-body leading-snug break-words line-clamp-2 ${t.done ? 'text-white/40 line-through' : 'text-white/90'}`}>
+                <p className={`text-body leading-snug break-words ${compact ? 'line-clamp-1' : 'line-clamp-2'} ${t.done ? 'text-white/40 line-through' : 'text-white/90'}`}>
                   {t.text || '—'}
                 </p>
-                {t.goalId && weeklyTitle.get(t.goalId) && (
+                {!compact && t.goalId && weeklyTitle.get(t.goalId) && (
                   <p className="text-micro text-white/40 leading-snug mt-0.5 inline-flex items-center gap-1 min-w-0">
                     <Target size={9} className="flex-shrink-0 opacity-60" />
                     <span className="truncate">{weeklyTitle.get(t.goalId)}</span>
@@ -104,10 +104,10 @@ export function TodayList() {
         <ul className="flex flex-col gap-1.5" aria-label="Not set yet">
           {[1, 2, 3].map(n => (
             <li key={n} className="flex items-center gap-3">
-              <span className="w-[26px] h-[26px] rounded-full border border-white/[0.12] flex-shrink-0 inline-flex items-center justify-center">
+              <span className={`${compact ? 'w-[22px] h-[22px]' : 'w-[26px] h-[26px]'} rounded-full border border-white/[0.12] flex-shrink-0 inline-flex items-center justify-center`}>
                 <span className="text-micro font-bold text-white/25 tabular-nums font-mono">{n}</span>
               </span>
-              <span className="flex-1 h-[9px] rounded bg-white/[0.04]" />
+              <span className="flex-1 h-[8px] rounded bg-white/[0.04]" />
             </li>
           ))}
         </ul>

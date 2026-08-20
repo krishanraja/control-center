@@ -73,15 +73,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // (provenance survives acceptance — see api/objectives/[id]/nominate-accept.ts).
       const { data: existing } = await supabase
         .from('goals')
-        .select('title, current, source, venture, objective_kind, horizon')
+        .select('title, source, venture, objective_kind, horizon')
         .eq('id', body.goalId)
         .single()
 
       const updates: any = { updated_at: new Date().toISOString() }
       if (body.title !== undefined) updates.title = body.title
-      if (body.current !== undefined) updates.current = body.current
-      if (body.progress !== undefined) updates.progress = Math.max(0, Math.min(100, Number(body.progress)))
-      if (body.notes !== undefined) updates.notes = body.notes
+      // current / progress / notes retired with the legacy weekly-goal columns
+      // (2026-08-20): done is a STATUS, not a percentage.
       // Retiring a goal is a status change, never a DELETE. Canon Rule A wants
       // decay reversible, and the row carries history the learning signals and
       // the chronicle hang off. Whitelisted so a client cannot invent a status
