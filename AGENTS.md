@@ -52,6 +52,28 @@ This repo contains **two independent frontends**, each with its own
   `PLAYWRIGHT_CHROMIUM_PATH` at the system Chrome
   (`/usr/bin/google-chrome-stable`). The Playwright browser download is not in
   the update script (heavy/network-dependent), so install it on demand.
+- **The preview build needs `.env` before any spec will pass, and `e2e/network.spec.ts`
+  needs a feature flag on top of that.** Both failure modes look like a broken app
+  rather than a missing variable, so they cost a debugging cycle each time:
+  - No `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` and `src/lib/supabase.ts`
+    throws at module load, before anything renders. **Every** spec then fails with
+    `element(s) not found`. Placeholder values are enough; the specs mock the network.
+  - No `VITE_UI_V2_ENABLED=true` and the network lane renders the pre-v2 substring
+    list instead of the search surface, so all 17 network specs fail the same way
+    while every other spec passes. The flag is read at build time, so set it before
+    `npm run build`, not before `playwright test`.
+  A working local `.env` for the suite:
+  ```
+  VITE_SUPABASE_URL=https://placeholder.supabase.co
+  VITE_SUPABASE_ANON_KEY=placeholder
+  VITE_UI_V2_ENABLED=true
+  ```
+  Note this repo's CI does not run Playwright at all (see `.github/workflows/ci.yml`),
+  so a broken spec will not be caught for you.
+- **Browser version drift.** `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` may hold a
+  different build than the pinned `@playwright/test` wants ("Executable doesn't exist
+  at .../chromium_headless_shell-<n>"). Point at what is actually there rather than
+  downloading: `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium-<n>/chrome-linux/chrome`.
 - **`e2e/growth.spec.ts` is green (9/9).** It used to be 2 of 9: the specs
   selected the Growth sections by their visible labels, and those labels were
   renamed. Selection now goes through `data-testid` and content stays as
