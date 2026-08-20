@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { Skeleton } from '../shared/Skeleton'
+import { useDeferredPending } from '../shared/useDeferredPending'
 import { useShipSummary } from '../../hooks/usePilot'
 import { useHaptics } from '../../hooks/useHaptics'
 import { LogShipForm } from './LogShipForm'
@@ -22,8 +24,22 @@ export function ShipLedgerCard({ variant = 'desktop' }: { variant?: 'desktop' | 
   const { summary, loading, refresh } = useShipSummary()
   const [logging, setLogging] = useState(false)
   const h = useHaptics()
+  const waiting = useDeferredPending(loading)
 
-  if (loading || !summary) return null
+  // The ledger always resolves to a summary, so a null here was a card-sized
+  // hole that filled in after everything below had already settled into it.
+  if (loading) {
+    return (
+      <Skeleton
+        quiet={!waiting}
+        h={variant === 'mobile' ? 116 : 132}
+        r={16}
+        className="border border-white/[0.06]"
+      />
+    )
+  }
+  // Genuinely nothing to show: no ledger, no card. Distinct from loading.
+  if (!summary) return null
 
   const lastThree = summary.last_ten.slice(0, 3)
   const compact = variant === 'mobile'

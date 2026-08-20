@@ -9,6 +9,8 @@ import { supabase } from '../../lib/supabase'
 import { useLiveStatus } from '../../hooks/useLiveStatus'
 import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
 import { useHomeIntelligence } from '../../hooks/useHomeIntelligence'
+import { HomeSkeleton } from '../shared/Skeleton'
+import { useFirstLoad } from '../shared/useDeferredPending'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { humanize } from '../shared/tokens'
 import { OsHealthStrip } from './OsHealthStrip'
@@ -85,7 +87,7 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
   deepDecision?: string | null
 } = {}) {
   const v2 = isHomeV2Enabled()
-  const { intel } = useHomeIntelligence()
+  const { intel, loading: intelLoading } = useHomeIntelligence()
   const [events, setEvents] = useState<AuditEvent[]>([])
   // The hero reads the OS rung straight off the ladder's payload. It used to
   // render system_config.north_star, a second store for the same concept with
@@ -147,6 +149,14 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
   // ── Focus Ritual: unified spine + read-only board. Deciding (pick the 3, shape
   // the week, ratify objectives) lives in the ritual mounted at App level; Home
   // only tracks, surfaces what's waiting, and keeps the context below the fold.
+  // Home is the landing route and had no loading gate: it composes about fifteen
+  // independently-loading children, six of which returned null while waiting, so
+  // the board reflowed several times on every cold load. One placeholder in the
+  // page's real proportions, above every branch, gated so a warm cache paints
+  // straight through.
+  const firstPaint = useFirstLoad(intelLoading, Boolean(intel.generated_at))
+  if (firstPaint) return <HomeSkeleton />
+
   if (isFocusRitualEnabled()) {
     return (
       <div className="flex flex-col gap-4 max-w-[1280px] mx-auto w-full">

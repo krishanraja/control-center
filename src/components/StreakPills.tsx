@@ -2,6 +2,8 @@ import React from 'react'
 import { Flame, MessageSquare, PenSquare, Phone, Target } from 'lucide-react'
 import { useStreaks } from '../hooks/useStreaks'
 import { isFocusEnabled } from '../hooks/useDailyFocus'
+import { Skeleton } from './shared/Skeleton'
+import { useDeferredPending } from './shared/useDeferredPending'
 
 interface Props {
   variant?: 'mobile' | 'desktop'
@@ -9,8 +11,7 @@ interface Props {
 
 export function StreakPills({ variant = 'mobile' }: Props) {
   const s = useStreaks()
-  if (s.loading) return null
-
+  const waiting = useDeferredPending(s.loading)
   const basePills = [
     { label: 'Customer talks', value: s.customer_contacts, icon: Phone },
     { label: 'Content shipped', value: s.content_shipped,  icon: PenSquare },
@@ -24,6 +25,18 @@ export function StreakPills({ variant = 'mobile' }: Props) {
   const cols = pills.length === 4
     ? (isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-4 gap-3')
     : (isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-3 gap-3')
+
+  // Streaks always resolve to something, so this reserves its own row rather
+  // than returning null and shoving everything below it down on arrival. The
+  // box exists from the first frame; the shimmer waits until the load is slow
+  // enough to be worth announcing.
+  if (s.loading) {
+    return (
+      <div className={`grid ${cols} flex-shrink-0`} aria-busy="true">
+        {pills.map(p => <Skeleton key={p.label} quiet={!waiting} h={isMobile ? 70 : 62} r={12} />)}
+      </div>
+    )
+  }
 
   return (
     <div className={`grid ${cols} flex-shrink-0`}>

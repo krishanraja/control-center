@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { RichText, SelectableDraft } from './RichText'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
-import { SkeletonText } from '../shared/Skeleton'
+import { SkeletonText, SkeletonDetail } from '../shared/Skeleton'
 import { useRealtimeContentIdeas, type ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -178,13 +178,11 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
     h.tap(); applyDraft(fixed); toast('Em dashes cleared.', 'success')
   }
 
-  if (!idea) {
-    return (
-      <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[90] bg-base flex items-center justify-center">
-        <Loader2 size={20} className="animate-spin text-white/40" />
-      </div>
-    )
-  }
+  // The piece is still being read. This was a bare unlabelled spinner on a black
+  // field, which said nothing about what was coming and, sitting behind the old
+  // `fallback={null}` in App.tsx, meant opening a piece went blank, spinner,
+  // content. The composer's own shape is recognisable, so promise that instead.
+  if (!idea) return <SkeletonDetail full />
 
   const openRail = (t: RailTab) => setTab(t)
 

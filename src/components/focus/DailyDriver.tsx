@@ -1,4 +1,6 @@
 import React from 'react'
+import { Skeleton } from '../shared/Skeleton'
+import { useDeferredPending } from '../shared/useDeferredPending'
 import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
 import { CarryOverPrompt } from './CarryOverPrompt'
 import { FocusCalibrator } from './FocusCalibrator'
@@ -25,9 +27,15 @@ export function DailyDriver() {
   // spine hold one commitment rather than two.
   const { state: pilot } = usePilotState()
   const pilotOne = pilot?.last_evening?.tomorrow_one ?? null
+  const waiting = useDeferredPending(loading)
 
   if (!isFocusEnabled()) return null
-  if (loading) return null
+  // Feature-off is the only reason to render nothing. Once it is on there is
+  // always either a calibrator or a tracker here, so the wait reserves that
+  // space rather than letting the spine below jump when it lands.
+  if (loading) {
+    return <Skeleton quiet={!waiting} h={188} r={18} className="border border-white/[0.06]" />
+  }
 
   // CONTEXT + COMMIT: no commitment yet. Read the frame, surface yesterday's
   // open loop, then lock today's 3.

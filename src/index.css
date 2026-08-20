@@ -424,19 +424,37 @@
 }
 .animate-indeterminate { animation: indeterminate var(--dur-indeterminate) var(--ease-calm) infinite; transform-origin: left center; }
 
+/* The working arc: the small, in-place "this control is busy" mark, and the one
+   replacement for `Loader2 className="animate-spin"`. Stock animate-spin runs a
+   fixed 1s linear full turn, which ignores every dial below, sits outside the
+   reduced-motion block, and reads mechanical next to the orbit language. This
+   rotates on the same --dur-orbit clock as the thinking particle, so a button
+   spinner and a full-screen overlay are visibly the same system at two scales. */
+@keyframes working-arc { to { transform: rotate(360deg); } }
+.animate-working {
+  animation: working-arc calc(var(--dur-orbit) * 0.42) linear infinite;
+  transform-origin: center;
+}
+
 /* Skeletons: content-shaped placeholders with a soft light sweep. A skeleton
-   is a promise of the exact thing about to appear — never a generic spinner. */
+   is a promise of the exact thing about to appear — never a generic spinner.
+
+   Both the fill and the sweep route through --fg, like every other muted tier
+   in this app. They used to be literal rgba(255,255,255,…), which is correct at
+   night and invisible by day: a 4.5% white block on the #F2F1F8 paper is a
+   one-value difference. Every skeleton in the app was a blank gap in light mode,
+   which is the exact "flash of nothing" the skeleton exists to prevent. */
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: rgba(255,255,255,0.045);
+  background: rgb(var(--fg) / 0.05);
 }
 .skeleton::after {
   content: '';
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgb(var(--fg) / 0.07) 50%, transparent 100%);
   animation: skeleton-sweep var(--dur-skeleton) ease-in-out infinite;
 }
 @keyframes skeleton-sweep { 100% { transform: translateX(100%); } }
@@ -533,7 +551,14 @@
   .animate-mark-breathe,
   .animate-indeterminate,
   .animate-row-collapse,
-  .ambient-field {
+  .animate-working,
+  .ambient-field,
+  /* Tailwind's stock spin/pulse were never in this list, so every hand-rolled
+     spinner in the app kept turning for someone who had asked the OS to stop
+     motion. They are being migrated onto .animate-working, but listing them
+     here closes the hole now and keeps it closed for anything added later. */
+  .animate-spin,
+  .animate-pulse {
     animation: none !important;
   }
   /* Reduced motion: a leaving row just disappears, no slide. */
@@ -572,6 +597,13 @@
   --dur-scale: 0.46s;
   --dur-exhale: 0.95s;
   --dur-app-enter: 0.8s;
+  /* Waiting is most of what a depleted day feels like, so the loading dials
+     calm with everything else. A slower sweep and a slower orbit read as
+     patient; the same wait at full speed reads as the app hurrying you. */
+  --dur-skeleton: 2.2s;
+  --dur-indeterminate: 2.1s;
+  --dur-orbit: 3.4s;
+  --dur-breathe: 3.4s;
 
   /* Flatter surfaces, less edge contrast: fewer things competing for the eye. */
   --card-hi-a: 0;

@@ -60,6 +60,27 @@ type ButtonProps = React.ComponentProps<'button'> &
     asChild?: boolean
     iconLeft?: React.ReactNode
     iconRight?: React.ReactNode
+    /**
+     * The work this button started is still running.
+     *
+     * This is the rung the system was missing. Pressable has owned the pending
+     * choreography since it was written, but it is a whole tactile body with a
+     * press state machine and haptics, so most surfaces did not adopt it and
+     * hand-rolled `disabled={saving}` plus a spinning icon instead. Roughly 174
+     * of them, each deciding for itself whether to swap the icon, change the
+     * label, dim the text, or do nothing visible at all.
+     *
+     * So the flat button underneath gets the same honest rail Pressable paints:
+     * an indeterminate light along the bottom edge, content dimmed so the state
+     * is unambiguous, `aria-busy` for anyone not looking at it, and pointer
+     * events off so the second click cannot land. One prop, no restructuring.
+     *
+     * It deliberately does NOT set `disabled`. A disabled button is removed
+     * from the tab order, which moves keyboard focus somewhere arbitrary the
+     * moment work begins and again when it ends. `aria-disabled` keeps the
+     * button focusable and announced while making it inert.
+     */
+    loading?: boolean
   }
 
 function Button({
@@ -69,15 +90,35 @@ function Button({
   asChild = false,
   iconLeft,
   iconRight,
+  loading = false,
+  disabled,
   children,
   ...props
 }: ButtonProps) {
   const Comp = asChild ? Slot : 'button'
   return (
-    <Comp data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props}>
+    <Comp
+      data-slot="button"
+      className={cn(
+        buttonVariants({ variant, size, className }),
+        // Dim every direct child except the rail. Done as a variant rather than
+        // a wrapper span so the Slottable contract (and therefore `asChild`) is
+        // untouched, and because `display: contents` cannot take an opacity.
+        loading && 'relative overflow-hidden pointer-events-none [&>*:not([data-busy-rail])]:opacity-60',
+      )}
+      disabled={disabled}
+      aria-disabled={loading || undefined}
+      aria-busy={loading || undefined}
+      {...props}
+    >
       {iconLeft}
       <Slottable>{children}</Slottable>
       {iconRight}
+      {loading && (
+        <span data-busy-rail className="pointer-events-none absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden">
+          <span className="block h-full w-1/3 animate-indeterminate bg-current opacity-70" />
+        </span>
+      )}
     </Comp>
   )
 }

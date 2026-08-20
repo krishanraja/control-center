@@ -27,7 +27,13 @@ export function BetsStrip() {
     return [...overdue, ...rest]
   }, [live, overdueLive])
 
-  if (loading || live.length === 0) return null
+  // Deliberately silent while loading, and deliberately NOT a skeleton. This
+  // strip is absent whenever there are no live bets, which is often, so
+  // reserving space for it would shove the ambient fold around to announce
+  // something that may never arrive. Split from the empty case so the two
+  // reasons stay distinguishable.
+  if (loading) return null
+  if (live.length === 0) return null
 
   const soonest = ordered.find(b => !isOverdue(b))
   const overall = hitRates.find(r => r.kind === 'all')

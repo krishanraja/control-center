@@ -20,7 +20,7 @@ import { VALID_TAB_IDS } from './lib/tabs'
 import { useHashRoute } from './hooks/useHashRoute'
 import { contentV2Enabled } from './lib/contentV2'
 import { BOTTOM_NAV_PAD } from './components/mobile/primitives'
-import { MobileTabSkeleton, BoardSkeleton } from './components/shared/Skeleton'
+import { MobileTabSkeleton, BoardSkeleton, SkeletonDetail } from './components/shared/Skeleton'
 import { isUiV2 } from './lib/uiV2'
 
 /**
@@ -298,7 +298,11 @@ export default function App() {
           {contentV2Enabled() && tab === 'content' && route.params.brief && (
             <div style={narrow ? ({ zoom: 1.2, ['--z']: '1.2' } as React.CSSProperties) : undefined}>
               <ErrorBoundary label="Brief">
-                <Suspense fallback={null}>
+                {/* Previously had no fallback at all. A deep-linked full-screen takeover
+                    fetching its own chunk showed nothing at all until it was
+                    ready, so following a link to a brief looked like the click
+                    had failed. */}
+                <Suspense fallback={<SkeletonDetail full />}>
                   <BriefEditor
                     week={route.params.brief}
                     narrow={narrow}
@@ -315,7 +319,10 @@ export default function App() {
             // mobile-zoom-root; the composer's fixed containers size off --z.
             <div style={narrow ? ({ zoom: 1.2, ['--z']: '1.2' } as React.CSSProperties) : undefined}>
               <ErrorBoundary label="Composer">
-                <Suspense fallback={null}>
+                {/* Same gap as the brief editor above, and worse: the composer
+                    then rendered its own bare unlabelled spinner on top of the
+                    blank, so opening a piece went nothing, spinner, content. */}
+                <Suspense fallback={<SkeletonDetail full />}>
                   <ContentComposer
                     ideaId={route.params.idea}
                     narrow={narrow}

@@ -31,6 +31,8 @@ import { isSimplifiedIA } from '../../lib/iaV3'
 import { isHomeV2Enabled, isFocusRitualEnabled } from '../../lib/homeV2'
 import { ShipLedgerCard } from '../pilot/ShipLedgerCard'
 import { DueTestsCard } from '../pilot/DueTestsCard'
+import { HomeSkeleton } from '../shared/Skeleton'
+import { useFirstLoad } from '../shared/useDeferredPending'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -52,12 +54,22 @@ export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }:
   deepDecision?: string | null
 } = {}) {
   const h = useHaptics()
-  const { intel } = useHomeIntelligence()
+  const { intel, loading } = useHomeIntelligence()
   const [openSignal, setOpenSignal] = useState<ExternalSignal | null>(null)
 
   const signals = intel.external_signals
   const topThree = intel.top_three
   const v2 = isHomeV2Enabled()
+
+  // Home is the landing route, and it had no loading gate at all. It composes
+  // about fifteen independently-loading children, six of which returned null
+  // while they waited, so every cold load was a sequence of small shoves: a
+  // banner appeared, the spine pushed it down, the ladder pushed it down again.
+  //
+  // One placeholder in the page's real proportions instead. Gated so a warm
+  // cache paints straight through without a flash, and so the placeholder never
+  // replaces content that is already on screen.
+  const firstPaint = useFirstLoad(loading, Boolean(intel.generated_at))
 
   const ritualOn = isFocusRitualEnabled()
 
@@ -103,6 +115,16 @@ export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }:
       }
     />
   )
+
+  // One gate above every branch, so the ritual, v2 and legacy stacks all settle
+  // the same way rather than each inventing a first paint.
+  if (firstPaint) {
+    return (
+      <MobileShellPrim header={<TabHeader leading={<Logomark size={36} />} />}>
+        <HomeSkeleton narrow />
+      </MobileShellPrim>
+    )
+  }
 
   // ── Focus Ritual: the unified spine + read-only board. Deciding lives in the
   // ritual (mounted at App level); the board only tracks, surfaces what's waiting,

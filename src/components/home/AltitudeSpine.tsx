@@ -1,4 +1,6 @@
 import React from 'react'
+import { Skeleton } from '../shared/Skeleton'
+import { useDeferredPending } from '../shared/useDeferredPending'
 import {
   TrendingUp, TrendingDown, Inbox, ChevronRight, CheckCircle2, ArrowRight,
 } from 'lucide-react'
@@ -32,6 +34,7 @@ export function AltitudeSpine({
   const h = useHaptics()
   const { altitudes, pending, allSet, loading } = useAltitudes()
   const { liveMrr, mrrDelta7d, loading: revLoading } = useRevenueAttribution()
+  const showMrrBar = useDeferredPending(revLoading)
   const { decisions } = useRealtimeDecisionsWaiting()
 
   // Q1 contract: the spine's number is the same typed-rulings count as the anchor.
@@ -91,7 +94,10 @@ export function AltitudeSpine({
           <span className="min-w-0">
             <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-white/55">MRR</span>
             <span className="block text-[16px] font-bold font-mono tabular-nums text-white leading-tight">
-              {revLoading ? '—' : formatMrr(liveMrr)}
+              {/* A bar in the figure's own footprint, not an em dash. A dash is
+                  a real value of nothing, which is a different statement from
+                  "still arriving" and the wrong one to make here. */}
+              {revLoading ? <Skeleton quiet={!showMrrBar} h={13} w={64} r={4} className="my-[2px]" /> : formatMrr(liveMrr)}
             </span>
           </span>
           {!revLoading && (

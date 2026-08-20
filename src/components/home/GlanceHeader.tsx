@@ -1,4 +1,6 @@
 import React from 'react'
+import { Skeleton } from '../shared/Skeleton'
+import { useDeferredPending } from '../shared/useDeferredPending'
 import { TrendingUp, TrendingDown, Target, Inbox } from 'lucide-react'
 import { useRevenueAttribution } from '../../hooks/useRevenueAttribution'
 import { formatMrr } from '../../lib/mrrDisplay'
@@ -44,6 +46,10 @@ export function GlanceHeader({
 
   const mobile = variant === 'mobile'
   const valueSize = mobile ? 'text-[22px]' : 'text-[18px]'
+  // Match the bar to the cap height of the figure it stands in for, so the row
+  // does not change height when the real number lands.
+  const valueBarH = mobile ? 18 : 15
+  const showBar = useDeferredPending(loading)
   const labelSize = mobile ? 'text-[10px]' : 'text-[9px]'
 
   return (
@@ -58,7 +64,7 @@ export function GlanceHeader({
           ? <TrendingUp size={12} className="text-emerald-400" />
           : <TrendingDown size={12} className="text-rose-400" />}
         label="MRR"
-        value={loading ? '—' : formatMrr(liveMrr)}
+        value={loading ? <Skeleton quiet={!showBar} h={valueBarH} w={72} r={5} /> : formatMrr(liveMrr)}
         sub={loading ? '' : `${deltaPositive ? '+' : ''}${Math.round(mrrDelta7d).toLocaleString()}/wk`}
         subColor={deltaPositive ? 'text-emerald-400/80' : 'text-rose-400/80'}
         valueSize={valueSize}
@@ -94,7 +100,10 @@ function GlanceCell({
   onClick?: () => void
   icon: React.ReactNode
   label: string
-  value: string
+  /** A node, not a string, so a pending figure can be a bar in its own
+   *  footprint rather than an em dash. A dash reads as a real value of nothing,
+   *  which is a different and wrong statement while the number is in flight. */
+  value: React.ReactNode
   sub: string
   subColor: string
   valueSize: string

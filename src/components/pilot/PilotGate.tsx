@@ -71,6 +71,25 @@ export function PilotGate({ children, onIntent }: Props) {
     onIntent(savedIntent)
   }, [routed, onIntent, savedIntent, mode])
 
+  // Declare readiness the moment this gate stops being the reason nothing is on
+  // screen. The splash in index.html holds until this attribute appears, so the
+  // brand mark keeps breathing over its own orbit for exactly as long as the
+  // pilot read takes, then exhales into real content. Before this, the splash
+  // hid on React's first commit — which ToastProvider satisfies with an empty
+  // toast container — so a cold load went splash, blank, content.
+  //
+  // Set from an effect, so it lands AFTER the first paint of whatever renders
+  // below: the splash is only removed once there is something behind it.
+  useEffect(() => {
+    if (loading) return
+    document.documentElement.setAttribute('data-app-ready', '')
+  }, [loading])
+
+  // Nothing paints behind a held splash, so this stays `null` rather than
+  // becoming a second loading screen. The two are one mechanism: the splash IS
+  // the boot state, and it is already the right one (a breathing mark with a
+  // particle orbiting it is the house language for "getting ready for you").
+  // Changing this to render anything means changing index.html too.
   if (loading) return null
   // Fails open: an unreachable pilot service renders the dashboard untouched,
   // with no provider, which resolves every consumer to `steady`.
