@@ -100,6 +100,12 @@ test.describe('the morning window', () => {
     // 00:30 is a new civil day with no row, which is what the old 20-hour
     // suppression was really guarding against. The window's 04:00 floor handles
     // it without swallowing the following morning.
+    //
+    // Anchor on the dashboard first. toHaveCount(0) resolves on the first tick,
+    // so on its own this passed identically whether the gate was correctly
+    // absent or the app had simply not finished booting yet — and it now boots
+    // behind a held splash, which makes that window real rather than notional.
+    await expect(page.getByRole('navigation').first()).toBeVisible()
     await expect(page.getByText(GATE)).toHaveCount(0)
     await ctx.close()
   })
@@ -110,6 +116,8 @@ test.describe('the morning window', () => {
     await page.clock.setFixedTime(new Date('2026-08-12T11:00:00Z'))
     await mockPilot(page, { morning: answeredMorning })
     await page.goto('/')
+    // Same anchoring as above: prove the app rendered before asserting absence.
+    await expect(page.getByRole('navigation').first()).toBeVisible()
     await expect(page.getByText(GATE)).toHaveCount(0)
     await ctx.close()
   })

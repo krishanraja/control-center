@@ -20,7 +20,7 @@ import { VALID_TAB_IDS } from './lib/tabs'
 import { useHashRoute } from './hooks/useHashRoute'
 import { contentV2Enabled } from './lib/contentV2'
 import { BOTTOM_NAV_PAD } from './components/mobile/primitives'
-import { MobileTabSkeleton, BoardSkeleton, SkeletonDetail } from './components/shared/Skeleton'
+import { MobileTabSkeleton, BoardSkeleton, SkeletonDetail, DeferredFallback } from './components/shared/Skeleton'
 import { isUiV2 } from './lib/uiV2'
 
 /**
@@ -96,15 +96,17 @@ const IA_ALIASES: Record<string, { tab: string; params?: Record<string, string> 
 /** Calm chunk-load fallback for a mobile route (single-focus, one column). */
 function MobileRouteFallback() {
   return (
-    <div className="px-5 pt-7 pb-5 h-[calc(100dvh/var(--z,1))]">
-      <MobileTabSkeleton />
-    </div>
+    <DeferredFallback>
+      <div className="px-5 pt-7 pb-5 h-[calc(100dvh/var(--z,1))]">
+        <MobileTabSkeleton />
+      </div>
+    </DeferredFallback>
   )
 }
 
 /** Calm chunk-load fallback for a desktop route (structural breadth). */
 function DesktopRouteFallback() {
-  return <BoardSkeleton lanes={3} cardsPerLane={3} />
+  return <DeferredFallback><BoardSkeleton lanes={3} cardsPerLane={3} /></DeferredFallback>
 }
 
 /**
@@ -245,7 +247,7 @@ export default function App() {
                 </Suspense>
               </div>
             ) : tab === 'content' ? (
-              <Suspense fallback={<div className="p-6"><BoardSkeleton lanes={3} cardsPerLane={3} /></div>}>
+              <Suspense fallback={<DeferredFallback><div className="p-6"><BoardSkeleton lanes={3} cardsPerLane={3} /></div></DeferredFallback>}>
                 {contentV2Enabled()
                   ? <ErrorBoundary label="Content"><div className="h-full overflow-hidden px-6 py-6 flex flex-col"><ContentV2Tab variant="desktop" /></div></ErrorBoundary>
                   : <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>}
@@ -254,7 +256,7 @@ export default function App() {
               // Growth owns its own height like Content: the creative board
               // scrolls sideways and each section scrolls inside itself, so the
               // shell must not wrap it in a second scroll container.
-              <Suspense fallback={<div className="p-6"><BoardSkeleton lanes={4} cardsPerLane={3} /></div>}>
+              <Suspense fallback={<DeferredFallback><div className="p-6"><BoardSkeleton lanes={4} cardsPerLane={3} /></div></DeferredFallback>}>
                 <ErrorBoundary label="Growth">
                   <div className="h-full overflow-hidden px-6 py-6 flex flex-col">
                     <GrowthTab
@@ -302,7 +304,7 @@ export default function App() {
                     fetching its own chunk showed nothing at all until it was
                     ready, so following a link to a brief looked like the click
                     had failed. */}
-                <Suspense fallback={<SkeletonDetail full />}>
+                <Suspense fallback={<DeferredFallback><SkeletonDetail full /></DeferredFallback>}>
                   <BriefEditor
                     week={route.params.brief}
                     narrow={narrow}
@@ -322,7 +324,7 @@ export default function App() {
                 {/* Same gap as the brief editor above, and worse: the composer
                     then rendered its own bare unlabelled spinner on top of the
                     blank, so opening a piece went nothing, spinner, content. */}
-                <Suspense fallback={<SkeletonDetail full />}>
+                <Suspense fallback={<DeferredFallback><SkeletonDetail full /></DeferredFallback>}>
                   <ContentComposer
                     ideaId={route.params.idea}
                     narrow={narrow}

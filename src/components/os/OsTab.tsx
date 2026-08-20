@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from 'react'
 import { ErrorBoundary } from '../ErrorBoundary'
-import { BoardSkeleton, MobileTabSkeleton } from '../shared/Skeleton'
+import { BoardSkeleton, MobileTabSkeleton, DeferredFallback } from '../shared/Skeleton'
 import { SegmentedNav } from '../shared/SegmentedNav'
 
 // OS: the back office behind one drawer entry. Org (agents + corrections),
@@ -60,9 +60,13 @@ export function OsTab({ narrow, params, onNavigate }: Props) {
     />
   )
 
-  const fallback = narrow
-    ? <div className="px-5 pt-7 pb-5"><MobileTabSkeleton /></div>
-    : <BoardSkeleton lanes={3} cardsPerLane={3} />
+  const fallback = (
+    <DeferredFallback>
+      {narrow
+        ? <div className="px-5 pt-7 pb-5"><MobileTabSkeleton /></div>
+        : <BoardSkeleton lanes={3} cardsPerLane={3} />}
+    </DeferredFallback>
+  )
 
   return (
     <>

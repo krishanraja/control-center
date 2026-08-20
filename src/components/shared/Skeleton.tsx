@@ -1,5 +1,6 @@
 import React from 'react'
 import { staggerDelay, useReducedMotion } from './motion'
+import { useDeferredPending } from './useDeferredPending'
 
 /**
  * Skeletons — a promise of the exact thing about to appear, never a spinner.
@@ -170,6 +171,26 @@ export function BoardSkeleton({
       </div>
     </div>
   )
+}
+
+/**
+ * A chunk-load fallback that does not flash.
+ *
+ * Route surfaces are code-split, so every tab switch suspends. On a cold load
+ * that fetch is worth a placeholder. On a warm cache it resolves in about 50ms,
+ * and painting a whole board skeleton for three frames on every tab switch is
+ * the single most-seen flicker in the product: it reads as the app stuttering,
+ * not as the app loading.
+ *
+ * The gate belongs HERE rather than at the call site because a Suspense
+ * fallback cannot own a hook in its parent, and because the wait it needs to
+ * measure starts when the fallback itself mounts, which is exactly when this
+ * component mounts.
+ *
+ *   <Suspense fallback={<DeferredFallback><BoardSkeleton /></DeferredFallback>}>
+ */
+export function DeferredFallback({ children }: { children: React.ReactNode }) {
+  return useDeferredPending(true) ? <>{children}</> : null
 }
 
 /**
