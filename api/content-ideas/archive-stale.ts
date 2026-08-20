@@ -47,14 +47,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const result = (data || {}) as { archived?: number; would_archive?: number; idle_days_threshold?: number }
 
-    if (!dryRun && (result.archived ?? 0) > 0) {
+    // Write the row on EVERY real run, including the ones that archive nothing.
+    //
+    // This first shipped as `if (archived > 0)`, which made "the cron ran and
+    // found nothing eligible" and "the cron never fired" produce byte-identical
+    // evidence: no audit row either way. On 2026-08-20 that cost a verification
+    // pass — nothing had crossed the 14-day line since the manual backfill, so
+    // the archive's own history could not say whether it had run.
+    //
+    // That is precisely the failure class this route was built to end. A job
+    // that reports only when it acts is a job you cannot distinguish from a
+    // dead one, which is how credential_health sat on "all healthy" for three
+    // months while three workflows failed daily.
+    if (!dryRun) {
       await supabase.from('audit_log').insert({
         event_type: 'content_staleness_archive',
         actor: 'content-engine-v2',
         target: 'content_ideas',
         details: JSON.stringify({
-          archived: result.archived,
+          archived: result.archived ?? 0,
           idle_days_threshold: result.idle_days_threshold,
+          outcome: (result.archived ?? 0) > 0 ? 'archived' : 'nothing_eligible',
         }),
       })
     }
