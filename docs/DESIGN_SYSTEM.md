@@ -81,10 +81,15 @@ and `:root[data-theme='light']` (day), mapped into semantic Tailwind names in
 | Token | Dark | Light | Tailwind |
 |---|---|---|---|
 | `--bg-base` | `#08070D` obsidian | `#F2F1F8` lavender paper | `bg-base` |
-| `--bg-sunk` | `#060509` | `#F4F2ED` | `bg-sunk` |
-| `--ink` / muted / faint | `#ECEAF5` / `#A7A3B8` / `#6E6A80` | `#161620` / `#5C5868` / `#8C8898` | `text-ink` / `text-ink-muted` / `text-ink-faint` |
-| `--fg` (white remap) | `255 255 255` | `24 22 32` | `*-white/NN` |
-| `--accent` / `-2` / `-3` (aurora) | `#8B7CF6` → `#6366F1` → `#22D3EE` | deepened for paper | `text-accent`, `.aurora-*` |
+| `--bg-sunk` | `#060509` | `#E9E8F2` | `bg-sunk` |
+| `--ink` / muted / faint | `#ECEAF5` / `#A7A3B8` / `#6E6A80` | `#171521` / `#585466` / `#8A8598` | `text-ink` / `text-ink-muted` / `text-ink-faint` |
+| `--fg` (white remap) | `255 255 255` | `0 0 0` | `*-white/NN` |
+| `--accent` / `-2` / `-3` (aurora) | muted violet → indigo → teal | deepened for paper | `text-accent`, `.aurora-*` |
+
+> Light `--fg` is pure black, **not** `--ink`. Every muted tier in this app is
+> an opacity of `--fg`, and those ratios were tuned for white-on-obsidian;
+> inverted onto pale paper the same opacities read washed out. True black lifts
+> every tier at once. `index.css` is the source of truth for all of these.
 
 - **Brand accent cascade:** Tailwind's `violet` ramp is redefined to the aurora
   anchor, so existing `violet-300/400/500` usages are the brand colour.
@@ -160,6 +165,106 @@ both device classes and both themes stay coherent.
 | Fonts | `src/main.tsx` |
 | Device intent + reduced motion | `src/components/shared/motion.ts` |
 | Pod / status colour maps | `src/components/shared/tokens.ts` |
+
+---
+
+## Loading — the ladder
+
+Every wait in the app maps to exactly one rung. The rung is chosen by **real
+measured latency**, not by how important the operation feels. This is the rule
+that makes each state fit for purpose, and it is also the rule that stops the
+work being overdone.
+
+| Rung | Real latency | Treatment | Primitive |
+|---|---|---|---|
+| **0 · Instant** | under 200ms | **Nothing.** No spinner, no skeleton, no dim. | `useDeferredPending` returns false |
+| **1 · Settle** | 200ms to 2s | Content-shaped skeleton in the exact geometry of what is arriving. No words. | `Skeleton` / `SkeletonList` / `BoardSkeleton` / `MobileTabSkeleton` / `SkeletonDetail` / `HomeSkeleton` |
+| **2 · Narrate** | 2s to 10s | Skeleton or inline row plus one present-continuous label. Elapsed appears at 3s. | `Pending`, `Loadable`, `Working` |
+| **3 · Accompany** | over 10s | Owns the surface. Staged narration, elapsed clock, stated expectation, an exit. | `ProcessingOverlay` |
+
+Two orthogonal modes, neither of which is a rung:
+
+- **Refresh** (data already on screen). Never blank, never skeleton, never dim.
+  The control that was pressed acknowledges itself with `Working`; an automatic
+  poll says so through `LastUpdated` / `RefreshRail`. Content stays interactive.
+- **Optimistic** (writes). No loading state at all. The row changes now and
+  reverts with an Undo toast on failure. See `useSwipeTriage`, `useContentTriage`,
+  `useGrowth`.
+
+### The restraint rules
+
+As load-bearing as the ladder itself.
+
+1. **No loading affordance under 200ms.** A skeleton painted for 60ms is a
+   flicker, and a flicker reads as a rendering bug. Wrap the flag in
+   `useDeferredPending`.
+2. **Reserve space from frame 0, shimmer later.** `<Skeleton quiet={!waiting} />`
+   holds the box with no fill. Layout shift and flash are both avoidable; you
+   do not have to pick one.
+3. **One loading affordance per surface region.** If the panel shows a
+   skeleton, its buttons do not also spin.
+4. **No full-screen overlay under about 1.5s.**
+5. **No percentage that cannot be honestly computed.** Indeterminate, or
+   nothing. `.animate-indeterminate` is the house rail.
+6. **A refresh of visible data never gets a skeleton and never dims.**
+7. **Never animate two things at once in one viewport region.**
+8. **Empty state never renders while a load is in flight.** `Loadable` enforces
+   it. "Nothing here needs you" during a fetch is a false statement that
+   happens to be replaced later.
+9. **Return null only when the component is genuinely often absent.** If it
+   almost always resolves to content, reserve its space. `BetsStrip` is the
+   correct null (no live bets is common); `ShipLedgerCard` is not (it always
+   resolves), and reserves.
+
+### Copy
+
+All of it lives in [`src/lib/loadingVoice.ts`](../src/lib/loadingVoice.ts), one
+entry per operation. Do not type a loading string into a component.
+
+- Present continuous, naming the work: `Rewriting the draft`, never `Working`
+  or `Loading`.
+- The ellipsis character `…`. Never `...`, never a bare `…` as the whole label.
+- Sentence case.
+- Model-backed waits name the agent. The map stores a **slug**, and the display
+  name is resolved live from the roster, because agents get renamed and retired
+  and a wait that confidently names a retired agent is worse than one that says
+  nothing. Plain reads stay neutral.
+- No em dashes (see `krish-voice`).
+
+### Where the system lives
+
+| Concern | File |
+|---|---|
+| The anti-flash gate | `src/components/shared/useDeferredPending.ts` |
+| The one small busy mark | `src/components/shared/Working.tsx` |
+| Named waits + elapsed + block variant | `src/components/shared/Pending.tsx` |
+| The blocking "thinking" overlay | `src/components/shared/ProcessingOverlay.tsx` |
+| Skeleton family | `src/components/shared/Skeleton.tsx` |
+| Background-refresh hairline | `src/components/shared/RefreshRail.tsx` |
+| Elapsed / stage / stage-walk | `src/hooks/useAsyncAction.ts` |
+| Every loading string | `src/lib/loadingVoice.ts` |
+| Streaming client (SSE, JSON fallback) | `src/lib/streamText.ts` |
+| Streaming server helper | `api/_stream.ts` |
+| Sweep, rail, orbit, dials, reduced motion | `src/index.css` |
+
+Timing comes from the `--dur-*` block in `index.css`: `--dur-skeleton`,
+`--dur-indeterminate`, `--dur-orbit`, `--dur-breathe`. They calm under
+`data-capacity='low'` with the rest of the app, and everything here is inside
+the `prefers-reduced-motion` block.
+
+**Never reach for `animate-spin`.** It runs on a clock no dial can reach and it
+is suppressed under reduced motion. Use `Working`.
+
+### Boot
+
+`index.html`'s splash holds until `PilotGate` stamps `data-app-ready` on
+`<html>`, which is the moment the gate or the dashboard first paints. It used to
+hide on React's first commit, which `ToastProvider` satisfies with an empty
+toast container while the pilot read was still in flight, so a cold load went
+splash, blank, pop. If you move that gate, move the attribute with it. The 6s
+safety net in `index.html` is what makes holding the splash safe.
+
+---
 
 ## The primitive layer (`src/components/ui/`)
 
