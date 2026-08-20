@@ -3,6 +3,7 @@ import { X, Check, ChevronRight, Maximize2, CheckCircle2 } from 'lucide-react'
 import { useCardDeck, type Dir } from '../../hooks/useCardDeck'
 import { SwipeCard } from './SwipeCard'
 import { ReasonChipBar } from './ReasonChipBar'
+import { WhyBadge } from './WhyBadge'
 import { DeckProgressStrip } from './DeckProgressStrip'
 
 export interface ReasonChip { code: string; label: string }
@@ -38,6 +39,9 @@ interface Props<T> {
   /** Left-swipe reason buffer (from useSwipeTriage). When set, the chip bar shows. */
   pending: { item: T } | null
   reasonChips?: (t: T) => ReasonChip[]
+  /** Where this card came from, so the top card can answer "why am I seeing
+   *  this?" without every deck re-implementing the badge. */
+  why?: (t: T) => { table: string; row: Record<string, any> } | null
   onChooseReason: (code?: string) => void
   onCancelPending: () => void
 
@@ -77,7 +81,7 @@ export function SwipeDeck<T>({
   deck, getId, renderBody, ariaLabel,
   onAccept, onReject, onOpen,
   leftLabel = 'Skip', rightLabel = 'Keep', rightIntent, middleAction,
-  pending, reasonChips, onChooseReason, onCancelPending,
+  pending, reasonChips, onChooseReason, onCancelPending, why,
   remaining, triagedCount, onExit, exitLabel, onUndo, canUndo,
   title = 'Clear the pile', narrow, paused,
 }: Props<T>) {
@@ -168,6 +172,11 @@ export function SwipeDeck<T>({
                 ariaLabel={ariaLabel ? ariaLabel(item) : undefined}
                 onClick={isTop && onOpen ? () => onOpen(item) : undefined}
               >
+                {isTop && why?.(item) ? (
+                  <div className="absolute right-3 top-3 z-10">
+                    <WhyBadge {...why(item)!} />
+                  </div>
+                ) : null}
                 {renderBody(item, depth)}
               </SwipeCard>
             )

@@ -5,6 +5,7 @@ import { reasonsFor } from '../../lib/triageReasons'
 import { feedbackVote } from '../../lib/triageActions'
 import { useLikelyReasons } from '../../hooks/useLikelyReasons'
 import { RejectReasonBar } from '../shared/RejectReasonBar'
+import { WhyBadge } from '../shared/WhyBadge'
 
 // One typed decision (mockup set 1, pin 2). Exactly six kinds exist; each
 // renders its own finite action set. There is no open-ended triage here.
@@ -146,7 +147,10 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
     <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] px-4 py-3.5">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1 min-w-0">
-          <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${chip.cls}`}>{chip.label}</span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${chip.cls}`}>{chip.label}</span>
+            <WhyBadge table="content_decisions" row={d} align="start" />
+          </span>
           <div className="text-[13.5px] font-semibold text-white/90 mt-1.5 leading-snug">{title}</div>
           <div className="text-[12px] text-white/45 mt-0.5 leading-relaxed">{subtitle}</div>
         </div>

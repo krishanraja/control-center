@@ -8,6 +8,7 @@ import { FeedbackButton } from './shared/FeedbackButton'
 import type { ContentIdeaRow, IdeaState } from '../hooks/useRealtimeContentIdeas'
 import { useContentPillars, pillarTone } from '../hooks/useContentPillars'
 import { hasRealBody } from '../lib/contentEngine'
+import { WhyBadge } from './shared/WhyBadge'
 
 interface Props {
   idea: ContentIdeaRow
@@ -157,6 +158,7 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
         )}
 
         <div className="flex items-center gap-1 ml-auto" onClick={(e) => e.stopPropagation()}>
+          <WhyBadge table="content_ideas" row={i} />
           <FeedbackButton sourceTable="content_ideas" sourceId={i.id} agentId="cleo" compact />
           <button type="button" onClick={(e) => { e.stopPropagation(); setState('dropped') }} disabled={busy !== null}
             className="flex items-center justify-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors min-h-[44px] min-w-[44px]" title="Drop this idea">

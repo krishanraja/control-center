@@ -50,6 +50,11 @@ export function SwipeCockpit<T>({ config, onExit, onNavigate }: Props<T>) {
   }, [triage.deck, focusId, config])
 
   const top = deck[0] ?? null
+  // The config already names the surface for its reason chips; the same key
+  // answers "why is this here", so every cockpit surface gets the badge without
+  // its five call sites each restating the table.
+  const whyOf = (t: T) => ({ table: config.reasonsTable, row: t as Record<string, any> })
+
   const detailDecision = top && config.detailKey ? config.detailKey(top) : null
   const currentStage = top && config.stageTrack ? config.stageTrack.current(top) : null
 
@@ -98,6 +103,7 @@ export function SwipeCockpit<T>({ config, onExit, onNavigate }: Props<T>) {
             deck={deck}
             getId={config.getId}
             renderBody={config.renderBody}
+            why={whyOf}
             ariaLabel={config.ariaLabel}
             onAccept={triage.accept}
             onReject={triage.reject}
