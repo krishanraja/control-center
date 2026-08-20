@@ -8,7 +8,10 @@ An A/B harness for the prompts this codebase sends to a model, built so
 npx tsx scripts/eval/run.mts revise --dry --cases 1
 
 # measure, with the noise-floor control arm
-npx tsx scripts/eval/run.mts revise --cases 16 --repeats 2 --null
+npx tsx scripts/eval/run.mts revise --cases 24 --repeats 2 --null
+
+# re-read a finished run — free, and reruns the current analysis over saved samples
+npx tsx scripts/eval/report.mts scripts/eval/reports/revise-<stamp>.json
 ```
 
 Credentials come from `.env.production.local` / `.env.local`, the same files
@@ -62,11 +65,35 @@ purpose: an arm that wins by 0.1 and adds ten seconds has not won.
 `BY SLICE` breaks the delta out by subgroup. An overall result near zero can be
 two slices cancelling, and that is a different finding from no effect.
 
+## Judge diagnostics
+
+Every report checks whether the score is tracking output **length** rather than
+quality, and if it is (|r| >= 0.3), repeats the whole comparison on scores
+residualised on log(length) so no arm can win by writing more.
+
+This is on by default because it has already changed a conclusion. On the first
+real run of the `revise` suite the candidate arm looked +0.100 ahead; its briefs
+were fuller, so its rewrites were about 20% longer, and the Five Standards judge
+correlates with length at r≈0.57. Residualised, the same comparison was +0.002.
+Without the check the harness would have recommended shipping a change that does
+nothing.
+
+Length is worth checking by default because almost every prompt edit moves
+output length as a side effect, and almost every rubric that rewards depth or
+evidence rewards length along with it.
+
 ## What a run cannot tell you
 
 The judge is a model applying a written rubric, not the person whose voice is at
 stake. It measures conformance to a bar. Treat a win as permission to try
 something in the product behind a flag, never as proof it is better.
+
+Match the judge to the question. The Five Standards rubric grades whether a
+finished piece is good. It is the wrong instrument for asking whether a rewrite
+did what it was told, because a steer like "cut at least a third" produces a
+shorter piece that a depth-rewarding rubric marks down for obeying. Comparisons
+between arms on the same steer stay fair; a comparison of one steer against
+another does not.
 
 Reports land in `scripts/eval/reports/` with every sample's raw output, so a
 surprising number can be read back rather than re-run.

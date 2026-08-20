@@ -185,3 +185,6 @@ That ordering is what makes the result useful. `hint` and `llm-brief` against
 `bare` answer whether expansion helps at all. `llm-brief` against `hint` answers
 the only question that decides whether there is anything to build.
 
+## What the first run found
+
+*Placeholder — replaced with the n=24 numbers when the definitive run lands.*
