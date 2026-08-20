@@ -26,6 +26,11 @@ export const INTENTS: Intent[] = [
   { key: 'growth',   label: 'Work the funnel',   tab: 'acquisition', blurb: 'Today is for the top of the funnel.' },
   { key: 'build',    label: 'Build the thing',   tab: 'today',       blurb: 'Today is for the work itself.' },
   { key: 'clear',    label: 'Clear the decks',   tab: 'today',       blurb: 'Today is for closing open loops.' },
+  // The number one intervention in the operating manual, given a name in the
+  // morning vocabulary. Outreach is volume; the ask is exposure. Leaving it
+  // unnameable here would be the system colluding with the avoidance it
+  // exists to counter. Routes to the Focus & Purpose home.
+  { key: 'ask',      label: 'Make the ask',      tab: 'focus',       blurb: 'Today is for one clean request.' },
 ]
 
 export function intentByKey(key: string | null | undefined): Intent | null {

@@ -21,6 +21,9 @@
 | [`API.md`](./API.md) | Supabase queries and realtime subscription patterns |
 | [`OBSERVABILITY.md`](./OBSERVABILITY.md) | Health model, alerts, SLIs, logging |
 | [`SECURITY.md`](./SECURITY.md) | Threat model, secrets inventory, auth, rotation |
+| [`PILOT-LAYER.md`](./PILOT-LAYER.md) | The operator layer: morning gate, red mode, ship ledger, worry compiler, and its non-negotiables |
+| [`FOCUS-PURPOSE.md`](./FOCUS-PURPOSE.md) | The Focus & Purpose home: the operator's theory on tap (daily ask, traps, scripts, decision rules) and its non-negotiables |
+| [`focus-purpose/`](./focus-purpose/) | The committed corpus behind it: the operating manual and the purpose workbook distillation |
 | [`GLOSSARY.md`](./GLOSSARY.md) | Canonical definitions for product / data terms |
 | [`DECISIONS/`](./DECISIONS/) | Architecture decision records (numbered, immutable) |
 | [`DEPLOYMENT.md`](./DEPLOYMENT.md) | Vercel deployment + env setup |

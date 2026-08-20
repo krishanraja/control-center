@@ -28,7 +28,8 @@ const API = import.meta.env.VITE_API_URL ?? ''
 interface Props {
   yesterday: YesterdayRecap | null
   today: string
-  onDone: (mode: PilotMode, intent: Intent | null) => void
+  /** The reading rides along so the gate can route an anxious day to Focus. */
+  onDone: (mode: PilotMode, intent: Intent | null, reading?: { anxiety: number | null }) => void
 }
 
 // The word must FOLLOW the reading. Offering 'heavy' and 'flat' to someone who
@@ -130,7 +131,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
     try {
       await saveMorning({ energy, anxiety, one_word: word.trim(), mode, intent: intent?.key, venture })
       h.notifySuccess()
-      onDone(mode, intent)
+      onDone(mode, intent, { anxiety })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save')
       setSaving(false)

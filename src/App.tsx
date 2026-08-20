@@ -73,6 +73,10 @@ const GrowthTab = lazy(() => import('./components/growth/GrowthTab').then(m => (
 // Visibility lanes; OS = Org + Intel + Flows + Systems subtabs.
 const PeopleTab = lazy(() => import('./components/people/PeopleTab').then(m => ({ default: m.PeopleTab })))
 const OsTab = lazy(() => import('./components/os/OsTab').then(m => ({ default: m.OsTab })))
+// Focus & Purpose: the operator's own hub (docs/FOCUS-PURPOSE.md). Reached
+// from the morning check-in, the anxious-day auto-route (?steady=1), Home's
+// entry card, and the drawer.
+const FocusPurposeTab = lazy(() => import('./components/focusPurpose/FocusPurposeTab').then(m => ({ default: m.FocusPurposeTab })))
 
 // Tab validity derives from the registry (src/lib/tabs.ts VALID_TAB_IDS) so the
 // old hand-maintained duplicate list can never drift from the sidebar again.
@@ -211,8 +215,13 @@ export default function App() {
       <AgentsProvider>
         {/* PILOT LAYER: today's check-in gates the whole shell. On a red day the
             gate renders one action instead of this tree until something ships.
-            It fails open, so an unreachable pilot route never locks the app. */}
-        <PilotGate onIntent={(intent) => navigate(intent.tab)}>
+            It fails open, so an unreachable pilot route never locks the app.
+            An anxious reading (anxiety >= 4, the low-focus state) opens the day
+            on Focus & Purpose with the steadying moves already unfolded. */}
+        <PilotGate
+          onIntent={(intent) => navigate(intent.tab)}
+          onAnxious={() => navigate('focus', { steady: '1' })}
+        >
         <div className="h-[100dvh] overflow-hidden text-ink flex flex-row">
           <AmbientField />
           {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
@@ -254,6 +263,7 @@ export default function App() {
                   {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
                   {tab === 'people'    && <PeopleTab narrow params={params} onNavigate={navigate} />}
                   {tab === 'os'        && <OsTab narrow params={params} onNavigate={navigate} />}
+                  {tab === 'focus'     && <ErrorBoundary label="Focus"><div className={`px-5 pt-7 h-full overflow-y-auto ${BOTTOM_NAV_PAD}`}><FocusPurposeTab variant="mobile" steadyEntry={params.steady === '1'} /></div></ErrorBoundary>}
                 </Suspense>
               </div>
             ) : tab === 'content' ? (
@@ -303,6 +313,7 @@ export default function App() {
                   {tab === 'systems'   && <ErrorBoundary label="Systems"><SystemsPanel /></ErrorBoundary>}
                   {tab === 'people'    && <PeopleTab narrow={false} params={params} onNavigate={navigate} />}
                   {tab === 'os'        && <OsTab narrow={false} params={params} onNavigate={navigate} />}
+                  {tab === 'focus'     && <ErrorBoundary label="Focus"><FocusPurposeTab variant="desktop" steadyEntry={params.steady === '1'} /></ErrorBoundary>}
                 </Suspense>
               </div>
             )}
@@ -362,11 +373,10 @@ export default function App() {
           {/* Focus Ritual (unified): one guided stepper across week / today,
               mounted once so it z-stacks above both shells. */}
           <FocusRitual narrow={narrow} tab={tab} onNavigate={navigate} />
-          {/* Evening shutdown: the small header button plus the after-5pm prompt.
-              Tomorrow's ONE is chosen here, which is what red mode reads. */}
-          {/* Pilot dock: shutdown + worry compiler, one piece of chrome above
-              the bottom nav. Green mode only, because red mode returns before
-              these children ever render. */}
+          {/* Evening shutdown: only the once-a-day after-5pm prompt now.
+              Tomorrow's ONE is chosen here, which is what red mode reads. The
+              floating dock it used to render is gone; shutdown and the worry
+              compiler live on the Focus & Purpose tab. */}
           <EveningShutdown />
         </div>
         </PilotGate>

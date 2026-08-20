@@ -77,3 +77,29 @@ export interface LogShipInput {
   channel: ShipChannel
   description: string
 }
+
+// ── The daily ask (Focus & Purpose home) ─────────────────────────────────────
+// Mirrors public.pilot_asks (scripts/migrations/2026-08-20-pilot-asks.sql).
+
+export type PilotAskOutcome = 'yes' | 'no' | 'alternative' | 'no_reply'
+
+export interface PilotAsk {
+  id: string
+  created_at: string
+  ask_date: string
+  ask_text: string
+  /** The operator's own refusal forecast, 0 to 100, recorded before the send. */
+  predicted_no_pct: number | null
+  sent_at: string | null
+  outcome: PilotAskOutcome | null
+  resolved_at: string | null
+}
+
+/** What GET /api/pilot/asks returns. */
+export interface AskState {
+  /** Today's ask, or null until one is committed. */
+  today_ask: PilotAsk | null
+  /** The single oldest sent, unresolved ask from a past day. Never a list. */
+  unresolved: PilotAsk | null
+  today: string
+}

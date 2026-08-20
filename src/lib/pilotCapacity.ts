@@ -78,6 +78,9 @@ export const INTENT_KINDS: Record<string, string[]> = {
   growth:   ['growth'],
   build:    ['product', 'risk'],
   clear:    ['risk'],
+  // An ask day favours the same nominations as chasing money and growth:
+  // requests are how both start.
+  ask:      ['revenue', 'growth'],
 }
 
 interface Rankable {

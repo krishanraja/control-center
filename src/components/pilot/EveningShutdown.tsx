@@ -3,8 +3,7 @@ import { isAfterShutdownHour } from '../../lib/pilotDay'
 import { saveEvening, usePilotState } from '../../hooks/usePilot'
 import { useHaptics } from '../../hooks/useHaptics'
 import { OneActionPicker } from './OneActionPicker'
-import { WorryCompilerButton } from './WorryCompiler'
-import { Tap, VoiceField, PilotDock, DockButton } from './controls'
+import { Tap, VoiceField } from './controls'
 import { Modal } from '../shared/Modal'
 
 // The evening shutdown. Three fields, and the only required one is tomorrow's
@@ -14,6 +13,12 @@ import { Modal } from '../shared/Modal'
 // Auto-prompts after 5pm in the pilot zone on first interaction, once per day.
 // It never nags twice: dismissing sets a per-day flag in sessionStorage, and
 // saving writes the evening row, which stops the prompt permanently for that day.
+//
+// This used to also render the floating pilot dock ("compile a worry |
+// shutdown") over every tab. The dock is gone: both actions now live on the
+// Focus & Purpose tab (src/components/focusPurpose/FocusPurposeTab.tsx), which
+// imports ShutdownModal directly. What remains here is only the once-a-day
+// evening prompt, because tomorrow's ONE is what red mode reads.
 
 const DISMISS_KEY = 'pilot_shutdown_dismissed'
 
@@ -47,29 +52,16 @@ export function EveningShutdown() {
     setOpen(false)
   }
 
+  if (!open) return null
   return (
-    <>
-      <PilotDock>
-        <WorryCompilerButton />
-        <span aria-hidden className="w-px h-5 bg-white/[0.10]" />
-        <DockButton
-          label="shutdown"
-          dimmed={eveningDone}
-          title={eveningDone ? 'Shutdown logged' : 'Evening shutdown'}
-          onTap={() => setOpen(true)}
-        />
-      </PilotDock>
-      {open && (
-        <ShutdownModal
-          onClose={dismiss}
-          onSaved={() => { setOpen(false); refresh() }}
-        />
-      )}
-    </>
+    <ShutdownModal
+      onClose={dismiss}
+      onSaved={() => { setOpen(false); refresh() }}
+    />
   )
 }
 
-function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+export function ShutdownModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const h = useHaptics()
   const [shipped, setShipped] = useState('')
   const [url, setUrl] = useState('')

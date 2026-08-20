@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Mic, Square } from 'lucide-react'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useDictation } from '../../hooks/useDictation'
@@ -128,74 +128,9 @@ export function VoiceField({
   )
 }
 
-/**
- * Fixed-position affordance that sits ABOVE the mobile bottom nav rather than
- * behind it. BottomNav is fixed bottom-0 z-50 at ~72px plus safe area; v1 put
- * these at bottom-4 z-40, which buried them completely on a phone.
- */
-export function useAboveNavOffset(): string {
-  const [narrow, setNarrow] = useState(
-    typeof window !== 'undefined' && window.innerWidth < 1024,
-  )
-  useEffect(() => {
-    const on = () => setNarrow(window.innerWidth < 1024)
-    window.addEventListener('resize', on)
-    return () => window.removeEventListener('resize', on)
-  }, [])
-  return narrow
-    ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+88px)]'
-    : 'bottom-5'
-}
-
-/**
- * The pilot dock: one piece of chrome holding the operator's two affordances,
- * pinned above the mobile bottom nav.
- *
- * Two loose floating buttons read as content that had escaped its container,
- * and they overlapped the cards behind them. Grouping them into a single
- * bordered, blurred pill makes them read as chrome, which is what they are.
- */
-export function PilotDock({ children }: { children: React.ReactNode }) {
-  const offset = useAboveNavOffset()
-  return (
-    // The dock and the capture FAB were both z-40 at ~90px off the bottom, the
-    // dock centred and the FAB pinned right-4. On a 412px screen the centred
-    // dock ran straight under the FAB, so the two overlapped and the right-hand
-    // dock button was unreachable. The dock now ends before the FAB's column
-    // (right-4 + 56px wide, so 84px of reserved gutter) and centres itself in
-    // what is left. Desktop is unchanged: no FAB there, so it stays centred.
-    <div
-      className={`fixed ${offset} z-40 pointer-events-none flex justify-center
-                  left-3 right-[84px] lg:left-1/2 lg:right-auto lg:-translate-x-1/2`}
-    >
-      {/* Fully opaque. A translucent dock let the cards behind it read straight
-          through the labels, which looked like a rendering bug rather than
-          chrome. The shadow lifts it off the content instead. */}
-      <div className="pointer-events-auto flex items-center gap-1 p-1 rounded-2xl bg-base border border-white/[0.14] shadow-xl shadow-black/25 ring-1 ring-black/[0.04]">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-/** A single action inside the dock. */
-export function DockButton({
-  label, onTap, dimmed, title,
-}: { label: string; onTap: () => void; dimmed?: boolean; title?: string }) {
-  const h = useHaptics()
-  return (
-    <button
-      type="button"
-      title={title}
-      onPointerDown={() => h.tap()}
-      onClick={onTap}
-      className={`min-h-[44px] px-4 rounded-xl text-[12.5px] whitespace-nowrap transition-all active:scale-95 touch-manipulation ${
-        dimmed
-          ? 'text-ink-faint/60 hover:text-ink-faint hover:bg-white/[0.05]'
-          : 'text-ink-muted hover:text-ink hover:bg-white/[0.07]'
-      }`}
-    >
-      {label}
-    </button>
-  )
-}
+// The pilot dock used to live here: a floating pill holding "compile a worry"
+// and "shutdown", pinned over every tab. Removed 2026-08-20. Persistent chrome
+// on every screen is exactly the kind of ambient self-monitoring the pilot
+// layer exists to avoid, and both actions now have a real home on the Focus &
+// Purpose tab (src/components/focusPurpose/FocusPurposeTab.tsx). The after-5pm
+// shutdown prompt still fires from EveningShutdown, once a day.

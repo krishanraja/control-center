@@ -4,6 +4,7 @@ import { usePilotState } from '../../hooks/usePilot'
 import { intentByKey, type Intent } from '../../lib/pilotIntent'
 import { PilotStateProvider } from '../../contexts/PilotStateContext'
 import { civilHour } from '../../lib/civilDate'
+import { isAnxiousReading } from '../../content/focusTheory'
 import { MorningCheckin } from './MorningCheckin'
 import { RedMode } from './RedMode'
 
@@ -42,9 +43,18 @@ interface Props {
   children: React.ReactNode
   /** Called once, after a check-in, with the surface the day is for. */
   onIntent?: (intent: Intent) => void
+  /**
+   * Called once, when the gate clears on a day whose reading was anxious
+   * (anxiety >= 4, the same boundary computeMode routes red on). High anxiety
+   * is the low-focus state, so the day opens on Focus & Purpose instead of the
+   * picked intent's tab. Takes precedence over onIntent; red days fire it only
+   * after the one action ships or the escape hatch is taken, because red mode
+   * owns the screen until then.
+   */
+  onAnxious?: () => void
 }
 
-export function PilotGate({ children, onIntent }: Props) {
+export function PilotGate({ children, onIntent, onAnxious }: Props) {
   const { state, loading, error, refresh } = usePilotState()
   const [unlocked, setUnlocked] = useState(false)
   const [justChose, setJustChose] = useState<PilotMode | null>(null)
@@ -60,16 +70,31 @@ export function PilotGate({ children, onIntent }: Props) {
     return h >= MORNING_OPENS_AT && h < MORNING_CLOSES_AT
   })
 
-  // Route to the day's intent once, after the gate clears. Only on a green day:
-  // red mode owns the screen and must not be navigated out from under.
+  // Route once, after the gate clears. An anxious reading wins: the day opens
+  // on Focus & Purpose, where the steadying moves and the one clean ask live.
+  // Otherwise a green day routes to its picked intent. Red mode owns the
+  // screen either way and must not be navigated out from under, so nothing
+  // fires until it has been cleared by a ship or the escape hatch.
   const savedIntent = intentByKey(state?.morning?.intent)
   const mode: PilotMode | null = justChose ?? state?.morning?.mode ?? null
+  const anxious = !state?.morning?.skipped && isAnxiousReading(state?.morning?.anxiety)
+  // For routing, a red day counts as cleared only when it cleared IN THIS
+  // SESSION. A persisted override (override_at) also skips red mode on reload,
+  // but routing on that would yank a mid-draft reload off to Focus; the
+  // session-scoped flag routes exactly once, at the moment of clearing.
+  const redClearedHere = mode !== 'red' || unlocked
   useEffect(() => {
-    if (routed || !onIntent || !savedIntent) return
+    if (routed) return
+    if (anxious && onAnxious && redClearedHere && Boolean(state?.morning)) {
+      setRouted(true)
+      onAnxious()
+      return
+    }
+    if (!onIntent || !savedIntent) return
     if (mode !== 'green') return
     setRouted(true)
     onIntent(savedIntent)
-  }, [routed, onIntent, savedIntent, mode])
+  }, [routed, onIntent, onAnxious, savedIntent, mode, anxious, redClearedHere, state?.morning])
 
   // Declare readiness the moment this gate stops being the reason nothing is on
   // screen. The splash in index.html holds until this attribute appears, so the
@@ -106,9 +131,19 @@ export function PilotGate({ children, onIntent }: Props) {
       <MorningCheckin
         yesterday={state.yesterday}
         today={state.today}
-        onDone={(next, intent) => {
+        onDone={(next, intent, reading) => {
           setJustChose(next)
-          if (next === 'green' && intent) { setRouted(true); onIntent?.(intent) }
+          // An anxious reading that still chose the dashboard (the green
+          // override) lands on Focus & Purpose, not the intent tab: that is
+          // the reading the hub exists for. Red days route after red mode
+          // clears, via the effect above.
+          if (next === 'green' && isAnxiousReading(reading?.anxiety) && onAnxious) {
+            setRouted(true)
+            onAnxious()
+          } else if (next === 'green' && intent) {
+            setRouted(true)
+            onIntent?.(intent)
+          }
           refresh()
         }}
       />
@@ -123,7 +158,13 @@ export function PilotGate({ children, onIntent }: Props) {
     return (
       <RedMode
         lastEvening={state.last_evening}
-        onUnlock={() => { setUnlocked(true); refresh() }}
+        onUnlock={(navigated) => {
+          // "Open the draft" carries its own destination; routing over it
+          // would break the very action red mode exists to enable.
+          if (navigated) setRouted(true)
+          setUnlocked(true)
+          refresh()
+        }}
       />
     )
   }
