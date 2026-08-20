@@ -9,6 +9,7 @@ import { DirectionStudio } from '../acquisition/DirectionStudio'
 import { IntegrationsPanel } from '../acquisition/IntegrationsPanel'
 import { ChurnReengagementQueue } from '../acquisition/ChurnReengagementQueue'
 import { EmptyNote, SectionHead } from './atoms'
+import { Working } from '../shared/Working'
 
 /**
  * E) GOVERNANCE: the per-lane control plane. What growth costs, how much rope
@@ -97,7 +98,7 @@ export function GovernancePanel({
             title="Refresh"
             className="text-white/35 hover:text-white/70 transition-colors disabled:opacity-40"
           >
-            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+            {refreshing ? <Working size={14} /> : <RefreshCw size={14} />}
           </button>
         }
       />

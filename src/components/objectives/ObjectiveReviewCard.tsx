@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import {
-  Target, ChevronUp, ChevronDown, Pencil, Check, X, Loader2, ListTree, Bot,
+  Target, ChevronUp, ChevronDown, Pencil, Check, X, ListTree, Bot,
 } from 'lucide-react'
 import { patchObjective, type Objective } from '../../hooks/useObjectives'
 import { useObjectiveTree } from '../../hooks/useObjectiveTree'
@@ -10,6 +10,7 @@ import { MicButton } from '../shared/VoiceCapture'
 import { OwnerSplit } from './OwnerSplit'
 import { MilestoneCalibrator } from './MilestoneCalibrator'
 import { ObjectiveProposalReview, type ObjectiveProposal } from './ObjectiveProposalReview'
+import { Working } from '../shared/Working'
 
 // One objective, reviewed at the OBJECTIVE altitude (Phase 6). The unit of
 // interaction is the objective itself — reorder its priority, edit its wording /
@@ -128,7 +129,7 @@ export function ObjectiveReviewCard({
                   className="text-[11px] text-white/45 hover:text-white/75 px-2 py-1">Cancel</button>
                 <button type="button" onClick={save} disabled={saving}
                   className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-100 bg-violet-500/25 hover:bg-violet-500/40 border border-violet-400/40 rounded px-2.5 py-1 disabled:opacity-50">
-                  {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />} Save
+                  {saving ? <Working size={11} /> : <Check size={11} />} Save
                 </button>
               </div>
             </div>

@@ -1,13 +1,14 @@
 import React, { useState } from 'react'
 import {
   ExternalLink, Calendar, Users, MapPin, DollarSign, Globe2, Sparkles, Mic, Newspaper, Megaphone,
-  Check, X, Loader2, Wand2,
+  Check, X, Wand2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { FeedbackButton } from './shared/FeedbackButton'
 import { EnrichSheet, type EnrichTarget } from './EnrichSheet'
 import { useToast } from './shared/Toast'
 import type { VisibilityTargetRow, VisibilityTargetType } from '../hooks/useVisibilityTargets'
+import { Working } from './shared/Working'
 
 interface Props {
   target: VisibilityTargetRow
@@ -240,7 +241,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-violet-500/90 text-white hover:bg-violet-400 disabled:opacity-40 transition-colors"
               title="Research this — Nova deep enrich (n8n) or direct (web + Cleo)"
             >
-              {busy === 'enrich' ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+              {busy === 'enrich' ? <Working size={12} /> : <Wand2 size={12} />}
               Enrich
             </button>
           ) : (
@@ -251,7 +252,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-amber-500/90 text-black hover:bg-amber-400 disabled:opacity-40 transition-colors"
               title="Mark applied — moves to Applied lane"
             >
-              {busy === 'apply' ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              {busy === 'apply' ? <Working size={12} /> : <Check size={12} />}
               Apply
             </button>
           )}
@@ -262,7 +263,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
             title="Pass — Vera learns from the drop"
           >
-            {busy === 'pass' ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+            {busy === 'pass' ? <Working size={12} /> : <X size={12} />}
             Pass
           </button>
           <span className="text-[10px] text-white/45 ml-auto">

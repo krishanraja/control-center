@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react'
-import { Check, Loader2, Target, ShieldAlert } from 'lucide-react'
+import { Check, Target, ShieldAlert } from 'lucide-react'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useHomeIntelligence } from '../../hooks/useHomeIntelligence'
 import { useTaskParentObjectives } from '../../hooks/useTaskParentObjectives'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
+import { Working } from '../shared/Working'
 
 // TRACK phase of the daily spine. Renders once today's 3 are locked, through
 // completion. While daily_focus.status is 'pending' it shows a labor-illusion
@@ -116,7 +117,7 @@ export function TrackStep() {
                 } disabled:opacity-50`}
               >
                 {busyN === t.n
-                  ? <Loader2 size={14} className="animate-spin" />
+                  ? <Working size={14} />
                   : t.done
                     ? <Check size={15} />
                     : <span className="text-[12px] font-bold text-white/35 tabular-nums">{t.n}</span>}

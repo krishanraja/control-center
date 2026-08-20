@@ -1,7 +1,8 @@
 import React, { useCallback, useRef, useState } from 'react'
-import { Mail, FileText, Loader2, CheckCircle2 } from 'lucide-react'
+import { Mail, FileText, CheckCircle2 } from 'lucide-react'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
+import { Working } from './shared/Working'
 
 interface Props {
   onImported?: (summary: { processed: number; paid: number; free: number }) => void
@@ -123,7 +124,7 @@ export function SubstackImportDropzone({ onImported }: Props) {
             <li key={f.id} className="flex items-center gap-2 rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-[11px]">
               <FileText size={11} className="text-white/40 flex-shrink-0" />
               <span className="flex-1 min-w-0 truncate text-white/75">{f.name}</span>
-              {f.state === 'sending' && <span className="flex items-center gap-1 text-white/55"><Loader2 size={11} className="animate-spin" />Importing…</span>}
+              {f.state === 'sending' && <span className="flex items-center gap-1 text-white/55"><Working size={11} />Importing…</span>}
               {f.state === 'done' && <span className="flex items-center gap-1 text-emerald-300"><CheckCircle2 size={11} />{f.message || 'Done'}</span>}
               {f.state === 'error' && <span className="text-rose-300" title={f.message}>Failed</span>}
             </li>

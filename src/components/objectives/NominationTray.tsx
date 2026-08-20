@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
-import { Check, ThumbsDown, X, Sparkles, Loader2 } from 'lucide-react'
+import { Check, ThumbsDown, X, Sparkles } from 'lucide-react'
 import { useObjectives, type Objective } from '../../hooks/useObjectives'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
+import { Working } from '../shared/Working'
 
 // Marcus-nominated objectives awaiting Krish accept/reject.
 // Source = marcus_nominated, status = proposed.
@@ -107,7 +108,7 @@ function NominationRow({ objective, onChanged }: { objective: Objective; onChang
               title="Accept and promote to active"
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-200 bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-400/30 rounded px-2 py-1 disabled:opacity-50"
             >
-              {busy ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+              {busy ? <Working size={10} /> : <Check size={10} />}
               Accept
             </button>
             <button

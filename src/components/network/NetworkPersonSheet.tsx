@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Mail, Linkedin, Phone, Instagram, AtSign, Copy, Check, ExternalLink,
-  AlertTriangle, MapPin, Loader2,
+  AlertTriangle, MapPin,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { BottomSheet } from '../mobile/BottomSheet'
@@ -11,6 +11,7 @@ import { useHaptics } from '../../hooks/useHaptics'
 import { resolveReach, type ReachOption, type ChannelId } from '../../lib/networkReach'
 import { geoLabel } from '../../hooks/useNetworkGeo'
 import type { NetworkResult } from '../../hooks/useNetworkSearch'
+import { Working } from '../shared/Working'
 
 // What opens when you tap someone in the results.
 //
@@ -153,7 +154,7 @@ export function NetworkPersonSheet({ person, onClose }: {
           )}
           {loadingDetail && !detail && (
             <p className="flex items-center gap-1.5 text-[11.5px] text-white/30">
-              <Loader2 size={11} className="animate-spin" aria-hidden /> Checking for other channels.
+              <Working size={11} /> Checking for other channels.
             </p>
           )}
         </div>

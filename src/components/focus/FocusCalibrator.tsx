@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  Mic, Square, Loader2, Check, X, ChevronDown, Plus, ThumbsDown,
+  Mic, Square, Check, X, ChevronDown, Plus, ThumbsDown,
   TrendingUp, Sparkles as SparkleIcon, AlertTriangle, Target,
 } from 'lucide-react'
 import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
@@ -9,6 +9,7 @@ import { useToast } from '../shared/Toast'
 import { usePilotStateContext } from '../../contexts/PilotStateContext'
 import { rankByIntent } from '../../lib/pilotCapacity'
 import { civilYmd } from '../../lib/civilDate'
+import { Working } from '../shared/Working'
 
 // Picker for today's 3 focuses. Renders only when no daily_focus row
 // exists for today. Krish sees Marcus's 7 leverage picks as compact
@@ -421,7 +422,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
           disabled={!canLock}
           className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-violet-100 bg-violet-500/25 hover:bg-violet-500/40 border border-violet-400/40 rounded-md px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+          {submitting ? <Working size={12} /> : <Check size={12} />}
           {submitting ? 'Locking...' : `Lock today's ${targetCount}`}
         </button>
       </div>
@@ -599,7 +600,7 @@ function MarcusPickRow({
               disabled={submittingDown || !reason.trim()}
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-100 bg-rose-500/25 hover:bg-rose-500/40 border border-rose-400/40 rounded-md px-2.5 py-1 disabled:opacity-50"
             >
-              {submittingDown ? <Loader2 size={11} className="animate-spin" /> : <ThumbsDown size={11} />}
+              {submittingDown ? <Working size={11} /> : <ThumbsDown size={11} />}
               {submittingDown ? 'Sending…' : 'Mark unsuitable'}
             </button>
           </div>
@@ -730,7 +731,7 @@ function CustomTextarea({ value, onChange }: { value: string; onChange: (v: stri
               : 'text-white/45 hover:text-white/85'
           } disabled:opacity-50`}
         >
-          {transcribing ? <Loader2 size={12} className="animate-spin" /> : (recording ? <Square size={11} /> : <Mic size={12} />)}
+          {transcribing ? <Working size={12} /> : (recording ? <Square size={11} /> : <Mic size={12} />)}
         </button>
       )}
     </div>

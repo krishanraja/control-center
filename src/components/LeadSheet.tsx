@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Flame, Sparkles, Mail, Loader2, Check, ExternalLink, Target } from 'lucide-react'
+import { Flame, Sparkles, Mail, Check, ExternalLink, Target } from 'lucide-react'
 import { BottomSheet } from './mobile/BottomSheet'
 import { ContactEditChips } from './shared/ContactEditChips'
 import { useToast } from './shared/Toast'
@@ -7,6 +7,7 @@ import { useHaptics } from '../hooks/useHaptics'
 import { humanAge } from '../lib/ageHelpers'
 import { VENTURE_LABEL, topFit, dossierMove, contactRationale } from '../lib/contactSignals'
 import type { ContactRow } from '../hooks/useRealtimeContacts'
+import { Working } from './shared/Working'
 
 const TIER_LABEL: Record<string, string> = {
   customer: 'Customer', warm: 'Warm', permissioned: 'Permissioned',
@@ -184,7 +185,7 @@ export function LeadSheet({
                 disabled={busy || queued}
                 className="flex-1 flex items-center justify-center gap-2 rounded-full border border-white/15 text-white text-[15px] font-semibold py-3.5 active:scale-[0.98] transition-transform disabled:opacity-60"
               >
-                {busy ? <><Loader2 size={17} className="animate-spin" /> Queuing…</>
+                {busy ? <><Working size={17} /> Queuing…</>
                   : queued ? <><Check size={17} className="text-emerald-300" /> Queued</>
                   : <><Sparkles size={17} /> Research</>}
               </button>

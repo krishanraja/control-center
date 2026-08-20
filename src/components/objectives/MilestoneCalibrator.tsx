@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import {
-  Check, X, ThumbsDown, Pencil, Plus, Loader2, ChevronUp, ChevronDown,
+  Check, X, ThumbsDown, Pencil, Plus, ChevronUp, ChevronDown,
   Sparkles, Clock, CheckCircle2,
 } from 'lucide-react'
 import { useObjectiveTree, type Milestone } from '../../hooks/useObjectiveTree'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
+import { Working } from '../shared/Working'
 
 interface Props {
   goalId: string
@@ -84,7 +85,7 @@ export function MilestoneCalibrator({ goalId }: Props) {
   if (loading) {
     return (
       <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-[12px] text-white/45">
-        <Loader2 size={12} className="animate-spin inline mr-2" />
+        <Working size={12} className="inline mr-2" />
         Loading milestones...
       </div>
     )
@@ -131,7 +132,7 @@ export function MilestoneCalibrator({ goalId }: Props) {
             disabled={proposing}
             className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-100 bg-violet-500/20 hover:bg-violet-500/35 border border-violet-400/30 rounded-md px-2.5 py-1.5 disabled:opacity-50"
           >
-            {proposing ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+            {proposing ? <Working size={11} /> : <Sparkles size={11} />}
             {proposing ? 'Marcus drafting...' : 'Have Marcus propose milestones'}
           </button>
         ) : <span className="text-[10px] text-white/35 italic">Marcus proposals loaded; review above.</span>}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { CheckCircle2, AlertTriangle, XCircle, HelpCircle, RefreshCw } from 'lucide-react'
 import { BoardSkeleton } from './shared/Skeleton'
+import { Working } from './shared/Working'
 
 interface Service {
   id: string
@@ -174,7 +175,7 @@ export function SystemsPanel() {
           title="Re-poll N8N and update system_health"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-40 text-white/40 hover:text-white/60 text-[11px] transition-colors"
         >
-          <RefreshCw className={`w-3 h-3 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
+          {(loading || refreshing) ? <Working size={12} /> : <RefreshCw className="w-3 h-3" />}
           {refreshing ? 'Polling N8N…' : loading ? 'Reading services…' : lastRefreshed ? `Refreshed ${timeAgo(lastRefreshed.toISOString())}` : 'Refresh'}
         </button>
       </div>

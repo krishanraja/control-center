@@ -1,9 +1,10 @@
 import React, { useCallback, useRef, useState } from 'react'
-import { UploadCloud, FileText, Loader2, CheckCircle2, Clipboard, AlertCircle } from 'lucide-react'
+import { UploadCloud, FileText, CheckCircle2, Clipboard, AlertCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import type { VisibilityTargetType } from '../hooks/useVisibilityTargets'
+import { Working } from './shared/Working'
 
 interface Props {
   onIngested?: (count: number) => void
@@ -188,7 +189,7 @@ export function VisibilityImportDropzone({ onIngested }: Props = {}) {
               <FileText size={11} className="text-white/40" />
               <span className="flex-1 truncate text-white/75">{f.name}</span>
               {f.count != null && <span className="text-white/40 tabular-nums">{f.count} rows</span>}
-              {f.state === 'sending' && <Loader2 size={11} className="text-violet-300 animate-spin" />}
+              {f.state === 'sending' && <Working size={11} className="text-accent" />}
               {f.state === 'done' && <CheckCircle2 size={11} className="text-emerald-300" />}
               {f.state === 'error' && (
                 <span title={f.message} className="inline-flex items-center gap-1 text-rose-300">

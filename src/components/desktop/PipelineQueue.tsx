@@ -3,6 +3,7 @@ import { Check, X, ChevronDown, ChevronUp, Copy } from 'lucide-react'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { useToast } from '../shared/Toast'
+import { Skeleton } from '../shared/Skeleton'
 
 export const PIPELINE_WORKSTREAMS = ['beta_cohort', 'podcast_booking', 'advisory_sales', 'nurture'] as const
 
@@ -44,7 +45,7 @@ export function PipelineQueue() {
         </div>
         <div className="space-y-1.5">
           {[0, 1, 2].map(i => (
-            <div key={i} className="rounded-lg border border-white/[0.06] bg-white/[0.015] p-3 animate-pulse" style={{ height: 92 }} />
+            <Skeleton key={i} h={92} r={8} className="border border-white/[0.06]" />
           ))}
         </div>
       </div>

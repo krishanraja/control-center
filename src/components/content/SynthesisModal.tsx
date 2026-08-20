@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { Sparkles, X, Loader2, GitMerge } from 'lucide-react'
+import { Sparkles, X, GitMerge } from 'lucide-react'
 import { useToast } from '../shared/Toast'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
+import { Working } from '../shared/Working'
 
 // Venture + format, mirroring venture_formats. There is ONE content venture,
 // Mindmaker Live, with two formats. Synthesis targets a FORMAT, never the
@@ -172,7 +173,7 @@ export function SynthesisModal({ open, onClose, selected, onSynthesized }: Props
             disabled={busy || selected.length < 2}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border border-violet-500/30 bg-violet-500/15 text-violet-200 hover:bg-violet-500/25 disabled:opacity-40 transition-colors"
           >
-            {busy ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+            {busy ? <Working size={12} /> : <Sparkles size={12} />}
             Synthesize {selected.length} → 1
           </button>
         </footer>

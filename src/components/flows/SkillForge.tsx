@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { Wand2, Loader2, AlertCircle } from 'lucide-react'
+import { Wand2, AlertCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../shared/Toast'
 import { SkillReviewModal } from './SkillReviewModal'
 import { SkillDeliveryHistory } from './SkillDeliveryHistory'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import type { SkillData, QualityGateResult, TriageResult, SkillDelivery } from './types'
+import { Working } from '../shared/Working'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -259,7 +260,7 @@ export function SkillForge() {
               disabled={!canGenerate}
               className="inline-flex items-center gap-2 px-4 h-9 rounded-lg bg-violet-500 hover:bg-violet-400 text-[#fff] text-[12.5px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {generating ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />}
+              {generating ? <Working size={13} /> : <Wand2 size={13} />}
               {generating ? 'Drafting…' : 'Draft Skills'}
             </button>
             {(transcript || clientName) && !generating && (

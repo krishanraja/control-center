@@ -15,7 +15,7 @@ import { SubscribersList } from '../customers/SubscribersList'
 import { useFocusMode, isFocusModeEnabled } from '../../hooks/useFocusMode'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { FocusLanes, FocusModeToggle } from '../focus/FocusLanes'
-import { BoardSkeleton } from '../shared/Skeleton'
+import { BoardSkeleton, Skeleton } from '../shared/Skeleton'
 
 export function DesktopCustomers() {
   const { buckets, totals, customers, loading, error } = useCustomers()
@@ -70,7 +70,7 @@ export function DesktopCustomers() {
           Subscriptions
         </h1>
         {loading ? (
-          <div className="h-3 w-64 bg-white/[0.07] rounded mt-1.5 animate-pulse" />
+          <Skeleton h={12} w={256} r={4} className="mt-1.5 mb-[3px]" />
         ) : (
           <p className="text-xs md:text-[13px] text-white/50 mt-0.5">
             {`${totals.paid} paid · $${Math.round(totals.mrrUsd).toLocaleString()}/mo · ${totals.freeSignups} free · ${totals.waitlist} waitlist`}

@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Check, ArrowRight, Sparkles, CheckCircle2, Loader2, CalendarPlus, PenLine, Send } from 'lucide-react'
+import { Check, ArrowRight, Sparkles, CheckCircle2, CalendarPlus, PenLine, Send } from 'lucide-react'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { nextBestAction, type NextActionKind } from '../../lib/contentEngine'
 import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { DoThisNextHero, type HeroTone } from '../shared/DoThisNextHero'
+import { Working } from '../shared/Working'
 
 /**
  * The "Do this next" hero — the single anti-confusion spine (P-13 / P-22).
@@ -131,7 +132,7 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
       className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors min-h-[44px] cursor-pointer bg-sky-500/20 border border-sky-400/40 text-sky-100 hover:bg-sky-500/30 text-[13px]"
       title="Pick a day to ship it"
     >
-      {busy ? <Loader2 size={14} className="animate-spin" /> : <CalendarPlus size={14} />}
+      {busy ? <Working size={14} /> : <CalendarPlus size={14} />}
       Schedule
       <input
         type="date" min={todayYMD} disabled={busy}
@@ -161,7 +162,7 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
           title="Mark this piece live"
           className="inline-flex items-center gap-1.5 rounded-xl px-3 font-semibold transition-colors disabled:opacity-50 min-h-[44px] text-[13px] border bg-emerald-500/20 border-emerald-400/40 text-emerald-100 hover:bg-emerald-500/30"
         >
-          {busy ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Mark live
+          {busy ? <Working size={14} /> : <Check size={14} />} Mark live
         </button>
       </div>
     ) : (

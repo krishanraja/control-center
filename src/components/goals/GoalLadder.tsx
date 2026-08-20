@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, ChevronDown, ChevronRight, Loader2, Plus, Target, X } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronRight, Plus, Target, X } from 'lucide-react'
 import { useHaptics } from '../../hooks/useHaptics'
+import { Working } from '../shared/Working'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -286,7 +287,7 @@ export function GoalLadder({ variant = 'desktop', showFocus = true, onDataLoaded
   if (loading) {
     return (
       <div className="glass-card p-5 flex items-center gap-2 text-white/45 text-[13px]">
-        <Loader2 size={14} className="animate-spin" /> Loading the ladder…
+        <Working size={14} /> Loading the ladder…
       </div>
     )
   }

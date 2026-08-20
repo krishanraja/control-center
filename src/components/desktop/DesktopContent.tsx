@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { FileText, ExternalLink, Calendar as CalendarIcon, List, Plus, Loader2, Layers, GitMerge, CheckSquare, Square, Sparkles, AlertTriangle } from 'lucide-react'
+import { FileText, ExternalLink, Calendar as CalendarIcon, List, Plus, Layers, GitMerge, CheckSquare, Square, Sparkles, AlertTriangle } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { useToast } from '../shared/Toast'
@@ -20,6 +20,7 @@ import { SwipeCockpit } from '../shared/SwipeCockpit'
 import { buildContentTriageConfig } from '../../lib/triageConfig'
 import { SynthesisModal } from '../content/SynthesisModal'
 import { BoardSkeleton } from '../shared/Skeleton'
+import { Working } from '../shared/Working'
 
 // Past this many cards a lane stops stacking and offers the triage deck instead —
 // the guard that makes it structurally impossible to mount 200 cards again.
@@ -574,7 +575,7 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
                   >
                     <span className="text-[12px] text-white/85 truncate flex-1">{i.idea}</span>
                     <span className="text-[9px] uppercase tracking-[0.1em] text-white/40 flex-shrink-0">{i.state}</span>
-                    {scheduling === i.id && <Loader2 size={12} className="animate-spin text-violet-300 flex-shrink-0" />}
+                    {scheduling === i.id && <Working size={12} className="text-accent" />}
                   </button>
                 ))
               )}
@@ -794,7 +795,7 @@ function SweepTriageButton() {
             <div className="flex-1 overflow-y-auto px-5 py-4">
               {loading && !report && (
                 <div className="flex items-center gap-2 text-[12px] text-white/55">
-                  <Loader2 size={12} className="animate-spin" /> Classifying cards…
+                  <Working size={12} /> Classifying cards…
                 </div>
               )}
               {error && (
@@ -882,7 +883,7 @@ function SweepTriageButton() {
                   disabled={loading}
                   className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md border border-violet-500/40 bg-violet-500/20 text-violet-100 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
-                  {loading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                  {loading ? <Working size={12} /> : <Sparkles size={12} />}
                   Apply · drop {report.total_dropped}
                 </button>
               )}

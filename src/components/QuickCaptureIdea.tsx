@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Sparkles, X, Loader2 } from 'lucide-react'
+import { Sparkles, X } from 'lucide-react'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import { Modal } from './shared/Modal'
+import { Working } from './shared/Working'
 
 /**
  * Content-idea capture modal. Pure presentation — owner passes open + onClose.
@@ -114,7 +115,7 @@ export function ContentIdeaModal({ open, onClose }: { open: boolean; onClose: ()
               disabled={busy || !text.trim()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border border-rose-500/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 disabled:opacity-40 transition-colors"
             >
-              {busy ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              {busy ? <Working size={12} /> : <Sparkles size={12} />}
               Capture
             </button>
           </div>

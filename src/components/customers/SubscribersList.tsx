@@ -5,6 +5,7 @@ import {
   useCustomers, PRODUCT_LABEL, PRODUCT_CHIP_TONE,
   type CustomerRow, type CustomerProduct,
 } from '../../hooks/useCustomers'
+import { Skeleton } from '../shared/Skeleton'
 
 /**
  * SubscribersList — the roster the watch-hero doesn't show. Subscriptions is
@@ -95,10 +96,10 @@ export function SubscribersList() {
       // page's total content exceeds the viewport the flex algorithm can
       // squash this down to a visually clipped sliver instead of letting the
       // page scroll normally — same fix HeroCard/FeedCard already apply.
-      <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden animate-pulse flex-shrink-0">
+      <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden flex-shrink-0">
         <div className="px-4 py-3 space-y-2">
-          <div className="h-2.5 w-32 bg-white/[0.08] rounded" />
-          <div className="h-2 w-48 bg-white/[0.05] rounded" />
+          <Skeleton h={10} w={128} r={4} />
+          <Skeleton h={8} w={192} r={4} />
         </div>
       </section>
     )

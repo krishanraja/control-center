@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
-  Sparkles, Check, Loader2, Target, Clock, ArrowLeft, ArrowRight, CheckCircle2, AlertOctagon,
+  Sparkles, Check, Target, Clock, ArrowLeft, ArrowRight, CheckCircle2, AlertOctagon,
 } from 'lucide-react'
 import { useObjectives } from '../../hooks/useObjectives'
 import { useHomeIntelligence } from '../../hooks/useHomeIntelligence'
@@ -10,6 +10,7 @@ import { useToast } from '../shared/Toast'
 import { BottomSheet } from '../mobile/BottomSheet'
 import { NominationTray } from './NominationTray'
 import { MilestoneCalibrator } from './MilestoneCalibrator'
+import { Working } from '../shared/Working'
 
 // Weekly Focus Takeover (Phase 2). Once a week the Home is taken over by a
 // guided wizard that forces a weekly commitment: review last week (peak-end),
@@ -240,7 +241,7 @@ export function WeeklyFocusTakeover({ narrow, tab }: { narrow: boolean; tab: str
       <p className="text-[12px] text-white/55 leading-snug">Pick up to 3 milestones to commit to this week. These become the moves your days ladder up to.</p>
       {poolLoading ? (
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-[12px] text-white/45">
-          <Loader2 size={12} className="animate-spin inline mr-2" />Gathering your accepted milestones...
+          <Working size={12} className="inline mr-2" />Gathering your accepted milestones...
         </div>
       ) : pool.length === 0 ? (
         <div className="rounded-xl border border-dashed border-white/[0.10] p-4 text-[12px] text-white/45 text-center">
@@ -351,7 +352,7 @@ export function WeeklyFocusTakeover({ narrow, tab }: { narrow: boolean; tab: str
           className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-4 py-2 disabled:opacity-50"
         >
           {step === 'commit'
-            ? (committing ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />)
+            ? (committing ? <Working size={13} /> : <CheckCircle2 size={13} />)
             : <ArrowRight size={13} />}
           {step === 'commit' && committing ? 'Locking...' : primaryLabel}
         </button>

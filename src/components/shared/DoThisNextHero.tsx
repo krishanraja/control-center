@@ -1,6 +1,6 @@
 import React from 'react'
-import { Loader2 } from 'lucide-react'
 import { useReducedMotion } from './motion'
+import { Working } from './Working'
 
 /**
  * DoThisNextHero — the ONE "what do I do next" hero every tab renders through
@@ -98,7 +98,7 @@ export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow }: 
           disabled={busy}
           className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors disabled:opacity-50 min-h-[44px] text-[13px] border outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${TONE_BTN[tone]}`}
         >
-          {busy ? <Loader2 size={14} className="animate-spin" /> : icon}
+          {busy ? <Working size={14} /> : icon}
           {actionLabel}
           {/* Desktop is a keyboard-driven command surface: Tab to the action,
               press Enter. Hidden on touch, where it's a single tap. */}

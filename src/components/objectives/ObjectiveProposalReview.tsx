@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
-import { Sparkles, ArrowUpDown, Pencil, GitBranch, Check, X, Loader2 } from 'lucide-react'
+import { Sparkles, ArrowUpDown, Pencil, GitBranch, Check, X } from 'lucide-react'
 import { patchObjective, type Objective } from '../../hooks/useObjectives'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
+import { Working } from '../shared/Working'
 
 // Marcus's interpretation of a spoken objective narration, rendered as a
 // confirmable diff. NOTHING is applied until Krish hits Apply. Apply executes the
@@ -194,7 +195,7 @@ export function ObjectiveProposalReview({
           disabled={applying || nothing}
           className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-3 py-1.5 disabled:opacity-50"
         >
-          {applying ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+          {applying ? <Working size={12} /> : <Check size={12} />}
           {applying ? 'Applying…' : 'Apply & recalibrate'}
         </button>
       </div>

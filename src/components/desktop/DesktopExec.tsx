@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Brain, Radio, Zap, ExternalLink, Target, Loader2 } from 'lucide-react'
+import { Brain, Radio, Zap, ExternalLink, Target } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { AskMarcus } from '../AskMarcus'
 import { FleetFunnelPanel } from '../FleetFunnelPanel'
 import { NextIntelDesktopHero, type ZaraSignal } from '../intel/NextIntelDesktopHero'
 import { useToast } from '../shared/Toast'
+import { Working } from '../shared/Working'
 
 interface MarcusSynthesis {
   id: string
@@ -294,7 +295,7 @@ function PromoteSignalButton({ signal, onPromoted }: { signal: ZaraSignal; onPro
       title="Create a bet from this signal — opens in Bets tab"
       className="inline-flex items-center gap-1 text-violet-300/70 hover:text-violet-200 transition-colors disabled:opacity-40"
     >
-      {busy ? <Loader2 size={10} className="animate-spin" /> : <Target size={10} />}
+      {busy ? <Working size={10} /> : <Target size={10} />}
       Promote
     </button>
   )

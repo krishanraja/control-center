@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react'
-import { UploadCloud, FileText, Loader2, CheckCircle2 } from 'lucide-react'
+import { UploadCloud, FileText, CheckCircle2 } from 'lucide-react'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import type { ConsentTier } from '../hooks/useRealtimeContacts'
@@ -16,6 +16,7 @@ interface PendingFile {
 }
 
 import { VENTURE_OPTIONS } from '../lib/ventureOptions'
+import { Working } from './shared/Working'
 
 const TIER_OPTIONS: Array<{ value: ConsentTier; label: string; hint: string }> = [
   { value: 'permissioned', label: 'Permissioned', hint: 'Owned list — e.g. Substack subscribers' },
@@ -233,7 +234,7 @@ export function ContactImportDropzone({ onIngested }: Props) {
               <span className="flex-1 min-w-0 truncate text-white/75">{f.name}</span>
               {f.state === 'sending' && (
                 <span className="flex items-center gap-1 text-white/55">
-                  <Loader2 size={11} className="animate-spin" />
+                  <Working size={11} />
                   Importing…
                 </span>
               )}

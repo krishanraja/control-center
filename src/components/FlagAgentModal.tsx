@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
-import { Zap, X, Loader2 } from 'lucide-react'
+import { Zap, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { AgentAvatar } from './shared/AgentAvatar'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import { Modal } from './shared/Modal'
+import { Working } from './shared/Working'
 
 interface Props {
   agentId: string
@@ -110,7 +111,7 @@ export function FlagAgentModal({ agentId, agentDisplayName, onClose }: Props) {
             disabled={!note.trim() || submitting}
             className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[12px] font-medium bg-amber-500/15 text-amber-200 border border-amber-500/25 hover:bg-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {submitting ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
+            {submitting ? <Working size={12} /> : <Zap size={12} />}
             {submitting ? 'Flagging…' : 'Flag Agent'}
           </button>
         </div>

@@ -17,6 +17,7 @@ import { IntegrationsPanel } from '../acquisition/IntegrationsPanel'
 import { DirectionStudio } from '../acquisition/DirectionStudio'
 import { SequenceReviewSheet } from '../acquisition/SequenceReviewSheet'
 import { BoardSkeleton } from '../shared/Skeleton'
+import { Working } from '../shared/Working'
 
 /**
  * UNMOUNTED 2026-08-04. The `acquisition` tab was folded into the single Growth
@@ -106,7 +107,7 @@ export function DesktopAcquisition({
           title="Refresh"
           className="text-white/35 hover:text-white/70 transition-colors disabled:opacity-40 mt-1.5"
         >
-          <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+          {refreshing ? <Working size={14} /> : <RefreshCw size={14} />}
         </button>
       </div>
 

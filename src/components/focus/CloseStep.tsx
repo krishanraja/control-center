@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
-import { PartyPopper, Loader2, Check } from 'lucide-react'
+import { PartyPopper, Check } from 'lucide-react'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
+import { Working } from '../shared/Working'
 
 // CLOSE phase of the daily spine. The 3/3 completion is the deliberate peak;
 // the two-field reflection is the end (peak-end rule), closing the Zeigarnik
@@ -114,7 +115,7 @@ export function CloseStep() {
           disabled={phase === 'submitting'}
           className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-emerald-100 bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-400/40 rounded-md px-3 py-1.5 disabled:opacity-50"
         >
-          {phase === 'submitting' ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+          {phase === 'submitting' ? <Working size={12} /> : <Check size={12} />}
           {phase === 'submitting' ? 'Saving...' : 'Log and close'}
         </button>
       </div>

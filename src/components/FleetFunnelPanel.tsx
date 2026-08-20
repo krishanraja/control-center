@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { Boxes, RefreshCw, ChevronRight } from 'lucide-react'
+import { Skeleton } from './shared/Skeleton'
+import { Working } from './shared/Working'
 
 /**
  * Fleet Funnel — Intel-tab panel. Surfaces, per builder app, the acquisition
@@ -159,18 +161,22 @@ export function FleetFunnelPanel() {
             title="Refresh"
             className="text-white/35 hover:text-white/70 transition-colors disabled:opacity-40"
           >
-            <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
+            {refreshing ? <Working size={12} /> : <RefreshCw size={12} />}
           </button>
         </div>
       </header>
 
       {state === 'loading' ? (
-        <div className="divide-y divide-white/[0.04]">
+        // These rows were static tinted bars with no animation of any kind, so
+        // a loading fleet was indistinguishable from a fleet that had loaded
+        // and come back empty. A placeholder that never moves does not read as
+        // "arriving", it reads as broken.
+        <div className="divide-y divide-white/[0.04]" aria-busy="true" role="status" aria-label="Loading">
           {APP_ORDER.map(app => (
             <div key={app} className="px-4 py-3 flex items-center gap-3">
-              <span className="w-2 h-2 rounded-full bg-white/10" />
-              <span className="h-3 w-16 rounded bg-white/[0.06]" />
-              <span className="ml-auto h-3 w-28 rounded bg-white/[0.04]" />
+              <Skeleton w={8} h={8} r={4} />
+              <Skeleton h={12} w={64} r={4} />
+              <Skeleton h={12} w={112} r={4} className="ml-auto" />
             </div>
           ))}
         </div>
@@ -184,7 +190,7 @@ export function FleetFunnelPanel() {
             disabled={refreshing}
             className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-violet-300 hover:text-violet-200 transition-colors disabled:opacity-50"
           >
-            <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} /> Try again
+            {refreshing ? <Working size={12} /> : <RefreshCw size={12} />} Try again
           </button>
         </div>
       ) : (

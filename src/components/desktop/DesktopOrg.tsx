@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Crown, Cog, Sparkles, Zap, Play, Loader2, Pencil, Check, X, AlertTriangle, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Crown, Cog, Sparkles, Zap, Play, Pencil, Check, X, AlertTriangle, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
@@ -11,6 +11,7 @@ import { usePendingCorrections, type PendingCorrection } from '../../hooks/usePe
 import { SkillProposalsPanel } from '../shared/SkillProposalsPanel'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import { BoardSkeleton } from '../shared/Skeleton'
+import { Working } from '../shared/Working'
 
 interface Agent {
   id: string
@@ -368,7 +369,7 @@ export function DesktopOrg() {
                 disabled={saving}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
               >
-                {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                {saving ? <Working size={12} /> : <Check size={12} />}
                 Save Changes
               </button>
               <button
@@ -543,7 +544,7 @@ function PodSection({ pod, members, selectedId, onSelect, onFlag, onTrigger, tri
                       }`}
                       title={`Trigger ${a.name}`}
                     >
-                      {triggering[a.name] === 'loading' ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+                      {triggering[a.name] === 'loading' ? <Working size={12} /> : <Play size={12} />}
                     </span>
                   )}
                   <span
@@ -784,7 +785,7 @@ function PendingCorrectionsPanel({
                   disabled={state === 'approving' || state === 'rejecting' || state === 'ok'}
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
                 >
-                  {state === 'approving' ? <Loader2 size={11} className="animate-spin" /> : <ThumbsUp size={11} />}
+                  {state === 'approving' ? <Working size={11} /> : <ThumbsUp size={11} />}
                   Approve
                 </button>
                 <button
@@ -792,7 +793,7 @@ function PendingCorrectionsPanel({
                   disabled={state === 'approving' || state === 'rejecting' || state === 'ok'}
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-white/[0.04] text-white/60 border border-white/[0.08] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
                 >
-                  {state === 'rejecting' ? <Loader2 size={11} className="animate-spin" /> : <ThumbsDown size={11} />}
+                  {state === 'rejecting' ? <Working size={11} /> : <ThumbsDown size={11} />}
                   Reject
                 </button>
               </div>
@@ -913,7 +914,7 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
                 disabled={saving}
                 className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-[10px] font-medium text-emerald-300 transition-colors disabled:opacity-50"
               >
-                {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                {saving ? <Working size={12} /> : <Check className="w-3 h-3" />}
                 Save
               </button>
               <button
@@ -931,7 +932,7 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
               disabled={syncing}
               className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-[10px] font-medium text-white/60 transition-colors disabled:opacity-50"
             >
-              {syncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Cog className="w-3 h-3" />}
+              {syncing ? <Working size={12} /> : <Cog className="w-3 h-3" />}
               {synced ? 'Deployed' : 'Deploy Identity'}
             </button>
           )}

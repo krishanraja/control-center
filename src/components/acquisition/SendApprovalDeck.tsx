@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, MailCheck, RefreshCw } from 'lucide-react'
 import { useToast } from '../shared/Toast'
 import { SkeletonList } from '../shared/Skeleton'
 import { useDeferredPending } from '../shared/useDeferredPending'
+import { Working } from '../shared/Working'
 
 /**
  * Send Approval Deck — the batch surface for queued nurture sends.
@@ -40,6 +41,10 @@ export function SendApprovalDeck({
   const [loading, setLoading] = useState(true)
   // Reserve the rows immediately, shimmer only once the wait has earned it.
   const waiting = useDeferredPending(loading)
+  // A manual refresh used to set `loading`, which swapped the live queue for a
+  // placeholder: pressing refresh took the rows away to confirm the rows. It is
+  // its own state now, so the queue stays on screen and stays readable.
+  const [refreshing, setRefreshing] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [expanded, setExpanded] = useState<string | null>(focusSendId || null)
   const [busy, setBusy] = useState(false)
@@ -113,12 +118,12 @@ export function SendApprovalDeck({
           <span className="text-[10px] text-white/30 tabular-nums">{sends.length} queued</span>
           <button
             type="button"
-            onClick={() => { setLoading(true); load() }}
-            disabled={loading}
+            onClick={() => { setRefreshing(true); load().finally(() => setRefreshing(false)) }}
+            disabled={loading || refreshing}
             title="Refresh"
             className="text-white/35 hover:text-white/70 transition-colors disabled:opacity-40"
           >
-            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+            {(loading || refreshing) ? <Working size={12} /> : <RefreshCw size={12} />}
           </button>
         </span>
       </header>

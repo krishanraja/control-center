@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  AlertTriangle, ArrowLeft, BookOpen, Check, ExternalLink, FileText, Link2, Loader2, MessageSquare, Paperclip, PenLine, RotateCcw,
+  AlertTriangle, ArrowLeft, BookOpen, Check, ExternalLink, FileText, Link2, MessageSquare, Paperclip, PenLine, RotateCcw,
   Save, Scissors, Search, Send, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Wand2, X, Gauge,
 } from 'lucide-react'
 import { RichText, SelectableDraft } from './RichText'
@@ -15,6 +15,7 @@ import {
   HUMOR_PRESETS, ITERATE_CHIPS, LENGTH_PRESETS, MEDIA_CHANNELS,
   TONE_PRESETS, ZOOM_DEFAULT_HINT, laneToFactoryChannel, nextBestAction,
 } from '../../lib/contentEngine'
+import { Working } from '../shared/Working'
 // ─────────────────────────────────────────────────────────────────────────
 // ContentComposer — the full-screen deep-work surface for ONE piece.
 //
@@ -614,7 +615,7 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
                             : runRevise({ label: it.label, mode: it.mode, value: it.value, hint: it.hint })}
                           className={`flex items-center gap-1 px-3 py-2 rounded-full text-[12px] border bg-white/[0.02] disabled:opacity-40 ${g.accent}`}
                         >
-                          {busy === key ? <Loader2 size={12} className="animate-spin" /> : null} {it.label}
+                          {busy === key ? <Working size={12} /> : null} {it.label}
                         </button>
                       )
                     })}
@@ -883,7 +884,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
           block ? 'flex-1 py-3 rounded-l-xl text-[14px]' : 'pl-3 pr-2.5 py-2 rounded-l-lg text-[12px]'
         }`}
       >
-        {running ? <Loader2 size={block ? 15 : 13} className="animate-spin" /> : <ShieldCheck size={block ? 15 : 13} />} Final Review
+        {running ? <Working size={block ? 15 : 13} /> : <ShieldCheck size={block ? 15 : 13} />} Final Review
       </button>
       <button
         type="button" onClick={() => setMenu(m => !m)} disabled={running}
@@ -1187,7 +1188,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
               </div>
               <button type="button" onClick={rerun} disabled={rerunning}
                 className="mt-2.5 flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-md border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 disabled:opacity-40">
-                {rerunning ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />} Re-run with these lenses
+                {rerunning ? <Working size={11} /> : <RotateCcw size={11} />} Re-run with these lenses
               </button>
             </div>
           )}
@@ -1275,7 +1276,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
           <button type="button" onClick={doShip} disabled={blocked || shipping}
             title={blocked ? 'Resolve the instant-fail first' : `Ship to ${channelLabel} Google Doc`}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[14px] font-semibold bg-violet-500/90 text-white hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-            {shipping ? <Loader2 size={15} className="animate-spin" /> : <ExternalLink size={15} />}
+            {shipping ? <Working size={15} /> : <ExternalLink size={15} />}
             {blocked ? 'Blocked' : open.length ? `Ship anyway (${open.length} open)` : 'Ship to Google Docs'}
           </button>
         </div>
@@ -1604,7 +1605,7 @@ function CleoChat({ idea, draft, onUseAsDraft, mobile }: { idea: ContentIdeaRow;
             </div>
           </div>
         ))}
-        {busy && <div className="flex items-center gap-1.5 text-[12px] text-white/45"><Loader2 size={13} className="animate-spin" /> Cleo is thinking…</div>}
+        {busy && <div className="flex items-center gap-1.5 text-[12px] text-white/45"><Working size={13} /> Cleo is thinking…</div>}
         <div ref={endRef} />
       </div>
 
@@ -1717,7 +1718,7 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
     <div className="space-y-3">
       {busy && (
         <div className="rounded-lg border border-violet-500/40 bg-violet-500/[0.08] px-3 py-2 flex items-center gap-2 text-[11px] text-violet-100">
-          <Loader2 size={13} className="animate-spin" /> Cleo is rewriting {selection ? 'the selected passage' : 'the draft'}…
+          <Working size={13} /> Cleo is rewriting {selection ? 'the selected passage' : 'the draft'}…
         </div>
       )}
 
@@ -1884,7 +1885,7 @@ function MaterialsPanel({ idea }: { idea: ContentIdeaRow }) {
         )}
         <button type="button" onClick={add} disabled={busy}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium bg-violet-500/30 text-white hover:bg-violet-500/40 disabled:opacity-40 min-h-[32px]">
-          {busy ? <Loader2 size={11} className="animate-spin" /> : <Paperclip size={11} />} Attach
+          {busy ? <Working size={11} /> : <Paperclip size={11} />} Attach
         </button>
       </div>
 
@@ -1993,12 +1994,12 @@ function ResearchPanel({ idea }: { idea: ContentIdeaRow }) {
           </div>
           <button type="button" onClick={() => suggest(true)} disabled={sugBusy} title="Fresh suggestions" aria-label="Refresh suggestions"
             className="flex items-center justify-center w-7 h-7 rounded-md text-white/35 hover:text-white/70 hover:bg-white/[0.06] disabled:opacity-40">
-            {sugBusy && sugs ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />}
+            {sugBusy && sugs ? <Working size={11} /> : <RotateCcw size={11} />}
           </button>
         </div>
         {sugBusy && !sugs ? (
           <div className="flex items-center gap-1.5 text-[11px] text-white/40">
-            <Loader2 size={12} className="animate-spin" /> Cleo is working out what research would strengthen this…
+            <Working size={12} /> Cleo is working out what research would strengthen this…
           </div>
         ) : !sugs?.length ? (
           <p className="text-[11px] text-white/35 italic">No suggestions yet. Dig into a specific area below.</p>
@@ -2018,7 +2019,7 @@ function ResearchPanel({ idea }: { idea: ContentIdeaRow }) {
                     }`}
                   >
                     {done ? <><Check size={10} /> In materials</>
-                      : runningQ === s.query ? <><Loader2 size={10} className="animate-spin" /> Researching…</>
+                      : runningQ === s.query ? <><Working size={10} /> Researching…</>
                         : <><Search size={10} /> Research this</>}
                   </button>
                 </div>
@@ -2052,7 +2053,7 @@ function ResearchPanel({ idea }: { idea: ContentIdeaRow }) {
           className="flex-1 rounded-md bg-black/40 border border-white/10 px-2 py-1.5 text-[11px] text-white/90 placeholder:text-white/30 focus:outline-none focus:border-emerald-500/40" />
         <button type="button" onClick={() => dive(q)} disabled={!!runningQ || !q.trim()}
           className="flex items-center justify-center w-8 h-8 rounded-md bg-emerald-500/25 text-white hover:bg-emerald-500/35 disabled:opacity-40 flex-shrink-0">
-          {runningQ === q.trim() && q.trim() ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
+          {runningQ === q.trim() && q.trim() ? <Working size={12} /> : <Search size={12} />}
         </button>
       </div>
       <p className="text-[10px] text-white/30 leading-snug">Everything researched here is attached to Materials automatically, so Cleo writes from it.</p>
@@ -2087,7 +2088,7 @@ function StandardsPanel({ idea, draft }: { idea: ContentIdeaRow; draft: string }
       <p className="text-[11px] text-white/45 leading-snug">A quick gut-check mid-draft against the five standards. The full per-venture Final Pass runs automatically when you Save Draft, this is the same rubric, earlier.</p>
       <button type="button" onClick={score} disabled={busy}
         className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] border border-emerald-500/25 text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-40 min-h-[32px]">
-        {busy ? <Loader2 size={11} className="animate-spin" /> : <Gauge size={11} />} Score the five standards
+        {busy ? <Working size={11} /> : <Gauge size={11} />} Score the five standards
       </button>
       {standards && (
         <div className="rounded-md border border-white/[0.06] bg-black/30 p-2 space-y-1.5">

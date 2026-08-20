@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
-import { Mic, Square, Loader2 } from 'lucide-react'
+import { Mic, Square } from 'lucide-react'
+import { Working } from './Working'
 
 // Shared mic capture. Records audio and POSTs the blob to `endpoint`, then hands
 // the parsed JSON to `onJson`. Used by the daily custom-pick textarea, the weekly
@@ -82,7 +83,7 @@ export function MicButton({
     setRecording(false)
   }
 
-  const icon = busy ? <Loader2 size={size} className="animate-spin" /> : recording ? <Square size={size - 1} /> : <Mic size={size} />
+  const icon = busy ? <Working size={size} /> : recording ? <Square size={size - 1} /> : <Mic size={size} />
 
   if (label) {
     return (

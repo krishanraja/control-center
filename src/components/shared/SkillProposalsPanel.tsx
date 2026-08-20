@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Sparkles, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
+import { Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useSkillProposals } from '../../hooks/useSkillProposals'
+import { Working } from './Working'
 
 /**
  * Generative twin of the "Pending corrections from Vera" panel. Surfaces
@@ -90,7 +91,7 @@ export function SkillProposalsPanel() {
                   disabled={state === 'approving' || state === 'rejecting' || state === 'ok'}
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
                 >
-                  {state === 'approving' ? <Loader2 size={11} className="animate-spin" /> : <ThumbsUp size={11} />}
+                  {state === 'approving' ? <Working size={11} /> : <ThumbsUp size={11} />}
                   Approve
                 </button>
                 <button
@@ -98,7 +99,7 @@ export function SkillProposalsPanel() {
                   disabled={state === 'approving' || state === 'rejecting' || state === 'ok'}
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-white/[0.04] text-white/60 border border-white/[0.08] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
                 >
-                  {state === 'rejecting' ? <Loader2 size={11} className="animate-spin" /> : <ThumbsDown size={11} />}
+                  {state === 'rejecting' ? <Working size={11} /> : <ThumbsDown size={11} />}
                   Reject
                 </button>
               </div>

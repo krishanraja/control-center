@@ -4,6 +4,7 @@ import { useCustomerContacts, type CouncilEntry } from '../hooks/useCustomerCont
 import { PRODUCT_LABEL } from '../hooks/useCustomers'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
+import { Skeleton } from './shared/Skeleton'
 
 const PRIORITY_TONE: Record<CouncilEntry['priority'], { border: string; accent: string; icon: any; label: string }> = {
   churn_exit:            { border: 'border-red-500/40',     accent: 'text-red-300',     icon: AlertOctagon, label: 'Exit interview' },
@@ -54,18 +55,18 @@ export function CustomerCouncilCard() {
 
   if (loading) {
     return (
-      <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden animate-pulse">
+      <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
         <header className="px-4 py-3 border-b border-white/[0.05] flex items-center justify-between">
-          <div>
-            <div className="h-2.5 w-32 bg-white/[0.08] rounded" />
-            <div className="h-2 w-24 bg-white/[0.05] rounded mt-2" />
+          <div className="space-y-2">
+            <Skeleton h={10} w={128} r={4} />
+            <Skeleton h={8} w={96} r={4} />
           </div>
-          <div className="h-2.5 w-10 bg-white/[0.06] rounded" />
+          <Skeleton h={10} w={40} r={4} />
         </header>
         <ul className="divide-y divide-white/[0.04]">
           {[0, 1, 2].map(i => (
             <li key={i} className="px-4 py-3 border-l-2 border-white/10">
-              <div className="h-2 w-20 bg-white/[0.06] rounded" />
+              <Skeleton h={8} w={80} r={4} />
               <div className="h-2.5 w-40 bg-white/[0.08] rounded mt-2" />
               <div className="h-2 w-28 bg-white/[0.05] rounded mt-2" />
             </li>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, SearchX, AlertTriangle, MapPin } from 'lucide-react'
+import { SearchX, AlertTriangle, MapPin } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { useNetworkSearch, type NetworkResult } from '../../hooks/useNetworkSearch'
 import { NetworkSearchBar } from './NetworkSearchBar'
@@ -9,6 +9,7 @@ import { NetworkResultRow } from './NetworkResultRow'
 import { NetworkPersonSheet } from './NetworkPersonSheet'
 import { SkeletonList } from '../shared/Skeleton'
 import { useNetworkGeo, geoLabel } from '../../hooks/useNetworkGeo'
+import { Working } from '../shared/Working'
 
 // The Network surface.
 //
@@ -226,7 +227,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
       {s.loading && narrow && (
         <div className="pointer-events-none absolute inset-x-0 bottom-24 flex justify-center">
           <span className="surface inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] text-white/70">
-            <Loader2 size={12} className="animate-spin" /> Searching
+            <Working size={12} /> Searching
           </span>
         </div>
       )}

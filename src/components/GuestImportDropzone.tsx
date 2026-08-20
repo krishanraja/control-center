@@ -1,7 +1,8 @@
 import React, { useCallback, useRef, useState } from 'react'
-import { UploadCloud, FileText, Loader2, CheckCircle2, Clipboard } from 'lucide-react'
+import { UploadCloud, FileText, CheckCircle2, Clipboard } from 'lucide-react'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
+import { Working } from './shared/Working'
 
 interface Props {
   onIngested?: (run: { source: string }) => void
@@ -172,7 +173,7 @@ export function GuestImportDropzone({ onIngested }: Props) {
               <span className="flex-1 min-w-0 truncate text-white/75">{f.name}</span>
               {f.state === 'sending' && (
                 <span className="flex items-center gap-1 text-white/55">
-                  <Loader2 size={11} className="animate-spin" />
+                  <Working size={11} />
                   Parsing…
                 </span>
               )}

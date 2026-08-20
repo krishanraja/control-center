@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { X, Check, AlertTriangle, Loader2, RefreshCw, Send, Wand2, RotateCcw } from 'lucide-react'
+import { X, Check, AlertTriangle, RefreshCw, Send, Wand2, RotateCcw } from 'lucide-react'
 import type { SkillData, QualityGateResult } from './types'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import { useToast } from '../shared/Toast'
 import { Modal } from '../shared/Modal'
+import { Working } from '../shared/Working'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -168,7 +169,7 @@ export function SkillReviewModal({
                   )}
                   <button type="button" onClick={runRefine} disabled={refining || !refineInput.trim()}
                     className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-md border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 disabled:opacity-40">
-                    {refining ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />} Refine
+                    {refining ? <Working size={11} /> : <Wand2 size={11} />} Refine
                   </button>
                 </div>
               </div>
@@ -302,7 +303,7 @@ export function SkillReviewModal({
               disabled={regenerating}
               className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border border-white/10 text-white/70 hover:text-white hover:bg-white/[0.06] text-[12px] font-medium transition-colors disabled:opacity-40"
             >
-              {regenerating ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+              {regenerating ? <Working size={12} /> : <RefreshCw size={12} />}
               Regenerate
             </button>
             <button
@@ -310,7 +311,7 @@ export function SkillReviewModal({
               disabled={shipping || regenerating || !clientEmail.trim()}
               className="inline-flex items-center gap-1.5 px-3.5 h-8 rounded-lg bg-violet-500 hover:bg-violet-400 text-[#fff] text-[12px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {shipping ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+              {shipping ? <Working size={12} /> : <Send size={12} />}
               Ship to Client
             </button>
           </div>

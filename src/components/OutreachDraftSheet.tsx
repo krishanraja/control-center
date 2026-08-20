@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Mail, Sparkles, Loader2 } from 'lucide-react'
+import { Mail, Sparkles } from 'lucide-react'
 import { BottomSheet } from './mobile/BottomSheet'
 import { ProcessingOverlay } from './shared/ProcessingOverlay'
 import { useToast } from './shared/Toast'
@@ -29,6 +29,7 @@ const INTENTS: Array<{ id: Intent; label: string; hint: string }> = [
 // The venture chips on the Leads tab, from the one shared source so this can
 // never drift out of sync with them again.
 import { VENTURE_OPTIONS as VENTURES } from '../lib/ventureOptions'
+import { Working } from './shared/Working'
 
 const LENGTHS: Array<{ id: Length; label: string }> = [
   { id: 'short', label: 'Short' },
@@ -254,7 +255,7 @@ export function OutreachDraftSheet({
               className="w-full flex items-center justify-center gap-2 rounded-full btn-contrast text-[16px] font-semibold py-4 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100"
             >
               {busy ? (
-                <><Loader2 size={18} className="animate-spin" /> Drafting…</>
+                <><Working size={18} /> Drafting…</>
               ) : (
                 <><Sparkles size={18} /> Draft email{ventureLabel ? ` · ${ventureLabel}` : ''}</>
               )}

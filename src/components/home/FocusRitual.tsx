@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
-  Sparkles, Check, Loader2, Target, Clock, ArrowLeft, ArrowRight,
+  Sparkles, Check, Target, Clock, ArrowLeft, ArrowRight,
   CheckCircle2, Inbox, Flame, Plus, X,
 } from 'lucide-react'
 import { useAltitudes, type AltitudeId } from '../../hooks/useAltitudes'
@@ -24,6 +24,7 @@ import { CarryOverPrompt } from '../focus/CarryOverPrompt'
 import { FocusCalibrator } from '../focus/FocusCalibrator'
 import { isFocusRitualEnabled } from '../../lib/homeV2'
 import { useFocusRitualOpen, closeFocusRitual } from '../../lib/focusRitual'
+import { Working } from '../shared/Working'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -418,7 +419,7 @@ function WeeklyStep({ onCommitted }: { onCommitted: () => void }) {
         </p>
 
         {loading ? (
-          <div className="text-[12px] text-white/45"><Loader2 size={12} className="animate-spin inline mr-2" />Marcus is assembling the slate…</div>
+          <div className="text-[12px] text-white/45"><Working size={12} className="inline mr-2" />Marcus is assembling the slate…</div>
         ) : slate.length === 0 && customs.length === 0 ? (
           <p className="text-[12px] text-white/45">No candidate moves yet. Accept milestones in the Objectives step, or write your own below.</p>
         ) : (
@@ -513,7 +514,7 @@ function WeeklyStep({ onCommitted }: { onCommitted: () => void }) {
           disabled={committing}
           className="mt-1 w-full inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-4 py-2 disabled:opacity-50"
         >
-          {committing ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+          {committing ? <Working size={13} /> : <CheckCircle2 size={13} />}
           {committing ? 'Locking…' : totalPicked > 0 ? `Commit ${totalPicked} for the week${totalHours > 0 ? ` · ~${totalHours}h` : ''}` : 'Commit zero — run execution'}
         </button>
       </div>

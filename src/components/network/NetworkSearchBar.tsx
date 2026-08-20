@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
-import { Search, Mic, Square, Loader2, CornerDownLeft, X } from 'lucide-react'
+import { Search, Mic, Square, CornerDownLeft, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { browserCanRecord } from '../shared/VoiceCapture'
+import { Working } from '../shared/Working'
 
 // The one input. Type it or say it.
 //
@@ -129,7 +130,7 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
           data-testid="network-search-submit"
           className="aurora-btn inline-flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-form transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 disabled:opacity-40"
         >
-          {loading ? <Loader2 size={15} className="animate-spin" /> : <CornerDownLeft size={15} />}
+          {loading ? <Working size={15} /> : <CornerDownLeft size={15} />}
         </button>
       </div>
 

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
 import { ChipOverflow, Chip, type ChipItem } from './ChipOverflow'
 import { useToast } from './Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { VENTURE_OPTIONS } from '../../lib/ventureOptions'
+import { Working } from './Working'
 
 // The edits you can make to a person, wherever you are looking at them.
 //
@@ -132,7 +132,7 @@ function EditRow({ label, saving, children }: {
     <div className="flex flex-wrap items-center gap-1.5">
       <span className="mr-1 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
         {label}
-        {saving && <Loader2 size={9} className="animate-spin" aria-hidden />}
+        {saving && <Working size={9} />}
       </span>
       {children}
     </div>
