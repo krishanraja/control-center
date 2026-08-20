@@ -1,37 +1,37 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { Mail, Layers as DeckIcon, ChevronDown } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
-import { useRealtimeDecisionsWaiting, type DecisionRow } from '../../hooks/useRealtimeDecisionsWaiting'
-import { useRealtimeTasks } from '../../hooks/useRealtimeTasks'
-import { FeedCard, FeedRow, EmptyState } from '../mobile/primitives'
-import { SkeletonRow } from '../shared/Skeleton'
-import { DetailSheet } from '../mobile/DetailSheet'
-import { BackburnerSection } from '../shared/BackburnerSection'
-import { useHaptics } from '../../hooks/useHaptics'
-import { useToast } from '../shared/Toast'
-import { buildDecisionActions } from '../../lib/decisionActions'
+import { supabase } from '../../../lib/supabase'
+import { useRealtimeDecisionsWaiting, type DecisionRow } from '../../../hooks/useRealtimeDecisionsWaiting'
+import { useRealtimeTasks } from '../../../hooks/useRealtimeTasks'
+import { FeedCard, FeedRow, EmptyState } from '../../mobile/primitives'
+import { SkeletonRow } from '../../shared/Skeleton'
+import { DetailSheet } from '../../mobile/DetailSheet'
+import { BackburnerSection } from '../../shared/BackburnerSection'
+import { useHaptics } from '../../../hooks/useHaptics'
+import { useToast } from '../../shared/Toast'
+import { buildDecisionActions } from '../../../lib/decisionActions'
 import {
   splitDecisions, minutesToZero,
   KIND_ICON, KIND_LABEL, KIND_TO_TABLE, KIND_DOT,
-} from '../../lib/decisionKinds'
-import { splitTaskQueue, STALE_DAYS } from '../../lib/taskQueue'
+} from '../../../lib/decisionKinds'
+import { splitTaskQueue, STALE_DAYS } from '../../../lib/taskQueue'
 import { DecisionDeck } from './DecisionDeck'
 import { useRulingPrompts } from './RulingPrompts'
-import { isSimplifiedIA } from '../../lib/iaV3'
-import { WhyBadge } from '../shared/WhyBadge'
-import { whyForDecision } from '../../lib/servedSurfaces'
+import { WhyBadge } from '../../shared/WhyBadge'
+import { whyForDecision } from '../../../lib/servedSurfaces'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
 /**
- * "Your decisions" is the finishable anchor of Home. The count includes ONLY
- * typed, only-Krish rulings (splitDecisions); pipeline pools surface as queue
- * chips that open each tab's triage deck instead of inflating the number.
- * Tapping a row opens a DetailSheet whose buttons are the row's kind-correct
- * one-tap actions via the shared buildDecisionActions registry (now including
- * the old Today verbs: approve / send back with a note / defer). "Clear the
- * queue" opens the one-card DecisionDeck for a full sitting. The stale tail
- * and backburner (formerly Today's folds) collapse below.
+ * "Your decisions" — the finishable ruling queue, hosted on OS → Queue. The
+ * count includes ONLY typed, only-Krish rulings (splitDecisions); pipeline
+ * pools surface as queue chips that open each tab's triage deck instead of
+ * inflating the number. Tapping a row opens a DetailSheet whose buttons are
+ * the row's kind-correct one-tap actions via the shared buildDecisionActions
+ * registry (including the old Today verbs: approve / send back with a note /
+ * defer). "Clear the queue" opens the one-card DecisionDeck for a full
+ * sitting. The stale tail and backburner (formerly Today's folds) collapse
+ * below. Home shows only the count in its vitals line and links here.
  */
 export function DecisionsInbox({
   onNavigate,
@@ -232,8 +232,7 @@ export function DecisionsInbox({
 
       {/* THE TAIL: the old Today folds. Stale no-progress rows (bulk snooze /
           dismiss) and the backburner, collapsed so the queue owns the screen. */}
-      {isSimplifiedIA() && (
-        <div className="mt-2">
+      <div className="mt-2">
           <button
             type="button"
             onClick={() => setTailOpen(v => !v)}
@@ -280,7 +279,6 @@ export function DecisionsInbox({
             </div>
           )}
         </div>
-      )}
 
       <DetailSheet
         open={open != null}

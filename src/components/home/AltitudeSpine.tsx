@@ -108,7 +108,7 @@ export function AltitudeSpine({
         </button>
         <button
           type="button"
-          onClick={() => { h.select(); onNavigate?.('today') }}
+          onClick={() => { h.select(); onNavigate?.('os', { sub: 'queue' }) }}
           className="flex items-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-left active:bg-white/[0.07] transition-colors"
         >
           <Inbox size={13} className={waiting > 0 ? 'text-status-needsYou flex-shrink-0' : 'text-white/40 flex-shrink-0'} />

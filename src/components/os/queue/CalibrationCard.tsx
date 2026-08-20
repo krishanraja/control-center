@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { SlidersHorizontal, X, Check } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
-import { useToast } from '../shared/Toast'
-import { useHaptics } from '../../hooks/useHaptics'
+import { supabase } from '../../../lib/supabase'
+import { useToast } from '../../shared/Toast'
+import { useHaptics } from '../../../hooks/useHaptics'
 
 type Domain = 'content' | 'lead' | 'visibility'
 

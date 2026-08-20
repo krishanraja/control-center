@@ -592,7 +592,7 @@ function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose
       {waiting > 0 && (
         <button
           type="button"
-          onClick={() => { h.tap(); onClose(); onNavigate?.('today') }}
+          onClick={() => { h.tap(); onClose(); onNavigate?.('os', { sub: 'queue' }) }}
           className="w-full inline-flex items-center justify-between gap-2 rounded-xl border border-amber-400/25 bg-amber-500/[0.06] px-4 py-3 text-left active:bg-amber-500/[0.10]"
         >
           <span className="inline-flex items-center gap-2">

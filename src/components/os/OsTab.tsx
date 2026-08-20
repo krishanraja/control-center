@@ -3,13 +3,14 @@ import { ErrorBoundary } from '../ErrorBoundary'
 import { BoardSkeleton, MobileTabSkeleton, DeferredFallback } from '../shared/Skeleton'
 import { SegmentedNav } from '../shared/SegmentedNav'
 
-// OS: the back office behind one drawer entry. Org (agents + corrections),
-// Intel (Marcus + signals), Flows (workflows + Skill Forge), and Systems
-// (health board) render as subtabs of one tab instead of four nav entries.
-// The subtab components are the existing tabs, unmodified. The load-bearing
-// approvals (Vera corrections, workflow proposals) stay reachable here AND
-// approve inline from Home's decision queue, so a visit is never required.
+// OS: the back office behind one drawer entry. Queue (every typed ruling
+// waiting on Krish — relocated from Home in the 2026-08-20 recompose), Org
+// (agents + corrections), Intel (Marcus + signals), Flows (workflows + Skill
+// Forge), and Systems (health board) render as subtabs of one tab instead of
+// five nav entries. Home links to the Queue via its vitals count; legacy
+// #/today ruling deep links land here with their params intact.
 
+const QueueSubtab = lazy(() => import('./queue/QueueSubtab').then(m => ({ default: m.QueueSubtab })))
 const DesktopOrg = lazy(() => import('../desktop/DesktopOrg').then(m => ({ default: m.DesktopOrg })))
 const DesktopExec = lazy(() => import('../desktop/DesktopExec').then(m => ({ default: m.DesktopExec })))
 const DesktopFlows = lazy(() => import('../desktop/DesktopFlows').then(m => ({ default: m.DesktopFlows })))
@@ -19,9 +20,10 @@ const MobileIntel = lazy(() => import('../mobile/MobileIntel').then(m => ({ defa
 const MobileFlows = lazy(() => import('../mobile/MobileFlows').then(m => ({ default: m.MobileFlows })))
 const MobileSystems = lazy(() => import('../mobile/MobileSystems').then(m => ({ default: m.MobileSystems })))
 
-export type OsSub = 'org' | 'intel' | 'flows' | 'systems'
+export type OsSub = 'queue' | 'org' | 'intel' | 'flows' | 'systems'
 
 const SUBS: Array<{ id: OsSub; label: string }> = [
+  { id: 'queue', label: 'Queue' },
   { id: 'org', label: 'Org' },
   { id: 'intel', label: 'Intel' },
   { id: 'flows', label: 'Flows' },
@@ -39,9 +41,12 @@ function inferSub(params: Record<string, string>): OsSub {
   // own hash reader then scrolls the row into view (the alias layer preserves
   // the original ?correction= param in the hash).
   if (params.correction || params.skill_proposal) return 'org'
+  // A ruling deep link (legacy #/today?task= / ?decision=) lands on the Queue,
+  // which seeds the deck to the referenced row.
+  if (params.task || params.decision) return 'queue'
   const sub = params.sub as OsSub | undefined
-  if (sub === 'org' || sub === 'intel' || sub === 'flows' || sub === 'systems') return sub
-  return 'org'
+  if (sub === 'queue' || sub === 'org' || sub === 'intel' || sub === 'flows' || sub === 'systems') return sub
+  return 'queue'
 }
 
 export function OsTab({ narrow, params, onNavigate }: Props) {
@@ -72,6 +77,16 @@ export function OsTab({ narrow, params, onNavigate }: Props) {
     <>
       {switcher}
       <Suspense fallback={fallback}>
+        {sub === 'queue' && (
+          <ErrorBoundary label="Queue">
+            <QueueSubtab
+              narrow={narrow}
+              onNavigate={onNavigate}
+              deepTask={params.task || null}
+              deepDecision={params.decision || null}
+            />
+          </ErrorBoundary>
+        )}
         {sub === 'org' && (
           <ErrorBoundary label="Org">{narrow ? <MobileOrg /> : <DesktopOrg />}</ErrorBoundary>
         )}

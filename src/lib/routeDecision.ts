@@ -19,7 +19,8 @@ export function routeDecision(kind: DecisionKind | string, id: string | null | u
   const safeId = id ?? ''
   switch (kind) {
     case 'task':
-      return { tab: 'today', params: safeId ? { task: safeId } : {} }
+      // Task rulings live on OS → Queue (the deck seeds to the row).
+      return { tab: 'os', params: safeId ? { sub: 'queue', task: safeId } : { sub: 'queue' } }
     case 'idea':
       return { tab: 'content', params: safeId ? { idea: safeId } : {} }
     case 'guest':
@@ -36,19 +37,19 @@ export function routeDecision(kind: DecisionKind | string, id: string | null | u
       // The typed weekly queue lives in the Content tab's This Week room.
       return { tab: 'content', params: {} }
     case 'inbox_returned':
-      // The returned capture surfaces as a Today decision on its routed task.
-      return { tab: 'today', params: safeId ? { decision: `inbox_returned:${safeId}` } : {} }
+      // The returned capture surfaces as a ruling on OS → Queue.
+      return { tab: 'os', params: safeId ? { sub: 'queue', decision: `inbox_returned:${safeId}` } : { sub: 'queue' } }
     case 'vera_gap':
-      return { tab: 'today', params: safeId ? { decision: `vera_gap:${safeId}` } : {} }
+      return { tab: 'os', params: safeId ? { sub: 'queue', decision: `vera_gap:${safeId}` } : { sub: 'queue' } }
     case 'sequence_approval':
       return { tab: 'acquisition', params: safeId ? { seq: safeId } : {} }
     case 'send_sample':
       return { tab: 'acquisition', params: safeId ? { send: safeId } : {} }
     case 'growth_stall':
-      // The stall ruling (3 drafted moves) lives in Home's decision deck.
-      return { tab: 'home', params: safeId ? { decision: `growth_stall:${safeId}` } : {} }
+      // The stall ruling (3 drafted moves) lives in the OS → Queue deck.
+      return { tab: 'os', params: safeId ? { sub: 'queue', decision: `growth_stall:${safeId}` } : { sub: 'queue' } }
     default:
-      return { tab: 'today', params: {} }
+      return { tab: 'os', params: { sub: 'queue' } }
   }
 }
 

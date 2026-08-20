@@ -21,11 +21,13 @@ import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
 import { BetsStrip } from '../home/BetsStrip'
-import { CalibrationCard } from '../home/CalibrationCard'
+import { CalibrationCard } from '../os/queue/CalibrationCard'
 import { DailyDriver } from '../focus/DailyDriver'
 import { GlanceHeader } from '../home/GlanceHeader'
-import { DecisionsInbox } from '../home/DecisionsInbox'
+import { DecisionsInbox } from '../os/queue/DecisionsInbox'
 import { PulseGroup } from '../home/PulseGroup'
+import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
+import { splitDecisions } from '../../lib/decisionKinds'
 import { AltitudeSpine } from '../home/AltitudeSpine'
 import { BoardDaily } from '../home/BoardDaily'
 import { GrowthScoreboard } from '../home/GrowthScoreboard'
@@ -105,6 +107,9 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
     [waitingRaw],
   )
   const live = useLiveStatus(60_000)
+  // The ruling queue lives on OS → Queue now; Home shows only the count.
+  const { decisions: allDecisionRows } = useRealtimeDecisionsWaiting()
+  const decisionCount = useMemo(() => splitDecisions(allDecisionRows).decisions.length, [allDecisionRows])
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -189,15 +194,22 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
         {/* THE DAY — track and close; the picker lives in the ritual. */}
         <BoardDaily />
 
-        <DecisionsInbox onNavigate={onNavigate} deepTask={deepTask} deepDecision={deepDecision} />
+        {/* THE QUEUE moved to OS → Queue; Home carries only the count.
+            (Interim line — absorbed into the vitals strip in the recompose.) */}
+        {decisionCount > 0 && (
+          <button
+            type="button"
+            onClick={() => onNavigate?.('os', { sub: 'queue' })}
+            className="self-start px-2 py-1 text-[12px] text-white/50 hover:text-white/85 transition-colors"
+          >
+            {decisionCount} waiting on you · clear the queue →
+          </button>
+        )}
 
         {/* THE AMBIENT ROOM: context that informs but never asks. Collapsed
             behind an explicit fold so the action loop above owns the screen. */}
         <PulseGroup>
           <RoomPreviews onNavigate={onNavigate} variant="desktop" />
-
-          {/* GRADER: one-time calibration prompt; hides once all domains are fitted. */}
-          <CalibrationCard />
 
           {/* BETS: compact strip replacing the standalone Bets tab. */}
           <BetsStrip />

@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { X, SkipForward } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
-import { useRealtimeDecisionsWaiting, type DecisionRow } from '../../hooks/useRealtimeDecisionsWaiting'
-import { splitDecisions, KIND_ICON, KIND_LABEL, KIND_TO_TABLE, minutesToZero } from '../../lib/decisionKinds'
-import { buildDecisionActions } from '../../lib/decisionActions'
+import { supabase } from '../../../lib/supabase'
+import { useRealtimeDecisionsWaiting, type DecisionRow } from '../../../hooks/useRealtimeDecisionsWaiting'
+import { splitDecisions, KIND_ICON, KIND_LABEL, KIND_TO_TABLE, minutesToZero } from '../../../lib/decisionKinds'
+import { buildDecisionActions } from '../../../lib/decisionActions'
 import { useRulingPrompts } from './RulingPrompts'
-import { useHaptics } from '../../hooks/useHaptics'
-import { useToast } from '../shared/Toast'
-import type { SheetAction } from '../mobile/DetailSheet'
-import { Modal } from '../shared/Modal'
+import { useHaptics } from '../../../hooks/useHaptics'
+import { useToast } from '../../shared/Toast'
+import type { SheetAction } from '../../mobile/DetailSheet'
+import { Modal } from '../../shared/Modal'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 

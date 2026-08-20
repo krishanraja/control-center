@@ -19,10 +19,12 @@ import { MomentumStrip } from '../MomentumStrip'
 import { RoomPreviews } from '../RoomPreviews'
 import { DailyDriver } from '../focus/DailyDriver'
 import { GlanceHeader } from '../home/GlanceHeader'
-import { DecisionsInbox } from '../home/DecisionsInbox'
+import { DecisionsInbox } from '../os/queue/DecisionsInbox'
 import { BetsStrip } from '../home/BetsStrip'
-import { CalibrationCard } from '../home/CalibrationCard'
+import { CalibrationCard } from '../os/queue/CalibrationCard'
 import { PulseGroup } from '../home/PulseGroup'
+import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
+import { splitDecisions } from '../../lib/decisionKinds'
 import { AltitudeSpine, StaleHeaderCue } from '../home/AltitudeSpine'
 import { BoardDaily } from '../home/BoardDaily'
 import { GrowthScoreboard } from '../home/GrowthScoreboard'
@@ -56,6 +58,9 @@ export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }:
   const h = useHaptics()
   const { intel, loading } = useHomeIntelligence()
   const [openSignal, setOpenSignal] = useState<ExternalSignal | null>(null)
+  // The ruling queue lives on OS → Queue now; Home shows only the count.
+  const { decisions: allDecisionRows } = useRealtimeDecisionsWaiting()
+  const decisionCount = splitDecisions(allDecisionRows).decisions.length
 
   const signals = intel.external_signals
   const topThree = intel.top_three
@@ -152,15 +157,23 @@ export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }:
         {/* THE DAY — track today's 3 and close; the picker lives in the ritual. */}
         <BoardDaily />
 
-        {/* ACTION INBOX — what's waiting on you, acted on in one tap. */}
-        <DecisionsInbox onNavigate={onNavigate} deepTask={deepTask} deepDecision={deepDecision} />
+        {/* THE QUEUE moved to OS → Queue; Home carries only the count.
+            (Interim line — absorbed into the vitals strip in the recompose.) */}
+        {decisionCount > 0 && (
+          <button
+            type="button"
+            onClick={() => { h.tap(); onNavigate?.('os', { sub: 'queue' }) }}
+            className="self-start px-2 py-1 text-[12px] text-white/50 hover:text-white/85 transition-colors"
+          >
+            {decisionCount} waiting on you · clear the queue →
+          </button>
+        )}
 
         {/* THE AMBIENT ROOM: money / pipeline / momentum. Informs, never
             asks; collapsed below the action loop. */}
         <PulseGroup>
           <MrrTicker variant="mobile" />
           <RoomPreviews onNavigate={onNavigate} variant="mobile" />
-          <CalibrationCard />
           <BetsStrip />
           <MomentumStrip
             momentum={intel.momentum}

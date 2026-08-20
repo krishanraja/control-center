@@ -144,7 +144,13 @@ export default function App() {
   // because that is where the per-lane controls those links pointed at now live.
   const cameFromAcquisition = routeTab === 'acquisition'
   const rawTab = cameFromAcquisition ? 'growth' : routeTab
-  const alias = isSimplifiedIA() ? IA_ALIASES[rawTab] : undefined
+  // A legacy #/today RULING deep link (?task= / ?decision=) lands on the queue,
+  // which now lives at OS → Queue; a bare #/today is still Home. Params merge
+  // below, so the task/decision ref reaches the deck intact.
+  const todayRuling = rawTab === 'today' && Boolean(route.params.task || route.params.decision)
+  const alias = isSimplifiedIA()
+    ? (todayRuling ? { tab: 'os', params: { sub: 'queue' } } : IA_ALIASES[rawTab])
+    : undefined
   const resolvedTab = alias?.tab ?? rawTab
   const tab = VALID_TAB_IDS.has(resolvedTab) ? resolvedTab : 'home'
   const params = alias?.params ? { ...alias.params, ...route.params } : route.params

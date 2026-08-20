@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react'
-import { DEFER_CHOICES, type DeferChoice } from '../../lib/taskQueue'
-import { Modal } from '../shared/Modal'
+import { DEFER_CHOICES, type DeferChoice } from '../../../lib/taskQueue'
+import { Modal } from '../../shared/Modal'
 
 /**
  * Shared note / defer prompts for the ruling verbs (Send back, Defer) that the
