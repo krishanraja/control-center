@@ -317,6 +317,19 @@ export const HUMOR_PRESETS: AxisOption[] = [
   { value: 'periodic', label: 'Periodic', hint: 'Use periodic sentences: withhold the payoff until the final clause so each line lands on timing. Build, hold, then deliver the turn at the end.' },
 ]
 
+// Analogy presets. The house already has a rule about analogies that nothing
+// in the editor could act on: api/_ladder.ts:131 — "An analogy with no stated
+// breaking point is a flourish, not evidence" — and the YouTube register asks
+// for one carried the whole way, including through the part where it breaks.
+// These make that a one-click move rather than something to type out each time.
+// Sent as 'feedback' like ITERATE_CHIPS; the steer rides on `hint`.
+export const ANALOGY_PRESETS: AxisOption[] = [
+  { value: 'analogy-add', label: 'Add an analogy', hint: 'Introduce ONE analogy that makes the central mechanism easier to hold, and carry it through the whole piece rather than dropping it after the first mention. It must map to the actual mechanism, not just the mood. Say plainly where it stops working before the reader notices; an analogy with no stated breaking point is a flourish, not evidence. Do not add a second analogy.' },
+  { value: 'analogy-carry', label: 'Carry it further', hint: 'An analogy is already here. Extend it through the sections that currently drop it, so the same frame does the explaining all the way down. Do not introduce a competing analogy, and do not stretch it past the point where it still maps to the mechanism.' },
+  { value: 'analogy-break', label: 'Break it honestly', hint: 'Find the analogy in this piece and say out loud where it stops working, in the place a sharp reader would first push back. Name the specific way the mapping fails and what the real mechanism does instead. This should strengthen the argument, not hedge it.' },
+  { value: 'analogy-cut', label: 'Cut the analogy', hint: 'The analogy here is doing less work than the plain statement would. Remove it and say the thing directly, keeping every fact and the argument intact. Do not replace it with a different figure of speech.' },
+]
+
 export const ZOOM_DEFAULT_HINT =
   'Zoom into the single sharpest angle inside this idea and expand only that. Discard the rest. One arguable claim, earned with a specific artifact, ending on a hard verdict.'
 
@@ -540,6 +553,57 @@ export const CHANNEL_ADAPTS: LaneAdapt[] = [
 
 /** Legacy flat list, formats first. Kept so existing call sites keep compiling;
  *  new UI should render FORMAT_ADAPTS and CHANNEL_ADAPTS as separate groups. */
+// ── One palette, both surfaces ───────────────────────────────────────────
+// The 26 one-click edits above were rendered only by ContentComposer, so the
+// weekly-brief editor shipped with four hardcoded chips and no way to reach
+// the rest. Two components picking their own subsets is how that happened, so
+// the grouping lives here now and both mount the same thing.
+//
+// `mode` is the revise mode the surface sends. 'humor' routes to the dedicated
+// examples-driven prompt in api/_humor.ts (and a stronger model); everything
+// else rides on `hint`.
+export interface EditItem { label: string; mode: string; value: string; hint?: string }
+export interface EditGroup { label: string; accent: string; items: EditItem[] }
+
+export function editGroups(o?: {
+  /** Current channel, so a piece is never offered "adapt to what you already are". */
+  currentChannel?: string | null
+  /** Format adapts turn a piece INTO a Paid/Built piece. Meaningless for the
+   *  weekly brief, which is the master that gets fanned out to both. */
+  includeFormatAdapts?: boolean
+  /** Channel cuts save against a piece's transformed_outputs, which a brief
+   *  does not have. */
+  includeChannelCuts?: boolean
+}): EditGroup[] {
+  const groups: EditGroup[] = [
+    { label: 'Tone', accent: 'border-rose-500/30 text-rose-200', items: TONE_PRESETS.map(x => ({ label: x.label, mode: 'tone', value: x.value, hint: x.hint })) },
+    { label: 'Humor', accent: 'border-fuchsia-500/30 text-fuchsia-200', items: HUMOR_PRESETS.map(x => ({ label: x.label, mode: 'humor', value: x.value, hint: x.hint })) },
+    { label: 'Length', accent: 'border-sky-500/30 text-sky-200', items: LENGTH_PRESETS.map(x => ({ label: x.label, mode: 'length', value: x.value, hint: x.hint })) },
+    { label: 'Sharpen', accent: 'border-amber-500/30 text-amber-200', items: [
+      ...ITERATE_CHIPS.map(x => ({ label: x.label, mode: 'feedback', value: x.value, hint: x.hint })),
+      { label: 'Sharpest angle', mode: 'zoom', value: 'contrarian-angle', hint: ZOOM_DEFAULT_HINT },
+    ] },
+    { label: 'Analogy', accent: 'border-emerald-500/30 text-emerald-200', items: ANALOGY_PRESETS.map(x => ({ label: x.label, mode: 'feedback', value: x.value, hint: x.hint })) },
+  ]
+  if (o?.includeFormatAdapts !== false) {
+    groups.push({
+      label: 'Change the format',
+      accent: 'border-violet-500/30 text-violet-200',
+      items: FORMAT_ADAPTS.filter(l => l.value !== o?.currentChannel).map(x => ({ label: x.label, mode: 'feedback', value: `adapt-${x.value}`, hint: x.hint })),
+    })
+  }
+  if (o?.includeChannelCuts !== false) {
+    // mode 'channel' is not a revise mode: it routes to the channel-cut path,
+    // which SAVES the cut against the piece instead of previewing it.
+    groups.push({
+      label: 'Cut for a channel',
+      accent: 'border-teal-500/30 text-teal-200',
+      items: CHANNEL_ADAPTS.map(x => ({ label: x.label, mode: 'channel', value: x.value, hint: x.hint })),
+    })
+  }
+  return groups
+}
+
 export const LANE_ADAPTS: LaneAdapt[] = [...FORMAT_ADAPTS, ...CHANNEL_ADAPTS]
 
 // Lane values that no longer exist but may still be stored on old rows. Every

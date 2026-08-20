@@ -4,14 +4,22 @@ import { loadVoiceBlock, preamble, sanitizeVoice, VOICE_GUARDRAILS } from '../..
 import { openStream, send, fail, streamClaude } from '../../_stream.js'
 import { loadStandingNotes, standingNotesPrompt } from '../../_briefNotes.js'
 import { locateSpan } from '../../_selection.js'
+import { buildHumourSystem, isHumourRegister } from '../../_humor.js'
 
-// POST /api/briefs/:week/revise   body: { mode, instruction?, selection? }
+// POST /api/briefs/:week/revise   body: { mode?, value?, hint?, instruction?, selection? }
 //
 // The brief's magic-edit engine (mockup set 2, pin 12): preset one-tap
-// rewrites (tighten / sharper_open / harder_ending / more_data), a free
+// rewrites (tighten / sharper_open / harder_ending / more_data), the shared
+// edit palette from src/lib/contentEngine.ts riding in on `hint`, a free
 // instruction ("Tell Cleo", dictated on mobile), and span-scoped rewrites
 // (selection replaced inside the full draft). Preview-only: returns the
 // rewritten markdown, the client PATCHes it via /api/briefs/:week on Keep.
+//
+// Humour is not a steer you can bury in the general rewriter — "be sarcastic"
+// produces the impression of a joke. Those passes swap in the examples-driven
+// system prompt from api/_humor.ts and a stronger model, exactly as the
+// composer's /revise has always done. This route simply never imported it, so
+// six of the registers were unreachable from the brief.
 //
 // Every preset knows the brief is an ARGUMENT (see api/briefs/assemble.ts): a
 // piece that contradicts a belief or confirms a twelve-month thesis, read
@@ -32,10 +40,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const week = (req.query.week || '') as string
   if (!/^\d{4}-W\d{2}$/.test(week)) return res.status(400).json({ ok: false, error: 'week required (YYYY-Www)' })
 
-  const b = (req.body || {}) as { mode?: string; instruction?: string; selection?: string }
+  const b = (req.body || {}) as {
+    mode?: string; value?: string; hint?: string; instruction?: string; selection?: string
+  }
   const preset = b.mode ? PRESETS[b.mode] : null
+  const hint = (b.hint || '').trim()
   const instruction = (b.instruction || '').trim()
-  if (!preset && !instruction) return res.status(400).json({ ok: false, error: 'mode or instruction required' })
+  const steer = preset || hint || instruction
+  if (!steer) return res.status(400).json({ ok: false, error: 'mode, hint or instruction required' })
+  const humour = isHumourRegister(b.value)
 
   const { data: brief, error } = await supabase.from('weekly_briefs').select('week, body_md').eq('week', week).single()
   if (error || !brief?.body_md) return res.status(404).json({ ok: false, error: 'brief not found or empty' })
@@ -60,9 +73,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const [voice, standingNotes] = await Promise.all([loadVoiceBlock(), loadStandingNotes()])
   const system = [
-    'You edit the Mindmaker Live weekly brief. You write as Krish, for business leaders.',
-    voice ? `VOICE:\n${voice}` : '',
-    VOICE_GUARDRAILS,
+    humour
+      ? buildHumourSystem({ register: b.value as string, voice, channelCorpus: '', materialsBlock: '' })
+      : 'You edit the Mindmaker Live weekly brief. You write as Krish, for business leaders.',
+    humour ? '' : (voice ? `VOICE:\n${voice}` : ''),
+    humour ? '' : VOICE_GUARDRAILS,
     standingNotesPrompt(standingNotes),
     ARGUMENT,
     'Preserve the markdown structure (headings, lists, links) unless the instruction says otherwise. Only the clues are a bulleted list; keep bold text out of the prose sections, because the citation markers attach to bold bullets by position.',
@@ -74,7 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   ].filter(Boolean).join('\n\n')
 
   const user = [
-    `EDIT INSTRUCTION: ${preset || instruction}`,
+    `EDIT INSTRUCTION: ${steer}`,
     selection ? `SELECTED SPAN:\n${selection}` : '',
     `DRAFT:\n${brief.body_md}`,
   ].filter(Boolean).join('\n\n')
@@ -94,8 +109,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const out = await streamClaude({
       apiKey,
-      model: 'claude-sonnet-4-6',
+      model: humour ? 'claude-opus-4-8' : 'claude-sonnet-4-6',
       // Matches briefs/assemble.ts, which writes the brief this route edits.
+      // Ignored on the humour path: opus rejects sampling params.
       temperature: 0.4,
       maxTokens: 4000,
       system,

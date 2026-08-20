@@ -6,6 +6,7 @@ import { Markdown } from 'tiptap-markdown'
 import { contentV2Api } from '../../hooks/useContentV2'
 import { useDictation } from '../../hooks/useDictation'
 import { FACTORY_FANOUT, type WeeklyBriefRow } from '../../lib/contentV2'
+import { editGroups } from '../../lib/contentEngine'
 import { renderBrief, toEndnotes } from '../../lib/citations'
 import { diffSections, mergeSections, wordDiff, type SectionDiff } from '../../lib/briefDiff'
 import { useToast } from '../shared/Toast'
@@ -118,6 +119,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   // enough to locate safely, and scoping the wrong sentence is worse than
   // scoping nothing. api/_selection.ts applies the same floor server-side.
   const [selection, setSelection] = useState('')
+  const [showEdits, setShowEdits] = useState(false)
   const scoped = selection.replace(/[^a-zA-Z0-9]/g, '').length >= 8
   const { listening, supported, toggle } = useDictation(setCleoNote)
   const { toast } = useToast()
@@ -226,7 +228,12 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     }
   }, [brief, dirty, currentMd, week, load])
 
-  const runMagic = useCallback(async (mode: string, label: string, instruction?: string) => {
+  const runMagic = useCallback(async (
+    mode: string,
+    label: string,
+    instruction?: string,
+    extra?: { value?: string; hint?: string },
+  ) => {
     setMagicBusy(mode)
     setPreview(null)
     setRejected(new Set())
@@ -250,7 +257,11 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: instruction ? undefined : mode, instruction, selection: span }),
+          // All four ride together; the route resolves them in order
+          // (preset > hint > instruction). A MAGIC mode is a preset key and
+          // wins; a palette chip's mode is not, so its hint does. `value`
+          // exists so a humour register routes to the humour engine.
+          body: JSON.stringify({ mode, value: extra?.value, hint: extra?.hint, instruction, selection: span }),
         },
         {
           onText: chunk => setMagicStream(s => s + chunk),
@@ -615,6 +626,39 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
             </button>
           </div>
         ) : null}
+        {/* The rest of the palette. These 22 edits have always existed in
+            src/lib/contentEngine.ts and have always been rendered by the
+            composer; the brief editor kept its own four-item list, so the
+            humour registers, the tone and length axes, the sharpen chips and
+            the analogy moves were simply unreachable from here. Same source
+            now, so a preset added once shows up on both surfaces.
+            Format adapts and channel cuts are left out on purpose: the brief
+            is the master that gets fanned out to Paid and Built at push, so
+            "turn this into a Paid piece" is not a question it can answer. */}
+        {!editingClosed && showEdits ? (
+          <div className="mb-2.5 max-h-[38vh] overflow-y-auto rounded-lg border border-white/[0.07] bg-white/[0.02] p-2.5">
+            {editGroups({ includeFormatAdapts: false, includeChannelCuts: false }).map(g => (
+              <div key={g.label} className="mb-2 last:mb-0">
+                <div className="mb-1 px-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
+                  {g.label}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {g.items.map(it => (
+                    <button
+                      key={`${it.mode}:${it.value}`}
+                      onClick={() => runMagic(it.mode, it.label, undefined, { value: it.value, hint: it.hint })}
+                      disabled={magicBusy !== null}
+                      title={it.hint}
+                      className={`rounded-full border bg-white/[0.03] px-2.5 py-1.5 text-[11.5px] font-semibold hover:bg-white/[0.08] disabled:opacity-40 ${g.accent}`}
+                    >
+                      {magicBusy === it.mode ? '…' : it.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
         {!editingClosed ? (
           <div className="flex gap-1.5 flex-wrap items-center">
             {MAGIC.map(m => (
@@ -627,6 +671,19 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                 {magicBusy === m.mode ? m.busy : m.label}
               </button>
             ))}
+            <button
+              onClick={() => setShowEdits(v => !v)}
+              disabled={magicBusy !== null}
+              title="Tone, humour, length, sharpen, analogy"
+              aria-expanded={showEdits}
+              className={`rounded-full border px-2.5 py-1.5 text-[11.5px] font-semibold disabled:opacity-40 ${
+                showEdits
+                  ? 'border-white/25 bg-white/10 text-white/85'
+                  : 'border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.09]'
+              }`}
+            >
+              {showEdits ? 'Fewer edits' : 'More edits'}
+            </button>
             <button
               onClick={dictate}
               disabled={magicBusy !== null}

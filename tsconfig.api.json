@@ -1,0 +1,28 @@
+{
+  // The serverless tree. `npm run lint` covers it, but `npx tsc --noEmit`
+  // (and therefore CI) only ever included `src`, so every route in api/ was
+  // unchecked. These files import each other with the .js extension that
+  // NodeNext resolution expects at runtime on Vercel, so they need their own
+  // module settings rather than the app's bundler resolution.
+  //   npm run typecheck:api
+  //
+  // NOT a CI gate yet, and deliberately so: the tree has a standing baseline of
+  // pre-existing errors (36 at the time of writing, mostly Buffer/Uint8Array
+  // variance under newer @types/node, a few unannotated Supabase results, and
+  // three .js-extension imports under scripts/). None are in the content or
+  // brief routes. Use it to check that what you just wrote compiles, and drive
+  // the baseline down before wiring it into .github/workflows/ci.yml.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "strict": false,
+    "allowJs": false
+  },
+  "include": ["api", "scripts"]
+}

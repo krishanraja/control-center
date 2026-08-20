@@ -11,9 +11,8 @@ import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { lintVoice, autoFixVoice, type LintIssue } from '../../lib/voiceLint'
 import {
-  CHANNEL_ADAPTS, DEFAULT_CHANNELS, FACTORY_CHANNELS, FIVE_STANDARDS, FORMAT_ADAPTS,
-  HUMOR_PRESETS, ITERATE_CHIPS, LENGTH_PRESETS, MEDIA_CHANNELS,
-  TONE_PRESETS, ZOOM_DEFAULT_HINT, laneToFactoryChannel, nextBestAction,
+  CHANNEL_ADAPTS, DEFAULT_CHANNELS, FACTORY_CHANNELS, FIVE_STANDARDS,
+  MEDIA_CHANNELS, editGroups, laneToFactoryChannel, nextBestAction,
 } from '../../lib/contentEngine'
 import { Working } from '../shared/Working'
 import { useWork } from '../../lib/loadingVoice'
@@ -496,19 +495,7 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
   // The grouped Adjust palette — every family from contentEngine, filtered so
   // the current lane never offers "adapt to itself".
   const currentChannel = laneToFactoryChannel(idea.lane, idea.lane_slot)
-  const ADJUST_GROUPS: { label: string; accent: string; items: { label: string; mode: string; value: string; hint?: string }[] }[] = [
-    { label: 'Tone', accent: 'border-rose-500/30 text-rose-200', items: TONE_PRESETS.map(o => ({ label: o.label, mode: 'tone', value: o.value, hint: o.hint })) },
-    { label: 'Humor', accent: 'border-fuchsia-500/30 text-fuchsia-200', items: HUMOR_PRESETS.map(o => ({ label: o.label, mode: 'humor', value: o.value, hint: o.hint })) },
-    { label: 'Length', accent: 'border-sky-500/30 text-sky-200', items: LENGTH_PRESETS.map(o => ({ label: o.label, mode: 'length', value: o.value, hint: o.hint })) },
-    { label: 'Sharpen', accent: 'border-amber-500/30 text-amber-200', items: [...ITERATE_CHIPS.map(o => ({ label: o.label, mode: 'feedback', value: o.value, hint: o.hint })), { label: 'Sharpest angle', mode: 'zoom', value: 'contrarian-angle', hint: ZOOM_DEFAULT_HINT }] },
-    // Two groups, not one. "Make this a Paid piece" and "cut this down for
-    // LinkedIn" are different decisions, and they were in the same row until
-    // 2026-08-13, which made picking one feel like it had answered both.
-    { label: 'Change the format', accent: 'border-violet-500/30 text-violet-200', items: FORMAT_ADAPTS.filter(l => l.value !== currentChannel).map(o => ({ label: o.label, mode: 'feedback', value: `adapt-${o.value}`, hint: o.hint })) },
-    // mode 'channel' is not a revise mode. It routes to runChannelCut, which
-    // SAVES the cut against the piece instead of previewing it over the draft.
-    { label: 'Cut for a channel', accent: 'border-teal-500/30 text-teal-200', items: CHANNEL_ADAPTS.map(o => ({ label: o.label, mode: 'channel', value: o.value, hint: o.hint })) },
-  ]
+  const ADJUST_GROUPS = editGroups({ currentChannel })
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
@@ -1831,32 +1818,23 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
         <p className="text-[11px] text-white/45 leading-snug">One-click rewrites of the current draft. Each is a preview you accept or discard, never destructive. Adapt-to-lane bundles tone, length, and zoom for that channel.</p>
       )}
 
-      <Group label="Tone">
-        {TONE_PRESETS.map(o => chip(o.label, `tone:${o.value}`, () => revise('tone', o.value, o.hint), 'border-rose-500/25 text-rose-200 hover:bg-rose-500/10'))}
-      </Group>
-      <Group label="Humor">
-        {HUMOR_PRESETS.map(o => chip(o.label, `humor:${o.value}`, () => revise('humor', o.value, o.hint), 'border-fuchsia-500/25 text-fuchsia-200 hover:bg-fuchsia-500/10'))}
-      </Group>
-      <Group label="Length">
-        {LENGTH_PRESETS.map(o => chip(o.label, `length:${o.value}`, () => revise('length', o.value, o.hint), 'border-sky-500/25 text-sky-200 hover:bg-sky-500/10'))}
-      </Group>
-      <Group label="Zoom">
-        {chip('Sharpest angle', 'zoom:contrarian-angle', () => revise('zoom', 'contrarian-angle', ZOOM_DEFAULT_HINT), 'border-amber-500/25 text-amber-200 hover:bg-amber-500/10')}
-      </Group>
-      <Group label="Iterate">
-        {ITERATE_CHIPS.map(o => chip(o.label, `feedback:${o.value}`, () => revise('feedback', o.value, o.hint), 'border-white/10 text-white/65 hover:bg-white/[0.06]'))}
-      </Group>
-      {/* Format and channel are separate questions, so they are separate rows.
-          The format row hides the format this piece already is; the channel row
-          never hides anything, because one piece is meant to go to several. */}
-      <Group label="Change the format">
-        {FORMAT_ADAPTS.filter(l => l.value !== laneToFactoryChannel(idea.lane, idea.lane_slot)).map(o =>
-          chip(o.label, `feedback:adapt-${o.value}`, () => revise('feedback', `adapt-${o.value}`, o.hint), 'border-violet-500/25 text-violet-200 hover:bg-violet-500/10'))}
-      </Group>
-      <Group label="Cut for a channel">
-        {CHANNEL_ADAPTS.map(o =>
-          chip(o.label, `channel:${o.value}`, () => channelCut(o.value, o.label, o.hint), 'border-teal-500/25 text-teal-200 hover:bg-teal-500/10'))}
-      </Group>
+      {/* Same palette the mobile Adjust sheet renders, and the same one the
+          brief editor mounts. Groups come from editGroups() so a preset added
+          in contentEngine.ts appears on every surface at once, which is the
+          thing that failed before: the brief editor had four chips because it
+          kept its own list. */}
+      {editGroups({ currentChannel: laneToFactoryChannel(idea.lane, idea.lane_slot) }).map(g => (
+        <Group key={g.label} label={g.label}>
+          {g.items.map(o => chip(
+            o.label,
+            `${o.mode}:${o.value}`,
+            () => (o.mode === 'channel'
+              ? channelCut(o.value, o.label, o.hint)
+              : revise(o.mode, o.value, o.hint)),
+            `${g.accent.replace('/30', '/25')} hover:bg-white/[0.06]`,
+          ))}
+        </Group>
+      ))}
 
       <div className="flex items-end gap-1.5 pt-1">
         <input
