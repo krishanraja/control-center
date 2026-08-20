@@ -10,8 +10,8 @@
 import { readFileSync } from 'node:fs'
 import {
   editGroups, TONE_PRESETS, HUMOR_PRESETS, LENGTH_PRESETS, ITERATE_CHIPS, ANALOGY_PRESETS,
-  FORMAT_ADAPTS, CHANNEL_ADAPTS,
-} from '../src/lib/contentEngine'
+  FORMAT_ADAPTS, CHANNEL_ADAPTS, VIDEO_FORMATS,
+} from '../src/lib/contentEngine.js'
 import { HUMOUR_REGISTERS } from '../api/_humor.js'
 
 let fail = 0
@@ -23,7 +23,7 @@ const flat = full.flatMap(g => g.items)
 const expected =
   TONE_PRESETS.length + HUMOR_PRESETS.length + LENGTH_PRESETS.length +
   ITERATE_CHIPS.length + 1 /* sharpest angle */ + ANALOGY_PRESETS.length +
-  FORMAT_ADAPTS.length + CHANNEL_ADAPTS.length
+  FORMAT_ADAPTS.length + CHANNEL_ADAPTS.length + VIDEO_FORMATS.length + 2 /* deepen: paid, built */
 if (flat.length !== expected) bad(`palette has ${flat.length} edits, expected ${expected}`)
 
 for (const g of full) {
@@ -45,7 +45,10 @@ for (const r of HUMOUR_REGISTERS) {
 }
 
 // ── 2. the brief editor cannot answer these two ────────────────────────────
-const brief = editGroups({ includeFormatAdapts: false, includeChannelCuts: false })
+const brief = editGroups({ includeFormatAdapts: false, includeChannelCuts: false, includeDeepen: false })
+// The brief keeps video: a weekly brief is exactly the kind of thing that
+// becomes a 60 second cut and a 10 minute cut of the same argument.
+if (!brief.some(g => g.label === 'Video script')) bad('brief palette lost video scripts')
 if (brief.some(g => g.label === 'Change the format')) bad('brief palette offers format adapts')
 if (brief.some(g => g.label === 'Cut for a channel')) bad('brief palette offers channel cuts')
 if (brief.flatMap(g => g.items).length < 20) bad('brief palette lost too much')

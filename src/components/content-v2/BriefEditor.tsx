@@ -277,6 +277,32 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     }
   }, [dirty, save, week, scoped, selection])
 
+  // A script is not a revision: it never touches body_md, so it cannot disturb
+  // an edit session and there is nothing to preview or accept. It saves against
+  // the brief, keyed by duration, so several lengths coexist.
+  const runVideoScript = useCallback(async (duration: string, label: string, hint?: string) => {
+    setMagicBusy(`video:${duration}`)
+    try {
+      if (dirty) await save()
+      const r = await fetch(`/api/briefs/${week}/video-script`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ duration, hint }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.hint || j.error || `HTTP ${r.status}`)
+      const sc = j.script || {}
+      const flagged = sc.unsupported_numbers?.length
+        ? ` Check ${sc.unsupported_numbers.length} figure${sc.unsupported_numbers.length === 1 ? '' : 's'}.`
+        : ''
+      toast(`${label} script saved, ${sc.word_count} words against a ${sc.target_words} target.${flagged}`, 'success')
+    } catch (e) {
+      setError(String((e as Error).message || e))
+    } finally {
+      setMagicBusy(null)
+    }
+  }, [dirty, save, week, toast])
+
   // The revision, diffed against the current draft by section. A fresh preview
   // starts with every change accepted; `rejected` tracks the ones toggled off.
   const previewDiffs = useMemo<SectionDiff[]>(
@@ -637,7 +663,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
             "turn this into a Paid piece" is not a question it can answer. */}
         {!editingClosed && showEdits ? (
           <div className="mb-2.5 max-h-[38vh] overflow-y-auto rounded-lg border border-white/[0.07] bg-white/[0.02] p-2.5">
-            {editGroups({ includeFormatAdapts: false, includeChannelCuts: false }).map(g => (
+            {editGroups({ includeFormatAdapts: false, includeChannelCuts: false, includeDeepen: false }).map(g => (
               <div key={g.label} className="mb-2 last:mb-0">
                 <div className="mb-1 px-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
                   {g.label}
@@ -646,12 +672,14 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                   {g.items.map(it => (
                     <button
                       key={`${it.mode}:${it.value}`}
-                      onClick={() => runMagic(it.mode, it.label, undefined, { value: it.value, hint: it.hint })}
+                      onClick={() => (it.mode === 'video'
+                        ? runVideoScript(it.value, it.label, it.hint)
+                        : runMagic(it.mode, it.label, undefined, { value: it.value, hint: it.hint }))}
                       disabled={magicBusy !== null}
                       title={it.hint}
                       className={`rounded-full border bg-white/[0.03] px-2.5 py-1.5 text-[11.5px] font-semibold hover:bg-white/[0.08] disabled:opacity-40 ${g.accent}`}
                     >
-                      {magicBusy === it.mode ? '…' : it.label}
+                      {magicBusy === it.mode || magicBusy === `video:${it.value}` ? '…' : it.label}
                     </button>
                   ))}
                 </div>

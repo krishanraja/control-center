@@ -492,6 +492,44 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
     finally { setBusy(null) }
   }
 
+  const runVideoScript = async (opts: { label: string; value: string; hint?: string }) => {
+    if (!draft.trim()) { toast('Nothing to script yet, write or generate the piece first.', 'error'); return }
+    const key = `video:${opts.value}`
+    h.heavy(); setBusy(key); setBusyLabel(`${opts.label} script`)
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/video-script`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ duration: opts.value, hint: opts.hint, source_text: preview?.text ?? draft }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.hint || j.error || `HTTP ${r.status}`)
+      setAdjust(false); h.success()
+      const sc = j.script || {}
+      const flagged = sc.unsupported_numbers?.length
+        ? ` Check ${sc.unsupported_numbers.length} figure${sc.unsupported_numbers.length === 1 ? '' : 's'}.`
+        : ''
+      toast(`${opts.label} script saved, ${sc.word_count} words against a ${sc.target_words} target.${flagged}`, 'success')
+    } catch (e: any) { h.error(); toast(`${opts.label} script failed: ${e?.message || 'error'}`, 'error') }
+    finally { setBusy(null) }
+  }
+
+  const runDeepen = async (opts: { label: string; value: string }) => {
+    const key = `deepen:${opts.value}`
+    h.heavy(); setBusy(key); setBusyLabel(`${opts.label}`)
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/deepen`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format: opts.value }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.hint || j.error || `HTTP ${r.status}`)
+      setAdjust(false); h.success()
+      const e = j.entry || {}
+      toast(`${opts.label}: ${e.comparison?.length || 0} compared, ${e.sources?.length || 0} sources. Saved to Materials.`, 'success')
+    } catch (e: any) { h.error(); toast(`Deep research failed: ${e?.message || 'error'}`, 'error') }
+    finally { setBusy(null) }
+  }
+
   // The grouped Adjust palette — every family from contentEngine, filtered so
   // the current lane never offers "adapt to itself".
   const currentChannel = laneToFactoryChannel(idea.lane, idea.lane_slot)
@@ -622,18 +660,22 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
                   <div className="text-[10px] uppercase tracking-[0.1em] text-white/35 mb-1.5">{g.label}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {g.items.map(it => {
-                      // Channel chips save a cut; everything else previews a
-                      // rewrite of the draft in front of you. Two verbs, so two
-                      // handlers, and the busy key has to match the one each
-                      // handler sets or the spinner lands on the wrong chip.
-                      const isCut = it.mode === 'channel'
-                      const key = isCut ? `channel:${it.value}` : `${it.mode}:${it.value}`
+                      // Channel and video chips SAVE a cut against the piece;
+                      // everything else previews a rewrite of the draft in
+                      // front of you. Different verbs, so different handlers,
+                      // and the busy key has to match the one each handler
+                      // sets or the spinner lands on the wrong chip.
+                      const key = `${it.mode}:${it.value}`
                       return (
                         <button
                           key={key} type="button" disabled={busy !== null}
-                          onClick={() => isCut
+                          onClick={() => (it.mode === 'channel'
                             ? runChannelCut({ label: it.label, value: it.value, hint: it.hint })
-                            : runRevise({ label: it.label, mode: it.mode, value: it.value, hint: it.hint })}
+                            : it.mode === 'video'
+                              ? runVideoScript({ label: it.label, value: it.value, hint: it.hint })
+                              : it.mode === 'deepen'
+                                ? runDeepen({ label: it.label, value: it.value })
+                                : runRevise({ label: it.label, mode: it.mode, value: it.value, hint: it.hint }))}
                           className={`flex items-center gap-1 px-3 py-2 rounded-full text-[12px] border bg-white/[0.02] disabled:opacity-40 ${g.accent}`}
                         >
                           {busy === key ? <Working size={12} /> : null} {it.label}
@@ -1766,6 +1808,51 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
     finally { setBusy(null) }
   }
 
+  // Same shape as channelCut, and for the same reason: a script is another
+  // non-destructive cut of the piece, keyed by duration so a 60 second version
+  // and a 10 minute version of the same argument coexist.
+  const videoScript = async (duration: string, label: string, hint?: string) => {
+    if (!draft.trim()) { toast('Nothing to script yet, write or ask Cleo first.', 'error'); return }
+    h.heavy(); setBusy(`video:${duration}`)
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/video-script`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ duration, hint, source_text: preview ?? draft }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.hint || j.error || `HTTP ${r.status}`)
+      h.success()
+      const sc = j.script || {}
+      const flagged = sc.unsupported_numbers?.length
+        ? ` Check ${sc.unsupported_numbers.length} figure${sc.unsupported_numbers.length === 1 ? '' : 's'}.`
+        : ''
+      toast(`${label} script saved, ${sc.word_count} words against a ${sc.target_words} target.${flagged}`, 'success')
+    } catch (e: any) { h.error(); toast(`${label} script failed: ${e?.message || 'error'}`, 'error') }
+    finally { setBusy(null) }
+  }
+
+  // Deep research for the chosen format. Saves findings against the piece as a
+  // material; it does not touch the draft. Slow by nature (six or so live
+  // research queries plus a synthesis), which is why it is a deliberate press
+  // rather than something that fires on every format change.
+  const deepen = async (format: string, label: string) => {
+    h.heavy(); setBusy(`deepen:${format}`)
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/deepen`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.hint || j.error || `HTTP ${r.status}`)
+      h.success()
+      const e = j.entry || {}
+      const rows = e.comparison?.length || 0
+      const flagged = e.unsupported_numbers?.length ? ` Check ${e.unsupported_numbers.length}.` : ''
+      toast(`${label}: ${rows} compared on the same axes, ${e.sources?.length || 0} sources. Saved to Materials.${flagged}`, 'success')
+    } catch (e: any) { h.error(); toast(`Deep research failed: ${e?.message || 'error'}`, 'error') }
+    finally { setBusy(null) }
+  }
+
   const chip = (label: string, busyKey: string, onClick: () => void, accent: string) => (
     <button key={busyKey} type="button" disabled={busy !== null} onClick={onClick}
       className={`text-[10px] px-2 py-1 rounded-md border disabled:opacity-40 transition-colors min-h-[32px] ${accent}`}>
@@ -1830,7 +1917,11 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
             `${o.mode}:${o.value}`,
             () => (o.mode === 'channel'
               ? channelCut(o.value, o.label, o.hint)
-              : revise(o.mode, o.value, o.hint)),
+              : o.mode === 'video'
+                ? videoScript(o.value, o.label, o.hint)
+                : o.mode === 'deepen'
+                  ? deepen(o.value, o.label)
+                  : revise(o.mode, o.value, o.hint)),
             `${g.accent.replace('/30', '/25')} hover:bg-white/[0.06]`,
           ))}
         </Group>
