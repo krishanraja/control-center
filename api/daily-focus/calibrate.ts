@@ -19,6 +19,8 @@ interface InputTarget {
   text: string
   source: Source
   concept_id?: string | null
+  /** Optional canon link: the weekly goal this pick serves (goals.id). */
+  goal_id?: string | null
   replaced_marcus_pick?: Record<string, unknown> | null
 }
 
@@ -65,6 +67,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     row[`target_${n}_text`] = t.text.trim()
     row[`target_${n}_source`] = t.source
     row[`target_${n}_concept_id`] = t.concept_id || null
+    // The canon chain, OS -> week -> today, made explicit per pick. The
+    // column lands with the home-canon migration; a bad id resolves to null
+    // via the FK's ON DELETE rather than failing the lock.
+    row[`target_${n}_goal_id`] = t.goal_id || null
     row[`target_${n}_replaced_marcus_pick`] = t.replaced_marcus_pick || null
   })
 

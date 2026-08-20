@@ -7,6 +7,7 @@ import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { usePilotStateContext } from '../../contexts/PilotStateContext'
+import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { rankByIntent } from '../../lib/pilotCapacity'
 import { civilYmd } from '../../lib/civilDate'
 import { Working } from '../shared/Working'
@@ -49,6 +50,8 @@ interface Pick {
   text: string
   // Stable id so React keys + sets work even when arrays renumber.
   id: string
+  /** The weekly goal this pick serves (goals.id) — the canon chain. */
+  goalId?: string | null
 }
 
 interface CalibrateBody {
@@ -57,6 +60,7 @@ interface CalibrateBody {
     text: string
     source: PickedSource
     concept_id?: string | null
+    goal_id?: string | null
     replaced_marcus_pick?: Suggestion | null
   }>
 }
@@ -110,6 +114,8 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
   const h = useHaptics()
   const { toast } = useToast()
   const pilot = usePilotStateContext()
+  const { canon } = useGoalCanon()
+  const weeklyGoals = (canon?.weekly ?? []).filter(g => g.status === 'active')
 
   useEffect(() => {
     void (async () => {
@@ -302,6 +308,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
               text,
               source: 'marcus_nominated' as PickedSource,
               concept_id: p.suggestion.action_target_id || null,
+              goal_id: p.goalId || null,
             }
           }
           // Krish edited the text after picking — counts as a swap.
@@ -309,10 +316,11 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
             text,
             source: 'krish_swapped' as PickedSource,
             concept_id: p.suggestion.action_target_id || null,
+            goal_id: p.goalId || null,
             replaced_marcus_pick: p.suggestion,
           }
         }
-        return { text, source: 'krish_added' as PickedSource }
+        return { text, source: 'krish_added' as PickedSource, goal_id: p.goalId || null }
       })
       const body: CalibrateBody = { date: ymd(new Date()), targets }
       const r = await fetch('/api/daily-focus/calibrate', {
@@ -345,6 +353,33 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
           {carry_over ? ' Yesterday is still open below.' : ''}
         </p>
       </header>
+
+      {/* THE WEEK'S OBJECTIVES as picks: the canon chain OS → week → today,
+          one tap. Adds a pick pre-linked to the weekly goal it serves. */}
+      {weeklyGoals.length > 0 && (
+        <div className="mb-4">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-white/45 mb-2">From this week's objectives</div>
+          <div className="flex flex-wrap gap-1.5">
+            {weeklyGoals.map(g => {
+              const picked = picks.some(p => p.goalId === g.id)
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  disabled={picked || picks.length >= targetCount}
+                  onClick={() => {
+                    h.tap()
+                    setPicks(prev => prev.length >= targetCount ? prev : [...prev, { kind: 'custom', text: g.title, id: `wk-${g.id}`, goalId: g.id }])
+                  }}
+                  className={`max-w-full truncate rounded-full border px-3 py-1.5 text-[12px] transition-colors ${picked ? 'border-violet-400/45 bg-violet-500/[0.12] text-violet-100' : 'border-white/[0.10] bg-white/[0.03] text-white/75 hover:border-white/25'} disabled:opacity-50`}
+                >
+                  {g.title}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {hasAnyMarcus && (
         <div className="mb-4">
