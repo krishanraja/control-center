@@ -189,7 +189,14 @@ export function VisibilityImportDropzone({ onIngested }: Props = {}) {
               <FileText size={11} className="text-white/40" />
               <span className="flex-1 truncate text-white/75">{f.name}</span>
               {f.count != null && <span className="text-white/40 tabular-nums">{f.count} rows</span>}
-              {f.state === 'sending' && <Working size={11} className="text-accent" />}
+              {/* Was a bare mark with no word beside it, so a file that was
+                  importing and a file that had stalled looked identical. */}
+              {f.state === 'sending' && (
+                <span className="flex items-center gap-1 text-white/55">
+                  <Working size={11} className="text-accent" />
+                  Importing…
+                </span>
+              )}
               {f.state === 'done' && <CheckCircle2 size={11} className="text-emerald-300" />}
               {f.state === 'error' && (
                 <span title={f.message} className="inline-flex items-center gap-1 text-rose-300">

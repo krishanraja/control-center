@@ -174,7 +174,7 @@ export function GuestImportDropzone({ onIngested }: Props) {
               {f.state === 'sending' && (
                 <span className="flex items-center gap-1 text-white/55">
                   <Working size={11} />
-                  Parsing…
+                  Importing…
                 </span>
               )}
               {f.state === 'done' && (

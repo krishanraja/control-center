@@ -21,6 +21,7 @@ import { buildContentTriageConfig } from '../../lib/triageConfig'
 import { SynthesisModal } from '../content/SynthesisModal'
 import { BoardSkeleton } from '../shared/Skeleton'
 import { Working } from '../shared/Working'
+import { useWork } from '../../lib/loadingVoice'
 
 // Past this many cards a lane stops stacking and offers the triage deck instead —
 // the guard that makes it structurally impossible to mount 200 cards again.
@@ -732,6 +733,7 @@ interface SweepReport {
 }
 
 function SweepTriageButton() {
+  const sweepWork = useWork('triage.sweep')
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [report, setReport] = useState<SweepReport | null>(null)
@@ -795,7 +797,7 @@ function SweepTriageButton() {
             <div className="flex-1 overflow-y-auto px-5 py-4">
               {loading && !report && (
                 <div className="flex items-center gap-2 text-[12px] text-white/55">
-                  <Working size={12} /> Classifying cards…
+                  <Working size={12} /> {sweepWork.label}…
                 </div>
               )}
               {error && (

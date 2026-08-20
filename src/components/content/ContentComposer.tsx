@@ -19,6 +19,7 @@ import { Working } from '../shared/Working'
 import { useWork } from '../../lib/loadingVoice'
 import { useElapsed } from '../../hooks/useAsyncAction'
 import { streamText } from '../../lib/streamText'
+import { Pending } from '../shared/Pending'
 // ─────────────────────────────────────────────────────────────────────────
 // ContentComposer — the full-screen deep-work surface for ONE piece.
 //
@@ -1595,6 +1596,8 @@ function CleoChat({ idea, draft, onUseAsDraft, mobile }: { idea: ContentIdeaRow;
   const [msgs, setMsgs] = useState<ChatMsg[]>(seed)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  const chatWork = useWork('content.diveDeeper')
+  const chatElapsed = useElapsed(busy)
   const endRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [msgs.length, busy])
@@ -1664,7 +1667,7 @@ function CleoChat({ idea, draft, onUseAsDraft, mobile }: { idea: ContentIdeaRow;
             </div>
           </div>
         ))}
-        {busy && <div className="flex items-center gap-1.5 text-[12px] text-white/45"><Working size={13} /> Cleo is thinking…</div>}
+        {busy && <Pending label={chatWork.label} elapsedMs={chatElapsed} expectedMs={chatWork.expectedMs} />}
         <div ref={endRef} />
       </div>
 
@@ -1715,6 +1718,8 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
   const { toast } = useToast()
   const h = useHaptics()
   const [busy, setBusy] = useState<string | null>(null)
+  const rewriteWork = useWork('content.revise')
+  const selWork = useWork('content.rewriteSel')
   const [preview, setPreview] = useState<string | null>(null)
   const [feedback, setFeedback] = useState('')
 
@@ -1785,7 +1790,7 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
     <div className="space-y-3">
       {busy && (
         <div className="rounded-lg border border-violet-500/40 bg-violet-500/[0.08] px-3 py-2 flex items-center gap-2 text-[11px] text-violet-100">
-          <Working size={13} /> Cleo is rewriting {selection ? 'the selected passage' : 'the draft'}…
+          <Working size={13} /> {selection ? selWork.label : rewriteWork.label}…
         </div>
       )}
 
@@ -2020,6 +2025,7 @@ function ResearchPanel({ idea }: { idea: ContentIdeaRow }) {
     Array.isArray(meta.research_suggestions?.items) ? meta.research_suggestions.items : null
   )
   const [sugBusy, setSugBusy] = useState(false)
+  const diveWork = useWork('content.diveDeeper')
 
   const suggest = useCallback(async (force = false) => {
     setSugBusy(true)
@@ -2066,7 +2072,7 @@ function ResearchPanel({ idea }: { idea: ContentIdeaRow }) {
         </div>
         {sugBusy && !sugs ? (
           <div className="flex items-center gap-1.5 text-[11px] text-white/40">
-            <Working size={12} /> Cleo is working out what research would strengthen this…
+            <Working size={12} /> {diveWork.label}…
           </div>
         ) : !sugs?.length ? (
           <p className="text-[11px] text-white/35 italic">No suggestions yet. Dig into a specific area below.</p>
