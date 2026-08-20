@@ -183,6 +183,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
         <div className="flex-1 min-h-0 px-1">
           <SwipeDeck<LeadRow>
             deck={triage.deck}
+            why={l => ({ table: 'leads', row: l })}
             getId={triageConfig.getId}
             renderBody={triageConfig.renderBody}
             ariaLabel={triageConfig.ariaLabel}

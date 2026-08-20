@@ -9,6 +9,7 @@ import { EnrichSheet, type EnrichTarget } from './EnrichSheet'
 import { useToast } from './shared/Toast'
 import type { VisibilityTargetRow, VisibilityTargetType } from '../hooks/useVisibilityTargets'
 import { Working } from './shared/Working'
+import { WhyBadge } from './shared/WhyBadge'
 
 interface Props {
   target: VisibilityTargetRow
@@ -298,6 +299,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
           </a>
         )}
         <div className="ml-auto" onClick={(e) => e.stopPropagation()}>
+          <WhyBadge table="visibility_targets" row={t} />
           <FeedbackButton
             sourceTable="visibility_targets"
             sourceId={t.id}

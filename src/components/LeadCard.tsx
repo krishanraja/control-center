@@ -8,6 +8,8 @@ import { FeedbackButton } from './shared/FeedbackButton'
 import { OutreachDraftSheet, type DraftTarget } from './OutreachDraftSheet'
 import { EnrichSheet, type EnrichTarget } from './EnrichSheet'
 import type { LeadRow, LeadStatus } from '../hooks/useRealtimeLeads'
+import { WhyBadge } from './shared/WhyBadge'
+import { reasonsFor, type ReasonChip } from '../lib/servedSurfaces'
 
 const ASSIGNEE_OPTIONS = ['felix', 'maya', 'nell', 'krish'] as const
 
@@ -27,13 +29,9 @@ function audienceSourceLabel(s: string): string {
 // legible. Update if the upstream pricing changes.
 const ENRICH_COST_LABEL = '~$0.50'
 
-const SKIP_REASONS: ReadonlyArray<{ code: string; label: string }> = [
-  { code: 'lead_wrong_seniority', label: 'Wrong seniority' },
-  { code: 'lead_wrong_company_size', label: 'Wrong company size' },
-  { code: 'lead_no_budget_signal', label: 'No real budget signal' },
-  { code: 'lead_already_contacted', label: 'Already contacted' },
-  { code: 'lead_other', label: 'Other' },
-]
+// The skip reasons are the lead surface's reasons. They were a private copy
+// here, four codes short of the registry's set.
+const SKIP_REASONS: ReadonlyArray<ReasonChip> = reasonsFor('leads')
 
 function plusDaysIso(days: number): string {
   const d = new Date()
@@ -484,6 +482,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             <MoreHorizontal size={13} /> More
           </button>
           <div className="flex items-center gap-1 ml-auto" onClick={(e) => e.stopPropagation()}>
+            <WhyBadge table="leads" row={l} />
             <FeedbackButton sourceTable="leads" sourceId={l.id} agentId={l.assignee_agent || 'felix'} compact />
             <button
               type="button"
@@ -639,6 +638,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
       {/* Candidates get a quiet feedback + drop (their primary is Enrich/Skip above). */}
       {isCandidate && (
         <div className="flex items-center gap-1 mt-2 ml-auto w-fit" onClick={(e) => e.stopPropagation()}>
+          <WhyBadge table="leads" row={l} />
           <FeedbackButton sourceTable="leads" sourceId={l.id} agentId={l.assignee_agent || 'felix'} compact />
           <button
             type="button"

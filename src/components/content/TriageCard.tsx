@@ -2,6 +2,7 @@ import React from 'react'
 import { ExternalLink } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
+import { WhyBadge } from '../shared/WhyBadge'
 
 const STATE_LABEL: Record<string, string> = {
   seeded: 'Seeded', researching: 'Researching', drafting: 'Drafting',
@@ -126,8 +127,11 @@ export function TriageCard({
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {i.brand_fit_score}</span>
           )}
           {hasDraft && <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200/80">draft</span>}
-          <span className="ml-auto text-[10px] text-white/35 tabular-nums">
-            {i.updated_at && formatDistanceToNow(new Date(i.updated_at), { addSuffix: true })}
+          <span className="ml-auto flex items-center gap-1.5">
+            <span className="text-[10px] text-white/35 tabular-nums">
+              {i.updated_at && formatDistanceToNow(new Date(i.updated_at), { addSuffix: true })}
+            </span>
+            <WhyBadge table="content_ideas" row={i} />
           </span>
         </div>
 

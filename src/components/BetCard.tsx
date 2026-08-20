@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, Clock, AlertOctagon, Check, X, Pause } from '
 import { useToast } from './shared/Toast'
 import { FeedbackButton } from './shared/FeedbackButton'
 import { useHaptics } from '../hooks/useHaptics'
+import { WhyBadge } from './shared/WhyBadge'
 import {
   elapsedPct, isOverdue,
   BET_KIND_LABEL, BET_KIND_ACCENT,
@@ -181,6 +182,7 @@ export function BetCard({ bet, forceDecide, onDecide }: Props) {
 
       {/* Audit 2026-05-26: FB so Krish can thumb-down a bet (e.g. wrong hypothesis, wrong size). */}
       <div className="flex items-center justify-end gap-1 mt-2 pt-2 border-t border-white/[0.04]">
+        <WhyBadge table="bets" row={bet} />
         <FeedbackButton sourceTable="bets" sourceId={bet.id} agentId={null} compact />
       </div>
 
