@@ -52,11 +52,14 @@ for (const f of files) {
   }
 }
 
-// ── 2. Home renders the ladder and nothing that used to duplicate it ───────
+// ── 2. Home renders the canon and nothing that used to duplicate it ────────
+// The canon is GoalLadder (OS + week) + TodayList (today's 3). Everything in
+// the dead list was, at some point, a second rendering of one of those layers.
 for (const home of ['src/components/desktop/DesktopHome.tsx', 'src/components/mobile/MobileHome.tsx']) {
   const src = readFileSync(home, 'utf8')
   if (!/<GoalLadder\b/.test(src)) bad(`${home} does not render <GoalLadder>`)
-  for (const dead of ['WeeklyGoals', 'ObjectivesPanel']) {
+  if (!/<TodayList\b/.test(src)) bad(`${home} does not render <TodayList>`)
+  for (const dead of ['WeeklyGoals', 'ObjectivesPanel', 'OsMissionHero', 'AltitudeSpine', 'BoardDaily', 'DecisionsInbox', 'PulseGroup', 'GrowthScoreboard']) {
     if (new RegExp(`<${dead}\\b`).test(src)) bad(`${home} still renders the retired <${dead}>`)
   }
 }
@@ -82,10 +85,12 @@ for (const home of ['src/components/desktop/DesktopHome.tsx', 'src/components/mo
 }
 
 // ── 4. every horizon is reachable from the one editor ──────────────────────
+// The composer must be openable at both rungs, or a horizon exists that no UI
+// can enter (which is how two of the four old rungs sat empty for months).
 const ladder = readFileSync(LADDER, 'utf8')
 for (const hz of ['os', 'weekly']) {
-  if (!new RegExp(`id:\\s*'${hz}'`).test(ladder)) {
-    bad(`horizon '${hz}' has no rung in the ladder, so it can never be entered`)
+  if (!new RegExp(`openAdd\\('${hz}'\\)`).test(ladder)) {
+    bad(`horizon '${hz}' has no composer entry in the ladder, so it can never be entered`)
   }
 }
 
@@ -119,42 +124,14 @@ for (const f of files) {
   }
 }
 
-// The hero must take its OS goals from the ladder's payload, not from anywhere
-// else. If this binding is removed, the display has drifted off the one store
-// again even if no new editor appeared.
-{
-  const home = 'src/components/desktop/DesktopHome.tsx'
-  const src = readFileSync(home, 'utf8')
-  // EVERY hero, not just one of them. Home renders OsMissionHero once per
-  // feature-flag branch, so checking "does the binding appear anywhere" would
-  // pass with one branch correct and the other drifted.
-  const heroes = Array.from(src.matchAll(/<OsMissionHero\b[\s\S]*?\/>/g))
-  if (heroes.length === 0) bad(`${home} no longer renders <OsMissionHero>`)
-  for (const m of heroes) {
-    if (!/osGoals=\{goalsData\?\.os_goals\}/.test(m[0])) {
-      bad(`${home} renders an <OsMissionHero> that does not take os_goals from the ladder read`)
-    }
-  }
-}
-
-// ── 7. exactly one focus editor per surface ────────────────────────────────
-// Deliberate split, not an accident: the desktop hero owns the focus line
-// because its editor offers Marcus's recommendation, so the ladder is passed
-// showFocus={false} there. Mobile has no hero, so the ladder owns it. Asserted
-// rather than left to convention, because "two editors for one field" is the
-// exact bug this file exists to prevent.
-{
-  const desktop = readFileSync('src/components/desktop/DesktopHome.tsx', 'utf8')
-  for (const m of desktop.matchAll(/<GoalLadder\b[^>]*>/g)) {
-    if (!/showFocus=\{false\}/.test(m[0])) {
-      bad(`DesktopHome renders <GoalLadder> without showFocus={false}; the hero already owns the focus line`)
-    }
-  }
-  const mobile = readFileSync('src/components/mobile/MobileHome.tsx', 'utf8')
-  for (const m of mobile.matchAll(/<GoalLadder\b[^>]*>/g)) {
-    if (/showFocus=\{false\}/.test(m[0])) {
-      bad(`MobileHome disables the ladder's focus editor, and mobile has no hero to own it instead`)
-    }
+// ── 7. no second store for "what is this week about" ───────────────────────
+// team_focus (system_config) was a free-text weekly focus line living beside
+// the weekly rung of the ladder — the last second store. It is retired: the
+// weekly rung IS the answer. Nothing in src/ may read or write it again.
+for (const f of files) {
+  const src = stripComments(readFileSync(f, 'utf8'))
+  if (/team_focus/.test(src)) {
+    bad(`${f} references team_focus; the weekly rung of the ladder is the one answer to "what is this week about"`)
   }
 }
 
@@ -178,9 +155,9 @@ for (const f of files) {
       bad(`${file} horizons are [${found.join(', ')}]; canon is [${CANON.join(', ')}]`)
     }
   }
-  const rungIds = Array.from(ladder.matchAll(/id:\s*'([a-z_]+)'/g)).map(x => x[1])
+  const rungIds = Array.from(ladder.matchAll(/openAdd\('([a-z_]+)'\)/g)).map(x => x[1])
   for (const id of rungIds) {
-    if (!CANON.includes(id)) bad(`the ladder has a rung '${id}' that is not a canonical horizon`)
+    if (!CANON.includes(id)) bad(`the ladder's composer opens at '${id}', which is not a canonical horizon`)
   }
 }
 

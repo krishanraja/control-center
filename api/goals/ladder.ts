@@ -34,7 +34,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .order('priority', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true }),
     supabase.from('goals_health').select('id, is_stale, orphaned, days_since_touch, stale_after_days'),
-    supabase.from('system_config').select('key, value').in('key', ['north_star', 'team_focus']),
+    // north_star only: it is the derived mirror kept for readers outside this
+    // repo. team_focus retired 2026-08-20 — the weekly rung IS the answer to
+    // "what is this week about".
+    supabase.from('system_config').select('key, value').in('key', ['north_star']),
     // The venture list belongs to the registry, not to a literal in the editor.
     supabase.from('venture_registry').select('slug').eq('active', true).order('sort_order'),
   ])
@@ -70,7 +73,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     orphan_count: rows.filter(r => r.orphaned).length,
     ventures: (ventureRes.data || []).map(v => String((v as { slug: string }).slug)),
     north_star: cfg.north_star || '',
-    team_focus: cfg.team_focus || '',
     // Derived, never read from config: a stored week label is wrong the
     // moment the week turns, and it was showing April in August.
     week_of: weekOfLabel(),

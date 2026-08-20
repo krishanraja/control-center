@@ -78,8 +78,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'PATCH') {
     const body = req.body || {}
 
+    // team_focus is retired (2026-08-20): the weekly rung of the ladder is the
+    // one answer to "what is this week about". The free-text line beside it was
+    // the last second store.
     if (body.team_focus !== undefined) {
-      await supabase.from('system_config').upsert({ key: 'team_focus', value: body.team_focus, updated_at: new Date().toISOString() })
+      return res.status(400).json({
+        ok: false,
+        error: 'team_focus is retired. The weekly rung of the goal ladder is the weekly focus.',
+      })
     }
     // north_star is NOT writable here any more. It is a mirror of the ladder's
     // OS rung (api/_northStar.ts), not a store. It had a write path that no UI
@@ -165,13 +171,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const { data: goals } = await supabase.from('goals').select('*').order('created_at')
-    const { data: configs } = await supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus'])
+    const { data: configs } = await supabase.from('system_config').select('*').in('key', ['north_star'])
     const cfg: Record<string, string> = {}
     for (const c of configs || []) cfg[c.key] = c.value
 
     return res.json({
       ok: true,
-      goals: { goals: goals || [], north_star: cfg.north_star || '', team_focus: cfg.team_focus || '', week_of: weekOfLabel() }
+      goals: { goals: goals || [], north_star: cfg.north_star || '', week_of: weekOfLabel() }
     })
   }
 

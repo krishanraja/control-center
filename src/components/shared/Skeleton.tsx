@@ -249,55 +249,30 @@ export function SkeletonDetail({ full = false }: { full?: boolean }) {
  * children stop being individually responsible for the first paint.
  */
 export function HomeSkeleton({ narrow = false }: { narrow?: boolean }) {
-  if (narrow) {
-    return (
-      <div className="flex flex-col gap-4 animate-rise" aria-busy="true">
-        <LoadingAnnounce />
-        {/* ship ledger + due tests */}
-        <Skeleton h={64} r={18} />
-        {/* the altitude spine: three stacked hero cards */}
-        {[0, 1, 2].map(i => <Skeleton key={i} h={104} r={20} />)}
-        {/* the goal ladder */}
-        <Skeleton h={132} r={20} />
-        {/* the day */}
-        <Skeleton h={88} r={18} />
-        {/* action inbox */}
-        <div className="rounded-2xl border border-white/[0.07] overflow-hidden">
-          <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
-            <Skeleton h={10} w={132} r={4} />
-          </div>
-          <div className="divide-y divide-white/[0.06]">
-            {[0, 1, 2].map(i => <SkeletonRow key={i} />)}
-          </div>
-        </div>
+  // The recomposed Home in its real proportions: one vitals line, then the
+  // three layers of the canon (OS titles / week rows / today slots) and the
+  // one CTA bar. No cards, no inbox — those left the page.
+  const layer = (rows: number, rowH: number, labelW: number, key: string) => (
+    <div key={key}>
+      <Skeleton h={11} w={labelW} r={3} className="mb-3" />
+      <div className="flex flex-col gap-2.5">
+        {Array.from({ length: rows }).map((_, i) => (
+          <Skeleton key={i} h={rowH} w={`${80 - i * 8}%`} r={5} />
+        ))}
       </div>
-    )
-  }
+    </div>
+  )
   return (
-    <div className="animate-rise" aria-busy="true">
+    <div className={`flex flex-col ${narrow ? 'gap-5' : 'gap-6'} animate-rise ${narrow ? '' : 'max-w-[880px] mx-auto w-full'}`} aria-busy="true">
       <LoadingAnnounce />
-      {/* glance: the five-second answer, three figures across */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        {[0, 1, 2].map(i => <Skeleton key={i} h={92} r={18} />)}
-      </div>
-      <div className="grid gap-5" style={{ gridTemplateColumns: 'minmax(0, 1.35fr) minmax(0, 1fr)' }}>
-        <div className="flex flex-col gap-5">
-          <Skeleton h={120} r={20} />
-          <div className="rounded-2xl border border-white/[0.06] overflow-hidden">
-            <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
-              <Skeleton h={10} w={124} r={4} />
-            </div>
-            <div className="divide-y divide-white/[0.06]">
-              {[0, 1, 2, 3].map(i => <SkeletonRow key={i} />)}
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-col gap-4">
-          {[0, 1, 2].map(i => (
-            <SkeletonLane key={i} index={i} cards={1} />
-          ))}
-        </div>
-      </div>
+      {/* the vitals line */}
+      <Skeleton h={22} w={narrow ? '92%' : 420} r={6} />
+      {/* OS / week / today in their real shapes */}
+      {layer(3, narrow ? 18 : 24, 30, 'os')}
+      {layer(3, 15, 72, 'week')}
+      {layer(3, 15, 52, 'today')}
+      {/* the one CTA */}
+      <Skeleton h={44} r={12} />
     </div>
   )
 }

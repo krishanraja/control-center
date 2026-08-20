@@ -28,6 +28,14 @@ export interface DailyFocusRow {
   target_3_source: FocusSource
   target_3_replaced_marcus_pick: Record<string, unknown> | null
   target_3_completed_at: string | null
+  /**
+   * Optional links from a daily pick to the weekly goal it serves (the canon
+   * chain: OS → week → today). Columns land with the home-canon migration;
+   * optional so a pre-migration row reads fine.
+   */
+  target_1_goal_id?: string | null
+  target_2_goal_id?: string | null
+  target_3_goal_id?: string | null
   status: 'pending' | 'calibrated' | 'complete' | 'carried_over'
   calibrated_at: string | null
   completed_at: string | null

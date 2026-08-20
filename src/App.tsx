@@ -256,6 +256,17 @@ export default function App() {
                   ? <ErrorBoundary label="Content"><div className="h-full overflow-hidden px-6 py-6 flex flex-col"><ContentV2Tab variant="desktop" /></div></ErrorBoundary>
                   : <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>}
               </Suspense>
+            ) : tab === 'home' ? (
+              // Home owns its own height: the canon must fit the viewport with
+              // no page scroll (the product contract this recompose exists to
+              // honor), so the shell must not wrap it in a scroll container.
+              <Suspense fallback={<DeferredFallback><div className="p-6"><BoardSkeleton lanes={3} cardsPerLane={2} /></div></DeferredFallback>}>
+                <ErrorBoundary label="Home">
+                  <div className="h-full overflow-hidden px-6 py-6 flex flex-col">
+                    <DesktopHome onNavigate={navigate} />
+                  </div>
+                </ErrorBoundary>
+              </Suspense>
             ) : tab === 'growth' ? (
               // Growth owns its own height like Content: the creative board
               // scrolls sideways and each section scrolls inside itself, so the
@@ -275,7 +286,6 @@ export default function App() {
             ) : (
               <div className="h-full overflow-y-auto px-6 py-6">
                 <Suspense fallback={<DesktopRouteFallback />}>
-                  {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday selectedTaskId={route.params.task || null} onSelectTask={(id) => navigate('today', id ? { task: id } : {})} lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
                   {tab === 'leads'     && <ErrorBoundary label="Leads"><DesktopLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'relationships' && <ErrorBoundary label="Network">{isUiV2() ? <NetworkTabV2 /> : <DesktopLeadsRE onNavigate={navigate} />}</ErrorBoundary>}
