@@ -1,0 +1,15 @@
+{
+  "_note": "Synthetic fixture so `--dry` runs with no database. NOT representative: real runs pull live rows and the instructions Krish actually typed, which the revise route logs to meta.revisions[].",
+  "cases": [
+    {
+      "id": "sample-1",
+      "idea": "The moat moved to distribution",
+      "thesis": "Model quality stopped being the differentiator once every serious player could rent the same frontier capability.",
+      "contrarian": null,
+      "lane": "mindmaker_live",
+      "lane_slot": "paid",
+      "instruction": "cut the middle section and land harder",
+      "body": "Everyone is still benchmarking models. That was the right thing to measure in 2023 and it is close to noise now.\n\nThe capability gap between the top four labs, on the work most companies actually do, has collapsed to something a procurement team cannot detect. What has not collapsed is the gap in who gets to put that capability in front of a user with an existing habit.\n\nThat is a distribution question, not a research question. It is also a question with an entirely different answer set: partnerships, defaults, bundling, and the boring work of being pre-installed.\n\nThe companies still hiring exclusively against benchmark scores are optimising a variable that stopped moving."
+    }
+  ]
+}

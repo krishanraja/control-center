@@ -7,7 +7,8 @@ import { webResearch } from '../_enrich.js'
 import { canonicalUrl, titleNorm, contentHash } from '../_text.js'
 
 // POST /api/content-ideas/research-topic
-//   body: { topic, format?: 'paid'|'built', angle?: string, materials?: [{title,content,url}] }
+//   body: { topic, format?: 'paid'|'built', angle?: string, web?: boolean,
+//           materials?: [{title,content,url}] }
 //
 // "Go and research this, then come back with something I can work on."
 //
@@ -47,6 +48,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     format?: string
     angle?: string
     materials?: { title?: string; content?: string; url?: string }[]
+    /** Search the web as well. Omit to keep the original behaviour, where
+     *  supplying your own material means you did not want a search. */
+    web?: boolean
   }
   const topic = String(b.topic || '').trim()
   if (topic.length < 8) {
@@ -75,7 +79,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Three angles on the same topic, so the research is not one query deep.
   // Skipped entirely when Krish supplied his own material and asked for no
   // extra digging, which is the "ingest my own research" path.
-  const wantWeb = b.materials?.length ? ownMaterials.length === 0 : true
+  // Bringing your own research used to silently mean "and do not search",
+  // which is right for an ingest and wrong when you have one source and want
+  // it checked against the record. `web` makes it a choice; without it the
+  // original behaviour stands, so existing callers are unaffected.
+  const wantWeb = typeof b.web === 'boolean'
+    ? b.web
+    : (b.materials?.length ? ownMaterials.length === 0 : true)
   const queries = [
     `${topic}. What actually happened, with named companies, real numbers and dates.`,
     format === 'paid'

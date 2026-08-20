@@ -2,7 +2,6 @@
 // (revise / challenge / score / push-to-cleo). Mirrors the inline helpers in
 // transform.ts but de-duplicated, since four routes need the same primitives.
 
-import { supabase } from './_supabase.js'
 
 /** Strip the cardinal sin — em dashes (and their lookalikes) — anywhere,
  *  replacing them with the comma/period Krish would actually use. Safe to run
@@ -78,8 +77,18 @@ export function parseVal(v: unknown): any {
   return v
 }
 
-/** Load one or more system_config values by exact key. Returns key -> parsed value. */
+/** Load one or more system_config values by exact key. Returns key -> parsed value.
+ *
+ *  The Supabase client is imported HERE rather than at the top of the file, and
+ *  that placement is load-bearing. `_supabase.ts` throws at module scope when
+ *  SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are absent, so a static import made
+ *  this module — and every prompt-building module downstream of it — impossible
+ *  to import without a live database. That is what stopped the prompt layer from
+ *  being testable offline: you could not so much as assemble a system prompt and
+ *  read it back without credentials. Config reads are the only thing in this file
+ *  that need the database, so they are the only thing that should pay for it. */
 export async function loadConfig(keys: string[]): Promise<Record<string, any>> {
+  const { supabase } = await import('./_supabase.js')
   const { data } = await supabase.from('system_config').select('key,value').in('key', keys)
   const out: Record<string, any> = {}
   for (const r of data || []) out[(r as any).key] = parseVal((r as any).value)
@@ -250,6 +259,21 @@ export function corpusForChannel(corpus: string, channel?: string | null, cap = 
   return (joined ? joined : corpus).slice(0, cap)
 }
 
+/** Models that reject temperature/top_p/top_k with a 400.
+ *
+ *  One list, because there were two behaviours. `_harness.ts` knew about this
+ *  and guarded (its ladder runs on opus); the helpers here did not, and sent
+ *  `temperature` unconditionally — so pointing callClaude() at an opus model
+ *  400'd, and the streaming helper avoided that only by sending no temperature
+ *  at all, which cost it sampling control on every model. Both now consult this.
+ *  Update it here when the model list moves. */
+export const NO_SAMPLING_MODELS = /^claude-(opus-4-7|opus-4-8|opus-5|sonnet-5|fable-5|mythos-5)/
+
+/** Whether `model` accepts sampling parameters at all. */
+export function supportsSampling(model: string): boolean {
+  return !NO_SAMPLING_MODELS.test(model)
+}
+
 export interface ClaudeOpts {
   /** Abort after this many ms. Omit for no deadline (batch/cron callers). */
   timeoutMs?: number
@@ -258,6 +282,31 @@ export interface ClaudeOpts {
   model?: string
   maxTokens?: number
   temperature?: number
+  /** Optional token accounting. Called once on a successful response.
+   *
+   *  `usage` was previously read off the wire and thrown away, which is fine for
+   *  a route that only wants the text and fatal for anything that needs to know
+   *  what a run cost — an eval comparing two prompts has to be able to say that
+   *  the better one is also three times the price. Opt-in, so the twelve routes
+   *  that just want text are unaffected. */
+  onUsage?: (u: TokenUsage) => void
+}
+
+export interface TokenUsage { input: number; output: number; model: string }
+
+/** USD per 1M tokens, mirroring api/_harness.ts MODEL_PRICES. */
+const PRICES: Record<string, { in: number; out: number }> = {
+  'claude-opus-4-8': { in: 5, out: 25 },
+  'claude-opus-4-7': { in: 5, out: 25 },
+  'claude-sonnet-4-6': { in: 3, out: 15 },
+  'claude-haiku-4-5': { in: 1, out: 5 },
+}
+
+/** Cost of a usage record in USD. Unknown models price at 0 rather than guess. */
+export function usageCost(u: TokenUsage): number {
+  const key = Object.keys(PRICES).find(k => u.model.startsWith(k))
+  if (!key) return 0
+  return (u.input / 1e6) * PRICES[key].in + (u.output / 1e6) * PRICES[key].out
 }
 
 /** Single-shot Anthropic Messages call. Returns the first text block (or throws). */
@@ -268,6 +317,7 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
   // the entire 60s function budget and the caller gets no response at all, which
   // on a phone is indistinguishable from the app being broken. Callers on a
   // user-facing path should pass something well under maxDuration.
+  const model = opts.model || 'claude-sonnet-4-6'
   const ctrl = new AbortController()
   const tid = opts.timeoutMs ? setTimeout(() => ctrl.abort(), opts.timeoutMs) : null
   try {
@@ -275,9 +325,9 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
       method: 'POST',
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
-        model: opts.model || 'claude-sonnet-4-6',
+        model,
         max_tokens: opts.maxTokens ?? 4000,
-        temperature: opts.temperature ?? 0.5,
+        ...(supportsSampling(model) ? { temperature: opts.temperature ?? 0.5 } : {}),
         system: opts.system,
         messages: [{ role: 'user', content: opts.user }],
       }),
@@ -285,6 +335,13 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
     })
     const j: any = await r.json().catch(() => ({}))
     if (!r.ok) throw new Error(`anthropic_${r.status}:${(j?.error?.message || '').slice(0, 120)}`)
+    if (opts.onUsage) {
+      opts.onUsage({
+        input: Number(j?.usage?.input_tokens) || 0,
+        output: Number(j?.usage?.output_tokens) || 0,
+        model,
+      })
+    }
     return j?.content?.[0]?.text || ''
   } catch (e: unknown) {
     if ((e as Error)?.name === 'AbortError') throw new Error(`anthropic_timeout_${opts.timeoutMs}ms`)
@@ -304,6 +361,7 @@ export async function callClaudeMessages(
 ): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
+  const model = opts.model || 'claude-sonnet-4-6'
   const clean = messages
     .filter(m => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
     .slice(-16)
@@ -312,9 +370,9 @@ export async function callClaudeMessages(
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: opts.model || 'claude-sonnet-4-6',
+      model,
       max_tokens: opts.maxTokens ?? 2000,
-      temperature: opts.temperature ?? 0.6,
+      ...(supportsSampling(model) ? { temperature: opts.temperature ?? 0.6 } : {}),
       system,
       messages: clean,
     }),

@@ -1,8 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { openStream, send, fail, streamClaude } from '../../_stream.js'
-import { corpusForChannel, laneToCorpusChannel, loadCorpus, loadVoiceBlock, materialsContext, pathId, preamble, readMaterials, sanitizeVoice, VOICE_GUARDRAILS } from '../../_content.js'
-import { buildHumourSystem, isHumourRegister } from '../../_humor.js'
+import { corpusForChannel, laneToCorpusChannel, loadCorpus, loadVoiceBlock, materialsContext, pathId, preamble, readMaterials, sanitizeVoice } from '../../_content.js'
+import { isHumourRegister } from '../../_humor.js'
+import { buildRevisePrompt, REVISE_MODES } from '../../_revisePrompt.js'
 
 // POST /api/content-ideas/:id/revise
 //   body: {
@@ -30,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const mode = b.mode || 'feedback'
   const sourceText = (b.source_text || '').trim()
   if (!sourceText) return res.status(400).json({ ok: false, error: 'source_text required' })
-  if (!['tone', 'length', 'zoom', 'feedback', 'humor'].includes(mode)) {
+  if (!(REVISE_MODES as readonly string[]).includes(mode)) {
     return res.status(400).json({ ok: false, error: 'invalid mode' })
   }
   // Humour passes get a dedicated, examples-driven system prompt (see _humor.ts),
@@ -47,41 +48,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const adaptMatch = /^adapt-(.+)$/.exec(b.value || '')
   const corpusChannel = adaptMatch ? adaptMatch[1] : laneToCorpusChannel((idea as any)?.lane, (idea as any)?.lane_slot)
   const channelCorpus = corpusForChannel(corpus, corpusChannel)
-  const corpusBlock = channelCorpus
-    ? `\n\nCHANNEL CORPUS (the mandate, audience, and bar for this channel — bend the draft toward THIS, not a generic rewrite):\n${channelCorpus}`
-    : ''
   const materials = readMaterials((idea as any)?.meta)
   const materialsBlock = materials.length ? `\n\n${materialsContext(materials)}` : ''
 
-  const inPlace = b.selection && sourceText.includes(b.selection)
-  const target = inPlace ? (b.selection as string) : sourceText
+  const inPlace = !!(b.selection && sourceText.includes(b.selection))
 
-  const directive =
-    mode === 'zoom'
-      ? (b.hint || 'Zoom into the single sharpest angle and expand only that. Discard the rest.')
-      : (b.hint || b.instruction || `Apply this change: ${b.value}.`)
-  const extra = b.instruction && b.instruction !== directive ? `\nAlso apply this specific feedback: ${b.instruction}` : ''
-
-  const system = humour
-    ? buildHumourSystem({ register: b.value || 'witty', voice, channelCorpus, materialsBlock })
-    : [
-      'You are Cleo, rewriting a draft in Krish Raja\'s voice. Krish is a British-Australian founder-operator in Brooklyn who runs a production AI agent fleet. Founder-practitioner, two gears, compression, the "Not X, Y" clarifier, hard-verdict endings.',
-      '',
-      voice ? `VOICE REFERENCE:\n${voice}` : '',
-      corpusBlock,
-      '',
-      VOICE_GUARDRAILS,
+  const { system, user } = buildRevisePrompt(
+    {
+      voice,
+      channelCorpus,
       materialsBlock,
-      '',
-      'Return ONLY the rewritten text. No preamble, no explanation, no quotes around it.',
-    ].filter(Boolean).join('\n')
-
-  const ctx = idea
-    ? `IDEA: ${idea.idea}${idea.thesis ? `\nTHESIS: ${idea.thesis}` : ''}${idea.meta?.contrarian ? `\nCONTRARIAN ANGLE: ${idea.meta.contrarian}` : ''}\n\n`
-    : ''
-  const user = inPlace
-    ? `${ctx}Rewrite ONLY the SELECTED passage below. ${directive}${extra}\n\nFULL DRAFT (for context, do not return it):\n${sourceText}\n\nSELECTED PASSAGE (return only the rewritten version of this):\n${target}`
-    : `${ctx}Rewrite the draft below. ${directive}${extra}\n\nDRAFT:\n${target}`
+      idea: idea ? { idea: idea.idea, thesis: idea.thesis, contrarian: (idea as any)?.meta?.contrarian ?? null } : null,
+    },
+    {
+      mode, value: b.value, hint: b.hint, instruction: b.instruction,
+      sourceText, selection: b.selection, humour,
+    },
+  )
 
   // Streamed. The user is watching their own draft being rewritten, which is
   // the single best case for streaming in the product: the text appearing IS
@@ -101,6 +84,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     revisedFragment = (await streamClaude({
       apiKey,
       model: humour ? 'claude-opus-4-8' : 'claude-sonnet-4-6',
+      // Matches the other rewrite surfaces (channel-cut, synthesize) rather than
+      // the provider default this silently ran at before streamClaude accepted a
+      // temperature. Ignored on the humour path: opus rejects sampling params.
+      temperature: 0.5,
       maxTokens: mode === 'length' && b.value === 'long' ? 3200 : 2200,
       system,
       messages: [{ role: 'user', content: user }],

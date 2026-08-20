@@ -317,6 +317,19 @@ export const HUMOR_PRESETS: AxisOption[] = [
   { value: 'periodic', label: 'Periodic', hint: 'Use periodic sentences: withhold the payoff until the final clause so each line lands on timing. Build, hold, then deliver the turn at the end.' },
 ]
 
+// Analogy presets. The house already has a rule about analogies that nothing
+// in the editor could act on: api/_ladder.ts:131 — "An analogy with no stated
+// breaking point is a flourish, not evidence" — and the YouTube register asks
+// for one carried the whole way, including through the part where it breaks.
+// These make that a one-click move rather than something to type out each time.
+// Sent as 'feedback' like ITERATE_CHIPS; the steer rides on `hint`.
+export const ANALOGY_PRESETS: AxisOption[] = [
+  { value: 'analogy-add', label: 'Add an analogy', hint: 'Introduce ONE analogy that makes the central mechanism easier to hold, and carry it through the whole piece rather than dropping it after the first mention. It must map to the actual mechanism, not just the mood. Say plainly where it stops working before the reader notices; an analogy with no stated breaking point is a flourish, not evidence. Do not add a second analogy.' },
+  { value: 'analogy-carry', label: 'Carry it further', hint: 'An analogy is already here. Extend it through the sections that currently drop it, so the same frame does the explaining all the way down. Do not introduce a competing analogy, and do not stretch it past the point where it still maps to the mechanism.' },
+  { value: 'analogy-break', label: 'Break it honestly', hint: 'Find the analogy in this piece and say out loud where it stops working, in the place a sharp reader would first push back. Name the specific way the mapping fails and what the real mechanism does instead. This should strengthen the argument, not hedge it.' },
+  { value: 'analogy-cut', label: 'Cut the analogy', hint: 'The analogy here is doing less work than the plain statement would. Remove it and say the thing directly, keeping every fact and the argument intact. Do not replace it with a different figure of speech.' },
+]
+
 export const ZOOM_DEFAULT_HINT =
   'Zoom into the single sharpest angle inside this idea and expand only that. Discard the rest. One arguable claim, earned with a specific artifact, ending on a hard verdict.'
 
@@ -540,6 +553,108 @@ export const CHANNEL_ADAPTS: LaneAdapt[] = [
 
 /** Legacy flat list, formats first. Kept so existing call sites keep compiling;
  *  new UI should render FORMAT_ADAPTS and CHANNEL_ADAPTS as separate groups. */
+// ── Video scripts ────────────────────────────────────────────────────────
+// Six lengths, 15 seconds to 20 minutes. The engine could already produce one
+// video artifact (CHANNEL_ADAPTS.youtube: a single 700-1300 word spoken cut),
+// which is one of these and not the others: a 15 second hook and a 20 minute
+// investigation are different shapes, not one shape scaled.
+//
+// The picker lives here; the per-length STRUCTURE and the prompt live in
+// api/_video.ts, because the server owns what gets asked of the model.
+// scripts/check-video-formats.mts keeps the two lists in step.
+export interface VideoFormatOption { id: string; label: string; seconds: number; words: number }
+
+export const VIDEO_FORMATS: VideoFormatOption[] = [
+  { id: '15s', label: '15 second hook', seconds: 15, words: 40 },
+  { id: '30s', label: '30 seconds', seconds: 30, words: 80 },
+  { id: '60s', label: '60 second reel', seconds: 60, words: 160 },
+  { id: '3min', label: '3 minutes', seconds: 180, words: 450 },
+  { id: '10min', label: '10 minutes', seconds: 600, words: 1500 },
+  { id: '20min', label: '20 minutes', seconds: 1200, words: 3000 },
+]
+
+// ── One palette, both surfaces ───────────────────────────────────────────
+// The 26 one-click edits above were rendered only by ContentComposer, so the
+// weekly-brief editor shipped with four hardcoded chips and no way to reach
+// the rest. Two components picking their own subsets is how that happened, so
+// the grouping lives here now and both mount the same thing.
+//
+// `mode` is the revise mode the surface sends. 'humor' routes to the dedicated
+// examples-driven prompt in api/_humor.ts (and a stronger model); everything
+// else rides on `hint`.
+export interface EditItem { label: string; mode: string; value: string; hint?: string }
+export interface EditGroup { label: string; accent: string; items: EditItem[] }
+
+export function editGroups(o?: {
+  /** Current channel, so a piece is never offered "adapt to what you already are". */
+  currentChannel?: string | null
+  /** Format adapts turn a piece INTO a Paid/Built piece. Meaningless for the
+   *  weekly brief, which is the master that gets fanned out to both. */
+  includeFormatAdapts?: boolean
+  /** Channel cuts save against a piece's transformed_outputs, which a brief
+   *  does not have. */
+  includeChannelCuts?: boolean
+  /** Video scripts. Both surfaces can produce them, so this defaults on. */
+  includeVideo?: boolean
+  /** Deep research. Runs against a content piece, which a brief is not. */
+  includeDeepen?: boolean
+}): EditGroup[] {
+  const groups: EditGroup[] = [
+    { label: 'Tone', accent: 'border-rose-500/30 text-rose-200', items: TONE_PRESETS.map(x => ({ label: x.label, mode: 'tone', value: x.value, hint: x.hint })) },
+    { label: 'Humor', accent: 'border-fuchsia-500/30 text-fuchsia-200', items: HUMOR_PRESETS.map(x => ({ label: x.label, mode: 'humor', value: x.value, hint: x.hint })) },
+    { label: 'Length', accent: 'border-sky-500/30 text-sky-200', items: LENGTH_PRESETS.map(x => ({ label: x.label, mode: 'length', value: x.value, hint: x.hint })) },
+    { label: 'Sharpen', accent: 'border-amber-500/30 text-amber-200', items: [
+      ...ITERATE_CHIPS.map(x => ({ label: x.label, mode: 'feedback', value: x.value, hint: x.hint })),
+      { label: 'Sharpest angle', mode: 'zoom', value: 'contrarian-angle', hint: ZOOM_DEFAULT_HINT },
+    ] },
+    { label: 'Analogy', accent: 'border-emerald-500/30 text-emerald-200', items: ANALOGY_PRESETS.map(x => ({ label: x.label, mode: 'feedback', value: x.value, hint: x.hint })) },
+  ]
+  if (o?.includeFormatAdapts !== false) {
+    groups.push({
+      label: 'Change the format',
+      accent: 'border-violet-500/30 text-violet-200',
+      items: FORMAT_ADAPTS.filter(l => l.value !== o?.currentChannel).map(x => ({ label: x.label, mode: 'feedback', value: `adapt-${x.value}`, hint: x.hint })),
+    })
+  }
+  if (o?.includeDeepen !== false) {
+    // mode 'deepen' saves research against the piece rather than rewriting it.
+    // Choosing a format used to change only how a piece was WRITTEN; this is
+    // the format actually going and doing its own investigation first.
+    groups.push({
+      label: 'Deep research',
+      accent: 'border-cyan-500/30 text-cyan-200',
+      items: [
+        { label: 'Paid: follow the money', mode: 'deepen', value: 'paid', hint: 'Investigate how the money moves and how it has SHIFTED: who pays, who collects, what the price was against what it is now, the effect on margin, how buying behaviour changed, and where the economics do not hold. Ends in a like-for-like comparison of at least two named approaches on the same axes.' },
+        { label: 'Built: find who shipped it', mode: 'deepen', value: 'built', hint: 'Find people who actually built this. What they shipped, the stack, the cost, the time, what broke, and what it replaced. Ends in a like-for-like comparison of at least three real implementations on the same axes.' },
+      ],
+    })
+  }
+  if (o?.includeVideo !== false) {
+    // mode 'video' is not a revise mode either: it routes to the video-script
+    // path, which saves the script rather than previewing it over the draft.
+    groups.push({
+      label: 'Video script',
+      accent: 'border-orange-500/30 text-orange-200',
+      items: VIDEO_FORMATS.map(f => ({
+        label: f.label,
+        mode: 'video',
+        value: f.id,
+        hint: `Cut this into a spoken ${f.label} script, about ${f.words} words, with beats and shot notes.`,
+      })),
+    })
+  }
+  if (o?.includeChannelCuts !== false) {
+    // mode 'channel' is not a revise mode: it routes to the channel-cut path,
+    // which SAVES the cut against the piece instead of previewing it.
+    groups.push({
+      label: 'Cut for a channel',
+      accent: 'border-teal-500/30 text-teal-200',
+      items: CHANNEL_ADAPTS.map(x => ({ label: x.label, mode: 'channel', value: x.value, hint: x.hint })),
+    })
+  }
+  return groups
+}
+
 export const LANE_ADAPTS: LaneAdapt[] = [...FORMAT_ADAPTS, ...CHANNEL_ADAPTS]
 
 // Lane values that no longer exist but may still be stored on old rows. Every
