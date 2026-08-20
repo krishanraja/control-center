@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { guardCronRoute } from '../_auth.js'
 
 // Daily staleness archive for the content backlog.
 //
@@ -27,19 +28,14 @@ import { supabase } from '../_supabase.js'
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
 
+  if (guardCronRoute(req, res)) return
+
   let dryRun = false
   let days: number | null = null
-
-  if (req.method === 'GET') {
-    const secret = process.env.CRON_SECRET || ''
-    const auth = req.headers.authorization || ''
-    if (!secret || auth !== `Bearer ${secret}`) return res.status(401).json({ ok: false, error: 'unauthorized' })
-  } else if (req.method === 'POST') {
+  if (req.method === 'POST') {
     const body = (req.body || {}) as { dry_run?: boolean; days?: number }
     dryRun = body.dry_run === true
     days = typeof body.days === 'number' ? body.days : null
-  } else {
-    return res.status(405).json({ ok: false, error: 'GET (cron) or POST only' })
   }
 
   try {

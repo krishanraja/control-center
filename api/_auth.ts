@@ -92,3 +92,38 @@ export function guard(req: VercelRequest, res: VercelResponse, methods = ['POST'
   }
   return false
 }
+
+/** Guard for the cron-driven routes: `GET` from Vercel's scheduler with the
+ *  CRON_SECRET, or a manual `POST` from someone who is already through the edge
+ *  gate (or who holds the secret).
+ *
+ *  These routes were written GET-with-secret / POST-with-nothing, copied from
+ *  each other. middleware.ts deliberately exempts /api/*, so the POST arm was
+ *  reachable by anyone on the internet. Verified on production 2026-08-20:
+ *  an unauthenticated POST to /api/content-ideas/archive-stale returned 200 and
+ *  ran. On a route that only reads that is a nuisance; on /api/purge/run, which
+ *  hard-deletes content_ideas, it is not.
+ *
+ *  Returns true when the handler should stop. Callers must return immediately.
+ *
+ *  Fail-open on ACCESS_CODE is inherited from hasAccess and is deliberate, but
+ *  it is NOT the whole gate here: an unset ACCESS_CODE still leaves CRON_SECRET
+ *  as the check for GET, and a POST still has to come from a browser that
+ *  reached the app. */
+export function guardCronRoute(req: VercelRequest, res: VercelResponse): boolean {
+  res.setHeader('Cache-Control', 'no-store')
+  const secret = process.env.CRON_SECRET || ''
+  const auth = req.headers.authorization || ''
+  const hasSecret = Boolean(secret) && safeEqual(auth, `Bearer ${secret}`)
+
+  if (req.method === 'GET') {
+    if (!hasSecret) { res.status(401).json({ ok: false, error: 'unauthorized' }); return true }
+    return false
+  }
+  if (req.method === 'POST') {
+    if (!hasSecret && !hasAccess(req)) { res.status(401).json({ ok: false, error: 'unauthorized' }); return true }
+    return false
+  }
+  res.status(405).json({ ok: false, error: 'GET (cron) or POST only' })
+  return true
+}
