@@ -13,9 +13,10 @@ import { usePressable } from '../shared/usePressable'
 // BottomNav is ~108-120px tall including safe area (taller buttons for thumb
 // reach). Exported so the second shell (MobileShell.tsx, with pull-to-refresh)
 // reserves identical space.
-// BottomNav is ~72px, and the PilotDock floats 88px up with ~44px of its own
-// height, so the last card needed to clear ~132px. At 120px the final row sat
-// behind the dock on every tab.
+// The clearance was originally sized up to 152px so the last card also passed
+// the floating pilot dock. The dock is gone (its actions live on the Focus &
+// Purpose tab now); the extra ~30px stays as scroll-tail breathing room, which
+// costs nothing and keeps the final row comfortably clear of the nav.
 export const BOTTOM_NAV_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+152px)]'
 
 /**

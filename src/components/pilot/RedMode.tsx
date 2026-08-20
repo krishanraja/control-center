@@ -15,8 +15,12 @@ import { Tap } from './controls'
 interface Props {
   /** The most recent evening check-in, which carries today's ONE. */
   lastEvening: PilotCheckin | null
-  /** Called after a ship is logged or the escape hatch is used. */
-  onUnlock: () => void
+  /**
+   * Called after a ship is logged or the escape hatch is used. `navigated`
+   * is true when this unlock already carried its own destination (the in-app
+   * draft), so the gate must not route the day anywhere else on top of it.
+   */
+  onUnlock: (navigated?: boolean) => void
 }
 
 type Phase = 'ask' | 'task' | 'marking' | 'done'
@@ -92,7 +96,7 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
                   onTap={async () => {
                     await logOverride()
                     window.location.hash = oneUrl
-                    onUnlock()
+                    onUnlock(true)
                   }}
                 >
                   Open the draft

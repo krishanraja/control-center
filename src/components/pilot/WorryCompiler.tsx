@@ -8,13 +8,19 @@ import {
 import { getZone } from '../../lib/civilDate'
 import { LogShipForm } from './LogShipForm'
 import { useHaptics } from '../../hooks/useHaptics'
-import { Tap, VoiceField, DockButton } from './controls'
+import { Tap, VoiceField } from './controls'
 import { Modal } from '../shared/Modal'
 
 // Capture and close. One textarea in, one terminal state out, then the modal
 // shuts. Nothing here ever lists past worries: the only rows this component
 // renders are the five open tests when a save is capped, and that list exists
 // solely so closing one is a single tap away.
+//
+// Opened from the Focus & Purpose tab (its "compile a worry" action and the
+// spiralling / relitigating counter-moves). It used to hang off a floating
+// dock over every tab; that chrome is gone. Still green mode only, and still
+// structurally so: every mount lives inside PilotGate's children, and red mode
+// returns before children ever render.
 
 const API = import.meta.env.VITE_API_URL ?? ''
 const tzq = () => `?tz=${encodeURIComponent(getZone())}`
@@ -24,24 +30,6 @@ type Phase = 'capture' | 'confirm' | 'capped' | 'shipping' | 'done'
 interface Props {
   open: boolean
   onClose: () => void
-}
-
-/**
- * The compiler's entry point, mounted beside the shutdown button.
- *
- * Green mode only, and structurally so: this renders inside PilotGate's
- * children, and red mode returns before children ever render. The button
- * therefore cannot appear on a red day. That is enforced by where it is
- * mounted, not by a conditional someone could later flip.
- */
-export function WorryCompilerButton() {
-  const [open, setOpen] = useState(false)
-  return (
-    <>
-      <DockButton label="compile a worry" title="Compile a worry" onTap={() => setOpen(true)} />
-      <WorryCompiler open={open} onClose={() => setOpen(false)} />
-    </>
-  )
 }
 
 export function WorryCompiler({ open, onClose }: Props) {

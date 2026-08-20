@@ -31,6 +31,7 @@ import { isSimplifiedIA } from '../../lib/iaV3'
 import { isHomeV2Enabled, isFocusRitualEnabled } from '../../lib/homeV2'
 import { ShipLedgerCard } from '../pilot/ShipLedgerCard'
 import { DueTestsCard } from '../pilot/DueTestsCard'
+import { FocusEntryCard } from '../focusPurpose/FocusEntryCard'
 import { HomeSkeleton } from '../shared/Skeleton'
 import { useFirstLoad } from '../shared/useDeferredPending'
 
@@ -136,6 +137,8 @@ export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }:
         {/* SHIP LEDGER: what left the machine. First, and always neutral. */}
         <ShipLedgerCard variant="mobile" />
         <DueTestsCard variant="mobile" />
+        {/* FOCUS & PURPOSE: the operator's own hub, one tap away. */}
+        <FocusEntryCard variant="mobile" onNavigate={onNavigate} />
 
         {/* SPINE — portfolio / week / today as the hero cards. "Set what's stale"
             now lives in the header (StaleHeaderCue) so the cards own the screen. */}
@@ -184,6 +187,8 @@ export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }:
         {/* SHIP LEDGER: what left the machine. First, and always neutral. */}
         <ShipLedgerCard variant="mobile" />
         <DueTestsCard variant="mobile" />
+        {/* FOCUS & PURPOSE: the operator's own hub, one tap away. */}
+        <FocusEntryCard variant="mobile" onNavigate={onNavigate} />
 
         {/* GLANCE — the five-second answer: money / today / waiting. */}
         <GlanceHeader variant="mobile" onNavigate={onNavigate} />
@@ -233,6 +238,8 @@ export function MobileHome({ onNavigate, deepTask = null, deepDecision = null }:
       {/* SHIP LEDGER: what left the machine. First, and always neutral. */}
       <ShipLedgerCard variant="mobile" />
       <DueTestsCard variant="mobile" />
+      {/* FOCUS & PURPOSE: the operator's own hub, one tap away. */}
+      <FocusEntryCard variant="mobile" onNavigate={onNavigate} />
 
       {/* MONEY MACHINE — live pulse with sparkline. */}
       <MrrTicker variant="mobile" />

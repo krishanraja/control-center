@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Home, Calendar, Clock, UserPlus, DollarSign, Mic, FileText,
   Users, GitBranch, Brain, Activity, Workflow, Zap, Server,
-  HeartHandshake, Rocket,
+  HeartHandshake, Rocket, Compass,
   type LucideIcon,
 } from 'lucide-react'
 import { isSimplifiedIA } from './iaV3'
@@ -55,6 +55,11 @@ const LEGACY_TABS: TabDef[] = [
   { id: 'leads',     label: 'Pipeline',      desktopIcon: UserPlus,        mobileIcon: UserPlus,   desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'guests',    label: 'Visibility',    mobileShortLabel: 'Vis',  desktopIcon: Mic,        mobileIcon: Mic,        desktopPriority: 'primary', mobilePriority: 'drawer'  },
   { id: 'org',       label: 'Org',           desktopIcon: Users,           mobileIcon: GitBranch,  desktopPriority: 'primary', mobilePriority: 'drawer'  },
+  // Focus & Purpose: the operator's own hub (daily ask, steadying moves,
+  // conversation scripts, the decision rules). Drawer priority on purpose: its
+  // first-class doors are the morning check-in, the anxious-day auto-route,
+  // and the Home entry card, not ambient nav presence.
+  { id: 'focus',     label: 'Focus',         desktopIcon: Compass,         mobileIcon: Compass,    desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
   { id: 'exec',      label: 'Intel',         desktopIcon: Brain,           mobileIcon: Activity,   desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
   { id: 'workflows', label: 'Flows',         desktopIcon: Workflow,        mobileIcon: Zap,        desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
   { id: 'systems',   label: 'Systems',       desktopIcon: Server,          mobileIcon: Server,     desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
@@ -72,6 +77,9 @@ const SIMPLIFIED_TABS: TabDef[] = [
   // Same single Growth destination as the legacy IA, same five sections.
   { id: 'growth',    label: 'Growth',  desktopIcon: Rocket,          mobileIcon: Rocket,        desktopPriority: 'primary', mobilePriority: 'primary' },
   { id: 'os',        label: 'OS',      desktopIcon: Server,          mobileIcon: Server,        desktopPriority: 'primary', mobilePriority: 'drawer'  },
+  // Same drawer posture as the legacy IA: reached through the check-in, the
+  // anxious-day route, and Home, with the drawer as the fallback door.
+  { id: 'focus',     label: 'Focus',   desktopIcon: Compass,         mobileIcon: Compass,       desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
   { id: 'customers', label: 'Subscriptions', mobileShortLabel: 'Subs', desktopIcon: DollarSign, mobileIcon: DollarSign, desktopPriority: 'drawer', mobilePriority: 'drawer' },
 ]
 

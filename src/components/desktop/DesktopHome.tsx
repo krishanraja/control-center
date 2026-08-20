@@ -35,6 +35,7 @@ import { isSimplifiedIA } from '../../lib/iaV3'
 import { isHomeV2Enabled, isFocusRitualEnabled } from '../../lib/homeV2'
 import { ShipLedgerCard } from '../pilot/ShipLedgerCard'
 import { DueTestsCard } from '../pilot/DueTestsCard'
+import { FocusEntryCard } from '../focusPurpose/FocusEntryCard'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -164,6 +165,8 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
         {/* SHIP LEDGER: what left the machine. First, and always neutral. */}
         <ShipLedgerCard variant="desktop" />
         <DueTestsCard variant="desktop" />
+        {/* FOCUS & PURPOSE: the operator's own hub, one tap away. */}
+        <FocusEntryCard variant="desktop" onNavigate={onNavigate} />
 
         {/* SPINE — portfolio / week / today + one button to set what's stale. */}
         <AltitudeSpine variant="desktop" onNavigate={onNavigate} />
@@ -227,6 +230,8 @@ export function DesktopHome({ onNavigate, deepTask = null, deepDecision = null }
       {/* SHIP LEDGER: what left the machine. First, and always neutral. */}
       <ShipLedgerCard variant="desktop" />
       <DueTestsCard variant="desktop" />
+      {/* FOCUS & PURPOSE: the operator's own hub, one tap away. */}
+      <FocusEntryCard variant="desktop" onNavigate={onNavigate} />
 
       <div className="flex items-center justify-end text-[10px] text-white/30 -mb-2 gap-3">
         <span><kbd className="px-1 py-0.5 rounded bg-white/[0.05] border border-white/[0.08] text-white/55">⌘K</kbd> nav</span>
