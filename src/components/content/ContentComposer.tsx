@@ -11,9 +11,8 @@ import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { lintVoice, autoFixVoice, type LintIssue } from '../../lib/voiceLint'
 import {
-  CHANNEL_ADAPTS, DEFAULT_CHANNELS, FACTORY_CHANNELS, FIVE_STANDARDS, FORMAT_ADAPTS,
-  HUMOR_PRESETS, ITERATE_CHIPS, LENGTH_PRESETS, MEDIA_CHANNELS,
-  TONE_PRESETS, ZOOM_DEFAULT_HINT, laneToFactoryChannel, nextBestAction,
+  CHANNEL_ADAPTS, DEFAULT_CHANNELS, FACTORY_CHANNELS, FIVE_STANDARDS,
+  MEDIA_CHANNELS, editGroups, laneToFactoryChannel, nextBestAction,
 } from '../../lib/contentEngine'
 import { Working } from '../shared/Working'
 import { useWork } from '../../lib/loadingVoice'
@@ -216,7 +215,7 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
           <TitleField idea={idea} />
           <div className="flex items-center gap-1.5 mt-0.5">
             {idea.lane && (
-              <span className="text-[10px] uppercase tracking-[0.1em] text-violet-300/80">{idea.lane.replace(/_/g, ' ')}{idea.lane_slot ? ` · ${idea.lane_slot}` : ''}</span>
+              <span className="text-[10px] uppercase tracking-[0.1em] text-violet-200/80">{idea.lane.replace(/_/g, ' ')}{idea.lane_slot ? ` · ${idea.lane_slot}` : ''}</span>
             )}
             <span className="text-[10px] uppercase tracking-[0.1em] text-white/35">{idea.state}</span>
             <span className="text-[10px] text-white/30">·</span>
@@ -493,22 +492,48 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
     finally { setBusy(null) }
   }
 
+  const runVideoScript = async (opts: { label: string; value: string; hint?: string }) => {
+    if (!draft.trim()) { toast('Nothing to script yet, write or generate the piece first.', 'error'); return }
+    const key = `video:${opts.value}`
+    h.heavy(); setBusy(key); setBusyLabel(`${opts.label} script`)
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/video-script`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ duration: opts.value, hint: opts.hint, source_text: preview?.text ?? draft }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.hint || j.error || `HTTP ${r.status}`)
+      setAdjust(false); h.success()
+      const sc = j.script || {}
+      const flagged = sc.unsupported_numbers?.length
+        ? ` Check ${sc.unsupported_numbers.length} figure${sc.unsupported_numbers.length === 1 ? '' : 's'}.`
+        : ''
+      toast(`${opts.label} script saved, ${sc.word_count} words against a ${sc.target_words} target.${flagged}`, 'success')
+    } catch (e: any) { h.error(); toast(`${opts.label} script failed: ${e?.message || 'error'}`, 'error') }
+    finally { setBusy(null) }
+  }
+
+  const runDeepen = async (opts: { label: string; value: string }) => {
+    const key = `deepen:${opts.value}`
+    h.heavy(); setBusy(key); setBusyLabel(`${opts.label}`)
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/deepen`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format: opts.value }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.hint || j.error || `HTTP ${r.status}`)
+      setAdjust(false); h.success()
+      const e = j.entry || {}
+      toast(`${opts.label}: ${e.comparison?.length || 0} compared, ${e.sources?.length || 0} sources. Saved to Materials.`, 'success')
+    } catch (e: any) { h.error(); toast(`Deep research failed: ${e?.message || 'error'}`, 'error') }
+    finally { setBusy(null) }
+  }
+
   // The grouped Adjust palette — every family from contentEngine, filtered so
   // the current lane never offers "adapt to itself".
   const currentChannel = laneToFactoryChannel(idea.lane, idea.lane_slot)
-  const ADJUST_GROUPS: { label: string; accent: string; items: { label: string; mode: string; value: string; hint?: string }[] }[] = [
-    { label: 'Tone', accent: 'border-rose-500/30 text-rose-200', items: TONE_PRESETS.map(o => ({ label: o.label, mode: 'tone', value: o.value, hint: o.hint })) },
-    { label: 'Humor', accent: 'border-fuchsia-500/30 text-fuchsia-200', items: HUMOR_PRESETS.map(o => ({ label: o.label, mode: 'humor', value: o.value, hint: o.hint })) },
-    { label: 'Length', accent: 'border-sky-500/30 text-sky-200', items: LENGTH_PRESETS.map(o => ({ label: o.label, mode: 'length', value: o.value, hint: o.hint })) },
-    { label: 'Sharpen', accent: 'border-amber-500/30 text-amber-200', items: [...ITERATE_CHIPS.map(o => ({ label: o.label, mode: 'feedback', value: o.value, hint: o.hint })), { label: 'Sharpest angle', mode: 'zoom', value: 'contrarian-angle', hint: ZOOM_DEFAULT_HINT }] },
-    // Two groups, not one. "Make this a Paid piece" and "cut this down for
-    // LinkedIn" are different decisions, and they were in the same row until
-    // 2026-08-13, which made picking one feel like it had answered both.
-    { label: 'Change the format', accent: 'border-violet-500/30 text-violet-200', items: FORMAT_ADAPTS.filter(l => l.value !== currentChannel).map(o => ({ label: o.label, mode: 'feedback', value: `adapt-${o.value}`, hint: o.hint })) },
-    // mode 'channel' is not a revise mode. It routes to runChannelCut, which
-    // SAVES the cut against the piece instead of previewing it over the draft.
-    { label: 'Cut for a channel', accent: 'border-teal-500/30 text-teal-200', items: CHANNEL_ADAPTS.map(o => ({ label: o.label, mode: 'channel', value: o.value, hint: o.hint })) },
-  ]
+  const ADJUST_GROUPS = editGroups({ currentChannel })
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
@@ -525,9 +550,9 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         {!draft.trim() ? (
           <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
-            <div className="flex items-center gap-2 text-[13px] text-white/70 mb-1.5"><Sparkles size={14} className="text-violet-300" /> Nothing written yet</div>
+            <div className="flex items-center gap-2 text-[13px] text-white/70 mb-1.5"><Sparkles size={14} className="text-violet-200" /> Nothing written yet</div>
             {idea.thesis && <p className="text-[12px] text-white/55 leading-snug mb-2"><span className="text-white/35">Thesis: </span>{idea.thesis}</p>}
-            <p className="text-[12px] text-white/50 leading-snug">Tap <button type="button" onClick={() => setSheet('cleo')} className="text-violet-300 underline underline-offset-2">Ask Cleo</button> to draft it, or Edit to write.</p>
+            <p className="text-[12px] text-white/50 leading-snug">Tap <button type="button" onClick={() => setSheet('cleo')} className="text-violet-200 underline underline-offset-2">Ask Cleo</button> to draft it, or Edit to write.</p>
           </div>
         ) : edit ? (
           <GrowTextarea
@@ -540,8 +565,8 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
             {/* What am I looking at — one calm line of orientation. */}
             <p className="text-[11px] text-white/35 leading-snug mb-3">
               {selection
-                ? <>One paragraph selected. Tap <span className="text-violet-300/80">Adjust</span> to change just it, or tap it again to deselect.</>
-                : <>Tap any paragraph to adjust just it, or tap <span className="text-violet-300/80">Adjust</span> for the whole draft. Then <span className="text-violet-300/80">Final Review</span> to ship.</>}
+                ? <>One paragraph selected. Tap <span className="text-violet-200/80">Adjust</span> to change just it, or tap it again to deselect.</>
+                : <>Tap any paragraph to adjust just it, or tap <span className="text-violet-200/80">Adjust</span> for the whole draft. Then <span className="text-violet-200/80">Final Review</span> to ship.</>}
             </p>
             <SelectableDraft
               text={draft}
@@ -608,7 +633,7 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
           <div className="relative bg-base border-t border-white/[0.1] rounded-t-3xl max-h-[85dvh] flex flex-col animate-sheet-up">
             <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
             <div className="flex items-center justify-between pl-4 pr-2 py-1.5 flex-shrink-0">
-              <div className="flex items-center gap-2 text-[15px] font-medium text-white/90"><SlidersHorizontal size={16} className="text-violet-300" /> Adjust</div>
+              <div className="flex items-center gap-2 text-[15px] font-medium text-white/90"><SlidersHorizontal size={16} className="text-violet-200" /> Adjust</div>
               <button onClick={() => setAdjust(false)} aria-label="Close" className="flex items-center justify-center w-10 h-10 rounded-full text-white/50 active:bg-white/[0.08]"><X size={20} /></button>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-safe space-y-4 pt-1">
@@ -635,18 +660,22 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
                   <div className="text-[10px] uppercase tracking-[0.1em] text-white/35 mb-1.5">{g.label}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {g.items.map(it => {
-                      // Channel chips save a cut; everything else previews a
-                      // rewrite of the draft in front of you. Two verbs, so two
-                      // handlers, and the busy key has to match the one each
-                      // handler sets or the spinner lands on the wrong chip.
-                      const isCut = it.mode === 'channel'
-                      const key = isCut ? `channel:${it.value}` : `${it.mode}:${it.value}`
+                      // Channel and video chips SAVE a cut against the piece;
+                      // everything else previews a rewrite of the draft in
+                      // front of you. Different verbs, so different handlers,
+                      // and the busy key has to match the one each handler
+                      // sets or the spinner lands on the wrong chip.
+                      const key = `${it.mode}:${it.value}`
                       return (
                         <button
                           key={key} type="button" disabled={busy !== null}
-                          onClick={() => isCut
+                          onClick={() => (it.mode === 'channel'
                             ? runChannelCut({ label: it.label, value: it.value, hint: it.hint })
-                            : runRevise({ label: it.label, mode: it.mode, value: it.value, hint: it.hint })}
+                            : it.mode === 'video'
+                              ? runVideoScript({ label: it.label, value: it.value, hint: it.hint })
+                              : it.mode === 'deepen'
+                                ? runDeepen({ label: it.label, value: it.value })
+                                : runRevise({ label: it.label, mode: it.mode, value: it.value, hint: it.hint }))}
                           className={`flex items-center gap-1 px-3 py-2 rounded-full text-[12px] border bg-white/[0.02] disabled:opacity-40 ${g.accent}`}
                         >
                           {busy === key ? <Working size={12} /> : null} {it.label}
@@ -698,7 +727,7 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
             <div className="flex justify-center pt-2.5 flex-shrink-0"><div className="w-10 h-1 rounded-full bg-white/20" /></div>
             <div className="flex items-center justify-between pl-4 pr-2 py-1.5 flex-shrink-0">
               <div className="flex items-center gap-2 text-[15px] font-medium text-white/90">
-                {sheet === 'cleo' ? <><MessageSquare size={16} className="text-violet-300" /> Cleo</> : sheet === 'cuts' ? <><Scissors size={16} className="text-teal-300" /> Channel cuts</> : sheet === 'materials' ? <><Paperclip size={16} className="text-emerald-300" /> Materials</> : <><Search size={16} className="text-emerald-300" /> Research</>}
+                {sheet === 'cleo' ? <><MessageSquare size={16} className="text-violet-200" /> Cleo</> : sheet === 'cuts' ? <><Scissors size={16} className="text-teal-300" /> Channel cuts</> : sheet === 'materials' ? <><Paperclip size={16} className="text-emerald-200" /> Materials</> : <><Search size={16} className="text-emerald-200" /> Research</>}
               </div>
               <button onClick={() => setSheet(null)} aria-label="Close" className="flex items-center justify-center w-10 h-10 rounded-full text-white/50 active:bg-white/[0.08]"><X size={20} /></button>
             </div>
@@ -1014,7 +1043,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
           <div className="relative w-full max-w-sm rounded-2xl border border-white/[0.1] bg-base shadow-2xl shadow-black/60 p-5">
             <div className="flex items-center gap-2 mb-1.5">
               <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle size={16} className="text-amber-300" />
+                <AlertTriangle size={16} className="text-amber-200" />
               </div>
               <h3 className="text-[15px] font-semibold text-white leading-tight">Final review didn't finish</h3>
             </div>
@@ -1172,7 +1201,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
         {/* Header */}
         <div className="flex items-start gap-2.5 p-4 pb-3 border-b border-white/[0.07] flex-shrink-0">
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${blocked ? 'bg-rose-500/15' : 'bg-violet-500/15'}`}>
-            {blocked ? <ShieldAlert size={16} className="text-rose-300" /> : <ShieldCheck size={16} className="text-violet-300" />}
+            {blocked ? <ShieldAlert size={16} className="text-rose-200" /> : <ShieldCheck size={16} className="text-violet-200" />}
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="text-[15px] font-semibold text-white leading-tight">Final review · {data.venture_label}</h3>
@@ -1190,7 +1219,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
               </div>
               <ul className="space-y-1">
                 {data.instant_fail.reasons.map((r, i) => (
-                  <li key={i} className="text-[12px] text-rose-100/85 leading-snug flex gap-1.5"><span className="text-rose-300/70">·</span>{r}</li>
+                  <li key={i} className="text-[12px] text-rose-100/85 leading-snug flex gap-1.5"><span className="text-rose-200/70">·</span>{r}</li>
                 ))}
               </ul>
               <p className="text-[11px] text-rose-200/60 mt-2 leading-snug">Fix these in the draft, then run Final Review again to re-check.</p>
@@ -1239,7 +1268,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
                         }`}>
                         {demanded ? <Check size={11} /> : <span className="w-[11px]" />}{l.label}
                       </button>
-                      <span className={`text-[11px] flex items-center gap-1 ${l.present ? 'text-emerald-300/80' : 'text-amber-300/80'}`}>
+                      <span className={`text-[11px] flex items-center gap-1 ${l.present ? 'text-emerald-200/80' : 'text-amber-200/80'}`}>
                         {l.present ? <><Check size={11} /> present</> : <><AlertTriangle size={11} /> missing</>}
                       </span>
                     </div>
@@ -1257,7 +1286,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] uppercase tracking-[0.12em] text-white/45">Suggestions{open.length ? ` (${open.length})` : ''}</span>
-              {acceptedCount > 0 && <span className="text-[10px] text-emerald-300/70">{acceptedCount} applied</span>}
+              {acceptedCount > 0 && <span className="text-[10px] text-emerald-200/70">{acceptedCount} applied</span>}
             </div>
             {data.suggestions.length === 0 ? (
               <p className="text-[12px] text-white/45 italic">Nothing to flag. Clean as it stands.</p>
@@ -1298,7 +1327,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
           {/* Verify flags */}
           {data.verify.length > 0 && (
             <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.04] p-3">
-              <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-amber-300/80 mb-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-amber-200/80 mb-1.5">
                 <Search size={12} /> Verify before publishing
               </div>
               <div className="space-y-1.5">
@@ -1363,7 +1392,7 @@ function SavedToDocsModal({ result, onClose, onDone }: { result: SaveResult; onC
       <div className="relative w-full max-w-md rounded-2xl border border-white/[0.1] bg-base shadow-2xl shadow-black/60 p-5">
         <div className="flex items-center gap-2 mb-1.5">
           <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
-            <Check size={16} className="text-emerald-300" />
+            <Check size={16} className="text-emerald-200" />
           </div>
           <div className="min-w-0">
             <h3 className="text-[15px] font-semibold text-white leading-tight">
@@ -1431,9 +1460,9 @@ function SynthesisCitationStrip({ idea }: { idea: ContentIdeaRow }) {
   return (
     <div className={`mb-5 rounded-xl border p-4 ${weak ? 'border-amber-500/30 bg-amber-500/[0.04]' : 'border-violet-500/25 bg-violet-500/[0.04]'}`}>
       <div className="flex items-start gap-2 mb-2">
-        <Sparkles size={13} className={weak ? 'text-amber-300 mt-0.5' : 'text-violet-300 mt-0.5'} />
+        <Sparkles size={13} className={weak ? 'text-amber-200 mt-0.5' : 'text-violet-200 mt-0.5'} />
         <div className="min-w-0 flex-1">
-          <p className={`text-[11px] uppercase tracking-[0.12em] font-medium ${weak ? 'text-amber-300/90' : 'text-violet-300/90'}`}>
+          <p className={`text-[11px] uppercase tracking-[0.12em] font-medium ${weak ? 'text-amber-200/90' : 'text-violet-200/90'}`}>
             Synthesized from {strip.length} card{strip.length === 1 ? '' : 's'}
             {cohesion != null && (
               <span className={`ml-2 text-white/45 tabular-nums normal-case tracking-normal`}>
@@ -1465,7 +1494,7 @@ function SynthesisCitationStrip({ idea }: { idea: ContentIdeaRow }) {
                 title={c.title}
                 className="inline-flex items-center gap-1 max-w-[260px] px-2 py-1 rounded-md border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition-colors"
               >
-                <span className="text-[10px] text-violet-300/80 font-mono tabular-nums flex-shrink-0">[{c.ref}]</span>
+                <span className="text-[10px] text-violet-200/80 font-mono tabular-nums flex-shrink-0">[{c.ref}]</span>
                 <span className="text-[11px] text-white/70 truncate">{c.title || c.id.slice(0, 8)}</span>
               </a>
             )
@@ -1480,12 +1509,12 @@ function EmptyCanvasHint({ idea, onJump }: { idea: ContentIdeaRow; onJump: () =>
   return (
     <div className="mb-5 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
       <div className="flex items-center gap-2 text-[12px] text-white/70 mb-1.5">
-        <Sparkles size={13} className="text-violet-300" /> Nothing written yet
+        <Sparkles size={13} className="text-violet-200" /> Nothing written yet
       </div>
       {idea.thesis && <p className="text-[12px] text-white/55 leading-snug mb-2"><span className="text-white/35">Thesis: </span>{idea.thesis}</p>}
       <p className="text-[12px] text-white/50 leading-snug">
         Start typing, or{' '}
-        <button type="button" onClick={onJump} className="text-violet-300 hover:text-violet-200 underline underline-offset-2">ask Cleo to draft it</button>.
+        <button type="button" onClick={onJump} className="text-violet-200 hover:text-violet-200 underline underline-offset-2">ask Cleo to draft it</button>.
         Drop your research into Materials first so she writes from your corpus, not from scratch.
       </p>
     </div>
@@ -1551,7 +1580,7 @@ function ChannelCutsPanel({ idea }: { idea: ContentIdeaRow }) {
             >
               <span className="text-[12px] text-white/85">{label}</span>
               <span className="text-[10px] text-white/40 tabular-nums">
-                {bad.length > 0 && <span className="text-amber-300/90 mr-2">check {bad.length}</span>}
+                {bad.length > 0 && <span className="text-amber-200/90 mr-2">check {bad.length}</span>}
                 {words}w
               </span>
             </button>
@@ -1632,7 +1661,7 @@ function CleoChat({ idea, draft, onUseAsDraft, mobile }: { idea: ContentIdeaRow;
         mobile ? (
           <div className="flex flex-col items-center text-center gap-2.5 pt-10 pb-4 px-4">
             <div className="w-14 h-14 rounded-2xl bg-violet-500/15 flex items-center justify-center">
-              <Sparkles size={24} className="text-violet-300" />
+              <Sparkles size={24} className="text-violet-200" />
             </div>
             <div className="text-[16px] font-semibold text-white/90">Ask Cleo anything</div>
             <p className="text-[13px] text-white/50 leading-snug max-w-[280px]">
@@ -1779,6 +1808,51 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
     finally { setBusy(null) }
   }
 
+  // Same shape as channelCut, and for the same reason: a script is another
+  // non-destructive cut of the piece, keyed by duration so a 60 second version
+  // and a 10 minute version of the same argument coexist.
+  const videoScript = async (duration: string, label: string, hint?: string) => {
+    if (!draft.trim()) { toast('Nothing to script yet, write or ask Cleo first.', 'error'); return }
+    h.heavy(); setBusy(`video:${duration}`)
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/video-script`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ duration, hint, source_text: preview ?? draft }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.hint || j.error || `HTTP ${r.status}`)
+      h.success()
+      const sc = j.script || {}
+      const flagged = sc.unsupported_numbers?.length
+        ? ` Check ${sc.unsupported_numbers.length} figure${sc.unsupported_numbers.length === 1 ? '' : 's'}.`
+        : ''
+      toast(`${label} script saved, ${sc.word_count} words against a ${sc.target_words} target.${flagged}`, 'success')
+    } catch (e: any) { h.error(); toast(`${label} script failed: ${e?.message || 'error'}`, 'error') }
+    finally { setBusy(null) }
+  }
+
+  // Deep research for the chosen format. Saves findings against the piece as a
+  // material; it does not touch the draft. Slow by nature (six or so live
+  // research queries plus a synthesis), which is why it is a deliberate press
+  // rather than something that fires on every format change.
+  const deepen = async (format: string, label: string) => {
+    h.heavy(); setBusy(`deepen:${format}`)
+    try {
+      const r = await fetch(`/api/content-ideas/${idea.id}/deepen`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format }),
+      })
+      const j = await r.json()
+      if (!r.ok || !j.ok) throw new Error(j.hint || j.error || `HTTP ${r.status}`)
+      h.success()
+      const e = j.entry || {}
+      const rows = e.comparison?.length || 0
+      const flagged = e.unsupported_numbers?.length ? ` Check ${e.unsupported_numbers.length}.` : ''
+      toast(`${label}: ${rows} compared on the same axes, ${e.sources?.length || 0} sources. Saved to Materials.${flagged}`, 'success')
+    } catch (e: any) { h.error(); toast(`Deep research failed: ${e?.message || 'error'}`, 'error') }
+    finally { setBusy(null) }
+  }
+
   const chip = (label: string, busyKey: string, onClick: () => void, accent: string) => (
     <button key={busyKey} type="button" disabled={busy !== null} onClick={onClick}
       className={`text-[10px] px-2 py-1 rounded-md border disabled:opacity-40 transition-colors min-h-[32px] ${accent}`}>
@@ -1831,32 +1905,27 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
         <p className="text-[11px] text-white/45 leading-snug">One-click rewrites of the current draft. Each is a preview you accept or discard, never destructive. Adapt-to-lane bundles tone, length, and zoom for that channel.</p>
       )}
 
-      <Group label="Tone">
-        {TONE_PRESETS.map(o => chip(o.label, `tone:${o.value}`, () => revise('tone', o.value, o.hint), 'border-rose-500/25 text-rose-200 hover:bg-rose-500/10'))}
-      </Group>
-      <Group label="Humor">
-        {HUMOR_PRESETS.map(o => chip(o.label, `humor:${o.value}`, () => revise('humor', o.value, o.hint), 'border-fuchsia-500/25 text-fuchsia-200 hover:bg-fuchsia-500/10'))}
-      </Group>
-      <Group label="Length">
-        {LENGTH_PRESETS.map(o => chip(o.label, `length:${o.value}`, () => revise('length', o.value, o.hint), 'border-sky-500/25 text-sky-200 hover:bg-sky-500/10'))}
-      </Group>
-      <Group label="Zoom">
-        {chip('Sharpest angle', 'zoom:contrarian-angle', () => revise('zoom', 'contrarian-angle', ZOOM_DEFAULT_HINT), 'border-amber-500/25 text-amber-200 hover:bg-amber-500/10')}
-      </Group>
-      <Group label="Iterate">
-        {ITERATE_CHIPS.map(o => chip(o.label, `feedback:${o.value}`, () => revise('feedback', o.value, o.hint), 'border-white/10 text-white/65 hover:bg-white/[0.06]'))}
-      </Group>
-      {/* Format and channel are separate questions, so they are separate rows.
-          The format row hides the format this piece already is; the channel row
-          never hides anything, because one piece is meant to go to several. */}
-      <Group label="Change the format">
-        {FORMAT_ADAPTS.filter(l => l.value !== laneToFactoryChannel(idea.lane, idea.lane_slot)).map(o =>
-          chip(o.label, `feedback:adapt-${o.value}`, () => revise('feedback', `adapt-${o.value}`, o.hint), 'border-violet-500/25 text-violet-200 hover:bg-violet-500/10'))}
-      </Group>
-      <Group label="Cut for a channel">
-        {CHANNEL_ADAPTS.map(o =>
-          chip(o.label, `channel:${o.value}`, () => channelCut(o.value, o.label, o.hint), 'border-teal-500/25 text-teal-200 hover:bg-teal-500/10'))}
-      </Group>
+      {/* Same palette the mobile Adjust sheet renders, and the same one the
+          brief editor mounts. Groups come from editGroups() so a preset added
+          in contentEngine.ts appears on every surface at once, which is the
+          thing that failed before: the brief editor had four chips because it
+          kept its own list. */}
+      {editGroups({ currentChannel: laneToFactoryChannel(idea.lane, idea.lane_slot) }).map(g => (
+        <Group key={g.label} label={g.label}>
+          {g.items.map(o => chip(
+            o.label,
+            `${o.mode}:${o.value}`,
+            () => (o.mode === 'channel'
+              ? channelCut(o.value, o.label, o.hint)
+              : o.mode === 'video'
+                ? videoScript(o.value, o.label, o.hint)
+                : o.mode === 'deepen'
+                  ? deepen(o.value, o.label)
+                  : revise(o.mode, o.value, o.hint)),
+            `${g.accent.replace('/30', '/25')} hover:bg-white/[0.06]`,
+          ))}
+        </Group>
+      ))}
 
       <div className="flex items-end gap-1.5 pt-1">
         <input
@@ -1971,12 +2040,12 @@ function MaterialsPanel({ idea }: { idea: ContentIdeaRow }) {
           <div className="text-[11px] text-white/35 italic">No materials attached yet.</div>
         ) : materials.map(m => (
           <div key={m.id} className="flex items-start gap-2 rounded-md border border-white/[0.06] bg-white/[0.015] p-2">
-            {m.kind === 'link' ? <Link2 size={11} className="text-sky-300 mt-0.5 flex-shrink-0" />
-              : m.kind === 'research' ? <Search size={11} className="text-violet-300 mt-0.5 flex-shrink-0" />
-                : <FileText size={11} className="text-emerald-300 mt-0.5 flex-shrink-0" />}
+            {m.kind === 'link' ? <Link2 size={11} className="text-sky-200 mt-0.5 flex-shrink-0" />
+              : m.kind === 'research' ? <Search size={11} className="text-violet-200 mt-0.5 flex-shrink-0" />
+                : <FileText size={11} className="text-emerald-200 mt-0.5 flex-shrink-0" />}
             <div className="min-w-0 flex-1">
               {m.kind === 'link' && m.url ? (
-                <a href={m.url} target="_blank" rel="noreferrer noopener" className="text-[11px] text-sky-300/90 hover:text-sky-200 truncate block">{m.title || m.url}</a>
+                <a href={m.url} target="_blank" rel="noreferrer noopener" className="text-[11px] text-sky-200/90 hover:text-sky-200 truncate block">{m.title || m.url}</a>
               ) : (
                 <div className="text-[11px] text-white/80 truncate">{m.title || 'Pasted material'}</div>
               )}
@@ -1986,7 +2055,7 @@ function MaterialsPanel({ idea }: { idea: ContentIdeaRow }) {
                 {m.at ? ` · ${shortDate(m.at)}` : ''}
               </div>
             </div>
-            <button type="button" onClick={() => remove(m.id)} className="text-white/30 hover:text-rose-300 flex-shrink-0"><Trash2 size={12} /></button>
+            <button type="button" onClick={() => remove(m.id)} className="text-white/30 hover:text-rose-200 flex-shrink-0"><Trash2 size={12} /></button>
           </div>
         ))}
       </div>
@@ -2063,7 +2132,7 @@ function ResearchPanel({ idea }: { idea: ContentIdeaRow }) {
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-white/40">
-            <Sparkles size={10} className="text-violet-300" /> Cleo suggests
+            <Sparkles size={10} className="text-violet-200" /> Cleo suggests
           </div>
           <button type="button" onClick={() => suggest(true)} disabled={sugBusy} title="Fresh suggestions" aria-label="Refresh suggestions"
             className="flex items-center justify-center w-7 h-7 rounded-md text-white/35 hover:text-white/70 hover:bg-white/[0.06] disabled:opacity-40">
@@ -2087,7 +2156,7 @@ function ResearchPanel({ idea }: { idea: ContentIdeaRow }) {
                   <button
                     type="button" onClick={() => dive(s.query)} disabled={!!runningQ || done}
                     className={`mt-1.5 flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border min-h-[28px] ${
-                      done ? 'border-emerald-500/25 text-emerald-300/80'
+                      done ? 'border-emerald-500/25 text-emerald-200/80'
                         : 'border-emerald-500/25 text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-40'
                     }`}
                   >
@@ -2109,14 +2178,14 @@ function ResearchPanel({ idea }: { idea: ContentIdeaRow }) {
         ) : (
           <ul className="space-y-1">
             {links.slice(0, 12).map((u, i) => (
-              <li key={i} className="min-w-0"><a href={u} target="_blank" rel="noreferrer noopener" className="text-[11px] text-sky-300/80 hover:text-sky-200 truncate block">{prettyUrl(u)}</a></li>
+              <li key={i} className="min-w-0"><a href={u} target="_blank" rel="noreferrer noopener" className="text-[11px] text-sky-200/80 hover:text-sky-200 truncate block">{prettyUrl(u)}</a></li>
             ))}
           </ul>
         )}
       </div>
       {dives.map((d, i) => (
         <details key={i}>
-          <summary className="text-[11px] text-emerald-300/80 cursor-pointer hover:text-emerald-200">↳ {d.query}</summary>
+          <summary className="text-[11px] text-emerald-200/80 cursor-pointer hover:text-emerald-200">↳ {d.query}</summary>
           <p className="text-[11px] text-white/70 leading-relaxed mt-1 whitespace-pre-wrap">{d.findings}</p>
         </details>
       ))}
