@@ -5,6 +5,7 @@ import { formatMrr } from '../lib/mrrDisplay'
 import { formatCommittedMrr } from '../hooks/useRevenue'
 import { useHomeIntelligence } from '../hooks/useHomeIntelligence'
 import { useMoodSource } from './shared/AmbientField'
+import { Skeleton } from './shared/Skeleton'
 
 interface Props {
   variant?: 'mobile' | 'desktop'
@@ -55,7 +56,7 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
           <p className="text-[11px] text-white/40 mt-2 tabular-nums">
             {revenue
               ? `$${(revenue.collected_all_time_net_cents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })} all time`
-              : 'loading…'}
+              : <Skeleton h={14} w={72} r={4} className="inline-block align-middle" />}
             {revenue?.one_time_share_pct != null && revenue.one_time_share_pct > 0 && (
               <span className="text-white/30"> · {revenue.one_time_share_pct}% one-off</span>
             )}
@@ -108,7 +109,6 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
         </div>
         <p className="text-[10px] text-white/35 mt-1.5 tabular-nums">
           {goalPct.toFixed(1)}% of goal, on committed MRR
-          {loading ? ' · loading…' : ''}
         </p>
       </div>
       )}

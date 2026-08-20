@@ -14,6 +14,8 @@ import {
 import { useHaptics } from '../../hooks/useHaptics'
 import { BuildOfferCard, OutreachCandidateCard, PublishCandidateCard } from './PublishCandidateCard'
 import { Tap, VoiceField } from './controls'
+import { useStageWalk, useElapsed, SHOW_ELAPSED_AFTER_MS } from '../../hooks/useAsyncAction'
+import { Working } from '../shared/Working'
 
 /**
  * Naming the one action, without the keyboard and without a dead end.
@@ -69,15 +71,27 @@ const BUILD_FLAVORS = {
  *  is a full-screen dashboard surface and does not belong here). */
 function BuildingState({ flavor }: { flavor: 'publish' | 'email' }) {
   const { stages, note } = BUILD_FLAVORS[flavor]
-  const [stage, setStage] = useState(0)
-  useEffect(() => {
-    const t = setInterval(() => setStage(s => Math.min(s + 1, stages.length - 1)), 18000)
-    return () => clearInterval(t)
-  }, [stages.length])
+  // The walker lives in one place now, and holds on the last stage rather than
+  // looping or claiming completion it cannot see.
+  const stage = useStageWalk([...stages], true)
+  const elapsed = useElapsed(true)
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-[14px] text-ink leading-relaxed animate-pulse">{stages[stage]}.</p>
-      <p className="text-[13px] text-ink-faint leading-relaxed">{note}</p>
+      {/* Was animate-pulse. Fading a sentence in and out while someone is
+          trying to read it makes the one informative line here the hardest to
+          read. The stage RISES when it changes, which is both calmer and the
+          only moment worth animating, and the rail carries the continuous
+          "still working" signal instead. */}
+      <p key={stage} className="text-[14px] text-ink leading-relaxed animate-rise">{stage}.</p>
+      <div className="rounded-full bg-white/[0.08] overflow-hidden" style={{ width: 180, height: 3 }}>
+        <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-transparent via-accent to-transparent animate-indeterminate" />
+      </div>
+      <p className="text-[13px] text-ink-faint leading-relaxed">
+        {note}
+        {elapsed >= SHOW_ELAPSED_AFTER_MS && (
+          <span className="tabular-nums text-ink-faint/70"> {Math.floor(elapsed / 1000)}s</span>
+        )}
+      </p>
     </div>
   )
 }
@@ -247,7 +261,8 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
   // ── The ask is being judged ────────────────────────────────────────────────
   if (askPhase?.kind === 'judging') {
     return (
-      <p className="text-[13px] text-ink-faint leading-relaxed animate-pulse">
+      <p className="text-[13px] text-ink-faint leading-relaxed">
+        <Working size={12} className="inline mr-1.5 -mb-px" />
         Judging it against the queue.
       </p>
     )
@@ -319,7 +334,8 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
   // ── The queue is being consulted ───────────────────────────────────────────
   if (checkingQueue) {
     return (
-      <p className="text-[13px] text-ink-faint leading-relaxed animate-pulse">
+      <p className="text-[13px] text-ink-faint leading-relaxed">
+        <Working size={12} className="inline mr-1.5 -mb-px" />
         Checking the queue for a ready draft.
       </p>
     )

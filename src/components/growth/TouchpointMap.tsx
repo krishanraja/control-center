@@ -284,7 +284,7 @@ function Row({ t, variant, onSave, onAnswer }: {
           />
           <div className="flex gap-2">
             <button type="button" onClick={submitAnswer} disabled={saving || !answer.trim()} className={BTN_PRIMARY}>
-              {saving ? 'Saving...' : 'Save answer'}
+              {saving ? 'Saving…' : 'Save answer'}
             </button>
             <button type="button" onClick={() => { setAnswering(false); setAnswer('') }} className={BTN_GHOST}>Cancel</button>
           </div>
@@ -415,7 +415,7 @@ function AddTouchpoint({ g, onDone }: { g: GrowthData; onDone: () => void }) {
       </div>
       <div className="flex gap-2 mt-3">
         <button type="button" onClick={submit} disabled={saving} className={BTN_PRIMARY}>
-          {saving ? 'Adding...' : 'Add touchpoint'}
+          {saving ? 'Adding…' : 'Add touchpoint'}
         </button>
         <button type="button" onClick={onDone} className={BTN_GHOST}>Cancel</button>
       </div>

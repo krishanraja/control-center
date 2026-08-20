@@ -1751,7 +1751,7 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
   const chip = (label: string, busyKey: string, onClick: () => void, accent: string) => (
     <button key={busyKey} type="button" disabled={busy !== null} onClick={onClick}
       className={`text-[10px] px-2 py-1 rounded-md border disabled:opacity-40 transition-colors min-h-[32px] ${accent}`}>
-      {busy === busyKey ? '…' : label}
+      {busy === busyKey ? <Working size={11} /> : label}
     </button>
   )
 

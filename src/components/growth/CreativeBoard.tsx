@@ -338,7 +338,7 @@ function CardDetail({ g, card, onClose }: { g: GrowthData; card: CreativeCardRow
 
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={save} disabled={saving} className={BTN_PRIMARY}>
-              {saving ? 'Saving...' : 'Save card'}
+              {saving ? 'Saving…' : 'Save card'}
             </button>
             {card.posted_url && (
               <a href={card.posted_url} target="_blank" rel="noreferrer" className={BTN_GHOST}>Open post</a>
@@ -424,7 +424,7 @@ function AddCard({ g, thisWeek, onDone }: { g: GrowthData; thisWeek: string; onD
       </div>
       <div className="flex gap-2 mt-3">
         <button type="button" onClick={submit} disabled={saving} className={BTN_PRIMARY}>
-          {saving ? 'Adding...' : 'Add to board'}
+          {saving ? 'Adding…' : 'Add to board'}
         </button>
         <button type="button" onClick={onDone} className={BTN_GHOST}>Cancel</button>
       </div>

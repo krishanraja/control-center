@@ -35,11 +35,15 @@ const EXTENSIONS = [
   Markdown.configure({ html: false, linkify: true }),
 ]
 
-const MAGIC: Array<{ mode: string; label: string }> = [
-  { mode: 'tighten', label: 'Tighten' },
-  { mode: 'sharper_open', label: 'Sharper claim' },
-  { mode: 'harder_ending', label: 'Harder ending' },
-  { mode: 'more_data', label: 'More data' },
+// Each mode names its own work while it runs. These four shared the string
+// "Working…", which is the one label Pending.tsx's doctrine comment forbids by
+// name: it says nothing the disabled button had not already said, and with four
+// buttons side by side it does not even say WHICH one you pressed.
+const MAGIC: Array<{ mode: string; label: string; busy: string }> = [
+  { mode: 'tighten', label: 'Tighten', busy: 'Tightening…' },
+  { mode: 'sharper_open', label: 'Sharper claim', busy: 'Sharpening…' },
+  { mode: 'harder_ending', label: 'Harder ending', busy: 'Rewriting the ending…' },
+  { mode: 'more_data', label: 'More data', busy: 'Finding data…' },
 ]
 
 // Reading preferences that the surface should remember between visits, so the
@@ -408,7 +412,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
               disabled={!dirty || saving || editingClosed}
               className="btn-contrast rounded-lg px-3.5 py-1.5 text-[12px] font-semibold disabled:opacity-40"
             >
-              {saving ? 'Saving...' : dirty ? 'Save' : 'Saved'}
+              {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
             </button>
           </>
         ) : null}
@@ -520,7 +524,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                 disabled={magicBusy !== null}
                 className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[11.5px] font-semibold text-white/70 hover:bg-white/[0.09] disabled:opacity-40"
               >
-                {magicBusy === m.mode ? 'Working...' : m.label}
+                {magicBusy === m.mode ? m.busy : m.label}
               </button>
             ))}
             <button
@@ -733,7 +737,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                 className="ml-auto rounded-lg bg-emerald-400 text-emerald-950 px-4 py-2.5 text-[12.5px] font-bold disabled:opacity-40"
               >
                 {pushing
-                  ? 'Pushing...'
+                  ? 'Pushing…'
                   : narrow
                     ? `Push ${fanout.size} to Docs`
                     : `Push ${fanout.size} format${fanout.size === 1 ? '' : 's'} to Google Docs`}

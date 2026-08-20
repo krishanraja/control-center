@@ -103,7 +103,7 @@ function Dossier({ shift, v2, onClose }: {
 
       <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-emerald-400/10">
         <button onClick={writeFromShift} disabled={seeding} className="btn-contrast rounded-lg px-3.5 py-2 text-[12px] font-semibold disabled:opacity-40">
-          {seeding ? 'Seeding...' : 'Write from this shift'}
+          {seeding ? 'Seeding…' : 'Write from this shift'}
         </button>
         {shift.status === 'proposed' ? (
           <button onClick={() => v2.ruleShift(shift.id, 'accept')} className="rounded-lg px-3.5 py-2 text-[12px] font-semibold bg-emerald-400/15 text-emerald-300 hover:bg-emerald-400/25">Accept</button>

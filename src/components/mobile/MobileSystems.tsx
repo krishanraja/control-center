@@ -5,6 +5,7 @@ import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { supabase } from '../../lib/supabase'
+import { Working } from '../shared/Working'
 
 interface Service {
   id: string
@@ -116,7 +117,7 @@ export function MobileSystems() {
               disabled={loading || refreshing}
               className="px-5 py-3 rounded-full bg-white/10 text-white text-[15px] font-semibold active:scale-95 disabled:opacity-40 transition-transform"
             >
-              {refreshing ? '…' : 'Refresh'}
+              {refreshing ? <Working size={11} /> : 'Refresh'}
             </button>
           }
         />

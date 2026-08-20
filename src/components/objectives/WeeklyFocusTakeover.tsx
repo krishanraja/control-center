@@ -354,7 +354,7 @@ export function WeeklyFocusTakeover({ narrow, tab }: { narrow: boolean; tab: str
           {step === 'commit'
             ? (committing ? <Working size={13} /> : <CheckCircle2 size={13} />)
             : <ArrowRight size={13} />}
-          {step === 'commit' && committing ? 'Locking...' : primaryLabel}
+          {step === 'commit' && committing ? 'Locking…' : primaryLabel}
         </button>
       </div>
     </div>

@@ -423,7 +423,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
           className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-violet-100 bg-violet-500/25 hover:bg-violet-500/40 border border-violet-400/40 rounded-md px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? <Working size={12} /> : <Check size={12} />}
-          {submitting ? 'Locking...' : `Lock today's ${targetCount}`}
+          {submitting ? 'Locking…' : `Lock today's ${targetCount}`}
         </button>
       </div>
     </section>

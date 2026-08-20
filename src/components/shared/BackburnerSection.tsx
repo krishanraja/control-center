@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { ChevronRight, ArchiveRestore } from 'lucide-react'
 import { useToast } from './Toast'
 import { useHaptics } from '../../hooks/useHaptics'
+import { Working } from './Working'
 
 export interface BackburnerItem {
   id: string
@@ -104,7 +105,7 @@ export function BackburnerSection({ table, items, onRestored, promote }: Props) 
                     disabled={restoring !== null}
                     className="px-2 py-0.5 rounded-md text-[10px] font-medium border border-sky-400/40 text-sky-200 bg-sky-500/10 hover:bg-sky-500/20 transition-colors disabled:opacity-40"
                   >
-                    {restoring === item.id ? '…' : promote.label}
+                    {restoring === item.id ? <Working size={11} /> : promote.label}
                   </button>
                 )}
                 <button

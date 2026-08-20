@@ -116,7 +116,7 @@ export function CloseStep() {
           className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-emerald-100 bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-400/40 rounded-md px-3 py-1.5 disabled:opacity-50"
         >
           {phase === 'submitting' ? <Working size={12} /> : <Check size={12} />}
-          {phase === 'submitting' ? 'Saving...' : 'Log and close'}
+          {phase === 'submitting' ? 'Saving…' : 'Log and close'}
         </button>
       </div>
     </section>

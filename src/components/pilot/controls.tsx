@@ -104,7 +104,7 @@ export function VoiceField({
         onKeyDown={e => {
           if (e.key === 'Enter' && !e.shiftKey && onEnter) { e.preventDefault(); onEnter() }
         }}
-        placeholder={listening ? 'Listening...' : placeholder}
+        placeholder={listening ? 'Listening…' : placeholder}
         className={`w-full px-4 py-3.5 ${supported ? 'pr-[60px]' : ''} rounded-xl bg-white/[0.03] border text-[16px] leading-relaxed text-ink placeholder:text-ink-faint outline-none resize-none transition-colors ${
           listening ? 'border-white/30' : 'border-white/10 focus:border-white/25'
         }`}

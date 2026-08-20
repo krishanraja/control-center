@@ -137,7 +137,7 @@ function ReviewCard({ review, g }: { review: CouncilReviewRow; g: GrowthData }) 
             />
             <div className="flex gap-2">
               <button type="button" onClick={record} disabled={saving} className={BTN_PRIMARY}>
-                {saving ? 'Recording...' : 'Record decision'}
+                {saving ? 'Recording…' : 'Record decision'}
               </button>
               {editing && (
                 <button type="button" onClick={() => { setEditing(false); setText(review.krish_decision || '') }} className={BTN_GHOST}>
