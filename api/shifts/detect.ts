@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { callClaude, robustJson } from '../_content.js'
 import { embedBatch, cosine, vectorLiteral } from '../_embeddings.js'
@@ -294,13 +295,7 @@ export async function runDetect() {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
-  if (req.method === 'GET') {
-    const secret = process.env.CRON_SECRET || ''
-    const auth = req.headers.authorization || ''
-    if (!secret || auth !== `Bearer ${secret}`) return res.status(401).json({ ok: false, error: 'unauthorized' })
-  } else if (req.method !== 'POST') {
-    return res.status(405).json({ ok: false, error: 'GET (cron) or POST only' })
-  }
+  if (guardCronRoute(req, res)) return
   try {
     const result = await runDetect()
     return res.json({ ok: true, ...result })
