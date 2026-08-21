@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { HeartHandshake, X, Search, UserCog, Tag, Ban, FileSearch, Flame, Layers, Table2 } from 'lucide-react'
+import { HeartHandshake, X, Search, UserCog, Tag, Ban, FileSearch, Flame, Layers, Table2 } from '@/lib/icons'
 import {
   useRealtimeContacts,
   type ContactRow,

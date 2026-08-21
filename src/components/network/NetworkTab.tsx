@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { SearchX, AlertTriangle, MapPin } from 'lucide-react'
+import { SearchX, AlertTriangle, MapPin } from '@/lib/icons'
 import { Card } from '@/components/ui/card'
 import { useNetworkSearch, type NetworkResult } from '../../hooks/useNetworkSearch'
 import { NetworkSearchBar } from './NetworkSearchBar'

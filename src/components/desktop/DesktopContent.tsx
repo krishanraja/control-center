@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { FileText, ExternalLink, Calendar as CalendarIcon, List, Plus, Layers, GitMerge, CheckSquare, Square, Sparkles, AlertTriangle } from 'lucide-react'
+import { FileText, ExternalLink, Calendar as CalendarIcon, ChevronLeft, ChevronRight, List, Plus, Layers, GitMerge, CheckSquare, Square, Sparkles, AlertTriangle } from '@/lib/icons'
 import { formatDistanceToNow } from 'date-fns'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { useToast } from '../shared/Toast'
@@ -442,7 +442,7 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
           className="px-2 py-1 rounded-md text-label text-white/60 hover:text-white/90 hover:bg-white/[0.06] transition-colors"
           aria-label="Previous month"
         >
-          ‹
+          <ChevronLeft size={14} />
         </button>
         <h2 className="text-ui font-semibold text-white tabular-nums">{monthLabel}</h2>
         <button
@@ -451,7 +451,7 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
           className="px-2 py-1 rounded-md text-label text-white/60 hover:text-white/90 hover:bg-white/[0.06] transition-colors"
           aria-label="Next month"
         >
-          ›
+          <ChevronRight size={14} />
         </button>
         <button
           type="button"

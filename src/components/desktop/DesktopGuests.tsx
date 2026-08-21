@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Mic, Megaphone, Calendar, Layers } from 'lucide-react'
+import { Mic, Megaphone, Calendar, Layers } from '@/lib/icons'
 import { isTestRecord } from '../../lib/recordHygiene'
 import { useRealtimeGuests, type GuestRow, type GuestStatus, type GuestPodcastTarget } from '../../hooks/useRealtimeGuests'
 import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'

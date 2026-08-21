@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react'
-import { X, Check, ChevronRight, Maximize2, CheckCircle2 } from 'lucide-react'
+import { X, Check, ChevronRight, Maximize2, CheckCircle2 } from '@/lib/icons'
 import { useCardDeck, type Dir } from '../../hooks/useCardDeck'
 import { SwipeCard } from './SwipeCard'
 import { ReasonChipBar } from './ReasonChipBar'

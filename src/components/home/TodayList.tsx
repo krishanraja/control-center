@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Check, Target } from 'lucide-react'
+import { Check, Target } from '@/lib/icons'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { useHaptics } from '../../hooks/useHaptics'

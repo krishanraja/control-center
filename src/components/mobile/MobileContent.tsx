@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronRight, Clock, AlertTriangle, CheckCircle2, Layers, GitMerge, Sparkles } from 'lucide-react'
+import { ChevronRight, Clock, AlertTriangle, CheckCircle2, Layers, GitMerge, Sparkles } from '@/lib/icons'
 import { MobileShell } from './MobileShell'
 import { TabHeader, MobileLoadingScreen } from './primitives'
 import { SkeletonList } from '../shared/Skeleton'

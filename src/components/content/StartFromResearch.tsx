@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { FileText, Link2, Search, Sparkles, Upload, X } from 'lucide-react'
+import { FileText, Link2, Search, Sparkles, Upload, X } from '@/lib/icons'
 import { Modal } from '../shared/Modal'
 import { Working } from '../shared/Working'
 import { useToast } from '../shared/Toast'

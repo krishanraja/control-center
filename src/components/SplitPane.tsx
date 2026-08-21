@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft } from '@/lib/icons'
 
 interface Props {
   left: React.ReactNode

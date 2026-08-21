@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronLeft, ChevronRight } from '@/lib/icons'
+import { DrawnCheck } from '../shared/DrawnCheck'
 import type { useContentV2 } from '../../hooks/useContentV2'
 import type { ContentDecisionRow } from '../../lib/contentV2'
 import { reasonsFor } from '../../lib/triageReasons'
@@ -193,7 +195,7 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   if (!current) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-6 text-center gap-3">
-        <div className="text-3xl">✓</div>
+        <DrawnCheck size={44} stroke="rgb(52 211 153)" />
         <div className="text-white/90 font-bold text-lede">The week is decided</div>
         <p className="text-white/45 text-body max-w-[26ch]">
           Nothing is waiting on you. New decisions queue for the weekend sitting.
@@ -227,16 +229,16 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
               <button
                 aria-label="Previous card"
                 onClick={() => go(-1)}
-                className="min-w-[40px] min-h-[32px] rounded-lg text-ui text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
+                className="inline-flex min-w-[40px] min-h-[32px] items-center justify-center rounded-lg text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
               >
-                ‹
+                <ChevronLeft size={16} />
               </button>
               <button
                 aria-label="Next card"
                 onClick={() => go(1)}
-                className="min-w-[40px] min-h-[32px] rounded-lg text-ui text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
+                className="inline-flex min-w-[40px] min-h-[32px] items-center justify-center rounded-lg text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
               >
-                ›
+                <ChevronRight size={16} />
               </button>
             </div>
           )}

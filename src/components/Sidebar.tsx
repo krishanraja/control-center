@@ -1,6 +1,6 @@
 import React from 'react'
 import { Agent } from '../types'
-import { BarChart3, Circle, GitBranch, ExternalLink } from 'lucide-react'
+import { BarChart3, Circle, GitBranch, ExternalLink } from '@/lib/icons'
 
 interface Props {
   agents: Agent[]
@@ -27,7 +27,7 @@ export function Sidebar({ agents, currentTime }: Props) {
       <div className="space-y-6">
         <div>
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-            <GitBranch className="w-5 h-5" />
+            <GitBranch size={20} />
             <span>Organization</span>
           </h2>
           
@@ -62,7 +62,7 @@ export function Sidebar({ agents, currentTime }: Props) {
                     className="opacity-0 group-hover:opacity-100 transition-opacity text-command-text/30 hover:text-violet-400 flex-shrink-0"
                     onClick={e => e.stopPropagation()}
                   >
-                    <ExternalLink className="w-3 h-3" />
+                    <ExternalLink size={12} />
                   </a>
                 )}
               </div>
@@ -73,7 +73,7 @@ export function Sidebar({ agents, currentTime }: Props) {
         {/* Status Legend */}
         <div>
           <h3 className="text-sm font-medium text-white mb-3 flex items-center space-x-2">
-            <BarChart3 className="w-4 h-4" />
+            <BarChart3 size={16} />
             <span>Status</span>
           </h3>
           <div className="space-y-2 text-xs">

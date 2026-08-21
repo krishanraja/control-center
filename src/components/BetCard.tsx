@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { TrendingUp, TrendingDown, Clock, AlertOctagon, Check, X, Pause } from 'lucide-react'
+import { TrendingUp, TrendingDown, Clock, AlertOctagon, Check, X, Pause } from '@/lib/icons'
 import { useToast } from './shared/Toast'
 import { FeedbackButton } from './shared/FeedbackButton'
 import { useHaptics } from '../hooks/useHaptics'

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Lock, PencilLine, Eye, RotateCcw, Check } from 'lucide-react'
+import { Lock, PencilLine, Eye, RotateCcw, Check } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { laneAction, type LaneDetail, type LaneDirection } from '../../hooks/useLaneDetail'
 

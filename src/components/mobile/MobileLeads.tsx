@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Users, Linkedin, Mail, ExternalLink, X, ThumbsUp, Sparkles, Layers, ChevronRight } from 'lucide-react'
+import { Users, Linkedin, Mail, ExternalLink, X, ThumbsUp, Sparkles, Layers, ChevronRight } from '@/lib/icons'
 import { MobileShell as MobileShellPrim, TabHeader,
   HeaderSubtitleSkeleton, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { MobileShell as MobileStage } from './MobileShell'

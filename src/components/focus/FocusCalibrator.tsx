@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import {
   Mic, Square, Check, X, ChevronDown, Plus, ThumbsDown,
   TrendingUp, Sparkles as SparkleIcon, AlertTriangle, Target,
-} from 'lucide-react'
+} from '@/lib/icons'
 import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'

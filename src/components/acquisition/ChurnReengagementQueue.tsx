@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { UserMinus } from 'lucide-react'
+import { UserMinus } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import type { ChurnLeadRow } from '../../hooks/useAcquisition'
 

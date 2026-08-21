@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { X, SkipForward } from 'lucide-react'
+import { X, SkipForward } from '@/lib/icons'
 import { supabase } from '../../../lib/supabase'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../../../hooks/useRealtimeDecisionsWaiting'
 import { splitDecisions, KIND_ICON, KIND_LABEL, KIND_TO_TABLE, minutesToZero } from '../../../lib/decisionKinds'

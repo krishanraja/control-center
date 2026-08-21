@@ -1,4 +1,4 @@
-import { ListOrdered } from 'lucide-react'
+import { ListOrdered } from '@/lib/icons'
 import type { AcquisitionLane } from '../../hooks/useAcquisition'
 import { SEND_STATUS_TONE } from './laneMeta'
 

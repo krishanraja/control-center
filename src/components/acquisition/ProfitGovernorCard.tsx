@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CircleDollarSign, Pause, Play } from 'lucide-react'
+import { CircleDollarSign, Pause, Play } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { laneAction, type LaneDetail } from '../../hooks/useLaneDetail'
 import { BudgetBar } from './BudgetBar'

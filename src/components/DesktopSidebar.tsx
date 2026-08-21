@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { MoreHorizontal, type LucideIcon } from 'lucide-react'
+import { MoreHorizontal, type LucideIcon } from '@/lib/icons'
 import { supabase } from '../lib/supabase'
 import { DESKTOP_PRIMARY_TABS, DESKTOP_DRAWER_TABS } from '../lib/tabs'
 import { isSimplifiedIA } from '../lib/iaV3'
@@ -118,7 +118,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
               }`}
               title={!expanded ? 'More' : undefined}
             >
-              <MoreHorizontal className="w-4 h-4 flex-shrink-0" strokeWidth={1.8} />
+              <MoreHorizontal size={16} className="flex-shrink-0" />
               {expanded && <span className="truncate flex-1">More</span>}
             </button>
 
@@ -203,7 +203,7 @@ function SidebarButton({ id, label, Icon, active, onClick, expanded, showHealthB
       title={!expanded ? (showHealthBadge ? `${label} (${unhealthyCount} issues)` : label) : undefined}
     >
       <div className="relative">
-        <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={active ? 2.2 : 1.8} />
+        <Icon size={16} className="flex-shrink-0" strokeWidth={active ? 2.25 : undefined} />
         {showHealthBadge && (
           <span
             className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${badge === 'red' ? 'bg-rose-500' : 'bg-amber-400'} animate-pulse`}

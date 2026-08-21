@@ -1,4 +1,4 @@
-import { Mail, Linkedin, Phone, Instagram, AtSign, AlertTriangle, MapPin } from 'lucide-react'
+import { Mail, Linkedin, Phone, Instagram, AtSign, AlertTriangle, MapPin } from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
 import { ScoreBreakdown } from './ScoreBreakdown'
 import { geoLabel } from '../../hooks/useNetworkGeo'

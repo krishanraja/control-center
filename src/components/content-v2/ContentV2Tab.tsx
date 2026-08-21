@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Sparkles } from 'lucide-react'
+import { Sparkles } from '@/lib/icons'
 import { useContentV2 } from '../../hooks/useContentV2'
 import { useRealtimeContentIdeas } from '../../hooks/useRealtimeContentIdeas'
 import { LaneRoom } from './LaneRoom'

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw } from '@/lib/icons'
 import { useAcquisition, type AcquisitionLane } from '../../hooks/useAcquisition'
 import { useLaneDetail } from '../../hooks/useLaneDetail'
 import { AUTONOMY_CHIP, laneDot, laneDotTitle } from '../acquisition/laneMeta'

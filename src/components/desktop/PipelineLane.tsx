@@ -1,5 +1,5 @@
 import React from 'react'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight } from '@/lib/icons'
 import { PIPELINE_ACCENT, PIPELINE_LABEL, type PipelineKey, type Stage } from '../../lib/pipelines'
 
 interface Props {

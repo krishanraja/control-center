@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { TrendingUp, Pencil } from 'lucide-react'
+import { TrendingUp, Pencil } from '@/lib/icons'
 import {
   useGrowthMetrics, combineSeries,
   type GrowthSeries, type GrowthPoint,

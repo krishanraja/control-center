@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Send, CheckCircle2 } from 'lucide-react'
+import { Send, CheckCircle2 } from '@/lib/icons'
 import type { ContactRow } from '../../hooks/useRealtimeContacts'
 import { DoThisNextHero } from '../shared/DoThisNextHero'
 import { predictiveScore, scoreRationale, isContactable } from '../../lib/networkScore'

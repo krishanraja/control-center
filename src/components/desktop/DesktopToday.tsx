@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow, isToday, isPast, parseISO } from 'date-fns'
-import { ExternalLink, Archive, CalendarClock, ChevronRight, MoreHorizontal, ThumbsUp, Undo2 } from 'lucide-react'
+import { ExternalLink, Archive, CalendarClock, ChevronRight, MoreHorizontal, ThumbsUp, Undo2 } from '@/lib/icons'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { InlineActions } from '../InlineActions'
 import { SplitPane } from '../SplitPane'

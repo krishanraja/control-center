@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Flame, Layers, ChevronRight, Target, Sparkles } from 'lucide-react'
+import { Flame, Layers, ChevronRight, Target, Sparkles } from '@/lib/icons'
 import { MobileShell, TabHeader,
   HeaderSubtitleSkeleton, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { MobileShell as MobileStage } from './MobileShell'

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { ChevronDown, ChevronRight, MailCheck, RefreshCw } from 'lucide-react'
+import { ChevronDown, ChevronRight, MailCheck, RefreshCw } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { SkeletonList } from '../shared/Skeleton'
 import { useDeferredPending } from '../shared/useDeferredPending'

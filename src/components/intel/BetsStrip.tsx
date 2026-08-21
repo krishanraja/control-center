@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Target, ChevronRight } from 'lucide-react'
+import { Target, ChevronRight } from '@/lib/icons'
 import { useBets, isOverdue, type BetRow } from '../../hooks/useBets'
 import { BetCard } from '../BetCard'
 

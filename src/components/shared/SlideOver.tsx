@@ -1,5 +1,5 @@
 import React from 'react'
-import { X } from 'lucide-react'
+import { X } from '@/lib/icons'
 import { Dialog, DialogContent, DialogSrTitle, DialogClose } from '@/components/ui/dialog'
 
 interface Props {

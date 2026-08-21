@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight } from '@/lib/icons'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { podColor } from '../shared/tokens'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -79,7 +79,7 @@ export function BlockerCard({ item, onOpen, pod }: Props) {
 
       <span className="flex-shrink-0 self-center flex items-center gap-1.5 rounded-full bg-white/10 group-active:bg-white/20 px-3.5 py-2 text-body font-semibold text-white whitespace-nowrap">
         {actionLabel(item)}
-        <ChevronRight className="w-3.5 h-3.5 opacity-60" strokeWidth={2.5} />
+        <ChevronRight size={14} className="opacity-60" />
       </span>
     </button>
   )

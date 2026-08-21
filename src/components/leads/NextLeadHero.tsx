@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Mail, Sparkles, ArrowUpRight, Clock, CheckCircle2 } from 'lucide-react'
+import { Mail, Sparkles, ArrowUpRight, Clock, CheckCircle2 } from '@/lib/icons'
 import type { LeadRow } from '../../hooks/useRealtimeLeads'
 import { DoThisNextHero, type HeroDescriptor } from '../shared/DoThisNextHero'
 import { useToast } from '../shared/Toast'

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Wand2, AlertCircle } from 'lucide-react'
+import { Wand2, AlertCircle } from '@/lib/icons'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../shared/Toast'
 import { SkillReviewModal } from './SkillReviewModal'

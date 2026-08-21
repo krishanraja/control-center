@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { CheckCircle2, AlertTriangle, XCircle, HelpCircle, RefreshCw } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, XCircle, HelpCircle, RefreshCw } from '@/lib/icons'
 import { BoardSkeleton } from './shared/Skeleton'
 import { Working } from './shared/Working'
 
@@ -47,7 +47,7 @@ function ServiceRow({ service }: { service: Service }) {
   const Icon = cfg.icon
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
-      <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${cfg.color}`} strokeWidth={2} />
+      <Icon size={14} className={`flex-shrink-0 ${cfg.color}`} />
       <div className="flex-1 min-w-0">
         <span className="text-body font-medium text-white/90">{service.name}</span>
         <p className="text-micro text-white/35 truncate">{service.note}</p>
@@ -175,7 +175,7 @@ export function SystemsPanel() {
           title="Re-poll N8N and update system_health"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-40 text-white/40 hover:text-white/60 text-micro transition-colors"
         >
-          {(loading || refreshing) ? <Working size={12} /> : <RefreshCw className="w-3 h-3" />}
+          {(loading || refreshing) ? <Working size={12} /> : <RefreshCw size={12} />}
           {refreshing ? 'Polling N8N…' : loading ? 'Reading services…' : lastRefreshed ? `Refreshed ${timeAgo(lastRefreshed.toISOString())}` : 'Refresh'}
         </button>
       </div>

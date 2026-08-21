@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ExternalLink, ThumbsUp, X, Linkedin, Mail, ArrowUpRight, Calendar, UserCog, Sparkles, MoreHorizontal } from 'lucide-react'
+import { ExternalLink, ThumbsUp, X, Linkedin, Mail, ArrowUpRight, Calendar, UserCog, Sparkles, MoreHorizontal } from '@/lib/icons'
 import { humanAge } from '../lib/ageHelpers'
 import { LeadSourcePill } from './LeadSourcePill'
 import { useToast } from './shared/Toast'

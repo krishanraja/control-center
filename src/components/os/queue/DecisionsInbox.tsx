@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { Mail, Layers as DeckIcon, ChevronDown } from 'lucide-react'
+import { Mail, Layers as DeckIcon, ChevronDown } from '@/lib/icons'
 import { supabase } from '../../../lib/supabase'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../../../hooks/useRealtimeDecisionsWaiting'
 import { useRealtimeTasks } from '../../../hooks/useRealtimeTasks'

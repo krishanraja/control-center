@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Command } from 'cmdk'
-import { Search as SearchIcon } from 'lucide-react'
+import { Search as SearchIcon } from '@/lib/icons'
 import { supabase, logKrishAction } from '../lib/supabase'
 import { useHaptics } from '../hooks/useHaptics'
 import { setMode, setAmbient, getAmbient } from '../lib/theme'

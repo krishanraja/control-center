@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Check, Plus, Target, X } from 'lucide-react'
+import { Check, Plus, Target, X } from '@/lib/icons'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useGoalCanon, type CanonGoal } from '../../hooks/useGoalCanon'
 import { useQuickCreateListener } from '../../lib/quickCreate'

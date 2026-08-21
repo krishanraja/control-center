@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Sparkles, ThumbsUp, ThumbsDown } from '@/lib/icons'
 import { formatDistanceToNow } from 'date-fns'
 import { useSkillProposals } from '../../hooks/useSkillProposals'
 import { Working } from './Working'

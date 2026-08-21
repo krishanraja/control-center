@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { HelpCircle, Plus } from 'lucide-react'
+import { HelpCircle, Plus } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { BTN_GHOST, BTN_PRIMARY, Chip, EmptyNote, Field, INPUT_CLS, ProductChip, SectionHead, SELECT_CLS } from './atoms'
 import {

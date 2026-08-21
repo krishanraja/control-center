@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Boxes, RefreshCw, ChevronRight } from 'lucide-react'
+import { Boxes, RefreshCw, ChevronRight } from '@/lib/icons'
 import { Skeleton } from './shared/Skeleton'
 import { Working } from './shared/Working'
 

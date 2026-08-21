@@ -1,5 +1,5 @@
 import React from 'react'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink } from '@/lib/icons'
 import { AgentAvatar } from './shared/AgentAvatar'
 import { ageDays, ageTone, humanAge, AGE_TONE_CLASS } from '../lib/ageHelpers'
 import type { TaskRow } from '../hooks/useRealtimeTasks'

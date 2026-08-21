@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Search, Check, X } from 'lucide-react'
+import { Search, Check, X } from '@/lib/icons'
 import { BottomSheet } from '../mobile/BottomSheet'
 
 // A chip group that does not grow without bound.

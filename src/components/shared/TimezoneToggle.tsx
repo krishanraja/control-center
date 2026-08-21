@@ -1,5 +1,5 @@
 import React from 'react'
-import { Globe } from 'lucide-react'
+import { Globe } from '@/lib/icons'
 import { useZone, ZONES } from '../../lib/civilDate'
 import { useHaptics } from '../../hooks/useHaptics'
 
@@ -48,7 +48,7 @@ export function TimezoneToggle({ expanded = true }: { expanded?: boolean }) {
         title={description}
         className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
       >
-        <Globe className="w-4 h-4" strokeWidth={1.8} />
+        <Globe size={16} />
       </button>
     )
   }
@@ -61,7 +61,7 @@ export function TimezoneToggle({ expanded = true }: { expanded?: boolean }) {
       title={auto ? 'Following this device. Every day boundary follows it.' : 'Pinned. Every day boundary follows this.'}
       className="w-full min-h-[44px] flex items-center gap-2 px-2.5 rounded-lg text-white/55 hover:text-white/85 hover:bg-white/[0.06] transition-colors touch-manipulation"
     >
-      <Globe className="w-4 h-4 shrink-0" strokeWidth={1.8} />
+      <Globe size={16} className="shrink-0" />
       <span className="text-label truncate">{label}</span>
       <span className={`ml-auto text-micro shrink-0 ${auto ? 'text-white/25' : 'text-violet-200/60'}`}>{hint}</span>
     </button>

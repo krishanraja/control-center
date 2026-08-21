@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { X, ExternalLink } from 'lucide-react'
+import { X, ExternalLink } from '@/lib/icons'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { StatusPill } from '../shared/StatusPill'
 import { Pressable } from '../shared/Pressable'
@@ -85,7 +85,7 @@ export function DetailSheet({
             aria-label="Close"
             className="flex-shrink-0 w-11 h-11 rounded-full bg-white/5 flex items-center justify-center active:bg-white/10"
           >
-            <X className="w-4 h-4 text-white/70" strokeWidth={2.2} />
+            <X size={16} className="text-white/70" />
           </button>
         </div>
 
@@ -115,7 +115,7 @@ export function DetailSheet({
               className="w-full rounded-2xl py-3.5 text-ui font-medium bg-white/[0.04] text-white/70 active:bg-white/[0.08] flex items-center justify-center gap-2"
             >
               Open in Docs
-              <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+              <ExternalLink size={14} className="opacity-70" />
             </a>
           )}
           {device === 'desktop' && actions.some(a => a.variant === 'primary') && (

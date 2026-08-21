@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { SlidersHorizontal, X } from 'lucide-react'
+import { SlidersHorizontal, X } from '@/lib/icons'
 import { Eyebrow } from '../shared/Eyebrow'
 import { Badge } from '@/components/ui/badge'
 import { BottomSheet } from '../mobile/BottomSheet'

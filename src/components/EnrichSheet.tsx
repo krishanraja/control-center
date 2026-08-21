@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Wand2, ExternalLink, Sparkles } from 'lucide-react'
+import { Wand2, ExternalLink, Sparkles } from '@/lib/icons'
 import { BottomSheet } from './mobile/BottomSheet'
 import { ProcessingOverlay } from './shared/ProcessingOverlay'
 import { useToast } from './shared/Toast'

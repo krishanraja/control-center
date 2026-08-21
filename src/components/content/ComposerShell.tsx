@@ -1,5 +1,5 @@
 import React from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@/lib/icons'
 
 // The composer's chrome, shared by the two things it opens.
 //

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Users, X, Sparkles, Layers } from 'lucide-react'
+import { Users, X, Sparkles, Layers } from '@/lib/icons'
 import { useRealtimeLeads, type LeadSourceType, type LeadRow } from '../../hooks/useRealtimeLeads'
 import { isTestRecord } from '../../lib/recordHygiene'
 import { SwipeCockpit } from '../shared/SwipeCockpit'

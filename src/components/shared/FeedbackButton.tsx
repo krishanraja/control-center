@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ThumbsUp, ThumbsDown } from 'lucide-react'
+import { ThumbsUp, ThumbsDown } from '@/lib/icons'
 import { useToast } from './Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { reasonsFor, defaultReasonFor, surfaceFor, type ServedTable } from '../../lib/servedSurfaces'
@@ -70,7 +70,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
     }
   }
 
-  const size = compact ? 'w-3.5 h-3.5' : 'w-4 h-4'
+  const size = compact ? 14 : 16
   const reasons = reasonsFor(sourceTable)
   const label = surfaceFor(sourceTable)?.label ?? 'item'
 
@@ -86,7 +86,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
           vote === 1 ? 'text-emerald-300' : 'text-white/30 hover:text-white/70'
         } disabled:opacity-60`}
       >
-        <ThumbsUp className={size} strokeWidth={2} />
+        <ThumbsUp size={size} />
       </button>
       <button
         type="button"
@@ -98,7 +98,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
           vote === -1 ? 'text-rose-300' : 'text-white/30 hover:text-white/70'
         } disabled:opacity-60`}
       >
-        <ThumbsDown className={size} strokeWidth={2} />
+        <ThumbsDown size={size} />
       </button>
       {showReasons && (
         <div

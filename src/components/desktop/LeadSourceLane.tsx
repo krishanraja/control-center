@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight } from '@/lib/icons'
 import { LeadCard } from '../LeadCard'
 import type { LeadRow, LeadSourceType } from '../../hooks/useRealtimeLeads'
 

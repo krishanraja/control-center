@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import {
   Sparkles, Check, Target, ArrowLeft, ArrowRight,
   CheckCircle2, Inbox, Plus, X, RotateCcw,
-} from 'lucide-react'
+} from '@/lib/icons'
 import { useAltitudes, type AltitudeId } from '../../hooks/useAltitudes'
 import { useGoalCanon, type CanonGoal } from '../../hooks/useGoalCanon'
 import { useDailyFocus } from '../../hooks/useDailyFocus'

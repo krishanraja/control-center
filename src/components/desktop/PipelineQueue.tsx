@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Check, X, ChevronDown, ChevronUp, Copy } from 'lucide-react'
+import { Check, X, ChevronDown, ChevronUp, Copy } from '@/lib/icons'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { useToast } from '../shared/Toast'

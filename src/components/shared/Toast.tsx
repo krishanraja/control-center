@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react'
-import { CheckCircle2, AlertCircle, Info } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Info } from '@/lib/icons'
 
 interface ToastAction {
   label: string

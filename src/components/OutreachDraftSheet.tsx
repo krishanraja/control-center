@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Mail, Sparkles } from 'lucide-react'
+import { Mail, Sparkles } from '@/lib/icons'
 import { BottomSheet } from './mobile/BottomSheet'
 import { ProcessingOverlay } from './shared/ProcessingOverlay'
 import { useToast } from './shared/Toast'

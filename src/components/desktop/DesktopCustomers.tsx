@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { DollarSign, TrendingUp, AlertTriangle, CheckCircle2, Mail } from 'lucide-react'
+import { DollarSign, TrendingUp, AlertTriangle, CheckCircle2, Mail } from '@/lib/icons'
 import { SplitPane } from '../SplitPane'
 import { CustomerCard } from '../CustomerCard'
 import {

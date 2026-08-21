@@ -1,5 +1,5 @@
 import React from 'react'
-import { X } from 'lucide-react'
+import { X } from '@/lib/icons'
 import { useDeviceClass, useReducedMotion } from './motion'
 import { SHOW_ELAPSED_AFTER_MS } from '../../hooks/useAsyncAction'
 

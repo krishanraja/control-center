@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ThumbsUp, X } from 'lucide-react'
+import { ThumbsUp, X } from '@/lib/icons'
 import { useHaptics } from '../hooks/useHaptics'
 import { useToast } from './shared/Toast'
 

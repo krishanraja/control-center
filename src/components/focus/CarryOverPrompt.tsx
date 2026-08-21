@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight } from '@/lib/icons'
 import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
 
 // Phase 1: when yesterday's daily_focus is not complete, surface what's

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Check, ArrowRight, Sparkles, CheckCircle2, CalendarPlus, PenLine, Send } from 'lucide-react'
+import { Check, ArrowRight, Sparkles, CheckCircle2, CalendarPlus, PenLine, Send } from '@/lib/icons'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { nextBestAction, type NextActionKind } from '../../lib/contentEngine'
 import { useToast } from '../shared/Toast'

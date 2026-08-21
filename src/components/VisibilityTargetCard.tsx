@@ -2,8 +2,8 @@ import React, { useState } from 'react'
 import {
   ExternalLink, Calendar, Users, MapPin, DollarSign, Globe2, Sparkles, Mic, Newspaper, Megaphone,
   Check, X, Wand2,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+} from '@/lib/icons'
+import type { LucideIcon } from '@/lib/icons'
 import { FeedbackButton } from './shared/FeedbackButton'
 import { EnrichSheet, type EnrichTarget } from './EnrichSheet'
 import { useToast } from './shared/Toast'

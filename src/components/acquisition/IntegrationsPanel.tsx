@@ -1,4 +1,4 @@
-import { Plug, Check, Clock, Lock } from 'lucide-react'
+import { Plug, Check, Clock, Lock } from '@/lib/icons'
 import type { IntegrationRow } from '../../hooks/useAcquisition'
 
 /**

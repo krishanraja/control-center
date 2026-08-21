@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { X, Check, AlertTriangle, RefreshCw, Send, Wand2, RotateCcw } from 'lucide-react'
+import { X, Check, AlertTriangle, RefreshCw, Send, Wand2, RotateCcw } from '@/lib/icons'
 import type { SkillData, QualityGateResult } from './types'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import { useToast } from '../shared/Toast'

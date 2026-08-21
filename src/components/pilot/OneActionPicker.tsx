@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@/lib/icons'
 import { ACTION_STARTERS, isOutreachIntent, isPublishIntent, isVaguePublishIntent, validateConcreteness } from '../../lib/pilotConcreteness'
 import {
   buildOne,

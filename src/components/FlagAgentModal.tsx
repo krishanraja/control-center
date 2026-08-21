@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Zap, X } from 'lucide-react'
+import { Zap, X } from '@/lib/icons'
 import { supabase } from '../lib/supabase'
 import { AgentAvatar } from './shared/AgentAvatar'
 import { useToast } from './shared/Toast'

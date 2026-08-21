@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Layers, X } from 'lucide-react'
+import { Layers, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { Modal } from '../shared/Modal'
 import { SkeletonList } from '../shared/Skeleton'

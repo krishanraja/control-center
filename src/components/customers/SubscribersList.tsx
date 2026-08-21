@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Users } from 'lucide-react'
+import { Users } from '@/lib/icons'
 import { formatDistanceToNow } from 'date-fns'
 import {
   useCustomers, PRODUCT_LABEL, PRODUCT_CHIP_TONE,

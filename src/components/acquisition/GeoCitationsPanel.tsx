@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Globe } from 'lucide-react'
+import { Globe } from '@/lib/icons'
 import { supabase } from '../../lib/supabase'
 import { SkeletonList } from '../shared/Skeleton'
 import { useDeferredPending } from '../shared/useDeferredPending'

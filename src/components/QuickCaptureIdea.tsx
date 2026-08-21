@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Sparkles, X } from 'lucide-react'
+import { Sparkles, X } from '@/lib/icons'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import { Modal } from './shared/Modal'

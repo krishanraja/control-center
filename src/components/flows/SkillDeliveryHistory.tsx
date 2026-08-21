@@ -1,7 +1,7 @@
 import React from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { SkeletonList } from '../shared/Skeleton'
-import { CheckCircle2, Clock, Mail, RotateCcw, ExternalLink, Inbox } from 'lucide-react'
+import { CheckCircle2, Clock, Mail, RotateCcw, ExternalLink, Inbox } from '@/lib/icons'
 import type { SkillDelivery } from './types'
 
 interface Props {

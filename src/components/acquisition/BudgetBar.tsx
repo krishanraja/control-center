@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from '@/lib/icons'
 
 /**
  * Budget burn bar — emerald under 75%, amber to 100%, rose at/over. The same

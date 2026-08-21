@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Search, Mic, Square, CornerDownLeft, X } from 'lucide-react'
+import { Search, Mic, Square, CornerDownLeft, X } from '@/lib/icons'
 import { Input } from '@/components/ui/input'
 import { browserCanRecord } from '../shared/VoiceCapture'
 import { Working } from '../shared/Working'

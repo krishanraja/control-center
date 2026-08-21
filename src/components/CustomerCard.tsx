@@ -1,5 +1,5 @@
 import React from 'react'
-import { Mail, ExternalLink, DollarSign } from 'lucide-react'
+import { Mail, ExternalLink, DollarSign } from '@/lib/icons'
 import {
   PRODUCT_LABEL, PRODUCT_ACCENT, KIND_LABEL, KIND_ACCENT,
   type CustomerRow,

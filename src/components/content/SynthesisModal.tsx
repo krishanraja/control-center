@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Sparkles, X, GitMerge } from 'lucide-react'
+import { Sparkles, X, GitMerge } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { Working } from '../shared/Working'

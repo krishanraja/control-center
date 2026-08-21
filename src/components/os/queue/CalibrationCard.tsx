@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { SlidersHorizontal, X, Check } from 'lucide-react'
+import { SlidersHorizontal, X, Check } from '@/lib/icons'
 import { supabase } from '../../../lib/supabase'
 import { useToast } from '../../shared/Toast'
 import { useHaptics } from '../../../hooks/useHaptics'

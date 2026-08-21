@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Flame, Sparkles, Mail, Check, ExternalLink, Target } from 'lucide-react'
+import { Flame, Sparkles, Mail, Check, ExternalLink, Target } from '@/lib/icons'
 import { BottomSheet } from './mobile/BottomSheet'
 import { ContactEditChips } from './shared/ContactEditChips'
 import { useToast } from './shared/Toast'

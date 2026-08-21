@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, ArrowUp, ArrowDown } from 'lucide-react'
+import { Search, ArrowUp, ArrowDown } from '@/lib/icons'
 import { supabase } from '../../lib/supabase'
 import { SkeletonList } from '../shared/Skeleton'
 import { useDeferredPending } from '../shared/useDeferredPending'

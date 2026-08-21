@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Check, X, Workflow as WorkflowIcon, AlertCircle, Wand2 } from 'lucide-react'
+import { Check, X, Workflow as WorkflowIcon, AlertCircle, Wand2 } from '@/lib/icons'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { humanize } from '../shared/tokens'
 import { AgentAvatar } from '../shared/AgentAvatar'

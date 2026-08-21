@@ -1,4 +1,4 @@
-import { FileText } from 'lucide-react'
+import { FileText } from '@/lib/icons'
 import type { ContentAttributionRow } from '../../hooks/useAcquisition'
 
 /**

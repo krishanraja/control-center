@@ -1,5 +1,5 @@
 import React from 'react'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight } from '@/lib/icons'
 import { useCustomerContacts } from '../hooks/useCustomerContacts'
 import { PRODUCT_LABEL } from '../hooks/useCustomers'
 

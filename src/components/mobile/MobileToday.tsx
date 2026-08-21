@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { isToday, isPast, parseISO } from 'date-fns'
-import { Mic } from 'lucide-react'
+import { Mic } from '@/lib/icons'
 import { MobileShell as MobileShellPrim, TabHeader,
   HeaderSubtitleSkeleton, FeedCard, FeedRow } from './primitives'
 import { MobileTabSkeleton } from '../shared/Skeleton'
@@ -414,7 +414,7 @@ export function MobileToday({
                       : 'bg-white/[0.06] border-white/10 text-white/70 active:bg-white/[0.1]'
                   }`}
                 >
-                  <Mic className="w-5 h-5" />
+                  <Mic size={20} />
                 </button>
               )}
               <textarea

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Sparkles, Plus, X, Radio, MessageCircle, Trophy } from 'lucide-react'
+import { Sparkles, Plus, X, Radio, MessageCircle, Trophy } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 

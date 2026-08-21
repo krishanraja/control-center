@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Mic, Megaphone, Calendar, Layers, ChevronRight, Sparkles, Linkedin, Twitter, Globe, Mail, ExternalLink, FileText } from 'lucide-react'
+import { Mic, Megaphone, Calendar, Layers, ChevronRight, Sparkles, Linkedin, Twitter, Globe, Mail, ExternalLink, FileText } from '@/lib/icons'
 import { MobileShell } from './MobileShell'
 import { TabHeader, MobileLoadingScreen } from './primitives'
 import { SkeletonList } from '../shared/Skeleton'

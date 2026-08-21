@@ -1,4 +1,4 @@
-import { RotateCcw, Layers, LogOut } from 'lucide-react'
+import { RotateCcw, Layers, LogOut } from '@/lib/icons'
 
 interface Props {
   /** Headline, e.g. "Clear the pile" / "Handle 1-by-1". */

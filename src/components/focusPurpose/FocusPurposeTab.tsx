@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react'
-import { ChevronRight, X } from 'lucide-react'
+import { ChevronRight, Minus, Plus, X } from '@/lib/icons'
 import { useHaptics } from '../../hooks/useHaptics'
 import { civilYmd } from '../../lib/civilDate'
 import { AskCard } from './AskCard'
@@ -218,7 +218,7 @@ function SectionCard({
           <span className="block text-ui text-ink">{title}</span>
           <span className="block mt-0.5 text-label text-ink-faint">{sub}</span>
         </span>
-        <span aria-hidden className="text-lede leading-none text-ink-faint">{open ? '−' : '+'}</span>
+        <span aria-hidden className="text-ink-faint">{open ? <Minus size={16} /> : <Plus size={16} />}</span>
       </button>
       {open && <div className="mt-4 animate-[pilotIn_260ms_ease-out]">{children}</div>}
     </section>

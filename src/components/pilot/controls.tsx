@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { Mic, Square } from 'lucide-react'
+import { Mic, Square } from '@/lib/icons'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useDictation } from '../../hooks/useDictation'
 

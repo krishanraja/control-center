@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Crown, Cog, Sparkles, Zap, Play, Pencil, Check, X, AlertTriangle, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Crown, Cog, Sparkles, Zap, Play, Pencil, Check, X, AlertTriangle, ThumbsUp, ThumbsDown } from '@/lib/icons'
 import { supabase } from '../../lib/supabase'
 import { SplitPane } from '../SplitPane'
 import { AgentAvatar } from '../shared/AgentAvatar'
@@ -913,7 +913,7 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
               className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-micro font-medium text-white/60 transition-colors"
               title="Edit brief_content directly. Saves to Supabase, render-identity.py writes SKILL.md."
             >
-              <Pencil className="w-3 h-3" /> Edit
+              <Pencil size={12} /> Edit
             </button>
           )}
           {editing && (
@@ -923,7 +923,7 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
                 disabled={saving}
                 className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-micro font-medium text-emerald-300 transition-colors disabled:opacity-50"
               >
-                {saving ? <Working size={12} /> : <Check className="w-3 h-3" />}
+                {saving ? <Working size={12} /> : <Check size={12} />}
                 Save
               </button>
               <button
@@ -931,7 +931,7 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
                 disabled={saving}
                 className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-micro font-medium text-white/60 transition-colors disabled:opacity-50"
               >
-                <X className="w-3 h-3" /> Cancel
+                <X size={12} /> Cancel
               </button>
             </>
           )}
@@ -941,7 +941,7 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
               disabled={syncing}
               className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-micro font-medium text-white/60 transition-colors disabled:opacity-50"
             >
-              {syncing ? <Working size={12} /> : <Cog className="w-3 h-3" />}
+              {syncing ? <Working size={12} /> : <Cog size={12} />}
               {synced ? 'Deployed' : 'Deploy Identity'}
             </button>
           )}

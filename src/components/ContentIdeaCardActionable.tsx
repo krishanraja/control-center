@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Check, ExternalLink, Maximize2, Search, X } from 'lucide-react'
+import { Check, ExternalLink, Maximize2, Search, X } from '@/lib/icons'
 import { humanAge } from '../lib/ageHelpers'
 import { LeadSourcePill } from './LeadSourcePill'
 import { useToast } from './shared/Toast'

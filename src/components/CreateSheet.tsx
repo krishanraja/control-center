@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import {
   Plus, Inbox, Sparkles, Search, ImagePlus, Target, CalendarCheck, ListChecks, Send,
   type LucideIcon,
-} from 'lucide-react'
+} from '@/lib/icons'
 import { BottomSheet } from './mobile/BottomSheet'
 import { IdeaCaptureModal, isInboxEnabled } from './inbox/IdeaCaptureModal'
 import { ContentIdeaModal } from './QuickCaptureIdea'
@@ -11,6 +11,7 @@ import { AddPersonModal } from './network/AddPersonFromImage'
 import { openFocusRitual } from '../lib/focusRitual'
 import { requestCreate } from '../lib/quickCreate'
 import { useHaptics } from '../hooks/useHaptics'
+import { IconTile } from './shared/IconTile'
 
 /**
  * The one create system on a phone.
@@ -97,7 +98,7 @@ export function CreateSheet({ tab }: { tab: string }) {
         className="fixed right-4 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full border border-violet-300/40 bg-violet-500/90 text-[#fff] shadow-2xl transition-colors hover:bg-violet-500"
         style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 92px)' }}
       >
-        <Plus size={22} strokeWidth={2.5} />
+        <Plus size={24} strokeWidth={2.25} />
       </button>
 
       <BottomSheet open={open} onClose={() => setOpen(false)} fullHeight={false} ariaLabel="Create">
@@ -132,9 +133,7 @@ function ActionRow({ action }: { action: CreateAction }) {
       onClick={action.run}
       className="flex w-full items-center gap-3.5 rounded-xl px-2 py-3 text-left transition-colors active:bg-white/[0.06]"
     >
-      <span className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-violet-300/30 bg-violet-500/15 text-violet-200">
-        <Icon size={19} strokeWidth={1.9} />
-      </span>
+      <IconTile icon={Icon} size="lg" tone="accent" />
       <span className="min-w-0">
         <span className="block text-ui font-semibold leading-tight text-white/90">{action.label}</span>
         <span className="mt-0.5 block text-label leading-tight text-white/45">{action.hint}</span>

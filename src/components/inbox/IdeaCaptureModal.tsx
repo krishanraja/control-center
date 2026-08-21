@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Mic, Square, Inbox, X, Send } from 'lucide-react'
+import { Mic, Square, Inbox, X, Send } from '@/lib/icons'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Linkedin, Mail, Flame, UserCircle2 } from 'lucide-react'
+import { Check, Linkedin, Mail, Flame, UserCircle2 } from '@/lib/icons'
 import { humanAge } from '../lib/ageHelpers'
 import { ContactSourcePill, ConsentTierBadge, ventureDisplayName } from './ContactSourcePill'
 import { FeedbackButton } from './shared/FeedbackButton'
@@ -108,7 +108,7 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
             className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors
               ${selected ? 'bg-violet-500 border-violet-500 text-white' : 'border-white/25 hover:border-white/45 text-transparent'}`}
           >
-            <span className="text-micro leading-none">✓</span>
+            <Check size={11} strokeWidth={2.5} aria-hidden />
           </button>
         )}
         <div className="flex-1 min-w-0">

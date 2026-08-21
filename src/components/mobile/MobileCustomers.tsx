@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { Mic } from '@/lib/icons'
 import { MobileShell as MobileShellPrim, TabHeader,
   HeaderSubtitleSkeleton, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
@@ -359,7 +360,7 @@ export function MobileCustomers() {
                   : 'border-sky-400/30 bg-sky-400/10 text-sky-300 active:bg-sky-400/20'
               }`}
             >
-              {dict.listening ? 'Listening... tap to stop' : '🎙 Dictate the summary'}
+              {dict.listening ? 'Listening... tap to stop' : <span className="inline-flex items-center gap-1.5"><Mic size={13} /> Dictate the summary</span>}
             </button>
           )}
 

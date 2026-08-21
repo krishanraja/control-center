@@ -399,6 +399,13 @@ text-emerald-400 /* active */  text-amber-400 /* waiting */
 text-rose-400 /* blocked */    pod-ops/revenue/growth · status-* tokens
 ```
 
+### Iconography
+
+Icons import from `@/lib/icons` (never `lucide-react` directly — CI-guarded): a
+wrapper pinning a constant 1.75px physical stroke and snapping sizes to
+12/14/16/20/24/32. Circled icons use `shared/IconTile` (sm/md/lg,
+neutral/accent). Active nav icons carry `strokeWidth={2.25}`.
+
 ### Typography
 
 ```css

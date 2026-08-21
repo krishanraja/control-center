@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight } from '@/lib/icons'
 import { useFocusFiltered } from '../../hooks/useFocusFiltered'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import type { FocusMode } from '../../hooks/useFocusMode'

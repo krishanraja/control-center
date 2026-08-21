@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle, ArrowLeft, BookOpen, Check, ExternalLink, FileText, Link2, MessageSquare, Paperclip, PenLine, RotateCcw,
   Save, Scissors, Search, Send, ShieldAlert, ShieldCheck, SlidersHorizontal, Sparkles, Trash2, Wand2, X, Gauge,
-} from 'lucide-react'
+} from '@/lib/icons'
 import { RichText, SelectableDraft } from './RichText'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import { SkeletonText, SkeletonDetail } from '../shared/Skeleton'
@@ -651,7 +651,7 @@ function MobileComposerBody({ idea, draft, emDashes, warns, onApplyDraft, onEdit
                     <span className="flex-1 truncate">Adjusting just: “{selection.slice(0, 56)}{selection.length > 56 ? '…' : ''}”</span>
                     <button type="button" onClick={() => setSelection('')} aria-label="Adjust whole draft" className="text-white/45 active:text-white/80"><X size={14} /></button>
                   </div>
-                  <p className="text-micro text-amber-200/50">Anything you tap rewrites only this passage. ✕ to adjust the whole draft.</p>
+                  <p className="text-micro text-amber-200/50">Anything you tap rewrites only this passage. Clear the selection to adjust the whole draft.</p>
                 </div>
               )}
               {/* One-tap publish polish — the absorbed "Make it ready". */}
@@ -983,7 +983,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
               onClick={() => { setChannel(c.value); setMenu(false) }}
               className={`w-full text-left px-3 py-2 text-label hover:bg-white/[0.05] ${channel === c.value ? 'text-violet-200' : 'text-white/80'}`}
             >
-              {channel === c.value ? '✓ ' : ''}{c.label}{c.value === autoChannel ? ' (from lane)' : ''}
+              {channel === c.value ? <Check size={11} className="mr-1 inline-block" strokeWidth={2.5} /> : ''}{c.label}{c.value === autoChannel ? ' (from lane)' : ''}
             </button>
           ))}
           <div className="px-3 py-1.5 text-micro uppercase tracking-wide text-white/35 border-t border-white/[0.07]">
@@ -1003,7 +1003,7 @@ function SaveDraftButton({ idea, draft, onApplyDraft, onSaved, block }: { idea: 
                       : 'border-white/10 text-white/55 hover:bg-white/[0.06]'
                   }`}
                 >
-                  {on ? '✓ ' : ''}{c.label}
+                  {on ? <Check size={11} className="mr-1 inline-block" strokeWidth={2.5} /> : ''}{c.label}
                 </button>
               )
             })}
@@ -1306,7 +1306,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
                     <div key={s.id} className={`rounded-xl border p-2.5 transition-opacity ${state ? 'opacity-45 border-white/[0.06] bg-transparent' : 'border-white/[0.08] bg-white/[0.02]'}`}>
                       <div className="flex items-center gap-1.5 mb-1">
                         <span className={`text-micro px-1.5 py-0.5 rounded border ${SEV_STYLE[s.severity]}`}>{DIM_LABEL[s.dimension] || s.dimension}</span>
-                        {state && <span className="text-micro text-white/40">{state === 'accepted' ? '✓ applied' : 'dismissed'}</span>}
+                        {state && <span className="text-micro text-white/40">{state === 'accepted' ? <span className="inline-flex items-center gap-1"><Check size={10} strokeWidth={2.5} /> applied</span> : 'dismissed'}</span>}
                       </div>
                       {s.quote && <p className="text-micro text-white/40 italic leading-snug mb-1 line-clamp-2">"{s.quote}"</p>}
                       <p className="text-label text-white/80 leading-snug">{s.issue}</p>
@@ -1877,7 +1877,7 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
             <span className="flex-1 truncate">Adjusting just: “{selection.slice(0, 60)}{selection.length > 60 ? '…' : ''}”</span>
             <button type="button" onClick={onClearSelection} title="Adjust the whole draft instead" className="text-white/45 hover:text-white/80"><X size={12} /></button>
           </div>
-          <p className="text-micro text-amber-200/50">Any chip below rewrites only this passage. ✕ to adjust the whole draft.</p>
+          <p className="text-micro text-amber-200/50">Any chip below rewrites only this passage. Clear the selection to adjust the whole draft.</p>
         </div>
       )}
 

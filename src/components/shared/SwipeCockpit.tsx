@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Layers } from 'lucide-react'
+import { Layers } from '@/lib/icons'
 import { useSwipeTriage } from '../../hooks/useSwipeTriage'
 import { SwipeDeck } from './SwipeDeck'
 import { DecisionDetail } from '../DecisionDetail'

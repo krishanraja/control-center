@@ -1,5 +1,5 @@
 import React from 'react'
-import { TrendingUp, TrendingDown, Target } from 'lucide-react'
+import { TrendingUp, TrendingDown, Target } from '@/lib/icons'
 import { useRevenueAttribution } from '../hooks/useRevenueAttribution'
 import { formatMrr } from '../lib/mrrDisplay'
 import { formatCommittedMrr } from '../hooks/useRevenue'

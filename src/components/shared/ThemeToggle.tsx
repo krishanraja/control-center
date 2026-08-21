@@ -1,5 +1,5 @@
 import React from 'react'
-import { Sun, Moon, Monitor, Sparkles } from 'lucide-react'
+import { Sun, Moon, Monitor, Sparkles } from '@/lib/icons'
 import { useTheme, type ThemeMode } from '../../lib/theme'
 import { useHaptics } from '../../hooks/useHaptics'
 
@@ -33,7 +33,7 @@ export function ThemeToggle({ expanded = true }: { expanded?: boolean }) {
         title={`Theme: ${label}`}
         className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
       >
-        <Icon className="w-4 h-4" strokeWidth={1.8} />
+        <Icon size={16} />
       </button>
     )
   }
@@ -46,7 +46,7 @@ export function ThemeToggle({ expanded = true }: { expanded?: boolean }) {
         aria-label={`Theme: ${label}. Tap to change.`}
         className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-label font-medium text-white/60 border border-white/[0.07] hover:text-white/90 hover:bg-white/[0.05] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
       >
-        <Icon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.9} />
+        <Icon size={14} className="flex-shrink-0" />
         <span className="truncate">{label}</span>
       </button>
       <button
@@ -61,7 +61,7 @@ export function ThemeToggle({ expanded = true }: { expanded?: boolean }) {
             : 'border-white/[0.07] text-white/35 hover:text-white/60 hover:bg-white/[0.05]'
         }`}
       >
-        <Sparkles className="w-3.5 h-3.5" strokeWidth={1.9} />
+        <Sparkles size={14} />
       </button>
     </div>
   )

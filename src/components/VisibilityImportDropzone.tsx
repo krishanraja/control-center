@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react'
-import { UploadCloud, FileText, CheckCircle2, Clipboard, AlertCircle } from 'lucide-react'
+import { UploadCloud, FileText, CheckCircle2, Clipboard, AlertCircle } from '@/lib/icons'
 import { supabase } from '../lib/supabase'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'

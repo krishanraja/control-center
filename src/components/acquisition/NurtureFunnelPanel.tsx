@@ -1,4 +1,4 @@
-import { ChevronRight, Filter } from 'lucide-react'
+import { ChevronRight, Filter } from '@/lib/icons'
 import type { AcquisitionLane } from '../../hooks/useAcquisition'
 
 /**

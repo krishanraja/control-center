@@ -11,7 +11,7 @@ import {
   Users,
   Wand2,
   type LucideIcon,
-} from 'lucide-react'
+} from '@/lib/icons'
 import type { LeadSourceType } from '../hooks/useRealtimeLeads'
 import type { IdeaSourceType } from '../hooks/useRealtimeContentIdeas'
 

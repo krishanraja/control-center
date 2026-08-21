@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight } from '@/lib/icons'
 import { GuestCard } from '../GuestCard'
 import type { GuestRow, GuestStatus } from '../../hooks/useRealtimeGuests'
 

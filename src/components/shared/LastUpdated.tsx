@@ -1,5 +1,5 @@
 import React from 'react'
-import { Clock } from 'lucide-react'
+import { Clock } from '@/lib/icons'
 import { formatDistanceToNow } from 'date-fns'
 import { Working } from './Working'
 

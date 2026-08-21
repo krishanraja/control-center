@@ -1,5 +1,5 @@
 import React from 'react'
-import { Target, Sparkles, Flame, Mic } from 'lucide-react'
+import { Target, Sparkles, Flame, Mic } from '@/lib/icons'
 import type { CommitResult } from '../hooks/useSwipeTriage'
 import type { CardLabel, RightIntent } from '../components/shared/SwipeDeck'
 import type { DecisionKind } from '../components/DecisionDetail'

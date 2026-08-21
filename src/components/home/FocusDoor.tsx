@@ -1,5 +1,6 @@
 import React from 'react'
-import { ChevronRight, Compass } from 'lucide-react'
+import { ChevronRight, Compass } from '@/lib/icons'
+import { IconTile } from '../shared/IconTile'
 import { useHaptics } from '../../hooks/useHaptics'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
@@ -27,9 +28,7 @@ export function FocusDoor({ onNavigate, compact = false }: { onNavigate?: Naviga
       onClick={() => { h.select(); onNavigate?.('focus') }}
       className={`group flex w-full items-center rounded-2xl border border-white/[0.08] bg-white/[0.03] text-left transition-colors hover:bg-white/[0.05] active:scale-[0.99] ${compact ? 'gap-2.5 px-3.5 py-2' : 'gap-3 px-4 py-3.5'}`}
     >
-      <span className={`inline-flex flex-shrink-0 items-center justify-center rounded-full border border-white/[0.10] bg-white/[0.04] text-white/70 ${compact ? 'h-7 w-7' : 'h-9 w-9'}`}>
-        <Compass size={compact ? 14 : 16} aria-hidden />
-      </span>
+      <IconTile icon={Compass} size={compact ? 'sm' : 'md'} />
       {compact ? (
         // One line on a phone: the door must not out-weigh the canon above it.
         <span className="flex min-w-0 flex-1 items-baseline gap-2">

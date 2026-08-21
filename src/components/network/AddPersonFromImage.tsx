@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ImagePlus, ClipboardPaste, AlertTriangle, CheckCircle2, UserPlus, Sparkles, X } from 'lucide-react'
+import { ImagePlus, ClipboardPaste, AlertTriangle, CheckCircle2, UserPlus, Sparkles, X } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'

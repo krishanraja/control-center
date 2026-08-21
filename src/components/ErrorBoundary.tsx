@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { AlertTriangle, RefreshCw } from '@/lib/icons'
 
 interface Props {
   children: React.ReactNode
@@ -30,7 +30,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       return (
         <div className="flex flex-col items-center justify-center py-16 px-6 text-center gap-4">
           <div className="w-10 h-10 rounded-full bg-rose-500/10 border border-rose-500/25 flex items-center justify-center">
-            <AlertTriangle className="w-5 h-5 text-rose-400" />
+            <AlertTriangle size={20} className="text-rose-400" />
           </div>
           <div>
             <p className="text-body font-semibold text-white/70 mb-1">

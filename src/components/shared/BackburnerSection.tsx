@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronRight, ArchiveRestore } from 'lucide-react'
+import { ChevronRight, ArchiveRestore } from '@/lib/icons'
 import { useToast } from './Toast'
 import { useHaptics } from '../../hooks/useHaptics'
 import { Working } from './Working'

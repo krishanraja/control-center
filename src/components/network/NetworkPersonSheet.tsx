@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   Mail, Linkedin, Phone, Instagram, AtSign, Copy, Check, ExternalLink,
   AlertTriangle, MapPin,
-} from 'lucide-react'
+} from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
 import { BottomSheet } from '../mobile/BottomSheet'
 import { useToast } from '../shared/Toast'

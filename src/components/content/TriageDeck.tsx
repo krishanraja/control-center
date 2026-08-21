@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react'
-import { X, ChevronRight, Maximize2, RotateCcw, CheckCircle2, Layers, LogOut } from 'lucide-react'
+import { X, ChevronRight, Maximize2, RotateCcw, CheckCircle2, Layers, LogOut } from '@/lib/icons'
 import { useCardDeck, type Dir } from '../../hooks/useCardDeck'
 import type { useContentTriage } from '../../hooks/useContentTriage'
 import { TriageCard } from './TriageCard'

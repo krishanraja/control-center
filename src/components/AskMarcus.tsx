@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Send, Sparkles } from 'lucide-react'
+import { Send, Sparkles } from '@/lib/icons'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import { streamText } from '../lib/streamText'

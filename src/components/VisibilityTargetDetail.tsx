@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { ExternalLink, Clock, MapPin, Sparkles, AlertTriangle, Copy, CheckCircle2 } from 'lucide-react'
+import { ExternalLink, Clock, MapPin, Sparkles, AlertTriangle, Copy, CheckCircle2 } from '@/lib/icons'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { supabase } from '../lib/supabase'
 

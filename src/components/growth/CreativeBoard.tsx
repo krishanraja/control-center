@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Film, Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Film, Plus, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { BTN_GHOST, BTN_PRIMARY, Chip, EmptyNote, Field, INPUT_CLS, ProductChip, SectionHead } from './atoms'
 import {

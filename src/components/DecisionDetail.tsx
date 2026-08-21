@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { ExternalLink, X } from 'lucide-react'
+import { ExternalLink, X } from '@/lib/icons'
 import { supabase } from '../lib/supabase'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../hooks/useRealtimeDecisionsWaiting'
 import { VisibilityTargetDetail } from './VisibilityTargetDetail'

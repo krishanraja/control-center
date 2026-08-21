@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Brain, Radio, Zap, ExternalLink, Target } from 'lucide-react'
+import { Brain, Radio, Zap, ExternalLink, Target } from '@/lib/icons'
 import { supabase } from '../../lib/supabase'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { AskMarcus } from '../AskMarcus'

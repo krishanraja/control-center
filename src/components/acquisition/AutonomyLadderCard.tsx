@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Check, ShieldCheck, X } from 'lucide-react'
+import { Check, ShieldCheck, X } from '@/lib/icons'
 import type { AcquisitionLane } from '../../hooks/useAcquisition'
 import { laneAction, type LaneCriteria, type LaneDetail } from '../../hooks/useLaneDetail'
 import { useToast } from '../shared/Toast'

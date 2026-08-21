@@ -1,5 +1,5 @@
 import React from 'react'
-import { Sun } from 'lucide-react'
+import { Sun } from '@/lib/icons'
 import { useHomeIntelligence } from '../../hooks/useHomeIntelligence'
 
 // CONTEXT phase of the daily spine. A compact three-line frame drawn from

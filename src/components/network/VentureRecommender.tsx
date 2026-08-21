@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Sparkles, ArrowRight } from 'lucide-react'
+import { Sparkles, ArrowRight } from '@/lib/icons'
 import { Eyebrow } from '../shared/Eyebrow'
 import { VENTURES } from './NetworkFilters'
 

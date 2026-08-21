@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Mic, Calendar, Flame, AlertOctagon, Sparkles, ArrowUpRight } from 'lucide-react'
+import { Mic, Calendar, Flame, AlertOctagon, Sparkles, ArrowUpRight } from '@/lib/icons'
 import { useCustomerContacts, type CouncilEntry } from '../hooks/useCustomerContacts'
 import { PRODUCT_LABEL } from '../hooks/useCustomers'
 import { useToast } from './shared/Toast'

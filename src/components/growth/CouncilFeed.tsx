@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Gavel } from 'lucide-react'
+import { Gavel } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { BTN_GHOST, BTN_PRIMARY, Chip, EmptyNote, INPUT_CLS, ProductChip, SectionHead } from './atoms'
 import { asList, asPairs, dayLabel, shortDate, type CouncilReviewRow } from '../../lib/growth'

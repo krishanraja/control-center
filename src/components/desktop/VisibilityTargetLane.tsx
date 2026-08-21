@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight } from '@/lib/icons'
 import { VisibilityTargetCard } from '../VisibilityTargetCard'
 import type { VisibilityTargetRow, VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'
 

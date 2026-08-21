@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { X } from '@/lib/icons'
 import { contentV2Api, useShiftEvidence, type useContentV2 } from '../../hooks/useContentV2'
 import { monthLabel, shiftVerdict, VERDICT_LABEL, type ShiftRow } from '../../lib/contentV2'
 import { SkeletonText, SkeletonList } from '../shared/Skeleton'
@@ -81,7 +82,7 @@ function Dossier({ shift, v2, onClose }: {
           <p className="text-label text-white/55 mt-1 max-w-xl leading-relaxed">{shift.summary}</p>
           <p className="text-label text-emerald-200/80 mt-2 max-w-xl leading-relaxed"><span className="font-semibold">For your org:</span> {shift.implication}</p>
         </div>
-        <button onClick={onClose} className="text-white/40 hover:text-white/80 text-lg leading-none px-1">×</button>
+        <button onClick={onClose} aria-label="Close" className="px-1 text-white/40 hover:text-white/80"><X size={16} /></button>
       </div>
 
       <div className="mt-4 max-h-64 overflow-y-auto pr-1">

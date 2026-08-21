@@ -1,4 +1,4 @@
-import { Linkedin, Search, Youtube } from 'lucide-react'
+import { Linkedin, Search, Youtube } from '@/lib/icons'
 import type { QuickLink } from '../components/shared/QuickLinkRow'
 
 // Scouted guests usually have no stored profile URLs, but the user still needs to

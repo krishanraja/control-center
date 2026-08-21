@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Sun, AlertOctagon, CheckCircle2, ChevronDown } from 'lucide-react'
+import { Sun, AlertOctagon, CheckCircle2, ChevronDown } from '@/lib/icons'
 import { useHomeIntelligence } from '../hooks/useHomeIntelligence'
 
 interface Props {

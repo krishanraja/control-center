@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ExternalLink, Linkedin, Mail, X, CheckCircle2, Mic, Twitter, FileText } from 'lucide-react'
+import { ExternalLink, Linkedin, Mail, X, CheckCircle2, Mic, Twitter, FileText } from '@/lib/icons'
 import { humanAge } from '../lib/ageHelpers'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'

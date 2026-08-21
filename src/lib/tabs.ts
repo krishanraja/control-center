@@ -3,7 +3,7 @@ import {
   Users, GitBranch, Brain, Activity, Workflow, Zap, Server,
   HeartHandshake, Rocket, Compass,
   type LucideIcon,
-} from 'lucide-react'
+} from '@/lib/icons'
 import { isSimplifiedIA } from './iaV3'
 
 export interface TabDef {

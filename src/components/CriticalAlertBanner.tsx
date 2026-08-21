@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from '@/lib/icons'
 import { useCriticalAlerts } from '../hooks/useCriticalAlerts'
 import { useFleetLiveness } from '../hooks/useFleetLiveness'
 import { useMoodSource } from './shared/AmbientField'

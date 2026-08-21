@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react'
-import { Mic, Square } from 'lucide-react'
+import { Mic, Square } from '@/lib/icons'
 import { Working } from './Working'
 
 // Shared mic capture. Records audio and POSTs the blob to `endpoint`, then hands

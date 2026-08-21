@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { History, Wand2, X } from 'lucide-react'
+import { Check, History, Mic, StickyNote, Wand2, X } from '@/lib/icons'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
@@ -545,7 +545,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
       banner={error ? (
         <div className="mx-4 sm:mx-6 mt-3 rounded-lg bg-red-400/10 border border-red-400/25 text-rose-200 text-label px-3 py-2 flex justify-between gap-3 flex-shrink-0">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="opacity-70">×</button>
+          <button onClick={() => setError(null)} aria-label="Dismiss" className="opacity-70 hover:opacity-100"><X size={14} /></button>
         </div>
       ) : null}
     >
@@ -816,7 +816,9 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                 listening ? 'border-red-400/40 bg-red-400/15 text-rose-200' : 'border-sky-400/30 bg-sky-400/10 text-sky-200 hover:bg-sky-400/20'
               }`}
             >
-              {listening ? (narrow ? 'Tap to stop' : 'Listening... tap to stop') : (narrow ? '🎙 Cleo' : '🎙 Tell Cleo')}
+              {listening
+                ? (narrow ? 'Tap to stop' : 'Listening... tap to stop')
+                : <span className="inline-flex items-center gap-1.5"><Mic size={12} /> {narrow ? 'Cleo' : 'Tell Cleo'}</span>}
             </button>
             {notes.length > 0 ? (
               <span className="relative">
@@ -825,7 +827,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                   title={`${notes.length} standing note${notes.length === 1 ? '' : 's'} Cleo applies to every brief`}
                   className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-label font-semibold text-white/55 hover:text-white/85 hover:bg-white/[0.07]"
                 >
-                  💭 {narrow ? notes.length : `Cleo remembers · ${notes.length}`}
+                  <span className="inline-flex items-center gap-1.5"><StickyNote size={12} /> {narrow ? notes.length : `Cleo remembers · ${notes.length}`}</span>
                 </button>
                 {notesOpen ? (
                   <div className="absolute bottom-full mb-2 left-0 z-20 w-72 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-base shadow-xl p-2.5">
@@ -864,7 +866,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                 >
                   Remember
                 </button>
-                <button onClick={() => setCleoNote('')} className="text-white/35">×</button>
+                <button onClick={() => setCleoNote('')} aria-label="Clear the note" className="text-white/35 hover:text-white/70"><X size={13} /></button>
               </span>
             ) : null}
           </div>
@@ -895,7 +897,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                             onClick={() => toggleSection(d.key)}
                             className={`w-4 h-4 rounded border inline-flex items-center justify-center text-micro flex-shrink-0 ${kept ? 'bg-emerald-400 border-emerald-400 text-emerald-950 font-bold' : 'border-white/25'}`}
                           >
-                            {kept ? '✓' : ''}
+                            {kept ? <Check size={11} strokeWidth={2.5} /> : ''}
                           </span>
                           <span className="text-micro font-semibold text-white/70">
                             {d.heading || 'Intro'} <span className="text-white/35 font-normal">· {d.status}</span>
@@ -979,7 +981,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                         aria-hidden
                         className={`w-4 h-4 rounded border inline-flex items-center justify-center text-micro peer-focus-visible:ring-1 peer-focus-visible:ring-emerald-300/70 ${on ? 'bg-emerald-400 border-emerald-400 text-emerald-950 font-bold' : 'border-white/25'}`}
                       >
-                        {on ? '✓' : ''}
+                        {on ? <Check size={11} strokeWidth={2.5} /> : ''}
                       </span>
                       {f.label}
                     </label>

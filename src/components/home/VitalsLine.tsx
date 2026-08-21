@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight } from '@/lib/icons'
 import { useRevenueAttribution } from '../../hooks/useRevenueAttribution'
 import { useShipSummary } from '../../hooks/usePilot'
 import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
