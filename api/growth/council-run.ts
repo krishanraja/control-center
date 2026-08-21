@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
+import { notifyOps } from '../_alert.js'
 import { callClaude, robustJson, VOICE_GUARDRAILS } from '../_content.js'
 import { mondayOf } from '../_growth.js'
 
@@ -385,23 +386,6 @@ async function writeReview(e: Evidence): Promise<{ findings: Record<string, stri
   return { findings, kill_list: list(parsed.kill_list, 3), double_down: list(parsed.double_down, 4) }
 }
 
-async function notifyTelegram(text: string): Promise<{ sent: boolean; error?: string }> {
-  const token = process.env.TELEGRAM_APPROVALS_BOT_TOKEN
-  const chatId = process.env.TELEGRAM_APPROVALS_CHAT_ID
-  if (!token || !chatId) return { sent: false, error: 'TELEGRAM_APPROVALS_BOT_TOKEN / TELEGRAM_APPROVALS_CHAT_ID not configured' }
-  try {
-    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
-    })
-    if (!r.ok) return { sent: false, error: `telegram_${r.status}: ${(await r.text().catch(() => '')).slice(0, 160)}` }
-    return { sent: true }
-  } catch (err: any) {
-    return { sent: false, error: String(err?.message || err) }
-  }
-}
-
 async function auditLog(display_message: string, details: unknown) {
   const { error } = await supabase.from('audit_log').insert({
     event_type: 'growth_council',
@@ -504,7 +488,7 @@ async function runCouncil(dryRun: boolean, weekStartOverride?: string) {
     '',
     'Rule on them: https://controlcenter.krishraja.com (Growth tab, Council feed)',
   ].join('\n')
-  const telegram = await notifyTelegram(summary)
+  const telegram = await notifyOps(summary)
 
   await auditLog(`Growth council: ${written} reviews written for week of ${weekStart}.`, { week_start: weekStart, outcomes, telegram })
 

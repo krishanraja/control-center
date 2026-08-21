@@ -34,3 +34,10 @@ jobs:
       # vocabulary, the one surface set, and that anything you can refuse can
       # also tell you why it was served.
       - run: npx tsx scripts/check-served-surfaces.mts
+      # And again, for the enrichment path: every provider helper in _enrich.ts
+      # returns '' on failure, so a run where PDL was out of credits still wrote
+      # enrichment_status='enriched' and — carrying a dossier — became
+      # permanently ineligible for retry. "Do not mark a record enriched when a
+      # provider was blocked" is a control-flow property, not a type, so it is
+      # checked here.
+      - run: npx tsx scripts/check-enrichment-honesty.mts
