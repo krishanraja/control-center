@@ -185,7 +185,7 @@ export function MobileFlows() {
               title={g.workflow_name}
               detail={g.agent_id ? `Owner: ${g.agent_id}` : undefined}
               trailing={
-                <span className="text-[18px] font-bold tabular-nums text-red-300">
+                <span className="text-title font-bold tabular-nums text-red-300">
                   {g.errorCount}/{g.runCount}
                 </span>
               }
@@ -204,13 +204,13 @@ export function MobileFlows() {
               title={g.workflow_name}
               detail={g.agent_id ? `Owner: ${g.agent_id}` : undefined}
               trailing={
-                <span className="text-[14px] text-white/35 tabular-nums">{humanAgo(g.lastRun)}</span>
+                <span className="text-ui text-white/35 tabular-nums">{humanAgo(g.lastRun)}</span>
               }
               onClick={() => { h.select(); setOpenFlowId(g.workflow_id) }}
             />
           ))}
           {healthy.length > 12 && (
-            <div className="px-7 py-4 text-[14px] text-white/35 text-center">
+            <div className="px-7 py-4 text-ui text-white/35 text-center">
               +{healthy.length - 12} more
             </div>
           )}

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Mic, Square, Inbox, X, Send } from 'lucide-react'
+import { Mic, Square, Inbox, X, Send } from '@/lib/icons'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'
@@ -123,7 +123,7 @@ export function IdeaCaptureModal({ open, onClose, source = 'control_center' }: P
         <header className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
           <div className="flex items-center gap-2">
             <Inbox size={14} className="text-violet-300" />
-            <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-violet-200">Drop a task</span>
+            <span className="text-label font-semibold uppercase tracking-[0.14em] text-violet-200">Drop a task</span>
           </div>
           <button type="button" onClick={onClose} className="text-white/40 hover:text-white/85" aria-label="Close">
             <X size={14} />
@@ -137,7 +137,7 @@ export function IdeaCaptureModal({ open, onClose, source = 'control_center' }: P
             onKeyDown={onKeyDown}
             placeholder="Anything on your mind. Sonnet will figure out where it belongs and which agent owns it."
             rows={4}
-            className="w-full bg-black/30 border border-white/[0.08] rounded-md px-3 py-2 text-[14px] text-white placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none resize-y"
+            className="w-full bg-black/30 border border-white/[0.08] rounded-md px-3 py-2 text-ui text-white placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none resize-y"
           />
           <div className="mt-3 flex items-center gap-2">
             {canRecord && (
@@ -155,12 +155,12 @@ export function IdeaCaptureModal({ open, onClose, source = 'control_center' }: P
                 {transcribing ? <Working size={13} /> : (recording ? <Square size={12} /> : <Mic size={13} />)}
               </button>
             )}
-            <span className="text-[10px] text-white/35 hidden sm:inline ml-auto">⌘↵ to drop</span>
+            <span className="text-micro text-white/35 hidden sm:inline ml-auto">⌘↵ to drop</span>
             <button
               type="button"
               onClick={submit}
               disabled={!text.trim() || submitting}
-              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-violet-100 bg-violet-500/25 hover:bg-violet-500/40 border border-violet-400/40 rounded-md px-3 py-2 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 text-label font-semibold text-violet-100 bg-violet-500/25 hover:bg-violet-500/40 border border-violet-400/40 rounded-md px-3 py-2 disabled:opacity-50"
             >
               {submitting ? <Working size={12} /> : <Send size={12} />}
               {submitting ? 'Dropping…' : 'Drop in'}

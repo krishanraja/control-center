@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow, isToday, isPast, parseISO } from 'date-fns'
-import { ExternalLink, Archive, CalendarClock, ChevronRight, MoreHorizontal, ThumbsUp, Undo2 } from 'lucide-react'
+import { ExternalLink, Archive, CalendarClock, ChevronRight, MoreHorizontal, ThumbsUp, Undo2 } from '@/lib/icons'
 import { useRealtimeTasks, TaskRow } from '../../hooks/useRealtimeTasks'
 import { InlineActions } from '../InlineActions'
 import { SplitPane } from '../SplitPane'
@@ -218,8 +218,8 @@ export function DesktopToday({
     <div className="space-y-4 pr-2">
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Today</h1>
-          <p className="text-xs md:text-[13px] text-white/50 mt-0.5">Every ruling the agents are waiting on, in one queue. New inbound proposals live in Triage.</p>
+          <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight">Today</h1>
+          <p className="text-xs md:text-body text-white/50 mt-0.5">Every ruling the agents are waiting on, in one queue. New inbound proposals live in Triage.</p>
         </div>
         {isFocusModeEnabled() && calibrated && (
           <FocusModeToggle mode={mode} onChange={setMode} />
@@ -251,10 +251,10 @@ export function DesktopToday({
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-amber-400">The day</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded border border-amber-400/25 bg-white/[0.03]">{items.length}</span>
+                  <span className="text-micro font-bold uppercase tracking-widest text-amber-400">The day</span>
+                  <span className="text-micro px-1.5 py-0.5 rounded border border-amber-400/25 bg-white/[0.03]">{items.length}</span>
                 </div>
-                <span className="text-[11px] text-white/40 tabular-nums">
+                <span className="text-micro text-white/40 tabular-nums">
                   {decided} of {items.length + decided} decided · about {minutesLeft(items.length)} min left
                 </span>
               </div>
@@ -274,7 +274,7 @@ export function DesktopToday({
           )}
 
           {today.carried.length > 0 && (
-            <p className="text-[12px] text-white/40 px-1">
+            <p className="text-label text-white/40 px-1">
               Agents are carrying {today.carried.length} {today.carried.length === 1 ? 'task' : 'tasks'} themselves; none need you.
             </p>
           )}
@@ -304,7 +304,7 @@ export function DesktopToday({
     ? <DecisionDetail key={decision} decision={decision} onClose={onClearDecision} actionsEnabled />
     : selected
       ? <TodayDetail key={selected.id} task={selected} onActioned={() => selectNextAfter(selected.id)} />
-      : <div className="h-full flex items-center justify-center text-[13px] text-white/30">Select an item from your day</div>
+      : <div className="h-full flex items-center justify-center text-body text-white/30">Select an item from your day</div>
 
   const onBack = () => {
     if (decision) onClearDecision?.()
@@ -328,7 +328,7 @@ function QueueRow({ task, selected, busy, onClick, onVerb }: {
   const [note, setNote] = useState('')
   const agentName = task.agent || task.owner || 'system'
   const waiting = waitingDaysLabel(task.updated_at)
-  const verbCls = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all disabled:opacity-40'
+  const verbCls = 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-micro font-medium border transition-all disabled:opacity-40'
 
   return (
     <div
@@ -346,14 +346,14 @@ function QueueRow({ task, selected, busy, onClick, onVerb }: {
         <AgentAvatar agent={agentName} size="sm" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 overflow-hidden">
-            <p className="text-[13px] text-white font-medium leading-snug truncate">{task.title}</p>
+            <p className="text-body text-white font-medium leading-snug truncate">{task.title}</p>
             <span onClick={e => e.stopPropagation()} className="shrink-0">
               <WhyBadge table="tasks" row={task} />
             </span>
-            {isDueNow(task) && <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium uppercase tracking-wide flex-shrink-0">Due</span>}
+            {isDueNow(task) && <span className="text-micro px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium uppercase tracking-wide flex-shrink-0">Due</span>}
           </div>
-          {task.next_step && <p className="text-[11px] text-white/45 mt-0.5 line-clamp-1">{task.next_step}</p>}
-          <div className="flex items-center gap-1.5 mt-1 text-[10px] text-white/40">
+          {task.next_step && <p className="text-micro text-white/45 mt-0.5 line-clamp-1">{task.next_step}</p>}
+          <div className="flex items-center gap-1.5 mt-1 text-micro text-white/40">
             <span className="text-white/55 capitalize">{agentName}</span>
             {waiting && <span>· {waiting}</span>}
             {task.lever_score != null && <span>· lever {task.lever_score}/10</span>}
@@ -380,19 +380,19 @@ function QueueRow({ task, selected, busy, onClick, onVerb }: {
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setPanel(null)} />
                   <div className="absolute left-0 top-full mt-1 z-40 w-72 rounded-lg border border-white/10 bg-base shadow-xl p-3 space-y-2">
-                    <p className="text-[10px] uppercase tracking-widest text-white/35">Send back to {agentName} with a note</p>
+                    <p className="text-micro uppercase tracking-widest text-white/35">Send back to {agentName} with a note</p>
                     <textarea
                       autoFocus
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
                       rows={3}
                       placeholder={`Tell ${agentName} what to change...`}
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-2 text-[12px] text-white/80 focus:outline-none focus:border-violet-500/40 placeholder-white/20"
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-2 text-label text-white/80 focus:outline-none focus:border-violet-500/40 placeholder-white/20"
                     />
                     <button
                       disabled={busy || !note.trim()}
                       onClick={() => { onVerb('send_back', { notes: note.trim() }); setPanel(null); setNote('') }}
-                      className="w-full px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border border-amber-500/25 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 disabled:opacity-40"
+                      className="w-full px-2.5 py-1.5 rounded-lg text-micro font-semibold border border-amber-500/25 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 disabled:opacity-40"
                     >
                       Send back
                     </button>
@@ -418,7 +418,7 @@ function QueueRow({ task, selected, busy, onClick, onVerb }: {
                         key={c.key}
                         disabled={busy}
                         onClick={() => { onVerb('defer', { due_date: deferDateISO(c.key) }); setPanel(null) }}
-                        className="w-full text-left px-3 py-2 text-[12px] text-white/75 hover:bg-white/[0.06] disabled:opacity-40"
+                        className="w-full text-left px-3 py-2 text-label text-white/75 hover:bg-white/[0.06] disabled:opacity-40"
                       >
                         {c.label}
                       </button>
@@ -448,10 +448,10 @@ function DayRow({ task, selected, onClick }: { task: TaskRow; selected: boolean;
         <AgentAvatar agent={task.agent || task.owner || 'system'} size="sm" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 overflow-hidden">
-            <p className="text-[13px] text-white font-medium leading-snug truncate">{task.title}</p>
-            {!task.weekly_goal_id && <span className="ml-2 text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium uppercase tracking-wide flex-shrink-0">Drift</span>}
+            <p className="text-body text-white font-medium leading-snug truncate">{task.title}</p>
+            {!task.weekly_goal_id && <span className="ml-2 text-micro px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium uppercase tracking-wide flex-shrink-0">Drift</span>}
           </div>
-          {task.next_step && <p className="text-[11px] text-white/45 mt-0.5 line-clamp-1">{task.next_step}</p>}
+          {task.next_step && <p className="text-micro text-white/45 mt-0.5 line-clamp-1">{task.next_step}</p>}
         </div>
       </div>
     </button>
@@ -501,23 +501,23 @@ function StaleDisclosure({
           className={`text-white/40 transition-transform ${open ? 'rotate-90' : ''}`}
         />
         <Archive size={11} className="text-white/35" />
-        <span className="text-[11px] font-semibold text-white/55 uppercase tracking-[0.14em]">
+        <span className="text-micro font-semibold text-white/55 uppercase tracking-[0.14em]">
           Stale ({tasks.length})
         </span>
-        <span className="text-[10px] text-white/35 ml-1">no progress in {STALE_DAYS}+ days</span>
+        <span className="text-micro text-white/35 ml-1">no progress in {STALE_DAYS}+ days</span>
         {open && (
           <span className="ml-auto flex items-center gap-1.5">
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); snoozeAll() }}
-              className="px-2 py-0.5 rounded-md text-[10px] font-medium border border-white/10 text-white/55 hover:bg-white/[0.06] transition-colors"
+              className="px-2 py-0.5 rounded-md text-micro font-medium border border-white/10 text-white/55 hover:bg-white/[0.06] transition-colors"
             >
               Snooze 30d
             </button>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); dismissAll() }}
-              className="px-2 py-0.5 rounded-md text-[10px] font-medium border border-rose-500/20 text-rose-300 hover:bg-rose-500/10 transition-colors"
+              className="px-2 py-0.5 rounded-md text-micro font-medium border border-rose-500/20 text-rose-300 hover:bg-rose-500/10 transition-colors"
             >
               Dismiss all
             </button>
@@ -536,7 +536,7 @@ function StaleDisclosure({
             />
           ))}
           {tasks.length > 30 && (
-            <div className="px-3 py-2 text-[10px] text-white/35 text-center">
+            <div className="px-3 py-2 text-micro text-white/35 text-center">
               +{tasks.length - 30} more (collapse or open Plans for full triage)
             </div>
           )}
@@ -595,8 +595,8 @@ function TodayDetail({ task, onActioned }: { task: TaskRow; onActioned?: () => v
   return (
     <div className="space-y-5 pb-6">
       <div>
-        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white leading-tight tracking-tight">{task.title}</h1>
-        <div className="flex items-center gap-2 mt-2 text-[11px] text-white/45">
+        <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white leading-tight tracking-tight">{task.title}</h1>
+        <div className="flex items-center gap-2 mt-2 text-micro text-white/45">
           <AgentAvatar agent={agentName} size="sm" />
           <span className="text-white/70">{agentName}</span>
           {task.updated_at && <span>· {formatDistanceToNow(new Date(task.updated_at), { addSuffix: true })}</span>}
@@ -605,14 +605,14 @@ function TodayDetail({ task, onActioned }: { task: TaskRow; onActioned?: () => v
 
       {hasWhy && (
         <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
-          <p className="text-[10px] uppercase tracking-widest text-white/35">Why {agentName} flagged this</p>
+          <p className="text-micro uppercase tracking-widest text-white/35">Why {agentName} flagged this</p>
           {task.description && (
-            <p className="text-[13px] text-white/75 leading-relaxed whitespace-pre-wrap">{task.description}</p>
+            <p className="text-body text-white/75 leading-relaxed whitespace-pre-wrap">{task.description}</p>
           )}
           {task.evidence && (
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-white/30 mb-1">Evidence</p>
-              <p className="text-[12px] text-white/60 leading-relaxed whitespace-pre-wrap">{task.evidence}</p>
+              <p className="text-micro uppercase tracking-widest text-white/30 mb-1">Evidence</p>
+              <p className="text-label text-white/60 leading-relaxed whitespace-pre-wrap">{task.evidence}</p>
             </div>
           )}
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -623,7 +623,7 @@ function TodayDetail({ task, onActioned }: { task: TaskRow; onActioned?: () => v
           </div>
           {task.link_secondary && (
             <a href={task.link_secondary} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[12px] text-violet-300 hover:text-violet-200">
+              className="inline-flex items-center gap-1.5 text-label text-violet-300 hover:text-violet-200">
               <ExternalLink size={12} />
               Source
             </a>
@@ -633,28 +633,28 @@ function TodayDetail({ task, onActioned }: { task: TaskRow; onActioned?: () => v
 
       {task.next_step && (
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-white/35 mb-1">Next Step</p>
-          <p className="text-[13px] text-white/75 leading-relaxed">{task.next_step}</p>
+          <p className="text-micro uppercase tracking-widest text-white/35 mb-1">Next Step</p>
+          <p className="text-body text-white/75 leading-relaxed">{task.next_step}</p>
         </div>
       )}
 
       {task.link_primary && (
         <a href={task.link_primary} target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-violet-500/25 bg-violet-500/[0.06] text-violet-300 hover:bg-violet-500/10 text-[13px] font-medium transition-colors w-fit">
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-violet-500/25 bg-violet-500/[0.06] text-violet-300 hover:bg-violet-500/10 text-body font-medium transition-colors w-fit">
           <ExternalLink size={14} />
           Open Document
         </a>
       )}
 
       <div>
-        <p className="text-[10px] uppercase tracking-widest text-white/35 mb-1">Your Notes</p>
+        <p className="text-micro uppercase tracking-widest text-white/35 mb-1">Your Notes</p>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           onBlur={saveNotes}
           rows={3}
           placeholder="Thoughts, decisions, context..."
-          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[13px] text-white/80 focus:outline-none focus:border-violet-500/40 placeholder-white/20"
+          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-body text-white/80 focus:outline-none focus:border-violet-500/40 placeholder-white/20"
         />
       </div>
 
@@ -664,7 +664,7 @@ function TodayDetail({ task, onActioned }: { task: TaskRow; onActioned?: () => v
           <button
             onClick={() => setMoreOpen(o => !o)}
             disabled={busy}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 text-white/60 hover:bg-white/[0.06] text-[11px] font-medium disabled:opacity-40"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 text-white/60 hover:bg-white/[0.06] text-micro font-medium disabled:opacity-40"
           >
             <MoreHorizontal size={11} />
             More
@@ -678,7 +678,7 @@ function TodayDetail({ task, onActioned }: { task: TaskRow; onActioned?: () => v
                     key={item.label}
                     onClick={item.run}
                     disabled={busy}
-                    className={`w-full text-left px-3 py-2 text-[12px] disabled:opacity-40 hover:bg-white/[0.06] ${
+                    className={`w-full text-left px-3 py-2 text-label disabled:opacity-40 hover:bg-white/[0.06] ${
                       item.danger ? 'text-rose-300' : 'text-white/75'
                     }`}
                   >
@@ -696,7 +696,7 @@ function TodayDetail({ task, onActioned }: { task: TaskRow; onActioned?: () => v
 
 function WhyChip({ label }: { label: string }) {
   return (
-    <span className="text-[10px] px-1.5 py-0.5 rounded border border-white/10 bg-white/[0.03] text-white/55 capitalize">
+    <span className="text-micro px-1.5 py-0.5 rounded border border-white/10 bg-white/[0.03] text-white/55 capitalize">
       {label}
     </span>
   )

@@ -3,6 +3,7 @@ import { GoalLadder } from '../goals/GoalLadder'
 import { TodayList } from '../home/TodayList'
 import { VitalsLine } from '../home/VitalsLine'
 import { CanonCta } from '../home/CanonCta'
+import { FocusDoor } from '../home/FocusDoor'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DueTestsCard } from '../pilot/DueTestsCard'
 import { Logomark } from './Logomark'
@@ -55,11 +56,25 @@ export function MobileHome({ onNavigate }: {
         <DueTestsCard variant="mobile" />
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col gap-3 pt-1.5">
+      {/* overflow-hidden so an over-tall day (a firing critical alert on a
+          short phone) clips inside this stack instead of painting over the
+          Focus door below it. On an ordinary day the canon fits: the no-scroll
+          spec pins scrollHeight == clientHeight here at every viewport. */}
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-2 pt-1">
         <GoalLadder variant="mobile" />
         {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
         <TodayList compact />
         {cta && cta.target !== 'weekly' && <CanonCta cta={cta} />}
+      </div>
+
+      {/* The door into Focus, in the quiet space above the nav. A row, not a
+          vital: it moved off the vitals line so it stops reading as a metric
+          and can never wrap onto its own orphan line. On very short viewports
+          (under ~840px CSS) the canon needs every row, so the door yields and
+          Focus stays reachable via More, the check-in and the anxious route —
+          the doors docs/FOCUS-PURPOSE.md names as primary. */}
+      <div className="hidden [@media(min-height:840px)]:block shrink-0 pt-2">
+        <FocusDoor onNavigate={onNavigate} compact />
       </div>
     </div>
   )

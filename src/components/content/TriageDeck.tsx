@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react'
-import { X, ChevronRight, Maximize2, RotateCcw, CheckCircle2, Layers, LogOut } from 'lucide-react'
+import { X, ChevronRight, Maximize2, RotateCcw, CheckCircle2, Layers, LogOut } from '@/lib/icons'
 import { useCardDeck, type Dir } from '../../hooks/useCardDeck'
 import type { useContentTriage } from '../../hooks/useContentTriage'
 import { TriageCard } from './TriageCard'
@@ -83,17 +83,17 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
       {/* Progress strip */}
       <div className="flex items-center gap-2 pt-1 pb-3 flex-shrink-0">
         <Layers size={14} className="text-violet-300" />
-        <span className="text-[12px] text-white/70 font-medium">Clear the pile</span>
-        <span className="text-[12px] text-white/40 tabular-nums">· {remaining} left{triagedCount > 0 ? ` · ${triagedCount} cleared` : ''}</span>
+        <span className="text-label text-white/70 font-medium">Clear the pile</span>
+        <span className="text-label text-white/40 tabular-nums">· {remaining} left{triagedCount > 0 ? ` · ${triagedCount} cleared` : ''}</span>
         <div className="ml-auto flex items-center gap-1.5">
           {canUndo && (
             <button type="button" onClick={undo}
-              className="inline-flex items-center gap-1 text-[11px] text-white/55 hover:text-white/90 px-2 py-1 rounded-md hover:bg-white/[0.06]">
+              className="inline-flex items-center gap-1 text-micro text-white/55 hover:text-white/90 px-2 py-1 rounded-md hover:bg-white/[0.06]">
               <RotateCcw size={12} /> Undo
             </button>
           )}
           <button type="button" onClick={exitTriage}
-            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/85 border border-white/20 bg-white/[0.06] hover:bg-white/[0.12] active:scale-95 transition px-3 py-1.5 rounded-lg">
+            className="inline-flex items-center gap-1.5 text-label font-semibold text-white/85 border border-white/20 bg-white/[0.06] hover:bg-white/[0.12] active:scale-95 transition px-3 py-1.5 rounded-lg">
             <LogOut size={13} /> Exit triage
           </button>
         </div>
@@ -123,13 +123,13 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
             <CheckCircle2 size={28} className="text-emerald-400/80 mb-3" />
-            <p className="text-[15px] text-white/85 font-medium">Pile cleared.</p>
-            <p className="text-[12px] text-white/45 mt-1 max-w-xs">
+            <p className="text-ui text-white/85 font-medium">Pile cleared.</p>
+            <p className="text-label text-white/45 mt-1 max-w-xs">
               {triagedCount > 0 ? `You triaged ${triagedCount} this round. ` : ''}
               {activeCount > 0 ? `${activeCount} still in the backlog.` : 'Nothing left in flight.'}
             </p>
             <button type="button" onClick={exitTriage}
-              className="mt-4 text-[12px] font-semibold text-violet-200 border border-violet-400/40 bg-violet-500/15 hover:bg-violet-500/25 rounded-lg px-4 py-2">
+              className="mt-4 text-label font-semibold text-violet-200 border border-violet-400/40 bg-violet-500/15 hover:bg-violet-500/25 rounded-lg px-4 py-2">
               Back to lanes
             </button>
           </div>
@@ -178,7 +178,7 @@ export function TriageDeck({ triage, narrow, paused }: Props) {
               </button>
             </div>
 
-            <p className="text-center text-[11px] text-white/35 mt-2.5 flex-shrink-0">
+            <p className="text-center text-micro text-white/35 mt-2.5 flex-shrink-0">
               {narrow
                 ? <>Swipe left to drop · right to {rightLabel.toLowerCase()} · tap to open</>
                 : <>← drop · → {rightLabel.toLowerCase()} · ↑ open · U undo</>}

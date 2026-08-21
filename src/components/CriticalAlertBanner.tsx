@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from '@/lib/icons'
 import { useCriticalAlerts } from '../hooks/useCriticalAlerts'
 import { useFleetLiveness } from '../hooks/useFleetLiveness'
 import { useMoodSource } from './shared/AmbientField'
@@ -29,20 +29,20 @@ export function CriticalAlertBanner() {
         <AlertTriangle size={18} className="text-status-blocked flex-shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-status-blocked">CRITICAL</span>
-            <span className="text-[11px] text-white/40 tabular-nums">fleet silent</span>
+            <span className="text-micro font-semibold uppercase tracking-[0.14em] text-status-blocked">CRITICAL</span>
+            <span className="text-micro text-white/40 tabular-nums">fleet silent</span>
           </div>
-          <p className="text-[13px] text-white/90 mt-0.5 leading-snug">
+          <p className="text-body text-white/90 mt-0.5 leading-snug">
             {fleet.lastRunAt
               ? <>No workflow has reported since {humanAge(fleet.lastRunAt)}.</>
               : <>No workflow has ever reported a run.</>}
           </p>
-          <p className="text-[12px] text-white/60 mt-1">
+          <p className="text-label text-white/60 mt-1">
             Nothing is recording, so every other health signal on this page is
             unreliable until it recovers. Check the fleet before trusting them.
           </p>
           {alerts.length > 0 && (
-            <p className="text-[11px] text-white/45 mt-1">
+            <p className="text-micro text-white/45 mt-1">
               + {alerts.length} workflow alert{alerts.length > 1 ? 's' : ''} recorded before it went quiet
             </p>
           )}
@@ -62,17 +62,17 @@ export function CriticalAlertBanner() {
       <AlertTriangle size={18} className="text-status-blocked flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-status-blocked">CRITICAL</span>
-          <span className="text-[11px] text-white/40 tabular-nums">tier 4</span>
+          <span className="text-micro font-semibold uppercase tracking-[0.14em] text-status-blocked">CRITICAL</span>
+          <span className="text-micro text-white/40 tabular-nums">tier 4</span>
         </div>
-        <p className="text-[13px] text-white/90 mt-0.5 leading-snug">
+        <p className="text-body text-white/90 mt-0.5 leading-snug">
           {top.workflow_name || top.workflow_id} is down. Detected {humanAge(top.detected_at)}.
         </p>
         {top.detail && (
-          <p className="text-[12px] text-white/60 mt-1 line-clamp-2">{top.detail}</p>
+          <p className="text-label text-white/60 mt-1 line-clamp-2">{top.detail}</p>
         )}
         {extra > 0 && (
-          <p className="text-[11px] text-white/45 mt-1">+ {extra} more critical alert{extra > 1 ? 's' : ''}</p>
+          <p className="text-micro text-white/45 mt-1">+ {extra} more critical alert{extra > 1 ? 's' : ''}</p>
         )}
       </div>
     </div>

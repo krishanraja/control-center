@@ -31,7 +31,7 @@ function Btn({ children, primary, onClick, disabled }: {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`px-3 py-1.5 rounded-lg text-[11.5px] font-semibold whitespace-nowrap transition-colors disabled:opacity-40 ${
+      className={`px-3 py-1.5 rounded-lg text-label font-semibold whitespace-nowrap transition-colors disabled:opacity-40 ${
         primary ? 'btn-contrast' : 'bg-white/[0.06] text-white/70 hover:bg-white/[0.1]'
       }`}
     >
@@ -100,7 +100,7 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
     <button
       onClick={() => setRejecting(true)}
       disabled={busy}
-      className="px-3 py-1.5 rounded-lg text-[11.5px] font-semibold whitespace-nowrap transition-colors disabled:opacity-40 text-rose-300/85 border border-rose-400/25 bg-rose-500/[0.06] hover:bg-rose-500/[0.12] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-300/60"
+      className="px-3 py-1.5 rounded-lg text-label font-semibold whitespace-nowrap transition-colors disabled:opacity-40 text-rose-300/85 border border-rose-400/25 bg-rose-500/[0.06] hover:bg-rose-500/[0.12] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-300/60"
     >
       {label}
     </button>
@@ -148,11 +148,11 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1 min-w-0">
           <span className="inline-flex items-center gap-1.5">
-            <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${chip.cls}`}>{chip.label}</span>
+            <span className={`inline-block rounded-full px-2 py-0.5 text-micro font-semibold ${chip.cls}`}>{chip.label}</span>
             <WhyBadge table="content_decisions" row={d} align="start" />
           </span>
-          <div className="text-[13.5px] font-semibold text-white/90 mt-1.5 leading-snug">{title}</div>
-          <div className="text-[12px] text-white/45 mt-0.5 leading-relaxed">{subtitle}</div>
+          <div className="text-body font-semibold text-white/90 mt-1.5 leading-snug">{title}</div>
+          <div className="text-label text-white/45 mt-0.5 leading-relaxed">{subtitle}</div>
         </div>
         <div className="flex flex-wrap gap-1.5 flex-shrink-0">{actions()}</div>
       </div>

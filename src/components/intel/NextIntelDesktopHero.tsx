@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Zap, Target, Radio, CheckCircle2 } from 'lucide-react'
+import { Zap, Target, Radio, CheckCircle2 } from '@/lib/icons'
 import { DoThisNextHero, type HeroDescriptor } from '../shared/DoThisNextHero'
 import { useToast } from '../shared/Toast'
 import { supabase } from '../../lib/supabase'

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Target, ChevronRight } from 'lucide-react'
+import { Target, ChevronRight } from '@/lib/icons'
 import { useBets, isOverdue, type BetRow } from '../../hooks/useBets'
 import { BetCard } from '../BetCard'
 
@@ -57,10 +57,10 @@ export function BetsStrip() {
           className={`text-white/40 transition-transform ${open ? 'rotate-90' : ''}`}
         />
         <Target size={12} className={overdueLive.length > 0 ? 'text-rose-300' : 'text-white/45'} />
-        <span className="text-[11px] font-semibold text-white/70 uppercase tracking-[0.14em]">
+        <span className="text-micro font-semibold text-white/70 uppercase tracking-[0.14em]">
           Bets ({live.length} live)
         </span>
-        <span className="text-[11px] text-white/40 truncate">{bits.join(' · ')}</span>
+        <span className="text-micro text-white/40 truncate">{bits.join(' · ')}</span>
       </button>
 
       {open && (
@@ -69,7 +69,7 @@ export function BetsStrip() {
             <BetCard key={b.id} bet={b} forceDecide={isOverdue(b)} />
           ))}
           {ordered.length > 3 && (
-            <p className="text-[10px] text-white/35 text-center">+{ordered.length - 3} more live</p>
+            <p className="text-micro text-white/35 text-center">+{ordered.length - 3} more live</p>
           )}
         </div>
       )}

@@ -399,6 +399,13 @@ text-emerald-400 /* active */  text-amber-400 /* waiting */
 text-rose-400 /* blocked */    pod-ops/revenue/growth · status-* tokens
 ```
 
+### Iconography
+
+Icons import from `@/lib/icons` (never `lucide-react` directly — CI-guarded): a
+wrapper pinning a constant 1.75px physical stroke and snapping sizes to
+12/14/16/20/24/32. Circled icons use `shared/IconTile` (sm/md/lg,
+neutral/accent). Active nav icons carry `strokeWidth={2.25}`.
+
 ### Typography
 
 ```css
@@ -406,7 +413,7 @@ font-display  /* Bricolage Grotesque — headings, hero titles, big numbers (aut
 font-serif    /* Fraunces — the "partner's voice": OS mission, Marcus brief, AllClear */
 font-sans     /* Geist — body, labels (default) */
 font-mono tabular-nums  /* Geist Mono — live/tabular numbers */
-/* Scale: 11/12/13/14/16/20/28/40/56 · tracking-tight headings · tracking-[0.2em] eyebrows */
+/* Scale: 11/12/13/14/16/20/28/40/56 (role tokens text-micro…text-hero; bracket-literal px sizes retired 2026-08-21, guarded by scripts/check-type-tokens.mts) · tracking-tight headings · eyebrows are the <Eyebrow> primitive at tracking-[0.14em] */
 ```
 
 ### Spacing

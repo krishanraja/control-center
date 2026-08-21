@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { RefreshCw, Rocket } from 'lucide-react'
+import { RefreshCw, Rocket } from '@/lib/icons'
 import { useAcquisition, type AcquisitionLane } from '../../hooks/useAcquisition'
 import { useLaneDetail } from '../../hooks/useLaneDetail'
 import { AUTONOMY_CHIP, laneDot, laneDotTitle } from '../acquisition/laneMeta'
@@ -93,10 +93,10 @@ export function DesktopAcquisition({
     <div className="max-w-6xl mx-auto space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight flex items-center gap-2">
             <Rocket size={22} className="text-violet-400" /> Growth
           </h1>
-          <p className="text-xs md:text-[13px] text-white/50 mt-0.5">
+          <p className="text-xs md:text-body text-white/50 mt-0.5">
             {`${totals.queued} sends queued · ${totals.sent} sent · ${totals.paid} paid ($${Math.round(totals.mrr).toLocaleString()}/mo) · ${totals.churn} in churn queue`}
           </p>
         </div>
@@ -112,7 +112,7 @@ export function DesktopAcquisition({
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-[12px] text-red-200">
+        <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-label text-red-200">
           {error}
         </div>
       )}
@@ -126,7 +126,7 @@ export function DesktopAcquisition({
               key={l.slug}
               type="button"
               onClick={() => selectLane(l.slug)}
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] transition-colors ${
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-label transition-colors ${
                 isSelected
                   ? 'border-violet-400/50 bg-violet-500/15 text-white'
                   : 'border-white/[0.08] bg-white/[0.02] text-white/60 hover:text-white/85 hover:border-white/20'
@@ -134,11 +134,11 @@ export function DesktopAcquisition({
             >
               <span className={`w-1.5 h-1.5 rounded-full ${laneDot(l)}`} title={laneDotTitle(l)} />
               <span className="font-medium">{l.name}</span>
-              <span className={`rounded-full border px-1.5 text-[9px] font-semibold ${AUTONOMY_CHIP[l.autonomy_level]}`}>
+              <span className={`rounded-full border px-1.5 text-micro font-semibold ${AUTONOMY_CHIP[l.autonomy_level]}`}>
                 {l.autonomy_level}
               </span>
               {l.queued_count > 0 && (
-                <span className="text-[10px] text-amber-300 tabular-nums">{l.queued_count}</span>
+                <span className="text-micro text-amber-300 tabular-nums">{l.queued_count}</span>
               )}
             </button>
           )
@@ -172,7 +172,7 @@ export function DesktopAcquisition({
       ) : (
         !error && (
           <div className="rounded-xl border border-dashed border-white/[0.08] bg-white/[0.01] px-4 py-8 text-center">
-            <p className="text-[12px] text-white/45">
+            <p className="text-label text-white/45">
               No product lanes registered. Add product ventures to venture_registry to light this up.
             </p>
           </div>

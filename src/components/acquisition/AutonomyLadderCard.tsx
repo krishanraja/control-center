@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Check, ShieldCheck, X } from 'lucide-react'
+import { Check, ShieldCheck, X } from '@/lib/icons'
 import type { AcquisitionLane } from '../../hooks/useAcquisition'
 import { laneAction, type LaneCriteria, type LaneDetail } from '../../hooks/useLaneDetail'
 import { useToast } from '../shared/Toast'
@@ -63,10 +63,10 @@ export function AutonomyLadderCard({
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <ShieldCheck size={13} className="text-emerald-400" />
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
           Autonomy ladder
         </h2>
-        <span className={`ml-auto rounded-full border px-2 py-0.5 text-[10px] font-semibold ${AUTONOMY_CHIP[current]}`}>
+        <span className={`ml-auto rounded-full border px-2 py-0.5 text-micro font-semibold ${AUTONOMY_CHIP[current]}`}>
           {current}
         </span>
       </header>
@@ -83,15 +83,15 @@ export function AutonomyLadderCard({
                     isCurrent ? 'bg-emerald-400' : reached ? 'bg-emerald-400/40' : 'bg-white/[0.07]'
                   }`}
                 />
-                <span className={`text-[10px] font-semibold ${isCurrent ? 'text-emerald-300' : 'text-white/30'}`}>
+                <span className={`text-micro font-semibold ${isCurrent ? 'text-emerald-300' : 'text-white/30'}`}>
                   {lvl}
                 </span>
               </div>
             )
           })}
         </div>
-        <p className="mt-2 text-[10.5px] text-white/40">{AUTONOMY_LABEL[current]}</p>
-        <div className="mt-0.5 flex items-baseline gap-3 text-[10px] text-white/25 tabular-nums">
+        <p className="mt-2 text-micro text-white/40">{AUTONOMY_LABEL[current]}</p>
+        <div className="mt-0.5 flex items-baseline gap-3 text-micro text-white/25 tabular-nums">
           {detail?.stats && (
             <>
               <span>{detail.stats.approved_30d} approved / {detail.stats.rejected_30d} rejected · 30d</span>
@@ -112,7 +112,7 @@ export function AutonomyLadderCard({
               type="button"
               disabled={busy || current === 'L3'}
               onClick={() => act({ action: 'promote' }, `Promoted to ${current === 'L1' ? 'L2' : 'L3'}.`)}
-              className="rounded-lg bg-emerald-500/15 border border-emerald-400/30 px-2.5 py-1 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/25 transition-colors disabled:opacity-40"
+              className="rounded-lg bg-emerald-500/15 border border-emerald-400/30 px-2.5 py-1 text-micro font-medium text-emerald-300 hover:bg-emerald-500/25 transition-colors disabled:opacity-40"
             >
               Promote
             </button>
@@ -120,7 +120,7 @@ export function AutonomyLadderCard({
               type="button"
               disabled={busy || current === 'L1'}
               onClick={() => act({ action: 'demote', reason: 'krish manual demotion' }, `Demoted to ${current === 'L3' ? 'L2' : 'L1'} — every send sampled again.`)}
-              className="rounded-lg border border-amber-400/25 px-2.5 py-1 text-[11px] font-medium text-amber-300/80 hover:text-amber-300 transition-colors disabled:opacity-40"
+              className="rounded-lg border border-amber-400/25 px-2.5 py-1 text-micro font-medium text-amber-300/80 hover:text-amber-300 transition-colors disabled:opacity-40"
             >
               Demote
             </button>
@@ -129,7 +129,7 @@ export function AutonomyLadderCard({
                 type="button"
                 disabled={busy}
                 onClick={() => act({ action: 'promote', force: true, reason: 'krish force promotion' }, 'Force-promoted (override logged).')}
-                className="rounded-lg border border-white/[0.1] px-2.5 py-1 text-[11px] font-medium text-white/60 hover:text-white transition-colors disabled:opacity-40"
+                className="rounded-lg border border-white/[0.1] px-2.5 py-1 text-micro font-medium text-white/60 hover:text-white transition-colors disabled:opacity-40"
               >
                 Force promote
               </button>
@@ -140,7 +140,7 @@ export function AutonomyLadderCard({
         {criteria && (
           <ul className="mt-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 space-y-1">
             {criteria.map(c => (
-              <li key={c.key} className="flex items-center gap-2 text-[11px]">
+              <li key={c.key} className="flex items-center gap-2 text-micro">
                 {c.met
                   ? <Check size={11} className="text-emerald-300 flex-shrink-0" />
                   : <X size={11} className={`flex-shrink-0 ${c.overridable ? 'text-amber-300' : 'text-rose-300'}`} />}
@@ -149,7 +149,7 @@ export function AutonomyLadderCard({
                   {c.actual == null ? '—' : String(c.actual)}
                 </span>
                 {!c.met && !c.overridable && (
-                  <span className="text-[9.5px] uppercase tracking-wide text-rose-300/80">hard gate</span>
+                  <span className="text-micro uppercase tracking-wide text-rose-300/80">hard gate</span>
                 )}
               </li>
             ))}
@@ -160,11 +160,11 @@ export function AutonomyLadderCard({
       {history.length > 0 && (
         <div className="border-t border-white/[0.06] divide-y divide-white/[0.03]">
           {history.slice(0, 4).map((h: any, i) => (
-            <div key={i} className="px-4 py-2 text-[10.5px] flex items-center gap-2">
+            <div key={i} className="px-4 py-2 text-micro flex items-center gap-2">
               <span className="text-white/60 font-medium">
                 {h.from && h.to ? `${h.from} → ${h.to}` : h.to || '—'}
               </span>
-              {h.override && <span className="text-[9px] uppercase tracking-wide text-amber-300/80">override</span>}
+              {h.override && <span className="text-micro uppercase tracking-wide text-amber-300/80">override</span>}
               {h.reason && <span className="text-white/35 truncate">{String(h.reason)}</span>}
               {h.at && (
                 <span className="ml-auto text-white/25 flex-shrink-0">

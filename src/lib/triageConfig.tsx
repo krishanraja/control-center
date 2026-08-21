@@ -1,5 +1,5 @@
 import React from 'react'
-import { Target, Sparkles, Flame, Mic } from 'lucide-react'
+import { Target, Sparkles, Flame, Mic } from '@/lib/icons'
 import type { CommitResult } from '../hooks/useSwipeTriage'
 import type { CardLabel, RightIntent } from '../components/shared/SwipeDeck'
 import type { DecisionKind } from '../components/DecisionDetail'
@@ -144,45 +144,45 @@ function renderLeadBody(l: LeadRow): React.ReactNode {
     <>
       <div className="flex items-center gap-2 flex-wrap mb-3">
         {l.fit_score != null && (
-          <span className="inline-flex items-center gap-1 text-[12px] text-white/55 tabular-nums">
+          <span className="inline-flex items-center gap-1 text-label text-white/55 tabular-nums">
             <Flame size={12} className="text-rose-300" />{l.fit_score}
           </span>
         )}
         {l.primary_venture && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] bg-white/[0.06] text-white/55">
+          <span className="text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] bg-white/[0.06] text-white/55">
             {ventureLabel(l.primary_venture)}
           </span>
         )}
         {l.status && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] bg-violet-500/10 text-violet-200">{l.status}</span>
+          <span className="text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] bg-violet-500/10 text-violet-200">{l.status}</span>
         )}
       </div>
-      <p className="text-[20px] font-semibold text-white leading-snug">{leadName(l)}</p>
+      <p className="text-title font-semibold text-white leading-snug">{leadName(l)}</p>
       {leadSubtitle(l) && (
-        <p className="text-[14px] text-white/60 leading-relaxed mt-2">{leadSubtitle(l)}</p>
+        <p className="text-ui text-white/60 leading-relaxed mt-2">{leadSubtitle(l)}</p>
       )}
 
       {/* The case for a right-swipe */}
       <div className="mt-4 flex-1 min-h-0 overflow-hidden">
         {icp > 0 && (
-          <p className="text-[13px] text-amber-200/90 leading-relaxed inline-flex items-start gap-1.5">
+          <p className="text-body text-amber-200/90 leading-relaxed inline-flex items-start gap-1.5">
             <Target size={13} className="mt-0.5 flex-shrink-0" />
             <span><span className="text-white/45">ICP fit: </span>{icp}</span>
           </p>
         )}
         {why && (
-          <p className="text-[13px] text-white/70 leading-relaxed mt-2">
+          <p className="text-body text-white/70 leading-relaxed mt-2">
             <Sparkles size={12} className="inline mr-1 text-violet-300" />
             <span className="text-white/40">Why: </span>{why}
           </p>
         )}
         {tension && (
-          <p className="text-[13px] text-violet-200/85 leading-relaxed mt-2">
+          <p className="text-body text-violet-200/85 leading-relaxed mt-2">
             <span className="text-white/40">Tension: </span>{tension}
           </p>
         )}
         {!why && !tension && (
-          <p className="text-[12.5px] text-white/45 leading-relaxed mt-2">
+          <p className="text-label text-white/45 leading-relaxed mt-2">
             {candidate
               ? 'Not enriched yet — swipe right to Enrich (~$0.50) and pull the full dossier, or tap to open.'
               : 'No dossier text yet. Tap to open for the full detail.'}
@@ -241,8 +241,8 @@ export function buildLeadsTriageConfig(
     detailKey: l => `lead:${l.id}`,
     renderRow: (l, active) => (
       <div className="min-w-0">
-        <p className={`text-[12px] font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{leadName(l)}</p>
-        <p className="text-[10.5px] text-white/40 truncate">
+        <p className={`text-label font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{leadName(l)}</p>
+        <p className="text-micro text-white/40 truncate">
           {[ventureLabel(l.primary_venture), maxIcp(l) > 0 ? `ICP ${maxIcp(l)}` : null, isLeadCandidate(l) ? 'candidate' : l.status]
             .filter(Boolean).join(' · ')}
         </p>
@@ -278,43 +278,43 @@ function renderContactBody(c: ContactRow): React.ReactNode {
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap mb-3">
-        <span className="inline-flex items-center gap-1 text-[12px] text-white/55 tabular-nums">
+        <span className="inline-flex items-center gap-1 text-label text-white/55 tabular-nums">
           <Flame size={12} className="text-rose-300" />{c.heat_score ?? 0}
         </span>
         {c.primary_venture && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] bg-white/[0.06] text-white/55">
+          <span className="text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] bg-white/[0.06] text-white/55">
             {ventureDisplayName(c.primary_venture)}
           </span>
         )}
         {c.consent_tier && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] bg-violet-500/10 text-violet-200">{c.consent_tier}</span>
+          <span className="text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] bg-violet-500/10 text-violet-200">{c.consent_tier}</span>
         )}
         <SuggestedMoveChip contact={c} />
       </div>
-      <p className="text-[20px] font-semibold text-white leading-snug">{contactName(c)}</p>
+      <p className="text-title font-semibold text-white leading-snug">{contactName(c)}</p>
       {contactSubtitle(c) && (
-        <p className="text-[14px] text-white/60 leading-relaxed mt-2">{contactSubtitle(c)}</p>
+        <p className="text-ui text-white/60 leading-relaxed mt-2">{contactSubtitle(c)}</p>
       )}
       <div className="mt-4 flex-1 min-h-0 overflow-hidden">
         {fit && (
-          <p className="text-[13px] text-amber-200/90 leading-relaxed inline-flex items-start gap-1.5">
+          <p className="text-body text-amber-200/90 leading-relaxed inline-flex items-start gap-1.5">
             <Target size={13} className="mt-0.5 flex-shrink-0" />
             <span><span className="text-white/45">Best fit: </span>{contactVentureLabel(fit.venture)} · {fit.score}</span>
           </p>
         )}
         {why && (
-          <p className="text-[13px] text-white/70 leading-relaxed mt-2">
+          <p className="text-body text-white/70 leading-relaxed mt-2">
             <Sparkles size={12} className="inline mr-1 text-violet-300" />
             <span className="text-white/40">{why.label}: </span>{why.text}
           </p>
         )}
         {move && (
-          <p className="text-[13px] text-violet-200/85 leading-relaxed mt-2">
+          <p className="text-body text-violet-200/85 leading-relaxed mt-2">
             <span className="text-white/40">The move: </span>{move}
           </p>
         )}
         {!why && !move && (
-          <p className="text-[12.5px] text-white/45 leading-relaxed mt-2">
+          <p className="text-label text-white/45 leading-relaxed mt-2">
             Not researched yet — judge on heat {c.heat_score ?? 0}
             {fit ? `, ${contactVentureLabel(fit.venture)} fit ${fit.score}` : ''}
             {c.origin_campaign ? `, via ${c.origin_campaign}` : ''}.
@@ -328,14 +328,14 @@ function renderContactBody(c: ContactRow): React.ReactNode {
 function renderContactDetail(c: ContactRow): React.ReactNode {
   return (
     <div className="p-5 flex flex-col h-full">
-      <span className="text-[10px] uppercase tracking-[0.18em] text-rose-300/80 mb-3">Contact</span>
+      <span className="text-micro uppercase tracking-[0.14em] text-rose-300/80 mb-3">Contact</span>
       {renderContactBody(c)}
       {c.email && (
         <div className="mt-4 pt-3 border-t border-white/[0.06]">
-          <a href={`mailto:${c.email}`} className="text-[12px] text-violet-300 hover:text-violet-200">Email {c.email} ↗</a>
+          <a href={`mailto:${c.email}`} className="text-label text-violet-300 hover:text-violet-200">Email {c.email} ↗</a>
         </div>
       )}
-      <p className="text-[11px] text-white/35 mt-3">Swipe right to keep warm · left to skip with a reason.</p>
+      <p className="text-micro text-white/35 mt-3">Swipe right to keep warm · left to skip with a reason.</p>
     </div>
   )
 }
@@ -383,12 +383,12 @@ export function buildContactsTriageConfig(
       const move = suggestedMove(c)
       return (
         <div className="min-w-0">
-          <p className={`text-[12px] font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{contactName(c)}</p>
-          <p className="text-[10.5px] text-white/40 truncate">
+          <p className={`text-label font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{contactName(c)}</p>
+          <p className="text-micro text-white/40 truncate">
             {[ventureDisplayName(c.primary_venture), `heat ${c.heat_score ?? 0}`].filter(Boolean).join(' · ')}
           </p>
           {move && (
-            <p className={`text-[10px] truncate ${MOVE_TONE_TEXT[move.tone]}`} title="Suggested move">{move.label}</p>
+            <p className={`text-micro truncate ${MOVE_TONE_TEXT[move.tone]}`} title="Suggested move">{move.label}</p>
           )}
         </div>
       )
@@ -408,27 +408,27 @@ function renderGuestBody(g: GuestRow): React.ReactNode {
   return (
     <>
       <div className="flex items-center gap-1.5 flex-wrap mb-3">
-        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200">
+        <span className="inline-flex items-center gap-1 text-micro px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200">
           <Mic size={9} />{GUEST_TARGET_LABEL[g.podcast_target] ?? g.podcast_target}
         </span>
         {g.quality_score && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] ${
+          <span className={`text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
             g.quality_score === 'green' ? 'bg-emerald-500/10 text-emerald-300' :
             g.quality_score === 'amber' ? 'bg-amber-500/10 text-amber-300' : 'bg-rose-500/10 text-rose-300'}`}>
             {g.quality_score}
           </span>
         )}
         {typeof g.fit_score === 'number' && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {g.fit_score}</span>
+          <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {g.fit_score}</span>
         )}
         {typeof g.attainability_score === 'number' && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Reach {g.attainability_score}</span>
+          <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Reach {g.attainability_score}</span>
         )}
       </div>
-      <p className="text-[20px] font-semibold text-white leading-snug">{g.name}</p>
-      {g.one_liner && <p className="text-[14px] text-white/60 leading-relaxed mt-2">{g.one_liner}</p>}
+      <p className="text-title font-semibold text-white leading-snug">{g.name}</p>
+      {g.one_liner && <p className="text-ui text-white/60 leading-relaxed mt-2">{g.one_liner}</p>}
       {g.why_fit && (
-        <p className="text-[13px] text-white/65 leading-relaxed mt-3 overflow-hidden flex-1 min-h-0">
+        <p className="text-body text-white/65 leading-relaxed mt-3 overflow-hidden flex-1 min-h-0">
           <span className="text-white/35">Why: </span>{g.why_fit.slice(0, 300)}{g.why_fit.length > 300 ? '…' : ''}
         </p>
       )}
@@ -478,8 +478,8 @@ export function buildGuestsTriageConfig(
     detailKey: g => `guest:${g.id}`,
     renderRow: (g, active) => (
       <div className="min-w-0">
-        <p className={`text-[12px] font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{g.name}</p>
-        <p className="text-[10.5px] text-white/40 truncate">
+        <p className={`text-label font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{g.name}</p>
+        <p className="text-micro text-white/40 truncate">
           {[GUEST_TARGET_LABEL[g.podcast_target] ?? g.podcast_target, typeof g.fit_score === 'number' ? `fit ${g.fit_score}` : null]
             .filter(Boolean).join(' · ')}
         </p>
@@ -497,27 +497,27 @@ function renderTargetBody(t: VisibilityTargetRow): React.ReactNode {
   return (
     <>
       <div className="flex items-center gap-1.5 flex-wrap mb-3">
-        <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] bg-violet-500/15 text-violet-200">{t.type.replace(/_/g, ' ')}</span>
+        <span className="text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] bg-violet-500/15 text-violet-200">{t.type.replace(/_/g, ' ')}</span>
         {typeof t.relevance_score === 'number' && t.relevance_score > 0 && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {t.relevance_score}</span>
+          <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {t.relevance_score}</span>
         )}
         {daysToDeadline !== null && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded tabular-nums ${
+          <span className={`text-micro px-1.5 py-0.5 rounded tabular-nums ${
             daysToDeadline < 0 ? 'bg-rose-500/10 text-rose-300' :
             daysToDeadline <= 14 ? 'bg-amber-500/10 text-amber-300' : 'bg-white/[0.06] text-white/55'}`}>
             {daysToDeadline < 0 ? `${Math.abs(daysToDeadline)}d ago` : daysToDeadline === 0 ? 'today' : `${daysToDeadline}d left`}
           </span>
         )}
       </div>
-      <p className="text-[20px] font-semibold text-white leading-snug">{t.title}</p>
+      <p className="text-title font-semibold text-white leading-snug">{t.title}</p>
       {t.why_relevant && (
-        <p className="text-[13px] text-white/65 leading-relaxed mt-3 overflow-hidden flex-1 min-h-0">
+        <p className="text-body text-white/65 leading-relaxed mt-3 overflow-hidden flex-1 min-h-0">
           <Sparkles size={11} className="inline mr-1 text-violet-300" />
           <span className="text-white/35">Why: </span>{t.why_relevant.slice(0, 280)}{t.why_relevant.length > 280 ? '…' : ''}
         </p>
       )}
       {t.suggested_talk_title && (
-        <p className="text-[12px] text-white/80 leading-snug mt-2 flex-shrink-0">
+        <p className="text-label text-white/80 leading-snug mt-2 flex-shrink-0">
           <span className="text-white/40">Pitch: </span><span className="italic">{t.suggested_talk_title}</span>
         </p>
       )}
@@ -568,8 +568,8 @@ export function buildVisibilityTargetsTriageConfig(
     detailKey: t => `visibility:${t.id}`,
     renderRow: (t, active) => (
       <div className="min-w-0">
-        <p className={`text-[12px] font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{t.title}</p>
-        <p className="text-[10.5px] text-white/40 truncate">
+        <p className={`text-label font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{t.title}</p>
+        <p className="text-micro text-white/40 truncate">
           {[t.type.replace(/_/g, ' '), typeof t.relevance_score === 'number' ? `fit ${t.relevance_score}` : null]
             .filter(Boolean).join(' · ')}
         </p>
@@ -614,33 +614,33 @@ function renderContentBody(i: ContentIdeaRow): React.ReactNode {
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap mb-3">
-        <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] font-semibold bg-white/[0.08] text-white/65">{i.state}</span>
-        {i.lane && <span className="text-[10px] uppercase tracking-[0.1em] text-white/40">{i.lane.replace(/_/g, ' ')}</span>}
+        <span className="text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] font-semibold bg-white/[0.08] text-white/65">{i.state}</span>
+        {i.lane && <span className="text-micro uppercase tracking-[0.14em] text-white/40">{i.lane.replace(/_/g, ' ')}</span>}
         {typeof i.brand_fit_score === 'number' && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {i.brand_fit_score}</span>
+          <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {i.brand_fit_score}</span>
         )}
-        {draft && <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200/80">draft</span>}
+        {draft && <span className="text-micro px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200/80">draft</span>}
         {relatedCount >= 2 && (
           <span
-            className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 border border-violet-400/30 font-medium"
+            className="text-micro px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 border border-violet-400/30 font-medium"
             title="This card is part of an auto-discovered narrative cluster. Open it in the composer to synthesize the cluster into one piece."
           >
             +{relatedCount} related · narrative
           </span>
         )}
       </div>
-      <p className="text-[19px] font-semibold text-white leading-snug">{i.idea}</p>
+      <p className="text-title font-semibold text-white leading-snug">{i.idea}</p>
       {clusterSummary && (
-        <p className="mt-2 text-[12px] text-violet-200/70 italic leading-snug">{clusterSummary}</p>
+        <p className="mt-2 text-label text-violet-200/70 italic leading-snug">{clusterSummary}</p>
       )}
       <div className="mt-3 overflow-hidden flex-1 min-h-0">
         {why ? (
-          <p className="text-[13.5px] text-white/75 leading-relaxed">
+          <p className="text-body text-white/75 leading-relaxed">
             <span className="text-violet-300/80 font-medium">{thesis ? 'Angle: ' : ''}</span>
             {why.slice(0, 320)}{why.length > 320 ? '…' : ''}
           </p>
         ) : (
-          <p className="text-[12px] text-amber-200/70">No draft or thesis yet — raw seed. Swipe right to research it.</p>
+          <p className="text-label text-amber-200/70">No draft or thesis yet — raw seed. Swipe right to research it.</p>
         )}
       </div>
     </>
@@ -722,13 +722,13 @@ export function buildContentTriageConfig(
       const relatedCount = Array.isArray(i.related_idea_ids) ? i.related_idea_ids.length : 0
       return (
         <div className="min-w-0">
-          <p className={`text-[12px] font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{i.idea}</p>
+          <p className={`text-label font-medium truncate ${active ? 'text-white' : 'text-white/75'}`}>{i.idea}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[10.5px] text-white/40 truncate">
+            <span className="text-micro text-white/40 truncate">
               {[i.state, i.lane ? i.lane.replace(/_/g, ' ') : null].filter(Boolean).join(' · ')}
             </span>
             {relatedCount >= 2 && (
-              <span className="text-[9.5px] text-violet-300/90 font-medium tabular-nums" title={`Part of a ${relatedCount + 1}-card narrative cluster`}>
+              <span className="text-micro text-violet-300/90 font-medium tabular-nums" title={`Part of a ${relatedCount + 1}-card narrative cluster`}>
                 +{relatedCount}
               </span>
             )}

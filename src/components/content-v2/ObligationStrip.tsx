@@ -38,7 +38,7 @@ export function ObligationStrip({ v2 }: { v2: ReturnType<typeof useContentV2> })
   const hasBrief = Boolean(brief)
   if (decisions.length === 0 && !hasBrief) {
     return (
-      <p className="text-[12px] text-white/40 px-1">
+      <p className="text-label text-white/40 px-1">
         Nothing is waiting on you. That is the system working, not an empty screen.
       </p>
     )
@@ -52,7 +52,7 @@ export function ObligationStrip({ v2 }: { v2: ReturnType<typeof useContentV2> })
           onClick={() => { if (brief) window.location.hash = `#/content?brief=${brief.week}` }}
           className="text-left rounded-xl border border-sky-400/25 bg-sky-400/[0.05] px-4 py-3 hover:bg-sky-400/[0.08] transition-colors"
         >
-          <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+          <div className="flex flex-wrap items-center gap-2 text-micro font-semibold">
             <span className="rounded-full bg-sky-400/15 text-sky-300 px-2.5 py-1">Weekly brief</span>
             <span className="rounded-full bg-white/[0.06] text-white/55 px-2.5 py-1">{brief!.week}</span>
             {brief!.sections?.stance ? (
@@ -61,7 +61,7 @@ export function ObligationStrip({ v2 }: { v2: ReturnType<typeof useContentV2> })
               </span>
             ) : null}
           </div>
-          <p className="text-[13px] text-white/80 mt-1.5">
+          <p className="text-body text-white/80 mt-1.5">
             {brief!.title || 'This week, assembled'}
           </p>
         </button>

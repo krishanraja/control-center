@@ -172,7 +172,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
                 type="button"
                 onClick={skip}
                 disabled={saving}
-                className="-mr-2 -mt-1 mb-1 min-h-[36px] px-2 text-[12px] text-ink-faint transition-colors hover:text-ink-muted disabled:opacity-40 touch-manipulation"
+                className="-mr-2 -mt-1 mb-1 min-h-[36px] px-2 text-label text-ink-faint transition-colors hover:text-ink-muted disabled:opacity-40 touch-manipulation"
               >
                 Skip
               </button>
@@ -188,7 +188,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
               />
             ))}
           </div>
-          <p className="mt-3 h-[18px] text-[12px] text-ink-faint truncate">
+          <p className="mt-3 h-[18px] text-label text-ink-faint truncate">
             {yesterdayLine(yesterday)}
           </p>
         </header>
@@ -197,7 +197,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
         <main className="flex-1 min-h-0 flex flex-col justify-center py-2">
           {stage === 'read' && (
             <Fade key="read">
-              <h1 className="font-display text-[26px] leading-[1.15] mb-7">How is it, honestly?</h1>
+              <h1 className="font-display text-heading leading-[1.15] mb-7">How is it, honestly?</h1>
               <div className="flex flex-col gap-5">
                 <ThumbSlider
                   label="Energy"
@@ -218,14 +218,14 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
               </div>
               {answered && mode && (
                 <div className="mt-7">
-                  <p className="font-serif text-[19px] leading-snug text-ink">
+                  <p className="font-serif text-title leading-snug text-ink">
                     {mode === 'red' ? 'One action today.' : 'Full dashboard today.'}
                   </p>
                   <button
                     type="button"
                     onPointerDown={() => h.impactRigid()}
                     onClick={() => setChosen(mode === 'red' ? 'green' : 'red')}
-                    className="mt-1.5 min-h-[36px] text-[12px] text-ink-faint hover:text-ink-muted underline underline-offset-4 transition-colors touch-manipulation"
+                    className="mt-1.5 min-h-[36px] text-label text-ink-faint hover:text-ink-muted underline underline-offset-4 transition-colors touch-manipulation"
                   >
                     {mode === 'red' ? 'Give me the dashboard instead' : 'Give me one action instead'}
                   </button>
@@ -237,7 +237,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
           {stage === 'word' && (
             <Fade key="word">
               <div className="flex items-start justify-between gap-3 mb-6">
-                <h1 className="font-display text-[26px] leading-[1.15]">One word for it.</h1>
+                <h1 className="font-display text-heading leading-[1.15]">One word for it.</h1>
                 {browserCanRecord() && (
                   <MicButton
                     endpoint={`${API}/api/pilot/voice`}
@@ -256,7 +256,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
                     type="button"
                     onPointerDown={() => h.select()}
                     onClick={() => { setWord(word === c ? '' : c); if (word !== c) setTimeout(forward, 140) }}
-                    className={`min-h-[52px] rounded-2xl text-[15px] border transition-all active:scale-[0.97] touch-manipulation ${
+                    className={`min-h-[52px] rounded-2xl text-ui border transition-all active:scale-[0.97] touch-manipulation ${
                       word === c
                         ? 'bg-ink/[0.10] border-ink/25 text-ink'
                         : 'bg-ink/[0.02] border-ink/[0.08] text-ink-muted'
@@ -267,14 +267,14 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
                 ))}
               </div>
               {word && !moodChips.includes(word) && (
-                <p className="mt-4 text-[14px] text-ink-muted truncate">{word}</p>
+                <p className="mt-4 text-ui text-ink-muted truncate">{word}</p>
               )}
             </Fade>
           )}
 
           {stage === 'intent' && (
             <Fade key="intent">
-              <h1 className="font-display text-[26px] leading-[1.15] mb-6">What is today for?</h1>
+              <h1 className="font-display text-heading leading-[1.15] mb-6">What is today for?</h1>
               <div className="flex flex-col gap-2">
                 {INTENTS.map(i => (
                   <button
@@ -282,7 +282,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
                     type="button"
                     onPointerDown={() => h.select()}
                     onClick={() => { setIntent(i); h.select() }}
-                    className={`min-h-[52px] px-4 rounded-2xl text-[15px] text-left border transition-all active:scale-[0.98] touch-manipulation ${
+                    className={`min-h-[52px] px-4 rounded-2xl text-ui text-left border transition-all active:scale-[0.98] touch-manipulation ${
                       intent?.key === i.key
                         ? 'bg-ink/[0.10] border-ink/25 text-ink'
                         : 'bg-ink/[0.02] border-ink/[0.08] text-ink-muted'
@@ -300,7 +300,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
                   single decision until it has been made. */}
               {intent && (
                 <div className="mt-6">
-                  <p className="text-[12px] uppercase tracking-[0.16em] text-ink-faint mb-2.5">
+                  <p className="text-label uppercase tracking-[0.14em] text-ink-faint mb-2.5">
                     On what?
                   </p>
                   <div className="grid grid-cols-2 gap-2.5">
@@ -313,7 +313,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
                           setVenture(venture === v.slug ? null : v.slug)
                           if (venture !== v.slug) setTimeout(forward, 160)
                         }}
-                        className={`min-h-[48px] rounded-2xl text-[14px] border transition-all active:scale-[0.97] touch-manipulation ${
+                        className={`min-h-[48px] rounded-2xl text-ui border transition-all active:scale-[0.97] touch-manipulation ${
                           venture === v.slug
                             ? 'bg-ink/[0.10] border-ink/25 text-ink'
                             : 'bg-ink/[0.02] border-ink/[0.08] text-ink-muted'
@@ -326,7 +326,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
                   <button
                     type="button"
                     onClick={() => { setVenture(null); forward() }}
-                    className="mt-3 text-[13px] text-ink-faint underline underline-offset-4"
+                    className="mt-3 text-body text-ink-faint underline underline-offset-4"
                   >
                     Skip, no single venture today
                   </button>
@@ -337,18 +337,18 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
 
           {stage === 'set' && stoic && (
             <Fade key="set">
-              <p className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">
+              <p className="text-label uppercase tracking-[0.14em] text-ink-faint">
                 {readingFor(energy as number, anxiety as number)}
               </p>
-              <blockquote className="mt-4 font-serif text-[22px] leading-[1.35] text-ink">
+              <blockquote className="mt-4 font-serif text-title leading-[1.35] text-ink">
                 {stoic.quote}
               </blockquote>
-              <p className="mt-3 text-[12px] tracking-wide text-ink-faint">{stoic.source}</p>
-              <p className="mt-7 text-[15px] leading-relaxed text-ink-muted">{stoic.so}</p>
+              <p className="mt-3 text-label tracking-wide text-ink-faint">{stoic.source}</p>
+              <p className="mt-7 text-ui leading-relaxed text-ink-muted">{stoic.so}</p>
               {intent && (
-                <p className="mt-5 text-[13px] text-ink-faint">{intent.blurb}</p>
+                <p className="mt-5 text-body text-ink-faint">{intent.blurb}</p>
               )}
-              {error && <p className="mt-4 text-[13px] text-ink-muted">{error}</p>}
+              {error && <p className="mt-4 text-body text-ink-muted">{error}</p>}
             </Fade>
           )}
         </main>
@@ -359,7 +359,7 @@ export function MorningCheckin({ yesterday, today, onDone }: Props) {
             <button
               type="button"
               onClick={back}
-              className="min-h-[52px] px-4 text-[13px] text-ink-faint hover:text-ink-muted transition-colors touch-manipulation"
+              className="min-h-[52px] px-4 text-body text-ink-faint hover:text-ink-muted transition-colors touch-manipulation"
             >
               Back
             </button>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight } from '@/lib/icons'
 import type { CanonCta as Cta } from '../../hooks/useAltitudes'
 import { openFocusRitual } from '../../lib/focusRitual'
 import { useHaptics } from '../../hooks/useHaptics'

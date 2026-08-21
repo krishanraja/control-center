@@ -40,9 +40,9 @@ const buttonVariants = cva(
       },
       size: {
         // 48px is the house touch target (pilot/controls.tsx TAP).
-        default: 'min-h-[44px] px-4 py-2.5 text-[15px]',
-        sm: 'min-h-[34px] px-3 py-1.5 text-[12px]',
-        touch: 'min-h-[48px] px-4 py-3 text-[15px]',
+        default: 'min-h-[44px] px-4 py-2.5 text-ui',
+        sm: 'min-h-[34px] px-3 py-1.5 text-label',
+        touch: 'min-h-[48px] px-4 py-3 text-ui',
         icon: 'size-9',
         'icon-sm': 'size-7',
         none: '',

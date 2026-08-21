@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Mic, Megaphone, Calendar, Layers, ChevronRight, Sparkles, Linkedin, Twitter, Globe, Mail, ExternalLink, FileText } from 'lucide-react'
+import { Mic, Megaphone, Calendar, Layers, ChevronRight, Sparkles, Linkedin, Twitter, Globe, Mail, ExternalLink, FileText } from '@/lib/icons'
 import { MobileShell } from './MobileShell'
 import { TabHeader, MobileLoadingScreen } from './primitives'
 import { SkeletonList } from '../shared/Skeleton'
@@ -265,11 +265,11 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
         <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.015] p-1 self-start">
           <LaneTab active={lane === 'inbound'} onClick={() => { h.select(); setLane('inbound') }}>
             <Mic size={11} className="inline mr-1" />
-            Guests <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{inboundCount}</span>
+            Guests <span className="ml-1.5 text-micro text-white/45 tabular-nums">{inboundCount}</span>
           </LaneTab>
           <LaneTab active={lane === 'outbound'} onClick={() => { h.select(); setLane('outbound') }}>
             <Megaphone size={11} className="inline mr-1" />
-            Events <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{outboundCount}</span>
+            Events <span className="ml-1.5 text-micro text-white/45 tabular-nums">{outboundCount}</span>
           </LaneTab>
         </div>
 
@@ -293,7 +293,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
               />
             )}
             <section>
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2 px-1 flex items-center gap-1">
+              <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45 mb-2 px-1 flex items-center gap-1">
                 <Mic size={11} className="text-violet-300" />
                 Import
               </h2>
@@ -304,8 +304,8 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
 
             {!guestsLoading && guests.length === 0 && (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-6 text-center">
-                <p className="text-[12px] text-white/55">No active guests yet.</p>
-                <p className="text-[11px] text-white/35 mt-1">Import a list or wait for Nell&rsquo;s next scout.</p>
+                <p className="text-label text-white/55">No active guests yet.</p>
+                <p className="text-micro text-white/35 mt-1">Import a list or wait for Nell&rsquo;s next scout.</p>
               </div>
             )}
 
@@ -324,7 +324,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
                 if (rows.length === 0) return null
                 return (
                   <section key={s}>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2 px-1">
+                    <h3 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45 mb-2 px-1">
                       {STATUS_LABEL[s]} <span className="text-white/30 tabular-nums">({rows.length})</span>
                     </h3>
                     <div className="space-y-2">
@@ -354,8 +354,8 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
 
             {!targetsLoading && outboundCount === 0 && (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-6 text-center">
-                <p className="text-[12px] text-white/55">No events yet.</p>
-                <p className="text-[11px] text-white/35 mt-1">Nova&rsquo;s sweeper will surface them.</p>
+                <p className="text-label text-white/55">No events yet.</p>
+                <p className="text-micro text-white/35 mt-1">Nova&rsquo;s sweeper will surface them.</p>
               </div>
             )}
 
@@ -374,7 +374,7 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
                 if (rows.length === 0) return null
                 return (
                   <section key={s}>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2 px-1">
+                    <h3 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45 mb-2 px-1">
                       {VIS_STATUS_LABEL[s]} <span className="text-white/30 tabular-nums">({rows.length})</span>
                     </h3>
                     <div className="space-y-2">
@@ -413,8 +413,8 @@ function TriageEntry({ count, label, onClick }: { count: number; label: string; 
     >
       <Layers size={18} className="text-violet-300 flex-shrink-0" />
       <div className="min-w-0">
-        <p className="text-[13px] font-semibold text-violet-100">{label} · {count}</p>
-        <p className="text-[11px] text-white/45">One card at a time — right keeps, left drops with a reason.</p>
+        <p className="text-body font-semibold text-violet-100">{label} · {count}</p>
+        <p className="text-micro text-white/45">One card at a time — right keeps, left drops with a reason.</p>
       </div>
       <ChevronRight size={16} className="text-violet-300/70 ml-auto flex-shrink-0" />
     </button>
@@ -430,27 +430,27 @@ function renderGuestBody(g: GuestRow) {
   return (
     <>
       <div className="flex items-center gap-1.5 flex-wrap mb-3">
-        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200">
+        <span className="inline-flex items-center gap-1 text-micro px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200">
           <Mic size={9} />{GUEST_TARGET_LABEL[g.podcast_target]}
         </span>
         {g.quality_score && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] ${
+          <span className={`text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
             g.quality_score === 'green' ? 'bg-emerald-500/10 text-emerald-300' :
             g.quality_score === 'amber' ? 'bg-amber-500/10 text-amber-300' : 'bg-rose-500/10 text-rose-300'}`}>
             {g.quality_score}
           </span>
         )}
         {typeof g.fit_score === 'number' && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {g.fit_score}</span>
+          <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {g.fit_score}</span>
         )}
         {typeof g.attainability_score === 'number' && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Reach {g.attainability_score}</span>
+          <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Reach {g.attainability_score}</span>
         )}
       </div>
-      <p className="text-[19px] font-semibold text-white leading-snug">{g.name}</p>
-      {g.one_liner && <p className="text-[13px] text-white/60 leading-relaxed mt-2">{g.one_liner}</p>}
+      <p className="text-title font-semibold text-white leading-snug">{g.name}</p>
+      {g.one_liner && <p className="text-body text-white/60 leading-relaxed mt-2">{g.one_liner}</p>}
       {g.why_fit && (
-        <p className="text-[13px] text-white/65 leading-relaxed mt-3 overflow-hidden flex-1 min-h-0">
+        <p className="text-body text-white/65 leading-relaxed mt-3 overflow-hidden flex-1 min-h-0">
           <span className="text-white/35">Why: </span>{g.why_fit.slice(0, 300)}{g.why_fit.length > 300 ? '…' : ''}
         </p>
       )}
@@ -482,27 +482,27 @@ function renderTargetBody(t: VisibilityTargetRow) {
   return (
     <>
       <div className="flex items-center gap-1.5 flex-wrap mb-3">
-        <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] bg-violet-500/15 text-violet-200">{t.type.replace(/_/g, ' ')}</span>
+        <span className="text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] bg-violet-500/15 text-violet-200">{t.type.replace(/_/g, ' ')}</span>
         {typeof t.relevance_score === 'number' && t.relevance_score > 0 && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {t.relevance_score}</span>
+          <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {t.relevance_score}</span>
         )}
         {daysToDeadline !== null && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded tabular-nums ${
+          <span className={`text-micro px-1.5 py-0.5 rounded tabular-nums ${
             daysToDeadline < 0 ? 'bg-rose-500/10 text-rose-300' :
             daysToDeadline <= 14 ? 'bg-amber-500/10 text-amber-300' : 'bg-white/[0.06] text-white/55'}`}>
             {daysToDeadline < 0 ? `${Math.abs(daysToDeadline)}d ago` : daysToDeadline === 0 ? 'today' : `${daysToDeadline}d left`}
           </span>
         )}
       </div>
-      <p className="text-[19px] font-semibold text-white leading-snug">{t.title}</p>
+      <p className="text-title font-semibold text-white leading-snug">{t.title}</p>
       {t.why_relevant && (
-        <p className="text-[13px] text-white/65 leading-relaxed mt-3 overflow-hidden flex-1 min-h-0">
+        <p className="text-body text-white/65 leading-relaxed mt-3 overflow-hidden flex-1 min-h-0">
           <Sparkles size={11} className="inline mr-1 text-violet-300" />
           <span className="text-white/35">Why: </span>{t.why_relevant.slice(0, 280)}{t.why_relevant.length > 280 ? '…' : ''}
         </p>
       )}
       {t.suggested_talk_title && (
-        <p className="text-[12px] text-white/80 leading-snug mt-2 flex-shrink-0">
+        <p className="text-label text-white/80 leading-snug mt-2 flex-shrink-0">
           <span className="text-white/40">Pitch: </span><span className="italic">{t.suggested_talk_title}</span>
         </p>
       )}
@@ -527,7 +527,7 @@ function LaneTab({ active, onClick, children }: { active: boolean; onClick: () =
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-2.5 text-[12px] rounded-md transition-colors min-h-[44px] inline-flex items-center ${
+      className={`px-3 py-2.5 text-label rounded-md transition-colors min-h-[44px] inline-flex items-center ${
         active
           ? 'bg-violet-500/20 border border-violet-400/40 text-violet-100'
           : 'border border-transparent text-white/60'

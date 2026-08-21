@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Layers, X } from 'lucide-react'
+import { Layers, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { Modal } from '../shared/Modal'
 import { SkeletonList } from '../shared/Skeleton'
@@ -100,11 +100,11 @@ export function SequenceReviewSheet({
         <header className="sticky top-0 bg-base px-5 py-4 flex items-center gap-2 border-b border-white/[0.07]">
           <Layers size={14} className="text-violet-400" />
           <div className="flex-1 min-w-0">
-            <h2 className="text-[14px] font-semibold text-white truncate">
+            <h2 className="text-ui font-semibold text-white truncate">
               {seq?.name || 'Sequence review'}
             </h2>
             {seq && (
-              <p className="text-[10.5px] text-white/40">
+              <p className="text-micro text-white/40">
                 {seq.lane} · {seq.sequence_type.replace(/_/g, ' ')} · {seq.frame_version} · proposed by {seq.proposed_by}
               </p>
             )}
@@ -115,7 +115,7 @@ export function SequenceReviewSheet({
         </header>
 
         {missing ? (
-          <p className="px-5 py-8 text-center text-[12.5px] text-white/40">
+          <p className="px-5 py-8 text-center text-label text-white/40">
             This sequence is gone or already ruled on.
           </p>
         ) : !seq ? (
@@ -123,14 +123,14 @@ export function SequenceReviewSheet({
         ) : (
           <div className="px-5 py-4 space-y-4">
             {seq.rationale && (
-              <p className="text-[12px] text-white/55 leading-snug rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+              <p className="text-label text-white/55 leading-snug rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
                 {seq.rationale}
               </p>
             )}
 
             {touches.map((t, idx) => (
               <div key={idx} className="rounded-xl border border-white/[0.07] overflow-hidden">
-                <div className="px-3 py-2 bg-white/[0.02] border-b border-white/[0.05] flex items-center gap-2 text-[10.5px] text-white/40">
+                <div className="px-3 py-2 bg-white/[0.02] border-b border-white/[0.05] flex items-center gap-2 text-micro text-white/40">
                   <span className="font-semibold text-white/60">Touch {t.touch_number ?? idx + 1}</span>
                   {t.delay_days != null && <span>· day {t.delay_days}</span>}
                 </div>
@@ -139,14 +139,14 @@ export function SequenceReviewSheet({
                     value={t.subject || ''}
                     onChange={e => updateTouch(idx, 'subject', e.target.value)}
                     placeholder="Subject"
-                    className="w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-[12.5px] text-white/90 focus:outline-none focus:border-violet-400/50"
+                    className="w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-label text-white/90 focus:outline-none focus:border-violet-400/50"
                   />
                   <textarea
                     value={t.body || ''}
                     onChange={e => updateTouch(idx, 'body', e.target.value)}
                     rows={5}
                     placeholder="Body"
-                    className="w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-[12px] text-white/80 leading-snug focus:outline-none focus:border-violet-400/50 resize-y"
+                    className="w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-label text-white/80 leading-snug focus:outline-none focus:border-violet-400/50 resize-y"
                   />
                 </div>
               </div>
@@ -158,7 +158,7 @@ export function SequenceReviewSheet({
                   type="button"
                   disabled={busy}
                   onClick={() => act({ action: 'amend', touches }, 'Amendments saved.')}
-                  className="rounded-lg bg-violet-500/15 border border-violet-400/30 px-3 py-1.5 text-[11.5px] font-medium text-violet-300 hover:bg-violet-500/25 transition-colors disabled:opacity-40"
+                  className="rounded-lg bg-violet-500/15 border border-violet-400/30 px-3 py-1.5 text-label font-medium text-violet-300 hover:bg-violet-500/25 transition-colors disabled:opacity-40"
                 >
                   Save amendments
                 </button>
@@ -170,7 +170,7 @@ export function SequenceReviewSheet({
                   if (dirty) await act({ action: 'amend', touches }, 'Amendments saved.')
                   await act({ action: 'approve' }, 'Sequence approved — the scheduler can use it.', true)
                 }}
-                className="rounded-lg bg-emerald-500/15 border border-emerald-400/30 px-3 py-1.5 text-[11.5px] font-medium text-emerald-300 hover:bg-emerald-500/25 transition-colors disabled:opacity-40"
+                className="rounded-lg bg-emerald-500/15 border border-emerald-400/30 px-3 py-1.5 text-label font-medium text-emerald-300 hover:bg-emerald-500/25 transition-colors disabled:opacity-40"
               >
                 {dirty ? 'Save & approve' : 'Approve'}
               </button>
@@ -178,7 +178,7 @@ export function SequenceReviewSheet({
                 type="button"
                 disabled={busy}
                 onClick={() => act({ action: 'reject', notes: 'rejected in sequence review' }, 'Sequence rejected.', true)}
-                className="ml-auto rounded-lg border border-rose-400/25 px-3 py-1.5 text-[11.5px] font-medium text-rose-300/80 hover:text-rose-300 transition-colors disabled:opacity-40"
+                className="ml-auto rounded-lg border border-rose-400/25 px-3 py-1.5 text-label font-medium text-rose-300/80 hover:text-rose-300 transition-colors disabled:opacity-40"
               >
                 Reject
               </button>

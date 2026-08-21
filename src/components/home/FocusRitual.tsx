@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import {
   Sparkles, Check, Target, ArrowLeft, ArrowRight,
   CheckCircle2, Inbox, Plus, X, RotateCcw,
-} from 'lucide-react'
+} from '@/lib/icons'
 import { useAltitudes, type AltitudeId } from '../../hooks/useAltitudes'
 import { useGoalCanon, type CanonGoal } from '../../hooks/useGoalCanon'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
@@ -111,8 +111,8 @@ export function FocusRitual({
   const header = (
     <div className="flex items-center gap-2 mb-2">
       <Sparkles size={15} className="text-violet-300 flex-shrink-0" />
-      <h2 className="text-[15px] font-semibold text-white">{STEP_TITLE[current]}</h2>
-      <span className="ml-auto text-[10px] text-white/45 tabular-nums uppercase tracking-[0.12em]">
+      <h2 className="text-ui font-semibold text-white">{STEP_TITLE[current]}</h2>
+      <span className="ml-auto text-micro text-white/45 tabular-nums uppercase tracking-[0.14em]">
         Step {Math.min(stepIdx + 1, total)} of {total}{!isLast && minsLeft > 0 ? ` · ~${minsLeft} min` : ''}
       </span>
     </div>
@@ -132,7 +132,7 @@ export function FocusRitual({
         <button
           type="button"
           onClick={goBack}
-          className="inline-flex items-center gap-1 text-[12px] text-white/55 hover:text-white/85 px-2.5 py-2"
+          className="inline-flex items-center gap-1 text-label text-white/55 hover:text-white/85 px-2.5 py-2"
         >
           <ArrowLeft size={13} /> Back
         </button>
@@ -142,7 +142,7 @@ export function FocusRitual({
           <button
             type="button"
             onClick={setLater}
-            className="text-[11px] text-white/35 hover:text-white/60"
+            className="text-micro text-white/35 hover:text-white/60"
           >
             Set later today
           </button>
@@ -151,7 +151,7 @@ export function FocusRitual({
           <button
             type="button"
             onClick={done}
-            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-4 py-2"
+            className="inline-flex items-center gap-1.5 text-body font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-4 py-2"
           >
             <CheckCircle2 size={13} /> Done
           </button>
@@ -159,7 +159,7 @@ export function FocusRitual({
           <button
             type="button"
             onClick={goNext}
-            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-4 py-2"
+            className="inline-flex items-center gap-1.5 text-body font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-4 py-2"
           >
             Next <ArrowRight size={13} />
           </button>
@@ -258,21 +258,21 @@ function WeeklyStep() {
 
   return (
     <div className="space-y-3">
-      <p className="text-[12px] text-white/55 leading-snug">
+      <p className="text-label text-white/55 leading-snug">
         Up to 3 objectives for the week, each serving an OS goal. The OS drives toward these all week; today's 3 draw from them.
       </p>
 
       {/* Marcus-proposed weekly goals: take or pass, one tap each. */}
       {proposed.length > 0 && (
         <div className="rounded-xl border border-violet-500/15 bg-violet-500/[0.04] p-3 space-y-2">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-violet-200/80 font-semibold">Marcus proposes</p>
+          <p className="text-micro uppercase tracking-[0.14em] text-violet-200/80 font-semibold">Marcus proposes</p>
           <ul className="space-y-1.5">
             {proposed.map(g => (
               <li key={g.id} className="flex items-start gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2">
                 <span className="flex-1 min-w-0">
-                  <span className="block text-[13px] text-white/90 leading-snug break-words">{g.title}</span>
+                  <span className="block text-body text-white/90 leading-snug break-words">{g.title}</span>
                   {g.parent_id && osTitle.get(g.parent_id) && (
-                    <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-white/45">
+                    <span className="mt-0.5 inline-flex items-center gap-1 text-micro text-white/45">
                       <Target size={9} className="opacity-60" />{osTitle.get(g.parent_id)}
                     </span>
                   )}
@@ -281,7 +281,7 @@ function WeeklyStep() {
                   type="button"
                   disabled={busy != null}
                   onClick={() => void run(`take-${g.id}`, () => acceptProposed(g.id), 'Taken for the week.')}
-                  className="min-h-[30px] px-2.5 rounded-md bg-emerald-400/15 border border-emerald-300/30 text-[12px] text-emerald-100 hover:bg-emerald-400/25 disabled:opacity-50"
+                  className="min-h-[30px] px-2.5 rounded-md bg-emerald-400/15 border border-emerald-300/30 text-label text-emerald-100 hover:bg-emerald-400/25 disabled:opacity-50"
                 >
                   Take it
                 </button>
@@ -289,7 +289,7 @@ function WeeklyStep() {
                   type="button"
                   disabled={busy != null}
                   onClick={() => void run(`pass-${g.id}`, () => rejectProposed(g.id))}
-                  className="min-h-[30px] px-2 rounded-md text-[12px] text-white/45 hover:text-white/80 disabled:opacity-50"
+                  className="min-h-[30px] px-2 rounded-md text-label text-white/45 hover:text-white/80 disabled:opacity-50"
                 >
                   Pass
                 </button>
@@ -301,13 +301,13 @@ function WeeklyStep() {
 
       {/* The week's set. */}
       <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3 space-y-2">
-        <p className="text-[10px] uppercase tracking-[0.14em] text-white/45 font-semibold">
+        <p className="text-micro uppercase tracking-[0.14em] text-white/45 font-semibold">
           This week · {activeCount}/3
         </p>
         {loading ? (
-          <div className="text-[12px] text-white/45"><Working size={12} className="inline mr-2" />Loading the canon…</div>
+          <div className="text-label text-white/45"><Working size={12} className="inline mr-2" />Loading the canon…</div>
         ) : weekly.length === 0 ? (
-          <p className="text-[12px] text-white/45">Nothing set yet. Write the first one below.</p>
+          <p className="text-label text-white/45">Nothing set yet. Write the first one below.</p>
         ) : (
           <ul className="space-y-1.5">
             {weekly.map(g => {
@@ -323,8 +323,8 @@ function WeeklyStep() {
                     className={`mt-[2px] w-4 h-4 shrink-0 rounded-[5px] border ${done ? 'bg-emerald-400/80 border-emerald-300/60' : 'border-white/25 hover:border-white/50'}`}
                   />
                   <span className="flex-1 min-w-0">
-                    <span className={`block text-[13px] leading-snug break-words ${done ? 'text-white/40 line-through' : 'text-white/90'}`}>{g.title}</span>
-                    <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-white/45">
+                    <span className={`block text-body leading-snug break-words ${done ? 'text-white/40 line-through' : 'text-white/90'}`}>{g.title}</span>
+                    <span className="mt-0.5 flex flex-wrap items-center gap-2 text-micro text-white/45">
                       {g.parent_id && osTitle.get(g.parent_id) && (
                         <span className="inline-flex items-center gap-1"><Target size={9} className="opacity-60" />{osTitle.get(g.parent_id)}</span>
                       )}
@@ -338,7 +338,7 @@ function WeeklyStep() {
                       disabled={busy != null}
                       title="Carry this into the new week"
                       onClick={() => void run(`keep-${g.id}`, () => patchGoal({ goalId: g.id, status: 'active' }), 'Carried into this week.')}
-                      className="min-h-[28px] px-2 rounded-md text-[11px] inline-flex items-center gap-1 text-white/60 hover:text-white/90 border border-white/[0.10]"
+                      className="min-h-[28px] px-2 rounded-md text-micro inline-flex items-center gap-1 text-white/60 hover:text-white/90 border border-white/[0.10]"
                     >
                       <RotateCcw size={11} /> Keep
                     </button>
@@ -367,7 +367,7 @@ function WeeklyStep() {
                 onChange={e => { setText(e.target.value); if (gate) setGate(null) }}
                 placeholder="Write a weekly objective…"
                 rows={2}
-                className="w-full bg-black/30 border border-white/[0.08] rounded px-2.5 py-2 pr-10 text-[12px] text-white placeholder:text-white/30 focus:border-violet-400/40 focus:outline-none resize-none"
+                className="w-full bg-black/30 border border-white/[0.08] rounded px-2.5 py-2 pr-10 text-label text-white placeholder:text-white/30 focus:border-violet-400/40 focus:outline-none resize-none"
               />
               <div className="absolute top-1.5 right-1.5">
                 <MicButton
@@ -382,7 +382,7 @@ function WeeklyStep() {
                 value={servesId}
                 onChange={e => setServesId(e.target.value)}
                 aria-label="What does it serve?"
-                className="flex-1 min-w-[140px] bg-black/30 border border-white/[0.08] rounded px-2 py-1.5 text-[11px] text-white/80 focus:outline-none"
+                className="flex-1 min-w-[140px] bg-black/30 border border-white/[0.08] rounded px-2 py-1.5 text-micro text-white/80 focus:outline-none"
               >
                 {os.length === 0 && <option value="">Set an OS goal first</option>}
                 {os.map(g => <option key={g.id} value={g.id}>Serves: {g.title}</option>)}
@@ -392,7 +392,7 @@ function WeeklyStep() {
                   value={venture}
                   onChange={e => setVenture(e.target.value)}
                   aria-label="Venture (optional)"
-                  className="w-[120px] bg-black/30 border border-white/[0.08] rounded px-2 py-1.5 text-[11px] text-white/80 focus:outline-none"
+                  className="w-[120px] bg-black/30 border border-white/[0.08] rounded px-2 py-1.5 text-micro text-white/80 focus:outline-none"
                 >
                   <option value="">No venture</option>
                   {ventures.map(v => <option key={v} value={v}>{v}</option>)}
@@ -402,7 +402,7 @@ function WeeklyStep() {
                 type="button"
                 onClick={() => add()}
                 disabled={!text.trim() || !servesId || busy != null}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-white/70 hover:text-white border border-white/[0.10] hover:border-white/25 rounded px-2.5 py-1.5 disabled:opacity-40"
+                className="inline-flex items-center gap-1 text-micro font-semibold text-white/70 hover:text-white border border-white/[0.10] hover:border-white/25 rounded px-2.5 py-1.5 disabled:opacity-40"
               >
                 <Plus size={11} /> Add
               </button>
@@ -411,14 +411,14 @@ function WeeklyStep() {
             {/* The gate held it: the form stays open with the verdict attached. */}
             {gate && (
               <div className="rounded-lg border border-amber-400/25 bg-amber-500/[0.07] p-2.5">
-                <p className="text-[11px] uppercase tracking-[0.14em] font-semibold text-amber-200/85">
+                <p className="text-micro uppercase tracking-[0.14em] font-semibold text-amber-200/85">
                   {gate.verdict === 'wrong_tier' ? 'Wrong rung' : 'Not saved yet'}
                 </p>
-                {gate.reasoning && <p className="mt-1 text-[12px] text-white/70 leading-snug">{gate.reasoning}</p>}
+                {gate.reasoning && <p className="mt-1 text-label text-white/70 leading-snug">{gate.reasoning}</p>}
                 {gate.issues.length > 0 && (
                   <ul className="mt-1.5 space-y-1">
                     {gate.issues.map((it, i) => (
-                      <li key={i} className="text-[12px] leading-snug">
+                      <li key={i} className="text-label leading-snug">
                         <span className="text-amber-200/80 font-medium">{it.dimension}: </span>
                         <span className="text-white/70">{it.problem}</span>
                       </li>
@@ -430,7 +430,7 @@ function WeeklyStep() {
                     <button
                       type="button"
                       onClick={() => { setText(gate.suggested_rewrite!); setGate(null) }}
-                      className="min-h-[28px] px-2.5 rounded-md bg-white/[0.07] border border-white/15 text-[12px] text-white/85 hover:bg-white/[0.12]"
+                      className="min-h-[28px] px-2.5 rounded-md bg-white/[0.07] border border-white/15 text-label text-white/85 hover:bg-white/[0.12]"
                     >
                       Use the suggested wording
                     </button>
@@ -438,7 +438,7 @@ function WeeklyStep() {
                   <button
                     type="button"
                     onClick={() => add(true)}
-                    className="min-h-[28px] px-2 rounded-md text-[12px] text-white/45 hover:text-white/80 underline underline-offset-2"
+                    className="min-h-[28px] px-2 rounded-md text-label text-white/45 hover:text-white/80 underline underline-offset-2"
                   >
                     Save as written
                   </button>
@@ -464,11 +464,11 @@ function DailyStep({ onLocked }: { onLocked: () => void }) {
     const targets = [today.target_1_text, today.target_2_text, today.target_3_text].filter(Boolean) as string[]
     return (
       <div className="space-y-3">
-        <p className="text-[12px] text-emerald-200/80 leading-snug">Today's 3 are locked. Track them on the board.</p>
+        <p className="text-label text-emerald-200/80 leading-snug">Today's 3 are locked. Track them on the board.</p>
         <ol className="space-y-1.5">
           {targets.map((t, i) => (
-            <li key={i} className="flex items-start gap-2 text-[13px] text-white/85">
-              <span className="text-[12px] text-violet-200 font-bold tabular-nums">{i + 1}.</span>
+            <li key={i} className="flex items-start gap-2 text-body text-white/85">
+              <span className="text-label text-violet-200 font-bold tabular-nums">{i + 1}.</span>
               <span className="break-words">{t}</span>
             </li>
           ))}
@@ -498,14 +498,14 @@ function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose
     <div className="space-y-4 py-2">
       <div className="flex items-center gap-2">
         <CheckCircle2 size={18} className="text-emerald-400" />
-        <p className="text-[15px] font-semibold text-white">You're set for today.</p>
+        <p className="text-ui font-semibold text-white">You're set for today.</p>
       </div>
       <ul className="space-y-2">
         {altitudes.map(a => (
           <li key={a.id} className="flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${a.needsAttention ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-            <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-white/55 w-20 flex-shrink-0">{a.label}</span>
-            <span className="text-[12px] text-white/75 truncate">{a.summary}</span>
+            <span className="text-label font-bold uppercase tracking-[0.14em] text-white/55 w-20 flex-shrink-0">{a.label}</span>
+            <span className="text-label text-white/75 truncate">{a.summary}</span>
             {!a.needsAttention && <Check size={13} className="ml-auto text-emerald-400/80 flex-shrink-0" />}
           </li>
         ))}
@@ -518,7 +518,7 @@ function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose
         >
           <span className="inline-flex items-center gap-2">
             <Inbox size={14} className="text-amber-400" />
-            <span className="text-[13px] text-white/85">{waiting} still waiting on you</span>
+            <span className="text-body text-white/85">{waiting} still waiting on you</span>
           </span>
           <ArrowRight size={14} className="text-amber-300/80" />
         </button>

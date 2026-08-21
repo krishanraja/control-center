@@ -67,7 +67,7 @@ export function MobileAcquisition({
       }
     >
       {error && (
-        <div className="mx-5 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-[12px] text-red-200">
+        <div className="mx-5 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-label text-red-200">
           {error}
         </div>
       )}
@@ -85,7 +85,7 @@ export function MobileAcquisition({
                   key={l.slug}
                   type="button"
                   onClick={() => setSelectedSlug(l.slug)}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] whitespace-nowrap transition-colors ${
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-label whitespace-nowrap transition-colors ${
                     isSelected
                       ? 'border-violet-400/50 bg-violet-500/15 text-white'
                       : 'border-white/[0.08] bg-white/[0.02] text-white/60'
@@ -93,7 +93,7 @@ export function MobileAcquisition({
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${laneDot(l)}`} title={laneDotTitle(l)} />
                   <span className="font-medium">{l.name}</span>
-                  <span className={`rounded-full border px-1 text-[9px] font-semibold ${AUTONOMY_CHIP[l.autonomy_level]}`}>
+                  <span className={`rounded-full border px-1 text-micro font-semibold ${AUTONOMY_CHIP[l.autonomy_level]}`}>
                     {l.autonomy_level}
                   </span>
                 </button>

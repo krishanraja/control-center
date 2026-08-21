@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ExternalLink, Linkedin, Mail, X, CheckCircle2, Mic, Twitter, FileText } from 'lucide-react'
+import { ExternalLink, Linkedin, Mail, X, CheckCircle2, Mic, Twitter, FileText } from '@/lib/icons'
 import { humanAge } from '../lib/ageHelpers'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
@@ -102,13 +102,13 @@ export function GuestCard({ guest: g, onOpen }: Props) {
       <header className="flex items-start gap-2 min-w-0">
         <div className="flex-1 min-w-0">
           <button type="button" onClick={() => onOpen?.(g.id)} className="text-left w-full">
-            <p className="text-[13px] font-semibold text-white leading-snug truncate">{g.name}</p>
+            <p className="text-body font-semibold text-white leading-snug truncate">{g.name}</p>
             {g.one_liner && (
-              <p className="text-[11px] text-white/55 leading-snug line-clamp-2">{g.one_liner}</p>
+              <p className="text-micro text-white/55 leading-snug line-clamp-2">{g.one_liner}</p>
             )}
           </button>
         </div>
-        <span className="text-[10px] tabular-nums text-white/35 flex-shrink-0">
+        <span className="text-micro tabular-nums text-white/35 flex-shrink-0">
           {humanAge(g.updated_at)}
         </span>
       </header>
@@ -118,19 +118,19 @@ export function GuestCard({ guest: g, onOpen }: Props) {
           const band = triageBand(g.triage_score)
           return (
             <span
-              className={`text-[10px] px-1.5 py-0.5 rounded border tabular-nums flex items-center gap-1 ${band.cls}`}
+              className={`text-micro px-1.5 py-0.5 rounded border tabular-nums flex items-center gap-1 ${band.cls}`}
               title={g.triage_reason || 'Pre-spend triage signal'}
             >
               {band.label} {g.triage_score}
             </span>
           )
         })()}
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200 flex items-center gap-1">
+        <span className="text-micro px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200 flex items-center gap-1">
           <Mic size={9} />
           {TARGET_LABEL[g.podcast_target]}
         </span>
         {g.quality_score && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] ${
+          <span className={`text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
             g.quality_score === 'green' ? 'bg-emerald-500/10 text-emerald-300' :
             g.quality_score === 'amber' ? 'bg-amber-500/10 text-amber-300' :
             'bg-rose-500/10 text-rose-300'
@@ -139,26 +139,26 @@ export function GuestCard({ guest: g, onOpen }: Props) {
           </span>
         )}
         {typeof g.fit_score === 'number' && (
-          <span className="text-[9px] px-1 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">
+          <span className="text-micro px-1 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">
             Fit {g.fit_score}
           </span>
         )}
         {typeof g.attainability_score === 'number' && (
-          <span className="text-[9px] px-1 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">
+          <span className="text-micro px-1 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">
             Reach {g.attainability_score}
           </span>
         )}
       </div>
 
       {g.why_fit && (
-        <p className="text-[11px] text-white/65 leading-snug mt-2 line-clamp-3">
+        <p className="text-micro text-white/65 leading-snug mt-2 line-clamp-3">
           <span className="text-white/35">Why: </span>
           {g.why_fit}
         </p>
       )}
 
       {g.triage_reason && (
-        <p className="text-[11px] text-white/45 leading-snug mt-1.5 line-clamp-2">
+        <p className="text-micro text-white/45 leading-snug mt-1.5 line-clamp-2">
           <span className="text-white/30">Triage: </span>
           {g.triage_reason}
         </p>
@@ -170,7 +170,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
             type="button"
             onClick={(e) => { e.stopPropagation(); confirmGuest() }}
             disabled={busy !== null}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-40 transition-colors"
           >
             <CheckCircle2 size={11} />
             {busy === 'confirm' ? 'Confirming…' : 'Confirm recording'}
@@ -181,7 +181,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
             type="button"
             onClick={(e) => { e.stopPropagation(); patchStatus('pitched') }}
             disabled={busy !== null}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 disabled:opacity-40 transition-colors"
           >
             Mark pitched
           </button>
@@ -192,7 +192,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
           >
             <Linkedin size={11} />
             LinkedIn
@@ -204,7 +204,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
           >
             <Twitter size={11} />
             X
@@ -234,7 +234,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
                 toast(`Could not draft email: ${err?.message || 'try again'}`, 'error')
               }
             }}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 transition-colors"
             title="Draft an email via Cleo (lands in your Gmail Drafts)"
           >
             <Mail size={11} />
@@ -249,7 +249,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
                 target="_blank"
                 rel="noreferrer noopener"
                 onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/15 transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/15 transition-colors"
                 title="Open the Speaker Briefing Google Doc"
               >
                 <FileText size={11} />
@@ -259,7 +259,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
                 type="button"
                 onClick={(e) => { e.stopPropagation(); generateBriefing(true) }}
                 disabled={busy !== null}
-                className="text-[10px] text-white/40 hover:text-white/70 disabled:opacity-40 transition-colors"
+                className="text-micro text-white/40 hover:text-white/70 disabled:opacity-40 transition-colors"
                 title="Regenerate the briefing (updates the same Doc)"
               >
                 {busy === 'briefing' ? 'Regenerating…' : 'Regenerate'}
@@ -270,7 +270,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
               type="button"
               onClick={(e) => { e.stopPropagation(); generateBriefing(true) }}
               disabled={busy !== null}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-amber-500/30 text-amber-200 hover:bg-amber-500/15 disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-amber-500/30 text-amber-200 hover:bg-amber-500/15 disabled:opacity-40 transition-colors"
               title="Retry the Speaker Briefing"
             >
               <FileText size={11} />
@@ -281,7 +281,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
               type="button"
               onClick={(e) => { e.stopPropagation(); generateBriefing(false) }}
               disabled={busy !== null || g.briefing_status === 'generating'}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 disabled:opacity-40 transition-colors"
               title="Generate a 10/10 Speaker Briefing Doc via Nell"
             >
               <FileText size={11} />
@@ -295,7 +295,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
           >
             <ExternalLink size={11} />
             Site
@@ -312,7 +312,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
               target="_blank"
               rel="noreferrer noopener"
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/55 hover:bg-white/[0.06] hover:text-white/80 transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/55 hover:bg-white/[0.06] hover:text-white/80 transition-colors"
             >
               {l.icon}
               {l.label}
@@ -331,7 +331,7 @@ export function GuestCard({ guest: g, onOpen }: Props) {
               type="button"
               onClick={(e) => { e.stopPropagation(); patchStatus('dropped') }}
               disabled={busy !== null}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-micro font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
               title="Drop this guest"
             >
               <X size={11} />

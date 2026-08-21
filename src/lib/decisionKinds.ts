@@ -1,4 +1,4 @@
-import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles, Newspaper, Inbox, AlertOctagon, Layers, MailCheck, TrendingDown } from 'lucide-react'
+import { Mail, FileText, Mic, UserPlus, Target, ShieldAlert, Sparkles, Newspaper, Inbox, AlertOctagon, Layers, MailCheck, TrendingDown } from '@/lib/icons'
 import type { DecisionRow } from '../hooks/useRealtimeDecisionsWaiting'
 
 // Wave 2, rule Q1 (locked 2026-07-10): the "Your decisions" badge counts ONLY

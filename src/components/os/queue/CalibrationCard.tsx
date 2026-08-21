@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { SlidersHorizontal, X, Check } from 'lucide-react'
+import { SlidersHorizontal, X, Check } from '@/lib/icons'
 import { supabase } from '../../../lib/supabase'
 import { useToast } from '../../shared/Toast'
 import { useHaptics } from '../../../hooks/useHaptics'
@@ -65,8 +65,8 @@ export function CalibrationCard() {
         <div className="flex items-start gap-3">
           <SlidersHorizontal size={16} className="text-violet-300 mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] text-white font-medium">Calibrate the grader to your taste</p>
-            <p className="text-[12px] text-white/55 mt-0.5 leading-snug">
+            <p className="text-body text-white font-medium">Calibrate the grader to your taste</p>
+            <p className="text-label text-white/55 mt-0.5 leading-snug">
               The nightly sweep buries low-value agent items using default weights. A 2-minute
               best/worst pass over your real items personalizes what counts as low-value.
             </p>
@@ -76,7 +76,7 @@ export function CalibrationCard() {
                   key={d}
                   type="button"
                   onClick={() => setFlowDomain(d)}
-                  className="px-3 py-1.5 rounded-lg border border-violet-400/40 bg-violet-500/15 text-violet-100 text-[12px] font-medium hover:bg-violet-500/25 transition-colors"
+                  className="px-3 py-1.5 rounded-lg border border-violet-400/40 bg-violet-500/15 text-violet-100 text-label font-medium hover:bg-violet-500/25 transition-colors"
                 >
                   {DOMAIN_LABEL[d]}
                 </button>
@@ -221,14 +221,14 @@ function CalibrationFlow({ domain, onClose }: { domain: Domain; onClose: () => v
       <div className="absolute inset-0 bg-black/60 animate-fade-in" onClick={onClose} />
       <div className="relative w-full max-w-xl max-h-[calc(90vh/var(--z,1))] overflow-y-auto rounded-2xl border border-white/10 bg-base p-5 animate-fade-in">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-[15px] font-semibold text-white">
+          <h2 className="text-ui font-semibold text-white">
             Calibrate · {DOMAIN_LABEL[domain]}
           </h2>
           <button type="button" onClick={onClose} className="text-white/40 hover:text-white/80" aria-label="Close">
             <X size={16} />
           </button>
         </div>
-        <p className="text-[12px] text-white/45 mb-4">
+        <p className="text-label text-white/45 mb-4">
           {screen
             ? bestId
               ? 'Now tap the LEAST valuable.'
@@ -237,10 +237,10 @@ function CalibrationFlow({ domain, onClose }: { domain: Domain; onClose: () => v
           {screens.length > 0 && ` Screen ${Math.min(screenIdx + 1, screens.length)} of ${screens.length}.`}
         </p>
 
-        {error && <p className="text-[12px] text-rose-300">{error}</p>}
-        {!items && !error && <p className="text-[12px] text-white/35">Loading your items…</p>}
+        {error && <p className="text-label text-rose-300">{error}</p>}
+        {!items && !error && <p className="text-label text-white/35">Loading your items…</p>}
         {items && screens.length === 0 && (
-          <p className="text-[12px] text-white/55">
+          <p className="text-label text-white/55">
             Not enough agent-generated items in this domain to calibrate yet (need at least 4).
           </p>
         )}
@@ -264,11 +264,11 @@ function CalibrationFlow({ domain, onClose }: { domain: Domain; onClose: () => v
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <p className="flex-1 text-[13px] text-white/85 leading-snug">{item.title}</p>
-                    {isBest && <span className="text-[10px] font-bold text-emerald-300 uppercase flex-shrink-0">Best</span>}
-                    {isWorst && <span className="text-[10px] font-bold text-rose-300 uppercase flex-shrink-0">Worst</span>}
+                    <p className="flex-1 text-body text-white/85 leading-snug">{item.title}</p>
+                    {isBest && <span className="text-micro font-bold text-emerald-300 uppercase flex-shrink-0">Best</span>}
+                    {isWorst && <span className="text-micro font-bold text-rose-300 uppercase flex-shrink-0">Worst</span>}
                   </div>
-                  {item.summary && <p className="text-[11px] text-white/40 mt-1">{item.summary}</p>}
+                  {item.summary && <p className="text-micro text-white/40 mt-1">{item.summary}</p>}
                 </button>
               )
             })}
@@ -277,7 +277,7 @@ function CalibrationFlow({ domain, onClose }: { domain: Domain; onClose: () => v
               value={reason}
               onChange={e => setReason(e.target.value)}
               placeholder="Why? (optional, one line)"
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-[12px] text-white/80 focus:outline-none focus:border-violet-500/40 placeholder-white/25"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-label text-white/80 focus:outline-none focus:border-violet-500/40 placeholder-white/25"
             />
 
             <div className="flex items-center gap-2 pt-1">
@@ -285,7 +285,7 @@ function CalibrationFlow({ domain, onClose }: { domain: Domain; onClose: () => v
                 type="button"
                 onClick={submitScreen}
                 disabled={!bestId || !worstId || busy}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-violet-500/20 border border-violet-500/35 text-violet-200 text-[12px] font-medium hover:bg-violet-500/30 disabled:opacity-40 transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-violet-500/20 border border-violet-500/35 text-violet-200 text-label font-medium hover:bg-violet-500/30 disabled:opacity-40 transition-colors"
               >
                 <Check size={12} /> Next
               </button>
@@ -294,7 +294,7 @@ function CalibrationFlow({ domain, onClose }: { domain: Domain; onClose: () => v
                   type="button"
                   onClick={fit}
                   disabled={busy}
-                  className="px-3 py-2 rounded-lg border border-white/10 text-white/60 text-[12px] hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+                  className="px-3 py-2 rounded-lg border border-white/10 text-white/60 text-label hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
                 >
                   Finish with {recorded} screens
                 </button>
@@ -305,12 +305,12 @@ function CalibrationFlow({ domain, onClose }: { domain: Domain; onClose: () => v
 
         {done && screens.length > 0 && (
           <div className="text-center py-6 space-y-3">
-            <p className="text-[13px] text-white/75">All {recorded} screens recorded.</p>
+            <p className="text-body text-white/75">All {recorded} screens recorded.</p>
             <button
               type="button"
               onClick={fit}
               disabled={busy}
-              className="px-4 py-2 rounded-lg bg-violet-500/20 border border-violet-500/35 text-violet-200 text-[13px] font-medium hover:bg-violet-500/30 disabled:opacity-40 transition-colors"
+              className="px-4 py-2 rounded-lg bg-violet-500/20 border border-violet-500/35 text-violet-200 text-body font-medium hover:bg-violet-500/30 disabled:opacity-40 transition-colors"
             >
               {busy ? 'Fitting…' : 'Fit weights & finish'}
             </button>

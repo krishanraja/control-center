@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { TrendingUp, Eye, Sparkles } from 'lucide-react'
+import { TrendingUp, Eye, Sparkles } from '@/lib/icons'
 import { DoThisNextHero, type HeroDescriptor } from '../shared/DoThisNextHero'
 import type { CustomerRow } from '../../hooks/useCustomers'
 

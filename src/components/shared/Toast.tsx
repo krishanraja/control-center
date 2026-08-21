@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react'
-import { CheckCircle2, AlertCircle, Info } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Info } from '@/lib/icons'
 
 interface ToastAction {
   label: string
@@ -68,12 +68,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               className={`pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-lg border ${v.border} bg-base shadow-xl animate-[slideUp_0.2s_ease-out]`}
             >
               <Icon size={14} className={v.iconColor} />
-              <span className="text-[12px] text-white/80">{t.message}</span>
+              <span className="text-label text-white/80">{t.message}</span>
               {t.action && (
                 <button
                   type="button"
                   onClick={() => { t.action!.onClick(); dismiss(t.id) }}
-                  className="ml-1.5 text-[12px] font-semibold text-violet-300 hover:text-violet-200 underline-offset-2 hover:underline"
+                  className="ml-1.5 text-label font-semibold text-violet-300 hover:text-violet-200 underline-offset-2 hover:underline"
                 >
                   {t.action.label}
                 </button>

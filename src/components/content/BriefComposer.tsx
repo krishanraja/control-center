@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { History, Wand2 } from 'lucide-react'
+import { Check, History, Mic, StickyNote, Wand2, X } from '@/lib/icons'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
@@ -18,6 +18,7 @@ import { supabase } from '../../lib/supabase'
 import { Skeleton } from '../shared/Skeleton'
 import { ComposerShell, ComposerRail, MetaDot, type ComposerTab } from './ComposerShell'
 import { EditPalette, busyKey } from './EditPalette'
+import { BottomSheet } from '../mobile/BottomSheet'
 import { streamText } from '../../lib/streamText'
 
 interface StandingNote { id: string; text: string; at: string }
@@ -143,9 +144,27 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
   // scoping nothing. api/_selection.ts applies the same floor server-side.
   const [selection, setSelection] = useState('')
   const [showEdits, setShowEdits] = useState(false)
+  // Portal host for the edits sheet: an element INSIDE the composer shell
+  // (fixed z-[90], its own zoom context), so the sheet paints above the shell.
+  // Portaled to the default zoom root it would land in the tab tree behind
+  // this overlay and be invisible.
+  const [sheetHost, setSheetHost] = useState<HTMLElement | null>(null)
   const scoped = selection.replace(/[^a-zA-Z0-9]/g, '').length >= 8
   const { listening, supported, toggle } = useDictation(setCleoNote)
   const { toast } = useToast()
+  // Mirror of `citations` that onUpdate can read without a stale closure. The
+  // canonical buffer may only ever be rebuilt from a citations-ON rendering:
+  // the citations-off view is lossy (sources stripped), and canonicalizing
+  // from it once destroyed the Sources list for good — which is exactly what
+  // made the toggle work a single time and then never again.
+  const citationsRef = useRef(citations)
+  citationsRef.current = citations
+
+  const editingClosed = brief ? !['ready', 'in_review', 'approved'].includes(brief.status) : false
+  // One expression for editability, used at editor creation AND by the effect
+  // below. They used to disagree (`!narrow` here, the full expression there),
+  // and react re-applies creation options on re-render, so the two fought.
+  const canEdit = !narrow && citations && !editingClosed
 
   // The brief's markdown is handed to the editor AT CREATION, not injected
   // afterwards: the deps array recreates the editor when the brief arrives, so
@@ -155,13 +174,17 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
   // on phones from the day this shipped.
   const editor = useEditor({
     extensions: EXTENSIONS,
-    editable: !narrow,
+    editable: canEdit,
     content: brief ? renderBrief(toEndnotes(brief.body_md || ''), citations) : '',
     onUpdate: ({ editor }) => {
+      // Edits are only possible with citations on (setEditable below), so an
+      // update while they are off can only be programmatic. Canonicalizing
+      // from that lossy view would strip the Sources list permanently, so it
+      // is refused here as a hard rule rather than assumed away.
+      if (!citationsRef.current) return
       setDirty(true)
       const storage = editor.storage as { markdown?: { getMarkdown: () => string } }
       const md = storage.markdown?.getMarkdown()
-      // Edits only happen with citations on, so the buffer stays canonical.
       if (md != null) canonicalRef.current = toEndnotes(md)
       setWords(editor.state.doc.textBetween(0, editor.state.doc.content.size, ' ').split(/\s+/).filter(Boolean).length)
     },
@@ -174,7 +197,6 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
     },
   }, [brief?.id])
 
-  const editingClosed = brief ? !['ready', 'in_review', 'approved'].includes(brief.status) : false
 
   const load = useCallback(async () => {
     try {
@@ -214,13 +236,14 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
     // editor is rebuilt and this effect fires once more against the torn-down
     // instance from the previous render's closure.
     if (!editor || editor.isDestroyed || !brief) return
-    editor.setEditable(!narrow && citations && !editingClosed)
-    // emitUpdate false, because this is a programmatic re-render, not an edit. In
-    // tiptap v3 setContent emits update by default, which flipped dirty and
-    // re-canonicalized from the serializer on every pass.
+    // emitUpdate false on BOTH calls, because this is a programmatic re-render,
+    // not an edit. setContent emitting was fixed first; setEditable kept its
+    // default emit, so the first citations-off flip re-canonicalized the buffer
+    // from the sources-stripped view and the toggle only ever worked once.
+    editor.setEditable(canEdit, false)
     editor.commands.setContent(renderBrief(canonicalRef.current, citations), { emitUpdate: false })
     setWords(editor.state.doc.textBetween(0, editor.state.doc.content.size, ' ').split(/\s+/).filter(Boolean).length)
-  }, [editor, brief, citations, narrow, editingClosed])
+  }, [editor, brief, citations, canEdit])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -479,17 +502,17 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
       onClose={onClose}
       eyebrow={<>Weekly brief · {week}</>}
       title={
-        <div className="text-[14px] font-bold text-white truncate">
+        <div className="text-ui font-bold text-white truncate">
           {brief?.title ?? <Skeleton h={13} w={180} r={4} className="my-[3px]" />}
         </div>
       }
       meta={brief ? (
         <>
-          <span className="text-[10px] uppercase tracking-[0.1em] text-white/35">{brief.status}</span>
+          <span className="whitespace-nowrap text-micro uppercase tracking-[0.14em] text-white/35">{brief.status}</span>
           <MetaDot />
-          <span className="text-[10px] text-white/35 tabular-nums">{words} words</span>
+          <span className="whitespace-nowrap text-micro text-white/35 tabular-nums">{words} words</span>
           <MetaDot />
-          <span className="text-[10px] text-white/35">{saving ? 'saving…' : dirty ? 'unsaved' : 'saved'}</span>
+          <span className="whitespace-nowrap text-micro text-white/35">{saving ? 'saving…' : dirty ? 'unsaved' : 'saved'}</span>
         </>
       ) : null}
       actions={
@@ -499,7 +522,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
               onClick={toggleCitations}
               aria-pressed={citations}
               title={citations ? 'Sources shown at the end — tap to hide' : 'Sources hidden — tap to show at the end'}
-              className={`flex-shrink-0 rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition-colors ${
+              className={`flex-shrink-0 rounded-full border px-2.5 py-1 text-label font-semibold transition-colors ${
                 citations
                   ? 'border-sky-400/30 bg-sky-400/10 text-sky-200'
                   : 'border-white/15 text-white/45 hover:text-white/80 hover:border-white/25'
@@ -512,7 +535,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
             <button
               onClick={() => save()}
               disabled={!dirty || saving || editingClosed}
-              className="btn-contrast rounded-lg px-3.5 py-1.5 text-[12px] font-semibold disabled:opacity-40"
+              className="btn-contrast rounded-lg px-3.5 py-1.5 text-label font-semibold disabled:opacity-40"
             >
               {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
             </button>
@@ -520,9 +543,9 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
         </>
       }
       banner={error ? (
-        <div className="mx-4 sm:mx-6 mt-3 rounded-lg bg-red-400/10 border border-red-400/25 text-rose-200 text-[12px] px-3 py-2 flex justify-between gap-3 flex-shrink-0">
+        <div className="mx-4 sm:mx-6 mt-3 rounded-lg bg-red-400/10 border border-red-400/25 text-rose-200 text-label px-3 py-2 flex justify-between gap-3 flex-shrink-0">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="opacity-70">×</button>
+          <button onClick={() => setError(null)} aria-label="Dismiss" className="opacity-70 hover:opacity-100"><X size={14} /></button>
         </div>
       ) : null}
     >
@@ -546,7 +569,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                   key={label}
                   onMouseDown={e => { e.preventDefault(); fn() }}
                   disabled={editingClosed}
-                  className={`px-2.5 py-1.5 rounded-md text-[12px] font-mono font-semibold disabled:opacity-30 ${active ? 'bg-white/15 text-white' : 'text-white/55 hover:bg-white/[0.07]'}`}
+                  className={`px-2.5 py-1.5 rounded-md text-label font-mono font-semibold disabled:opacity-30 ${active ? 'bg-white/15 text-white' : 'text-white/55 hover:bg-white/[0.07]'}`}
                 >
                   {label}
                 </button>
@@ -559,7 +582,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                   if (url) editor.chain().focus().setLink({ href: url }).run()
                 }}
                 disabled={editingClosed}
-                className="px-2.5 py-1.5 rounded-md text-[12px] font-mono font-semibold text-white/55 hover:bg-white/[0.07] disabled:opacity-30"
+                className="px-2.5 py-1.5 rounded-md text-label font-mono font-semibold text-white/55 hover:bg-white/[0.07] disabled:opacity-30"
               >
                 link
               </button>
@@ -568,11 +591,11 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
 
           <div className={`px-4 sm:px-8 py-6 max-w-3xl mx-auto ${narrow ? 'select-text' : ''}`}>
             {editingClosed ? (
-              <div className="mb-4 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white/50 text-[12px] px-3 py-2">
+              <div className="mb-4 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white/50 text-label px-3 py-2">
                 This brief is {brief?.status}; editing is closed.
               </div>
             ) : !narrow && !citations ? (
-              <div className="mb-4 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/45 text-[12px] px-3 py-2">
+              <div className="mb-4 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/45 text-label px-3 py-2">
                 Reading view — sources are hidden. Turn <span className="text-sky-200/90 font-semibold">Citations on</span> to edit.
               </div>
             ) : null}
@@ -603,7 +626,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                     key={m.mode}
                     onClick={() => runMagic(m.mode, m.label)}
                     disabled={magicBusy !== null}
-                    className="rounded-md px-2 py-1 text-[11.5px] font-semibold text-white/75 hover:bg-white/10 disabled:opacity-40"
+                    className="rounded-md px-2 py-1 text-label font-semibold text-white/75 hover:bg-white/10 disabled:opacity-40"
                     title={`${m.label} — this passage only`}
                   >
                     {magicBusy === m.mode ? m.busy : m.label}
@@ -628,13 +651,13 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
           <ComposerRail<BriefTab> tabs={BRIEF_TABS} tab={tab} onTab={setTab}>
             {tab === 'refine' ? (
               <div className="space-y-3">
-                <p className="text-[11px] leading-snug text-white/45">
+                <p className="text-micro leading-snug text-white/45">
                   One-click rewrites of the brief. Each is a preview you keep or discard, never
                   destructive. Highlight a passage first and the edit scopes to it.
                 </p>
                 {scoped ? (
                   <div className="rounded-lg border border-sky-400/25 bg-sky-400/[0.07] px-2.5 py-2">
-                    <div className="flex items-center gap-1.5 text-[11px] text-sky-200">
+                    <div className="flex items-center gap-1.5 text-micro text-sky-200">
                       <span className="flex-1 truncate" title={selection}>
                         Adjusting just: “{selection.replace(/\s+/g, ' ').slice(0, 54)}{selection.length > 54 ? '…' : ''}”
                       </span>
@@ -659,17 +682,17 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
               <div>
                 {versions.map(v => (
                   <div key={v.v} className="rounded-lg border border-white/[0.06] p-3 mb-2">
-                    <div className="flex justify-between items-baseline text-[11px]">
+                    <div className="flex justify-between items-baseline text-micro">
                       <span className="font-semibold text-white/75">v{v.v} · {v.source}{v.restored_from ? ` (from v${v.restored_from})` : ''}</span>
                       <span className="text-white/35">{new Date(v.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     {v.v !== (brief.versions?.length || 1) && v.body_md ? (
-                      <button onClick={() => restore(v.v)} className="mt-2 text-[11px] text-sky-200 hover:text-sky-200 font-semibold">Restore this version</button>
+                      <button onClick={() => restore(v.v)} className="mt-2 text-micro text-sky-200 hover:text-sky-200 font-semibold">Restore this version</button>
                     ) : null}
                   </div>
                 ))}
                 {versions.length === 0 ? (
-                  <p className="text-[11.5px] text-white/40">No saved versions yet.</p>
+                  <p className="text-label text-white/40">No saved versions yet.</p>
                 ) : null}
               </div>
             )}
@@ -695,7 +718,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
             without a scroll listener fighting the user. */}
         {magicBusy && magicStream && (
           <div className="mb-2.5 max-h-28 overflow-hidden rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2">
-            <p className="text-[11.5px] leading-relaxed text-white/50 whitespace-pre-wrap [direction:ltr]">
+            <p className="text-label leading-relaxed text-white/50 whitespace-pre-wrap [direction:ltr]">
               …{magicStream.slice(-320)}
             </p>
           </div>
@@ -704,7 +727,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
             invisibly at click time, so there was no way to tell a passage
             rewrite from a whole-brief rewrite until the result came back. */}
         {!editingClosed && scoped ? (
-          <div className="mb-2 flex items-center gap-2 text-[11px]">
+          <div className="mb-2 flex items-center gap-2 text-micro">
             <span className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-1 font-semibold text-sky-200">
               Selected
             </span>
@@ -720,12 +743,46 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
             </button>
           </div>
         ) : null}
-        {/* On a phone there is no rail, so the palette lives here behind a
-            toggle. Same component, same groups, same handler as the desktop
-            Refine tab; only the container differs. */}
-        {narrow && !editingClosed && showEdits ? (
-          <div className="mb-2.5 max-h-[38vh] overflow-y-auto rounded-lg border border-white/[0.07] bg-white/[0.02] p-2.5">
-            <EditPalette groups={BRIEF_GROUPS} busy={magicBusy} onPick={pickEdit} dense />
+        {/* On a phone there is no rail, so the full palette lives in a real
+            bottom sheet: backdrop tap, swipe-down and Escape all close it, and
+            the close path is never disabled. It used to be an inline panel in
+            this footer whose only way out was the toggle chip — which disables
+            itself while a revise runs, so for up to 90 seconds the panel could
+            not be dismissed at all. Same component, same groups, same handler
+            as the desktop Refine tab; only the container differs. */}
+        {narrow && !editingClosed ? (
+          <div ref={setSheetHost}>
+          {sheetHost ? (
+          <BottomSheet
+            open={showEdits}
+            onClose={() => setShowEdits(false)}
+            fullHeight={false}
+            ariaLabel="Edit options"
+            container={sheetHost}
+          >
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between px-4 pb-2">
+                <span className="text-body font-semibold text-white/85">Edits</span>
+                <button
+                  type="button"
+                  onClick={() => setShowEdits(false)}
+                  aria-label="Close edit options"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-white/50 active:bg-white/[0.08]"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="max-h-[calc(55dvh/var(--z,1))] overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
+                <EditPalette
+                  groups={BRIEF_GROUPS}
+                  busy={magicBusy}
+                  onPick={it => { setShowEdits(false); pickEdit(it) }}
+                  dense
+                />
+              </div>
+            </div>
+          </BottomSheet>
+          ) : null}
           </div>
         ) : null}
         {!editingClosed ? (
@@ -735,57 +792,55 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                 key={m.mode}
                 onClick={() => runMagic(m.mode, m.label)}
                 disabled={magicBusy !== null}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[11.5px] font-semibold text-white/70 hover:bg-white/[0.09] disabled:opacity-40"
+                className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-label font-semibold text-white/70 hover:bg-white/[0.09] disabled:opacity-40"
               >
                 {magicBusy === m.mode ? m.busy : m.label}
               </button>
             ))}
             {narrow ? (
             <button
-              onClick={() => setShowEdits(v => !v)}
-              disabled={magicBusy !== null}
+              onClick={() => setShowEdits(true)}
               title="Tone, humour, length, sharpen, analogy"
+              aria-haspopup="dialog"
               aria-expanded={showEdits}
-              className={`rounded-full border px-2.5 py-1.5 text-[11.5px] font-semibold disabled:opacity-40 ${
-                showEdits
-                  ? 'border-white/25 bg-white/10 text-white/85'
-                  : 'border-white/10 bg-white/[0.04] text-white/70 hover:bg-white/[0.09]'
-              }`}
+              className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-label font-semibold text-white/70 hover:bg-white/[0.09]"
             >
-              {showEdits ? 'Fewer edits' : 'More edits'}
+              More edits
             </button>
             ) : null}
             <button
               onClick={dictate}
               disabled={magicBusy !== null}
               title={listening ? 'Stop dictating' : 'Dictate an instruction for Cleo'}
-              className={`rounded-full border px-2.5 py-1.5 text-[11.5px] font-semibold disabled:opacity-40 ${
+              className={`rounded-full border px-2.5 py-1.5 text-label font-semibold disabled:opacity-40 ${
                 listening ? 'border-red-400/40 bg-red-400/15 text-rose-200' : 'border-sky-400/30 bg-sky-400/10 text-sky-200 hover:bg-sky-400/20'
               }`}
             >
-              {listening ? (narrow ? 'Tap to stop' : 'Listening... tap to stop') : (narrow ? '🎙 Cleo' : '🎙 Tell Cleo')}
+              {listening
+                ? (narrow ? 'Tap to stop' : 'Listening... tap to stop')
+                : <span className="inline-flex items-center gap-1.5"><Mic size={12} /> {narrow ? 'Cleo' : 'Tell Cleo'}</span>}
             </button>
             {notes.length > 0 ? (
               <span className="relative">
                 <button
                   onClick={() => setNotesOpen(o => !o)}
                   title={`${notes.length} standing note${notes.length === 1 ? '' : 's'} Cleo applies to every brief`}
-                  className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-[11.5px] font-semibold text-white/55 hover:text-white/85 hover:bg-white/[0.07]"
+                  className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-label font-semibold text-white/55 hover:text-white/85 hover:bg-white/[0.07]"
                 >
-                  💭 {narrow ? notes.length : `Cleo remembers · ${notes.length}`}
+                  <span className="inline-flex items-center gap-1.5"><StickyNote size={12} /> {narrow ? notes.length : `Cleo remembers · ${notes.length}`}</span>
                 </button>
                 {notesOpen ? (
                   <div className="absolute bottom-full mb-2 left-0 z-20 w-72 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-base shadow-xl p-2.5">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40 px-1 pb-1.5">
+                    <div className="text-micro font-semibold uppercase tracking-[0.14em] text-white/40 px-1 pb-1.5">
                       Standing notes · every brief
                     </div>
                     {notes.map(n => (
                       <div key={n.id} className="flex items-start gap-2 rounded-lg px-1.5 py-1.5 hover:bg-white/[0.04]">
-                        <span className="text-[12px] text-white/70 leading-snug flex-1">{n.text}</span>
+                        <span className="text-label text-white/70 leading-snug flex-1">{n.text}</span>
                         <button
                           onClick={() => forgetNote(n.id)}
                           aria-label="Forget this note"
-                          className="text-white/30 hover:text-rose-200 text-[13px] leading-none flex-shrink-0"
+                          className="text-white/30 hover:text-rose-200 text-body leading-none flex-shrink-0"
                         >
                           ×
                         </button>
@@ -796,7 +851,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
               </span>
             ) : null}
             {cleoNote ? (
-              <span className="flex items-center gap-2 text-[11.5px] text-white/55 bg-white/[0.04] rounded-full px-3 py-1.5">
+              <span className="flex items-center gap-2 text-label text-white/55 bg-white/[0.04] rounded-full px-3 py-1.5">
                 “{cleoNote.slice(0, 80)}”
                 <button
                   onClick={() => { runMagic('instruction', 'Tell Cleo', cleoNote); setCleoNote('') }}
@@ -811,7 +866,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                 >
                   Remember
                 </button>
-                <button onClick={() => setCleoNote('')} className="text-white/35">×</button>
+                <button onClick={() => setCleoNote('')} aria-label="Clear the note" className="text-white/35 hover:text-white/70"><X size={13} /></button>
               </span>
             ) : null}
           </div>
@@ -820,15 +875,15 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
           {preview ? (
             <div className="mt-2.5 rounded-xl border border-dashed border-sky-400/35 bg-sky-400/[0.05] p-3.5">
               <div className="flex items-center justify-between mb-2 gap-3">
-                <div className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-sky-200">Preview · {preview.label}</div>
-                <div className="text-[10.5px] text-white/40 tabular-nums">
+                <div className="text-micro font-semibold uppercase tracking-[0.14em] text-sky-200">Preview · {preview.label}</div>
+                <div className="text-micro text-white/40 tabular-nums">
                   {changedDiffs.length === 0
                     ? 'no changes'
                     : `${acceptedKeys.size}/${changedDiffs.length} kept`}
                 </div>
               </div>
               {changedDiffs.length === 0 ? (
-                <div className="text-[12px] text-white/50">This revision came back identical to the current draft.</div>
+                <div className="text-label text-white/50">This revision came back identical to the current draft.</div>
               ) : (
                 <div className="max-h-56 overflow-y-auto flex flex-col gap-2 pr-1">
                   {changedDiffs.map(d => {
@@ -840,15 +895,15 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                         <label className="flex items-center gap-2 cursor-pointer select-none mb-1.5">
                           <span
                             onClick={() => toggleSection(d.key)}
-                            className={`w-4 h-4 rounded border inline-flex items-center justify-center text-[10px] flex-shrink-0 ${kept ? 'bg-emerald-400 border-emerald-400 text-emerald-950 font-bold' : 'border-white/25'}`}
+                            className={`w-4 h-4 rounded border inline-flex items-center justify-center text-micro flex-shrink-0 ${kept ? 'bg-emerald-400 border-emerald-400 text-emerald-950 font-bold' : 'border-white/25'}`}
                           >
-                            {kept ? '✓' : ''}
+                            {kept ? <Check size={11} strokeWidth={2.5} /> : ''}
                           </span>
-                          <span className="text-[11px] font-semibold text-white/70">
+                          <span className="text-micro font-semibold text-white/70">
                             {d.heading || 'Intro'} <span className="text-white/35 font-normal">· {d.status}</span>
                           </span>
                         </label>
-                        <div className="text-[12px] leading-relaxed whitespace-pre-wrap break-words">
+                        <div className="text-label leading-relaxed whitespace-pre-wrap break-words">
                           {wordDiff(before, after).map((op, i) => (
                             <span
                               key={i}
@@ -871,20 +926,20 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                 <button
                   onClick={keepPreview}
                   disabled={acceptedKeys.size === 0}
-                  className="rounded-lg bg-emerald-400 text-emerald-950 px-4 py-2 text-[12px] font-bold disabled:opacity-40"
+                  className="rounded-lg bg-emerald-400 text-emerald-950 px-4 py-2 text-label font-bold disabled:opacity-40"
                 >
                   {changedDiffs.length <= 1 ? 'Keep it' : `Keep ${acceptedKeys.size} of ${changedDiffs.length}`}
                 </button>
-                <button onClick={() => setPreview(null)} className="rounded-lg bg-white/[0.06] text-white/70 px-4 py-2 text-[12px] font-semibold">Discard</button>
+                <button onClick={() => setPreview(null)} className="rounded-lg bg-white/[0.06] text-white/70 px-4 py-2 text-label font-semibold">Discard</button>
                 {changedDiffs.length > 1 && rejected.size > 0 ? (
-                  <button onClick={() => setRejected(new Set())} className="text-[11px] text-white/40 hover:text-white/70 ml-auto">Keep all</button>
+                  <button onClick={() => setRejected(new Set())} className="text-micro text-white/40 hover:text-white/70 ml-auto">Keep all</button>
                 ) : null}
               </div>
             </div>
           ) : null}
 
           {pushed ? (
-            <div className="text-[12.5px] text-emerald-200 mt-2.5">
+            <div className="text-label text-emerald-200 mt-2.5">
               Pushed {pushed.length} format{pushed.length === 1 ? '' : 's'} to Google Docs.{' '}
               {pushed.filter(p => p.doc_url).map(p => (
                 <a key={p.channel} href={p.doc_url!} target="_blank" rel="noreferrer" className="underline mr-2">{p.channel}</a>
@@ -911,11 +966,11 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                 choice persists between weeks and almost never changes. */}
             {!narrow || fanoutOpen ? (
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2.5">
-                <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/40">Publish as</span>
+                <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/40">Publish as</span>
                 {FACTORY_FANOUT.map(f => {
                   const on = fanout.has(f.channel)
                   return (
-                    <label key={f.channel} className="flex items-center gap-1.5 text-[12px] text-white/70 cursor-pointer select-none">
+                    <label key={f.channel} className="flex items-center gap-1.5 text-label text-white/70 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={on}
@@ -924,16 +979,16 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                       />
                       <span
                         aria-hidden
-                        className={`w-4 h-4 rounded border inline-flex items-center justify-center text-[10px] peer-focus-visible:ring-1 peer-focus-visible:ring-emerald-300/70 ${on ? 'bg-emerald-400 border-emerald-400 text-emerald-950 font-bold' : 'border-white/25'}`}
+                        className={`w-4 h-4 rounded border inline-flex items-center justify-center text-micro peer-focus-visible:ring-1 peer-focus-visible:ring-emerald-300/70 ${on ? 'bg-emerald-400 border-emerald-400 text-emerald-950 font-bold' : 'border-white/25'}`}
                       >
-                        {on ? '✓' : ''}
+                        {on ? <Check size={11} strokeWidth={2.5} /> : ''}
                       </span>
                       {f.label}
                     </label>
                   )
                 })}
                 {narrow ? (
-                  <button onClick={() => setFanoutOpen(false)} className="text-[11px] font-semibold text-sky-200 ml-auto">Done</button>
+                  <button onClick={() => setFanoutOpen(false)} className="text-micro font-semibold text-sky-200 ml-auto">Done</button>
                 ) : null}
               </div>
             ) : (
@@ -941,11 +996,11 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                 onClick={() => setFanoutOpen(true)}
                 className="flex w-full items-baseline gap-2 mt-2.5 text-left"
               >
-                <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/40 flex-shrink-0">Publish as</span>
-                <span className={`text-[12px] truncate flex-1 ${fanout.size ? 'text-white/70' : 'text-amber-200/80'}`}>
+                <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/40 flex-shrink-0">Publish as</span>
+                <span className={`text-label truncate flex-1 ${fanout.size ? 'text-white/70' : 'text-amber-200/80'}`}>
                   {fanoutSummary || 'nothing selected'}
                 </span>
-                <span className="text-[11px] font-semibold text-sky-200 flex-shrink-0">Change</span>
+                <span className="text-micro font-semibold text-sky-200 flex-shrink-0">Change</span>
               </button>
             )}
             {/* Both verdicts on one row. Ship it or bin it, reachable from the
@@ -955,14 +1010,14 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
               <button
                 onClick={() => setBinning(true)}
                 disabled={binBusy}
-                className="rounded-lg border border-rose-400/25 bg-rose-500/[0.06] text-rose-200/85 hover:bg-rose-500/[0.12] px-3 py-2 text-[11.5px] font-semibold disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-300/60"
+                className="rounded-lg border border-rose-400/25 bg-rose-500/[0.06] text-rose-200/85 hover:bg-rose-500/[0.12] px-3 py-2 text-label font-semibold disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-300/60"
               >
                 {narrow ? 'Bin' : 'Bin this brief'}
               </button>
               <button
                 onClick={push}
                 disabled={pushing || fanout.size === 0 || !brief.body_md}
-                className="ml-auto rounded-lg bg-emerald-400 text-emerald-950 px-4 py-2.5 text-[12.5px] font-bold disabled:opacity-40"
+                className="ml-auto rounded-lg bg-emerald-400 text-emerald-950 px-4 py-2.5 text-label font-bold disabled:opacity-40"
               >
                 {pushing
                   ? 'Pushing…'

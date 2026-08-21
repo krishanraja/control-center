@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Sparkles } from 'lucide-react'
+import { Sparkles } from '@/lib/icons'
 import { useContentV2 } from '../../hooks/useContentV2'
 import { useRealtimeContentIdeas } from '../../hooks/useRealtimeContentIdeas'
 import { LaneRoom } from './LaneRoom'
@@ -29,6 +29,8 @@ import { StartFromResearch } from '../content/StartFromResearch'
 // that is the pattern that produced two goal editors and four focus subsystems.
 
 export type RoomId = 'built' | 'paid' | 'library'
+/** Mobile adds a Queue view (the decision deck) as a peer of the rooms. */
+type ViewId = 'queue' | RoomId
 
 const ROOMS: Array<{ id: RoomId; label: string }> = [
   { id: 'built', label: 'Built' },
@@ -37,7 +39,8 @@ const ROOMS: Array<{ id: RoomId; label: string }> = [
 ]
 
 export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
-  const [room, setRoom] = useState<RoomId>('built')
+  const mobile = variant === 'mobile'
+  const [room, setRoom] = useState<ViewId>(mobile ? 'queue' : 'built')
   const [starting, setStarting] = useState(false)
   const v2 = useContentV2()
   const { ideas } = useRealtimeContentIdeas()
@@ -53,54 +56,78 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
     }
   }, [v2.shifts, ideas])
 
+  // Mobile leads with the Queue (the finite decision deck), then the three
+  // rooms as peers. The deck used to render ABOVE the rooms while claiming
+  // h-full, which crushed the rooms' flex-1 panel to exactly 0px: the
+  // Built / Paid / Library chips re-rendered a panel nobody could see, so the
+  // chips read as dead. Peers, not stacked: one view owns the stage at a time.
+  const segments: Array<Segment<ViewId>> = [
+    ...(mobile
+      ? [{
+          id: 'queue' as ViewId,
+          label: 'Queue',
+          badge: v2.decisions.length ? (
+            <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 align-middle text-micro tabular-nums">{v2.decisions.length}</span>
+          ) : undefined,
+        }]
+      : []),
+    ...ROOMS.map((r): Segment<ViewId> => {
+      const count = counts[r.id]
+      return {
+        id: r.id,
+        label: r.label,
+        badge: count ? (
+          <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 align-middle text-micro tabular-nums">{count}</span>
+        ) : undefined,
+      }
+    }),
+  ]
+
   return (
     <div className="flex flex-col gap-4 min-h-0 h-full">
-      {/* Obligations first, above the rooms, because they are cross-format and
-          must not be reachable only by navigating to them. */}
-      {variant === 'mobile'
-        ? <MobileDecisionDeck v2={v2} />
-        : <ObligationStrip v2={v2} />}
+      {/* Obligations on desktop stay above the rooms, because they are
+          cross-format and must not be reachable only by navigating to them. */}
+      {!mobile && <ObligationStrip v2={v2} />}
 
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <SegmentedNav<RoomId>
-            segments={ROOMS.map((r): Segment<RoomId> => {
-              const count = counts[r.id]
-              return {
-                id: r.id,
-                label: r.label,
-                badge: count ? (
-                  <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 align-middle text-[10.5px] tabular-nums">{count}</span>
-                ) : undefined,
-              }
-            })}
+          <SegmentedNav<ViewId>
+            segments={segments}
             value={room}
             onChange={setRoom}
-            label="Content formats"
+            label="Content views"
             variant="pill"
             testIdPrefix="content-room"
           />
         </div>
         {/* The only way into the engine that starts from something YOU have.
-            Everything else here is the machine's own findings, or a one-line
-            capture Cleo enriches later. */}
-        <button
-          type="button"
-          onClick={() => setStarting(true)}
-          data-testid="content-start-research"
-          className="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-[11.5px] font-semibold text-violet-200 hover:bg-violet-500/20"
-        >
-          <Sparkles size={12} /> Start from research
-        </button>
+            On a phone this lives in the + create sheet instead of a second
+            inline button; the desk keeps the pill. */}
+        {!mobile && (
+          <button
+            type="button"
+            onClick={() => setStarting(true)}
+            data-testid="content-start-research"
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-label font-semibold text-violet-200 hover:bg-violet-500/20"
+          >
+            <Sparkles size={12} /> Start from research
+          </button>
+        )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        {room === 'library'
-          ? <LibraryRoom v2={v2} ideas={ideas} />
-          : <LaneRoom lane={room} v2={v2} ideas={ideas} variant={variant} />}
-      </div>
+      {mobile && room === 'queue' ? (
+        <div className="flex-1 min-h-0 flex flex-col">
+          <MobileDecisionDeck v2={v2} />
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {room === 'library'
+            ? <LibraryRoom v2={v2} ideas={ideas} />
+            : <LaneRoom lane={room === 'queue' ? 'built' : room} v2={v2} ideas={ideas} variant={variant} />}
+        </div>
+      )}
 
-      <StartFromResearch open={starting} onClose={() => setStarting(false)} />
+      {!mobile && <StartFromResearch open={starting} onClose={() => setStarting(false)} />}
     </div>
   )
 }

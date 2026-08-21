@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ImagePlus, ClipboardPaste, AlertTriangle, CheckCircle2, UserPlus, Sparkles, X } from 'lucide-react'
+import { ImagePlus, ClipboardPaste, AlertTriangle, CheckCircle2, UserPlus, Sparkles, X } from '@/lib/icons'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Modal } from '../shared/Modal'
+import { Eyebrow } from '../shared/Eyebrow'
 import { Working } from '../shared/Working'
 import { useToast } from '../shared/Toast'
 import { VENTURE_OPTIONS } from '../../lib/ventureOptions'
@@ -35,8 +36,30 @@ import {
 // to someone. Those are prefilled rather than asked, so the common case is one
 // tap, but they are on screen and editable.
 
-const FIELD = 'mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-[12px] text-white/85 placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none'
-const LABEL = 'text-[10px] text-white/45'
+const FIELD = 'mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-label text-white/85 placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none'
+const LABEL = 'text-micro text-white/45'
+
+/**
+ * The flow behind one controlled modal, so it can be opened from anywhere.
+ * On desktop the Network tab renders the inline trigger button below; on a
+ * phone the + create sheet (CreateSheet.tsx) opens this directly.
+ */
+export function AddPersonModal({ open, onClose, onAdded }: {
+  open: boolean
+  onClose: () => void
+  onAdded?: (contactId: string) => void
+}) {
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Add someone from a screenshot"
+      description="Paste or drop a LinkedIn profile screenshot. You confirm what was read before anything is saved."
+    >
+      <AddPersonFlow onDone={onClose} onAdded={onAdded} active={open} />
+    </Modal>
+  )
+}
 
 export function AddPersonFromImage({ onAdded }: { onAdded?: (contactId: string) => void }) {
   const [open, setOpen] = useState(false)
@@ -52,14 +75,7 @@ export function AddPersonFromImage({ onAdded }: { onAdded?: (contactId: string) 
         <ImagePlus size={13} aria-hidden />
         Add from screenshot
       </Button>
-      <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        title="Add someone from a screenshot"
-        description="Paste or drop a LinkedIn profile screenshot. You confirm what was read before anything is saved."
-      >
-        <AddPersonFlow onDone={() => setOpen(false)} onAdded={onAdded} active={open} />
-      </Modal>
+      <AddPersonModal open={open} onClose={() => setOpen(false)} onAdded={onAdded} />
     </>
   )
 }
@@ -109,14 +125,14 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
           {flow.step === 'scanning' ? (
             <div className="flex flex-col items-center gap-2">
               <Working size={18} />
-              <p className="text-[13px] text-white/70">Reading the screenshot…</p>
-              <p className="text-[11px] text-white/40">Nothing is saved until you confirm.</p>
+              <p className="text-body text-white/70">Reading the screenshot…</p>
+              <p className="text-micro text-white/40">Nothing is saved until you confirm.</p>
             </div>
           ) : (
             <>
               <ClipboardPaste size={22} className="mx-auto text-white/40" aria-hidden />
-              <p className="mt-2 text-[13px] font-medium text-white/75">Paste a screenshot</p>
-              <p className="mt-0.5 text-[11px] text-white/45">
+              <p className="mt-2 text-body font-medium text-white/75">Paste a screenshot</p>
+              <p className="mt-0.5 text-micro text-white/45">
                 Or drop an image here. A LinkedIn profile works best — a badge or an email signature also reads.
               </p>
               <div className="mt-3 flex items-center justify-center gap-2">
@@ -174,7 +190,7 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
             // Said plainly rather than left to be discovered when the enrichment
             // comes back thin: the profile scrape and PDL's strongest lookup key
             // both need this URL, and a profile screenshot rarely shows it.
-            <p className="text-[10.5px] leading-relaxed text-amber-200/70">
+            <p className="text-micro leading-relaxed text-amber-200/70">
               No LinkedIn URL was visible in the screenshot, and one is never guessed. Without it, enrichment falls back to
               name + company matching, which is weaker.
             </p>
@@ -182,7 +198,7 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
         </Card>
 
         <Card variant="outline" className="space-y-2.5 border-violet-400/25 bg-violet-500/[0.04] p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-violet-200/80">Where does this person come from?</p>
+          <p><Eyebrow tone="accent">Where does this person come from?</Eyebrow></p>
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
               <span className={LABEL}>Venture</span>
@@ -211,7 +227,7 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
               data-testid="field-note"
             />
           </label>
-          <p className="text-[10px] text-white/40">{TIER_OPTIONS.find(t => t.value === flow.tier)?.hint}</p>
+          <p className="text-micro text-white/40">{TIER_OPTIONS.find(t => t.value === flow.tier)?.hint}</p>
         </Card>
 
         <label className="flex items-start gap-2 rounded-card border border-white/[0.08] px-3 py-2">
@@ -222,7 +238,7 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
             className="mt-0.5 accent-violet-400"
             data-testid="field-apify"
           />
-          <span className="text-[11.5px] leading-relaxed text-white/60">
+          <span className="text-label leading-relaxed text-white/60">
             Scrape the full LinkedIn profile via Apify — costs one paid actor run, and needs the URL above.
             Without it, enrichment still runs People Data Labs, Apollo and web research.
           </span>
@@ -261,7 +277,7 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
       {flow.step === 'enriching' && (
         <Card variant="outline" className="flex items-center gap-2 p-3">
           <Working size={14} />
-          <p className="text-[12.5px] text-white/70">
+          <p className="text-label text-white/70">
             Enriching{flow.useApify ? ' — including the LinkedIn profile scrape, which is the slow one' : ''}…
           </p>
         </Card>
@@ -274,7 +290,7 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
           alert={flow.alert}
           alertSent={flow.alertSent}
         >
-          <p className="mt-2 text-[11.5px] leading-relaxed text-white/60">
+          <p className="mt-2 text-label leading-relaxed text-white/60">
             Nothing partial was written. {flow.person?.full_name} is saved and marked <code className="text-white/75">blocked_quota</code>,
             so re-running enrichment after a top-up will pick them up — they will not be mistaken for a finished record.
           </p>
@@ -285,30 +301,30 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
         <Card variant="outline" className="space-y-2 p-3" data-testid="network-add-person-brief">
           <div className="flex items-center gap-2">
             <Sparkles size={13} className="text-violet-300" aria-hidden />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
+            <Eyebrow>
               {flow.enrichment.status === 'no_evidence' ? 'No evidence found' : `Enriched · ${flow.enrichment.confidence} confidence`}
-            </span>
+            </Eyebrow>
           </div>
-          {flow.enrichment.who && <p className="text-[13px] leading-relaxed text-white/85">{flow.enrichment.who}</p>}
-          {flow.enrichment.why_them && <p className="text-[12.5px] leading-relaxed text-white/65">{flow.enrichment.why_them}</p>}
+          {flow.enrichment.who && <p className="text-body leading-relaxed text-white/85">{flow.enrichment.who}</p>}
+          {flow.enrichment.why_them && <p className="text-label leading-relaxed text-white/65">{flow.enrichment.why_them}</p>}
           {flow.enrichment.hook && (
-            <p className="rounded-md border border-white/[0.08] bg-white/[0.02] px-2.5 py-2 text-[12px] leading-relaxed text-white/70">
+            <p className="rounded-md border border-white/[0.08] bg-white/[0.02] px-2.5 py-2 text-label leading-relaxed text-white/70">
               <span className="text-white/40">Hook · </span>{flow.enrichment.hook}
             </p>
           )}
-          {flow.enrichment.detail && <p className="text-[11.5px] leading-relaxed text-white/50">{flow.enrichment.detail}</p>}
+          {flow.enrichment.detail && <p className="text-label leading-relaxed text-white/50">{flow.enrichment.detail}</p>}
           <div className="flex flex-wrap gap-1.5 pt-1">
-            {flow.enrichment.used?.map(s => <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>)}
+            {flow.enrichment.used?.map(s => <Badge key={s} variant="outline" className="text-micro">{s}</Badge>)}
           </div>
           {/* Degraded and skipped are shown, not hidden behind a success tick.
               "PDL ran and found nothing" is something to know before trusting a
               thin brief; "PDL has no key" is not a fault but is still why the
               brief is thin. */}
           {flow.enrichment.degraded?.length ? (
-            <p className="text-[11px] leading-relaxed text-amber-200/70">Ran but returned nothing: {flow.enrichment.degraded.join('; ')}</p>
+            <p className="text-micro leading-relaxed text-amber-200/70">Ran but returned nothing: {flow.enrichment.degraded.join('; ')}</p>
           ) : null}
           {flow.enrichment.skipped?.length ? (
-            <p className="text-[11px] leading-relaxed text-white/40">Not configured: {flow.enrichment.skipped.join(', ')}</p>
+            <p className="text-micro leading-relaxed text-white/40">Not configured: {flow.enrichment.skipped.join(', ')}</p>
           ) : null}
         </Card>
       )}
@@ -337,7 +353,7 @@ function Row({ label, value, onChange, testId, placeholder }: {
   return (
     <label className="block">
       <span className={LABEL}>{label}</span>
-      <Input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} data-testid={testId} className="mt-1 h-9 text-[12.5px]" />
+      <Input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} data-testid={testId} className="mt-1 h-9 text-label" />
     </label>
   )
 }
@@ -355,7 +371,7 @@ function Note({ tone, icon: Icon, children }: {
   return (
     <div className={`flex items-start gap-2 rounded-card border px-3 py-2.5 ${styles}`}>
       <Icon size={13} className="mt-0.5 shrink-0" aria-hidden />
-      <p className="text-[12.5px] leading-relaxed">{children}</p>
+      <p className="text-label leading-relaxed">{children}</p>
     </div>
   )
 }
@@ -370,15 +386,15 @@ function Problem({ title, detail, alert, alertSent, children }: {
       <div className="flex items-start gap-2">
         <AlertTriangle size={13} className="mt-0.5 shrink-0 text-rose-300" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="text-[12.5px] font-semibold text-rose-100">{title}</p>
-          {detail && <p className="mt-0.5 text-[12px] leading-relaxed text-rose-100/75">{detail}</p>}
+          <p className="text-label font-semibold text-rose-100">{title}</p>
+          {detail && <p className="mt-0.5 text-label leading-relaxed text-rose-100/75">{detail}</p>}
           {alert && (
-            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-md border border-rose-400/20 bg-black/20 px-2 py-1.5 text-[11px] leading-relaxed text-rose-100/80">
+            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-md border border-rose-400/20 bg-black/20 px-2 py-1.5 text-micro leading-relaxed text-rose-100/80">
               {alert}
             </pre>
           )}
           {alertSent !== undefined && (
-            <p className="mt-1.5 text-[11px] text-white/45">
+            <p className="mt-1.5 text-micro text-white/45">
               {alertSent
                 ? 'Alert sent to your Telegram.'
                 : 'Telegram alert could NOT be sent — this panel is the only notice.'}
@@ -397,7 +413,7 @@ function ExistingNote({ match, mergeInto, onToggle }: {
   const weak = match.matched_on === 'name_only' || match.matched_on === 'name_and_company'
   return (
     <div className="rounded-card border border-sky-400/25 bg-sky-500/[0.06] px-3 py-2.5" data-testid="network-add-person-existing">
-      <p className="text-[12.5px] leading-relaxed text-sky-100/85">
+      <p className="text-label leading-relaxed text-sky-100/85">
         Already in your network: <strong>{match.full_name}</strong>
         {match.title ? ` — ${match.title}` : ''}{match.company ? ` at ${match.company}` : ''}.
         {' '}Matched on <span className="text-sky-200/70">{match.matched_on.replace(/_/g, ' ')}</span>.
@@ -405,7 +421,7 @@ function ExistingNote({ match, mergeInto, onToggle }: {
       {weak && (
         // A name match is not an identity. Saying so is the difference between
         // merging the right person and quietly overwriting a different one.
-        <p className="mt-1 text-[11px] leading-relaxed text-amber-200/75">
+        <p className="mt-1 text-micro leading-relaxed text-amber-200/75">
           That is a name match, not a hard identifier — check it is the same person before merging.
         </p>
       )}

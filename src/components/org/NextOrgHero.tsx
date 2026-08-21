@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2 } from '@/lib/icons'
 import { DoThisNextHero, type HeroDescriptor } from '../shared/DoThisNextHero'
 import type { PendingCorrection } from '../../hooks/usePendingCorrections'
 

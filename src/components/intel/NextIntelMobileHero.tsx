@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Zap, Eye, Radio, CheckCircle2 } from 'lucide-react'
+import { Zap, Eye, Radio, CheckCircle2 } from '@/lib/icons'
 import { DoThisNextHero, type HeroDescriptor } from '../shared/DoThisNextHero'
 
 // Intel's mobile "Do this next" — mobile reads from `home_intelligence.

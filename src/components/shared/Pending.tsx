@@ -67,16 +67,16 @@ export function Pending({
           <Working size={18} />
         </div>
         <div className="space-y-1">
-          <p className="text-[13px] font-semibold text-white/70">
+          <p className="text-body font-semibold text-white/70">
             {stage ? `${label}: ${stage}` : label}
           </p>
           {overdue ? (
-            <p className="text-[11px] text-white/35">
+            <p className="text-micro text-white/35">
               Longer than usual. Still running.
               {showElapsed && <span className="tabular-nums"> {seconds(elapsedMs)}</span>}
             </p>
           ) : showElapsed ? (
-            <p className="text-[11px] text-white/30 tabular-nums">{seconds(elapsedMs)}</p>
+            <p className="text-micro text-white/30 tabular-nums">{seconds(elapsedMs)}</p>
           ) : null}
         </div>
       </div>
@@ -85,7 +85,7 @@ export function Pending({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-[12px] text-white/55 ${className}`}
+      className={`inline-flex items-center gap-1.5 text-label text-white/55 ${className}`}
       // Announced politely so the wait is legible to a screen reader too,
       // rather than being a purely visual spinner.
       role="status"

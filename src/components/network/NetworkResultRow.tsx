@@ -1,4 +1,4 @@
-import { Mail, Linkedin, Phone, Instagram, AtSign, AlertTriangle, MapPin } from 'lucide-react'
+import { Mail, Linkedin, Phone, Instagram, AtSign, AlertTriangle, MapPin } from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
 import { ScoreBreakdown } from './ScoreBreakdown'
 import { geoLabel } from '../../hooks/useNetworkGeo'
@@ -60,7 +60,7 @@ export function NetworkResultRow({ r, onOpen, weak }: {
         className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 rounded-lg"
       >
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="truncate text-[14px] font-semibold text-white">{name}</span>
+          <span className="truncate text-ui font-semibold text-white">{name}</span>
           <Badge variant={TIER_VARIANT[r.network_tier] || 'outline'}>{TIER_LABEL[r.network_tier] || r.network_tier}</Badge>
           {r.thin_evidence && (
             // Never hidden, always labelled. rules_v1 means nobody read a
@@ -74,7 +74,7 @@ export function NetworkResultRow({ r, onOpen, weak }: {
         </div>
 
         {(sub || place) && (
-          <p className="mt-0.5 flex items-center gap-1.5 truncate text-[12px] text-white/50">
+          <p className="mt-0.5 flex items-center gap-1.5 truncate text-label text-white/50">
             {sub && <span className="truncate">{sub}</span>}
             {place && (
               <span className="inline-flex shrink-0 items-center gap-0.5 text-white/35">
@@ -84,14 +84,14 @@ export function NetworkResultRow({ r, onOpen, weak }: {
             )}
           </p>
         )}
-        {reason && <p className="mt-1.5 text-[12.5px] leading-relaxed text-white/75">{reason}</p>}
+        {reason && <p className="mt-1.5 text-label leading-relaxed text-white/75">{reason}</p>}
         {r.hook && (
-          <p className="mt-1 text-[12px] leading-relaxed text-white/45">
+          <p className="mt-1 text-label leading-relaxed text-white/45">
             <span className="text-white/30">Open with</span> {r.hook}
           </p>
         )}
         {r.risk && (
-          <p className="mt-1 text-[11.5px] leading-relaxed text-amber-200/85">
+          <p className="mt-1 text-label leading-relaxed text-amber-200/85">
             <span className="text-white/30">Risk</span> {r.risk}
           </p>
         )}

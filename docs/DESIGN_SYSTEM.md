@@ -123,9 +123,38 @@ Fonts are self-hosted via Fontsource (imported in `src/main.tsx`) — no externa
 fetch. Role scale: 11/12/13/14/16/20/28/40/56 — **real tokens since the
 2026-08-20 recompose**: `text-micro / label / body / ui / lede / title /
 heading / display / hero` in `tailwind.config.js`, each with a tuned line
-height. Additive on purpose (they do not override `text-sm` etc., which
-would reflow ~180 files); new and rebuilt surfaces use the role names, and
-bracket-literal sizes retire as surfaces are touched.
+height. Additive on purpose (they do not override `text-sm` etc.).
+**The whole of `src/` is ON the scale since the 2026-08-21 sweep**: all
+2,154 bracket-literal px sizes (28 distinct values) were mapped onto the
+nine tokens, and every uppercase label's tracking normalized to the eyebrow
+recipe's `0.14em`. `scripts/check-type-tokens.mts` runs in CI and fails any
+new `text-[Npx]` or off-recipe uppercase tracking, so the sweep stays swept.
+
+## Iconography
+
+One source, one weight, one rhythm — the icon counterpart of the type sweep.
+
+- **Every icon ships through `src/lib/icons.tsx`** — lucide glyphs wrapped
+  once with `absoluteStrokeWidth` and the house stroke (`ICON_STROKE = 1.75`),
+  so a 12px glyph and a 24px glyph carry the same physical line weight,
+  matched to Geist and the DrawnCheck mark. Direct `lucide-react` imports are
+  a CI failure (`scripts/check-icons.mts`).
+- **Sizes snap to the icon scale** 12 / 14 / 16 / 20 / 24 / 32 inside the
+  wrapper (larger passes through), so call sites can stay approximate while
+  the render lands on one rhythm.
+- **Active chrome steps up in weight, not just colour:** the bottom nav and
+  sidebar pass `strokeWidth={2.25}` on the active tab (still absolute), on
+  top of the existing violet halo. Those two files, the FAB's 2.25, and the
+  sub-12px filled-checkbox Check marks (2.5) are the only sanctioned inline
+  stroke widths.
+- **The circled icon is one primitive:** `<IconTile>`
+  (`components/shared/IconTile.tsx`), sizes sm/md/lg, tones neutral/accent.
+  Never hand-roll another ring-around-an-icon.
+- **No text glyphs as chrome.** 🎙 💭 ‹ › and their relatives render
+  differently on every platform and read as assembled; the guard fails them.
+  The one sanctioned character mark is the middle dot as a separator.
+- **Identity marks are not icons:** `Logomark`, `AgentAvatar`, `DrawnCheck`
+  and the hand-drawn sparklines stay bespoke.
 
 **The eyebrow is one primitive.** `<Eyebrow>` (`components/shared/Eyebrow.tsx`)
 is THE small-caps section label: `font-display text-micro font-semibold

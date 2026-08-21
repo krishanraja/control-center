@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Sparkles, ThumbsUp, ThumbsDown } from '@/lib/icons'
 import { formatDistanceToNow } from 'date-fns'
 import { useSkillProposals } from '../../hooks/useSkillProposals'
 import { Working } from './Working'
@@ -43,14 +43,14 @@ export function SkillProposalsPanel() {
         <span className="inline-flex items-center justify-center w-5 h-5 rounded-md border border-violet-500/40 bg-violet-500/10 text-violet-300">
           <Sparkles size={13} />
         </span>
-        <h3 className="text-[11px] md:text-[12px] font-semibold uppercase tracking-[0.18em] text-violet-300">
+        <h3 className="text-micro md:text-label font-semibold uppercase tracking-[0.14em] text-violet-300">
           Skills Vera wants to teach
         </h3>
-        <span className="text-[10px] font-mono tabular-nums text-white/30 ml-auto">
+        <span className="text-micro font-mono tabular-nums text-white/30 ml-auto">
           {loading ? '…' : proposals.length}
         </span>
       </header>
-      <p className="text-[10.5px] md:text-[11px] text-white/45 leading-snug mb-3 px-0.5">
+      <p className="text-micro md:text-micro text-white/45 leading-snug mb-3 px-0.5">
         Vera clustered repeated wins and drafted reusable plays. Approve to append the play to the agent's identity, reject to dismiss.
       </p>
       <div className="space-y-2">
@@ -63,8 +63,8 @@ export function SkillProposalsPanel() {
             <div key={p.id} data-skill-proposal-id={p.id} className="rounded-lg border border-violet-500/20 bg-white/[0.02] p-3">
               <div className="flex items-start gap-2 mb-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-semibold text-white">{p.skill_title}</p>
-                  <p className="text-[10px] text-violet-200/80 mt-0.5">
+                  <p className="text-label font-semibold text-white">{p.skill_title}</p>
+                  <p className="text-micro text-violet-200/80 mt-0.5">
                     <span className="capitalize">{p.target_agent_id || 'fleet'}</span>
                     <span className="text-white/30"> · </span>
                     <span className={confColor}>{p.confidence} confidence</span>
@@ -73,23 +73,23 @@ export function SkillProposalsPanel() {
                     )}
                   </p>
                 </div>
-                <span className="text-[10px] text-white/30 tabular-nums flex-shrink-0">
+                <span className="text-micro text-white/30 tabular-nums flex-shrink-0">
                   {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
                 </span>
               </div>
               {p.skill_body && (
-                <pre className="text-[11px] text-white/70 leading-relaxed whitespace-pre-wrap bg-black/30 border border-white/[0.06] rounded p-2 max-h-40 overflow-auto font-mono">
+                <pre className="text-micro text-white/70 leading-relaxed whitespace-pre-wrap bg-black/30 border border-white/[0.06] rounded p-2 max-h-40 overflow-auto font-mono">
                   {p.skill_body}
                 </pre>
               )}
               {errMsg[p.id] && (
-                <p className="text-[10px] text-rose-400 mt-1.5">{errMsg[p.id]}</p>
+                <p className="text-micro text-rose-400 mt-1.5">{errMsg[p.id]}</p>
               )}
               <div className="flex items-center gap-1.5 mt-2.5">
                 <button
                   onClick={() => act(p.id, 'approve')}
                   disabled={state === 'approving' || state === 'rejecting' || state === 'ok'}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
                 >
                   {state === 'approving' ? <Working size={11} /> : <ThumbsUp size={11} />}
                   Approve
@@ -97,7 +97,7 @@ export function SkillProposalsPanel() {
                 <button
                   onClick={() => act(p.id, 'reject')}
                   disabled={state === 'approving' || state === 'rejecting' || state === 'ok'}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-white/[0.04] text-white/60 border border-white/[0.08] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium bg-white/[0.04] text-white/60 border border-white/[0.08] hover:bg-white/[0.08] transition-colors disabled:opacity-50"
                 >
                   {state === 'rejecting' ? <Working size={11} /> : <ThumbsDown size={11} />}
                   Reject

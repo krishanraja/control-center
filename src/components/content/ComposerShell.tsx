@@ -1,5 +1,5 @@
 import React from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from '@/lib/icons'
 
 // The composer's chrome, shared by the two things it opens.
 //
@@ -42,7 +42,7 @@ export function ComposerShell({ onClose, eyebrow, title, meta, actions, banner, 
         </button>
         <div className="min-w-0 flex-1">
           {eyebrow ? (
-            <div className="text-[10px] uppercase tracking-[0.1em] text-sky-200/80">{eyebrow}</div>
+            <div className="text-micro uppercase tracking-[0.14em] text-sky-200/80">{eyebrow}</div>
           ) : null}
           {title}
           {meta ? <div className="flex items-center gap-1.5 mt-0.5">{meta}</div> : null}
@@ -57,7 +57,7 @@ export function ComposerShell({ onClose, eyebrow, title, meta, actions, banner, 
 
 /** One dot separator, so the status lines read the same on both surfaces. */
 export function MetaDot() {
-  return <span className="text-[10px] text-white/30">·</span>
+  return <span className="text-micro text-white/30">·</span>
 }
 
 export interface ComposerTab<T extends string> {
@@ -89,7 +89,7 @@ export function ComposerRail<T extends string>({ tabs, tab, onTab, children }: {
             key={t.id} type="button" onClick={() => onTab(t.id)} title={t.label}
             aria-label={t.label} aria-pressed={tab === t.id}
             data-testid={`composer-rail-${t.id}`}
-            className={`flex flex-shrink-0 items-center gap-1.5 px-2.5 py-2 text-[11px] rounded-t-md transition-colors ${
+            className={`flex flex-shrink-0 items-center gap-1.5 px-2.5 py-2 text-micro rounded-t-md transition-colors ${
               tab === t.id ? 'bg-white/[0.06] text-white/90' : 'text-white/45 hover:text-white/75'
             }`}
           >

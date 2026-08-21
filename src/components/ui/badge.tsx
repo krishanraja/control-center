@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 // foreground looks correct in dark mode and washes out to nearly illegible on
 // the light paper background. Caught in a light-mode screenshot, not in review.
 const badgeVariants = cva(
-  'inline-flex items-center gap-1.5 rounded-badge px-2 py-[0.175rem] text-[11px] font-semibold leading-[1.5]',
+  'inline-flex items-center gap-1.5 rounded-badge px-2 py-[0.175rem] text-micro font-semibold leading-[1.5]',
   {
     variants: {
       variant: {

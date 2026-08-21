@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { SlidersHorizontal, X } from 'lucide-react'
+import { SlidersHorizontal, X } from '@/lib/icons'
+import { Eyebrow } from '../shared/Eyebrow'
 import { Badge } from '@/components/ui/badge'
 import { BottomSheet } from '../mobile/BottomSheet'
 import { ChipOverflow, Chip, type ChipItem } from '../shared/ChipOverflow'
@@ -79,7 +80,7 @@ function nf(n: number): string {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">{label}</span>
+      <Eyebrow className="mr-1">{label}</Eyebrow>
       {children}
     </div>
   )
@@ -176,7 +177,7 @@ export function NetworkFilters({ value, onChange, collapsible }: {
           {value.hard ? 'Hard filter' : 'Soft filter'}
         </Badge>
       </button>
-      <span className="text-[11px] text-white/40">
+      <span className="text-micro text-white/40">
         {value.hard
           ? 'Excludes anyone who does not match. This can return nothing.'
           : 'Ranks matches higher. Close matches still appear.'}
@@ -185,7 +186,7 @@ export function NetworkFilters({ value, onChange, collapsible }: {
         type="button"
         onClick={() => onChange({ ...EMPTY_FILTERS, hard: value.hard })}
         data-testid="network-filter-clear"
-        className="ml-auto text-[11px] text-white/40 underline underline-offset-2 hover:text-white/70"
+        className="ml-auto text-micro text-white/40 underline underline-offset-2 hover:text-white/70"
       >
         Clear {active}
       </button>
@@ -214,7 +215,7 @@ export function NetworkFilters({ value, onChange, collapsible }: {
           onClick={() => setSheet(true)}
           data-testid="network-filters-open"
           aria-haspopup="dialog"
-          className={`flex min-h-[30px] shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[11.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
+          className={`flex min-h-[30px] shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-label font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
             nonGeoActive > 0 || value.hard
               ? 'border-violet-400/40 bg-violet-500/15 text-violet-100'
               : 'border-white/10 text-white/50'}`}
@@ -261,8 +262,8 @@ export function NetworkFilters({ value, onChange, collapsible }: {
       <BottomSheet open={sheet} onClose={() => setSheet(false)} fullHeight={false} ariaLabel="Filters">
         <div className="max-h-[72vh] overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
           <div className="flex items-center gap-2 pb-3">
-            <h2 className="text-[15px] font-semibold text-white">Filters</h2>
-            {active > 0 && <span className="text-[11.5px] text-white/40">{active} on</span>}
+            <h2 className="text-ui font-semibold text-white">Filters</h2>
+            {active > 0 && <span className="text-label text-white/40">{active} on</span>}
             <button
               type="button"
               onClick={() => setSheet(false)}
@@ -287,7 +288,7 @@ function ActivePill({ label, onRemove }: { label: string; onRemove: () => void }
       type="button"
       onClick={onRemove}
       aria-label={`Remove ${label} filter`}
-      className="flex min-h-[26px] shrink-0 items-center gap-1 rounded-full border border-violet-400/30 bg-violet-500/10 pl-2.5 pr-1.5 text-[11.5px] font-medium text-violet-100 transition-colors hover:bg-violet-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+      className="flex min-h-[26px] shrink-0 items-center gap-1 rounded-full border border-violet-400/30 bg-violet-500/10 pl-2.5 pr-1.5 text-label font-medium text-violet-100 transition-colors hover:bg-violet-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
     >
       {label}
       <X size={11} className="text-violet-200/60" aria-hidden />

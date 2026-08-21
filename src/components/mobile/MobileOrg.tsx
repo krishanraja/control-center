@@ -194,9 +194,9 @@ export function MobileOrg() {
                   detail={a.role || 'No role set'}
                   trailing={
                     failed > 0 ? (
-                      <span className="text-[14px] font-semibold text-red-300">{failed} err</span>
+                      <span className="text-ui font-semibold text-red-300">{failed} err</span>
                     ) : h2?.lastRunAt ? (
-                      <span className="text-[14px] text-white/35 tabular-nums">{humanAgo(h2.lastRunAt)}</span>
+                      <span className="text-ui text-white/35 tabular-nums">{humanAgo(h2.lastRunAt)}</span>
                     ) : null
                   }
                   onClick={() => { h.select(); setOpenId(a.id) }}

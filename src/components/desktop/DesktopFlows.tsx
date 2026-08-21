@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Check, X, Workflow as WorkflowIcon, AlertCircle, Wand2 } from 'lucide-react'
+import { Check, X, Workflow as WorkflowIcon, AlertCircle, Wand2 } from '@/lib/icons'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { humanize } from '../shared/tokens'
 import { AgentAvatar } from '../shared/AgentAvatar'
@@ -108,15 +108,15 @@ export function DesktopFlows() {
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Flows</h1>
-          <p className="text-xs md:text-[13px] text-white/50 mt-0.5">
+          <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight">Flows</h1>
+          <p className="text-xs md:text-body text-white/50 mt-0.5">
             {view === 'workflows' ? 'N8N workflows & proposals.' : 'Forge custom Agent Skills for clients.'}
           </p>
         </div>
         <div className="inline-flex rounded-lg border border-white/[0.07] bg-white/[0.015] p-0.5">
           <button
             onClick={() => setView('workflows')}
-            className={`inline-flex items-center gap-1.5 px-3 h-7 rounded-md text-[11.5px] font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3 h-7 rounded-md text-label font-medium transition-colors ${
               view === 'workflows' ? 'bg-white/[0.07] text-white' : 'text-white/50 hover:text-white/80'
             }`}
           >
@@ -124,7 +124,7 @@ export function DesktopFlows() {
           </button>
           <button
             onClick={() => setView('skill-forge')}
-            className={`inline-flex items-center gap-1.5 px-3 h-7 rounded-md text-[11.5px] font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3 h-7 rounded-md text-label font-medium transition-colors ${
               view === 'skill-forge' ? 'bg-white/[0.07] text-white' : 'text-white/50 hover:text-white/80'
             }`}
           >
@@ -140,11 +140,11 @@ export function DesktopFlows() {
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <WorkflowIcon size={13} className="text-blue-400" />
-          <h2 className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50 flex-1">
+          <h2 className="text-micro md:text-micro font-semibold uppercase tracking-[0.14em] text-white/50 flex-1">
             Workflows
             <span className="ml-2 normal-case tracking-normal font-normal text-white/30">ambient · nothing here needs you; proposals surface on Home when they do</span>
           </h2>
-          <span className="text-[10px] text-white/30 font-mono tabular-nums">{grouped.length}</span>
+          <span className="text-micro text-white/30 font-mono tabular-nums">{grouped.length}</span>
         </div>
 
         {loading ? (
@@ -152,8 +152,8 @@ export function DesktopFlows() {
         ) : grouped.length === 0 ? (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
             <WorkflowIcon size={20} className="text-white/20 mx-auto mb-3" />
-            <p className="text-sm md:text-[13px] text-white/50 font-medium">No workflows yet.</p>
-            <p className="text-xs md:text-[12px] text-white/30 mt-1">Runs will appear here once N8N starts firing.</p>
+            <p className="text-sm md:text-body text-white/50 font-medium">No workflows yet.</p>
+            <p className="text-xs md:text-label text-white/30 mt-1">Runs will appear here once N8N starts firing.</p>
           </div>
         ) : (
           <>
@@ -162,15 +162,15 @@ export function DesktopFlows() {
               {grouped.map(w => <WorkflowCard key={w.workflow_id} w={w} />)}
             </div>
             <div className="hidden md:block rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
-              <table className="w-full text-[12px]">
+              <table className="w-full text-label">
                 <thead>
                   <tr className="text-left text-white/45 border-b border-white/[0.06] bg-white/[0.02]">
-                    <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-[10px]">Workflow</th>
-                    <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-[10px]">Agent</th>
-                    <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-[10px]">Last Run</th>
-                    <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-[10px]">Status</th>
-                    <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-[10px] text-right">Runs</th>
-                    <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-[10px] text-right">Errors</th>
+                    <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-micro">Workflow</th>
+                    <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-micro">Agent</th>
+                    <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-micro">Last Run</th>
+                    <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-micro">Status</th>
+                    <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-micro text-right">Runs</th>
+                    <th className="px-4 py-2.5 font-semibold uppercase tracking-[0.14em] text-micro text-right">Errors</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
@@ -203,30 +203,30 @@ export function DesktopFlows() {
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <AlertCircle size={13} className="text-violet-400" />
-          <h2 className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50 flex-1">Pending Proposals</h2>
-          <span className="text-[10px] text-white/30 font-mono tabular-nums">{proposals.length}</span>
+          <h2 className="text-micro md:text-micro font-semibold uppercase tracking-[0.14em] text-white/50 flex-1">Pending Proposals</h2>
+          <span className="text-micro text-white/30 font-mono tabular-nums">{proposals.length}</span>
         </div>
 
         {proposals.length === 0 ? (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
-            <p className="text-sm md:text-[13px] text-white/50 font-medium">No pending proposals.</p>
-            <p className="text-xs md:text-[12px] text-white/30 mt-1">Agents will surface improvement suggestions here.</p>
+            <p className="text-sm md:text-body text-white/50 font-medium">No pending proposals.</p>
+            <p className="text-xs md:text-label text-white/30 mt-1">Agents will surface improvement suggestions here.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {proposals.map(p => (
               <article key={p.id} className="rounded-xl border border-violet-500/25 bg-gradient-to-br from-violet-500/[0.06] via-violet-500/[0.02] to-transparent p-4 md:p-5 space-y-3">
                 <header>
-                  <p className="text-sm md:text-[14px] font-semibold text-white leading-snug">{p.title}</p>
+                  <p className="text-sm md:text-ui font-semibold text-white leading-snug">{p.title}</p>
                   {p.proposal_type && (
-                    <span className="inline-block mt-1.5 text-[10px] text-violet-300 bg-violet-500/15 border border-violet-500/25 rounded-full px-2 py-0.5 font-medium">
+                    <span className="inline-block mt-1.5 text-micro text-violet-300 bg-violet-500/15 border border-violet-500/25 rounded-full px-2 py-0.5 font-medium">
                       {humanize(p.proposal_type)}
                     </span>
                   )}
                 </header>
-                {p.description && <p className="text-xs md:text-[12px] text-white/55 leading-relaxed line-clamp-4">{p.description}</p>}
+                {p.description && <p className="text-xs md:text-label text-white/55 leading-relaxed line-clamp-4">{p.description}</p>}
                 {(typeof p.estimated_savings_monthly === 'number' || typeof p.estimated_cost_monthly === 'number') && (
-                  <div className="flex items-center gap-3 text-[11px] md:text-[12px] tabular-nums pt-1">
+                  <div className="flex items-center gap-3 text-micro md:text-label tabular-nums pt-1">
                     {typeof p.estimated_savings_monthly === 'number' && (
                       <span className="text-emerald-400 font-medium">+{usd0.format(p.estimated_savings_monthly)}/mo saved</span>
                     )}
@@ -238,13 +238,13 @@ export function DesktopFlows() {
                 <div className="flex items-center gap-2 pt-1">
                   <button
                     onClick={() => decideProposal(p.id, 'approved')}
-                    className="flex-1 md:flex-none flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 text-[12px] font-semibold transition-colors"
+                    className="flex-1 md:flex-none flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 text-label font-semibold transition-colors"
                   >
                     <Check size={13} /> Approve
                   </button>
                   <button
                     onClick={() => decideProposal(p.id, 'rejected')}
-                    className="flex-1 md:flex-none flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg border border-rose-500/30 text-rose-300 hover:bg-rose-500/10 text-[12px] font-semibold transition-colors"
+                    className="flex-1 md:flex-none flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg border border-rose-500/30 text-rose-300 hover:bg-rose-500/10 text-label font-semibold transition-colors"
                   >
                     <X size={13} /> Reject
                   </button>
@@ -265,23 +265,23 @@ function WorkflowCard({ w }: { w: GroupedRun }) {
     <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] text-white font-medium leading-snug truncate">{humanize(w.workflow_name) || w.workflow_name}</p>
+          <p className="text-body text-white font-medium leading-snug truncate">{humanize(w.workflow_name) || w.workflow_name}</p>
           <div className="flex items-center gap-1.5 mt-1">
             {w.agent_id ? (
               <>
                 <AgentAvatar agent={w.agent_id} size="sm" />
-                <span className="text-[11px] text-white/55">{humanize(w.agent_id)}</span>
+                <span className="text-micro text-white/55">{humanize(w.agent_id)}</span>
               </>
             ) : (
-              <span className="text-[11px] text-white/30">System</span>
+              <span className="text-micro text-white/30">System</span>
             )}
             <span className="text-white/20 mx-0.5">·</span>
-            <span className="text-[11px] text-white/45 tabular-nums">{formatDistanceToNow(new Date(w.lastRun), { addSuffix: true })}</span>
+            <span className="text-micro text-white/45 tabular-nums">{formatDistanceToNow(new Date(w.lastRun), { addSuffix: true })}</span>
           </div>
         </div>
         <StatusChip status={w.status} />
       </div>
-      <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/[0.04] text-[11px] font-mono tabular-nums">
+      <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/[0.04] text-micro font-mono tabular-nums">
         <span className="text-white/50">{w.runCount} <span className="text-white/30">runs</span></span>
         {w.errorCount > 0 && <span className="text-rose-400 font-semibold">{w.errorCount} errors</span>}
         <button
@@ -290,7 +290,7 @@ function WorkflowCard({ w }: { w: GroupedRun }) {
             const body = await r.json().catch(() => ({}))
             if (!r.ok) alert(`Rerun failed: ${body?.error || r.status}`)
           }}
-          className="ml-auto text-[10px] px-2 py-0.5 rounded border border-white/15 text-white/60 hover:text-white hover:border-white/35 transition-colors"
+          className="ml-auto text-micro px-2 py-0.5 rounded border border-white/15 text-white/60 hover:text-white hover:border-white/35 transition-colors"
           title="Trigger a manual run of this workflow"
         >
           Rerun
@@ -307,7 +307,7 @@ function StatusChip({ status }: { status: string }) {
     status === 'running' ? 'text-blue-300 border-blue-500/25 bg-blue-500/10' :
                            'text-white/55 border-white/10 bg-white/[0.03]'
   return (
-    <span className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-[0.1em] px-2 py-0.5 rounded-full border ${cls}`}>
+    <span className={`inline-flex items-center text-micro font-semibold uppercase tracking-[0.14em] px-2 py-0.5 rounded-full border ${cls}`}>
       {humanize(status) || status}
     </span>
   )

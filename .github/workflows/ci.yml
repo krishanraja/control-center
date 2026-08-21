@@ -32,6 +32,15 @@ jobs:
       # once, so they run on every push rather than by hand.
       - run: npx tsx scripts/check-goal-ladder.mts
       - run: npx tsx scripts/check-goal-gate.mts
+      # The 2026-08-21 sweep put every text size in src/ on the role scale and
+      # every uppercase label on the one eyebrow recipe. A single re-introduced
+      # text-[13px] is invisible in review; this keeps the scale swept.
+      - run: npx tsx scripts/check-type-tokens.mts
+      # Same date, same shape, for icons: every glyph ships through the
+      # src/lib/icons wrapper (constant 1.75px stroke, snapped sizes), and
+      # this keeps direct lucide imports, stray stroke weights, and emoji
+      # stand-ins from creeping back.
+      - run: npx tsx scripts/check-icons.mts
       # Same reason: 274 of 323 content ideas were unpurgeable because eleven
       # insert paths could each forget an expiry. The invariant now lives in a
       # column default, and this checks the default, the reserved meaning of

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { HelpCircle, Plus } from 'lucide-react'
+import { HelpCircle, Plus } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { BTN_GHOST, BTN_PRIMARY, Chip, EmptyNote, Field, INPUT_CLS, ProductChip, SectionHead, SELECT_CLS } from './atoms'
 import {
@@ -95,7 +95,7 @@ export function TouchpointMap({ g, variant }: { g: GrowthData; variant: 'desktop
         }
       />
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[11.5px] text-white/45 tabular-nums">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-label text-white/45 tabular-nums">
         <span className="text-white/70 font-semibold">{g.touchpoints.length} mapped</span>
         <span>{stats.covered} covered</span>
         <span>{stats.in_progress} in progress</span>
@@ -122,14 +122,14 @@ export function TouchpointMap({ g, variant }: { g: GrowthData; variant: 'desktop
         <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.05] p-3.5">
           <div className="flex items-center gap-2 flex-wrap">
             <HelpCircle size={13} className="text-amber-300" />
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-300">
+            <h3 className="text-micro font-semibold uppercase tracking-[0.14em] text-amber-300">
               {openQuestions.length} open question{openQuestions.length === 1 ? '' : 's'}
             </h3>
-            <span className="text-[11px] text-white/45">The map is guessing until you answer these.</span>
+            <span className="text-micro text-white/45">The map is guessing until you answer these.</span>
             <button
               type="button"
               onClick={() => setOpenOnly(o => !o)}
-              className="ml-auto rounded-lg px-2.5 py-1 text-[11.5px] font-medium text-amber-200 border border-amber-400/30 hover:bg-amber-400/10 transition-colors"
+              className="ml-auto rounded-lg px-2.5 py-1 text-label font-medium text-amber-200 border border-amber-400/30 hover:bg-amber-400/10 transition-colors"
             >
               {openOnly ? 'Show the whole map' : 'Show only these'}
             </button>
@@ -145,15 +145,15 @@ export function TouchpointMap({ g, variant }: { g: GrowthData; variant: 'desktop
         <section key={gr.product} className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
           <header className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.06] bg-white/[0.02]">
             <ProductChip slug={gr.product} />
-            <span className="text-[11px] text-white/40 tabular-nums">{gr.rows.length} touchpoints</span>
+            <span className="text-micro text-white/40 tabular-nums">{gr.rows.length} touchpoints</span>
             <span className="flex-1" />
             {gr.rows.some(r => r.assumption_flag) && (
-              <span className="text-[10.5px] text-amber-300">{gr.rows.filter(r => r.assumption_flag).length} open</span>
+              <span className="text-micro text-amber-300">{gr.rows.filter(r => r.assumption_flag).length} open</span>
             )}
           </header>
 
           {variant === 'desktop' && (
-            <div className="grid grid-cols-[112px_minmax(0,1fr)_76px_62px_128px_72px] gap-x-3 px-3 py-1.5 text-[9.5px] uppercase tracking-[0.13em] text-white/30 font-semibold border-b border-white/[0.05]">
+            <div className="grid grid-cols-[112px_minmax(0,1fr)_76px_62px_128px_72px] gap-x-3 px-3 py-1.5 text-micro uppercase tracking-[0.14em] text-white/30 font-semibold border-b border-white/[0.05]">
               <span>Channel</span><span>Trigger and watering hole</span><span>Owner</span><span>Score</span><span>Coverage</span><span />
             </div>
           )}
@@ -168,10 +168,10 @@ export function TouchpointMap({ g, variant }: { g: GrowthData; variant: 'desktop
 
       {accounts.length > 0 && (
         <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3">
-          <h3 className="text-[10px] uppercase tracking-[0.13em] text-white/35 font-semibold mb-2">Channel accounts</h3>
+          <h3 className="text-micro uppercase tracking-[0.14em] text-white/35 font-semibold mb-2">Channel accounts</h3>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {accounts.map(a => (
-              <div key={a.id} className="flex items-center gap-1.5 text-[11.5px]">
+              <div key={a.id} className="flex items-center gap-1.5 text-label">
                 <ProductChip slug={a.product_slug} />
                 <span className="text-white/70">{a.platform}</span>
                 {a.profile_url ? (
@@ -189,7 +189,7 @@ export function TouchpointMap({ g, variant }: { g: GrowthData; variant: 'desktop
               </div>
             ))}
           </div>
-          <p className="text-[10.5px] text-white/30 mt-2">
+          <p className="text-micro text-white/30 mt-2">
             A planned account cannot carry a covered touchpoint. The account has to exist before the channel counts.
           </p>
         </section>
@@ -269,7 +269,7 @@ function Row({ t, variant, onSave, onAnswer }: {
 
   const prompt = t.assumption_flag ? (
     <div className="mt-1.5 rounded-lg border border-amber-500/25 bg-amber-500/[0.05] px-2.5 py-2">
-      <p className="text-[11.5px] text-amber-100/90 leading-snug">
+      <p className="text-label text-amber-100/90 leading-snug">
         <span className="font-semibold text-amber-300">Open question. </span>{t.assumption_flag}
       </p>
       {answering ? (
@@ -293,21 +293,21 @@ function Row({ t, variant, onSave, onAnswer }: {
         <button
           type="button"
           onClick={() => setAnswering(true)}
-          className="mt-1.5 text-[11px] font-semibold text-amber-300 hover:text-amber-200"
+          className="mt-1.5 text-micro font-semibold text-amber-300 hover:text-amber-200"
         >
           Answer this
         </button>
       )}
     </div>
   ) : answered?.answer ? (
-    <p className="mt-1 text-[10.5px] text-emerald-300/70 leading-snug">Answered: {answered.answer}</p>
+    <p className="mt-1 text-micro text-emerald-300/70 leading-snug">Answered: {answered.answer}</p>
   ) : null
 
   const body = (
     <>
-      <div className="text-[12.5px] text-white/90 leading-snug">{t.icp_trigger}</div>
-      {t.watering_hole && <div className="text-[11px] text-white/40 leading-snug mt-0.5">{t.watering_hole}</div>}
-      {t.rationale && <div className="text-[10.5px] text-white/30 leading-snug mt-0.5">{t.rationale}</div>}
+      <div className="text-label text-white/90 leading-snug">{t.icp_trigger}</div>
+      {t.watering_hole && <div className="text-micro text-white/40 leading-snug mt-0.5">{t.watering_hole}</div>}
+      {t.rationale && <div className="text-micro text-white/30 leading-snug mt-0.5">{t.rationale}</div>}
       {prompt}
     </>
   )
@@ -317,7 +317,7 @@ function Row({ t, variant, onSave, onAnswer }: {
       <div className={`px-3 py-2.5 border-t border-white/[0.05] ${retired ? 'opacity-50' : ''}`}>
         <div className="flex items-center gap-2 mb-1">
           <Chip>{CHANNEL_LABEL[t.channel] || t.channel}</Chip>
-          {t.owner_agent && <span className="text-[10.5px] text-white/40">{t.owner_agent}</span>}
+          {t.owner_agent && <span className="text-micro text-white/40">{t.owner_agent}</span>}
         </div>
         {body}
         <div className="grid grid-cols-[62px_minmax(0,1fr)_78px] gap-2 mt-2">
@@ -331,7 +331,7 @@ function Row({ t, variant, onSave, onAnswer }: {
     <div className={`grid grid-cols-[112px_minmax(0,1fr)_76px_62px_128px_72px] gap-x-3 items-start px-3 py-2 border-t border-white/[0.05] hover:bg-white/[0.02] ${retired ? 'opacity-50' : ''}`}>
       <div className="pt-0.5"><Chip>{CHANNEL_LABEL[t.channel] || t.channel}</Chip></div>
       <div className="min-w-0">{body}</div>
-      <div className="text-[11px] text-white/45 pt-1 truncate">{t.owner_agent || ''}</div>
+      <div className="text-micro text-white/45 pt-1 truncate">{t.owner_agent || ''}</div>
       <div>{scoreSelect}</div>
       <div>{coverageSelect}</div>
       <div>{retireBtn}</div>

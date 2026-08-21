@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   Mail, Linkedin, Phone, Instagram, AtSign, Copy, Check, ExternalLink,
   AlertTriangle, MapPin,
-} from 'lucide-react'
+} from '@/lib/icons'
 import { Badge } from '@/components/ui/badge'
 import { BottomSheet } from '../mobile/BottomSheet'
 import { useToast } from '../shared/Toast'
@@ -107,7 +107,7 @@ export function NetworkPersonSheet({ person, onClose }: {
         {/* Identity */}
         <div className="pb-3">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <h2 className="text-[18px] font-semibold leading-tight text-white">
+            <h2 className="text-title font-semibold leading-tight text-white">
               {person.full_name || person.company || 'Unnamed contact'}
             </h2>
             <Badge variant={person.network_tier === '1_reciprocated' ? 'accent' : 'default'}>
@@ -115,7 +115,7 @@ export function NetworkPersonSheet({ person, onClose }: {
             </Badge>
           </div>
           {(sub || place) && (
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-white/55">
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-body text-white/55">
               {sub && <span>{sub}</span>}
               {place && (
                 <span className="inline-flex items-center gap-0.5 text-white/40">
@@ -141,7 +141,7 @@ export function NetworkPersonSheet({ person, onClose }: {
           ) : (
             <div className="flex items-start gap-2 rounded-card border border-amber-400/20 bg-amber-500/[0.06] px-3 py-2.5">
               <AlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-200" aria-hidden />
-              <p className="text-[12.5px] leading-relaxed text-amber-100/85">
+              <p className="text-label leading-relaxed text-amber-100/85">
                 {reach.note || 'No contact details on file for this person.'}
               </p>
             </div>
@@ -150,10 +150,10 @@ export function NetworkPersonSheet({ person, onClose }: {
           {/* The recorded best channel is not always one we hold an address for.
               Saying which, rather than quietly showing a different button. */}
           {reach.best && reach.note && (
-            <p className="text-[11.5px] leading-relaxed text-white/40">{reach.note}</p>
+            <p className="text-label leading-relaxed text-white/40">{reach.note}</p>
           )}
           {loadingDetail && !detail && (
-            <p className="flex items-center gap-1.5 text-[11.5px] text-white/30">
+            <p className="flex items-center gap-1.5 text-label text-white/30">
               <Working size={11} /> Checking for other channels.
             </p>
           )}
@@ -162,28 +162,28 @@ export function NetworkPersonSheet({ person, onClose }: {
         {/* Judgment. Why this person, and what to open with. */}
         <div className="mt-3 space-y-2 border-t border-white/[0.07] pt-3">
           {(person.why_match || person.why_them) && (
-            <p className="text-[13px] leading-relaxed text-white/80">{person.why_match || person.why_them}</p>
+            <p className="text-body leading-relaxed text-white/80">{person.why_match || person.why_them}</p>
           )}
           {person.who && person.who !== person.why_them && (
-            <p className="text-[12.5px] leading-relaxed text-white/50">{person.who}</p>
+            <p className="text-label leading-relaxed text-white/50">{person.who}</p>
           )}
           {person.hook && (
-            <p className="text-[12.5px] leading-relaxed text-white/60">
+            <p className="text-label leading-relaxed text-white/60">
               <span className="text-white/30">Open with</span> {person.hook}
             </p>
           )}
           {person.risk && (
-            <p className="text-[12px] leading-relaxed text-amber-200/85">
+            <p className="text-label leading-relaxed text-amber-200/85">
               <span className="text-white/30">Risk</span> {person.risk}
             </p>
           )}
           {detail?.contact?.first_met_context && (
-            <p className="text-[12px] leading-relaxed text-white/45">
+            <p className="text-label leading-relaxed text-white/45">
               <span className="text-white/30">First met</span> {detail.contact.first_met_context}
             </p>
           )}
           {person.thin_evidence && (
-            <p className="flex items-start gap-1.5 text-[11.5px] leading-relaxed text-amber-200/70">
+            <p className="flex items-start gap-1.5 text-label leading-relaxed text-amber-200/70">
               <AlertTriangle size={11} className="mt-0.5 shrink-0" aria-hidden />
               Thin evidence: their title and company were pattern-matched and no profile was ever read.
             </p>
@@ -239,15 +239,15 @@ function ReachButton({ option, primary, onCopy, copied }: {
       >
         <Icon size={15} className="shrink-0" aria-hidden />
         <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-semibold leading-tight">
+          <span className="block text-body font-semibold leading-tight">
             {option.label}
             {option.recommended && (
-              <span className={`ml-1.5 text-[10.5px] font-medium ${primary ? 'text-violet-200/70' : 'text-white/35'}`}>
+              <span className={`ml-1.5 text-micro font-medium ${primary ? 'text-violet-200/70' : 'text-white/35'}`}>
                 best channel
               </span>
             )}
           </span>
-          <span className={`block truncate text-[11.5px] leading-tight ${primary ? 'text-violet-100/60' : 'text-white/40'}`}>
+          <span className={`block truncate text-label leading-tight ${primary ? 'text-violet-100/60' : 'text-white/40'}`}>
             {option.address}
           </span>
         </span>

@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 //
 // The 16px floor on coarse pointers is enforced globally in index.css
 // (`input, select, textarea { font-size: 16px !important }`) to stop iOS
-// zooming on focus. Do not fight it with a smaller text-[13px] here and expect
+// zooming on focus. Do not fight it with a smaller text-body here and expect
 // it to win on a phone.
 // The ref forwards to the <input>, not to the wrapper. Callers that own a
 // clear button need to put focus back in the field afterwards, and a ref to a
@@ -32,7 +32,7 @@ const Input = React.forwardRef<
         type={type}
         data-slot="input"
         className={cn(
-          'flex w-full rounded-form border border-white/10 bg-white/[0.03] text-[13px] text-white',
+          'flex w-full rounded-form border border-white/10 bg-white/[0.03] text-body text-white',
           'min-h-[38px] px-3 py-2 transition-colors',
           'placeholder:text-white/30',
           'focus:outline-none focus:ring-1 focus:ring-violet-400/50',
