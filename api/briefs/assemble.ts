@@ -142,9 +142,10 @@ async function loadRegisterSummary(): Promise<string> {
 async function loadKrishWeek(weekStart: Date): Promise<string> {
   const bits: string[] = []
   const { data: bets } = await supabase
-    .from('bets').select('title, hypothesis, status, learning')
+    // `bets` has no title column — the label is the hypothesis.
+    .from('bets').select('hypothesis, status, learning')
     .gte('updated_at', weekStart.toISOString()).limit(5)
-  for (const b of bets || []) bits.push(`Bet (${b.status}): ${b.title}. ${b.learning || b.hypothesis || ''}`)
+  for (const b of bets || []) bits.push(`Bet (${b.status}): ${b.hypothesis}${b.learning ? `. ${b.learning}` : ''}`)
   const { data: decisions } = await supabase
     .from('content_decisions').select('kind, payload, resolution')
     .eq('status', 'done').gte('resolved_at', weekStart.toISOString()).limit(5)
