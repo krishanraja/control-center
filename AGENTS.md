@@ -70,6 +70,23 @@ This repo contains **two independent frontends**, each with its own
   ```
   Note this repo's CI does not run Playwright at all (see `.github/workflows/ci.yml`),
   so a broken spec will not be caught for you.
+- **`.env.production.local` silently wins over `.env`, and its values are masked.**
+  `vercel env pull` writes every secret as the literal string `[SENSITIVE]`, and
+  Vite loads `.env.production.local` *after* `.env` in a production build, so a
+  flag you set in `.env` is overwritten with `[SENSITIVE]` rather than used.
+  Nothing errors: `contentV2Enabled()` just compares `"[SENSITIVE]" === 'true'`,
+  gets false, and the app renders the pre-v2 surface. It looks exactly like a
+  broken feature. Force the flag on the build command instead, which takes
+  precedence over both files:
+  ```
+  VITE_CONTENT_V2_ENABLED=true VITE_UI_V2_ENABLED=true npm run build
+  ```
+- **Playwright checks `page.route` handlers in REVERSE registration order.**
+  Register the catch-alls (`**/api/**`, `**/rest/v1/**`) FIRST and the specific
+  routes after them. The other way round, the catch-all shadows the specific
+  mock, the component renders against a null row forever, and it reads as a
+  broken component rather than a missing fixture. `e2e/composer.spec.ts` has the
+  working order.
 - **Browser version drift.** `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` may hold a
   different build than the pinned `@playwright/test` wants ("Executable doesn't exist
   at .../chromium_headless_shell-<n>"). Point at what is actually there rather than
@@ -84,6 +101,11 @@ This repo contains **two independent frontends**, each with its own
   Keep it that way. If you add a switcher, give it a `testIdPrefix` (see
   `src/components/shared/SegmentedNav.tsx`) rather than letting a spec click a
   word, or the next copy change silently takes the suite out again.
+- **`e2e/composer.spec.ts` covers the content composer** (the brief opening in
+  it, the rail, and the full edit palette). There was no content coverage at all
+  before it, which is part of how the brief surface came to have four one-click
+  edits while `src/lib/contentEngine.ts` held twenty-six. `scripts/check-edit-palette.mts`
+  guards the same invariants statically and runs without a browser.
 - **compound** unit/component tests: `npm run test:run` (vitest, jsdom) from
   `compound/` — fast and self-contained.
 

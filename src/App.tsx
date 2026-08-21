@@ -60,7 +60,6 @@ const ContentComposer = lazy(() => import('./components/content/ContentComposer'
 // + the weekly-brief editor. Both flag-gated; the legacy triage surfaces render
 // untouched when VITE_CONTENT_V2_ENABLED is off.
 const ContentV2Tab = lazy(() => import('./components/content-v2/ContentV2Tab').then(m => ({ default: m.ContentV2Tab })))
-const BriefEditor = lazy(() => import('./components/content-v2/BriefEditor').then(m => ({ default: m.BriefEditor })))
 // Growth: ONE tab, five sections in the order of the weekly loop. Map (the ICP
 // touchpoint map, growth_touchpoints), Work (the Higgsfield creative board,
 // growth_creative_queue), Signals (GEO probes over growth_geo_probes plus the
@@ -328,36 +327,25 @@ export default function App() {
               idea is deep-linked on the Content tab. Esc / back clears the param. */}
           {/* Full-screen weekly-brief editor (Content Engine v2) — same overlay
               contract as the composer; Esc / back clears the param. */}
-          {contentV2Enabled() && tab === 'content' && route.params.brief && (
-            <div style={narrow ? ({ zoom: 1.2, ['--z']: '1.2' } as React.CSSProperties) : undefined}>
-              <ErrorBoundary label="Brief">
-                {/* Previously had no fallback at all. A deep-linked full-screen takeover
-                    fetching its own chunk showed nothing at all until it was
-                    ready, so following a link to a brief looked like the click
-                    had failed. */}
-                <Suspense fallback={<DeferredFallback><SkeletonDetail full /></DeferredFallback>}>
-                  <BriefEditor
-                    week={route.params.brief}
-                    narrow={narrow}
-                    onClose={() => navigate('content')}
-                  />
-                </Suspense>
-              </ErrorBoundary>
-            </div>
-          )}
-          {tab === 'content' && route.params.idea && (
-            // Match the tabs' 1.2× mobile scale: the composer is an App-root
-            // full-screen surface, so without this wrapper it renders at native
-            // size — noticeably smaller than every tab. Same zoom+--z contract as
-            // mobile-zoom-root; the composer's fixed containers size off --z.
+          {/* The composer. One full-screen surface, opening either a piece
+              (?idea=) or a weekly brief (?brief=), which is what
+              CONTENT-ENGINE-V2-SPEC.md:75 specified. It used to be two
+              separate overlays mounted side by side here, and the brief one
+              had four edit chips to the composer's twenty-six.
+              Match the tabs' 1.2× mobile scale: this is an App-root
+              full-screen surface, so without the wrapper it renders at native
+              size, noticeably smaller than every tab. Same zoom+--z contract
+              as mobile-zoom-root; the composer's fixed containers size off --z. */}
+          {tab === 'content' && (route.params.idea || (contentV2Enabled() && route.params.brief)) && (
             <div style={narrow ? ({ zoom: 1.2, ['--z']: '1.2' } as React.CSSProperties) : undefined}>
               <ErrorBoundary label="Composer">
-                {/* Same gap as the brief editor above, and worse: the composer
-                    then rendered its own bare unlabelled spinner on top of the
-                    blank, so opening a piece went nothing, spinner, content. */}
+                {/* A deep-linked full-screen takeover fetching its own chunk
+                    used to show nothing at all until it was ready, so
+                    following a link looked like the click had failed. */}
                 <Suspense fallback={<DeferredFallback><SkeletonDetail full /></DeferredFallback>}>
                   <ContentComposer
-                    ideaId={route.params.idea}
+                    ideaId={route.params.idea || undefined}
+                    week={contentV2Enabled() ? (route.params.brief || undefined) : undefined}
                     narrow={narrow}
                     onClose={() => navigate('content')}
                   />

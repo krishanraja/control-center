@@ -1,4 +1,4 @@
-// Citation rendering for the weekly brief (BriefEditor).
+// Citation rendering for the weekly brief (content/BriefComposer).
 //
 // The brief's canonical body is markdown. Historically each Headlines bullet
 // carried its citation INLINE, right after the bold headline:
