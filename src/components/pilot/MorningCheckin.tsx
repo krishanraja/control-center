@@ -394,9 +394,9 @@ function yesterdayLine(y: YesterdayRecap | null): string {
   // A skipped day still shipped, or did not. Say so without a reading, and
   // without the reproach a "you skipped this" line would carry.
   if (y?.skipped) {
-    return y.ships === 0 ? 'Yesterday: no reading.' : `Yesterday: no reading. ${y.ships} ${y.ships === 1 ? 'ship' : 'ships'}.`
+    return y.ships === 0 ? 'Yesterday: no check-in.' : `Yesterday: no check-in, ${y.ships} ${y.ships === 1 ? 'ship' : 'ships'}.`
   }
-  if (!y || y.energy === null || y.anxiety === null) return 'First light.'
+  if (!y || y.energy === null || y.anxiety === null) return 'First check-in.'
   const state = readingFor(y.energy, y.anxiety).replace(/\.$/, '')
   const word = y.one_word ? `, ${y.one_word}` : ''
   const ships = y.ships === 0

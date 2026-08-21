@@ -191,12 +191,12 @@ export function MobileLeadsRE(_props: Props = {}) {
   // write a feedback_queue vote Vera's scout brief learns from.
   const onAccept = useCallback(async (c: ContactRow) => {
     const ok = await feedbackVote('contacts', c.id, 1, c.owner_agent)
-    toast(ok ? 'Kept warm. Logged.' : 'Could not save — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Kept warm and logged.' : 'Could not save — try again.', ok ? 'success' : 'error')
     return ok
   }, [toast])
   const onReject = useCallback(async (c: ContactRow, code?: string) => {
     const ok = await feedbackVote('contacts', c.id, -1, c.owner_agent, code)
-    toast(ok ? 'Skipped. Vera will learn.' : 'Could not save — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Skipped. Vera will learn from that.' : 'Could not save — try again.', ok ? 'success' : 'error')
     return ok
   }, [toast])
 

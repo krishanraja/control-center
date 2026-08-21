@@ -174,13 +174,13 @@ export function NetworkFilters({ value, onChange, collapsible }: {
         className="rounded-badge focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
       >
         <Badge variant={value.hard ? 'danger' : 'default'}>
-          {value.hard ? 'Hard filter' : 'Soft filter'}
+          {value.hard ? 'Matches only' : 'Matches first'}
         </Badge>
       </button>
       <span className="text-micro text-white/40">
         {value.hard
-          ? 'Excludes anyone who does not match. This can return nothing.'
-          : 'Ranks matches higher. Close matches still appear.'}
+          ? 'Hides anyone who does not match, so this can return nobody.'
+          : 'Puts strong matches first. Close matches still show.'}
       </span>
       <button
         type="button"

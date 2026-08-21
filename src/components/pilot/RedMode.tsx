@@ -67,7 +67,7 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
         {phase === 'ask' && (
           <div className="flex flex-col gap-6">
             <h1 className="font-display text-title leading-snug">
-              What is the one 15-minute action that leaves your machine today?
+              What is the one 15-minute thing you can finish and send out today?
             </h1>
             <OneActionPicker onCommit={commitOne} saving={saving} />
             {error && <p className="text-body text-ink-muted">{error}</p>}
@@ -139,7 +139,7 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
               <span className="text-label uppercase tracking-[0.14em] text-ink-faint">Log it</span>
-              <p className="text-body text-ink-muted leading-relaxed">Where did it go, and what was it.</p>
+              <p className="text-body text-ink-muted leading-relaxed">What was it, and who got it?</p>
             </div>
             <LogShipForm
               initialDescription={one}
@@ -153,9 +153,9 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
         {phase === 'done' && (
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
-              <p className="font-display text-title leading-snug">That left your machine.</p>
+              <p className="font-display text-title leading-snug">That one went out.</p>
               <p className="text-body text-ink-faint leading-relaxed">
-                It is in the ledger. Nothing else is required today.
+                It is logged. Nothing else is needed from you today.
               </p>
             </div>
             <Tap className="w-full justify-center flex items-center" onTap={() => { h.notifySuccess(); onUnlock() }}>

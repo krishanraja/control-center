@@ -173,7 +173,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
         {!s.loading && s.degraded.length > 0 && (
           <div className="mx-4 mt-3 flex items-start gap-2 rounded-card border border-white/[0.08] px-3 py-2 text-label text-white/45">
             <AlertTriangle size={12} className="mt-0.5 shrink-0" aria-hidden />
-            <span>Ranked with reduced signal ({s.degraded.join(', ')}). Results are still real, just less precisely ordered.</span>
+            <span>Ranked with less data than usual ({s.degraded.join(', ')}). The people are real, the order is just rougher.</span>
           </div>
         )}
 
@@ -206,7 +206,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
           // because "no results" with no explanation is the failure this whole
           // feature was built to remove.
           <div className="px-4 py-10 text-center">
-            <p className="text-body text-white/60">No one matches every hard filter.</p>
+            <p className="text-body text-white/60">No one matches every filter you set.</p>
             {filters.countries.length > 0 && geoFacets.unknown > 0 && (
               // Geography is the filter most likely to have caused this and the
               // least likely to mean what it looks like, so it gets named rather
@@ -221,7 +221,7 @@ export function NetworkTab({ narrow, onOpenPerson }: {
               onClick={() => setFilters({ ...filters, hard: false })}
               className="mt-2 text-label text-violet-200 underline underline-offset-2"
             >
-              Switch back to soft filters
+              Show close matches too
             </button>
           </div>
         )}

@@ -140,7 +140,7 @@ export function GuestImportDropzone({ onIngested }: Props) {
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
             rows={6}
-            placeholder="Paste rows here. Any format. Include at least name + one contact channel (email, LinkedIn, Twitter)."
+            placeholder="Paste rows here, in any format. Include at least name + one contact channel (email, LinkedIn, Twitter)."
             className="w-full rounded-md border border-white/10 bg-black/30 px-3 py-2 text-label text-white/85 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40 font-mono"
           />
           <div className="flex items-center justify-end gap-2">

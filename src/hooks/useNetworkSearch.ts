@@ -157,7 +157,7 @@ export function useNetworkSearch() {
       const j = await r.json().catch(() => ({})) as Record<string, unknown>
       if (mine !== seq.current) return
       if (r.status === 401) {
-        setState({ ...EMPTY, error: 'Session expired. Reload to unlock.' })
+        setState({ ...EMPTY, error: 'Session expired. Reload the page to try again.' })
         return
       }
       if (!r.ok || j.ok === false) {

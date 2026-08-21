@@ -142,7 +142,7 @@ export function DesktopFlows() {
           <WorkflowIcon size={13} className="text-blue-400" />
           <h2 className="text-micro md:text-micro font-semibold uppercase tracking-[0.14em] text-white/50 flex-1">
             Workflows
-            <span className="ml-2 normal-case tracking-normal font-normal text-white/30">ambient · nothing here needs you; proposals surface on Home when they do</span>
+            <span className="ml-2 normal-case tracking-normal font-normal text-white/30">runs on its own; anything that needs you shows up on Home</span>
           </h2>
           <span className="text-micro text-white/30 font-mono tabular-nums">{grouped.length}</span>
         </div>

@@ -30,10 +30,10 @@ import { Skeleton } from '../shared/Skeleton'
 
 const KIND_CHIP: Record<string, { label: string; cls: string }> = {
   brief_review: { label: 'Weekly brief', cls: 'bg-sky-400/15 text-sky-300' },
-  shift_proposal: { label: 'New shift proposed', cls: 'bg-emerald-400/15 text-emerald-300' },
-  shift_fading: { label: 'Shift losing momentum', cls: 'bg-amber-400/15 text-amber-300' },
-  graduation: { label: 'Graduation', cls: 'bg-sky-400/15 text-sky-300' },
-  purge_preview: { label: 'Monday purge', cls: 'bg-amber-400/15 text-amber-300' },
+  shift_proposal: { label: 'New shift spotted', cls: 'bg-emerald-400/15 text-emerald-300' },
+  shift_fading: { label: 'Shift going quiet', cls: 'bg-amber-400/15 text-amber-300' },
+  graduation: { label: 'Keep for good?', cls: 'bg-sky-400/15 text-sky-300' },
+  purge_preview: { label: 'Expiring Monday', cls: 'bg-amber-400/15 text-amber-300' },
   investigation: { label: 'Investigation', cls: 'bg-violet-400/15 text-violet-300' },
 }
 
@@ -196,9 +196,9 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
     return (
       <div className="flex flex-col items-center justify-center py-20 px-6 text-center gap-3">
         <DrawnCheck size={44} stroke="rgb(52 211 153)" />
-        <div className="text-white/90 font-bold text-lede">The week is decided</div>
+        <div className="text-white/90 font-bold text-lede">All decided for this week</div>
         <p className="text-white/45 text-body max-w-[26ch]">
-          Nothing is waiting on you. New decisions queue for the weekend sitting.
+          Nothing is waiting on you. New decisions will show up here when they are ready.
         </p>
         {brief && ['approved', 'pushed', 'sent'].includes(brief.status) ? (
           <p className="text-emerald-300/80 text-label">Brief {brief.status}. See you Friday.</p>
@@ -222,7 +222,7 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
         </div>
         <div className="flex items-center justify-between">
           <div className="text-micro text-white/40 tabular-nums">
-            {pos + 1} of {queue.length} waiting{done ? ` · ${done} decided` : ''} · about {Math.max(1, Math.round(queue.length * 0.7))} min left
+            {pos + 1} of {queue.length} to decide{done ? ` · ${done} done` : ''} · about {Math.max(1, Math.round(queue.length * 0.7))} min
           </div>
           {queue.length > 1 && (
             <div className="flex items-center gap-1">
@@ -272,18 +272,18 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
               : (p.title || '')}
           </h3>
           <p className="text-label text-white/50 mt-2 leading-relaxed">
-            {d.kind === 'brief_review' ? `${p.headlines ?? '?'} headlines, assembled Friday. Review section by section, magic-edit anything soft, then push.`
-              : d.kind === 'shift_proposal' ? `Cleared the recurrence gate: ${p.stories ?? '?'} stories, ${p.day_span ?? '?'} days, ${p.sources ?? '?'} sources.${p.nearest?.title ? ` Nearest existing: ${p.nearest.title}.` : ''}`
-              : d.kind === 'shift_fading' ? `No qualifying evidence since ${p.last_evidence_on || 'a while'}.`
-              : d.kind === 'investigation' ? `${p.citable_evidence ?? 0} citable rows, ${p.distinct_domains ?? 0} domains, ${p.distinct_origins ?? 0} origins. Stopped at rung ${p.terminal_rung ?? '?'}.`
-              : d.kind === 'graduation' ? 'Cited across weeks and still true. Keep it forever with its receipts?'
-              : 'Nothing needs you. Anything that fed a shift or the Library is already safe.'}
+            {d.kind === 'brief_review' ? `${p.headlines ?? '?'} headlines, put together on Friday. Read it, fix anything weak with the edit chips, then send it out.`
+              : d.kind === 'shift_proposal' ? `This kept coming up on its own: ${p.stories ?? '?'} stories over ${p.day_span ?? '?'} days from ${p.sources ?? '?'} different sources.${p.nearest?.title ? ` The closest one you already track: ${p.nearest.title}.` : ''}`
+              : d.kind === 'shift_fading' ? `No new evidence since ${p.last_evidence_on || 'a while ago'}.`
+              : d.kind === 'investigation' ? `${p.citable_evidence ?? 0} pieces of evidence you can cite, from ${p.distinct_domains ?? 0} sites and ${p.distinct_origins ?? 0} original sources.`
+              : d.kind === 'graduation' ? 'This has been used for weeks and still holds up. Keep it in the Library for good?'
+              : 'Nothing to do here. Anything worth keeping has already been kept.'}
           </p>
           {d.kind === 'shift_proposal' && p.summary ? (
             <p className="text-label text-emerald-200/70 mt-2 leading-relaxed">{p.summary}</p>
           ) : null}
           {queue.length > 1 && (
-            <p className="text-micro text-white/25 mt-3">Swipe to browse. Buttons decide.</p>
+            <p className="text-micro text-white/25 mt-3">Swipe to look through the cards. The buttons make the call.</p>
           )}
         </div>
 
@@ -307,28 +307,28 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
                 Open the brief
               </Big>
               <Big disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'dismiss', 'skipped on mobile'))}>
-                Skip for the desktop sitting
+                Skip until I&rsquo;m at my desk
               </Big>
             </>
           ) : d.kind === 'shift_proposal' ? (
             <>
-              <Big tone="green" disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'accept'))}>Accept shift</Big>
+              <Big tone="green" disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'accept'))}>Track this shift</Big>
               {/* This card's own no already exists, so it carries the reason
                   rather than sitting beside a second, near-identical no. */}
               <Big disabled={busy} onClick={() => setRejecting(true)}>Not a shift</Big>
             </>
           ) : d.kind === 'shift_fading' ? (
             <>
-              <Big tone="primary" disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'retire'))}>Retire with verdict</Big>
+              <Big tone="primary" disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'retire'))}>Close it out</Big>
               <Big disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'keep_watching'))}>Keep watching</Big>
             </>
           ) : d.kind === 'graduation' ? (
             <>
-              <Big tone="green" disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'done'))}>Graduate to Library</Big>
-              <Big disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'dismiss'))}>Let it purge</Big>
+              <Big tone="green" disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'done'))}>Keep it in the Library</Big>
+              <Big disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'dismiss'))}>Let it go</Big>
             </>
           ) : (
-            <Big tone="primary" disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'done'))}>Acknowledged</Big>
+            <Big tone="primary" disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'done'))}>Got it</Big>
           )}
 
           {/* The reject, on the cards that offer something without already

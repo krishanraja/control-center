@@ -77,7 +77,7 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
       })
       const body = await r.json().catch(() => ({} as any))
       if (!r.ok || body?.ok === false) throw new Error(String(r.status))
-      h.success(); toast('Published. Logged it.', 'success')
+      h.success(); toast('Published and logged.', 'success')
       setPubOpen(false); setPubUrl('')
     } catch {
       h.error(); toast('Could not mark published — try again.', 'error')

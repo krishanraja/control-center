@@ -89,7 +89,7 @@ export function GovernancePanel({
     <div className="space-y-4 pb-8">
       <SectionHead
         title="Governance"
-        sub="What this lane costs, how much rope its agents have, and what they are allowed to say. Every number comes from the service-role control plane."
+        sub="What this lane costs, how much freedom its agents have, and what they are allowed to say. Every number comes straight from the live system."
         action={
           <button
             type="button"

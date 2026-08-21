@@ -71,7 +71,7 @@ export function LogShipForm({ onLogged, onCancel, initialDescription = '', submi
         value={description}
         onChange={setDescription}
         onEnter={() => { if (canSubmit) submit() }}
-        placeholder="What left your machine, and to whom"
+        placeholder="What did you send out, and who got it?"
         rows={2}
       />
 

@@ -1297,7 +1297,7 @@ function FinalPassReview({ pass, original, channelLabel, onShip, onApplyDraft, o
               {acceptedCount > 0 && <span className="text-micro text-emerald-200/70">{acceptedCount} applied</span>}
             </div>
             {data.suggestions.length === 0 ? (
-              <p className="text-label text-white/45 italic">Nothing to flag. Clean as it stands.</p>
+              <p className="text-label text-white/45 italic">Nothing to flag. It reads clean.</p>
             ) : (
               <div className="space-y-2">
                 {data.suggestions.map(s => {

@@ -16,11 +16,11 @@ import { Eyebrow } from '../shared/Eyebrow'
 const COPY: Record<Exclude<RoomId, 'library'>, { title: string; question: string }> = {
   built: {
     title: 'Built',
-    question: 'How a thing was actually built. The mechanism, the sequence, the part that broke.',
+    question: 'Stories about how things actually get built, including the parts that broke.',
   },
   paid: {
     title: 'Paid',
-    question: 'How a thing actually makes money. Who pays, for what, and whether the model holds.',
+    question: 'Stories about how things actually make money: who pays, and for what.',
   },
 }
 
@@ -69,14 +69,14 @@ export function LaneRoom({
       {unclassified.length > 0 && (
         <section>
           <h3 className="mb-2 flex items-center gap-1.5">
-            <Eyebrow>Not yet laned</Eyebrow>
+            <Eyebrow>Not yet sorted</Eyebrow>
             <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-micro tabular-nums">
               {unclassified.length}
             </span>
           </h3>
           <p className="text-label text-white/45 mb-2">
-            Gathered while lane sourcing was down. They belong to Built or Paid,
-            nobody has said which yet.
+            Collected while the sorter was down. These belong in Built or Paid,
+            they just have not been sorted yet.
           </p>
           <FeedRoom ideas={unclassified} />
         </section>

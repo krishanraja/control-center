@@ -39,7 +39,7 @@ export function ObligationStrip({ v2 }: { v2: ReturnType<typeof useContentV2> })
   if (decisions.length === 0 && !hasBrief) {
     return (
       <p className="text-label text-white/40 px-1">
-        Nothing is waiting on you. That is the system working, not an empty screen.
+        Nothing is waiting on you right now.
       </p>
     )
   }

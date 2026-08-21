@@ -44,9 +44,9 @@ interface Props {
 }
 
 const TOOLS: Array<{ id: Exclude<Section, null>; title: string; sub: string }> = [
-  { id: 'steady', title: 'Steady yourself', sub: 'For when you are wound up. One counter-move.' },
+  { id: 'steady', title: 'Steady yourself', sub: 'Spot the pattern, get the counter-move.' },
   { id: 'speak', title: 'Before you speak', sub: 'Scripts for hard conversations.' },
-  { id: 'idea', title: 'Test an idea', sub: 'Your own rules. Nothing is saved.' },
+  { id: 'idea', title: 'Test an idea', sub: 'Check it against your rules. Nothing is saved.' },
 ]
 
 export function FocusPurposeTab({ variant, steadyEntry }: Props) {

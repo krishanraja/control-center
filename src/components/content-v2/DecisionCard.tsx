@@ -17,10 +17,10 @@ import { WhyBadge } from '../shared/WhyBadge'
 
 const KIND_CHIP: Record<string, { label: string; cls: string }> = {
   brief_review: { label: 'Weekly brief', cls: 'bg-sky-400/15 text-sky-300' },
-  shift_proposal: { label: 'Shift detected automatically', cls: 'bg-emerald-400/15 text-emerald-300' },
-  shift_fading: { label: 'Shift losing momentum', cls: 'bg-amber-400/15 text-amber-300' },
-  graduation: { label: 'Graduation', cls: 'bg-sky-400/15 text-sky-300' },
-  purge_preview: { label: 'Sunday purge', cls: 'bg-amber-400/15 text-amber-300' },
+  shift_proposal: { label: 'New shift spotted', cls: 'bg-emerald-400/15 text-emerald-300' },
+  shift_fading: { label: 'Shift going quiet', cls: 'bg-amber-400/15 text-amber-300' },
+  graduation: { label: 'Keep for good?', cls: 'bg-sky-400/15 text-sky-300' },
+  purge_preview: { label: 'Expiring soon', cls: 'bg-amber-400/15 text-amber-300' },
   investigation: { label: 'Investigation', cls: 'bg-violet-400/15 text-violet-300' },
 }
 
@@ -76,7 +76,7 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
     d.kind === 'brief_review' ? `Review and approve: ${p.title || "this week's brief"}`
     : d.kind === 'shift_proposal' ? String(p.title || 'New shift')
     : d.kind === 'shift_fading' ? `${p.title || 'A shift'} has gone quiet`
-    : d.kind === 'graduation' ? `Evergreen: ${p.title || 'a piece'}`
+    : d.kind === 'graduation' ? `Keep for good: ${p.title || 'a piece'}`
     : d.kind === 'investigation' ? `Investigation ready: ${p.anchor_headline || 'this week'}`
     : `${p.expiring ?? 0} time-sensitive items expire Monday`
 
@@ -86,12 +86,12 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
       // shifts on its own. It does (api/shifts/detect.ts, Fridays) and this card
       // IS that output. The copy now says so, and says where Accept sends it,
       // because a bare "Accept" made an automatic system look manual.
-      ? `The weekly sweep found this on its own: ${p.stories ?? '?'} stories across ${p.day_span ?? '?'} days from ${p.sources ?? '?'} distinct sources. Tracking it moves it to the Shifts room, where it is watched over time and its evidence accumulates.${p.nearest?.title ? ` Closest one you already track: ${p.nearest.title}.` : ''}`
-    : d.kind === 'shift_fading' ? `No qualifying evidence since ${p.last_evidence_on || 'a while'}. Retire it with a verdict, or keep watching.`
-    : d.kind === 'graduation' ? 'Move it to the Library with its receipts, or let it purge.'
-    : d.kind === 'purge_preview' ? 'Nothing needs you. Tap only to rescue something before it goes.'
+      ? `The Friday sweep found this on its own: ${p.stories ?? '?'} stories over ${p.day_span ?? '?'} days from ${p.sources ?? '?'} different sources. Tracking it moves it to the Shifts room, where the evidence keeps building.${p.nearest?.title ? ` The closest one you already track: ${p.nearest.title}.` : ''}`
+    : d.kind === 'shift_fading' ? `No new evidence since ${p.last_evidence_on || 'a while ago'}. Close it out, or keep watching.`
+    : d.kind === 'graduation' ? 'Keep it in the Library with its sources, or let it go.'
+    : d.kind === 'purge_preview' ? 'Nothing to do here, unless you want to save something before it goes.'
     : d.kind === 'investigation'
-      ? `${p.citable_evidence ?? 0} citable rows across ${p.distinct_domains ?? 0} domains, ${p.distinct_origins ?? 0} distinct origins. Stopped at rung ${p.terminal_rung ?? '?'} (${p.terminal_reason || 'unknown'}).`
+      ? `${p.citable_evidence ?? 0} pieces of evidence you can cite, from ${p.distinct_domains ?? 0} sites and ${p.distinct_origins ?? 0} original sources.`
     : String(p.summary || '')
 
   // Low-emphasis, destructive, and never the primary: binning is always
@@ -121,7 +121,7 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
     )
     if (d.kind === 'shift_fading') return (
       <>
-        <Btn primary disabled={busy} onClick={() => onAct(() => v2.ruleShift(d.ref, 'retire'))}>Retire</Btn>
+        <Btn primary disabled={busy} onClick={() => onAct(() => v2.ruleShift(d.ref, 'retire'))}>Close it out</Btn>
         <Btn disabled={busy} onClick={() => onAct(() => v2.ruleShift(d.ref, 'keep_watching'))}>Keep watching</Btn>
       </>
     )
@@ -134,13 +134,13 @@ export function DecisionCard({ decision: d, v2, busy, onAct, onOpenBrief }: {
     )
     if (d.kind === 'graduation') return (
       <>
-        <Btn primary disabled={busy} onClick={() => onAct(() => v2.resolveDecision(d.id, 'done'))}>Graduate</Btn>
-        <Btn disabled={busy} onClick={() => onAct(() => v2.resolveDecision(d.id, 'dismiss'))}>Let it purge</Btn>
+        <Btn primary disabled={busy} onClick={() => onAct(() => v2.resolveDecision(d.id, 'done'))}>Keep it in the Library</Btn>
+        <Btn disabled={busy} onClick={() => onAct(() => v2.resolveDecision(d.id, 'dismiss'))}>Let it go</Btn>
         {rejectBtn()}
       </>
     )
     // purge_preview is a notice, not an offer, so it has nothing to refuse.
-    return <Btn disabled={busy} onClick={() => onAct(() => v2.resolveDecision(d.id, 'done'))}>Acknowledged</Btn>
+    return <Btn disabled={busy} onClick={() => onAct(() => v2.resolveDecision(d.id, 'done'))}>Got it</Btn>
   }
 
   return (

@@ -251,7 +251,7 @@ function WeeklyStep() {
     if (activeCount >= 3) { toast('Three is the week. Complete or drop one first.', 'error'); h.error(); return }
     void run('add', async () => {
       const result = await createGoal({ title: t, horizon: 'weekly', parentId: servesId, venture: venture || null, override })
-      if (result.ok === false) { setGate(result.gate); throw new Error('Held by the gate. See below.') }
+      if (result.ok === false) { setGate(result.gate); throw new Error('Blocked by the gate below.') }
       setText(''); setVenture(''); setGate(null)
     })
   }

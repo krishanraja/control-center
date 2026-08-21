@@ -179,7 +179,7 @@ export function DecisionDeck({
           ) : (
             <div className="py-14 text-center">
               <div className="text-ui font-bold text-white/85">Queue clear.</div>
-              <div className="text-label text-white/45 mt-1">Nothing is waiting on you. That is the system working.</div>
+              <div className="text-label text-white/45 mt-1">Nothing is waiting on you right now.</div>
               <button onClick={onClose} className="mt-6 px-4 py-2 rounded-xl text-body font-semibold bg-white/[0.08] border border-white/10 text-white/85 hover:bg-white/[0.12]">
                 Back to Home
               </button>

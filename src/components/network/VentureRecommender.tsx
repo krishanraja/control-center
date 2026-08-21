@@ -55,7 +55,7 @@ export function VentureRecommender({ onRecommend, loading, active }: {
     <div className="border-t border-white/[0.06] px-4 py-3" data-testid="network-recommender">
       <div className="mb-2 flex items-center gap-1.5">
         <Sparkles size={12} className="text-violet-300/70" aria-hidden />
-        <Eyebrow>Or let it pick</Eyebrow>
+        <Eyebrow>Or pick a venture</Eyebrow>
       </div>
 
       <div className="flex flex-wrap gap-1.5">

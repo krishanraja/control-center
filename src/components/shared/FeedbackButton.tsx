@@ -61,7 +61,7 @@ export function FeedbackButton({ sourceTable, sourceId, agentId, compact }: Prop
       setVote(v)
       setShowReasons(false)
       h.success()
-      toast(v === 1 ? 'Thanks. Logged.' : receiptFor(payload?.pattern), 'success')
+      toast(v === 1 ? 'Thanks, noted.' : receiptFor(payload?.pattern), 'success')
     } catch (e) {
       h.error()
       toast(`Could not save feedback: ${(e as Error).message}`, 'error')

@@ -162,14 +162,14 @@ export function WorryCompiler({ open, onClose }: Props) {
               if (await save({ action_disposition: 'done_now' })) setPhase('shipping')
             }}
             onTomorrow={async () => {
-              if (await save({ action_disposition: 'tomorrow_one' })) finish('That is tomorrow. Nothing to hold tonight.')
+              if (await save({ action_disposition: 'tomorrow_one' })) finish("That belongs to tomorrow. There is nothing to carry tonight.")
             }}
             onRelitigation={async (note: string) => {
               const saved = await save({ outcome_note: note || 'no new evidence' })
               if (saved) {
                 finish(note
-                  ? 'Logged. Reopen it deliberately in tomorrow’s shutdown if it still matters.'
-                  : 'Closed. The decision stands.')
+                  ? 'Logged. If it still matters tomorrow, you can reopen it at shutdown.'
+                  : 'Closed. The decision stays as it was.')
               }
             }}
             onWeather={async () => { if (await save()) finish('Labelled. It expires in seven days on its own.') }}
@@ -223,7 +223,7 @@ export function WorryCompiler({ open, onClose }: Props) {
             <LogShipForm
               initialDescription={compilation?.action_text || ''}
               submitLabel="It shipped"
-              onLogged={() => finish('In the ledger. Done.')}
+              onLogged={() => finish('Saved to your log. Done.')}
               onCancel={() => finish('Saved. Log it when it lands.')}
             />
           </>
