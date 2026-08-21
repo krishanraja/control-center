@@ -57,7 +57,7 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
         <DialogSrTitle>Global command</DialogSrTitle>
         <Command
           className="rounded-2xl border border-white/[0.10] bg-base/95 backdrop-blur-2xl shadow-e3 aurora-ring overflow-hidden
-            [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-display [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.2em] [&_[cmdk-group-heading]]:text-accent/60"
+            [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:text-micro [&_[cmdk-group-heading]]:font-display [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.14em] [&_[cmdk-group-heading]]:text-accent/60"
           label="Global command"
         >
           <div className="flex items-center gap-2.5 px-4 border-b border-white/[0.07]">
@@ -65,18 +65,18 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
             <Command.Input
               autoFocus
               placeholder="Search tasks, agents, tabs…"
-              className="w-full bg-transparent py-3.5 text-[15px] text-white placeholder-white/30 focus:outline-none"
+              className="w-full bg-transparent py-3.5 text-ui text-white placeholder-white/30 focus:outline-none"
             />
-            <kbd className="hidden sm:inline-block rounded-md border border-white/12 bg-white/[0.05] px-1.5 py-0.5 text-[10px] font-mono text-white/40">esc</kbd>
+            <kbd className="hidden sm:inline-block rounded-md border border-white/12 bg-white/[0.05] px-1.5 py-0.5 text-micro font-mono text-white/40">esc</kbd>
           </div>
           <Command.List className="max-h-[60vh] overflow-y-auto p-2">
-            <Command.Empty className="px-3 py-4 text-[12px] text-white/35">No results</Command.Empty>
+            <Command.Empty className="px-3 py-4 text-label text-white/35">No results</Command.Empty>
 
             <Command.Group heading="Navigate">
               {TABS.map(t => (
-                <Command.Item key={t.id} value={`tab ${t.label}`} onSelect={() => { h.select(); onTab(t.id); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-[13px] text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
+                <Command.Item key={t.id} value={`tab ${t.label}`} onSelect={() => { h.select(); onTab(t.id); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-body text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
                   <span>Go to {t.label}</span>
-                  <span className="text-[10px] text-white/30">tab</span>
+                  <span className="text-micro text-white/30">tab</span>
                 </Command.Item>
               ))}
             </Command.Group>
@@ -88,21 +88,21 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
                 ['Use system theme', () => setMode('system')],
                 [getAmbient() ? 'Turn ambient effects off' : 'Turn ambient effects on', () => setAmbient(!getAmbient())],
               ] as [string, () => void][]).map(([label, run]) => (
-                <Command.Item key={label} value={`appearance ${label}`} onSelect={() => { h.select(); run(); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-[13px] text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
+                <Command.Item key={label} value={`appearance ${label}`} onSelect={() => { h.select(); run(); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-body text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
                   <span>{label}</span>
-                  <span className="text-[10px] text-white/30">theme</span>
+                  <span className="text-micro text-white/30">theme</span>
                 </Command.Item>
               ))}
             </Command.Group>
 
             <Command.Group heading="Tasks">
               {tasks.map(t => (
-                <Command.Item key={t.id} value={`task ${t.title}`} onSelect={() => { onTab('today'); onClose() }} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-[13px] text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
+                <Command.Item key={t.id} value={`task ${t.title}`} onSelect={() => { onTab('today'); onClose() }} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-body text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
                   <span className="truncate flex-1">{t.title}</span>
-                  <span className="text-[10px] text-white/35">{t.status}</span>
+                  <span className="text-micro text-white/35">{t.status}</span>
                   <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => approve(t.id)} className="text-[10px] text-violet-400 hover:text-violet-300 px-1.5 py-0.5 rounded border border-violet-500/20">Approve</button>
-                    <button onClick={() => markDone(t.id)} className="text-[10px] text-emerald-400 hover:text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/20">Done</button>
+                    <button onClick={() => approve(t.id)} className="text-micro text-violet-400 hover:text-violet-300 px-1.5 py-0.5 rounded border border-violet-500/20">Approve</button>
+                    <button onClick={() => markDone(t.id)} className="text-micro text-emerald-400 hover:text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/20">Done</button>
                   </div>
                 </Command.Item>
               ))}
@@ -110,9 +110,9 @@ export function CommandPalette({ open, onClose, onTab }: Props) {
 
             <Command.Group heading="Agents">
               {agents.map(a => (
-                <Command.Item key={a.id} value={`agent ${a.name}`} onSelect={() => { onTab('org'); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-[13px] text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
+                <Command.Item key={a.id} value={`agent ${a.name}`} onSelect={() => { onTab('org'); onClose() }} className="flex items-center justify-between px-3 py-2 rounded-lg text-body text-white/70 cursor-pointer data-[selected=true]:bg-violet-500/[0.14] data-[selected=true]:text-white data-[selected=true]:ring-1 data-[selected=true]:ring-violet-400/20">
                   <span>{a.name}</span>
-                  <span className="text-[10px] text-white/35">{a.pod}</span>
+                  <span className="text-micro text-white/35">{a.pod}</span>
                 </Command.Item>
               ))}
             </Command.Group>

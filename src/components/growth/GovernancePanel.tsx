@@ -104,7 +104,7 @@ export function GovernancePanel({
       />
 
       {error && (
-        <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-[12px] text-red-200">
+        <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-label text-red-200">
           {error}
         </div>
       )}
@@ -126,7 +126,7 @@ export function GovernancePanel({
                   key={l.slug}
                   type="button"
                   onClick={() => selectLane(l.slug)}
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px] transition-colors ${
+                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-label transition-colors ${
                     isSelected
                       ? 'border-violet-400/50 bg-violet-500/15 text-white'
                       : 'border-white/[0.08] bg-white/[0.02] text-white/60 hover:text-white/85 hover:border-white/20'
@@ -134,11 +134,11 @@ export function GovernancePanel({
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${laneDot(l)}`} title={laneDotTitle(l)} />
                   <span className="font-medium">{l.name}</span>
-                  <span className={`rounded-full border px-1.5 text-[9px] font-semibold ${AUTONOMY_CHIP[l.autonomy_level]}`}>
+                  <span className={`rounded-full border px-1.5 text-micro font-semibold ${AUTONOMY_CHIP[l.autonomy_level]}`}>
                     {l.autonomy_level}
                   </span>
                   {l.mrr_usd > 0 && (
-                    <span className="text-[10px] text-emerald-300 tabular-nums">
+                    <span className="text-micro text-emerald-300 tabular-nums">
                       ${Math.round(l.mrr_usd).toLocaleString()}
                     </span>
                   )}
@@ -154,7 +154,7 @@ export function GovernancePanel({
                   {detail ? (
                     <ProfitGovernorCard detail={detail} onChanged={refreshDetail} />
                   ) : (
-                    <p className="text-[11.5px] text-white/35">Reading this lane's economics...</p>
+                    <p className="text-label text-white/35">Reading this lane's economics...</p>
                   )}
                   <AutonomyLadderCard lane={selected} detail={detail} onChanged={changed} />
                 </div>

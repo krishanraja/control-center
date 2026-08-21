@@ -27,16 +27,16 @@ export function NurtureFunnelPanel({ lane }: { lane: AcquisitionLane }) {
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <Filter size={13} className="text-violet-400" />
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
           Nurture funnel
         </h2>
-        <span className="ml-auto text-[10px] text-white/30 tabular-nums">
+        <span className="ml-auto text-micro text-white/30 tabular-nums">
           {totals.captures} captured → {totals.paid} paid · 8w
         </span>
       </header>
 
       {weeks.length === 0 ? (
-        <div className="px-4 py-6 text-center text-[12px] text-white/35">
+        <div className="px-4 py-6 text-center text-label text-white/35">
           No capture data yet for this lane — wire the capture surface and the
           weekly funnel appears here.
         </div>
@@ -48,7 +48,7 @@ export function NurtureFunnelPanel({ lane }: { lane: AcquisitionLane }) {
               ? week.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
               : '—'
             return (
-              <div key={String(w.week)} className="px-4 py-2.5 flex items-center gap-1.5 text-[11.5px] tabular-nums">
+              <div key={String(w.week)} className="px-4 py-2.5 flex items-center gap-1.5 text-label tabular-nums">
                 <span className="w-14 text-white/40">{label}</span>
                 <span className="inline-flex items-baseline gap-1">
                   <span className="font-semibold text-white/85">{w.captures}</span>
@@ -77,14 +77,14 @@ export function NurtureFunnelPanel({ lane }: { lane: AcquisitionLane }) {
 
       {frames.length > 0 && (
         <div className="border-t border-white/[0.06]">
-          <p className="px-4 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
+          <p className="px-4 pt-2.5 pb-1 text-micro font-semibold uppercase tracking-[0.14em] text-white/35">
             Frame leaderboard
           </p>
           <div className="px-4 pb-3 divide-y divide-white/[0.03]">
             {frames.map(f => {
               const conv = f.leads_touched > 0 ? (f.paid / f.leads_touched) * 100 : null
               return (
-                <div key={f.frame_version} className="py-1.5 flex items-baseline gap-2 text-[10.5px] tabular-nums">
+                <div key={f.frame_version} className="py-1.5 flex items-baseline gap-2 text-micro tabular-nums">
                   <span className="text-white/70 truncate">{f.frame_version}</span>
                   <span className="ml-auto text-white/35">{f.sent} sent</span>
                   <span className="text-white/35">{f.leads_touched} leads</span>

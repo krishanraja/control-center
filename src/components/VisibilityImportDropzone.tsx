@@ -118,7 +118,7 @@ export function VisibilityImportDropzone({ onIngested }: Props = {}) {
         }`}
       >
         <UploadCloud size={20} className="text-white/40 mx-auto mb-1.5" />
-        <p className="text-[12px] text-white/75">
+        <p className="text-label text-white/75">
           Drop a CSV or TSV of opportunities,
           {' '}
           <button
@@ -137,7 +137,7 @@ export function VisibilityImportDropzone({ onIngested }: Props = {}) {
             <Clipboard size={11} /> paste rows
           </button>
         </p>
-        <p className="text-[10px] text-white/35 mt-1">
+        <p className="text-micro text-white/35 mt-1">
           Columns: title | type | event_url | cfp_url | deadline
         </p>
         <input
@@ -157,21 +157,21 @@ export function VisibilityImportDropzone({ onIngested }: Props = {}) {
             onChange={e => setPasteText(e.target.value)}
             rows={5}
             placeholder={`SXSW\tconference\thttps://sxsw.com\nWeb Summit\tconference\thttps://websummit.com`}
-            className="w-full bg-black/30 border border-white/[0.08] rounded-md p-2 text-[12px] text-white/85 font-mono resize-y focus:border-violet-400/50 outline-none"
+            className="w-full bg-black/30 border border-white/[0.08] rounded-md p-2 text-label text-white/85 font-mono resize-y focus:border-violet-400/50 outline-none"
           />
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handlePasteSubmit}
               disabled={!pasteText.trim()}
-              className="px-3 py-1.5 rounded-md bg-violet-500/20 border border-violet-400/40 text-violet-100 text-[12px] disabled:opacity-50"
+              className="px-3 py-1.5 rounded-md bg-violet-500/20 border border-violet-400/40 text-violet-100 text-label disabled:opacity-50"
             >
               Import
             </button>
             <button
               type="button"
               onClick={() => { setPasteText(''); setPasteOpen(false) }}
-              className="text-[12px] text-white/55 hover:text-white/85"
+              className="text-label text-white/55 hover:text-white/85"
             >
               Cancel
             </button>
@@ -184,7 +184,7 @@ export function VisibilityImportDropzone({ onIngested }: Props = {}) {
           {files.map(f => (
             <li
               key={f.id}
-              className="flex items-center gap-2 text-[11px] px-2 py-1 rounded bg-white/[0.02] border border-white/[0.04]"
+              className="flex items-center gap-2 text-micro px-2 py-1 rounded bg-white/[0.02] border border-white/[0.04]"
             >
               <FileText size={11} className="text-white/40" />
               <span className="flex-1 truncate text-white/75">{f.name}</span>

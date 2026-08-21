@@ -83,7 +83,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
         <img src="/icon-192.png" alt="" className="w-7 h-7 rounded-md object-cover flex-shrink-0 ring-1 ring-white/10" />
         {expanded && (
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[13px] font-semibold text-white/85 truncate">Mindmaker OS</span>
+            <span className="text-body font-semibold text-white/85 truncate">Mindmaker OS</span>
             <span className={`w-2 h-2 rounded-full ${dotColor}`} title={dotTitle} />
           </div>
         )}
@@ -111,7 +111,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
               type="button"
               onClick={() => setDrawerOpen(o => !o)}
               aria-label="More tabs"
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all border ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-body font-medium transition-all border ${
                 drawerOpen
                   ? 'bg-white/[0.04] text-white/80 border-white/10'
                   : 'text-white/60 hover:text-white/80 hover:bg-white/[0.04] border-transparent'
@@ -148,18 +148,18 @@ export function DesktopSidebar({ active, onChange }: Props) {
         {expanded ? (
           <>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-white/40 font-semibold">MRR</p>
+              <p className="text-micro uppercase tracking-[0.14em] text-white/40 font-semibold">MRR</p>
               {mrr ? (
-                <p className="text-[15px] font-mono font-semibold text-emerald-400 tabular-nums mt-0.5">{mrr}</p>
+                <p className="text-ui font-mono font-semibold text-emerald-400 tabular-nums mt-0.5">{mrr}</p>
               ) : (
-                <p className="text-[12px] text-white/30 mt-1 leading-snug">Not reported yet</p>
+                <p className="text-label text-white/30 mt-1 leading-snug">Not reported yet</p>
               )}
             </div>
             <ThemeToggle expanded />
             <TimezoneToggle expanded />
             <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between">
-              <span className="text-[10px] uppercase tracking-[0.14em] text-white/30 font-medium">Command</span>
-              <kbd className="text-[10px] font-mono text-white/60 border border-white/10 rounded px-1.5 py-0.5 bg-white/[0.03]">⌘K</kbd>
+              <span className="text-micro uppercase tracking-[0.14em] text-white/30 font-medium">Command</span>
+              <kbd className="text-micro font-mono text-white/60 border border-white/10 rounded px-1.5 py-0.5 bg-white/[0.03]">⌘K</kbd>
             </div>
           </>
         ) : (
@@ -195,7 +195,7 @@ function SidebarButton({ id, label, Icon, active, onClick, expanded, showHealthB
     <button
       onClick={bind.onClick}
       onPointerDown={bind.onPointerDown}
-      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all relative
+      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-body font-medium transition-all relative
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50
         ${active
           ? 'bg-violet-500/15 text-white border border-violet-500/25'
@@ -213,7 +213,7 @@ function SidebarButton({ id, label, Icon, active, onClick, expanded, showHealthB
       </div>
       {expanded && <span className="truncate flex-1">{label}</span>}
       {expanded && showHealthBadge && (
-        <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${badge === 'red' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
+        <span className={`text-micro px-1.5 py-0.5 rounded font-mono ${badge === 'red' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
           {unhealthyCount}
         </span>
       )}

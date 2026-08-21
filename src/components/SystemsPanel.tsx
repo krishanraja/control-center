@@ -49,10 +49,10 @@ function ServiceRow({ service }: { service: Service }) {
     <div className="flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
       <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${cfg.color}`} strokeWidth={2} />
       <div className="flex-1 min-w-0">
-        <span className="text-[13px] font-medium text-white/90">{service.name}</span>
-        <p className="text-[11px] text-white/35 truncate">{service.note}</p>
+        <span className="text-body font-medium text-white/90">{service.name}</span>
+        <p className="text-micro text-white/35 truncate">{service.note}</p>
       </div>
-      <span className="text-[10px] text-white/20 flex-shrink-0 font-mono">{timeAgo(service.last_checked)}</span>
+      <span className="text-micro text-white/20 flex-shrink-0 font-mono">{timeAgo(service.last_checked)}</span>
     </div>
   )
 }
@@ -65,12 +65,12 @@ function CategoryBlock({ category }: { category: Category }) {
   return (
     <div className={`rounded-2xl border ${cfg.border} overflow-hidden`}>
       <div className="px-4 py-3 border-b border-white/[0.05] flex items-center justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-white/50">{category.label}</p>
+        <p className="text-micro font-bold uppercase tracking-widest text-white/50">{category.label}</p>
         <div className="flex items-center gap-3">
-          {counts.red > 0     && <span className="text-[10px] text-red-400 font-semibold">{counts.red} down</span>}
-          {counts.amber > 0   && <span className="text-[10px] text-amber-400 font-semibold">{counts.amber} warn</span>}
-          {counts.green > 0   && <span className="text-[10px] text-emerald-400 font-semibold">{counts.green} ok</span>}
-          {counts.unknown > 0 && <span className="text-[10px] text-white/25 font-semibold">{counts.unknown} unk</span>}
+          {counts.red > 0     && <span className="text-micro text-red-400 font-semibold">{counts.red} down</span>}
+          {counts.amber > 0   && <span className="text-micro text-amber-400 font-semibold">{counts.amber} warn</span>}
+          {counts.green > 0   && <span className="text-micro text-emerald-400 font-semibold">{counts.green} ok</span>}
+          {counts.unknown > 0 && <span className="text-micro text-white/25 font-semibold">{counts.unknown} unk</span>}
         </div>
       </div>
       <div className="divide-y divide-white/[0.03]">
@@ -154,7 +154,7 @@ export function SystemsPanel() {
       <div className="space-y-5">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-white">Systems</h1>
-          <p className="text-[13px] text-white/30 mt-0.5">Checking every connected service…</p>
+          <p className="text-body text-white/30 mt-0.5">Checking every connected service…</p>
         </div>
         <BoardSkeleton lanes={2} cardsPerLane={4} hero={false} />
       </div>
@@ -167,13 +167,13 @@ export function SystemsPanel() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-white">Systems</h1>
-          <p className="text-[13px] text-white/30 mt-0.5">All connected services. Monitored by Arlo.</p>
+          <p className="text-body text-white/30 mt-0.5">All connected services. Monitored by Arlo.</p>
         </div>
         <button
           onClick={liveRefresh}
           disabled={loading || refreshing}
           title="Re-poll N8N and update system_health"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-40 text-white/40 hover:text-white/60 text-[11px] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-40 text-white/40 hover:text-white/60 text-micro transition-colors"
         >
           {(loading || refreshing) ? <Working size={12} /> : <RefreshCw className="w-3 h-3" />}
           {refreshing ? 'Polling N8N…' : loading ? 'Reading services…' : lastRefreshed ? `Refreshed ${timeAgo(lastRefreshed.toISOString())}` : 'Refresh'}
@@ -186,25 +186,25 @@ export function SystemsPanel() {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full flex-shrink-0 ${overallOk ? 'bg-emerald-400 shadow-emerald-400/60' : downServices.length > 0 ? 'bg-red-400 shadow-red-400/60 animate-pulse' : 'bg-amber-400 shadow-amber-400/60'} shadow-sm`} />
-              <span className={`text-[12px] font-bold ${overallOk ? 'text-emerald-400' : downServices.length > 0 ? 'text-red-400' : 'text-amber-400'}`}>
+              <span className={`text-label font-bold ${overallOk ? 'text-emerald-400' : downServices.length > 0 ? 'text-red-400' : 'text-amber-400'}`}>
                 {overallOk ? 'All systems nominal' : downServices.length > 0 ? `${downServices.length} service${downServices.length > 1 ? 's' : ''} down` : `${warnServices.length} warning${warnServices.length > 1 ? 's' : ''}`}
               </span>
             </div>
             {overallOk && (
-              <p className="text-[11px] text-white/30 pl-4">Ambient surface: nothing here needs you. Real failures page Telegram and land on Home.</p>
+              <p className="text-micro text-white/30 pl-4">Ambient surface: nothing here needs you. Real failures page Telegram and land on Home.</p>
             )}
             {downServices.length > 0 && (
-              <p className="text-[11px] text-red-300/70 pl-4">
+              <p className="text-micro text-red-300/70 pl-4">
                 Down: {downServices.map(s => s.name).join(', ')}
               </p>
             )}
             {warnServices.length > 0 && (
-              <p className="text-[11px] text-amber-300/60 pl-4">
+              <p className="text-micro text-amber-300/60 pl-4">
                 Warning: {warnServices.map(s => s.name).join(', ')}
               </p>
             )}
           </div>
-          <div className="flex items-center gap-3 text-[11px] flex-shrink-0 pt-0.5">
+          <div className="flex items-center gap-3 text-micro flex-shrink-0 pt-0.5">
             {greenCount > 0    && <span className="text-emerald-400">{greenCount} healthy</span>}
             {warnServices.length > 0 && <span className="text-amber-400">{warnServices.length} warning</span>}
             {downServices.length > 0 && <span className="text-red-400">{downServices.length} down</span>}
@@ -215,14 +215,14 @@ export function SystemsPanel() {
 
       {/* Meta */}
       {data && (
-        <div className="flex items-center gap-4 text-[10px] text-white/25">
+        <div className="flex items-center gap-4 text-micro text-white/25">
           <span>File updated: {timeAgo(data.updated_at)} by {data.updated_by}</span>
           <span>|</span>
           <span>Next live check: {data.next_check}</span>
         </div>
       )}
 
-      {error && <p className="text-[12px] text-red-400">Failed to load: {error}</p>}
+      {error && <p className="text-label text-red-400">Failed to load: {error}</p>}
 
       {/* Grid */}
       {data && (
@@ -233,9 +233,9 @@ export function SystemsPanel() {
 
       {/* Arlo note */}
       <div className="rounded-xl border border-violet-500/10 bg-violet-500/[0.03] px-4 py-3">
-        <p className="text-[11px] text-violet-300/50 leading-relaxed">
+        <p className="text-micro text-violet-300/50 leading-relaxed">
           <strong className="text-violet-300/70">Arlo</strong> runs hourly health checks and a full sweep every Sunday 3AM UTC.
-          Statuses update via the <code className="text-[10px] bg-white/[0.05] px-1 py-0.5 rounded">system_health</code> Supabase table.
+          Statuses update via the <code className="text-micro bg-white/[0.05] px-1 py-0.5 rounded">system_health</code> Supabase table.
           Red or critical warnings route to ops-bot immediately.
         </p>
       </div>

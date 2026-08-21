@@ -68,17 +68,17 @@ export function DueTestsCard({ variant = 'desktop' }: { variant?: 'desktop' | 'm
     <div className={`rounded-2xl bg-white/[0.03] border border-white/[0.08] ${compact ? 'p-4' : 'p-5'} flex flex-col gap-4`}>
       {data.due.length > 0 && (
         <div className="flex flex-col gap-3">
-          <span className="text-[11px] uppercase tracking-[0.12em] text-ink-faint">
+          <span className="text-micro uppercase tracking-[0.14em] text-ink-faint">
             {data.due.length === 1 ? 'A test is due' : `${data.due.length} tests are due`}
           </span>
           {data.due.map(t => (
             <div key={t.id} className="flex flex-col gap-2">
-              <p className="text-[13px] leading-relaxed text-ink">{t.prediction}</p>
+              <p className="text-body leading-relaxed text-ink">{t.prediction}</p>
               <input
                 value={note[t.id] || ''}
                 onChange={e => setNote(prev => ({ ...prev, [t.id]: e.target.value }))}
                 placeholder="One line, optional"
-                className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-white/[0.03] border border-white/10 text-[16px] text-ink placeholder:text-ink-faint outline-none focus:border-white/25"
+                className="w-full px-3 py-2.5 min-h-[44px] rounded-lg bg-white/[0.03] border border-white/10 text-lede text-ink placeholder:text-ink-faint outline-none focus:border-white/25"
               />
               <div className="flex gap-1.5">
                 {(['confirmed', 'disconfirmed', 'partial'] as TestOutcome[]).map(o => (
@@ -87,12 +87,12 @@ export function DueTestsCard({ variant = 'desktop' }: { variant?: 'desktop' | 'm
                     type="button"
                     onPointerDown={() => h.select()}
                     onClick={() => close(t.id, o)}
-                    className="min-h-[44px] px-3.5 rounded-xl text-[13px] bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.10] hover:text-ink transition-all active:scale-95 touch-manipulation"
+                    className="min-h-[44px] px-3.5 rounded-xl text-body bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.10] hover:text-ink transition-all active:scale-95 touch-manipulation"
                   >
                     {OUTCOME_LABEL[o]}
                   </button>
                 ))}
-                <span className="ml-auto self-center text-[11px] text-ink-faint">Due {formatDue(t.test_due_date)}</span>
+                <span className="ml-auto self-center text-micro text-ink-faint">Due {formatDue(t.test_due_date)}</span>
               </div>
             </div>
           ))}
@@ -100,7 +100,7 @@ export function DueTestsCard({ variant = 'desktop' }: { variant?: 'desktop' | 'm
       )}
 
       {showCalibration && (
-        <p className="text-[12px] text-ink-faint">
+        <p className="text-label text-ink-faint">
           Of your last {data.calibration.total_closed} predictions, {data.calibration.pct_confirmed}% came true.
         </p>
       )}

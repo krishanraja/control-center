@@ -28,7 +28,7 @@ export function LaneToggle({
     ideas.filter(i => normalizeLane(i.lane) === lane && i.state !== 'dropped' && i.state !== 'published').length
 
   const base =
-    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap border transition-colors'
+    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-label font-medium whitespace-nowrap border transition-colors'
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
       <button
@@ -85,13 +85,13 @@ export function CadenceBar({ lane, ideas }: { lane: ContentLane; ideas: ContentI
       <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${STATUS_DOT[cad.status]}`} />
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className={`text-[13px] font-semibold ${def.accent}`}>{def.label}</span>
-          <span className="text-[11px] text-white/40">· {def.cadenceLabel}</span>
-          <span className={`text-[11px] font-medium ${STATUS_TEXT[cad.status]}`}>
+          <span className={`text-body font-semibold ${def.accent}`}>{def.label}</span>
+          <span className="text-micro text-white/40">· {def.cadenceLabel}</span>
+          <span className={`text-micro font-medium ${STATUS_TEXT[cad.status]}`}>
             {STATUS_COPY[cad.status](cad.status === 'overdue' ? cad.daysUntilDue : cad.daysUntilDue)}
           </span>
         </div>
-        <div className="text-[11px] text-white/45 mt-0.5">
+        <div className="text-micro text-white/45 mt-0.5">
           {cad.lastPublishedAt
             ? `Last shipped ${cad.daysSinceLast}d ago`
             : 'No published pieces yet'}

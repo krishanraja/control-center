@@ -50,14 +50,14 @@ export function ChurnReengagementQueue({
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <UserMinus size={13} className="text-rose-400" />
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
           Churn re-engagement{laneLabel ? ` · ${laneLabel}` : ''}
         </h2>
-        <span className="ml-auto text-[10px] text-white/30 tabular-nums">{rows.length}</span>
+        <span className="ml-auto text-micro text-white/30 tabular-nums">{rows.length}</span>
       </header>
 
       {rows.length === 0 ? (
-        <div className="px-4 py-5 text-center text-[12px] text-white/35">
+        <div className="px-4 py-5 text-center text-label text-white/35">
           No churned subscribers waiting — the 14-day re-engagement window is clear.
         </div>
       ) : (
@@ -65,18 +65,18 @@ export function ChurnReengagementQueue({
           {rows.slice(0, 8).map(l => (
             <div key={l.id} className="px-4 py-2.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[12px] font-medium text-white truncate">
+                <span className="text-label font-medium text-white truncate">
                   {l.full_name || l.email || 'unnamed'}
                 </span>
                 {l.churned_at && (
-                  <span className="text-[10px] text-rose-300/70 flex-shrink-0">
+                  <span className="text-micro text-rose-300/70 flex-shrink-0">
                     churned {formatDistanceToNow(new Date(l.churned_at), { addSuffix: true })}
                   </span>
                 )}
               </div>
               <div className="flex items-center justify-between gap-2 mt-0.5">
-                {l.email && <p className="text-[10px] text-white/40 truncate">{l.email}</p>}
-                <span className="text-[10px] text-white/25 flex-shrink-0">
+                {l.email && <p className="text-micro text-white/40 truncate">{l.email}</p>}
+                <span className="text-micro text-white/25 flex-shrink-0">
                   {l.last_emailed_at
                     ? `emailed ${formatDistanceToNow(new Date(l.last_emailed_at), { addSuffix: true })}`
                     : 'not re-contacted'}
@@ -87,7 +87,7 @@ export function ChurnReengagementQueue({
                   type="button"
                   disabled={busy === l.id}
                   onClick={() => draftWinBack(l)}
-                  className="mt-1.5 rounded-lg border border-white/[0.1] px-2.5 py-1 text-[10.5px] font-medium text-white/60 hover:text-white hover:border-white/25 transition-colors disabled:opacity-40"
+                  className="mt-1.5 rounded-lg border border-white/[0.1] px-2.5 py-1 text-micro font-medium text-white/60 hover:text-white hover:border-white/25 transition-colors disabled:opacity-40"
                 >
                   {busy === l.id ? 'Drafting…' : 'Draft win-back'}
                 </button>

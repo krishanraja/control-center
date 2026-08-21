@@ -131,16 +131,16 @@ export function ContactImportDropzone({ onIngested }: Props) {
     <div className="space-y-3">
       {/* Provenance capture — the whole point. */}
       <div className="rounded-xl border border-violet-400/25 bg-violet-500/[0.04] p-3 space-y-2.5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-violet-200/80">
+        <p className="text-micro font-semibold uppercase tracking-[0.14em] text-violet-200/80">
           Where did these come from?
         </p>
         <div className="grid grid-cols-2 gap-2">
           <label className="block">
-            <span className="text-[10px] text-white/45">Origin venture</span>
+            <span className="text-micro text-white/45">Origin venture</span>
             <select
               value={originVenture}
               onChange={(e) => setOriginVenture(e.target.value)}
-              className="mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-[12px] text-white/85 focus:border-violet-400/50 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-label text-white/85 focus:border-violet-400/50 focus:outline-none"
             >
               {VENTURE_OPTIONS.map(v => (
                 <option key={v.slug} value={v.slug}>{v.label}</option>
@@ -148,11 +148,11 @@ export function ContactImportDropzone({ onIngested }: Props) {
             </select>
           </label>
           <label className="block">
-            <span className="text-[10px] text-white/45">Consent tier</span>
+            <span className="text-micro text-white/45">Consent tier</span>
             <select
               value={consentTier}
               onChange={(e) => setConsentTier(e.target.value as ConsentTier)}
-              className="mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-[12px] text-white/85 focus:border-violet-400/50 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-label text-white/85 focus:border-violet-400/50 focus:outline-none"
             >
               {TIER_OPTIONS.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -161,16 +161,16 @@ export function ContactImportDropzone({ onIngested }: Props) {
           </label>
         </div>
         <label className="block">
-          <span className="text-[10px] text-white/45">Origin campaign / list name</span>
+          <span className="text-micro text-white/45">Origin campaign / list name</span>
           <input
             type="text"
             value={originCampaign}
             onChange={(e) => setOriginCampaign(e.target.value)}
             placeholder="e.g. Substack subscribers"
-            className="mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-[12px] text-white/85 placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-label text-white/85 placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none"
           />
         </label>
-        <p className="text-[10px] text-white/40">
+        <p className="text-micro text-white/40">
           {TIER_OPTIONS.find(t => t.value === consentTier)?.hint}
         </p>
       </div>
@@ -186,24 +186,24 @@ export function ContactImportDropzone({ onIngested }: Props) {
           ${provenanceReady ? '' : 'opacity-60'}`}
       >
         <UploadCloud size={20} className="mx-auto text-white/40" />
-        <p className="text-[12px] text-white/75 mt-2 font-medium">
+        <p className="text-label text-white/75 mt-2 font-medium">
           Drop a contact CSV here
         </p>
-        <p className="text-[11px] text-white/45 mt-0.5">
+        <p className="text-micro text-white/45 mt-0.5">
           Maps name / email / linkedin / company / title. Dedupes by email + LinkedIn; only new rows are added.
         </p>
         <div className="flex items-center justify-center gap-2 mt-3">
           <button
             type="button"
             onClick={() => { if (guardProvenance()) fileInputRef.current?.click() }}
-            className="px-3 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/80 hover:bg-white/[0.06] transition-colors"
+            className="px-3 py-1 rounded-md text-micro font-medium border border-white/10 text-white/80 hover:bg-white/[0.06] transition-colors"
           >
             Pick file
           </button>
           <button
             type="button"
             onClick={openDrivePicker}
-            className="px-3 py-1 rounded-md text-[11px] font-medium border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/15 transition-colors"
+            className="px-3 py-1 rounded-md text-micro font-medium border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/15 transition-colors"
           >
             From Google Drive
           </button>
@@ -217,7 +217,7 @@ export function ContactImportDropzone({ onIngested }: Props) {
           />
         </div>
         {!provenanceReady && (
-          <p className="text-[10px] text-amber-300/80 mt-2">
+          <p className="text-micro text-amber-300/80 mt-2">
             Set venture + campaign above to enable import.
           </p>
         )}
@@ -228,7 +228,7 @@ export function ContactImportDropzone({ onIngested }: Props) {
           {files.slice(-4).map(f => (
             <li
               key={f.id}
-              className="flex items-center gap-2 rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-[11px]"
+              className="flex items-center gap-2 rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-micro"
             >
               <FileText size={11} className="text-white/40 flex-shrink-0" />
               <span className="flex-1 min-w-0 truncate text-white/75">{f.name}</span>

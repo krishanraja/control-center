@@ -44,7 +44,7 @@ export function ThemeToggle({ expanded = true }: { expanded?: boolean }) {
         type="button"
         onClick={onCycle}
         aria-label={`Theme: ${label}. Tap to change.`}
-        className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-white/60 border border-white/[0.07] hover:text-white/90 hover:bg-white/[0.05] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+        className="flex-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-label font-medium text-white/60 border border-white/[0.07] hover:text-white/90 hover:bg-white/[0.05] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
       >
         <Icon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.9} />
         <span className="truncate">{label}</span>

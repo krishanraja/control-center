@@ -52,7 +52,7 @@ export function BottomNav({ active, onChange }: Props) {
               className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[72px] sm:min-h-[76px] text-white/55"
             >
               <MoreHorizontal className="w-7 h-7" strokeWidth={1.8} />
-              <span className="text-[12px] font-medium leading-none tracking-tight">More</span>
+              <span className="text-label font-medium leading-none tracking-tight">More</span>
             </button>
           )}
         </div>
@@ -92,7 +92,7 @@ function NavButton({ tab, active, ultraNarrow: _ultraNarrow, onClick }: { tab: T
           strokeWidth={active ? 2.3 : 1.8}
         />
       </div>
-      <span className={`w-full text-center text-[12px] font-medium leading-none tracking-tight truncate transition-colors ${active ? 'text-violet-200' : ''}`}>
+      <span className={`w-full text-center text-label font-medium leading-none tracking-tight truncate transition-colors ${active ? 'text-violet-200' : ''}`}>
         {label}
       </span>
       {active && (
@@ -128,7 +128,7 @@ function MobileMoreDrawer({
           <div className="w-10 h-1 bg-white/20 rounded-full" />
         </div>
         <div className="px-4 pb-3 flex items-center gap-3">
-          <span className="text-[11px] font-display font-semibold uppercase tracking-[0.18em] text-white/40 flex-shrink-0">Appearance</span>
+          <span className="text-micro font-display font-semibold uppercase tracking-[0.14em] text-white/40 flex-shrink-0">Appearance</span>
           <div className="flex-1 min-w-0"><ThemeToggle expanded /></div>
           <div className="flex-1 min-w-0"><TimezoneToggle expanded /></div>
         </div>
@@ -144,7 +144,7 @@ function MobileMoreDrawer({
               }`}
             >
               <Icon className="w-7 h-7" strokeWidth={1.8} />
-              <span className="text-[13px] font-medium">{label}</span>
+              <span className="text-body font-medium">{label}</span>
             </button>
           ))}
         </div>

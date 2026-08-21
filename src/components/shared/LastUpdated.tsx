@@ -17,7 +17,7 @@ import { Working } from './Working'
 export function LastUpdated({ date, refreshing = false }: { date: Date | null; refreshing?: boolean }) {
   if (refreshing) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] text-white/30 font-mono" role="status" aria-live="polite">
+      <span className="inline-flex items-center gap-1 text-micro text-white/30 font-mono" role="status" aria-live="polite">
         <Working size={10} />
         Checking
       </span>
@@ -25,7 +25,7 @@ export function LastUpdated({ date, refreshing = false }: { date: Date | null; r
   }
   if (!date) return null
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] text-white/25 font-mono">
+    <span className="inline-flex items-center gap-1 text-micro text-white/25 font-mono">
       <Clock size={10} />
       Updated {formatDistanceToNow(date, { addSuffix: true })}
     </span>

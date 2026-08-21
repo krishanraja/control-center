@@ -109,12 +109,12 @@ export function SubscribersList() {
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden flex-shrink-0">
       <header className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-1.5">
         <Users size={12} className="text-white/45" />
-        <h3 className="text-[12px] font-semibold text-white">Subscribers</h3>
-        <span className="text-[10px] text-white/40 ml-auto">Every active subscriber, newest first</span>
+        <h3 className="text-label font-semibold text-white">Subscribers</h3>
+        <span className="text-micro text-white/40 ml-auto">Every active subscriber, newest first</span>
       </header>
 
       {active.length === 0 ? (
-        <p className="px-4 py-8 text-center text-[12px] text-white/45">
+        <p className="px-4 py-8 text-center text-label text-white/45">
           No active subscribers yet. The capture lane is live.
         </p>
       ) : (
@@ -122,19 +122,19 @@ export function SubscribersList() {
           {/* Summary strip */}
           <div className="px-4 py-3 border-b border-white/[0.05] flex flex-wrap items-start gap-x-5 gap-y-2">
             <div>
-              <p className="text-[9px] uppercase tracking-[0.12em] text-white/35">Active MRR</p>
-              <p className="text-[15px] font-semibold tabular-nums text-emerald-300">
+              <p className="text-micro uppercase tracking-[0.14em] text-white/35">Active MRR</p>
+              <p className="text-ui font-semibold tabular-nums text-emerald-300">
                 ${Math.round(totalMrr).toLocaleString()}/mo
               </p>
             </div>
             <div>
-              <p className="text-[9px] uppercase tracking-[0.12em] text-white/35">Subscribers</p>
-              <p className="text-[15px] font-semibold tabular-nums text-white">{active.length}</p>
+              <p className="text-micro uppercase tracking-[0.14em] text-white/35">Subscribers</p>
+              <p className="text-ui font-semibold tabular-nums text-white">{active.length}</p>
             </div>
             {newest && (
               <div className="min-w-0">
-                <p className="text-[9px] uppercase tracking-[0.12em] text-white/35">Newest</p>
-                <p className="text-[12px] text-white/70 truncate max-w-[220px]">
+                <p className="text-micro uppercase tracking-[0.14em] text-white/35">Newest</p>
+                <p className="text-label text-white/70 truncate max-w-[220px]">
                   {displayName(newest)}
                   {newestWhen && <span className="text-white/40"> · {newestWhen.relative}</span>}
                 </p>
@@ -144,7 +144,7 @@ export function SubscribersList() {
               {byProduct.map(({ product, count }) => (
                 <span
                   key={product}
-                  className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium ${chipTone(product)}`}
+                  className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-micro font-medium ${chipTone(product)}`}
                 >
                   {productLabel(product)}
                   <span className="tabular-nums opacity-70">{count}</span>
@@ -170,21 +170,21 @@ export function SubscribersList() {
                 <li key={c.id} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[13px] font-semibold text-white truncate">{displayName(c)}</p>
-                      {c.email && c.full_name && <p className="text-[11px] text-white/45 truncate">{c.email}</p>}
+                      <p className="text-body font-semibold text-white truncate">{displayName(c)}</p>
+                      {c.email && c.full_name && <p className="text-micro text-white/45 truncate">{c.email}</p>}
                     </div>
                     {mrr && (
-                      <span className="text-[12px] tabular-nums text-emerald-300 flex-shrink-0">{mrr}</span>
+                      <span className="text-label tabular-nums text-emerald-300 flex-shrink-0">{mrr}</span>
                     )}
                   </div>
 
                   <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                    <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-medium flex-shrink-0 ${chipTone(c.product)}`}>
+                    <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-micro font-medium flex-shrink-0 ${chipTone(c.product)}`}>
                       {productLabel(c.product)}
                     </span>
-                    {c.plan && <span className="text-[10px] text-white/45 truncate">{c.plan}</span>}
+                    {c.plan && <span className="text-micro text-white/45 truncate">{c.plan}</span>}
                     {su && (
-                      <span className="text-[10px] text-white/40 truncate" title={su.absolute}>
+                      <span className="text-micro text-white/40 truncate" title={su.absolute}>
                         {su.absolute} · {su.relative}
                       </span>
                     )}
@@ -193,15 +193,15 @@ export function SubscribersList() {
                   {showInsight && (
                     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                       {c.attribution_channel && (
-                        <span className="text-[10px] text-white/40 truncate">via {c.attribution_channel}</span>
+                        <span className="text-micro text-white/40 truncate">via {c.attribution_channel}</span>
                       )}
                       {stripeVerified && (
-                        <span className="inline-flex items-center rounded border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-emerald-300 flex-shrink-0">
+                        <span className="inline-flex items-center rounded border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-micro font-semibold uppercase tracking-[0.14em] text-emerald-300 flex-shrink-0">
                           Stripe-verified
                         </span>
                       )}
                       {webhookVerified && (
-                        <span className="inline-flex items-center rounded border border-white/10 bg-white/[0.05] px-1.5 py-0.5 text-[9px] font-medium text-white/50 flex-shrink-0">
+                        <span className="inline-flex items-center rounded border border-white/10 bg-white/[0.05] px-1.5 py-0.5 text-micro font-medium text-white/50 flex-shrink-0">
                           Webhook
                         </span>
                       )}

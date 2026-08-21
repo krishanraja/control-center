@@ -17,8 +17,8 @@ export function ExpansionRadar() {
     <section className="rounded-xl border border-violet-500/15 bg-violet-500/[0.04] overflow-hidden">
       <header className="px-4 py-3 border-b border-violet-500/[0.12] flex items-center gap-1.5">
         <ArrowUpRight size={12} className="text-violet-300" />
-        <h3 className="text-[12px] font-semibold text-white">Expansion radar</h3>
-        <span className="text-[10px] text-violet-200/60 ml-auto">
+        <h3 className="text-label font-semibold text-white">Expansion radar</h3>
+        <span className="text-micro text-violet-200/60 ml-auto">
           {expansionTargets.length} ready
         </span>
       </header>
@@ -30,21 +30,21 @@ export function ExpansionRadar() {
           return (
             <li key={c.id} className="px-4 py-3 flex items-center gap-3">
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-white truncate">
+                <p className="text-body font-semibold text-white truncate">
                   {c.full_name || c.email || 'Customer'}
                 </p>
-                <p className="text-[10px] text-white/55 mt-0.5">
+                <p className="text-micro text-white/55 mt-0.5">
                   {PRODUCT_LABEL[c.product]} · {paidDays}d on plan
                   {c.plan ? ` · ${c.plan}` : ''}
                 </p>
               </div>
               <div className="text-right flex-shrink-0">
                 {typeof c.mrr_usd === 'number' && c.mrr_usd > 0 && (
-                  <p className="text-[12px] tabular-nums text-emerald-300">
+                  <p className="text-label tabular-nums text-emerald-300">
                     ${Math.round(c.mrr_usd)}/mo
                   </p>
                 )}
-                <p className="text-[10px] text-violet-200/60 mt-0.5">
+                <p className="text-micro text-violet-200/60 mt-0.5">
                   Ready for upsell
                 </p>
               </div>

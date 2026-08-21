@@ -94,20 +94,20 @@ export function EnrichSheet({ target, onClose }: { target: EnrichTarget | null; 
                 <Sparkles size={16} className="text-violet-300" />
               </span>
               <div className="min-w-0">
-                <p className="text-[17px] font-semibold text-white leading-snug">{target.name}</p>
-                {target.subtitle && <p className="text-[14px] text-white/55 leading-snug">{target.subtitle}</p>}
+                <p className="text-lede font-semibold text-white leading-snug">{target.name}</p>
+                {target.subtitle && <p className="text-ui text-white/55 leading-snug">{target.subtitle}</p>}
               </div>
             </div>
 
             {brief ? (
               <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3">
-                <p className="text-[11px] uppercase tracking-wider text-white/40 mb-1">{result ? 'Research brief' : 'Last brief'}</p>
-                <p className="text-[14px] text-white/85 leading-relaxed whitespace-pre-wrap">{brief}</p>
+                <p className="text-micro uppercase tracking-wider text-white/40 mb-1">{result ? 'Research brief' : 'Last brief'}</p>
+                <p className="text-ui text-white/85 leading-relaxed whitespace-pre-wrap">{brief}</p>
                 {result?.sources?.length ? (
                   <div className="mt-2 flex flex-col gap-1">
                     {result.sources.slice(0, 6).map((s, i) => (
                       <a key={i} href={s} target="_blank" rel="noreferrer noopener"
-                        className="text-[12px] text-violet-300 hover:underline truncate inline-flex items-center gap-1">
+                        className="text-label text-violet-300 hover:underline truncate inline-flex items-center gap-1">
                         <ExternalLink size={11} /> {s}
                       </a>
                     ))}
@@ -115,7 +115,7 @@ export function EnrichSheet({ target, onClose }: { target: EnrichTarget | null; 
                 ) : null}
               </div>
             ) : (
-              <p className="text-[13px] text-white/45">
+              <p className="text-body text-white/45">
                 No research yet. {target.kind === 'event' ? 'Pull organiser, audience and how to get on stage.' : 'Pull role, company, career and recent activity.'}
               </p>
             )}
@@ -123,13 +123,13 @@ export function EnrichSheet({ target, onClose }: { target: EnrichTarget | null; 
 
           <div className="px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-base">
             <button type="button" onClick={() => { h.tap(); setDirect(d => !d) }} className="w-full flex items-center justify-between mb-3 text-left">
-              <span className="text-[13px] text-white/55">{direct ? 'Direct — research now, no n8n' : 'Via n8n — queues the deep workflow'}</span>
+              <span className="text-body text-white/55">{direct ? 'Direct — research now, no n8n' : 'Via n8n — queues the deep workflow'}</span>
               <span className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${direct ? 'bg-violet-500/80' : 'bg-white/15'}`}>
                 <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-[#fff] shadow transition-transform ${direct ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
               </span>
             </button>
             <button type="button" onClick={run} disabled={busy}
-              className="w-full flex items-center justify-center gap-2 rounded-full btn-contrast text-[16px] font-semibold py-4 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100">
+              className="w-full flex items-center justify-center gap-2 rounded-full btn-contrast text-lede font-semibold py-4 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100">
               <Wand2 size={18} /> {brief ? 'Re-research' : 'Research'}
             </button>
           </div>

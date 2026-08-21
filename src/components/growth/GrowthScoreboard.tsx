@@ -64,10 +64,10 @@ function Spark({ points, bar }: { points: GrowthPoint[]; bar: string }) {
 function DeltaChip({ delta, money }: { delta: number | null; money?: boolean }) {
   if (delta == null) return null
   const fmt = (v: number) => money ? `$${Math.abs(Math.round(v)).toLocaleString()}` : Math.abs(Math.round(v)).toLocaleString()
-  if (delta === 0) return <span className="text-[10px] tabular-nums text-white/35">±0 · 7d</span>
+  if (delta === 0) return <span className="text-micro tabular-nums text-white/35">±0 · 7d</span>
   const up = delta > 0
   return (
-    <span className={`text-[10px] tabular-nums font-semibold ${up ? 'text-emerald-300' : 'text-rose-300'}`}>
+    <span className={`text-micro tabular-nums font-semibold ${up ? 'text-emerald-300' : 'text-rose-300'}`}>
       {up ? '+' : '-'}{fmt(delta)} · 7d
     </span>
   )
@@ -159,11 +159,11 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
       <header className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           <TrendingUp size={11} className="text-white/40" />
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">Growth</h2>
+          <h2 className="text-micro font-bold uppercase tracking-[0.14em] text-white/45">Growth</h2>
         </div>
         <button
           onClick={() => setLogOpen(v => !v)}
-          className="flex items-center gap-1 text-[10px] text-white/35 hover:text-white/70 transition-colors"
+          className="flex items-center gap-1 text-micro text-white/35 hover:text-white/70 transition-colors"
           title="Log subscriber counts manually"
         >
           <Pencil size={10} /> log counts
@@ -179,7 +179,7 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
           return (
             <div key={def.id} className="flex flex-col gap-1.5 min-w-0 rounded-xl border border-white/[0.05] bg-white/[0.01] p-3">
               <div className="flex items-baseline justify-between gap-2">
-                <span className={`text-[10px] uppercase tracking-[0.14em] font-semibold ${def.accent}`}>{def.label}</span>
+                <span className={`text-micro uppercase tracking-[0.14em] font-semibold ${def.accent}`}>{def.label}</span>
                 <DeltaChip delta={line.delta7} />
               </div>
               <div className="flex items-end justify-between gap-2">
@@ -188,14 +188,14 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
                     {headline ?? <span className="text-white/30 text-sm font-medium">no data yet</span>}
                   </div>
                   {def.id === 'apps' && (
-                    <div className="text-[11px] tabular-nums text-white/45">${Math.round(mrr).toLocaleString()}/mo</div>
+                    <div className="text-micro tabular-nums text-white/45">${Math.round(mrr).toLocaleString()}/mo</div>
                   )}
                   {def.id === 'content' && (
                     <div className="flex flex-wrap gap-1 mt-0.5">
                       {SOURCE_CHIPS.map(c => {
                         const s = series[c.key]
                         return (
-                          <span key={c.key} className="text-[9px] tabular-nums px-1.5 py-px rounded border border-white/[0.08] text-white/45">
+                          <span key={c.key} className="text-micro tabular-nums px-1.5 py-px rounded border border-white/[0.08] text-white/45">
                             {c.label} {s.latest != null ? Math.round(s.latest).toLocaleString() : '?'}
                           </span>
                         )
@@ -203,7 +203,7 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
                     </div>
                   )}
                   {def.id === 'network' && (
-                    <div className="text-[10px] text-white/40 tabular-nums">
+                    <div className="text-micro text-white/40 tabular-nums">
                       {Math.round(series.guests_confirmed_30d.latest ?? 0)} guests · {Math.round(series.visibility_accepted_30d.latest ?? 0)} visibility
                     </div>
                   )}
@@ -217,7 +217,7 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
                     return (
                       <button
                         onClick={() => openStallRuling(stallId)}
-                        className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-px rounded bg-amber-500/15 text-amber-300 border border-amber-500/25 hover:bg-amber-500/25 transition-colors"
+                        className="text-micro font-semibold uppercase tracking-wide px-1.5 py-px rounded bg-amber-500/15 text-amber-300 border border-amber-500/25 hover:bg-amber-500/25 transition-colors"
                       >
                         stalled · moves ready
                       </button>
@@ -225,7 +225,7 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
                   }
                   if (line.flat) {
                     return (
-                      <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-px rounded bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                      <span className="text-micro font-semibold uppercase tracking-wide px-1.5 py-px rounded bg-amber-500/15 text-amber-300 border border-amber-500/25">
                         flat {STALL_DAYS}d
                       </span>
                     )
@@ -233,7 +233,7 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
                   return null
                 })()}
                 {line.staleDays != null && line.staleDays > STALE_AFTER_DAYS && (
-                  <span className="text-[9px] uppercase tracking-wide px-1.5 py-px rounded bg-white/[0.04] text-white/40 border border-white/[0.08]">
+                  <span className="text-micro uppercase tracking-wide px-1.5 py-px rounded bg-white/[0.04] text-white/40 border border-white/[0.08]">
                     stale {line.staleDays}d
                   </span>
                 )}
@@ -288,9 +288,9 @@ function LogCountsSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="mt-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 space-y-2">
-      <div className="text-[10px] uppercase tracking-[0.14em] font-semibold text-white/45">Log today's counts</div>
+      <div className="text-micro uppercase tracking-[0.14em] font-semibold text-white/45">Log today's counts</div>
       {SOURCE_CHIPS.map(c => (
-        <label key={c.key} className="flex items-center justify-between gap-2 text-[12px] text-white/70">
+        <label key={c.key} className="flex items-center justify-between gap-2 text-label text-white/70">
           <span>{c.label}</span>
           <input
             type="number"
@@ -304,10 +304,10 @@ function LogCountsSheet({ onClose }: { onClose: () => void }) {
         </label>
       ))}
       <div className="flex items-center justify-between gap-2 pt-1">
-        <span className="text-[10px] text-white/35">{msg}</span>
+        <span className="text-micro text-white/35">{msg}</span>
         <div className="flex gap-2">
-          <button onClick={onClose} className="text-[11px] px-2.5 py-1 rounded-lg border border-white/10 text-white/55 hover:text-white/80">Cancel</button>
-          <button onClick={submit} disabled={busy} className="text-[11px] px-2.5 py-1 rounded-lg bg-white/10 border border-white/15 text-white/85 hover:bg-white/15 disabled:opacity-50">
+          <button onClick={onClose} className="text-micro px-2.5 py-1 rounded-lg border border-white/10 text-white/55 hover:text-white/80">Cancel</button>
+          <button onClick={submit} disabled={busy} className="text-micro px-2.5 py-1 rounded-lg bg-white/10 border border-white/15 text-white/85 hover:bg-white/15 disabled:opacity-50">
             {busy ? 'Saving' : 'Save'}
           </button>
         </div>

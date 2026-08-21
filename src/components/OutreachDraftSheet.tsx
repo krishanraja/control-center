@@ -47,7 +47,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
     <button
       type="button"
       onClick={onClick}
-      className={`px-3.5 py-2 rounded-full text-[14px] font-medium whitespace-nowrap transition-colors ${
+      className={`px-3.5 py-2 rounded-full text-ui font-medium whitespace-nowrap transition-colors ${
         active ? 'btn-contrast' : 'bg-white/[0.06] text-white/70 active:bg-white/[0.12]'
       }`}
     >
@@ -59,7 +59,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-[12px] uppercase tracking-wider text-white/40">{label}</p>
+      <p className="text-label uppercase tracking-wider text-white/40">{label}</p>
       {children}
     </div>
   )
@@ -180,9 +180,9 @@ export function OutreachDraftSheet({
                 <Mail size={16} className="text-violet-300" />
               </span>
               <div className="min-w-0">
-                <p className="text-[17px] font-semibold text-white leading-snug">{target.name}</p>
-                {target.subtitle && <p className="text-[14px] text-white/55 leading-snug">{target.subtitle}</p>}
-                <p className={`text-[13px] mt-0.5 ${hasEmail ? 'text-white/40' : 'text-rose-300'}`}>
+                <p className="text-lede font-semibold text-white leading-snug">{target.name}</p>
+                {target.subtitle && <p className="text-ui text-white/55 leading-snug">{target.subtitle}</p>}
+                <p className={`text-body mt-0.5 ${hasEmail ? 'text-white/40' : 'text-rose-300'}`}>
                   {hasEmail ? target.email : 'No email on file'}
                 </p>
               </div>
@@ -201,8 +201,8 @@ export function OutreachDraftSheet({
                         : 'border-white/[0.08] bg-white/[0.02] active:bg-white/[0.05]'
                     }`}
                   >
-                    <span className="text-[15px] font-medium text-white">{it.label}</span>
-                    <span className="block text-[13px] text-white/45 mt-0.5">{it.hint}</span>
+                    <span className="text-ui font-medium text-white">{it.label}</span>
+                    <span className="block text-body text-white/45 mt-0.5">{it.hint}</span>
                   </button>
                 ))}
               </div>
@@ -241,7 +241,7 @@ export function OutreachDraftSheet({
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="e.g. mention we met at the AdTech panel, reference their Series B…"
                 rows={2}
-                className="w-full resize-none rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[15px] text-white placeholder:text-white/30 focus:border-violet-400/40 focus:outline-none"
+                className="w-full resize-none rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-ui text-white placeholder:text-white/30 focus:border-violet-400/40 focus:outline-none"
               />
             </Section>
           </div>
@@ -253,7 +253,7 @@ export function OutreachDraftSheet({
               onClick={() => { h.tap(); setDirectMode(d => !d) }}
               className="w-full flex items-center justify-between mb-3 text-left"
             >
-              <span className="text-[13px] text-white/55">
+              <span className="text-body text-white/55">
                 {directMode ? 'Direct — review here, no n8n' : 'Via n8n — lands in Gmail'}
               </span>
               <span className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${directMode ? 'bg-violet-500/80' : 'bg-white/15'}`}>
@@ -264,7 +264,7 @@ export function OutreachDraftSheet({
               type="button"
               onClick={draft}
               disabled={busy || !hasEmail}
-              className="w-full flex items-center justify-center gap-2 rounded-full btn-contrast text-[16px] font-semibold py-4 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100"
+              className="w-full flex items-center justify-center gap-2 rounded-full btn-contrast text-lede font-semibold py-4 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100"
             >
               {busy ? (
                 <><Working size={18} /> Drafting…</>
@@ -280,16 +280,16 @@ export function OutreachDraftSheet({
       {target && preview && (
         <div className="flex flex-col">
           <div className="px-5 pb-4 flex flex-col gap-3 overflow-y-auto scrollbar-hide" style={{ maxHeight: '70vh' }}>
-            <div className="flex items-center gap-2 text-[13px] text-violet-200/80">
+            <div className="flex items-center gap-2 text-body text-violet-200/80">
               <Sparkles size={15} /> Drafted for {target.name} — review before sending
             </div>
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3">
-              <p className="text-[11px] uppercase tracking-wider text-white/40 mb-1">Subject</p>
-              <p className="text-[15px] text-white font-medium leading-snug">{preview.subject || '(no subject)'}</p>
+              <p className="text-micro uppercase tracking-wider text-white/40 mb-1">Subject</p>
+              <p className="text-ui text-white font-medium leading-snug">{preview.subject || '(no subject)'}</p>
             </div>
             <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-3">
-              <p className="text-[11px] uppercase tracking-wider text-white/40 mb-1">Body</p>
-              <p className="text-[15px] text-white/90 leading-relaxed whitespace-pre-wrap">{preview.body}</p>
+              <p className="text-micro uppercase tracking-wider text-white/40 mb-1">Body</p>
+              <p className="text-ui text-white/90 leading-relaxed whitespace-pre-wrap">{preview.body}</p>
             </div>
           </div>
           <div className="px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] border-t border-white/[0.06] bg-base flex flex-col gap-2">
@@ -302,25 +302,25 @@ export function OutreachDraftSheet({
                   try { window.open(url, '_blank', 'noreferrer,noopener') } catch { /* popup blocked */ }
                   h.success()
                 }}
-                className="flex-1 flex items-center justify-center gap-2 rounded-full btn-contrast text-[15px] font-semibold py-3.5 active:scale-[0.98] transition-transform"
+                className="flex-1 flex items-center justify-center gap-2 rounded-full btn-contrast text-ui font-semibold py-3.5 active:scale-[0.98] transition-transform"
               >
                 <Mail size={16} /> Open in Gmail
               </button>
               <button
                 type="button"
                 onClick={() => { navigator.clipboard?.writeText(`Subject: ${preview.subject}\n\n${preview.body}`); h.tap(); toast('Copied.', 'success') }}
-                className="px-4 py-3.5 rounded-full border border-white/15 text-white/80 text-[15px] active:bg-white/[0.06]"
+                className="px-4 py-3.5 rounded-full border border-white/15 text-white/80 text-ui active:bg-white/[0.06]"
               >
                 Copy
               </button>
             </div>
             <div className="flex items-center gap-2">
               <button type="button" onClick={() => { setPreview(null); draft() }}
-                className="flex-1 py-2.5 rounded-full border border-white/12 text-white/70 text-[14px] active:bg-white/[0.06]">
+                className="flex-1 py-2.5 rounded-full border border-white/12 text-white/70 text-ui active:bg-white/[0.06]">
                 Regenerate
               </button>
               <button type="button" onClick={() => setPreview(null)}
-                className="flex-1 py-2.5 rounded-full border border-white/12 text-white/70 text-[14px] active:bg-white/[0.06]">
+                className="flex-1 py-2.5 rounded-full border border-white/12 text-white/70 text-ui active:bg-white/[0.06]">
                 Back to options
               </button>
             </div>

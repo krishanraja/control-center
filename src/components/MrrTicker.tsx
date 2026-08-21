@@ -44,16 +44,16 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
             one-off payments that no MRR figure can represent. Committed MRR
             sits beside it. The two are never added together. */}
         <div className="min-w-0">
-          <p className="text-[10px] font-display font-bold uppercase tracking-[0.2em] text-emerald-300/70 mb-1.5">
+          <p className="text-micro font-display font-bold uppercase tracking-[0.14em] text-emerald-300/70 mb-1.5">
             Collected · 30 days
           </p>
-          <p className={`${isMobile ? 'text-[46px]' : 'text-[36px]'} font-display font-bold tabular-nums leading-none`}>
+          <p className={`${isMobile ? 'text-display' : 'text-display'} font-display font-bold tabular-nums leading-none`}>
             <span className="money-text">
               {formatMrr((revenue?.collected_30d_net_cents ?? 0) / 100)}
             </span>
-            <span className="text-white/35 text-[18px] font-medium"> net</span>
+            <span className="text-white/35 text-title font-medium"> net</span>
           </p>
-          <p className="text-[11px] text-white/40 mt-2 tabular-nums">
+          <p className="text-micro text-white/40 mt-2 tabular-nums">
             {revenue
               ? `$${(revenue.collected_all_time_net_cents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })} all time`
               : <Skeleton h={14} w={72} r={4} className="inline-block align-middle" />}
@@ -65,20 +65,20 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
 
         <div className="text-right flex-shrink-0 flex flex-col items-end gap-1.5">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35 mb-1">
+            <p className="text-micro font-bold uppercase tracking-[0.14em] text-white/35 mb-1">
               Committed MRR
             </p>
-            <p className={`${isMobile ? 'text-[22px]' : 'text-[18px]'} font-semibold tabular-nums text-white/85`}>
+            <p className={`${isMobile ? 'text-title' : 'text-title'} font-semibold tabular-nums text-white/85`}>
               {formatCommittedMrr(revenue)}
-              <span className="text-white/30 text-[13px] font-medium">/mo</span>
+              <span className="text-white/30 text-body font-medium">/mo</span>
             </p>
-            <p className="text-[10px] text-white/30 mt-0.5 tabular-nums">
+            <p className="text-micro text-white/30 mt-0.5 tabular-nums">
               {revenue ? `${revenue.active_subscriptions} live subscription${revenue.active_subscriptions === 1 ? '' : 's'}` : ''}
             </p>
           </div>
           <div className={`flex items-center gap-1.5 ${deltaColor}`}>
             <DeltaIcon size={isMobile ? 14 : 12} />
-            <span className={`${isMobile ? 'text-[13px]' : 'text-[11px]'} font-semibold tabular-nums`}>
+            <span className={`${isMobile ? 'text-body' : 'text-micro'} font-semibold tabular-nums`}>
               {deltaPositive ? '+' : ''}${Math.round(mrrDelta7d).toLocaleString()}/wk
             </span>
           </div>

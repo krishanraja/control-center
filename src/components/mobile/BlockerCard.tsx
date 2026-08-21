@@ -61,23 +61,23 @@ export function BlockerCard({ item, onOpen, pod }: Props) {
       />
 
       <div className="flex-1 min-w-0">
-        <p className="text-[16px] font-semibold text-white leading-snug line-clamp-2">
+        <p className="text-lede font-semibold text-white leading-snug line-clamp-2">
           {item.title}
         </p>
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
           {item.agent && (
-            <span className={`text-[12px] font-medium ${color.text}`}>{item.agent}</span>
+            <span className={`text-label font-medium ${color.text}`}>{item.agent}</span>
           )}
           {age && (
             <>
-              {item.agent && <span className="text-white/20 text-[12px]">·</span>}
-              <span className="text-[12px] text-white/45">waiting {age}</span>
+              {item.agent && <span className="text-white/20 text-label">·</span>}
+              <span className="text-label text-white/45">waiting {age}</span>
             </>
           )}
         </div>
       </div>
 
-      <span className="flex-shrink-0 self-center flex items-center gap-1.5 rounded-full bg-white/10 group-active:bg-white/20 px-3.5 py-2 text-[13px] font-semibold text-white whitespace-nowrap">
+      <span className="flex-shrink-0 self-center flex items-center gap-1.5 rounded-full bg-white/10 group-active:bg-white/20 px-3.5 py-2 text-body font-semibold text-white whitespace-nowrap">
         {actionLabel(item)}
         <ChevronRight className="w-3.5 h-3.5 opacity-60" strokeWidth={2.5} />
       </span>

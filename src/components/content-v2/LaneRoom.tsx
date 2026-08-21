@@ -4,6 +4,7 @@ import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { ShiftsRoom } from './ShiftsRoom'
 import { FeedRoom } from './FeedRoom'
 import { laneOf, type RoomId } from './ContentV2Tab'
+import { Eyebrow } from '../shared/Eyebrow'
 
 // One format, everything about it in one column.
 //
@@ -44,21 +45,17 @@ export function LaneRoom({
   return (
     <div className="flex flex-col gap-5 max-w-3xl">
       <header>
-        <h2 className="text-[15px] font-semibold text-white/90">{copy.title}</h2>
-        <p className="text-[12.5px] text-white/50 mt-0.5">{copy.question}</p>
+        <h2 className="text-ui font-semibold text-white/90">{copy.title}</h2>
+        <p className="text-label text-white/50 mt-0.5">{copy.question}</p>
       </header>
 
       <section>
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40 mb-2">
-          Shifts in {copy.title.toLowerCase()}
-        </h3>
+        <h3 className="mb-2"><Eyebrow>Shifts in {copy.title.toLowerCase()}</Eyebrow></h3>
         <ShiftsRoom v2={v2} variant={variant} lane={lane} />
       </section>
 
       <section>
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40 mb-2">
-          Evidence
-        </h3>
+        <h3 className="mb-2"><Eyebrow>Evidence</Eyebrow></h3>
         <FeedRoom ideas={mine} />
       </section>
 
@@ -71,13 +68,13 @@ export function LaneRoom({
           lanes new work. */}
       {unclassified.length > 0 && (
         <section>
-          <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40 mb-2">
-            Not yet laned
-            <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 text-[10.5px] tabular-nums normal-case tracking-normal">
+          <h3 className="mb-2 flex items-center gap-1.5">
+            <Eyebrow>Not yet laned</Eyebrow>
+            <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-micro tabular-nums">
               {unclassified.length}
             </span>
           </h3>
-          <p className="text-[12px] text-white/45 mb-2">
+          <p className="text-label text-white/45 mb-2">
             Gathered while lane sourcing was down. They belong to Built or Paid,
             nobody has said which yet.
           </p>

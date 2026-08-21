@@ -87,7 +87,7 @@ export function MobileCustomers() {
       detail={[KIND_LABEL[c.kind], c.plan].filter(Boolean).join(' · ')}
       trailing={
         typeof c.mrr_usd === 'number' && c.mrr_usd > 0 ? (
-          <span className="text-[14px] tabular-nums text-emerald-300">
+          <span className="text-ui tabular-nums text-emerald-300">
             ${Math.round(c.mrr_usd)}
           </span>
         ) : null
@@ -177,7 +177,7 @@ export function MobileCustomers() {
       </div>
 
       {error && (
-        <div className="rounded-3xl border border-red-400/30 bg-red-500/10 p-5 text-[16px] text-red-200">
+        <div className="rounded-3xl border border-red-400/30 bg-red-500/10 p-5 text-lede text-red-200">
           {error}
         </div>
       )}
@@ -212,7 +212,7 @@ export function MobileCustomers() {
             key={b.product}
             title={`${PRODUCT_LABEL[b.product]} · ${b.total}`}
           >
-            <div className="px-7 pt-3 pb-2 flex items-center gap-4 text-[14px]">
+            <div className="px-7 pt-3 pb-2 flex items-center gap-4 text-ui">
               {b.paid > 0 && (
                 <span className="text-emerald-300 tabular-nums">
                   {b.paid} paid
@@ -241,7 +241,7 @@ export function MobileCustomers() {
                 detail={[KIND_LABEL[c.kind], c.plan].filter(Boolean).join(' · ')}
                 trailing={
                   typeof c.mrr_usd === 'number' && c.mrr_usd > 0 ? (
-                    <span className="text-[14px] tabular-nums text-emerald-300">
+                    <span className="text-ui tabular-nums text-emerald-300">
                       ${Math.round(c.mrr_usd)}
                     </span>
                   ) : null
@@ -341,10 +341,10 @@ export function MobileCustomers() {
       >
         <div className="px-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
           <div className="pb-4 border-b border-white/[0.06]">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">
+            <p className="text-micro font-bold uppercase tracking-widest text-white/45">
               Log a call
             </p>
-            <h2 className="text-[19px] font-bold text-white leading-snug mt-0.5">
+            <h2 className="text-title font-bold text-white leading-snug mt-0.5">
               {open?.full_name || open?.email || 'Customer'}
             </h2>
           </div>
@@ -353,7 +353,7 @@ export function MobileCustomers() {
             <button
               type="button"
               onClick={() => { h.select(); dict.toggle() }}
-              className={`mt-4 w-full rounded-full border py-3 text-[14px] font-semibold transition-colors ${
+              className={`mt-4 w-full rounded-full border py-3 text-ui font-semibold transition-colors ${
                 dict.listening
                   ? 'border-red-400/40 bg-red-400/15 text-red-300'
                   : 'border-sky-400/30 bg-sky-400/10 text-sky-300 active:bg-sky-400/20'
@@ -370,7 +370,7 @@ export function MobileCustomers() {
             // Summon the keyboard only when the mic cannot lead.
             autoFocus={!dict.supported}
             placeholder="Brief summary of the call"
-            className="mt-3 w-full rounded-2xl border border-white/[0.10] bg-white/[0.04] px-4 py-3 text-[15px] text-white placeholder:text-white/35 leading-relaxed resize-none focus:outline-none focus:border-white/25"
+            className="mt-3 w-full rounded-2xl border border-white/[0.10] bg-white/[0.04] px-4 py-3 text-ui text-white placeholder:text-white/35 leading-relaxed resize-none focus:outline-none focus:border-white/25"
           />
 
           <div className="mt-3 space-y-2.5">

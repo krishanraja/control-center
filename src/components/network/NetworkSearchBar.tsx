@@ -94,7 +94,7 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
             data-testid="network-search-input"
             icon={<Search size={14} />}
             disabled={recording}
-            className={`min-h-[44px] text-[14px] ${dirty ? 'pr-10' : ''}`}
+            className={`min-h-[44px] text-ui ${dirty ? 'pr-10' : ''}`}
           />
           {dirty && !recording && (
             <button
@@ -134,18 +134,18 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
         </button>
       </div>
 
-      {micError && <p className="mt-2 text-[12px] text-amber-300/80">{micError}</p>}
-      {recording && <p className="mt-2 text-[12px] text-white/50">Listening. Press stop when you are done.</p>}
+      {micError && <p className="mt-2 text-label text-amber-300/80">{micError}</p>}
+      {recording && <p className="mt-2 text-label text-white/50">Listening. Press stop when you are done.</p>}
 
       {/* Heard, then understood, then results. In that order, so a mis-hearing
           is caught by reading one line rather than by distrusting twenty rows. */}
       {transcript && (
-        <p className="mt-2.5 text-[12px] text-white/45">
+        <p className="mt-2.5 text-label text-white/45">
           <span className="text-white/30">Heard</span> {transcript}
         </p>
       )}
       {restated && (
-        <p className="mt-1.5 text-[12.5px] text-white/70">
+        <p className="mt-1.5 text-label text-white/70">
           <span className="text-white/30">Understood</span> {restated}
         </p>
       )}
@@ -157,7 +157,7 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
               key={x}
               type="button"
               onClick={() => { setQ(x); onSearch(x) }}
-              className="rounded-full border border-white/10 px-2.5 py-1 text-[11.5px] text-white/45 transition-colors hover:border-white/20 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+              className="rounded-full border border-white/10 px-2.5 py-1 text-label text-white/45 transition-colors hover:border-white/20 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
             >
               {x}
             </button>

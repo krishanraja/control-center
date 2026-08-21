@@ -33,12 +33,12 @@ export function PipelineCard({ task: t, onOpen, showLink = true, meta }: Props) 
     >
       <AgentAvatar agent={t.agent || 'system'} size="xs" />
       <div className="flex-1 min-w-0">
-        <p className="text-[12px] text-white/85 leading-snug truncate">{t.title}</p>
+        <p className="text-label text-white/85 leading-snug truncate">{t.title}</p>
         {meta && (
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">{meta}</div>
         )}
       </div>
-      <span className={`text-[10px] tabular-nums flex-shrink-0 ${tone}`}>
+      <span className={`text-micro tabular-nums flex-shrink-0 ${tone}`}>
         {humanAge(t.updated_at)}
       </span>
       {showLink && link && (

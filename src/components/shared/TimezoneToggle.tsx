@@ -62,8 +62,8 @@ export function TimezoneToggle({ expanded = true }: { expanded?: boolean }) {
       className="w-full min-h-[44px] flex items-center gap-2 px-2.5 rounded-lg text-white/55 hover:text-white/85 hover:bg-white/[0.06] transition-colors touch-manipulation"
     >
       <Globe className="w-4 h-4 shrink-0" strokeWidth={1.8} />
-      <span className="text-[12px] truncate">{label}</span>
-      <span className={`ml-auto text-[10px] shrink-0 ${auto ? 'text-white/25' : 'text-violet-200/60'}`}>{hint}</span>
+      <span className="text-label truncate">{label}</span>
+      <span className={`ml-auto text-micro shrink-0 ${auto ? 'text-white/25' : 'text-violet-200/60'}`}>{hint}</span>
     </button>
   )
 }

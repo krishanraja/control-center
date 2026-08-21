@@ -94,7 +94,7 @@ export function ChipOverflow({
           onClick={() => { setQ(''); setOpen(true) }}
           data-testid={`${testIdPrefix}-more`}
           aria-label={`${title}: ${hidden.length} more`}
-          className="min-h-[30px] rounded-full border border-dashed border-white/15 px-2.5 text-[11.5px] font-semibold text-white/45 transition-colors hover:border-white/30 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+          className="min-h-[30px] rounded-full border border-dashed border-white/15 px-2.5 text-label font-semibold text-white/45 transition-colors hover:border-white/30 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
         >
           +{hidden.length}
         </button>
@@ -103,9 +103,9 @@ export function ChipOverflow({
       <BottomSheet open={open} onClose={() => setOpen(false)} fullHeight={false} ariaLabel={title}>
         <div className="flex max-h-[70vh] flex-col px-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
           <div className="flex items-center gap-2 pb-2">
-            <h2 className="text-[15px] font-semibold text-white">{title}</h2>
+            <h2 className="text-ui font-semibold text-white">{title}</h2>
             {!single && selected.length > 0 && (
-              <span className="text-[11.5px] text-white/40">{selected.length} on</span>
+              <span className="text-label text-white/40">{selected.length} on</span>
             )}
             <button
               type="button"
@@ -126,7 +126,7 @@ export function ChipOverflow({
                 placeholder={`Find in ${title.toLowerCase()}`}
                 aria-label={`Find in ${title}`}
                 data-testid={`${testIdPrefix}-search`}
-                className="min-h-[38px] w-full rounded-form border border-white/10 bg-white/[0.03] pl-8 pr-3 text-[13px] text-white placeholder:text-white/25 focus:border-violet-400/40 focus:outline-none"
+                className="min-h-[38px] w-full rounded-form border border-white/10 bg-white/[0.03] pl-8 pr-3 text-body text-white placeholder:text-white/25 focus:border-violet-400/40 focus:outline-none"
               />
             </div>
           )}
@@ -150,7 +150,7 @@ export function ChipOverflow({
                   aria-pressed={on}
                   role={single ? 'radio' : undefined}
                   data-testid={`${testIdPrefix}-row-${i.id}`}
-                  className={`flex min-h-[42px] w-full items-center gap-2.5 rounded-lg px-3 text-left text-[13.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
+                  className={`flex min-h-[42px] w-full items-center gap-2.5 rounded-lg px-3 text-left text-body transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
                     on ? 'text-violet-100' : 'text-white/70 hover:bg-white/[0.03]'}`}
                 >
                   <span className={`flex h-4 w-4 shrink-0 items-center justify-center border ${
@@ -159,17 +159,17 @@ export function ChipOverflow({
                     {on && <Check size={11} className="text-violet-100" aria-hidden />}
                   </span>
                   <span className="min-w-0 flex-1 truncate">{i.fullLabel || i.label}</span>
-                  {i.meta && <span className="shrink-0 text-[12px] tabular-nums text-white/30">{i.meta}</span>}
+                  {i.meta && <span className="shrink-0 text-label tabular-nums text-white/30">{i.meta}</span>}
                 </button>
               )
             })}
             {matches.length === 0 && (
-              <p className="px-3 py-6 text-center text-[12.5px] text-white/35">Nothing matches "{q}".</p>
+              <p className="px-3 py-6 text-center text-label text-white/35">Nothing matches "{q}".</p>
             )}
           </div>
 
           {emptyNote && (
-            <p className="border-t border-white/[0.06] pt-2.5 text-[11.5px] leading-relaxed text-white/40">{emptyNote}</p>
+            <p className="border-t border-white/[0.06] pt-2.5 text-label leading-relaxed text-white/40">{emptyNote}</p>
           )}
         </div>
       </BottomSheet>
@@ -198,7 +198,7 @@ export function Chip({ on, onClick, children, testId, disabled, tone = 'accent' 
       disabled={disabled}
       aria-pressed={on}
       data-testid={testId}
-      className={`min-h-[30px] rounded-full border px-2.5 text-[11.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 disabled:opacity-50 ${
+      className={`min-h-[30px] rounded-full border px-2.5 text-label font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 disabled:opacity-50 ${
         on ? onClass : 'border-white/10 text-white/50 hover:border-white/20 hover:text-white/80'}`}
     >
       {children}

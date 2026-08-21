@@ -53,7 +53,7 @@ function VentureChips({ venture, onPick }: { venture: string | null; onPick: (sl
     <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
       <button
         onClick={() => onPick(null)}
-        className={`px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${venture === null ? 'btn-contrast' : 'bg-white/[0.06] text-white/70'}`}
+        className={`px-3 py-2 rounded-full text-body font-medium whitespace-nowrap transition-colors ${venture === null ? 'btn-contrast' : 'bg-white/[0.06] text-white/70'}`}
       >
         All
       </button>
@@ -61,7 +61,7 @@ function VentureChips({ venture, onPick }: { venture: string | null; onPick: (sl
         <button
           key={v.slug}
           onClick={() => onPick(v.slug)}
-          className={`px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors ${venture === v.slug ? 'btn-contrast' : 'bg-white/[0.06] text-white/70'}`}
+          className={`px-3 py-2 rounded-full text-body font-medium whitespace-nowrap transition-colors ${venture === v.slug ? 'btn-contrast' : 'bg-white/[0.06] text-white/70'}`}
         >
           {v.label}
         </button>
@@ -80,45 +80,45 @@ function renderContactBody(c: ContactRow) {
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap mb-3">
-        <span className="inline-flex items-center gap-1 text-[12px] text-white/55 tabular-nums">
+        <span className="inline-flex items-center gap-1 text-label text-white/55 tabular-nums">
           <Flame size={12} className="text-rose-300" />{c.heat_score ?? 0}
         </span>
         {c.primary_venture && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] bg-white/[0.06] text-white/55">
+          <span className="text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] bg-white/[0.06] text-white/55">
             {ventureDisplayName(c.primary_venture)}
           </span>
         )}
         {c.consent_tier && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] bg-violet-500/10 text-violet-200">{c.consent_tier}</span>
+          <span className="text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] bg-violet-500/10 text-violet-200">{c.consent_tier}</span>
         )}
         <SuggestedMoveChip contact={c} />
       </div>
-      <p className="text-[20px] font-semibold text-white leading-snug">{contactName(c)}</p>
+      <p className="text-title font-semibold text-white leading-snug">{contactName(c)}</p>
       {contactSubtitle(c) && (
-        <p className="text-[14px] text-white/60 leading-relaxed mt-2">{contactSubtitle(c)}</p>
+        <p className="text-ui text-white/60 leading-relaxed mt-2">{contactSubtitle(c)}</p>
       )}
 
       {/* Why they're in your warm queue — the case for a right-swipe */}
       <div className="mt-4 flex-1 min-h-0 overflow-hidden">
         {fit && (
-          <p className="text-[13px] text-amber-200/90 leading-relaxed inline-flex items-start gap-1.5">
+          <p className="text-body text-amber-200/90 leading-relaxed inline-flex items-start gap-1.5">
             <Target size={13} className="mt-0.5 flex-shrink-0" />
             <span><span className="text-white/45">Best fit: </span>{ventureLabel(fit.venture)} · {fit.score}</span>
           </p>
         )}
         {why && (
-          <p className="text-[13px] text-white/70 leading-relaxed mt-2">
+          <p className="text-body text-white/70 leading-relaxed mt-2">
             <Sparkles size={12} className="inline mr-1 text-violet-300" />
             <span className="text-white/40">{why.label}: </span>{why.text}
           </p>
         )}
         {move && (
-          <p className="text-[13px] text-violet-200/85 leading-relaxed mt-2">
+          <p className="text-body text-violet-200/85 leading-relaxed mt-2">
             <span className="text-white/40">The move: </span>{move}
           </p>
         )}
         {!why && !move && (
-          <p className="text-[12.5px] text-white/45 leading-relaxed mt-2">
+          <p className="text-label text-white/45 leading-relaxed mt-2">
             Not researched yet — judge on heat {c.heat_score ?? 0}
             {fit ? `, ${ventureLabel(fit.venture)} fit ${fit.score}` : ''}
             {c.origin_campaign ? `, via ${c.origin_campaign}` : ''}. Tap to open → Research for the full angle.
@@ -264,7 +264,7 @@ export function MobileLeadsRE(_props: Props = {}) {
           trailing={
             <button
               onClick={() => { h.tap(); setShowImport(s => !s) }}
-              className="px-5 py-3 rounded-full btn-contrast text-[15px] font-semibold active:scale-95 transition-transform"
+              className="px-5 py-3 rounded-full btn-contrast text-ui font-semibold active:scale-95 transition-transform"
             >
               Import
             </button>
@@ -295,7 +295,7 @@ export function MobileLeadsRE(_props: Props = {}) {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search name, company, campaign…"
-        className="flex-shrink-0 w-full rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-[15px] text-white placeholder:text-white/35 focus:border-violet-400/40 focus:outline-none"
+        className="flex-shrink-0 w-full rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-ui text-white placeholder:text-white/35 focus:border-violet-400/40 focus:outline-none"
       />
 
       {total === 0 && !loading && (
@@ -311,8 +311,8 @@ export function MobileLeadsRE(_props: Props = {}) {
         >
           <Layers size={18} className="text-violet-300 flex-shrink-0" />
           <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-violet-100">Swipe to triage · {handQueue.length}</p>
-            <p className="text-[11px] text-white/45">One card at a time — right keeps, left skips with a reason.</p>
+            <p className="text-body font-semibold text-violet-100">Swipe to triage · {handQueue.length}</p>
+            <p className="text-micro text-white/45">One card at a time — right keeps, left skips with a reason.</p>
           </div>
           <ChevronRight size={16} className="text-violet-300/70 ml-auto flex-shrink-0" />
         </button>
@@ -328,7 +328,7 @@ export function MobileLeadsRE(_props: Props = {}) {
               title={contactName(c)}
               detail={contactSubtitle(c) || ventureDisplayName(c.primary_venture)}
               trailing={
-                <span className="flex items-center gap-1 text-[13px] text-white/45 tabular-nums">
+                <span className="flex items-center gap-1 text-body text-white/45 tabular-nums">
                   <Flame size={12} className="text-rose-300" />
                   {c.heat_score ?? 0}
                 </span>
@@ -349,13 +349,13 @@ export function MobileLeadsRE(_props: Props = {}) {
               dotColor={heatDot(c.heat_score)}
               title={contactName(c)}
               detail={contactSubtitle(c) || c.origin_campaign || undefined}
-              trailing={<span className="text-[13px] text-white/40 tabular-nums">{humanAge(c.updated_at)}</span>}
+              trailing={<span className="text-body text-white/40 tabular-nums">{humanAge(c.updated_at)}</span>}
               onClick={() => openLead(c)}
               feedback={{ sourceTable: 'contacts', sourceId: c.id, agentId: c.owner_agent }}
             />
           ))}
           {feed.length > 40 && (
-            <div className="px-7 py-4 text-[14px] text-white/35 text-center">
+            <div className="px-7 py-4 text-ui text-white/35 text-center">
               +{feed.length - 40} more — narrow with filters
             </div>
           )}

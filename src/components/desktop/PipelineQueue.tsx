@@ -41,7 +41,7 @@ export function PipelineQueue() {
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-widest text-violet-400">Pipeline</span>
+          <span className="text-micro font-bold uppercase tracking-widest text-violet-400">Pipeline</span>
         </div>
         <div className="space-y-1.5">
           {[0, 1, 2].map(i => (
@@ -57,8 +57,8 @@ export function PipelineQueue() {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-violet-400">Pipeline</span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded border border-violet-400/25 bg-white/[0.03]">{items.length}</span>
+        <span className="text-micro font-bold uppercase tracking-widest text-violet-400">Pipeline</span>
+        <span className="text-micro px-1.5 py-0.5 rounded border border-violet-400/25 bg-white/[0.03]">{items.length}</span>
       </div>
       <div className="space-y-1.5">
         {items.map(task => (
@@ -119,34 +119,34 @@ function PipelineCard({ task, onDismiss }: { task: TaskRow; onDismiss: () => voi
     <div className="rounded-lg border border-white/[0.06] bg-white/[0.015] hover:border-white/[0.12] transition-colors p-3 space-y-2">
       <div className="flex items-start gap-2">
         {task.group_label && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${badge} flex-shrink-0`}>
+          <span className={`text-micro px-1.5 py-0.5 rounded border font-medium ${badge} flex-shrink-0`}>
             {task.group_label}
           </span>
         )}
-        <p className="text-[13px] font-semibold text-white leading-snug flex-1 min-w-0">{task.title}</p>
+        <p className="text-body font-semibold text-white leading-snug flex-1 min-w-0">{task.title}</p>
       </div>
 
       {task.krish_notes && (
-        <p className="text-[11px] text-white/45 leading-relaxed line-clamp-2">{task.krish_notes}</p>
+        <p className="text-micro text-white/45 leading-relaxed line-clamp-2">{task.krish_notes}</p>
       )}
 
       {task.evidence && (
         <div>
           <button
             onClick={() => setExpanded(e => !e)}
-            className="flex items-center gap-1 text-[11px] text-white/40 hover:text-white/70 transition-colors"
+            className="flex items-center gap-1 text-micro text-white/40 hover:text-white/70 transition-colors"
           >
             {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
             {expanded ? 'Hide Draft' : 'View Draft'}
           </button>
           {expanded && (
             <div className="mt-1.5 rounded-lg border border-white/[0.08] bg-black/30 p-2.5 space-y-2">
-              <pre className="text-[11px] text-white/75 font-mono whitespace-pre-wrap break-words leading-relaxed max-h-72 overflow-y-auto">
+              <pre className="text-micro text-white/75 font-mono whitespace-pre-wrap break-words leading-relaxed max-h-72 overflow-y-auto">
 {task.evidence}
               </pre>
               <button
                 onClick={copyDraft}
-                className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-white/[0.04] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] transition-colors"
+                className="flex items-center gap-1 px-2 py-1 rounded text-micro font-medium bg-white/[0.04] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] transition-colors"
               >
                 <Copy size={10} /> Copy
               </button>
@@ -159,14 +159,14 @@ function PipelineCard({ task, onDismiss }: { task: TaskRow; onDismiss: () => voi
         <button
           onClick={approve}
           disabled={busy}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-micro font-medium bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
         >
           <Check size={11} /> Approve
         </button>
         <button
           onClick={reject}
           disabled={busy}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-rose-500/10 border border-rose-500/25 text-rose-400 hover:bg-rose-500/20 transition-colors disabled:opacity-50"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-micro font-medium bg-rose-500/10 border border-rose-500/25 text-rose-400 hover:bg-rose-500/20 transition-colors disabled:opacity-50"
         >
           <X size={11} /> Reject
         </button>

@@ -63,13 +63,13 @@ export function SwipeCard({
         {isTop && (
           <>
             <div
-              className="absolute top-5 left-5 z-10 px-3 py-1.5 rounded-lg border-2 border-rose-400/80 text-rose-300 text-[15px] font-bold uppercase tracking-wider rotate-[-12deg] pointer-events-none"
+              className="absolute top-5 left-5 z-10 px-3 py-1.5 rounded-lg border-2 border-rose-400/80 text-rose-300 text-ui font-bold uppercase tracking-wider rotate-[-12deg] pointer-events-none"
               style={{ opacity: leftGhost }}
             >
               {leftLabel}
             </div>
             <div
-              className="absolute top-5 right-5 z-10 px-3 py-1.5 rounded-lg border-2 border-emerald-400/80 text-emerald-300 text-[15px] font-bold uppercase tracking-wider rotate-[12deg] pointer-events-none"
+              className="absolute top-5 right-5 z-10 px-3 py-1.5 rounded-lg border-2 border-emerald-400/80 text-emerald-300 text-ui font-bold uppercase tracking-wider rotate-[12deg] pointer-events-none"
               style={{ opacity: rightGhost }}
             >
               {rightLabel}

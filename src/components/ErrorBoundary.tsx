@@ -33,16 +33,16 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <AlertTriangle className="w-5 h-5 text-rose-400" />
           </div>
           <div>
-            <p className="text-[13px] font-semibold text-white/70 mb-1">
+            <p className="text-body font-semibold text-white/70 mb-1">
               {this.props.label ?? 'This section'} failed to render
             </p>
-            <p className="text-[11px] text-white/30 font-mono max-w-sm">
+            <p className="text-micro text-white/30 font-mono max-w-sm">
               {this.state.error?.message ?? 'Unknown error'}
             </p>
           </div>
           <button
             onClick={() => this.setState({ hasError: false, error: undefined })}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] bg-white/[0.04] border border-white/[0.08] text-white/40 hover:text-white/70 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-micro bg-white/[0.04] border border-white/[0.08] text-white/40 hover:text-white/70 transition-colors"
           >
             <RefreshCw size={11} /> Retry
           </button>

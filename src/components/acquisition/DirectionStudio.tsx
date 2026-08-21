@@ -141,19 +141,19 @@ export function DirectionStudio({
     <section className="rounded-xl border border-violet-400/20 bg-violet-500/[0.03] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <Lock size={13} className="text-violet-400" />
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
           Direction studio
         </h2>
         <span className="ml-auto flex items-center gap-2">
           {locked && (
-            <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+            <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-micro font-semibold text-emerald-300">
               v{locked.version} locked
             </span>
           )}
           <button
             type="button"
             onClick={() => (editing ? setEditing(false) : openEdit())}
-            className="text-[10px] font-medium text-white/40 hover:text-white/80 transition-colors"
+            className="text-micro font-medium text-white/40 hover:text-white/80 transition-colors"
           >
             {editing ? 'Cancel' : 'Edit'}
           </button>
@@ -168,20 +168,20 @@ export function DirectionStudio({
             ['Voice', 'voice', 2],
           ] as const).map(([label, key, rows]) => (
             <label key={key} className="block">
-              <span className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-white/30">{label}</span>
+              <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/30">{label}</span>
               <textarea value={draft[key]} onChange={set(key)} rows={rows}
-                className="mt-0.5 w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-[11.5px] text-white/85 leading-snug focus:outline-none focus:border-violet-400/50 resize-y" />
+                className="mt-0.5 w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-label text-white/85 leading-snug focus:outline-none focus:border-violet-400/50 resize-y" />
             </label>
           ))}
           <label className="block">
-            <span className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-white/30">Messaging pillars — one per line, "pillar :: proof"</span>
+            <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/30">Messaging pillars — one per line, "pillar :: proof"</span>
             <textarea value={draft.pillars} onChange={set('pillars')} rows={3}
-              className="mt-0.5 w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-[11.5px] text-white/85 leading-snug focus:outline-none focus:border-violet-400/50 resize-y" />
+              className="mt-0.5 w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-label text-white/85 leading-snug focus:outline-none focus:border-violet-400/50 resize-y" />
           </label>
           <label className="block">
-            <span className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-white/30">Offers — one per line, "name :: price :: url"</span>
+            <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/30">Offers — one per line, "name :: price :: url"</span>
             <textarea value={draft.offers} onChange={set('offers')} rows={2}
-              className="mt-0.5 w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-[11.5px] text-white/85 leading-snug focus:outline-none focus:border-violet-400/50 resize-y" />
+              className="mt-0.5 w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-label text-white/85 leading-snug focus:outline-none focus:border-violet-400/50 resize-y" />
           </label>
           {([
             ['Never say (comma-separated)', 'never_say'],
@@ -189,31 +189,31 @@ export function DirectionStudio({
             ['Sender identity', 'sender'],
           ] as const).map(([label, key]) => (
             <label key={key} className="block">
-              <span className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-white/30">{label}</span>
+              <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/30">{label}</span>
               <input value={draft[key]} onChange={set(key)}
-                className="mt-0.5 w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-[11.5px] text-white/85 focus:outline-none focus:border-violet-400/50" />
+                className="mt-0.5 w-full rounded-md bg-white/[0.04] border border-white/[0.08] px-2.5 py-1.5 text-label text-white/85 focus:outline-none focus:border-violet-400/50" />
             </label>
           ))}
 
           <div className="flex items-center gap-2 pt-1">
             <button type="button" disabled={busy || !dirty} onClick={saveDraft}
-              className="rounded-lg border border-white/[0.1] px-2.5 py-1 text-[11px] font-medium text-white/70 hover:text-white transition-colors disabled:opacity-40 flex items-center gap-1">
+              className="rounded-lg border border-white/[0.1] px-2.5 py-1 text-micro font-medium text-white/70 hover:text-white transition-colors disabled:opacity-40 flex items-center gap-1">
               <PencilLine size={10} /> Save draft
             </button>
             <button type="button" disabled={busy} onClick={doPreview}
-              className="rounded-lg border border-cyan-400/25 px-2.5 py-1 text-[11px] font-medium text-cyan-300 hover:bg-cyan-500/10 transition-colors disabled:opacity-40 flex items-center gap-1">
+              className="rounded-lg border border-cyan-400/25 px-2.5 py-1 text-micro font-medium text-cyan-300 hover:bg-cyan-500/10 transition-colors disabled:opacity-40 flex items-center gap-1">
               <Eye size={10} /> Preview
             </button>
             <button type="button" disabled={busy} onClick={lock}
-              className="ml-auto rounded-lg bg-violet-500/15 border border-violet-400/30 px-3 py-1 text-[11px] font-semibold text-violet-200 hover:bg-violet-500/25 transition-colors disabled:opacity-40 flex items-center gap-1">
+              className="ml-auto rounded-lg bg-violet-500/15 border border-violet-400/30 px-3 py-1 text-micro font-semibold text-violet-200 hover:bg-violet-500/25 transition-colors disabled:opacity-40 flex items-center gap-1">
               <Lock size={10} /> {dirty ? 'Save & lock' : 'Lock this'}
             </button>
           </div>
 
           {preview && (
             <div className="rounded-lg border border-cyan-400/20 bg-cyan-500/[0.04] p-3">
-              <p className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-cyan-300/80 mb-1">Propagation preview — what every touchpoint will read</p>
-              <pre className="text-[10.5px] text-white/70 whitespace-pre-wrap leading-snug max-h-52 overflow-y-auto">{preview}</pre>
+              <p className="text-micro font-semibold uppercase tracking-[0.14em] text-cyan-300/80 mb-1">Propagation preview — what every touchpoint will read</p>
+              <pre className="text-micro text-white/70 whitespace-pre-wrap leading-snug max-h-52 overflow-y-auto">{preview}</pre>
             </div>
           )}
         </div>
@@ -226,35 +226,35 @@ export function DirectionStudio({
               {locked.voice && <Field label="Voice" value={locked.voice} />}
               {(locked.messaging_pillars || []).length > 0 && (
                 <div>
-                  <p className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-white/30">Pillars</p>
+                  <p className="text-micro font-semibold uppercase tracking-[0.14em] text-white/30">Pillars</p>
                   <ul className="mt-0.5 space-y-0.5">
                     {locked.messaging_pillars.map((p, i) => (
-                      <li key={i} className="text-[11.5px] text-white/70 leading-snug">• {p.pillar}{p.proof ? <span className="text-white/35"> — {p.proof}</span> : null}</li>
+                      <li key={i} className="text-label text-white/70 leading-snug">• {p.pillar}{p.proof ? <span className="text-white/35"> — {p.proof}</span> : null}</li>
                     ))}
                   </ul>
                 </div>
               )}
               <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {(locked.channel_priorities || []).map(c => (
-                  <span key={c} className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] text-white/55">{c.replace(/_/g, ' ')}</span>
+                  <span key={c} className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-micro text-white/55">{c.replace(/_/g, ' ')}</span>
                 ))}
               </div>
-              {locked.never_say?.length > 0 && <p className="text-[10px] text-white/30">Never: {locked.never_say.join(' · ')}</p>}
+              {locked.never_say?.length > 0 && <p className="text-micro text-white/30">Never: {locked.never_say.join(' · ')}</p>}
               {locked.locked_at && (
-                <p className="text-[10px] text-white/25">
+                <p className="text-micro text-white/25">
                   Locked {formatDistanceToNow(new Date(locked.locked_at), { addSuffix: true })} by {locked.locked_by || 'krish'}
                   {serverDraft ? ' · a draft is in progress' : ''}
                 </p>
               )}
             </>
           ) : (
-            <p className="text-[11.5px] text-white/35">No direction locked yet. Edit to author and lock v1.</p>
+            <p className="text-label text-white/35">No direction locked yet. Edit to author and lock v1.</p>
           )}
 
           {history.filter(h => h.status === 'superseded').length > 0 && (
             <div className="border-t border-white/[0.06] pt-2 mt-1 space-y-1">
               {history.filter(h => h.status === 'superseded').slice(0, 3).map(h => (
-                <div key={h.id} className="flex items-center gap-2 text-[10.5px]">
+                <div key={h.id} className="flex items-center gap-2 text-micro">
                   <span className="text-white/40">v{h.version} superseded</span>
                   <button type="button" disabled={busy} onClick={() => rollback(h.version)}
                     className="ml-auto text-white/40 hover:text-white/80 transition-colors flex items-center gap-1">
@@ -273,8 +273,8 @@ export function DirectionStudio({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-white/30">{label}</p>
-      <p className="text-[11.5px] text-white/70 leading-snug">{value}</p>
+      <p className="text-micro font-semibold uppercase tracking-[0.14em] text-white/30">{label}</p>
+      <p className="text-label text-white/70 leading-snug">{value}</p>
     </div>
   )
 }

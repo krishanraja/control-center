@@ -121,7 +121,7 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
       className="max-w-2xl top-[8vh] translate-y-0 p-0">
       <header className="flex items-center gap-2 px-5 pt-4 pb-2">
         <Sparkles size={14} className="text-violet-200" />
-        <h2 className="text-[13px] font-semibold text-white">Start from an idea or research</h2>
+        <h2 className="text-body font-semibold text-white">Start from an idea or research</h2>
         <button type="button" onClick={onClose} className="ml-auto text-white/40 hover:text-white/80" aria-label="Close">
           <X size={14} />
         </button>
@@ -134,7 +134,7 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
         onDrop={e => { e.preventDefault(); setDragging(false); if (e.dataTransfer?.files?.length) void addFiles(e.dataTransfer.files) }}
       >
         <div>
-          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
+          <label className="mb-1 block text-micro font-semibold uppercase tracking-[0.14em] text-white/40">
             What is this about
           </label>
           <div className="relative">
@@ -145,7 +145,7 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
               onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void submit() } }}
               rows={3}
               placeholder='e.g. "What happens to agency pricing when the deliverable takes an hour instead of a week"'
-              className="w-full resize-none rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 pr-10 text-[13px] text-white placeholder-white/30 focus:border-violet-500/40 focus:outline-none"
+              className="w-full resize-none rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 pr-10 text-body text-white placeholder-white/30 focus:border-violet-500/40 focus:outline-none"
             />
             <div className="absolute right-2 top-2">
               <MicButton
@@ -162,20 +162,20 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">Format</span>
+          <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/40">Format</span>
           {([['', 'Decide later'], ['paid', 'Paid'], ['built', 'Built']] as const).map(([v, label]) => (
             <button
               key={v || 'none'}
               type="button"
               onClick={() => setFormat(v)}
-              className={`rounded-full border px-2.5 py-1 text-[11.5px] font-semibold ${
+              className={`rounded-full border px-2.5 py-1 text-label font-semibold ${
                 format === v ? 'border-violet-500/50 bg-violet-500/15 text-violet-200' : 'border-white/10 text-white/55 hover:bg-white/[0.06]'
               }`}
             >
               {label}
             </button>
           ))}
-          <span className="text-[11px] text-white/35">
+          <span className="text-micro text-white/35">
             {format === 'paid' ? 'Follows the money and how it has moved.'
               : format === 'built' ? 'Goes looking for people who shipped it.'
               : 'Shapes the research questions.'}
@@ -183,14 +183,14 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
         </div>
 
         <div>
-          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
+          <label className="mb-1 block text-micro font-semibold uppercase tracking-[0.14em] text-white/40">
             Angle <span className="font-normal normal-case tracking-normal text-white/30">(optional)</span>
           </label>
           <input
             value={angle}
             onChange={e => setAngle(e.target.value)}
             placeholder="The specific line you want it to take"
-            className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-[12.5px] text-white placeholder-white/30 focus:border-violet-500/40 focus:outline-none"
+            className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-label text-white placeholder-white/30 focus:border-violet-500/40 focus:outline-none"
           />
         </div>
 
@@ -198,18 +198,18 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
         <div className={`rounded-lg border p-3 transition-colors ${dragging ? 'border-violet-500/50 bg-violet-500/[0.06]' : 'border-white/[0.08] bg-white/[0.02]'}`}>
           <div className="mb-2 flex items-center gap-2">
             <FileText size={12} className="text-white/40" />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">Research you already have</span>
+            <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/40">Research you already have</span>
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="ml-auto flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-[11px] text-white/60 hover:bg-white/[0.06]"
+              className="ml-auto flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-micro text-white/60 hover:bg-white/[0.06]"
             >
               <Upload size={11} /> Add files
             </button>
             <button
               type="button"
               onClick={() => setPastes(p => [...p, BLANK()].slice(0, 8))}
-              className="rounded-md border border-white/10 px-2 py-1 text-[11px] text-white/60 hover:bg-white/[0.06]"
+              className="rounded-md border border-white/10 px-2 py-1 text-micro text-white/60 hover:bg-white/[0.06]"
             >
               Paste
             </button>
@@ -224,7 +224,7 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
           />
 
           {pastes.length === 0 ? (
-            <p className="text-[11.5px] leading-snug text-white/35">
+            <p className="text-label leading-snug text-white/35">
               Drop text files here, or paste a link or an extract. Anything you add is attached to the
               piece as material, so it grounds every later rewrite rather than being read once.
             </p>
@@ -237,7 +237,7 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
                       value={p.title}
                       onChange={e => setPastes(list => list.map((x, j) => j === i ? { ...x, title: e.target.value } : x))}
                       placeholder={`Source ${i + 1}`}
-                      className="min-w-0 flex-1 bg-transparent text-[11.5px] font-semibold text-white/80 placeholder-white/25 focus:outline-none"
+                      className="min-w-0 flex-1 bg-transparent text-label font-semibold text-white/80 placeholder-white/25 focus:outline-none"
                     />
                     <button type="button" onClick={() => setPastes(list => list.filter((_, j) => j !== i))}
                       className="text-white/30 hover:text-rose-200" aria-label="Remove">
@@ -250,7 +250,7 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
                       value={p.url}
                       onChange={e => setPastes(list => list.map((x, j) => j === i ? { ...x, url: e.target.value } : x))}
                       placeholder="https://… (optional)"
-                      className="min-w-0 flex-1 bg-transparent py-1 text-[11px] text-white/70 placeholder-white/25 focus:outline-none"
+                      className="min-w-0 flex-1 bg-transparent py-1 text-micro text-white/70 placeholder-white/25 focus:outline-none"
                     />
                   </div>
                   <textarea
@@ -258,7 +258,7 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
                     onChange={e => setPastes(list => list.map((x, j) => j === i ? { ...x, content: e.target.value } : x))}
                     rows={3}
                     placeholder="Paste the text"
-                    className="w-full resize-none rounded border border-white/[0.07] bg-black/20 px-2 py-1.5 text-[11.5px] text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/30"
+                    className="w-full resize-none rounded border border-white/[0.07] bg-black/20 px-2 py-1.5 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/30"
                   />
                 </div>
               ))}
@@ -269,7 +269,7 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
         {/* Supplying material used to silently mean "and do not search". It is
             a choice now, because one source you want checked against the
             record is a completely different job from an ingest. */}
-        <label className="flex items-start gap-2 text-[11.5px] text-white/60">
+        <label className="flex items-start gap-2 text-label text-white/60">
           <input type="checkbox" checked={web} onChange={e => setWeb(e.target.checked)} className="mt-0.5 accent-violet-500" />
           <span>
             <span className="font-semibold text-white/75">Search the web as well</span>
@@ -284,12 +284,12 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
         </label>
 
         <div className="flex items-center justify-between pt-1">
-          <p className="text-[11px] text-white/40">⌘Enter to start · Esc to close</p>
+          <p className="text-micro text-white/40">⌘Enter to start · Esc to close</p>
           <button
             type="button"
             onClick={submit}
             disabled={busy || topic.trim().length < 8}
-            className="flex items-center gap-1.5 rounded-md border border-violet-500/30 bg-violet-500/15 px-3 py-1.5 text-[12px] font-medium text-violet-200 transition-colors hover:bg-violet-500/25 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-md border border-violet-500/30 bg-violet-500/15 px-3 py-1.5 text-label font-medium text-violet-200 transition-colors hover:bg-violet-500/25 disabled:opacity-40"
           >
             {busy ? <Working size={12} /> : <Search size={12} />}
             {busy ? 'Researching…' : 'Research and draft'}

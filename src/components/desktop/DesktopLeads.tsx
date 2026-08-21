@@ -95,7 +95,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
             <Users size={20} className="text-emerald-300" />
             Pipeline
           </h1>
-          <p className="text-[13px] text-white/55 mt-1">Gathering your pipeline across every venture…</p>
+          <p className="text-body text-white/55 mt-1">Gathering your pipeline across every venture…</p>
         </header>
         <BoardSkeleton lanes={3} cardsPerLane={3} hero={false} />
       </div>
@@ -110,7 +110,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
             <Users size={20} className="text-emerald-300" />
             Pipeline · Triage
           </h1>
-          <span className="text-[13px] text-white/45">— right enriches or promotes, left drops with a reason</span>
+          <span className="text-body text-white/45">— right enriches or promotes, left drops with a reason</span>
         </header>
         <SwipeCockpit
           config={triageConfig}
@@ -129,7 +129,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
             <Users size={20} className="text-emerald-300" />
             Pipeline
           </h1>
-          <p className="text-[13px] text-white/55 mt-1">
+          <p className="text-body text-white/55 mt-1">
             Grouped by venture. One lead can surface in multiple lanes when it qualifies for more than one.
           </p>
         </div>
@@ -141,12 +141,12 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
             <button
               type="button"
               onClick={() => setTriageOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-500/10 hover:bg-violet-500/20 px-3 py-1.5 text-[12px] font-semibold text-violet-100 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-500/10 hover:bg-violet-500/20 px-3 py-1.5 text-label font-semibold text-violet-100 transition-colors"
             >
               <Layers size={14} /> Handle 1-by-1 · {triageConfig.items.length}
             </button>
           )}
-          <span className="text-[11px] text-white/55 tabular-nums">
+          <span className="text-micro text-white/55 tabular-nums">
             {loading ? '…' : `${totalActive} active`}
           </span>
         </div>
@@ -159,11 +159,11 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
       {leadId && (
         <section className="rounded-2xl border border-emerald-400/30 bg-emerald-500/[0.04] overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06]">
-            <span className="text-[11px] uppercase tracking-[0.16em] text-emerald-300/85">Detail</span>
+            <span className="text-micro uppercase tracking-[0.14em] text-emerald-300/85">Detail</span>
             <button
               type="button"
               onClick={() => onClearDetail?.()}
-              className="text-white/50 hover:text-white/85 inline-flex items-center gap-1 text-[12px]"
+              className="text-white/50 hover:text-white/85 inline-flex items-center gap-1 text-label"
               aria-label="Close detail"
             >
               <X size={14} /> Close
@@ -178,7 +178,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
       <div className="grid grid-cols-1 lg:[grid-template-columns:minmax(0,1fr)_minmax(0,2fr)] gap-5">
         <aside className="space-y-4 min-w-0">
           <section>
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
+            <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
               Import
             </h2>
             <LeadImportDropzone />
@@ -188,7 +188,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
           </section>
 
           <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
+            <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
               By source
             </h2>
             <ul className="space-y-1">
@@ -198,7 +198,7 @@ export function DesktopLeads({ onOpenLead, leadId = null, onClearDetail, onNavig
                 return (
                   <li
                     key={src}
-                    className="flex items-center justify-between gap-2 py-1 text-[12px]"
+                    className="flex items-center justify-between gap-2 py-1 text-label"
                   >
                     <span className="text-white/75 truncate">{meta.title}</span>
                     <span className={`tabular-nums ${count > 0 ? 'text-white/85' : 'text-white/25'}`}>

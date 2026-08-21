@@ -153,20 +153,20 @@ export function MobileIntel() {
             return (
               <div key={m.id} className="px-7 py-5 flex items-center gap-4" style={{ minHeight: 88 }}>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[20px] font-semibold text-white leading-snug truncate">
+                  <p className="text-title font-semibold text-white leading-snug truncate">
                     {m.label}
                   </p>
                   <div className="flex items-baseline gap-2 mt-1.5">
-                    <span className="text-[16px] text-white/85 tabular-nums">{m.value}</span>
+                    <span className="text-lede text-white/85 tabular-nums">{m.value}</span>
                     {m.target && (
-                      <span className="text-[14px] text-white/35 tabular-nums">/ {m.target}</span>
+                      <span className="text-ui text-white/35 tabular-nums">/ {m.target}</span>
                     )}
                   </div>
                   <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden mt-3">
                     <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
                   </div>
                 </div>
-                <span className={`text-[22px] font-bold tabular-nums ${pct >= 80 ? 'text-emerald-300' : pct >= 40 ? 'text-amber-300' : 'text-red-300'}`}>
+                <span className={`text-title font-bold tabular-nums ${pct >= 80 ? 'text-emerald-300' : pct >= 40 ? 'text-amber-300' : 'text-red-300'}`}>
                   {pct}%
                 </span>
               </div>
@@ -190,7 +190,7 @@ export function MobileIntel() {
                 title={sig.signal}
                 detail={sig.relevance}
                 trailing={chip ? (
-                  <span className="text-[12px] font-semibold tabular-nums text-white/70">{chip}</span>
+                  <span className="text-label font-semibold tabular-nums text-white/70">{chip}</span>
                 ) : null}
                 onClick={() => { h.select(); setOpenSignal(sig) }}
               />
@@ -201,7 +201,7 @@ export function MobileIntel() {
 
       {state.recommendedFocus && (
         <FeedCard title="Focus this week">
-          <div className="px-7 py-5 text-[16px] text-amber-100/85 leading-relaxed">
+          <div className="px-7 py-5 text-lede text-amber-100/85 leading-relaxed">
             {state.recommendedFocus}
           </div>
         </FeedCard>

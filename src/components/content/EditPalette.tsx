@@ -29,7 +29,7 @@ export function EditPalette({ groups, busy, disabled, onPick, dense }: {
     <div className={dense ? 'space-y-2' : 'space-y-3'}>
       {groups.map(g => (
         <div key={g.label}>
-          <div className="mb-1.5 px-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
+          <div className="mb-1.5 px-0.5 text-micro font-semibold uppercase tracking-[0.14em] text-white/40">
             {g.label}
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -43,7 +43,7 @@ export function EditPalette({ groups, busy, disabled, onPick, dense }: {
                   disabled={disabled || busy !== null}
                   onClick={() => onPick(it)}
                   data-testid={`edit-chip-${it.mode}-${it.value}`}
-                  className={`flex items-center gap-1 rounded-full border bg-white/[0.02] px-2.5 py-1.5 text-[11.5px] font-semibold transition-colors hover:bg-white/[0.07] disabled:opacity-40 ${g.accent}`}
+                  className={`flex items-center gap-1 rounded-full border bg-white/[0.02] px-2.5 py-1.5 text-label font-semibold transition-colors hover:bg-white/[0.07] disabled:opacity-40 ${g.accent}`}
                 >
                   {busy === key ? <Working size={11} /> : null}
                   {it.label}

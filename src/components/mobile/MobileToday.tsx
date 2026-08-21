@@ -52,7 +52,7 @@ function Big({ children, tone = 'ghost', onClick, disabled }: {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`w-full rounded-xl py-3.5 text-[13.5px] font-bold disabled:opacity-40 ${cls}`}
+      className={`w-full rounded-xl py-3.5 text-body font-bold disabled:opacity-40 ${cls}`}
     >
       {children}
     </button>
@@ -141,7 +141,7 @@ export function MobileToday({
         dotColor={dot}
         title={t.title}
         detail={t.next_step || t.agent || undefined}
-        trailing={<span className="text-[14px] text-white/35 tabular-nums">{t.due_date ? humanDue(t.due_date) : humanAge(t.updated_at)}</span>}
+        trailing={<span className="text-ui text-white/35 tabular-nums">{t.due_date ? humanDue(t.due_date) : humanAge(t.updated_at)}</span>}
         onClick={() => { h.select(); setOpenId(t.id) }}
         feedback={{ sourceTable: 'tasks', sourceId: t.id, agentId: t.agent || t.owner }}
       />
@@ -274,7 +274,7 @@ export function MobileToday({
                 ))}
               </div>
             )}
-            <div className="text-[11px] text-white/40 tabular-nums">
+            <div className="text-micro text-white/40 tabular-nums">
               {decided} of {total} decided · about {minutesLeft(queue.length)} min left
             </div>
           </div>
@@ -282,28 +282,28 @@ export function MobileToday({
           {/* the one card */}
           <div className={`rounded-2xl border p-5 ${cardAccent(current)}`}>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold bg-white/[0.06] text-white/60 capitalize">
+              <span className="inline-block rounded-full px-2.5 py-1 text-micro font-semibold bg-white/[0.06] text-white/60 capitalize">
                 {current.agent || current.owner || 'system'}
               </span>
               {isDueNow(current) && (
-                <span className="inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold bg-red-400/15 text-red-300">
+                <span className="inline-block rounded-full px-2.5 py-1 text-micro font-semibold bg-red-400/15 text-red-300">
                   Due {humanDue(current.due_date)}
                 </span>
               )}
             </div>
-            <h3 className="text-[16.5px] font-bold text-white mt-3 leading-snug">{current.title}</h3>
+            <h3 className="text-lede font-bold text-white mt-3 leading-snug">{current.title}</h3>
             {(current.next_step || current.description) && (
-              <p className="text-[12.5px] text-white/50 mt-2 leading-relaxed line-clamp-4">
+              <p className="text-label text-white/50 mt-2 leading-relaxed line-clamp-4">
                 {current.next_step || current.description}
               </p>
             )}
-            <div className="flex items-center gap-2 mt-3 text-[11px] text-white/40 tabular-nums flex-wrap">
+            <div className="flex items-center gap-2 mt-3 text-micro text-white/40 tabular-nums flex-wrap">
               <span>waiting {humanAge(current.updated_at) || 'just now'}</span>
               {current.lever_score != null && <span>· lever {current.lever_score}/10</span>}
             </div>
             <button
               onClick={() => { h.select(); setOpenId(current.id) }}
-              className="mt-3 text-[12px] text-white/45 underline underline-offset-2 active:text-white/70"
+              className="mt-3 text-label text-white/45 underline underline-offset-2 active:text-white/70"
             >
               Full detail
             </button>
@@ -324,7 +324,7 @@ export function MobileToday({
       ) : null}
 
       {carried.length > 0 && (
-        <p className="text-[12px] text-white/40 text-center px-4">
+        <p className="text-label text-white/40 text-center px-4">
           Agents are carrying {carried.length} {carried.length === 1 ? 'task' : 'tasks'} themselves; none need you.
         </p>
       )}
@@ -335,7 +335,7 @@ export function MobileToday({
           action={
             <button
               onClick={() => { h.tap(); setShowStale(s => !s) }}
-              className="text-[13px] text-white/55 active:text-white"
+              className="text-body text-white/55 active:text-white"
             >
               {showStale ? 'Hide' : 'Show'}
             </button>
@@ -350,7 +350,7 @@ export function MobileToday({
               trailing={
                 <button
                   onClick={(e) => { e.stopPropagation(); supersede(t.id) }}
-                  className="text-[13px] text-red-300 font-semibold px-3 py-1.5 rounded-full bg-red-500/10 active:bg-red-500/20 inline-flex items-center min-h-[44px] min-w-[44px] justify-center"
+                  className="text-body text-red-300 font-semibold px-3 py-1.5 rounded-full bg-red-500/10 active:bg-red-500/20 inline-flex items-center min-h-[44px] min-w-[44px] justify-center"
                 >
                   Drop
                 </button>
@@ -398,10 +398,10 @@ export function MobileToday({
         {sendBackFor && (
           <div className="px-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] flex flex-col gap-3">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">
+              <p className="text-micro font-bold uppercase tracking-widest text-white/45">
                 Send back to {sendBackFor.agent || sendBackFor.owner || 'the agent'}
               </p>
-              <h3 className="text-[16px] font-bold text-white mt-1 leading-snug">{sendBackFor.title}</h3>
+              <h3 className="text-lede font-bold text-white mt-1 leading-snug">{sendBackFor.title}</h3>
             </div>
             <div className="flex items-start gap-2">
               {dictation.supported && (
@@ -422,7 +422,7 @@ export function MobileToday({
                 onChange={(e) => setNote(e.target.value)}
                 rows={3}
                 placeholder={dictation.supported ? 'Tap the mic and say why, or type...' : 'Tell the agent what to change...'}
-                className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-[15px] text-white/85 focus:outline-none focus:border-violet-500/40 placeholder-white/25"
+                className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-ui text-white/85 focus:outline-none focus:border-violet-500/40 placeholder-white/25"
               />
             </div>
             <Big tone="primary" disabled={taskBusy || !note.trim()} onClick={() => sendBack(sendBackFor, note.trim())}>
@@ -442,8 +442,8 @@ export function MobileToday({
         {deferFor && (
           <div className="px-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] flex flex-col gap-3">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">Defer</p>
-              <h3 className="text-[16px] font-bold text-white mt-1 leading-snug">{deferFor.title}</h3>
+              <p className="text-micro font-bold uppercase tracking-widest text-white/45">Defer</p>
+              <h3 className="text-lede font-bold text-white mt-1 leading-snug">{deferFor.title}</h3>
             </div>
             <div className="flex flex-col gap-2">
               <Big tone="primary" disabled={taskBusy} onClick={() => defer(deferFor, 'tomorrow')}>Tomorrow</Big>

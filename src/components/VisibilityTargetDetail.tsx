@@ -255,27 +255,27 @@ function HeaderStrip({
   return (
     <header className="px-5 pt-5 pb-4 border-b border-white/[0.06] space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-[20px] text-white font-semibold leading-tight">{target.title}</h2>
+        <h2 className="text-title text-white font-semibold leading-tight">{target.title}</h2>
         <div className="flex flex-col items-end gap-1 flex-shrink-0 mt-1">
           {enriching && (
-            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-violet-400/40 bg-violet-500/10 text-violet-200 inline-flex items-center gap-1.5">
+            <span className="text-micro uppercase tracking-wider px-2 py-0.5 rounded-full border border-violet-400/40 bg-violet-500/10 text-violet-200 inline-flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-violet-300 animate-pulse" />
               {autoFired ? 'Auto enriching' : 'Enriching now'}
             </span>
           )}
           {target.deep_enriched_at && !enriching && (
-            <span className="text-[10px] text-emerald-300/80 uppercase tracking-wider">
+            <span className="text-micro text-emerald-300/80 uppercase tracking-wider">
               Deep enriched {formatDistanceToNow(parseISO(target.deep_enriched_at), { addSuffix: true })}
             </span>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-wrap text-[11px]">
+      <div className="flex items-center gap-2 flex-wrap text-micro">
         {target.type && <Chip>{target.type}</Chip>}
         {target.format && <Chip>{target.format}</Chip>}
         {target.location && <Chip><MapPin size={10} className="mr-1" />{target.location}</Chip>}
         {deadlineMeta && (
-          <span className={`px-2 py-0.5 rounded-full border text-[11px] ${deadlineMeta.tone}`}>
+          <span className={`px-2 py-0.5 rounded-full border text-micro ${deadlineMeta.tone}`}>
             <Clock size={10} className="inline-block mr-1" />
             {deadlineMeta.label}
           </span>
@@ -305,28 +305,28 @@ function StrategicValueBlock({
   if (target.strategic_value) {
     return (
       <section className="rounded-xl border border-violet-500/30 bg-violet-500/[0.05] p-4 border-l-[3px] border-l-violet-400">
-        <h3 className="text-[10px] uppercase tracking-[0.16em] text-violet-300/80 mb-2 flex items-center gap-1">
+        <h3 className="text-micro uppercase tracking-[0.14em] text-violet-300/80 mb-2 flex items-center gap-1">
           <Sparkles size={11} /> Strategic value
         </h3>
-        <p className="text-[15px] text-white/90 leading-relaxed">{target.strategic_value}</p>
+        <p className="text-ui text-white/90 leading-relaxed">{target.strategic_value}</p>
       </section>
     )
   }
   return (
     <section className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 text-center">
-      <p className="text-[13px] text-white/65 mb-3">
+      <p className="text-body text-white/65 mb-3">
         Not yet deep-enriched. Run Nova to get strategic value, angle, proposed talk, audience snapshot, and a real prep checklist.
       </p>
       <button
         type="button"
         onClick={onEnrich}
         disabled={enriching}
-        className="px-4 py-2 rounded-lg bg-violet-500/20 border border-violet-400/40 text-violet-100 text-[12px] font-medium hover:bg-violet-500/30 disabled:opacity-50"
+        className="px-4 py-2 rounded-lg bg-violet-500/20 border border-violet-400/40 text-violet-100 text-label font-medium hover:bg-violet-500/30 disabled:opacity-50"
       >
         {enriching ? 'Enriching…' : 'Deep enrich now'}
       </button>
       {target.why_relevant && (
-        <p className="text-[11px] text-white/50 mt-3 italic">Legacy note: {target.why_relevant}</p>
+        <p className="text-micro text-white/50 mt-3 italic">Legacy note: {target.why_relevant}</p>
       )}
     </section>
   )
@@ -335,8 +335,8 @@ function StrategicValueBlock({
 function AngleBlock({ angle }: { angle: string }) {
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-      <h3 className="text-[10px] uppercase tracking-[0.14em] text-white/55 mb-2">Angle</h3>
-      <p className="text-[13px] text-white/80 italic leading-relaxed">{angle}</p>
+      <h3 className="text-micro uppercase tracking-[0.14em] text-white/55 mb-2">Angle</h3>
+      <p className="text-body text-white/80 italic leading-relaxed">{angle}</p>
     </section>
   )
 }
@@ -353,18 +353,18 @@ function ProposedTalkCard({
   return (
     <section className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
       <header className="flex items-baseline justify-between gap-3 mb-2">
-        <h3 className="text-[10px] uppercase tracking-[0.14em] text-emerald-300/80">Proposed talk</h3>
+        <h3 className="text-micro uppercase tracking-[0.14em] text-emerald-300/80">Proposed talk</h3>
         <button
           type="button"
           onClick={onCopy}
-          className="text-[11px] text-white/50 hover:text-white/85 flex items-center gap-1"
+          className="text-micro text-white/50 hover:text-white/85 flex items-center gap-1"
         >
           {copied ? <><CheckCircle2 size={11} className="text-emerald-300" /> Copied</> : <><Copy size={11} /> Copy abstract</>}
         </button>
       </header>
-      <p className="text-[15px] text-white font-medium leading-snug mb-2">{talk.title}</p>
-      <p className="text-[13px] text-white/80 leading-relaxed whitespace-pre-wrap">{talk.abstract}</p>
-      <div className="flex items-center gap-2 mt-3 text-[10px]">
+      <p className="text-ui text-white font-medium leading-snug mb-2">{talk.title}</p>
+      <p className="text-body text-white/80 leading-relaxed whitespace-pre-wrap">{talk.abstract}</p>
+      <div className="flex items-center gap-2 mt-3 text-micro">
         <Chip>{talk.format}</Chip>
         <Chip>{talk.length_min} min</Chip>
       </div>
@@ -375,14 +375,14 @@ function ProposedTalkCard({
 function AudienceSnapshot({ target }: { target: VisibilityTargetDeep }) {
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-      <h3 className="text-[10px] uppercase tracking-[0.14em] text-white/55 mb-2">Audience</h3>
-      <div className="grid grid-cols-3 gap-3 text-[12px]">
+      <h3 className="text-micro uppercase tracking-[0.14em] text-white/55 mb-2">Audience</h3>
+      <div className="grid grid-cols-3 gap-3 text-label">
         <Stat label="Size" value={target.audience_size ? `${target.audience_size.toLocaleString()}+` : '-'} />
         <Stat label="Sector" value={target.audience_sector || '-'} />
         <Stat label="Seniority" value={target.audience_seniority || '-'} />
       </div>
       {target.audience && (
-        <p className="text-[12px] text-white/65 mt-3 leading-relaxed">{target.audience}</p>
+        <p className="text-label text-white/65 mt-3 leading-relaxed">{target.audience}</p>
       )}
     </section>
   )
@@ -391,7 +391,7 @@ function AudienceSnapshot({ target }: { target: VisibilityTargetDeep }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-wider text-white/35">{label}</p>
+      <p className="text-micro uppercase tracking-wider text-white/35">{label}</p>
       <p className="text-white/85 mt-0.5">{value}</p>
     </div>
   )
@@ -402,12 +402,12 @@ function PastSpeakers({ speakers }: { speakers: NonNullable<VisibilityTargetDeep
   return (
     <details className="rounded-xl border border-white/[0.06] bg-white/[0.015]" open={defaultOpen}>
       <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-4 py-3 flex items-baseline justify-between hover:bg-white/[0.02] transition-colors">
-        <h3 className="text-[10px] uppercase tracking-[0.14em] text-white/55">Past speakers</h3>
-        <span className="text-[11px] text-white/45">{speakers.length}</span>
+        <h3 className="text-micro uppercase tracking-[0.14em] text-white/55">Past speakers</h3>
+        <span className="text-micro text-white/45">{speakers.length}</span>
       </summary>
       <ul className="px-4 pb-3 space-y-2">
         {speakers.map((s, i) => (
-          <li key={`${s.name}-${i}`} className="text-[12px] text-white/75 leading-snug">
+          <li key={`${s.name}-${i}`} className="text-label text-white/75 leading-snug">
             <a
               href={`https://www.google.com/search?q=${encodeURIComponent(s.name + ' ' + (s.role || ''))}`}
               target="_blank"
@@ -417,7 +417,7 @@ function PastSpeakers({ speakers }: { speakers: NonNullable<VisibilityTargetDeep
               {s.name}
             </a>
             {s.role && <span className="text-white/55">, {s.role}</span>}
-            {s.talk_title && <p className="text-[11px] text-white/45 italic ml-0.5">{s.talk_title}</p>}
+            {s.talk_title && <p className="text-micro text-white/45 italic ml-0.5">{s.talk_title}</p>}
           </li>
         ))}
       </ul>
@@ -433,8 +433,8 @@ function CfpChecklist({ req }: { req: NonNullable<VisibilityTargetDeep['cfp_requ
   ]
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-      <h3 className="text-[10px] uppercase tracking-[0.14em] text-white/55 mb-2">CFP requirements</h3>
-      <ul className="grid grid-cols-2 gap-2 text-[12px]">
+      <h3 className="text-micro uppercase tracking-[0.14em] text-white/55 mb-2">CFP requirements</h3>
+      <ul className="grid grid-cols-2 gap-2 text-label">
         {items.map(it => (
           <li key={it.label} className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${it.on ? 'bg-amber-300' : 'bg-white/15'}`} />
@@ -449,7 +449,7 @@ function CfpChecklist({ req }: { req: NonNullable<VisibilityTargetDeep['cfp_requ
         )}
       </ul>
       {req.additional_notes && (
-        <p className="text-[11px] text-white/55 mt-2 italic">{req.additional_notes}</p>
+        <p className="text-micro text-white/55 mt-2 italic">{req.additional_notes}</p>
       )}
     </section>
   )
@@ -458,8 +458,8 @@ function CfpChecklist({ req }: { req: NonNullable<VisibilityTargetDeep['cfp_requ
 function EffortStrip({ effort }: { effort: NonNullable<VisibilityTargetDeep['effort_estimate']> }) {
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-      <h3 className="text-[10px] uppercase tracking-[0.14em] text-white/55 mb-2">Effort estimate</h3>
-      <div className="grid grid-cols-3 gap-3 text-[12px]">
+      <h3 className="text-micro uppercase tracking-[0.14em] text-white/55 mb-2">Effort estimate</h3>
+      <div className="grid grid-cols-3 gap-3 text-label">
         <Stat label="Prep" value={effort.prep_hours != null ? `${effort.prep_hours}h` : '-'} />
         <Stat label="Travel" value={effort.travel_days != null ? (effort.travel_days === 0 ? 'online' : `${effort.travel_days}d`) : '-'} />
         <Stat
@@ -480,8 +480,8 @@ function RiskBlock({ notes }: { notes: string }) {
     <section className="rounded-xl border border-amber-500/25 bg-amber-500/[0.05] p-4 flex items-start gap-2">
       <AlertTriangle size={14} className="text-amber-300 flex-shrink-0 mt-0.5" />
       <div>
-        <h3 className="text-[10px] uppercase tracking-[0.14em] text-amber-200 mb-1">Risk</h3>
-        <p className="text-[12px] text-white/80 leading-relaxed">{notes}</p>
+        <h3 className="text-micro uppercase tracking-[0.14em] text-amber-200 mb-1">Risk</h3>
+        <p className="text-label text-white/80 leading-relaxed">{notes}</p>
       </div>
     </section>
   )
@@ -498,8 +498,8 @@ function NextActions({
 }) {
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-      <h3 className="text-[10px] uppercase tracking-[0.14em] text-white/55 mb-2">Next actions</h3>
-      <ol className="space-y-1.5 text-[12px]">
+      <h3 className="text-micro uppercase tracking-[0.14em] text-white/55 mb-2">Next actions</h3>
+      <ol className="space-y-1.5 text-label">
         {actions.map((a, i) => {
           const stripped = typeof a === 'string' ? a.replace(/^\[x\] /, '') : ''
           const isChecked = checked.has(i)
@@ -547,7 +547,7 @@ function ActionFooter({
         <button
           type="button"
           onClick={onApprove}
-          className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-400/40 text-emerald-100 text-[12px] font-medium hover:bg-emerald-500/25"
+          className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-400/40 text-emerald-100 text-label font-medium hover:bg-emerald-500/25"
         >
           Approve, start prep
         </button>
@@ -556,21 +556,21 @@ function ActionFooter({
         type="button"
         onClick={onReEnrich}
         disabled={enriching}
-        className="px-3 py-1.5 rounded-lg border border-white/15 text-white/75 text-[12px] hover:border-white/35 hover:text-white disabled:opacity-50"
+        className="px-3 py-1.5 rounded-lg border border-white/15 text-white/75 text-label hover:border-white/35 hover:text-white disabled:opacity-50"
       >
         {enriching ? 'Enriching…' : isEnriched ? 'Re-enrich' : 'Deep enrich'}
       </button>
       <button
         type="button"
         onClick={onSnooze}
-        className="px-3 py-1.5 rounded-lg border border-white/15 text-white/55 text-[12px] hover:text-white/85"
+        className="px-3 py-1.5 rounded-lg border border-white/15 text-white/55 text-label hover:text-white/85"
       >
         Tomorrow
       </button>
       <button
         type="button"
         onClick={onReject}
-        className="ml-auto px-3 py-1.5 rounded-lg border border-rose-400/30 text-rose-300/85 text-[12px] hover:bg-rose-500/10"
+        className="ml-auto px-3 py-1.5 rounded-lg border border-rose-400/30 text-rose-300/85 text-label hover:bg-rose-500/10"
       >
         Reject
       </button>
@@ -579,7 +579,7 @@ function ActionFooter({
           href={target.cfp_url || target.event_url || '#'}
           target="_blank"
           rel="noreferrer noopener"
-          className="px-3 py-1.5 rounded-lg border border-white/15 text-white/75 text-[12px] hover:border-white/35 hover:text-white inline-flex items-center gap-1"
+          className="px-3 py-1.5 rounded-lg border border-white/15 text-white/75 text-label hover:border-white/35 hover:text-white inline-flex items-center gap-1"
         >
           Open <ExternalLink size={11} />
         </a>

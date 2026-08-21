@@ -21,7 +21,7 @@ export function SplitPane({ left, right, leftWidth = '35%', hasSelection, onBack
     return hasSelection ? (
       <div className="flex flex-col gap-3">
         {onBack && (
-          <button onClick={onBack} className="flex items-center gap-1 text-[12px] text-white/50 hover:text-white self-start">
+          <button onClick={onBack} className="flex items-center gap-1 text-label text-white/50 hover:text-white self-start">
             <ChevronLeft size={14} /> Back
           </button>
         )}

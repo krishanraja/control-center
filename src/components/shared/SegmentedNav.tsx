@@ -49,19 +49,19 @@ const TRAY: Record<NonNullable<Props<string>['variant']>, string> = {
 
 const TAB: Record<NonNullable<Props<string>['variant']>, { base: string; on: string; off: string }> = {
   pill: {
-    base: 'px-3.5 py-1.5 rounded-full text-[13px] whitespace-nowrap border transition-colors',
+    base: 'px-3.5 py-1.5 rounded-full text-body whitespace-nowrap border transition-colors',
     on: 'btn-contrast border-white font-semibold',
     off: 'border-white/10 text-white/65 hover:bg-white/[0.06]',
   },
   bordered: {
-    base: 'px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors',
+    base: 'px-3 py-1.5 rounded-lg text-label font-semibold border transition-colors',
     on: 'border-white/20 bg-white/[0.08] text-white',
     off: 'border-white/[0.06] text-white/45 hover:text-white/75 hover:border-white/15',
   },
   segmented: {
     // flex-1 so segments split the width evenly and each is a real tap target
     // rather than a 10px pill.
-    base: 'flex-1 min-h-[38px] rounded-lg text-[12px] font-semibold transition-colors',
+    base: 'flex-1 min-h-[38px] rounded-lg text-label font-semibold transition-colors',
     on: 'bg-white/15 text-white',
     off: 'text-white/55 hover:text-white/80',
   },

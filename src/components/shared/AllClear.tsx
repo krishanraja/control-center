@@ -55,8 +55,8 @@ export function AllClear({ title, sub, nextHint, tone = 'emerald' }: Props) {
             <DrawnCheck size={40} stroke={t.stroke} />
           </div>
         </div>
-        <p className="text-[22px] font-serif text-white/92 tracking-tight">{title}</p>
-        {sub && <p className="text-[13px] text-white/45 mt-2 max-w-[18rem] leading-relaxed">{sub}</p>}
+        <p className="text-title font-serif text-white/92 tracking-tight">{title}</p>
+        {sub && <p className="text-body text-white/45 mt-2 max-w-[18rem] leading-relaxed">{sub}</p>}
       </div>
     )
   }
@@ -71,17 +71,17 @@ export function AllClear({ title, sub, nextHint, tone = 'emerald' }: Props) {
           <DrawnCheck size={30} stroke={t.stroke} />
         </div>
       </div>
-      <p className="text-[18px] font-serif text-white/92 tracking-tight">{title}</p>
-      {sub && <p className="text-[12.5px] text-white/45 mt-1.5 max-w-[22rem] leading-relaxed">{sub}</p>}
+      <p className="text-title font-serif text-white/92 tracking-tight">{title}</p>
+      {sub && <p className="text-label text-white/45 mt-1.5 max-w-[22rem] leading-relaxed">{sub}</p>}
       {nextHint && (
         <button
           type="button"
           onClick={nextHint.onClick}
-          className="mt-5 inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2 text-[13px] font-medium text-white/80 transition-colors hover:bg-white/[0.08] hover:text-white"
+          className="mt-5 inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2 text-body font-medium text-white/80 transition-colors hover:bg-white/[0.08] hover:text-white"
         >
           {nextHint.label}
           {nextHint.shortcut && (
-            <kbd className="rounded-md border border-white/15 bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-mono text-white/55">
+            <kbd className="rounded-md border border-white/15 bg-white/[0.06] px-1.5 py-0.5 text-micro font-mono text-white/55">
               {nextHint.shortcut}
             </kbd>
           )}

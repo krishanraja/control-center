@@ -141,13 +141,13 @@ export function DecisionsInbox({
         action={decisions.length > 0 ? (
           <div className="flex items-center gap-2">
             {/* The finishable cue: this list is a sitting, not a state of being. */}
-            <span className="text-[11px] text-emerald-300/80 tabular-nums whitespace-nowrap hidden sm:inline">
+            <span className="text-micro text-emerald-300/80 tabular-nums whitespace-nowrap hidden sm:inline">
               about {toZero} {toZero === 1 ? 'minute' : 'minutes'} to zero
             </span>
             <button
               type="button"
               onClick={() => { h.tap(); setDeckSeed(null); setDeckOpen(true) }}
-              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-400/20 transition-colors whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-micro font-semibold text-emerald-300 hover:bg-emerald-400/20 transition-colors whitespace-nowrap"
             >
               <DeckIcon size={11} /> Clear the queue
             </button>
@@ -164,7 +164,7 @@ export function DecisionsInbox({
                 key={q.kind}
                 type="button"
                 onClick={() => { h.tap(); onNavigate?.(q.tab) }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[11px] text-white/70 hover:bg-white/[0.07] hover:text-white/90 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-micro text-white/70 hover:bg-white/[0.07] hover:text-white/90 transition-colors"
                 title={`Open the ${q.label} triage deck`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${KIND_DOT[q.kind]}`} />
@@ -201,14 +201,14 @@ export function DecisionsInbox({
                   onClick={() => select(d)}
                   trailing={
                     <div className="flex flex-col items-end gap-1">
-                      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.1em] text-white/45">
+                      <span className="inline-flex items-center gap-1 text-micro uppercase tracking-[0.14em] text-white/45">
                         <Icon size={11} /> {KIND_LABEL[d.kind]}
                         <span onClick={e => e.stopPropagation()}>
                           <WhyBadge why={whyForDecision(d)} label={KIND_LABEL[d.kind]?.toLowerCase() || 'item'} />
                         </span>
                       </span>
                       {priorityChip && (
-                        <span className={`text-[10px] uppercase tracking-[0.1em] ${d.priority === 'overdue' || d.priority === 'high' ? 'text-status-blocked' : 'text-status-needsYou'}`}>
+                        <span className={`text-micro uppercase tracking-[0.14em] ${d.priority === 'overdue' || d.priority === 'high' ? 'text-status-blocked' : 'text-status-needsYou'}`}>
                           {priorityChip}
                         </span>
                       )}
@@ -221,7 +221,7 @@ export function DecisionsInbox({
               <button
                 type="button"
                 onClick={() => { h.tap(); setDeckSeed(null); setDeckOpen(true) }}
-                className="w-full px-5 py-2.5 text-[11px] text-white/45 hover:text-white/80 text-left transition-colors"
+                className="w-full px-5 py-2.5 text-micro text-white/45 hover:text-white/80 text-left transition-colors"
               >
                 + {overflow} more · rule on them one at a time
               </button>
@@ -236,7 +236,7 @@ export function DecisionsInbox({
           <button
             type="button"
             onClick={() => setTailOpen(v => !v)}
-            className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] text-white/35 hover:text-white/65 transition-colors"
+            className="inline-flex items-center gap-1.5 px-2 py-1 text-micro text-white/35 hover:text-white/65 transition-colors"
           >
             <ChevronDown size={12} className={`transition-transform ${tailOpen ? 'rotate-180' : ''}`} />
             {stale.length > 0 ? `Hidden · ${stale.length} stale (>${STALE_DAYS}d) · backburner` : 'Backburner'}
@@ -246,19 +246,19 @@ export function DecisionsInbox({
               {stale.length > 0 && (
                 <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-3">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="text-[11px] text-white/50">{stale.length} items untouched for {STALE_DAYS}+ days with no progress.</span>
+                    <span className="text-micro text-white/50">{stale.length} items untouched for {STALE_DAYS}+ days with no progress.</span>
                     <div className="flex gap-2">
                       <button
                         onClick={() => bulkStale('snooze_30d')}
                         disabled={bulkBusy}
-                        className="px-2.5 py-1 rounded-lg text-[11px] border border-white/10 text-white/60 hover:text-white/85 disabled:opacity-40"
+                        className="px-2.5 py-1 rounded-lg text-micro border border-white/10 text-white/60 hover:text-white/85 disabled:opacity-40"
                       >
                         Snooze all 30d
                       </button>
                       <button
                         onClick={() => bulkStale('dismiss_superseded')}
                         disabled={bulkBusy}
-                        className="px-2.5 py-1 rounded-lg text-[11px] border border-red-400/20 text-red-300/80 hover:text-red-200 disabled:opacity-40"
+                        className="px-2.5 py-1 rounded-lg text-micro border border-red-400/20 text-red-300/80 hover:text-red-200 disabled:opacity-40"
                       >
                         Dismiss all
                       </button>
@@ -266,7 +266,7 @@ export function DecisionsInbox({
                   </div>
                   <ul className="mt-2 space-y-1 max-h-44 overflow-y-auto">
                     {stale.slice(0, 30).map(t => (
-                      <li key={t.id} className="text-[11px] text-white/40 truncate">{t.title}</li>
+                      <li key={t.id} className="text-micro text-white/40 truncate">{t.title}</li>
                     ))}
                   </ul>
                 </div>

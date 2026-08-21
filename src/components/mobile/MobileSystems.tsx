@@ -115,7 +115,7 @@ export function MobileSystems() {
             <button
               onClick={liveRefresh}
               disabled={loading || refreshing}
-              className="px-5 py-3 rounded-full bg-white/10 text-white text-[15px] font-semibold active:scale-95 disabled:opacity-40 transition-transform"
+              className="px-5 py-3 rounded-full bg-white/10 text-white text-ui font-semibold active:scale-95 disabled:opacity-40 transition-transform"
             >
               {refreshing ? <Working size={11} /> : 'Refresh'}
             </button>
@@ -151,7 +151,7 @@ export function MobileSystems() {
       </div>
 
       {error && (
-        <div className="rounded-3xl border border-red-400/30 bg-red-500/10 p-5 text-[16px] text-red-200">
+        <div className="rounded-3xl border border-red-400/30 bg-red-500/10 p-5 text-lede text-red-200">
           {error}
         </div>
       )}
@@ -180,7 +180,7 @@ export function MobileSystems() {
                 detail={s.note || undefined}
                 trailing={
                   s.last_checked && (
-                    <span className="text-[14px] text-white/35 tabular-nums">{humanAgo(s.last_checked)}</span>
+                    <span className="text-ui text-white/35 tabular-nums">{humanAgo(s.last_checked)}</span>
                   )
                 }
                 onClick={() => { h.select(); setOpenId(s.id) }}

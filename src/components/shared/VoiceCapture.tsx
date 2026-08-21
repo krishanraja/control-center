@@ -92,7 +92,7 @@ export function MicButton({
         onClick={recording ? stop : start}
         disabled={disabled || busy}
         aria-label={recording ? 'Stop recording' : label}
-        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold border transition-colors ${
+        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-micro font-semibold border transition-colors ${
           recording
             ? 'bg-rose-500/25 border-rose-400/50 text-rose-100 animate-pulse'
             : 'bg-violet-500/15 border-violet-400/30 text-violet-100 hover:bg-violet-500/30'

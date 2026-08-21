@@ -52,7 +52,7 @@ interface Props {
 export function LeadSourcePill({ source, href, size = 'xs' }: Props) {
   const meta = META[source] || META.manual
   const Icon = meta.icon
-  const padding = size === 'sm' ? 'px-1.5 py-0.5 text-[10px]' : 'px-1 py-0.5 text-[9px]'
+  const padding = size === 'sm' ? 'px-1.5 py-0.5 text-micro' : 'px-1 py-0.5 text-micro'
   const iconSize = size === 'sm' ? 11 : 10
 
   const inner = (

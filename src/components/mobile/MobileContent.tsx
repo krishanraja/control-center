@@ -113,8 +113,8 @@ export function MobileContent({ ideaId }: Props = {}) {
         {!loading && activeCount === 0 && (
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-8 text-center mt-4">
             <CheckCircle2 size={22} className="text-emerald-400/70 mx-auto mb-2" />
-            <p className="text-[13px] text-white/70">You're clear.</p>
-            <p className="text-[11px] text-white/40 mt-1">Nothing in flight. New work shows up here when it's ready.</p>
+            <p className="text-body text-white/70">You're clear.</p>
+            <p className="text-micro text-white/40 mt-1">Nothing in flight. New work shows up here when it's ready.</p>
           </div>
         )}
 
@@ -125,7 +125,7 @@ export function MobileContent({ ideaId }: Props = {}) {
 
             {/* tier 1 — ready for you */}
             {readyDeck.length > 0 && (
-              <div className="mb-1.5 mt-3 text-[11px] uppercase tracking-[0.12em] text-white/40">Ready for you</div>
+              <div className="mb-1.5 mt-3 text-micro uppercase tracking-[0.14em] text-white/40">Ready for you</div>
             )}
             {readyDeck.map(({ i, urg }) => (
               <IdeaButton key={i.id} i={i} urg={urg} onClick={() => open(i.id)} />
@@ -134,8 +134,8 @@ export function MobileContent({ ideaId }: Props = {}) {
             {/* tier 2 — drafts, narrative clusters first then loose */}
             {(clusters.length > 0 || looseDrafts.length > 0) && (
               <div className="flex items-center gap-2 mb-1.5 mt-4">
-                <span className="text-[11px] uppercase tracking-[0.12em] text-white/40">Drafts waiting on you</span>
-                <span className="text-[11px] text-white/30 tabular-nums">{draftTotal}</span>
+                <span className="text-micro uppercase tracking-[0.14em] text-white/40">Drafts waiting on you</span>
+                <span className="text-micro text-white/30 tabular-nums">{draftTotal}</span>
               </div>
             )}
             {clusters.map(c => (
@@ -145,15 +145,15 @@ export function MobileContent({ ideaId }: Props = {}) {
               <IdeaButton key={i.id} i={i} urg={null} onClick={() => open(i.id)} />
             ))}
             {draftTotal > renderedDraftCount && (
-              <p className="text-[11px] text-white/35 px-1 mt-1">+{draftTotal - renderedDraftCount} more drafts</p>
+              <p className="text-micro text-white/35 px-1 mt-1">+{draftTotal - renderedDraftCount} more drafts</p>
             )}
 
             {/* readyDeck + drafts can both be empty even with active>0 — everything
                 upstream. Surface it instead of a false all-clear. */}
             {readyDeck.length === 0 && clusters.length === 0 && looseDrafts.length === 0 && (
               <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-6 text-center mt-2">
-                <p className="text-[13px] text-white/70">Nothing awaiting your sign-off yet.</p>
-                <p className="text-[11px] text-white/40 mt-1">Everything in flight is still upstream (research / seeds).</p>
+                <p className="text-body text-white/70">Nothing awaiting your sign-off yet.</p>
+                <p className="text-micro text-white/40 mt-1">Everything in flight is still upstream (research / seeds).</p>
               </div>
             )}
 
@@ -166,8 +166,8 @@ export function MobileContent({ ideaId }: Props = {}) {
               >
                 <Layers size={18} className="text-violet-300 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-violet-100">{counts.upstream} upstream to triage</p>
-                  <p className="text-[11px] text-white/45">Seeds &amp; research piling up — swipe to clear them fast.</p>
+                  <p className="text-body font-semibold text-violet-100">{counts.upstream} upstream to triage</p>
+                  <p className="text-micro text-white/45">Seeds &amp; research piling up — swipe to clear them fast.</p>
                 </div>
                 <ChevronRight size={16} className="text-violet-300/70 ml-auto flex-shrink-0" />
               </button>
@@ -205,11 +205,11 @@ function DraftClusterBlock({ cluster, onOpen, onMerge }: { cluster: DraftCluster
       <div className="flex items-start gap-2 px-1 pt-0.5">
         <GitMerge size={14} className="text-violet-300 mt-0.5 flex-shrink-0" />
         <div className="min-w-0">
-          <p className="text-[12px] font-semibold text-violet-100">
+          <p className="text-label font-semibold text-violet-100">
             {cluster.members.length} drafts share a narrative
           </p>
           {cluster.summary && (
-            <p className="text-[11px] text-white/55 leading-snug mt-0.5">{cluster.summary}</p>
+            <p className="text-micro text-white/55 leading-snug mt-0.5">{cluster.summary}</p>
           )}
         </div>
       </div>
@@ -221,7 +221,7 @@ function DraftClusterBlock({ cluster, onOpen, onMerge }: { cluster: DraftCluster
       <button
         type="button"
         onClick={onMerge}
-        className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-violet-400/40 bg-violet-500/15 active:bg-violet-500/25 py-2.5 text-[12.5px] font-semibold text-violet-100 transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-violet-400/40 bg-violet-500/15 active:bg-violet-500/25 py-2.5 text-label font-semibold text-violet-100 transition-colors"
       >
         <Sparkles size={13} />
         Merge into one narrative
@@ -240,21 +240,21 @@ function IdeaButton({ i, urg, onClick }: { i: ContentIdeaRow; urg: Urgency; onCl
       <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
         <StateChip state={i.state} />
         {urg && <UrgencyChip urg={urg} />}
-        {i.lane && <span className="text-[10px] uppercase tracking-[0.1em] text-white/40">{i.lane.replace(/_/g, ' ')}</span>}
+        {i.lane && <span className="text-micro uppercase tracking-[0.14em] text-white/40">{i.lane.replace(/_/g, ' ')}</span>}
         <ChevronRight size={15} className="text-white/30 ml-auto" />
       </div>
-      <p className="text-[14px] font-semibold text-white leading-snug line-clamp-2">{i.idea}</p>
+      <p className="text-ui font-semibold text-white leading-snug line-clamp-2">{i.idea}</p>
       {(i.body || i.thesis) && (
-        <p className="text-[12px] text-white/55 leading-snug mt-1 line-clamp-2">
+        <p className="text-label text-white/55 leading-snug mt-1 line-clamp-2">
           {(i.body || i.thesis || '').slice(0, 180)}
         </p>
       )}
       <div className="flex items-center gap-2 mt-2">
-        {!i.body?.trim() && <span className="text-[10px] text-amber-200/70">no draft yet</span>}
+        {!i.body?.trim() && <span className="text-micro text-amber-200/70">no draft yet</span>}
         {i.body?.includes('—') && (
-          <span className="text-[10px] text-rose-200/80 inline-flex items-center gap-0.5"><AlertTriangle size={10} /> em dash</span>
+          <span className="text-micro text-rose-200/80 inline-flex items-center gap-0.5"><AlertTriangle size={10} /> em dash</span>
         )}
-        <span className="ml-auto text-[11px] text-violet-300/90">Open →</span>
+        <span className="ml-auto text-micro text-violet-300/90">Open →</span>
       </div>
     </button>
   )
@@ -267,7 +267,7 @@ function StateChip({ state }: { state: ContentIdeaRow['state'] }) {
     drafting: { label: 'Drafting', cls: 'bg-violet-500/15 text-violet-200' },
   }
   const m = map[state] || { label: state, cls: 'bg-white/[0.08] text-white/70' }
-  return <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.08em] font-semibold ${m.cls}`}>{m.label}</span>
+  return <span className={`text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] font-semibold ${m.cls}`}>{m.label}</span>
 }
 
 function UrgencyChip({ urg }: { urg: Exclude<Urgency, null> }) {
@@ -277,5 +277,5 @@ function UrgencyChip({ urg }: { urg: Exclude<Urgency, null> }) {
     due: { label: 'Due', cls: 'bg-orange-500/15 text-orange-200' },
   } as const
   const m = map[urg]
-  return <span className={`text-[10px] px-1.5 py-0.5 rounded inline-flex items-center gap-0.5 ${m.cls}`}><Clock size={9} /> {m.label}</span>
+  return <span className={`text-micro px-1.5 py-0.5 rounded inline-flex items-center gap-0.5 ${m.cls}`}><Clock size={9} /> {m.label}</span>
 }

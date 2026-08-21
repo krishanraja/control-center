@@ -90,13 +90,13 @@ export function GrowthTab({
   return (
     <div className="flex flex-col gap-3 min-h-0 h-full">
       <div className="flex-shrink-0">
-        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Growth</h1>
-        <p className="text-xs md:text-[13px] text-white/50 mt-0.5">
+        <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight">Growth</h1>
+        <p className="text-xs md:text-body text-white/50 mt-0.5">
           {g.loading
             ? 'Reading the map...'
             : `${g.touchpoints.length} touchpoints · ${counts.map} open questions · ${counts.work} in this week's batch · ${counts.council} council calls waiting · ${pct(geoRate)} GEO citation rate`}
         </p>
-        {g.error && <p className="text-[11.5px] text-rose-300 mt-1">Could not read growth data: {g.error}</p>}
+        {g.error && <p className="text-label text-rose-300 mt-1">Could not read growth data: {g.error}</p>}
       </div>
 
       <SegmentedNav<GrowthSectionId>
@@ -104,7 +104,7 @@ export function GrowthTab({
           id: sec.id,
           label: sec.label,
           badge: counts[sec.id] > 0 ? (
-            <span className={`ml-1.5 rounded-full px-1.5 py-0.5 align-middle text-[10.5px] tabular-nums ${
+            <span className={`ml-1.5 rounded-full px-1.5 py-0.5 align-middle text-micro tabular-nums ${
               sec.id === 'work' && overCap ? 'bg-rose-500/25 text-rose-200' : 'bg-white/10'
             }`}>
               {counts[sec.id]}

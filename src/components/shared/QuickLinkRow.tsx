@@ -25,7 +25,7 @@ export function QuickLinkRow({ links }: { links: QuickLink[] }) {
           target={l.href.startsWith('mailto:') ? undefined : '_blank'}
           rel="noreferrer noopener"
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] active:bg-white/[0.1] transition-colors"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] active:bg-white/[0.1] transition-colors"
         >
           {l.icon ?? <ExternalLink size={11} />}
           {l.label}

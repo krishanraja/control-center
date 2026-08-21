@@ -67,15 +67,15 @@ export function DesktopExec() {
   return (
     <div className="space-y-5 md:space-y-6">
       <div>
-        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Intelligence</h1>
-        <p className="text-xs md:text-[12px] text-white/40 mt-1">Strategic assessment, market signals, and external intelligence.</p>
+        <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight">Intelligence</h1>
+        <p className="text-xs md:text-label text-white/40 mt-1">Strategic assessment, market signals, and external intelligence.</p>
       </div>
 
       <NextIntelDesktopHero
         signals={filteredSignals}
         onPromoted={(id) => setSignals(prev => prev.map(x => x.id === id ? { ...x, status: 'actioned' } : x))}
       />
-      <p className="text-[11px] text-white/30 -mt-2">
+      <p className="text-micro text-white/30 -mt-2">
         Below the hero this is an ambient read: nothing needs you. A signal worth acting on surfaces above or on Home.
       </p>
 
@@ -96,9 +96,9 @@ export function DesktopExec() {
             <div className="rounded-xl border border-violet-500/15 bg-violet-500/[0.03] p-4 space-y-3">
               <div className="flex items-center gap-2 mb-2">
                 <AgentAvatar agent="marcus" size="sm" />
-                <span className="text-[11px] text-white/50">Marcus — Cross-Domain Synthesis</span>
+                <span className="text-micro text-white/50">Marcus — Cross-Domain Synthesis</span>
               </div>
-              <p className="text-[13px] text-white/75 leading-relaxed whitespace-pre-wrap">{assessment}</p>
+              <p className="text-body text-white/75 leading-relaxed whitespace-pre-wrap">{assessment}</p>
             </div>
           ) : (
             <EmptyTile title="No assessment yet" subtitle="Marcus will generate this during his next synthesis run." />
@@ -110,19 +110,19 @@ export function DesktopExec() {
               <div className="space-y-2">
                 {synthesis.insights.map((insight, i) => (
                   <div key={i} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
-                    <p className="text-[12px] text-white/65 leading-relaxed">{insight}</p>
+                    <p className="text-label text-white/65 leading-relaxed">{insight}</p>
                   </div>
                 ))}
                 {synthesis.org_focus && (
                   <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.04] p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-400/70 mb-1">Org Focus</p>
-                    <p className="text-[12px] text-amber-200/70 leading-relaxed">{synthesis.org_focus}</p>
+                    <p className="text-micro font-semibold uppercase tracking-[0.14em] text-amber-400/70 mb-1">Org Focus</p>
+                    <p className="text-label text-amber-200/70 leading-relaxed">{synthesis.org_focus}</p>
                   </div>
                 )}
                 {synthesis.cleo_recommendations && (
                   <div className="rounded-lg border border-blue-500/20 bg-blue-500/[0.04] p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/70 mb-1">Content Recommendation</p>
-                    <p className="text-[12px] text-blue-200/70 leading-relaxed">{synthesis.cleo_recommendations}</p>
+                    <p className="text-micro font-semibold uppercase tracking-[0.14em] text-blue-400/70 mb-1">Content Recommendation</p>
+                    <p className="text-label text-blue-200/70 leading-relaxed">{synthesis.cleo_recommendations}</p>
                   </div>
                 )}
               </div>
@@ -142,7 +142,7 @@ export function DesktopExec() {
                 <button
                   key={v}
                   onClick={() => setVentureFilter(v)}
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-medium border transition-all ${
+                  className={`px-2 py-0.5 rounded-md text-micro font-medium border transition-all ${
                     ventureFilter === v
                       ? 'bg-violet-500/15 border-violet-500/35 text-white'
                       : 'border-white/[0.08] text-white/40 hover:text-white/70'
@@ -155,18 +155,18 @@ export function DesktopExec() {
           <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] xl:max-h-[calc(100vh-12rem)] xl:overflow-y-auto">
             {signalsState === 'loading' ? (
               <div className="p-10 text-center">
-                <p className="text-[12px] text-white/35">Loading signals…</p>
+                <p className="text-label text-white/35">Loading signals…</p>
               </div>
             ) : signalsState === 'error' ? (
               <div className="p-10 text-center">
-                <p className="text-[13px] text-rose-300 font-medium">Couldn't load signals.</p>
-                <p className="text-[11px] text-rose-300/60 mt-1 font-mono">{signalsError}</p>
+                <p className="text-body text-rose-300 font-medium">Couldn't load signals.</p>
+                <p className="text-micro text-rose-300/60 mt-1 font-mono">{signalsError}</p>
               </div>
             ) : filteredSignals.length === 0 ? (
               <div className="p-10 text-center">
                 <Radio size={20} className="text-white/20 mx-auto mb-3" />
-                <p className="text-[13px] text-white/45 font-medium">No signals yet.</p>
-                <p className="text-[11px] text-white/25 mt-1">Zara will surface market signals on her next sweep.</p>
+                <p className="text-body text-white/45 font-medium">No signals yet.</p>
+                <p className="text-micro text-white/25 mt-1">Zara will surface market signals on her next sweep.</p>
               </div>
             ) : (
               <div className="divide-y divide-white/[0.04]">
@@ -175,23 +175,23 @@ export function DesktopExec() {
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 mt-0.5">
                         {s.signal_score !== null && s.signal_score !== undefined && s.signal_score > 0 ? (
-                          <span className={`text-[11px] font-mono font-bold ${
+                          <span className={`text-micro font-mono font-bold ${
                             s.signal_score >= 8 ? 'text-emerald-400' : s.signal_score >= 5 ? 'text-amber-400' : 'text-white/40'
                           }`}>{s.signal_score}</span>
                         ) : (
-                          <span className="text-[11px] text-white/20">—</span>
+                          <span className="text-micro text-white/20">—</span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                           {s.venture && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded border border-white/10 bg-white/[0.04] text-white/40 uppercase tracking-wider font-medium">{s.venture}</span>
+                            <span className="text-micro px-1.5 py-0.5 rounded border border-white/10 bg-white/[0.04] text-white/40 uppercase tracking-wider font-medium">{s.venture}</span>
                           )}
                           {s.signal_type && (
-                            <span className="text-[9px] text-white/25">{s.signal_type}</span>
+                            <span className="text-micro text-white/25">{s.signal_type}</span>
                           )}
                           {s.status && (
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+                            <span className={`text-micro px-1.5 py-0.5 rounded font-medium ${
                               s.status === 'actioned' ? 'text-emerald-300 bg-emerald-500/10' :
                               s.status === 'received' ? 'text-blue-300 bg-blue-500/10' :
                               s.status === 'expired' ? 'text-white/25 bg-white/[0.03]' :
@@ -199,9 +199,9 @@ export function DesktopExec() {
                             }`}>{s.status}</span>
                           )}
                         </div>
-                        <p className="text-[12.5px] text-white/75 leading-snug">{s.description}</p>
-                        {s.company_name && <p className="text-[11px] text-white/40 mt-1">{s.company_name}</p>}
-                        <div className="flex items-center gap-3 mt-1.5 text-[10px] text-white/25">
+                        <p className="text-label text-white/75 leading-snug">{s.description}</p>
+                        {s.company_name && <p className="text-micro text-white/40 mt-1">{s.company_name}</p>}
+                        <div className="flex items-center gap-3 mt-1.5 text-micro text-white/25">
                           {s.surfaced_at && <span>{formatDistanceToNow(new Date(s.surfaced_at), { addSuffix: true })}</span>}
                           {s.source_url && s.source_url !== 'https://example.com/test-podcast' && (
                             <a href={s.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-violet-400/50 hover:text-violet-400">
@@ -232,7 +232,7 @@ function SectionHeader({ icon, label }: { icon: React.ReactNode; label: string }
   return (
     <div className="flex items-center gap-2 h-5">
       {icon}
-      <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45 flex-1">{label}</h2>
+      <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45 flex-1">{label}</h2>
     </div>
   )
 }
@@ -240,8 +240,8 @@ function SectionHeader({ icon, label }: { icon: React.ReactNode; label: string }
 function EmptyTile({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-8 text-center">
-      <p className="text-[13px] text-white/45 font-medium">{title}</p>
-      {subtitle && <p className="text-[12px] text-white/25 mt-1">{subtitle}</p>}
+      <p className="text-body text-white/45 font-medium">{title}</p>
+      {subtitle && <p className="text-label text-white/25 mt-1">{subtitle}</p>}
     </div>
   )
 }
@@ -308,8 +308,8 @@ function PromoteSignalButton({ signal, onPromoted }: { signal: ZaraSignal; onPro
 function ErrorTile({ message }: { message?: string | null }) {
   return (
     <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.04] p-6 text-center">
-      <p className="text-[13px] text-rose-300 font-medium">Couldn't load.</p>
-      {message && <p className="text-[11px] text-rose-300/60 mt-1 font-mono">{message}</p>}
+      <p className="text-body text-rose-300 font-medium">Couldn't load.</p>
+      {message && <p className="text-micro text-rose-300/60 mt-1 font-mono">{message}</p>}
     </div>
   )
 }

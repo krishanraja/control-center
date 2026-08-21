@@ -117,7 +117,7 @@ export function DecisionDeck({
     >
           {/* header: progress + close */}
           <div className="flex items-center justify-between mb-4">
-            <div className="text-[11px] text-white/45 tabular-nums">
+            <div className="text-micro text-white/45 tabular-nums">
               {total > 0 ? `${decided} of ${total} decided` : 'Queue clear'}
               {queue.length > 0 && <span className="text-emerald-300/80"> · about {toZero} min left</span>}
             </div>
@@ -136,23 +136,23 @@ export function DecisionDeck({
           {current ? (
             <>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold bg-white/[0.06] text-white/60 uppercase tracking-[0.1em]">
+                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-micro font-semibold bg-white/[0.06] text-white/60 uppercase tracking-[0.14em]">
                   {Icon && <Icon size={11} />} {KIND_LABEL[current.kind]}
                 </span>
                 {current.agent && (
-                  <span className="inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold bg-white/[0.06] text-white/60 capitalize">
+                  <span className="inline-block rounded-full px-2.5 py-1 text-micro font-semibold bg-white/[0.06] text-white/60 capitalize">
                     {current.agent}
                   </span>
                 )}
                 {(current.priority === 'overdue' || current.priority === 'urgent' || current.priority === 'high') && (
-                  <span className="inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold bg-red-400/15 text-red-300 uppercase">
+                  <span className="inline-block rounded-full px-2.5 py-1 text-micro font-semibold bg-red-400/15 text-red-300 uppercase">
                     {current.priority}
                   </span>
                 )}
               </div>
-              <h3 className="text-[16.5px] font-bold text-white mt-3 leading-snug">{current.title}</h3>
+              <h3 className="text-lede font-bold text-white mt-3 leading-snug">{current.title}</h3>
               {composeDeckBody(resolved, current) && (
-                <p className="text-[13px] text-white/60 mt-2 leading-relaxed whitespace-pre-line">
+                <p className="text-body text-white/60 mt-2 leading-relaxed whitespace-pre-line">
                   {composeDeckBody(resolved, current)}
                 </p>
               )}
@@ -163,14 +163,14 @@ export function DecisionDeck({
                   <button
                     key={a.label}
                     onClick={() => { h.heavy(); void a.onClick() }}
-                    className={`w-full rounded-xl py-3.5 text-[13.5px] font-bold ${btnCls(a.variant)}`}
+                    className={`w-full rounded-xl py-3.5 text-body font-bold ${btnCls(a.variant)}`}
                   >
                     {a.label}
                   </button>
                 ))}
                 <button
                   onClick={() => { h.tap(); advance() }}
-                  className="w-full rounded-xl py-2.5 text-[12px] text-white/40 hover:text-white/70 inline-flex items-center justify-center gap-1.5"
+                  className="w-full rounded-xl py-2.5 text-label text-white/40 hover:text-white/70 inline-flex items-center justify-center gap-1.5"
                 >
                   <SkipForward size={12} /> Skip for now
                 </button>
@@ -178,9 +178,9 @@ export function DecisionDeck({
             </>
           ) : (
             <div className="py-14 text-center">
-              <div className="text-[15px] font-bold text-white/85">Queue clear.</div>
-              <div className="text-[12px] text-white/45 mt-1">Nothing is waiting on you. That is the system working.</div>
-              <button onClick={onClose} className="mt-6 px-4 py-2 rounded-xl text-[13px] font-semibold bg-white/[0.08] border border-white/10 text-white/85 hover:bg-white/[0.12]">
+              <div className="text-ui font-bold text-white/85">Queue clear.</div>
+              <div className="text-label text-white/45 mt-1">Nothing is waiting on you. That is the system working.</div>
+              <button onClick={onClose} className="mt-6 px-4 py-2 rounded-xl text-body font-semibold bg-white/[0.08] border border-white/10 text-white/85 hover:bg-white/[0.12]">
                 Back to Home
               </button>
             </div>

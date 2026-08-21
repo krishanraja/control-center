@@ -38,16 +38,16 @@ export function PublishCandidateCard({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[13px] text-ink-muted leading-relaxed">
+      <p className="text-body text-ink-muted leading-relaxed">
         {preface || 'The queue has one ready. No choosing required.'}
       </p>
 
       <div className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-4 flex flex-col gap-2">
-        <span className="text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+        <span className="text-micro uppercase tracking-[0.14em] text-ink-faint">
           {lane || 'Content queue'}
         </span>
-        <p className="font-display text-[19px] leading-snug text-ink">{candidate.idea}</p>
-        <p className="text-[13px] text-ink-faint leading-relaxed">{readiness}</p>
+        <p className="font-display text-title leading-snug text-ink">{candidate.idea}</p>
+        <p className="text-body text-ink-faint leading-relaxed">{readiness}</p>
       </div>
 
       <Tap onTap={onAccept} disabled={saving} feel="success" className="w-full justify-center flex items-center">
@@ -55,14 +55,14 @@ export function PublishCandidateCard({
       </Tap>
 
       <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
-        <Tap variant="quiet" className="!min-h-[44px] text-[13px]" onTap={() => { h.tap(); onNext() }}>
+        <Tap variant="quiet" className="!min-h-[44px] text-body" onTap={() => { h.tap(); onNext() }}>
           Not this one
         </Tap>
-        <Tap variant="quiet" className="!min-h-[44px] text-[13px]" onTap={() => { h.tap(); onManual() }}>
+        <Tap variant="quiet" className="!min-h-[44px] text-body" onTap={() => { h.tap(); onManual() }}>
           Name it myself
         </Tap>
         {onKeepMine && (
-          <Tap variant="quiet" className="!min-h-[44px] text-[13px]" onTap={() => { h.tap(); onKeepMine() }}>
+          <Tap variant="quiet" className="!min-h-[44px] text-body" onTap={() => { h.tap(); onKeepMine() }}>
             Keep my words
           </Tap>
         )}
@@ -98,19 +98,19 @@ export function OutreachCandidateCard({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[13px] text-ink-muted leading-relaxed">{preface}</p>
+      <p className="text-body text-ink-muted leading-relaxed">{preface}</p>
 
       <div className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-4 flex flex-col gap-2">
-        <span className="text-[11px] uppercase tracking-[0.14em] text-ink-faint">{kindLabel}</span>
-        <p className="font-display text-[19px] leading-snug text-ink">
+        <span className="text-micro uppercase tracking-[0.14em] text-ink-faint">{kindLabel}</span>
+        <p className="font-display text-title leading-snug text-ink">
           {candidate.kind === 'email_draft' && candidate.detail
             ? `"${candidate.detail}" to ${candidate.name}`
             : candidate.name}
         </p>
         {candidate.kind !== 'email_draft' && candidate.detail && (
-          <p className="text-[13px] text-ink-muted leading-relaxed">{candidate.detail}</p>
+          <p className="text-body text-ink-muted leading-relaxed">{candidate.detail}</p>
         )}
-        <p className="text-[13px] text-ink-faint leading-relaxed">{note}</p>
+        <p className="text-body text-ink-faint leading-relaxed">{note}</p>
       </div>
 
       <Tap onTap={onAccept} disabled={saving} feel="success" className="w-full justify-center flex items-center">
@@ -118,11 +118,11 @@ export function OutreachCandidateCard({
       </Tap>
 
       <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
-        <Tap variant="quiet" className="!min-h-[44px] text-[13px]" onTap={() => { h.tap(); onManual() }}>
+        <Tap variant="quiet" className="!min-h-[44px] text-body" onTap={() => { h.tap(); onManual() }}>
           Name it myself
         </Tap>
         {onKeepMine && (
-          <Tap variant="quiet" className="!min-h-[44px] text-[13px]" onTap={() => { h.tap(); onKeepMine() }}>
+          <Tap variant="quiet" className="!min-h-[44px] text-body" onTap={() => { h.tap(); onKeepMine() }}>
             Keep my words
           </Tap>
         )}
@@ -149,9 +149,9 @@ export function BuildOfferCard({
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-4 flex flex-col gap-2">
-        <span className="text-[11px] uppercase tracking-[0.14em] text-ink-faint">The queue came up empty</span>
-        <p className="text-[14px] leading-relaxed text-ink">{reason}</p>
-        <p className="text-[13px] text-ink-faint leading-relaxed">
+        <span className="text-micro uppercase tracking-[0.14em] text-ink-faint">The queue came up empty</span>
+        <p className="text-ui leading-relaxed text-ink">{reason}</p>
+        <p className="text-body text-ink-faint leading-relaxed">
           The system can draft it now, in your voice, grounded in the corpus. About a minute. It lands as a draft you finish, nothing publishes itself.
         </p>
       </div>
@@ -161,11 +161,11 @@ export function BuildOfferCard({
       </Tap>
 
       <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
-        <Tap variant="quiet" className="!min-h-[44px] text-[13px]" onTap={() => { h.tap(); onManual() }}>
+        <Tap variant="quiet" className="!min-h-[44px] text-body" onTap={() => { h.tap(); onManual() }}>
           Name it myself
         </Tap>
         {onKeepMine && (
-          <Tap variant="quiet" className="!min-h-[44px] text-[13px]" onTap={() => { h.tap(); onKeepMine() }}>
+          <Tap variant="quiet" className="!min-h-[44px] text-body" onTap={() => { h.tap(); onKeepMine() }}>
             Keep my words
           </Tap>
         )}

@@ -32,7 +32,7 @@ const VARIANT: Record<string, string> = {
   primary: 'bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] font-medium',
   secondary: 'border border-white/10 text-ink-muted hover:bg-white/[0.05] hover:text-ink',
   quiet: 'text-ink-faint hover:text-ink-muted',
-  chip: 'border text-[14px]',
+  chip: 'border text-ui',
 }
 
 /**
@@ -57,7 +57,7 @@ export function Tap({
       disabled={disabled}
       onPointerDown={() => { if (!disabled) h[feel]() }}
       onClick={() => { if (!disabled) onTap() }}
-      className={`${TAP} px-4 rounded-xl text-[15px] transition-all duration-100 active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100 touch-manipulation select-none ${base} ${className}`}
+      className={`${TAP} px-4 rounded-xl text-ui transition-all duration-100 active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100 touch-manipulation select-none ${base} ${className}`}
     >
       {children}
     </button>
@@ -105,7 +105,7 @@ export function VoiceField({
           if (e.key === 'Enter' && !e.shiftKey && onEnter) { e.preventDefault(); onEnter() }
         }}
         placeholder={listening ? 'Listening…' : placeholder}
-        className={`w-full px-4 py-3.5 ${supported ? 'pr-[60px]' : ''} rounded-xl bg-white/[0.03] border text-[16px] leading-relaxed text-ink placeholder:text-ink-faint outline-none resize-none transition-colors ${
+        className={`w-full px-4 py-3.5 ${supported ? 'pr-[60px]' : ''} rounded-xl bg-white/[0.03] border text-lede leading-relaxed text-ink placeholder:text-ink-faint outline-none resize-none transition-colors ${
           listening ? 'border-white/30' : 'border-white/10 focus:border-white/25'
         }`}
       />

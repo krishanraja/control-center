@@ -111,10 +111,10 @@ export function ContentSeedRail() {
   if (visible.length === 0) {
     return (
       <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] px-3 py-2" aria-label="Seed ideas from recent artifacts">
-        <p className="text-[11px] text-white/40 leading-snug">
+        <p className="text-micro text-white/40 leading-snug">
           No fresh artifacts to seed from right now. New customer signals, closed deals, and
           market intelligence land here automatically, or capture an idea directly with{' '}
-          <kbd className="px-1 py-0.5 rounded bg-white/[0.06] text-white/55 text-[10px]">⌘I</kbd>.
+          <kbd className="px-1 py-0.5 rounded bg-white/[0.06] text-white/55 text-micro">⌘I</kbd>.
         </p>
       </section>
     )
@@ -130,10 +130,10 @@ export function ContentSeedRail() {
         className="w-full flex items-center gap-2 rounded-xl border border-violet-500/15 bg-violet-500/[0.03] px-3 py-2 hover:border-violet-500/30 hover:bg-violet-500/[0.06] transition-colors text-left"
       >
         <Sparkles size={13} className="text-violet-300 flex-shrink-0" />
-        <span className="text-[12px] text-white/75">
+        <span className="text-label text-white/75">
           <span className="font-semibold text-violet-200/90 tabular-nums">{visible.length}</span> idea{visible.length === 1 ? '' : 's'} ready to seed from this week's artifacts
         </span>
-        <span className="ml-auto text-[11px] text-violet-300/80">Browse →</span>
+        <span className="ml-auto text-micro text-violet-300/80">Browse →</span>
       </button>
     )
   }
@@ -145,14 +145,14 @@ export function ContentSeedRail() {
     >
       <header className="flex items-center gap-2 mb-2">
         <Sparkles size={13} className="text-violet-300" />
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-200/80">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-violet-200/80">
           Seed from recent artifacts
         </h2>
-        <span className="text-[10px] text-white/35">{visible.length}</span>
+        <span className="text-micro text-white/35">{visible.length}</span>
         <button
           type="button"
           onClick={() => setCollapsedPersist(true)}
-          className="ml-auto text-[10px] text-white/40 hover:text-white/70"
+          className="ml-auto text-micro text-white/40 hover:text-white/70"
         >
           Hide
         </button>
@@ -166,7 +166,7 @@ export function ContentSeedRail() {
               >
                 <div className="flex items-start gap-1.5">
                   {KIND_ICON[c.kind]}
-                  <p className="text-[11px] text-white/80 leading-snug flex-1 min-w-0">{c.text}</p>
+                  <p className="text-micro text-white/80 leading-snug flex-1 min-w-0">{c.text}</p>
                   <button
                     type="button"
                     onClick={() => setDismissed((prev) => new Set(prev).add(c.key))}
@@ -178,18 +178,18 @@ export function ContentSeedRail() {
                 </div>
                 <div className="flex items-center gap-2">
                   {c.sub && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/50 uppercase tracking-wide">
+                    <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/50 uppercase tracking-wide">
                       {c.sub}
                     </span>
                   )}
                   {typeof c.score === 'number' && (
-                    <span className="text-[9px] text-white/40 tabular-nums">★ {c.score}</span>
+                    <span className="text-micro text-white/40 tabular-nums">★ {c.score}</span>
                   )}
                   <button
                     type="button"
                     disabled={busy !== null}
                     onClick={() => seed(c)}
-                    className="ml-auto flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 disabled:opacity-40 min-h-[32px]"
+                    className="ml-auto flex items-center gap-1 text-micro px-2 py-1 rounded-md border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 disabled:opacity-40 min-h-[32px]"
                   >
                     <Plus size={10} /> {busy === c.key ? 'Seeding…' : 'Seed as idea'}
                   </button>

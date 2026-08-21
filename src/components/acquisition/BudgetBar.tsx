@@ -22,8 +22,8 @@ export function BudgetBar({
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2 mb-1">
-        <span className="text-[10.5px] text-white/40">{label}</span>
-        <span className={`text-[10.5px] tabular-nums flex items-center gap-1 ${text}`}>
+        <span className="text-micro text-white/40">{label}</span>
+        <span className={`text-micro tabular-nums flex items-center gap-1 ${text}`}>
           {(over || warn) && <AlertTriangle size={10} />}
           ${spent.toFixed(2)} / ${cap.toFixed(0)}
         </span>

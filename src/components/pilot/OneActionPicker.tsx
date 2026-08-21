@@ -82,11 +82,11 @@ function BuildingState({ flavor }: { flavor: 'publish' | 'email' }) {
           read. The stage RISES when it changes, which is both calmer and the
           only moment worth animating, and the rail carries the continuous
           "still working" signal instead. */}
-      <p key={stage} className="text-[14px] text-ink leading-relaxed animate-rise">{stage}.</p>
+      <p key={stage} className="text-ui text-ink leading-relaxed animate-rise">{stage}.</p>
       <div className="rounded-full bg-white/[0.08] overflow-hidden" style={{ width: 180, height: 3 }}>
         <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-transparent via-accent to-transparent animate-indeterminate" />
       </div>
-      <p className="text-[13px] text-ink-faint leading-relaxed">
+      <p className="text-body text-ink-faint leading-relaxed">
         {note}
         {elapsed >= SHOW_ELAPSED_AFTER_MS && (
           <span className="tabular-nums text-ink-faint/70"> {Math.floor(elapsed / 1000)}s</span>
@@ -261,7 +261,7 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
   // ── The ask is being judged ────────────────────────────────────────────────
   if (askPhase?.kind === 'judging') {
     return (
-      <p className="text-[13px] text-ink-faint leading-relaxed">
+      <p className="text-body text-ink-faint leading-relaxed">
         <Working size={12} className="inline mr-1.5 -mb-px" />
         Judging it against the queue.
       </p>
@@ -292,8 +292,8 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
     return (
       <div className="flex flex-col gap-4">
         <div className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-4 flex flex-col gap-2">
-          <span className="text-[11px] uppercase tracking-[0.14em] text-ink-faint">Nothing outstanding matches</span>
-          <p className="text-[14px] leading-relaxed text-ink">{askPhase.reason}</p>
+          <span className="text-micro uppercase tracking-[0.14em] text-ink-faint">Nothing outstanding matches</span>
+          <p className="text-ui leading-relaxed text-ink">{askPhase.reason}</p>
         </div>
         {keptWords && (
           <Tap
@@ -307,7 +307,7 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
         )}
         <Tap
           variant="quiet"
-          className="!min-h-[44px] text-[13px]"
+          className="!min-h-[44px] text-body"
           onTap={() => { h.tap(); setAskPhase(null); setHint(null) }}
         >
           Name it myself
@@ -334,7 +334,7 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
   // ── The queue is being consulted ───────────────────────────────────────────
   if (checkingQueue) {
     return (
-      <p className="text-[13px] text-ink-faint leading-relaxed">
+      <p className="text-body text-ink-faint leading-relaxed">
         <Working size={12} className="inline mr-1.5 -mb-px" />
         Checking the queue for a ready draft.
       </p>
@@ -398,7 +398,7 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
         />
         {hint && (
           <div className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3">
-            <p className="text-[13px] leading-relaxed text-ink">{hint}</p>
+            <p className="text-body leading-relaxed text-ink">{hint}</p>
           </div>
         )}
         <Tap onTap={commitFree} disabled={saving || !text.trim()} feel="success">
@@ -406,7 +406,7 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
         </Tap>
         <Tap
           variant="quiet"
-          className="!min-h-[44px] text-[13px]"
+          className="!min-h-[44px] text-body"
           onTap={() => { h.tap(); setFreeform(false); setHint(null) }}
         >
           Pick from a list instead
@@ -428,7 +428,7 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
           >
             <ArrowLeft size={16} />
           </Tap>
-          <span className="font-display text-[20px] text-ink">{starter.verb}</span>
+          <span className="font-display text-title text-ink">{starter.verb}</span>
         </div>
 
         <VoiceField
@@ -440,11 +440,11 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
         />
 
         {composed && rest.trim() && (
-          <p className="text-[13px] text-ink-faint leading-relaxed">
+          <p className="text-body text-ink-faint leading-relaxed">
             Locking in: <span className="text-ink-muted">{composed}</span>
           </p>
         )}
-        {hint && <p className="text-[13px] text-ink-muted leading-relaxed">{hint}</p>}
+        {hint && <p className="text-body text-ink-muted leading-relaxed">{hint}</p>}
 
         <Tap onTap={commitGuided} disabled={saving || !rest.trim()} feel="success">
           {saving ? 'Saving' : submitLabel}
@@ -470,7 +470,7 @@ export function OneActionPicker({ onCommit, saving, submitLabel = 'Lock it in', 
       </div>
       <Tap
         variant="quiet"
-        className="!min-h-[44px] text-[13px]"
+        className="!min-h-[44px] text-body"
         onTap={() => { h.tap(); setFreeform(true) }}
       >
         Type it myself

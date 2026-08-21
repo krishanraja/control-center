@@ -49,7 +49,7 @@ function DropdownMenuItem({
     <DropdownMenuPrimitive.Item
       data-slot="dropdown-menu-item"
       className={cn(
-        'relative flex min-h-[34px] cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 text-[13px]',
+        'relative flex min-h-[34px] cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 text-body',
         'text-white/75 outline-none transition-colors',
         'focus:bg-white/[0.08] focus:text-white data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-white',
         'data-[disabled]:pointer-events-none data-[disabled]:opacity-40',
@@ -70,7 +70,7 @@ function DropdownMenuCheckboxItem({
     <DropdownMenuPrimitive.CheckboxItem
       data-slot="dropdown-menu-checkbox-item"
       className={cn(
-        'relative flex min-h-[34px] cursor-pointer select-none items-center rounded-lg py-1 pl-8 pr-2.5 text-[13px]',
+        'relative flex min-h-[34px] cursor-pointer select-none items-center rounded-lg py-1 pl-8 pr-2.5 text-body',
         'text-white/75 outline-none transition-colors',
         'focus:bg-white/[0.08] focus:text-white data-[highlighted]:bg-white/[0.08] data-[highlighted]:text-white',
         'data-[disabled]:pointer-events-none data-[disabled]:opacity-40',
@@ -97,7 +97,7 @@ function DropdownMenuLabel({
     <DropdownMenuPrimitive.Label
       data-slot="dropdown-menu-label"
       className={cn(
-        'px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35',
+        'px-2.5 py-1.5 text-micro font-semibold uppercase tracking-[0.14em] text-white/35',
         inset && 'pl-8',
         className,
       )}

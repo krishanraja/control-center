@@ -75,7 +75,7 @@ function ReviewCard({ review, g }: { review: CouncilReviewRow; g: GrowthData }) 
     <article className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-4">
       <header className="flex items-center gap-2 flex-wrap">
         <ProductChip slug={review.product_slug} />
-        <span className="text-[12px] font-semibold text-white/85">Week of {shortDate(review.week_start)}</span>
+        <span className="text-label font-semibold text-white/85">Week of {shortDate(review.week_start)}</span>
         <span className="flex-1" />
         {review.krish_decision ? (
           <Chip tone="text-emerald-300 border-emerald-500/25">
@@ -88,32 +88,32 @@ function ReviewCard({ review, g }: { review: CouncilReviewRow; g: GrowthData }) 
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
         <div>
-          <h4 className="text-[10px] uppercase tracking-[0.13em] text-white/35 font-semibold mb-1.5">Findings</h4>
+          <h4 className="text-micro uppercase tracking-[0.14em] text-white/35 font-semibold mb-1.5">Findings</h4>
           {findings.length ? (
             <ul className="space-y-1">
               {findings.map(f => (
-                <li key={f.key} className="text-[11.5px] text-white/70 leading-snug">
+                <li key={f.key} className="text-label text-white/70 leading-snug">
                   <span className="text-white/40">{f.key}: </span>{f.value}
                 </li>
               ))}
             </ul>
-          ) : <p className="text-[11.5px] text-white/30">None recorded.</p>}
+          ) : <p className="text-label text-white/30">None recorded.</p>}
         </div>
         <div>
-          <h4 className="text-[10px] uppercase tracking-[0.13em] text-rose-300/80 font-semibold mb-1.5">Kill</h4>
+          <h4 className="text-micro uppercase tracking-[0.14em] text-rose-300/80 font-semibold mb-1.5">Kill</h4>
           {kill.length ? (
             <ul className="space-y-1">
-              {kill.map((k, i) => <li key={i} className="text-[11.5px] text-white/70 leading-snug">{k}</li>)}
+              {kill.map((k, i) => <li key={i} className="text-label text-white/70 leading-snug">{k}</li>)}
             </ul>
-          ) : <p className="text-[11.5px] text-white/30">Nothing proposed for the chop.</p>}
+          ) : <p className="text-label text-white/30">Nothing proposed for the chop.</p>}
         </div>
         <div>
-          <h4 className="text-[10px] uppercase tracking-[0.13em] text-emerald-300/80 font-semibold mb-1.5">Double down</h4>
+          <h4 className="text-micro uppercase tracking-[0.14em] text-emerald-300/80 font-semibold mb-1.5">Double down</h4>
           {doubleDown.length ? (
             <ul className="space-y-1">
-              {doubleDown.map((d, i) => <li key={i} className="text-[11.5px] text-white/70 leading-snug">{d}</li>)}
+              {doubleDown.map((d, i) => <li key={i} className="text-label text-white/70 leading-snug">{d}</li>)}
             </ul>
-          ) : <p className="text-[11.5px] text-white/30">Nothing proposed to press.</p>}
+          ) : <p className="text-label text-white/30">Nothing proposed to press.</p>}
         </div>
       </div>
 
@@ -121,7 +121,7 @@ function ReviewCard({ review, g }: { review: CouncilReviewRow; g: GrowthData }) 
         {review.krish_decision && !editing ? (
           <div className="flex items-start gap-2">
             <Gavel size={13} className="text-emerald-300 mt-0.5 flex-shrink-0" />
-            <p className="text-[12.5px] text-white/80 leading-relaxed flex-1">{review.krish_decision}</p>
+            <p className="text-label text-white/80 leading-relaxed flex-1">{review.krish_decision}</p>
             <button type="button" onClick={() => { setEditing(true); setText(review.krish_decision || '') }} className={BTN_GHOST}>
               Change
             </button>

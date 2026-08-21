@@ -145,12 +145,12 @@ export function FleetFunnelPanel() {
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <Boxes size={13} className="text-cyan-400" />
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
           Fleet Funnel
         </h2>
         <div className="ml-auto flex items-center gap-3">
           {data?.generated_at && state === 'ok' && (
-            <span className="text-[10px] text-white/25">
+            <span className="text-micro text-white/25">
               {formatDistanceToNow(new Date(data.generated_at), { addSuffix: true })}
             </span>
           )}
@@ -182,13 +182,13 @@ export function FleetFunnelPanel() {
         </div>
       ) : state === 'error' ? (
         <div className="p-6 text-center">
-          <p className="text-[13px] text-rose-300 font-medium">Couldn't load fleet funnel.</p>
-          {error && <p className="text-[11.5px] text-white/45 mt-1 leading-snug">{error}</p>}
+          <p className="text-body text-rose-300 font-medium">Couldn't load fleet funnel.</p>
+          {error && <p className="text-label text-white/45 mt-1 leading-snug">{error}</p>}
           <button
             type="button"
             onClick={() => load(true)}
             disabled={refreshing}
-            className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-violet-300 hover:text-violet-200 transition-colors disabled:opacity-50"
+            className="mt-3 inline-flex items-center gap-1.5 text-label font-medium text-violet-300 hover:text-violet-200 transition-colors disabled:opacity-50"
           >
             {refreshing ? <Working size={12} /> : <RefreshCw size={12} />} Try again
           </button>
@@ -196,7 +196,7 @@ export function FleetFunnelPanel() {
       ) : (
         <>
           {allZero && (
-            <div className="px-4 py-2.5 text-[11px] text-white/30 border-b border-white/[0.04]">
+            <div className="px-4 py-2.5 text-micro text-white/30 border-b border-white/[0.04]">
               No attributed traffic yet — emit-health below shows which apps are wired.
             </div>
           )}
@@ -211,21 +211,21 @@ export function FleetFunnelPanel() {
                       className={`w-2 h-2 rounded-full flex-shrink-0 ${HEALTH_DOT[health]}`}
                       title={HEALTH_LABEL[health]}
                     />
-                    <span className="text-[13px] font-semibold text-white">
+                    <span className="text-body font-semibold text-white">
                       {APP_LABELS[row.app] || row.app}
                     </span>
                     <span className="ml-auto flex items-baseline gap-2">
-                      <span className="text-[13px] font-semibold text-emerald-300 tabular-nums">
+                      <span className="text-body font-semibold text-emerald-300 tabular-nums">
                         {dollars(row.gross_cents)}
                       </span>
                       {row.churns > 0 && (
-                        <span className="text-[10px] text-rose-300/70 tabular-nums">
+                        <span className="text-micro text-rose-300/70 tabular-nums">
                           {row.churns} churn{row.churns === 1 ? '' : 's'}
                         </span>
                       )}
                     </span>
                   </div>
-                  <div className="mt-2 flex items-center gap-1 text-[11px] text-white/55 tabular-nums">
+                  <div className="mt-2 flex items-center gap-1 text-micro text-white/55 tabular-nums">
                     <FunnelStep label="landed" value={row.landed} />
                     <ChevronRight size={11} className="text-white/20" />
                     <FunnelStep label="signed" value={row.signed_up} />
@@ -233,7 +233,7 @@ export function FleetFunnelPanel() {
                     <FunnelStep label="active" value={row.activated} />
                     <ChevronRight size={11} className="text-white/20" />
                     <FunnelStep label="bought" value={row.purchased} highlight />
-                    <span className="ml-auto text-[10px] text-white/25">
+                    <span className="ml-auto text-micro text-white/25">
                       {row.events_24h}/24h · {row.events_7d}/7d
                     </span>
                   </div>
@@ -244,12 +244,12 @@ export function FleetFunnelPanel() {
 
           {data && data.campaigns.length > 0 && (
             <div className="border-t border-white/[0.06]">
-              <p className="px-4 pt-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
+              <p className="px-4 pt-3 pb-1.5 text-micro font-semibold uppercase tracking-[0.14em] text-white/35">
                 Top campaigns
               </p>
               <div className="divide-y divide-white/[0.03]">
                 {data.campaigns.map((c, i) => (
-                  <div key={i} className="px-4 py-2 flex items-center gap-2 text-[11px]">
+                  <div key={i} className="px-4 py-2 flex items-center gap-2 text-micro">
                     <span className="text-white/30 uppercase tracking-wide">
                       {APP_LABELS[c.app] || c.app}
                     </span>

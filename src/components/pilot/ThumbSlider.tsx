@@ -108,9 +108,9 @@ export function ThumbSlider({ label, notches, value, onChange, hint, anchors, on
   return (
     <div className="flex flex-col gap-3 select-none">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[13px] text-ink-muted">{label}</span>
+        <span className="text-body text-ink-muted">{label}</span>
         <span
-          className={`text-[15px] transition-colors duration-150 ${value === null ? 'text-ink-faint' : 'text-ink'}`}
+          className={`text-ui transition-colors duration-150 ${value === null ? 'text-ink-faint' : 'text-ink'}`}
           style={tint() ? { color: tint()! } : undefined}
         >
           {current ? current.label : 'Drag to set'}
@@ -186,12 +186,12 @@ export function ThumbSlider({ label, notches, value, onChange, hint, anchors, on
         )}
         {t === null && (
           <div className="absolute inset-x-0 flex justify-center pointer-events-none">
-            <span className="text-[11px] text-ink-faint/70 group-focus:text-ink-faint">slide</span>
+            <span className="text-micro text-ink-faint/70 group-focus:text-ink-faint">slide</span>
           </div>
         )}
       </div>
 
-      {hint && <p className="text-[12px] text-ink-faint leading-relaxed -mt-1">{hint}</p>}
+      {hint && <p className="text-label text-ink-faint leading-relaxed -mt-1">{hint}</p>}
     </div>
   )
 }

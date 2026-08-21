@@ -22,33 +22,33 @@ export function ContextHeader() {
     >
       <header className="flex items-center gap-2 mb-2">
         <Sun size={13} className="text-violet-300 flex-shrink-0" />
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/55">
+        <h2 className="text-micro font-bold uppercase tracking-[0.14em] text-white/55">
           Before you pick, the frame
         </h2>
         {delta !== 0 && (
-          <span className={`ml-auto text-[12px] font-semibold tabular-nums ${deltaColor}`}>
+          <span className={`ml-auto text-label font-semibold tabular-nums ${deltaColor}`}>
             {delta > 0 ? '+' : ''}${Math.round(delta).toLocaleString()} MRR
           </span>
         )}
       </header>
       <div className="space-y-1">
         {brief.one_bet && (
-          <p className="text-[12px] text-white/80 leading-snug break-words">
+          <p className="text-label text-white/80 leading-snug break-words">
             <span className="text-violet-300/80 font-semibold">Bet · </span>{brief.one_bet}
           </p>
         )}
         {brief.one_customer && (
-          <p className="text-[12px] text-white/80 leading-snug break-words">
+          <p className="text-label text-white/80 leading-snug break-words">
             <span className="text-emerald-300/80 font-semibold">Talk to · </span>{brief.one_customer}
           </p>
         )}
         {brief.one_anti_action && (
-          <p className="text-[12px] text-red-200/75 leading-snug break-words">
+          <p className="text-label text-red-200/75 leading-snug break-words">
             <span className="text-red-300/80 font-semibold">Don't · </span>{brief.one_anti_action}
           </p>
         )}
         {!brief.one_bet && brief.body && (
-          <p className="text-[12px] text-white/70 leading-snug whitespace-pre-wrap break-words">
+          <p className="text-label text-white/70 leading-snug whitespace-pre-wrap break-words">
             {brief.body}
           </p>
         )}

@@ -48,7 +48,7 @@ function Big({ children, tone = 'ghost', onClick, disabled }: {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`w-full rounded-xl py-3.5 text-[13.5px] font-bold disabled:opacity-40 ${cls}`}
+      className={`w-full rounded-xl py-3.5 text-body font-bold disabled:opacity-40 ${cls}`}
     >
       {children}
     </button>
@@ -194,12 +194,12 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
     return (
       <div className="flex flex-col items-center justify-center py-20 px-6 text-center gap-3">
         <div className="text-3xl">✓</div>
-        <div className="text-white/90 font-bold text-[16px]">The week is decided</div>
-        <p className="text-white/45 text-[13px] max-w-[26ch]">
+        <div className="text-white/90 font-bold text-lede">The week is decided</div>
+        <p className="text-white/45 text-body max-w-[26ch]">
           Nothing is waiting on you. New decisions queue for the weekend sitting.
         </p>
         {brief && ['approved', 'pushed', 'sent'].includes(brief.status) ? (
-          <p className="text-emerald-300/80 text-[12px]">Brief {brief.status}. See you Friday.</p>
+          <p className="text-emerald-300/80 text-label">Brief {brief.status}. See you Friday.</p>
         ) : null}
       </div>
     )
@@ -219,7 +219,7 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
           ))}
         </div>
         <div className="flex items-center justify-between">
-          <div className="text-[11px] text-white/40 tabular-nums">
+          <div className="text-micro text-white/40 tabular-nums">
             {pos + 1} of {queue.length} waiting{done ? ` · ${done} decided` : ''} · about {Math.max(1, Math.round(queue.length * 0.7))} min left
           </div>
           {queue.length > 1 && (
@@ -227,14 +227,14 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
               <button
                 aria-label="Previous card"
                 onClick={() => go(-1)}
-                className="min-w-[40px] min-h-[32px] rounded-lg text-[15px] text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
+                className="min-w-[40px] min-h-[32px] rounded-lg text-ui text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
               >
                 ‹
               </button>
               <button
                 aria-label="Next card"
                 onClick={() => go(1)}
-                className="min-w-[40px] min-h-[32px] rounded-lg text-[15px] text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
+                className="min-w-[40px] min-h-[32px] rounded-lg text-ui text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
               >
                 ›
               </button>
@@ -262,14 +262,14 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
           }}
           className={`rounded-2xl border p-5 select-none cursor-grab active:cursor-grabbing ${d.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}
         >
-          <span className={`inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold ${chip.cls}`}>{chip.label}</span>
-          <h3 className="text-[16.5px] font-bold text-white mt-3 leading-snug">
+          <span className={`inline-block rounded-full px-2.5 py-1 text-micro font-semibold ${chip.cls}`}>{chip.label}</span>
+          <h3 className="text-lede font-bold text-white mt-3 leading-snug">
             {d.kind === 'brief_review' ? (p.title || 'This week’s brief')
               : d.kind === 'investigation' ? `Investigation ready: ${p.anchor_headline || 'this week'}`
               : d.kind === 'purge_preview' ? `${p.expiring ?? 0} time-sensitive items expire Monday`
               : (p.title || '')}
           </h3>
-          <p className="text-[12.5px] text-white/50 mt-2 leading-relaxed">
+          <p className="text-label text-white/50 mt-2 leading-relaxed">
             {d.kind === 'brief_review' ? `${p.headlines ?? '?'} headlines, assembled Friday. Review section by section, magic-edit anything soft, then push.`
               : d.kind === 'shift_proposal' ? `Cleared the recurrence gate: ${p.stories ?? '?'} stories, ${p.day_span ?? '?'} days, ${p.sources ?? '?'} sources.${p.nearest?.title ? ` Nearest existing: ${p.nearest.title}.` : ''}`
               : d.kind === 'shift_fading' ? `No qualifying evidence since ${p.last_evidence_on || 'a while'}.`
@@ -278,10 +278,10 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
               : 'Nothing needs you. Anything that fed a shift or the Library is already safe.'}
           </p>
           {d.kind === 'shift_proposal' && p.summary ? (
-            <p className="text-[12px] text-emerald-200/70 mt-2 leading-relaxed">{p.summary}</p>
+            <p className="text-label text-emerald-200/70 mt-2 leading-relaxed">{p.summary}</p>
           ) : null}
           {queue.length > 1 && (
-            <p className="text-[10.5px] text-white/25 mt-3">Swipe to browse. Buttons decide.</p>
+            <p className="text-micro text-white/25 mt-3">Swipe to browse. Buttons decide.</p>
           )}
         </div>
 
@@ -337,7 +337,7 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
             <button
               onClick={() => setRejecting(true)}
               disabled={busy}
-              className="w-full rounded-xl py-3 text-[13px] font-semibold text-rose-300/85 border border-rose-400/25 bg-rose-500/[0.06] active:scale-[0.98] transition disabled:opacity-40"
+              className="w-full rounded-xl py-3 text-body font-semibold text-rose-300/85 border border-rose-400/25 bg-rose-500/[0.06] active:scale-[0.98] transition disabled:opacity-40"
             >
               Not for me
             </button>

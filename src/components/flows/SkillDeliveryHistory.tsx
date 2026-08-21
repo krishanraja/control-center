@@ -17,17 +17,17 @@ export function SkillDeliveryHistory({ deliveries, loading, onRegenerate }: Prop
       <header className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.05]">
         <div className="flex items-center gap-2">
           <Inbox size={12} className="text-white/40" />
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">Recent deliveries</h3>
+          <h3 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/50">Recent deliveries</h3>
         </div>
-        <span className="text-[10px] text-white/30 font-mono tabular-nums">{deliveries.length}</span>
+        <span className="text-micro text-white/30 font-mono tabular-nums">{deliveries.length}</span>
       </header>
 
       {loading ? (
         <div className="px-4 py-4"><SkeletonList rows={3} card={false} /></div>
       ) : deliveries.length === 0 ? (
         <div className="px-4 py-8 text-center">
-          <p className="text-[12px] text-white/45 font-medium">No deliveries yet.</p>
-          <p className="text-[11px] text-white/25 mt-1">Drafted skills will appear here.</p>
+          <p className="text-label text-white/45 font-medium">No deliveries yet.</p>
+          <p className="text-micro text-white/25 mt-1">Drafted skills will appear here.</p>
         </div>
       ) : (
         <ul className="divide-y divide-white/[0.04]">
@@ -36,16 +36,16 @@ export function SkillDeliveryHistory({ deliveries, loading, onRegenerate }: Prop
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 min-w-0">
-                    <p className="text-[12.5px] font-medium text-white truncate">{d.client_name}</p>
+                    <p className="text-label font-medium text-white truncate">{d.client_name}</p>
                     <StatusPill shipped={!!d.shipped_at} emailSent={!!d.email_sent} />
                   </div>
                   {d.skill_names?.length > 0 && (
-                    <p className="text-[11px] text-white/45 mt-0.5 truncate">
+                    <p className="text-micro text-white/45 mt-0.5 truncate">
                       {d.skill_names.slice(0, 3).join(', ')}
                       {d.skill_names.length > 3 ? ` +${d.skill_names.length - 3}` : ''}
                     </p>
                   )}
-                  <p className="text-[10.5px] text-white/30 mt-1 tabular-nums">
+                  <p className="text-micro text-white/30 mt-1 tabular-nums">
                     {formatDistanceToNow(new Date(d.shipped_at || d.created_at), { addSuffix: true })}
                   </p>
                 </div>
@@ -81,20 +81,20 @@ export function SkillDeliveryHistory({ deliveries, loading, onRegenerate }: Prop
 function StatusPill({ shipped, emailSent }: { shipped: boolean; emailSent: boolean }) {
   if (shipped && emailSent) {
     return (
-      <span className="inline-flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 text-emerald-300">
+      <span className="inline-flex items-center gap-1 text-micro font-semibold uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 text-emerald-300">
         <CheckCircle2 size={10} /> Shipped
       </span>
     )
   }
   if (shipped) {
     return (
-      <span className="inline-flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-full border border-blue-500/25 bg-blue-500/10 text-blue-300">
+      <span className="inline-flex items-center gap-1 text-micro font-semibold uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full border border-blue-500/25 bg-blue-500/10 text-blue-300">
         <Mail size={10} /> Sent (no email)
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-white/55">
+    <span className="inline-flex items-center gap-1 text-micro font-semibold uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-white/55">
       <Clock size={10} /> Draft
     </span>
   )
