@@ -49,7 +49,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (titleCol) {
     const { data: src } = await supabase
       .from(body.source_table).select(titleCol).eq('id', body.source_id).single()
-    snapTitle = (src as Record<string, string> | null)?.[titleCol] || null
+    // via unknown: a one-column select types as the row OR GenericStringError,
+    // and those do not overlap enough for a direct assertion.
+    snapTitle = (src as unknown as Record<string, string> | null)?.[titleCol] || null
   }
 
   const { error: upErr } = await supabase

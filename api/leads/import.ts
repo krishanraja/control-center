@@ -77,7 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
-    const payload = await r.json().catch(() => ({}))
+    const payload = (await r.json().catch(() => ({}))) as { run_id?: string }
     return res.json({ ok: true, run_id: payload.run_id || null })
   } catch (e: any) {
     return res.status(502).json({ ok: false, error: String(e?.message || e) })

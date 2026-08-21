@@ -41,7 +41,10 @@ function safeEqual(a: string, b: string): boolean {
   const ba = Buffer.from(a, 'utf8')
   const bb = Buffer.from(b, 'utf8')
   if (ba.length !== bb.length) return false
-  return timingSafeEqual(ba, bb)
+  // Buffer is a Uint8Array at runtime; @types/node >=22 narrows the parameter
+  // to Uint8Array<ArrayBuffer> while Buffer carries ArrayBufferLike, so the
+  // assignment is rejected on a type that is structurally identical.
+  return timingSafeEqual(ba as unknown as Uint8Array, bb as unknown as Uint8Array)
 }
 
 /** True when the caller presents the cookie the edge gate issues.

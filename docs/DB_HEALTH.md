@@ -56,6 +56,35 @@ specific one.
 Net: **142 → ~59** advisories remaining, all of which are the "needs a design
 decision" class above rather than quick fixes.
 
+## Drift restoration (2026-08-21)
+
+The two categories ADR-008 *applied* on 2026-07-01 had partially drifted back:
+functions and RPCs added after that date did not follow the precedent, so the
+advisor was reporting the same class of finding again.
+
+Migration `20260821200000_restore_adr008_hardening_drift.sql`:
+
+| Advisor | Was | Now |
+|---|---|---|
+| 0011 `function_search_path_mutable` | 6 functions unpinned (`events_for`, `fix_lane_sourcing_type`, `maya_striking_distance_shift_position`, `operator_tz`, `scrub_dead_events`, `touch_updated_at`) | all pinned to `public` |
+| 0028/0029 anon/authenticated can execute SECURITY DEFINER | 2 (`audience_import_proxy`, `reject_reason_neighbors`) | revoked from `PUBLIC`/`anon`/`authenticated`, granted to `service_role` |
+
+`audience_import_proxy` was the one worth closing quickly: SECURITY DEFINER,
+takes a CSV, writes contacts, and was reachable by anyone holding the anon key
+that ships in the browser bundle. `scripts/migrations/2026-07-29-audience-import-source.sql`
+had already run `revoke all ... from public`, but that does **not** remove the
+grants Supabase issues directly to the `anon` and `authenticated` roles — the
+roles have to be named. That is the same correction ADR-008 made, and the same
+trap will catch the next function added this way.
+
+Caller-audited before the change, and still true: `src/` makes **zero** `.rpc()`
+calls, and both functions are called only from `api/` routes on the service-role
+key. Verified after with `has_function_privilege`.
+
+Nothing ADR-008 deferred was touched: the SECURITY DEFINER views, the
+`USING(true)` write policies, and `vector`/`http` in `public` are all unchanged
+and still blocked on the auth decision.
+
 ## Migration ledger divergence (informational — not reconciled)
 
 The applied-migration ledger (`supabase_migrations`) and the repo's

@@ -42,7 +42,8 @@ async function readRawBody(req: VercelRequest): Promise<Buffer> {
   return await new Promise<Buffer>((resolve, reject) => {
     const chunks: Buffer[] = []
     req.on('data', (c: Buffer) => chunks.push(c))
-    req.on('end', () => resolve(Buffer.concat(chunks)))
+    // Same Buffer/Uint8Array variance as api/_auth.ts.
+    req.on('end', () => resolve(Buffer.concat(chunks as unknown as Uint8Array[])))
     req.on('error', reject)
   })
 }

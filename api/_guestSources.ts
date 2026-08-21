@@ -432,7 +432,7 @@ export async function fromLinkedIn(
         tried.push(`${slug} HTTP ${r.status} ${t.slice(0, 60)}`)
         continue
       }
-      const items: any[] = await r.json().catch(() => [])
+      const items = (await r.json().catch(() => [])) as any[]
       const count = Array.isArray(items) ? items.length : 0
       tried.push(`${slug} ${count} posts`)
       for (const it of Array.isArray(items) ? items : []) {

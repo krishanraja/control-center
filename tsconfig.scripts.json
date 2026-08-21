@@ -1,0 +1,33 @@
+{
+  // The scripts tree: backfills, invariant checks, evals, one-off migrations.
+  //
+  // Split out of tsconfig.api.json because the two trees do not run the same
+  // way, and holding them to one module model produced 23 errors that were not
+  // bugs. These are executed by `tsx`, which resolves extensionless relative
+  // imports and lets a .mts file import another .mts directly. Under NodeNext
+  // both are hard errors (TS2835 / TS5097) even though the code runs correctly
+  // — the config was wrong, not the scripts.
+  //
+  // api/ is the opposite case and keeps NodeNext: it runs under real Node ESM
+  // on Vercel, where a missing .js extension genuinely breaks at runtime.
+  //
+  //   npm run typecheck:scripts
+  //
+  // vite/client is needed because two check scripts import the shared
+  // client-side preset lists from src/lib/, which pulls import.meta.env into
+  // this graph.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "types": ["node", "vite/client"],
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "strict": false,
+    "allowJs": false
+  },
+  "include": ["scripts"]
+}
