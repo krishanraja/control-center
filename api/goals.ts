@@ -73,7 +73,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // (provenance survives acceptance — see api/objectives/[id]/nominate-accept.ts).
       const { data: existing } = await supabase
         .from('goals')
-        .select('title, source, venture, objective_kind, horizon')
+        // `current` is read below for the amendment audit record. It was
+        // missing here, so that record wrote current:null even when the goal
+        // had a value — a silent hole in the provenance trail, surfaced by
+        // the type error this select was causing.
+        .select('title, source, venture, objective_kind, horizon, current')
         .eq('id', body.goalId)
         .single()
 

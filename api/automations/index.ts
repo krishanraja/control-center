@@ -28,7 +28,11 @@
  * in the last 48h" state when `workflows.length === 0`.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { supabase } from './_supabase.js'
+// '../_supabase.js', not './'. This file is api/automations/index.ts, so
+// './_supabase.js' resolved to api/automations/_supabase.js, which does not
+// exist — the module failed to load and every request to /api/automations
+// returned FUNCTION_INVOCATION_FAILED. Verified 500 in production.
+import { supabase } from '../_supabase.js'
 
 type RunRow = {
   workflow_id?: string | null

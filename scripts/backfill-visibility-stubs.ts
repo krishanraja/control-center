@@ -105,3 +105,9 @@ for (const s of stubs) {
   console.log(`  ✓ rescued`)
 }
 console.log('\nDone.')
+
+// `export {}` makes this a module. Without it TypeScript treats a file with
+// no imports or exports as a global script, so its top-level consts collide
+// with every other standalone script in the project (TS2451) and top-level
+// await is rejected (TS1375). No runtime effect — tsx already runs it as ESM.
+export {}

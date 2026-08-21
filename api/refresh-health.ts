@@ -4,13 +4,15 @@ import { supabase } from './_supabase.js'
 const N8N_BASE = process.env.N8N_API_BASE_URL
 const N8N_KEY = process.env.N8N_API_KEY || ''
 
-async function fetchN8N(path: string) {
+interface N8NList { data?: any[] }
+
+async function fetchN8N(path: string): Promise<N8NList> {
   if (!N8N_BASE) throw new Error('Missing N8N_API_BASE_URL')
   const res = await fetch(`${N8N_BASE}${path}`, {
     headers: { 'X-N8N-API-KEY': N8N_KEY },
   })
   if (!res.ok) throw new Error(`N8N ${path}: ${res.status}`)
-  return res.json()
+  return res.json() as Promise<N8NList>
 }
 
 interface HealthRow {

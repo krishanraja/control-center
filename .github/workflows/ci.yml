@@ -16,6 +16,16 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
+      # The api/ tree was never type-checked by CI: `tsc --noEmit` reads the root
+      # tsconfig, which only includes src/. tsconfig.api.json existed but was
+      # documented as "NOT a CI gate yet" because of a standing error baseline.
+      # That baseline hid two routes importing _supabase.js at the wrong depth,
+      # both of which returned HTTP 500 on every request in production for as
+      # long as they had existed. Baseline is now zero; keep it there.
+      - run: npm run typecheck:api
+      # scripts/ runs under tsx, so it gets its own config rather than being held
+      # to the api tree's NodeNext resolution (which flagged 23 non-bugs).
+      - run: npm run typecheck:scripts
       # Structural invariants. These guard shapes the type checker cannot see:
       # that one component owns goal entry AND goal display, and that the SMART
       # rubric stays calibrated per rung. Both encode bugs that already shipped

@@ -8,7 +8,8 @@
     "build": "npx vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "typecheck:api": "tsc --noEmit -p tsconfig.api.json",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.2.10",
