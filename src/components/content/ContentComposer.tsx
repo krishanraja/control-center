@@ -19,6 +19,9 @@ import { useWork } from '../../lib/loadingVoice'
 import { useElapsed } from '../../hooks/useAsyncAction'
 import { streamText } from '../../lib/streamText'
 import { Pending } from '../shared/Pending'
+import { BriefComposer } from './BriefComposer'
+import { ComposerShell, ComposerRail, MetaDot } from './ComposerShell'
+import { EditPalette } from './EditPalette'
 // ─────────────────────────────────────────────────────────────────────────
 // ContentComposer — the full-screen deep-work surface for ONE piece.
 //
@@ -44,9 +47,34 @@ interface Material {
 interface ChatMsg { role: 'user' | 'assistant'; content: string }
 
 interface Props {
-  ideaId: string
+  /** A content piece. */
+  ideaId?: string
+  /** A weekly brief, by ISO week. */
+  week?: string
   narrow: boolean
   onClose: () => void
+}
+
+/**
+ * The composer. It opens a piece or a brief.
+ *
+ * CONTENT-ENGINE-V2-SPEC.md:75 specified exactly this and it never shipped:
+ * a second full-screen brief editor was built instead, which then kept its own
+ * four-item chip list while this file rendered all 26. Nothing was broken, so
+ * nothing caught it, and the surface where the weekly work actually happens
+ * quietly had the smallest set of tools.
+ *
+ * The two halves stay separate components because a brief and a piece really
+ * are edited differently: a brief is rich text with citations, versions and a
+ * fan-out, a piece is markdown with materials, channel cuts and standards.
+ * What they share is the frame (ComposerShell), the rail (ComposerRail) and
+ * the palette inside it (EditPalette, over editGroups()) — which is the part
+ * that drifted.
+ */
+export function ContentComposer({ ideaId, week, narrow, onClose }: Props) {
+  if (week) return <BriefComposer week={week} narrow={narrow} onClose={onClose} />
+  if (!ideaId) return null
+  return <IdeaComposer ideaId={ideaId} narrow={narrow} onClose={onClose} />
 }
 
 const RAIL_TABS: { id: RailTab; label: string; icon: React.ReactNode }[] = [
@@ -64,7 +92,7 @@ const RAIL_TABS: { id: RailTab; label: string; icon: React.ReactNode }[] = [
 // Hoisted: O(1) membership test for stored distribution values.
 const CHANNEL_VALUES = new Set(MEDIA_CHANNELS.map(c => c.value as string))
 
-export function ContentComposer({ ideaId, narrow, onClose }: Props) {
+function IdeaComposer({ ideaId, narrow, onClose }: { ideaId: string; narrow: boolean; onClose: () => void }) {
   const { ideas } = useRealtimeContentIdeas()
   const idea = useMemo(() => ideas.find(i => i.id === ideaId) || null, [ideas, ideaId])
 
@@ -202,59 +230,52 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
   )
 
   return (
-    <div className="fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[90] bg-base text-white flex flex-col">
-      {/* Header */}
-      <header className="flex items-center gap-2 px-3 sm:px-5 h-14 border-b border-white/[0.08] flex-shrink-0">
-        <button
-          type="button" onClick={onClose} aria-label="Back to pipeline"
-          className="flex items-center justify-center w-9 h-9 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors"
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <div className="min-w-0 flex-1">
-          <TitleField idea={idea} />
-          <div className="flex items-center gap-1.5 mt-0.5">
-            {idea.lane && (
-              <span className="text-[10px] uppercase tracking-[0.1em] text-violet-200/80">{idea.lane.replace(/_/g, ' ')}{idea.lane_slot ? ` · ${idea.lane_slot}` : ''}</span>
-            )}
-            <span className="text-[10px] uppercase tracking-[0.1em] text-white/35">{idea.state}</span>
-            <span className="text-[10px] text-white/30">·</span>
-            <span className="text-[10px] text-white/35 tabular-nums">{words} words</span>
-            <span className="text-[10px] text-white/30">·</span>
-            <span className="text-[10px] text-white/35">
-              {saveState === 'saving' ? 'saving…' : saveState === 'saved' ? 'saved' : dirty ? 'unsaved' : 'saved'}
-            </span>
-          </div>
-        </div>
-
-        {/* Voice status + fix — only meaningful once there's a draft (no
-            "voice ok" on a blank page). */}
-        {draft.trim() && (
-          <button
-            type="button" onClick={fixVoice}
-            title={emDashes ? `${emDashes} em dash${emDashes === 1 ? '' : 'es'} — click to fix` : warns ? `${warns} voice note${warns === 1 ? '' : 's'}` : 'Voice clean'}
-            className={`hidden sm:flex items-center gap-1 px-2 py-1 rounded-md text-[11px] border transition-colors ${
-              emDashes ? 'border-rose-500/40 text-rose-200 hover:bg-rose-500/10'
-                : warns ? 'border-amber-500/30 text-amber-200 hover:bg-amber-500/10'
-                  : 'border-white/10 text-white/45'
-            }`}
-          >
-            <Check size={11} /> {emDashes ? `${emDashes} em dash` : warns ? `${warns} note` : 'voice ok'}
-          </button>
-        )}
-
-        {!narrow && <SaveDraftButton idea={idea} draft={draft} onApplyDraft={applyDraft} onSaved={goNext} />}
-        {/* Finish one, flow to the next (P-10 / P-22). */}
-        {!narrow && nextPiece && (
-          <button
-            type="button" onClick={goNext}
-            title={`Next: ${nextPiece.headline}`}
-            className="flex items-center gap-1.5 px-3 h-9 rounded-lg text-[12px] font-medium border border-white/10 text-white/70 hover:text-white hover:bg-white/[0.06] transition-colors"
-          >
-            Next <ArrowLeft size={14} className="rotate-180" />
-          </button>
-        )}
-      </header>
+    <ComposerShell
+      onClose={onClose}
+      eyebrow={idea.lane ? `${idea.lane.replace(/_/g, ' ')}${idea.lane_slot ? ` · ${idea.lane_slot}` : ''}` : undefined}
+      title={<TitleField idea={idea} />}
+      meta={
+        <>
+          <span className="text-[10px] uppercase tracking-[0.1em] text-white/35">{idea.state}</span>
+          <MetaDot />
+          <span className="text-[10px] text-white/35 tabular-nums">{words} words</span>
+          <MetaDot />
+          <span className="text-[10px] text-white/35">
+            {saveState === 'saving' ? 'saving…' : saveState === 'saved' ? 'saved' : dirty ? 'unsaved' : 'saved'}
+          </span>
+        </>
+      }
+      actions={
+        <>
+          {/* Voice status + fix — only meaningful once there's a draft (no
+              "voice ok" on a blank page). */}
+          {draft.trim() && (
+            <button
+              type="button" onClick={fixVoice}
+              title={emDashes ? `${emDashes} em dash${emDashes === 1 ? '' : 'es'} — click to fix` : warns ? `${warns} voice note${warns === 1 ? '' : 's'}` : 'Voice clean'}
+              className={`hidden sm:flex items-center gap-1 px-2 py-1 rounded-md text-[11px] border transition-colors ${
+                emDashes ? 'border-rose-500/40 text-rose-200 hover:bg-rose-500/10'
+                  : warns ? 'border-amber-500/30 text-amber-200 hover:bg-amber-500/10'
+                    : 'border-white/10 text-white/45'
+              }`}
+            >
+              <Check size={11} /> {emDashes ? `${emDashes} em dash` : warns ? `${warns} note` : 'voice ok'}
+            </button>
+          )}
+          {!narrow && <SaveDraftButton idea={idea} draft={draft} onApplyDraft={applyDraft} onSaved={goNext} />}
+          {/* Finish one, flow to the next (P-10 / P-22). */}
+          {!narrow && nextPiece && (
+            <button
+              type="button" onClick={goNext}
+              title={`Next: ${nextPiece.headline}`}
+              className="flex items-center gap-1.5 px-3 h-9 rounded-lg text-[12px] font-medium border border-white/10 text-white/70 hover:text-white hover:bg-white/[0.06] transition-colors"
+            >
+              Next <ArrowLeft size={14} className="rotate-180" />
+            </button>
+          )}
+        </>
+      }
+    >
 
       {/* Body */}
       {narrow ? (
@@ -327,26 +348,13 @@ export function ContentComposer({ ideaId, narrow, onClose }: Props) {
             </div>
           </main>
 
-          {/* Desktop rail */}
-          <aside className="w-[380px] flex-shrink-0 border-l border-white/[0.08] flex flex-col min-h-0">
-            <div className="flex items-center gap-0.5 px-2 pt-2 border-b border-white/[0.06] flex-shrink-0">
-              {RAIL_TABS.map(t => (
-                <button
-                  key={t.id} type="button" onClick={() => setTab(t.id)} title={t.label}
-                  aria-label={t.label} aria-pressed={tab === t.id}
-                  className={`flex items-center gap-1.5 px-2.5 py-2 text-[11px] rounded-t-md transition-colors ${
-                    tab === t.id ? 'bg-white/[0.06] text-white/90' : 'text-white/45 hover:text-white/75'
-                  }`}
-                >
-                  {t.icon}{tab === t.id && <span>{t.label}</span>}
-                </button>
-              ))}
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-3">{railPanel}</div>
-          </aside>
+          {/* Desktop rail — the same component the brief mounts. */}
+          <ComposerRail<RailTab> tabs={RAIL_TABS} tab={tab} onTab={setTab}>
+            {railPanel}
+          </ComposerRail>
         </div>
       )}
-    </div>
+    </ComposerShell>
   )
 }
 
@@ -1853,12 +1861,6 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
     finally { setBusy(null) }
   }
 
-  const chip = (label: string, busyKey: string, onClick: () => void, accent: string) => (
-    <button key={busyKey} type="button" disabled={busy !== null} onClick={onClick}
-      className={`text-[10px] px-2 py-1 rounded-md border disabled:opacity-40 transition-colors min-h-[32px] ${accent}`}>
-      {busy === busyKey ? <Working size={11} /> : label}
-    </button>
-  )
 
   return (
     <div className="space-y-3">
@@ -1905,27 +1907,20 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
         <p className="text-[11px] text-white/45 leading-snug">One-click rewrites of the current draft. Each is a preview you accept or discard, never destructive. Adapt-to-lane bundles tone, length, and zoom for that channel.</p>
       )}
 
-      {/* Same palette the mobile Adjust sheet renders, and the same one the
-          brief editor mounts. Groups come from editGroups() so a preset added
-          in contentEngine.ts appears on every surface at once, which is the
-          thing that failed before: the brief editor had four chips because it
-          kept its own list. */}
-      {editGroups({ currentChannel: laneToFactoryChannel(idea.lane, idea.lane_slot) }).map(g => (
-        <Group key={g.label} label={g.label}>
-          {g.items.map(o => chip(
-            o.label,
-            `${o.mode}:${o.value}`,
-            () => (o.mode === 'channel'
-              ? channelCut(o.value, o.label, o.hint)
-              : o.mode === 'video'
-                ? videoScript(o.value, o.label, o.hint)
-                : o.mode === 'deepen'
-                  ? deepen(o.value, o.label)
-                  : revise(o.mode, o.value, o.hint)),
-            `${g.accent.replace('/30', '/25')} hover:bg-white/[0.06]`,
-          ))}
-        </Group>
-      ))}
+      {/* The same palette component the brief mounts, over the same groups.
+          Both the list and the rendering are single-source now: the brief
+          editor had four chips because it kept its own copy of each. */}
+      <EditPalette
+        groups={editGroups({ currentChannel: laneToFactoryChannel(idea.lane, idea.lane_slot) })}
+        busy={busy}
+        onPick={o => (o.mode === 'channel'
+          ? channelCut(o.value, o.label, o.hint)
+          : o.mode === 'video'
+            ? videoScript(o.value, o.label, o.hint)
+            : o.mode === 'deepen'
+              ? deepen(o.value, o.label)
+              : revise(o.mode, o.value, o.hint))}
+      />
 
       <div className="flex items-end gap-1.5 pt-1">
         <input
@@ -1944,14 +1939,6 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
   )
 }
 
-function Group({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-1.5">
-      <span className="text-[9px] text-white/35 w-14 pt-1.5 flex-shrink-0">{label}</span>
-      <div className="flex flex-wrap gap-1">{children}</div>
-    </div>
-  )
-}
 
 // ── Materials ───────────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-// Section-level diff for brief revisions (BriefEditor's "keep just part").
+// Section-level diff for brief revisions (BriefComposer's "keep just part").
 //
 // A magic edit or a Cleo instruction returns a whole rewritten draft. Replacing
 // the entire body wholesale is all-or-nothing: you can't take the sharper

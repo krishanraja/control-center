@@ -129,7 +129,7 @@ export const VERDICT_LABEL: Record<ShiftVerdict, string> = {
   new: 'Newly tracked',
 }
 
-// The LIVE fan-out (ContentV2Tab -> BriefEditor). This is the list Krish
+// The LIVE fan-out (ContentV2Tab -> BriefComposer). This is the list Krish
 // actually sees when pushing content, which is why fixing v1's LANE_ADAPTS and
 // SynthesisModal did not change what he was looking at: v2 is the live system
 // and v1 does not render while VITE_CONTENT_V2_ENABLED is on.

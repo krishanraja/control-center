@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { History, Wand2 } from 'lucide-react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
@@ -6,7 +7,7 @@ import { Markdown } from 'tiptap-markdown'
 import { contentV2Api } from '../../hooks/useContentV2'
 import { useDictation } from '../../hooks/useDictation'
 import { FACTORY_FANOUT, type WeeklyBriefRow } from '../../lib/contentV2'
-import { editGroups } from '../../lib/contentEngine'
+import { editGroups, type EditItem } from '../../lib/contentEngine'
 import { renderBrief, toEndnotes } from '../../lib/citations'
 import { diffSections, mergeSections, wordDiff, type SectionDiff } from '../../lib/briefDiff'
 import { useToast } from '../shared/Toast'
@@ -14,8 +15,9 @@ import { RejectReasonBar } from '../shared/RejectReasonBar'
 import { reasonsFor } from '../../lib/triageReasons'
 import { useLikelyReasons } from '../../hooks/useLikelyReasons'
 import { supabase } from '../../lib/supabase'
-import { Modal } from '../shared/Modal'
 import { Skeleton } from '../shared/Skeleton'
+import { ComposerShell, ComposerRail, MetaDot, type ComposerTab } from './ComposerShell'
+import { EditPalette, busyKey } from './EditPalette'
 import { streamText } from '../../lib/streamText'
 
 interface StandingNote { id: string; text: string; at: string }
@@ -77,7 +79,25 @@ function writeFanoutPref(channels: Set<string>): void {
   try { localStorage.setItem(FANOUT_KEY, JSON.stringify([...channels])) } catch { /* noop */ }
 }
 
-export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: boolean; onClose: () => void }) {
+type BriefTab = 'refine' | 'history'
+
+const BRIEF_TABS: ComposerTab<BriefTab>[] = [
+  { id: 'refine', label: 'Refine', icon: <Wand2 size={14} /> },
+  { id: 'history', label: 'History', icon: <History size={14} /> },
+]
+
+// Format adapts and channel cuts are left out on purpose: the brief is the
+// master that gets fanned out to Paid and Built at push, so "turn this into a
+// Paid piece" is not a question it can answer, and a channel cut writes to a
+// piece's transformed_outputs, which a brief does not have. Deep research runs
+// against a content piece for the same reason.
+const BRIEF_GROUPS = editGroups({
+  includeFormatAdapts: false,
+  includeChannelCuts: false,
+  includeDeepen: false,
+})
+
+export function BriefComposer({ week, narrow, onClose }: { week: string; narrow: boolean; onClose: () => void }) {
   const [brief, setBrief] = useState<WeeklyBriefRow | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [dirty, setDirty] = useState(false)
@@ -87,7 +107,10 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   // The revision as it arrives, shown while it is being written. Separate from
   // `preview` on purpose: see runMagic.
   const [magicStream, setMagicStream] = useState('')
-  const [showVersions, setShowVersions] = useState(false)
+  const [tab, setTab] = useState<BriefTab>('refine')
+  // In state, not derived from canonicalRef: a ref does not re-render, so the
+  // count would freeze after the first keystroke (dirty only flips once).
+  const [words, setWords] = useState(0)
   const [fanout, setFanout] = useState<Set<string>>(readFanoutPref)
   // The fan-out list is five checkboxes that wrap to three rows on a phone, for a
   // choice that persists between weeks and rarely changes. On narrow it collapses
@@ -140,6 +163,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
       const md = storage.markdown?.getMarkdown()
       // Edits only happen with citations on, so the buffer stays canonical.
       if (md != null) canonicalRef.current = toEndnotes(md)
+      setWords(editor.state.doc.textBetween(0, editor.state.doc.content.size, ' ').split(/\s+/).filter(Boolean).length)
     },
     // Held in React state so the chips can SAY what they are about to rewrite.
     // Before this the selection was read invisibly at click time, so a chip
@@ -195,6 +219,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     // tiptap v3 setContent emits update by default, which flipped dirty and
     // re-canonicalized from the serializer on every pass.
     editor.commands.setContent(renderBrief(canonicalRef.current, citations), { emitUpdate: false })
+    setWords(editor.state.doc.textBetween(0, editor.state.doc.content.size, ' ').split(/\s+/).filter(Boolean).length)
   }, [editor, brief, citations, narrow, editingClosed])
 
   useEffect(() => {
@@ -232,9 +257,9 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     mode: string,
     label: string,
     instruction?: string,
-    extra?: { value?: string; hint?: string },
+    extra?: { value?: string; hint?: string; busy?: string },
   ) => {
-    setMagicBusy(mode)
+    setMagicBusy(extra?.busy ?? mode)
     setPreview(null)
     setRejected(new Set())
     try {
@@ -303,6 +328,14 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
     }
   }, [dirty, save, week, toast])
 
+  // One handler for every chip, wherever it is rendered. The busy key is the
+  // palette's own convention, so the spinner always lands on the chip that was
+  // pressed rather than on whichever one happened to share a mode.
+  const pickEdit = useCallback((it: EditItem) => {
+    if (it.mode === 'video') { void runVideoScript(it.value, it.label, it.hint); return }
+    void runMagic(it.mode, it.label, undefined, { value: it.value, hint: it.hint, busy: busyKey(it) })
+  }, [runVideoScript, runMagic])
+
   // The revision, diffed against the current draft by section. A fresh preview
   // starts with every change accepted; `rejected` tracks the ones toggled off.
   const previewDiffs = useMemo<SectionDiff[]>(
@@ -337,7 +370,8 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   const restore = useCallback(async (v: number) => {
     await contentV2Api(`/api/briefs/${week}`, { method: 'PATCH', body: JSON.stringify({ restore_version: v }) })
     setDirty(false)
-    setShowVersions(false)
+    // Back to Refine: you restore a version in order to work on it.
+    setTab('refine')
     await load()
   }, [week, load])
 
@@ -441,45 +475,40 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
   }, [week, toast, onClose])
 
   return (
-    <Modal
-      open
+    <ComposerShell
       onClose={onClose}
-      variant="full"
-      title="Brief editor"
-      hideTitle
-      className="flex flex-col bg-base"
-    >
-      {/* header */}
-      <header className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-white/[0.07] flex-shrink-0">
-        <button onClick={onClose} className="text-white/50 hover:text-white text-[13px]">← Back</button>
-        <div className="min-w-0 flex-1">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-200/80">Weekly brief · {week}</div>
-          <div className="text-[14px] font-bold text-white truncate">
-            {brief?.title ?? <Skeleton h={13} w={180} r={4} className="my-[3px]" />}
-          </div>
+      eyebrow={<>Weekly brief · {week}</>}
+      title={
+        <div className="text-[14px] font-bold text-white truncate">
+          {brief?.title ?? <Skeleton h={13} w={180} r={4} className="my-[3px]" />}
         </div>
-        {brief ? (
-          <button
-            onClick={toggleCitations}
-            aria-pressed={citations}
-            title={citations ? 'Sources shown at the end — tap to hide' : 'Sources hidden — tap to show at the end'}
-            className={`flex-shrink-0 rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition-colors ${
-              citations
-                ? 'border-sky-400/30 bg-sky-400/10 text-sky-200'
-                : 'border-white/15 text-white/45 hover:text-white/80 hover:border-white/25'
-            }`}
-          >
-            {citations ? 'Citations on' : 'Citations off'}
-          </button>
-        ) : null}
-        {!narrow && brief ? (
-          <>
+      }
+      meta={brief ? (
+        <>
+          <span className="text-[10px] uppercase tracking-[0.1em] text-white/35">{brief.status}</span>
+          <MetaDot />
+          <span className="text-[10px] text-white/35 tabular-nums">{words} words</span>
+          <MetaDot />
+          <span className="text-[10px] text-white/35">{saving ? 'saving…' : dirty ? 'unsaved' : 'saved'}</span>
+        </>
+      ) : null}
+      actions={
+        <>
+          {brief ? (
             <button
-              onClick={() => setShowVersions(s => !s)}
-              className="text-[11.5px] text-white/50 hover:text-white/85 tabular-nums"
+              onClick={toggleCitations}
+              aria-pressed={citations}
+              title={citations ? 'Sources shown at the end — tap to hide' : 'Sources hidden — tap to show at the end'}
+              className={`flex-shrink-0 rounded-full border px-2.5 py-1 text-[11.5px] font-semibold transition-colors ${
+                citations
+                  ? 'border-sky-400/30 bg-sky-400/10 text-sky-200'
+                  : 'border-white/15 text-white/45 hover:text-white/80 hover:border-white/25'
+              }`}
             >
-              v{brief.versions?.length || 1} · history
+              {citations ? 'Citations on' : 'Citations off'}
             </button>
+          ) : null}
+          {!narrow && brief ? (
             <button
               onClick={() => save()}
               disabled={!dirty || saving || editingClosed}
@@ -487,16 +516,16 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
             >
               {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
             </button>
-          </>
-        ) : null}
-      </header>
-
-      {error ? (
-        <div className="mx-4 sm:mx-6 mt-3 rounded-lg bg-red-400/10 border border-red-400/25 text-rose-200 text-[12px] px-3 py-2 flex justify-between gap-3">
+          ) : null}
+        </>
+      }
+      banner={error ? (
+        <div className="mx-4 sm:mx-6 mt-3 rounded-lg bg-red-400/10 border border-red-400/25 text-rose-200 text-[12px] px-3 py-2 flex justify-between gap-3 flex-shrink-0">
           <span>{error}</span>
           <button onClick={() => setError(null)} className="opacity-70">×</button>
         </div>
       ) : null}
+    >
 
       <div className="flex-1 min-h-0 flex">
         {/* canvas */}
@@ -590,22 +619,61 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
           </div>
         </div>
 
-        {/* version rail (desktop) */}
-        {!narrow && showVersions && brief ? (
-          <aside className="w-72 flex-shrink-0 border-l border-white/[0.07] overflow-y-auto p-4">
-            <h4 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/40 mb-3">History</h4>
-            {versions.map(v => (
-              <div key={v.v} className="rounded-lg border border-white/[0.06] p-3 mb-2">
-                <div className="flex justify-between items-baseline text-[11px]">
-                  <span className="font-semibold text-white/75">v{v.v} · {v.source}{v.restored_from ? ` (from v${v.restored_from})` : ''}</span>
-                  <span className="text-white/35">{new Date(v.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-                {v.v !== (brief.versions?.length || 1) && v.body_md ? (
-                  <button onClick={() => restore(v.v)} className="mt-2 text-[11px] text-sky-200 hover:text-sky-200 font-semibold">Restore this version</button>
+        {/* The rail. Same component, same place, same tab strip as the piece
+            composer: this is the half of CONTENT-ENGINE-V2-SPEC.md:75 that
+            never shipped. Refine is the default tab because on a brief it is
+            the reason you opened the rail; the piece composer defaults to
+            Cleo for the same reason. */}
+        {!narrow && brief ? (
+          <ComposerRail<BriefTab> tabs={BRIEF_TABS} tab={tab} onTab={setTab}>
+            {tab === 'refine' ? (
+              <div className="space-y-3">
+                <p className="text-[11px] leading-snug text-white/45">
+                  One-click rewrites of the brief. Each is a preview you keep or discard, never
+                  destructive. Highlight a passage first and the edit scopes to it.
+                </p>
+                {scoped ? (
+                  <div className="rounded-lg border border-sky-400/25 bg-sky-400/[0.07] px-2.5 py-2">
+                    <div className="flex items-center gap-1.5 text-[11px] text-sky-200">
+                      <span className="flex-1 truncate" title={selection}>
+                        Adjusting just: “{selection.replace(/\s+/g, ' ').slice(0, 54)}{selection.length > 54 ? '…' : ''}”
+                      </span>
+                      <button
+                        onClick={() => { editor?.commands.focus(); editor?.commands.setTextSelection(editor.state.selection.to) }}
+                        className="text-white/45 hover:text-white/85"
+                        title="Adjust the whole brief instead"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+                <EditPalette
+                  groups={BRIEF_GROUPS}
+                  busy={magicBusy}
+                  disabled={editingClosed}
+                  onPick={pickEdit}
+                />
+              </div>
+            ) : (
+              <div>
+                {versions.map(v => (
+                  <div key={v.v} className="rounded-lg border border-white/[0.06] p-3 mb-2">
+                    <div className="flex justify-between items-baseline text-[11px]">
+                      <span className="font-semibold text-white/75">v{v.v} · {v.source}{v.restored_from ? ` (from v${v.restored_from})` : ''}</span>
+                      <span className="text-white/35">{new Date(v.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    {v.v !== (brief.versions?.length || 1) && v.body_md ? (
+                      <button onClick={() => restore(v.v)} className="mt-2 text-[11px] text-sky-200 hover:text-sky-200 font-semibold">Restore this version</button>
+                    ) : null}
+                  </div>
+                ))}
+                {versions.length === 0 ? (
+                  <p className="text-[11.5px] text-white/40">No saved versions yet.</p>
                 ) : null}
               </div>
-            ))}
-          </aside>
+            )}
+          </ComposerRail>
         ) : null}
       </div>
 
@@ -652,39 +720,12 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
             </button>
           </div>
         ) : null}
-        {/* The rest of the palette. These 22 edits have always existed in
-            src/lib/contentEngine.ts and have always been rendered by the
-            composer; the brief editor kept its own four-item list, so the
-            humour registers, the tone and length axes, the sharpen chips and
-            the analogy moves were simply unreachable from here. Same source
-            now, so a preset added once shows up on both surfaces.
-            Format adapts and channel cuts are left out on purpose: the brief
-            is the master that gets fanned out to Paid and Built at push, so
-            "turn this into a Paid piece" is not a question it can answer. */}
-        {!editingClosed && showEdits ? (
+        {/* On a phone there is no rail, so the palette lives here behind a
+            toggle. Same component, same groups, same handler as the desktop
+            Refine tab; only the container differs. */}
+        {narrow && !editingClosed && showEdits ? (
           <div className="mb-2.5 max-h-[38vh] overflow-y-auto rounded-lg border border-white/[0.07] bg-white/[0.02] p-2.5">
-            {editGroups({ includeFormatAdapts: false, includeChannelCuts: false, includeDeepen: false }).map(g => (
-              <div key={g.label} className="mb-2 last:mb-0">
-                <div className="mb-1 px-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
-                  {g.label}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {g.items.map(it => (
-                    <button
-                      key={`${it.mode}:${it.value}`}
-                      onClick={() => (it.mode === 'video'
-                        ? runVideoScript(it.value, it.label, it.hint)
-                        : runMagic(it.mode, it.label, undefined, { value: it.value, hint: it.hint }))}
-                      disabled={magicBusy !== null}
-                      title={it.hint}
-                      className={`rounded-full border bg-white/[0.03] px-2.5 py-1.5 text-[11.5px] font-semibold hover:bg-white/[0.08] disabled:opacity-40 ${g.accent}`}
-                    >
-                      {magicBusy === it.mode || magicBusy === `video:${it.value}` ? '…' : it.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
+            <EditPalette groups={BRIEF_GROUPS} busy={magicBusy} onPick={pickEdit} dense />
           </div>
         ) : null}
         {!editingClosed ? (
@@ -699,6 +740,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
                 {magicBusy === m.mode ? m.busy : m.label}
               </button>
             ))}
+            {narrow ? (
             <button
               onClick={() => setShowEdits(v => !v)}
               disabled={magicBusy !== null}
@@ -712,6 +754,7 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
             >
               {showEdits ? 'Fewer edits' : 'More edits'}
             </button>
+            ) : null}
             <button
               onClick={dictate}
               disabled={magicBusy !== null}
@@ -932,6 +975,6 @@ export function BriefEditor({ week, narrow, onClose }: { week: string; narrow: b
           )}
         </footer>
       ) : null}
-    </Modal>
+    </ComposerShell>
   )
 }

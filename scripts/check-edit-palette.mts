@@ -1,6 +1,6 @@
 // Guards the one-click edit palette against the failure that produced this
-// script: contentEngine.ts held 26 edits, ContentComposer rendered all of
-// them, and content-v2/BriefEditor kept a private four-item list. Nothing was
+// script: contentEngine.ts held 26 edits, the composer rendered all of
+// them, and the separate v2 brief editor kept a private four-item list. Nothing was
 // deleted and nothing was broken, so nothing caught it. The palette had simply
 // never been wired to the surface the weekly brief actually opens in.
 //
@@ -56,7 +56,7 @@ if (brief.flatMap(g => g.items).length < 20) bad('brief palette lost too much')
 // ── 3. no surface keeps its own list ───────────────────────────────────────
 const SURFACES = [
   'src/components/content/ContentComposer.tsx',
-  'src/components/content-v2/BriefEditor.tsx',
+  'src/components/content/BriefComposer.tsx',
 ]
 for (const f of SURFACES) {
   const src = readFileSync(f, 'utf8')
@@ -68,7 +68,29 @@ for (const f of SURFACES) {
   }
 }
 
+// ── 4. one composer, one shell, one rail ──────────────────────────────────
+// The palette drifted because there were two full-screen editors and only one
+// of them was called the composer. CONTENT-ENGINE-V2-SPEC.md:75 said there
+// would be one, opening ideas AND briefs. These checks are that sentence.
+const app = readFileSync('src/App.tsx', 'utf8')
+if (/<BriefEditor\b/.test(app)) bad('App still mounts a separate BriefEditor')
+if ((app.match(/<ContentComposer\b/g) || []).length !== 1) {
+  bad('App should mount exactly one ContentComposer, for both ?idea= and ?brief=')
+}
+
+const entry = readFileSync('src/components/content/ContentComposer.tsx', 'utf8')
+if (!/week\s*\?\s*:?\s*string/.test(entry) || !/<BriefComposer\b/.test(entry)) {
+  bad('ContentComposer no longer routes briefs; the two surfaces have split again')
+}
+
+for (const f of SURFACES) {
+  const src = readFileSync(f, 'utf8')
+  for (const shared of ['ComposerShell', 'ComposerRail', 'EditPalette']) {
+    if (!src.includes(shared)) bad(`${f} does not use ${shared}; the shared chrome has split`)
+  }
+}
+
 console.log(fail === 0
-  ? `PASS ${flat.length} edits in ${full.length} groups, ${brief.flatMap(g => g.items).length} on the brief, ${HUMOUR_REGISTERS.length} humour registers reachable`
+  ? `PASS ${flat.length} edits in ${full.length} groups, ${brief.flatMap(g => g.items).length} on the brief, ${HUMOUR_REGISTERS.length} humour registers reachable, one composer over one shell`
   : `${fail} FAILURES`)
 process.exit(fail ? 1 : 0)

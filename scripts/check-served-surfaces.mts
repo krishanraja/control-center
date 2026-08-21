@@ -125,7 +125,7 @@ const WHY_EXEMPT = new Set<string>([
   // Deck shells that render a card component which carries the badge itself.
   'src/components/content/TriageDeck.tsx',
   'src/components/content-v2/MobileDecisionDeck.tsx',
-  'src/components/content-v2/BriefEditor.tsx',
+  'src/components/content/BriefComposer.tsx',
   'src/components/mobile/primitives.tsx',
 ])
 
