@@ -3,6 +3,7 @@ import type { PilotAsk, PilotAskOutcome } from '../../types/pilot'
 import { useAskState, saveAsk, resolveAsk } from '../../hooks/useAsks'
 import { useHaptics } from '../../hooks/useHaptics'
 import { Skeleton } from '../shared/Skeleton'
+import { Eyebrow } from '../shared/Eyebrow'
 import { useDeferredPending } from '../shared/useDeferredPending'
 import { Tap, VoiceField } from '../pilot/controls'
 import {
@@ -90,13 +91,13 @@ export function AskCard({ variant, composeSignal }: Props) {
   const composing = !today || editing
 
   return (
-    <div className={`rounded-2xl bg-white/[0.03] border border-white/[0.08] ${compact ? 'p-4' : 'p-5'} flex flex-col gap-4`}>
+    <div className={`rounded-2xl bg-white/[0.03] border border-white/[0.08] ${compact ? 'p-4 gap-3' : 'p-5 gap-4'} flex flex-col`}>
 
       {/* An ask from a past day, still waiting on reality. One at a time. */}
       {state?.unresolved && !learning && (
         <div className="flex flex-col gap-2.5 pb-4 border-b border-white/[0.06]">
-          <span className="text-[11px] uppercase tracking-[0.12em] text-ink-faint">Still out there</span>
-          <p className="text-[13px] leading-relaxed text-ink">{state.unresolved.ask_text}</p>
+          <Eyebrow>Still out there</Eyebrow>
+          <p className="text-body leading-relaxed text-ink">{state.unresolved.ask_text}</p>
           <div className="flex flex-wrap gap-1.5">
             {OUTCOME_CHIPS.map(({ outcome, label }) => (
               <button
@@ -104,7 +105,7 @@ export function AskCard({ variant, composeSignal }: Props) {
                 type="button"
                 onPointerDown={() => h.select()}
                 onClick={() => resolve(state.unresolved as PilotAsk, outcome)}
-                className="min-h-[44px] px-3.5 rounded-xl text-[13px] bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.10] hover:text-ink transition-all active:scale-95 touch-manipulation"
+                className="min-h-[44px] px-3.5 rounded-xl text-body bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.10] hover:text-ink transition-all active:scale-95 touch-manipulation"
               >
                 {label}
               </button>
@@ -115,46 +116,51 @@ export function AskCard({ variant, composeSignal }: Props) {
 
       {/* The outcome met the prediction. One sentence, then it is over. */}
       {learning && (
-        <p className="text-[13px] leading-relaxed text-ink-muted pb-4 border-b border-white/[0.06]">{learning}</p>
+        <p className="text-body leading-relaxed text-ink-muted pb-4 border-b border-white/[0.06]">{learning}</p>
       )}
 
       {composing ? (
         <>
           <div>
-            <h2 className="font-display text-[19px] leading-tight text-ink">Today&rsquo;s ask</h2>
-            <p className="text-[12px] text-ink-faint mt-1">One clean request. No apology, one easy decline.</p>
+            <h2 className="font-display text-title leading-tight text-ink">Today&rsquo;s ask</h2>
+            <p className="text-label text-ink-faint mt-1">Ask one person for one thing. Give them an easy way to say no.</p>
           </div>
           <VoiceField value={text} onChange={setText} rows={2} placeholder={ASK_PLACEHOLDER} />
           {softener && (
-            <p className="text-[12px] text-ink-muted leading-relaxed">{selfRejectionHint(softener)}</p>
+            <p className="text-label text-ink-muted leading-relaxed">{selfRejectionHint(softener)}</p>
           )}
-          <div className="flex flex-col gap-2">
-            <span className="text-[12px] text-ink-muted">If you send it, how do they answer?</span>
-            <div className="flex flex-wrap gap-1.5">
-              {PREDICTION_CHIPS.map(({ pct, label }) => (
-                <button
-                  key={pct}
-                  type="button"
-                  onPointerDown={() => h.select()}
-                  onClick={() => setPredicted(predicted === pct ? null : pct)}
-                  className={`min-h-[44px] px-3.5 rounded-xl text-[13px] border transition-all active:scale-95 touch-manipulation ${
-                    predicted === pct
-                      ? 'bg-white/[0.12] border-white/30 text-ink'
-                      : 'bg-white/[0.03] border-white/10 text-ink-muted hover:bg-white/[0.07]'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+          {/* The prediction appears once there is an ask to predict about.
+              Leading with it was the single most confusing thing on this
+              screen: an unexplained poll about a message not yet written. */}
+          {text.trim() !== '' && (
+            <div className="flex flex-col gap-2">
+              <span className="text-label text-ink-muted">Your guess: how likely is a yes?</span>
+              <div className="grid grid-cols-4 gap-1.5">
+                {PREDICTION_CHIPS.map(({ pct, label }) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    onPointerDown={() => h.select()}
+                    onClick={() => setPredicted(predicted === pct ? null : pct)}
+                    className={`min-h-[44px] px-1 rounded-xl text-label leading-tight text-center border transition-all active:scale-95 touch-manipulation ${
+                      predicted === pct
+                        ? 'bg-white/[0.12] border-white/30 text-ink'
+                        : 'bg-white/[0.03] border-white/10 text-ink-muted hover:bg-white/[0.07]'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          {error && <p className="text-[12px] text-ink-muted">{error}</p>}
+          )}
+          {error && <p className="text-label text-ink-muted">{error}</p>}
           <div className="flex items-center gap-2">
             <Tap onTap={() => commit(false)} disabled={saving || !text.trim()} feel="impactMedium" className="flex items-center justify-center">
               {saving ? 'Saving' : 'Commit the ask'}
             </Tap>
             {editing && today && (
-              <Tap variant="quiet" className="!min-h-[48px] text-[13px] flex items-center" onTap={() => { h.tap(); setEditing(false); setText(today.ask_text); setPredicted(today.predicted_no_pct) }}>
+              <Tap variant="quiet" className="!min-h-[48px] text-body flex items-center" onTap={() => { h.tap(); setEditing(false); setText(today.ask_text); setPredicted(today.predicted_no_pct) }}>
                 Cancel
               </Tap>
             )}
@@ -163,18 +169,18 @@ export function AskCard({ variant, composeSignal }: Props) {
       ) : today && !today.sent_at ? (
         <>
           <div>
-            <span className="text-[11px] uppercase tracking-[0.12em] text-ink-faint">Today&rsquo;s ask</span>
-            <p className="mt-2 font-display text-[17px] leading-snug text-ink">{today.ask_text}</p>
+            <Eyebrow>Today&rsquo;s ask</Eyebrow>
+            <p className="mt-2 font-display text-lede leading-snug text-ink">{today.ask_text}</p>
             {today.predicted_no_pct !== null && (
-              <p className="mt-1.5 text-[12px] text-ink-faint">Your prediction: {today.predicted_no_pct}% chance of a no.</p>
+              <p className="mt-1.5 text-label text-ink-faint">Your guess: {100 - today.predicted_no_pct!}% chance of a yes.</p>
             )}
           </div>
-          {error && <p className="text-[12px] text-ink-muted">{error}</p>}
+          {error && <p className="text-label text-ink-muted">{error}</p>}
           <div className="flex items-center gap-2">
             <Tap onTap={() => commit(true)} disabled={saving} feel="success" className="flex items-center justify-center">
               It went out
             </Tap>
-            <Tap variant="quiet" className="!min-h-[48px] text-[13px] flex items-center" onTap={() => { h.tap(); setEditing(true) }}>
+            <Tap variant="quiet" className="!min-h-[48px] text-body flex items-center" onTap={() => { h.tap(); setEditing(true) }}>
               Edit
             </Tap>
           </div>
@@ -182,9 +188,9 @@ export function AskCard({ variant, composeSignal }: Props) {
       ) : today && !today.resolved_at ? (
         <>
           <div>
-            <span className="text-[11px] uppercase tracking-[0.12em] text-ink-faint">Out</span>
-            <p className="mt-2 text-[14px] leading-relaxed text-ink-muted">{today.ask_text}</p>
-            <p className="mt-1.5 text-[12px] text-ink-faint">In the ledger. Nothing else is asked of you here.</p>
+            <Eyebrow>Out</Eyebrow>
+            <p className="mt-2 text-ui leading-relaxed text-ink-muted">{today.ask_text}</p>
+            <p className="mt-1.5 text-label text-ink-faint">In the ledger. Nothing else is asked of you here.</p>
           </div>
           {recording ? (
             <div className="flex flex-wrap gap-1.5">
@@ -194,7 +200,7 @@ export function AskCard({ variant, composeSignal }: Props) {
                   type="button"
                   onPointerDown={() => h.select()}
                   onClick={() => { setRecording(false); resolve(today, outcome) }}
-                  className="min-h-[44px] px-3.5 rounded-xl text-[13px] bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.10] hover:text-ink transition-all active:scale-95 touch-manipulation"
+                  className="min-h-[44px] px-3.5 rounded-xl text-body bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.10] hover:text-ink transition-all active:scale-95 touch-manipulation"
                 >
                   {label}
                 </button>
@@ -204,14 +210,14 @@ export function AskCard({ variant, composeSignal }: Props) {
             <button
               type="button"
               onClick={() => { h.tap(); setRecording(true) }}
-              className="self-start min-h-[44px] text-[12px] text-ink-faint hover:text-ink-muted underline underline-offset-4 transition-colors touch-manipulation"
+              className="self-start min-h-[44px] text-label text-ink-faint hover:text-ink-muted underline underline-offset-4 transition-colors touch-manipulation"
             >
               Record what came back
             </button>
           )}
         </>
       ) : (
-        <p className="text-[13px] leading-relaxed text-ink-muted">
+        <p className="text-body leading-relaxed text-ink-muted">
           Today&rsquo;s ask is made and answered. That was the rep.
         </p>
       )}

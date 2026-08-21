@@ -349,20 +349,26 @@ export function rulesVerdict(trippedCount: number): string {
  * half, and the only way that belief updates is a recorded prediction meeting
  * a recorded outcome.
  */
-export const ASK_PLACEHOLDER =
-  'Would you be willing to [specific action]? One reason it helps. One easy decline.'
+// Short on purpose: the old placeholder packed the whole method into three
+// clipped lines inside a two-row textarea. The method lives in the card's
+// subtitle now; the placeholder is just the sentence frame.
+export const ASK_PLACEHOLDER = 'Would you be willing to \u2026?'
 
 export interface PredictionChip {
   pct: number
   label: string
 }
 
-/** How likely they say no. One tap, his prediction on record. */
+/**
+ * The prediction, phrased the way he would say it: how likely is a yes. The
+ * stored value stays % chance of a NO (the burden-belief calibration), so the
+ * labels invert: "Likely" a yes = 20% no. Four chips, one row on a phone.
+ */
 export const PREDICTION_CHIPS: PredictionChip[] = [
-  { pct: 20, label: 'Probably yes' },
+  { pct: 20, label: 'Likely' },
   { pct: 40, label: 'Lean yes' },
   { pct: 60, label: 'Lean no' },
-  { pct: 80, label: 'Probably no' },
+  { pct: 80, label: 'Unlikely' },
 ]
 
 export type AskOutcome = 'yes' | 'no' | 'alternative' | 'no_reply'
@@ -383,7 +389,7 @@ export function learningFor(outcome: AskOutcome, predictedNoPct: number | null):
   switch (outcome) {
     case 'yes':
       return predictedNoPct !== null && predictedNoPct >= 60
-        ? `You predicted ${predictedNoPct}% no. It was a yes. The burden belief overestimates again.`
+        ? `You gave this a ${100 - predictedNoPct}% chance of a yes. It was a yes. Asking costs less than it feels.`
         : 'A yes, as predicted. Asks are cheaper than they feel.'
     case 'no':
       return 'A clean no. It prevented false pipeline, and it says nothing about your value.'

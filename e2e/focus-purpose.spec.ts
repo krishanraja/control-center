@@ -79,7 +79,7 @@ test.describe('the focus & purpose home', () => {
     await page.goto('/#/focus')
 
     await expect(page.getByRole('heading', { name: 'Today’s ask' })).toBeVisible()
-    await expect(page.getByText('Steady', { exact: true })).toBeVisible()
+    await expect(page.getByText('Steady yourself')).toBeVisible()
     await expect(page.getByText('Before you speak')).toBeVisible()
     await expect(page.getByText('Test an idea')).toBeVisible()
     // The two homed actions render as quiet footer buttons, not a floating dock.
