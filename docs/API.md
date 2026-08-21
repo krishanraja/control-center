@@ -459,6 +459,69 @@ Network tab silently broken, which is the worse failure.
 | `/api/network/voice` | POST | raw audio body (`bodyParser` off); filters ride the query string (`?countries=GB,AU&filter_mode=soft`) | same envelope plus `transcript` |
 | `/api/network/geo` | GET | — | `{ ok, countries[], unknown, known, total }` |
 | `/api/network/person/[id]` | GET | — | `{ ok, contact, intelligence }` |
+| `/api/network/scan-card` | POST | raw image body (`bodyParser` off), `Content-Type: image/png\|jpeg\|webp\|gif`, ≤3.5MB | `{ ok, person, existing, usable }` |
+| `/api/network/add-person` | POST | `{ full_name, title?, company?, location?, linkedin_url?, email?, headline?, origin_venture, origin_campaign, consent_tier?, note?, merge_into? }` | `{ ok, contact_id, created, merged, searchable, warning, blocked[] }` |
+| `/api/network/enrich-person` | POST | `{ contact_id, use_apify?, skip_web? }` | `{ ok, status, who, why_them, hook, used[], skipped[], degraded[] }` or `402 { error:'api_credits', blocked[], alert }` |
+
+### Adding a person from a screenshot
+
+Three calls, not one, because a Vercel function dies at 60s and a LinkedIn
+profile scrape alone can take 45. Splitting them means a hand-picked person is
+never lost to an enrichment timeout.
+
+```
+scan-card     image bytes → Claude vision → {name, title, company, location}
+              + a duplicate check. READ ONLY — nothing is written, because
+              vision misreads and a 10,670-row network is the wrong place to
+              discover that afterwards.
+add-person    contacts row + contact_intelligence row. BOTH: a contacts row
+              alone is invisible to network_search, so "added to the network"
+              would not be true.
+enrich-person PDL + Apollo + Perplexity/Exa/Brave (+ optional paid Apify
+              LinkedIn profile scrape) → merged structured facts → Claude
+              judgment → rewritten contact_intelligence + embedding.
+```
+
+### Running out of credits is a terminal state, not a degrade
+
+Every provider helper in `api/_enrich.ts` returns `''` on failure. That is the
+right shape for a best-effort research brief and the wrong shape for a permanent
+record: a run where PDL 402s and Perplexity 429s produced a thin Claude-only
+summary, set `enrichment_status='enriched'`, and — because the row now carried a
+`dossier` — became permanently ineligible for retry under the `already_enriched`
+guard. Nothing anywhere recorded that three of four sources never ran.
+
+`api/_quota.ts` classifies each provider response into three kinds:
+
+| Kind | Meaning | Consequence |
+|---|---|---|
+| `skipped_no_key` | not configured | silent, expected, listed in `skipped[]` |
+| `empty` / `error` | ran, gave nothing | listed in `degraded[]`, run continues |
+| `exhausted` / `auth_failed` / `rate_limited` | the account cannot serve the call | **run stops, nothing partial is written, alert raised** |
+
+The blocking kinds set `contacts.enrichment_status='blocked_quota'` (see
+`supabase/migrations/20260821090000_enrichment_blocked_quota.sql`) and return
+`402` with the provider named. `api/_alert.ts` then writes to three places that
+fail differently: Telegram (`TELEGRAM_APPROVALS_*`), `api_usage_state.last_status`
+(where the hourly VPS alerter already looks), and `audit_log`. The API response
+carries `alert_sent`, so a Telegram that did not send is itself visible rather
+than assumed.
+
+Status codes differ per vendor for the same condition — PDL and Apify use 402,
+OpenAI 429 with `insufficient_quota`, Apollo 403 with a message — so the body
+text is matched as well as the status.
+
+A failed **embedding** is treated as blocking for the same reason: without
+`contact_intelligence.embedding` the person is not findable by the surface they
+were added for.
+
+`api/_apify.ts` is the shared Apify client (the two older call sites,
+`_guestSources.ts` and `content-ideas/[id]/challenge.ts`, still hand-roll their
+own). Actor slugs resolve from the `apify_actor_registry` table — primary first,
+`killed` excluded — so a misbehaving actor can be switched off without a deploy.
+A 2xx with an empty dataset is reported as DEGRADED with the actor named, never
+as a clean empty: these actors exit 0 both when the target genuinely has nothing
+and when the input shape was wrong.
 
 ### The pipeline
 

@@ -274,11 +274,25 @@ export function supportsSampling(model: string): boolean {
   return !NO_SAMPLING_MODELS.test(model)
 }
 
+export interface ClaudeImage {
+  /** e.g. 'image/png'. Must be one Anthropic accepts: png, jpeg, gif, webp. */
+  mime: string
+  /** Base64, WITHOUT the `data:...;base64,` prefix. */
+  data: string
+}
+
 export interface ClaudeOpts {
   /** Abort after this many ms. Omit for no deadline (batch/cron callers). */
   timeoutMs?: number
   system: string
   user: string
+  /** Images to send alongside `user`, for the vision path.
+   *
+   *  Anthropic only accepts images inside a content-block array, so supplying
+   *  this switches the message from the plain-string form to blocks. Images go
+   *  BEFORE the text: Anthropic's own guidance is that a question placed after
+   *  the image it refers to is answered more accurately. */
+  images?: ClaudeImage[]
   model?: string
   maxTokens?: number
   temperature?: number
@@ -309,6 +323,23 @@ export function usageCost(u: TokenUsage): number {
   return (u.input / 1e6) * PRICES[key].in + (u.output / 1e6) * PRICES[key].out
 }
 
+type ContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
+
+/** The `content` for the single user turn: a bare string when there are no
+ *  images (unchanged for every existing caller), a block array when there are. */
+function userContent(opts: ClaudeOpts): string | ContentBlock[] {
+  if (!opts.images?.length) return opts.user
+  return [
+    ...opts.images.map((img): ContentBlock => ({
+      type: 'image',
+      source: { type: 'base64', media_type: img.mime, data: img.data },
+    })),
+    { type: 'text', text: opts.user },
+  ]
+}
+
 /** Single-shot Anthropic Messages call. Returns the first text block (or throws). */
 export async function callClaude(opts: ClaudeOpts): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -329,12 +360,24 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
         max_tokens: opts.maxTokens ?? 4000,
         ...(supportsSampling(model) ? { temperature: opts.temperature ?? 0.5 } : {}),
         system: opts.system,
-        messages: [{ role: 'user', content: opts.user }],
+        messages: [{ role: 'user', content: userContent(opts) }],
       }),
       signal: opts.timeoutMs ? ctrl.signal : undefined,
     })
     const j: any = await r.json().catch(() => ({}))
-    if (!r.ok) throw new Error(`anthropic_${r.status}:${(j?.error?.message || '').slice(0, 120)}`)
+    if (!r.ok) {
+      // The status and body ride along on the Error so a caller can tell a
+      // spent credit balance (429 insufficient_quota / 400 credit balance too
+      // low) from a malformed request. Without them the only signal is a
+      // string, and "half enriched because Anthropic is out of credits" is
+      // exactly the failure this has to stay distinguishable from.
+      const e = new Error(`anthropic_${r.status}:${(j?.error?.message || '').slice(0, 120)}`) as Error & {
+        status?: number; body?: string
+      }
+      e.status = r.status
+      e.body = JSON.stringify(j?.error || j || {}).slice(0, 400)
+      throw e
+    }
     if (opts.onUsage) {
       opts.onUsage({
         input: Number(j?.usage?.input_tokens) || 0,

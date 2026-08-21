@@ -10,6 +10,7 @@ import { NetworkPersonSheet } from './NetworkPersonSheet'
 import { SkeletonList } from '../shared/Skeleton'
 import { useNetworkGeo, geoLabel } from '../../hooks/useNetworkGeo'
 import { Working } from '../shared/Working'
+import { AddPersonFromImage } from './AddPersonFromImage'
 
 // The Network surface.
 //
@@ -129,6 +130,15 @@ export function NetworkTab({ narrow, onOpenPerson }: {
           hasResults={s.results.length > 0 || Boolean(recommendation)}
         />
         <NetworkFilters value={filters} onChange={setFilters} collapsible={narrow} />
+        {/* Adding a person lives next to searching for one because they are the
+            same job seen from two sides: you search this tab, fail to find
+            somebody, and the next thing you want is to put them in. Before
+            this, the v2 surface was read-only — ContactImportDropzone is
+            mounted on the pre-v2 lanes only, so under the UI v2 flag there was
+            no way to add anyone to the network from anywhere in the app. */}
+        <div className="flex justify-end px-4 pb-1">
+          <AddPersonFromImage onAdded={() => { if (lastQuestion) runSearch(lastQuestion, filters) }} />
+        </div>
         {!hasRun && <VentureRecommender onRecommend={onRecommend} loading={s.loading} active={recommendation} />}
       </div>
 
