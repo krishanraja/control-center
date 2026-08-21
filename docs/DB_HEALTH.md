@@ -85,6 +85,48 @@ Nothing ADR-008 deferred was touched: the SECURITY DEFINER views, the
 `USING(true)` write policies, and `vector`/`http` in `public` are all unchanged
 and still blocked on the auth decision.
 
+## Broken selects and the dedup columns that never landed (2026-08-21)
+
+A sweep of all 187 `.from().select()` sites in `api/` against the live schema
+found four routes naming columns that do not exist. PostgREST rejects the whole
+query when one column is unknown, so each failed differently and none loudly:
+
+| Route | Selected | Actual | Symptom |
+|---|---|---|---|
+| `api/automations/index.ts` | `workflow_runs.agent` | `agent_id` only | 400 on every request |
+| `api/visibility-targets/[id]/apply.ts` | `visibility_targets.name` | `title` | **every apply returned 404** |
+| `api/_outreachCandidates.ts` | `email_drafts.recipient_email`, `.sent_at` | neither exists | wrapped in try/catch → ready drafts silently always empty |
+| `api/briefs/assemble.ts` | `bets.title` | `hypothesis` | bets silently dropped from the weekly brief |
+| `api/_dedup-backfill.ts` | `visibility_targets.event_url_norm`, `.title_norm` | did not exist | visibility dedup backfill could not run |
+
+That last one was the tip of a larger problem. `20260617120000_dedup_keys_and_synthesis`
+is **in the applied ledger but its column additions were never in the database**
+for `leads`, `guests` and `visibility_targets` — 10 columns, all absent.
+`content_ideas` and `contacts` have theirs only because later migrations
+(`content_ideas_embedding_and_synthesis`, `contacts_guest_promotion_keys`,
+`network_intelligence`) happened to add them. So `_dedup.ts` `checkDuplicate()`,
+described in its own header as "called from every ingest path", had been
+erroring for three of its five tables.
+
+`20260821210000_dedup_keys_backfill_missing_tables.sql` adds and backfills all
+ten (leads 261/261, guests 41/41, visibility_targets 62/62) and creates the
+unique indexes on `leads` and `guests`, both verified duplicate-free first.
+
+**Two duplicate visibility targets need a human merge.** They exist because the
+dedup gap above let them in, and they are why `visibility_targets.event_url_norm`
+is indexed non-uniquely for now. Merge these, then make the index unique:
+
+- `https://www.cxgoalkeeper.com/podcast`
+  — `fd3ea942…` "Business Transformation Pitch with The CX Goalkeeper" [applied]
+  — `e7338b0f…` same pitch, longer title [queued]
+- `https://www.sectionai.com/events/apply-to-speak`
+  — `421e8ea9…` "Section Monthly Executive AI Fireside Chats with Greg Shove" [applied]
+  — `4cddb507…` "Section AI:ROI Conference (Virtual)" [applied]
+
+`scripts/check-select-columns.mts` re-runs the sweep. It is not a CI gate — it
+needs live credentials and CI has no database — so run it after changing a
+select or applying a migration.
+
 ## Migration ledger divergence (informational — not reconciled)
 
 The applied-migration ledger (`supabase_migrations`) and the repo's

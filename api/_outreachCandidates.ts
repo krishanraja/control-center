@@ -39,13 +39,18 @@ async function readyDrafts(): Promise<OutreachCandidate[]> {
     const since = new Date(Date.now() - DRAFT_WINDOW_DAYS * 86400000).toISOString()
     const { data } = await supabase
       .from('email_drafts')
-      .select('id, entity_type, entity_id, subject, recipient_email, gmail_draft_url, created_at, sent_at')
-      .is('sent_at', null)
+      // email_drafts columns are: id, entity_type, entity_id, subject,
+      // body_preview, gmail_draft_id, gmail_draft_url, created_by, created_at.
+      // There is no recipient_email and no sent_at — naming them made
+      // PostgREST reject the whole select, and because this sits in a
+      // try/catch it degraded to an empty list rather than an error, so
+      // ready drafts silently never appeared as outreach candidates.
+      .select('id, entity_type, entity_id, subject, gmail_draft_url, created_at')
       .gte('created_at', since)
       .order('created_at', { ascending: false })
       .limit(6)
     return (data || [])
-      .filter((d: any) => d.subject || d.recipient_email)
+      .filter((d: any) => d.subject)
       .map((d: any) => ({
         kind: 'email_draft' as const,
         id: String(d.id),
