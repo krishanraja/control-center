@@ -114,6 +114,24 @@ test.describe('the focus & purpose home', () => {
     await ctx.close()
   })
 
+  test('home keeps a door into focus', async ({ browser }) => {
+    // The regression this pins: the 2026-08-20 Home recompose rebuilt Home as a
+    // no-scroll canon, which dropped the mounts of the original FocusEntryCard,
+    // and a follow-up commit then deleted the component as unmounted. For a
+    // stretch main had NO way into the hub from Home at all, and the docs still
+    // described the deleted card. The door is a requirement, not a decoration;
+    // the next Home redesign has to keep one.
+    const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
+    const page = await ctx.newPage()
+    await page.clock.setFixedTime(AFTERNOON)
+    await mock(page, { morning: calmMorning })
+    await page.goto('/#/home')
+
+    await page.getByTestId('vitals-focus').click()
+    await expect(page.getByRole('heading', { name: 'Today’s ask' })).toBeVisible({ timeout: 15_000 })
+    await ctx.close()
+  })
+
   test('a calm morning does not get routed to focus', async ({ browser }) => {
     const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
     const page = await ctx.newPage()

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Compass } from 'lucide-react'
 import { useRevenueAttribution } from '../../hooks/useRevenueAttribution'
 import { useShipSummary } from '../../hooks/usePilot'
 import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
@@ -16,8 +16,9 @@ type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
 /**
  * The one quiet vitals line on Home: MRR · ships this week (with the one-tap
- * Log) · decisions waiting. Numbers in mono, labels in the house eyebrow;
- * nothing here asks anything — the queue count links out to OS → Queue.
+ * Log) · decisions waiting · the door into Focus. Numbers in mono, labels in
+ * the house eyebrow; nothing here asks anything — the queue count links out to
+ * OS → Queue and Focus links to the operator's own hub.
  *
  * The ship ledger's non-negotiables carry over from ShipLedgerCard
  * (docs/PILOT-LAYER.md): rendering is NEUTRAL unconditionally. There is no
@@ -90,6 +91,25 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
           {waiting}
           <ArrowRight size={12} className="text-white/35 group-hover:text-white/75 transition-colors" />
         </span>
+      </button>
+
+      <span className="w-px h-3.5 bg-white/[0.08]" aria-hidden />
+
+      {/* Home's door into Focus & Purpose (docs/FOCUS-PURPOSE.md). Deliberately
+          the ONLY item on this line carrying no number: the hub's doctrine is
+          that nothing about the operator is ever counted back at him from
+          ambient chrome, so a "3 asks this week" here would break the feature
+          it points at. A doorway, not a vital. It sits last because the check-in
+          and the anxious-day auto-route are the primary ways in; this is the
+          one that works on an ordinary day. */}
+      <button
+        type="button"
+        data-testid="vitals-focus"
+        onClick={() => { h.select(); onNavigate?.('focus') }}
+        className="inline-flex items-center gap-1.5 min-w-0 group"
+      >
+        <Compass size={12} className="text-white/35 group-hover:text-white/75 transition-colors" aria-hidden />
+        <span className="text-ui text-white/90 whitespace-nowrap">Focus</span>
       </button>
 
       {/* The ship log, one tap away, ledger facts included. */}

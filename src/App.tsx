@@ -74,8 +74,8 @@ const GrowthTab = lazy(() => import('./components/growth/GrowthTab').then(m => (
 const PeopleTab = lazy(() => import('./components/people/PeopleTab').then(m => ({ default: m.PeopleTab })))
 const OsTab = lazy(() => import('./components/os/OsTab').then(m => ({ default: m.OsTab })))
 // Focus & Purpose: the operator's own hub (docs/FOCUS-PURPOSE.md). Reached
-// from the morning check-in, the anxious-day auto-route (?steady=1), Home's
-// entry card, and the drawer.
+// from the morning check-in, the anxious-day auto-route (?steady=1), the Focus
+// link on Home's vitals line, and the drawer.
 const FocusPurposeTab = lazy(() => import('./components/focusPurpose/FocusPurposeTab').then(m => ({ default: m.FocusPurposeTab })))
 
 // Tab validity derives from the registry (src/lib/tabs.ts VALID_TAB_IDS) so the
