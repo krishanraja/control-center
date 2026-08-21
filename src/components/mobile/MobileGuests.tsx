@@ -103,22 +103,22 @@ export function MobileGuests({ onNavigate, guestId, targetId, onClearDetail }: P
 
   const onAcceptGuest = useCallback(async (g: GuestRow) => {
     const ok = await triagePromote('guests', g.id, 'nell')
-    toast(ok ? 'Pitched. Vera will learn.' : 'Could not update — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Pitched. Vera will learn from that.' : 'Could not update — try again.', ok ? 'success' : 'error')
     return ok
   }, [toast])
   const onRejectGuest = useCallback(async (g: GuestRow, code?: string) => {
     const ok = await triageReject('guests', g.id, 'nell', code)
-    toast(ok ? 'Skipped. Vera will learn.' : 'Could not update — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Skipped. Vera will learn from that.' : 'Could not update — try again.', ok ? 'success' : 'error')
     return ok
   }, [toast])
   const onAcceptTarget = useCallback(async (t: VisibilityTargetRow) => {
     const ok = await triagePromote('visibility_targets', t.id, 'nova')
-    toast(ok ? 'Applied. Vera will learn.' : 'Could not update — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Applied. Vera will learn from that.' : 'Could not update — try again.', ok ? 'success' : 'error')
     return ok
   }, [toast])
   const onRejectTarget = useCallback(async (t: VisibilityTargetRow, code?: string) => {
     const ok = await triageReject('visibility_targets', t.id, 'nova', code)
-    toast(ok ? 'Passed. Vera will learn.' : 'Could not update — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Passed. Vera will learn from that.' : 'Could not update — try again.', ok ? 'success' : 'error')
     return ok
   }, [toast])
 

@@ -220,7 +220,7 @@ export function buildLeadsTriageConfig(
 
   const onReject = async (l: LeadRow, code?: string): Promise<CommitResult> => {
     const ok = await triageReject('leads', l.id, l.assignee_agent, code)
-    toast(ok ? 'Dropped. Vera will learn.' : 'Could not drop — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Dropped. Vera will learn from that.' : 'Could not drop — try again.', ok ? 'success' : 'error')
     return ok
   }
 
@@ -356,13 +356,13 @@ export function buildContactsTriageConfig(
 
   const onAccept = async (c: ContactRow): Promise<CommitResult> => {
     const ok = await feedbackVote('contacts', c.id, 1, c.owner_agent)
-    toast(ok ? 'Kept warm. Logged.' : 'Could not save — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Kept warm and logged.' : 'Could not save — try again.', ok ? 'success' : 'error')
     return ok
   }
 
   const onReject = async (c: ContactRow, code?: string): Promise<CommitResult> => {
     const ok = await feedbackVote('contacts', c.id, -1, c.owner_agent, code)
-    toast(ok ? 'Skipped. Vera will learn.' : 'Could not save — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Skipped. Vera will learn from that.' : 'Could not save — try again.', ok ? 'success' : 'error')
     return ok
   }
 
@@ -452,12 +452,12 @@ export function buildGuestsTriageConfig(
 
   const onAccept = async (g: GuestRow): Promise<CommitResult> => {
     const ok = await triagePromote('guests', g.id, 'nell')
-    toast(ok ? 'Pitched. Vera will learn.' : 'Could not update — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Pitched. Vera will learn from that.' : 'Could not update — try again.', ok ? 'success' : 'error')
     return ok
   }
   const onReject = async (g: GuestRow, code?: string): Promise<CommitResult> => {
     const ok = await triageReject('guests', g.id, 'nell', code)
-    toast(ok ? 'Skipped. Vera will learn.' : 'Could not update — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Skipped. Vera will learn from that.' : 'Could not update — try again.', ok ? 'success' : 'error')
     return ok
   }
 
@@ -542,12 +542,12 @@ export function buildVisibilityTargetsTriageConfig(
 
   const onAccept = async (t: VisibilityTargetRow): Promise<CommitResult> => {
     const ok = await triagePromote('visibility_targets', t.id, 'nova')
-    toast(ok ? 'Applied. Vera will learn.' : 'Could not update — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Applied. Vera will learn from that.' : 'Could not update — try again.', ok ? 'success' : 'error')
     return ok
   }
   const onReject = async (t: VisibilityTargetRow, code?: string): Promise<CommitResult> => {
     const ok = await triageReject('visibility_targets', t.id, 'nova', code)
-    toast(ok ? 'Passed. Vera will learn.' : 'Could not update — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Passed. Vera will learn from that.' : 'Could not update — try again.', ok ? 'success' : 'error')
     return ok
   }
 
@@ -689,7 +689,7 @@ export function buildContentTriageConfig(
   }
   const onReject = async (i: ContentIdeaRow, code?: string): Promise<CommitResult> => {
     const ok = await triageReject('content_ideas', i.id, 'cleo', code)
-    toast(ok ? 'Dropped. Vera will learn.' : 'Could not drop — try again.', ok ? 'success' : 'error')
+    toast(ok ? 'Dropped. Vera will learn from that.' : 'Could not drop — try again.', ok ? 'success' : 'error')
     return ok
   }
 

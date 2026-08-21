@@ -72,7 +72,7 @@ export function Pending({
           </p>
           {overdue ? (
             <p className="text-micro text-white/35">
-              Longer than usual. Still running.
+              Taking longer than usual. Still running.
               {showElapsed && <span className="tabular-nums"> {seconds(elapsedMs)}</span>}
             </p>
           ) : showElapsed ? (

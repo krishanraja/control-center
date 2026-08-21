@@ -136,7 +136,7 @@ export const TRAPS: Trap[] = [
   {
     id: 'polishing',
     chip: 'Building instead of asking',
-    move: 'Productive-looking work is the disguise avoidance wears. One relevant ask leaves the machine before any more preparation.',
+    move: 'Busy work is avoidance in disguise. Send one real ask before you do any more preparing.',
     ifThen: 'If I delay outreach to improve materials, then I send one ask first.',
     handoff: 'ask',
   },
@@ -150,7 +150,7 @@ export const TRAPS: Trap[] = [
   {
     id: 'spiralling',
     chip: 'Spiralling on a worry',
-    move: 'A worry is a prediction wearing a disguise. Compile it into one terminal state and put it down.',
+    move: 'A worry is just a prediction in disguise. Run it through the compiler once, then put it down.',
     ifThen: 'If a worry loops twice, then it goes through the compiler, not another lap.',
     handoff: 'compile',
   },
@@ -332,10 +332,10 @@ export const DECISION_RULES: DecisionRule[] = [
 /** The verdict beneath the rule chips, sized to how many tripped. */
 export function rulesVerdict(trippedCount: number): string {
   if (trippedCount === 0) {
-    return 'It passes your rules. The next move is the smallest paid test, this week, with a named failure condition.'
+    return 'It passes your rules. Next step: the smallest paid test you can run this week, deciding up front what result would kill it.'
   }
   if (trippedCount <= 2) {
-    return 'Fixable if the design changes. Resolve what it trips before anything gets built.'
+    return 'Fixable, but only if the design changes. Sort out what it trips before anything gets built.'
   }
   return 'That is three or more of your own rules. Kill it, or name what changed since you wrote them.'
 }
@@ -390,13 +390,13 @@ export function learningFor(outcome: AskOutcome, predictedNoPct: number | null):
     case 'yes':
       return predictedNoPct !== null && predictedNoPct >= 60
         ? `You gave this a ${100 - predictedNoPct}% chance of a yes. It was a yes. Asking costs less than it feels.`
-        : 'A yes, as predicted. Asks are cheaper than they feel.'
+        : 'A yes, like you guessed. Asking costs less than it feels.'
     case 'no':
-      return 'A clean no. It prevented false pipeline, and it says nothing about your value.'
+      return 'A clear no. It saved you chasing something that was not going to happen, and it says nothing about your worth.'
     case 'alternative':
-      return 'They set their own boundary and offered a route. That is the request working, not failing.'
+      return 'They offered a different way instead. That means the ask worked, it just landed differently.'
     case 'no_reply':
-      return 'Silence is not a verdict. One three-way follow-up at the interval, then close the loop.'
+      return 'Silence is not an answer. Follow up once, make it easy to reply either way, then let it go.'
   }
 }
 
@@ -431,7 +431,7 @@ export function findSelfRejection(text: string): string | null {
 }
 
 export function selfRejectionHint(marker: string): string {
-  return `Delete "${marker}". The request stands on its own, and the easy decline already protects them.`
+  return `Delete "${marker}". The request is fine on its own, and they already have an easy way to say no.`
 }
 
 // ── The anxious reading ──────────────────────────────────────────────────────

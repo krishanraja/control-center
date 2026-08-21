@@ -182,7 +182,7 @@ export function DecisionsInbox({
             {Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)}
           </div>
         ) : visible.length === 0 ? (
-          <EmptyState label="Nothing is waiting on you. That is the system working." />
+          <EmptyState label="Nothing is waiting on you right now." />
         ) : (
           <>
             {visible.map(d => {

@@ -258,7 +258,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
       setUnsuitable(prev => { const next = new Set(prev); next.add(key); return next })
       setComposingDownFor(null)
       h.success()
-      toast('Marked unsuitable. Marcus will learn.', 'success')
+      toast('Marked as not a fit. Marcus will learn from that.', 'success')
     } catch (e) {
       h.error()
       toast(`Could not capture feedback: ${(e as Error).message}`, 'error')
@@ -332,7 +332,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
       const j = await r.json()
       if (!j.ok) throw new Error(j.error || 'unknown')
       h.success()
-      toast('Locked. Marcus is mapping today.', 'success')
+      toast('Locked in. Marcus is planning today around it.', 'success')
       onLocked?.()
     } catch (e) {
       h.error()

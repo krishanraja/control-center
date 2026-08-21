@@ -64,7 +64,7 @@ function seconds(ms: number): string {
 /** The one line under the label: stage, or reassurance, plus the honest clock. */
 function useWaitLine({ sub, stage, elapsedMs = 0, expectedMs }: ProcessingOverlayProps) {
   const overdue = Boolean(expectedMs && elapsedMs > expectedMs * 1.5)
-  const primary = stage || (overdue ? 'Longer than usual. Still running.' : sub || 'One moment…')
+  const primary = stage || (overdue ? 'Taking longer than usual. Still running.' : sub || 'One moment…')
   const clock = elapsedMs >= SHOW_ELAPSED_AFTER_MS ? seconds(elapsedMs) : null
   return { primary, clock, overdue }
 }

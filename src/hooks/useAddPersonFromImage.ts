@@ -64,7 +64,7 @@ export const TIER_OPTIONS: Array<{ value: string; label: string; hint: string }>
   { value: 'permissioned', label: 'Permissioned', hint: 'On an owned list that opted in.' },
   { value: 'customer', label: 'Customer', hint: 'Paying or past customer.' },
   { value: 'cold_engaged', label: 'Cold · engaged', hint: 'Engaged with you, but no consent given.' },
-  { value: 'cold_scraped', label: 'Cold · scraped', hint: 'No relationship. Outbound rules apply.' },
+  { value: 'cold_scraped', label: 'Cold · scraped', hint: 'No relationship yet, so outbound rules apply.' },
 ]
 
 const TODAY = () => new Date().toISOString().slice(0, 10)

@@ -77,7 +77,7 @@ const POD_DEFS: Record<string, PodDef> = {
     tint: 'from-purple-500/[0.06] to-transparent',
     chip: 'text-purple-300 border-purple-500/30 bg-purple-500/10',
     icon: <Crown size={13} />,
-    description: 'Sets direction. Owns cross-venture decisions.',
+    description: 'Sets direction and owns decisions across ventures.',
   },
   ops: {
     key: 'ops',
@@ -87,7 +87,7 @@ const POD_DEFS: Record<string, PodDef> = {
     tint: 'from-blue-500/[0.06] to-transparent',
     chip: 'text-blue-300 border-blue-500/30 bg-blue-500/10',
     icon: <Cog size={13} />,
-    description: 'Runs the machine. Quality, infra, product.',
+    description: 'Runs day-to-day: quality, infrastructure, product.',
   },
   growth: {
     key: 'growth',
@@ -303,7 +303,7 @@ export function DesktopOrg() {
       <div className="flex items-baseline justify-between gap-3">
         <div>
           <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight">Organisation</h1>
-          <p className="text-micro md:text-label text-white/40 mt-0.5">Pod hierarchy — Executive sets direction, Ops runs the machine, Growth drives revenue.</p>
+          <p className="text-micro md:text-label text-white/40 mt-0.5">Pod hierarchy — Executive sets direction, Ops runs day-to-day, Growth drives revenue.</p>
         </div>
         <p className="text-micro md:text-label text-white/35 font-mono tabular-nums whitespace-nowrap">{agents.length} {agents.length === 1 ? 'agent' : 'agents'}</p>
       </div>

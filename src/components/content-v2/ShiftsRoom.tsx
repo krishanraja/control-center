@@ -141,8 +141,8 @@ export function ShiftsRoom({ v2, variant, lane }: {
   if (!shifts.length) {
     return (
       <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-6 text-white/50 text-sm max-w-xl">
-        No shifts on the register yet. Detection runs Friday 17:30 UTC; a shift only exists once it provably
-        recurs across 3+ days and 3+ sources. An empty register is honest, never padded.
+        No shifts yet. The detector runs every Friday and only counts something
+        as a shift once it shows up over at least 3 days in at least 3 places.
       </div>
     )
   }

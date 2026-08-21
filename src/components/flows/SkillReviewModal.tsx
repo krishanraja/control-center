@@ -343,7 +343,7 @@ function buildYamlPreview(skill: SkillData): string {
     `name: ${skill.name}`,
     'description: >',
     desc,
-    'license: Proprietary. Built by Mindmaker.',
+    'license: Built in-house by Mindmaker.',
     'compatibility: Designed for Claude Code, Claude.ai, and compatible agent platforms.',
     'metadata:',
     '  author: mindmaker',

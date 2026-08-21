@@ -96,7 +96,7 @@ export function AskCard({ variant, composeSignal }: Props) {
       {/* An ask from a past day, still waiting on reality. One at a time. */}
       {state?.unresolved && !learning && (
         <div className="flex flex-col gap-2.5 pb-4 border-b border-white/[0.06]">
-          <Eyebrow>Still out there</Eyebrow>
+          <Eyebrow>Waiting on a reply</Eyebrow>
           <p className="text-body leading-relaxed text-ink">{state.unresolved.ask_text}</p>
           <div className="flex flex-wrap gap-1.5">
             {OUTCOME_CHIPS.map(({ outcome, label }) => (
@@ -157,7 +157,7 @@ export function AskCard({ variant, composeSignal }: Props) {
           {error && <p className="text-label text-ink-muted">{error}</p>}
           <div className="flex items-center gap-2">
             <Tap onTap={() => commit(false)} disabled={saving || !text.trim()} feel="impactMedium" className="flex items-center justify-center">
-              {saving ? 'Saving' : 'Commit the ask'}
+              {saving ? 'Saving' : 'Save the ask'}
             </Tap>
             {editing && today && (
               <Tap variant="quiet" className="!min-h-[48px] text-body flex items-center" onTap={() => { h.tap(); setEditing(false); setText(today.ask_text); setPredicted(today.predicted_no_pct) }}>
@@ -178,7 +178,7 @@ export function AskCard({ variant, composeSignal }: Props) {
           {error && <p className="text-label text-ink-muted">{error}</p>}
           <div className="flex items-center gap-2">
             <Tap onTap={() => commit(true)} disabled={saving} feel="success" className="flex items-center justify-center">
-              It went out
+              I sent it
             </Tap>
             <Tap variant="quiet" className="!min-h-[48px] text-body flex items-center" onTap={() => { h.tap(); setEditing(true) }}>
               Edit
@@ -188,9 +188,9 @@ export function AskCard({ variant, composeSignal }: Props) {
       ) : today && !today.resolved_at ? (
         <>
           <div>
-            <Eyebrow>Out</Eyebrow>
+            <Eyebrow>Sent</Eyebrow>
             <p className="mt-2 text-ui leading-relaxed text-ink-muted">{today.ask_text}</p>
-            <p className="mt-1.5 text-label text-ink-faint">In the ledger. Nothing else is asked of you here.</p>
+            <p className="mt-1.5 text-label text-ink-faint">Saved to your log. Nothing else to do here.</p>
           </div>
           {recording ? (
             <div className="flex flex-wrap gap-1.5">
@@ -218,7 +218,7 @@ export function AskCard({ variant, composeSignal }: Props) {
         </>
       ) : (
         <p className="text-body leading-relaxed text-ink-muted">
-          Today&rsquo;s ask is made and answered. That was the rep.
+          Today&rsquo;s ask is made and answered. Done for today.
         </p>
       )}
     </div>

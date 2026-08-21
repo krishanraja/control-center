@@ -74,7 +74,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
         body: JSON.stringify({ status: next }),
       })
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
-      toast(next === 'applied' ? 'Marked applied — track the reply.' : 'Passed. Vera will learn.', 'success')
+      toast(next === 'applied' ? 'Marked applied — track the reply.' : 'Passed. Vera will learn from that.', 'success')
     } catch (err: any) {
       toast(`Could not update: ${err?.message || 'try again'}`, 'error')
     } finally {

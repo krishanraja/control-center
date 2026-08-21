@@ -488,7 +488,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
         body: JSON.stringify({ bin: true, reason_code: reasonCode, reason_text: reasonText }),
       })
       setBinning(false)
-      toast('Binned. Cleo will hear why.', 'success')
+      toast('Binned. Cleo gets told why, so it learns.', 'success')
       onClose()
     } catch (e) {
       toast(String((e as Error).message || e), 'error')
@@ -596,7 +596,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
               </div>
             ) : !narrow && !citations ? (
               <div className="mb-4 rounded-lg bg-white/[0.03] border border-white/[0.06] text-white/45 text-label px-3 py-2">
-                Reading view — sources are hidden. Turn <span className="text-sky-200/90 font-semibold">Citations on</span> to edit.
+                Reading view. Sources are hidden. Turn <span className="text-sky-200/90 font-semibold">Citations on</span> to edit.
               </div>
             ) : null}
             {/* `prose prose-invert prose-sm` used to sit on this and did
@@ -940,7 +940,7 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
 
           {pushed ? (
             <div className="text-label text-emerald-200 mt-2.5">
-              Pushed {pushed.length} format{pushed.length === 1 ? '' : 's'} to Google Docs.{' '}
+              Sent {pushed.length} format{pushed.length === 1 ? '' : 's'} to Google Docs.{' '}
               {pushed.filter(p => p.doc_url).map(p => (
                 <a key={p.channel} href={p.doc_url!} target="_blank" rel="noreferrer" className="underline mr-2">{p.channel}</a>
               ))}
@@ -1020,10 +1020,10 @@ export function BriefComposer({ week, narrow, onClose }: { week: string; narrow:
                 className="ml-auto rounded-lg bg-emerald-400 text-emerald-950 px-4 py-2.5 text-label font-bold disabled:opacity-40"
               >
                 {pushing
-                  ? 'Pushing…'
+                  ? 'Sending…'
                   : narrow
-                    ? `Push ${fanout.size} to Docs`
-                    : `Push ${fanout.size} format${fanout.size === 1 ? '' : 's'} to Google Docs`}
+                    ? `Send ${fanout.size} to Docs`
+                    : `Send ${fanout.size} format${fanout.size === 1 ? '' : 's'} to Google Docs`}
               </button>
             </div>
             </>

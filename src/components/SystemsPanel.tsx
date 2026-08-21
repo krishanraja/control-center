@@ -167,7 +167,7 @@ export function SystemsPanel() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-white">Systems</h1>
-          <p className="text-body text-white/30 mt-0.5">All connected services. Monitored by Arlo.</p>
+          <p className="text-body text-white/30 mt-0.5">All connected services, watched by Arlo.</p>
         </div>
         <button
           onClick={liveRefresh}

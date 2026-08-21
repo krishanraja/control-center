@@ -46,7 +46,7 @@ export function FeedRoom({ ideas }: { ideas: ContentIdeaRow[] }) {
         <span className="text-micro text-white/35 tabular-nums flex-shrink-0">{feed.length} items</span>
       </div>
       <p className="text-label text-white/30 mb-4">
-        Nothing here needs you. Time-sensitive items purge Monday; anything that fed a shift is already kept in its dossier.
+        Nothing to do here. Time-limited items clear out on Monday, and anything tied to a shift is already saved with it.
         Rescue moves an item to the Library instead.
       </p>
       <div className="flex flex-col gap-1.5">

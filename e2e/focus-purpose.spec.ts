@@ -154,7 +154,7 @@ test.describe('the focus & purpose home', () => {
 
     await page.getByPlaceholder(/Would you be willing/).fill('Would you be willing to introduce me to Sam? If not, no issue.')
     await page.getByRole('button', { name: 'Lean no' }).click()
-    await page.getByRole('button', { name: 'Commit the ask' }).click()
+    await page.getByRole('button', { name: 'Save the ask' }).click()
 
     await expect.poll(() => posts.length).toBe(1)
     expect(posts[0].ask_text).toContain('introduce me to Sam')
