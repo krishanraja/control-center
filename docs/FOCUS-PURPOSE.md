@@ -96,17 +96,19 @@ the anxious-day route, and Home's entry card, not ambient nav presence.
    hatch, because red mode's one-screen contract is untouched. The unlock
    path that opens the in-app draft carries its own destination and is never
    routed over.
-3. **Home.** A `Focus` link at the end of Home's vitals line
-   (`src/components/home/VitalsLine.tsx`), both shells. It is deliberately the
-   only item on that line with no number: counting anything about the operator
-   in ambient chrome would break the doctrine of the hub it points at. A
-   doorway, not a vital.
+3. **Home.** A full-width `Focus` doorway row at the bottom of both Home
+   shells (`src/components/home/FocusDoor.tsx`). It carries no number:
+   counting anything about the operator in ambient chrome would break the
+   doctrine of the hub it points at. A doorway, not a vital. On very short
+   phone viewports (under ~840px CSS) the row yields to the canon and the
+   check-in / anxious-route / More-drawer doors carry the load.
 
    > It began as `FocusEntryCard`, a card under the pilot cards on each Home
    > branch. The 2026-08-20 Home recompose rebuilt Home as a one-screen,
-   > no-scroll canon and dropped the mounts, so the component was retired and
-   > the door was briefly missing altogether. The vitals-line link is the
-   > replacement: it survives a no-scroll Home because it costs no row.
+   > no-scroll canon and dropped the mounts, so the door was briefly missing
+   > altogether. The replacement was a link at the end of the vitals line —
+   > which read as one more metric and, on a narrow phone, wrapped alone onto
+   > a second row. The 2026-08-21 pass gave it this row of its own.
 4. **Drawer and ⌘K.** Via the tab registry, both IAs.
 
 ## Data model and routes

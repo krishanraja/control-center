@@ -280,7 +280,7 @@ export function GoalLadder({ variant = 'desktop' }: {
   )
 
   return (
-    <div className="flex flex-col gap-5 min-w-0">
+    <div className={`flex flex-col min-w-0 ${compact ? 'gap-3' : 'gap-5'}`}>
       {(error || loadError) && <p className="text-label text-rose-300">{error || loadError}</p>}
 
       {/* ── OS: what the whole system is for ─────────────────────────────── */}

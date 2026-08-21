@@ -58,8 +58,9 @@ export function MobileHome({ onNavigate }: {
 
       {/* overflow-hidden so an over-tall day (a firing critical alert on a
           short phone) clips inside this stack instead of painting over the
-          Focus door below it. */}
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-3 pt-1.5">
+          Focus door below it. On an ordinary day the canon fits: the no-scroll
+          spec pins scrollHeight == clientHeight here at every viewport. */}
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-2 pt-1">
         <GoalLadder variant="mobile" />
         {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
         <TodayList compact />
@@ -68,8 +69,11 @@ export function MobileHome({ onNavigate }: {
 
       {/* The door into Focus, in the quiet space above the nav. A row, not a
           vital: it moved off the vitals line so it stops reading as a metric
-          and can never wrap onto its own orphan line. */}
-      <div className="shrink-0 pt-2.5">
+          and can never wrap onto its own orphan line. On very short viewports
+          (under ~840px CSS) the canon needs every row, so the door yields and
+          Focus stays reachable via More, the check-in and the anxious route —
+          the doors docs/FOCUS-PURPOSE.md names as primary. */}
+      <div className="hidden [@media(min-height:840px)]:block shrink-0 pt-2">
         <FocusDoor onNavigate={onNavigate} compact />
       </div>
     </div>

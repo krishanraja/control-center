@@ -73,7 +73,7 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
                 onClick={() => toggleComplete(t.n)}
                 disabled={busyN === t.n}
                 aria-label={`Mark target ${t.n} ${t.done ? 'not done' : 'done'}`}
-                className={`mt-[1px] w-[26px] h-[26px] rounded-full border flex-shrink-0 inline-flex items-center justify-center transition-colors ${
+                className={`mt-[1px] ${compact ? 'w-[22px] h-[22px]' : 'w-[26px] h-[26px]'} rounded-full border flex-shrink-0 inline-flex items-center justify-center transition-colors ${
                   t.done
                     ? 'bg-emerald-500/40 border-emerald-400/60 text-emerald-50'
                     : 'border-white/25 hover:border-violet-400/60'

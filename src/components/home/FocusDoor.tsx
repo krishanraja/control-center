@@ -25,9 +25,9 @@ export function FocusDoor({ onNavigate, compact = false }: { onNavigate?: Naviga
       type="button"
       data-testid="vitals-focus"
       onClick={() => { h.select(); onNavigate?.('focus') }}
-      className={`group flex w-full items-center rounded-2xl border border-white/[0.08] bg-white/[0.03] text-left transition-colors hover:bg-white/[0.05] active:scale-[0.99] ${compact ? 'gap-2.5 px-3.5 py-2.5' : 'gap-3 px-4 py-3.5'}`}
+      className={`group flex w-full items-center rounded-2xl border border-white/[0.08] bg-white/[0.03] text-left transition-colors hover:bg-white/[0.05] active:scale-[0.99] ${compact ? 'gap-2.5 px-3.5 py-2' : 'gap-3 px-4 py-3.5'}`}
     >
-      <span className={`inline-flex flex-shrink-0 items-center justify-center rounded-full border border-white/[0.10] bg-white/[0.04] text-white/70 ${compact ? 'h-8 w-8' : 'h-9 w-9'}`}>
+      <span className={`inline-flex flex-shrink-0 items-center justify-center rounded-full border border-white/[0.10] bg-white/[0.04] text-white/70 ${compact ? 'h-7 w-7' : 'h-9 w-9'}`}>
         <Compass size={compact ? 14 : 16} aria-hidden />
       </span>
       {compact ? (
