@@ -118,3 +118,50 @@ test('a brief is never offered the two edits it cannot answer', async ({ page })
   await expect(page.getByTestId('edit-chip-deepen-paid')).toHaveCount(0)
   await expect(page.getByTestId('edit-chip-channel-substack')).toHaveCount(0)
 })
+
+test('the citations toggle keeps working past the first press', async ({ page }) => {
+  // The regression this pins: setEditable() emitted a TipTap update, onUpdate
+  // re-canonicalized the buffer from the citations-OFF rendering (sources
+  // stripped), and the second press had nothing to re-attach. The label kept
+  // flipping while the document froze — "works once, then never again".
+  await openBrief(page)
+  // Scoped to the canvas: the tab behind the overlay and the reading-view
+  // banner both contain the word "sources".
+  const sources = page.locator('.brief-canvas').getByRole('heading', { name: 'Sources' })
+  await expect(sources).toBeVisible()
+
+  await page.getByRole('button', { name: 'Citations on' }).click()
+  await expect(sources).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Citations off' }).click()
+  await expect(sources).toBeVisible()
+
+  // And around again, because "toggle" means indefinitely, not twice.
+  await page.getByRole('button', { name: 'Citations on' }).click()
+  await expect(sources).toHaveCount(0)
+  await page.getByRole('button', { name: 'Citations off' }).click()
+  await expect(sources).toBeVisible()
+})
+
+test('the mobile edit palette is a sheet that actually closes', async ({ browser }) => {
+  // The regression this pins: the palette was an inline footer panel whose only
+  // dismiss control was the toggle chip, and the chip disabled itself while a
+  // revise ran — up to 90 seconds with no way out. It is a real bottom sheet
+  // now: close button, backdrop, swipe; the close path is never disabled.
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const page = await ctx.newPage()
+  await openBrief(page)
+
+  await page.getByRole('button', { name: 'More edits' }).click()
+  await expect(page.getByRole('button', { name: 'Close edit options' })).toBeVisible()
+  // The full palette is inside.
+  await expect(page.getByTestId('edit-chip-humor-witty')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Close edit options' }).click()
+  await expect(page.getByRole('button', { name: 'Close edit options' })).toHaveCount(0)
+
+  // Reopens cleanly.
+  await page.getByRole('button', { name: 'More edits' }).click()
+  await expect(page.getByRole('button', { name: 'Close edit options' })).toBeVisible()
+  await ctx.close()
+})

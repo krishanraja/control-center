@@ -9,6 +9,13 @@ interface Props {
   /** When set, the sheet fills the screen down to the safe-area top inset. */
   fullHeight?: boolean
   ariaLabel?: string
+  /**
+   * Portal target override. The default (ui/dialog's zoomRoot) is right for
+   * every tab surface, but a sheet opened from INSIDE a full-screen overlay
+   * (the composer, fixed z-[90] in its own zoom context) must portal into
+   * that overlay's subtree or it paints underneath it.
+   */
+  container?: HTMLElement
 }
 
 /**
@@ -23,7 +30,7 @@ interface Props {
  * focus trap or focus restoration at all. Radix owns that; what stays here is
  * the only part that is genuinely this component's own, the swipe-down drag.
  */
-export function BottomSheet({ open, onClose, children, fullHeight = true, ariaLabel }: Props) {
+export function BottomSheet({ open, onClose, children, fullHeight = true, ariaLabel, container }: Props) {
   const [dragY, setDragY] = useState(0)
   const startY = useRef<number | null>(null)
   const h = useHaptics()
@@ -45,6 +52,7 @@ export function BottomSheet({ open, onClose, children, fullHeight = true, ariaLa
       <DialogContent
         position="bottom"
         showClose={false}
+        container={container}
         overlayClassName="bg-black/60 backdrop-blur-sm"
         aria-label={ariaLabel}
         className={`z-[70] flex flex-col ${fullHeight ? 'h-[calc(92vh/var(--z,1))]' : ''}`}
