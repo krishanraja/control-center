@@ -3,6 +3,7 @@ import { GoalLadder } from '../goals/GoalLadder'
 import { TodayList } from '../home/TodayList'
 import { VitalsLine } from '../home/VitalsLine'
 import { CanonCta } from '../home/CanonCta'
+import { FocusDoor } from '../home/FocusDoor'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DueTestsCard } from '../pilot/DueTestsCard'
 import { useAltitudes } from '../../hooks/useAltitudes'
@@ -48,6 +49,12 @@ export function DesktopHome({ onNavigate }: {
         {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
         <TodayList />
         {cta && cta.target !== 'weekly' && <CanonCta cta={cta} />}
+      </div>
+
+      {/* The door into Focus: a quiet row at the bottom, mirroring mobile so
+          the doorway lives in one place on both shells. Never a number. */}
+      <div className="shrink-0 mt-auto">
+        <FocusDoor onNavigate={onNavigate} />
       </div>
     </div>
   )

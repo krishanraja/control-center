@@ -9,7 +9,7 @@ import { AgentsProvider } from './contexts/AgentsContext'
 import { PendingFlagModal } from './components/PendingFlagModal'
 import { QuickCaptureIdea } from './components/QuickCaptureIdea'
 import { IdeaCaptureModal, isInboxEnabled } from './components/inbox/IdeaCaptureModal'
-import { CaptureSpeedDial } from './components/CaptureSpeedDial'
+import { CreateSheet } from './components/CreateSheet'
 import { FocusRitual } from './components/home/FocusRitual'
 import { PilotGate } from './components/pilot/PilotGate'
 import { EveningShutdown } from './components/pilot/EveningShutdown'
@@ -262,7 +262,11 @@ export default function App() {
                   {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
                   {tab === 'people'    && <PeopleTab narrow params={params} onNavigate={navigate} />}
                   {tab === 'os'        && <OsTab narrow params={params} onNavigate={navigate} />}
-                  {tab === 'focus'     && <ErrorBoundary label="Focus"><div className={`px-5 pt-7 h-full overflow-y-auto ${BOTTOM_NAV_PAD}`}><FocusPurposeTab variant="mobile" steadyEntry={params.steady === '1'} /></div></ErrorBoundary>}
+                  {/* Focus is designed to fit one screen with the tools collapsed;
+                      the scroll container is graceful degradation for very short
+                      viewports, not the layout. Tighter top pad + nav clearance
+                      than BOTTOM_NAV_PAD's scroll-tail breathing room. */}
+                  {tab === 'focus'     && <ErrorBoundary label="Focus"><div className="px-5 pt-3 h-full overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+120px)]"><FocusPurposeTab variant="mobile" steadyEntry={params.steady === '1'} /></div></ErrorBoundary>}
                 </Suspense>
               </div>
             ) : tab === 'content' ? (
@@ -357,7 +361,12 @@ export default function App() {
           <PendingFlagModal />
           <QuickCaptureIdea />
           <IdeaCaptureModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
-          <CaptureSpeedDial />
+          {/* The one mobile create control: tab-aware + button (CreateSheet).
+              Keyed on the same `narrow` state as the shell (the old md:hidden
+              gate left 768-900px with no capture control at all) and hidden
+              while a full-screen overlay owns the screen, where it used to
+              paint over the composer's own footer controls. */}
+          {narrow && !fullScreenOverlayOpen && <CreateSheet tab={tab} />}
           {/* Focus Ritual (unified): one guided stepper across week / today,
               mounted once so it z-stacks above both shells. */}
           <FocusRitual narrow={narrow} tab={tab} onNavigate={navigate} />

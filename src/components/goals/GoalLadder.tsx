@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Check, Plus, Target, X } from 'lucide-react'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useGoalCanon, type CanonGoal } from '../../hooks/useGoalCanon'
+import { useQuickCreateListener } from '../../lib/quickCreate'
 import { createGoal, patchGoal, type GateVerdictWire } from '../../lib/goalsApi'
 import { Eyebrow } from '../shared/Eyebrow'
 import { Skeleton } from '../shared/Skeleton'
@@ -58,6 +59,11 @@ export function GoalLadder({ variant = 'desktop' }: {
     setAdding(hz); setTitle(''); setVenture(''); setGate(null)
     setParentId(hz === 'weekly' && os.length >= 1 ? os[0].id : '')
   }
+
+  // On a phone the create sheet (+) is the only way in; the inline "+ Add"
+  // links render on desktop only. The sheet reaches the same composer here.
+  useQuickCreateListener('goal:os', () => openAdd('os'))
+  useQuickCreateListener('goal:weekly', () => openAdd('weekly'))
 
   const save = async (opts: { override?: boolean } = {}) => {
     const hz = adding
@@ -281,14 +287,16 @@ export function GoalLadder({ variant = 'desktop' }: {
       <section aria-label="OS goals" className="min-w-0">
         <div className="flex items-baseline gap-2 mb-2">
           <Eyebrow>OS</Eyebrow>
-          <button
-            type="button"
-            onClick={() => openAdd('os')}
-            aria-label="Add an OS goal"
-            className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-micro font-semibold text-white/35 hover:text-violet-200 transition-colors"
-          >
-            <Plus size={10} /> Add
-          </button>
+          {!compact && (
+            <button
+              type="button"
+              onClick={() => openAdd('os')}
+              aria-label="Add an OS goal"
+              className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-micro font-semibold text-white/35 hover:text-violet-200 transition-colors"
+            >
+              <Plus size={10} /> Add
+            </button>
+          )}
         </div>
         {os.length === 0 ? (
           <div>
@@ -350,7 +358,7 @@ export function GoalLadder({ variant = 'desktop' }: {
           {weekly.length > 0 && (
             <span className="text-micro text-white/35 tabular-nums font-mono">{weeklyDone}/{weekly.length}</span>
           )}
-          {os.length > 0 && weeklyActive < 3 && (
+          {!compact && os.length > 0 && weeklyActive < 3 && (
             <button
               type="button"
               onClick={() => openAdd('weekly')}

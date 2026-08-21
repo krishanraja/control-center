@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ArrowRight, Compass } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { useRevenueAttribution } from '../../hooks/useRevenueAttribution'
 import { useShipSummary } from '../../hooks/usePilot'
 import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
@@ -16,9 +16,11 @@ type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
 /**
  * The one quiet vitals line on Home: MRR · ships this week (with the one-tap
- * Log) · decisions waiting · the door into Focus. Numbers in mono, labels in
- * the house eyebrow; nothing here asks anything — the queue count links out to
- * OS → Queue and Focus links to the operator's own hub.
+ * Log) · decisions waiting. Numbers in mono, labels in the house eyebrow;
+ * nothing here asks anything — the queue count links out to OS → Queue. The
+ * door into Focus is deliberately NOT here any more: as the only unnumbered
+ * item it read as a metric and, on a narrow phone, wrapped alone onto a second
+ * line. It is its own row now (home/FocusDoor.tsx).
  *
  * The ship ledger's non-negotiables carry over from ShipLedgerCard
  * (docs/PILOT-LAYER.md): rendering is NEUTRAL unconditionally. There is no
@@ -41,7 +43,9 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
   const lastThree = summary?.last_ten.slice(0, 3) ?? []
 
   return (
-    <div className={`flex items-center flex-wrap ${compact ? 'gap-x-3.5 gap-y-1 min-h-[28px]' : 'gap-x-5 gap-y-1.5 min-h-[34px]'}`}>
+    // Compact (phone) is a fixed three-cell band that can NEVER wrap: wrapping
+    // is exactly how the old fourth item ended up alone on a second line.
+    <div className={`flex items-center ${compact ? 'flex-nowrap justify-between gap-x-3 min-h-[28px]' : 'flex-wrap gap-x-5 gap-y-1.5 min-h-[34px]'}`}>
       {/* MRR — a fact, not a mood. */}
       <span className="inline-flex items-baseline gap-2 min-w-0">
         <Eyebrow>MRR</Eyebrow>
@@ -55,7 +59,7 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
           )}
       </span>
 
-      <span className="w-px h-3.5 bg-white/[0.08]" aria-hidden />
+      {!compact && <span className="w-px h-3.5 bg-white/[0.08]" aria-hidden />}
 
       {/* Ships — the pilot ledger, compressed. Always neutral. */}
       <span className="inline-flex items-baseline gap-2 min-w-0">
@@ -77,7 +81,7 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
         </button>
       </span>
 
-      <span className="w-px h-3.5 bg-white/[0.08]" aria-hidden />
+      {!compact && <span className="w-px h-3.5 bg-white/[0.08]" aria-hidden />}
 
       {/* The queue count. The list itself lives on OS → Queue. */}
       <button
@@ -93,24 +97,6 @@ export function VitalsLine({ onNavigate, compact = false }: { onNavigate?: Navig
         </span>
       </button>
 
-      <span className="w-px h-3.5 bg-white/[0.08]" aria-hidden />
-
-      {/* Home's door into Focus & Purpose (docs/FOCUS-PURPOSE.md). Deliberately
-          the ONLY item on this line carrying no number: the hub's doctrine is
-          that nothing about the operator is ever counted back at him from
-          ambient chrome, so a "3 asks this week" here would break the feature
-          it points at. A doorway, not a vital. It sits last because the check-in
-          and the anxious-day auto-route are the primary ways in; this is the
-          one that works on an ordinary day. */}
-      <button
-        type="button"
-        data-testid="vitals-focus"
-        onClick={() => { h.select(); onNavigate?.('focus') }}
-        className="inline-flex items-center gap-1.5 min-w-0 group"
-      >
-        <Compass size={12} className="text-white/35 group-hover:text-white/75 transition-colors" aria-hidden />
-        <span className="text-ui text-white/90 whitespace-nowrap">Focus</span>
-      </button>
 
       {/* The ship log, one tap away, ledger facts included. */}
       {logging && (

@@ -3,6 +3,7 @@ import { GoalLadder } from '../goals/GoalLadder'
 import { TodayList } from '../home/TodayList'
 import { VitalsLine } from '../home/VitalsLine'
 import { CanonCta } from '../home/CanonCta'
+import { FocusDoor } from '../home/FocusDoor'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DueTestsCard } from '../pilot/DueTestsCard'
 import { Logomark } from './Logomark'
@@ -55,11 +56,21 @@ export function MobileHome({ onNavigate }: {
         <DueTestsCard variant="mobile" />
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col gap-3 pt-1.5">
+      {/* overflow-hidden so an over-tall day (a firing critical alert on a
+          short phone) clips inside this stack instead of painting over the
+          Focus door below it. */}
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-3 pt-1.5">
         <GoalLadder variant="mobile" />
         {cta && cta.target === 'weekly' && <CanonCta cta={cta} />}
         <TodayList compact />
         {cta && cta.target !== 'weekly' && <CanonCta cta={cta} />}
+      </div>
+
+      {/* The door into Focus, in the quiet space above the nav. A row, not a
+          vital: it moved off the vitals line so it stops reading as a metric
+          and can never wrap onto its own orphan line. */}
+      <div className="shrink-0 pt-2.5">
+        <FocusDoor onNavigate={onNavigate} compact />
       </div>
     </div>
   )
