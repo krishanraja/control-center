@@ -50,27 +50,45 @@ export function isBlocking(o: ProviderOutcome): boolean {
   return BLOCKING.has(o.status)
 }
 
-/** Substrings that mean "out of credits" rather than "bad request", across the
- *  providers this repo calls. Each vendor picks a different status code for the
- *  same condition — PDL and Apify use 402, OpenAI uses 429 with an
- *  `insufficient_quota` code, Apollo uses 403 with a message — so the body text
- *  is read as well as the status. */
-const EXHAUSTED_HINTS = [
+// Substrings that mean "out of credits" rather than "bad request", across the
+// providers this repo calls. Each vendor picks a different status code for the
+// same condition — PDL and Apify use 402, OpenAI 429 with `insufficient_quota`,
+// Apollo 403 with a message — so the body is read as well as the status.
+//
+// Split into two lists because the status code changes how much the body can be
+// trusted.
+
+/** Unambiguous. These mean an empty account whatever the status code, including
+ *  a 400 — which is what Anthropic actually returns when the balance is spent:
+ *  `400 invalid_request_error: Your credit balance is too low to access the
+ *  Claude API`. Classifying that as a generic error was a real hole: Anthropic
+ *  does both the screenshot read AND the judgment pass, so it is the provider
+ *  most likely to run dry in this flow, and it would have degraded silently. */
+const EXHAUSTED_STRONG = [
   'insufficient_quota',
   'insufficient credits',
   'insufficient_credits',
   'credit balance is too low',
   'quota exceeded',
+  'exceeded your current quota',
   'usage-limit-exceeded',
   'monthly-usage-hard-limit-exceeded',
   'monthly usage hard limit',
-  'exceeded your current quota',
   'out of credits',
-  'no credits',
+  'no credits remaining',
   'payment required',
+  'billing hard limit',
+]
+
+/** Suggestive only. A 400 mentioning "billing" is usually a malformed request
+ *  about a billing endpoint; a 403 or 429 mentioning it is usually an empty
+ *  account. So these count only alongside a status that already implies refusal. */
+const EXHAUSTED_WEAK = [
   'billing',
   'plan limit',
   'subscription',
+  'no credits',
+  'upgrade your plan',
 ]
 
 /** Classify one provider response. `body` is the raw text — callers should pass
@@ -78,16 +96,20 @@ const EXHAUSTED_HINTS = [
 export function classify(httpStatus: number, body: string): ProviderStatus {
   if (httpStatus >= 200 && httpStatus < 300) return 'ok'
   const b = (body || '').toLowerCase()
-  const hinted = EXHAUSTED_HINTS.some(h => b.includes(h))
+  const strong = EXHAUSTED_STRONG.some(h => b.includes(h))
+  const weak = strong || EXHAUSTED_WEAK.some(h => b.includes(h))
 
   if (httpStatus === 402) return 'exhausted'
-  // 429 is the ambiguous one: it is a burst limit on a healthy account and the
-  // permanent state of an empty one. The body decides; without a hint, treat it
-  // as a rate limit, which is still blocking but reads differently in an alert.
-  if (httpStatus === 429) return hinted ? 'exhausted' : 'rate_limited'
+  // 429 is the ambiguous one: a burst limit on a healthy account and the
+  // permanent state of an empty one look identical. The body decides; without
+  // a hint, treat it as a rate limit — still blocking, but it reads differently
+  // in an alert and means something different to whoever acts on it.
+  if (httpStatus === 429) return weak ? 'exhausted' : 'rate_limited'
   if (httpStatus === 401) return 'auth_failed'
-  if (httpStatus === 403) return hinted ? 'exhausted' : 'auth_failed'
-  return 'error'
+  if (httpStatus === 403) return weak ? 'exhausted' : 'auth_failed'
+  // Any other status, including 400, is only a credit wall on an unambiguous
+  // message. Anthropic's spent-balance 400 lands here.
+  return strong ? 'exhausted' : 'error'
 }
 
 /** Build an outcome from a fetch response the caller has already read. */

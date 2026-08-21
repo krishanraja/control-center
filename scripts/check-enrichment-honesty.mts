@@ -16,6 +16,7 @@
 //
 //   npx tsx scripts/check-enrichment-honesty.mts
 import { readFileSync } from 'node:fs'
+import { classify, isBlocking, summarise } from '../api/_quota.js'
 
 let fail = 0
 const bad = (m: string) => { console.log('FAIL: ' + m); fail++ }
@@ -128,6 +129,60 @@ for (const route of [ADD_ROUTE, SCAN_ROUTE]) {
   if (!src.includes('hasEvidence')) {
     bad(`${PERSON_ENRICH}: hasEvidence is gone — a run where every provider was skipped would write a Claude-authored judgment with nothing behind it.`)
   }
+}
+
+// 6. The classifier itself, against the responses these vendors actually send.
+//    Static shape checks cannot catch a mis-classification, and this is where
+//    the rule is decided: get one of these wrong and a spent account degrades
+//    silently no matter how correct the control flow above is.
+//
+//    The Anthropic case is the one that was wrong on the first pass and is the
+//    reason this section exists. A spent Anthropic balance returns 400, not 402
+//    or 429 — and Anthropic does BOTH the screenshot read and the judgment
+//    pass, so it is the provider most likely to run dry in this flow.
+{
+  const cases: [string, number, string, string][] = [
+    ['PDL out of credits',       402, '{"error":{"message":"Payment Required"}}', 'exhausted'],
+    ['Apify hard usage limit',   402, 'monthly-usage-hard-limit-exceeded', 'exhausted'],
+    ['Apify 402, empty body',    402, '', 'exhausted'],
+    ['OpenAI spent quota',       429, '{"error":{"code":"insufficient_quota"}}', 'exhausted'],
+    ['OpenAI burst limit',       429, '{"error":{"code":"rate_limit_exceeded"}}', 'rate_limited'],
+    ['PDL over rate limit',      429, 'Too Many Requests', 'rate_limited'],
+    ['Anthropic spent balance',  400, '{"type":"invalid_request_error","message":"Your credit balance is too low to access the Claude API"}', 'exhausted'],
+    ['Apollo plan exhausted',    403, '{"error":"You have exceeded your current quota"}', 'exhausted'],
+    ['403 mentioning billing',   403, 'billing issue on this account', 'exhausted'],
+    ['Revoked key',              401, 'invalid api key', 'auth_failed'],
+    ['Forbidden, not billing',   403, 'forbidden', 'auth_failed'],
+    // The discriminating pair: the same word, opposite meanings, decided by the
+    // status. A 400 about billing is a malformed request; a 403 is an empty account.
+    ['400 mentioning billing',   400, 'invalid billing_id parameter', 'error'],
+    ['400 genuinely malformed',  400, 'messages: field required', 'error'],
+    ['Success',                  200, '{}', 'ok'],
+  ]
+  for (const [name, status, body, expected] of cases) {
+    const got = classify(status, body)
+    if (got !== expected) bad(`classify(${status}, ${name}) returned '${got}', expected '${expected}'.`)
+  }
+
+  for (const s of ['exhausted', 'auth_failed', 'rate_limited'] as const) {
+    if (!isBlocking({ api: 'x', status: s })) bad(`isBlocking('${s}') is false — that failure would degrade silently.`)
+  }
+  for (const s of ['ok', 'empty', 'skipped_no_key', 'error'] as const) {
+    if (isBlocking({ api: 'x', status: s })) bad(`isBlocking('${s}') is true — every thin result would alert as a credit wall.`)
+  }
+
+  // And the branch the route actually takes: one blocked provider among three
+  // healthy ones must still stop the run.
+  const sum = summarise([
+    { api: 'peopledatalabs', status: 'exhausted', httpStatus: 402 },
+    { api: 'apollo', status: 'ok' },
+    { api: 'apify', status: 'skipped_no_key' },
+    { api: 'perplexity', status: 'empty', detail: 'no content' },
+  ])
+  if (sum.blocked.length !== 1) bad('summarise() did not isolate the blocked provider, so the route could not stop on it.')
+  if (!sum.used.includes('apollo')) bad('summarise() lost a provider that DID answer.')
+  if (!sum.skipped.includes('apify')) bad('summarise() reported an unset key as something other than skipped.')
+  if (sum.degraded.length !== 1) bad('summarise() lost the degraded note.')
 }
 
 console.log(fail === 0
