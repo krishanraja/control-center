@@ -5,6 +5,8 @@ import { useGoalCanon, type CanonGoal } from '../../hooks/useGoalCanon'
 import { useQuickCreateListener } from '../../lib/quickCreate'
 import { createGoal, patchGoal, type GateVerdictWire } from '../../lib/goalsApi'
 import { Eyebrow } from '../shared/Eyebrow'
+import { FocusedEditor } from '../shared/FocusedEditor'
+import { ServesPicker, VentureChips } from './GoalPickers'
 import { Skeleton } from '../shared/Skeleton'
 import { Working } from '../shared/Working'
 
@@ -114,9 +116,16 @@ export function GoalLadder({ variant = 'desktop' }: {
     }
   }
 
+  // On a phone the editor is a focused sheet (text shown whole, mic, Save
+  // riding above the keyboard, Retire behind a confirm). The inline row that
+  // used to appear here could not fit a phone: input, Retire, Cancel and Save
+  // shared one row and Save rendered off the right edge of the screen.
+  const [sheetGoal, setSheetGoal] = useState<CanonGoal | null>(null)
+
   const startEdit = (g: CanonGoal) => {
     h.select()
     setAdding(null)
+    if (compact) { setSheetGoal(g); return }
     setEditing(g.id)
     setEditTitle(g.title)
   }
@@ -181,31 +190,9 @@ export function GoalLadder({ variant = 'desktop' }: {
       />
 
       {adding !== 'os' && (
-        <div className="mt-2 flex items-center gap-2 flex-wrap">
-          <div className="flex-1 min-w-[160px]">
-            <label className="block text-micro text-white/40 mb-1">What does it serve? (required)</label>
-            <select
-              value={parentId}
-              onChange={e => setParentId(e.target.value)}
-              className="w-full min-h-[38px] px-2 rounded-lg bg-white/[0.04] border border-white/10 text-label text-white/85 outline-none focus:border-violet-400/40"
-            >
-              <option value="">Choose an OS goal…</option>
-              {os.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-            </select>
-          </div>
-          {ventures.length > 0 && (
-            <div className="w-[140px]">
-              <label className="block text-micro text-white/40 mb-1">Venture (optional)</label>
-              <select
-                value={venture}
-                onChange={e => setVenture(e.target.value)}
-                className="w-full min-h-[38px] px-2 rounded-lg bg-white/[0.04] border border-white/10 text-label text-white/85 outline-none focus:border-violet-400/40"
-              >
-                <option value="">None</option>
-                {ventures.map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </div>
-          )}
+        <div className="mt-2.5 space-y-2.5">
+          <ServesPicker os={os} value={parentId} onChange={setParentId} disabled={saving} />
+          <VentureChips ventures={ventures} value={venture} onChange={setVenture} disabled={saving} />
         </div>
       )}
 
@@ -426,6 +413,22 @@ export function GoalLadder({ variant = 'desktop' }: {
         )}
         {adding === 'weekly' && composer}
       </section>
+
+      {/* The phone's goal editor. Writes stay on the one wire path (patch →
+          goalsApi); this sheet is only the hands. */}
+      <FocusedEditor
+        open={sheetGoal !== null}
+        onClose={() => setSheetGoal(null)}
+        label={sheetGoal?.horizon === 'os' ? 'OS goal' : 'Weekly objective'}
+        value={sheetGoal?.title ?? ''}
+        placeholder={sheetGoal?.horizon === 'os' ? 'What is the whole system for?' : 'What moves an OS goal this week?'}
+        onSave={async text => sheetGoal ? await patch({ goalId: sheetGoal.id, title: text }) : false}
+        danger={sheetGoal ? {
+          label: sheetGoal.horizon === 'os' ? 'Retire this goal' : 'Drop this objective',
+          confirmLabel: 'Tap again to confirm',
+          run: async () => await patch({ goalId: sheetGoal.id, status: 'dropped' }),
+        } : undefined}
+      />
     </div>
   )
 }

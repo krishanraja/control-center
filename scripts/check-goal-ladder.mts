@@ -95,7 +95,11 @@ for (const hz of ['os', 'weekly']) {
 }
 
 // ── 5. a non-OS rung must demand a parent ──────────────────────────────────
-if (!/needsParent/.test(ladder) || !/What does it serve\?/.test(ladder)) {
+// The asking UI moved from an inline "What does it serve?" select into the
+// shared <ServesPicker> (goals/GoalPickers.tsx) when dropdowns left the
+// write side; the invariant is the same — the composer renders a parent
+// chooser and save refuses without one.
+if (!/needsParent/.test(ladder) || !(/<ServesPicker\b/.test(ladder) || /What does it serve\?/.test(ladder))) {
   bad('the ladder no longer forces a non-OS goal to name its parent; orphans will return')
 }
 

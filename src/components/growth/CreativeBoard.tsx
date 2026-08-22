@@ -1,3 +1,4 @@
+import { OptionChips } from '../goals/GoalPickers'
 import React, { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Film, Plus, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
@@ -389,10 +390,12 @@ function AddCard({ g, thisWeek, onDone }: { g: GrowthData; thisWeek: string; onD
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Product">
-          <select value={form.product_slug} onChange={set('product_slug')} className={`${INPUT_CLS} cursor-pointer`}>
-            {PRODUCTS.map(p => <option key={p} value={p}>{PRODUCT_LABEL[p]}</option>)}
-          </select>
+        <Field label="Product" wide>
+          <OptionChips
+            options={PRODUCTS.map(p => ({ value: p, label: PRODUCT_LABEL[p] }))}
+            value={form.product_slug}
+            onChange={v => set('product_slug')({ target: { value: v } } as React.ChangeEvent<HTMLInputElement>)}
+          />
         </Field>
         <Field label="Batch week (Monday)">
           <input type="date" value={form.batch_week} onChange={set('batch_week')} className={INPUT_CLS} />
