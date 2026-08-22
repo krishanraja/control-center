@@ -5,6 +5,32 @@ Project-level guidance for coding agents. For product/architecture docs see
 [`docs/AGENTS.md`](./docs/AGENTS.md) is the *agent roster* spec, unrelated to
 this file).
 
+## The house systems — extend, never fork
+
+One capability, one system. The 2026-08-20→22 recomposition collapsed years of
+parallel variants (2,154 ad-hoc text sizes, 20 icon sizes at inconsistent
+stroke, six eyebrow recipes, a dozen hand-rolled overlays, three create
+buttons per tab, native `<select>`s carrying two options) into the primitives
+below. **When a task seems to need a new variant of one of these, extend the
+primitive in place — a new prop, tone, kind, or bus action — never a sibling
+component, a local re-implementation, or a one-off style.** If a primitive
+genuinely cannot carry the case, change the primitive and record the change in
+[`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md), which is the authority on
+all of these. Rationale for the lock: [ADR-013](./docs/DECISIONS/013-one-system-per-job.md).
+
+| Capability | The one system | Guarded by |
+|---|---|---|
+| Text sizes + section labels | Role tokens `text-micro…text-hero`; uppercase labels are `shared/Eyebrow` | `scripts/check-type-tokens.mts` (CI) |
+| Icons | `@/lib/icons` wrapper (constant 1.75px physical stroke, snapped sizes); circled icons are `shared/IconTile` | `scripts/check-icons.mts` (CI) |
+| Overlays | `shared/Modal` / `shared/SlideOver` / `mobile/BottomSheet` (all on `ui/dialog`, which owns the keyboard inset) | convention |
+| Editing a piece of text on a phone | `shared/FocusedEditor` — sheet, voice beside keyboard, one full-width Save, danger behind "…" | convention |
+| Choosing from a small set | Chips, never a native `<select>`: `goals/GoalPickers` (`OptionChips` / `ServesPicker` / `VentureChips`); `shared/ChipOverflow` when the set outgrows a line | convention |
+| Creating anything on a phone | The one + button: `CreateSheet` + the `src/lib/quickCreate.ts` bus. Never a new inline create button on a narrow viewport | convention |
+| Tab / section switching | `shared/SegmentedNav`, always with `testIdPrefix` | e2e selects on it |
+| Goal reads/writes | `useGoalCanon` + `src/lib/goalsApi.ts` | `check-goal-ladder` / `check-goal-gate` (CI) |
+| Loading states | The ladder in `docs/DESIGN_SYSTEM.md`; every string in `src/lib/loadingVoice.ts` | convention |
+| Copy | Plain English a 12-year-old can follow: no stacked two-word fragments, no insider metaphors, no preachy meta-lines, no em dashes. Product nouns stay (shifts, ventures, ships, Built/Paid, MRR) | review |
+
 ## Cursor Cloud specific instructions
 
 This repo contains **two independent frontends**, each with its own
@@ -111,6 +137,18 @@ This repo contains **two independent frontends**, each with its own
 
 ### CI
 
-[`.github/workflows/ci.yml`](./.github/workflows/ci.yml) only runs the root
-`npm run lint` and `npx tsc --noEmit` on Node 18. The repo also works on newer
-Node (tested on Node 22); `engines` requires `>=18`.
+[`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs, on Node 18:
+`npm run lint`, `npx tsc --noEmit`, `npm run typecheck:api`,
+`npm run typecheck:scripts`, and the structural guards —
+`check-goal-ladder`, `check-goal-gate`, `check-type-tokens`, `check-icons`,
+`check-content-expiry`, `check-served-surfaces`, `check-enrichment-honesty`
+(all `scripts/check-*.mts`, run with `npx tsx`). Each guard encodes an
+invariant that already shipped broken once; run them locally before pushing.
+No Playwright in CI (see Tests above). The repo also works on newer Node
+(tested on Node 22); `engines` requires `>=18`.
+
+More `check-*.mts` guards exist outside CI (`check-edit-palette`,
+`check-content-taxonomy`, `check-select-columns`, `check-selection`,
+`check-teardown-beat`, `check-video-formats`); run the one nearest your
+change. Known: `check-content-taxonomy` has a failing baseline on main —
+fix the baseline before wiring it into CI.

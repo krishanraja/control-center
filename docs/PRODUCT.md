@@ -76,6 +76,11 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 6. **CanonCta** - THE one contextual ask, under the layer it serves:
    "Set this week's 3" or "Pick your 3 for today" → opens the Focus Ritual.
    Hidden when the canon is fresh.
+7. **FocusDoor** - a full-width doorway row to Focus & Purpose at the bottom
+   of both shells (`home/FocusDoor.tsx`). It carries no number: counting
+   anything about the operator in ambient chrome breaks the Focus doctrine.
+   On very short phone viewports (under ~840px CSS) it yields to the canon
+   and the check-in / anxious-route / More-drawer doors carry the load.
 
 ### Inputs
 
@@ -172,7 +177,23 @@ Inline action surface (`InlineActions`):
 
 ---
 
-## Tab: Leads (PR #53 multi-tag venture-aware)
+## Tab: People
+
+### Purpose
+> *Every human pipeline behind one nav entry: Pipeline (deal leads), Network
+> (the 10k-contact pool), Visibility (podcast guests + PR targets).*
+
+The three lanes are the former standalone tabs, rendered by
+`people/PeopleTab` behind one `SegmentedNav` (test ids `people-lane-<id>`);
+the per-lane specs below still hold. **Network is the default lane**
+(2026-08-22): the network is what the tab is opened for day to day, so
+`#people` with no params lands there, while `?lane=`, `?lead=` and
+`?guest=` / `?target=` deep links land on their own lane. On mobile the +
+create sheet carries the tab's create action (Add a person).
+
+---
+
+## Lane: People → Pipeline (formerly the Leads tab; PR #53 multi-tag venture-aware)
 
 ### Purpose
 > *Which leads are enriched and ready for me to promote, reassign, schedule
@@ -220,7 +241,11 @@ Inline action surface (`InlineActions`):
 
 ---
 
-## Tab: Customers (PR #43 / #45)
+## Tab: Subscriptions (formerly Customers; PR #43 / #45)
+
+> **Relocated (2026-08-20).** Lives in the drawer under the simplified IA as
+> a watch-only surface; the Home scoreboard carries its headline. Same
+> surface, `#customers` still routes to it.
 
 ### Purpose
 > *Where is revenue coming from this month, which paid customers are at
@@ -257,7 +282,7 @@ Inline action surface (`InlineActions`):
 
 ---
 
-## Tab: Guests (PR #52)
+## Lane: People → Visibility (formerly the Guests tab; PR #52)
 
 ### Purpose
 > *Which podcast guests have pitch drafts ready for me to approve, and
@@ -301,6 +326,12 @@ Inline action surface (`InlineActions`):
 
 ## Tab: Content
 
+> **Live shape: Content Engine v2** (`VITE_CONTENT_V2_ENABLED`, ON in prod):
+> rooms Built / Paid / Library plus the mobile-first Queue decision deck.
+> Spec: [`CONTENT-ENGINE-V2-SPEC.md`](./CONTENT-ENGINE-V2-SPEC.md) and
+> `MINDMAKER_OS_ARCHITECTURE.md` §5.8. The v1 description below holds
+> behind the flag.
+
 ### Purpose
 > *What content ideas have been captured, which are ready to send to a
 > stream, which should I kill?*
@@ -328,6 +359,27 @@ Inline action surface (`InlineActions`):
   `signal-noise-pod`, `builder-economy-pod`, `x`) are shown as chips.
   `techonomic` is a legacy value on older rows only; the brand was retired
   2026-08-06 and folded into Mindmaker LIVE.
+
+---
+
+## Tab: Growth
+
+One tab, five sections in the order of the weekly loop (Map, Work, Signals,
+Council, Governance), both device classes via `growth/GrowthTab`. On a phone
+it leads with one line (the number of map questions waiting) and each
+touchpoint row collapses to a single readable line that expands on tap; the
++ create sheet carries "Add a touchpoint". Full spec and runbook:
+[`GROWTH_TAB_RUNBOOK.md`](./GROWTH_TAB_RUNBOOK.md).
+
+---
+
+## Tab: Focus & Purpose
+
+The operator's own hub: the daily ask, the steadying moves, the
+conversation scripts, the decision rules. Non-negotiables and full spec:
+[`FOCUS-PURPOSE.md`](./FOCUS-PURPOSE.md) — no archive, no scores, no
+streaks, theory only at the point of action, and nothing on the surface is
+ever truncated.
 
 ---
 
@@ -362,6 +414,10 @@ Inline action surface (`InlineActions`):
 ---
 
 ## Tab: Org
+
+> **Now an OS subtab (2026-08-20):** OS → Org, beside Queue / Intel / Flows /
+> Systems (`os/OsTab`, test ids `os-sub-<id>`). The ruling queue that Home
+> used to host lives at OS → Queue. The four subtab specs below still hold.
 
 ### Purpose
 > *Show me every agent, who they report into, what they're working on,
@@ -532,7 +588,8 @@ None. Remediation is owned by Arlo / Kai out-of-band.
 > *Capture a content idea without leaving the current tab.*
 
 ### Behaviour
-- Always available; rendered at the App root.
+- Always available; rendered at the App root. On a phone the same capture is
+  the "Capture an idea" row in the + create sheet (`CreateSheet`).
 - POSTs body to the Cleo idea-capture webhook.
 - The webhook's Sonnet 4.6 extractor either inserts into `content_ideas`
   (when `is_idea=true` and `confidence >= 0.5`) or logs a skip row to

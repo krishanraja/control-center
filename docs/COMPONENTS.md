@@ -14,20 +14,19 @@
 ### `App.tsx`
 
 Root component. Handles:
-- Hash-based routing via `useHashRoute` (`#home`, `#today`, `#leads`, ...).
+- Hash-based routing via `useHashRoute` (`#home`, `#people`, `#content`, ...).
 - Responsive breakpoint detection (`< 900px` → mobile, otherwise desktop).
 - Keyboard shortcuts: Cmd+K (command palette), Esc (close palette).
-- Per-tab `ErrorBoundary` wrapping.
+- Per-tab `ErrorBoundary` wrapping; each tab is its own lazy chunk.
 
-```tsx
-type TabId = 'home' | 'today' | 'leads' | 'customers' | 'guests'
-           | 'content' | 'bets' | 'org' | 'exec' | 'workflows' | 'systems'
-```
-
-The `exec` and `workflows` tab IDs are routing-only — they're labelled
-"Intel" and "Flows" in the UI for historical reasons (see
-[`AGENTS.md`](./AGENTS.md)). Don't rename without a migration plan for
-existing bookmarks.
+Valid tab ids derive from the registry in `src/lib/tabs.ts`
+(`VALID_TAB_IDS`). The simplified six-destination IA is committed
+(`isSimplifiedIA()` returns `true`, no flag): `home`, `content`, `people`,
+`growth`, `os`, `focus`, plus `customers` (labelled Subscriptions) in the
+drawer. Legacy hashes (`#leads`, `#guests`, `#today`, `#bets`,
+`#acquisition`, ...) resolve through the alias layer in `App.tsx`, so old
+bookmarks and `navigate()` call sites keep working — never remove an alias
+without a migration plan.
 
 ### `DesktopSidebar`
 
@@ -86,22 +85,21 @@ app.
 
 ## Tab roots
 
-Each tab has a `Desktop*` and `Mobile*` root. They share data hooks but
-differ in layout density.
+Destinations either share one root across device classes (passed `narrow` /
+`variant`) or split into `Desktop*` / `Mobile*` roots sharing the data hooks.
 
-| Tab | Desktop root | Mobile root |
-|---|---|---|
-| Home | `DesktopHome` | `MobileHome` |
-| Today | `DesktopToday` | `MobileToday` |
-| Leads | `DesktopLeads` | `MobileLeads` |
-| Customers | `DesktopCustomers` | `MobileCustomers` |
-| Guests | `DesktopGuests` | `MobileGuests` |
-| Content | `DesktopContent` | `MobileContent` |
-| Bets | `DesktopBets` | `MobileBets` |
-| Org | `DesktopOrg` | `MobileOrg` |
-| Intel (exec) | `DesktopExec` | `MobileIntel` |
-| Flows (workflows) | `DesktopFlows` | `MobileFlows` |
-| Systems | `SystemsPanel` (desktop only) | `MobileSystems` |
+| Destination | Root(s) |
+|---|---|
+| Home | `DesktopHome` / `MobileHome` |
+| Content | `content-v2/ContentV2Tab` (both classes; v1 `DesktopContent` / `MobileContent` behind the flag) |
+| People | `people/PeopleTab` → lanes Pipeline (`DesktopLeads` / `MobileLeads`), **Network** (`network/NetworkTab`, both classes — the default lane), Visibility (`DesktopGuests` / `MobileGuests`) |
+| Growth | `growth/GrowthTab` (both classes, five sections) |
+| OS | `os/OsTab` → Queue / Org / Intel / Flows / Systems subtabs (`DesktopOrg`, `DesktopExec`, `DesktopFlows`, `SystemsPanel`, ... as subtab bodies) |
+| Focus | `focusPurpose/FocusPurposeTab` (`variant="desktop" \| "mobile"`) |
+| Subscriptions | `DesktopCustomers` / `MobileCustomers` (drawer) |
+
+The old standalone tab roots (`DesktopToday`, `MobileBets`, ...) survive only
+as lane / subtab bodies or aliases behind these seven destinations.
 
 Tab roots should be *layout-only* — pull data from hooks, render presentational components,
 do not own business logic. Hand mutations down via props or read them from
@@ -109,7 +107,15 @@ a context (e.g. `AgentsContext` for agent lookups).
 
 ### Content tab — triage deck + composer
 
-The Content tab is **mode-switched by active backlog size** (`useContentTriage`, hysteresis: enter triage > 30, exit ≤ 25):
+> **Live path: Content Engine v2.** With `VITE_CONTENT_V2_ENABLED` (ON in
+> prod) the tab renders `content-v2/ContentV2Tab` instead: rooms **Built /
+> Paid / Library**, and on mobile a **Queue** view first — the finite
+> decision deck (`MobileDecisionDeck`) — with the rooms as sibling segments
+> (test ids `content-room-<id>`). The v1 surface below still exists behind
+> the flag; see [`CONTENT-ENGINE-V2-SPEC.md`](./CONTENT-ENGINE-V2-SPEC.md)
+> and `MINDMAKER_OS_ARCHITECTURE.md` §5.8 for v2.
+
+The v1 Content tab is **mode-switched by active backlog size** (`useContentTriage`, hysteresis: enter triage > 30, exit ≤ 25):
 
 - **Triage mode (> 30) —** `components/content/TriageDeck.tsx` + `TriageCard.tsx`: a one-card-at-a-time swipe deck over the whole active backlog. **Left = Drop** (undoable), **right = Advance one stage** (`seeded→researching→drafting→review`; `review`/`approved` open the Composer — human gates, never auto-crossed), **tap/↑ = open Composer**. Pointer swipe (`useCardDeck`, deferred capture so vertical scroll isn't hijacked) + on-screen buttons + arrow keys, identical on phone and desktop; only ~3 cards mount at once (the fix for the ~218-card crash). Drop is undoable (toast action + `U` key); commits are optimistic via a session committed-id set, keyed by `idea.id`.
 - **Action mode (≤ 30) —** desktop lanes (`ContentIdeaCardActionable`, **bounded** per state by `LANE_CAP`, overflow → triage); `MobileContent` shows a **Ready for you** tier + a **Drafts** tier + an **upstream count** entry; the all-clear empty state is gated on `activeCount === 0` (no more false "You're clear").
@@ -146,6 +152,8 @@ once per browser session and fan out via context if needed.
 | `useContentTriage` | `content_ideas` (via `useRealtimeContentIdeas`) | Content tab mode + triage deck state (advance/drop/undo) |
 | `useHaptics` | — | Haptic vocabulary (Web Vibration API; no-op on iOS/desktop). `tap`/`select`/`success`/`warning`/`error`/`heavy` + impact family (`impactLight`/`impactMedium`/`impactRigid`/`soft`), `notifySuccess`, and the `press` primitive `usePressable` uses |
 | `useHashRoute` | `window.location.hash` | Router |
+| `useGoalCanon` | `goals` via `GET /api/goals/ladder` | Shared singleton + `goals` realtime; writes go through `src/lib/goalsApi.ts` only |
+| `useKeyboardInset` | `window.visualViewport` | On-screen keyboard height in physical CSS px (0 when closed). Applied automatically by `ui/dialog` to bottom/responsive sheets; raw consumers divide by `var(--z, 1)` |
 
 ### Shape
 
@@ -257,6 +265,44 @@ which is why there had only ever been one editable field.
 it and `networkScore` drops them — so the UI states the consequence. Nothing
 could set it per person before: `api/contacts/bulk.ts` and the desktop leads
 table were the only routes, which is why all 10,767 contacts are `active`.
+
+### `CreateSheet` — the one + button (2026-08-21)
+
+The single mobile create system: a violet + FAB bottom-right on every tab,
+opening a bottom sheet of the current tab's create actions first, then the
+global captures (task, idea). Tab-owned actions are reached over the
+`src/lib/quickCreate.ts` bus — `requestCreate(kind)` fires the matching
+`useQuickCreateListener(kind, fn)` (kinds: `goal:os`, `goal:weekly`, `ask`,
+`touchpoint`); self-contained flows (research, add a person, the captures)
+mount their modal from the sheet itself. Mounted from `App.tsx` on the same
+`narrow` state as the mobile shell; hidden while a full-screen overlay owns
+the screen. **Never add an inline create button to a narrow viewport** — add
+an action row here plus a listener in the owning component.
+
+### `FocusedEditor` — editing text on a phone (2026-08-22)
+
+`shared/FocusedEditor`: the write-side primitive. A BottomSheet with an
+`Eyebrow` label, `VoiceField` (voice beside the keyboard), one full-width
+Save that rides above the keyboard (the dialog layer applies
+`useKeyboardInset` for it), and an optional destructive action behind "…"
+that arms on the first tap and runs on the second. Mobile only — desktop
+edits inline. `GoalLadder` uses it; every future mobile text edit should.
+
+### `GoalPickers` — chips over dropdowns
+
+`components/goals/GoalPickers.tsx`: `ServesPicker` (the parent OS goal as
+full-width readable rows), `VentureChips`, and the general-purpose
+`OptionChips` — the house replacement for any small-set `<select>` (adopted
+by the ritual, the goal composer, add-person, touchpoints, the council card,
+the creative board). Long dynamic chip labels are `text-left` + `truncate`;
+a chip never wraps or centres. See DESIGN_SYSTEM.md "The write side".
+
+### `IconTile` / `Eyebrow`
+
+The two smallest primitives with the biggest drift history. `IconTile`
+(sm / md / lg, neutral / accent) is THE circled icon; `Eyebrow` is THE
+small-caps section label. Never hand-roll either — `scripts/check-icons.mts`
+and `scripts/check-type-tokens.mts` fail the recognisable fakes in CI.
 
 ### `Toast` / `ToastProvider`
 
@@ -492,10 +538,13 @@ their own scrim, centring and close path. Nine had no dialog role: nothing
 announced them, Tab walked out into the page behind, the body kept scrolling,
 focus was never returned.
 
-Every **modal** now goes through this. Two `fixed inset-0` overlays remain and
-are deliberate, because neither is a modal: `CaptureSpeedDial` is a menu
-(`role="menu"`, `aria-haspopup`, Escape) and `DesktopToday` has a click-away
-scrim behind a popover.
+Every **modal** now goes through this. The `fixed inset-0`s that remain are
+deliberate non-modals (DesktopToday's and CreativeBoard's click-away scrims)
+or full-screen takeovers carrying their own dialog role (the Focus ritual,
+the composer shells), plus a few legacy dialogs that predate the primitive
+(DesktopContent's schedule and sweep, `IdeaCaptureModal`) — migrate those
+when you touch them; never copy them. `CaptureSpeedDial`, the old two-item
++ menu, is gone: `CreateSheet` replaced it (2026-08-21).
 
 ```tsx
 <Modal open={open} onClose={close} title="Flag firing soon" variant="responsive">
@@ -539,7 +588,7 @@ on visible labels, and a rename took 7 of 9 specs out silently.
 | `NetworkSearchBar` | The one input. Text plus mic. Shows `Heard` then `Understood` then results. Owns the clear affordance. |
 | `NetworkResultRow` | One person: score ring, judgment, hook, risk, tier and thin-evidence badges. |
 | `ScoreBreakdown` | Popover over the score ring. Five bars, one per scoring term. |
-| `NetworkFilters` | Soft by default, with an explicit hard-filter toggle. Collapses on narrow. |
+| `NetworkFilters` | Close matches shown by default; one toggle flips "Matches first" / "Matches only". Collapses on narrow. |
 | `VentureRecommender` | Venture, then intent, then one verb. Not a cross-product. |
 
 Three rules this surface holds and future work should keep:
@@ -567,3 +616,9 @@ Three rules this surface holds and future work should keep:
    abandons a search still in flight rather than letting it repopulate the list
    a second later. That makes the X the escape hatch from a slow query as well
    as the way to start a new one.
+
+4. **The example chips mirror the live thesis.** The four examples in
+   `NetworkSearchBar` are drawn from [`ICP.md`](./ICP.md) (currently: heads
+   of AI / transformation at non-tech companies, mid-market CEOs getting
+   serious about AI). When the ICP moves, update the examples in the same
+   change — stale examples steer every search from the tool's front door.

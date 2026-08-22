@@ -30,6 +30,13 @@ Three ideas run through everything:
    surface on every tab; everything else recedes.
 3. **Respect the person.** Everything honours `prefers-reduced-motion`; haptics
    are silent no-ops off Android; the theme follows the OS by default.
+4. **One system per job.** Every recurring capability — type, icons, overlays,
+   chips, create, editing, loading, copy — has exactly one house
+   implementation, documented here. Extend it in place (a prop, a tone, a
+   kind); never ship a sibling variant or a local re-implementation. The
+   per-capability index for coding agents lives in the root
+   [`AGENTS.md`](../AGENTS.md) ("The house systems"); the rationale in
+   [ADR-013](./DECISIONS/013-one-system-per-job.md).
 
 ---
 
@@ -164,6 +171,67 @@ the old page read as mixed type. Never hand-roll a new one.
 
 ---
 
+## The write side — how anything gets typed on a phone
+
+Locked 2026-08-22, after the goal-edit row rendered Save off the right edge
+of a phone, under a keyboard the app could not see. Three rules, one system
+each:
+
+1. **A phone never edits inside a dense layout.** Any "edit this text" tap on
+   a narrow viewport opens `shared/FocusedEditor`: a bottom sheet showing the
+   text large and whole (`VoiceField` — voice sits beside the keyboard as an
+   equal), ONE full-width Save, the sheet's own dismissal as Cancel, and any
+   destructive action hidden behind "…" with a second arming tap before it
+   runs. Desktop keeps inline editing; same action, different mechanics.
+2. **The app knows the keyboard exists.** `hooks/useKeyboardInset.ts` reads
+   `visualViewport`; `ui/dialog.tsx` applies the inset as bottom padding on
+   every `bottom` / `responsive` DialogContent, so every sheet in the app
+   keeps its primary action above the keyboard with zero per-surface code.
+   Anything consuming the raw hook divides by `var(--z, 1)` — the inset is
+   physical pixels, layout units inside the mobile wrapper are zoomed.
+3. **Small sets are chips, never dropdowns.** A native `<select>` hides its
+   options and truncates the most important one at the exact moment of
+   choosing. Up to roughly seven options: `OptionChips` (the house
+   replacement for a small-set select) or the purpose-built `ServesPicker`
+   (parent OS goal as full-width readable rows) and `VentureChips`, all in
+   `components/goals/GoalPickers.tsx`. Sets that outgrow a line:
+   `shared/ChipOverflow` (+N into a sheet). Long dynamic chip labels get
+   `text-left` + `truncate`: a chip never wraps to a second line and never
+   centres its text.
+
+## Create — the one + button
+
+On a phone there is ONE way to make something new: the violet + button,
+bottom-right on every tab (`components/CreateSheet.tsx`). It opens a bottom
+sheet listing the current tab's create actions first, then the two global
+captures (task, idea). Actions owned by a tab's own components are reached
+over the `src/lib/quickCreate.ts` bus (`requestCreate(kind)` fires the
+matching `useQuickCreateListener(kind, fn)`); self-contained flows (research,
+add a person, the captures) mount their modal from the sheet itself. Adding a
+create action is one entry in `tabActions` plus one listener — never a new
+inline create button on a narrow viewport. Desktop keeps its inline entry
+points; the FAB is mobile-only and hides while a full-screen overlay owns the
+screen.
+
+## The copy register
+
+Swept 2026-08-21 (Krish: plain English, understandable by a 12-year-old).
+Every string the product renders:
+
+- Plain English in complete sentences. No stacked two-word fragments, no
+  insider metaphors, no button label a first-time reader cannot act on.
+- Never presumptuous, preachy, or bossy; no meta-lines about the app itself.
+- No em dashes anywhere in product copy (`sanitizeVoice()` enforces this on
+  generated text); the ellipsis is the single character `…`.
+- Product nouns are kept, not diluted: shifts, ventures, ships, the worry
+  compiler, Built/Paid, MRR. One vocabulary per concept — never rename a
+  canon term on one surface while the others keep it.
+- Loading strings live only in `src/lib/loadingVoice.ts` (see the ladder
+  below); the pilot surfaces additionally hold the stricter pilot register
+  (direct, calm, zero reassurance — `docs/PILOT-LAYER.md`).
+
+---
+
 ## Presence — ambient field, mood, haptics
 
 - **AmbientField** (`components/shared/AmbientField.tsx`) paints a fixed aurora
@@ -184,10 +252,14 @@ the old page read as mixed type. Never hand-roll a new one.
 
 `components/shared/`: `Pressable` (aurora primary via `.aurora-btn`),
 `DoThisNextHero`, `AllClear` (serif), `StatusPill`, `PodChip`, `SwipeCard` /
-`SwipeDeck` / `SwipeCockpit`, `Skeleton`, `Toast`, `SlideOver`, `AmbientField`,
-`ThemeToggle`. `components/mobile/primitives.tsx`: `HeroCard`, `StatPill`,
-`FeedCard`, `FeedRow`, `TabHeader`, `MobileShell`. Chrome: `DesktopSidebar`,
-`BottomNav`, `CommandPalette`.
+`SwipeDeck` / `SwipeCockpit`, `Skeleton`, `Toast`, `Modal`, `SlideOver`,
+`Eyebrow`, `IconTile`, `FocusedEditor`, `ChipOverflow`, `SegmentedNav`,
+`Working`, `AmbientField`, `ThemeToggle`. `components/mobile/`:
+`primitives.tsx` (`HeroCard`, `StatPill`, `FeedCard`, `FeedRow`, `TabHeader`,
+`MobileShell`) and `BottomSheet`. Choice chips:
+`components/goals/GoalPickers.tsx` (`OptionChips` / `ServesPicker` /
+`VentureChips`). Chrome: `DesktopSidebar`, `BottomNav`, `CommandPalette`,
+`CreateSheet` (the mobile + button) and Home's `FocusDoor`.
 
 **Do not** hand-roll a card, button, pill, or hero — extend the primitive so
 both device classes and both themes stay coherent.
@@ -326,9 +398,14 @@ wrong once here:
    up are fixed hexes tuned for the dark surface, so a 300 foreground looks
    correct at night and washes out to illegible on paper.
 2. **Never hand-roll an overlay.** `shared/Modal` for a modal, `SlideOver` for a
-   right panel, `BottomSheet` for a sheet. A bare `fixed inset-0` has no dialog
-   role, no focus trap, no scroll lock and no focus restoration. Fourteen
-   surfaces had that problem. The two `fixed inset-0` overlays left are a menu
-   and a click-away scrim, neither of which is a modal.
+   right panel, `BottomSheet` for a sheet, `FocusedEditor` for editing text on
+   a phone. A bare `fixed inset-0` has no dialog role, no focus trap, no
+   scroll lock and no focus restoration. Fourteen surfaces had that problem.
+   The hand-rolled `fixed inset-0`s that remain are deliberate non-modals
+   (DesktopToday's and CreativeBoard's click-away scrims) or full-screen
+   takeovers carrying their own dialog role (the Focus ritual, the composer
+   shells), plus a few legacy dialogs that predate the primitive
+   (DesktopContent's schedule and sweep, `IdeaCaptureModal`): migrate those
+   when you touch them; never copy them.
 3. **Never hand-roll a tab switcher.** `shared/SegmentedNav` gives roving focus,
    arrow keys, Home/End and a `testIdPrefix` for the e2e suite.

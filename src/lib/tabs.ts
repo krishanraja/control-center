@@ -58,7 +58,7 @@ const LEGACY_TABS: TabDef[] = [
   // Focus & Purpose: the operator's own hub (daily ask, steadying moves,
   // conversation scripts, the decision rules). Drawer priority on purpose: its
   // first-class doors are the morning check-in, the anxious-day auto-route,
-  // and the Home entry card, not ambient nav presence.
+  // and Home's doorway row, not ambient nav presence.
   { id: 'focus',     label: 'Focus',         desktopIcon: Compass,         mobileIcon: Compass,    desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
   { id: 'exec',      label: 'Intel',         desktopIcon: Brain,           mobileIcon: Activity,   desktopPriority: 'drawer',  mobilePriority: 'drawer'  },
   { id: 'workflows', label: 'Flows',         desktopIcon: Workflow,        mobileIcon: Zap,        desktopPriority: 'drawer',  mobilePriority: 'drawer'  },

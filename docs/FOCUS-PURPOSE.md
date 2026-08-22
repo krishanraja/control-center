@@ -63,15 +63,20 @@ that a system which adds self-consciousness makes him worse. Therefore:
 
 `src/components/focusPurpose/FocusPurposeTab.tsx`, tab id `focus`, in both
 IA registries with drawer priority: its first-class doors are the check-in,
-the anxious-day route, and Home's entry card, not ambient nav presence.
+the anxious-day route, and Home's doorway row, not ambient nav presence.
 
 - **Header:** one purpose line per civil day (`purposeFor`), serif, with its
-  provenance. Never more than one.
-- **The ask (the spine):** `AskCard`. Compose (voice-first) with a refusal
-  prediction; commit; "It went out" stamps `sent_at` and writes the ships row
-  (channel `ask`, dedup key `ask:<id>`) server-side; outcomes are recorded
-  with one tap and answered with one learning line. An unresolved ask from a
-  past day surfaces above, one at a time. The self-rejection scan
+  provenance. Never more than one — and **never truncated**: the line is the
+  point, so it is never clamped or ellipsised on any device (2026-08-22; the
+  tab runs short of a screen on most phones, and very short viewports degrade
+  to the wrapper's scroll, not to "…").
+- **The ask (the spine):** `AskCard`. Compose (voice-first); once there is
+  text, the refusal prediction appears as four plain chips (Likely / Lean
+  yes / Lean no / Unlikely — progressive, so an empty card asks exactly one
+  thing); "Save the ask" commits; "I sent it" stamps `sent_at` and writes the
+  ships row (channel `ask`, dedup key `ask:<id>`) server-side; outcomes are
+  recorded with one tap and answered with one learning line. An unresolved
+  ask from a past day surfaces above, one at a time. The self-rejection scan
   (`findSelfRejection`) names softeners ("sorry to bother", "just checking")
   as they are typed; advisory, never blocking.
 - **Steady:** the manual's real-time diagnostic as six trap chips; the
@@ -110,6 +115,9 @@ the anxious-day route, and Home's entry card, not ambient nav presence.
    > which read as one more metric and, on a narrow phone, wrapped alone onto
    > a second row. The 2026-08-21 pass gave it this row of its own.
 4. **Drawer and ⌘K.** Via the tab registry, both IAs.
+5. **The + create sheet.** On the Focus tab the mobile + button offers
+   "Write today's ask", delivered over the `quickCreate` bus
+   (`useQuickCreateListener('ask')` focuses the compose field).
 
 ## Data model and routes
 
