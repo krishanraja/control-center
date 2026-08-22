@@ -72,9 +72,13 @@ Model tiering per MT-003: Sonnet for detect/assemble/essay; Haiku for why-lines 
 > tab leads with a **Queue** view — the finite decision deck
 > (`MobileDecisionDeck`) — and the three rooms sit beside it as segments;
 > the research entry point is desktop-only chrome, and creation runs
-> through the app-wide + create sheet. The section below is the original
-> spec, kept for the intent and the details that still hold (composer, feed
-> semantics, purge).
+> through the app-wide + create sheet. Shifts in cross-cutting categories
+> (governance, security, org) carry no lane by design and appear in both
+> Built and Paid — since 2026-08-22 under a labelled "Also here" section,
+> after the room's own shifts, so the repetition reads as a choice; the
+> weekly detector also heals missing lanes on re-detection. The section
+> below is the original spec, kept for the intent and the details that
+> still hold (composer, feed semantics, purge).
 
 Four rooms replace mode-switched triage (desktop `DesktopContent.tsx` + mobile `MobileContent.tsx`):
 

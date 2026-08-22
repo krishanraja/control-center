@@ -29,7 +29,8 @@ const MIN_CORPUS_DAYS = 6
 
 interface ShiftRow {
   id: string; slug: string; title: string; summary: string; status: string
-  provenance: string; embedding: unknown; last_evidence_on: string | null
+  provenance: string; lane: string | null; embedding: unknown
+  last_evidence_on: string | null
   momentum_history: unknown
 }
 
@@ -160,6 +161,15 @@ async function applyToRegister(v: VerifiedShift, registry: ShiftRow[], vec: numb
     }
     if (match.status === 'fading') patch.status = 'active'
     if (match.provenance === 'reconstructed') patch.provenance = 'mixed'
+    // Heal missing lanes: rows from before the lane column existed (or whose
+    // category has since gained a mapping) pick one up on re-detection. A lane
+    // that is already set is never overwritten, so a hand-classified shift
+    // stays where it was put; cross-cutting categories map to null and are
+    // left alone.
+    if (match.lane == null) {
+      const healedLane = laneForShift(v.category)
+      if (healedLane) patch.lane = healedLane
+    }
     await supabase.from('shifts').update(patch).eq('id', shiftId)
   } else {
     created = true
@@ -259,7 +269,7 @@ export async function runDetect() {
 
   const { data: registryData, error: regErr } = await supabase
     .from('shifts')
-    .select('id, slug, title, summary, status, provenance, embedding, last_evidence_on, momentum_history')
+    .select('id, slug, title, summary, status, provenance, lane, embedding, last_evidence_on, momentum_history')
     .neq('status', 'retired')
   if (regErr) throw new Error(regErr.message)
   const registry = (registryData || []) as ShiftRow[]

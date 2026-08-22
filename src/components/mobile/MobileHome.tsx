@@ -1,9 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { GoalLadder } from '../goals/GoalLadder'
 import { TodayList } from '../home/TodayList'
 import { VitalsLine } from '../home/VitalsLine'
 import { CanonCta } from '../home/CanonCta'
 import { FocusDoor } from '../home/FocusDoor'
+import { IntelDoor } from '../home/IntelDoor'
+import { IntelDrawer } from '../home/IntelDrawer'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DueTestsCard } from '../pilot/DueTestsCard'
 import { Logomark } from './Logomark'
@@ -29,8 +31,12 @@ export function MobileHome({ onNavigate }: {
   const alt = useAltitudes()
   const { canon, loading } = useGoalCanon()
   const firstPaint = useFirstLoad(loading, Boolean(canon))
+  const [intelOpen, setIntelOpen] = useState(false)
 
-  const frame = 'h-[calc(100dvh/var(--z,1))] overflow-hidden flex flex-col px-5 pt-3 pb-[calc((env(safe-area-inset-bottom,0px)+148px)/var(--z,1))]'
+  // Bottom padding clears the nav only; the band the + button floats in
+  // (56px tall, at safe+92 native) now belongs to the doors row below, so
+  // the canon gains the row the old full-width door used to spend.
+  const frame = 'h-[calc(100dvh/var(--z,1))] overflow-hidden flex flex-col px-5 pt-3 pb-[calc((env(safe-area-inset-bottom,0px)+88px)/var(--z,1))]'
 
   if (firstPaint) {
     return (
@@ -67,15 +73,17 @@ export function MobileHome({ onNavigate }: {
         {cta && cta.target !== 'weekly' && <CanonCta cta={cta} />}
       </div>
 
-      {/* The door into Focus, in the quiet space above the nav. A row, not a
-          vital: it moved off the vitals line so it stops reading as a metric
-          and can never wrap onto its own orphan line. On very short viewports
-          (under ~840px CSS) the canon needs every row, so the door yields and
-          Focus stays reachable via More, the check-in and the anxious route —
-          the doors docs/FOCUS-PURPOSE.md names as primary. */}
-      <div className="hidden [@media(min-height:840px)]:block shrink-0 pt-2">
-        <FocusDoor onNavigate={onNavigate} compact />
+      {/* The doors row: Focus and Intel as compact pills sharing the band the
+          + button floats in (right padding reserves the FAB's native footprint,
+          divided by the zoom). Doors, not vitals — no counts, ever. Living
+          inside the reclaimed band means the canon above keeps every row, so
+          the old under-840px hiding gate is gone: the doors are always there. */}
+      <div className="mt-auto flex shrink-0 items-center gap-2 pt-2 pr-[68px]">
+        <FocusDoor onNavigate={onNavigate} variant="pill" />
+        <div className="ml-auto"><IntelDoor onOpen={() => setIntelOpen(true)} /></div>
       </div>
+
+      <IntelDrawer open={intelOpen} onClose={() => setIntelOpen(false)} onNavigate={onNavigate} />
     </div>
   )
 }

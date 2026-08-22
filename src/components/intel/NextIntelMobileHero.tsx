@@ -1,25 +1,18 @@
 import { useMemo } from 'react'
-import { Zap, Eye, Radio, CheckCircle2 } from '@/lib/icons'
+import { Zap, Eye, CheckCircle2 } from '@/lib/icons'
 import { DoThisNextHero, type HeroDescriptor } from '../shared/DoThisNextHero'
+import type { ExternalSignal, SignalUrgency } from '../../hooks/useHomeIntelligence'
 
 // Intel's mobile "Do this next" — mobile reads from `home_intelligence.
 // external_signals` (Marcus's curated digest), which carries urgency/days_until
 // rather than a numeric score. Hero leads with the most urgent unactioned
-// signal and opens it — the DetailSheet on Intel already turns it into a
-// task or a bet, so opening IS the act-on-it path.
+// signal and opens it — the signal sheet already turns it into a task or a
+// bet, so opening IS the act-on-it path.
+//
+// The signal type is the canonical one on useHomeIntelligence; re-exported
+// here so existing importers keep working.
 
-type SignalUrgency = 'critical' | 'high' | 'medium' | 'low'
-
-export interface ExternalSignal {
-  signal: string
-  source?: string
-  relevance?: string
-  recommended_action?: string | null
-  source_url?: string | null
-  event_id?: string | null
-  urgency?: SignalUrgency | null
-  days_until?: number | null
-}
+export type { ExternalSignal }
 
 type IntelKind = 'open_critical' | 'open' | 'tracked' | 'clear'
 
@@ -36,12 +29,17 @@ function clip(s: string | null | undefined, n = 56): string {
 
 const URGENCY_RANK: Record<SignalUrgency, number> = { critical: 3, high: 2, medium: 1, low: 0 }
 
-export function computeNextMobileIntel(signals: ExternalSignal[]): NextIntel {
-  const sorted = [...signals].sort((a, b) => {
+/** Most urgent first, sooner deadlines breaking ties — the one signal order. */
+export function rankSignals(signals: ExternalSignal[]): ExternalSignal[] {
+  return [...signals].sort((a, b) => {
     const u = (URGENCY_RANK[b.urgency || 'low'] ?? 0) - (URGENCY_RANK[a.urgency || 'low'] ?? 0)
     if (u !== 0) return u
     return (a.days_until ?? 99) - (b.days_until ?? 99)
   })
+}
+
+export function computeNextMobileIntel(signals: ExternalSignal[]): NextIntel {
+  const sorted = rankSignals(signals)
   const top = sorted[0]
   if (top && (top.urgency === 'critical' || top.urgency === 'high')) {
     const dayPart = (top.days_until != null && Number.isFinite(top.days_until))
