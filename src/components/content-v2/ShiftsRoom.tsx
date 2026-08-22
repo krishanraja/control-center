@@ -123,22 +123,30 @@ function Dossier({ shift, v2, onClose }: {
 export function ShiftsRoom({ v2, variant, lane }: {
   v2: ReturnType<typeof useContentV2>
   variant: 'desktop' | 'mobile'
-  /** Scope to one format. Omit for the whole register. A shift with no lane is
-   *  shown in every lane rather than hidden: the detector has not classified it,
-   *  and dropping it would silently shrink the register. */
+  /** Scope to one format. Omit for the whole register. A shift with no lane
+   *  (governance, security and org cut across both formats by design) still
+   *  appears in every scoped room — but under its own labelled section, so the
+   *  repetition reads as a choice instead of a bug. Silent duplication is what
+   *  made Built and Paid look identical. */
   lane?: 'built' | 'paid'
 }) {
   const [openId, setOpenId] = useState<string | null>(null)
-  const shifts = useMemo(
-    () => v2.shifts
-      .filter(s => ['proposed', 'active', 'fading'].includes(s.status))
-      .filter(s => !lane || !s.lane || s.lane === lane),
-    [v2.shifts, lane],
+  const live = useMemo(
+    () => v2.shifts.filter(s => ['proposed', 'active', 'fading'].includes(s.status)),
+    [v2.shifts],
   )
-  const open = shifts.find(s => s.id === openId) || null
+  const own = useMemo(
+    () => (lane ? live.filter(s => s.lane === lane) : live),
+    [live, lane],
+  )
+  const crossCutting = useMemo(
+    () => (lane ? live.filter(s => !s.lane) : []),
+    [live, lane],
+  )
+  const open = [...own, ...crossCutting].find(s => s.id === openId) || null
 
   if (v2.loading) return <SkeletonList rows={4} />
-  if (!shifts.length) {
+  if (!own.length && !crossCutting.length) {
     return (
       <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-6 text-white/50 text-sm max-w-xl">
         No shifts yet. The detector runs every Friday and only counts something
@@ -147,35 +155,54 @@ export function ShiftsRoom({ v2, variant, lane }: {
     )
   }
 
+  const grid = (items: typeof live) => (
+    <div className={`grid gap-3 ${variant === 'desktop' ? 'grid-cols-[repeat(auto-fill,minmax(250px,1fr))]' : 'grid-cols-1'}`}>
+      {items.map(s => {
+        const verdict = shiftVerdict(s)
+        return (
+          <button
+            key={s.id}
+            onClick={() => setOpenId(openId === s.id ? null : s.id)}
+            className={`text-left rounded-xl border p-4 transition-colors ${
+              openId === s.id ? 'border-emerald-400/50 bg-emerald-400/[0.07]' : 'border-emerald-400/20 bg-emerald-400/[0.03] hover:bg-emerald-400/[0.06]'
+            }`}
+          >
+            <span className="text-micro font-bold uppercase tracking-[0.14em] text-emerald-300/90">
+              Shift · {s.category}{s.status === 'proposed' ? ' · awaiting your ruling' : ''}
+            </span>
+            <div className="text-ui font-semibold text-white/95 mt-1.5 leading-snug">{s.title}</div>
+            <div className="flex items-center gap-2.5 mt-2.5">
+              <Sparkline shift={s} />
+              <span className={`rounded-md px-2 py-1 text-micro font-semibold ${VERDICT_CLS[verdict]}`}>{VERDICT_LABEL[verdict]}</span>
+            </div>
+            <div className="text-micro text-white/35 mt-2 tabular-nums">
+              {s.story_count} stories · {s.day_span_total} distinct days · first seen {monthLabel(s.first_seen_on)}
+            </div>
+            <ProvenanceBar shift={s} />
+          </button>
+        )
+      })}
+    </div>
+  )
+
   return (
     <div>
-      <div className={`grid gap-3 ${variant === 'desktop' ? 'grid-cols-[repeat(auto-fill,minmax(250px,1fr))]' : 'grid-cols-1'}`}>
-        {shifts.map(s => {
-          const verdict = shiftVerdict(s)
-          return (
-            <button
-              key={s.id}
-              onClick={() => setOpenId(openId === s.id ? null : s.id)}
-              className={`text-left rounded-xl border p-4 transition-colors ${
-                openId === s.id ? 'border-emerald-400/50 bg-emerald-400/[0.07]' : 'border-emerald-400/20 bg-emerald-400/[0.03] hover:bg-emerald-400/[0.06]'
-              }`}
-            >
-              <span className="text-micro font-bold uppercase tracking-[0.14em] text-emerald-300/90">
-                Shift · {s.category}{s.status === 'proposed' ? ' · awaiting your ruling' : ''}
-              </span>
-              <div className="text-ui font-semibold text-white/95 mt-1.5 leading-snug">{s.title}</div>
-              <div className="flex items-center gap-2.5 mt-2.5">
-                <Sparkline shift={s} />
-                <span className={`rounded-md px-2 py-1 text-micro font-semibold ${VERDICT_CLS[verdict]}`}>{VERDICT_LABEL[verdict]}</span>
-              </div>
-              <div className="text-micro text-white/35 mt-2 tabular-nums">
-                {s.story_count} stories · {s.day_span_total} distinct days · first seen {monthLabel(s.first_seen_on)}
-              </div>
-              <ProvenanceBar shift={s} />
-            </button>
-          )
-        })}
-      </div>
+      {own.length > 0 && grid(own)}
+      {lane && !own.length && (
+        <p className="text-label text-white/45 max-w-xl" data-testid="shifts-own-empty">
+          No shifts belong only to {lane === 'built' ? 'Built' : 'Paid'} yet.
+        </p>
+      )}
+      {crossCutting.length > 0 && (
+        <div className={own.length || !lane ? 'mt-5' : 'mt-3'}>
+          {lane && (
+            <p className="mb-2 text-label text-white/45" data-testid="shifts-cross-cutting">
+              Also here: shifts that touch both Built and Paid.
+            </p>
+          )}
+          {grid(crossCutting)}
+        </div>
+      )}
       {open ? <Dossier shift={open} v2={v2} onClose={() => setOpenId(null)} /> : null}
     </div>
   )

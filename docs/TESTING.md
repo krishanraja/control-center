@@ -27,7 +27,7 @@ guards exist outside CI; see the root `AGENTS.md`.
 
 ## e2e
 
-Nine spec files (81 tests) against the production build via `npm run
+Eleven spec files (88 tests) against the production build via `npm run
 preview`. All `/api/*`, `**/rest/v1/**` and `**/realtime/**` traffic is
 mocked, so panels settle on their honest empty states without a live
 database and no spec spends an embedding or a model call.
@@ -43,6 +43,8 @@ database and no spec spends an embedding or a model call.
 | `e2e/focus-purpose.spec.ts` | the Focus tab: tools, the daily ask flow | default |
 | `e2e/loading.spec.ts` | the loading ladder's restraint rules | default |
 | `e2e/queue-relocation.spec.ts` | the ruling queue at OS → Queue and the `#today` aliases | default |
+| `e2e/intel-drawer.spec.ts` | Home's intel drawer: doors on both shells, the signal sheet, the way to OS → Intel | default + 390x844 + 360x800 |
+| `e2e/content-rooms.spec.ts` | Built vs Paid: own shifts lead, cross-cutting ones are labelled | default |
 
 `pilot-gate.spec.ts` is the one suite that owns its own context per test, because
 its subject **is** the clock: it pairs `browser.newContext({ timezoneId })` with
