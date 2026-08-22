@@ -34,13 +34,18 @@ interface Props {
   onNavigate: (tab: string, params?: Record<string, string>) => void
 }
 
-/** Infer the lane from deep-link params when none is set explicitly. */
+/**
+ * Infer the lane from deep-link params when none is set explicitly.
+ * Network is the default: the 10k-contact network is what the tab is opened
+ * for day to day; Pipeline and Visibility are the lanes you go to on purpose
+ * (and their deep links still land directly).
+ */
 function inferLane(params: Record<string, string>): PeopleLane {
   const lane = params.lane as PeopleLane | undefined
   if (lane === 'pipeline' || lane === 'network' || lane === 'visibility') return lane
   if (params.guest || params.target) return 'visibility'
   if (params.lead) return 'pipeline'
-  return 'pipeline'
+  return 'network'
 }
 
 export function PeopleTab({ narrow, params, onNavigate }: Props) {
