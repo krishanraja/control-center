@@ -64,11 +64,23 @@ export interface WeeklyRetro {
   generated_at?: string
 }
 
+export type SignalUrgency = 'critical' | 'high' | 'medium' | 'low'
+
+/**
+ * One curated signal from Marcus's digest. The canonical shape — the Intel
+ * tab, the Home intel drawer and the signal sheet all read THIS type; the
+ * extended fields (urgency, days_until, source_url, event_id) have been in
+ * the rows since the 2026-05-21 prompt patch and pass through untouched.
+ */
 export interface ExternalSignal {
   signal: string
   source?: string
   relevance?: string
   recommended_action?: string | null
+  source_url?: string | null
+  event_id?: string | null
+  urgency?: SignalUrgency | null
+  days_until?: number | null
 }
 
 export interface HomeIntelligence {

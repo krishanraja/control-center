@@ -54,11 +54,15 @@ const POSITION: Record<'center' | 'right' | 'bottom' | 'responsive', string> = {
   // `surface` is applied by the variant, not baked into the base, so a caller
   // that brings its own material (the command palette) can drop it with a
   // `bg-transparent border-0` override and twMerge will resolve cleanly.
+  // vw units resolve against the layout viewport, which the zoom wrapper does
+  // NOT shrink — so every vw-derived width in here divides by --z (like the
+  // overlay above), or a phone panel renders 1.2x the screen and runs off the
+  // right edge.
   center:
-    'surface left-1/2 top-1/2 w-[min(92vw,32rem)] -translate-x-1/2 -translate-y-1/2 ' +
+    'surface left-1/2 top-1/2 w-[min(calc(92vw/var(--z,1)),32rem)] -translate-x-1/2 -translate-y-1/2 ' +
     'max-h-[calc(100dvh/var(--z,1)-2rem)] overflow-y-auto rounded-card p-5 animate-scale-in',
   right:
-    'right-0 top-0 h-[calc(100dvh/var(--z,1))] w-[480px] max-w-[92vw] overflow-y-auto ' +
+    'right-0 top-0 h-[calc(100dvh/var(--z,1))] w-[480px] max-w-[calc(92vw/var(--z,1))] overflow-y-auto ' +
     'border-l border-white/10 bg-base animate-fade-in',
   bottom:
     'bottom-0 left-1/2 w-full max-w-xl -translate-x-1/2 rounded-t-[28px] ' +

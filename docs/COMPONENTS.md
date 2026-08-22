@@ -560,7 +560,24 @@ when you touch them; never copy them. `CaptureSpeedDial`, the old two-item
 | `overlayClassName` | Scrim override, for surfaces that dim with the theme base rather than black |
 
 `SlideOver` (right panel) and `BottomSheet` (draggable sheet) are the other two
-shells. `DetailSheet` composes `BottomSheet`.
+shells. `DetailSheet` composes `BottomSheet`. `SlideOver` takes a `label` for
+its header eyebrow, sits at `z-[70]` (above the native BottomNav, like
+BottomSheet), and — like every vw-derived width in `ui/dialog` — divides by
+`var(--z, 1)` so it caps correctly inside the mobile zoom root.
+
+### `IntelDrawer` / `IntelDoor` — the daily intel, one slide from Home (2026-08-22)
+
+`home/IntelDrawer.tsx` on `SlideOver`: Marcus's headline, the top five
+signals ranked by urgency (chips carry HIGH / MEDIUM and the deadline), one
+"Open Intel" row to OS → Intel. Signals open `intel/SignalSheet.tsx` — the sheet extracted
+from MobileIntel so the Intel tab and the drawer act on a signal identically
+(Create task / Add to bets). Data via the `useHomeIntelligence` singleton
+(shared realtime channel, no new subscriptions); signal ranking via
+`rankSignals` in `intel/NextIntelMobileHero.tsx`. The trigger is
+`home/IntelDoor.tsx`: on mobile a pill in Home's doors row beside the
+`FocusDoor` pill; on desktop beside the vitals line (the bottom-right corner
+belongs to the fixed ⌘I capture pill, which intercepts clicks on anything
+beneath it). Doors carry no counts.
 
 ## `shared/SegmentedNav`: never hand-roll a tab switcher
 

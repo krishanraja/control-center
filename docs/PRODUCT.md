@@ -76,11 +76,23 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 6. **CanonCta** - THE one contextual ask, under the layer it serves:
    "Set this week's 3" or "Pick your 3 for today" → opens the Focus Ritual.
    Hidden when the canon is fresh.
-7. **FocusDoor** - a full-width doorway row to Focus & Purpose at the bottom
-   of both shells (`home/FocusDoor.tsx`). It carries no number: counting
-   anything about the operator in ambient chrome breaks the Focus doctrine.
-   On very short phone viewports (under ~840px CSS) it yields to the canon
-   and the check-in / anxious-route / More-drawer doors carry the load.
+7. **The doors** (2026-08-22) - Focus and Intel at the bottom of both
+   shells, never numbers (counting anything about the operator in ambient
+   chrome breaks the Focus doctrine). On mobile they are compact pills
+   sharing the + button's band (`home/FocusDoor.tsx` pill variant +
+   `home/IntelDoor.tsx`), always visible - the old under-840px hiding gate
+   is gone because the pills live in the band the FAB already reserved. On
+   desktop the Focus row keeps its full width at the bottom and the Intel
+   pill sits beside the vitals line instead: the bottom-right corner there
+   is owned by the fixed ⌘I capture pill, which floats over anything placed
+   under it.
+8. **IntelDrawer** (`home/IntelDrawer.tsx`) - the daily intel one slide from
+   Home: Marcus's headline, then the top five signals ranked by urgency
+   with their urgency chips (each opening the shared `intel/SignalSheet`
+   with Create task / Add to bets), and one "Open Intel" row to OS →
+   Intel. Reads the `useHomeIntelligence` singleton - no new channel.
+   Charts, KPIs, bets and Ask Marcus deliberately stay on the full Intel
+   subtab.
 
 ### Inputs
 
@@ -94,6 +106,7 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 | VitalsLine · waiting | `decisions_waiting` view | `useRealtimeDecisionsWaiting` |
 | CriticalAlertBanner | `silent_failures` tier 3 | `useCriticalAlerts` |
 | DueTestsCard | `worries` via `GET /api/pilot/worries` | local fetch |
+| IntelDrawer | `home_intelligence` (headline + `external_signals`) | `useHomeIntelligence` (shared singleton) |
 
 ### Writes
 - **GoalLadder** → `POST /api/objectives` (gated create) and

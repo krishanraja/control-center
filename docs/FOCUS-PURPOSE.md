@@ -101,19 +101,23 @@ the anxious-day route, and Home's doorway row, not ambient nav presence.
    hatch, because red mode's one-screen contract is untouched. The unlock
    path that opens the in-app draft carries its own destination and is never
    routed over.
-3. **Home.** A full-width `Focus` doorway row at the bottom of both Home
-   shells (`src/components/home/FocusDoor.tsx`). It carries no number:
-   counting anything about the operator in ambient chrome would break the
-   doctrine of the hub it points at. A doorway, not a vital. On very short
-   phone viewports (under ~840px CSS) the row yields to the canon and the
-   check-in / anxious-route / More-drawer doors carry the load.
+3. **Home.** The `Focus` door at the bottom of both Home shells
+   (`src/components/home/FocusDoor.tsx`): a full-width row on desktop, and
+   on mobile a compact pill sharing the + button's band with the Intel pill
+   (2026-08-22). It carries no number: counting anything about the operator
+   in ambient chrome would break the doctrine of the hub it points at. A
+   doorway, not a vital. Because the pill lives in the band the + button
+   already reserved, it costs the canon nothing and is **always visible** —
+   the old under-840px hiding gate is gone.
 
    > It began as `FocusEntryCard`, a card under the pilot cards on each Home
    > branch. The 2026-08-20 Home recompose rebuilt Home as a one-screen,
    > no-scroll canon and dropped the mounts, so the door was briefly missing
    > altogether. The replacement was a link at the end of the vitals line —
    > which read as one more metric and, on a narrow phone, wrapped alone onto
-   > a second row. The 2026-08-21 pass gave it this row of its own.
+   > a second row. The 2026-08-21 pass gave it a full-width row; the
+   > 2026-08-22 pass compressed that to the pill, which finally made it
+   > unconditional.
 4. **Drawer and ⌘K.** Via the tab registry, both IAs.
 5. **The + create sheet.** On the Focus tab the mobile + button offers
    "Write today's ask", delivered over the `quickCreate` bus
