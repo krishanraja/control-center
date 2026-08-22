@@ -73,8 +73,8 @@ const GrowthTab = lazy(() => import('./components/growth/GrowthTab').then(m => (
 const PeopleTab = lazy(() => import('./components/people/PeopleTab').then(m => ({ default: m.PeopleTab })))
 const OsTab = lazy(() => import('./components/os/OsTab').then(m => ({ default: m.OsTab })))
 // Focus & Purpose: the operator's own hub (docs/FOCUS-PURPOSE.md). Reached
-// from the morning check-in, the anxious-day auto-route (?steady=1), the Focus
-// link on Home's vitals line, and the drawer.
+// from the morning check-in, the anxious-day auto-route (?steady=1), the
+// Focus doorway row on Home, and the drawer.
 const FocusPurposeTab = lazy(() => import('./components/focusPurpose/FocusPurposeTab').then(m => ({ default: m.FocusPurposeTab })))
 
 // Tab validity derives from the registry (src/lib/tabs.ts VALID_TAB_IDS) so the
@@ -264,9 +264,10 @@ export default function App() {
                   {tab === 'os'        && <OsTab narrow params={params} onNavigate={navigate} />}
                   {/* Focus is designed to fit one screen with the tools collapsed;
                       the scroll container is graceful degradation for very short
-                      viewports, not the layout. Tighter top pad + nav clearance
-                      than BOTTOM_NAV_PAD's scroll-tail breathing room. */}
-                  {tab === 'focus'     && <ErrorBoundary label="Focus"><div className="px-5 pt-3 h-full overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+120px)]"><FocusPurposeTab variant="mobile" steadyEntry={params.steady === '1'} /></div></ErrorBoundary>}
+                      viewports, not the layout. The tab runs short of a screen on
+                      most phones, so the top keeps normal breathing room and the
+                      purpose line is never clamped. */}
+                  {tab === 'focus'     && <ErrorBoundary label="Focus"><div className="px-5 pt-6 [@media(max-height:860px)]:pt-4 h-full overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+120px)]"><FocusPurposeTab variant="mobile" steadyEntry={params.steady === '1'} /></div></ErrorBoundary>}
                 </Suspense>
               </div>
             ) : tab === 'content' ? (

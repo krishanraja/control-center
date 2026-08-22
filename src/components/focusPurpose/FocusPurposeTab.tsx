@@ -90,12 +90,16 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
   }
 
   return (
-    <div className={`w-full ${compact ? '' : 'max-w-[620px] mx-auto'} flex flex-col ${compact ? 'gap-3' : 'gap-4'} pb-6`}>
+    <div className={`w-full ${compact ? 'gap-3 [@media(max-height:860px)]:gap-2' : 'max-w-[620px] mx-auto gap-4'} flex flex-col pb-6`}>
 
       {/* The purpose anchor: one line of his own record, per day. Never more. */}
       <header className={compact ? 'pt-0' : 'pt-2'}>
         <Eyebrow>Focus &amp; Purpose</Eyebrow>
-        <p className={`font-serif text-title leading-[1.4] text-ink ${compact ? 'mt-1.5 line-clamp-2' : 'mt-2'}`}>{purpose.line}</p>
+        {/* Never clamped: the line is the point. Short phone viewports step the
+            line down a type rung and tighten rhythm (the same height-gated
+            compression Home uses) so the whole tab still fits; only genuinely
+            tiny screens fall back to the wrapper's scroll. Never "…". */}
+        <p className={`mt-2 font-serif leading-[1.4] text-ink ${compact ? 'text-title [@media(max-height:860px)]:text-lede' : 'text-title'}`}>{purpose.line}</p>
         <p className="mt-1 text-micro tracking-wide text-ink-faint">{purpose.source}</p>
       </header>
 
@@ -115,11 +119,11 @@ export function FocusPurposeTab({ variant, steadyEntry }: Props) {
                 key={t.id}
                 type="button"
                 onClick={() => toggle(t.id)}
-                className="group flex w-full items-center gap-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] px-4 py-2.5 text-left transition-colors hover:bg-white/[0.05] active:scale-[0.99] touch-manipulation"
+                className="group flex w-full items-center gap-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] px-4 py-2.5 [@media(max-height:860px)]:py-2 text-left transition-colors hover:bg-white/[0.05] active:scale-[0.99] touch-manipulation"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block text-ui leading-tight text-ink">{t.title}</span>
-                  <span className="mt-0.5 block truncate text-label leading-tight text-ink-faint">{t.sub}</span>
+                  <span className="mt-0.5 block text-label leading-tight text-ink-faint">{t.sub}</span>
                 </span>
                 <ChevronRight size={15} className="flex-shrink-0 text-ink-faint" aria-hidden />
               </button>
