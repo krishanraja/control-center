@@ -12,13 +12,18 @@ import { Working } from '../shared/Working'
 // page's search state, so the blob is handed up and the page owns the request.
 // browserCanRecord is shared, since the capability check is the same everywhere.
 
+// Grounded in the live ICP (docs/ICP.md v2, advisory reopened 2026-08-05):
+// AI and transformation leaders inside non-tech operating companies, the
+// fractional network, and guests who have actually shipped. The old examples
+// (publisher identity, adtech CMOs) were the retired thesis and dated the
+// whole surface.
 const EXAMPLES = [
-  'Who should I talk to about identity at a publisher',
-  'CMOs at banks who care about AI governance',
+  'Heads of AI or transformation at non-tech companies',
+  'CEOs of mid-market firms getting serious about AI',
   // Geography reads out of the sentence as well as off the chips, so at least
   // one example has to demonstrate it or nobody discovers the typed form.
-  'Who do I know in the UK who could introduce me to a publisher',
-  'Podcast guests in Australia who have actually shipped an AI product',
+  'Who do I know in the UK who could intro me to a mid-market CEO',
+  'Podcast guests in Australia who shipped an AI product',
 ]
 
 export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated, transcript, hasResults }: {
@@ -157,7 +162,7 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
               key={x}
               type="button"
               onClick={() => { setQ(x); onSearch(x) }}
-              className="rounded-full border border-white/10 px-2.5 py-1 text-label text-white/45 transition-colors hover:border-white/20 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+              className="max-w-full truncate rounded-full border border-white/10 px-2.5 py-1 text-left text-label text-white/45 transition-colors hover:border-white/20 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
             >
               {x}
             </button>

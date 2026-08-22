@@ -99,7 +99,7 @@ export function AskMarcus() {
                 key={p}
                 type="button"
                 onClick={() => ask(p)}
-                className="px-2.5 py-1 rounded-full text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] hover:border-white/20"
+                className="max-w-full truncate px-2.5 py-1 rounded-full text-left text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] hover:border-white/20"
               >
                 {p}
               </button>
