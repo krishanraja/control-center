@@ -1,3 +1,4 @@
+import { OptionChips } from './goals/GoalPickers'
 import React, { useState } from 'react'
 import { Mic, Calendar, Flame, AlertOctagon, Sparkles, ArrowUpRight } from '@/lib/icons'
 import { useCustomerContacts, type CouncilEntry } from '../hooks/useCustomerContacts'
@@ -129,30 +130,27 @@ export function CustomerCouncilCard() {
 
                 {isLogging ? (
                   <div className="mt-2.5 space-y-2 rounded-md border border-white/[0.08] bg-white/[0.03] p-2.5">
-                    <div className="grid grid-cols-2 gap-2">
-                      <select
+                    <div className="space-y-2">
+                      <OptionChips
+                        label="How"
+                        options={[
+                          { value: 'email', label: 'Email' }, { value: 'call', label: 'Call' },
+                          { value: 'video', label: 'Video' }, { value: 'message', label: 'Message' },
+                          { value: 'in_person', label: 'In person' },
+                        ]}
                         value={draft.channel}
-                        onChange={e => setDraft(d => ({ ...d, channel: e.target.value }))}
-                        className="bg-white/[0.04] border border-white/[0.08] rounded text-micro text-white p-1.5"
-                      >
-                        <option value="email">Email</option>
-                        <option value="call">Call</option>
-                        <option value="video">Video</option>
-                        <option value="message">Message</option>
-                        <option value="in_person">In person</option>
-                      </select>
-                      <select
+                        onChange={v => setDraft(d => ({ ...d, channel: v }))}
+                      />
+                      <OptionChips
+                        label="Why"
+                        options={[
+                          { value: 'welcome', label: 'Welcome' }, { value: 'check_in', label: 'Check-in' },
+                          { value: 'expansion', label: 'Expansion' }, { value: 'save', label: 'Save' },
+                          { value: 'exit_interview', label: 'Exit interview' }, { value: 'other', label: 'Other' },
+                        ]}
                         value={draft.reason}
-                        onChange={e => setDraft(d => ({ ...d, reason: e.target.value }))}
-                        className="bg-white/[0.04] border border-white/[0.08] rounded text-micro text-white p-1.5"
-                      >
-                        <option value="welcome">Welcome</option>
-                        <option value="check_in">Check-in</option>
-                        <option value="expansion">Expansion</option>
-                        <option value="save">Save</option>
-                        <option value="exit_interview">Exit interview</option>
-                        <option value="other">Other</option>
-                      </select>
+                        onChange={v => setDraft(d => ({ ...d, reason: v }))}
+                      />
                     </div>
                     <textarea
                       value={draft.summary}

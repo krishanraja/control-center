@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Modal } from '../shared/Modal'
+import { OptionChips } from '../goals/GoalPickers'
 import { Eyebrow } from '../shared/Eyebrow'
 import { Working } from '../shared/Working'
 import { useToast } from '../shared/Toast'
@@ -199,19 +200,24 @@ function AddPersonFlow({ active, onDone, onAdded }: { active: boolean; onDone: (
 
         <Card variant="outline" className="space-y-2.5 border-violet-400/25 bg-violet-500/[0.04] p-3">
           <p><Eyebrow tone="accent">Where does this person come from?</Eyebrow></p>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="block">
-              <span className={LABEL}>Venture</span>
-              <select value={flow.venture} onChange={e => flow.setVenture(e.target.value)} className={FIELD} data-testid="field-venture">
-                {VENTURE_OPTIONS.map(v => <option key={v.slug} value={v.slug}>{v.label}</option>)}
-              </select>
-            </label>
-            <label className="block">
-              <span className={LABEL}>Consent tier</span>
-              <select value={flow.tier} onChange={e => flow.setTier(e.target.value)} className={FIELD} data-testid="field-tier">
-                {TIER_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </label>
+          <div className="space-y-2.5" data-testid="field-venture">
+            <OptionChips
+              label="Venture"
+              options={VENTURE_OPTIONS.map(v => ({ value: v.slug, label: v.label }))}
+              value={flow.venture}
+              onChange={flow.setVenture}
+            />
+            <div data-testid="field-tier">
+              <OptionChips
+                label="How do you know them?"
+                options={TIER_OPTIONS.map(t => ({ value: t.value, label: t.label }))}
+                value={flow.tier}
+                onChange={flow.setTier}
+              />
+              <p className="mt-1 text-micro text-white/35">
+                {TIER_OPTIONS.find(t => t.value === flow.tier)?.hint}
+              </p>
+            </div>
           </div>
           <label className="block">
             <span className={LABEL}>Campaign / list</span>

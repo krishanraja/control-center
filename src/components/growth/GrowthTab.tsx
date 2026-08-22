@@ -10,6 +10,7 @@ import { GrowthScoreboard } from './GrowthScoreboard'
 import { isGrowthScoreboardEnabled } from '../../hooks/useGrowthMetrics'
 import { DailyBriefBanner } from '../DailyBriefBanner'
 import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
+import { useQuickCreateListener } from '../../lib/quickCreate'
 
 /**
  * The Growth tab. ONE surface, five sections, in the order of the weekly loop.
@@ -84,6 +85,11 @@ export function GrowthTab({
     }
   }, [g.touchpoints, g.cards, g.reviews, g.probes])
 
+  // The + create sheet's "Add a touchpoint": land on the map with its
+  // composer open, wherever in Growth you were.
+  const [mapCompose, setMapCompose] = useState(0)
+  useQuickCreateListener('touchpoint', () => { setSection('map'); setMapCompose(n => n + 1) })
+
   const overCap = counts.work > BATCH_MAX
   const geoRate = useMemo(() => citationRate(g.probes), [g.probes])
 
@@ -91,10 +97,17 @@ export function GrowthTab({
     <div className="flex flex-col gap-3 min-h-0 h-full">
       <div className="flex-shrink-0">
         <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight">Growth</h1>
+        {/* One line on a phone, not five numbers demanding attention at once:
+            the section pills below already carry their own counts. The desk,
+            with room and a pointer, keeps the full readout. */}
         <p className="text-xs md:text-body text-white/50 mt-0.5">
           {g.loading
             ? 'Reading the map...'
-            : `${g.touchpoints.length} touchpoints · ${counts.map} open questions · ${counts.work} in this week's batch · ${counts.council} council calls waiting · ${pct(geoRate)} GEO citation rate`}
+            : variant === 'mobile'
+              ? (counts.map > 0
+                  ? `${counts.map} question${counts.map === 1 ? '' : 's'} to answer when you have a minute.`
+                  : 'Nothing here needs an answer right now.')
+              : `${g.touchpoints.length} touchpoints · ${counts.map} open questions · ${counts.work} in this week's batch · ${counts.council} council calls waiting · ${pct(geoRate)} GEO citation rate`}
         </p>
         {g.error && <p className="text-label text-rose-300 mt-1">Could not read growth data: {g.error}</p>}
       </div>
@@ -124,7 +137,7 @@ export function GrowthTab({
           without depending on any word inside it. */}
       <div data-testid={`growth-panel-${section}`} className="flex-1 min-h-0 overflow-y-auto">
         {section === 'map' ? (
-          <TouchpointMap g={g} variant={variant} />
+          <TouchpointMap g={g} variant={variant} composeSignal={mapCompose} />
         ) : section === 'work' ? (
           <CreativeBoard g={g} variant={variant} />
         ) : section === 'signals' ? (

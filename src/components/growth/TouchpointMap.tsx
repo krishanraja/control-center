@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react'
-import { HelpCircle, Plus } from '@/lib/icons'
+import { OptionChips } from '../goals/GoalPickers'
+import React, { useEffect, useMemo, useState } from 'react'
+import { ChevronDown, HelpCircle, Plus } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { BTN_GHOST, BTN_PRIMARY, Chip, EmptyNote, Field, INPUT_CLS, ProductChip, SectionHead, SELECT_CLS } from './atoms'
 import {
@@ -24,12 +25,14 @@ import { Skeleton } from '../shared/Skeleton'
 
 const SCORE_OPTIONS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
 
-export function TouchpointMap({ g, variant }: { g: GrowthData; variant: 'desktop' | 'mobile' }) {
+export function TouchpointMap({ g, variant, composeSignal = 0 }: { g: GrowthData; variant: 'desktop' | 'mobile'; composeSignal?: number }) {
   const { toast } = useToast()
   const [product, setProduct] = useState<'all' | ProductSlug>('all')
   const [openOnly, setOpenOnly] = useState(false)
   const [showRetired, setShowRetired] = useState(false)
   const [adding, setAdding] = useState(false)
+  // The + create sheet's "Add a touchpoint" lands here (via GrowthTab).
+  useEffect(() => { if (composeSignal > 0) setAdding(true) }, [composeSignal])
 
   const openQuestions = useMemo(() => g.touchpoints.filter(t => t.assumption_flag), [g.touchpoints])
 
@@ -87,14 +90,15 @@ export function TouchpointMap({ g, variant }: { g: GrowthData; variant: 'desktop
     <div className="space-y-4 pb-8">
       <SectionHead
         title="Where your buyers already are"
-        sub="Every place the ICP already is, per product. Coverage and cost efficiency save the moment you change them."
-        action={
+        sub={variant === 'desktop' ? 'Every place the ICP already is, per product. Coverage and cost efficiency save the moment you change them.' : undefined}
+        action={variant === 'desktop' ? (
           <button type="button" onClick={() => setAdding(a => !a)} className={BTN_PRIMARY}>
             <Plus size={13} className="inline -mt-0.5 mr-1" />{adding ? 'Close' : 'Add touchpoint'}
           </button>
-        }
+        ) : undefined}
       />
 
+      {variant === 'desktop' && (
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-label text-white/45 tabular-nums">
         <span className="text-white/70 font-semibold">{g.touchpoints.length} mapped</span>
         <span>{stats.covered} covered</span>
@@ -115,6 +119,7 @@ export function TouchpointMap({ g, variant }: { g: GrowthData; variant: 'desktop
           {showRetired ? 'Hide retired' : 'Show retired'}
         </button>
       </div>
+      )}
 
       {adding && <AddTouchpoint g={g} onDone={() => setAdding(false)} />}
 
@@ -125,7 +130,7 @@ export function TouchpointMap({ g, variant }: { g: GrowthData; variant: 'desktop
             <h3 className="text-micro font-semibold uppercase tracking-[0.14em] text-amber-300">
               {openQuestions.length} open question{openQuestions.length === 1 ? '' : 's'}
             </h3>
-            <span className="text-micro text-white/45">The map is guessing until you answer these.</span>
+            <span className="text-micro text-white/45">Answer these when you have a minute; the map gets sharper with each one.</span>
             <button
               type="button"
               onClick={() => setOpenOnly(o => !o)}
@@ -215,6 +220,7 @@ function Row({ t, variant, onSave, onAnswer }: {
   const [answering, setAnswering] = useState(false)
   const [answer, setAnswer] = useState('')
   const [saving, setSaving] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const answered = latestAnswer(t)
   const retired = t.coverage_status === 'retired'
 
@@ -307,22 +313,38 @@ function Row({ t, variant, onSave, onAnswer }: {
     <>
       <div className="text-label text-white/90 leading-snug">{t.icp_trigger}</div>
       {t.watering_hole && <div className="text-micro text-white/40 leading-snug mt-0.5">{t.watering_hole}</div>}
-      {t.rationale && <div className="text-micro text-white/30 leading-snug mt-0.5">{t.rationale}</div>}
+      {t.rationale && <div className={`text-micro text-white/30 leading-snug mt-0.5 ${variant === 'mobile' ? 'line-clamp-2' : ''}`}>{t.rationale}</div>}
       {prompt}
     </>
   )
 
   if (variant === 'mobile') {
+    // Collapsed by default: one readable line per touchpoint, an amber dot on
+    // the ones with an open question. Full detail and controls appear on tap.
+    // The expanded-everything version made the map read as dozens of
+    // simultaneous demands on a phone.
     return (
-      <div className={`px-3 py-2.5 border-t border-white/[0.05] ${retired ? 'opacity-50' : ''}`}>
-        <div className="flex items-center gap-2 mb-1">
+      <div className={`border-t border-white/[0.05] ${retired ? 'opacity-50' : ''}`}>
+        <button
+          type="button"
+          onClick={() => setExpanded(e => !e)}
+          aria-expanded={expanded}
+          className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+        >
           <Chip>{CHANNEL_LABEL[t.channel] || t.channel}</Chip>
-          {t.owner_agent && <span className="text-micro text-white/40">{t.owner_agent}</span>}
-        </div>
-        {body}
-        <div className="grid grid-cols-[62px_minmax(0,1fr)_78px] gap-2 mt-2">
-          {scoreSelect}{coverageSelect}{retireBtn}
-        </div>
+          <span className="min-w-0 flex-1 truncate text-label text-white/85">{t.icp_trigger}</span>
+          {t.assumption_flag && <span aria-label="Has an open question" className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-300" />}
+          <ChevronDown size={13} className={`flex-shrink-0 text-white/30 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        </button>
+        {expanded && (
+          <div className="px-3 pb-3">
+            {t.owner_agent && <div className="mb-1 text-micro text-white/40">{t.owner_agent}</div>}
+            {body}
+            <div className="grid grid-cols-[62px_minmax(0,1fr)_78px] gap-2 mt-2">
+              {scoreSelect}{coverageSelect}{retireBtn}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -376,15 +398,19 @@ function AddTouchpoint({ g, onDone }: { g: GrowthData; onDone: () => void }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Product">
-          <select value={form.product_slug} onChange={set('product_slug')} className={`${INPUT_CLS} cursor-pointer`}>
-            {PRODUCTS.map(p => <option key={p} value={p}>{PRODUCT_LABEL[p]}</option>)}
-          </select>
+        <Field label="Product" wide>
+          <OptionChips
+            options={PRODUCTS.map(p => ({ value: p, label: PRODUCT_LABEL[p] }))}
+            value={form.product_slug}
+            onChange={v => set('product_slug')({ target: { value: v } } as React.ChangeEvent<HTMLInputElement>)}
+          />
         </Field>
-        <Field label="Channel">
-          <select value={form.channel} onChange={set('channel')} className={`${INPUT_CLS} cursor-pointer`}>
-            {CHANNELS.map(c => <option key={c} value={c}>{CHANNEL_LABEL[c]}</option>)}
-          </select>
+        <Field label="Channel" wide>
+          <OptionChips
+            options={CHANNELS.map(c => ({ value: c, label: CHANNEL_LABEL[c] }))}
+            value={form.channel}
+            onChange={v => set('channel')({ target: { value: v } } as React.ChangeEvent<HTMLInputElement>)}
+          />
         </Field>
         <Field label="ICP trigger" wide>
           <input value={form.icp_trigger} onChange={set('icp_trigger')} className={INPUT_CLS} placeholder="What they are already asking, in their words" />
@@ -398,10 +424,12 @@ function AddTouchpoint({ g, onDone }: { g: GrowthData; onDone: () => void }) {
             {SCORE_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </Field>
-        <Field label="Coverage">
-          <select value={form.coverage_status} onChange={set('coverage_status')} className={`${INPUT_CLS} cursor-pointer`}>
-            {COVERAGES.map(c => <option key={c} value={c}>{COVERAGE_LABEL[c]}</option>)}
-          </select>
+        <Field label="Coverage" wide>
+          <OptionChips
+            options={COVERAGES.map(c => ({ value: c, label: COVERAGE_LABEL[c] }))}
+            value={form.coverage_status}
+            onChange={v => set('coverage_status')({ target: { value: v } } as React.ChangeEvent<HTMLInputElement>)}
+          />
         </Field>
         <Field label="Owner agent">
           <input value={form.owner_agent} onChange={set('owner_agent')} className={INPUT_CLS} placeholder="cleo, maya, nell, krish" />

@@ -3,6 +3,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from '@/lib/icons'
 
 import { cn } from '@/lib/utils'
+import { useKeyboardInset } from '@/hooks/useKeyboardInset'
 
 // Vendored from Relume, re-skinned and taught two house rules Relume knows
 // nothing about.
@@ -80,6 +81,7 @@ function DialogContent({
   container,
   overlayClassName,
   position = 'center',
+  style,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showClose?: boolean
@@ -87,12 +89,24 @@ function DialogContent({
   overlayClassName?: string
   position?: keyof typeof POSITION
 }) {
+  // 3. THE KEYBOARD CONTRACT. The app is a fixed no-scroll viewport, so when
+  //    the on-screen keyboard rises it used to amputate the bottom of every
+  //    open sheet — inputs stayed focused while their Save buttons sat behind
+  //    the keys. Bottom-anchored surfaces now grow their bottom padding by the
+  //    keyboard's height (visualViewport), divided by the zoom factor, so the
+  //    controls ride up with it. Centered surfaces are left alone: they sit in
+  //    the upper half already, and shifting them is worse than not.
+  const keyboard = useKeyboardInset()
+  const kbPad = keyboard > 0 && (position === 'bottom' || position === 'responsive')
+    ? { paddingBottom: `calc(${keyboard}px / var(--z, 1))` }
+    : undefined
   return (
     <DialogPortal container={container ?? zoomRoot()}>
       <DialogOverlay className={overlayClassName} />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn('fixed z-50 focus:outline-none', POSITION[position], className)}
+        style={{ ...style, ...kbPad }}
         {...props}
       >
         {children}

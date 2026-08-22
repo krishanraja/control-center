@@ -1,3 +1,4 @@
+import { OptionChips } from './goals/GoalPickers'
 import React, { useCallback, useRef, useState } from 'react'
 import { UploadCloud, FileText, CheckCircle2 } from '@/lib/icons'
 import { useToast } from './shared/Toast'
@@ -134,31 +135,21 @@ export function ContactImportDropzone({ onIngested }: Props) {
         <p className="text-micro font-semibold uppercase tracking-[0.14em] text-violet-200/80">
           Where did these come from?
         </p>
-        <div className="grid grid-cols-2 gap-2">
-          <label className="block">
-            <span className="text-micro text-white/45">Origin venture</span>
-            <select
-              value={originVenture}
-              onChange={(e) => setOriginVenture(e.target.value)}
-              className="mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-label text-white/85 focus:border-violet-400/50 focus:outline-none"
-            >
-              {VENTURE_OPTIONS.map(v => (
-                <option key={v.slug} value={v.slug}>{v.label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="text-micro text-white/45">Consent tier</span>
-            <select
+        <div className="space-y-2.5">
+          <OptionChips
+            label="Origin venture"
+            options={VENTURE_OPTIONS.map(v => ({ value: v.slug, label: v.label }))}
+            value={originVenture}
+            onChange={setOriginVenture}
+          />
+          <div>
+            <OptionChips
+              label="Consent tier"
+              options={TIER_OPTIONS.map(t => ({ value: t.value, label: t.label }))}
               value={consentTier}
-              onChange={(e) => setConsentTier(e.target.value as ConsentTier)}
-              className="mt-1 w-full rounded-md border border-white/10 bg-base px-2 py-1.5 text-label text-white/85 focus:border-violet-400/50 focus:outline-none"
-            >
-              {TIER_OPTIONS.map(t => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-          </label>
+              onChange={v => setConsentTier(v as ConsentTier)}
+            />
+          </div>
         </div>
         <label className="block">
           <span className="text-micro text-white/45">Origin campaign / list name</span>

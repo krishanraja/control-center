@@ -23,6 +23,7 @@ import {
   type GateVerdictWire,
 } from '../../lib/goalsApi'
 import { Working } from '../shared/Working'
+import { ServesPicker, VentureChips } from '../goals/GoalPickers'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -90,9 +91,6 @@ export function FocusRitual({
   const total = stepIds.length
   const current = stepIds[Math.min(stepIdx, total - 1)]
   const isLast = stepIdx >= total - 1
-  // Bounded budget: ~1 minute per remaining decision step (summary excluded), so
-  // the promise stays small and the avoidance reflex never fires.
-  const minsLeft = Math.max(0, (total - 1) - stepIdx)
 
   const goNext = () => {
     h.tap()
@@ -112,9 +110,7 @@ export function FocusRitual({
     <div className="flex items-center gap-2 mb-2">
       <Sparkles size={15} className="text-violet-300 flex-shrink-0" />
       <h2 className="text-ui font-semibold text-white">{STEP_TITLE[current]}</h2>
-      <span className="ml-auto text-micro text-white/45 tabular-nums uppercase tracking-[0.14em]">
-        Step {Math.min(stepIdx + 1, total)} of {total}{!isLast && minsLeft > 0 ? ` · ~${minsLeft} min` : ''}
-      </span>
+      <span className="sr-only">Step {Math.min(stepIdx + 1, total)} of {total}</span>
     </div>
   )
 
@@ -174,6 +170,9 @@ export function FocusRitual({
         <div className="h-full flex flex-col">
           <div className="px-4 pt-2">{header}{rail}</div>
           <div className="flex-1 overflow-y-auto px-4 pb-2">{body}</div>
+          {/* Keyboard clearance comes from the sheet primitive itself
+              (ui/dialog's keyboard contract), so the footer stays visible
+              while a field has focus. */}
           <div className="px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] border-t border-white/[0.06] bg-base">{footer}</div>
         </div>
       </BottomSheet>
@@ -259,7 +258,7 @@ function WeeklyStep() {
   return (
     <div className="space-y-3">
       <p className="text-label text-white/55 leading-snug">
-        Up to 3 objectives for the week, each serving an OS goal. The OS drives toward these all week; today's 3 draw from them.
+        Pick up to 3 objectives for the week. Each one serves an OS goal, and today's 3 come from them.
       </p>
 
       {/* Marcus-proposed weekly goals: take or pass, one tap each. */}
@@ -377,27 +376,9 @@ function WeeklyStep() {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <select
-                value={servesId}
-                onChange={e => setServesId(e.target.value)}
-                aria-label="What does it serve?"
-                className="flex-1 min-w-[140px] bg-black/30 border border-white/[0.08] rounded px-2 py-1.5 text-micro text-white/80 focus:outline-none"
-              >
-                {os.length === 0 && <option value="">Set an OS goal first</option>}
-                {os.map(g => <option key={g.id} value={g.id}>Serves: {g.title}</option>)}
-              </select>
-              {ventures.length > 0 && (
-                <select
-                  value={venture}
-                  onChange={e => setVenture(e.target.value)}
-                  aria-label="Venture (optional)"
-                  className="w-[120px] bg-black/30 border border-white/[0.08] rounded px-2 py-1.5 text-micro text-white/80 focus:outline-none"
-                >
-                  <option value="">No venture</option>
-                  {ventures.map(v => <option key={v} value={v}>{v}</option>)}
-                </select>
-              )}
+            <div className="space-y-2.5">
+              <ServesPicker os={os} value={servesId} onChange={setServesId} disabled={busy != null} />
+              <VentureChips ventures={ventures} value={venture} onChange={setVenture} disabled={busy != null} />
               <button
                 type="button"
                 onClick={() => add()}
