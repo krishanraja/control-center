@@ -65,6 +65,40 @@ test.describe('the content rooms', () => {
     await ctx.close()
   })
 
+  test('tapping a shift on a phone opens the dossier as a sheet', async ({ browser }) => {
+    // The dossier used to expand in place BELOW the whole card grid, which on
+    // a phone meant off-screen: a tap visibly did nothing. It must own the
+    // screen as a bottom sheet, with the ruling actions reachable.
+    const ctx = await browser.newContext({
+      timezoneId: 'America/New_York',
+      viewport: { width: 390, height: 844 },
+    })
+    const page = await ctx.newPage()
+    await page.clock.setFixedTime(AFTERNOON)
+    await mock(page)
+    await page.goto('/#/content')
+
+    await page.getByTestId('content-room-built').click()
+    await page.getByText('Agent teams are moving into CI pipelines').click()
+    await expect(page.getByTestId('shift-dossier')).toBeVisible()
+    await expect(page.getByText(/For your org:/)).toBeVisible()
+    await ctx.close()
+  })
+
+  test('on the desk the dossier still expands in place', async ({ browser }) => {
+    const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
+    const page = await ctx.newPage()
+    await page.clock.setFixedTime(AFTERNOON)
+    await mock(page)
+    await page.goto('/#/content')
+
+    await page.getByTestId('content-room-built').click()
+    await page.getByText('Governments claim pre-release veto power over frontier AI').click()
+    await expect(page.getByTestId('shift-dossier')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Accept' })).toBeVisible()
+    await ctx.close()
+  })
+
   test('Paid does not silently repeat Built: no own shifts is said out loud', async ({ browser }) => {
     const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
     const page = await ctx.newPage()

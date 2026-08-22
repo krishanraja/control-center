@@ -3,6 +3,7 @@ import { X } from '@/lib/icons'
 import { contentV2Api, useShiftEvidence, type useContentV2 } from '../../hooks/useContentV2'
 import { monthLabel, shiftVerdict, VERDICT_LABEL, type ShiftRow } from '../../lib/contentV2'
 import { SkeletonText, SkeletonList } from '../shared/Skeleton'
+import { BottomSheet } from '../mobile/BottomSheet'
 
 // The long-term memory with receipts (mockup set 1, mock 3). A shift is one
 // durable object whose evidence and momentum accrue week over week; the
@@ -57,10 +58,12 @@ const VERDICT_CLS: Record<string, string> = {
   new: 'bg-sky-400/15 text-sky-300',
 }
 
-function Dossier({ shift, v2, onClose }: {
+function DossierBody({ shift, v2, onClose, chrome }: {
   shift: ShiftRow
   v2: ReturnType<typeof useContentV2>
   onClose: () => void
+  /** 'inline' carries its own close X; 'sheet' leaves dismissal to the sheet. */
+  chrome: 'inline' | 'sheet'
 }) {
   const { evidence, loading } = useShiftEvidence(shift.id)
   const [seeding, setSeeding] = useState(false)
@@ -74,7 +77,7 @@ function Dossier({ shift, v2, onClose }: {
     }
   }
   return (
-    <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/[0.04] p-5 mt-4">
+    <>
       <div className="flex items-start justify-between gap-3">
         <div>
           <span className="text-micro font-bold uppercase tracking-[0.14em] text-emerald-300">Dossier · {shift.category}</span>
@@ -82,7 +85,9 @@ function Dossier({ shift, v2, onClose }: {
           <p className="text-label text-white/55 mt-1 max-w-xl leading-relaxed">{shift.summary}</p>
           <p className="text-label text-emerald-200/80 mt-2 max-w-xl leading-relaxed"><span className="font-semibold">For your org:</span> {shift.implication}</p>
         </div>
-        <button onClick={onClose} aria-label="Close" className="px-1 text-white/40 hover:text-white/80"><X size={16} /></button>
+        {chrome === 'inline' && (
+          <button onClick={onClose} aria-label="Close" className="px-1 text-white/40 hover:text-white/80"><X size={16} /></button>
+        )}
       </div>
 
       <div className="mt-4 max-h-64 overflow-y-auto pr-1">
@@ -116,6 +121,35 @@ function Dossier({ shift, v2, onClose }: {
           <button onClick={() => v2.ruleShift(shift.id, 'library')} className="rounded-lg px-3.5 py-2 text-label font-semibold bg-white/[0.06] text-white/70 hover:bg-white/[0.1]">Move to Library</button>
         ) : null}
       </div>
+    </>
+  )
+}
+
+/**
+ * One dossier, two chromes. On the desk it expands in place under the grid,
+ * where a pointer and a tall viewport can see it arrive. On a phone that
+ * in-place panel rendered below the whole card grid — off screen — so a tap
+ * looked like it did nothing; the dossier now owns the screen as a bottom
+ * sheet, like every other detail on a phone.
+ */
+function Dossier({ shift, v2, variant, onClose }: {
+  shift: ShiftRow
+  v2: ReturnType<typeof useContentV2>
+  variant: 'desktop' | 'mobile'
+  onClose: () => void
+}) {
+  if (variant === 'mobile') {
+    return (
+      <BottomSheet open onClose={onClose} fullHeight={false} ariaLabel="Shift dossier">
+        <div className="px-5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]" data-testid="shift-dossier">
+          <DossierBody shift={shift} v2={v2} onClose={onClose} chrome="sheet" />
+        </div>
+      </BottomSheet>
+    )
+  }
+  return (
+    <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/[0.04] p-5 mt-4" data-testid="shift-dossier">
+      <DossierBody shift={shift} v2={v2} onClose={onClose} chrome="inline" />
     </div>
   )
 }
@@ -203,7 +237,7 @@ export function ShiftsRoom({ v2, variant, lane }: {
           {grid(crossCutting)}
         </div>
       )}
-      {open ? <Dossier shift={open} v2={v2} onClose={() => setOpenId(null)} /> : null}
+      {open ? <Dossier shift={open} v2={v2} variant={variant} onClose={() => setOpenId(null)} /> : null}
     </div>
   )
 }
