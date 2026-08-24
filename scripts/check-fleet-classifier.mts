@@ -25,7 +25,7 @@
 process.env.SUPABASE_URL ||= 'http://localhost:54321'
 process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'test-key-not-used'
 
-const { classifyFailure, classifyStatus } = await import('../api/health/fleet-reconcile.ts')
+const { classifyFailure, classifyStatus } = await import('../api/health/fleet-reconcile.js')
 
 let fail = 0
 const bad = (m: string) => { console.log('FAIL: ' + m); fail++ }
