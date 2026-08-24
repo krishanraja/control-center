@@ -60,3 +60,10 @@ jobs:
       # provider was blocked" is a control-flow property, not a type, so it is
       # checked here.
       - run: npx tsx scripts/check-enrichment-honesty.mts
+      # The fleet observer is the one health signal not self-reported by the
+      # thing it measures, so its two classifiers decide what anyone believes
+      # about a failure. Both are ordering sensitive and both shipped wrong
+      # once: a blown plan quota read as a broken credential (n8n wraps nearly
+      # every non-2xx in "perhaps check your credentials?"), and a scheduled
+      # workflow that never ran read as idle rather than dead.
+      - run: npx tsx scripts/check-fleet-classifier.mts
