@@ -32,7 +32,15 @@ const SCHEDULE_TRIGGERS = new Set([
   'n8n-nodes-base.intervalTrigger',
 ])
 
-interface Wf { id: string; name: string; active: boolean; nodes?: { type: string }[] }
+interface Wf {
+  id: string; name: string; active: boolean; nodes?: { type: string }[]
+  // n8n Cloud keeps a draft and a published (active) version. An edit made
+  // through the MCP update_workflow tool writes the DRAFT: a manual test run
+  // executes it and passes while the cron keeps running the old published
+  // version, so a fix can look shipped and silently not be. Optional because
+  // older n8n builds omit them; absent means 'cannot tell', never 'fine'.
+  versionId?: string | null; activeVersionId?: string | null
+}
 interface Ex { workflowId: string; status: string; startedAt: string | null; stoppedAt?: string | null }
 
 async function n8n<T>(path: string, key: string): Promise<T> {
@@ -116,6 +124,9 @@ async function reconcile(apiKey: string) {
   for (const w of workflows) {
     const a = agg.get(w.id) || { runs: 0, errors: 0, lastRun: null, lastOk: null, lastErr: null }
     const isScheduled = (w.nodes || []).some(n => SCHEDULE_TRIGGERS.has(n.type))
+    // Only meaningful when n8n reports both ids and the workflow is published.
+    const unpublishedDraft =
+      Boolean(w.versionId && w.activeVersionId && w.versionId !== w.activeVersionId)
     const status = classifyStatus({
       active: w.active, isScheduled, runs: a.runs, errors: a.errors, lastSuccessAt: a.lastOk,
     })
@@ -146,7 +157,8 @@ async function reconcile(apiKey: string) {
       error_rate: a.runs ? Math.round((a.errors / a.runs) * 1000) / 1000 : null,
       last_run_at: a.lastRun, last_success_at: a.lastOk, last_error_at: a.lastErr,
       last_error_node: node, last_error_type: etype, last_error_message: emsg,
-      status, failure_class: klass, checked_at: new Date().toISOString(),
+      status, failure_class: klass, unpublished_draft: unpublishedDraft,
+      checked_at: new Date().toISOString(),
     })
   }
 
@@ -197,6 +209,29 @@ async function reconcile(apiKey: string) {
     raised++
   }
 
+  // A draft that was never published errors on nothing: the workflow runs
+  // happily on last week's code. Nothing in the execution counts can see it, so
+  // it is raised on its own rather than inferred from failures.
+  const stale = rows.filter(r => r.unpublished_draft && r.active)
+  for (const r of stale) {
+    const { data: dupe } = await supabase.from('silent_failures')
+      .select('id').eq('workflow_id', r.workflow_id).eq('failure_type', 'unpublished_draft')
+      .gte('detected_at', dayAgo).is('resolved_at', null).limit(1)
+    if (dupe && dupe.length) continue
+    await supabase.from('silent_failures').insert({
+      workflow_id: r.workflow_id as string,
+      workflow_name: r.workflow_name as string,
+      tier: 2,
+      failure_type: 'unpublished_draft',
+      detail: 'Draft version differs from the published version, so the schedule is '
+        + 'running older code than the editor shows. An edit was saved but never '
+        + 'published (n8n MCP update_workflow writes a draft; a manual test run '
+        + 'executes the draft and passes). Publish the workflow to make it live.',
+      run_count: 0,
+    })
+    raised++
+  }
+
   await supabase.from('audit_log').insert({
     event_type: 'fleet_reconciled', actor: 'fleet-reconcile', target: 'n8n runtime',
     details: JSON.stringify({
@@ -205,6 +240,11 @@ async function reconcile(apiKey: string) {
       dead: rows.filter(r => r.status === 'dead').length,
       degraded: rows.filter(r => r.status === 'degraded').length,
       alerts_raised: raised,
+      unpublished_drafts: stale.length,
+      // Distinguishes "no drafts pending" from "this n8n build does not report
+      // version ids, so drift is undetectable". Zero here means the check is
+      // blind, not that the fleet is clean.
+      version_ids_reported: workflows.filter(w => w.versionId && w.activeVersionId).length,
       by_class: broken.reduce((m: Record<string, number>, r) => {
         const k = String(r.failure_class ?? 'unknown'); m[k] = (m[k] || 0) + 1; return m
       }, {}),
@@ -214,6 +254,7 @@ async function reconcile(apiKey: string) {
   return {
     workflows: rows.length, executions: executions.length,
     failing: broken.length, alerts_raised: raised,
+    unpublished_drafts: stale.map(r => r.workflow_name),
     broken: broken.map(r => ({ name: r.workflow_name, status: r.status, class: r.failure_class, node: r.last_error_node })),
   }
 }
