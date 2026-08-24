@@ -56,12 +56,14 @@
               "value": "created_at.desc"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     },
@@ -76,7 +78,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "\nconst rows = $input.first().json || [];\nif (!Array.isArray(rows) || rows.length === 0) {\n  return [{ json: { clusters: [], total_rows: 0, run_id: 'vera_' + Date.now().toString(36) } }];\n}\n\nconst negative = rows.filter(r => (r.vote != null && r.vote < 0) || r.rejection_reason);\nconst groups = {};\nfor (const r of negative) {\n  const key = [r.agent_id || r.original_agent || 'unknown', r.source_table || 'unknown', r.reason_code || 'other'].join('|');\n  if (!groups[key]) groups[key] = [];\n  groups[key].push(r);\n}\n\n// '_other' is the absence of a reason, not a reason. A brief edit written from\n// \"Krish rejected 59 leads for unspecified reasons\" is invention: the model has\n// nothing to generalise from and will confabulate a pattern to fill the gap.\n// reject_reason_neighbors already excludes these codes for exactly this reason\n// (\"the absence of a reason can never be a prediction\"); the clusterer did not,\n// so the two halves of the loop disagreed about what counts as signal.\n//\n// They are counted, never silently dropped: a large unreasoned pile is itself\n// the finding -- it says the chip list on that surface does not hold what Krish\n// means, which is a taxonomy bug to fix rather than a brief to rewrite.\nconst isUnreasoned = (code) => code === 'other' || /_other$/.test(code);\n\nconst clusters = [];\nconst unreasoned = [];\nfor (const [key, items] of Object.entries(groups)) {\n  const [agent_id, source_table, reason_code] = key.split('|');\n  if (isUnreasoned(reason_code)) {\n    if (items.length >= 2) unreasoned.push({ agent_id, source_table, reason_code, count: items.length });\n    continue;\n  }\n  // Every surviving cluster now carries a real code, so the old two-tier\n  // threshold collapses to one: two matches with a stated reason is a pattern.\n  if (items.length < 2) continue;\n  clusters.push({\n    cluster_key: key,\n    agent_id,\n    source_table,\n    reason_code,\n    feedback_ids: items.map(i => i.id),\n    sample_reason_texts: items.map(i => i.reason_text || i.feedback_text).filter(Boolean).slice(0, 8),\n    sample_source_ids: items.map(i => i.source_id || i.original_item_id).filter(Boolean).slice(0, 8),\n    count: items.length,\n  });\n}\n\nunreasoned.sort((a, b) => b.count - a.count);\n\nreturn [{ json: {\n  clusters,\n  total_rows: rows.length,\n  negative_rows: negative.length,\n  eligible_clusters: clusters.length,\n  unreasoned_clusters: unreasoned.length,\n  unreasoned_rows: unreasoned.reduce((n, u) => n + u.count, 0),\n  unreasoned_top: unreasoned.slice(0, 8),\n  run_id: 'vera_' + Date.now().toString(36),\n} }];\n"
+        "jsCode": "\n// The Supabase fetch returns 389 rows and n8n delivers them as 389 ITEMS, so\n// $input.first().json is a single feedback row, not the array this assumed.\n// Array.isArray() then failed and the node returned total_rows: 0 on every run\n// since the workflow shipped. The 401 on the Anthropic node hid it: the run died\n// one step later, so nobody saw the clusterer had already given up.\n// Handles both shapes, since a PostgREST call can also arrive as one item whose\n// json IS the array.\nconst all = $input.all().map(i => i.json);\nconst rows = (all.length === 1 && Array.isArray(all[0])) ? all[0] : all;\nif (!Array.isArray(rows) || rows.length === 0) {\n  return [{ json: { clusters: [], total_rows: 0, run_id: 'vera_' + Date.now().toString(36) } }];\n}\n\nconst negative = rows.filter(r => (r.vote != null && r.vote < 0) || r.rejection_reason);\nconst groups = {};\nfor (const r of negative) {\n  const key = [r.agent_id || r.original_agent || 'unknown', r.source_table || 'unknown', r.reason_code || 'other'].join('|');\n  if (!groups[key]) groups[key] = [];\n  groups[key].push(r);\n}\n\n// '_other' is the absence of a reason, not a reason. A brief edit written from\n// \"Krish rejected 59 leads for unspecified reasons\" is invention: the model has\n// nothing to generalise from and will confabulate a pattern to fill the gap.\n// reject_reason_neighbors already excludes these codes for exactly this reason\n// (\"the absence of a reason can never be a prediction\"); the clusterer did not,\n// so the two halves of the loop disagreed about what counts as signal.\n//\n// They are counted, never silently dropped: a large unreasoned pile is itself\n// the finding -- it says the chip list on that surface does not hold what Krish\n// means, which is a taxonomy bug to fix rather than a brief to rewrite.\nconst isUnreasoned = (code) => code === 'other' || /_other$/.test(code);\n\nconst clusters = [];\nconst unreasoned = [];\nfor (const [key, items] of Object.entries(groups)) {\n  const [agent_id, source_table, reason_code] = key.split('|');\n  if (isUnreasoned(reason_code)) {\n    if (items.length >= 2) unreasoned.push({ agent_id, source_table, reason_code, count: items.length });\n    continue;\n  }\n  // Every surviving cluster now carries a real code, so the old two-tier\n  // threshold collapses to one: two matches with a stated reason is a pattern.\n  if (items.length < 2) continue;\n  clusters.push({\n    cluster_key: key,\n    agent_id,\n    source_table,\n    reason_code,\n    feedback_ids: items.map(i => i.id),\n    sample_reason_texts: items.map(i => i.reason_text || i.feedback_text).filter(Boolean).slice(0, 8),\n    sample_source_ids: items.map(i => i.source_id || i.original_item_id).filter(Boolean).slice(0, 8),\n    count: items.length,\n  });\n}\n\nunreasoned.sort((a, b) => b.count - a.count);\n\nreturn [{ json: {\n  clusters,\n  total_rows: rows.length,\n  negative_rows: negative.length,\n  eligible_clusters: clusters.length,\n  unreasoned_clusters: unreasoned.length,\n  unreasoned_rows: unreasoned.reduce((n, u) => n + u.count, 0),\n  unreasoned_top: unreasoned.slice(0, 8),\n  run_id: 'vera_' + Date.now().toString(36),\n} }];\n"
       }
     },
     {
@@ -96,7 +98,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 4000, \"temperature\": 0.2, \"system\": \"You are Vera, the Mindmaker OS reflection layer. You read clusters of negative feedback that landed on a specific agent's outputs and propose ONE concrete brief edit that would prevent the same mistake. Return ONLY JSON, no prose, no code fences. Shape: { \\\"clusters\\\": [ { \\\"cluster_key\\\":string, \\\"agent_id\\\":string, \\\"source_table\\\":string, \\\"reason_code\\\":string, \\\"feedback_ids\\\":[string], \\\"correction_instruction\\\":string, \\\"proposed_brief_edit\\\":string, \\\"confidence\\\":\\\"low\\\"|\\\"medium\\\"|\\\"high\\\" } ] }. correction_instruction is a one-line summary of the change. proposed_brief_edit is the exact prose to insert into the agent's brief, phrased as a positive rule (e.g., 'When extracting why_relevant, ground claims in specific signals from the source document; do not invent generic motivations.'). Skip clusters where feedback is inconsistent or noisy. No em dashes. Use commas, colons, parentheses, or line breaks.\", \"messages\": [{\"role\": \"user\", \"content\": \"Aggregated negative-feedback clusters from the last week:\\n{{ JSON.stringify($('Cluster').first().json.clusters) }}\\n\\nPropose brief edits per the system prompt.\"}]}",
+        "jsonBody": "={{ { model: 'claude-sonnet-4-6', max_tokens: 4000, temperature: 0.2, system: \"You are Vera, the Mindmaker OS reflection layer. You read clusters of negative feedback that landed on a specific agent's outputs and propose ONE concrete brief edit that would prevent the same mistake. Return ONLY JSON, no prose, no code fences. Shape: { \\\"clusters\\\": [ { \\\"cluster_key\\\":string, \\\"agent_id\\\":string, \\\"source_table\\\":string, \\\"reason_code\\\":string, \\\"feedback_ids\\\":[string], \\\"correction_instruction\\\":string, \\\"proposed_brief_edit\\\":string, \\\"confidence\\\":\\\"low\\\"|\\\"medium\\\"|\\\"high\\\" } ] }. correction_instruction is a one-line summary of the change. proposed_brief_edit is the exact prose to insert into the agent's brief, phrased as a positive rule (e.g., 'When extracting why_relevant, ground claims in specific signals from the source document; do not invent generic motivations.'). Skip clusters where feedback is inconsistent or noisy. No em dashes. Use commas, colons, parentheses, or line breaks.\", messages: [{ role: 'user', content: 'Aggregated negative-feedback clusters from the last week:\\n' + JSON.stringify($('Cluster').first().json.clusters) + '\\n\\nPropose brief edits per the system prompt.' }] } }}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -110,12 +112,14 @@
               "value": "application/json"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "w8sWwz8EfYc1JA7G",
-          "name": "Anthropic Header 2026-05-21"
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
         }
       }
     },
@@ -130,7 +134,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "\nconst item = $input.first().json;\nlet text = item.content?.[0]?.text || item.text || JSON.stringify(item);\ntext = text.trim();\nif (text.startsWith('```')) {\n  text = text.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\n}\n\nlet parsed;\ntry { parsed = JSON.parse(text); }\ncatch (e) {\n  return [{ json: { ok: false, rejection_reason: 'invalid_json', raw: text.slice(0,2000), error: String(e) }}];\n}\n\nconst validConf = new Set(['low','medium','high']);\nconst clusters = Array.isArray(parsed.clusters) ? parsed.clusters : [];\nconst rows = [];\nfor (const c of clusters) {\n  if (!c || !c.agent_id || !c.proposed_brief_edit) continue;\n  rows.push({\n    agent_id: c.agent_id,\n    correction_type: 'pattern_recall',\n    detection_source: 'vera_feedback_aggregation',\n    pattern_reason_code: c.reason_code || null,\n    consumed_feedback_ids: Array.isArray(c.feedback_ids) ? c.feedback_ids : [],\n    correction_instruction: String(c.correction_instruction || '').slice(0, 2000),\n    proposed_brief_edit: String(c.proposed_brief_edit || '').slice(0, 4000),\n    confidence: validConf.has(c.confidence) ? c.confidence : 'low',\n    approval_state: 'pending',\n    status: 'analyzed',\n    detected_at: new Date().toISOString(),\n  });\n}\nreturn rows.map(r => ({ json: r }));\n"
+        "jsCode": "\nconst item = $input.first().json;\nlet text = item.content?.[0]?.text || item.text || JSON.stringify(item);\ntext = text.trim();\nif (text.startsWith('```')) {\n  text = text.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\n}\n\nlet parsed;\ntry { parsed = JSON.parse(text); }\ncatch (e) {\n  return [{ json: { ok: false, rejection_reason: 'invalid_json', raw: text.slice(0,2000), error: String(e) }}];\n}\n\n// corrections.confidence is double precision, not text. The model is asked for\n// low|medium|high, so map it. Writing the word straight through failed the\n// insert with `invalid input syntax for type double precision: \"high\"` the\n// first time this node ever produced a row: the 401 upstream, then the broken\n// clusterer, had kept it from ever reaching the write.\n// 0.8 is the documented aggregation threshold (DATA-PIPELINE.md), so 'high'\n// must land above it and 'medium' below.\nconst CONF = { low: 0.3, medium: 0.6, high: 0.9 };\nconst validConf = new Set(['low','medium','high']);\nconst clusters = Array.isArray(parsed.clusters) ? parsed.clusters : [];\nconst rows = [];\nfor (const c of clusters) {\n  if (!c || !c.agent_id || !c.proposed_brief_edit) continue;\n  rows.push({\n    agent_id: c.agent_id,\n    correction_type: 'pattern_recall',\n    detection_source: 'vera_feedback_aggregation',\n    pattern_reason_code: c.reason_code || null,\n    consumed_feedback_ids: Array.isArray(c.feedback_ids) ? c.feedback_ids : [],\n    correction_instruction: String(c.correction_instruction || '').slice(0, 2000),\n    proposed_brief_edit: String(c.proposed_brief_edit || '').slice(0, 4000),\n    confidence: CONF[validConf.has(c.confidence) ? c.confidence : 'low'],\n    approval_state: 'pending',\n    status: 'analyzed',\n    detected_at: new Date().toISOString(),\n  });\n}\nreturn rows.map(r => ({ json: r }));\n"
       }
     },
     {
@@ -164,12 +168,14 @@
               "value": "return=representation"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     },
@@ -227,12 +233,14 @@
               "value": "=eq.{{ $json.feedback_id }}"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     },
@@ -267,12 +275,14 @@
               "value": "return=minimal"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     }
@@ -363,6 +373,12 @@
   },
   "settings": {
     "executionOrder": "v1",
-    "saveDataErrorExecution": "all"
+    "saveDataErrorExecution": "all",
+    "availableInMCP": true
+  },
+  "_snapshot": {
+    "workflow_id": "FZBDYXXfT1MBrAF6",
+    "exported": "2026-08-24",
+    "note": "FAITHFUL export of live, credential IDs included (they are opaque references; the secret values live in n8n). The previous checked-in copy had drifted badly: it declared httpHeaderAuth with no authentication parameter, while live uses predefinedCredentialType/supabaseApi. Syncing it over live on 2026-08-24 replaced the nodes array wholesale and detached every credential (\"No API key found in request\") until live was restored from a pre-PUT snapshot. n8n does NOT merge credentials on PUT. Do not hand-edit this file: re-export it."
   }
 }
