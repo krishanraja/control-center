@@ -120,6 +120,11 @@ export function FleetFunnelPanel() {
           </div>
         ) : (
           <>
+            {rows.length === 0 && (
+              <p className="text-label text-white/35">
+                No builder apps wired to the warehouse yet — the registry defines the fleet.
+              </p>
+            )}
             {allZero && (
               <p className="text-label text-white/35">
                 No attributed traffic yet — the dots show which apps are wired to emit.

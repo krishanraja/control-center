@@ -62,11 +62,7 @@ export function KpiBand({ narrow }: { narrow: boolean }) {
       value={revEmpty ? '—' : usdCents(revenue.committed_mrr_usd_cents)}
       testId="bi-kpi-money-in"
       tone={!revEmpty && revenue.committed_mrr_usd_cents > 0 ? 'good' : 'default'}
-      sub={
-        revEmpty ? 'no Stripe read yet'
-        : revenue.committed_mrr_other.length > 0 ? 'committed / mo · +more'
-        : 'committed / mo'
-      }
+      sub={revEmpty ? 'no Stripe read yet' : 'committed / mo'}
       loading={revenueLoading && !revenue}
       compact={narrow}
       onClick={revenue ? () => setSheet('revenue') : undefined}
@@ -78,7 +74,7 @@ export function KpiBand({ narrow }: { narrow: boolean }) {
   const checked = conns ? conns.ok + conns.low + conns.broken : 0
   const connections = (
     <StatPill
-      label="Connections"
+      label="APIs"
       value={!conns || checked === 0 ? '—' : `${conns.ok}/${checked}`}
       testId="bi-kpi-connections"
       tone={
@@ -104,7 +100,7 @@ export function KpiBand({ narrow }: { narrow: boolean }) {
   const bought7 = (funnel?.byApp || []).reduce((s, a) => s + a.purchased_7d, 0)
   const funnelTile = (
     <StatPill
-      label="Funnel · 7d"
+      label="Funnel 7d"
       value={!funnel ? '—' : landed7.toLocaleString('en-US')}
       testId="bi-kpi-funnel"
       tone={bought7 > 0 ? 'good' : 'default'}
@@ -124,7 +120,7 @@ export function KpiBand({ narrow }: { narrow: boolean }) {
       testId="bi-kpi-bets"
       tone={overdueLive.length > 0 ? 'warn' : 'default'}
       sub={
-        overdueLive.length > 0 ? `${overdueLive.length} overdue — decide`
+        overdueLive.length > 0 ? (narrow ? `${overdueLive.length} overdue` : `${overdueLive.length} overdue — decide`)
         : overall && overall.total > 0 ? `${overall.pct.toFixed(0)}% hit · 90d`
         : live.length > 0 ? 'live'
         : 'none live'

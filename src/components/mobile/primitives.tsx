@@ -74,6 +74,7 @@ export function TabHeader({
   subtitle,
   leading,
   trailing,
+  wrap = false,
 }: {
   title?: string
   /** A node, not a string, so a pending subtitle can be a bar in its own
@@ -84,6 +85,10 @@ export function TabHeader({
   subtitle?: React.ReactNode
   leading?: React.ReactNode
   trailing?: React.ReactNode
+  /** Let a long title break onto a second line (the iOS large-title wrap)
+   *  instead of truncating — "Business Intelligence" does not fit one line
+   *  on a phone. Opt-in so the twelve short titles keep their guarantee. */
+  wrap?: boolean
 }) {
   const resolvedLeading = leading === undefined ? <Logomark size={40} /> : leading
   return (
@@ -91,7 +96,7 @@ export function TabHeader({
       {resolvedLeading && <div className="flex-shrink-0 self-start mt-1">{resolvedLeading}</div>}
       <div className="min-w-0 flex-1">
         {title && (
-          <h1 className="font-bold text-white leading-[1.1] tracking-tight truncate text-heading">
+          <h1 className={`font-bold text-white leading-[1.1] tracking-tight text-heading ${wrap ? '' : 'truncate'}`}>
             {title}
           </h1>
         )}

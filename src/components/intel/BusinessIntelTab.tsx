@@ -67,6 +67,7 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
         header={
           <TabHeader
             title="Business Intelligence"
+            wrap
             subtitle={loading && !headline ? <HeaderSubtitleSkeleton w={176} /> : subtitleText}
           />
         }
