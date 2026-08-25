@@ -201,6 +201,51 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       message: 'All Supabase-backed endpoints operational',
     }
 
+    // 8. External connections (the 6-hourly sweep's verdicts on every keyed
+    // vendor). A blocking critical service turns the sidebar dot red; low
+    // balances or broken standard services only shade it amber. Wrapped so a
+    // deploy that lands before the service_registry migration still serves.
+    try {
+      const { data: conns } = await supabase
+        .from('service_registry')
+        .select('display_name, criticality, last_status, balance, low_threshold')
+        .eq('active', true)
+        .not('last_status', 'is', null)
+      const blocking = new Set(['auth_failed', 'exhausted', 'rate_limited'])
+      const rows = conns || []
+      const brokenCritical = rows.filter(r => r.criticality === 'critical' && blocking.has(String(r.last_status)))
+      const brokenOther = rows.filter(r => r.criticality !== 'critical' && blocking.has(String(r.last_status)))
+      const low = rows.filter(r => r.balance != null && r.low_threshold != null && Number(r.balance) < Number(r.low_threshold))
+      const connStatus: Level = rows.length === 0 ? 'unknown'
+        : brokenCritical.length ? 'failed'
+        : (brokenOther.length || low.length) ? 'degraded'
+        : 'healthy'
+      health.components['connections'] = {
+        status: connStatus,
+        last_check: nowIso,
+        message: rows.length === 0
+          ? 'No sweep results yet'
+          : `${rows.length} checked · ${brokenCritical.length + brokenOther.length} broken · ${low.length} low`,
+      }
+      if (connStatus === 'failed') {
+        health.alerts.push({
+          severity: 'critical',
+          message: `Critical API connection broken: ${brokenCritical.map(r => r.display_name).join(', ')}`,
+          component: 'connections',
+          timestamp: nowIso,
+        })
+      } else if (connStatus === 'degraded') {
+        health.alerts.push({
+          severity: 'warning',
+          message: `Connections need a look: ${[...brokenOther, ...low].map(r => r.display_name).join(', ')}`,
+          component: 'connections',
+          timestamp: nowIso,
+        })
+      }
+    } catch {
+      health.components['connections'] = { status: 'unknown', last_check: nowIso, message: 'service_registry not readable' }
+    }
+
     // Overall status
     if (health.alerts.some(a => a.severity === 'critical')) health.status = 'failed'
     else if (health.alerts.some(a => a.severity === 'warning')) health.status = 'degraded'

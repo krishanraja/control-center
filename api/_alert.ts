@@ -74,6 +74,37 @@ async function markUsageState(o: ProviderOutcome): Promise<void> {
   } catch { /* best effort */ }
 }
 
+/** Mirror a connections-sweep result onto api_usage_state, where the hourly
+ *  VPS alerter (api-usage-alerter.py) already looks. Update-only by design:
+ *  the sweep's own truth lives on service_registry, and this mirror must
+ *  neither invent rows the VPS pollers don't know nor let a drifted balance
+ *  column sink the status write — hence two isolated best-effort updates
+ *  (columns verified live 2026-08-25: last_status, last_error, last_polled_at,
+ *  balance_usd, updated_at). */
+export async function recordUsageState(api: string, patch: {
+  status: string
+  error?: string | null
+  balanceUsd?: number | null
+}): Promise<void> {
+  const now = new Date().toISOString()
+  try {
+    await supabase
+      .from('api_usage_state')
+      .update({
+        last_status: patch.status,
+        last_error: (patch.error || '').slice(0, 500) || null,
+        last_polled_at: now,
+        updated_at: now,
+      })
+      .eq('api_name', api)
+  } catch { /* best effort */ }
+  if (patch.balanceUsd != null) {
+    try {
+      await supabase.from('api_usage_state').update({ balance_usd: patch.balanceUsd }).eq('api_name', api)
+    } catch { /* a missing balance column never sinks the status write */ }
+  }
+}
+
 /** Raise the "not enough API credits" alert.
  *
  *  Called when an enrichment run had to stop rather than write a partial record.

@@ -30,6 +30,7 @@ export interface SpendSummary {
   ballooning: boolean
   months: Array<{ month: string; total_usd: number }>
   services: SpendServiceRow[]
+  unmatched: Array<{ vendor: string; month_usd: number }>
   connections: {
     ok: number
     low: number

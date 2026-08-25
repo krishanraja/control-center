@@ -24,6 +24,12 @@
     { "path": "/api/growth/council-run", "schedule": "0 17 * * 0" },
     { "path": "/api/health/fleet-reconcile", "schedule": "0 */6 * * *" },
     { "path": "/api/content-ideas/archive-stale", "schedule": "0 10 * * *" },
-    { "path": "/api/feedback/backfill-embeddings", "schedule": "0 4 * * 6" }
-  ]
+    { "path": "/api/feedback/backfill-embeddings", "schedule": "0 4 * * 6" },
+    { "path": "/api/health/connections-sweep", "schedule": "0 */6 * * *" },
+    { "path": "/api/spend/ingest", "schedule": "15 7 * * *" }
+  ],
+  "functions": {
+    "api/spend/ingest.ts": { "maxDuration": 300 },
+    "api/health/connections-sweep.ts": { "maxDuration": 120 }
+  }
 }
