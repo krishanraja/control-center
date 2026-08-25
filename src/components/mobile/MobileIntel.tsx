@@ -7,6 +7,7 @@ import { AskMarcus } from '../AskMarcus'
 import { FleetFunnelPanel } from '../FleetFunnelPanel'
 import { NextIntelMobileHero } from '../intel/NextIntelMobileHero'
 import { BetsStrip } from '../intel/BetsStrip'
+import { SpendConnectionsPanel } from '../intel/SpendConnectionsPanel'
 import { SignalSheet, URGENCY_DOT, URGENCY_ACCENT, urgencyChip } from '../intel/SignalSheet'
 import type { ExternalSignal } from '../../hooks/useHomeIntelligence'
 
@@ -134,6 +135,10 @@ export function MobileIntel() {
           })}
         </FeedCard>
       )}
+
+      {/* MONEY — receipts truth plus the connections sweep: the two questions
+          (what is the OS costing, what needs a hand) in one card. */}
+      <SpendConnectionsPanel />
 
       {/* BETS — falsifiable hypotheses with clocks. Relocated from Home's
           ambient fold in the 2026-08-20 recompose; Intel owns hypotheses. */}

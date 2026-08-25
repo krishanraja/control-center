@@ -6,6 +6,7 @@ import { Skeleton } from '../shared/Skeleton'
 import { rankSignals } from '../intel/NextIntelMobileHero'
 import { SignalSheet, URGENCY_DOT, urgencyChip } from '../intel/SignalSheet'
 import { useHomeIntelligence, type ExternalSignal } from '../../hooks/useHomeIntelligence'
+import { useSpend } from '../../hooks/useSpend'
 import { useHaptics } from '../../hooks/useHaptics'
 import { humanAge } from '../../lib/ageHelpers'
 
@@ -103,6 +104,8 @@ export function IntelDrawer({ open, onClose, onNavigate }: {
               </p>
             )}
 
+            <SpendLine onGo={() => { h.select(); onClose(); onNavigate?.('os', { sub: 'intel' }) }} />
+
             <button
               type="button"
               onClick={() => { h.select(); onClose(); onNavigate?.('os', { sub: 'intel' }) }}
@@ -120,5 +123,42 @@ export function IntelDrawer({ open, onClose, onNavigate }: {
 
       <SignalSheet signal={openSignal} onClose={() => setOpenSignal(null)} />
     </SlideOver>
+  )
+}
+
+/**
+ * One quiet money line above the Open Intel row: the month's burn and
+ * whether any connection needs a hand. Lives in its own component so the
+ * /api/spend fetch starts only when the drawer actually opens (the drawer's
+ * content unmounts while closed), and renders nothing until there is a real
+ * summary to show — a loading line here would outrank the signals.
+ */
+function SpendLine({ onGo }: { onGo: () => void }) {
+  const { spend } = useSpend()
+  if (!spend || spend.empty) return null
+  const broken = spend.connections.broken
+  const low = spend.connections.low
+  const state = broken > 0
+    ? `${broken} API${broken === 1 ? '' : 's'} broken`
+    : low > 0
+      ? `${low} running low`
+      : 'connections ok'
+  return (
+    <button
+      type="button"
+      data-testid="drawer-spend-line"
+      onClick={onGo}
+      className="group flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/[0.04]"
+    >
+      <span
+        aria-hidden
+        className={`h-1.5 w-1.5 shrink-0 rounded-full ${broken > 0 ? 'bg-status-blocked' : low > 0 ? 'bg-status-needsYou' : 'bg-status-active'}`}
+      />
+      <span className="min-w-0 flex-1 truncate text-ui text-white/85">
+        <span className="font-mono tabular-nums">${Math.round(spend.month_usd).toLocaleString('en-US')}</span>
+        <span className="text-white/45"> out this month · {state}</span>
+      </span>
+      <ChevronRight size={14} className="shrink-0 text-white/30 transition-colors group-hover:text-white/60" aria-hidden />
+    </button>
   )
 }

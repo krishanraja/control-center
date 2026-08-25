@@ -6,6 +6,7 @@ import { formatCommittedMrr } from '../hooks/useRevenue'
 import { useHomeIntelligence } from '../hooks/useHomeIntelligence'
 import { useMoodSource } from './shared/AmbientField'
 import { Skeleton } from './shared/Skeleton'
+import { Sparkline } from './shared/Sparkline'
 
 interface Props {
   variant?: 'mobile' | 'desktop'
@@ -83,7 +84,7 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
             </span>
           </div>
           {sparkline.length > 0 && (
-            <Sparkline data={sparkline} positive={deltaPositive} />
+            <Sparkline data={sparkline} positive={deltaPositive} ariaLabel="7-day MRR trend" />
           )}
         </div>
       </div>
@@ -92,37 +93,5 @@ export function MrrTicker({ variant = 'mobile', className = '' }: Props) {
           a revenue target belongs on the goal ladder, judged by the gate,
           not in a display setting beside the number. */}
     </div>
-  )
-}
-
-function Sparkline({ data, positive }: { data: number[]; positive: boolean }) {
-  if (data.length < 2) return null
-  const max = Math.max(...data, 1)
-  const min = Math.min(...data, 0)
-  const range = Math.max(1, max - min)
-  const w = 84
-  const h = 22
-  const step = w / (data.length - 1)
-  const points = data
-    .map((v, i) => `${(i * step).toFixed(1)},${(h - ((v - min) / range) * h).toFixed(1)}`)
-    .join(' ')
-  const stroke = positive ? '#34d399' : '#f87171'
-  const fill = positive ? 'rgba(52,211,153,0.18)' : 'rgba(248,113,113,0.18)'
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} role="img" aria-label="7-day MRR trend">
-      <polyline
-        points={`0,${h} ${points} ${w},${h}`}
-        fill={fill}
-        stroke="none"
-      />
-      <polyline
-        points={points}
-        fill="none"
-        stroke={stroke}
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   )
 }

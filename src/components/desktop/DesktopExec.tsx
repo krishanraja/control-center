@@ -7,6 +7,7 @@ import { AskMarcus } from '../AskMarcus'
 import { FleetFunnelPanel } from '../FleetFunnelPanel'
 import { NextIntelDesktopHero, type ZaraSignal } from '../intel/NextIntelDesktopHero'
 import { BetsStrip } from '../intel/BetsStrip'
+import { SpendConnectionsPanel } from '../intel/SpendConnectionsPanel'
 import { useToast } from '../shared/Toast'
 import { Working } from '../shared/Working'
 
@@ -80,6 +81,8 @@ export function DesktopExec() {
       </p>
 
       <AskMarcus />
+
+      <SpendConnectionsPanel />
 
       <FleetFunnelPanel />
 

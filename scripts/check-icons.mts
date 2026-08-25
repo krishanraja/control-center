@@ -21,10 +21,11 @@ const ICONS_MODULE = 'src/lib/icons.tsx'
 // marks inside tiny filled checkboxes (2.5 for legibility under 12px).
 const STROKE_OK = new Set([
   ICONS_MODULE,
-  // Hand-drawn SVG marks, not lucide glyphs: the MRR sparkline draws its own
-  // polyline (DrawnCheck and the shifts sparkline do the same with string
-  // attributes, which this check already ignores).
-  'src/components/MrrTicker.tsx',
+  // Hand-drawn SVG marks, not lucide glyphs: the shared sparkline draws its
+  // own polyline (extracted from MrrTicker for the spend panel; DrawnCheck
+  // and the shifts sparkline do the same with string attributes, which this
+  // check already ignores).
+  'src/components/shared/Sparkline.tsx',
   'src/components/BottomNav.tsx',
   'src/components/DesktopSidebar.tsx',
   'src/components/CreateSheet.tsx',
