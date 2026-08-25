@@ -80,6 +80,7 @@ async function gmail<T>(token: string, pathAndQuery: string): Promise<T> {
 }
 
 interface Parsed {
+  is_receipt: boolean
   vendor: string
   amount: number | null
   currency: string | null
@@ -92,18 +93,19 @@ interface Parsed {
   confidence: number
 }
 
-const PARSE_SYSTEM = `You extract billing facts from one subscription receipt or invoice email. Reply with ONLY a JSON object, no prose, no code fence:
-{"vendor": string, "amount": number|null, "currency": "USD"|"AUD"|"EUR"|...|null, "kind": "charge"|"refund", "paid_at": "YYYY-MM-DD"|null, "period_start": "YYYY-MM-DD"|null, "period_end": "YYYY-MM-DD"|null, "cadence": "monthly"|"annual"|"one_off"|"unknown", "plan_label": string|null, "confidence": 0..1}
+const PARSE_SYSTEM = `You extract billing facts from one email. Reply with ONLY a JSON object, no prose, no code fence:
+{"is_receipt": true|false, "vendor": string, "amount": number|null, "currency": "USD"|"AUD"|"EUR"|...|null, "kind": "charge"|"refund", "paid_at": "YYYY-MM-DD"|null, "period_start": "YYYY-MM-DD"|null, "period_end": "YYYY-MM-DD"|null, "cadence": "monthly"|"annual"|"one_off"|"unknown", "plan_label": string|null, "confidence": 0..1}
 
 Rules:
+- is_receipt is true ONLY for a record of money that actually moved or will be auto-charged with no action needed: a receipt, a paid invoice, a refund, or an "invoice available, will be charged automatically" notice. It is false for newsletters, product updates, dunning/failed-payment warnings, and amount-DUE notices asking for payment (a due notice's money shows up again as a real receipt and must not count twice). When false, still fill vendor if obvious and set every money field null.
 - Forwarded emails: the real vendor and dates are inside the forwarded body ("From: Vendor <...>"), never the forwarding sender.
 - vendor is the company billing the money (e.g. "Anthropic", "Hetzner", "n8n"), not a payment processor. "Powered by Stripe"/"via paddle.com" are processors.
-- amount is the total actually paid/refunded this time, tax included.
+- amount is the total actually paid/refunded this time, tax included. For an auto-charge invoice notice whose amount is only in a PDF attachment, leave amount null and confidence below 0.6.
 - currency: "A$" means AUD. "US$" means USD. A bare "$" with a US company, US tax, or "USD" cues means USD; with clear Australian cues it means AUD.
 - kind is "refund" when money went back (refund confirmation, credit note).
 - paid_at is the payment/refund date from the ORIGINAL email, not the forward date.
 - period_start/period_end: the service period when stated (e.g. "Aug 20 - Sep 20, 2026"). Retrospective billing (Hetzner) covers the PREVIOUS month.
-- cadence: from the period length or wording ("yearly", "annual" -> annual; a one-month period -> monthly; a top-up or one-time purchase -> one_off).
+- cadence: from the period length or wording ("yearly", "annual" -> annual; a one-month period or recurring subscription -> monthly; a top-up, credit purchase or one-time buy -> one_off).
 - confidence below 0.6 when the amount or vendor is genuinely unclear.`
 
 interface RegistryMatch { key: string; vendor_match: string[] }
@@ -140,7 +142,7 @@ async function loadFx(currencies: string[]): Promise<FxCache | null> {
   let fetchedAny = false
   for (const c of wanted) {
     try {
-      const r = await fetch(`https://api.frankfurter.app/latest?from=${encodeURIComponent(c)}&to=USD`)
+      const r = await fetch(`https://api.frankfurter.dev/v1/latest?from=${encodeURIComponent(c)}&to=USD`)
       if (!r.ok) continue
       const j = await r.json() as { rates?: { USD?: number } }
       if (typeof j.rates?.USD === 'number') { usd_per[c] = j.rates.USD; fetchedAny = true }
@@ -253,11 +255,19 @@ async function ingest(token: string, backfillMonths: number | null) {
     : (cursorMs ? cursorMs - 2 * 86_400_000 : Date.now() - 45 * 86_400_000)
   const afterSec = Math.floor(sinceMs / 1000)
 
-  // List every message under the label in the window (ids only), oldest last.
+  // List the label's BILLING messages in the window (ids only). The
+  // "Subscriptions" label is a catch-all — newsletters, digests and meeting
+  // recaps outnumber receipts 100:1 in it (verified live 2026-08-25) — so the
+  // subject filter does the heavy lifting and the parser's is_receipt guard
+  // catches stragglers. Every real receipt in the label matches it: Stripe
+  // ("Your receipt from X"), Paddle ("Your n8n receipt"), Google ("invoice is
+  // available", "Order Receipt"), Hetzner ("Invoice ..."), Apify ("invoice
+  // ... payment successful"), refunds ("Your refund from X").
+  const SUBJECT_FILTER = 'subject:{receipt invoice refund}'
   const ids: string[] = []
   let pageToken = ''
   for (let i = 0; i < 20; i++) {
-    const q = `?labelIds=${encodeURIComponent(LABEL_ID)}&q=${encodeURIComponent(`after:${afterSec}`)}&maxResults=100${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`
+    const q = `?labelIds=${encodeURIComponent(LABEL_ID)}&q=${encodeURIComponent(`after:${afterSec} ${SUBJECT_FILTER}`)}&maxResults=100${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`
     const page = await gmail<{ messages?: { id: string }[]; nextPageToken?: string }>(token, `/messages${q}`)
     ids.push(...(page.messages || []).map(m => m.id))
     if (!page.nextPageToken) break
@@ -278,7 +288,7 @@ async function ingest(token: string, backfillMonths: number | null) {
   const { data: reg } = await supabase.from('service_registry').select('key, vendor_match')
   const registry = (reg || []) as RegistryMatch[]
 
-  let parsedOk = 0, review = 0, matched = 0, llmCost = 0
+  let parsedOk = 0, review = 0, matched = 0, nonReceipts = 0, llmCost = 0
   let maxProcessedMs = cursorMs
   const currenciesSeen = new Set<string>()
   const rows: Record<string, unknown>[] = []
@@ -310,6 +320,16 @@ async function ingest(token: string, backfillMonths: number | null) {
       }
     } else {
       note = 'no readable body'
+    }
+
+    // The subject filter lets the odd non-billing email through; the parser
+    // names it and the message is skipped entirely — a newsletter is not
+    // unread money, so it earns no needs_review row. Parse failures fall
+    // through to the honest row below, never here.
+    if (parsed && parsed.is_receipt === false) {
+      nonReceipts++
+      maxProcessedMs = Math.max(maxProcessedMs, Number(msg.internalDate || 0))
+      continue
     }
 
     const confident = Boolean(parsed && parsed.amount != null && parsed.currency && (parsed.confidence ?? 0) >= 0.6)
@@ -387,7 +407,8 @@ async function ingest(token: string, backfillMonths: number | null) {
     display_message: `Ingested ${rows.length} receipts — ${parsedOk} parsed, ${review} need review`,
     details: JSON.stringify({
       listed: ids.length, fresh: fresh.length, parsed: rows.length, parsed_ok: parsedOk,
-      needs_review: review, matched, est_llm_cost_usd: Math.round(llmCost * 10000) / 10000,
+      needs_review: review, matched, non_receipts_skipped: nonReceipts,
+      est_llm_cost_usd: Math.round(llmCost * 10000) / 10000,
       capped: detailed.length > toParse.length, renewal_nudges: nudges, ballooned,
       backfill_months: backfillMonths,
     }),
@@ -403,6 +424,7 @@ async function ingest(token: string, backfillMonths: number | null) {
     parsed: rows.length,
     parsed_ok: parsedOk,
     needs_review: review,
+    non_receipts_skipped: nonReceipts,
     matched_to_services: matched,
     est_llm_cost_usd: Math.round(llmCost * 10000) / 10000,
     capped: detailed.length > toParse.length,
