@@ -8,6 +8,7 @@ import { feedbackVote } from '../../lib/triageActions'
 import { useLikelyReasons } from '../../hooks/useLikelyReasons'
 import { RejectReasonBar } from '../shared/RejectReasonBar'
 import { Skeleton } from '../shared/Skeleton'
+import { useToast } from '../shared/Toast'
 
 // The whole mobile job (mockup set 2, pin 11): the week's finite decision
 // queue, one card at a time, every action in the bottom thumb zone. Finishable
@@ -61,6 +62,7 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   const { decisions, brief, loading } = v2
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(0)
+  const { toast } = useToast()
 
   // Where the browse sits in the queue. Navigation moves it; deciding a card
   // removes the card under it and the position clamps to the survivor.
@@ -137,9 +139,20 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
     else setDragX(0)
   }
 
+  // A failed ruling must not count as a decision. This was a bare try/finally
+  // around a fetch wrapper that throws on any non-OK response, so a 409 or a
+  // 500 still incremented `done` and still moved the deck on - the card came
+  // back on the next refresh with no explanation.
   const act = async (fn: () => Promise<void>) => {
     setBusy(true)
-    try { await fn(); setDone(d => d + 1) } finally { setBusy(false) }
+    try {
+      await fn()
+      setDone(d => d + 1)
+    } catch (e) {
+      toast(`Could not save that: ${(e as Error)?.message || 'try again'}`, 'error')
+    } finally {
+      setBusy(false)
+    }
   }
 
   // Reject flow: tapping "Not for me" swaps the thumb zone for the reason bar,
