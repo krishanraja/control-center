@@ -69,22 +69,21 @@ export function SignalSheet({ signal, onClose }: {
           onClick: async () => {
             h.heavy()
             try {
+              // The route owns everything but the words: it inserts with
+              // service-role credentials (tasks has no anon INSERT) as
+              // active / pre-reviewed / marcus-attributed.
               const r = await fetch('/api/task', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   title: signal.recommended_action || signal.signal,
                   description: [signal.signal, signal.relevance, signal.source_url].filter(Boolean).join('\n\n'),
-                  owner: 'krish',
-                  agent: 'marcus',
-                  status: 'todo',
-                  priority: signal.urgency === 'high' ? 'high' : 'medium',
-                  workstream: 'intel',
+                  priority: signal.urgency === 'critical' || signal.urgency === 'high' ? 'high' : 'medium',
                 }),
               })
               if (!r.ok) throw new Error(`HTTP ${r.status}`)
               h.success()
-              toast('Task created.', 'success')
+              toast('Task created — it is live in OS → Queue.', 'success')
               onClose()
             } catch (e: any) {
               h.error()
@@ -98,19 +97,22 @@ export function SignalSheet({ signal, onClose }: {
           onClick: async () => {
             h.heavy()
             try {
-              const r = await fetch('/api/bets/', {
+              // /api/bets requires hypothesis + success_criterion; the old
+              // payload sent wins_if / measure_by_days and 400ed every time.
+              const r = await fetch('/api/bets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   hypothesis: signal.signal,
-                  wins_if: signal.recommended_action || 'Krish acts on this signal',
-                  kind: 'experiment',
-                  measure_by_days: 14,
+                  success_criterion: signal.recommended_action || 'Krish acts on this signal within the time box.',
+                  kind: 'other',
+                  time_box_days: 14,
+                  agent_owner: 'krish',
                 }),
               })
               if (!r.ok) throw new Error(`HTTP ${r.status}`)
               h.success()
-              toast('Added to bets.', 'success')
+              toast('Added to bets — the clock starts now.', 'success')
               onClose()
             } catch (e: any) {
               h.error()
