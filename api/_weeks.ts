@@ -26,3 +26,17 @@ export function purgeBoundary(d = new Date()): Date {
   next.setUTCHours(14, 0, 0, 0)
   return next
 }
+
+// The oldest week the Content tab still shows.
+//
+// MUST match QUEUE_WEEK_SPAN / earliestQueueWeek in src/lib/contentV2.ts. The
+// ageing rule in api/purge/run.ts is "sweep only what has already scrolled out
+// of view", so if these two drift apart the purge starts clearing cards that
+// are still on screen (or stops clearing ones that are not).
+export const QUEUE_WEEK_SPAN = 2
+
+export function queueWindowStart(span = QUEUE_WEEK_SPAN, now = new Date()): string {
+  const back = new Date(now)
+  back.setUTCDate(back.getUTCDate() - 7 * Math.max(0, span - 1))
+  return isoWeekLabel(back)
+}
