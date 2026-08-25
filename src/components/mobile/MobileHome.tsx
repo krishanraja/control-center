@@ -11,6 +11,7 @@ import { DueTestsCard } from '../pilot/DueTestsCard'
 import { Logomark } from './Logomark'
 import { useAltitudes } from '../../hooks/useAltitudes'
 import { useGoalCanon } from '../../hooks/useGoalCanon'
+import { useSpend, spendAlert } from '../../hooks/useSpend'
 import { HomeSkeleton } from '../shared/Skeleton'
 import { useFirstLoad } from '../shared/useDeferredPending'
 
@@ -30,6 +31,8 @@ export function MobileHome({ onNavigate }: {
 } = {}) {
   const alt = useAltitudes()
   const { canon, loading } = useGoalCanon()
+  const { spend } = useSpend()
+  const intelAlert = spendAlert(spend)
   const firstPaint = useFirstLoad(loading, Boolean(canon))
   const [intelOpen, setIntelOpen] = useState(false)
 
@@ -73,14 +76,16 @@ export function MobileHome({ onNavigate }: {
         {cta && cta.target !== 'weekly' && <CanonCta cta={cta} />}
       </div>
 
-      {/* The doors row: Focus and Intel as compact pills sharing the band the
-          + button floats in (right padding reserves the FAB's native footprint,
-          divided by the zoom). Doors, not vitals — no counts, ever. Living
-          inside the reclaimed band means the canon above keeps every row, so
-          the old under-840px hiding gate is gone: the doors are always there. */}
+      {/* The doors row: Focus and Intel side by side as compact pills sharing
+          the band the + button floats in (right padding reserves the FAB's
+          native footprint, divided by the zoom). Doors, not vitals — no
+          counts, ever; Intel's status dot is the one sanctioned exception.
+          Living inside the reclaimed band means the canon above keeps every
+          row, so the old under-840px hiding gate is gone: the doors are
+          always there. */}
       <div className="mt-auto flex shrink-0 items-center gap-2 pt-2 pr-[68px]">
         <FocusDoor onNavigate={onNavigate} variant="pill" />
-        <div className="ml-auto"><IntelDoor onOpen={() => setIntelOpen(true)} /></div>
+        <IntelDoor onOpen={() => setIntelOpen(true)} alert={intelAlert} />
       </div>
 
       <IntelDrawer open={intelOpen} onClose={() => setIntelOpen(false)} onNavigate={onNavigate} />

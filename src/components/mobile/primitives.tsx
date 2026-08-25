@@ -20,10 +20,13 @@ import { usePressable } from '../shared/usePressable'
 export const BOTTOM_NAV_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+152px)]'
 
 /**
- * h-[100dvh] column. Content area is a flex column with gap-5 so fill={true}
- * children actually grow (margin-based space-y-* defeats flex-1). Cards run
- * flush to the viewport edge — section labels and prose carry their own
- * horizontal padding when they need a gutter.
+ * Full-height column: h-full against the nearest definite-height ancestor
+ * (the zoom root directly, or a tab's own flex frame when a switcher row
+ * sits above the shell — claiming a fresh 100dvh here used to push every
+ * OS/People subtab ~60px past the clip box). Content area is a flex column
+ * with gap-5 so fill={true} children actually grow (margin-based space-y-*
+ * defeats flex-1). Cards run flush to the viewport edge — section labels and
+ * prose carry their own horizontal padding when they need a gutter.
  */
 export function MobileShell({
   header,
@@ -33,7 +36,7 @@ export function MobileShell({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col h-[calc(100dvh/var(--z,1))]">
+    <div className="flex flex-col h-full">
       {header && <div className="px-5 pt-7 pb-5 flex-shrink-0">{header}</div>}
       <div
         className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 scrollbar-hide ${BOTTOM_NAV_PAD}`}

@@ -72,7 +72,7 @@ export function PeopleTab({ narrow, params, onNavigate }: Props) {
       onChange={setLane}
       label="People lanes"
       variant={narrow ? 'segmented' : 'bordered'}
-      className={narrow ? 'mb-3' : 'mb-4'}
+      className={narrow ? 'mb-3 shrink-0' : 'mb-4'}
       testIdPrefix="people-lane"
     />
   )
@@ -85,32 +85,48 @@ export function PeopleTab({ narrow, params, onNavigate }: Props) {
     </DeferredFallback>
   )
 
+  const body = (
+    <Suspense fallback={fallback}>
+      {lane === 'pipeline' && (
+        <ErrorBoundary label="Pipeline">
+          {narrow
+            ? <MobileLeads leadId={params.lead || null} onClearDetail={clearDetail} onNavigate={onNavigate} />
+            : <DesktopLeads leadId={params.lead || null} onClearDetail={clearDetail} onNavigate={onNavigate} />}
+        </ErrorBoundary>
+      )}
+      {lane === 'network' && (
+        <ErrorBoundary label="Network">
+          {isUiV2()
+            ? <NetworkTab narrow={narrow} />
+            : narrow ? <MobileLeadsRE onNavigate={onNavigate} /> : <DesktopLeadsRE onNavigate={onNavigate} />}
+        </ErrorBoundary>
+      )}
+      {lane === 'visibility' && (
+        <ErrorBoundary label="Visibility">
+          {narrow
+            ? <MobileGuests guestId={params.guest || null} targetId={params.target || null} onClearDetail={clearDetail} onNavigate={onNavigate} />
+            : <DesktopGuests guestId={params.guest || null} targetId={params.target || null} onClearDetail={clearDetail} onNavigate={onNavigate} />}
+        </ErrorBoundary>
+      )}
+    </Suspense>
+  )
+
+  // Narrow: same column contract as OsTab — the lane switcher and the lane's
+  // MobileShell share one viewport-height column so the shell fits under the
+  // switcher instead of overflowing the zoom root's clip box.
+  if (narrow) {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        {switcher}
+        <div className="flex-1 min-h-0">{body}</div>
+      </div>
+    )
+  }
+
   return (
     <>
       {switcher}
-      <Suspense fallback={fallback}>
-        {lane === 'pipeline' && (
-          <ErrorBoundary label="Pipeline">
-            {narrow
-              ? <MobileLeads leadId={params.lead || null} onClearDetail={clearDetail} onNavigate={onNavigate} />
-              : <DesktopLeads leadId={params.lead || null} onClearDetail={clearDetail} onNavigate={onNavigate} />}
-          </ErrorBoundary>
-        )}
-        {lane === 'network' && (
-          <ErrorBoundary label="Network">
-            {isUiV2()
-              ? <NetworkTab narrow={narrow} />
-              : narrow ? <MobileLeadsRE onNavigate={onNavigate} /> : <DesktopLeadsRE onNavigate={onNavigate} />}
-          </ErrorBoundary>
-        )}
-        {lane === 'visibility' && (
-          <ErrorBoundary label="Visibility">
-            {narrow
-              ? <MobileGuests guestId={params.guest || null} targetId={params.target || null} onClearDetail={clearDetail} onNavigate={onNavigate} />
-              : <DesktopGuests guestId={params.guest || null} targetId={params.target || null} onClearDetail={clearDetail} onNavigate={onNavigate} />}
-          </ErrorBoundary>
-        )}
-      </Suspense>
+      {body}
     </>
   )
 }

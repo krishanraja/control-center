@@ -60,7 +60,7 @@ export function OsTab({ narrow, params, onNavigate }: Props) {
       onChange={setSub}
       label="OS sections"
       variant={narrow ? 'segmented' : 'bordered'}
-      className={narrow ? 'mb-3' : 'mb-4'}
+      className={narrow ? 'mb-3 shrink-0' : 'mb-4'}
       testIdPrefix="os-sub"
     />
   )
@@ -73,33 +73,51 @@ export function OsTab({ narrow, params, onNavigate }: Props) {
     </DeferredFallback>
   )
 
+  const body = (
+    <Suspense fallback={fallback}>
+      {sub === 'queue' && (
+        <ErrorBoundary label="Queue">
+          <QueueSubtab
+            narrow={narrow}
+            onNavigate={onNavigate}
+            deepTask={params.task || null}
+            deepDecision={params.decision || null}
+          />
+        </ErrorBoundary>
+      )}
+      {sub === 'org' && (
+        <ErrorBoundary label="Org">{narrow ? <MobileOrg /> : <DesktopOrg />}</ErrorBoundary>
+      )}
+      {sub === 'intel' && (
+        <ErrorBoundary label="Intel">{narrow ? <MobileIntel /> : <DesktopExec />}</ErrorBoundary>
+      )}
+      {sub === 'flows' && (
+        <ErrorBoundary label="Flows">{narrow ? <MobileFlows /> : <DesktopFlows />}</ErrorBoundary>
+      )}
+      {sub === 'systems' && (
+        <ErrorBoundary label="Systems">{narrow ? <MobileSystems /> : <SystemsPanel />}</ErrorBoundary>
+      )}
+    </Suspense>
+  )
+
+  // Narrow: the switcher and the subtab share one viewport-height column, so
+  // the subtab's MobileShell (h-full) gets the height that remains under the
+  // switcher instead of claiming a fresh full viewport and overflowing the
+  // zoom root's clip box. Desktop keeps the plain flow (its scroll container
+  // lives in App's shell).
+  if (narrow) {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        {switcher}
+        <div className="flex-1 min-h-0">{body}</div>
+      </div>
+    )
+  }
+
   return (
     <>
       {switcher}
-      <Suspense fallback={fallback}>
-        {sub === 'queue' && (
-          <ErrorBoundary label="Queue">
-            <QueueSubtab
-              narrow={narrow}
-              onNavigate={onNavigate}
-              deepTask={params.task || null}
-              deepDecision={params.decision || null}
-            />
-          </ErrorBoundary>
-        )}
-        {sub === 'org' && (
-          <ErrorBoundary label="Org">{narrow ? <MobileOrg /> : <DesktopOrg />}</ErrorBoundary>
-        )}
-        {sub === 'intel' && (
-          <ErrorBoundary label="Intel">{narrow ? <MobileIntel /> : <DesktopExec />}</ErrorBoundary>
-        )}
-        {sub === 'flows' && (
-          <ErrorBoundary label="Flows">{narrow ? <MobileFlows /> : <DesktopFlows />}</ErrorBoundary>
-        )}
-        {sub === 'systems' && (
-          <ErrorBoundary label="Systems">{narrow ? <MobileSystems /> : <SystemsPanel />}</ErrorBoundary>
-        )}
-      </Suspense>
+      {body}
     </>
   )
 }

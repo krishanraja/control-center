@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Send, Sparkles } from '@/lib/icons'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
@@ -37,7 +37,10 @@ export function AskMarcus() {
   const { toast } = useToast()
   const h = useHaptics()
 
-  useEffect(() => { inputRef.current?.focus() }, [])
+  // No autofocus on mount: this card mounts with the Intel tab, and stealing
+  // focus there pops the phone keyboard into the fixed no-scroll shell — the
+  // tab appears to load zoomed in. Focus arrives only from a user's own ask
+  // (the refocus in ask()'s finally) or their tap on the box.
 
   const ask = async (text: string) => {
     const q = text.trim()

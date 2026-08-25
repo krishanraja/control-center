@@ -10,6 +10,7 @@ import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DueTestsCard } from '../pilot/DueTestsCard'
 import { useAltitudes } from '../../hooks/useAltitudes'
 import { useGoalCanon } from '../../hooks/useGoalCanon'
+import { useSpend, spendAlert } from '../../hooks/useSpend'
 import { HomeSkeleton } from '../shared/Skeleton'
 import { useFirstLoad } from '../shared/useDeferredPending'
 
@@ -30,6 +31,8 @@ export function DesktopHome({ onNavigate }: {
 } = {}) {
   const alt = useAltitudes()
   const { canon, loading } = useGoalCanon()
+  const { spend } = useSpend()
+  const intelAlert = spendAlert(spend)
 
   const [intelOpen, setIntelOpen] = useState(false)
 
@@ -44,14 +47,7 @@ export function DesktopHome({ onNavigate }: {
     <div className="h-full min-h-0 flex flex-col gap-6 [@media(max-height:820px)]:gap-3.5 max-w-[880px] mx-auto w-full">
       <div className="shrink-0 flex flex-col gap-3">
         <CriticalAlertBanner />
-        {/* Intel sits beside the vitals: information belongs with information,
-            and the bottom-right corner is owned by the fixed ⌘I capture pill,
-            which would float over (and swallow clicks meant for) anything
-            placed down there. */}
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1"><VitalsLine onNavigate={onNavigate} /></div>
-          <IntelDoor onOpen={() => setIntelOpen(true)} />
-        </div>
+        <VitalsLine onNavigate={onNavigate} />
         <DueTestsCard variant="desktop" />
       </div>
 
@@ -62,9 +58,14 @@ export function DesktopHome({ onNavigate }: {
         {cta && cta.target !== 'weekly' && <CanonCta cta={cta} />}
       </div>
 
-      {/* The door into Focus: a quiet row at the bottom. Never a number. */}
-      <div className="shrink-0 mt-auto">
-        <FocusDoor onNavigate={onNavigate} />
+      {/* The doors row: Intel's pill sits beside Focus's quiet row. Never a
+          number on either (Intel's status dot is the one sanctioned
+          exception). Intel takes the left slot because the bottom-right
+          corner is owned by the fixed ⌘I capture pill, which floats over —
+          and would swallow clicks meant for — a small target placed there. */}
+      <div className="shrink-0 mt-auto flex items-center gap-3">
+        <IntelDoor onOpen={() => setIntelOpen(true)} alert={intelAlert} />
+        <div className="min-w-0 flex-1"><FocusDoor onNavigate={onNavigate} /></div>
       </div>
 
       <IntelDrawer open={intelOpen} onClose={() => setIntelOpen(false)} onNavigate={onNavigate} />
