@@ -18,6 +18,18 @@ export const URGENCY_DOT: Record<SignalUrgency, string> = {
   low:      'bg-violet-400',
 }
 
+const URGENCY_RANK: Record<SignalUrgency, number> = { critical: 3, high: 2, medium: 1, low: 0 }
+
+/** Most urgent first, sooner deadlines breaking ties — the one signal order,
+ *  shared by the Home signal cards and the market-signals drawer. */
+export function rankSignals(signals: ExternalSignal[]): ExternalSignal[] {
+  return [...signals].sort((a, b) => {
+    const u = (URGENCY_RANK[b.urgency || 'low'] ?? 0) - (URGENCY_RANK[a.urgency || 'low'] ?? 0)
+    if (u !== 0) return u
+    return (a.days_until ?? 99) - (b.days_until ?? 99)
+  })
+}
+
 export const URGENCY_ACCENT: Record<SignalUrgency, 'red' | 'amber' | 'violet'> = {
   critical: 'red',
   high:     'red',

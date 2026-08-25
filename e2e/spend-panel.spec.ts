@@ -159,21 +159,19 @@ test.describe('the spend and connections tracker', () => {
     await ctx.close()
   })
 
-  test('the home drawer carries the money line and it lands on Intel', async ({ browser }) => {
+  test('the door dot fires and the door lands on the console with the month', async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
     const page = await ctx.newPage()
     await mock(page)
     await page.goto('/#/home')
 
-    // The door dot: rose because a critical connection is broken.
+    // The door dot: rose because a critical connection is broken. The door
+    // is the internal path — one tap from the alert to the console.
     await expect(page.getByTestId('intel-door-dot')).toBeVisible()
 
     await page.getByTestId('intel-door').click()
-    const line = page.getByTestId('drawer-spend-line')
-    await expect(line).toContainText('$1,284')
-    await expect(line).toContainText('1 API broken')
-    await line.click()
     await expect(page).toHaveURL(/os\?sub=intel/)
+    await expect(page.getByTestId('spend-month-total')).toHaveText('$1,284')
     await ctx.close()
   })
 

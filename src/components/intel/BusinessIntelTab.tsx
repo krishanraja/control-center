@@ -1,40 +1,36 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { MobileShell, TabHeader, HeaderSubtitleSkeleton, MobileLoadingScreen } from '../mobile/primitives'
 import { AskMarcus } from '../AskMarcus'
 import { KpiBand } from './KpiBand'
-import { NextSignalHero } from './NextSignalHero'
 import { MarcusReadCard } from './MarcusReadCard'
-import { SignalsSection } from './SignalsSection'
 import { SpendConnectionsPanel } from './SpendConnectionsPanel'
 import { FleetFunnelPanel } from './FleetFunnelPanel'
-import { SignalSheet } from './SignalSheet'
-import { useHomeIntelligence, type ExternalSignal } from '../../hooks/useHomeIntelligence'
-import { useHaptics } from '../../hooks/useHaptics'
+import { useHomeIntelligence } from '../../hooks/useHomeIntelligence'
 import { humanAge } from '../../lib/ageHelpers'
 
 /**
- * Business Intelligence — ONE console tree for both shells.
+ * Business Intelligence — the INTERNAL head space, one console tree for both
+ * shells: how the operator's own system is doing. Five deterministic numbers
+ * up top (money out, money in, APIs, funnel, bets), each drilling into its
+ * sheet; Marcus's read on the business; the spend and fleet detail; Ask
+ * Marcus docked last as the conversation.
  *
- * The tab used to be two different products: MobileIntel and DesktopExec
- * shared 4 of ~12 blocks, ran two "do this next" algorithms over two
- * different tables, and desktop rendered the same Marcus content twice.
- * This is the replacement: a stat-first console — five deterministic numbers
- * up top, each drilling into its sheet; the hero, Marcus's read, and the
- * signal feed as supporting sections; Ask Marcus docked last as the
- * conversation. Shells differ only in wrapper grammar (MobileShell +
- * TabHeader vs the canonical desktop h1 stack) — section order, hooks and
- * sheet state exist exactly once.
+ * External market intelligence deliberately does NOT render here — different
+ * head space (Krish's call at the mock gate, 2026-08-25). What the outside
+ * world is doing lives condensed off Home: the conditional SignalCards row
+ * and the signals drawer behind it.
+ *
+ * This replaced the old fork where MobileIntel and DesktopExec were two
+ * different products sharing 4 of ~12 blocks; shells now differ only in
+ * wrapper grammar (MobileShell + TabHeader vs the canonical desktop h1
+ * stack) — section order, hooks and sheet state exist exactly once.
  */
 export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
-  const h = useHaptics()
   const { intel, loading } = useHomeIntelligence()
-  const [openSignal, setOpenSignal] = useState<ExternalSignal | null>(null)
-
-  const openSig = (s: ExternalSignal) => { h.select(); setOpenSignal(s) }
 
   const headline = intel.summary?.headline || null
   const age = humanAge(intel.generated_at)
-  const fallbackSub = 'The scoreboard, Marcus’s read, market signals and your bets.'
+  const fallbackSub = 'The scoreboard, Marcus’s read, your money and your bets.'
   const subtitleText = headline
     || (intel.generated_at ? (age === 'just now' ? 'Updated just now' : `Updated ${age} ago`) : fallbackSub)
 
@@ -45,11 +41,7 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
   const body = (
     <>
       <KpiBand narrow={narrow} />
-      <div className="shrink-0">
-        <NextSignalHero signals={intel.external_signals} onOpen={openSig} narrow={narrow} />
-      </div>
       <MarcusReadCard />
-      <SignalsSection onOpen={openSig} />
       <SpendConnectionsPanel />
       <FleetFunnelPanel />
       {/* The conversation, docked last — renders in every state, including
@@ -57,7 +49,6 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
       <div className="shrink-0">
         <AskMarcus />
       </div>
-      <SignalSheet signal={openSignal} onClose={() => setOpenSignal(null)} />
     </>
   )
 

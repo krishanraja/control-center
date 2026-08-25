@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { GoalLadder } from '../goals/GoalLadder'
 import { TodayList } from '../home/TodayList'
 import { VitalsLine } from '../home/VitalsLine'
 import { CanonCta } from '../home/CanonCta'
 import { FocusDoor } from '../home/FocusDoor'
 import { IntelDoor } from '../home/IntelDoor'
-import { IntelDrawer } from '../home/IntelDrawer'
+import { SignalCards } from '../home/SignalCards'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DueTestsCard } from '../pilot/DueTestsCard'
 import { useAltitudes } from '../../hooks/useAltitudes'
@@ -34,8 +34,6 @@ export function DesktopHome({ onNavigate }: {
   const { spend } = useSpend()
   const intelAlert = spendAlert(spend)
 
-  const [intelOpen, setIntelOpen] = useState(false)
-
   // One placeholder in the page's real proportions, so a cold load settles
   // once instead of assembling itself in public.
   const firstPaint = useFirstLoad(loading, Boolean(canon))
@@ -49,6 +47,9 @@ export function DesktopHome({ onNavigate }: {
         <CriticalAlertBanner />
         <VitalsLine onNavigate={onNavigate} />
         <DueTestsCard variant="desktop" />
+        {/* External market intelligence, only when something fresh is hot —
+            the same conditional-presence contract as the banner above. */}
+        <SignalCards />
       </div>
 
       <div className="shrink-0 flex flex-col gap-6 [@media(max-height:820px)]:gap-3.5 pt-1">
@@ -64,11 +65,9 @@ export function DesktopHome({ onNavigate }: {
           corner is owned by the fixed ⌘I capture pill, which floats over —
           and would swallow clicks meant for — a small target placed there. */}
       <div className="shrink-0 mt-auto flex items-center gap-3">
-        <IntelDoor onOpen={() => setIntelOpen(true)} alert={intelAlert} />
+        <IntelDoor onOpen={() => onNavigate?.('os', { sub: 'intel' })} alert={intelAlert} />
         <div className="min-w-0 flex-1"><FocusDoor onNavigate={onNavigate} /></div>
       </div>
-
-      <IntelDrawer open={intelOpen} onClose={() => setIntelOpen(false)} onNavigate={onNavigate} />
     </div>
   )
 }

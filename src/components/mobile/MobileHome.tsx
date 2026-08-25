@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { GoalLadder } from '../goals/GoalLadder'
 import { TodayList } from '../home/TodayList'
 import { VitalsLine } from '../home/VitalsLine'
 import { CanonCta } from '../home/CanonCta'
 import { FocusDoor } from '../home/FocusDoor'
 import { IntelDoor } from '../home/IntelDoor'
-import { IntelDrawer } from '../home/IntelDrawer'
+import { SignalCards } from '../home/SignalCards'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DueTestsCard } from '../pilot/DueTestsCard'
 import { Logomark } from './Logomark'
@@ -34,7 +34,6 @@ export function MobileHome({ onNavigate }: {
   const { spend } = useSpend()
   const intelAlert = spendAlert(spend)
   const firstPaint = useFirstLoad(loading, Boolean(canon))
-  const [intelOpen, setIntelOpen] = useState(false)
 
   // Bottom padding clears the nav only; the band the + button floats in
   // (56px tall, at safe+92 native) now belongs to the doors row below, so
@@ -63,6 +62,9 @@ export function MobileHome({ onNavigate }: {
       <div className="shrink-0 flex flex-col gap-2.5">
         <CriticalAlertBanner />
         <DueTestsCard variant="mobile" />
+        {/* External market intelligence, only when something fresh is hot —
+            the same conditional-presence contract as the banner above. */}
+        <SignalCards />
       </div>
 
       {/* overflow-hidden so an over-tall day (a firing critical alert on a
@@ -85,10 +87,8 @@ export function MobileHome({ onNavigate }: {
           always there. */}
       <div className="mt-auto flex shrink-0 items-center gap-2 pt-2 pr-[68px]">
         <FocusDoor onNavigate={onNavigate} variant="pill" />
-        <IntelDoor onOpen={() => setIntelOpen(true)} alert={intelAlert} />
+        <IntelDoor onOpen={() => onNavigate?.('os', { sub: 'intel' })} alert={intelAlert} />
       </div>
-
-      <IntelDrawer open={intelOpen} onClose={() => setIntelOpen(false)} onNavigate={onNavigate} />
     </div>
   )
 }
