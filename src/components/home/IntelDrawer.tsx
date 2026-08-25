@@ -156,7 +156,7 @@ function SpendLine({ onGo }: { onGo: () => void }) {
       />
       <span className="min-w-0 flex-1 truncate text-ui text-white/85">
         <span className="font-mono tabular-nums">${Math.round(spend.month_usd).toLocaleString('en-US')}</span>
-        <span className="text-white/45"> out this month · {state}</span>
+        <span className="text-white/45"> this month · {state}</span>
       </span>
       <ChevronRight size={14} className="shrink-0 text-white/30 transition-colors group-hover:text-white/60" aria-hidden />
     </button>

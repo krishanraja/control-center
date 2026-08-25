@@ -35,7 +35,7 @@ export function SpendConnectionsPanel() {
 
   if (firstPaint) {
     return (
-      <section className="relative rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
+      <section className="relative shrink-0 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
         <div className="flex flex-col gap-3">
           <Skeleton h={14} w="40%" />
           <Skeleton h={28} w="60%" />
@@ -60,7 +60,10 @@ export function SpendConnectionsPanel() {
   const needsHand = attention(spend)
 
   return (
-    <section data-testid="spend-panel" className="relative rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
+    // shrink-0: MobileShell's content area is a flex column that compresses
+    // shrinkable children when the tab overflows — without it this card
+    // collapses to a sliver on the phone (every sibling card carries it too).
+    <section data-testid="spend-panel" className="relative shrink-0 rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
       <RefreshRail active={checking} />
       <div className="flex flex-col gap-3.5 p-4">
         <header className="flex items-center gap-2">
@@ -80,15 +83,15 @@ export function SpendConnectionsPanel() {
                 and the six-month shape of it. */}
             <div className="flex items-end gap-3">
               <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-2">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <span data-testid="spend-month-total" className="font-mono tabular-nums text-title font-semibold text-white">
                     {usd(spend.month_usd)}
                   </span>
-                  <span className="text-label text-white/45">out this month</span>
+                  <span className="whitespace-nowrap text-label text-white/45">out this month</span>
                   {spend.ballooning ? (
-                    <Badge variant="danger" data-testid="spend-balloon">Ballooning</Badge>
+                    <Badge variant="danger" className="whitespace-nowrap" data-testid="spend-balloon">Ballooning</Badge>
                   ) : spend.delta_pct != null && spend.delta_pct >= 20 ? (
-                    <Badge variant="warning">up {spend.delta_pct}%</Badge>
+                    <Badge variant="warning" className="whitespace-nowrap">up {spend.delta_pct}%</Badge>
                   ) : null}
                 </div>
                 {spend.avg_3mo_usd > 0 && (

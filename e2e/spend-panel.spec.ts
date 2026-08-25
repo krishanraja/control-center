@@ -102,6 +102,10 @@ test.describe('the spend and connections tracker', () => {
 
     const panel = page.getByTestId('spend-panel')
     await expect(panel).toBeVisible()
+    // toBeVisible passes for a collapsed 4px box, which is exactly what a
+    // missing shrink-0 produced inside MobileShell's flex column — pin real
+    // height so a compressed card can never read as rendered.
+    expect((await panel.boundingBox())!.height).toBeGreaterThan(120)
     await expect(page.getByTestId('spend-month-total')).toHaveText('$1,284')
     await expect(panel.getByText('1 broken')).toBeVisible()
     await expect(panel.getByText('1 low')).toBeVisible()
