@@ -139,7 +139,10 @@ export interface ContentDecisionRow {
   kind: DecisionKind
   ref: string
   payload: Record<string, unknown>
-  status: 'pending' | 'done' | 'dismissed'
+  /** 'dismissed' is a ruling Krish made; 'archived' is a card that aged out
+   *  unseen. Keeping them apart is what lets a later comparison ask about his
+   *  taste without counting the engine's unreviewed output as rejections. */
+  status: 'pending' | 'done' | 'dismissed' | 'archived'
   resolution: Record<string, unknown> | null
   created_at: string
 }

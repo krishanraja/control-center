@@ -75,6 +75,12 @@ if (QUEUE_WEEK_SPAN !== API_SPAN) {
   if (!/\.neq\(\s*['"]kind['"]\s*,\s*['"]purge_preview['"]\s*\)/.test(purge)) {
     bad('api/purge/run.ts no longer sweeps decision kinds beyond purge_preview — brief_review cards go immortal again')
   }
+  // An aged-out card must not land in the same bucket as one Krish ruled on:
+  // 'dismissed' is a judgement, 'archived' is a timeout, and a comparison that
+  // conflates them counts the engine's unreviewed output as his rejections.
+  if (!/status:\s*['"]archived['"]/.test(purge)) {
+    bad("api/purge/run.ts no longer sweeps to 'archived' — timed-out cards would read as Krish's rejections")
+  }
 }
 
 console.log(fail === 0

@@ -16,7 +16,7 @@ import { isoWeekLabel, queueWindowStart } from '../_weeks.js'
 // Also ages out the weekly surfaces so the Content tab stays a week's worth of
 // work rather than a growing pile: every brief past its week is archived
 // (whatever state it reached), and every decision card past its week is swept
-// to 'dismissed'. Both used to be filtered so narrowly that they never fired -
+// to 'archived'. Both used to be filtered so narrowly that they never fired -
 // see the notes at each. Purge stats go to audit_log so it is observable.
 //
 //   GET (CRON_SECRET) — Mon 14:00 UTC   ·   POST — manual
@@ -100,15 +100,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // and is swept on the Monday after it stops being visible. Nothing is ever
     // cleared out from under Krish while it is still on screen.
     //
-    // 'dismissed', not 'done': nothing was judged, so nothing should teach. The
-    // resolution names the sweep, so a row that timed out is distinguishable
-    // from one Krish actually skipped.
+    // 'archived', not 'dismissed': nothing was judged here, so nothing should
+    // teach, and nothing should later read as a rejection. 'dismissed' means
+    // Krish ruled on it; this means the week passed and he never saw it. The
+    // rows keep their full payload and their ref, so the archive stays useful
+    // for comparing what the engine produced against what he chose.
     //
     // purge_preview keeps the tighter `< week` boundary below: a card that says
     // "expiring Monday" is misinformation the moment that Monday has passed.
     const { data: sweptRows } = await supabase.from('content_decisions')
       .update({
-        status: 'dismissed',
+        status: 'archived',
         resolved_at: nowIso,
         resolution: { action: 'expired_unreviewed', at: nowIso, swept_by: 'purge/run' },
       })
