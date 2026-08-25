@@ -38,7 +38,6 @@ const DesktopLeads = lazy(() => import('./components/desktop/DesktopLeads').then
 const NetworkTabV2 = lazy(() => import('./components/network/NetworkTab').then(m => ({ default: m.NetworkTab })))
 const DesktopLeadsRE = lazy(() => import('./components/desktop/DesktopLeadsRE').then(m => ({ default: m.DesktopLeadsRE })))
 const DesktopOrg = lazy(() => import('./components/desktop/DesktopOrg').then(m => ({ default: m.DesktopOrg })))
-const DesktopExec = lazy(() => import('./components/desktop/DesktopExec').then(m => ({ default: m.DesktopExec })))
 const DesktopFlows = lazy(() => import('./components/desktop/DesktopFlows').then(m => ({ default: m.DesktopFlows })))
 const DesktopCustomers = lazy(() => import('./components/desktop/DesktopCustomers').then(m => ({ default: m.DesktopCustomers })))
 const DesktopGuests = lazy(() => import('./components/desktop/DesktopGuests').then(m => ({ default: m.DesktopGuests })))
@@ -48,7 +47,6 @@ const MobileHome = lazy(() => import('./components/mobile/MobileHome').then(m =>
 const MobileToday = lazy(() => import('./components/mobile/MobileToday').then(m => ({ default: m.MobileToday })))
 const MobileLeads = lazy(() => import('./components/mobile/MobileLeads').then(m => ({ default: m.MobileLeads })))
 const MobileLeadsRE = lazy(() => import('./components/mobile/MobileLeadsRE').then(m => ({ default: m.MobileLeadsRE })))
-const MobileIntel = lazy(() => import('./components/mobile/MobileIntel').then(m => ({ default: m.MobileIntel })))
 const MobileOrg = lazy(() => import('./components/mobile/MobileOrg').then(m => ({ default: m.MobileOrg })))
 const MobileFlows = lazy(() => import('./components/mobile/MobileFlows').then(m => ({ default: m.MobileFlows })))
 const MobileSystems = lazy(() => import('./components/mobile/MobileSystems').then(m => ({ default: m.MobileSystems })))
@@ -256,7 +254,6 @@ export default function App() {
                     // never hidden behind the fixed nav bar.
                     ? <ErrorBoundary label="Content"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><ContentV2Tab variant="mobile" /></div></ErrorBoundary>
                     : <ErrorBoundary label="Content"><MobileContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>)}
-                  {tab === 'exec'      && <ErrorBoundary label="Intel"><MobileIntel /></ErrorBoundary>}
                   {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrg /></ErrorBoundary>}
                   {tab === 'workflows' && <ErrorBoundary label="Flows"><MobileFlows /></ErrorBoundary>}
                   {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
@@ -312,7 +309,6 @@ export default function App() {
                   {tab === 'customers' && <ErrorBoundary label="Customers"><DesktopCustomers /></ErrorBoundary>}
                   {tab === 'guests'    && <ErrorBoundary label="Visibility"><DesktopGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}
-                  {tab === 'exec'      && <ErrorBoundary label="Intel"><DesktopExec /></ErrorBoundary>}
                   {tab === 'workflows' && <ErrorBoundary label="Flows"><DesktopFlows /></ErrorBoundary>}
                   {tab === 'systems'   && <ErrorBoundary label="Systems"><SystemsPanel /></ErrorBoundary>}
                   {tab === 'people'    && <PeopleTab narrow={false} params={params} onNavigate={navigate} />}

@@ -3,18 +3,19 @@ import { Zap, Eye, CheckCircle2 } from '@/lib/icons'
 import { DoThisNextHero, type HeroDescriptor } from '../shared/DoThisNextHero'
 import type { ExternalSignal, SignalUrgency } from '../../hooks/useHomeIntelligence'
 
-// Intel's mobile "Do this next" — mobile reads from `home_intelligence.
-// external_signals` (Marcus's curated digest), which carries urgency/days_until
-// rather than a numeric score. Hero leads with the most urgent unactioned
-// signal and opens it — the signal sheet already turns it into a task or a
-// bet, so opening IS the act-on-it path.
+// Business Intelligence's "Do this next" — ONE algorithm for both shells.
 //
-// The signal type is the canonical one on useHomeIntelligence; re-exported
-// here so existing importers keep working.
+// The tab used to run two: mobile ranked `home_intelligence.external_signals`
+// by urgency and opened the top one; desktop ranked `zara_signals` by score
+// and promoted straight to a bet. Same tab, two different "most important
+// thing" answers depending on window width. This keeps the mobile behavior
+// (Marcus's curated digest carries urgency + deadlines, and the signal sheet
+// already offers both acts — task or bet — so opening IS the act-on-it path)
+// and retires the desktop fork.
 
 export type { ExternalSignal }
 
-type IntelKind = 'open_critical' | 'open' | 'tracked' | 'clear'
+type IntelKind = 'open_critical' | 'open' | 'clear'
 
 interface NextIntel {
   kind: IntelKind
@@ -38,7 +39,7 @@ export function rankSignals(signals: ExternalSignal[]): ExternalSignal[] {
   })
 }
 
-export function computeNextMobileIntel(signals: ExternalSignal[]): NextIntel {
+export function computeNextSignal(signals: ExternalSignal[]): NextIntel {
   const sorted = rankSignals(signals)
   const top = sorted[0]
   if (top && (top.urgency === 'critical' || top.urgency === 'high')) {
@@ -85,8 +86,8 @@ interface Props {
   narrow?: boolean
 }
 
-export function NextIntelMobileHero({ signals, onOpen, narrow }: Props) {
-  const next = useMemo(() => computeNextMobileIntel(signals), [signals])
+export function NextSignalHero({ signals, onOpen, narrow }: Props) {
+  const next = useMemo(() => computeNextSignal(signals), [signals])
   return (
     <DoThisNextHero
       descriptor={next.descriptor}

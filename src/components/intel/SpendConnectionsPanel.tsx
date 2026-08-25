@@ -6,7 +6,6 @@ import { Sparkline } from '../shared/Sparkline'
 import { StatusPill } from '../shared/StatusPill'
 import { LastUpdated } from '../shared/LastUpdated'
 import { RefreshRail } from '../shared/RefreshRail'
-import { Badge } from '../ui/badge'
 import { useFirstLoad } from '../shared/useDeferredPending'
 import { useSpend, type SpendSummary, type SpendServiceRow } from '../../hooks/useSpend'
 import { useHaptics } from '../../hooks/useHaptics'
@@ -79,28 +78,20 @@ export function SpendConnectionsPanel() {
           </p>
         ) : (
           <>
-            {/* The month, in one line: total out, what a normal month costs,
-                and the six-month shape of it. */}
+            {/* The month's shape. The figure itself lives once, on the KPI
+                band's Money-out tile — this card's job is the trend and
+                whatever needs a hand. */}
             <div className="flex items-end gap-3">
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <span data-testid="spend-month-total" className="font-mono tabular-nums text-title font-semibold text-white">
-                    {usd(spend.month_usd)}
-                  </span>
-                  <span className="whitespace-nowrap text-label text-white/45">out this month</span>
-                  {spend.ballooning ? (
-                    <Badge variant="danger" className="whitespace-nowrap" data-testid="spend-balloon">Ballooning</Badge>
-                  ) : spend.delta_pct != null && spend.delta_pct >= 20 ? (
-                    <Badge variant="warning" className="whitespace-nowrap">up {spend.delta_pct}%</Badge>
-                  ) : null}
-                </div>
-                {spend.avg_3mo_usd > 0 && (
-                  <p className="mt-0.5 text-label text-white/40">
+                {spend.avg_3mo_usd > 0 ? (
+                  <p className="text-label text-white/40">
                     A normal month is about <span className="font-mono tabular-nums">{usd(spend.avg_3mo_usd)}</span>
                     {spend.meter ? (
                       <> · on the meter so far: <span className="font-mono tabular-nums">${spend.meter.usd_mtd.toFixed(0)}</span></>
                     ) : null}
                   </p>
+                ) : (
+                  <p className="text-label text-white/40">The six-month shape of the spend.</p>
                 )}
               </div>
               <Sparkline

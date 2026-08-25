@@ -67,6 +67,20 @@ export interface WeeklyRetro {
 export type SignalUrgency = 'critical' | 'high' | 'medium' | 'low'
 
 /**
+ * One row of Marcus's own scoreboard (`home_intelligence.metrics`). These are
+ * Marcus-authored numbers with targets, not system-of-record reads — they
+ * render inside his card, never in the deterministic KPI band. Stored as a
+ * stringified array in production, hence the parseJson on read.
+ */
+export interface MarcusMetric {
+  id: string
+  label: string
+  value: string
+  target?: string
+  progress_pct?: number
+}
+
+/**
  * One curated signal from Marcus's digest. The canonical shape — the Intel
  * tab, the Home intel drawer and the signal sheet all read THIS type; the
  * extended fields (urgency, days_until, source_url, event_id) have been in
@@ -91,6 +105,8 @@ export interface HomeIntelligence {
   weekly_retro_at: string | null
   weekly_retro_ack_at: string | null
   external_signals: ExternalSignal[]
+  metrics: MarcusMetric[]
+  assessment: string | null
   top_three: TopThreeCard[]
   top_three_alternates: TopThreeCard[]
   top_three_reasoning: string | null
@@ -108,6 +124,8 @@ const EMPTY: HomeIntelligence = {
   weekly_retro_at: null,
   weekly_retro_ack_at: null,
   external_signals: [],
+  metrics: [],
+  assessment: null,
   top_three: [],
   top_three_alternates: [],
   top_three_reasoning: null,
@@ -158,6 +176,7 @@ async function fetchOne(): Promise<void> {
         daily_brief, daily_brief_at,
         weekly_retro, weekly_retro_at, weekly_retro_ack_at,
         external_signals,
+        metrics, assessment,
         top_three, top_three_alternates, top_three_reasoning, top_three_at,
         momentum, momentum_at,
         generated_at
@@ -174,6 +193,18 @@ async function fetchOne(): Promise<void> {
       const external: ExternalSignal[] = Array.isArray(externalRaw)
         ? externalRaw
         : parseJson<ExternalSignal[]>(externalRaw, [])
+      // metrics is stored as a stringified array in production — parseJson
+      // handles both, and the shape filter drops anything half-formed.
+      const metricsRaw = parseJson<any>((data as any).metrics, [])
+      const metrics: MarcusMetric[] = (Array.isArray(metricsRaw) ? metricsRaw : [])
+        .filter((m: any) => m && typeof m.id === 'string' && typeof m.label === 'string' && m.value != null)
+        .map((m: any): MarcusMetric => ({
+          id: m.id,
+          label: m.label,
+          value: String(m.value),
+          target: m.target != null ? String(m.target) : undefined,
+          progress_pct: Number.isFinite(Number(m.progress_pct)) ? Number(m.progress_pct) : undefined,
+        }))
       cache = {
         summary: parseJson<HomeSummary | null>((data as any).summary, null),
         daily_brief: parseJson<DailyBrief | null>((data as any).daily_brief, null),
@@ -182,6 +213,8 @@ async function fetchOne(): Promise<void> {
         weekly_retro_at: (data as any).weekly_retro_at ?? null,
         weekly_retro_ack_at: (data as any).weekly_retro_ack_at ?? null,
         external_signals: Array.isArray(external) ? external : [],
+        metrics,
+        assessment: typeof (data as any).assessment === 'string' ? (data as any).assessment : null,
         top_three: parseTopThree((data as any).top_three),
         top_three_alternates: parseTopThree((data as any).top_three_alternates),
         top_three_reasoning: typeof (data as any).top_three_reasoning === 'string'

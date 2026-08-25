@@ -6,9 +6,9 @@ import type { ExternalSignal, SignalUrgency } from '../../hooks/useHomeIntellige
 
 /**
  * One signal, opened: why it matters, the recommended move, and the two ways
- * to act on it (a task, or a bet). Extracted from MobileIntel so the Intel
- * tab and the Home intel drawer open the exact same sheet — one signal
- * presentation, one pair of actions, everywhere.
+ * to act on it (a task, or a bet). The Business Intelligence tab and the
+ * Home intel drawer open this exact same sheet — one signal presentation,
+ * one pair of actions, everywhere.
  */
 
 export const URGENCY_DOT: Record<SignalUrgency, string> = {

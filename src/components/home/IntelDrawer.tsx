@@ -3,7 +3,7 @@ import { ChevronRight } from '@/lib/icons'
 import { SlideOver } from '../shared/SlideOver'
 import { Eyebrow } from '../shared/Eyebrow'
 import { Skeleton } from '../shared/Skeleton'
-import { rankSignals } from '../intel/NextIntelMobileHero'
+import { rankSignals } from '../intel/NextSignalHero'
 import { SignalSheet, URGENCY_DOT, urgencyChip } from '../intel/SignalSheet'
 import { useHomeIntelligence, type ExternalSignal } from '../../hooks/useHomeIntelligence'
 import { useSpend } from '../../hooks/useSpend'
@@ -113,7 +113,7 @@ export function IntelDrawer({ open, onClose, onNavigate }: {
             >
               <span className="min-w-0 flex-1">
                 <span className="block text-ui font-medium text-white/85">Open Intel</span>
-                <span className="mt-0.5 block text-label text-white/45">Ask Marcus, the KPIs, bets and the full feed.</span>
+                <span className="mt-0.5 block text-label text-white/45">The scoreboard, Marcus's read, market signals and your bets.</span>
               </span>
               <ChevronRight size={15} className="shrink-0 text-white/30 transition-colors group-hover:text-white/60" aria-hidden />
             </button>

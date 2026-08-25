@@ -182,31 +182,91 @@ export function HeroCard({
   )
 }
 
-/** 3-up stat row — display numerals, 100dp min. */
+/** Semantic value tones for StatPill — meaning, not decoration. `color` (the
+ *  legacy explicit class) wins when both are given, so existing call sites
+ *  render pixel-identically. */
+const STAT_TONE: Record<'default' | 'good' | 'warn' | 'bad', string> = {
+  default: 'text-white',
+  good: 'text-emerald-300',
+  warn: 'text-amber-300',
+  bad: 'text-rose-300',
+}
+
+/**
+ * 3-up stat row — display numerals, 100dp min.
+ *
+ * Extended in place (ADR-013) for the Business Intelligence KPI band: a pill
+ * can now be a real button that drills into its detail sheet (`onClick`),
+ * carry a semantic `tone`, show value-shaped skeleton bars while its number
+ * is on the way (`loading`), and step down one size for a five-across band
+ * on a phone (`compact`). Every prior call site passes none of these and
+ * renders exactly as before.
+ */
 export function StatPill({
   label,
   value,
-  color = 'text-white',
+  color,
   sub,
+  tone = 'default',
+  onClick,
+  loading = false,
+  compact = false,
+  testId,
+  valueTestId,
 }: {
   label: string
   value: string | number
   color?: string
   sub?: string
+  tone?: 'default' | 'good' | 'warn' | 'bad'
+  /** Makes the pill a real button (haptic tap + press affordance). */
+  onClick?: () => void
+  /** Value-shaped skeleton in the same footprint — no reflow on arrival. */
+  loading?: boolean
+  /** Tighter padding + one type step down, for 3-across on a 360px phone. */
+  compact?: boolean
+  testId?: string
+  valueTestId?: string
 }) {
+  const valueColor = color || STAT_TONE[tone]
+  const Wrapper: any = onClick ? 'button' : 'div'
+  const { bind } = usePressable({ onPress: onClick, haptic: 'tap', disabled: !onClick })
   return (
-    <div
-      className="surface flex-1 min-w-0 rounded-2xl px-3 py-5 text-center flex-shrink-0"
-      style={{ minHeight: 100 }}
+    <Wrapper
+      {...(onClick ? { type: 'button', onClick: bind.onClick, onPointerDown: bind.onPointerDown } : {})}
+      data-testid={testId}
+      className={`surface flex-1 min-w-0 rounded-2xl ${compact ? 'px-2 py-3.5' : 'px-3 py-5'} text-center flex-shrink-0 ${
+        onClick
+          ? 'active:scale-[0.98] transition-transform duration-200 ease-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50'
+          : ''
+      }`}
+      style={{ minHeight: compact ? 84 : 100 }}
     >
-      <p className={`text-display font-bold leading-none font-mono tabular-nums tracking-tight ${color}`}>
-        {value}
-      </p>
-      <p className="text-micro font-display font-semibold uppercase tracking-[0.14em] text-white/55 mt-2.5 truncate">
-        {label}
-      </p>
-      {sub && <p className="text-micro text-white/35 mt-1 truncate">{sub}</p>}
-    </div>
+      {loading ? (
+        <div
+          className="flex flex-col items-center gap-2.5 pt-1"
+          aria-busy="true"
+          role="status"
+          aria-label="Loading"
+        >
+          <Skeleton h={compact ? 18 : 26} w={56} r={6} />
+          <Skeleton h={9} w={64} r={4} />
+        </div>
+      ) : (
+        <>
+          <p
+            data-testid={valueTestId}
+            className={`${compact ? 'text-heading' : 'text-display'} font-bold leading-none font-mono tabular-nums tracking-tight ${valueColor}`}
+          >
+            {value}
+          </p>
+          <p className={`text-micro font-display font-semibold uppercase tracking-[0.14em] text-white/55 ${compact ? 'mt-2' : 'mt-2.5'} truncate`}>
+            {label}
+          </p>
+          {sub && <p className="text-micro text-white/35 mt-1 truncate">{sub}</p>}
+        </>
+      )}
+    </Wrapper>
   )
 }
 
