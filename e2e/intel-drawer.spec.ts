@@ -65,6 +65,18 @@ async function mock(page: Page) {
     })
   })
   await page.route('**/rest/v1/home_intelligence*', (r: Route) => r.fulfill({ json: INTEL_ROW }))
+  // An explicitly empty spend summary: the drawer's money line and the door
+  // dot render nothing, so the four assertions above stay about the signals.
+  // (The generic **/api/** {ok:true} would be rejected by useSpend's shape
+  // check anyway; this pins the intended quiet state.)
+  await page.route('**/api/spend', (r: Route) => r.fulfill({
+    json: {
+      ok: true, month_usd: 0, avg_3mo_usd: 0, delta_pct: null, ballooning: false,
+      months: [], services: [], unmatched: [],
+      connections: { ok: 0, low: 0, broken: 0, critical_broken: 0, unchecked: 0, broken_names: [], low_names: [] },
+      renewals_due: [], needs_review: 0, meter: null, empty: true, as_of: new Date().toISOString(),
+    },
+  }))
 }
 
 test.describe('the home intel drawer', () => {

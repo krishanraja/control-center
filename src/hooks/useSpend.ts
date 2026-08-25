@@ -63,8 +63,12 @@ async function fetchSummary(): Promise<void> {
   try {
     const r = await fetch(`${API}/api/spend`, { cache: 'no-cache' })
     const j = await r.json()
-    // A failed poll keeps the last good value; a broken endpoint is not a $0 month.
-    if (r.ok && j && j.ok) cache = j as SpendSummary
+    // A failed poll keeps the last good value; a broken endpoint is not a $0
+    // month. Shape-check before caching: a generic {ok:true} from a proxy or
+    // an older deploy must not masquerade as a summary.
+    if (r.ok && j && j.ok && j.connections && Array.isArray(j.months) && Array.isArray(j.services)) {
+      cache = j as SpendSummary
+    }
   } catch {
     /* keep last good value */
   } finally {

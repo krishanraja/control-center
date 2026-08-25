@@ -76,21 +76,26 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 6. **CanonCta** - THE one contextual ask, under the layer it serves:
    "Set this week's 3" or "Pick your 3 for today" → opens the Focus Ritual.
    Hidden when the canon is fresh.
-7. **The doors** (2026-08-22) - Focus and Intel at the bottom of both
-   shells, never numbers (counting anything about the operator in ambient
-   chrome breaks the Focus doctrine). On mobile they are compact pills
-   sharing the + button's band (`home/FocusDoor.tsx` pill variant +
-   `home/IntelDoor.tsx`), always visible - the old under-840px hiding gate
-   is gone because the pills live in the band the FAB already reserved. On
-   desktop the Focus row keeps its full width at the bottom and the Intel
-   pill sits beside the vitals line instead: the bottom-right corner there
-   is owned by the fixed ⌘I capture pill, which floats over anything placed
-   under it.
+7. **The doors** (2026-08-22, seated together 2026-08-25) - Focus and Intel
+   side by side at the bottom of both shells, never numbers (counting
+   anything about the operator in ambient chrome breaks the Focus
+   doctrine). One sanctioned exception, Krish's explicit call 2026-08-25: a
+   status dot on the Intel door - a dot, still never a number - rose when a
+   critical API connection is broken, amber when money needs a look (low
+   credits, an annual renewal inside 14 days, spend ballooning), fed by
+   `useSpend`. On mobile the doors are adjacent compact pills sharing the
+   + button's band (`home/FocusDoor.tsx` pill variant + `home/IntelDoor.tsx`),
+   always visible - the old under-840px hiding gate is gone because the
+   pills live in the band the FAB already reserved. On desktop the Intel
+   pill takes the left slot of the doors row and the Focus row fills the
+   rest: the bottom-right corner is owned by the fixed ⌘I capture pill,
+   which floats over anything placed under it.
 8. **IntelDrawer** (`home/IntelDrawer.tsx`) - the daily intel one slide from
    Home: Marcus's headline, then the top five signals ranked by urgency
    with their urgency chips (each opening the shared `intel/SignalSheet`
-   with Create task / Add to bets), and one "Open Intel" row to OS →
-   Intel. Reads the `useHomeIntelligence` singleton - no new channel.
+   with Create task / Add to bets), one quiet money line ("$1,284 out this
+   month · connections ok", hidden until real spend data exists), and one
+   "Open Intel" row to OS → Intel. Reads the `useHomeIntelligence` singleton - no new channel.
    Charts, KPIs, bets and Ask Marcus deliberately stay on the full Intel
    subtab.
 
@@ -490,7 +495,18 @@ ever truncated.
 ### Sections
 1. **AskMarcus** - chat surface backed by `/api/ask-marcus`. Anthropic-
    backed Q&A grounded in `customers` / `leads` / `bets` /
-   `home_intelligence`.
+   `home_intelligence`. No autofocus on mount (2026-08-25): stealing focus
+   popped the phone keyboard into the fixed no-scroll zoom shell, so the
+   tab always opened "zoomed in".
+1b. **Spend & connections** (2026-08-25, `intel/SpendConnectionsPanel.tsx`
+   on both shells) - the money-out and API-health read: this month's USD
+   total from receipts truth against a normal month, the six-month
+   sparkline, the ok/low/broken connections strip with named rows and fix
+   links only for what needs a hand, renewals inside 30 days, and the
+   honesty line for receipts the parser could not read. The ranked
+   per-service list is one tap away (`intel/SpendDetailSheet.tsx`, with a
+   manual "Check now" that arms the sweep). Fed by `GET /api/spend`
+   (`spend_invoices` + `service_registry`; see docs/DATABASE.md).
 2. **Revenue & Pipeline** - line chart of `home_intelligence.metrics[].progress_pct`.
 3. **Agent Cost** - bar chart, total in the corner. Sourced from
    `workflow_runs.cost_usd` (with legacy `cost` fallback). Grouped by

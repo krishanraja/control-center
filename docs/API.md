@@ -397,6 +397,9 @@ All `api/*` functions auto-deploy on push to `main`.
 | `/api/goals` | PATCH only (`team_focus` + goal mutations). GET was retired 2026-08-11 and now 410s; use `/api/goals/ladder` |
 | `/api/revenue` | The two revenue figures: cash collected and committed MRR. Reads the service-role revenue tables |
 | `/api/revenue/sync` | Cron (`0 8 * * *`) + POST backstop. Pulls balance transactions and subscriptions from Stripe. Needs `STRIPE_API_KEY` |
+| `/api/spend` | The money-out summary: month total (USD, receipts truth), 6-month trend, ranked per-service costs, connections state, renewals due, needs-review count. Reads the service-role spend tables |
+| `/api/spend/ingest` | Cron (`15 7 * * *`) + POST backstop. Reads the Gmail "Subscriptions" label via the DWD service account (needs the `gmail.readonly` scope on the grant; 503s loudly until then), parses each receipt with one Haiku call (metered), writes `spend_invoices`, nudges Telegram on annual renewals ~14d out and on a ballooning month. `?backfill=<1-12>` widens the window idempotently |
+| `/api/health/connections-sweep` | Cron (`0 */6 * * *`) + POST backstop ("Check now" in the app). Proof-of-life call per keyed `service_registry` row, balance reads where the vendor exposes one; mirrors blocking states to `api_usage_state` and critical services into `system_health` (the existing tier-4 banner chain). Telegram on transitions only |
 | `/api/goals/ladder` | The one read for the whole goal ladder: all four rungs joined to `goals_health` |
 | `/api/goals/gate` | Judge a goal against its rung's rubric without writing it. Preview only; `POST /api/objectives` enforces |
 | `/api/goals/digest` | The rendered ladder as text (`?format=json` for structure). One canonical URL for any consumer |

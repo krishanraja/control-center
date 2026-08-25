@@ -159,6 +159,34 @@ They answer different questions and are never summed together:
 paid (A$1,000 rather than US$701.30). `mrr_usd_cents` is **NULL** for non-USD
 plans rather than converted at a guessed rate.
 
+### `service_registry` / `spend_invoices` / `spend_monthly`
+
+The money-OUT twin (2026-08-25, migration `20260825183443_spend_and_connections.sql`).
+**Service-role only**, same access rule and reasoning as the revenue tables;
+the dashboard reads the computed summary through `GET /api/spend`.
+
+- **`service_registry`** — one row per service the OS pays for or
+  authenticates to (56 seeded, reconciled against the n8n credential store
+  and the `api_usage_state` seeds). Metadata columns say WHERE the key lives
+  (`env_key_name` — a NAME, never a value; resolution is deploy env →
+  `app_secrets`), HOW to check it (`check_kind`: `balance` / `ping` /
+  `none`), how loudly to fail (`criticality` — only `critical` rows mirror
+  into `system_health` and can raise the Home banner), and how receipts
+  match it (`vendor_match`). Sweep-state columns (`last_status`, `balance`,
+  `last_checked_at`, …) are written only by
+  `/api/health/connections-sweep`; the seed's `on conflict` never touches
+  them.
+- **`spend_invoices`** — one row per receipt email in the Gmail
+  "Subscriptions" label, written by `/api/spend/ingest`. Idempotent on
+  `gmail_message_id`, so backfills re-run as no-ops. Refunds are
+  `kind='refund'` and net out of every total. `amount_usd`/`amount_aud` are
+  **NULL when no FX rate is known** (flagged `needs_review`) — a missing
+  rate is never treated as 1.0, the `revenue_events` rule. A receipt the
+  parser could not read still lands, `needs_review=true` with a
+  `review_note`: unread money is flagged, never silently dropped.
+- **`spend_monthly`** — `security_invoker` rollup view (month × service,
+  refunds netted) for ad-hoc/warehouse reads; the UI does not read it.
+
 **Why these exist.** `customers.mrr_usd` is written by an n8n expression that
 falls back to the Checkout session grand total, so a one-off advisory invoice
 lands as "per month" revenue. Nothing in the old schema separated recurring
