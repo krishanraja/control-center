@@ -25,6 +25,13 @@ export interface SpendServiceRow {
   last_checked_at: string | null
   top_up_url: string | null
   dashboard_url: string | null
+  /** Plan ceiling + known consumers, plain English (service_registry.limit_note). */
+  limit_note: string | null
+  /** Who used it: 7-day metered calls from api_call_log, attached only for
+   *  services that are broken or low so the payload stays lean. null means
+   *  either not flagged, or flagged with zero metered calls — the UI reads
+   *  calls_7d === 0 vs null identically ("not metered by the Control Center"). */
+  usage: { calls_7d: number; est_cost_7d: number; top_sources: string[] } | null
 }
 
 export interface SpendSummary {
@@ -75,6 +82,7 @@ interface RegistryRow {
   top_up_url: string | null
   dashboard_url: string | null
   low_threshold: number | null
+  limit_note: string | null
   last_status: string | null
   balance: number | null
   balance_unit: string | null
@@ -127,7 +135,7 @@ export async function loadSpend(): Promise<SpendSummary> {
       .order('paid_at', { ascending: false })
       .limit(2000),
     supabase.from('service_registry')
-      .select('key, display_name, category, criticality, check_kind, env_key_name, top_up_url, dashboard_url, low_threshold, last_status, balance, balance_unit, last_checked_at')
+      .select('key, display_name, category, criticality, check_kind, env_key_name, top_up_url, dashboard_url, low_threshold, limit_note, last_status, balance, balance_unit, last_checked_at')
       .eq('active', true),
     supabase.from('spend_invoices').select('id', { count: 'exact', head: true }).eq('needs_review', true),
     meterMtd(monthStart.toISOString()),
@@ -197,8 +205,46 @@ export async function loadSpend(): Promise<SpendSummary> {
       last_checked_at: s.last_checked_at,
       top_up_url: s.top_up_url,
       dashboard_url: s.dashboard_url,
+      limit_note: s.limit_note,
+      usage: null,
     }
   }).sort((a, b) => b.month_usd - a.month_usd || (b.avg_usd - a.avg_usd))
+
+  // Who used it: for services that need a hand (broken or low), attach the
+  // 7-day metered picture from api_call_log grouped by source. Only 8 services
+  // have ever been metered, so zero rows is the common, honest answer — the
+  // UI renders that as "not metered by the Control Center", never as "unused".
+  const flaggedKeys = services
+    .filter(s => (s.status && BLOCKING.has(s.status)) || s.balance_low)
+    .map(s => s.key)
+  if (flaggedKeys.length) {
+    try {
+      const since = new Date(Date.now() - 7 * 86_400_000).toISOString()
+      const { data: calls } = await supabase.from('api_call_log')
+        .select('api_name, source, est_cost_usd')
+        .gte('ts', since)
+        .in('api_name', flaggedKeys)
+        .limit(5000)
+      const agg = new Map<string, { calls: number; cost: number; bySource: Map<string, number> }>()
+      for (const c of (calls || []) as Array<{ api_name: string; source: string | null; est_cost_usd: number | null }>) {
+        const a = agg.get(c.api_name) || { calls: 0, cost: 0, bySource: new Map<string, number>() }
+        a.calls++
+        a.cost += Number(c.est_cost_usd) || 0
+        const src = c.source || 'unknown'
+        a.bySource.set(src, (a.bySource.get(src) || 0) + 1)
+        agg.set(c.api_name, a)
+      }
+      for (const s of services) {
+        const a = agg.get(s.key)
+        if (!a || !flaggedKeys.includes(s.key)) continue
+        s.usage = {
+          calls_7d: a.calls,
+          est_cost_7d: Math.round(a.cost * 100) / 100,
+          top_sources: [...a.bySource.entries()].sort((x, y) => y[1] - x[1]).slice(0, 3).map(([src]) => src),
+        }
+      }
+    } catch { /* attribution is additive; a failed read never sinks the summary */ }
+  }
 
   const checked = services.filter(s => s.status !== null && s.status !== 'not_checked')
   const brokenRows = checked.filter(s => BLOCKING.has(String(s.status)))

@@ -8,7 +8,7 @@ import { LastUpdated } from '../shared/LastUpdated'
 import { RefreshRail } from '../shared/RefreshRail'
 import { Badge } from '../ui/badge'
 import { useFirstLoad } from '../shared/useDeferredPending'
-import { useSpend, type SpendSummary } from '../../hooks/useSpend'
+import { useSpend, type SpendSummary, type SpendServiceRow } from '../../hooks/useSpend'
 import { useHaptics } from '../../hooks/useHaptics'
 import { SpendDetailSheet } from './SpendDetailSheet'
 
@@ -123,19 +123,24 @@ export function SpendConnectionsPanel() {
             {needsHand.length > 0 && (
               <ul className="flex flex-col gap-1" data-testid="spend-attention-list">
                 {needsHand.map(item => (
-                  <li key={item.key} className="flex items-center gap-2.5 rounded-xl bg-white/[0.03] px-3 py-2">
-                    <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${item.tone === 'broken' ? 'bg-status-blocked' : 'bg-status-needsYou'}`} />
-                    <span className="min-w-0 flex-1 truncate text-body text-white/80">{item.line}</span>
-                    {item.url && (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        className="inline-flex shrink-0 items-center gap-1 text-label font-medium text-emerald-200 hover:text-emerald-100"
-                      >
-                        {item.cta} <ExternalLink size={12} aria-hidden />
-                      </a>
+                  <li key={item.key} className="flex flex-col gap-0.5 rounded-xl bg-white/[0.03] px-3 py-2">
+                    <span className="flex items-center gap-2.5">
+                      <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${item.tone === 'broken' ? 'bg-status-blocked' : 'bg-status-needsYou'}`} />
+                      <span className="min-w-0 flex-1 truncate text-body text-white/80">{item.line}</span>
+                      {item.url && (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="inline-flex shrink-0 items-center gap-1 text-label font-medium text-emerald-200 hover:text-emerald-100"
+                        >
+                          {item.cta} <ExternalLink size={12} aria-hidden />
+                        </a>
+                      )}
+                    </span>
+                    {item.detail && (
+                      <span className="pl-[16px] text-label leading-snug text-white/40">{item.detail}</span>
                     )}
                   </li>
                 ))}
@@ -177,7 +182,22 @@ export function SpendConnectionsPanel() {
   )
 }
 
-interface AttentionItem { key: string; tone: 'broken' | 'low'; line: string; url: string | null; cta: string }
+interface AttentionItem { key: string; tone: 'broken' | 'low'; line: string; detail: string | null; url: string | null; cta: string }
+
+/** Who spent it, one honest line: metered sources where the ledger saw the
+ *  calls, otherwise the truth that the key is consumed outside the Control
+ *  Center's meter. The plan-ceiling note rides along when the registry has
+ *  one. */
+export function usageLine(svc: SpendServiceRow): string | null {
+  const parts: string[] = []
+  if (svc.usage && svc.usage.calls_7d > 0) {
+    parts.push(`Used by ${svc.usage.top_sources.join(', ')}: ${svc.usage.calls_7d.toLocaleString('en-US')} calls${svc.usage.est_cost_7d > 0 ? `, $${svc.usage.est_cost_7d.toFixed(2)}` : ''} this week.`)
+  } else {
+    parts.push('No calls metered by the Control Center. This key is used outside it (Compound, n8n, or external scripts).')
+  }
+  if (svc.limit_note) parts.push(svc.limit_note)
+  return parts.join(' ')
+}
 
 /** The rows worth a named line on the card: broken first, then low, then a
  *  renewal inside 30 days. Everything else stays behind the sheet. */
@@ -190,6 +210,7 @@ function attention(s: SpendSummary): AttentionItem[] {
         key: `broken-${svc.key}`,
         tone: 'broken',
         line: `${svc.name} is ${why}`,
+        detail: usageLine(svc),
         url: svc.top_up_url || svc.dashboard_url,
         cta: svc.status === 'exhausted' ? 'Top up' : 'Open',
       })
@@ -198,6 +219,7 @@ function attention(s: SpendSummary): AttentionItem[] {
         key: `low-${svc.key}`,
         tone: 'low',
         line: `${svc.name} is low: ${svc.balance} ${svc.balance_unit || ''} left`,
+        detail: usageLine(svc),
         url: svc.top_up_url || svc.dashboard_url,
         cta: 'Top up',
       })
@@ -208,6 +230,7 @@ function attention(s: SpendSummary): AttentionItem[] {
       key: `renewal-${r.key}`,
       tone: 'low',
       line: `${r.name} renews in ${daysUntil(r.on)} days${r.amount ? ` (${r.currency || ''} ${r.amount})` : ''}`,
+      detail: null,
       url: null,
       cta: '',
     })

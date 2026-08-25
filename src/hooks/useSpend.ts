@@ -20,6 +20,8 @@ export interface SpendServiceRow {
   last_checked_at: string | null
   top_up_url: string | null
   dashboard_url: string | null
+  limit_note: string | null
+  usage: { calls_7d: number; est_cost_7d: number; top_sources: string[] } | null
 }
 
 export interface SpendSummary {

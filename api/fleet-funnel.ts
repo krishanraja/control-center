@@ -63,6 +63,10 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
         last_event_at: h.last_event_at ?? null,
         events_24h: Number(h.events_24h) || 0,
         events_7d: Number(h.events_7d) || 0,
+        // 7-day funnel window (warehouse migration 0003) for the BI console's
+        // funnel tile; the campaign funnel view stays all-time.
+        landed_7d: Number(h.landed_7d) || 0,
+        purchased_7d: Number(h.purchased_7d) || 0,
       }
     })
 
