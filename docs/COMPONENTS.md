@@ -20,10 +20,12 @@ Root component. Handles:
 - Per-tab `ErrorBoundary` wrapping; each tab is its own lazy chunk.
 
 Valid tab ids derive from the registry in `src/lib/tabs.ts`
-(`VALID_TAB_IDS`). The simplified six-destination IA is committed
-(`isSimplifiedIA()` returns `true`, no flag): `home`, `content`, `people`,
-`growth`, `os`, `focus`, plus `customers` (labelled Subscriptions) in the
-drawer. Legacy hashes (`#leads`, `#guests`, `#today`, `#bets`,
+(`VALID_TAB_IDS`). The six-destination IA is the only one — the legacy
+11-tab array, the `isSimplifiedIA()` flag it hid behind and the App-level
+render branches it fed were deleted on 2026-08-26, all unreachable since
+the flag hardcoded to `true`. The destinations: `home`, `content`,
+`people`, `growth`, `os`, `focus`, plus `customers` (labelled
+Subscriptions) in the drawer. Legacy hashes (`#leads`, `#guests`, `#today`, `#bets`,
 `#acquisition`, ...) resolve through the alias layer in `App.tsx`, so old
 bookmarks and `navigate()` call sites keep working — never remove an alias
 without a migration plan.

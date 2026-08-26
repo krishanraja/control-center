@@ -13,14 +13,12 @@ import { CreateSheet } from './components/CreateSheet'
 import { FocusRitual } from './components/home/FocusRitual'
 import { PilotGate } from './components/pilot/PilotGate'
 import { EveningShutdown } from './components/pilot/EveningShutdown'
-import { isSimplifiedIA } from './lib/iaV3'
 import { VALID_TAB_IDS } from './lib/tabs'
 import { useHashRoute } from './hooks/useHashRoute'
 import { contentV2Enabled } from './lib/contentV2'
 import { isTypingTarget } from './lib/hotkeys'
 import { BOTTOM_NAV_PAD } from './components/mobile/primitives'
 import { MobileTabSkeleton, BoardSkeleton, SkeletonDetail, DeferredFallback } from './components/shared/Skeleton'
-import { isUiV2 } from './lib/uiV2'
 
 /**
  * Route surfaces are code-split: each tab is its own chunk, fetched on demand,
@@ -33,25 +31,10 @@ import { isUiV2 } from './lib/uiV2'
  * because it's always on screen or latency-sensitive (⌘K must open instantly).
  */
 const DesktopHome = lazy(() => import('./components/desktop/DesktopHome').then(m => ({ default: m.DesktopHome })))
-const DesktopToday = lazy(() => import('./components/desktop/DesktopToday').then(m => ({ default: m.DesktopToday })))
-const DesktopLeads = lazy(() => import('./components/desktop/DesktopLeads').then(m => ({ default: m.DesktopLeads })))
-const NetworkTabV2 = lazy(() => import('./components/network/NetworkTab').then(m => ({ default: m.NetworkTab })))
-const DesktopLeadsRE = lazy(() => import('./components/desktop/DesktopLeadsRE').then(m => ({ default: m.DesktopLeadsRE })))
-const DesktopOrg = lazy(() => import('./components/desktop/DesktopOrg').then(m => ({ default: m.DesktopOrg })))
-const DesktopFlows = lazy(() => import('./components/desktop/DesktopFlows').then(m => ({ default: m.DesktopFlows })))
 const DesktopCustomers = lazy(() => import('./components/desktop/DesktopCustomers').then(m => ({ default: m.DesktopCustomers })))
-const DesktopGuests = lazy(() => import('./components/desktop/DesktopGuests').then(m => ({ default: m.DesktopGuests })))
 const DesktopContent = lazy(() => import('./components/desktop/DesktopContent').then(m => ({ default: m.DesktopContent })))
-const SystemsPanel = lazy(() => import('./components/SystemsPanel').then(m => ({ default: m.SystemsPanel })))
 const MobileHome = lazy(() => import('./components/mobile/MobileHome').then(m => ({ default: m.MobileHome })))
-const MobileToday = lazy(() => import('./components/mobile/MobileToday').then(m => ({ default: m.MobileToday })))
-const MobileLeads = lazy(() => import('./components/mobile/MobileLeads').then(m => ({ default: m.MobileLeads })))
-const MobileLeadsRE = lazy(() => import('./components/mobile/MobileLeadsRE').then(m => ({ default: m.MobileLeadsRE })))
-const MobileOrg = lazy(() => import('./components/mobile/MobileOrg').then(m => ({ default: m.MobileOrg })))
-const MobileFlows = lazy(() => import('./components/mobile/MobileFlows').then(m => ({ default: m.MobileFlows })))
-const MobileSystems = lazy(() => import('./components/mobile/MobileSystems').then(m => ({ default: m.MobileSystems })))
 const MobileCustomers = lazy(() => import('./components/mobile/MobileCustomers').then(m => ({ default: m.MobileCustomers })))
-const MobileGuests = lazy(() => import('./components/mobile/MobileGuests').then(m => ({ default: m.MobileGuests })))
 const MobileContent = lazy(() => import('./components/mobile/MobileContent').then(m => ({ default: m.MobileContent })))
 const ContentComposer = lazy(() => import('./components/content/ContentComposer').then(m => ({ default: m.ContentComposer })))
 // Content Engine v2 (docs/CONTENT-ENGINE-V2-SPEC.md): the four-room Content tab
@@ -78,7 +61,7 @@ const FocusPurposeTab = lazy(() => import('./components/focusPurpose/FocusPurpos
 // Tab validity derives from the registry (src/lib/tabs.ts VALID_TAB_IDS) so the
 // old hand-maintained duplicate list can never drift from the sidebar again.
 
-// Legacy-hash aliases under the simplified IA. Render-time only (the hash is
+// Legacy-hash aliases. Render-time only (the hash is
 // never rewritten), so bookmarks, navigate('leads') call sites, and deep-link
 // params all keep working: `#/org?correction=x` resolves to the OS tab with
 // { sub: 'org', correction: 'x' }. Route params win over alias-injected ones.
@@ -148,9 +131,7 @@ export default function App() {
   // which now lives at OS → Queue; a bare #/today is still Home. Params merge
   // below, so the task/decision ref reaches the deck intact.
   const todayRuling = rawTab === 'today' && Boolean(route.params.task || route.params.decision)
-  const alias = isSimplifiedIA()
-    ? (todayRuling ? { tab: 'os', params: { sub: 'queue' } } : IA_ALIASES[rawTab])
-    : undefined
+  const alias = todayRuling ? { tab: 'os', params: { sub: 'queue' } } : IA_ALIASES[rawTab]
   const resolvedTab = alias?.tab ?? rawTab
   const tab = VALID_TAB_IDS.has(resolvedTab) ? resolvedTab : 'home'
   const params = alias?.params ? { ...alias.params, ...route.params } : route.params
@@ -242,21 +223,14 @@ export default function App() {
               >
                 <Suspense fallback={<MobileRouteFallback />}>
                   {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome onNavigate={navigate} /></ErrorBoundary>}
-                  {tab === 'today'     && <ErrorBoundary label="Today"><MobileToday lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
-                  {tab === 'leads'     && <ErrorBoundary label="Leads"><MobileLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
-                  {tab === 'relationships' && <ErrorBoundary label="Network">{isUiV2() ? <NetworkTabV2 narrow /> : <MobileLeadsRE onNavigate={navigate} />}</ErrorBoundary>}
                   {tab === 'customers' && <ErrorBoundary label="Customers"><MobileCustomers /></ErrorBoundary>}
                   {tab === 'growth'    && <ErrorBoundary label="Growth"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><GrowthTab variant="mobile" initialSection={growthEntrySection} lane={route.params.lane || null} onNavigate={navigate} /></div></ErrorBoundary>}
-                  {tab === 'guests'    && <ErrorBoundary label="Visibility"><MobileGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'content'   && (contentV2Enabled()
                     // Reserve BottomNav clearance (like every MobileShell tab) so
                     // the deck's thumb-zone actions and the room scroll tails are
                     // never hidden behind the fixed nav bar.
                     ? <ErrorBoundary label="Content"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><ContentV2Tab variant="mobile" /></div></ErrorBoundary>
                     : <ErrorBoundary label="Content"><MobileContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>)}
-                  {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrg /></ErrorBoundary>}
-                  {tab === 'workflows' && <ErrorBoundary label="Flows"><MobileFlows /></ErrorBoundary>}
-                  {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
                   {tab === 'people'    && <PeopleTab narrow params={params} onNavigate={navigate} />}
                   {tab === 'os'        && <OsTab narrow params={params} onNavigate={navigate} />}
                   {/* Focus is designed to fit one screen with the tools collapsed;
@@ -303,14 +277,7 @@ export default function App() {
             ) : (
               <div className="h-full overflow-y-auto px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))]">
                 <Suspense fallback={<DesktopRouteFallback />}>
-                  {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday selectedTaskId={route.params.task || null} onSelectTask={(id) => navigate('today', id ? { task: id } : {})} lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
-                  {tab === 'leads'     && <ErrorBoundary label="Leads"><DesktopLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
-                  {tab === 'relationships' && <ErrorBoundary label="Network">{isUiV2() ? <NetworkTabV2 /> : <DesktopLeadsRE onNavigate={navigate} />}</ErrorBoundary>}
                   {tab === 'customers' && <ErrorBoundary label="Customers"><DesktopCustomers /></ErrorBoundary>}
-                  {tab === 'guests'    && <ErrorBoundary label="Visibility"><DesktopGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
-                  {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}
-                  {tab === 'workflows' && <ErrorBoundary label="Flows"><DesktopFlows /></ErrorBoundary>}
-                  {tab === 'systems'   && <ErrorBoundary label="Systems"><SystemsPanel /></ErrorBoundary>}
                   {tab === 'people'    && <PeopleTab narrow={false} params={params} onNavigate={navigate} />}
                   {tab === 'os'        && <OsTab narrow={false} params={params} onNavigate={navigate} />}
                   {tab === 'focus'     && <ErrorBoundary label="Focus"><FocusPurposeTab variant="desktop" steadyEntry={params.steady === '1'} /></ErrorBoundary>}

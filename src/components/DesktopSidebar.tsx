@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { MoreHorizontal, type LucideIcon } from '@/lib/icons'
 import { supabase } from '../lib/supabase'
 import { DESKTOP_PRIMARY_TABS, DESKTOP_DRAWER_TABS } from '../lib/tabs'
-import { isSimplifiedIA } from '../lib/iaV3'
 import { formatMrr } from '../lib/mrrDisplay'
 import { useRevenue } from '../hooks/useRevenue'
 import { usePressable } from './shared/usePressable'
@@ -99,7 +98,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
             active={active === id}
             onClick={() => onChange(id)}
             expanded={expanded}
-            showHealthBadge={(isSimplifiedIA() ? id === 'os' : id === 'systems') && unhealthyCount > 0}
+            showHealthBadge={id === 'os' && unhealthyCount > 0}
             unhealthyCount={unhealthyCount}
             badge={badge}
           />

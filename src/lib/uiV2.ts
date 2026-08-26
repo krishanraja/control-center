@@ -1,4 +1,4 @@
-// Relume-based UI v2, build-time flag in the iaV3.ts pattern.
+// Relume-based UI v2, a build-time flag.
 //
 // When on, the Network tab renders NetworkTab (server-ranked search over the
 // full 10,670-person network, built on src/components/ui/) instead of
