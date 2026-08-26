@@ -2,8 +2,9 @@ import React from 'react'
 import { ExternalLink } from '@/lib/icons'
 import { SlideOver } from '../shared/SlideOver'
 import { Eyebrow } from '../shared/Eyebrow'
+import { Sparkline } from '../shared/Sparkline'
 import { statusStyle } from '../shared/tokens'
-import type { SpendSummary, SpendServiceRow } from '../../hooks/useSpend'
+import { usageLine, type SpendSummary, type SpendServiceRow } from '../../hooks/useSpend'
 
 const usd = (n: number): string => `$${n.toLocaleString('en-US', { maximumFractionDigits: n >= 100 ? 0 : 2 })}`
 
@@ -44,13 +45,23 @@ export function SpendDetailSheet({ open, onClose, spend }: {
   return (
     <SlideOver open={open} onClose={onClose} ariaLabel="Spend detail" label="Spend">
       <div className="flex flex-col gap-5" data-testid="spend-detail">
-        <div>
-          <span className="font-mono tabular-nums text-heading font-semibold text-white">{usd(spend.month_usd)}</span>
-          <span className="ml-2 text-label text-white/45">out this month</span>
-          {spend.avg_3mo_usd > 0 && (
-            <p className="mt-0.5 text-label text-white/40">
-              A normal month is about {usd(spend.avg_3mo_usd)}.
-            </p>
+        <div className="flex items-end gap-3">
+          <div className="min-w-0 flex-1">
+            <span className="font-mono tabular-nums text-heading font-semibold text-white">{usd(spend.month_usd)}</span>
+            <span className="ml-2 text-label text-white/45">out this month</span>
+            {spend.avg_3mo_usd > 0 && (
+              <p className="mt-0.5 text-label text-white/40">
+                A normal month is about {usd(spend.avg_3mo_usd)}.
+                {spend.meter ? <> On the meter so far: ${spend.meter.usd_mtd.toFixed(0)}.</> : null}
+              </p>
+            )}
+          </div>
+          {spend.months.length > 1 && (
+            <Sparkline
+              data={spend.months.map(m => m.total_usd)}
+              positive={spend.delta_pct != null ? spend.delta_pct <= 0 : true}
+              ariaLabel="6-month spend trend"
+            />
           )}
         </div>
 
@@ -96,8 +107,9 @@ function ServiceRow({ s }: { s: SpendServiceRow }) {
   const line = statusLine(s)
   const renewDays = s.next_renewal_on ? Math.round((Date.parse(s.next_renewal_on) - Date.now()) / 86_400_000) : null
   const url = s.top_up_url || s.dashboard_url
+  const flagged = s.balance_low || (s.status != null && ['auth_failed', 'exhausted', 'rate_limited'].includes(s.status))
   return (
-    <div className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-white/[0.03]">
+    <div className="flex flex-wrap items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-white/[0.03]">
       <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotFor(s)}`} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-ui text-white/85">
@@ -129,6 +141,9 @@ function ServiceRow({ s }: { s: SpendServiceRow }) {
         >
           <ExternalLink size={13} aria-hidden />
         </a>
+      )}
+      {flagged && (
+        <p className="w-full pl-[16px] text-label leading-snug text-white/40">{usageLine(s)}</p>
       )}
     </div>
   )

@@ -2,13 +2,20 @@ import { test, expect, type Page, type Route } from '@playwright/test'
 import { answerPilotGate } from './pilot-gate-mock'
 
 /**
- * The spend and connections tracker: one card on Intel answering "what is
- * the OS costing" and "which API needs a hand", a ranked detail sheet, one
- * quiet line in the Home intel drawer, and the door dot — the sanctioned
+ * The spend and connections truth on the Business Intelligence
+ * interrogation: "What is it costing?" carries the month against the usual
+ * (the pinned $1,284), "What is broken?" names the API that needs a hand
+ * with its who-spent-it line and the sweep trigger, the ranked detail sheet
+ * hangs off the costing answer, and the Home door dot stays the sanctioned
  * exception to "doors carry no numbers" (a dot, still never a number).
  *
  * Catch-alls first (reverse registration order), fixtures module-level.
  */
+
+// Fixed afternoon so the pilot gate's morning check-in can never fire on
+// wall clock — the spec used to pass or fail with the time of day. Every
+// relative date in the fixtures hangs off THIS instant, not the real now.
+export const AFTERNOON = new Date('2026-08-20T18:30:00Z')
 
 const SPEND_FULL = {
   ok: true,
@@ -64,7 +71,7 @@ const SPEND_FULL = {
     broken_names: ['OpenAI'], low_names: ['ElevenLabs'],
   },
   renewals_due: [
-    { key: 'relume', name: 'Relume', amount: 348, currency: 'USD', on: new Date(Date.now() + 12 * 86_400_000).toISOString().slice(0, 10) },
+    { key: 'relume', name: 'Relume', amount: 348, currency: 'USD', on: new Date(AFTERNOON.getTime() + 12 * 86_400_000).toISOString().slice(0, 10) },
   ],
   needs_review: 2,
   meter: { usd_mtd: 41, calls_mtd: 1204 },
@@ -79,7 +86,9 @@ const SPEND_EMPTY = {
   renewals_due: [], needs_review: 0, meter: null, empty: true, as_of: new Date().toISOString(),
 }
 
+
 async function mock(page: Page, spend: unknown = SPEND_FULL) {
+  await page.clock.setFixedTime(AFTERNOON)
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', (r: Route) => r.abort())
@@ -95,36 +104,38 @@ async function mock(page: Page, spend: unknown = SPEND_FULL) {
   }))
 }
 
-test.describe('the spend and connections tracker', () => {
-  test('the intel subtab carries the month, the strip and the named problems on a phone', async ({ browser }) => {
+test.describe('the spend and connections questions', () => {
+  test('the phone glance answers costing and broken without a tap', async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
     const page = await ctx.newPage()
     await mock(page)
     await page.goto('/#/os?sub=intel')
 
-    const panel = page.getByTestId('spend-panel')
-    await expect(panel).toBeVisible()
-    // toBeVisible passes for a collapsed 4px box, which is exactly what a
-    // missing shrink-0 produced inside MobileShell's flex column — pin real
-    // height so a compressed card can never read as rendered.
-    expect((await panel.boundingBox())!.height).toBeGreaterThan(120)
+    const list = page.getByTestId('bi-questions')
+    await expect(list).toBeVisible()
+    // toBeVisible passes for a collapsed sliver; pin real height so a
+    // compressed list can never read as rendered.
+    expect((await list.boundingBox())!.height).toBeGreaterThan(200)
     await expect(page.getByTestId('spend-month-total')).toHaveText('$1,284')
-    await expect(panel.getByText('1 broken')).toBeVisible()
-    await expect(panel.getByText('1 low')).toBeVisible()
-    await expect(panel.getByText('OpenAI is out of credits')).toBeVisible()
-    await expect(panel.getByText(/Relume renews in 1[12] days/)).toBeVisible()
-    await expect(page.getByTestId('spend-review-line')).toContainText('2 receipts could not be read')
+    await expect(list.getByText(/usual/)).toBeVisible()
+    // The broken answer names the API on the closed line — no tap needed.
+    await expect(page.getByTestId('bi-q-broken')).toContainText('OpenAI is out of credits')
     await ctx.close()
   })
 
-  test('the panel renders on the desktop shell too', async ({ browser }) => {
+  test('desktop opens on the decide question with the renewal on the board', async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
     const page = await ctx.newPage()
     await mock(page)
     await page.goto('/#/os?sub=intel')
 
-    await expect(page.getByTestId('spend-panel')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Business Intelligence' })).toBeVisible()
     await expect(page.getByTestId('spend-month-total')).toHaveText('$1,284')
+    // The decide pane is the default open answer; the renewal rides in it.
+    await expect(page.getByTestId('bi-pane')).toContainText(/Relume renews in 1[12] days/)
+    // The costing answer opens with the unreadable-receipts line.
+    await page.getByTestId('bi-q-costing').click()
+    await expect(page.getByTestId('spend-review-line')).toContainText('2 receipts could not be read')
     await ctx.close()
   })
 
@@ -134,6 +145,7 @@ test.describe('the spend and connections tracker', () => {
     await mock(page)
     await page.goto('/#/os?sub=intel')
 
+    await page.getByTestId('bi-q-costing').click()
     await page.getByTestId('spend-panel-open').click()
     const sheet = page.getByTestId('spend-detail')
     await expect(sheet).toBeVisible()
@@ -156,26 +168,27 @@ test.describe('the spend and connections tracker', () => {
     })
     await page.goto('/#/os?sub=intel')
 
+    await page.getByTestId('bi-q-broken').click()
+    // The broken answer carries the who-spent-it attribution line.
+    await expect(page.getByTestId('bi-pane')).toContainText('No calls metered by the Control Center')
     await page.getByTestId('spend-check-now').click()
     await expect.poll(() => swept).toBeGreaterThan(0)
     await ctx.close()
   })
 
-  test('the home drawer carries the money line and it lands on Intel', async ({ browser }) => {
+  test('the door dot fires and the door lands on the console with the month', async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
     const page = await ctx.newPage()
     await mock(page)
     await page.goto('/#/home')
 
-    // The door dot: rose because a critical connection is broken.
+    // The door dot: rose because a critical connection is broken. The door
+    // is the internal path — one tap from the alert to the console.
     await expect(page.getByTestId('intel-door-dot')).toBeVisible()
 
     await page.getByTestId('intel-door').click()
-    const line = page.getByTestId('drawer-spend-line')
-    await expect(line).toContainText('$1,284')
-    await expect(line).toContainText('1 API broken')
-    await line.click()
     await expect(page).toHaveURL(/os\?sub=intel/)
+    await expect(page.getByTestId('spend-month-total')).toHaveText('$1,284')
     await ctx.close()
   })
 
@@ -189,9 +202,9 @@ test.describe('the spend and connections tracker', () => {
     await expect(page.getByTestId('intel-door-dot')).toHaveCount(0)
 
     await page.goto('/#/os?sub=intel')
-    const panel = page.getByTestId('spend-panel')
-    await expect(panel).toBeVisible()
-    await expect(panel.getByText(/No receipts read/)).toBeVisible()
+    const list = page.getByTestId('bi-questions')
+    await expect(list).toBeVisible()
+    await expect(list.getByText(/No receipts read/)).toBeVisible()
     await expect(page.getByTestId('spend-month-total')).toHaveCount(0)
     await ctx.close()
   })

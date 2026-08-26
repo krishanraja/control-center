@@ -50,7 +50,12 @@ const BRIEF = {
   },
 }
 
+
 async function mock(page: Page) {
+  // Fixed afternoon + a completed check-in: the pilot gate must never decide
+  // these assertions by wall clock (it fires its morning check-in over any
+  // route when the container crosses into morning hours).
+  await page.clock.setFixedTime(new Date('2026-08-20T18:30:00Z'))
   // Playwright checks route handlers in REVERSE registration order, so the
   // catch-all goes first and the specific ones after it. Registered the other
   // way round, `**/api/**` shadows the brief and the composer renders forever

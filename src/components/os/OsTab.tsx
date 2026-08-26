@@ -5,18 +5,18 @@ import { SegmentedNav } from '../shared/SegmentedNav'
 
 // OS: the back office behind one drawer entry. Queue (every typed ruling
 // waiting on Krish — relocated from Home in the 2026-08-20 recompose), Org
-// (agents + corrections), Intel (Marcus + signals), Flows (workflows + Skill
+// (agents + corrections), Intel (the Business Intelligence console — the
+// KPI band, Marcus's read, signals and bets), Flows (workflows + Skill
 // Forge), and Systems (health board) render as subtabs of one tab instead of
 // five nav entries. Home links to the Queue via its vitals count; legacy
 // #/today ruling deep links land here with their params intact.
 
 const QueueSubtab = lazy(() => import('./queue/QueueSubtab').then(m => ({ default: m.QueueSubtab })))
 const DesktopOrg = lazy(() => import('../desktop/DesktopOrg').then(m => ({ default: m.DesktopOrg })))
-const DesktopExec = lazy(() => import('../desktop/DesktopExec').then(m => ({ default: m.DesktopExec })))
+const BusinessIntelTab = lazy(() => import('../intel/BusinessIntelTab').then(m => ({ default: m.BusinessIntelTab })))
 const DesktopFlows = lazy(() => import('../desktop/DesktopFlows').then(m => ({ default: m.DesktopFlows })))
 const SystemsPanel = lazy(() => import('../SystemsPanel').then(m => ({ default: m.SystemsPanel })))
 const MobileOrg = lazy(() => import('../mobile/MobileOrg').then(m => ({ default: m.MobileOrg })))
-const MobileIntel = lazy(() => import('../mobile/MobileIntel').then(m => ({ default: m.MobileIntel })))
 const MobileFlows = lazy(() => import('../mobile/MobileFlows').then(m => ({ default: m.MobileFlows })))
 const MobileSystems = lazy(() => import('../mobile/MobileSystems').then(m => ({ default: m.MobileSystems })))
 
@@ -89,7 +89,7 @@ export function OsTab({ narrow, params, onNavigate }: Props) {
         <ErrorBoundary label="Org">{narrow ? <MobileOrg /> : <DesktopOrg />}</ErrorBoundary>
       )}
       {sub === 'intel' && (
-        <ErrorBoundary label="Intel">{narrow ? <MobileIntel /> : <DesktopExec />}</ErrorBoundary>
+        <ErrorBoundary label="Intel"><BusinessIntelTab narrow={narrow} /></ErrorBoundary>
       )}
       {sub === 'flows' && (
         <ErrorBoundary label="Flows">{narrow ? <MobileFlows /> : <DesktopFlows />}</ErrorBoundary>

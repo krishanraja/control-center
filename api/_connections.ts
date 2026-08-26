@@ -176,7 +176,10 @@ export const PROVIDERS: Record<string, ProviderCheck> = {
   },
   newsapi: { build: k => ({ url: `https://newsapi.org/v2/top-headlines?pageSize=1&country=us&apiKey=${encodeURIComponent(k)}` }) },
   marketaux: { build: k => ({ url: `https://api.marketaux.com/v1/news/all?limit=1&api_token=${encodeURIComponent(k)}` }) },
-  fmp: { build: k => ({ url: `https://financialmodelingprep.com/api/v3/profile/AAPL?apikey=${encodeURIComponent(k)}` }) },
+  // The /api/v3 path 403s with "Legacy Endpoint" even on live keys (verified
+  // 2026-08-25); /stable is FMP's current surface, so a topped-up key
+  // classifies ok instead of reading as broken forever.
+  fmp: { build: k => ({ url: `https://financialmodelingprep.com/stable/profile?symbol=AAPL&apikey=${encodeURIComponent(k)}` }) },
   fred: { build: k => ({ url: `https://api.stlouisfed.org/fred/series?series_id=GNPCA&file_type=json&api_key=${encodeURIComponent(k)}` }) },
   coingecko: {
     // Demo-tier keys live on the public host with their own header; the /ping

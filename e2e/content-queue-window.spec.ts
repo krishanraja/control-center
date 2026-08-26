@@ -61,6 +61,7 @@ const ANCIENT_CARD = {
  * point: a mock that ignores the filter passes just as happily against the
  * unbounded query that caused the bug, so it would pin nothing.
  */
+
 async function mockQueue(page: Page, rows: Array<{ week: string }>) {
   const urls: string[] = []
   // Catch-alls first: Playwright checks handlers in REVERSE registration order.
