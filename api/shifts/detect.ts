@@ -213,6 +213,36 @@ async function applyToRegister(v: VerifiedShift, registry: ShiftRow[], vec: numb
   await supabase.from('shift_evidence')
     .upsert(evidence, { onConflict: 'shift_id,occurred_on,headline', ignoreDuplicates: true })
 
+  // Beats, alongside the evidence they come from.
+  //
+  // Evidence is the source: a url, a headline, a provenance. A beat is what
+  // changed at this point in the arc, and it is what arc_maturity counts. The
+  // two are separate because the scorer must count ORIGINS rather than stories:
+  // origin_key is the publisher, so the unique index on
+  // (shift_id, occurred_on, origin_key) collapses five outlets carrying one
+  // wire into a single beat. That collapse is the independence rule, and it is
+  // what `momentum` got wrong by counting volume.
+  //
+  // Tier comes from the source registry where the publisher is registered, and
+  // stays null where it is not. A guessed tier would put a number nobody
+  // measured straight into the score.
+  const origins = Array.from(new Set(v.items.map(i => i.source).filter(Boolean))) as string[]
+  const tierByOrigin = new Map<string, string>()
+  if (origins.length) {
+    const { data: known } = await supabase.from('content_sources')
+      .select('name, tier').in('name', origins)
+    for (const k of known || []) tierByOrigin.set(k.name as string, k.tier as string)
+  }
+  const beats = v.items.map(i => ({
+    shift_id: shiftId,
+    occurred_on: i.day,
+    what_changed: i.headline,
+    origin_key: i.source || i.url || i.headline,
+    source_tier: tierByOrigin.get(i.source || '') ?? null,
+  }))
+  await supabase.from('shift_beats')
+    .upsert(beats, { onConflict: 'shift_id,occurred_on,origin_key', ignoreDuplicates: true })
+
   // Link the feed rows so the purge never eats a story that fed a dossier.
   await supabase.from('content_ideas')
     .update({ shift_id: shiftId })
