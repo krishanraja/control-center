@@ -94,7 +94,7 @@ Destinations either share one root across device classes (passed `narrow` /
 | Content | `content-v2/ContentV2Tab` (both classes; v1 `DesktopContent` / `MobileContent` behind the flag) |
 | People | `people/PeopleTab` → lanes Pipeline (`DesktopLeads` / `MobileLeads`), **Network** (`network/NetworkTab`, both classes — the default lane), Visibility (`DesktopGuests` / `MobileGuests`) |
 | Growth | `growth/GrowthTab` (both classes, five sections) |
-| OS | `os/OsTab` → Queue / Org / Intel / Flows / Systems subtabs (`DesktopOrg`, `DesktopExec`, `DesktopFlows`, `SystemsPanel`, ... as subtab bodies) |
+| OS | `os/OsTab` → Queue / Org / Intel / Flows / Systems subtabs (`DesktopOrg`, `intel/BusinessIntelTab` (one tree, both shells), `DesktopFlows`, `SystemsPanel`, ... as subtab bodies) |
 | Focus | `focusPurpose/FocusPurposeTab` (`variant="desktop" \| "mobile"`) |
 | Subscriptions | `DesktopCustomers` / `MobileCustomers` (drawer) |
 
@@ -565,19 +565,51 @@ its header eyebrow, sits at `z-[70]` (above the native BottomNav, like
 BottomSheet), and — like every vw-derived width in `ui/dialog` — divides by
 `var(--z, 1)` so it caps correctly inside the mobile zoom root.
 
-### `IntelDrawer` / `IntelDoor` — the daily intel, one slide from Home (2026-08-22)
+### `SignalsDoor` / `SignalsDrawer` / `IntelDoor` — the two head spaces off Home (2026-08-26)
 
-`home/IntelDrawer.tsx` on `SlideOver`: Marcus's headline, the top five
-signals ranked by urgency (chips carry HIGH / MEDIUM and the deadline), one
-"Open Intel" row to OS → Intel. Signals open `intel/SignalSheet.tsx` — the sheet extracted
-from MobileIntel so the Intel tab and the drawer act on a signal identically
-(Create task / Add to bets). Data via the `useHomeIntelligence` singleton
-(shared realtime channel, no new subscriptions); signal ranking via
-`rankSignals` in `intel/NextIntelMobileHero.tsx`. The trigger is
-`home/IntelDoor.tsx`: on mobile a pill in Home's doors row beside the
-`FocusDoor` pill; on desktop beside the vitals line (the bottom-right corner
-belongs to the fixed ⌘I capture pill, which intercepts clicks on anything
-beneath it). Doors carry no counts.
+Internal and external intelligence never share a surface. `home/IntelDoor.tsx`
+is the INTERNAL path: a pill in Home's doors row (mobile) or the left slot of
+the doors row (desktop; the bottom-right corner belongs to the fixed ⌘I capture
+pill, which intercepts clicks beneath it) that navigates straight to OS → Intel.
+Doors carry no counts — the one sanctioned exception is its status dot.
+
+`home/SignalsDoor.tsx` is the EXTERNAL path, and doorway language only: a
+"Market signals" pill with no signal text and no counts, rendered ONLY when
+Marcus's digest is fresh and carries a high or critical signal (its arrival is
+the message). It opens `home/SignalsDrawer.tsx` on `SlideOver`, which hosts
+`intel/SignalsSection.tsx`: the whole ranked digest plus Zara's feed with
+data-derived venture chips and an honest dormancy line. Rows open
+`intel/SignalSheet.tsx` — one signal presentation, one pair of actions (Create
+task / Add to bets), everywhere. Data via the `useHomeIntelligence` and
+`useZaraSignals` singletons; ranking via `rankSignals` in `intel/SignalSheet.tsx`.
+
+### `intel/BusinessIntelTab` — the five questions (2026-08-26)
+
+The Business Intelligence tab is an interrogation, not a dashboard. Five fixed
+questions in an unchanging order, each answered live in one line with a
+one-word state token, each expanding into its full answer. `intel/questions.tsx`
+owns the answers as five hooks (`useCostingQuestion`, `useIncomeQuestion`,
+`useBrokenQuestion`, `useConvertingQuestion`, `useDecideQuestion`), each
+returning `{ question, token, answer, detail }`; the tab owns only the layout.
+
+Rules the surface enforces:
+
+- **One grammar.** Every section is a question with an answer. Nothing on the
+  tab is a card with its own header and its own data source — that shape was
+  rejected twice as "walls and walls of disconnected things".
+- **Answers are sentences.** The number lives inside the sentence in mono
+  (`<N>`), never as a bare metric. "Nothing." is a real answer.
+- **Marcus is a marked voice.** Serif, italic, always stamped with the day he
+  wrote it. His authored numbers live only in `intel/MarcusReadSheet.tsx`,
+  behind the header dateline — never mixed with the deterministic answers.
+- **Depth is behind taps, never truncation.** The phone accordion opens one
+  question at a time; `e2e/intel-zoom.spec.ts` pins the whole column at two
+  screen-lengths against a full fixture. Desktop is a rail plus a pane.
+- **The sixth question is the open one.** `AskMarcus` is a single input that
+  becomes the conversation once asked.
+
+Adding a question means adding a hook to `questions.tsx` and one entry to the
+tab's array. Do not add a card.
 
 ## `shared/SegmentedNav`: never hand-roll a tab switcher
 
