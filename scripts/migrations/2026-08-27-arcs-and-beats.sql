@@ -12,6 +12,14 @@
 -- the opposite of the previous model and the reason the One Number format is
 -- being retired: it assumed a striking number is a piece.
 --
+-- NARROWED 27 Aug, after the forty ranked verdicts arrived (see
+-- 2026-08-27-slate-rulings.sql). "Retired" was too broad. Krish approved two
+-- One Number items and rejected two, and the split was not about the format:
+-- the approved pair were beats of an arc already running, the rejected pair
+-- stood alone. So One Number is retired as a REASON A PROPOSAL EXISTS and kept
+-- as a way to present a beat inside one. api/_formats.ts carries that as
+-- arcOnly, and check-slate-calibration.mts holds it.
+--
 -- ---------------------------------------------------------------------------
 -- Why shifts gains arc_state rather than shifts.status being replaced
 --
