@@ -46,6 +46,13 @@ jobs:
       # column default, and this checks the default, the reserved meaning of
       # NULL, and the purge that depends on both.
       - run: npx tsx scripts/check-content-expiry.mts
+      # And once more for the other half of the same tab: the decision queue
+      # had no week bound at all, so it served the thirty oldest pending cards
+      # ever written and the same 10 July brief review sat at slot 1 for six
+      # weeks. The window is now defined once per side (the browser cannot
+      # import from api/), and this checks the two agree, that the read stays
+      # bounded, and that the purge still ages every card kind.
+      - run: npx tsx scripts/check-content-window.mts
       # Same reason again: the reject-reason taxonomy lived in three files that
       # disagreed on 26 codes, and 18 codes the UI could emit were missing from
       # the server's allow-list, so a whole class of rejection reached the

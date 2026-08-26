@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { ContentDecisionRow, ShiftEvidenceRow, ShiftRow, WeeklyBriefRow } from '../lib/contentV2'
+import { earliestQueueWeek } from '../lib/contentV2'
 
 // Data layer for the four-room Content tab. Reads go straight to Supabase
 // (anon SELECT per house RLS); every write goes through /api/* (service role).
@@ -24,12 +25,24 @@ export function useContentV2() {
   const alive = useRef(true)
 
   const refresh = useCallback(async () => {
+    // Both reads are bounded by the same week window. Without it the queue
+    // showed the thirty oldest pending cards ever written and the brief hero
+    // showed the newest brief that was never archived - which, because the
+    // purge only archived 'pushed'/'sent' and nothing had ever been pushed,
+    // meant a brief from any past week could sit here indefinitely.
+    const since = earliestQueueWeek()
     const [briefQ, decQ, shiftQ] = await Promise.all([
       supabase.from('weekly_briefs').select('*')
         .in('status', ['ready', 'in_review', 'approved', 'pushed', 'sent'])
+        .gte('week', since)
         .order('week', { ascending: false }).limit(1),
+      // Newest first, so if a week ever overruns the cap again (2026-W31 wrote
+      // 40 cards against the spec's 5-10) the truncation drops the oldest
+      // rather than hiding everything recent behind them.
       supabase.from('content_decisions').select('*')
-        .eq('status', 'pending').order('created_at', { ascending: true }).limit(30),
+        .eq('status', 'pending')
+        .gte('week', since)
+        .order('created_at', { ascending: false }).limit(60),
       supabase.from('shifts').select('*').order('momentum', { ascending: false }).limit(100),
     ])
     if (!alive.current) return

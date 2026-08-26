@@ -3,6 +3,7 @@ import type { useContentV2 } from '../../hooks/useContentV2'
 import type { ContentDecisionRow } from '../../lib/contentV2'
 import { DecisionCard } from './DecisionCard'
 import { Pending } from '../shared/Pending'
+import { useToast } from '../shared/Toast'
 
 // What is actually waiting on you, above the rooms rather than inside one.
 //
@@ -19,10 +20,21 @@ import { Pending } from '../shared/Pending'
 export function ObligationStrip({ v2 }: { v2: ReturnType<typeof useContentV2> }) {
   const { brief, decisions, loading } = v2
   const [busy, setBusy] = useState<string | null>(null)
+  const { toast } = useToast()
 
+  // Say so when a ruling fails. useContentV2's fetch wrapper throws on any
+  // non-OK response and this was a bare try/finally, so a 409 ("already
+  // dismissed") or a 500 cleared the spinner and changed nothing: a dead
+  // button and a working one looked identical.
   const act = async (d: ContentDecisionRow, fn: () => Promise<void>) => {
     setBusy(d.id)
-    try { await fn() } finally { setBusy(null) }
+    try {
+      await fn()
+    } catch (e) {
+      toast(`Could not save that: ${(e as Error)?.message || 'try again'}`, 'error')
+    } finally {
+      setBusy(null)
+    }
   }
 
   // Never render the "nothing waiting" line while the answer is still loading:
@@ -76,7 +88,11 @@ export function ObligationStrip({ v2 }: { v2: ReturnType<typeof useContentV2> })
               v2={v2}
               busy={busy === d.id}
               onAct={fn => act(d, fn)}
-              onOpenBrief={() => { if (brief) window.location.hash = `#/content?brief=${brief.week}` }}
+              // d.week, not brief.week. `brief` is the one latest brief the
+              // hook fetched, so clicking through an older card opened this
+              // week's brief instead - and approving there resolved this
+              // week's card while the one clicked stayed pending forever.
+              onOpenBrief={() => { window.location.hash = `#/content?brief=${d.week}` }}
             />
           ))}
         </div>
