@@ -53,6 +53,12 @@ jobs:
       # import from api/), and this checks the two agree, that the read stays
       # bounded, and that the purge still ages every card kind.
       - run: npx tsx scripts/check-content-window.mts
+      # And for the layer that cannot be caught downstream: G6 blocks any draft
+      # that does not carry the terminal statement VERBATIM, so a wrong name in
+      # it ships under Krish's name. G1 credited every number on a vendor domain
+      # to the domain owner, and published Stuut's 81.7% as Andreessen Horowitz's
+      # number. This checks a name is printed only where the sentence gives one.
+      - run: npx tsx scripts/check-anchor-attribution.mts
       # Same reason again: the reject-reason taxonomy lived in three files that
       # disagreed on 26 codes, and 18 codes the UI could emit were missing from
       # the server's allow-list, so a whole class of rejection reached the
