@@ -49,7 +49,28 @@ const BRIEF = {
   },
 }
 
+const calmMorning = {
+  id: 'm1', kind: 'morning', energy: 4, anxiety: 1, mode: 'green',
+  one_word: 'sharp', intent: null, venture: null, override_at: null, skipped: false,
+}
+
 async function mock(page: Page) {
+  // Fixed afternoon + a completed check-in: the pilot gate must never decide
+  // these assertions by wall clock (it fires its morning check-in over any
+  // route when the container crosses into morning hours).
+  await page.clock.setFixedTime(new Date('2026-08-20T18:30:00Z'))
+  await page.route('**/api/pilot/timezone', (r: Route) =>
+    r.fulfill({ json: { ok: true, timezone: 'America/New_York' } }))
+  await page.route('**/api/pilot/checkin*', (r: Route) => {
+    const tz = new URL(r.request().url()).searchParams.get('tz') || 'America/New_York'
+    return r.fulfill({
+      json: {
+        ok: true, morning: calmMorning, last_evening: null, evening_done_today: true,
+        yesterday: null, timezone: 'America/New_York',
+        today: new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),
+      },
+    })
+  })
   // Playwright checks route handlers in REVERSE registration order, so the
   // catch-all goes first and the specific ones after it. Registered the other
   // way round, `**/api/**` shadows the brief and the composer renders forever

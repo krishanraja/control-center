@@ -9,6 +9,11 @@ import { test, expect, type Page, type Route } from '@playwright/test'
  * Catch-alls first (reverse registration order), fixtures module-level.
  */
 
+// Fixed afternoon so the pilot gate's morning check-in can never fire on
+// wall clock — the spec used to pass or fail with the time of day. Every
+// relative date in the fixtures hangs off THIS instant, not the real now.
+export const AFTERNOON = new Date('2026-08-20T18:30:00Z')
+
 const SPEND_FULL = {
   ok: true,
   month_usd: 1284,
@@ -63,7 +68,7 @@ const SPEND_FULL = {
     broken_names: ['OpenAI'], low_names: ['ElevenLabs'],
   },
   renewals_due: [
-    { key: 'relume', name: 'Relume', amount: 348, currency: 'USD', on: new Date(Date.now() + 12 * 86_400_000).toISOString().slice(0, 10) },
+    { key: 'relume', name: 'Relume', amount: 348, currency: 'USD', on: new Date(AFTERNOON.getTime() + 12 * 86_400_000).toISOString().slice(0, 10) },
   ],
   needs_review: 2,
   meter: { usd_mtd: 41, calls_mtd: 1204 },
@@ -78,10 +83,28 @@ const SPEND_EMPTY = {
   renewals_due: [], needs_review: 0, meter: null, empty: true, as_of: new Date().toISOString(),
 }
 
+const calmMorning = {
+  id: 'm1', kind: 'morning', energy: 4, anxiety: 1, mode: 'green',
+  one_word: 'sharp', intent: null, venture: null, override_at: null, skipped: false,
+}
+
 async function mock(page: Page, spend: unknown = SPEND_FULL) {
+  await page.clock.setFixedTime(AFTERNOON)
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', (r: Route) => r.abort())
+  await page.route('**/api/pilot/timezone', (r: Route) =>
+    r.fulfill({ json: { ok: true, timezone: 'America/New_York' } }))
+  await page.route('**/api/pilot/checkin*', (r: Route) => {
+    const tz = new URL(r.request().url()).searchParams.get('tz') || 'America/New_York'
+    return r.fulfill({
+      json: {
+        ok: true, morning: calmMorning, last_evening: null, evening_done_today: true,
+        yesterday: null, timezone: 'America/New_York',
+        today: new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),
+      },
+    })
+  })
   await page.route('**/api/spend', (r: Route) => r.fulfill({ json: spend }))
   await page.route('**/rest/v1/home_intelligence*', (r: Route) => r.fulfill({
     json: {

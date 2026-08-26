@@ -25,9 +25,11 @@ const SAMPLE_PROMPTS = [
 
 /**
  * Pillar 4 — Ask Marcus. Chat surface grounded in live customer/lead/bet
- * data. Mounted on the Intel tab.
+ * data. Mounted on the Intel tab. `narrow` trims the idle footprint (two
+ * sample prompts, no header sub-line) so the phone console keeps its
+ * two-screen budget; the conversation itself is identical on both shells.
  */
-export function AskMarcus() {
+export function AskMarcus({ narrow = false }: { narrow?: boolean } = {}) {
   const [question, setQuestion] = useState('')
   const [history, setHistory] = useState<Exchange[]>([])
   const [busy, setBusy] = useState(false)
@@ -88,16 +90,17 @@ export function AskMarcus() {
       <header className="px-4 py-3 border-b border-violet-500/[0.15] flex items-center gap-2">
         <Sparkles size={14} className="text-violet-300" />
         <h2 className="text-body font-semibold text-white">Ask Marcus</h2>
-        <span className="text-micro text-violet-200/55 ml-auto">
-          Grounded in live customers · leads · bets
-        </span>
+        {!narrow && (
+          <span className="text-micro text-violet-200/55 ml-auto">
+            Grounded in live customers · leads · bets
+          </span>
+        )}
       </header>
 
       {history.length === 0 && (
-        <div className="px-4 py-4">
-          <p className="text-micro text-white/55 mb-2">Try:</p>
+        <div className="px-4 py-3">
           <div className="flex flex-wrap gap-1.5">
-            {SAMPLE_PROMPTS.map(p => (
+            {SAMPLE_PROMPTS.slice(0, narrow ? 2 : SAMPLE_PROMPTS.length).map(p => (
               <button
                 key={p}
                 type="button"
@@ -111,7 +114,7 @@ export function AskMarcus() {
         </div>
       )}
 
-      <div className="max-h-[420px] overflow-y-auto px-4 py-3 space-y-3">
+      <div className={`max-h-[420px] overflow-y-auto px-4 space-y-3 ${history.length > 0 ? 'py-3' : ''}`}>
         {history.map(ex => (
           <div key={ex.id} className="space-y-1.5">
             <div className="flex items-start gap-2">

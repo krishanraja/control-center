@@ -25,7 +25,7 @@ const daysUntil = (iso: string): number => Math.max(0, Math.round((Date.parse(is
  * here with its fix link; the full ranked list lives one tap away in the
  * detail sheet. Fed by GET /api/spend (receipts ingest + connections sweep).
  */
-export function SpendConnectionsPanel() {
+export function SpendConnectionsPanel({ narrow = false }: { narrow?: boolean }) {
   const h = useHaptics()
   const { spend, loading, refresh } = useSpend()
   const [open, setOpen] = useState(false)
@@ -80,26 +80,30 @@ export function SpendConnectionsPanel() {
           <>
             {/* The month's shape. The figure itself lives once, on the KPI
                 band's Money-out tile — this card's job is the trend and
-                whatever needs a hand. */}
-            <div className="flex items-end gap-3">
-              <div className="min-w-0 flex-1">
-                {spend.avg_3mo_usd > 0 ? (
-                  <p className="text-label text-white/40">
-                    A normal month is about <span className="font-mono tabular-nums">{usd(spend.avg_3mo_usd)}</span>
-                    {spend.meter ? (
-                      <> · on the meter so far: <span className="font-mono tabular-nums">${spend.meter.usd_mtd.toFixed(0)}</span></>
-                    ) : null}
-                  </p>
-                ) : (
-                  <p className="text-label text-white/40">The six-month shape of the spend.</p>
-                )}
+                whatever needs a hand. On the phone even the trend row yields:
+                the two-screen budget spends this card on what needs a hand,
+                and the shape lives in the detail sheet. */}
+            {!narrow && (
+              <div className="flex items-end gap-3">
+                <div className="min-w-0 flex-1">
+                  {spend.avg_3mo_usd > 0 ? (
+                    <p className="text-label text-white/40">
+                      A normal month is about <span className="font-mono tabular-nums">{usd(spend.avg_3mo_usd)}</span>
+                      {spend.meter ? (
+                        <> · on the meter so far: <span className="font-mono tabular-nums">${spend.meter.usd_mtd.toFixed(0)}</span></>
+                      ) : null}
+                    </p>
+                  ) : (
+                    <p className="text-label text-white/40">The six-month shape of the spend.</p>
+                  )}
+                </div>
+                <Sparkline
+                  data={spend.months.map(m => m.total_usd)}
+                  positive={spend.delta_pct != null ? spend.delta_pct <= 0 : true}
+                  ariaLabel="6-month spend trend"
+                />
               </div>
-              <Sparkline
-                data={spend.months.map(m => m.total_usd)}
-                positive={spend.delta_pct != null ? spend.delta_pct <= 0 : true}
-                ariaLabel="6-month spend trend"
-              />
-            </div>
+            )}
 
             {/* Connections: counts always, names only when a hand is needed. */}
             <div className="flex flex-wrap items-center gap-1.5" data-testid="spend-connections-strip">

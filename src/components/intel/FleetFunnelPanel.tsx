@@ -5,8 +5,10 @@ import { Skeleton } from '../shared/Skeleton'
 import { Working } from '../shared/Working'
 import { LastUpdated } from '../shared/LastUpdated'
 import { RefreshRail } from '../shared/RefreshRail'
-import { useFleetFunnel, type FleetAppRow } from '../../hooks/useFleetFunnel'
-import { useVentureRegistry, type VentureRow } from '../../hooks/useVentureRegistry'
+import { FunnelSheet } from './FunnelSheet'
+import { useHaptics } from '../../hooks/useHaptics'
+import { useFleetFunnel, appHealth, appDisplayLabel, HEALTH_DOT, HEALTH_LABEL } from '../../hooks/useFleetFunnel'
+import { useVentureRegistry } from '../../hooks/useVentureRegistry'
 
 /**
  * Fleet funnel — per builder app, the acquisition funnel (landed → signed →
@@ -20,43 +22,16 @@ import { useVentureRegistry, type VentureRow } from '../../hooks/useVentureRegis
  * three products retired from the control plane in July.
  */
 
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
-
-export type FleetHealth = 'live' | 'stale' | 'never'
-
-export function appHealth(row: FleetAppRow): FleetHealth {
-  if (row.events_7d > 0) return 'live'
-  if (!row.last_event_at) return 'never'
-  const age = Date.now() - new Date(row.last_event_at).getTime()
-  return Number.isFinite(age) && age > SEVEN_DAYS_MS ? 'stale' : 'live'
-}
-
-export const HEALTH_DOT: Record<FleetHealth, string> = {
-  live: 'bg-status-active',
-  stale: 'bg-status-needsYou',
-  never: 'bg-white/20',
-}
-
-export const HEALTH_LABEL: Record<FleetHealth, string> = {
-  live: 'Emitting',
-  stale: 'Stale (>7d)',
-  never: 'No events yet',
-}
-
-/** Registry display name for an attribution app key, else a plain capitalize. */
-export function appDisplayLabel(app: string, ventures: VentureRow[]): string {
-  const match = ventures.find(v => (v.app_key || '').toLowerCase() === app.toLowerCase())
-  return match?.display_name || app.charAt(0).toUpperCase() + app.slice(1)
-}
-
 function dollars(cents: number): string {
   return `$${Math.round((cents || 0) / 100).toLocaleString('en-US')}`
 }
 
-export function FleetFunnelPanel() {
+export function FleetFunnelPanel({ narrow = false }: { narrow?: boolean }) {
+  const h = useHaptics()
   const { funnel, error, loading, refresh } = useFleetFunnel()
   const { ventures } = useVentureRegistry()
   const [refreshing, setRefreshing] = useState(false)
+  const [open, setOpen] = useState(false)
 
   const reload = async () => {
     if (refreshing) return
@@ -68,6 +43,36 @@ export function FleetFunnelPanel() {
   const allZero =
     rows.length > 0 &&
     rows.every(r => !r.landed && !r.signed_up && !r.activated && !r.purchased && !r.gross_cents)
+
+  // The phone gets a door, not the board: the two-screen budget spends one
+  // row here, and the whole fleet (funnel, health, campaigns) lives in the
+  // sheet the door opens.
+  if (narrow) {
+    const gross = rows.reduce((s, r) => s + r.gross_cents, 0)
+    const sub = !funnel
+      ? (loading ? 'Reading the warehouse…' : error || 'No read yet')
+      : rows.length === 0
+        ? 'No builder apps wired yet'
+        : `${rows.map(r => appDisplayLabel(r.app, ventures)).join(', ')} · ${dollars(gross)} gross`
+    return (
+      <section data-testid="fleet-funnel-panel" className="shrink-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03]">
+        <button
+          type="button"
+          data-testid="fleet-funnel-open"
+          onClick={() => { h.select(); setOpen(true) }}
+          className="group flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-white/[0.05]"
+        >
+          <Boxes size={14} className="shrink-0 text-cyan-400/80" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block text-ui font-medium text-white/85">Fleet funnel</span>
+            <span className="mt-0.5 block truncate text-label text-white/45">{sub}</span>
+          </span>
+          <ChevronRight size={15} className="shrink-0 text-white/30 transition-colors group-hover:text-white/60" aria-hidden />
+        </button>
+        <FunnelSheet open={open} onClose={() => setOpen(false)} funnel={funnel} />
+      </section>
+    )
+  }
 
   return (
     // shrink-0: MobileShell's content area compresses shrinkable children when

@@ -2,17 +2,19 @@ import { test, expect, type Page, type Route } from '@playwright/test'
 
 /**
  * External market intelligence off Home — the head-space split (Krish's
- * mock-gate call, 2026-08-25): internal business intelligence lives on
- * OS → Intel; what the outside world is doing lives condensed on Home.
- * Pins four things:
+ * mock-gate calls, 2026-08-25/26): internal business intelligence lives on
+ * OS → Intel; the external feed lives behind a pure door, and NO market
+ * content ever renders on Home itself. Pins four things:
  *
  * 1. When Marcus's digest is fresh and carries a high/critical signal, Home
- *    shows the swipeable signal-cards row; a quiet digest renders nothing —
+ *    shows the Market signals door — doorway language only (a tile, a word,
+ *    a chevron; no signal text, no counts). A quiet digest renders nothing —
  *    the conditional-presence contract (same as the critical alert banner).
- * 2. A card opens the acting sheet (why it matters + task or bet), not a
+ * 2. The door opens the signals drawer with the full ranked digest; a drawer
+ *    row opens the acting sheet (why it matters + task or bet), never a
  *    navigation.
- * 3. The "All signals" card opens the signals drawer with the full ranked
- *    digest, including the signals too quiet for a card.
+ * 3. Home's face carries no signal content: the hot signal's text appears
+ *    only inside the drawer.
  * 4. The Intel door is the internal path: it lands on OS → Intel directly.
  *
  * Same mocking pattern as focus-purpose.spec.ts: catch-alls first (Playwright
@@ -92,38 +94,28 @@ async function mock(page: Page, intelRow: unknown = INTEL_ROW) {
 }
 
 test.describe('external market intelligence off Home', () => {
-  test('a fresh hot digest earns the cards row; a card opens the acting sheet, not a navigation', async ({ browser }) => {
+  test('a fresh hot digest earns the door; the drawer acts without navigating; Home shows no signal text', async ({ browser }) => {
     const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
     const page = await ctx.newPage()
     await page.clock.setFixedTime(AFTERNOON)
     await mock(page)
     await page.goto('/#/home')
 
-    const cards = page.getByTestId('signal-cards')
-    await expect(cards).toBeVisible()
-    // Only the hot signal earns a card; the medium one waits in the drawer.
-    await expect(cards.getByText('Four retailers named their first Chief AI Officer', { exact: false })).toBeVisible()
-    await expect(cards.getByText('UK redundancy warnings', { exact: false })).toHaveCount(0)
+    // The door is there; the signal's words are NOT on Home's face.
+    const door = page.getByTestId('signals-door')
+    await expect(door).toBeVisible()
+    await expect(page.getByText('Four retailers named their first Chief AI Officer', { exact: false })).toHaveCount(0)
 
-    await cards.getByText('Four retailers named their first Chief AI Officer', { exact: false }).click()
-    await expect(page.getByText(/Why it matters: The buyer role Mindmaker sells to/)).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Create task' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Add to bets' })).toBeVisible()
-    expect(page.url()).toContain('#/home')
-    await ctx.close()
-  })
-
-  test('the all-signals card opens the drawer with the full ranked digest', async ({ browser }) => {
-    const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
-    const page = await ctx.newPage()
-    await page.clock.setFixedTime(AFTERNOON)
-    await mock(page)
-    await page.goto('/#/home')
-
-    await page.getByTestId('signal-cards-all').click()
-    // The quiet signals live here, ranked under the hot one.
+    await door.click()
+    // The full ranked digest lives in the drawer, quiet signals included.
+    await expect(page.getByText('Four retailers named their first Chief AI Officer', { exact: false })).toBeVisible()
     await expect(page.getByText('UK redundancy warnings hit a five-year high', { exact: false })).toBeVisible()
     await expect(page.getByText('A mid-market bank published its model-risk playbook', { exact: false })).toBeVisible()
+
+    await page.getByText('UK redundancy warnings hit a five-year high', { exact: false }).click()
+    await expect(page.getByText(/Why it matters: The senior-exec talent pool/)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create task' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Add to bets' })).toBeVisible()
     expect(page.url()).toContain('#/home')
     await ctx.close()
   })
@@ -136,7 +128,7 @@ test.describe('external market intelligence off Home', () => {
     await page.goto('/#/home')
 
     await expect(page.getByTestId('vitals-focus')).toBeVisible()
-    await expect(page.getByTestId('signal-cards')).toHaveCount(0)
+    await expect(page.getByTestId('signals-door')).toHaveCount(0)
     await ctx.close()
   })
 
@@ -153,9 +145,9 @@ test.describe('external market intelligence off Home', () => {
     await ctx.close()
   })
 
-  test('the cards row and the doors survive the shortest supported phone', async ({ browser }) => {
-    // The pills live in the + button's reclaimed band and the cards row is a
-    // single compact band above the canon — both must be present at 360x800.
+  test('the signals door and the doors row survive the shortest supported phone', async ({ browser }) => {
+    // The pills live in the + button's reclaimed band and the signals door is
+    // a single compact pill above the canon — both must be present at 360x800.
     const ctx = await browser.newContext({
       timezoneId: 'America/New_York',
       viewport: { width: 360, height: 800 },
@@ -167,7 +159,7 @@ test.describe('external market intelligence off Home', () => {
 
     await expect(page.getByTestId('vitals-focus')).toBeVisible()
     await expect(page.getByTestId('intel-door')).toBeVisible()
-    await expect(page.getByTestId('signal-cards')).toBeVisible()
+    await expect(page.getByTestId('signals-door')).toBeVisible()
     await ctx.close()
   })
 })

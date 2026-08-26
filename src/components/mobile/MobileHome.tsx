@@ -5,7 +5,7 @@ import { VitalsLine } from '../home/VitalsLine'
 import { CanonCta } from '../home/CanonCta'
 import { FocusDoor } from '../home/FocusDoor'
 import { IntelDoor } from '../home/IntelDoor'
-import { SignalCards } from '../home/SignalCards'
+import { SignalsDoor } from '../home/SignalsDoor'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DueTestsCard } from '../pilot/DueTestsCard'
 import { Logomark } from './Logomark'
@@ -62,9 +62,10 @@ export function MobileHome({ onNavigate }: {
       <div className="shrink-0 flex flex-col gap-2.5">
         <CriticalAlertBanner />
         <DueTestsCard variant="mobile" />
-        {/* External market intelligence, only when something fresh is hot —
-            the same conditional-presence contract as the banner above. */}
-        <SignalCards />
+        {/* The door into external market intelligence — doorway language only,
+            no signal content on Home, present only when something fresh is
+            hot (the same conditional-presence contract as the banner). */}
+        <SignalsDoor />
       </div>
 
       {/* overflow-hidden so an over-tall day (a firing critical alert on a

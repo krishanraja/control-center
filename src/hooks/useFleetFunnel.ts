@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { VentureRow } from './useVentureRegistry'
 
 /**
  * Single canonical reader of GET /api/fleet-funnel — the service-role rollup
@@ -42,6 +43,39 @@ export interface FleetFunnel {
   byApp: FleetAppRow[]
   campaigns: FleetCampaignRow[]
   generated_at?: string
+}
+
+// ── Fleet presentation helpers ─────────────────────────────────────────────
+// Shared by the Fleet funnel panel and the funnel sheet; they live with the
+// domain type so neither component has to import the other.
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+
+export type FleetHealth = 'live' | 'stale' | 'never'
+
+export function appHealth(row: FleetAppRow): FleetHealth {
+  if (row.events_7d > 0) return 'live'
+  if (!row.last_event_at) return 'never'
+  const age = Date.now() - new Date(row.last_event_at).getTime()
+  return Number.isFinite(age) && age > SEVEN_DAYS_MS ? 'stale' : 'live'
+}
+
+export const HEALTH_DOT: Record<FleetHealth, string> = {
+  live: 'bg-status-active',
+  stale: 'bg-status-needsYou',
+  never: 'bg-white/20',
+}
+
+export const HEALTH_LABEL: Record<FleetHealth, string> = {
+  live: 'Emitting',
+  stale: 'Stale (>7d)',
+  never: 'No events yet',
+}
+
+/** Registry display name for an attribution app key, else a plain capitalize. */
+export function appDisplayLabel(app: string, ventures: VentureRow[]): string {
+  const match = ventures.find(v => (v.app_key || '').toLowerCase() === app.toLowerCase())
+  return match?.display_name || app.charAt(0).toUpperCase() + app.slice(1)
 }
 
 let cache: FleetFunnel | null = null

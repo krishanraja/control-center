@@ -2,6 +2,7 @@ import React from 'react'
 import { ExternalLink } from '@/lib/icons'
 import { SlideOver } from '../shared/SlideOver'
 import { Eyebrow } from '../shared/Eyebrow'
+import { Sparkline } from '../shared/Sparkline'
 import { statusStyle } from '../shared/tokens'
 import { usageLine } from './SpendConnectionsPanel'
 import type { SpendSummary, SpendServiceRow } from '../../hooks/useSpend'
@@ -45,13 +46,23 @@ export function SpendDetailSheet({ open, onClose, spend }: {
   return (
     <SlideOver open={open} onClose={onClose} ariaLabel="Spend detail" label="Spend">
       <div className="flex flex-col gap-5" data-testid="spend-detail">
-        <div>
-          <span className="font-mono tabular-nums text-heading font-semibold text-white">{usd(spend.month_usd)}</span>
-          <span className="ml-2 text-label text-white/45">out this month</span>
-          {spend.avg_3mo_usd > 0 && (
-            <p className="mt-0.5 text-label text-white/40">
-              A normal month is about {usd(spend.avg_3mo_usd)}.
-            </p>
+        <div className="flex items-end gap-3">
+          <div className="min-w-0 flex-1">
+            <span className="font-mono tabular-nums text-heading font-semibold text-white">{usd(spend.month_usd)}</span>
+            <span className="ml-2 text-label text-white/45">out this month</span>
+            {spend.avg_3mo_usd > 0 && (
+              <p className="mt-0.5 text-label text-white/40">
+                A normal month is about {usd(spend.avg_3mo_usd)}.
+                {spend.meter ? <> On the meter so far: ${spend.meter.usd_mtd.toFixed(0)}.</> : null}
+              </p>
+            )}
+          </div>
+          {spend.months.length > 1 && (
+            <Sparkline
+              data={spend.months.map(m => m.total_usd)}
+              positive={spend.delta_pct != null ? spend.delta_pct <= 0 : true}
+              ariaLabel="6-month spend trend"
+            />
           )}
         </div>
 

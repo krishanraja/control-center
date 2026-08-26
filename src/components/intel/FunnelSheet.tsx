@@ -2,8 +2,7 @@ import React from 'react'
 import { SlideOver } from '../shared/SlideOver'
 import { Eyebrow } from '../shared/Eyebrow'
 import { useVentureRegistry } from '../../hooks/useVentureRegistry'
-import { appDisplayLabel, appHealth, HEALTH_DOT, HEALTH_LABEL } from './FleetFunnelPanel'
-import type { FleetFunnel } from '../../hooks/useFleetFunnel'
+import { appDisplayLabel, appHealth, HEALTH_DOT, HEALTH_LABEL, type FleetFunnel } from '../../hooks/useFleetFunnel'
 
 const dollars = (cents: number): string => `$${Math.round((cents || 0) / 100).toLocaleString('en-US')}`
 
@@ -51,15 +50,34 @@ export function FunnelSheet({ open, onClose, funnel }: {
                       ? `${r.purchased_7d} bought this week. `
                       : 'Nobody bought this week. '}
                     All time: {r.landed.toLocaleString('en-US')} landed → {r.purchased} bought, {dollars(r.gross_cents)} gross.
+                    {' '}Events: {r.events_24h}/24h · {r.events_7d}/7d.
                   </p>
                 </div>
               )
             })}
           </div>
         )}
-        <p className="text-label leading-relaxed text-white/35">
-          Campaigns and emit-health live in the Fleet funnel section on the tab.
-        </p>
+
+        {funnel && funnel.campaigns.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <div className="px-1 pb-1"><Eyebrow>Top campaigns</Eyebrow></div>
+            {funnel.campaigns.map((c, i) => (
+              <div key={i} className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-label">
+                <span className="shrink-0 uppercase tracking-wide text-white/30">
+                  {appDisplayLabel(c.app, ventures)}
+                </span>
+                <span className="min-w-0 truncate text-white/70">
+                  {c.utm_campaign || c.utm_source || '—'}
+                </span>
+                {c.agent && <span className="shrink-0 text-white/30">· {c.agent}</span>}
+                <span className="ml-auto shrink-0 tabular-nums text-white/50">
+                  <span className="text-emerald-300">{c.purchased}</span>
+                  <span className="text-white/25"> / {c.landed}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </SlideOver>
   )

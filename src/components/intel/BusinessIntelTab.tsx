@@ -41,13 +41,13 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
   const body = (
     <>
       <KpiBand narrow={narrow} />
-      <MarcusReadCard />
-      <SpendConnectionsPanel />
-      <FleetFunnelPanel />
+      <MarcusReadCard narrow={narrow} />
+      <SpendConnectionsPanel narrow={narrow} />
+      <FleetFunnelPanel narrow={narrow} />
       {/* The conversation, docked last — renders in every state, including
           empty: asking a pointed question is always available. */}
       <div className="shrink-0">
-        <AskMarcus />
+        <AskMarcus narrow={narrow} />
       </div>
     </>
   )
