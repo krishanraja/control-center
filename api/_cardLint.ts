@@ -55,7 +55,7 @@ export interface LintFailure {
  *  linkedin post on this one". Tune against the golden ten once it exists. */
 export const SATURATION_LIMIT = 0.7
 
-const BANNED_OPENERS = [
+export const BANNED_OPENERS = [
   'Audit', 'Treat', 'Reassess', 'Stop', 'Scrutinise', 'Scrutinize', 'Secure',
   'Establish', 'Reforecast', 'Model your', 'Do not wait', 'Prepare for',
   'Ensure', 'Consider', 'Make sure', 'It is important to', 'Organisations should',
@@ -98,7 +98,12 @@ const BUZZWORDS = [
  *  rate, churn and margin, and banning those would fail the exact sentences the
  *  Money channel exists to write. Jargon in what_changed is fine; the brief
  *  says jargon in the evidence is allowed and jargon in the claim is not. */
-const TECHNICAL_JARGON = [
+/** Exported so api/_compose.ts can put the ACTUAL list in the prompt.
+ *  The first live run composed 14 cards and the lint rejected 13, eight of them
+ *  on this gate alone, because the prompt said "plain English" and the model
+ *  does not share our view of which words need looking up. Telling it the words
+ *  is not a hint, it is the rule. Two copies would drift, so there is one. */
+export const TECHNICAL_JARGON = [
   'inference', 'token', 'tokens', 'rag', 'retrieval-augmented', 'fine-tune',
   'fine-tuning', 'embedding', 'embeddings', 'vector', 'orchestration',
   'harness', 'eval', 'evals', 'agentic', 'llm', 'llms', 'context window',
