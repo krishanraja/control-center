@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type { useContentV2 } from '../../hooks/useContentV2'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 import { ShiftsRoom } from './ShiftsRoom'
+import { SurfacedCards } from './SurfacedCards'
 import { FeedRoom } from './FeedRoom'
 import { laneOf, type RoomId } from './ContentV2Tab'
 import { Eyebrow } from '../shared/Eyebrow'
@@ -48,6 +49,11 @@ export function LaneRoom({
         <h2 className="text-ui font-semibold text-white/90">{copy.title}</h2>
         <p className="text-label text-white/50 mt-0.5">{copy.question}</p>
       </header>
+
+      {/* What the engine actually chose this week, above the register it chose
+          from. This is the surface the whole rewrite exists to produce, and it
+          rendered nowhere until 26 Aug. */}
+      <SurfacedCards cards={v2.arcCards} shifts={v2.shifts} lane={lane} />
 
       <section>
         <h3 className="mb-2"><Eyebrow>Shifts in {copy.title.toLowerCase()}</Eyebrow></h3>

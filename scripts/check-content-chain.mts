@@ -20,7 +20,8 @@
 // feeding the next.
 //
 //   npx tsx scripts/check-content-chain.mts
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 
 let fail = 0
 const bad = (m: string) => { console.log('FAIL: ' + m); fail++ }
@@ -90,9 +91,35 @@ const CHAIN: Link[] = [
     from: 'api/arcs/surface.ts',
     into: ['src/hooks/useContentV2.ts'],
     symbol: /from\(\s*['"]arc_cards['"]\s*\)/,
-    why: 'the engine decides seven cards a week and Krish never sees them, which is where this whole rewrite was on 26 Aug',
+    why: 'the engine decides seven cards a week and the data layer never asks for them',
   },
 ]
+
+// The chain has one more link than it looks like, and it caught a second
+// instance of the same fault an hour after the first. useContentV2 fetching
+// arc_cards is NOT the same as Krish seeing them: the hook returned the rows
+// and no component read the field, so the tab was still rendering the old
+// pending decisions and the whole rewrite was still invisible. "Wired" means
+// on screen.
+{
+  const dir = 'src/components/content-v2'
+  const files = existsSync(dir) ? readdirSync(dir).filter(f => f.endsWith('.tsx')) : []
+  const consumers = files.filter(f => /\barcCards\b/.test(src(join(dir, f))))
+  if (!consumers.length) {
+    bad('render is dead code. No component reads arcCards, so the hook fetches the week\'s cards and nothing puts them on screen. This is the same fault as an unused scoreArc, one layer up')
+  } else {
+    // And the consumer has to be reachable, or it is a file nobody mounts.
+    const mounted = consumers.some(c => {
+      const name = c.replace(/\.tsx$/, '')
+      return files.some(f => f !== c && new RegExp(`from\\s+['"]\\./${name}['"]`).test(src(join(dir, f))))
+    })
+    if (!mounted) {
+      bad(`${consumers.join(', ')} reads arcCards but no other component imports it, so it never mounts`)
+    } else {
+      console.log(`  render             useContentV2.arcCards  ->  ${consumers.join(', ')}`)
+    }
+  }
+}
 
 for (const link of CHAIN) {
   if (!src(link.from).trim()) { bad(`${link.stage}: ${link.from} is missing`); continue }
