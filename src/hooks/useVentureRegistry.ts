@@ -9,6 +9,11 @@ export interface VentureRow {
   scoring_criteria: Record<string, unknown> | null
   active: boolean
   sort_order: number
+  // Attribution binding: venture_registry.slug uses lane slugs (mm_ctrl,
+  // fractionl_pulse) while attribution.events.app uses short keys (ctrl,
+  // pulse); this column joins them. Nullable — not every lane is a builder
+  // app that emits events.
+  app_key?: string | null
   // Acquisition autonomy ladder (select('*') already returns these; typed so
   // the Growth surfaces can consume them). L1 = every send approved,
   // L2 = 1-in-10 sampled, L3 = exception only.

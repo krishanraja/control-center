@@ -122,7 +122,7 @@ function CalibrationFlow({ domain, onClose }: { domain: Domain; onClose: () => v
       body: JSON.stringify({ action: 'items', domain, count: TARGET_SCREENS * SCREEN_SIZE }),
     })
       // Parse defensively — an HTML error page must not surface a raw
-      // "Unexpected token '<'…" to the user (see FleetFunnelPanel).
+      // "Unexpected token '<'…" to the user (see useFleetFunnel).
       .then(async r => {
         const raw = await r.text()
         let json: any = null

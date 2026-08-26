@@ -33,7 +33,15 @@ export function useRevenue(pollMs = 300_000) {
       try {
         const r = await fetch(`${API}/api/revenue`, { cache: 'no-cache' })
         const j = await r.json()
-        if (!cancelled && r.ok && j.ok) setData(j as RevenueSummary)
+        // Shape-check before caching: a generic {ok:true} from a proxy or an
+        // older deploy must not masquerade as a summary (useSpend does the
+        // same). A malformed body would otherwise crash every consumer that
+        // walks committed_mrr_other.
+        if (!cancelled && r.ok && j && j.ok
+          && typeof j.committed_mrr_usd_cents === 'number'
+          && Array.isArray(j.committed_mrr_other)) {
+          setData(j as RevenueSummary)
+        }
       } catch {
         // Leave the last good value in place; a failed poll is not a $0 month.
       } finally {

@@ -185,12 +185,15 @@ reach Krish).
 
 ## I
 
-**Intel (tab)** — User-facing name for the strategic-metrics tab.
-Implemented as `DesktopExec.tsx` and routed under the `exec` tab id.
-Hosts the AskMarcus chat surface.
+**Intel (tab)** — The OS subtab whose page title is **Business
+Intelligence**; the short `intel` sub id and the "Intel" door label stay.
+Implemented as `intel/BusinessIntelTab.tsx` (one tree, both shells) and
+also routed under the legacy `exec` tab id. See **Five Questions**.
 
-**Intelligence feed** — The chronological stream of `audit_log` rows
-shown on the Intel tab. Same source as Live Activity, different framing.
+**Five Questions** — The governing shape of Business Intelligence since
+2026-08-26: what is it costing, what is coming in, what is broken, is
+anything converting, what should I decide. Fixed order, one live
+one-line answer each, expanding in place. The sixth is AskMarcus.
 
 ---
 
@@ -200,8 +203,9 @@ shown on the Intel tab. Same source as Live Activity, different framing.
 credential health, workflow health, API quirks (kept in
 `system_config.known_quirks`).
 
-**KPI strip** — The metric tile row near the top of Home / Intel. Sourced
-from `home_intelligence.metrics`. Collapses entirely when empty.
+**KPI strip** — Retired 2026-08-26. `home_intelligence.metrics` are
+Marcus's own authored targets, so they now render as **his scoreboard**
+inside `intel/MarcusReadSheet.tsx`, never beside deterministic numbers.
 
 **Krish** — The CEO. The only intended user of Control Center. Audit-log
 actor for every manual action (`actor='krish'`).

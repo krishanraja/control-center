@@ -89,15 +89,21 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
    pills live in the band the FAB already reserved. On desktop the Intel
    pill takes the left slot of the doors row and the Focus row fills the
    rest: the bottom-right corner is owned by the fixed ⌘I capture pill,
-   which floats over anything placed under it.
-8. **IntelDrawer** (`home/IntelDrawer.tsx`) - the daily intel one slide from
-   Home: Marcus's headline, then the top five signals ranked by urgency
-   with their urgency chips (each opening the shared `intel/SignalSheet`
-   with Create task / Add to bets), one quiet money line ("$1,284 out this
-   month · connections ok", hidden until real spend data exists), and one
-   "Open Intel" row to OS → Intel. Reads the `useHomeIntelligence` singleton - no new channel.
-   Charts, KPIs, bets and Ask Marcus deliberately stay on the full Intel
-   subtab.
+   which floats over anything placed under it. The Intel door NAVIGATES
+   (2026-08-26) - straight to OS → Intel, so the money dot and the money
+   are one tap apart.
+8. **SignalsDoor + SignalsDrawer** (2026-08-26, `home/SignalsDoor.tsx`) -
+   the external head space, and the only place it appears. Internal and
+   external intelligence must not share a surface (Krish's call), so Home
+   carries doorway language only: a "Market signals" pill with no signal
+   text and no counts, present ONLY when Marcus's digest is fresh and
+   carries a high or critical signal - its arrival IS the message, the
+   same conditional-presence contract as the critical alert banner. A
+   quiet week renders nothing at all. It opens `home/SignalsDrawer.tsx`:
+   Marcus's whole ranked digest plus Zara's market feed with data-derived
+   venture chips and an honest dormancy line, each row opening the shared
+   `intel/SignalSheet` (Create task / Add to bets). Reads the
+   `useHomeIntelligence` singleton - no new channel.
 
 ### Inputs
 
@@ -111,7 +117,7 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 | VitalsLine · waiting | `decisions_waiting` view | `useRealtimeDecisionsWaiting` |
 | CriticalAlertBanner | `silent_failures` tier 3 | `useCriticalAlerts` |
 | DueTestsCard | `worries` via `GET /api/pilot/worries` | local fetch |
-| IntelDrawer | `home_intelligence` (headline + `external_signals`) | `useHomeIntelligence` (shared singleton) |
+| SignalsDoor / SignalsDrawer | `home_intelligence.external_signals` + `zara_signals` | `useHomeIntelligence`, `useZaraSignals` |
 
 ### Writes
 - **GoalLadder** → `POST /api/objectives` (gated create) and
@@ -403,8 +409,11 @@ ever truncated.
 
 ## Tab: Bets (PR #44)
 
-> **Relocated (2026-08-20).** Bets render as a strip on **OS → Intel**;
-> the standalone tab and the Home strip are gone. Historical below.
+> **Relocated (2026-08-20, reshaped 2026-08-26).** Bets answer "What
+> should I decide?" on **OS → Intel**: overdue ones are ranked act rows
+> there, and the full deck with Won / Lost / Extend lives in the bets
+> sheet behind them. The standalone tab, the Home strip and the collapsed
+> BetsStrip are all gone. Historical below.
 
 ### Purpose
 > *What falsifiable hypotheses am I running, what's the 90-day hit rate,
@@ -486,51 +495,71 @@ ever truncated.
 
 ---
 
-## Tab: Intel (routed as `exec`)
+## Tab: Business Intelligence (OS → Intel, routed as `exec`)
 
 ### Purpose
-> *Show me strategic numbers, ask Marcus a question grounded in real OS
-> state, and read the signal stream.*
+> *Answer the five questions I would ask about my own system, and let me
+> act on the answer without leaving the page.*
 
-### Sections
-1. **AskMarcus** - chat surface backed by `/api/ask-marcus`. Anthropic-
-   backed Q&A grounded in `customers` / `leads` / `bets` /
-   `home_intelligence`. No autofocus on mount (2026-08-25): stealing focus
-   popped the phone keyboard into the fixed no-scroll zoom shell, so the
-   tab always opened "zoomed in".
-1b. **Spend & connections** (2026-08-25, `intel/SpendConnectionsPanel.tsx`
-   on both shells) - the money-out and API-health read: this month's USD
-   total from receipts truth against a normal month, the six-month
-   sparkline, the ok/low/broken connections strip with named rows and fix
-   links only for what needs a hand, renewals inside 30 days, and the
-   honesty line for receipts the parser could not read. The ranked
-   per-service list is one tap away (`intel/SpendDetailSheet.tsx`, with a
-   manual "Check now" that arms the sweep). Fed by `GET /api/spend`
-   (`spend_invoices` + `service_registry`; see docs/DATABASE.md).
-2. **Revenue & Pipeline** - line chart of `home_intelligence.metrics[].progress_pct`.
-3. **Agent Cost** - bar chart, total in the corner. Sourced from
-   `workflow_runs.cost_usd` (with legacy `cost` fallback). Grouped by
-   `agent_id` (with legacy `agent` fallback). Unattributed rows roll up to
-   `system`.
-4. **Intelligence Feed** - chronological `audit_log`, latest 20.
-5. **Zara Signals** - top recent rows from `zara_signals`.
+The tab is an interrogation, not a dashboard (Krish's call, 2026-08-26,
+after the stacked-card console was rejected twice as "walls and walls of
+disconnected things"). Five fixed questions in an unchanging order, each
+answered live in one line with a one-word state token. This is the
+INTERNAL head space only: what the outside world is doing lives off Home
+behind the Market signals door (see IntelDoor / SignalsDoor above).
+
+### The five questions (`intel/questions.tsx`)
+Each hook owns one question's token, its one-line answer, and the full
+answer it expands into. Every closed answer is deterministic system truth.
+
+| Question | Answer from | Expands to |
+|---|---|---|
+| What is it costing? | `GET /api/spend` (receipts truth) | The 6-month sparkline, the meter, unreadable-receipt honesty, and a door into the ranked per-service sheet |
+| What is coming in? | `GET /api/revenue` (Stripe) | Committed MRR per currency, collected 30d/90d/all-time, the one-off share note |
+| What is broken? | the connections sweep in `/api/spend` | Every broken or low service with its who-spent-it attribution line, its top-up link, and "Check now" |
+| Is anything converting? | `GET /api/fleet-funnel` | Per-app 7-day and all-time funnel, emit health, top campaigns |
+| What should I decide? | `bets` + spend + `home_intelligence` | Marcus's focus line, then overdue bets, top-ups and renewals as ranked act rows |
+
+The sixth question is the open one: `AskMarcus` is a single serif input
+that becomes the conversation once asked. No autofocus on mount
+(2026-08-25): stealing focus popped the phone keyboard into the fixed
+no-scroll zoom shell, so the tab always opened "zoomed in".
+
+### Marcus, the marked voice
+His headline and dateline crown the page in serif ("MARCUS · WRITTEN WED
+26 AUG · NEXT READ FRI"); the dateline opens his full brief as a sheet
+(`intel/MarcusReadSheet.tsx`): the deduped read, org focus, content
+recommendation, focus this week, and **his own scoreboard**. His authored
+numbers live only there — they are never mixed with the deterministic
+answers on the tab. `dedupeMarcusRead` kills the old double-render, where
+`assessment` (the insights pipe-joined) printed above the same insights.
+
+### Shells
+- **Phone**: an accordion. Five closed rows plus the ask fit about one
+  screen; one opened answer stays inside two. `e2e/intel-zoom.spec.ts`
+  pins that cap against a full fixture — depth lives behind taps, never
+  behind truncation.
+- **Desktop**: a rail of the five questions beside a pane for the open
+  one, defaulting to "What should I decide?".
 
 ### Inputs
-- `home_intelligence` (singleton, `id='current'`).
-- `audit_log` latest 20.
-- `workflow_runs` latest 20.
-- `zara_signals` latest 20.
+- `home_intelligence` (singleton, `id='current'`) via `useHomeIntelligence`.
+- `marcus_synthesis` latest row via `useMarcusSynthesis`.
+- `GET /api/spend`, `GET /api/revenue`, `GET /api/fleet-funnel`.
+- `bets` via `useBets`.
 
 ### Writes
 - AskMarcus POST is read-only on the DB side (does not mutate).
+- "Check now" POSTs `/api/health/connections-sweep`.
+- The bets sheet PATCHes `/api/bets/:id` (Won / Lost / Extend).
 
 ### Behaviour rules
-- Cost roll-up must include legacy-column rows. The fallback exists
-  because `agent → agent_id` and `cost → cost_usd` were renamed on
-  2026-04-15; the Intel cost number must remain truthful across that
-  migration.
-- The line chart is illustrative, not actuarial. Hover tooltip is the
-  authoritative number for any specific metric.
+- A question's answer must be a full sentence with the number inside it,
+  never a bare metric. If the honest answer is "Nothing", it says so.
+- Marcus can be days stale; the deterministic answers never are. The
+  dateline drops "NEXT READ" past four days rather than promising a run
+  that did not happen.
+- The tab renders no market signals, ever.
 
 ---
 

@@ -1,13 +1,21 @@
 import { test, expect, type Page, type Route } from '@playwright/test'
 
 /**
- * The Home intel drawer (#/home → the Intel pill). Pins three things:
+ * External market intelligence off Home — the head-space split (Krish's
+ * mock-gate calls, 2026-08-25/26): internal business intelligence lives on
+ * OS → Intel; the external feed lives behind a pure door, and NO market
+ * content ever renders on Home itself. Pins four things:
  *
- * 1. Home carries a door into the daily intel on both shells, and the drawer
- *    shows the curated set: headline, ranked signals, one "Open Intel" row.
- * 2. A signal opens the same sheet the Intel tab uses (why it matters + the
- *    two actions), so acting on intel from Home is one tap, not a navigation.
- * 3. The "Open Intel" row lands on OS → Intel, where the heavy surface lives.
+ * 1. When Marcus's digest is fresh and carries a high/critical signal, Home
+ *    shows the Market signals door — doorway language only (a tile, a word,
+ *    a chevron; no signal text, no counts). A quiet digest renders nothing —
+ *    the conditional-presence contract (same as the critical alert banner).
+ * 2. The door opens the signals drawer with the full ranked digest; a drawer
+ *    row opens the acting sheet (why it matters + task or bet), never a
+ *    navigation.
+ * 3. Home's face carries no signal content: the hot signal's text appears
+ *    only inside the drawer.
+ * 4. The Intel door is the internal path: it lands on OS → Intel directly.
  *
  * Same mocking pattern as focus-purpose.spec.ts: catch-alls first (Playwright
  * matches in reverse registration order), then the specific routes.
@@ -41,6 +49,12 @@ const INTEL_ROW = {
   generated_at: new Date().toISOString(),
 }
 
+// Same digest with nothing hot: the cards row must not spend Home's space.
+const QUIET_ROW = {
+  ...INTEL_ROW,
+  external_signals: INTEL_ROW.external_signals.filter(s => s.urgency !== 'high'),
+}
+
 const calmMorning = {
   id: 'm1', kind: 'morning', energy: 4, anxiety: 1, mode: 'green',
   one_word: 'sharp', intent: null, venture: null, override_at: null, skipped: false,
@@ -48,7 +62,7 @@ const calmMorning = {
 
 const AFTERNOON = new Date('2026-08-20T18:30:00Z') // 14:30 New York
 
-async function mock(page: Page) {
+async function mock(page: Page, intelRow: unknown = INTEL_ROW) {
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', (r: Route) => r.abort())
@@ -64,11 +78,11 @@ async function mock(page: Page) {
       },
     })
   })
-  await page.route('**/rest/v1/home_intelligence*', (r: Route) => r.fulfill({ json: INTEL_ROW }))
-  // An explicitly empty spend summary: the drawer's money line and the door
-  // dot render nothing, so the four assertions above stay about the signals.
-  // (The generic **/api/** {ok:true} would be rejected by useSpend's shape
-  // check anyway; this pins the intended quiet state.)
+  await page.route('**/rest/v1/home_intelligence*', (r: Route) => r.fulfill({ json: intelRow }))
+  // An explicitly empty spend summary: the door dot stays dark, so these
+  // assertions stay about the signals. (The generic **/api/** {ok:true}
+  // would be rejected by useSpend's shape check anyway; this pins the
+  // intended quiet state.)
   await page.route('**/api/spend', (r: Route) => r.fulfill({
     json: {
       ok: true, month_usd: 0, avg_3mo_usd: 0, delta_pct: null, ballooning: false,
@@ -79,30 +93,26 @@ async function mock(page: Page) {
   }))
 }
 
-test.describe('the home intel drawer', () => {
-  test('opens from the desktop door with the headline, the signals and the way deeper', async ({ browser }) => {
+test.describe('external market intelligence off Home', () => {
+  test('a fresh hot digest earns the door; the drawer acts without navigating; Home shows no signal text', async ({ browser }) => {
     const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
     const page = await ctx.newPage()
     await page.clock.setFixedTime(AFTERNOON)
     await mock(page)
     await page.goto('/#/home')
 
-    await page.getByTestId('intel-door').click()
-    await expect(page.getByText('Enterprise AI services are consolidating')).toBeVisible()
+    // The door is there; the signal's words are NOT on Home's face.
+    const door = page.getByTestId('signals-door')
+    await expect(door).toBeVisible()
+    await expect(page.getByText('Four retailers named their first Chief AI Officer', { exact: false })).toHaveCount(0)
+
+    await door.click()
+    // The full ranked digest lives in the drawer, quiet signals included.
+    await expect(page.getByText('Four retailers named their first Chief AI Officer', { exact: false })).toBeVisible()
     await expect(page.getByText('UK redundancy warnings hit a five-year high', { exact: false })).toBeVisible()
-    await expect(page.getByRole('button', { name: /Open Intel/ })).toBeVisible()
-    await ctx.close()
-  })
+    await expect(page.getByText('A mid-market bank published its model-risk playbook', { exact: false })).toBeVisible()
 
-  test('a signal opens the acting sheet, not a navigation', async ({ browser }) => {
-    const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
-    const page = await ctx.newPage()
-    await page.clock.setFixedTime(AFTERNOON)
-    await mock(page)
-    await page.goto('/#/home')
-
-    await page.getByTestId('intel-door').click()
-    await page.getByText('UK redundancy warnings hit a five-year high').click()
+    await page.getByText('UK redundancy warnings hit a five-year high', { exact: false }).click()
     await expect(page.getByText(/Why it matters: The senior-exec talent pool/)).toBeVisible()
     await expect(page.getByRole('button', { name: 'Create task' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Add to bets' })).toBeVisible()
@@ -110,7 +120,19 @@ test.describe('the home intel drawer', () => {
     await ctx.close()
   })
 
-  test('the open-intel row lands on OS → Intel', async ({ browser }) => {
+  test('a quiet digest spends no Home glass at all', async ({ browser }) => {
+    const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
+    const page = await ctx.newPage()
+    await page.clock.setFixedTime(AFTERNOON)
+    await mock(page, QUIET_ROW)
+    await page.goto('/#/home')
+
+    await expect(page.getByTestId('vitals-focus')).toBeVisible()
+    await expect(page.getByTestId('signals-door')).toHaveCount(0)
+    await ctx.close()
+  })
+
+  test('the intel door is the internal path: it lands on the console', async ({ browser }) => {
     const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
     const page = await ctx.newPage()
     await page.clock.setFixedTime(AFTERNOON)
@@ -118,31 +140,14 @@ test.describe('the home intel drawer', () => {
     await page.goto('/#/home')
 
     await page.getByTestId('intel-door').click()
-    await page.getByRole('button', { name: /Open Intel/ }).click()
     await expect(page).toHaveURL(/os\?sub=intel/)
+    await expect(page.getByRole('heading', { name: 'Business Intelligence' })).toBeVisible()
     await ctx.close()
   })
 
-  test('the mobile doors row carries both pills and the drawer opens', async ({ browser }) => {
-    const ctx = await browser.newContext({
-      timezoneId: 'America/New_York',
-      viewport: { width: 390, height: 844 },
-    })
-    const page = await ctx.newPage()
-    await page.clock.setFixedTime(AFTERNOON)
-    await mock(page)
-    await page.goto('/#/home')
-
-    await expect(page.getByTestId('vitals-focus')).toBeVisible()
-    await page.getByTestId('intel-door').click()
-    await expect(page.getByText('Enterprise AI services are consolidating')).toBeVisible()
-    await ctx.close()
-  })
-
-  test('the doors survive the shortest supported phone', async ({ browser }) => {
-    // The old full-width Focus door hid below 840px CSS height. The pills live
-    // in the + button's reclaimed band, so they no longer cost the canon a row
-    // and must be present even at 360x800.
+  test('the signals door and the doors row survive the shortest supported phone', async ({ browser }) => {
+    // The pills live in the + button's reclaimed band and the signals door is
+    // a single compact pill above the canon — both must be present at 360x800.
     const ctx = await browser.newContext({
       timezoneId: 'America/New_York',
       viewport: { width: 360, height: 800 },
@@ -154,6 +159,7 @@ test.describe('the home intel drawer', () => {
 
     await expect(page.getByTestId('vitals-focus')).toBeVisible()
     await expect(page.getByTestId('intel-door')).toBeVisible()
+    await expect(page.getByTestId('signals-door')).toBeVisible()
     await ctx.close()
   })
 })

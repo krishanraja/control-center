@@ -201,7 +201,7 @@ for (const theme of ['dark', 'light'] as const) {
     })
 
     await page.goto('/#/exec')
-    const ask = page.getByPlaceholder('Ask something pointed…')
+    const ask = page.getByPlaceholder('Ask the sixth question…')
     await ask.waitFor({ timeout: 20_000 })
     await ask.fill('Should I raise Fractionl Circle pricing?')
     await ask.press('Enter')

@@ -38,7 +38,11 @@ export function MobileShell({
   return (
     <div className="flex flex-col h-full">
       {header && <div className="px-5 pt-7 pb-5 flex-shrink-0">{header}</div>}
+      {/* data-testid: the e2e suite measures scrollHeight against
+          clientHeight here to pin per-tab scroll budgets (the Business
+          Intelligence console must fit two screen-lengths on a phone). */}
       <div
+        data-testid="tab-scroll"
         className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 scrollbar-hide ${BOTTOM_NAV_PAD}`}
       >
         {children}
@@ -74,6 +78,7 @@ export function TabHeader({
   subtitle,
   leading,
   trailing,
+  wrap = false,
 }: {
   title?: string
   /** A node, not a string, so a pending subtitle can be a bar in its own
@@ -84,6 +89,10 @@ export function TabHeader({
   subtitle?: React.ReactNode
   leading?: React.ReactNode
   trailing?: React.ReactNode
+  /** Let a long title break onto a second line (the iOS large-title wrap)
+   *  instead of truncating — "Business Intelligence" does not fit one line
+   *  on a phone. Opt-in so the twelve short titles keep their guarantee. */
+  wrap?: boolean
 }) {
   const resolvedLeading = leading === undefined ? <Logomark size={40} /> : leading
   return (
@@ -91,7 +100,7 @@ export function TabHeader({
       {resolvedLeading && <div className="flex-shrink-0 self-start mt-1">{resolvedLeading}</div>}
       <div className="min-w-0 flex-1">
         {title && (
-          <h1 className="font-bold text-white leading-[1.1] tracking-tight truncate text-heading">
+          <h1 className={`font-bold text-white leading-[1.1] tracking-tight text-heading ${wrap ? '' : 'truncate'}`}>
             {title}
           </h1>
         )}

@@ -16,16 +16,12 @@ interface Exchange {
   error?: string
 }
 
-const SAMPLE_PROMPTS = [
-  'Should I raise Fractionl Circle pricing?',
-  "What's the one bet I should kill this week?",
-  'Which product is leaking the most MRR?',
-  'Which customer should I call first?',
-]
-
 /**
- * Pillar 4 — Ask Marcus. Chat surface grounded in live customer/lead/bet
- * data. Mounted on the Intel tab.
+ * The sixth question. The Business Intelligence tab asks five fixed
+ * questions with live answers; this is the open one — a single input in
+ * Marcus's serif voice that becomes the conversation once asked. Grounded
+ * in live customer, lead and bet data. Idle footprint is one row; history
+ * renders above the input as it accumulates.
  */
 export function AskMarcus() {
   const [question, setQuestion] = useState('')
@@ -84,54 +80,31 @@ export function AskMarcus() {
   }
 
   return (
-    <section className="rounded-2xl border border-violet-500/20 bg-violet-500/[0.03] overflow-hidden">
-      <header className="px-4 py-3 border-b border-violet-500/[0.15] flex items-center gap-2">
-        <Sparkles size={14} className="text-violet-300" />
-        <h2 className="text-body font-semibold text-white">Ask Marcus</h2>
-        <span className="text-micro text-violet-200/55 ml-auto">
-          Grounded in live customers · leads · bets
-        </span>
-      </header>
-
-      {history.length === 0 && (
-        <div className="px-4 py-4">
-          <p className="text-micro text-white/55 mb-2">Try:</p>
-          <div className="flex flex-wrap gap-1.5">
-            {SAMPLE_PROMPTS.map(p => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => ask(p)}
-                className="max-w-full truncate px-2.5 py-1 rounded-full text-left text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] hover:border-white/20"
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+    <section aria-label="Ask Marcus" className="flex flex-col gap-3">
+      {history.length > 0 && (
+        <div className="flex flex-col gap-3 border-l-2 border-violet-400/40 pl-3.5">
+          {history.map(ex => (
+            <div key={ex.id} className="space-y-1.5">
+              <div className="flex items-start gap-2">
+                <span className="text-micro uppercase tracking-[0.14em] text-white/35 mt-0.5 flex-shrink-0">You</span>
+                <p className="text-body text-white">{ex.question}</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-micro uppercase tracking-[0.14em] text-violet-300 mt-0.5 flex-shrink-0">M</span>
+                {ex.loading && <Pending label={marcus.label} elapsedMs={elapsed} expectedMs={marcus.expectedMs} />}
+                {ex.error   && <p className="text-label text-red-300">{ex.error}</p>}
+                {ex.reply   && <p className="font-serif text-lede text-white/85 leading-relaxed whitespace-pre-wrap">{ex.reply}</p>}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      <div className="max-h-[420px] overflow-y-auto px-4 py-3 space-y-3">
-        {history.map(ex => (
-          <div key={ex.id} className="space-y-1.5">
-            <div className="flex items-start gap-2">
-              <span className="text-micro uppercase tracking-[0.14em] text-white/35 mt-0.5 flex-shrink-0">You</span>
-              <p className="text-body text-white">{ex.question}</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-micro uppercase tracking-[0.14em] text-violet-300 mt-0.5 flex-shrink-0">M</span>
-              {ex.loading && <Pending label={marcus.label} elapsedMs={elapsed} expectedMs={marcus.expectedMs} />}
-              {ex.error   && <p className="text-label text-red-300">{ex.error}</p>}
-              {ex.reply   && <p className="text-body text-white/85 leading-snug whitespace-pre-wrap">{ex.reply}</p>}
-            </div>
-          </div>
-        ))}
-      </div>
-
       <form
         onSubmit={(e) => { e.preventDefault(); ask(question) }}
-        className="border-t border-violet-500/[0.12] p-3 flex items-end gap-2"
+        className="flex items-end gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-2 pl-3.5 transition-colors focus-within:border-white/[0.18]"
       >
+        <Sparkles size={14} className="mb-[11px] shrink-0 text-violet-300/70" aria-hidden />
         <textarea
           ref={inputRef}
           value={question}
@@ -143,14 +116,14 @@ export function AskMarcus() {
             }
           }}
           rows={1}
-          placeholder="Ask something pointed…"
+          placeholder="Ask the sixth question…"
           disabled={busy}
-          className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg text-body text-white p-2.5 placeholder:text-white/30 focus:outline-none focus:border-white/[0.18] disabled:opacity-50 resize-none"
+          className="flex-1 resize-none bg-transparent p-2 text-body text-white placeholder:font-serif placeholder:italic placeholder:text-white/35 focus:outline-none disabled:opacity-50"
         />
         <button
           type="submit"
           disabled={busy || !question.trim()}
-          className="px-3 py-2.5 rounded-lg text-label font-semibold bg-violet-500/30 border border-violet-500/40 text-violet-100 hover:bg-violet-500/40 disabled:opacity-40 flex items-center gap-1"
+          className="flex items-center gap-1.5 rounded-xl border border-white/[0.1] px-3.5 py-2 text-label font-semibold text-white/80 transition-colors hover:bg-white/[0.06] disabled:opacity-40"
         >
           {busy ? <Working size={12} /> : <Send size={12} />}
           Ask

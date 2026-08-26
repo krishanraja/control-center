@@ -35,6 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const agent_owner       = typeof body.agent_owner === 'string' ? body.agent_owner : null
   const est_mrr           = Number.isFinite(Number(body.est_mrr_impact_usd)) ? Number(body.est_mrr_impact_usd) : null
   const replaces_bet_id   = typeof body.replaces_bet_id === 'string' ? body.replaces_bet_id : null
+  const source_signal_id  = typeof body.source_signal_id === 'string' ? body.source_signal_id : null
 
   if (!hypothesis || !success_criterion) {
     res.status(400).json({ error: 'hypothesis and success_criterion required' })
@@ -62,6 +63,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .update({ status: 'paused', updated_at: new Date().toISOString() })
       .eq('id', replaces_bet_id)
       .eq('status', 'live')
+  }
+
+  // A bet promoted from a market signal marks that signal actioned HERE,
+  // with service-role credentials. Both promote buttons used to do this from
+  // the browser through the anon client, which RLS made read-only in July —
+  // a silent no-op, so every promoted signal stayed 'received' forever.
+  // Best-effort: a failed status write must not unwind a created bet.
+  if (source_signal_id) {
+    const { error: sigErr } = await supabase
+      .from('zara_signals')
+      .update({ status: 'actioned' })
+      .eq('id', source_signal_id)
+    if (sigErr) console.warn('[bets] zara_signals actioned update failed:', sigErr.message)
   }
 
   res.status(200).json({ bet: data })
