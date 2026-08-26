@@ -270,6 +270,9 @@ export async function runDetect() {
   const { data: registryData, error: regErr } = await supabase
     .from('shifts')
     .select('id, slug, title, summary, status, provenance, lane, embedding, last_evidence_on, momentum_history')
+    // Merged arcs are kept rather than deleted so a merge is reversible
+    // (api/shifts/[id].ts). Excluded here or a folded arc reappears.
+    .is('superseded_by', null)
     .neq('status', 'retired')
   if (regErr) throw new Error(regErr.message)
   const registry = (registryData || []) as ShiftRow[]

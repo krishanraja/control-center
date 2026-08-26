@@ -321,8 +321,23 @@ export function classifyOrigin(url: string | null, numberSentence: string): Orig
   const independentVerb = INDEPENDENT_MEASUREMENT.test(numberSentence)
 
   if (entry) {
-    // The domain IS the entity's own property, so publishing its name is a fact
-    // about the URL, not an inference from the prose. Attribution is certain.
+    // The domain IS the entity's own property, so OWNERSHIP is certain from the
+    // URL. Attribution is not, and the two were conflated here.
+    //
+    // `attributed: true` unconditionally meant that any number appearing on a
+    // vendor's own domain was recorded as a number FROM that vendor, even when
+    // the sentence never named them. On a publisher-shaped vendor domain that
+    // is usually wrong: a16z.news carried Stuut's 81.7% figure on B2B
+    // collections, and G1 published "how did an undenominated number from
+    // Andreessen Horowitz reach 5 outlets across 10 days" - a false statement
+    // about whose number it is, in the one layer this pipeline promises to
+    // publish honestly. Seen on the 2026-W33 investigation card.
+    //
+    // The distinction already exists one line up: `hit` is exactly "the
+    // sentence names this entity". When it is false the origin is self_relayed
+    // - the domain owner is RELAYING someone else's number - and naming them as
+    // its source is a guess. So attribution now follows the sentence, which is
+    // what the rule at the foot of gateAnchor has always said it must.
     const hit = aliasHit(numberSentence, [...entry.aliases, entry.entity])
     return {
       origin: hit ? 'self' : 'self_relayed',
@@ -331,7 +346,7 @@ export function classifyOrigin(url: string | null, numberSentence: string): Orig
       matchedAlias: hit,
       domainInLexicon: true,
       unknownEntityCandidate: null,
-      attributed: true,
+      attributed: Boolean(hit),
     }
   }
 

@@ -43,7 +43,12 @@ export function useContentV2() {
         .eq('status', 'pending')
         .gte('week', since)
         .order('created_at', { ascending: false }).limit(60),
-      supabase.from('shifts').select('*').order('momentum', { ascending: false }).limit(100),
+      // Merged arcs are kept rather than deleted so a merge is reversible
+      // (api/shifts/[id].ts), so every list reader must exclude them or a
+      // folded arc reappears beside the one it was folded into.
+      supabase.from('shifts').select('*')
+        .is('superseded_by', null)
+        .order('momentum', { ascending: false }).limit(100),
     ])
     if (!alive.current) return
     setBrief(((briefQ.data || [])[0] as WeeklyBriefRow) || null)
