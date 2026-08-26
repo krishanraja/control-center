@@ -65,6 +65,13 @@ jobs:
       # the engine's own 2026-W28..W33 output: all 17 so-whats must be rejected,
       # and a card written to the brief must still pass.
       - run: npx tsx scripts/check-card-lint.mts
+      # Step 2 of the rewrite. The six lenses are declared twice by necessity:
+      # the CHECK constraint is what rejects a bad write, the union is what
+      # stops the code producing one. Drift between them fails inside a cron in
+      # production rather than here. Also holds the two rules an edit is most
+      # likely to quietly undo: no catch-all lens, and none of the nine retired
+      # areas creeping back in.
+      - run: npx tsx scripts/check-content-vocabulary.mts
       # Same reason again: the reject-reason taxonomy lived in three files that
       # disagreed on 26 codes, and 18 codes the UI could emit were missing from
       # the server's allow-list, so a whole class of rejection reached the
