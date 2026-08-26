@@ -79,6 +79,14 @@ jobs:
       # must stay empty rather than backfill with the familiar. Also checks that
       # every reader excludes merged arcs, now that a merge keeps the row.
       - run: npx tsx scripts/check-arc-scoring.mts
+      # Step 7. Krish ranked forty generated ideas lead/yes/maybe/no. The set is
+      # useful and it is also the most concentrated statement of interest in the
+      # system, so the assertion that matters most here is a negative one: the
+      # scorer must not be able to see it. A proposer ranking by what he already
+      # approved still returns seven cards a week, so nothing would look broken.
+      # Also holds folder coverage, and stops a format being deleted for
+      # converting badly rather than marked and kept.
+      - run: npx tsx scripts/check-slate-calibration.mts
       # Same reason again: the reject-reason taxonomy lived in three files that
       # disagreed on 26 codes, and 18 codes the UI could emit were missing from
       # the server's allow-list, so a whole class of rejection reached the
