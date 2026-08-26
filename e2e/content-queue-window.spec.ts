@@ -60,10 +60,32 @@ const ANCIENT_CARD = {
  * point: a mock that ignores the filter passes just as happily against the
  * unbounded query that caused the bug, so it would pin nothing.
  */
+const calmMorning = {
+  id: 'm1', kind: 'morning', energy: 4, anxiety: 1, mode: 'green',
+  one_word: 'sharp', intent: null, venture: null, override_at: null, skipped: false,
+}
+
 async function mockQueue(page: Page, rows: Array<{ week: string }>) {
   const urls: string[] = []
   // Catch-alls first: Playwright checks handlers in REVERSE registration order.
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
+  // The pilot gate renders its morning check-in over ANY route when the
+  // machine's clock says morning, which hid this whole tab and failed every
+  // assertion below between roughly 5am and noon. A fixed afternoon plus a
+  // completed check-in keeps the suite honest at any hour (the same
+  // hardening spend-panel, intel-zoom and composer carry).
+  await page.route('**/api/pilot/timezone', (r: Route) =>
+    r.fulfill({ json: { ok: true, timezone: 'America/New_York' } }))
+  await page.route('**/api/pilot/checkin*', (r: Route) => {
+    const tz = new URL(r.request().url()).searchParams.get('tz') || 'America/New_York'
+    return r.fulfill({
+      json: {
+        ok: true, morning: calmMorning, last_evening: null, evening_done_today: true,
+        yesterday: null, timezone: 'America/New_York',
+        today: new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),
+      },
+    })
+  })
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', (r: Route) => r.abort())
   await page.route('**/rest/v1/content_decisions*', (r: Route) => {

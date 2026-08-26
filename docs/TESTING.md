@@ -27,7 +27,7 @@ guards exist outside CI; see the root `AGENTS.md`.
 
 ## e2e
 
-Thirteen spec files (100 tests) against the production build via `npm run
+Fourteen spec files (104 tests) against the production build via `npm run
 preview`. All `/api/*`, `**/rest/v1/**` and `**/realtime/**` traffic is
 mocked, so panels settle on their honest empty states without a live
 database and no spec spends an embedding or a model call.
@@ -46,6 +46,7 @@ database and no spec spends an embedding or a model call.
 | `e2e/market-signals.spec.ts` | the head-space split: the Market signals door appears only for a fresh hot digest, Home's face carries no signal text, the drawer acts without navigating, the Intel door lands on the console | default + 360x800 |
 | `e2e/intel-zoom.spec.ts` | OS → Intel does not steal focus or overflow the zoom root, **and the whole phone column fits two screen-lengths** | 390x844 + 1280x800 |
 | `e2e/spend-panel.spec.ts` | the money and connections answers on the interrogation, the ranked service sheet, the sweep trigger, the Home door dot | 390x844 + 1280x800 |
+| `e2e/content-queue-window.spec.ts` | the content queue's ageing window and the archive an aged-out card lands in | default |
 | `e2e/content-rooms.spec.ts` | Built vs Paid: own shifts lead, cross-cutting ones are labelled | default |
 
 `pilot-gate.spec.ts` is the one suite that owns its own context per test, because
