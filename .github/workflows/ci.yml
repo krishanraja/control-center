@@ -72,6 +72,13 @@ jobs:
       # likely to quietly undo: no catch-all lens, and none of the nine retired
       # areas creeping back in.
       - run: npx tsx scripts/check-content-vocabulary.mts
+      # Steps 4, 5 and 6. Three rules here are the kind an edit undoes as a
+      # convenience and nobody notices until the queue is wrong again: a single
+      # event must be BLOCKED rather than scored low, independence must be
+      # counted by origin rather than story volume, and the two reserved slots
+      # must stay empty rather than backfill with the familiar. Also checks that
+      # every reader excludes merged arcs, now that a merge keeps the row.
+      - run: npx tsx scripts/check-arc-scoring.mts
       # Same reason again: the reject-reason taxonomy lived in three files that
       # disagreed on 26 codes, and 18 codes the UI could emit were missing from
       # the server's allow-list, so a whole class of rejection reached the

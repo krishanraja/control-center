@@ -124,6 +124,9 @@ async function loadRegisterSummary(): Promise<string> {
   const { data } = await supabase
     .from('shifts')
     .select('title, summary, implication, status, momentum')
+    // Merged arcs are kept rather than deleted so a merge is reversible
+    // (api/shifts/[id].ts). Excluded here or a folded arc reappears.
+    .is('superseded_by', null)
     .in('status', ['active', 'fading', 'proposed'])
     .order('momentum', { ascending: false })
     .limit(12)
