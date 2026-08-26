@@ -192,3 +192,31 @@ export function monthLabel(day: string): string {
   const d = new Date(`${day}T00:00:00Z`)
   return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
+
+/** One arc's card for one week, with the scorer's verdict attached.
+ *
+ *  Losers are stored too. A blocked or unsurfaced arc keeps its reason, so
+ *  "why is this not in my queue" is answerable and a quiet week is
+ *  distinguishable from a week the job never ran. */
+export interface ArcCardRow {
+  id: string
+  shift_id: string
+  week: string
+  headline: string | null
+  what_changed: string | null
+  why_now: string | null
+  the_opening: string | null
+  where_this_goes: string | null
+  reader_decision: string | null
+  format: string | null
+  score: number | null
+  components: Array<{ name: string; weight: number; value: number }>
+  blocked: boolean
+  blocks: string[]
+  surfaced: boolean
+  /** True when this card took one of the two slots held for arcs matching no
+   *  tracked question. */
+  reserved_slot: boolean
+  surface_reason: string | null
+  created_at: string
+}

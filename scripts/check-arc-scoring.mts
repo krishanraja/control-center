@@ -146,6 +146,20 @@ const ARC: Arc = {
   }
   if (r2.emptyReserved !== 1) bad(`expected 1 empty reserved slot, got ${r2.emptyReserved}`)
 
+  // The reservation is a FLOOR, not a cap. It shipped as a cap: unthemed arcs
+  // were sliced to exactly `reserved`, so however well the unfamiliar work
+  // scored, at most two of seven cards could ever be unfamiliar. That is the
+  // anti-echo rule inverted, and it is invisible in production because seven
+  // cards still appear every week.
+  const threeUnthemed = [mk('u1', 0.90, null), mk('u2', 0.88, null), mk('u3', 0.86, null),
+    mk('t1', 0.50, 'f1'), mk('t2', 0.48, 'f1'), mk('t3', 0.46, 'f1'), mk('t4', 0.44, 'f1')]
+  const r4 = surface(threeUnthemed)
+  if (r4.unthemed.length !== 3) {
+    bad(`${r4.unthemed.length} unthemed surfaced when three outscored every themed arc. The two reserved slots are a floor, not a ceiling: capping them shows Krish worse and more familiar cards on merit`)
+  }
+  if (r4.themed.length + r4.unthemed.length > VISIBLE_SLOTS) bad('more than seven cards surfaced once unthemed took extra slots')
+  if (r4.emptyReserved !== 0) bad(`emptyReserved is ${r4.emptyReserved} when the floor was exceeded, expected 0`)
+
   // Order is by score, and age is not an input at all.
   const shuffled = [mk('a', 0.1, 'f1'), mk('b', 0.9, 'f1'), mk('c', 0.5, 'f1')]
   const r3 = surface(shuffled)
