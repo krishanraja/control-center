@@ -127,7 +127,11 @@ comment on table public.shift_beats is
 -- tier", explicitly NOT story count. This function is the one definition of
 -- that, so the scorer and any query agree.
 create or replace function public.arc_independent_beats(p_shift_id uuid)
-returns integer language sql stable as $$
+returns integer
+language sql
+stable
+set search_path = public, pg_temp
+as $$
   select count(distinct coalesce(origin_key, what_changed))::integer
   from public.shift_beats
   where shift_id = p_shift_id
