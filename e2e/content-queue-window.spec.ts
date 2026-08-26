@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Route } from '@playwright/test'
+import { answerPilotGate } from './pilot-gate-mock'
 
 /**
  * The Content queue's week window.
@@ -66,6 +67,7 @@ async function mockQueue(page: Page, rows: Array<{ week: string }>) {
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', (r: Route) => r.abort())
+  await answerPilotGate(page)
   await page.route('**/rest/v1/content_decisions*', (r: Route) => {
     const url = decodeURIComponent(r.request().url())
     urls.push(url)

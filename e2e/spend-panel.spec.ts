@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Route } from '@playwright/test'
+import { answerPilotGate } from './pilot-gate-mock'
 
 /**
  * The spend and connections tracker: one card on Intel answering "what is
@@ -82,6 +83,7 @@ async function mock(page: Page, spend: unknown = SPEND_FULL) {
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', (r: Route) => r.abort())
+  await answerPilotGate(page)
   await page.route('**/api/spend', (r: Route) => r.fulfill({ json: spend }))
   await page.route('**/rest/v1/home_intelligence*', (r: Route) => r.fulfill({
     json: {

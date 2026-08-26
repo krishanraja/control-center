@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Route } from '@playwright/test'
+import { answerPilotGate } from './pilot-gate-mock'
 
 /**
  * Two regressions on the OS → Intel route, both real bugs shipped 2026-08:
@@ -26,6 +27,7 @@ async function mock(page: Page) {
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', (r: Route) => r.abort())
+  await answerPilotGate(page)
   await page.route('**/api/spend', (r: Route) => r.fulfill({ json: SPEND_EMPTY }))
   await page.route('**/rest/v1/home_intelligence*', (r: Route) => r.fulfill({
     json: {

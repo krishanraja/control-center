@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Route } from '@playwright/test'
+import { answerPilotGate } from './pilot-gate-mock'
 
 /**
  * The composer, for a weekly brief.
@@ -57,6 +58,7 @@ async function mock(page: Page) {
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', (r: Route) => r.abort())
+  await answerPilotGate(page)
   await page.route('**/api/briefs/notes', (r: Route) => r.fulfill({ json: { ok: true, notes: [] } }))
   await page.route(`**/api/briefs/${WEEK}`, (r: Route) => r.fulfill({ json: BRIEF }))
 }
