@@ -87,6 +87,13 @@ jobs:
       # Also holds folder coverage, and stops a format being deleted for
       # converting badly rather than marked and kept.
       - run: npx tsx scripts/check-slate-calibration.mts
+      # The one that would have caught the whole thing. Steps 1 to 7 each passed
+      # their own guard while none of it ran: scoreArc, surface and lintCard were
+      # called by nothing, every live arc had lens null, and the Content tab was
+      # still served by the old decisions path. Every guard was green because each
+      # checked a component against its own contract and nothing checked that the
+      # components were joined up. This walks the chain link by link.
+      - run: npx tsx scripts/check-content-chain.mts
       # Same reason again: the reject-reason taxonomy lived in three files that
       # disagreed on 26 codes, and 18 codes the UI could emit were missing from
       # the server's allow-list, so a whole class of rejection reached the

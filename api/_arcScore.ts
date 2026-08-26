@@ -178,12 +178,30 @@ export function surface<T extends { theme_id: string | null; score: number }>(
   const unthemedAll = byScore.filter(a => a.theme_id === null)
   const themedAll = byScore.filter(a => a.theme_id !== null)
 
-  const unthemed = unthemedAll.slice(0, reserved)
-  const emptyReserved = reserved - unthemed.length
+  // The reservation is a FLOOR, not a cap. Fixed 26 Aug: this read
+  // `unthemedAll.slice(0, reserved)`, which held unthemed arcs to two slots
+  // however well they scored, so the engine could never show more than two
+  // unfamiliar cards out of seven. That is the anti-echo rule running
+  // backwards, and it is worse than not reserving at all, because it puts a
+  // permanent ceiling on the only part of the queue Krish was not already
+  // looking at.
+  //
+  // Caught by the first real run: the two best cards of the week were unthemed
+  // at 0.68 and 0.66, a third scored 0.64, and it was displaced by themed cards
+  // scoring 0.57, 0.54 and 0.52. The engine was choosing three worse and more
+  // familiar cards over one better and less familiar one, by construction.
+  const topBySlots = byScore.slice(0, slots)
+  const earned = topBySlots.filter(a => a.theme_id === null).length
+  const unthemed = unthemedAll.slice(0, Math.max(reserved, earned))
 
-  // The themed half takes what is left. Unfilled reserved slots are NOT given
-  // back to it: that is the whole point of reserving them.
-  const themed = themedAll.slice(0, slots - reserved)
+  // Short only when there genuinely are not enough unthemed arcs to fill the
+  // floor. Those slots stay empty and are never given back to the themed half:
+  // an empty slot is the signal that the week produced nothing unfamiliar.
+  const emptyReserved = Math.max(0, reserved - unthemed.length)
+
+  // Themed take what is left after the floor, or after the unthemed have earned
+  // more than the floor. Never more than slots - reserved.
+  const themed = themedAll.slice(0, slots - Math.max(reserved, unthemed.length))
 
   return { themed, unthemed, emptyReserved }
 }

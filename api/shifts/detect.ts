@@ -5,6 +5,10 @@ import { callClaude, robustJson } from '../_content.js'
 import { embedBatch, cosine, vectorLiteral } from '../_embeddings.js'
 import { isoWeekLabel } from '../_weeks.js'
 import {
+  buildClassifyPrompt, parseClassification, discardRate, DISCARD_ALARM,
+  type ClassifiableArc, type FolderRef,
+} from '../_classify.js'
+import {
   buildCorpus, buildDetectionPrompt, verifyShift, slugifyShift, titleJaccard,
   computeMomentum, WINDOW_DAYS, MATCH_COSINE, MATCH_TITLE_JACCARD, FADING_AFTER_DAYS,
   laneForShift,
@@ -286,6 +290,14 @@ export async function runDetect() {
     results.push(await applyToRegister(verified[i], registry, vecs[i] || null, week))
   }
 
+  // ── classify: give every unclassified arc a lens, and a folder if one fits ──
+  //
+  // Runs on every detection, not only on new arcs, because an arc created
+  // before this step existed has lens null and would otherwise stay invisible
+  // to the scorer forever. Old arcs are cheap to include and the pass is
+  // idempotent: a row that already has a lens is never re-read.
+  const classify = await classifyUnclassified()
+
   // Fading pass: active shifts starved of evidence queue a weekend ruling.
   const fadeFloor = new Date(Date.now() - FADING_AFTER_DAYS * 86_400_000).toISOString().slice(0, 10)
   const nowActive = registry.filter(s => s.status === 'active' && s.last_evidence_on && s.last_evidence_on < fadeFloor)
@@ -303,6 +315,87 @@ export async function runDetect() {
     created: results.filter(r => r.created).length,
     accrued: results.filter(r => !r.created).length,
     faded: nowActive.length,
+    classified: classify,
+  }
+}
+
+/** Assigns lens and theme_id to every live arc that has neither.
+ *
+ *  Returns counts rather than throwing on a thin result: a detection run that
+ *  found real shifts must not be rolled back because the classifier had a bad
+ *  minute. A discard rate above DISCARD_ALARM is reported rather than acted on,
+ *  because the fix is the source registry and that is a decision, not a job. */
+export async function classifyUnclassified(limit = 60) {
+  const { data: folderRows } = await supabase
+    .from('content_themes')
+    .select('id, slug, question, channel')
+    .eq('state', 'open')
+  const folders = (folderRows || []) as FolderRef[]
+  if (!folders.length) return { skipped: 'no open folders' }
+
+  const { data: arcRows } = await supabase
+    .from('shifts')
+    .select('id, title, summary, implication')
+    .is('superseded_by', null)
+    .is('lens', null)
+    .neq('status', 'retired')
+    .limit(limit)
+  const arcs = (arcRows || []) as Array<{ id: string; title: string; summary: string | null; implication: string | null }>
+  if (!arcs.length) return { pending: 0 }
+
+  // Recent beats give the classifier what actually happened, not just the arc's
+  // oldest framing of itself.
+  const { data: beatRows } = await supabase
+    .from('shift_beats')
+    .select('shift_id, what_changed, occurred_on')
+    .in('shift_id', arcs.map(a => a.id))
+    .order('occurred_on', { ascending: false })
+    .limit(400)
+  const beatsBy = new Map<string, string[]>()
+  for (const b of beatRows || []) {
+    const list = beatsBy.get(b.shift_id) || []
+    if (list.length < 6) list.push(b.what_changed)
+    beatsBy.set(b.shift_id, list)
+  }
+
+  const payload: ClassifiableArc[] = arcs.map(a => ({
+    id: a.id, title: a.title, summary: a.summary, implication: a.implication,
+    beats: beatsBy.get(a.id) || [],
+  }))
+  const { system, user } = buildClassifyPrompt(payload, folders)
+  const raw = await callClaude({ model: 'claude-sonnet-4-6', maxTokens: 4000, temperature: 0, system, user })
+  const results = parseClassification(robustJson(raw), new Set(folders.map(f => f.slug)))
+  if (!results.length) return { pending: arcs.length, wrote: 0, note: 'classifier returned nothing usable' }
+
+  const bySlug = new Map(folders.map(f => [f.slug, f.id]))
+  const known = new Set(arcs.map(a => a.id))
+  let wrote = 0
+  for (const c of results) {
+    if (!known.has(c.id)) continue
+    // A discarded arc is written as lens null WITH its reason, so "why did this
+    // never surface" is answerable. Silent discards are how the previous engine
+    // produced 54 proposals and zero explanations.
+    const { error } = await supabase.from('shifts').update({
+      lens: c.lens,
+      theme_id: c.lens && c.theme_slug ? bySlug.get(c.theme_slug) ?? null : null,
+      classified_at: new Date().toISOString(),
+      classify_reason: c.reason,
+      plausible_new_theme: c.plausible_new_theme,
+    }).eq('id', c.id)
+    if (!error) wrote++
+  }
+
+  const rate = discardRate(results)
+  return {
+    seen: results.length,
+    wrote,
+    kept: results.filter(r => r.lens).length,
+    discarded: results.filter(r => !r.lens).length,
+    themed: results.filter(r => r.theme_slug).length,
+    discard_rate: Number(rate.toFixed(2)),
+    ...(rate > DISCARD_ALARM
+      ? { alarm: `discard rate ${Math.round(rate * 100)}% is above ${Math.round(DISCARD_ALARM * 100)}%: the corpus is wrong, not the ontology. Change the sources, not the lenses.` }
+      : {}),
   }
 }
 
