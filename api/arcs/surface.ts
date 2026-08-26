@@ -3,9 +3,10 @@ import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { callClaude, robustJson } from '../_content.js'
 import { isoWeekLabel } from '../_weeks.js'
-import { buildComposePrompt, parseComposed, type ComposableArc } from '../_compose.js'
+import { buildComposePrompt, buildRepairPrompt, parseComposed, type ComposableArc, type ComposedCard } from '../_compose.js'
 import { scoreArc, surface, surfacingReason, VISIBLE_SLOTS, RESERVED_FOR_UNTHEMED,
   MIN_INDEPENDENT_BEATS, type Arc } from '../_arcScore.js'
+import { lintCard } from '../_cardLint.js'
 import type { Lens, Channel } from '../_lenses.js'
 
 // The step between "the detector found arcs" and "Krish sees seven cards".
@@ -32,6 +33,12 @@ import type { Lens, Channel } from '../_lenses.js'
  *  backlog cannot blow maxDuration. Anything dropped is REPORTED, never silent:
  *  a truncated run that looks complete is how a queue goes quietly wrong. */
 const MAX_COMPOSE = 20
+
+/** Repair passes per card. Two, not one: the failures are usually banned words
+ *  in the claim, and a single pass tends to swap one for another. Measured on a
+ *  live run, where a repair removed "token" and introduced "agentic". Each pass
+ *  must strictly reduce the failure count, so this converges or stops. */
+const MAX_REPAIRS = 2
 
 interface Row {
   id: string; title: string; summary: string | null; implication: string | null
@@ -112,6 +119,7 @@ export async function runSurface(opts: { week?: string; max?: number } = {}) {
   type Scored = { row: Row; card: any; score: number; components: unknown; blocked: boolean; blocks: string[] }
   const scored: Scored[] = []
   const skipped: Array<{ row: Row; reason: string }> = []
+  let repairAttempted = 0, repairSucceeded = 0
 
   for (const a of toCompose) {
     const beats = (beatsBy.get(a.id) || []).map(b => ({
@@ -132,8 +140,41 @@ export async function runSurface(opts: { week?: string; max?: number } = {}) {
       skipped.push({ row: a, reason: `composer failed: ${String(e?.message || e).slice(0, 200)}` })
       continue
     }
-    if (!composed) { skipped.push({ row: a, reason: 'composer returned nothing usable' }); continue }
+    if (!composed) {
+      // Observed once in eight: a response came back unparseable and the same
+      // arc composed cleanly on a retry. One retry, then give up and say so.
+      try {
+        const retry = await callClaude({ model: 'claude-sonnet-4-6', maxTokens: 1600, temperature: 0.3, system, user, timeoutMs: 45_000 })
+        composed = parseComposed(robustJson(retry))
+      } catch { /* fall through to the skip below */ }
+    }
+    if (!composed) { skipped.push({ row: a, reason: 'composer returned nothing usable, twice' }); continue }
     if ('skip' in composed) { skipped.push({ row: a, reason: `composer declined: ${composed.skip}` }); continue }
+
+    // One bounded repair attempt. Measured on the first live run: 14 composed,
+    // 13 rejected by lint, mostly for banned words in the claim and sentence
+    // counts. Both are mechanical and both are fixable without touching the
+    // evidence, so showing the model its own failures is worth one extra call.
+    // The lint still decides: a card that fails again is blocked, not waved
+    // through, and repairs are counted so a rising rate is visible.
+    let failures = lintCard(composed)
+    const hadFailures = failures.length > 0
+    if (hadFailures) repairAttempted++
+    for (let attempt = 0; attempt < MAX_REPAIRS && failures.length; attempt++) {
+      try {
+        const rp = buildRepairPrompt(composed as ComposedCard, failures)
+        const raw2 = await callClaude({ model: 'claude-sonnet-4-6', maxTokens: 1400, temperature: 0.1, system: rp.system, user: rp.user, timeoutMs: 45_000 })
+        const fixed = parseComposed(robustJson(raw2))
+        if (!fixed || 'skip' in fixed) break
+        const after = lintCard(fixed as ComposedCard)
+        // Only accept a strict improvement, so a repair can never make a card
+        // worse than the one it replaced.
+        if (after.length >= failures.length) break
+        composed = fixed
+        failures = after
+      } catch { break }
+    }
+    if (hadFailures && failures.length === 0) repairSucceeded++
 
     const { independent, primary } = independence(a.id)
     const arc: Arc = {
@@ -197,6 +238,8 @@ export async function runSurface(opts: { week?: string; max?: number } = {}) {
     composed: scored.length,
     skipped: skipped.length,
     lint_blocked: scored.filter(s => s.blocked).length,
+    repair_attempted: repairAttempted,
+    repair_succeeded: repairSucceeded,
     surfaced: surfacedIds.size,
     themed: picked.themed.length,
     unthemed: picked.unthemed.length,

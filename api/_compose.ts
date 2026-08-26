@@ -7,19 +7,27 @@
 // by the old content_decisions path.
 //
 // ---------------------------------------------------------------------------
-// The prompt restates the lint rules rather than relying on a retry loop
+// Stating the rules is necessary and not sufficient. Both, then.
 //
-// Every rule in _cardLint.ts is mechanical, which means it is also statable.
-// Restating them costs prompt tokens once; discovering them through failed
-// compositions costs a model call per failure and still lands a worse card,
-// because a model rewriting to satisfy a rule it was not told about tends to
-// hollow out the sentence rather than fix it.
+// This file first shipped claiming that restating the lint rules beat a retry
+// loop. The first live run settled it: 14 cards composed, 13 rejected. Eight
+// failed legibility, three on sentence count, two on em dashes. The prompt said
+// "plain English a twelve year old could follow" and the model does not share
+// our view of which words a general-business reader looks up, so it wrote
+// "agentic", "inference", "harness" and "eval" straight into the claim.
 //
-// The lint still runs afterwards and is still the authority. This is belt and
-// braces on purpose: the gates exist because each one already shipped broken.
+// Two changes came out of that:
+//
+//   name the words   The prompt now carries the ACTUAL TECHNICAL_JARGON and
+//                    BANNED_OPENERS arrays, imported from _cardLint.ts rather
+//                    than paraphrased, so a word added to the lint reaches the
+//                    composer in the same commit and the two cannot drift.
+//   repair, bounded  buildRepairPrompt feeds the real lint failures back for
+//                    one attempt. The lint remains the authority: a card that
+//                    still fails after repair is blocked, not waved through.
 import { FORMATS, FORMAT_SPEC, type Format } from './_formats.js'
 import { LENS_SPEC, type Lens, type Channel } from './_lenses.js'
-import type { Card } from './_cardLint.js'
+import { TECHNICAL_JARGON, BANNED_OPENERS, type Card, type LintFailure } from './_cardLint.js'
 
 export interface ComposableArc {
   id: string
@@ -52,16 +60,23 @@ export function buildComposePrompt(arc: ComposableArc) {
   const system = [
     'You write the card for a running editorial arc. Six fields, and every one has a hard rule that rejects the card mechanically if broken.',
     '',
-    'VOICE. Plain English a twelve year old could follow. Short sentences. No em dashes or en dashes anywhere. Never "leverage" as a verb, never "at scale", no consultant vocabulary. Do not sound like AI, do not sound bossy, do not assume what the reader thinks.',
+    'VOICE. Plain English a twelve year old could follow. Short sentences. Do not sound like AI, do not sound bossy, do not assume what the reader thinks.',
+    '',
+    'BANNED WORDS IN THE CLAIM. headline, the_opening, where_this_goes and reader_decision must not contain any of these, in any form:',
+    '  ' + TECHNICAL_JARGON.join(', '),
+    'They are allowed in what_changed, which is where the evidence lives. Everywhere else, say the plain thing instead: "the wiring around the model" rather than the harness, "checking the work" rather than evals, "price per word" rather than per token.',
+    'Also banned everywhere: "leverage" as a verb, "at scale" as filler, and the characters em dash and en dash. Use a comma or a full stop.',
     '',
     'headline — the shift itself. No colon, because a colon turns it into a label plus a topic. Never date it to a week.',
     '',
-    'what_changed — 2 to 4 sentences. Must contain at least one real number, named company or date drawn from the beats below. Never stack hedges.',
+    'SENTENCE COUNTS ARE HARD LIMITS. Count them before you answer. A card outside them is rejected mechanically.',
     '',
-    'why_now — 1 or 2 sentences. What makes this the moment, not the news. This is the field that separates a shift from an event.',
+    'what_changed — exactly 2, 3 or 4 sentences. Must contain at least one real number, named company or date drawn from the beats below. Never stack hedges.',
     '',
-    'the_opening — 1 to 3 sentences. THE HARDEST FIELD AND THE MOST REJECTED.',
-    '  Show the opening, do not instruct the reader to take it. Never begin with Audit, Treat, Reassess, Stop, Establish, Secure, Prepare for, Do not wait, or any other order.',
+    'why_now — exactly 1 or 2 sentences, never 3. What makes this the moment, not the news. This is the field that separates a shift from an event.',
+    '',
+    'the_opening — 1, 2 or 3 sentences. THE HARDEST FIELD AND THE MOST REJECTED.',
+    '  Show the opening, do not instruct the reader to take it. Never begin with any of these, and never with any other order: ' + BANNED_OPENERS.join(', ') + '.',
     '  Not the imperative mood at all.',
     '  Address whoever owns revenue or position, not whoever owns risk or exposure.',
     '  It must not be satisfiable by writing a policy, a charter or a document. If someone could comply by producing paperwork, it is the wrong opening.',
@@ -115,4 +130,34 @@ export function parseComposed(raw: unknown): ComposedCard | { skip: string } | n
   const required: Array<keyof Card> = ['headline', 'what_changed', 'why_now', 'the_opening', 'where_this_goes', 'reader_decision']
   if (required.some(k => !card[k])) return null
   return card
+}
+
+/** One bounded repair attempt, given the real lint output.
+ *
+ *  Deliberately narrow: it shows the failures and the current card and asks for
+ *  the same card fixed, because a model told only "try again" rewrites the
+ *  piece and usually loses the evidence. The lint runs again afterwards and
+ *  still decides. */
+export function buildRepairPrompt(card: ComposedCard, failures: LintFailure[]) {
+  const system = [
+    'You are fixing a card that failed a mechanical check. Change as little as possible.',
+    'Keep every number, company name and date exactly as they are. Do not rewrite fields that were not flagged.',
+    '',
+    'The failures:',
+    ...failures.map(f => `  ${f.field} / ${f.rule}: ${f.detail}`),
+    '',
+    'CHECK YOUR REPLACEMENT AGAINST THE LIST BEFORE YOU ANSWER. A repair that swaps one banned word for another is not a repair. Measured: the first repair pass removed "token" from a claim and put "agentic" in its place, and the card failed the same gate a second time.',
+    '',
+    'Rules you may have missed:',
+    `  Words banned from headline, the_opening, where_this_goes and reader_decision: ${TECHNICAL_JARGON.join(', ')}. Allowed in what_changed only.`,
+    '  No em dash or en dash anywhere. Use a comma or a full stop.',
+    '  what_changed is 2 to 4 sentences. why_now is 1 or 2. the_opening is 1 to 3.',
+    '  where_this_goes must carry a date or a threshold and must not say the trend continues.',
+    '  reader_decision names a choice the reader already faces ("whether to ... or ..."), never an instruction.',
+    '',
+    'Return the complete corrected card as JSON, same shape, all six fields plus format. No commentary.',
+  ].join('\n')
+
+  const user = JSON.stringify(card, null, 2)
+  return { system, user }
 }

@@ -169,6 +169,30 @@ for (const link of CHAIN) {
   }
 }
 
+// The composer's prompt must be built FROM the lint's own arrays, not a
+// paraphrase of them. Measured before this was true: 14 cards composed, 13
+// rejected, 8 of them because the prompt said "plain English" and the model
+// does not share our view of which words need looking up. Two hand-kept copies
+// would drift the moment a word is added to the lint.
+{
+  const compose = src('api/_compose.ts')
+  if (!/from '\.\/_cardLint\.js'/.test(compose)) {
+    bad('api/_compose.ts does not import from _cardLint, so the prompt restates the rules from memory and drifts the first time one changes')
+  }
+  for (const sym of ['TECHNICAL_JARGON', 'BANNED_OPENERS']) {
+    if (!new RegExp(`${sym}[\\s\\S]{0,400}join\\(`).test(compose)) {
+      bad(`api/_compose.ts does not put the actual ${sym} list into the prompt. Naming the words is the rule, not a hint: the first live run failed 8 of 14 cards on exactly this`)
+    }
+  }
+  // And repair must be bounded and must not be able to make a card worse.
+  const surf = src('api/arcs/surface.ts')
+  if (!/MAX_REPAIRS/.test(surf)) bad('api/arcs/surface.ts has no repair bound, so a card that never converges loops')
+  if (!/after\.length >= failures\.length\) break/.test(surf)) {
+    bad('api/arcs/surface.ts accepts a repair that did not strictly reduce the failure count, so a repair can make a card worse')
+  }
+  if (!/lintCard/.test(surf)) bad('api/arcs/surface.ts never lints before scoring, so nothing triggers repair')
+}
+
 console.log(fail === 0
   ? 'PASS  classify -> compose -> lint -> score -> surface -> serve, scheduled in order, with reasons written at every drop'
   : `${fail} FAILURE(S)`)
