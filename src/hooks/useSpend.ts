@@ -106,6 +106,21 @@ export function useSpend() {
   }
 }
 
+/** Who spent it, one honest line: metered sources where the ledger saw the
+ *  calls, otherwise the truth that the key is consumed outside the Control
+ *  Center's meter. The plan-ceiling note rides along when the registry has
+ *  one. Shared by the broken-question expansion and the spend detail sheet. */
+export function usageLine(svc: SpendServiceRow): string | null {
+  const parts: string[] = []
+  if (svc.usage && svc.usage.calls_7d > 0) {
+    parts.push(`Used by ${svc.usage.top_sources.join(', ')}: ${svc.usage.calls_7d.toLocaleString('en-US')} calls${svc.usage.est_cost_7d > 0 ? `, $${svc.usage.est_cost_7d.toFixed(2)}` : ''} this week.`)
+  } else {
+    parts.push('No calls metered by the Control Center. This key is used outside it (Compound, n8n, or external scripts).')
+  }
+  if (svc.limit_note) parts.push(svc.limit_note)
+  return parts.join(' ')
+}
+
 /**
  * The Intel door's status dot, the one sanctioned exception to "doors carry
  * no numbers": rose when a critical connection is broken, amber when money

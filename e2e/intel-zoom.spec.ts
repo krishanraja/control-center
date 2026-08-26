@@ -67,7 +67,7 @@ test.describe('the intel tab does not zoom itself', () => {
     await mock(page)
     await page.goto('/#/os?sub=intel')
 
-    await expect(page.getByPlaceholder(/Ask something pointed/)).toBeVisible()
+    await expect(page.getByPlaceholder(/Ask the sixth question/)).toBeVisible()
     const focused = await page.evaluate(() => document.activeElement?.tagName || 'BODY')
     expect(focused).not.toBe('TEXTAREA')
     await ctx.close()
@@ -79,7 +79,7 @@ test.describe('the intel tab does not zoom itself', () => {
     await mock(page)
     await page.goto('/#/os?sub=intel')
 
-    await expect(page.getByPlaceholder(/Ask something pointed/)).toBeVisible()
+    await expect(page.getByPlaceholder(/Ask the sixth question/)).toBeVisible()
     const focused = await page.evaluate(() => document.activeElement?.tagName || 'BODY')
     expect(focused).not.toBe('TEXTAREA')
     await ctx.close()
@@ -140,7 +140,7 @@ test.describe('the intel tab does not zoom itself', () => {
       },
     }))
     await page.goto('/#/os?sub=intel')
-    await expect(page.getByTestId('spend-panel')).toBeVisible()
+    await expect(page.getByTestId('bi-questions')).toBeVisible()
 
     // "Two screen-lengths" measured literally: the whole tab column (header
     // included, from the top of the zoom root to the bottom of the scrolled

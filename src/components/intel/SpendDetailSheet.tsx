@@ -4,8 +4,7 @@ import { SlideOver } from '../shared/SlideOver'
 import { Eyebrow } from '../shared/Eyebrow'
 import { Sparkline } from '../shared/Sparkline'
 import { statusStyle } from '../shared/tokens'
-import { usageLine } from './SpendConnectionsPanel'
-import type { SpendSummary, SpendServiceRow } from '../../hooks/useSpend'
+import { usageLine, type SpendSummary, type SpendServiceRow } from '../../hooks/useSpend'
 
 const usd = (n: number): string => `$${n.toLocaleString('en-US', { maximumFractionDigits: n >= 100 ? 0 : 2 })}`
 
