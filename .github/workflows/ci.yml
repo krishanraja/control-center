@@ -59,6 +59,12 @@ jobs:
       # to the domain owner, and published Stuut's 81.7% as Andreessen Horowitz's
       # number. This checks a name is printed only where the sentence gives one.
       - run: npx tsx scripts/check-anchor-attribution.mts
+      # C3 of the content rewrite. The acceptance criterion is "100 percent of
+      # surfaced cards pass lint, anything below 100 is a bug", which is only
+      # worth anything if the lint itself is trustworthy. This runs it against
+      # the engine's own 2026-W28..W33 output: all 17 so-whats must be rejected,
+      # and a card written to the brief must still pass.
+      - run: npx tsx scripts/check-card-lint.mts
       # Same reason again: the reject-reason taxonomy lived in three files that
       # disagreed on 26 codes, and 18 codes the UI could emit were missing from
       # the server's allow-list, so a whole class of rejection reached the
