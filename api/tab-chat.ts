@@ -96,6 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   openStream(res)
   try {
     const reply = (await streamClaude({
+      agent: 'marcus',
       apiKey,
       model: SYNTHESIS_MODEL,
       temperature: 0.4,

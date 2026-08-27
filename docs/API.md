@@ -397,8 +397,11 @@ All `api/*` functions auto-deploy on push to `main`.
 | `/api/goals` | PATCH only (`team_focus` + goal mutations). GET was retired 2026-08-11 and now 410s; use `/api/goals/ladder` |
 | `/api/revenue` | The two revenue figures: cash collected and committed MRR. Reads the service-role revenue tables |
 | `/api/revenue/sync` | Cron (`0 8 * * *`) + POST backstop. Pulls balance transactions and subscriptions from Stripe. Needs `STRIPE_API_KEY` |
-| `/api/spend` | The money-out summary: month total (USD, receipts truth), 6-month trend, ranked per-service costs, connections state, renewals due, needs-review count. Reads the service-role spend tables |
+| `/api/spend` | The money-out summary: month total (USD, receipts truth), 6-month trend, ranked per-service costs, connections state, renewals due, needs-review count, plus `spenders` (the top metered units over 30 days — actors, workflows and agents in one ranked list, with `silent` naming any provider the meter has no rows for) and `cycles` (each plan's prepaid allowance and where this billing cycle sits inside it). Reads the service-role spend tables |
 | `/api/spend/ingest` | Cron (`15 7 * * *`) + POST backstop. Reads the Gmail "Subscriptions" label via the DWD service account (needs the `gmail.readonly` scope on the grant; 503s loudly until then), parses each receipt with one Haiku call (metered), writes `spend_invoices`, nudges Telegram on annual renewals ~14d out and on a ballooning month. `?backfill=<1-12>` widens the window idempotently |
+| `/api/meter/apify-sync` | Cron (`5 * * * *`) + POST. Pages `/v2/actor-runs` from a whole-UTC-day cursor, rolls `usageTotalUsd` up by actor × day × run origin (passed through verbatim — the first live sync returned API, MCP and WEB), joins `apify_actor_registry` for `task_category`, and replaces those days in `meter_daily` (idempotent by construction). Dollars only: the list endpoint returns the SHORTENED run object, so compute units are absent and `unit_name` stays null rather than storing a measured-looking zero. Also reads `/v2/users/me/usage/monthly` for the vendor's real cycle window onto `service_registry.cycle_*`, then evaluates the money lines and emails any crossing. `?days=N` (default 3, max 31). Reports `unregistered` — actors that ran but sit in no registry row |
+| `/api/meter/n8n-sync` | Cron (`35 */6 * * *`) + POST. Pages executions newest-first to the window edge, rolls them up by workflow × day × mode into `meter_daily` in EXECUTIONS, not dollars (n8n Cloud bills per execution and reports no rate). Reports `oldest_seen` so a short history reads as n8n's retention policy rather than as a quiet workflow. `?days=N` (default 3, max 31) |
+| `/api/internal/sonnet-proxy` | Unchanged contract, now metered: the `X-Internal-Caller` header it already required is used as the agent stamp, which is the only way n8n-originated Anthropic spend becomes attributable at all |
 | `/api/health/connections-sweep` | Cron (`0 */6 * * *`) + POST backstop ("Check now" in the app). Proof-of-life call per keyed `service_registry` row, balance reads where the vendor exposes one; mirrors blocking states to `api_usage_state` and critical services into `system_health` (the existing tier-4 banner chain). Telegram on transitions only |
 | `/api/goals/ladder` | The one read for the whole goal ladder: all four rungs joined to `goals_health` |
 | `/api/goals/gate` | Judge a goal against its rung's rubric without writing it. Preview only; `POST /api/objectives` enforces |
@@ -417,6 +420,17 @@ All `api/*` functions auto-deploy on push to `main`.
 | `/api/task` | Task CRUD |
 | `/api/today` | Today-tab payload |
 | `/api/trigger-agent` | Manual agent trigger (inserts a task, pg_net fires N8N) |
+
+**Money alerts need `gmail.send`.** `/api/meter/apify-sync` emails Krish when a
+plan's prepaid line is crossed (email, not Telegram — his call). It sends
+through the same domain-wide-delegated service account the receipts ingest
+uses, so `https://www.googleapis.com/auth/gmail.send` has to be on that grant
+in Google Admin alongside `gmail.readonly` and `gmail.compose`. Without it the
+send returns null and the alert falls back to a Gmail DRAFT, which the sync
+reports as `sent: ["<key> (draft)"]` — a draft nobody opens is not an alert, so
+that string is the signal to add the scope. `OPS_ALERT_EMAIL` overrides the
+recipient; it defaults to `GOOGLE_IMPERSONATE_SUBJECT`.
+
 
 **Direct (non-n8n) mode.** The enrich/draft/briefing actions normally proxy to
 n8n, but accept a `{ "mode": "direct" }` body to bypass n8n and run server-side

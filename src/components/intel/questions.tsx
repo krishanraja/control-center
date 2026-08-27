@@ -3,7 +3,7 @@ import { ChevronRight } from '@/lib/icons'
 import { Sparkline } from '../shared/Sparkline'
 import { LastUpdated } from '../shared/LastUpdated'
 import { useHaptics } from '../../hooks/useHaptics'
-import { useSpend, usageLine, type SpendServiceRow } from '../../hooks/useSpend'
+import { useSpend, usageLine, worstCycle, cycleLine, type SpendServiceRow, type SpendUnit } from '../../hooks/useSpend'
 import { useRevenue, formatCommittedMrr } from '../../hooks/useRevenue'
 import { useFleetFunnel, appHealth, appDisplayLabel, HEALTH_DOT, HEALTH_LABEL } from '../../hooks/useFleetFunnel'
 import { useVentureRegistry } from '../../hooks/useVentureRegistry'
@@ -44,6 +44,9 @@ export const TOKEN_TONE: Record<QuestionTone, string> = {
 }
 
 const usd = (n: number): string => `$${Math.round(n).toLocaleString('en-US')}`
+/** Cents matter under $100 — an actor costing $3.40 must not read as $3. */
+const usdExact = (n: number): string =>
+  n >= 100 ? `$${Math.round(n).toLocaleString('en-US')}` : `$${n.toFixed(2)}`
 const usdCents = (cents: number): string => {
   const n = cents / 100
   return `$${n.toLocaleString('en-US', { maximumFractionDigits: n >= 100 ? 0 : 2 })}`
@@ -120,14 +123,68 @@ const why = (s: SpendServiceRow): string =>
   : s.status === 'rate_limited' ? 'rate limited'
   : 'not answering'
 
+/**
+ * One metered spender, in the unit its provider actually bills in.
+ *
+ * Apify prices every run, so an actor reads in dollars. n8n Cloud bills by
+ * execution and its API reports no price at all, so a workflow reads in
+ * executions — inventing a per-execution rate would put a number in the same
+ * column as real money and make the whole ranking untrustworthy. Anthropic is
+ * self-metered from the token counts on each response.
+ */
+function unitAmount(u: SpendUnit): string {
+  if (u.usd > 0) return usdExact(u.usd)
+  if (u.unit_name === 'executions') return `${u.runs.toLocaleString('en-US')} runs`
+  if (u.unit_name === 'tokens') return `${Math.round(u.units / 1000).toLocaleString('en-US')}k tokens`
+  return `${u.runs.toLocaleString('en-US')} runs`
+}
+
+const PROVIDER_LABEL: Record<string, string> = {
+  apify: 'Apify actor',
+  n8n: 'n8n workflow',
+  anthropic: 'Anthropic',
+}
+
+/** The sub-line under a spender: what it is, and what is odd about it. */
+function unitNote(u: SpendUnit): string {
+  const bits: string[] = [PROVIDER_LABEL[u.provider] || u.provider]
+  if (u.provider === 'apify') bits.push(u.category ? u.category.replace(/_/g, ' ') : 'not in the actor registry')
+  if (u.provider === 'anthropic' && u.key === 'unattributed') bits.push('caller not stamped')
+  if (u.failed > 0) bits.push(`${u.failed} failed`)
+  if (u.usd > 0 && u.usd_7d > 0) bits.push(`${usdExact(u.usd_7d)} this week`)
+  return bits.join(' · ')
+}
+
+/** A spender row: the name, the note, the money. */
+function SpenderRow({ unit }: { unit: SpendUnit }) {
+  return (
+    <div className="flex items-baseline gap-3 py-1.5">
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-ui leading-snug text-white/85">{unit.label}</span>
+        <span className="block truncate text-label leading-snug text-white/40">{unitNote(unit)}</span>
+      </span>
+      <span className="shrink-0 font-mono text-ui tabular-nums text-white/90">{unitAmount(unit)}</span>
+    </div>
+  )
+}
+
 // ── 1. What is it costing? ─────────────────────────────────────────────────
 
 export function useCostingQuestion({ onOpenServices }: { onOpenServices: () => void }): QuestionState {
   const { spend } = useSpend()
 
   const empty = !spend || spend.empty
+  const cycle = worstCycle(spend)
+  const top = spend?.spenders?.units || []
+
+  // A crossed prepaid line outranks a steady month: overage is money already
+  // being spent extra, and it is precisely the state this tab used to report
+  // as "ok" while the vendor was emailing to say otherwise.
   const token = empty
     ? { label: spend ? 'NO DATA' : 'READING', tone: 'quiet' as const }
+    : cycle?.state === 'charging_early' ? { label: 'CHARGING', tone: 'bad' as const }
+    : cycle?.state === 'near_trigger' ? { label: 'OVER PREPAID', tone: 'bad' as const }
+    : cycle?.state === 'over_prepaid' ? { label: 'OVER PREPAID', tone: 'warn' as const }
     : spend.ballooning ? { label: 'BALLOONING', tone: 'bad' as const }
     : spend.delta_pct != null && spend.delta_pct >= 10 ? { label: `UP ${spend.delta_pct}%`, tone: 'warn' as const }
     : spend.delta_pct != null && spend.delta_pct > 0 ? { label: `UP ${spend.delta_pct}%`, tone: 'quiet' as const }
@@ -135,6 +192,8 @@ export function useCostingQuestion({ onOpenServices }: { onOpenServices: () => v
 
   const answer = empty ? (
     <>No receipts read yet. The Gmail backfill and the first sweep fill this in.</>
+  ) : cycle ? (
+    <><N testId="spend-month-total">{usd(spend.month_usd)}</N> out this month, and {cycle.name} is <N>{usdExact(cycle.over_usd)}</N> past its prepaid.</>
   ) : spend.avg_3mo_usd > 0 ? (
     <>Money out is <N testId="spend-month-total">{usd(spend.month_usd)}</N> this month, against a usual <N>{usd(spend.avg_3mo_usd)}</N>.</>
   ) : (
@@ -160,12 +219,35 @@ export function useCostingQuestion({ onOpenServices }: { onOpenServices: () => v
           />
         )}
       </div>
+      {(spend.cycles || []).filter(c => c.state !== 'unknown').map(c => (
+        <ActRow
+          key={c.key}
+          tag={c.state === 'within' ? 'PLAN' : 'OVER'}
+          tone={c.state === 'charging_early' || c.state === 'near_trigger' ? 'bad' : c.state === 'over_prepaid' ? 'warn' : 'quiet'}
+          sub={c.cycle_end ? `Cycle ends ${new Date(c.cycle_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}.` : undefined}
+          action={c.state !== 'within' && c.top_up_url ? <Verb href={c.top_up_url} primary>Open {c.name} billing</Verb> : undefined}
+        >
+          {cycleLine(c)}
+        </ActRow>
+      ))}
+
+      {top.length > 0 && (
+        <div data-testid="spend-spenders">
+          <p className="mb-0.5 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-white/40">
+            Where it went · 30 days
+          </p>
+          {top.slice(0, 3).map(u => <SpenderRow key={`${u.provider}-${u.key}`} unit={u} />)}
+        </div>
+      )}
+
       {spend.needs_review > 0 && (
         <p className="text-label text-white/40" data-testid="spend-review-line">
           {spend.needs_review} receipt{spend.needs_review === 1 ? '' : 's'} could not be read. They are flagged in the list, not counted as zero.
         </p>
       )}
-      <DoorRow onClick={onOpenServices} testId="spend-panel-open">Every service, ranked by cost</DoorRow>
+      <DoorRow onClick={onOpenServices} testId="spend-panel-open">
+        {top.length > 0 ? 'Every service and every spender' : 'Every service, ranked by cost'}
+      </DoorRow>
     </div>
   )
 
@@ -235,7 +317,11 @@ export function useBrokenQuestion(): QuestionState {
 
   const conns = spend?.connections
   const brokenSvcs = (spend?.services || []).filter(blocking)
-  const lowSvcs = (spend?.services || []).filter(s => !blocking(s) && s.balance_low)
+  // Mirrors the server's rollup: a service on a prepaid plan is never listed
+  // here as "running low". Negative headroom is overage, and the costing
+  // answer says so in money; repeating it here as a credit shortage would be
+  // the same fact told twice, once wrongly.
+  const lowSvcs = (spend?.services || []).filter(s => !blocking(s) && s.balance_low && s.included_usd == null)
   const checked = conns ? conns.ok + conns.low + conns.broken : 0
 
   const token = !spend

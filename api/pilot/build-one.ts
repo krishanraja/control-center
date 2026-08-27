@@ -92,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   let rawText: string
   try {
-    rawText = await callClaude({ system, user, maxTokens: 3500, temperature: 0.6 })
+    rawText = await callClaude({ agent: 'pilot-build-one', system, user, maxTokens: 3500, temperature: 0.6 })
   } catch (e: any) {
     return res.status(502).json({ ok: false, error: String(e?.message || e) })
   }

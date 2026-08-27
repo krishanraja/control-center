@@ -67,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   let result
   try {
-    const txt = await callClaude({ system, user, maxTokens: 3200, temperature: 0.3 })
+    const txt = await callClaude({ agent: 'cleo-final-pass', system, user, maxTokens: 3200, temperature: 0.3 })
     const parsed = robustJson(txt)
     if (!parsed) return res.status(502).json({ ok: false, error: 'could not parse final pass result' })
     result = normalizePass(parsed)

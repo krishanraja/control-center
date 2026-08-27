@@ -2,6 +2,9 @@
 // (revise / challenge / score / push-to-cleo). Mirrors the inline helpers in
 // transform.ts but de-duplicated, since four routes need the same primitives.
 
+import { priceUsd } from './_prices.js'
+import * as meter from './_meter.js'
+
 
 import { UTILITY_MODEL, MODEL_PRICES, thinkingParam } from './_models.js'
 
@@ -315,19 +318,22 @@ export interface ClaudeOpts {
    *  the better one is also three times the price. Opt-in, so the twelve routes
    *  that just want text are unaffected. */
   onUsage?: (u: TokenUsage) => void
+  /** Which agent this call is on behalf of, for the usage meter.
+   *
+   *  Anthropic's own per-agent spend is unreadable from an API key (the usage
+   *  and cost reports need an Admin key, which an individual account cannot
+   *  have), so the OS meters itself and this is the stamp that makes the
+   *  numbers mean something. A call that omits it meters as 'unattributed' —
+   *  a visible gap in the console, never folded into another agent's total. */
+  agent?: string
 }
 
 export interface TokenUsage { input: number; output: number; model: string }
 
-/** USD per 1M tokens. One table, in _models, rather than a copy here and a
- *  second copy in _harness that had to be kept in step by hand. */
-const PRICES = MODEL_PRICES
-
-/** Cost of a usage record in USD. Unknown models price at 0 rather than guess. */
+/** Cost of a usage record in USD. Unknown models price at 0 rather than guess;
+ *  the rates live in api/_prices.ts, the only copy of them. */
 export function usageCost(u: TokenUsage): number {
-  const key = Object.keys(PRICES).find(k => u.model.startsWith(k))
-  if (!key) return 0
-  return (u.input / 1e6) * PRICES[key].in + (u.output / 1e6) * PRICES[key].out
+  return priceUsd(u.model, u.input, u.output)
 }
 
 type ContentBlock =
@@ -386,13 +392,12 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
       e.body = JSON.stringify(j?.error || j || {}).slice(0, 400)
       throw e
     }
-    if (opts.onUsage) {
-      opts.onUsage({
-        input: Number(j?.usage?.input_tokens) || 0,
-        output: Number(j?.usage?.output_tokens) || 0,
-        model,
-      })
-    }
+    const inputTokens = Number(j?.usage?.input_tokens) || 0
+    const outputTokens = Number(j?.usage?.output_tokens) || 0
+    if (opts.onUsage) opts.onUsage({ input: inputTokens, output: outputTokens, model })
+    // Unconditional, unlike onUsage: a route that does not care what it cost is
+    // exactly the route whose spend nobody was watching.
+    await meter.anthropicCall({ agent: opts.agent, model, inputTokens, outputTokens })
     return firstText(j)
   } catch (e: unknown) {
     if ((e as Error)?.name === 'AbortError') throw new Error(`anthropic_timeout_${opts.timeoutMs}ms`)
@@ -422,7 +427,7 @@ export interface ChatTurn { role: 'user' | 'assistant'; content: string }
 export async function callClaudeMessages(
   system: string,
   messages: ChatTurn[],
-  opts: { model?: string; maxTokens?: number; temperature?: number; think?: boolean } = {},
+  opts: { model?: string; maxTokens?: number; temperature?: number; think?: boolean; agent?: string } = {},
 ): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
@@ -445,6 +450,12 @@ export async function callClaudeMessages(
   })
   const j: any = await r.json().catch(() => ({}))
   if (!r.ok) throw new Error(`anthropic_${r.status}:${(j?.error?.message || '').slice(0, 120)}`)
+  await meter.anthropicCall({
+    agent: opts.agent,
+    model,
+    inputTokens: Number(j?.usage?.input_tokens) || 0,
+    outputTokens: Number(j?.usage?.output_tokens) || 0,
+  })
   return firstText(j)
 }
 

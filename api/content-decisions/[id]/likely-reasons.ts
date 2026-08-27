@@ -103,6 +103,7 @@ async function fromModel(title: string, body: string) {
   ].filter(Boolean).join('\n\n')
 
   const raw = await callClaude({
+    agent: 'content-decisions',
     model: JUDGE_MODEL,
     maxTokens: 300,
     temperature: 0,

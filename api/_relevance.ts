@@ -14,6 +14,7 @@
 // tsx (extension-less). The caller loads config + supplies the API key.
 
 import { JUDGE_MODEL } from './_models.js'
+import * as meter from './_meter.js'
 
 export type Verdict = 'keep' | 'off_vertical' | 'too_technical'
 
@@ -59,6 +60,8 @@ export interface ClassifyOpts {
   model?: string
   /** Items per Anthropic call. Default 25. */
   batchSize?: number
+  /** Agent stamp for the usage meter; defaults to 'relevance-classifier'. */
+  agent?: string
 }
 
 // _models is constants only — no client, no env read — so importing it here
@@ -125,6 +128,13 @@ async function classifyBatch(items: RelevanceItem[], opts: ClassifyOpts): Promis
     }),
   })
   const j: any = await r.json().catch(() => ({}))
+  await meter.anthropicCall({
+    agent: opts.agent || 'relevance-classifier',
+    model: opts.model || HAIKU,
+    inputTokens: Number(j?.usage?.input_tokens) || 0,
+    outputTokens: Number(j?.usage?.output_tokens) || 0,
+    failed: !r.ok,
+  })
   if (!r.ok) throw new Error(`anthropic_${r.status}:${(j?.error?.message || '').slice(0, 120)}`)
   const raw = robustJsonArray(j?.content?.[0]?.text || '')
 

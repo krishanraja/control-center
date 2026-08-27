@@ -200,6 +200,7 @@ async function callOnce(rawText: string): Promise<CompiledWorry> {
   // contract; only the provider moves. It was the one call site left on
   // OpenAI for a judgment task, on the oldest model in the repo.
   const text = await callClaude({
+    agent: 'krish-worry-compiler',
     system: WORRY_COMPILER_SYSTEM_PROMPT,
     user: dated,
     model: UTILITY_MODEL,

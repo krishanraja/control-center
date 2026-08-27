@@ -66,6 +66,7 @@ async function main() {
       two: { title: c.b.title, summary: c.b.summary },
     }))
     const raw = await callClaude({
+      agent: 'script-consolidate-shifts',
       model: SYNTHESIS_MODEL,
       maxTokens: 2500,
       temperature: 0,

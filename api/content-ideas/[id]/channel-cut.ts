@@ -122,6 +122,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let text: string
   try {
     text = await callClaude({
+      agent: 'cleo-channel-cut',
       model: UTILITY_MODEL,
       system,
       user:

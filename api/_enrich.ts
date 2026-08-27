@@ -191,6 +191,6 @@ export async function researchBrief(input: BriefInput): Promise<BriefResult> {
     (!structured && !web.text) ? '(no external research available — use only the known context above and stay honest about gaps)' : '',
   ].filter(Boolean).join('\n')
 
-  const summary = (await callClaude({ system, user, maxTokens: 600, temperature: 0.4 })).trim()
+  const summary = (await callClaude({ agent: 'enrich', system, user, maxTokens: 600, temperature: 0.4 })).trim()
   return { summary, sources: web.sources }
 }

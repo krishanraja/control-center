@@ -8,7 +8,7 @@ What exists, how to run it, and the one rule that keeps it from rotting.
 |---|---|---|
 | Lint | `npm run lint` (`--max-warnings 0`) | yes |
 | Types | `npx tsc --noEmit` + `npm run typecheck:api` + `npm run typecheck:scripts` | yes |
-| Structural guards | `npx tsx scripts/check-<name>.mts` | yes (seven of them) |
+| Structural guards | `npx tsx scripts/check-<name>.mts` | yes (sixteen of them) |
 | e2e (Playwright) | `npx playwright test` | **no** |
 | Contract tests | `npx tsx scripts/network/verify-contracts.ts` | no |
 | Scorer probes | `psql "$DATABASE_URL" -f scripts/network/probes.sql` | no |
@@ -18,16 +18,20 @@ A lint **warning** blocks merge, because `--max-warnings 0`.
 
 The guards in CI: `check-goal-ladder`, `check-goal-gate`,
 `check-type-tokens`, `check-icons`, `check-content-expiry`,
-`check-served-surfaces`, `check-enrichment-honesty`. Each one statically
-pins an invariant that already shipped broken once (one goal editor, the
-type scale, the icon system, honest enrichment, ...) — the current list
-with rationale lives as comments in
+`check-content-window`, `check-anchor-attribution`, `check-card-lint`,
+`check-content-vocabulary`, `check-arc-scoring`, `check-slate-calibration`,
+`check-content-chain`, `check-served-surfaces`, `check-enrichment-honesty`,
+`check-fleet-classifier`, `check-agent-stamps`. Each one statically pins an
+invariant that already shipped broken once, or that drifts silently (one
+goal editor, the type scale, the icon system, honest enrichment, an
+Anthropic call site whose spend nobody can attribute, ...) — the current
+list with rationale lives as comments in
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). More `check-*`
 guards exist outside CI; see the root `AGENTS.md`.
 
 ## e2e
 
-Fourteen spec files (104 tests) against the production build via `npm run
+Fourteen spec files (106 tests) against the production build via `npm run
 preview`. All `/api/*`, `**/rest/v1/**` and `**/realtime/**` traffic is
 mocked, so panels settle on their honest empty states without a live
 database and no spec spends an embedding or a model call.
@@ -45,7 +49,7 @@ database and no spec spends an embedding or a model call.
 | `e2e/queue-relocation.spec.ts` | the ruling queue at OS → Queue and the `#today` aliases | default |
 | `e2e/market-signals.spec.ts` | the head-space split: the Market signals door appears only for a fresh hot digest, Home's face carries no signal text, the drawer acts without navigating, the Intel door lands on the console | default + 360x800 |
 | `e2e/intel-zoom.spec.ts` | OS → Intel does not steal focus or overflow the zoom root, **and the whole phone column fits two screen-lengths** | 390x844 + 1280x800 |
-| `e2e/spend-panel.spec.ts` | the money and connections answers on the interrogation, the ranked service sheet, the sweep trigger, the Home door dot | 390x844 + 1280x800 |
+| `e2e/spend-panel.spec.ts` | the money and connections answers on the interrogation, the prepaid-line state (past the $29 included outranks the month-vs-usual line, in the answer AND the token), the ranked service + spender sheet with each provider in the unit it bills in, the sweep trigger, the Home door dot | 390x844 + 1280x800 |
 | `e2e/content-queue-window.spec.ts` | the content queue's ageing window and the archive an aged-out card lands in | default |
 | `e2e/content-rooms.spec.ts` | Built vs Paid: own shifts lead, cross-cutting ones are labelled | default |
 

@@ -40,15 +40,11 @@ export const JUDGE_MODEL = 'claude-haiku-4-5'
 /** The investigation ladder — the one deliberate opus-tier spend. */
 export const LADDER_MODEL = 'claude-opus-4-8'
 
-/** USD per 1M tokens. Keyed on the bare ID; `usageCost` matches on prefix. */
-export const MODEL_PRICES: Record<string, { in: number; out: number }> = {
-  'claude-opus-5': { in: 5, out: 25 },
-  'claude-opus-4-8': { in: 5, out: 25 },
-  'claude-opus-4-7': { in: 5, out: 25 },
-  'claude-sonnet-5': { in: 2, out: 10 },
-  'claude-sonnet-4-6': { in: 3, out: 15 },
-  'claude-haiku-4-5': { in: 1, out: 5 },
-}
+// Prices are NOT here. api/_prices.ts owns them, and owns them better: an
+// unknown model prices at zero and says so through isPriced(), rather than a
+// guessed rate producing a plausible wrong number nobody questions. This module
+// owns model IDENTITY and the thinking policy, which that file has no view on.
+export { MODEL_PRICES, priceUsd, isPriced, priceFamily } from './_prices.js'
 
 /**
  * Models the n8n proxy will forward to.

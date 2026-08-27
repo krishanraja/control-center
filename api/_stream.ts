@@ -1,6 +1,7 @@
 import type { VercelResponse } from '@vercel/node'
 import { supportsSampling } from './_content.js'
 import { thinkingParam } from './_models.js'
+import * as meter from './_meter.js'
 
 /**
  * Server-sent events for the model calls a human sits and waits on.
@@ -69,6 +70,10 @@ export interface StreamClaudeOpts {
   /** Called with each text delta, so the caller can both relay and accumulate. */
   onText: (chunk: string) => void
   signal?: AbortSignal
+  /** Agent stamp for the usage meter. A stream reports its token counts in the
+   *  SSE itself (`message_start` carries input, `message_delta` carries output),
+   *  so a streamed call is metered exactly like a blocking one. */
+  agent?: string
 }
 
 /**
@@ -107,6 +112,8 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
   const decoder = new TextDecoder()
   let buffer = ''
   let out = ''
+  let inputTokens = 0
+  let outputTokens = 0
 
   for (;;) {
     const { done, value } = await reader.read()
@@ -128,12 +135,22 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
           const evt = JSON.parse(raw) as {
             type?: string
             delta?: { type?: string; text?: string }
+            message?: { usage?: { input_tokens?: number; output_tokens?: number } }
+            usage?: { input_tokens?: number; output_tokens?: number }
             error?: { message?: string }
           }
           if (evt.type === 'error') throw new Error(evt.error?.message || 'anthropic_stream_error')
           if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta' && evt.delta.text) {
             out += evt.delta.text
             opts.onText(evt.delta.text)
+          }
+          // Token counts arrive in their own frames, not with the text.
+          if (evt.type === 'message_start') {
+            inputTokens = Number(evt.message?.usage?.input_tokens) || inputTokens
+            outputTokens = Number(evt.message?.usage?.output_tokens) || outputTokens
+          }
+          if (evt.type === 'message_delta' && evt.usage) {
+            outputTokens = Number(evt.usage.output_tokens) || outputTokens
           }
         } catch (e) {
           // A frame we cannot parse is not fatal on its own; a reported error is.
@@ -143,5 +160,6 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
     }
   }
 
+  await meter.anthropicCall({ agent: opts.agent, model: opts.model, inputTokens, outputTokens })
   return out
 }

@@ -65,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ].filter(Boolean).join('\n\n')
 
     try {
-      const txt = await callClaude({ system, user, maxTokens: 700, temperature: 0.4 })
+      const txt = await callClaude({ agent: 'cleo-dive-deeper', system, user, maxTokens: 700, temperature: 0.4 })
       const parsed = robustJson(txt)
       const items = Array.isArray(parsed?.suggestions)
         ? parsed.suggestions

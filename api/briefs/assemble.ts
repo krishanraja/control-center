@@ -204,6 +204,7 @@ export async function runAssemble(force = false) {
   let shapeError = ''
   for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
     const raw = await callClaude({
+      agent: 'briefs-assemble',
       model: SYNTHESIS_MODEL,
       // The weekly brief is the longest single piece this system writes and
       // the most reasoned. Thinking on, with headroom above the 5000 the

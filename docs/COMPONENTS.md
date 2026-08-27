@@ -610,6 +610,22 @@ Rules the surface enforces:
 - **The sixth question is the open one.** `AskMarcus` is a single input that
   becomes the conversation once asked.
 
+- **Each provider reads in the unit it bills in.** The costing answer ranks
+  Apify actors in dollars, Anthropic agents in dollars from self-metered
+  tokens, and n8n workflows in EXECUTIONS — n8n Cloud charges per execution and
+  reports no rate, so a made-up per-execution dollar figure would sit in the
+  same column as real money and make the whole ranking a guess (`unitAmount`
+  in `questions.tsx`, `SpenderRow` in `intel/SpendDetailSheet.tsx`).
+- **Gaps are stated, not implied.** `spenders.silent` names any provider the
+  meter has no rows for, because "the collector has not run" and "nothing ran"
+  must never render as the same sentence; the sheet also says out loud that
+  Apify reports the actor but not the calling workflow, and that Anthropic
+  totals cover only calls the OS makes itself.
+- **A crossed prepaid line outranks a calm month.** `worstCycle` /
+  `cycleLine` (`hooks/useSpend.ts`) turn `included_usd` / `overage_trigger_usd`
+  into the costing token (`OVER PREPAID`, `CHARGING`) and the closed answer,
+  so the tab cannot report "steady" while a vendor is invoicing overage.
+
 Adding a question means adding a hook to `questions.tsx` and one entry to the
 tab's array. Do not add a card.
 

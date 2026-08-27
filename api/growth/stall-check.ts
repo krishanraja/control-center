@@ -122,7 +122,7 @@ async function draftMoves(metricKey: string, baseline: number, latest: number, w
     'Draft the 3 moves.',
   ].filter(Boolean).join('\n\n')
 
-  const raw = await callClaude({ system, user, maxTokens: 1200, temperature: 0.6 })
+  const raw = await callClaude({ agent: 'growth-stall-check', system, user, maxTokens: 1200, temperature: 0.6 })
   const parsed = robustJson(raw)
   if (!Array.isArray(parsed)) throw new Error('drafting returned non-array')
   return parsed.slice(0, 3).map((m: any) => ({

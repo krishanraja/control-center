@@ -103,6 +103,14 @@
     {
       "path": "/api/spend/ingest",
       "schedule": "15 7 * * *"
+    },
+    {
+      "path": "/api/meter/apify-sync",
+      "schedule": "5 * * * *"
+    },
+    {
+      "path": "/api/meter/n8n-sync",
+      "schedule": "35 */6 * * *"
     }
   ],
   "functions": {
@@ -110,6 +118,12 @@
       "maxDuration": 300
     },
     "api/health/connections-sweep.ts": {
+      "maxDuration": 120
+    },
+    "api/meter/apify-sync.ts": {
+      "maxDuration": 120
+    },
+    "api/meter/n8n-sync.ts": {
       "maxDuration": 120
     }
   }

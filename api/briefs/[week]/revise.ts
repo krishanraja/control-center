@@ -109,6 +109,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   openStream(res)
   try {
     const out = await streamClaude({
+      agent: 'briefs-revise',
       apiKey,
       model: humour ? 'claude-opus-4-8' : SYNTHESIS_MODEL,
       // Matches briefs/assemble.ts, which writes the brief this route edits.

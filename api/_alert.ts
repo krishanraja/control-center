@@ -1,5 +1,6 @@
 import { supabase } from './_supabase.js'
 import { blockedMessage, type ProviderOutcome } from './_quota.js'
+import { googleConfigured, sendGmail, createGmailDraft } from './_google.js'
 
 // Operator alerting.
 //
@@ -35,6 +36,37 @@ export async function notifyOps(text: string): Promise<{ sent: boolean; error?: 
   } catch (err: unknown) {
     return { sent: false, error: String((err as Error)?.message || err) }
   }
+}
+
+/**
+ * Email Krish. Deliberately NOT Telegram.
+ *
+ * Money alerts go to the inbox the invoices already go to, because that is
+ * where the evidence lands and where he goes looking when a bill surprises
+ * him — a Telegram ping about a $14 overage is a notification he swipes away
+ * and cannot find again a week later. (Krish's call, explicitly, when offered
+ * the Telegram framing.)
+ *
+ * Sends as himself to himself via the existing service account. If gmail.send
+ * is not in the domain-wide delegation the send returns null and this falls
+ * back to a DRAFT, which at least puts the text somewhere he will see it;
+ * `via` says which happened so a caller never reports a delivered alert that
+ * is actually sitting in the drafts folder.
+ */
+export async function notifyKrishEmail(subject: string, body: string): Promise<{
+  sent: boolean
+  via: 'send' | 'draft' | null
+  error?: string
+}> {
+  const to = process.env.OPS_ALERT_EMAIL || process.env.GOOGLE_IMPERSONATE_SUBJECT || ''
+  if (!googleConfigured() || !to) {
+    return { sent: false, via: null, error: 'google service account or OPS_ALERT_EMAIL not configured' }
+  }
+  const sent = await sendGmail({ to, subject, body })
+  if (sent) return { sent: true, via: 'send' }
+  const draft = await createGmailDraft({ to, subject, body })
+  if (draft) return { sent: true, via: 'draft' }
+  return { sent: false, via: null, error: 'gmail send and draft both failed' }
 }
 
 /** Append to the shared usage ledger. The RPC exists live with this exact

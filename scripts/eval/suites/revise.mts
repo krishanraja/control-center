@@ -110,6 +110,7 @@ async function generate(c: ReviseCase, directive: string): Promise<GenResult> {
   let usd = 0
   const t0 = Date.now()
   const out = await callClaude({
+    agent: 'script-eval-suites-revise',
     system, user, model: MODEL, temperature: TEMP, maxTokens: 2600, timeoutMs: 150_000,
     onUsage: u => { usd += usageCost(u) },
   })
@@ -142,6 +143,7 @@ async function expand(c: ReviseCase): Promise<{ brief: string; ms: number; usd: 
   let usd = 0
   const t0 = Date.now()
   const brief = await callClaude({
+    agent: 'script-eval-suites-revise',
     system: EXPANDER_SYSTEM,
     user: `INSTRUCTION: ${c.preset.label}\n\nPIECE: ${c.idea}${c.thesis ? `\nTHESIS: ${c.thesis}` : ''}\n\nDRAFT:\n${c.body.slice(0, 6000)}`,
     model: MODEL, temperature: 0.3, maxTokens: 400, timeoutMs: 60_000,

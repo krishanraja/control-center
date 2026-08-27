@@ -227,6 +227,7 @@ async function extractPeopleFromHeadlines(headlines: string[]): Promise<Extracte
   if (!headlines.length) return []
   try {
     const text = await callClaude({
+      agent: 'nell-guest-sources',
       model: SYNTHESIS_MODEL,
       system:
         'You extract named individual PEOPLE from news headlines. Return only real named humans who are ' +

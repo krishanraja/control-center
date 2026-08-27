@@ -90,6 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         extra: g.why_fit || g.one_liner,
       })
       const docText = await callClaude({
+        agent: 'nell-guest-briefing',
         // The previous version of this prompt was one sentence, and "concise"
         // was the only length control on an unbounded free-text doc. It listed
         // five section names and asked for nothing from any of them: three

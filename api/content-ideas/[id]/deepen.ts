@@ -133,6 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let parsed: { comparison?: any[]; findings?: string; open_question?: string; gaps?: string[] }
   try {
     const out = await callClaude({
+      agent: 'cleo-deepen',
       timeoutMs: 120_000,
       model: UTILITY_MODEL,
       temperature: 0.3,

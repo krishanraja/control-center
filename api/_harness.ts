@@ -16,6 +16,9 @@
 import { supportsSampling } from './_content.js'
 import { rootDomain } from './_trendGate.js'
 import { normalizeSpan, FETCH_BYTES, FETCH_TIMEOUT_MS, FETCH_CONCURRENCY } from './_gates.js'
+import { MODEL_PRICES, priceUsd } from './_prices.js'
+import * as meter from './_meter.js'
+import { LADDER_MODEL, UTILITY_MODEL } from './_models.js'
 
 // ── Budget ──────────────────────────────────────────────────────────────────
 
@@ -66,12 +69,15 @@ export function budgetLeft(b: RunBudget): { model: number; search: number; fetch
 // report what it actually cost. Both matter here, so this is a separate, small,
 // metered client rather than a change to a helper twelve other routes rely on.
 
-// Model identity and prices live in _models. Imported and re-exported here so
-// the ladder's existing importers keep their import path, and so this file can
-// still use the values itself (a bare `export ... from` re-export does not
-// bind them locally).
-import { MODEL_PRICES, LADDER_MODEL, UTILITY_MODEL } from './_models.js'
-export { MODEL_PRICES, LADDER_MODEL, UTILITY_MODEL }
+/** USD per 1M tokens. Update alongside the model list. */
+/** Re-exported so existing importers keep working; the table itself lives in
+ *  api/_prices.ts, which is now the only copy of the Anthropic rates. */
+export { MODEL_PRICES }
+
+// Model identity lives in _models.ts, prices in _prices.ts. Re-exported here
+// so the ladder's existing importers keep their import path, and imported
+// rather than re-declared so a tier change is one edit, not three.
+export { LADDER_MODEL, UTILITY_MODEL }
 
 export interface MeteredResult {
   text: string
@@ -88,6 +94,8 @@ export interface MeteredOpts {
   model?: string
   maxTokens?: number
   temperature?: number
+  /** Agent stamp for the usage meter; defaults to 'investigations'. */
+  agent?: string
 }
 
 /** Single metered Anthropic call. Never throws: returns `error` instead, so a
@@ -110,7 +118,9 @@ export async function callMetered(opts: MeteredOpts, budget: RunBudget): Promise
     messages: [{ role: 'user', content: opts.user }],
   }
   // Sampling parameters are a 400 on the opus-4-7 family. Thinking is
-  // deliberately left OFF (omitting the field on opus-4-8 means no thinking),
+  // deliberately left OFF. On opus-4-8 that is what omitting the field does;
+  // on the 5-family omission means adaptive thinking RUNS, so _models.thinkingParam
+  // states it either way rather than relying on the default,
   // because max_tokens caps thinking plus text together and this pipeline runs
   // on a bounded budget.
   if (supportsSampling(model)) body.temperature = opts.temperature ?? 0.2
@@ -129,11 +139,18 @@ export async function callMetered(opts: MeteredOpts, budget: RunBudget): Promise
     }
     const inTok = j?.usage?.input_tokens || 0
     const outTok = j?.usage?.output_tokens || 0
-    const price = MODEL_PRICES[model] || { in: 5, out: 25 }
-    const cost = (inTok / 1e6) * price.in + (outTok / 1e6) * price.out
+    // An unknown model prices at 0 rather than at a guessed Opus rate: a
+    // plausible wrong number in a spend report is worse than a visible gap.
+    const cost = priceUsd(model, inTok, outTok)
     budget.inputTokens += inTok
     budget.outputTokens += outTok
     budget.estCostUsd += cost
+    // Metered even when the call failed: tokens Anthropic produced before an
+    // error are tokens Anthropic bills for.
+    await meter.anthropicCall({
+      agent: opts.agent || 'investigations',
+      model, inputTokens: inTok, outputTokens: outTok, failed: !r.ok,
+    })
     if (!r.ok) {
       return { ...empty, inputTokens: inTok, outputTokens: outTok, costUsd: cost, error: `anthropic_${r.status}:${(j?.error?.message || '').slice(0, 160)}` }
     }

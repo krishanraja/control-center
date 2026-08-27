@@ -194,6 +194,55 @@ from one-off. As of 2026-08-11 the live account had collected $842.56 net all
 time, **76.9% of it from a single one-time payment**, against a dashboard that
 read $16,500.
 
+### `meter_daily` / `spend_alerts_sent`
+
+The usage meter (2026-08-27, migration `20260827090000_usage_meter.sql`).
+**Service-role only**, same rule as the spend tables; the browser reads the
+rollup inside `GET /api/spend`.
+
+**Why it exists.** `service_registry` answers *how much a provider cost*.
+Nothing answered *which unit of the OS spent it*. The two columns that
+looked like they did were fiction: `workflow_runs.cost_usd` held $0.00 for
+1,419 runs across twelve agents (one distinct value in thirty days), and
+`api_call_log` held eighteen rows, every one written by the connections
+sweep itself. Neither had ever seen agent traffic.
+
+- **`meter_daily`** — one row per `provider × unit_kind × unit_key × day ×
+  bucket`. `unit_kind` is `actor` (Apify) / `workflow` (n8n) / `agent`
+  (Anthropic); `bucket` is the one sub-dimension worth splitting by per
+  provider — run origin, execution mode, model. `unit_label` caches the
+  resolved human name so steady-state syncs need no provider round trips,
+  and `category` carries Apify's `task_category` from
+  `apify_actor_registry` (NULL = an actor that ran but is in no registry
+  row). `usd` is real money where the vendor prices it and computed from
+  real token counts where the OS meters itself; **n8n rows leave `usd` at
+  0 on purpose** — n8n Cloud bills per execution and reports no rate, so
+  `unit_name` says what `units` counts rather than a made-up dollar figure
+  sitting in the same column as real ones. The mirror rule applies to Apify:
+  `/v2/actor-runs` returns the shortened run object with `usageTotalUsd` but no
+  `usage` breakdown, so Apify rows carry dollars and leave `unit_name` NULL —
+  an unreported unit says nothing, never zero.
+- **Two write paths, not interchangeable.** Provider-derived truth (Apify,
+  n8n) is REPLACED: the collector recomputes a whole UTC day from the
+  vendor's own records and upserts over it, so a re-run or an overlapping
+  window cannot double-count. Self-metered events (Anthropic) are ADDED one
+  call at a time through the `meter_add()` RPC — replacing there would keep
+  only the last call of the day.
+- **`spend_alerts_sent`** — one row per money line already crossed, keyed
+  `<service>:<state>:<cycle-start>` (or `spike:<provider>:<unit>:<week>`).
+  Claimed BEFORE the email is sent, so an hourly cron turns one crossing
+  into one email rather than twenty-four; a claim whose send fails is
+  deleted again so a fixed mailer is not permanently silenced.
+- **`service_registry.included_usd` / `overage_trigger_usd` /
+  `cycle_usd` / `cycle_start` / `cycle_end`** — the prepaid truth. Apify's
+  plan includes $29 and charges early once the extra passes $50. The sweep
+  used to report `maxMonthlyUsageUsd − monthlyUsageUsd`: headroom to the
+  HARD cap, which sat far above the prepaid, so the dot stayed green in the
+  same week Apify emailed to say the prepaid was spent. `balance` is now
+  headroom to the INCLUDED amount and goes negative as overage accrues;
+  `cycle_*` are written by `/api/meter/apify-sync` from the vendor's own
+  billing window, never guessed from the calendar month.
+
 ### `agent_plans`
 
 One sprint plan per agent (14 rows). Refreshed weekly by Agatha Weekly

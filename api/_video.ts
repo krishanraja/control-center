@@ -185,6 +185,7 @@ export async function buildVideoScript(o: {
 
   const ask = async (extra?: string) => {
     const out = await callClaude({
+      agent: 'video',
       timeoutMs: 110_000,
       model: MODEL,
       temperature: 0.5,

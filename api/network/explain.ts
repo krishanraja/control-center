@@ -72,6 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
 
     const text = await callClaude({
+      agent: 'network-explain',
       model: MODEL,
       system: SYSTEM,
       user: `QUESTION:\n${question}\n\nPEOPLE:\n${JSON.stringify(candidates, null, 1)}`,

@@ -122,7 +122,7 @@ function parseJson(text: string): any {
  *  insert decision, and everything needed to write a leads row. */
 export async function scoreProspect(p: ApolloEnriched, opts: { webContext?: string } = {}): Promise<IcpScoreResult> {
   const { system, user } = buildScoringPrompt(p, opts.webContext)
-  const raw = await callClaude({ system, user, model: SYNTHESIS_MODEL, maxTokens: 900, temperature: 0.2 })
+  const raw = await callClaude({ agent: 'icp-score', system, user, model: SYNTHESIS_MODEL, maxTokens: 900, temperature: 0.2 })
   const parsed = parseJson(raw)
   const modelScores: Record<string, Record<string, number>> = parsed?.scores || {}
   const why = String(parsed?.why_relevant || '').trim()

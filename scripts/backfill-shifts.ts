@@ -108,7 +108,7 @@ async function main() {
 
     // 2. Same detection + gate as live.
     const { system, user } = buildDetectionPrompt(corpus, 31)
-    const raw = await callClaude({ model: SYNTHESIS_MODEL, maxTokens: 2000, temperature: 0.2, system, user })
+    const raw = await callClaude({ agent: 'script-backfill-shifts', model: SYNTHESIS_MODEL, maxTokens: 2000, temperature: 0.2, system, user })
     const proposals: ProposedShift[] = Array.isArray(robustJson(raw)?.shifts) ? robustJson(raw).shifts : []
     const byId = new Map(corpus.map(c => [c.id, c]))
     const verified = proposals.map(p => verifyShift(p, byId)).filter((x): x is VerifiedShift => Boolean(x))

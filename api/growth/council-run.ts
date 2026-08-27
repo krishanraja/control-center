@@ -378,7 +378,7 @@ async function writeReview(e: Evidence): Promise<{ findings: Record<string, stri
   // writing: at 1600 with thinking on, the reasoning would consume the ceiling
   // and the review would come back empty, which is exactly how the Friday
   // retro failed the moment it moved to Sonnet 5.
-  const raw = await callClaude({ system, user, maxTokens: 6000, temperature: 0.4, think: true })
+  const raw = await callClaude({ agent: 'growth-council', system, user, maxTokens: 6000, temperature: 0.4, think: true })
   const parsed: any = robustJson(raw)
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('council writing returned non-object')
 

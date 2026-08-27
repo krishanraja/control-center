@@ -185,6 +185,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let rawText: string
   try {
     rawText = await callClaude({
+      agent: 'cleo-synthesize',
       system,
       user,
       model: UTILITY_MODEL,

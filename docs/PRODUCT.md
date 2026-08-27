@@ -514,7 +514,7 @@ answer it expands into. Every closed answer is deterministic system truth.
 
 | Question | Answer from | Expands to |
 |---|---|---|
-| What is it costing? | `GET /api/spend` (receipts truth) | The 6-month sparkline, the meter, unreadable-receipt honesty, and a door into the ranked per-service sheet |
+| What is it costing? | `GET /api/spend` (receipts truth + the usage meter) | The prepaid state of each plan, the top three metered spenders, the 6-month sparkline, unreadable-receipt honesty, and a door into the ranked service + spender sheet |
 | What is coming in? | `GET /api/revenue` (Stripe) | Committed MRR per currency, collected 30d/90d/all-time, the one-off share note |
 | What is broken? | the connections sweep in `/api/spend` | Every broken or low service with its who-spent-it attribution line, its top-up link, and "Check now" |
 | Is anything converting? | `GET /api/fleet-funnel` | Per-app 7-day and all-time funnel, emit health, top campaigns |
@@ -524,6 +524,48 @@ The sixth question is the open one: `AskMarcus` is a single serif input
 that becomes the conversation once asked. No autofocus on mount
 (2026-08-25): stealing focus popped the phone keyboard into the fixed
 no-scroll zoom shell, so the tab always opened "zoomed in".
+
+### Who is spending it (the usage meter)
+Receipts answer *how much a provider cost*. Until 2026-08-27 nothing
+answered *which unit of the OS spent it* — and the two columns that looked
+like they did were fiction (`workflow_runs.cost_usd` was $0.00 across 1,419
+runs; `api_call_log` held eighteen rows, all written by the sweep itself).
+
+`meter_daily` is one shape for three providers, so an Apify actor, an n8n
+workflow and an Anthropic agent rank in a single list:
+
+| Provider | Unit | Measured in | How |
+|---|---|---|---|
+| Apify | actor | dollars | `/v2/actor-runs`, per-run `usageTotalUsd`, split by run origin (WEB / API / SCHEDULER / DEVELOPMENT) and joined to `apify_actor_registry` for `task_category` |
+| n8n | workflow | executions | n8n Cloud bills per execution and reports no rate, so dollars stay at 0 rather than being invented |
+| Anthropic | agent | dollars, from tokens | Every OS-made call records the token counts on its own response, priced, stamped with the calling agent |
+
+**Anthropic is self-metered because it has to be.** The usage and cost
+reports are Admin-key endpoints and an individual account cannot hold an
+Admin key, so the API key genuinely cannot read its own billing. The
+invoice therefore stays the truth for TOTAL Anthropic spend; the meter
+answers the narrower question of which agent, of the ones the OS runs, is
+spending. n8n workflows that go through `/api/internal/sonnet-proxy` are
+covered (their `X-Internal-Caller` header is the stamp); an n8n node holding
+its own Anthropic credential is not, and the sheet says so.
+
+### The prepaid line
+Apify's plan includes $29 of usage and charges early once the extra passes
+$50. The tracker used to report headroom to the vendor's HARD cap, which
+sits far above the prepaid — so it read "Apify: $130.53, ok" in the same
+week Apify emailed to say the prepaid was spent and the overage was
+accruing. `service_registry.included_usd` / `overage_trigger_usd` make
+"past the prepaid" and "being charged early" real states: they outrank the
+month-vs-usual line in the costing answer, drive the token
+(`OVER PREPAID` / `CHARGING`), and light the Intel door dot.
+
+When a line is crossed, `/api/meter/apify-sync` **emails** Krish — his call,
+explicitly, over the Telegram framing: money alerts belong in the inbox the
+invoices land in. Claimed in `spend_alerts_sent` before the send, so an
+hourly cron turns one crossing into one email. A single unit whose week
+costs 3× its own normal (and clears $5) gets the same treatment, once per
+week — the "who used it, and could it have been avoided" question, answered
+while it is still this week's problem.
 
 ### Marcus, the marked voice
 His headline and dateline crown the page in serif ("MARCUS · WRITTEN WED
@@ -546,6 +588,7 @@ answers on the tab. `dedupeMarcusRead` kills the old double-render, where
 - `home_intelligence` (singleton, `id='current'`) via `useHomeIntelligence`.
 - `marcus_synthesis` latest row via `useMarcusSynthesis`.
 - `GET /api/spend`, `GET /api/revenue`, `GET /api/fleet-funnel`.
+- `meter_daily` via `/api/spend` (`spenders`, `cycles`) — never read directly.
 - `bets` via `useBets`.
 
 ### Writes

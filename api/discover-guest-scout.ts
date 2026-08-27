@@ -197,6 +197,7 @@ async function draftFor(p: GuestCandidate, brief: FormatBrief): Promise<Draft | 
   try {
     const evidence = p.evidence.map(e => `- ${e.kind}: ${e.label}`).join('\n')
     const raw = await callClaude({
+      agent: 'nell-guest-scout',
       system: scoutSystem(brief),
       user:
         `GUEST CANDIDATE: ${p.name}\n` +
