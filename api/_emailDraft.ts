@@ -85,7 +85,7 @@ export async function draftEmailDirect(p: EmailDraftPayload): Promise<{ subject:
     ...(extra.length ? ['', ...extra] : []),
   ].filter(Boolean).join('\n')
 
-  const raw = await callClaude({ system, user, maxTokens: 1200, temperature: 0.6 })
+  const raw = await callClaude({ agent: 'outreach-email', system, user, maxTokens: 1200, temperature: 0.6 })
   const j = robustJson(raw) || {}
   const subject = typeof j?.subject === 'string' ? j.subject.trim() : ''
   const body = typeof j?.body === 'string' ? j.body.trim() : (typeof raw === 'string' ? raw.trim() : '')

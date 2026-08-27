@@ -257,7 +257,7 @@ export async function runDetect() {
     return { ...c, id: alias }
   })
   const { system, user } = buildDetectionPrompt(aliased)
-  const raw = await callClaude({ model: 'claude-sonnet-4-6', maxTokens: 2000, temperature: 0.2, system, user })
+  const raw = await callClaude({ agent: 'shifts-detect', model: 'claude-sonnet-4-6', maxTokens: 2000, temperature: 0.2, system, user })
   const parsed = robustJson(raw)
   const proposals: ProposedShift[] = Array.isArray(parsed?.shifts) ? parsed.shifts : []
 

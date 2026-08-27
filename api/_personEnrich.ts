@@ -449,6 +449,7 @@ export async function enrichPerson(input: PersonInput, opts: EnrichOptions = {})
     ].filter(Boolean).join('\n')
     try {
       const raw = await callClaude({
+        agent: 'enrich-person',
         system: JUDGMENT_SYSTEM,
         user: evidence,
         maxTokens: 900,

@@ -40,6 +40,7 @@ async function summarize(members: Row[]): Promise<string | null> {
   const titles = members.slice(0, 12).map((m, i) => `${i + 1}. ${m.idea || ''}`).join('\n')
   try {
     const text = await callClaude({
+      agent: 'cleo-cluster',
       model: 'claude-haiku-4-5-20251001',
       maxTokens: 220,
       temperature: 0.3,

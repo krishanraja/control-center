@@ -43,6 +43,7 @@ async function judge(system: string, user: string): Promise<Judgment | null> {
   let raw: string
   try {
     raw = await callClaude({
+      agent: 'pilot-resolve-ask',
       system,
       user,
       model: 'claude-haiku-4-5-20251001',

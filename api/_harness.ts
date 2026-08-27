@@ -16,6 +16,8 @@
 import { supportsSampling } from './_content.js'
 import { rootDomain } from './_trendGate.js'
 import { normalizeSpan, FETCH_BYTES, FETCH_TIMEOUT_MS, FETCH_CONCURRENCY } from './_gates.js'
+import { MODEL_PRICES, priceUsd } from './_prices.js'
+import * as meter from './_meter.js'
 
 // ── Budget ──────────────────────────────────────────────────────────────────
 
@@ -67,12 +69,9 @@ export function budgetLeft(b: RunBudget): { model: number; search: number; fetch
 // metered client rather than a change to a helper twelve other routes rely on.
 
 /** USD per 1M tokens. Update alongside the model list. */
-export const MODEL_PRICES: Record<string, { in: number; out: number }> = {
-  'claude-opus-4-8': { in: 5, out: 25 },
-  'claude-opus-4-7': { in: 5, out: 25 },
-  'claude-sonnet-4-6': { in: 3, out: 15 },
-  'claude-haiku-4-5': { in: 1, out: 5 },
-}
+/** Re-exported so existing importers keep working; the table itself lives in
+ *  api/_prices.ts, which is now the only copy of the Anthropic rates. */
+export { MODEL_PRICES }
 
 export const LADDER_MODEL = 'claude-opus-4-8'
 export const UTILITY_MODEL = 'claude-sonnet-4-6'
@@ -92,6 +91,8 @@ export interface MeteredOpts {
   model?: string
   maxTokens?: number
   temperature?: number
+  /** Agent stamp for the usage meter; defaults to 'investigations'. */
+  agent?: string
 }
 
 /** Single metered Anthropic call. Never throws: returns `error` instead, so a
@@ -133,11 +134,18 @@ export async function callMetered(opts: MeteredOpts, budget: RunBudget): Promise
     }
     const inTok = j?.usage?.input_tokens || 0
     const outTok = j?.usage?.output_tokens || 0
-    const price = MODEL_PRICES[model] || { in: 5, out: 25 }
-    const cost = (inTok / 1e6) * price.in + (outTok / 1e6) * price.out
+    // An unknown model prices at 0 rather than at a guessed Opus rate: a
+    // plausible wrong number in a spend report is worse than a visible gap.
+    const cost = priceUsd(model, inTok, outTok)
     budget.inputTokens += inTok
     budget.outputTokens += outTok
     budget.estCostUsd += cost
+    // Metered even when the call failed: tokens Anthropic produced before an
+    // error are tokens Anthropic bills for.
+    await meter.anthropicCall({
+      agent: opts.agent || 'investigations',
+      model, inputTokens: inTok, outputTokens: outTok, failed: !r.ok,
+    })
     if (!r.ok) {
       return { ...empty, inputTokens: inTok, outputTokens: outTok, costUsd: cost, error: `anthropic_${r.status}:${(j?.error?.message || '').slice(0, 160)}` }
     }

@@ -303,6 +303,7 @@ async function ingest(token: string, backfillMonths: number | null) {
     if (body.trim()) {
       try {
         const raw = await callClaude({
+          agent: 'spend-ingest',
           system: PARSE_SYSTEM,
           user: `Subject: ${subject}\nFrom: ${from}\n\n${body}`,
           model: PARSE_MODEL,

@@ -223,6 +223,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let raw = ''
   try {
     raw = await callClaude({
+      agent: 'network-scan-card',
       system: SYSTEM,
       user: 'Extract the person from this screenshot.',
       images: [{ mime, data: body.toString('base64') }],

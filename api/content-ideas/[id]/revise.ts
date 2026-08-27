@@ -82,6 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let revisedFragment: string
   try {
     revisedFragment = (await streamClaude({
+      agent: 'cleo-revise',
       apiKey,
       model: humour ? 'claude-opus-4-8' : 'claude-sonnet-4-6',
       // Matches the other rewrite surfaces (channel-cut, synthesize) rather than

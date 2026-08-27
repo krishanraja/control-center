@@ -200,6 +200,7 @@ export async function runAssemble(force = false) {
   let shapeError = ''
   for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
     const raw = await callClaude({
+      agent: 'briefs-assemble',
       model: 'claude-sonnet-4-6',
       maxTokens: 5000,
       temperature: 0.4,

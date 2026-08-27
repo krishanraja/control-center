@@ -98,6 +98,7 @@ Rules:
   openStream(res)
   try {
     const reply = (await streamClaude({
+      agent: 'marcus',
       apiKey,
       model: MODEL,
       // The answer has a rigid shape (one sentence, three bullets, a counter-take)
