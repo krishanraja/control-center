@@ -63,11 +63,17 @@ async function claim(alertKey: string, detail: string): Promise<ClaimState> {
 }
 
 /** Record how the alert actually left, so the row never overstates delivery. */
-async function recordChannel(alertKey: string, via: 'send' | 'draft'): Promise<void> {
+async function recordChannel(alertKey: string, via: 'send' | 'draft', detail: string): Promise<void> {
   const patch: Record<string, unknown> = { channel: via === 'send' ? 'email' : 'draft' }
   // sent_at means "when it actually reached him", so a draft that later sends
-  // is stamped with the send, not with the drafting.
-  if (via === 'send') patch.sent_at = new Date().toISOString()
+  // is stamped with the send, not with the drafting. detail follows for the
+  // same reason: a retry regenerates the alert from CURRENT cycle numbers, so
+  // the first live retry sent "$1.85 past the $29" against a row still
+  // claiming "$0.49" — an audit record of an email nobody sent.
+  if (via === 'send') {
+    patch.sent_at = new Date().toISOString()
+    patch.detail = detail.slice(0, 400)
+  }
   await supabase.from('spend_alerts_sent').update(patch).eq('alert_key', alertKey)
 }
 
@@ -166,7 +172,7 @@ export async function checkMoneyLines(source: string): Promise<MoneyAlertResult>
 
     const r = await notifyKrishEmail(a.subject, a.body, { sendOnly: state === 'drafted' })
     if (r.sent && r.via) {
-      await recordChannel(a.key, r.via)
+      await recordChannel(a.key, r.via, a.subject)
       out.sent.push(`${a.key}${r.via === 'draft' ? ' (draft)' : ''}`)
       continue
     }
