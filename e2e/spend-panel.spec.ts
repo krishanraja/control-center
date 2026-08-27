@@ -74,15 +74,64 @@ const SPEND_FULL = {
   ],
   needs_review: 2,
   meter: { usd_mtd: 41, calls_mtd: 1204 },
+  // Inside the prepaid amount: the console must read this as calm, and the
+  // costing answer must keep its "against a usual" shape.
+  cycles: [{
+    key: 'apify', name: 'Apify', included_usd: 29, overage_trigger_usd: 50,
+    cycle_usd: 16.5, cycle_start: '2026-08-14', cycle_end: '2026-09-14',
+    state: 'within', over_usd: 0, headroom_usd: 12.5,
+    top_up_url: 'https://console.apify.com/billing',
+  }],
+  spenders: {
+    since: '2026-07-22',
+    metered_usd: 61.2,
+    units: [
+      {
+        provider: 'apify', kind: 'actor', key: 'nH2AHrwxeTRJoN5hX',
+        label: 'apimaestro/linkedin-profile-detail', category: 'linkedin_profile',
+        usd: 41.2, usd_7d: 18.9, runs: 812, failed: 6, units: 96.4,
+        unit_name: 'compute-units',
+        buckets: [{ bucket: 'API', usd: 39.1, runs: 780 }, { bucket: 'WEB', usd: 2.1, runs: 32 }],
+      },
+      {
+        provider: 'anthropic', kind: 'agent', key: 'cleo-final-pass',
+        label: 'cleo-final-pass', category: 'priced',
+        usd: 14.6, usd_7d: 4.2, runs: 142, failed: 0, units: 2_140_000,
+        unit_name: 'tokens',
+        buckets: [{ bucket: 'claude-sonnet-4-6', usd: 14.6, runs: 142 }],
+      },
+      {
+        provider: 'n8n', kind: 'workflow', key: 'wf-maya-01',
+        label: 'Maya · outreach cascade', category: null,
+        usd: 0, usd_7d: 0, runs: 431, failed: 12, units: 431,
+        unit_name: 'executions',
+        buckets: [{ bucket: 'trigger', usd: 0, runs: 431 }],
+      },
+    ],
+    silent: [],
+  },
   empty: false,
   as_of: new Date().toISOString(),
+}
+
+/** The state the tracker used to render as a green dot: past the $29 the plan
+ *  includes, with the overage accruing toward the early-charge mark. */
+const SPEND_OVER_PREPAID = {
+  ...SPEND_FULL,
+  cycles: [{
+    key: 'apify', name: 'Apify', included_usd: 29, overage_trigger_usd: 50,
+    cycle_usd: 43.4, cycle_start: '2026-08-14', cycle_end: '2026-09-14',
+    state: 'over_prepaid', over_usd: 14.4, headroom_usd: -14.4,
+    top_up_url: 'https://console.apify.com/billing',
+  }],
 }
 
 const SPEND_EMPTY = {
   ok: true, month_usd: 0, avg_3mo_usd: 0, delta_pct: null, ballooning: false,
   months: [], services: [], unmatched: [],
   connections: { ok: 0, low: 0, broken: 0, critical_broken: 0, unchecked: 0, broken_names: [], low_names: [] },
-  renewals_due: [], needs_review: 0, meter: null, empty: true, as_of: new Date().toISOString(),
+  renewals_due: [], needs_review: 0, meter: null, cycles: [], spenders: null,
+  empty: true, as_of: new Date().toISOString(),
 }
 
 const calmMorning = {
@@ -203,6 +252,51 @@ test.describe('the spend and connections questions', () => {
     await page.getByTestId('intel-door').click()
     await expect(page).toHaveURL(/os\?sub=intel/)
     await expect(page.getByTestId('spend-month-total')).toHaveText('$1,284')
+    await ctx.close()
+  })
+
+  test('past the prepaid, the answer says so instead of reporting a calm month', async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
+    const page = await ctx.newPage()
+    await mock(page, SPEND_OVER_PREPAID)
+    await page.goto('/#/os?sub=intel')
+
+    // The regression this pins: the tracker reported "$130 balance, ok" while
+    // Apify was emailing to say the $29 prepaid was spent. The overage now
+    // outranks the month-vs-usual line on the closed answer AND in the token.
+    const costing = page.getByTestId('bi-q-costing')
+    await expect(costing).toContainText('Apify is')
+    await expect(costing).toContainText('past its prepaid')
+    await expect(costing).toContainText('OVER PREPAID')
+
+    await costing.click()
+    await expect(page.getByTestId('bi-questions')).toContainText('$14.40 past the $29 included in the plan')
+    await ctx.close()
+  })
+
+  test('the spenders list names the actor, the agent and the workflow', async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
+    const page = await ctx.newPage()
+    await mock(page)
+    await page.goto('/#/os?sub=intel')
+
+    await page.getByTestId('bi-q-costing').click()
+    // Top three on the answer itself: the ranked "what to turn off first".
+    const spenders = page.getByTestId('spend-spenders')
+    await expect(spenders).toContainText('apimaestro/linkedin-profile-detail')
+    await expect(spenders).toContainText('$41.20')
+
+    await page.getByTestId('spend-panel-open').click()
+    const full = page.getByTestId('spend-spenders-full')
+    await expect(full).toBeVisible()
+    // Each provider reads in the unit it actually bills in: Apify in dollars,
+    // Anthropic in tokens where it is priced, n8n in runs because n8n Cloud
+    // charges per execution and reports no price at all.
+    await expect(full).toContainText('cleo-final-pass')
+    await expect(full).toContainText('Maya · outreach cascade')
+    await expect(full).toContainText('431 runs')
+    // And the gaps are stated, not implied.
+    await expect(full).toContainText('not which workflow called it')
     await ctx.close()
   })
 

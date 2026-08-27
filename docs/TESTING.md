@@ -27,7 +27,7 @@ guards exist outside CI; see the root `AGENTS.md`.
 
 ## e2e
 
-Fourteen spec files (104 tests) against the production build via `npm run
+Fourteen spec files (106 tests) against the production build via `npm run
 preview`. All `/api/*`, `**/rest/v1/**` and `**/realtime/**` traffic is
 mocked, so panels settle on their honest empty states without a live
 database and no spec spends an embedding or a model call.
@@ -45,7 +45,7 @@ database and no spec spends an embedding or a model call.
 | `e2e/queue-relocation.spec.ts` | the ruling queue at OS → Queue and the `#today` aliases | default |
 | `e2e/market-signals.spec.ts` | the head-space split: the Market signals door appears only for a fresh hot digest, Home's face carries no signal text, the drawer acts without navigating, the Intel door lands on the console | default + 360x800 |
 | `e2e/intel-zoom.spec.ts` | OS → Intel does not steal focus or overflow the zoom root, **and the whole phone column fits two screen-lengths** | 390x844 + 1280x800 |
-| `e2e/spend-panel.spec.ts` | the money and connections answers on the interrogation, the ranked service sheet, the sweep trigger, the Home door dot | 390x844 + 1280x800 |
+| `e2e/spend-panel.spec.ts` | the money and connections answers on the interrogation, the prepaid-line state (past the $29 included outranks the month-vs-usual line, in the answer AND the token), the ranked service + spender sheet with each provider in the unit it bills in, the sweep trigger, the Home door dot | 390x844 + 1280x800 |
 | `e2e/content-queue-window.spec.ts` | the content queue's ageing window and the archive an aged-out card lands in | default |
 | `e2e/content-rooms.spec.ts` | Built vs Paid: own shifts lead, cross-cutting ones are labelled | default |
 

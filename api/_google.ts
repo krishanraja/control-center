@@ -95,6 +95,39 @@ export async function createGmailDraft(input: { to: string; subject: string; bod
   }
 }
 
+/**
+ * Send a plain-text email as the impersonated user. Returns { id } or null.
+ *
+ * Separate from createGmailDraft because the two need different scopes and
+ * differ in what they promise: a draft waits for a human, a send has already
+ * left. Alerts have to leave — a draft nobody opens is the same as no alert.
+ * gmail.send must be in the domain-wide delegation for this to work; when it
+ * is not, the caller falls back to a draft rather than failing silently.
+ */
+export async function sendGmail(input: { to: string; subject: string; body: string }): Promise<{ id: string } | null> {
+  const token = await googleAccessToken(['https://www.googleapis.com/auth/gmail.send'])
+  if (!token) return null
+  const headers = [
+    `To: ${input.to}`,
+    `Subject: ${input.subject || ''}`,
+    'Content-Type: text/plain; charset=UTF-8',
+    'MIME-Version: 1.0',
+  ].join('\r\n')
+  const raw = b64url(`${headers}\r\n\r\n${input.body || ''}`)
+  try {
+    const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw }),
+    })
+    const j: any = await r.json().catch(() => ({}))
+    if (!r.ok || !j?.id) return null
+    return { id: j.id }
+  } catch {
+    return null
+  }
+}
+
 /** Create a Google Doc (in Drive) from plain text. Returns { id, url } or null. */
 export async function createDriveDoc(input: { name: string; content: string }): Promise<{ id: string; url: string } | null> {
   const token = await googleAccessToken(['https://www.googleapis.com/auth/drive.file'])

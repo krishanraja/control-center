@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { dayKey, replaceDays, type MeterRow } from '../_meter.js'
+import { checkMoneyLines, type MoneyAlertResult } from '../_moneyAlerts.js'
 
 // Apify, per actor, in dollars.
 //
@@ -114,6 +115,8 @@ export interface ApifySyncResult {
   /** Actors that ran but are not in apify_actor_registry — spend nobody chose. */
   unregistered: string[]
   truncated: boolean
+  /** Money lines evaluated after the sync, while the cycle numbers are fresh. */
+  alerts: MoneyAlertResult | null
   errors: string[]
 }
 
@@ -123,7 +126,7 @@ export async function syncApify(days: number): Promise<ApifySyncResult> {
   if (!token) {
     return {
       days, runs_read: 0, actors: 0, usd_in_window: 0, rows_written: 0,
-      cycle: null, unregistered: [], truncated: false,
+      cycle: null, unregistered: [], truncated: false, alerts: null,
       errors: ['APIFY_TOKEN not configured'],
     }
   }
@@ -190,6 +193,18 @@ export async function syncApify(days: number): Promise<ApifySyncResult> {
 
   const cycle = await syncCycle(token, errors)
 
+  // Alerting runs HERE, right after the cycle numbers are refreshed, rather
+  // than on the read path: /api/spend is polled by every open tab, and an
+  // alert that fires from a render is an alert that fires as often as someone
+  // looks at it.
+  let alerts: MoneyAlertResult | null = null
+  try {
+    alerts = await checkMoneyLines('apify-sync')
+    errors.push(...alerts.errors)
+  } catch (e) {
+    errors.push(`alerts: ${String((e as Error)?.message || e).slice(0, 140)}`)
+  }
+
   return {
     days,
     runs_read: runs.length,
@@ -199,6 +214,7 @@ export async function syncApify(days: number): Promise<ApifySyncResult> {
     cycle,
     unregistered,
     truncated,
+    alerts,
     errors,
   }
 }

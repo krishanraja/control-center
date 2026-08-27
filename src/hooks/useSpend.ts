@@ -24,6 +24,42 @@ export interface SpendServiceRow {
   usage: { calls_7d: number; est_cost_7d: number; top_sources: string[] } | null
 }
 
+export type MeterProvider = 'apify' | 'n8n' | 'anthropic'
+
+/** One thing that spent money. Actors, workflows and agents share this shape
+ *  so the console ranks them against each other in one list. */
+export interface SpendUnit {
+  provider: MeterProvider
+  kind: string
+  key: string
+  label: string
+  category: string | null
+  usd: number
+  usd_7d: number
+  runs: number
+  failed: number
+  units: number
+  unit_name: string | null
+  buckets: Array<{ bucket: string; usd: number; runs: number }>
+}
+
+export type CycleState = 'within' | 'over_prepaid' | 'near_trigger' | 'charging_early' | 'unknown'
+
+/** A plan's prepaid allowance and where this billing cycle sits inside it. */
+export interface SpendCycle {
+  key: string
+  name: string
+  included_usd: number | null
+  overage_trigger_usd: number | null
+  cycle_usd: number | null
+  cycle_start: string | null
+  cycle_end: string | null
+  state: CycleState
+  over_usd: number
+  headroom_usd: number | null
+  top_up_url: string | null
+}
+
 export interface SpendSummary {
   ok: boolean
   month_usd: number
@@ -45,6 +81,15 @@ export interface SpendSummary {
   renewals_due: Array<{ key: string; name: string; amount: number; currency: string; on: string }>
   needs_review: number
   meter: { usd_mtd: number; calls_mtd: number } | null
+  spenders: {
+    since: string
+    metered_usd: number
+    units: SpendUnit[]
+    /** Providers the meter covers but has no rows for. A collector that has
+     *  not run must never render as a provider that spent nothing. */
+    silent: MeterProvider[]
+  } | null
+  cycles: SpendCycle[]
   empty: boolean
   as_of: string
 }
@@ -134,6 +179,49 @@ export function spendAlert(s: SpendSummary | null): 'amber' | 'rose' | null {
     const days = (new Date(r.on).getTime() - Date.now()) / 86_400_000
     return days <= 14
   })
-  if (s.connections.broken > 0 || s.connections.low > 0 || renewalSoon || s.ballooning) return 'amber'
+  // Overage past a plan's included amount is money already being spent extra,
+  // which is exactly the state the door used to stay silent through.
+  const overage = (s.cycles || []).some(c => c.over_usd > 0)
+  if (s.connections.broken > 0 || s.connections.low > 0 || renewalSoon || s.ballooning || overage) return 'amber'
   return null
+}
+
+/** The plan cycle that most needs saying out loud, or null when all are fine. */
+export function worstCycle(s: SpendSummary | null): SpendCycle | null {
+  const c = (s?.cycles || []).find(x => x.state !== 'within' && x.state !== 'unknown')
+  return c || null
+}
+
+/** Cents where cents matter, none where they are noise: an overage of $14.40
+ *  needs them, a plan price of $29 does not. */
+const money = (n: number): string => {
+  if (Math.abs(n) >= 100) return `$${Math.round(n).toLocaleString('en-US')}`
+  return `$${Number.isInteger(n) ? n : n.toFixed(2)}`
+}
+
+/**
+ * The prepaid state in one plain sentence.
+ *
+ * This is the line the tracker could not say: it reported headroom to Apify's
+ * hard cap and called it "ok" in the same week Apify emailed to say the $29
+ * included in the plan was spent. Each state names the money and what happens
+ * next, because "over by $14" and "Apify will charge you early" are different
+ * problems.
+ */
+export function cycleLine(c: SpendCycle): string {
+  const included = c.included_usd == null ? null : money(c.included_usd)
+  switch (c.state) {
+    case 'charging_early':
+      return `${money(c.over_usd)} past the ${included} included — over the ${c.overage_trigger_usd != null ? money(c.overage_trigger_usd) : ''} mark, so ${c.name} charges this early rather than waiting for the invoice.`
+    case 'near_trigger':
+      return `${money(c.over_usd)} past the ${included} included${c.overage_trigger_usd != null ? `, closing on the ${money(c.overage_trigger_usd)} mark where ${c.name} charges early` : ''}.`
+    case 'over_prepaid':
+      return `${money(c.over_usd)} past the ${included} included in the plan. It lands on the next invoice.`
+    case 'within':
+      return c.headroom_usd == null
+        ? `Inside the ${included} included in the plan.`
+        : `${money(c.headroom_usd)} left of the ${included} included in the plan.`
+    default:
+      return `${c.name} has not reported this cycle yet.`
+  }
 }
