@@ -1,4 +1,5 @@
 import { callClaude, robustJson } from './_content.js'
+import { JUDGE_MODEL } from './_models.js'
 
 // Turns a sentence Krish typed or spoke into a query plan the scorer can run.
 //
@@ -21,7 +22,7 @@ import { callClaude, robustJson } from './_content.js'
 // Sonnet makes. That costs less than it sounds, because the venture multiplier
 // is penalty-only [0.65, 1.0], so a missed venture means no demotion rather than
 // a missed boost. Constraints are soft either way.
-const MODEL = 'claude-haiku-4-5-20251001'
+const MODEL = JUDGE_MODEL
 
 // Fields the planner may constrain on. This is an allow-list, not documentation:
 // anything outside it is dropped before the plan reaches Postgres, so a

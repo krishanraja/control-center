@@ -311,10 +311,17 @@ function measuredLine(e: Evidence): string {
   ].join(' | ')
 }
 
-/** Deterministic review, used when the writing pass is unavailable. Numbers only, no prose invented. */
+/** Deterministic review, used when the writing pass is unavailable. Numbers only, no prose invented.
+ *
+ *  `degraded` is stored on the row, not just reported in the run outcome. The
+ *  outcome is transient and the row is what CouncilFeed renders, so an
+ *  Anthropic outage used to reach the screen looking exactly like a real
+ *  review that had concluded there was nothing to kill and nothing to double
+ *  down on. Those are opposite facts and they rendered identically. */
 function fallbackReview(e: Evidence) {
   const findings: Record<string, string> = {
     headline: `Evidence-only review: ${measuredLine(e)}`,
+    degraded: 'evidence-only — the writing pass was unavailable, so no kill or double-down calls were made',
     measured: measuredLine(e),
   }
   for (const u of e.unknowns) findings[`unknown_${Object.keys(findings).length}`] = u

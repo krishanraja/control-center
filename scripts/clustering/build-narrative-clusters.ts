@@ -20,6 +20,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { embedBatch, cosine, vectorLiteral } from '../../api/_embeddings'
+import { JUDGE_MODEL } from '../../api/_models'
 
 const SUPA_URL = process.env.SUPABASE_URL
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -182,7 +183,7 @@ async function summarizeCluster(members: any[]): Promise<string | null> {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
+      model: JUDGE_MODEL,
       max_tokens: 220,
       temperature: 0.3,
       system: 'You write tight, specific narrative descriptions. 2 sentences max. No filler, no labels, no "this cluster".',

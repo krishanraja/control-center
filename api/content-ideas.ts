@@ -5,6 +5,7 @@ import { checkDuplicate, recordDuplicateSource } from './_dedup.js'
 import { embed, vectorLiteral } from './_embeddings.js'
 import { canonicalUrl, titleNorm, contentHash } from './_text.js'
 import { classifyRelevance, relevanceReasonCode } from './_relevance.js'
+import { SYNTHESIS_MODEL } from './_models.js'
 
 // Content ideas inbox endpoint.
 //
@@ -205,7 +206,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (process.env.ANTHROPIC_API_KEY) {
       try {
         const raw = await callClaude({
-          model: 'claude-sonnet-4-6',
+          model: SYNTHESIS_MODEL,
           system:
             'You extract a structured content idea from raw text. Return JSON only.\n' +
             '- thesis: 1-2 sentences on why this is interesting, true or useful right now.\n' +

@@ -116,6 +116,7 @@ import {
   callClaude, corpusForChannel, loadCorpus, loadVoiceBlock, materialsContext,
   robustJson, sanitizeVoice, type Material,
 } from './_content.js'
+import { UTILITY_MODEL } from './_models.js'
 
 export interface VideoBeat { t: string; say: string; shot: string }
 
@@ -137,7 +138,7 @@ export interface VideoScript {
   model: string
 }
 
-const MODEL = 'claude-sonnet-4-6'
+const MODEL = UTILITY_MODEL
 
 export async function buildVideoScript(o: {
   format: VideoFormat

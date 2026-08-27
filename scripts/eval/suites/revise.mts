@@ -44,8 +44,9 @@ import {
 import { buildRevisePrompt, type ReviseContext } from '../../../api/_revisePrompt.js'
 import { scoreStandards, standardsMean } from '../../../api/_standards.js'
 import type { Suite, Variant, GenResult } from '../_types.mts'
+import { UTILITY_MODEL } from '../../../api/_models.js'
 
-const MODEL = 'claude-sonnet-4-6'
+const MODEL = UTILITY_MODEL
 const TEMP = 0.5
 
 /**

@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { PROXY_ALLOWED_MODELS } from '../_models.js'
 
 // Internal-only Anthropic proxy. n8n workflows that can't share the
 // Anthropic credential (workflow-level credential scoping in n8n Cloud)
@@ -12,11 +13,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 //
 // Not exposed in UI navigation; do NOT use from the browser.
 
-const ALLOWED_MODELS = new Set([
-  'claude-opus-4-7',
-  'claude-sonnet-4-6',
-  'claude-haiku-4-5-20251001',
-])
+// Deliberately wider than the model constants: a checked-in workflow keeps
+// sending its old ID until that workflow is redeployed, so a proxy that only
+// accepted the current tier would 400 the fleet in the window between the
+// Vercel deploy and the n8n one. Old IDs come out of PROXY_ALLOWED_MODELS once
+// no live workflow sends them.
+const ALLOWED_MODELS = new Set<string>([...PROXY_ALLOWED_MODELS, 'claude-opus-4-7'])
 const MAX_TOKENS_CEILING = 8000
 
 interface AnthropicBody {

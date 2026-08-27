@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { callClaude, robustJson } from '../_content.js'
+import { SYNTHESIS_MODEL } from '../_models.js'
 
 // POST /api/network/explain
 //   { question, contact_ids: string[] }
@@ -18,7 +19,7 @@ import { callClaude, robustJson } from '../_content.js'
 
 export const config = { maxDuration: 60 }
 
-const MODEL = 'claude-sonnet-4-6'
+const MODEL = SYNTHESIS_MODEL
 const MAX_IDS = 12
 
 const SYSTEM = `You are explaining why each person answers a question about Krish Raja's professional network.
@@ -26,12 +27,13 @@ const SYSTEM = `You are explaining why each person answers a question about Kris
 You get the question and a numbered list of people, each with their role, company, relationship tier and the stored judgment about them.
 
 Return STRICT JSON ONLY, no prose and no code fences:
-{ "explanations": [{ "i": number, "why": string }] }
+{ "explanations": [{ "i": number, "why": string, "move": string }] }
 
 Rules:
 - "why" is ONE short sentence, grounded ONLY in that person's supplied fields, saying why they answer THIS question. Cite the concrete thing: their role, their company, the stored reason.
-- Never invent a fact that is not in front of you.
-- If someone is a poor match for the question, say so plainly. A candidate list is not a promise that everyone on it fits.
+- "move" is the opening move: the channel and the first line's angle, in one short sentence. "Reply to their thread on procurement with the Maven cohort link" not "reach out to them". Where the record names a warm path (a shared connection, a reciprocated email, a stored hook), use it and say so. Where it does not, say what to find out first.
+- Never invent a fact that is not in front of you. A "move" that assumes a relationship the record does not show is an invented fact.
+- If someone is a poor match for the question, say so plainly in "why" and return "" for "move". A candidate list is not a promise that everyone on it fits.
 - No em dashes.`
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -79,20 +81,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // why_them it is already showing rather than getting an error.
       timeoutMs: 25_000,
     })
-    const parsed = robustJson(text) as { explanations?: { i: number; why: string }[] } | null
+    const parsed = robustJson(text) as { explanations?: { i: number; why: string; move?: string }[] } | null
 
+    const clean = (v: unknown) => String(v ?? '').replace(/\s*[—–]\s*/g, ', ').slice(0, 400)
     const explanations: Record<string, string> = {}
+    const moves: Record<string, string> = {}
     for (const e of parsed?.explanations || []) {
       const idx = Number(e?.i)
       const row = ordered[idx]
       if (row && typeof e.why === 'string') {
-        explanations[String(row.contact_id)] = e.why.replace(/\s*[—–]\s*/g, ', ').slice(0, 400)
+        explanations[String(row.contact_id)] = clean(e.why)
+        if (e.move) moves[String(row.contact_id)] = clean(e.move)
       }
     }
-    return res.status(200).json({ ok: true, explanations })
+    return res.status(200).json({ ok: true, explanations, moves })
   } catch (e: unknown) {
-    // Never an error to the client: the list is already on screen with the
-    // stored judgment under each name. This pass is an enrichment.
-    return res.status(200).json({ ok: true, explanations: {}, reason: (e as Error)?.message?.slice(0, 120) })
+    // ok:false, not ok:true-with-nothing.
+    //
+    // This used to answer a failure with `{ ok: true, explanations: {} }` and a
+    // `reason` the client never read, on the grounds that the list is already
+    // on screen and this pass is an enrichment. Both halves are true and the
+    // conclusion still does not follow: an empty success is indistinguishable
+    // from "Marcus looked and had nothing to say about any of them", so the one
+    // person who could retry never learns there is anything to retry.
+    return res.status(200).json({
+      ok: false,
+      error: 'explain_failed',
+      explanations: {},
+      moves: {},
+      reason: (e as Error)?.message?.slice(0, 120),
+    })
   }
 }

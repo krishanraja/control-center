@@ -6,6 +6,7 @@ import { isoWeekLabel, startOfIsoWeek } from '../_weeks.js'
 import { realSource } from '../shifts/detect.js'
 import { loadStandingNotes, standingNotesPrompt } from '../_briefNotes.js'
 import { goalsSpine } from '../_goals.js'
+import { SYNTHESIS_MODEL } from '../_models.js'
 
 // Weekly brief assembly (Content Engine v2, spec §4). Fri 18:00 UTC.
 //
@@ -203,7 +204,7 @@ export async function runAssemble(force = false) {
   let shapeError = ''
   for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
     const raw = await callClaude({
-      model: 'claude-sonnet-4-6',
+      model: SYNTHESIS_MODEL,
       maxTokens: 5000,
       temperature: 0.4,
       system: attempt === 0 ? system : `${system}\n\nYour last reply was rejected: ${shapeError}. Return the full JSON with every required field.`,

@@ -45,6 +45,9 @@ export interface NetworkResult extends ScoreBreakdown {
   match_score: number
   query_relevance: number | null
   why_match?: string
+  /** The opening move: channel plus the first line's angle, from the explain
+   *  pass. A reason to contact someone with no way in is half an answer. */
+  move?: string
 }
 
 export interface SearchState {
@@ -64,6 +67,11 @@ export interface SearchState {
   loading: boolean
   /** The ranked list is on screen and the per-person reasons are still arriving. */
   explaining: boolean
+  /** The explain pass failed. Distinct from `explaining: false` with no
+   *  reasons, which is what a successful pass that found nothing looks like.
+   *  Without it the only person who could retry never learns there is
+   *  anything to retry. */
+  explainFailed: boolean
   error: string | null
   transcript?: string
   /** What geography the server applied, and whether it excluded or only ranked.
@@ -74,7 +82,8 @@ export interface SearchState {
 }
 
 const EMPTY: SearchState = {
-  results: [], restated: '', weak: false, degraded: [], loading: false, explaining: false, error: null,
+  results: [], restated: '', weak: false, degraded: [], loading: false, explaining: false,
+  explainFailed: false, error: null,
   geo: { countries: [], hard: false },
 }
 
@@ -100,14 +109,22 @@ export function useNetworkSearch() {
   // Requests are ordered, not cancelled: a slow first search must never
   // overwrite a fast second one.
   const seq = useRef(0)
+  // What the last explain pass was asked. Held so a retry repeats the same
+  // question against the same rows rather than re-running the whole search.
+  const lastExplain = useRef<{ question: string; results: NetworkResult[] } | null>(null)
 
-  // Phase two. Merges `why_match` into rows that are already on screen. It is
-  // deliberately silent on failure: the list is rendered and every row already
-  // carries the stored `why_them`, so a missing sentence is a smaller loss than
-  // an error banner over good results.
+  // Phase two. Merges `why_match` and the opening `move` into rows that are
+  // already on screen.
+  //
+  // A failure here is reported, not swallowed. The list is rendered and every
+  // row carries its stored `why_them`, so this is still an enrichment rather
+  // than an error banner over good results — but silence made a failed pass
+  // identical to a pass that ran and had nothing to add, and the retry is one
+  // click away.
   const explain = useCallback(async (question: string, results: NetworkResult[], mine: number) => {
     const ids = results.slice(0, 12).map(r => r.contact_id)
     if (!question || !ids.length) { setState(s => ({ ...s, explaining: false })); return }
+    lastExplain.current = { question, results }
     const ctrl = new AbortController()
     const tid = setTimeout(() => ctrl.abort(), EXPLAIN_TIMEOUT_MS)
     try {
@@ -117,16 +134,30 @@ export function useNetworkSearch() {
         body: JSON.stringify({ question, contact_ids: ids }),
         signal: ctrl.signal,
       })
-      const j = await r.json().catch(() => ({})) as { explanations?: Record<string, string> }
+      const j = await r.json().catch(() => ({})) as {
+        ok?: boolean
+        explanations?: Record<string, string>
+        moves?: Record<string, string>
+      }
       if (mine !== seq.current) return
+      if (j.ok === false) {
+        setState(s => ({ ...s, explaining: false, explainFailed: true }))
+        return
+      }
       const map = j.explanations || {}
+      const moves = j.moves || {}
       setState(s => ({
         ...s,
         explaining: false,
-        results: s.results.map(x => (map[x.contact_id] ? { ...x, why_match: map[x.contact_id] } : x)),
+        explainFailed: false,
+        results: s.results.map(x => (
+          map[x.contact_id] || moves[x.contact_id]
+            ? { ...x, why_match: map[x.contact_id] || x.why_match, move: moves[x.contact_id] || x.move }
+            : x
+        )),
       }))
     } catch {
-      if (mine === seq.current) setState(s => ({ ...s, explaining: false }))
+      if (mine === seq.current) setState(s => ({ ...s, explaining: false, explainFailed: true }))
     } finally {
       clearTimeout(tid)
     }
@@ -181,6 +212,7 @@ export function useNetworkSearch() {
         degraded: (j.degraded as string[]) || [],
         loading: false,
         explaining: wantsExplain,
+        explainFailed: false,
         error: null,
         transcript: typeof j.transcript === 'string' ? j.transcript : undefined,
         geo: (j.geo as SearchState['geo']) || { countries: [], hard: false },
@@ -236,5 +268,14 @@ export function useNetworkSearch() {
 
   const reset = useCallback(() => { seq.current++; setState(EMPTY) }, [])
 
-  return { ...state, search, recommend, searchByVoice, reset }
+  /** Re-run the explain pass for the rows already on screen. The ranking is
+   *  not recomputed: only the per-person reasons failed. */
+  const retryExplain = useCallback(() => {
+    const last = lastExplain.current
+    if (!last) return
+    setState(s => ({ ...s, explaining: true, explainFailed: false }))
+    void explain(last.question, last.results, seq.current)
+  }, [explain])
+
+  return { ...state, search, recommend, searchByVoice, reset, retryExplain }
 }

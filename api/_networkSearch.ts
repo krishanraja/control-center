@@ -2,6 +2,7 @@ import { supabase } from './_supabase.js'
 import { embed, vectorLiteral } from './_embeddings.js'
 import { callClaude, robustJson } from './_content.js'
 import { planQuery, type QueryPlan, type Constraint } from './_networkQuery.js'
+import { SYNTHESIS_MODEL } from './_models.js'
 
 // The shared execution path behind /api/network/search, /recommend and /voice.
 //
@@ -22,7 +23,7 @@ import { planQuery, type QueryPlan, type Constraint } from './_networkQuery.js'
  *  cannot tell a nonsense query from a real one. */
 const WEAK_RELEVANCE = 0.10
 
-const RERANK_MODEL = 'claude-sonnet-4-6'
+const RERANK_MODEL = SYNTHESIS_MODEL
 
 export interface NetworkResult {
   contact_id: string

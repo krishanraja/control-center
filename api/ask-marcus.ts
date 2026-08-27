@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from './_supabase.js'
 import { goalsSpine } from './_goals.js'
 import { openStream, send, fail, streamClaude } from './_stream.js'
+import { SYNTHESIS_MODEL } from './_models.js'
 
 /**
  * POST /api/ask-marcus
@@ -14,7 +15,7 @@ import { openStream, send, fail, streamClaude } from './_stream.js'
  * Requires env: ANTHROPIC_API_KEY.
  */
 
-const MODEL = 'claude-sonnet-4-6'
+const MODEL = SYNTHESIS_MODEL
 
 function fmtCustomers(rows: any[]): string {
   const paid    = rows.filter(r => r.kind === 'paid' && !r.churned_at)
@@ -44,6 +45,26 @@ function fmtLeads(rows: any[]): string {
   return `${rows.length} active leads. Top tiers: ${rows.slice(0, 5).map(r => `${r.full_name || r.email || '?'} (${r.tier || 'C'})`).join('; ')}`
 }
 
+function fmtStalls(rows: any[]): string {
+  if (!rows.length) return 'Growth stalls: none open.'
+  return `Growth stalls (open): ${rows.map(r => `${r.metric_key} ${r.baseline_value} to ${r.latest_value} over ${r.window_days}d, ${Array.isArray(r.moves) ? r.moves.length : 0} moves drafted`).join('; ')}`
+}
+
+function fmtCouncil(rows: any[]): string {
+  if (!rows.length) return 'Growth council: no reviews.'
+  return rows.map(r => {
+    const f = r.findings || {}
+    const kill = Array.isArray(r.kill_list) ? r.kill_list : []
+    const dd = Array.isArray(r.double_down) ? r.double_down : []
+    return `Council week ${r.week_start} (${r.product_slug || 'all'}): ${f.headline || 'no headline'}${f.degraded ? ' [EVIDENCE ONLY, no AI calls made]' : ''}. Kill: ${kill.map((k: any) => k.what || k).join('; ') || 'nothing'}. Double down: ${dd.map((k: any) => k.what || k).join('; ') || 'nothing'}. Decision: ${r.krish_decision || 'undecided'}`
+  }).join('\n')
+}
+
+function fmtShifts(rows: any[]): string {
+  if (!rows.length) return 'Shift register: empty.'
+  return `Shift register: ${rows.map(r => `"${r.title}" (${r.status}${r.arc_state ? `/${r.arc_state}` : ''})${r.implication ? ` — ${r.implication}` : ''}`).join('; ')}`
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
@@ -58,17 +79,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!apiKey) { res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' }); return }
 
   // Pull grounding context in parallel.
-  const [customersRes, betsRes, leadsRes, intelRes] = await Promise.all([
+  const [customersRes, betsRes, leadsRes, intelRes, stallsRes, councilRes, shiftsRes] = await Promise.all([
     supabase.from('customers').select('product, kind, mrr_usd, churned_at, plan').limit(500),
     supabase.from('bets').select('hypothesis, kind, status, time_box_days, started_at, decided_at, actual_mrr_impact_usd').limit(200),
     supabase.from('leads').select('full_name, email, company, tier, status').in('status', ['ready','contacted','conversation']).limit(50),
     supabase.from('home_intelligence').select('summary, external_signals').eq('id', 'current').maybeSingle(),
+    // The three surfaces Marcus was blind to. Each is a place the system has
+    // already decided something is wrong or worth doing, and answering "what
+    // should I do" without them meant re-deriving from customers and leads
+    // what the growth loop had written down that morning.
+    supabase.from('growth_stalls').select('metric_key, baseline_value, latest_value, window_days, started_at, moves').eq('status', 'open').limit(10),
+    supabase.from('growth_council_reviews').select('week_start, product_slug, findings, kill_list, double_down, krish_decision').order('week_start', { ascending: false }).limit(2),
+    supabase.from('shifts').select('title, status, implication, arc_state').order('updated_at', { ascending: false }).limit(10),
   ])
 
   const grounding = [
     fmtCustomers(customersRes.data || []),
     fmtBets(betsRes.data || []),
     fmtLeads(leadsRes.data || []),
+    fmtStalls(stallsRes.data || []),
+    fmtCouncil(councilRes.data || []),
+    fmtShifts(shiftsRes.data || []),
     intelRes.data?.summary ? `Marcus context: ${typeof intelRes.data.summary === 'string' ? intelRes.data.summary : JSON.stringify(intelRes.data.summary)}` : '',
   ].filter(Boolean).join('\n\n')
 
@@ -78,6 +109,7 @@ Rules:
 - Lead with your recommendation in one sentence.
 - Then 3 bullet points: the data that swayed you (cite numbers from the grounding).
 - Then one contrarian counter-take in italics (one sentence) — what would change your mind?
+- Then a line beginning "First step:" — ONE concrete action Krish can start today. A verb and an object, naming the specific customer, lead, metric or bet it acts on. "First step: email the three Maven leads still on 'ready' with the cohort date" not "First step: focus on conversion". If the grounding genuinely supports no action, write "First step: none — " and the one thing to measure instead.
 - Never hedge with "it depends" — pick.
 - If the question is unanswerable from the grounding alone, say so and propose the one thing Krish should measure first.
 - Currency: USD. Dates: relative ("3 days ago", "last week").`
@@ -104,7 +136,7 @@ Rules:
       // and the prompt forbids hedging, so this sits at the low end of the Marcus
       // range rather than the provider default it inherited before.
       temperature: 0.4,
-      maxTokens: 600,
+      maxTokens: 700,
       system: systemPrompt,
       messages: [{ role: 'user', content: userMessage }],
       onText: chunk => send(res, 'delta', { text: chunk }),

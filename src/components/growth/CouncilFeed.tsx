@@ -54,7 +54,12 @@ function ReviewCard({ review, g }: { review: CouncilReviewRow; g: GrowthData }) 
   const [text, setText] = useState(review.krish_decision || '')
   const [saving, setSaving] = useState(false)
 
-  const findings = asPairs(review.findings)
+  // `degraded` is a marker, not a finding: it says the writing pass never ran,
+  // which is why the kill and double-down columns below are empty. Left in the
+  // findings list it read as one more observation about the business.
+  const degraded = (review.findings as Record<string, unknown> | null)?.degraded
+  const degradedNote = typeof degraded === 'string' ? degraded : null
+  const findings = asPairs(review.findings).filter(f => f.key !== 'degraded')
   const kill = asList(review.kill_list)
   const doubleDown = asList(review.double_down)
 
@@ -85,6 +90,15 @@ function ReviewCard({ review, g }: { review: CouncilReviewRow; g: GrowthData }) 
           <Chip tone="text-amber-300 border-amber-500/30">waiting on you</Chip>
         )}
       </header>
+
+      {/* An outage and a quiet week produce the same empty columns. Only this
+          line separates "nothing to kill" from "nobody looked". */}
+      {degradedNote && (
+        <p className="mt-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-2.5 py-1.5 text-label leading-snug text-amber-200/90">
+          <span className="font-semibold uppercase tracking-[0.14em] text-amber-300/75">Evidence only</span>{' '}
+          {degradedNote}
+        </p>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
         <div>

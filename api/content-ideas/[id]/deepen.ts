@@ -6,6 +6,7 @@ import { unsupportedNumbers } from '../../_numbers.js'
 import {
   callClaude, corpusForChannel, loadCorpus, readMaterials, robustJson, type Material,
 } from '../../_content.js'
+import { UTILITY_MODEL } from '../../_models.js'
 
 // POST /api/content-ideas/:id/deepen   body: { format?: 'paid' | 'built' }
 //
@@ -133,7 +134,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const out = await callClaude({
       timeoutMs: 120_000,
-      model: 'claude-sonnet-4-6',
+      model: UTILITY_MODEL,
       temperature: 0.3,
       maxTokens: 5000,
       system: [SYSTEM(format), playbook ? `FORMAT PLAYBOOK (the mandate and evidence bar this is being gathered for):\n${playbook}` : ''].filter(Boolean).join('\n\n'),

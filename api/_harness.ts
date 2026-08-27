@@ -66,16 +66,12 @@ export function budgetLeft(b: RunBudget): { model: number; search: number; fetch
 // report what it actually cost. Both matter here, so this is a separate, small,
 // metered client rather than a change to a helper twelve other routes rely on.
 
-/** USD per 1M tokens. Update alongside the model list. */
-export const MODEL_PRICES: Record<string, { in: number; out: number }> = {
-  'claude-opus-4-8': { in: 5, out: 25 },
-  'claude-opus-4-7': { in: 5, out: 25 },
-  'claude-sonnet-4-6': { in: 3, out: 15 },
-  'claude-haiku-4-5': { in: 1, out: 5 },
-}
-
-export const LADDER_MODEL = 'claude-opus-4-8'
-export const UTILITY_MODEL = 'claude-sonnet-4-6'
+// Model identity and prices live in _models. Imported and re-exported here so
+// the ladder's existing importers keep their import path, and so this file can
+// still use the values itself (a bare `export ... from` re-export does not
+// bind them locally).
+import { MODEL_PRICES, LADDER_MODEL, UTILITY_MODEL } from './_models.js'
+export { MODEL_PRICES, LADDER_MODEL, UTILITY_MODEL }
 
 export interface MeteredResult {
   text: string

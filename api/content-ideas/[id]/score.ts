@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { loadCorpus, pathId, preamble } from '../../_content.js'
 import { scoreStandards } from '../../_standards.js'
+import { JUDGE_MODEL } from '../../_models.js'
 
 // POST /api/content-ideas/:id/score
 //   body: { source_text?: string }
@@ -27,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Tier: manual scoring uses Sonnet (sharper judgment); the auto-score trigger
   // (Postgres → pg_net) passes model:'haiku' to stay MT-003 cost-safe.
-  const model = ((req.body || {}) as any).model === 'haiku' ? 'claude-haiku-4-5-20251001' : undefined
+  const model = ((req.body || {}) as any).model === 'haiku' ? JUDGE_MODEL : undefined
 
   const corpus = await loadCorpus()
   const meta = (idea.meta || {}) as any
@@ -52,6 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     failing: verdict.failing,
     notes: verdict.notes,
     verdict: verdict.verdict,
+    fix: verdict.fix,
     artifact_sourced: hasArtifact,
     scored_at: new Date().toISOString(),
   }

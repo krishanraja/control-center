@@ -11,6 +11,7 @@ import {
 } from '../_content.js'
 import { canonicalUrl, titleNorm, contentHash } from '../_text.js'
 import { embed, vectorLiteral } from '../_embeddings.js'
+import { UTILITY_MODEL } from '../_models.js'
 
 // POST /api/content-ideas/synthesize
 //
@@ -186,7 +187,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     rawText = await callClaude({
       system,
       user,
-      model: 'claude-sonnet-4-6',
+      model: UTILITY_MODEL,
       maxTokens: 4500,
       temperature: 0.5,
     })
@@ -275,7 +276,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         citation_strip: sourceCitationStrip,
         cluster_summary: clusterSummary,
         cohesion_confidence: cohesion,
-        model: 'claude-sonnet-4-6',
+        model: UTILITY_MODEL,
         prompt_version: 'v1',
         synthesized_at: now,
         target_lane: targetLane,

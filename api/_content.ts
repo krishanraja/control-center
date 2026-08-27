@@ -3,6 +3,8 @@
 // transform.ts but de-duplicated, since four routes need the same primitives.
 
 
+import { UTILITY_MODEL, MODEL_PRICES } from './_models.js'
+
 /** Strip the cardinal sin — em dashes (and their lookalikes) — anywhere,
  *  replacing them with the comma/period Krish would actually use. Safe to run
  *  on any draft before it is shown, saved, or sent to the factory. Leaves
@@ -308,13 +310,9 @@ export interface ClaudeOpts {
 
 export interface TokenUsage { input: number; output: number; model: string }
 
-/** USD per 1M tokens, mirroring api/_harness.ts MODEL_PRICES. */
-const PRICES: Record<string, { in: number; out: number }> = {
-  'claude-opus-4-8': { in: 5, out: 25 },
-  'claude-opus-4-7': { in: 5, out: 25 },
-  'claude-sonnet-4-6': { in: 3, out: 15 },
-  'claude-haiku-4-5': { in: 1, out: 5 },
-}
+/** USD per 1M tokens. One table, in _models, rather than a copy here and a
+ *  second copy in _harness that had to be kept in step by hand. */
+const PRICES = MODEL_PRICES
 
 /** Cost of a usage record in USD. Unknown models price at 0 rather than guess. */
 export function usageCost(u: TokenUsage): number {
@@ -348,7 +346,7 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
   // the entire 60s function budget and the caller gets no response at all, which
   // on a phone is indistinguishable from the app being broken. Callers on a
   // user-facing path should pass something well under maxDuration.
-  const model = opts.model || 'claude-sonnet-4-6'
+  const model = opts.model || UTILITY_MODEL
   const ctrl = new AbortController()
   const tid = opts.timeoutMs ? setTimeout(() => ctrl.abort(), opts.timeoutMs) : null
   try {
@@ -404,7 +402,7 @@ export async function callClaudeMessages(
 ): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
-  const model = opts.model || 'claude-sonnet-4-6'
+  const model = opts.model || UTILITY_MODEL
   const clean = messages
     .filter(m => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
     .slice(-16)

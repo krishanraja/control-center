@@ -5,6 +5,7 @@ import { openStream, send, fail, streamClaude } from '../../_stream.js'
 import { loadStandingNotes, standingNotesPrompt } from '../../_briefNotes.js'
 import { locateSpan } from '../../_selection.js'
 import { buildHumourSystem, isHumourRegister } from '../../_humor.js'
+import { SYNTHESIS_MODEL } from '../../_models.js'
 
 // POST /api/briefs/:week/revise   body: { mode?, value?, hint?, instruction?, selection? }
 //
@@ -109,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const out = await streamClaude({
       apiKey,
-      model: humour ? 'claude-opus-4-8' : 'claude-sonnet-4-6',
+      model: humour ? 'claude-opus-4-8' : SYNTHESIS_MODEL,
       // Matches briefs/assemble.ts, which writes the brief this route edits.
       // Ignored on the humour path: opus rejects sampling params.
       temperature: 0.4,

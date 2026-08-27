@@ -7,6 +7,7 @@ import {
   normName, normLinkedIn,
   type GuestCandidate, type GuestFormat,
 } from './_guestSources.js'
+import { SYNTHESIS_MODEL } from './_models.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // discover-guest-scout — find people worth interviewing, for a named format.
@@ -209,7 +210,7 @@ async function draftFor(p: GuestCandidate, brief: FormatBrief): Promise<Draft | 
         `"pitch":"<2-3 sentence outreach note in Krish's voice, warm and specific>",` +
         `"format":"${brief.format}|either|reject"}\n` +
         'Set format to "reject" if they clearly do not belong on this format. Be willing to reject.',
-      model: 'claude-sonnet-4-6',
+      model: SYNTHESIS_MODEL,
       maxTokens: 650,
       temperature: 0.6,
       timeoutMs: 30_000,

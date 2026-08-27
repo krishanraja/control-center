@@ -12,6 +12,7 @@
 // Usage: npx tsx scripts/consolidate-shifts.ts [--dry]
 
 import { titleJaccard } from '../api/_trendGate.js'
+import { SYNTHESIS_MODEL } from '../api/_models.js'
 
 const DRY = process.argv.includes('--dry')
 // Above AUTO, wording variants of one movement merge without asking; the
@@ -65,7 +66,7 @@ async function main() {
       two: { title: c.b.title, summary: c.b.summary },
     }))
     const raw = await callClaude({
-      model: 'claude-sonnet-4-6',
+      model: SYNTHESIS_MODEL,
       maxTokens: 2500,
       temperature: 0,
       system: [

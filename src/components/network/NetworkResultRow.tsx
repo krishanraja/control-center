@@ -49,6 +49,12 @@ export function NetworkResultRow({ r, onOpen, weak }: {
   // why_match is the reranker answering THIS question. why_them is the stored
   // judgment. Prefer the former; fall back so a row is never reasonless.
   const reason = r.why_match || r.why_them
+  // Same precedence as reason, one line down: `move` is the explain pass
+  // answering "so how do I open THIS conversation", `hook` is the stored
+  // opener for the person in general. A reason to contact someone with no way
+  // in is half an answer, which is what this row was before the explain pass
+  // returned a move at all.
+  const opening = r.move || r.hook
 
   return (
     <div className="group flex items-start gap-3 border-b border-white/[0.06] px-4 py-3.5 transition-colors last:border-b-0 hover:bg-white/[0.02]">
@@ -85,9 +91,9 @@ export function NetworkResultRow({ r, onOpen, weak }: {
           </p>
         )}
         {reason && <p className="mt-1.5 text-label leading-relaxed text-white/75">{reason}</p>}
-        {r.hook && (
+        {opening && (
           <p className="mt-1 text-label leading-relaxed text-white/45">
-            <span className="text-white/30">Open with</span> {r.hook}
+            <span className="text-white/30">Open with</span> {opening}
           </p>
         )}
         {r.risk && (

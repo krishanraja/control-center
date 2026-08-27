@@ -195,6 +195,23 @@ export function NetworkTab({ narrow, onOpenPerson }: {
                 Ranked. Working out why each one matches.
               </p>
             )}
+            {/* A failed explain pass used to be indistinguishable from one that
+                ran and had nothing to add, so the retry was never offered to
+                the one person who could take it. The ranking itself is real
+                either way: these rows are ordered and every one carries its
+                stored judgment. */}
+            {s.explainFailed && !s.explaining && (
+              <p className="flex flex-wrap items-center gap-2 px-4 pb-2 text-label text-amber-200/80">
+                Ranked, but the per-person reasons failed.
+                <button
+                  type="button"
+                  onClick={s.retryExplain}
+                  className="rounded border border-amber-400/30 px-2 py-0.5 text-micro font-semibold text-amber-200 transition-colors hover:bg-amber-400/10"
+                >
+                  Retry
+                </button>
+              </p>
+            )}
             {s.results.map(r => (
               <NetworkResultRow key={r.contact_id} r={r} onOpen={onOpenPerson || setPerson} weak={s.weak} />
             ))}

@@ -4,6 +4,7 @@ import { guardCronRoute } from '../_auth.js'
 import { googleConfigured, googleAccessToken } from '../_google.js'
 import { callClaude, usageCost } from '../_content.js'
 import { notifyOps, logApiCall } from '../_alert.js'
+import { JUDGE_MODEL } from '../_models.js'
 
 // Receipts -> spend_invoices. The money-out twin of /api/revenue/sync.
 //
@@ -25,7 +26,7 @@ const GMAIL = 'https://gmail.googleapis.com/gmail/v1/users/me'
 const LABEL_ID = process.env.GMAIL_SPEND_LABEL_ID || 'Label_863902844335276794' // "Subscriptions"
 const CURSOR_KEY = 'spend_gmail_cursor'
 const FX_KEY = 'fx_aud_usd'
-const PARSE_MODEL = 'claude-haiku-4-5-20251001'
+const PARSE_MODEL = JUDGE_MODEL
 const MAX_PARSES_PER_RUN = 200
 
 interface GmailHeader { name: string; value: string }

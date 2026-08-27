@@ -13,6 +13,8 @@
 // it resolves cleanly both under the Vercel bundler (.js imports) and under
 // tsx (extension-less). The caller loads config + supplies the API key.
 
+import { JUDGE_MODEL } from './_models.js'
+
 export type Verdict = 'keep' | 'off_vertical' | 'too_technical'
 
 export interface RelevanceItem {
@@ -59,7 +61,9 @@ export interface ClassifyOpts {
   batchSize?: number
 }
 
-const HAIKU = 'claude-haiku-4-5-20251001'
+// _models is constants only — no client, no env read — so importing it here
+// keeps this module as dependency-light as its header requires.
+const HAIKU = JUDGE_MODEL
 
 function policyPrompt(muted: readonly string[], surface: string): string {
   const subject = surface === 'content'

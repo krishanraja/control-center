@@ -1,14 +1,19 @@
 import { getOperatorTz, ymdIn, shiftYmd as tzShift } from './_timezone.js'
+import { callClaude, robustJson } from './_content.js'
+import { UTILITY_MODEL } from './_models.js'
 /**
  * The worry compiler's system prompt and LLM call.
  *
- * Reuses the repo's existing OpenAI pattern (api/_skill-prompt.ts): a plain
- * fetch to chat/completions with response_format json_object, no SDK, no new
- * dependency. Two deliberate differences from callSkillLLM:
- *   - temperature 0, because this is a classifier, not a writer.
- *   - no deterministic stub when the key is missing. callSkillLLM falls back to
- *     a stub; a compiler that silently invents a compilation would be worse
- *     than one that fails, so this throws.
+ * Runs on Claude through the repo's shared client (api/_content.ts callClaude),
+ * same as every other judgment call here. It was the last call site on OpenAI,
+ * and on gpt-4o: the oldest model in the codebase running the sharpest prompt
+ * in it.
+ *
+ * The contract is unchanged and is the reason this file is careful. Every
+ * compilation must terminate in one of four states, a malformed one is retried
+ * exactly once and then fails loudly, and there is no fallback shape — a wrong
+ * compilation is worse than no compilation, because the whole point is to stop
+ * a worry from being carried around unresolved.
  */
 
 export const WORRY_COMPILER_SYSTEM_PROMPT = `You are a worry compiler for one specific operator. His failure loop: a worry
@@ -133,74 +138,77 @@ export function validateCompilation(
 }
 
 /**
- * Resolve the OpenAI key the way the rest of the repo does (api/_embeddings.ts):
- * deploy env first, then the service-role-only app_secrets table, so the
- * compiler works even when the key is not in the Vercel env. Cached per process.
- * The anon client cannot read app_secrets, so this stays server-side.
+ * What the worry is actually about.
+ *
+ * The compiler used to see the worry text and today's date, and nothing else.
+ * Its own rules forbid prescribing research or planning and demand an action
+ * that ends with something leaving the machine toward another human, which is
+ * the sharpest anti-summary contract in this repo — and it was applying that
+ * contract blind. It could not know the worry was about a bet already marked
+ * lost, a stall already open with moves drafted, or a thing already on today's
+ * three. Those change the compilation: a worry about an open question is a
+ * test, and the same worry about a question already answered is a
+ * relitigation.
+ *
+ * Small and best-effort. A context read that fails must never stop a worry
+ * being compiled, so every branch returns a string and none of them throw.
  */
-let cachedOpenAIKey: string | null | undefined
-async function getOpenAIKey(): Promise<string | null> {
-  if (process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY
-  if (cachedOpenAIKey !== undefined) return cachedOpenAIKey
+async function businessContext(): Promise<string> {
   try {
     const { supabase } = await import('./_supabase.js')
-    const { data } = await supabase.from('app_secrets').select('value').eq('key', 'openai_api_key').maybeSingle()
-    cachedOpenAIKey = data && typeof (data as { value?: unknown }).value === 'string'
-      ? (data as { value: string }).value
-      : null
+    const [bets, stalls, focus] = await Promise.all([
+      supabase.from('bets').select('hypothesis, kind, status').eq('status', 'live').limit(5),
+      supabase.from('growth_stalls').select('metric_key, baseline_value, latest_value').eq('status', 'open').limit(5),
+      supabase.from('daily_focus').select('target_1_text, target_2_text, target_3_text')
+        .order('focus_date', { ascending: false }).limit(1),
+    ])
+    const f = focus.data?.[0] as Record<string, string> | undefined
+    const three = f ? [f.target_1_text, f.target_2_text, f.target_3_text].filter(Boolean) : []
+    const lines = [
+      bets.data?.length
+        ? `Live bets: ${bets.data.map((b: any) => `"${b.hypothesis}" (${b.kind})`).join('; ')}`
+        : 'Live bets: none.',
+      stalls.data?.length
+        ? `Open growth stalls: ${stalls.data.map((r: any) => `${r.metric_key} ${r.baseline_value} to ${r.latest_value}`).join('; ')}`
+        : 'Open growth stalls: none.',
+      three.length ? `Today's three: ${three.join(' | ')}` : "Today's three: not set.",
+    ]
+    return lines.join('\n')
   } catch {
-    cachedOpenAIKey = null
+    return 'Business context unavailable for this compilation.'
   }
-  return cachedOpenAIKey
 }
 
-
-
 async function callOnce(rawText: string): Promise<CompiledWorry> {
-  const key = await getOpenAIKey()
-  if (!key) throw new Error('No OpenAI key available (env or app_secrets)')
-
   // The model has no clock. Without today's date it emits a due date from its
   // training data, which lands in the past and makes the test read as already
   // due. The date goes in the user message so the system prompt stays verbatim.
   const today = ymdIn(new Date(), await getOperatorTz())
+  const context = await businessContext()
   const dated = [
     `TODAY: ${today}`,
     `A test_due_date must fall between ${tzShift(today, 1)} and ${tzShift(today, 7)}.`,
+    '',
+    'WHAT IS ALREADY TRUE (use it to tell a live question from a settled one):',
+    context,
     '',
     'WORRY:',
     rawText,
   ].join('\n')
 
-  const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
-      response_format: { type: 'json_object' },
-      temperature: 0,
-      messages: [
-        { role: 'system', content: WORRY_COMPILER_SYSTEM_PROMPT },
-        { role: 'user', content: dated },
-      ],
-    }),
+  // Claude, not gpt-4o. The prompt is unchanged and so is the four-state
+  // contract; only the provider moves. It was the one call site left on
+  // OpenAI for a judgment task, on the oldest model in the repo.
+  const text = await callClaude({
+    system: WORRY_COMPILER_SYSTEM_PROMPT,
+    user: dated,
+    model: UTILITY_MODEL,
+    maxTokens: 1200,
+    temperature: 0,
   })
 
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => '')
-    throw new Error(`OpenAI ${resp.status}: ${text.slice(0, 300)}`)
-  }
-  const json = await resp.json() as { choices?: Array<{ message?: { content?: string } }> }
-  const content = json?.choices?.[0]?.message?.content
-  if (!content) throw new CompilerSchemaError('OpenAI returned empty content')
-
-  let parsed: unknown
-  try { parsed = JSON.parse(content) } catch {
-    throw new CompilerSchemaError('Model did not return valid JSON')
-  }
+  const parsed = robustJson(text)
+  if (parsed === null) throw new CompilerSchemaError('Model did not return valid JSON')
   return validateCompilation(parsed, { min: today, max: tzShift(today, 7) })
 }
 

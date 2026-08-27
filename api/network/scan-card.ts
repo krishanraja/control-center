@@ -5,6 +5,7 @@ import { callClaude } from '../_content.js'
 import { emailNorm, linkedinNorm } from '../_text.js'
 import { outcomeFrom, errored, blockedMessage, isBlocking, type ProviderOutcome } from '../_quota.js'
 import { raiseQuotaAlert, logApiCall } from '../_alert.js'
+import { JUDGE_MODEL } from '../_models.js'
 
 // POST /api/network/scan-card   (raw image body; bodyParser off)
 //
@@ -229,7 +230,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Haiku reads a profile header accurately and returns in ~2s. The task is
       // transcription with strict rules, not judgment; the judgment pass later
       // uses a bigger model on the enriched evidence.
-      model: 'claude-haiku-4-5-20251001',
+      model: JUDGE_MODEL,
       maxTokens: 900,
       temperature: 0,
       timeoutMs: 22000,
