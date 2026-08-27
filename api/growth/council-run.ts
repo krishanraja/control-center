@@ -361,7 +361,7 @@ async function writeReview(e: Evidence): Promise<{ findings: Record<string, stri
     'Write the review.',
   ].join('\n\n')
 
-  const raw = await callClaude({ system, user, maxTokens: 1600, temperature: 0.4 })
+  const raw = await callClaude({ agent: 'growth-council', system, user, maxTokens: 1600, temperature: 0.4 })
   const parsed: any = robustJson(raw)
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('council writing returned non-object')
 

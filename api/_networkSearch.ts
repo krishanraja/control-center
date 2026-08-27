@@ -304,6 +304,7 @@ async function rerank(question: string, rows: NetworkResult[], limit: number): P
   }))
 
   const text = await callClaude({
+    agent: 'network-search',
     model: RERANK_MODEL,
     system: RERANK_SYSTEM,
     user: `QUESTION:\n${question}\n\nCANDIDATES:\n${JSON.stringify(candidates, null, 1)}`,

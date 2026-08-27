@@ -102,6 +102,7 @@ async function fromModel(title: string, body: string) {
   ].filter(Boolean).join('\n\n')
 
   const raw = await callClaude({
+    agent: 'content-decisions',
     model: 'claude-haiku-4-5-20251001',
     maxTokens: 300,
     temperature: 0,

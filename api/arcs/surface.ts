@@ -134,7 +134,7 @@ export async function runSurface(opts: { week?: string; max?: number } = {}) {
     const { system, user } = buildComposePrompt(payload)
     let composed: ReturnType<typeof parseComposed> = null
     try {
-      const raw = await callClaude({ model: 'claude-sonnet-4-6', maxTokens: 1200, temperature: 0.3, system, user, timeoutMs: 45_000 })
+      const raw = await callClaude({ agent: 'arcs-compose', model: 'claude-sonnet-4-6', maxTokens: 1200, temperature: 0.3, system, user, timeoutMs: 45_000 })
       composed = parseComposed(robustJson(raw))
     } catch (e: any) {
       skipped.push({ row: a, reason: `composer failed: ${String(e?.message || e).slice(0, 200)}` })
@@ -144,7 +144,7 @@ export async function runSurface(opts: { week?: string; max?: number } = {}) {
       // Observed once in eight: a response came back unparseable and the same
       // arc composed cleanly on a retry. One retry, then give up and say so.
       try {
-        const retry = await callClaude({ model: 'claude-sonnet-4-6', maxTokens: 1600, temperature: 0.3, system, user, timeoutMs: 45_000 })
+        const retry = await callClaude({ agent: 'arcs-compose', model: 'claude-sonnet-4-6', maxTokens: 1600, temperature: 0.3, system, user, timeoutMs: 45_000 })
         composed = parseComposed(robustJson(retry))
       } catch { /* fall through to the skip below */ }
     }
@@ -163,7 +163,7 @@ export async function runSurface(opts: { week?: string; max?: number } = {}) {
     for (let attempt = 0; attempt < MAX_REPAIRS && failures.length; attempt++) {
       try {
         const rp = buildRepairPrompt(composed as ComposedCard, failures)
-        const raw2 = await callClaude({ model: 'claude-sonnet-4-6', maxTokens: 1400, temperature: 0.1, system: rp.system, user: rp.user, timeoutMs: 45_000 })
+        const raw2 = await callClaude({ agent: 'arcs-repair', model: 'claude-sonnet-4-6', maxTokens: 1400, temperature: 0.1, system: rp.system, user: rp.user, timeoutMs: 45_000 })
         const fixed = parseComposed(robustJson(raw2))
         if (!fixed || 'skip' in fixed) break
         const after = lintCard(fixed as ComposedCard)

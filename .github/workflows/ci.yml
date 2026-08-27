@@ -115,3 +115,9 @@ jobs:
       # every non-2xx in "perhaps check your credentials?"), and a scheduled
       # workflow that never ran read as idle rather than dead.
       - run: npx tsx scripts/check-fleet-classifier.mts
+      # The usage meter answers "which agent is spending my money" from a stamp
+      # passed at each Anthropic call site. A site that forgets it still meters,
+      # as "unattributed" — honest, and useless. The failure is silent and
+      # arrives by drift: four new callClaude sites landed on main while the
+      # meter was being built on a branch, and nothing said so.
+      - run: npx tsx scripts/check-agent-stamps.mts

@@ -291,7 +291,7 @@ export async function runDetect() {
     return { ...c, id: alias }
   })
   const { system, user } = buildDetectionPrompt(aliased)
-  const raw = await callClaude({ model: 'claude-sonnet-4-6', maxTokens: 2000, temperature: 0.2, system, user })
+  const raw = await callClaude({ agent: 'shifts-detect', model: 'claude-sonnet-4-6', maxTokens: 2000, temperature: 0.2, system, user })
   const parsed = robustJson(raw)
   const proposals: ProposedShift[] = Array.isArray(parsed?.shifts) ? parsed.shifts : []
 
@@ -393,7 +393,7 @@ export async function classifyUnclassified(limit = 60) {
     beats: beatsBy.get(a.id) || [],
   }))
   const { system, user } = buildClassifyPrompt(payload, folders)
-  const raw = await callClaude({ model: 'claude-sonnet-4-6', maxTokens: 4000, temperature: 0, system, user })
+  const raw = await callClaude({ agent: 'shifts-classify', model: 'claude-sonnet-4-6', maxTokens: 4000, temperature: 0, system, user })
   const results = parseClassification(robustJson(raw), new Set(folders.map(f => f.slug)))
   if (!results.length) return { pending: arcs.length, wrote: 0, note: 'classifier returned nothing usable' }
 

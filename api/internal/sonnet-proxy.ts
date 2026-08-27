@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import * as meter from '../_meter.js'
 
 // Internal-only Anthropic proxy. n8n workflows that can't share the
 // Anthropic credential (workflow-level credential scoping in n8n Cloud)
@@ -67,6 +68,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify(body),
     })
     const text = await r.text()
+    // The X-Internal-Caller the proxy already demands is the agent stamp: this
+    // is the one route by which n8n Anthropic spend becomes attributable at
+    // all, so it meters here rather than nowhere.
+    try {
+      const j = JSON.parse(text) as { usage?: { input_tokens?: number; output_tokens?: number } }
+      await meter.anthropicCall({
+        agent: caller,
+        model: body.model,
+        inputTokens: Number(j?.usage?.input_tokens) || 0,
+        outputTokens: Number(j?.usage?.output_tokens) || 0,
+        failed: !r.ok,
+      })
+    } catch { /* an unparseable body is Anthropic's problem, not the meter's */ }
     res.status(r.status).setHeader('Content-Type', 'application/json').send(text)
   } catch (e) {
     res.status(502).json({ ok: false, error: 'upstream_error', detail: (e as Error).message })

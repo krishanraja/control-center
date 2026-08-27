@@ -90,6 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         extra: g.why_fit || g.one_liner,
       })
       const docText = await callClaude({
+        agent: 'nell-guest-briefing',
         system: 'You write a concise internal speaker-briefing prep doc for a podcast host about to interview a guest. Sections: Who they are; Why they fit; 3 angles to explore; 5 sharp questions; What to avoid. Be specific and grounded; do not invent facts.',
         user: [
           `GUEST: ${g.name || ''}`,

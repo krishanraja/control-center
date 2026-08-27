@@ -205,6 +205,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (process.env.ANTHROPIC_API_KEY) {
       try {
         const raw = await callClaude({
+          agent: 'cleo',
           model: 'claude-sonnet-4-6',
           system:
             'You extract a structured content idea from raw text. Return JSON only.\n' +

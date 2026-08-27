@@ -122,11 +122,50 @@ test.describe('the intel tab does not zoom itself', () => {
         unmatched: [],
         connections: { ok: 34, low: 0, broken: 1, critical_broken: 0, unchecked: 1, broken_names: ['FMP'], low_names: [] },
         renewals_due: [{ key: 'relume', name: 'Relume', amount: 480, currency: 'USD', on: new Date(FIXED_NOW.getTime() + 11 * 86_400_000).toISOString().slice(0, 10) }],
-        needs_review: 1, meter: { usd_mtd: 41, calls_mtd: 1204 }, empty: false, as_of: new Date().toISOString(),
+        needs_review: 1, meter: { usd_mtd: 41, calls_mtd: 1204 },
+        // Over the prepaid AND fully metered: the costing answer's longest
+        // possible expansion, so the cap is pinned against the worst case
+        // rather than a calm month.
+        cycles: [{
+          key: 'apify', name: 'Apify', included_usd: 29, overage_trigger_usd: 50,
+          cycle_usd: 43.4, cycle_start: '2026-08-14', cycle_end: '2026-09-14',
+          state: 'over_prepaid', over_usd: 14.4, headroom_usd: -14.4,
+          top_up_url: 'https://console.apify.com/billing',
+        }],
+        spenders: {
+          since: '2026-07-22', metered_usd: 61.2,
+          units: [
+            {
+              provider: 'apify', kind: 'actor', key: 'a1',
+              label: 'apimaestro/linkedin-profile-detail', category: 'linkedin_profile',
+              usd: 41.2, usd_7d: 18.9, runs: 812, failed: 6, units: 96.4,
+              unit_name: 'compute-units', buckets: [{ bucket: 'API', usd: 39.1, runs: 780 }],
+            },
+            {
+              provider: 'anthropic', kind: 'agent', key: 'cleo-final-pass',
+              label: 'cleo-final-pass', category: 'priced',
+              usd: 14.6, usd_7d: 4.2, runs: 142, failed: 0, units: 2_140_000,
+              unit_name: 'tokens', buckets: [{ bucket: 'claude-sonnet-4-6', usd: 14.6, runs: 142 }],
+            },
+            {
+              provider: 'n8n', kind: 'workflow', key: 'wf1',
+              label: 'Maya · outreach cascade', category: null,
+              usd: 0, usd_7d: 0, runs: 431, failed: 12, units: 431,
+              unit_name: 'executions', buckets: [{ bucket: 'trigger', usd: 0, runs: 431 }],
+            },
+          ],
+          silent: [],
+        },
+        empty: false, as_of: new Date().toISOString(),
       },
     }))
     await page.goto('/#/os?sub=intel')
     await expect(page.getByTestId('bi-questions')).toBeVisible()
+
+    // Opened, not just glanced: the cap has to hold for the longest answer
+    // on the tab, which is costing once the meter has something to say.
+    await page.getByTestId('bi-q-costing').click()
+    await expect(page.getByTestId('spend-spenders')).toBeVisible()
 
     // "Two screen-lengths" measured literally: the whole tab column (header
     // included, from the top of the zoom root to the bottom of the scrolled

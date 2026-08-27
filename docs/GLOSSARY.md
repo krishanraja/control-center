@@ -241,6 +241,14 @@ and Monday pre-mortem.
 Center is the dashboard for. Canonical architecture lives in
 `MINDMAKER_OS_ARCHITECTURE.md` on the VPS workspace root.
 
+**Meter (usage meter)** — `meter_daily`, one row per provider × unit ×
+day × sub-dimension, answering which unit of the OS spent the money where
+receipts only answer how much a provider cost. Apify in dollars per
+actor, n8n in executions per workflow, Anthropic in dollars per agent
+from self-metered token counts. Provider-derived days are REPLACED so a
+re-sync cannot double-count; self-metered calls are ADDED. Surfaces in
+`/api/spend` as `spenders`. See **Prepaid line**, **Self-metering**.
+
 **Mission** — The one-paragraph north star of an agent's brief.
 
 **Monitor (agent type)** — An agent whose job is continuous health or
@@ -285,6 +293,15 @@ Control Center events to the right agent workflow.
 Executive, Operations, Growth. Render order is fixed top-to-bottom on
 the Org tab.
 
+**Prepaid line** — The usage a plan price already covers
+(`service_registry.included_usd`; Apify's is $29), and the point past it
+where the vendor charges early rather than invoicing later
+(`overage_trigger_usd`; Apify's is $50). Before 2026-08-27 the tracker
+reported headroom to the vendor's HARD cap instead, which is why it read
+"Apify: $130.53, ok" in the week Apify emailed to say the prepaid was
+spent. Crossing it is a state (`OVER PREPAID` / `CHARGING`), not a
+number, and it emails.
+
 **Priority** — Task urgency tier. Recognised values: `critical`,
 `urgent`, `high`, `medium`, `normal`, `low`. Drives the Needs You
 ranking on Home.
@@ -325,6 +342,16 @@ writes (for the OS).
 ---
 
 ## S
+
+**Self-metering** — Recording an API's cost from the OS's own side of the
+call, because the vendor will not report it. Anthropic's usage and cost
+reports are Admin-key endpoints and an individual account cannot hold an
+Admin key, so every call in the OS logs the token counts on its own
+response, prices them from `api/_prices.ts`, and stamps the calling
+agent. The invoice stays the truth for TOTAL spend; the meter answers
+which agent spent it. Calls made outside these helpers — an n8n node with
+its own Anthropic credential — are invisible to it, and the console says
+so rather than implying full coverage.
 
 **Signal & Noise** — The podcast brand for AI in media. Slug
 `signal_noise` in `venture_registry`. Co-founded with Rio Longacre +

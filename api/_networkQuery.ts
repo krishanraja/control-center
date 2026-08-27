@@ -163,6 +163,7 @@ export async function planQuery(question: string): Promise<{ plan: QueryPlan; pl
 
   try {
     const text = await callClaude({
+      agent: 'network-query',
       model: MODEL,
       system: SYSTEM,
       user: q,

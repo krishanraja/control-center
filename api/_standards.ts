@@ -87,6 +87,7 @@ export interface ScoreOpts {
 /** Score one draft. Throws on transport failure or an unparseable judge reply. */
 export async function scoreStandards(input: StandardsInput, opts: ScoreOpts): Promise<StandardsVerdict> {
   const parsed = robustJson(await callClaude({
+    agent: 'standards',
     system: buildStandardsSystem(opts.corpus),
     user: buildStandardsUser(input),
     maxTokens: 1200,

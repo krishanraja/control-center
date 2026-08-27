@@ -4,7 +4,7 @@ import { SlideOver } from '../shared/SlideOver'
 import { Eyebrow } from '../shared/Eyebrow'
 import { Sparkline } from '../shared/Sparkline'
 import { statusStyle } from '../shared/tokens'
-import { usageLine, type SpendSummary, type SpendServiceRow } from '../../hooks/useSpend'
+import { usageLine, cycleLine, type SpendSummary, type SpendServiceRow, type SpendUnit } from '../../hooks/useSpend'
 
 const usd = (n: number): string => `$${n.toLocaleString('en-US', { maximumFractionDigits: n >= 100 ? 0 : 2 })}`
 
@@ -64,6 +64,54 @@ export function SpendDetailSheet({ open, onClose, spend }: {
             />
           )}
         </div>
+
+        {spend.cycles && spend.cycles.length > 0 && (
+          <div className="flex flex-col gap-1" data-testid="spend-cycles">
+            <div className="px-1 pb-1"><Eyebrow>Plan allowances</Eyebrow></div>
+            {spend.cycles.map(c => (
+              <div key={c.key} className="rounded-xl px-2 py-2">
+                <div className="flex items-baseline gap-2.5">
+                  <span aria-hidden className={`h-1.5 w-1.5 shrink-0 translate-y-[-2px] rounded-full ${
+                    c.state === 'charging_early' || c.state === 'near_trigger' ? statusStyle('blocked').dot
+                    : c.state === 'over_prepaid' ? statusStyle('needs_you').dot
+                    : c.state === 'within' ? statusStyle('active').dot
+                    : 'bg-white/20'
+                  }`} />
+                  <span className="min-w-0 flex-1 text-ui text-white/85">{c.name}</span>
+                  {c.cycle_usd != null && c.included_usd != null && (
+                    <span className="shrink-0 font-mono tabular-nums text-ui text-white/85">
+                      {usd(c.cycle_usd)}<span className="text-white/35"> / {usd(c.included_usd)}</span>
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 pl-[16px] text-label leading-snug text-white/40">{cycleLine(c)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {spend.spenders && (
+          <div className="flex flex-col gap-1" data-testid="spend-spenders-full">
+            <div className="px-1 pb-1"><Eyebrow>Where it went · 30 days</Eyebrow></div>
+            {spend.spenders.units.length === 0 ? (
+              <p className="px-2 py-1 text-label leading-relaxed text-white/40">
+                Nothing metered in the last 30 days.
+              </p>
+            ) : (
+              spend.spenders.units.map(u => <SpenderRow key={`${u.provider}-${u.key}`} u={u} />)
+            )}
+            {/* A collector that has not run is a different sentence from a
+                provider that spent nothing, and the two must never share one. */}
+            {spend.spenders.silent.length > 0 && (
+              <p className="px-2 pt-1 text-label leading-relaxed text-white/35">
+                No {spend.spenders.silent.join(' or ')} usage recorded in this window — either nothing ran, or that collector has not run yet.
+              </p>
+            )}
+            <p className="px-2 pt-1 text-label leading-relaxed text-white/35">
+              Apify reports the actor and where the run started, not which workflow called it. Anthropic totals cover calls the OS makes itself; anything an n8n node calls directly with its own key shows only on the invoice.
+            </p>
+          </div>
+        )}
 
         {paying.length > 0 && (
           <div className="flex flex-col gap-1">
@@ -145,6 +193,48 @@ function ServiceRow({ s }: { s: SpendServiceRow }) {
       {flagged && (
         <p className="w-full pl-[16px] text-label leading-snug text-white/40">{usageLine(s)}</p>
       )}
+    </div>
+  )
+}
+
+const PROVIDER_LABEL: Record<string, string> = {
+  apify: 'Apify actor',
+  n8n: 'n8n workflow',
+  anthropic: 'Anthropic',
+}
+
+/**
+ * One metered spender, in the unit its provider bills in.
+ *
+ * n8n Cloud charges per execution and reports no price, so its rows read in
+ * runs. Putting a made-up per-execution rate in the same column as Apify's real
+ * per-run dollars would make the whole ranking a guess.
+ */
+function SpenderRow({ u }: { u: SpendUnit }) {
+  const amount = u.usd > 0 ? usd(u.usd)
+    : u.unit_name === 'tokens' ? `${Math.round(u.units / 1000).toLocaleString('en-US')}k tok`
+    : `${u.runs.toLocaleString('en-US')} runs`
+  const note = [
+    PROVIDER_LABEL[u.provider] || u.provider,
+    u.provider === 'apify' ? (u.category ? u.category.replace(/_/g, ' ') : 'not in the actor registry') : null,
+    u.provider === 'anthropic' && u.key === 'unattributed' ? 'caller not stamped' : null,
+    u.buckets.length > 0 ? u.buckets.map(b => b.bucket.toLowerCase()).slice(0, 2).join(', ') : null,
+    u.failed > 0 ? `${u.failed} failed` : null,
+  ].filter(Boolean).join(' · ')
+
+  return (
+    <div className="flex flex-wrap items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-white/[0.03]">
+      <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${u.failed > 0 ? statusStyle('needs_you').dot : 'bg-white/25'}`} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-ui text-white/85">{u.label}</span>
+        <span className="block truncate text-label text-white/40">{note}</span>
+      </span>
+      <span className="shrink-0 text-right">
+        <span className="block font-mono tabular-nums text-ui text-white/85">{amount}</span>
+        {u.usd > 0 && u.usd_7d > 0 && (
+          <span className="block text-micro text-white/30">{usd(u.usd_7d)} this week</span>
+        )}
+      </span>
     </div>
   )
 }
