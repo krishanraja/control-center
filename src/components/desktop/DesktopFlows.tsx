@@ -6,6 +6,7 @@ import { humanize } from '../shared/tokens'
 import { AgentAvatar } from '../shared/AgentAvatar'
 import { SkillForge } from '../flows/SkillForge'
 import { BoardSkeleton } from '../shared/Skeleton'
+import { FleetHealthStrip } from '../flows/FleetHealthStrip'
 
 interface Run {
   id: string
@@ -131,6 +132,10 @@ export function DesktopFlows() {
             <Wand2 size={11} /> Skill Forge
           </button>
         </div>
+
+      {/* External truth first. Everything below this line is the fleet
+          describing itself; this is n8n describing the fleet. */}
+      {view === 'workflows' && <FleetHealthStrip />}
       </div>
 
       {view === 'skill-forge' ? (

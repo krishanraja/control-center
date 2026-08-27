@@ -232,7 +232,48 @@ export async function runSurface(opts: { week?: string; max?: number } = {}) {
     if (wErr) throw new Error(`arc_cards write failed: ${wErr.message}`)
   }
 
+  // ── the folders move ─────────────────────────────────────────────────────
+  //
+  // content_themes is described as the memory of the eleven questions, and
+  // nothing has ever written it after the migration that seeded it. state was
+  // frozen at its seeded value and last_movement_at stayed null forever, so a
+  // folder could open and never close, and "which questions are actually
+  // moving" had no answer in the data.
+  //
+  // Deliberately narrow. This touches only the folders whose arcs SURFACED
+  // this week, and only two fields:
+  //   last_movement_at  evidence reached the reader through this folder
+  //   state             dormant to open, because something moved in it
+  //
+  // standing_view, confidence and slate_support are Krish's and are not
+  // written here. A settled folder is also left settled: settled is a
+  // conclusion he reached, and one more arc is not grounds for a machine to
+  // reopen it.
+  const movedThemes = [...new Set(
+    scored.filter(s => surfacedIds.has(s.row.id)).map(s => s.row.theme_id).filter(Boolean),
+  )] as string[]
+  let themesTouched = 0
+  if (movedThemes.length) {
+    const { data: touched, error: tErr } = await supabase.from('content_themes')
+      .update({ last_movement_at: new Date().toISOString() })
+      .in('id', movedThemes)
+      .in('state', ['open', 'dormant'])
+      .select('id, state')
+    if (tErr) {
+      // Not fatal: the cards are already written and on screen. A folder that
+      // did not get its timestamp is a worse record, not a failed run.
+      console.warn('[arcs/surface] content_themes touch failed:', tErr.message)
+    } else {
+      themesTouched = touched?.length || 0
+      const reopen = (touched || []).filter(t => t.state === 'dormant').map(t => t.id)
+      if (reopen.length) {
+        await supabase.from('content_themes').update({ state: 'open' }).in('id', reopen)
+      }
+    }
+  }
+
   return {
+    themes_touched: themesTouched,
     week,
     candidates: arcs.length,
     pre_blocked: preBlocked.length,

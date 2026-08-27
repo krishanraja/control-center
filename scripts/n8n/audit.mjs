@@ -27,6 +27,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { redactKnown } from './secrets.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -116,7 +117,10 @@ function stableStringify(value) {
 
 function diffWorkflow(local, cloud) {
   const a = pickCanonical(local)
-  const b = pickCanonical(cloud)
+  // The cloud copy carries real credentials where the mirror carries
+  // placeholders. Redacting the cloud side before the compare is what keeps a
+  // scrubbed file from reporting permanent, unresolvable drift on every run.
+  const b = pickCanonical(redactKnown(cloud))
   const drift = {}
   for (const f of CANONICAL_FIELDS) {
     const aStr = stableStringify(a[f])
