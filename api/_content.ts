@@ -3,7 +3,7 @@
 // transform.ts but de-duplicated, since four routes need the same primitives.
 
 
-import { UTILITY_MODEL, MODEL_PRICES } from './_models.js'
+import { UTILITY_MODEL, MODEL_PRICES, thinkingParam } from './_models.js'
 
 /** Strip the cardinal sin — em dashes (and their lookalikes) — anywhere,
  *  replacing them with the comma/period Krish would actually use. Safe to run
@@ -298,6 +298,15 @@ export interface ClaudeOpts {
   model?: string
   maxTokens?: number
   temperature?: number
+  /** Ask for adaptive thinking on models that support it.
+   *
+   *  Off by default and explicitly so. On Sonnet 5 and the Opus 5 family,
+   *  OMITTING the thinking field means adaptive thinking runs, and it spends
+   *  max_tokens before writing a word — a JSON call site budgeted for its
+   *  answer alone comes back empty from a 200 response. So every request here
+   *  states its intent, and a caller that turns this on must raise maxTokens to
+   *  cover the reasoning as well as the answer. */
+  think?: boolean
   /** Optional token accounting. Called once on a successful response.
    *
    *  `usage` was previously read off the wire and thrown away, which is fine for
@@ -356,6 +365,7 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
       body: JSON.stringify({
         model,
         max_tokens: opts.maxTokens ?? 4000,
+        ...thinkingParam(model, opts.think === true),
         ...(supportsSampling(model) ? { temperature: opts.temperature ?? 0.5 } : {}),
         system: opts.system,
         messages: [{ role: 'user', content: userContent(opts) }],
@@ -383,7 +393,7 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
         model,
       })
     }
-    return j?.content?.[0]?.text || ''
+    return firstText(j)
   } catch (e: unknown) {
     if ((e as Error)?.name === 'AbortError') throw new Error(`anthropic_timeout_${opts.timeoutMs}ms`)
     throw e
@@ -392,13 +402,27 @@ export async function callClaude(opts: ClaudeOpts): Promise<string> {
   }
 }
 
+/**
+ * The first TEXT block of a response.
+ *
+ * `content[0].text` was right until a model could put a thinking block first,
+ * at which point it silently returns undefined and every caller sees an empty
+ * answer from a 200 response. Indexing by position was always an assumption
+ * about the content array; this reads what it is actually looking for.
+ */
+function firstText(j: any): string {
+  const blocks = Array.isArray(j?.content) ? j.content : []
+  for (const b of blocks) if (b?.type === 'text' && typeof b.text === 'string') return b.text
+  return ''
+}
+
 export interface ChatTurn { role: 'user' | 'assistant'; content: string }
 
 /** Multi-turn Anthropic Messages call for the Cleo writing-assistant chat. */
 export async function callClaudeMessages(
   system: string,
   messages: ChatTurn[],
-  opts: { model?: string; maxTokens?: number; temperature?: number } = {},
+  opts: { model?: string; maxTokens?: number; temperature?: number; think?: boolean } = {},
 ): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
@@ -413,6 +437,7 @@ export async function callClaudeMessages(
     body: JSON.stringify({
       model,
       max_tokens: opts.maxTokens ?? 2000,
+      ...thinkingParam(model, opts.think === true),
       ...(supportsSampling(model) ? { temperature: opts.temperature ?? 0.6 } : {}),
       system,
       messages: clean,
@@ -420,7 +445,7 @@ export async function callClaudeMessages(
   })
   const j: any = await r.json().catch(() => ({}))
   if (!r.ok) throw new Error(`anthropic_${r.status}:${(j?.error?.message || '').slice(0, 120)}`)
-  return j?.content?.[0]?.text || ''
+  return firstText(j)
 }
 
 /** Standard CORS + method preamble. Returns true if the request was handled (OPTIONS/bad method). */

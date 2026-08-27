@@ -64,3 +64,41 @@ export const PROXY_ALLOWED_MODELS = [
   'claude-haiku-4-5',
   'claude-haiku-4-5-20251001',
 ] as const
+
+/**
+ * Models that run adaptive thinking when `thinking` is omitted.
+ *
+ * This is the trap that made the model move dangerous, and it fails silently.
+ * On Sonnet 5 and the Opus 5 family, omitting `thinking` does not mean "no
+ * thinking" — it means adaptive thinking, which spends the max_tokens budget
+ * before writing any answer. Observed on the live Friday retro the moment it
+ * moved to Sonnet 5: max_tokens 1200, thinking_tokens 1199, stop_reason
+ * max_tokens, and a `content` array holding one thinking block and no text at
+ * all. The route "succeeded" and returned an empty string.
+ *
+ * Every JSON-returning call site in this repo sets a max_tokens tuned for the
+ * answer alone, so moving them to a thinking-by-default model without saying
+ * anything about thinking would have emptied all of them at once.
+ *
+ * So thinking is explicit from here on: off unless a call site asks for it,
+ * and a call site that asks for it must budget for it.
+ */
+const THINKS_BY_DEFAULT = /^claude-(sonnet-5|opus-5|fable-5|mythos-5)/
+
+export function thinksByDefault(model: string): boolean {
+  return THINKS_BY_DEFAULT.test(model)
+}
+
+/**
+ * The `thinking` field for a request, or nothing when the model has no such
+ * field. `want` true asks for adaptive thinking; the caller is responsible for
+ * a max_tokens that leaves room for an answer after it.
+ */
+export function thinkingParam(model: string, want: boolean): Record<string, unknown> {
+  if (!thinksByDefault(model)) {
+    // Pre-5 models: thinking is opt-in via budget_tokens and no call site here
+    // uses it, so omitting the field is both correct and a no-op.
+    return {}
+  }
+  return { thinking: want ? { type: 'adaptive' } : { type: 'disabled' } }
+}

@@ -368,7 +368,17 @@ async function writeReview(e: Evidence): Promise<{ findings: Record<string, stri
     'Write the review.',
   ].join('\n\n')
 
-  const raw = await callClaude({ system, user, maxTokens: 1600, temperature: 0.4 })
+  // Thinking on, with a budget that covers it.
+  //
+  // This is the one call in the repo whose whole output is a decision — a
+  // kill list and a double-down list that Krish acts on — so the reasoning is
+  // the product, not overhead. It runs on a cron with nobody waiting.
+  //
+  // The budget is raised because adaptive thinking spends max_tokens BEFORE
+  // writing: at 1600 with thinking on, the reasoning would consume the ceiling
+  // and the review would come back empty, which is exactly how the Friday
+  // retro failed the moment it moved to Sonnet 5.
+  const raw = await callClaude({ system, user, maxTokens: 6000, temperature: 0.4, think: true })
   const parsed: any = robustJson(raw)
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('council writing returned non-object')
 
