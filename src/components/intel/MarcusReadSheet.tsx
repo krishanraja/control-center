@@ -6,6 +6,7 @@ import { LastUpdated } from '../shared/LastUpdated'
 import { Skeleton } from '../shared/Skeleton'
 import { useHomeIntelligence } from '../../hooks/useHomeIntelligence'
 import { useMarcusSynthesis } from '../../hooks/useMarcusSynthesis'
+import type { MarcusInsight } from '../../hooks/useMarcusSynthesis'
 
 /**
  * Marcus's full brief, one tap behind his dateline in the Business
@@ -26,13 +27,16 @@ import { useMarcusSynthesis } from '../../hooks/useMarcusSynthesis'
  */
 export function dedupeMarcusRead(
   assessment: string | null,
-  insights: string[],
-): { assessment: string | null; insights: string[] } {
+  insights: MarcusInsight[],
+): { assessment: string | null; insights: MarcusInsight[] } {
   if (!assessment) return { assessment: null, insights }
   if (insights.length === 0) return { assessment, insights: [] }
   const norm = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase()
   const a = norm(assessment)
-  if (insights.every(i => a.includes(norm(i)))) {
+  // Compares the insight TEXT only. The action is new writing that the
+  // assessment cannot already contain, so folding it into this test would stop
+  // the dedupe firing on exactly the rows it was built for.
+  if (insights.every(i => a.includes(norm(i.insight)))) {
     return { assessment: null, insights }
   }
   return { assessment, insights }
@@ -97,7 +101,15 @@ export function MarcusReadSheet({ open, onClose }: {
                 {read.insights.map((insight, i) => (
                   <li key={i} className="flex items-start gap-2.5">
                     <span aria-hidden className="mt-[8px] h-1 w-1 shrink-0 rounded-full bg-violet-300/70" />
-                    <span className="font-serif text-lede leading-relaxed text-white/75">{insight}</span>
+                    <span className="min-w-0">
+                      <span className="block font-serif text-lede leading-relaxed text-white/75">{insight.insight}</span>
+                      {insight.action && (
+                        <span className="mt-0.5 block text-label leading-snug text-amber-200/75">
+                          <span className="font-semibold uppercase tracking-[0.14em] text-amber-300/60">Do</span>{' '}
+                          {insight.action}
+                        </span>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>

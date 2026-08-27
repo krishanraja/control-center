@@ -1,20 +1,41 @@
 {
   "name": "Marcus | Monday Pre-mortem 08:00",
   "active": false,
-  "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
   "nodes": [
     {
       "name": "Monday 08:00",
       "type": "n8n-nodes-base.cron",
       "typeVersion": 1,
-      "position": [240, 280],
-      "parameters": { "triggerTimes": { "item": [{ "mode": "everyWeek", "weekday": 1, "hour": 8, "minute": 0 }] } }
+      "position": [
+        240,
+        280
+      ],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyWeek",
+              "weekday": 1,
+              "hour": 8,
+              "minute": 0
+            }
+          ]
+        }
+      }
     },
     {
       "name": "Pull risk signals",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [500, 280],
+      "position": [
+        500,
+        280
+      ],
       "parameters": {
         "language": "javaScript",
         "jsCode": "const SUPA='https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1';\nconst hdr={ apikey: $credentials.supabaseApi.apiKey, Authorization: `Bearer ${$credentials.supabaseApi.apiKey}` };\nconst threeWeeksAgo = new Date(Date.now() - 21*86400000).toISOString();\nconst [staleTasks, overdueLiveBets, leadsAtRisk] = await Promise.all([\n  this.helpers.httpRequest({ method:'GET', url:`${SUPA}/tasks?status=neq.done&updated_at=lt.${threeWeeksAgo}&select=title,agent,workstream&limit=20`, headers: hdr, json:true }),\n  this.helpers.httpRequest({ method:'GET', url:`${SUPA}/bets?status=eq.live&select=hypothesis,kind,started_at,time_box_days,est_mrr_impact_usd&limit=50`, headers: hdr, json:true }),\n  this.helpers.httpRequest({ method:'GET', url:`${SUPA}/leads?status=in.(ready,contacted)&follow_up_at=lt.${new Date().toISOString()}&select=full_name,company,follow_up_at`, headers: hdr, json:true }),\n]);\nconst overdueLive = (overdueLiveBets || []).filter(b => {\n  const elapsed = (Date.now() - new Date(b.started_at).getTime()) / (b.time_box_days * 86400000);\n  return elapsed >= 0.8;\n});\nreturn [{ json: { staleTasks, overdueLive, leadsAtRisk } }];"
@@ -24,30 +45,46 @@
       "name": "Sonnet premortem",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [760, 280],
+      "position": [
+        760,
+        280
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:600, system:'You are Marcus writing a Monday pre-mortem. Given the live risk signals below, identify the top 3 risks for this week and a one-sentence mitigation per risk. Output ONLY JSON: { risks: [ { risk: string, mitigation_action: string, urgency: \"high\"|\"med\"|\"low\" } ] }. No more than 3.', messages: [{ role:'user', content: JSON.stringify($json) }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model:'claude-sonnet-5', max_tokens:900, system:'You are Marcus writing the Monday pre-mortem for Krish. Given the live risk signals, name the top 3 risks to this week.\\n\\nOutput ONLY JSON: { \\\"risks\\\": [ { \\\"risk\\\": string, \\\"mitigation_action\\\": string, \\\"urgency\\\": \\\"high\\\"|\\\"med\\\"|\\\"low\\\" } ] }. No more than 3.\\n\\nrisk: what could go wrong AND the consequence if it does, grounded in a number or a named thing from the signals. \\\"Two of five live bets are past their time box, so the next decision gets made on stale evidence\\\" not \\\"bets are overdue\\\".\\n\\nmitigation_action: the CHEAPEST action that disarms it, doable this week, a verb and an object, naming what it acts on. Not \\\"monitor\\\", not \\\"review\\\", not \\\"stay on top of\\\" — those are the risk, not the mitigation. If the cheapest disarming move is to kill something, say kill it.\\n\\nRank by urgency honestly: high means it costs money or a decision this week. If there are fewer than 3 real risks, return fewer. A padded third risk crowds out the two that matter. No em dashes.', messages: [{ role:'user', content: JSON.stringify($json) }] }) }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth"
       },
-      "credentials": { "httpHeaderAuth": { "name": "Anthropic Header" } }
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Anthropic Header"
+        }
+      }
     },
     {
       "name": "Parse + write",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1020, 280],
+      "position": [
+        1020,
+        280
+      ],
       "parameters": {
         "language": "javaScript",
         "jsCode": "const t=($input.first().json.content||[]).map(b=>b.text||'').join('').trim();\nlet pm=null; try{const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a>=0&&b>a)pm=JSON.parse(t.slice(a,b+1))}catch{}\nreturn [{ json: { pm: pm || { risks: [] } } }];"
@@ -57,15 +94,24 @@
       "name": "Write premortem",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1280, 280],
+      "position": [
+        1280,
+        280
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/home_intelligence?id=eq.current",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Prefer", "value": "return=minimal" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -74,13 +120,57 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
-      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+      "credentials": {
+        "supabaseApi": {
+          "name": "Supabase account 2"
+        }
+      }
     }
   ],
   "connections": {
-    "Monday 08:00":      { "main": [[{ "node":"Pull risk signals", "type":"main", "index":0 }]] },
-    "Pull risk signals": { "main": [[{ "node":"Sonnet premortem", "type":"main", "index":0 }]] },
-    "Sonnet premortem":  { "main": [[{ "node":"Parse + write",    "type":"main", "index":0 }]] },
-    "Parse + write":     { "main": [[{ "node":"Write premortem",  "type":"main", "index":0 }]] }
+    "Monday 08:00": {
+      "main": [
+        [
+          {
+            "node": "Pull risk signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pull risk signals": {
+      "main": [
+        [
+          {
+            "node": "Sonnet premortem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet premortem": {
+      "main": [
+        [
+          {
+            "node": "Parse + write",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse + write": {
+      "main": [
+        [
+          {
+            "node": "Write premortem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   }
 }
