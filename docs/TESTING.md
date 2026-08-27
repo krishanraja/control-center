@@ -8,7 +8,7 @@ What exists, how to run it, and the one rule that keeps it from rotting.
 |---|---|---|
 | Lint | `npm run lint` (`--max-warnings 0`) | yes |
 | Types | `npx tsc --noEmit` + `npm run typecheck:api` + `npm run typecheck:scripts` | yes |
-| Structural guards | `npx tsx scripts/check-<name>.mts` | yes (seven of them) |
+| Structural guards | `npx tsx scripts/check-<name>.mts` | yes (sixteen of them) |
 | e2e (Playwright) | `npx playwright test` | **no** |
 | Contract tests | `npx tsx scripts/network/verify-contracts.ts` | no |
 | Scorer probes | `psql "$DATABASE_URL" -f scripts/network/probes.sql` | no |
@@ -18,10 +18,14 @@ A lint **warning** blocks merge, because `--max-warnings 0`.
 
 The guards in CI: `check-goal-ladder`, `check-goal-gate`,
 `check-type-tokens`, `check-icons`, `check-content-expiry`,
-`check-served-surfaces`, `check-enrichment-honesty`. Each one statically
-pins an invariant that already shipped broken once (one goal editor, the
-type scale, the icon system, honest enrichment, ...) — the current list
-with rationale lives as comments in
+`check-content-window`, `check-anchor-attribution`, `check-card-lint`,
+`check-content-vocabulary`, `check-arc-scoring`, `check-slate-calibration`,
+`check-content-chain`, `check-served-surfaces`, `check-enrichment-honesty`,
+`check-fleet-classifier`, `check-agent-stamps`. Each one statically pins an
+invariant that already shipped broken once, or that drifts silently (one
+goal editor, the type scale, the icon system, honest enrichment, an
+Anthropic call site whose spend nobody can attribute, ...) — the current
+list with rationale lives as comments in
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). More `check-*`
 guards exist outside CI; see the root `AGENTS.md`.
 

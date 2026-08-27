@@ -2,38 +2,129 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
+  "rewrites": [
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
-    { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    }
   ],
   "crons": [
-    { "path": "/api/triage/sweep", "schedule": "0 3 * * *" },
-    { "path": "/api/content-ideas/cluster", "schedule": "0 4 * * *" },
-    { "path": "/api/discover-lens-radar", "schedule": "0 9 * * 1" },
-    { "path": "/api/discover-guest-scout", "schedule": "0 10 * * 1" },
-    { "path": "/api/feed/ingest", "schedule": "30 11 * * *" },
-    { "path": "/api/investigations/run", "schedule": "0 21 * * 4" },
-    { "path": "/api/shifts/detect", "schedule": "30 17 * * 5" },
-    { "path": "/api/briefs/assemble", "schedule": "0 18 * * 5" },
-    { "path": "/api/purge/run", "schedule": "0 14 * * 1" },
-    { "path": "/api/acquisition/governor", "schedule": "0 */6 * * *" },
-    { "path": "/api/revenue/sync", "schedule": "0 8 * * *" },
-    { "path": "/api/growth/snapshot", "schedule": "30 5 * * *" },
-    { "path": "/api/growth/stall-check", "schedule": "0 7 * * *" },
-    { "path": "/api/growth/geo-probe", "schedule": "0 6 * * 1" },
-    { "path": "/api/growth/council-run", "schedule": "0 17 * * 0" },
-    { "path": "/api/health/fleet-reconcile", "schedule": "0 */6 * * *" },
-    { "path": "/api/content-ideas/archive-stale", "schedule": "0 10 * * *" },
-    { "path": "/api/feedback/backfill-embeddings", "schedule": "0 4 * * 6" },
-    { "path": "/api/health/connections-sweep", "schedule": "0 */6 * * *" },
-    { "path": "/api/spend/ingest", "schedule": "15 7 * * *" },
-    { "path": "/api/meter/apify-sync", "schedule": "5 * * * *" },
-    { "path": "/api/meter/n8n-sync", "schedule": "35 */6 * * *" }
+    {
+      "path": "/api/triage/sweep",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/content-ideas/cluster",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/discover-lens-radar",
+      "schedule": "0 9 * * 1"
+    },
+    {
+      "path": "/api/discover-guest-scout",
+      "schedule": "0 10 * * 1"
+    },
+    {
+      "path": "/api/feed/ingest",
+      "schedule": "30 11 * * *"
+    },
+    {
+      "path": "/api/investigations/run",
+      "schedule": "0 21 * * 4"
+    },
+    {
+      "path": "/api/shifts/detect",
+      "schedule": "30 17 * * 5"
+    },
+    {
+      "path": "/api/arcs/surface",
+      "schedule": "50 17 * * 5"
+    },
+    {
+      "path": "/api/briefs/assemble",
+      "schedule": "0 18 * * 5"
+    },
+    {
+      "path": "/api/purge/run",
+      "schedule": "0 14 * * 1"
+    },
+    {
+      "path": "/api/acquisition/governor",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/revenue/sync",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/growth/snapshot",
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/growth/stall-check",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/growth/geo-probe",
+      "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/growth/council-run",
+      "schedule": "0 17 * * 0"
+    },
+    {
+      "path": "/api/health/fleet-reconcile",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/content-ideas/archive-stale",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/feedback/backfill-embeddings",
+      "schedule": "0 4 * * 6"
+    },
+    {
+      "path": "/api/health/connections-sweep",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/spend/ingest",
+      "schedule": "15 7 * * *"
+    },
+    {
+      "path": "/api/meter/apify-sync",
+      "schedule": "5 * * * *"
+    },
+    {
+      "path": "/api/meter/n8n-sync",
+      "schedule": "35 */6 * * *"
+    }
   ],
   "functions": {
-    "api/spend/ingest.ts": { "maxDuration": 300 },
-    "api/health/connections-sweep.ts": { "maxDuration": 120 },
-    "api/meter/apify-sync.ts": { "maxDuration": 120 },
-    "api/meter/n8n-sync.ts": { "maxDuration": 120 }
+    "api/spend/ingest.ts": {
+      "maxDuration": 300
+    },
+    "api/health/connections-sweep.ts": {
+      "maxDuration": 120
+    },
+    "api/meter/apify-sync.ts": {
+      "maxDuration": 120
+    },
+    "api/meter/n8n-sync.ts": {
+      "maxDuration": 120
+    }
   }
 }

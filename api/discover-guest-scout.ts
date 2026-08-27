@@ -110,6 +110,9 @@ async function loadBriefs(): Promise<FormatBrief[]> {
   const { data: shifts } = await supabase
     .from('shifts')
     .select('title,summary,lane,status')
+    // Merged arcs are kept rather than deleted so a merge is reversible
+    // (api/shifts/[id].ts). Excluded here or a folded arc reappears.
+    .is('superseded_by', null)
     .not('status', 'in', '("retired","library")')
     .order('momentum', { ascending: false })
     .limit(24)

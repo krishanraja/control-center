@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Route } from '@playwright/test'
+import { answerPilotGate } from './pilot-gate-mock'
 
 /**
  * Two regressions on the OS → Intel route, both real bugs shipped 2026-08:
@@ -22,10 +23,6 @@ const SPEND_EMPTY = {
   renewals_due: [], needs_review: 0, meter: null, empty: true, as_of: new Date().toISOString(),
 }
 
-const calmMorning = {
-  id: 'm1', kind: 'morning', energy: 4, anxiety: 1, mode: 'green',
-  one_word: 'sharp', intent: null, venture: null, override_at: null, skipped: false,
-}
 
 // The page's clock is frozen here; relative fixture dates hang off it.
 const FIXED_NOW = new Date('2026-08-20T18:30:00Z')
@@ -37,18 +34,7 @@ async function mock(page: Page) {
   await page.route('**/api/**', (r: Route) => r.fulfill({ json: { ok: true } }))
   await page.route('**/rest/v1/**', (r: Route) => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', (r: Route) => r.abort())
-  await page.route('**/api/pilot/timezone', (r: Route) =>
-    r.fulfill({ json: { ok: true, timezone: 'America/New_York' } }))
-  await page.route('**/api/pilot/checkin*', (r: Route) => {
-    const tz = new URL(r.request().url()).searchParams.get('tz') || 'America/New_York'
-    return r.fulfill({
-      json: {
-        ok: true, morning: calmMorning, last_evening: null, evening_done_today: true,
-        yesterday: null, timezone: 'America/New_York',
-        today: new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()),
-      },
-    })
-  })
+  await answerPilotGate(page)
   await page.route('**/api/spend', (r: Route) => r.fulfill({ json: SPEND_EMPTY }))
   await page.route('**/rest/v1/home_intelligence*', (r: Route) => r.fulfill({
     json: {

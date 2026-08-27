@@ -141,8 +141,10 @@ This repo contains **two independent frontends**, each with its own
 `npm run lint`, `npx tsc --noEmit`, `npm run typecheck:api`,
 `npm run typecheck:scripts`, and the structural guards —
 `check-goal-ladder`, `check-goal-gate`, `check-type-tokens`, `check-icons`,
-`check-content-expiry`, `check-content-window`, `check-served-surfaces`,
-`check-enrichment-honesty`, `check-fleet-classifier`
+`check-content-expiry`, `check-content-window`, `check-anchor-attribution`,
+`check-card-lint`, `check-content-vocabulary`, `check-arc-scoring`,
+`check-slate-calibration`, `check-content-chain`, `check-served-surfaces`, `check-enrichment-honesty`,
+`check-fleet-classifier`
 (all `scripts/check-*.mts`, run with `npx tsx`). Each guard encodes an
 invariant that already shipped broken once; run them locally before pushing.
 No Playwright in CI (see Tests above). The repo also works on newer Node

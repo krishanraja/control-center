@@ -76,7 +76,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     await supabase.from('shift_evidence').delete().eq('shift_id', id)
     await supabase.from('content_ideas').update({ shift_id: target }).eq('shift_id', id)
-    await supabase.from('shifts').delete().eq('id', id)
+
+    // Beats follow their evidence. Collisions on (shift_id, occurred_on,
+    // origin_key) are expected when both arcs already carried the same origin,
+    // and are the reason this is a per-row upsert rather than one update.
+    const { data: beats } = await supabase.from('shift_beats').select('*').eq('shift_id', id).limit(5000)
+    for (const bt of beats || []) {
+      await supabase.from('shift_beats').upsert(
+        { ...bt, id: undefined, shift_id: target },
+        { onConflict: 'shift_id,occurred_on,origin_key', ignoreDuplicates: true },
+      )
+    }
+    await supabase.from('shift_beats').delete().eq('shift_id', id)
+
+    // KEEP the source arc. "Merging must be reversible and logged" (final
+    // brief, section 1). Deleting it made a wrong merge unrecoverable and threw
+    // away the record of what was folded into what, which is the same fault as
+    // deleting a decayed arc instead of resolving it. The row is marked instead,
+    // and every reader excludes superseded_by is not null.
+    const { data: tgtRow } = await supabase.from('shifts').select('supersedes').eq('id', target).single()
+    const already: string[] = Array.isArray(tgtRow?.supersedes) ? tgtRow!.supersedes : []
+    await supabase.from('shifts')
+      .update({ supersedes: Array.from(new Set([...already, id])) })
+      .eq('id', target)
+    await supabase.from('shifts')
+      .update({ superseded_by: target, merged_at: nowIso, arc_state: 'resolved', decision })
+      .eq('id', id)
+
     await refreshTotals(target)
     outcome = `merged into ${target}`
   }
