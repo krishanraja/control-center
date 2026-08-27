@@ -6,6 +6,7 @@ import { isoWeekLabel, startOfIsoWeek } from '../_weeks.js'
 import { realSource } from '../shifts/detect.js'
 import { loadStandingNotes, standingNotesPrompt } from '../_briefNotes.js'
 import { goalsSpine } from '../_goals.js'
+import { SYNTHESIS_MODEL } from '../_models.js'
 
 // Weekly brief assembly (Content Engine v2, spec §4). Fri 18:00 UTC.
 //
@@ -204,8 +205,12 @@ export async function runAssemble(force = false) {
   for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
     const raw = await callClaude({
       agent: 'briefs-assemble',
-      model: 'claude-sonnet-4-6',
-      maxTokens: 5000,
+      model: SYNTHESIS_MODEL,
+      // The weekly brief is the longest single piece this system writes and
+      // the most reasoned. Thinking on, with headroom above the 5000 the
+      // ANSWER needs, because adaptive thinking spends the ceiling first.
+      maxTokens: 12000,
+      think: true,
       temperature: 0.4,
       system: attempt === 0 ? system : `${system}\n\nYour last reply was rejected: ${shapeError}. Return the full JSON with every required field.`,
       user,

@@ -25,6 +25,9 @@ export interface StandardsVerdict {
   failing: StandardKey[]
   notes: Partial<Record<StandardKey, string>>
   verdict: string | null
+  /** The one change that would raise the weakest standard. Null when the judge
+   *  did not return one (an older row, or a parse that lost it). */
+  fix: string | null
   /** green = nothing failing; amber = a non-watch fail; red = a watch fail. */
   quality_score: 'green' | 'amber' | 'red'
 }
@@ -41,7 +44,12 @@ export function buildStandardsSystem(corpus: string): string {
   return [
     'You are the Five Standards gate for Krish Raja\'s content. Score a draft against the channel corpus. Be a hard, honest editor — most drafts are a 3 on unique and kind; reserve 5 for genuinely exceptional. The two watch standards are "unique" (could anyone in his peer group have written this?) and "kind" (warm to people, sharp on ideas, never cruel or generic-mean).',
     corpus ? `\nCORPUS (the bar each standard must clear):\n${corpus.slice(0, 6000)}` : '',
-    '\nReturn ONLY JSON: {"unique":1-5,"researched":1-5,"thoughtful":1-5,"kind":1-5,"helpful":1-5,"notes":{"unique":string,"researched":string,"thoughtful":string,"kind":string,"helpful":string},"verdict":string}',
+    // `fix` is the difference between a grade and an edit. Five diagnoses and
+    // no prescription is what this gate shipped for months: it told Krish the
+    // draft failed "unique" and never what to change, on a surface whose whole
+    // job is to be acted on before publishing.
+    '\nReturn ONLY JSON: {"unique":1-5,"researched":1-5,"thoughtful":1-5,"kind":1-5,"helpful":1-5,"notes":{"unique":string,"researched":string,"thoughtful":string,"kind":string,"helpful":string},"verdict":string,"fix":string}',
+    '\n"fix" is the ONE change that would raise the weakest standard by two points. Name the sentence, paragraph or missing element and what to do to it. It must be specific enough to act on without rereading the draft: "cut the opening two sentences and start at the Anthropic pricing change" not "make it more specific". If every standard is 4 or 5, return the one thing that would make it exceptional.',
   ].join('\n')
 }
 
@@ -61,6 +69,7 @@ export function readStandards(parsed: any): StandardsVerdict {
     failing,
     notes: (parsed?.notes && typeof parsed.notes === 'object') ? parsed.notes : {},
     verdict: parsed?.verdict ? String(parsed.verdict) : null,
+    fix: parsed?.fix ? String(parsed.fix) : null,
     quality_score: watchFails.length ? 'red' : failing.length ? 'amber' : 'green',
   }
 }

@@ -10,6 +10,7 @@ import { useVentureRegistry } from '../../hooks/useVentureRegistry'
 import { useBets, isOverdue, type BetRow } from '../../hooks/useBets'
 import { useHomeIntelligence } from '../../hooks/useHomeIntelligence'
 import { useMarcusSynthesis } from '../../hooks/useMarcusSynthesis'
+import { useProductMetrics } from '../../hooks/useProductMetrics'
 
 /**
  * The five questions — the whole Business Intelligence surface.
@@ -407,6 +408,11 @@ export function useBrokenQuestion(): QuestionState {
 export function useConvertingQuestion(): QuestionState {
   const { funnel, error, loading } = useFleetFunnel()
   const { ventures } = useVentureRegistry()
+  // Usage sits next to conversion deliberately. The funnel says who landed and
+  // who bought; this says who came back. A product with landings and no
+  // returning users is a different problem from one with no landings, and
+  // PostHog has been answering that nightly into a table nothing read.
+  const usage = useProductMetrics()
 
   const rows = funnel?.byApp || []
   const landed7 = rows.reduce((s, a) => s + a.landed_7d, 0)
@@ -463,6 +469,31 @@ export function useConvertingQuestion(): QuestionState {
                   <span className="text-emerald-300">{c.purchased}</span>
                   <span className="text-white/25"> / {c.landed}</span>
                 </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {usage.latest.length > 0 && (
+        <div className="border-t border-white/[0.06] pt-2.5">
+          <p className="mb-1.5 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-white/35">
+            Product usage · last 7 days
+          </p>
+          <div className="flex flex-col gap-1">
+            {usage.latest.map(u => (
+              <div key={u.product} className="flex items-center gap-2 text-label">
+                <span className="min-w-0 truncate text-white/70">{appDisplayLabel(u.product, ventures)}</span>
+                <span className="ml-auto shrink-0 tabular-nums text-white/50">
+                  <span className="text-white/80">{u.active_users ?? 0}</span> active
+                  <span className="text-white/25"> · {u.pageviews ?? 0} views</span>
+                </span>
+                <Sparkline
+                  data={usage.series[u.product] || []}
+                  positive={(usage.series[u.product] || []).slice(-1)[0] >= (usage.series[u.product] || [0])[0]}
+                  w={56}
+                  h={16}
+                  ariaLabel={`${u.product} active users trend`}
+                />
               </div>
             ))}
           </div>

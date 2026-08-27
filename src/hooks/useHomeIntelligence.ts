@@ -55,6 +55,11 @@ export interface DailyBrief {
   one_customer?: string
   one_anti_action?: string
   body?: string
+  /** The brief could not be parsed and `body` is raw model output. Written by
+   *  marcus-daily-brief's Parse + stamp node. Absent on a healthy brief. */
+  degraded?: boolean
+  /** Why it degraded, in the same voice the top_three fallbacks use. */
+  reasoning?: string
 }
 
 export interface WeeklyRetro {

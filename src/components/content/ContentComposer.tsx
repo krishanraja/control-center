@@ -2234,6 +2234,15 @@ function StandardsPanel({ idea, draft }: { idea: ContentIdeaRow; draft: string }
             })}
           </div>
           {standards.verdict && <p className="text-micro text-white/55 italic">{standards.verdict}</p>}
+          {/* The prescription. A grade with no edit attached is the thing this
+              panel shipped as for months: it said the draft failed "unique"
+              and never what to change. */}
+          {standards.fix && (
+            <p className="text-micro leading-snug text-amber-200/90">
+              <span className="font-semibold uppercase tracking-[0.14em] text-amber-300/70">Fix</span>{' '}
+              {standards.fix}
+            </p>
+          )}
         </div>
       )}
     </div>

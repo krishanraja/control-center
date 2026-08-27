@@ -3,6 +3,7 @@ import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { embedBatch, cosine, vectorLiteral } from '../_embeddings.js'
 import { callClaude } from '../_content.js'
+import { JUDGE_MODEL } from '../_models.js'
 
 /**
  * On-demand + nightly narrative clustering for the Content tab.
@@ -41,7 +42,7 @@ async function summarize(members: Row[]): Promise<string | null> {
   try {
     const text = await callClaude({
       agent: 'cleo-cluster',
-      model: 'claude-haiku-4-5-20251001',
+      model: JUDGE_MODEL,
       maxTokens: 220,
       temperature: 0.3,
       system: 'You write tight, specific narrative descriptions. 2 sentences max. No filler, no labels, no "this cluster".',

@@ -8,6 +8,7 @@ import { scoreArc, surface, surfacingReason, VISIBLE_SLOTS, RESERVED_FOR_UNTHEME
   MIN_INDEPENDENT_BEATS, type Arc } from '../_arcScore.js'
 import { lintCard } from '../_cardLint.js'
 import type { Lens, Channel } from '../_lenses.js'
+import { SYNTHESIS_MODEL } from '../_models.js'
 
 // The step between "the detector found arcs" and "Krish sees seven cards".
 //
@@ -134,7 +135,7 @@ export async function runSurface(opts: { week?: string; max?: number } = {}) {
     const { system, user } = buildComposePrompt(payload)
     let composed: ReturnType<typeof parseComposed> = null
     try {
-      const raw = await callClaude({ agent: 'arcs-compose', model: 'claude-sonnet-4-6', maxTokens: 1200, temperature: 0.3, system, user, timeoutMs: 45_000 })
+      const raw = await callClaude({ agent: 'arcs-compose', model: SYNTHESIS_MODEL, maxTokens: 1200, temperature: 0.3, system, user, timeoutMs: 45_000 })
       composed = parseComposed(robustJson(raw))
     } catch (e: any) {
       skipped.push({ row: a, reason: `composer failed: ${String(e?.message || e).slice(0, 200)}` })
@@ -144,7 +145,7 @@ export async function runSurface(opts: { week?: string; max?: number } = {}) {
       // Observed once in eight: a response came back unparseable and the same
       // arc composed cleanly on a retry. One retry, then give up and say so.
       try {
-        const retry = await callClaude({ agent: 'arcs-compose', model: 'claude-sonnet-4-6', maxTokens: 1600, temperature: 0.3, system, user, timeoutMs: 45_000 })
+        const retry = await callClaude({ agent: 'arcs-compose', model: SYNTHESIS_MODEL, maxTokens: 1600, temperature: 0.3, system, user, timeoutMs: 45_000 })
         composed = parseComposed(robustJson(retry))
       } catch { /* fall through to the skip below */ }
     }
@@ -163,7 +164,7 @@ export async function runSurface(opts: { week?: string; max?: number } = {}) {
     for (let attempt = 0; attempt < MAX_REPAIRS && failures.length; attempt++) {
       try {
         const rp = buildRepairPrompt(composed as ComposedCard, failures)
-        const raw2 = await callClaude({ agent: 'arcs-repair', model: 'claude-sonnet-4-6', maxTokens: 1400, temperature: 0.1, system: rp.system, user: rp.user, timeoutMs: 45_000 })
+        const raw2 = await callClaude({ agent: 'arcs-repair', model: SYNTHESIS_MODEL, maxTokens: 1400, temperature: 0.1, system: rp.system, user: rp.user, timeoutMs: 45_000 })
         const fixed = parseComposed(robustJson(raw2))
         if (!fixed || 'skip' in fixed) break
         const after = lintCard(fixed as ComposedCard)
@@ -231,7 +232,48 @@ export async function runSurface(opts: { week?: string; max?: number } = {}) {
     if (wErr) throw new Error(`arc_cards write failed: ${wErr.message}`)
   }
 
+  // ── the folders move ─────────────────────────────────────────────────────
+  //
+  // content_themes is described as the memory of the eleven questions, and
+  // nothing has ever written it after the migration that seeded it. state was
+  // frozen at its seeded value and last_movement_at stayed null forever, so a
+  // folder could open and never close, and "which questions are actually
+  // moving" had no answer in the data.
+  //
+  // Deliberately narrow. This touches only the folders whose arcs SURFACED
+  // this week, and only two fields:
+  //   last_movement_at  evidence reached the reader through this folder
+  //   state             dormant to open, because something moved in it
+  //
+  // standing_view, confidence and slate_support are Krish's and are not
+  // written here. A settled folder is also left settled: settled is a
+  // conclusion he reached, and one more arc is not grounds for a machine to
+  // reopen it.
+  const movedThemes = [...new Set(
+    scored.filter(s => surfacedIds.has(s.row.id)).map(s => s.row.theme_id).filter(Boolean),
+  )] as string[]
+  let themesTouched = 0
+  if (movedThemes.length) {
+    const { data: touched, error: tErr } = await supabase.from('content_themes')
+      .update({ last_movement_at: new Date().toISOString() })
+      .in('id', movedThemes)
+      .in('state', ['open', 'dormant'])
+      .select('id, state')
+    if (tErr) {
+      // Not fatal: the cards are already written and on screen. A folder that
+      // did not get its timestamp is a worse record, not a failed run.
+      console.warn('[arcs/surface] content_themes touch failed:', tErr.message)
+    } else {
+      themesTouched = touched?.length || 0
+      const reopen = (touched || []).filter(t => t.state === 'dormant').map(t => t.id)
+      if (reopen.length) {
+        await supabase.from('content_themes').update({ state: 'open' }).in('id', reopen)
+      }
+    }
+  }
+
   return {
+    themes_touched: themesTouched,
     week,
     candidates: arcs.length,
     pre_blocked: preBlocked.length,

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { preamble, pathId, callClaude, loadVoiceBlock, robustJson } from '../../_content.js'
 import { embed, vectorLiteral } from '../../_embeddings.js'
+import { JUDGE_MODEL } from '../../_models.js'
 
 // GET /api/content-decisions/:id/likely-reasons
 //
@@ -103,7 +104,7 @@ async function fromModel(title: string, body: string) {
 
   const raw = await callClaude({
     agent: 'content-decisions',
-    model: 'claude-haiku-4-5-20251001',
+    model: JUDGE_MODEL,
     maxTokens: 300,
     temperature: 0,
     system,

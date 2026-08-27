@@ -72,6 +72,7 @@ export const WORK = {
 
   // ── Intelligence, Marcus (BD Intelligence / Synthesis) ──────────────────
   'ask.marcus':          { agent: 'marcus', doing: 'thinking', sub: 'Grounded in live customers, leads and bets', expectedMs: 25_000 },
+  'tab.chat':            { agent: 'marcus', doing: 'reading this tab', sub: "Grounded in the rows this tab is showing", expectedMs: 25_000 },
   'focus.slate':         { agent: 'marcus', doing: 'putting the shortlist together', sub: 'Reading the week against your goals', expectedMs: 30_000 },
   'objectives.voice':    { agent: 'marcus', doing: 'reading that back', expectedMs: 20_000 },
   'objectives.propose':  { agent: 'marcus', doing: 'proposing milestones', expectedMs: 30_000 },

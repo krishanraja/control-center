@@ -1,5 +1,6 @@
 import type { VercelResponse } from '@vercel/node'
 import { supportsSampling } from './_content.js'
+import { thinkingParam } from './_models.js'
 import * as meter from './_meter.js'
 
 /**
@@ -61,6 +62,11 @@ export interface StreamClaudeOpts {
    *  composer — was the one generative call in the content engine with no
    *  temperature control at all. */
   temperature?: number
+  /** Ask for adaptive thinking. Off by default, and explicitly sent as
+   *  disabled on models that would otherwise run it: omitting the field on
+   *  Sonnet 5 spends the whole max_tokens budget on reasoning and streams no
+   *  text at all, which reaches the client as a successful empty answer. */
+  think?: boolean
   /** Called with each text delta, so the caller can both relay and accumulate. */
   onText: (chunk: string) => void
   signal?: AbortSignal
@@ -88,6 +94,7 @@ export async function streamClaude(opts: StreamClaudeOpts): Promise<string> {
     body: JSON.stringify({
       model: opts.model,
       max_tokens: opts.maxTokens,
+      ...thinkingParam(opts.model, opts.think === true),
       system: opts.system,
       messages: opts.messages,
       ...(opts.temperature !== undefined && supportsSampling(opts.model) ? { temperature: opts.temperature } : {}),

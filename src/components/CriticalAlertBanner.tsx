@@ -63,7 +63,7 @@ export function CriticalAlertBanner() {
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
           <span className="text-micro font-semibold uppercase tracking-[0.14em] text-status-blocked">CRITICAL</span>
-          <span className="text-micro text-white/40 tabular-nums">tier 4</span>
+          <span className="text-micro text-white/40 tabular-nums">tier {top.tier}</span>
         </div>
         <p className="text-body text-white/90 mt-0.5 leading-snug">
           {top.workflow_name || top.workflow_id} is down. Detected {humanAge(top.detected_at)}.
@@ -72,7 +72,7 @@ export function CriticalAlertBanner() {
           <p className="text-label text-white/60 mt-1 line-clamp-2">{top.detail}</p>
         )}
         {extra > 0 && (
-          <p className="text-micro text-white/45 mt-1">+ {extra} more critical alert{extra > 1 ? 's' : ''}</p>
+          <p className="text-micro text-white/45 mt-1">+ {extra} more failing workflow{extra > 1 ? 's' : ''}</p>
         )}
       </div>
     </div>

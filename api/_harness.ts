@@ -18,6 +18,7 @@ import { rootDomain } from './_trendGate.js'
 import { normalizeSpan, FETCH_BYTES, FETCH_TIMEOUT_MS, FETCH_CONCURRENCY } from './_gates.js'
 import { MODEL_PRICES, priceUsd } from './_prices.js'
 import * as meter from './_meter.js'
+import { LADDER_MODEL, UTILITY_MODEL } from './_models.js'
 
 // ── Budget ──────────────────────────────────────────────────────────────────
 
@@ -73,8 +74,10 @@ export function budgetLeft(b: RunBudget): { model: number; search: number; fetch
  *  api/_prices.ts, which is now the only copy of the Anthropic rates. */
 export { MODEL_PRICES }
 
-export const LADDER_MODEL = 'claude-opus-4-8'
-export const UTILITY_MODEL = 'claude-sonnet-4-6'
+// Model identity lives in _models.ts, prices in _prices.ts. Re-exported here
+// so the ladder's existing importers keep their import path, and imported
+// rather than re-declared so a tier change is one edit, not three.
+export { LADDER_MODEL, UTILITY_MODEL }
 
 export interface MeteredResult {
   text: string
@@ -115,7 +118,9 @@ export async function callMetered(opts: MeteredOpts, budget: RunBudget): Promise
     messages: [{ role: 'user', content: opts.user }],
   }
   // Sampling parameters are a 400 on the opus-4-7 family. Thinking is
-  // deliberately left OFF (omitting the field on opus-4-8 means no thinking),
+  // deliberately left OFF. On opus-4-8 that is what omitting the field does;
+  // on the 5-family omission means adaptive thinking RUNS, so _models.thinkingParam
+  // states it either way rather than relying on the default,
   // because max_tokens caps thinking plus text together and this pipeline runs
   // on a bounded budget.
   if (supportsSampling(model)) body.temperature = opts.temperature ?? 0.2

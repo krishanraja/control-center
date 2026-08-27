@@ -14,6 +14,10 @@ import { useEffect, useRef } from 'react'
 //   'goal:os'      GoalLadder opens the OS-goal composer
 //   'goal:weekly'  GoalLadder opens the weekly-objective composer
 //   'ask'          FocusPurposeTab focuses the ask compose field
+//   'talk'         TabChatHost opens the chat panel for the ACTIVE tab.
+//                  One kind, not one per tab: the host is mounted in App and
+//                  already knows which tab is showing, so a kind per tab would
+//                  be seven subscriptions carrying what the host has.
 
 type Handler = () => void
 const handlers = new Map<string, Set<Handler>>()

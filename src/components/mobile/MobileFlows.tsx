@@ -5,6 +5,7 @@ import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { useToast } from '../shared/Toast'
+import { FleetHealthStrip } from '../flows/FleetHealthStrip'
 
 interface Run {
   id: string
@@ -124,6 +125,8 @@ export function MobileFlows() {
         />
       }
     >
+      {/* n8n's own view of the fleet, above the self-reported runs. */}
+      <FleetHealthStrip />
       {heroProposal ? (
         <HeroCard
           eyebrow="Proposal · waiting for you"

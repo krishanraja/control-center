@@ -1,6 +1,7 @@
 import { supabase } from './_supabase.js'
 import { callClaude, robustJson } from './_content.js'
 import { runNetworkSearch } from './_networkSearch.js'
+import { SYNTHESIS_MODEL } from './_models.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Guest sources — the five places a person worth interviewing comes from.
@@ -227,7 +228,7 @@ async function extractPeopleFromHeadlines(headlines: string[]): Promise<Extracte
   try {
     const text = await callClaude({
       agent: 'nell-guest-sources',
-      model: 'claude-sonnet-4-6',
+      model: SYNTHESIS_MODEL,
       system:
         'You extract named individual PEOPLE from news headlines. Return only real named humans who are ' +
         'operators, founders or executives, never journalists, never companies, never analysts quoted in ' +

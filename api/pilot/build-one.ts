@@ -14,6 +14,7 @@ import {
 } from '../_content.js'
 import { titleNorm, contentHash } from '../_text.js'
 import { embed, vectorLiteral } from '../_embeddings.js'
+import { UTILITY_MODEL } from '../_models.js'
 
 /**
  * POST /api/pilot/build-one
@@ -135,7 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       built_from_ask: {
         ask,
         at: now,
-        model: 'claude-sonnet-4-6',
+        model: UTILITY_MODEL,
         surface: 'pilot',
         why_now: whyNow,
       },

@@ -115,6 +115,13 @@ jobs:
       # every non-2xx in "perhaps check your credentials?"), and a scheduled
       # workflow that never ran read as idle rather than dead.
       - run: npx tsx scripts/check-fleet-classifier.mts
+      # Ten workflow mirrors carried the live Supabase service-role key in
+      # plaintext for months. That key bypasses RLS on every table, including
+      # contact_intelligence, which is service-role-only precisely because it
+      # holds private judgments about named people. The n8n editor exports
+      # credentials inline, so the next export re-adds them unless something
+      # fails the build. scripts/n8n/secrets.mjs is the supported path.
+      - run: npx tsx scripts/check-no-secrets.mts
       # The usage meter answers "which agent is spending my money" from a stamp
       # passed at each Anthropic call site. A site that forgets it still meters,
       # as "unattributed" — honest, and useless. The failure is silent and

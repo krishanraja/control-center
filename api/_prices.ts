@@ -17,8 +17,15 @@
 export interface ModelPrice { in: number; out: number }
 
 export const MODEL_PRICES: Record<string, ModelPrice> = {
+  'claude-opus-5': { in: 5, out: 25 },
   'claude-opus-4-8': { in: 5, out: 25 },
   'claude-opus-4-7': { in: 5, out: 25 },
+  // Sonnet 5 is both newer and cheaper than the 4-6 it replaces. Its row has to
+  // exist before the synthesis surfaces move onto it, or isPriced() is false for
+  // nearly every call the OS makes and the meter reports real token counts with
+  // no dollars beside them. That is this file's deliberate unknown-model
+  // behaviour, and it would have fired on the whole fleet.
+  'claude-sonnet-5': { in: 2, out: 10 },
   'claude-sonnet-4-6': { in: 3, out: 15 },
   'claude-haiku-4-5': { in: 1, out: 5 },
 }

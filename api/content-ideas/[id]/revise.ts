@@ -4,6 +4,7 @@ import { openStream, send, fail, streamClaude } from '../../_stream.js'
 import { corpusForChannel, laneToCorpusChannel, loadCorpus, loadVoiceBlock, materialsContext, pathId, preamble, readMaterials, sanitizeVoice } from '../../_content.js'
 import { isHumourRegister } from '../../_humor.js'
 import { buildRevisePrompt, REVISE_MODES } from '../../_revisePrompt.js'
+import { UTILITY_MODEL } from '../../_models.js'
 
 // POST /api/content-ideas/:id/revise
 //   body: {
@@ -84,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     revisedFragment = (await streamClaude({
       agent: 'cleo-revise',
       apiKey,
-      model: humour ? 'claude-opus-4-8' : 'claude-sonnet-4-6',
+      model: humour ? 'claude-opus-4-8' : UTILITY_MODEL,
       // Matches the other rewrite surfaces (channel-cut, synthesize) rather than
       // the provider default this silently ran at before streamClaude accepted a
       // temperature. Ignored on the humour path: opus rejects sampling params.

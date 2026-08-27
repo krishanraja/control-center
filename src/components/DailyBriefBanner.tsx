@@ -93,12 +93,28 @@ export function DailyBriefBanner({ blocking = false, variant = 'desktop', retroO
             <h2 className="text-micro font-bold uppercase tracking-[0.14em] text-violet-300 truncate">
               Today's brief from Marcus
             </h2>
+            {/* A failed brief used to render as a normal one. It is the first
+                thing read each morning and the most trusted, so it is the last
+                place a silent fallback belongs. FocusCalibrator has always
+                tagged its fallback picks this way; the brief never did. */}
+            {brief.degraded && (
+              <span
+                className="flex-shrink-0 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-micro font-semibold uppercase tracking-[0.14em] text-amber-200"
+                title={brief.reasoning || 'The brief did not parse; this is raw model output.'}
+              >
+                fallback
+              </span>
+            )}
             {briefAt && (
               <span className="text-micro text-white/35 ml-auto tabular-nums flex-shrink-0">
                 {humanAgo(briefAt)}
               </span>
             )}
           </header>
+
+          {brief.degraded && brief.reasoning && (
+            <p className="mb-2 text-label leading-snug text-amber-200/80">{brief.reasoning}</p>
+          )}
 
           {delta !== 0 && (
             <p className={`text-ui font-semibold mb-2 ${deltaColor}`}>

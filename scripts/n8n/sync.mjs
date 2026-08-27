@@ -24,6 +24,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { resolvePlaceholders } from './secrets.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -97,6 +98,11 @@ async function listCloudWorkflows() {
 const SETTINGS_DENYLIST = new Set(['availableInMCP', 'binaryMode', 'timeSavedMode'])
 
 function buildPayload(local) {
+  // Placeholders become real values here and nowhere else: the value is in the
+  // payload for the duration of the request and never on disk. Throws when the
+  // env var is missing rather than PUTting the literal placeholder string,
+  // which would fail at request time looking like an auth bug.
+  local = resolvePlaceholders(local)
   // N8N PUT/POST accepts only canonical fields. `active` cannot be toggled
   // through the workflow body — there is a separate /activate endpoint.
   const payload = {}

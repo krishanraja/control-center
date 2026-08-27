@@ -5,6 +5,7 @@ import {
 } from '../_content.js'
 import { webResearch } from '../_enrich.js'
 import { canonicalUrl, titleNorm, contentHash } from '../_text.js'
+import { UTILITY_MODEL } from '../_models.js'
 
 // POST /api/content-ideas/research-topic
 //   body: { topic, format?: 'paid'|'built', angle?: string, web?: boolean,
@@ -131,7 +132,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     text = await callClaude({
       agent: 'cleo-research-topic',
-      model: 'claude-sonnet-4-6',
+      model: UTILITY_MODEL,
       system,
       user:
         `TOPIC KRISH ASKED FOR: ${topic}\n` +

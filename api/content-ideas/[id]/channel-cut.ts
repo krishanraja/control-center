@@ -5,6 +5,7 @@ import {
   callClaude, corpusForChannel, loadCorpus, loadVoiceBlock, materialsContext, pathId, preamble,
   readMaterials, robustJson, sanitizeVoice,
 } from '../../_content.js'
+import { UTILITY_MODEL } from '../../_models.js'
 
 // POST /api/content-ideas/:id/channel-cut
 //   body: { channel: MediaChannel, hint?: string, source_text?: string }
@@ -122,7 +123,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     text = await callClaude({
       agent: 'cleo-channel-cut',
-      model: 'claude-sonnet-4-6',
+      model: UTILITY_MODEL,
       system,
       user:
         `SOURCE PIECE: ${idea.idea}\n` +
@@ -160,7 +161,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     [channel]: {
       body,
       generated_at: new Date().toISOString(),
-      model: 'claude-sonnet-4-6',
+      model: UTILITY_MODEL,
       notes: [parsed?.notes ? String(parsed.notes).slice(0, 600) : null, numberWarning]
         .filter(Boolean).join(' ') || null,
       unsupported_numbers: unsupported,
