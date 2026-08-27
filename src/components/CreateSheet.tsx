@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import {
-  Plus, Inbox, MapPin, Sparkles, Search, ImagePlus, Target, CalendarCheck, ListChecks, Send,
+  Plus, Inbox, MapPin, Sparkles, Search, ImagePlus, Target, CalendarCheck, ListChecks, Send, MessageCircle,
   type LucideIcon,
 } from '@/lib/icons'
 import { BottomSheet } from './mobile/BottomSheet'
@@ -12,6 +12,7 @@ import { openFocusRitual } from '../lib/focusRitual'
 import { requestCreate } from '../lib/quickCreate'
 import { useHaptics } from '../hooks/useHaptics'
 import { IconTile } from './shared/IconTile'
+import { TABS } from '../lib/tabs'
 
 /**
  * The one create system on a phone.
@@ -56,32 +57,52 @@ export function CreateSheet({ tab }: { tab: string }) {
   }
 
   const tabActions: CreateAction[] = (() => {
-    switch (tab) {
-      case 'home':
-        return [
-          { id: 'today3', label: "Set today's 3", hint: 'Pick the three things today is for', icon: ListChecks, run: go(() => openFocusRitual('daily')) },
-          { id: 'weekly', label: 'Add a weekly objective', hint: 'What moves an OS goal this week', icon: CalendarCheck, run: go(() => requestCreate('goal:weekly')) },
-          { id: 'os', label: 'Add an OS goal', hint: 'What the whole system is for', icon: Target, run: go(() => requestCreate('goal:os')) },
-        ]
-      case 'content':
-        return [
-          { id: 'research', label: 'Start from research', hint: 'Name a topic, or paste what you already have', icon: Search, run: go(() => setModal('research')) },
-        ]
-      case 'people':
-        return [
-          { id: 'person', label: 'Add a person', hint: 'From a LinkedIn screenshot. You confirm before it saves', icon: ImagePlus, run: go(() => setModal('person')) },
-        ]
-      case 'growth':
-        return [
-          { id: 'touchpoint', label: 'Add a touchpoint', hint: 'A place your buyers already are', icon: MapPin, run: go(() => requestCreate('touchpoint')) },
-        ]
-      case 'focus':
-        return [
-          { id: 'ask', label: "Write today's ask", hint: 'One clear request to one person', icon: Send, run: go(() => requestCreate('ask')) },
-        ]
-      default:
-        return []
-    }
+    const own: CreateAction[] = (() => {
+      switch (tab) {
+        case 'home':
+          return [
+            { id: 'today3', label: "Set today's 3", hint: 'Pick the three things today is for', icon: ListChecks, run: go(() => openFocusRitual('daily')) },
+            { id: 'weekly', label: 'Add a weekly objective', hint: 'What moves an OS goal this week', icon: CalendarCheck, run: go(() => requestCreate('goal:weekly')) },
+            { id: 'os', label: 'Add an OS goal', hint: 'What the whole system is for', icon: Target, run: go(() => requestCreate('goal:os')) },
+          ]
+        case 'content':
+          return [
+            { id: 'research', label: 'Start from research', hint: 'Name a topic, or paste what you already have', icon: Search, run: go(() => setModal('research')) },
+          ]
+        case 'people':
+          return [
+            { id: 'person', label: 'Add a person', hint: 'From a LinkedIn screenshot. You confirm before it saves', icon: ImagePlus, run: go(() => setModal('person')) },
+          ]
+        case 'growth':
+          return [
+            { id: 'touchpoint', label: 'Add a touchpoint', hint: 'A place your buyers already are', icon: MapPin, run: go(() => requestCreate('touchpoint')) },
+          ]
+        case 'focus':
+          return [
+            { id: 'ask', label: "Write today's ask", hint: 'One clear request to one person', icon: Send, run: go(() => requestCreate('ask')) },
+          ]
+        default:
+          // 'os' and 'customers' have no create action of their own. They
+          // still get the talk action below, which is why this branch is no
+          // longer the end of the story: those two tabs used to open the sheet
+          // showing only the two global captures.
+          return []
+      }
+    })()
+
+    // Every tab can be talked to. Appended rather than switched on, so a tab
+    // that gains a create action later does not have to remember to keep this.
+    const label = TABS.find(t => t.id === tab)?.label || 'this tab'
+    return [
+      ...own,
+      {
+        id: 'talk',
+        label: `Talk to ${label}`,
+        hint: 'Ask about what this tab is showing right now',
+        icon: MessageCircle,
+        run: go(() => requestCreate('talk')),
+      },
+    ]
   })()
 
   const globalActions: CreateAction[] = [

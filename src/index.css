@@ -630,13 +630,18 @@
       washed-out control sitting over the dialog's own actions.
    2. `--capture-gutter` is the space it occupies. Surfaces that scroll to the
       bottom-right add it as padding, the way pilot/controls.tsx already
-      reserves room for its dock. */
-:root { --capture-gutter: 84px; }
+      reserves room for its dock.
 
-body[data-scroll-locked] .capture-pill { display: none; }
+   Two pills now stack in that corner: capture (⌘I, bottom) and ask-this-tab
+   (⌘/, above it). Both retire behind a modal, and the gutter covers the pair
+   — 84px reserved for one pill left the upper one sitting on the last row. */
+:root { --capture-gutter: 132px; }
+
+body[data-scroll-locked] .capture-pill,
+body[data-scroll-locked] .tab-chat-pill { display: none; }
 
 @media (max-width: 899px) {
-  :root { --capture-gutter: 0px; }  /* pill is desktop-only (min-[900px]) */
+  :root { --capture-gutter: 0px; }  /* both pills are desktop-only (min-[900px]) */
 }
 
 /* ── The brief canvas ──────────────────────────────────────────────────────

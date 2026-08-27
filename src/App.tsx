@@ -10,6 +10,7 @@ import { PendingFlagModal } from './components/PendingFlagModal'
 import { QuickCaptureIdea } from './components/QuickCaptureIdea'
 import { IdeaCaptureModal, isInboxEnabled } from './components/inbox/IdeaCaptureModal'
 import { CreateSheet } from './components/CreateSheet'
+import { TabChatHost } from './components/TabChat'
 import { FocusRitual } from './components/home/FocusRitual'
 import { PilotGate } from './components/pilot/PilotGate'
 import { EveningShutdown } from './components/pilot/EveningShutdown'
@@ -331,6 +332,11 @@ export default function App() {
               while a full-screen overlay owns the screen, where it used to
               paint over the composer's own footer controls. */}
           {narrow && !fullScreenOverlayOpen && <CreateSheet tab={tab} />}
+          {/* Talk to the tab you are on. Mounted once here rather than per
+              tab, because the panel is identical everywhere and only its
+              grounding scope changes — and because the mobile + sheet fires a
+              bare 'talk' that needs a listener which knows the active tab. */}
+          <TabChatHost tab={tab} narrow={narrow} params={route.params} suppressed={fullScreenOverlayOpen} />
           {/* Focus Ritual (unified): one guided stepper across week / today,
               mounted once so it z-stacks above both shells. */}
           <FocusRitual narrow={narrow} tab={tab} onNavigate={navigate} />
