@@ -19,11 +19,18 @@ export interface ProviderRequest {
   init?: RequestInit
 }
 
+/** Registry facts a balance parser may need. Passed in rather than re-queried
+ *  so the check table stays a pure description of vendor endpoints. */
+export interface BalanceContext {
+  /** service_registry.included_usd — usage the plan price already covers. */
+  includedUsd?: number | null
+}
+
 export interface ProviderCheck {
   build(key: string): ProviderRequest
   /** Present only for balance-capable vendors. Return null when the payload
    *  did not carry a usable number (the check still counts as a ping). */
-  parseBalance?(json: unknown): { balance: number; unit: string } | null
+  parseBalance?(json: unknown, ctx: BalanceContext): { balance: number; unit: string } | null
   /** Rough cost of one check, for the metering ledger. Undefined = free. */
   estCostUsd?: number
 }
@@ -111,13 +118,27 @@ export const PROVIDERS: Record<string, ProviderCheck> = {
   // --- Data / enrichment / search ---
   apify: {
     build: k => ({ url: 'https://api.apify.com/v2/users/me/limits', init: { headers: { Authorization: `Bearer ${k}` } } }),
-    parseBalance: j => {
-      // Monthly headroom in dollars: what the plan allows minus what this
-      // month already used. That is the number that runs out.
-      const max = num(path(j, ['data', 'limits', 'maxMonthlyUsageUsd']))
+    parseBalance: (j, ctx) => {
+      // This used to return maxMonthlyUsageUsd - monthlyUsageUsd: headroom to
+      // the HARD CAP. On Apify's plan the hard cap is far above the $29 the
+      // subscription actually includes, so the tracker reported "$130 left, ok"
+      // in the same week Apify emailed to say the prepaid amount was already
+      // spent and the overage was accruing. The dot was green because it was
+      // measuring the wrong ceiling.
+      //
+      // The number that runs out is the PREPAID one. Where the registry knows
+      // it, headroom is included_usd - cycle usage, which goes negative as
+      // overage accrues and trips low_threshold on the way past zero. Falling
+      // back to the hard cap only when no included amount is recorded keeps
+      // vendors with no prepaid allowance working unchanged.
       const used = num(path(j, ['data', 'current', 'monthlyUsageUsd']))
-      if (max === null || used === null) return null
-      return { balance: Math.round((max - used) * 100) / 100, unit: 'usd' }
+      if (used === null) return null
+      const included = ctx.includedUsd == null ? null : Number(ctx.includedUsd)
+      if (included !== null && Number.isFinite(included)) {
+        return { balance: Math.round((included - used) * 100) / 100, unit: 'usd' }
+      }
+      const max = num(path(j, ['data', 'limits', 'maxMonthlyUsageUsd']))
+      return max === null ? null : { balance: Math.round((max - used) * 100) / 100, unit: 'usd' }
     },
   },
   apollo: {
@@ -264,7 +285,13 @@ export interface CheckResult {
 }
 
 /** Run one provider check with a hard timeout. Never throws. */
-export async function runCheck(providerKey: string, apiKey: string, kind: 'balance' | 'ping', timeoutMs = 8000): Promise<CheckResult> {
+export async function runCheck(
+  providerKey: string,
+  apiKey: string,
+  kind: 'balance' | 'ping',
+  ctx: BalanceContext = {},
+  timeoutMs = 8000,
+): Promise<CheckResult> {
   const provider = PROVIDERS[providerKey]
   if (!provider) return { status: 'error', httpStatus: null, detail: 'no check implemented', balance: null, balanceUnit: null }
   const ctrl = new AbortController()
@@ -278,7 +305,7 @@ export async function runCheck(providerKey: string, apiKey: string, kind: 'balan
     let balanceUnit: string | null = null
     if (status === 'ok' && provider.parseBalance) {
       try {
-        const parsed = provider.parseBalance(JSON.parse(body))
+        const parsed = provider.parseBalance(JSON.parse(body), ctx)
         if (parsed) { balance = parsed.balance; balanceUnit = parsed.unit }
       } catch { /* a balance we cannot read is still a live key */ }
     }

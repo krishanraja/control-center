@@ -30,6 +30,9 @@ interface RegistryRow {
   low_threshold: number | null
   active: boolean
   last_status: ProviderStatus | 'not_checked' | null
+  /** Usage the plan price already covers; balance is headroom to THIS, not to
+   *  the vendor's hard cap, wherever it is set. */
+  included_usd: number | null
 }
 
 const BLOCKING = new Set<string>(['auth_failed', 'exhausted', 'rate_limited'])
@@ -41,7 +44,7 @@ function asOutcome(api: string, status: ProviderStatus, httpStatus: number | nul
 async function sweep() {
   const { data, error } = await supabase
     .from('service_registry')
-    .select('key, display_name, criticality, env_key_name, check_kind, top_up_url, dashboard_url, low_threshold, active, last_status')
+    .select('key, display_name, criticality, env_key_name, check_kind, top_up_url, dashboard_url, low_threshold, active, last_status, included_usd')
     .eq('active', true)
   if (error) throw new Error(`service_registry read failed: ${error.message}`)
   const rows = (data || []) as RegistryRow[]
@@ -56,7 +59,7 @@ async function sweep() {
     if (!PROVIDERS[row.key]) {
       return { row, status: 'error' as ProviderStatus, httpStatus: null, detail: 'no check implemented for this service', balance: null, balanceUnit: null }
     }
-    const r = await runCheck(row.key, apiKey, row.check_kind as 'balance' | 'ping')
+    const r = await runCheck(row.key, apiKey, row.check_kind as 'balance' | 'ping', { includedUsd: row.included_usd })
     const est = PROVIDERS[row.key].estCostUsd
     if (est && r.httpStatus && r.httpStatus < 500) {
       await logApiCall({ api: row.key, endpoint: 'connections-sweep', estCostUsd: est, source: 'connections-sweep' })
