@@ -218,7 +218,10 @@ sweep itself. Neither had ever seen agent traffic.
   real token counts where the OS meters itself; **n8n rows leave `usd` at
   0 on purpose** — n8n Cloud bills per execution and reports no rate, so
   `unit_name` says what `units` counts rather than a made-up dollar figure
-  sitting in the same column as real ones.
+  sitting in the same column as real ones. The mirror rule applies to Apify:
+  `/v2/actor-runs` returns the shortened run object with `usageTotalUsd` but no
+  `usage` breakdown, so Apify rows carry dollars and leave `unit_name` NULL —
+  an unreported unit says nothing, never zero.
 - **Two write paths, not interchangeable.** Provider-derived truth (Apify,
   n8n) is REPLACED: the collector recomputes a whole UTC day from the
   vendor's own records and upserts over it, so a re-run or an overlapping

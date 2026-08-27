@@ -21,10 +21,12 @@ import { checkMoneyLines, type MoneyAlertResult } from '../_moneyAlerts.js'
 // windows, cannot double-count.
 //
 // What this does NOT claim: which n8n workflow or which agent triggered a run.
-// Apify's API carries no user-supplied run label — origin (WEB / API /
-// SCHEDULER / DEVELOPMENT) is the finest attribution it exposes, so that is
-// what is recorded. Guessing the caller from timing would produce a number
-// that looks like an answer and isn't.
+// Apify's API carries no user-supplied run label — meta.origin is the finest
+// attribution it exposes, so that is what is recorded, whatever it says. The
+// first live sync returned API, MCP and WEB; the value is passed through
+// rather than mapped onto a fixed list, because a new origin appearing is
+// information and an UNKNOWN bucket would destroy it. Guessing the caller from
+// timing would produce a number that looks like an answer and isn't.
 
 const APIFY_BASE = 'https://api.apify.com/v2'
 const PAGE = 1000
@@ -173,14 +175,25 @@ export async function syncApify(days: number): Promise<ApifySyncResult> {
       cell = {
         provider: 'apify', unit_kind: 'actor', unit_key: actId, day, bucket: origin,
         unit_label: label, category: categories.get(label.toLowerCase()) ?? null,
-        usd: 0, runs: 0, failed: 0, units: 0, unit_name: 'compute-units',
+        // unit_name stays NULL until a run actually reports compute units. The
+        // first live sync proved why: /v2/actor-runs returns the SHORTENED run
+        // object — usageTotalUsd but no `usage` breakdown — so claiming
+        // 'compute-units' here stored a measured-looking 0 for every actor.
+        // Reading the full run per id would cost 30+ extra calls a sync for a
+        // secondary metric we already have the dollars for. Dollars are the
+        // answer; an unreported unit says nothing rather than zero.
+        usd: 0, runs: 0, failed: 0, units: 0, unit_name: null,
       }
       cells.set(id, cell)
     }
     cell.usd += usd
     cell.runs += 1
     if (run.status && run.status !== 'SUCCEEDED') cell.failed += 1
-    cell.units += Number(run.usage?.ACTOR_COMPUTE_UNITS) || 0
+    const cu = Number(run.usage?.ACTOR_COMPUTE_UNITS)
+    if (Number.isFinite(cu) && cu > 0) {
+      cell.units += cu
+      cell.unit_name = 'compute-units'
+    }
   }
 
   const rows = [...cells.values()].map(r => ({ ...r, usd: Math.round(r.usd * 1e6) / 1e6 }))
