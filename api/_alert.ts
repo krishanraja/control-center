@@ -53,7 +53,11 @@ export async function notifyOps(text: string): Promise<{ sent: boolean; error?: 
  * `via` says which happened so a caller never reports a delivered alert that
  * is actually sitting in the drafts folder.
  */
-export async function notifyKrishEmail(subject: string, body: string): Promise<{
+export async function notifyKrishEmail(subject: string, body: string, opts: {
+  /** Retry path: send or fail. Never leaves a SECOND draft of an alert whose
+   *  first attempt already drafted — that turns a missing scope into a pile. */
+  sendOnly?: boolean
+} = {}): Promise<{
   sent: boolean
   via: 'send' | 'draft' | null
   error?: string
@@ -64,6 +68,7 @@ export async function notifyKrishEmail(subject: string, body: string): Promise<{
   }
   const sent = await sendGmail({ to, subject, body })
   if (sent) return { sent: true, via: 'send' }
+  if (opts.sendOnly) return { sent: false, via: null, error: 'gmail.send still unavailable' }
   const draft = await createGmailDraft({ to, subject, body })
   if (draft) return { sent: true, via: 'draft' }
   return { sent: false, via: null, error: 'gmail send and draft both failed' }
