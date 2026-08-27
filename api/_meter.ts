@@ -1,5 +1,25 @@
-import { supabase } from './_supabase.js'
 import { priceUsd, isPriced } from './_prices.js'
+
+/**
+ * Supabase, lazily.
+ *
+ * `_supabase.ts` THROWS at module scope when the service credentials are
+ * missing, which is why api/_content.ts imports it inside loadConfig rather
+ * than at the top — a comment there calls that placement load-bearing. This
+ * module is imported statically by _content, _harness, _relevance and _stream,
+ * every one of which is also run by the eval scripts outside Vercel with no
+ * Supabase env at all. A static import here would crash all of them at load.
+ * So the client is resolved per call, cached after the first, and a missing
+ * environment makes metering a no-op instead of an outage.
+ */
+type Db = Awaited<typeof import('./_supabase.js')>['supabase']
+let dbPromise: Promise<Db | null> | null = null
+function db(): Promise<Db | null> {
+  if (!dbPromise) {
+    dbPromise = import('./_supabase.js').then(m => m.supabase).catch(() => null)
+  }
+  return dbPromise
+}
 
 // Read and write the usage meter (public.meter_daily).
 //
@@ -63,6 +83,8 @@ export function daysAgoKey(n: number): string {
  */
 export async function replaceDays(rows: MeterRow[]): Promise<{ written: number; error: string | null }> {
   if (!rows.length) return { written: 0, error: null }
+  const supabase = await db()
+  if (!supabase) return { written: 0, error: 'supabase not configured' }
   const CHUNK = 500
   let written = 0
   for (let i = 0; i < rows.length; i += CHUNK) {
@@ -99,6 +121,8 @@ export async function add(e: {
   day?: string
 }): Promise<void> {
   try {
+    const supabase = await db()
+    if (!supabase) return
     await supabase.rpc('meter_add', {
       p_provider: e.provider,
       p_unit_kind: e.unitKind,
@@ -146,6 +170,8 @@ export async function readUnits(opts: {
   providers?: MeterProvider[]
   limit?: number
 }): Promise<{ units: MeterUnit[]; total_usd: number; error: string | null }> {
+  const supabase = await db()
+  if (!supabase) return { units: [], total_usd: 0, error: 'supabase not configured' }
   let q = supabase
     .from('meter_daily')
     .select('provider, unit_kind, unit_key, day, bucket, unit_label, category, usd, runs, failed, units, unit_name')
