@@ -421,6 +421,17 @@ All `api/*` functions auto-deploy on push to `main`.
 | `/api/today` | Today-tab payload |
 | `/api/trigger-agent` | Manual agent trigger (inserts a task, pg_net fires N8N) |
 
+**Money alerts need `gmail.send`.** `/api/meter/apify-sync` emails Krish when a
+plan's prepaid line is crossed (email, not Telegram — his call). It sends
+through the same domain-wide-delegated service account the receipts ingest
+uses, so `https://www.googleapis.com/auth/gmail.send` has to be on that grant
+in Google Admin alongside `gmail.readonly` and `gmail.compose`. Without it the
+send returns null and the alert falls back to a Gmail DRAFT, which the sync
+reports as `sent: ["<key> (draft)"]` — a draft nobody opens is not an alert, so
+that string is the signal to add the scope. `OPS_ALERT_EMAIL` overrides the
+recipient; it defaults to `GOOGLE_IMPERSONATE_SUBJECT`.
+
+
 **Direct (non-n8n) mode.** The enrich/draft/briefing actions normally proxy to
 n8n, but accept a `{ "mode": "direct" }` body to bypass n8n and run server-side
 (active while n8n is down until ~Jul 1). Direct paths:
