@@ -28,6 +28,10 @@ export interface SpendServiceRow {
   dashboard_url: string | null
   /** Plan ceiling + known consumers, plain English (service_registry.limit_note). */
   limit_note: string | null
+  /** Usage the plan price covers. Non-null means this service reports a plan
+   *  cycle, so its money state is told by `cycles` and NOT by `connections.low`
+   *  — one fact, one place. */
+  included_usd: number | null
   /** Who used it: 7-day metered calls from api_call_log, attached only for
    *  services that are broken or low so the payload stays lean. null means
    *  either not flagged, or flagged with zero metered calls — the UI reads
@@ -349,6 +353,7 @@ export async function loadSpend(): Promise<SpendSummary> {
       top_up_url: s.top_up_url,
       dashboard_url: s.dashboard_url,
       limit_note: s.limit_note,
+      included_usd: s.included_usd == null ? null : Number(s.included_usd),
       usage: null,
     }
   }).sort((a, b) => b.month_usd - a.month_usd || (b.avg_usd - a.avg_usd))
@@ -391,8 +396,13 @@ export async function loadSpend(): Promise<SpendSummary> {
 
   const checked = services.filter(s => s.status !== null && s.status !== 'not_checked')
   const brokenRows = checked.filter(s => BLOCKING.has(String(s.status)))
-  const lowRows = checked.filter(s => s.balance_low && !BLOCKING.has(String(s.status)))
-  const okRows = checked.filter(s => s.status === 'ok' && !s.balance_low)
+  // A prepaid plan's headroom is money, not credits. Apify past its $29
+  // included is not "running low" — it is accruing overage, which `cycles`
+  // says precisely and "Apify is low: -14.4 usd left" says wrongly. Services
+  // that report a cycle are told there and only there.
+  const lowRows = checked.filter(s =>
+    s.balance_low && s.included_usd == null && !BLOCKING.has(String(s.status)))
+  const okRows = checked.filter(s => s.status === 'ok' && (!s.balance_low || s.included_usd != null))
   const connections = {
     ok: okRows.length,
     low: lowRows.length,

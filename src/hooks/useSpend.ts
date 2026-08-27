@@ -21,6 +21,9 @@ export interface SpendServiceRow {
   top_up_url: string | null
   dashboard_url: string | null
   limit_note: string | null
+  /** Non-null when the service reports a plan cycle; its money state is told
+   *  by `cycles`, never as a low balance. */
+  included_usd: number | null
   usage: { calls_7d: number; est_cost_7d: number; top_sources: string[] } | null
 }
 

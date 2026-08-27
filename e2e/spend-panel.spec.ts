@@ -118,6 +118,12 @@ const SPEND_FULL = {
  *  includes, with the overage accruing toward the early-charge mark. */
 const SPEND_OVER_PREPAID = {
   ...SPEND_FULL,
+  // Headroom to the $29 included, gone negative. The sweep flags balance_low
+  // on the way past zero; the console must read that as overage, never as a
+  // service running out of credits.
+  services: SPEND_FULL.services.map(s => s.key === 'apify'
+    ? { ...s, balance: -14.4, balance_low: true, included_usd: 29 }
+    : s),
   cycles: [{
     key: 'apify', name: 'Apify', included_usd: 29, overage_trigger_usd: 50,
     cycle_usd: 43.4, cycle_start: '2026-08-14', cycle_end: '2026-09-14',
@@ -271,6 +277,16 @@ test.describe('the spend and connections questions', () => {
 
     await costing.click()
     await expect(page.getByTestId('bi-questions')).toContainText('$14.40 past the $29 included in the plan')
+
+    // And it is told ONCE. Negative prepaid headroom trips balance_low, which
+    // would otherwise have the connections answer report a perfectly healthy
+    // Apify as "running low: -14.4 usd left" and offer to top it up. A service
+    // that reports a plan cycle is money, and money is the costing question's.
+    const broken = page.getByTestId('bi-q-broken')
+    await expect(broken).toContainText('OpenAI is out of credits')
+    await expect(broken).not.toContainText('Apify')
+    await broken.click()
+    await expect(page.getByTestId('bi-questions')).not.toContainText('Apify is low')
     await ctx.close()
   })
 

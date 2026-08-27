@@ -316,7 +316,11 @@ export function useBrokenQuestion(): QuestionState {
 
   const conns = spend?.connections
   const brokenSvcs = (spend?.services || []).filter(blocking)
-  const lowSvcs = (spend?.services || []).filter(s => !blocking(s) && s.balance_low)
+  // Mirrors the server's rollup: a service on a prepaid plan is never listed
+  // here as "running low". Negative headroom is overage, and the costing
+  // answer says so in money; repeating it here as a credit shortage would be
+  // the same fact told twice, once wrongly.
+  const lowSvcs = (spend?.services || []).filter(s => !blocking(s) && s.balance_low && s.included_usd == null)
   const checked = conns ? conns.ok + conns.low + conns.broken : 0
 
   const token = !spend
