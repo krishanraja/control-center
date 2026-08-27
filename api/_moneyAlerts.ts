@@ -36,18 +36,39 @@ export interface MoneyAlertResult {
   errors: string[]
 }
 
+type ClaimState = 'new' | 'drafted' | 'delivered'
+
 /**
- * Claim an alert key. Returns true only for the caller that inserted it.
+ * Claim an alert key, or report what happened to it last time.
  *
  * Claim-before-send, not send-before-record: a crash between the two costs one
  * missed email, where the other order costs an email every hour until someone
  * notices.
+ *
+ * 'drafted' is the state the first live run exposed. gmail.send was not on the
+ * service account's delegation, so the alert fell back to a Gmail draft — and
+ * the claim recorded it as sent. A draft is not a delivered alert, and once the
+ * scope was added nothing would ever have retried it: the money line stayed
+ * crossed and the inbox stayed empty. A drafted claim is now unfinished work,
+ * retried send-only so a still-missing scope cannot pile up drafts.
  */
-async function claim(alertKey: string, detail: string): Promise<boolean> {
+async function claim(alertKey: string, detail: string): Promise<ClaimState> {
   const { error } = await supabase
     .from('spend_alerts_sent')
-    .insert({ alert_key: alertKey, channel: 'email', detail: detail.slice(0, 400) })
-  return !error
+    .insert({ alert_key: alertKey, channel: 'pending', detail: detail.slice(0, 400) })
+  if (!error) return 'new'
+  const { data } = await supabase
+    .from('spend_alerts_sent').select('channel').eq('alert_key', alertKey).maybeSingle()
+  return (data as { channel: string | null } | null)?.channel === 'draft' ? 'drafted' : 'delivered'
+}
+
+/** Record how the alert actually left, so the row never overstates delivery. */
+async function recordChannel(alertKey: string, via: 'send' | 'draft'): Promise<void> {
+  const patch: Record<string, unknown> = { channel: via === 'send' ? 'email' : 'draft' }
+  // sent_at means "when it actually reached him", so a draft that later sends
+  // is stamped with the send, not with the drafting.
+  if (via === 'send') patch.sent_at = new Date().toISOString()
+  await supabase.from('spend_alerts_sent').update(patch).eq('alert_key', alertKey)
 }
 
 function cycleAlert(c: SpendCycle): { key: string; subject: string; body: string } | null {
@@ -140,16 +161,29 @@ export async function checkMoneyLines(source: string): Promise<MoneyAlertResult>
 
   // ── Claim, then send ─────────────────────────────────────────────────────
   for (const a of pending) {
-    if (!(await claim(a.key, a.subject))) { out.already_sent.push(a.key); continue }
-    const r = await notifyKrishEmail(a.subject, a.body)
-    if (r.sent) out.sent.push(`${a.key}${r.via === 'draft' ? ' (draft)' : ''}`)
-    else {
-      out.undelivered.push(a.key)
-      out.errors.push(`${a.key}: ${r.error || 'not delivered'}`)
-      // Undo the claim so a fixed mailer is not permanently silenced by the
-      // record of an alert that never arrived.
-      await supabase.from('spend_alerts_sent').delete().eq('alert_key', a.key)
+    const state = await claim(a.key, a.subject)
+    if (state === 'delivered') { out.already_sent.push(a.key); continue }
+
+    const r = await notifyKrishEmail(a.subject, a.body, { sendOnly: state === 'drafted' })
+    if (r.sent && r.via) {
+      await recordChannel(a.key, r.via)
+      out.sent.push(`${a.key}${r.via === 'draft' ? ' (draft)' : ''}`)
+      continue
     }
+
+    if (state === 'drafted') {
+      // The draft is still sitting there and the scope is still missing.
+      // Say so; do not create a second copy of the same alert.
+      out.undelivered.push(`${a.key} (draft pending)`)
+      out.errors.push(`${a.key}: ${r.error || 'still undelivered'}`)
+      continue
+    }
+
+    out.undelivered.push(a.key)
+    out.errors.push(`${a.key}: ${r.error || 'not delivered'}`)
+    // Undo a fresh claim entirely so a fixed mailer is not permanently
+    // silenced by the record of an alert that never arrived at all.
+    await supabase.from('spend_alerts_sent').delete().eq('alert_key', a.key)
   }
 
   if (out.sent.length) {
