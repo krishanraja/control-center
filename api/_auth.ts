@@ -140,6 +140,38 @@ export function guard(req: VercelRequest, res: VercelResponse, methods = ['POST'
   return false
 }
 
+/** Fail-closed browser or operator bearer gate for service-role read routes.
+ * Unlike the dashboard-wide guard, an absent ACCESS_CODE never grants access. */
+export function guardSensitiveRead(req: VercelRequest, res: VercelResponse, methods = ['GET']): boolean {
+  applyGatedHeaders(res)
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  if (req.method === 'OPTIONS') { res.status(204).end(); return true }
+  if (!methods.includes(req.method || '')) {
+    res.status(405).json({ ok: false, error: 'method_not_allowed' })
+    return true
+  }
+  const accessCode = process.env.ACCESS_CODE || ''
+  const expectedCookie = accessCode ? createHash('sha256').update(accessCode).digest('hex') : ''
+  const suppliedCookie = parseCookies(req.headers.cookie)[COOKIE] || ''
+  const browserAllowed = Boolean(expectedCookie) && safeEqual(suppliedCookie, expectedCookie)
+  const exportToken = process.env.VIDEO_STUDIO_EXPORT_TOKEN || ''
+  const authorization = req.headers.authorization || ''
+  const bearerAllowed = Boolean(exportToken) && safeEqual(authorization, `Bearer ${exportToken}`)
+  if (!browserAllowed && !bearerAllowed) {
+    res.status(401).json({ ok: false, error: 'unauthorized' })
+    return true
+  }
+  if (bearerAllowed) {
+    const retryAfter = consumeExportRateLimit(exportToken)
+    if (retryAfter > 0) {
+      res.setHeader('Retry-After', String(retryAfter))
+      res.status(429).json({ ok: false, error: 'rate_limited' })
+      return true
+    }
+  }
+  return false
+}
+
 /** Guard for the cron-driven routes: `GET` from Vercel's scheduler with the
  *  CRON_SECRET, or a manual `POST` from someone who is already through the edge
  *  gate (or who holds the secret).
