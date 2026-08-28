@@ -7,7 +7,7 @@ import type { SeedCandidate } from '../api/_seedSources.js'
 const privateSeed: SeedCandidate = {
   key: 'opp:real-row-id',
   kind: 'deal',
-  text: 'Won Acme Holdings Ltd — Priya Shah paid £120,000 because the workflow replaced 340 manual reviews. priya@acme.test',
+  text: 'Won Acme Holdings Ltd — Priya Shah at Monzo paid £120,000 because the workflow replaced 340 manual reviews. "They hated the first version." priya@acme.test',
   sub: 'mindmaker',
   source_type: 'crm_opportunity',
   source_ref: 'real-row-id',
@@ -19,7 +19,7 @@ const privateSeed: SeedCandidate = {
 }
 
 const scrubbed = sanitizeInternalPattern(privateSeed.text)
-for (const forbidden of ['Acme', 'Priya', '120,000', '340', 'priya@']) assert.equal(scrubbed.includes(forbidden), false, `private token leaked: ${forbidden}`)
+for (const forbidden of ['Acme', 'Priya', 'Monzo', '120,000', '340', 'They hated', 'priya@']) assert.equal(scrubbed.includes(forbidden), false, `private token leaked: ${forbidden}`)
 
 const candidate = toVideoStudioCandidate(privateSeed)
 assert.equal(candidate.sensitivity, 'internal_sanitized')
@@ -31,7 +31,7 @@ const feed = buildVideoStudioFeed([privateSeed], new Date('2026-08-28T10:00:00.0
 assert.equal(feed.schema_version, 1)
 assert.equal(feed.provider, 'control_center')
 assert.equal(feed.candidates.length, 1)
-assert.equal(feed.source_age_seconds, 86_400)
+assert.equal(feed.source_age, 86_400)
 const fixture = JSON.parse(await readFile(new URL('../api/fixtures/video-studio-radar-v1.json', import.meta.url), 'utf8'))
 assert.equal(fixture.schema_version, feed.schema_version)
 assert.equal(fixture.provider, feed.provider)
