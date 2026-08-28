@@ -26,6 +26,7 @@ jobs:
       # scripts/ runs under tsx, so it gets its own config rather than being held
       # to the api tree's NodeNext resolution (which flagged 23 non-bugs).
       - run: npm run typecheck:scripts
+      - run: npx tsx scripts/check-video-studio-export.mts
       # Structural invariants. These guard shapes the type checker cannot see:
       # that one component owns goal entry AND goal display, and that the SMART
       # rubric stays calibrated per rung. Both encode bugs that already shipped

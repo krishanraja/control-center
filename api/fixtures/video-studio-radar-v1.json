@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "provider": "control_center",
+  "provider_version": "fixture",
+  "generated_at": "2026-08-28T10:00:00.000Z",
+  "source_age_seconds": 86400,
+  "candidates": [
+    {
+      "id": "cc:fixture",
+      "title": "Deal pattern: proof arrived earlier",
+      "summary": "Won because the working artifact appeared before the explanation.",
+      "source_kind": "internal_pattern",
+      "sensitivity": "internal_sanitized",
+      "occurred_at": "2026-08-27T10:00:00.000Z",
+      "source_urls": [],
+      "corroboration": 0,
+      "evidence_status": "public_evidence_required",
+      "category": "crm_opportunity",
+      "source_ref_hash": "fixture-hash"
+    }
+  ]
+}
