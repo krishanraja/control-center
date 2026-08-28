@@ -128,3 +128,11 @@ jobs:
       # arrives by drift: four new callClaude sites landed on main while the
       # meter was being built on a branch, and nothing said so.
       - run: npx tsx scripts/check-agent-stamps.mts
+      # api/_prices.ts prices an unknown model at ZERO on purpose, because a
+      # guessed rate is worse than a visible gap. That default is right and a
+      # terrible thing to discover in production: the meter keeps reporting
+      # numbers, they are just all zero for the model nobody added. It nearly
+      # happened — a model sweep moved the fleet onto Claude 5 in the same week
+      # the meter was built, and every synthesis call would have metered real
+      # tokens against $0.00.
+      - run: npx tsx scripts/check-model-prices.mts

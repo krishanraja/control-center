@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { answerPilotGate } from './pilot-gate-mock'
 
 /**
  * Talk-to-this-tab E2E, deterministic: /api/tab-chat and every Supabase call
@@ -34,6 +35,16 @@ async function mockAll(page: Page, captured: Captured[]) {
   await page.route('**/rest/v1/**', r => r.fulfill({ json: [] }))
   await page.route('**/realtime/**', r => r.abort())
   await page.route('**/api/**', r => r.fulfill({ json: { ok: true } }))
+
+  // The pill lives behind the pilot gate: TabChatHost takes
+  // suppressed={fullScreenOverlayOpen}, and the morning check-in IS a
+  // full-screen overlay, so inside the gate's window there is no pill to
+  // click. A fixed afternoon stops the gate deciding to fire at all;
+  // answerPilotGate covers the case where it decides anyway. The blanket
+  // **/api/** mock above is not enough — { ok: true } is not the shape the
+  // gate reads, so it renders regardless.
+  await page.clock.setFixedTime(new Date('2026-08-20T18:30:00Z'))
+  await answerPilotGate(page)
 
   await page.route('**/api/tab-chat', async r => {
     captured.push(JSON.parse(r.request().postData() || '{}'))
