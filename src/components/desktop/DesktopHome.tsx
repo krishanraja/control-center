@@ -47,10 +47,6 @@ export function DesktopHome({ onNavigate }: {
         <CriticalAlertBanner />
         <VitalsLine onNavigate={onNavigate} />
         <DueTestsCard variant="desktop" />
-        {/* The door into external market intelligence — doorway language only,
-            no signal content on Home, present only when something fresh is
-            hot (the same conditional-presence contract as the banner). */}
-        <SignalsDoor />
       </div>
 
       <div className="shrink-0 flex flex-col gap-6 [@media(max-height:820px)]:gap-3.5 pt-1">
@@ -60,14 +56,16 @@ export function DesktopHome({ onNavigate }: {
         {cta && cta.target !== 'weekly' && <CanonCta cta={cta} />}
       </div>
 
-      {/* The doors row: Intel's pill sits beside Focus's quiet row. Never a
-          number on either (Intel's status dot is the one sanctioned
-          exception). Intel takes the left slot because the bottom-right
-          corner is owned by the fixed ⌘I capture pill, which floats over —
-          and would swallow clicks meant for — a small target placed there. */}
+      {/* The doors panel: Focus, Market signals and Intel as three equal peers
+          in one horizontal row — normalised, solid, never translucent (see
+          HomeDoor). Never a number on any of them (a status dot is the one
+          sanctioned exception). The ⌘I capture and tab-chat pills float in the
+          reserved gutter BELOW this row (--capture-gutter), not over it, so the
+          panel can span the full width. */}
       <div className="shrink-0 mt-auto flex items-center gap-3">
+        <FocusDoor onNavigate={onNavigate} />
+        <SignalsDoor />
         <IntelDoor onOpen={() => onNavigate?.('os', { sub: 'intel' })} alert={intelAlert} />
-        <div className="min-w-0 flex-1"><FocusDoor onNavigate={onNavigate} /></div>
       </div>
     </div>
   )

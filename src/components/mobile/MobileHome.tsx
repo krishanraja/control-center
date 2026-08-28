@@ -62,10 +62,6 @@ export function MobileHome({ onNavigate }: {
       <div className="shrink-0 flex flex-col gap-2.5">
         <CriticalAlertBanner />
         <DueTestsCard variant="mobile" />
-        {/* The door into external market intelligence — doorway language only,
-            no signal content on Home, present only when something fresh is
-            hot (the same conditional-presence contract as the banner). */}
-        <SignalsDoor />
       </div>
 
       {/* overflow-hidden so an over-tall day (a firing critical alert on a
@@ -79,16 +75,16 @@ export function MobileHome({ onNavigate }: {
         {cta && cta.target !== 'weekly' && <CanonCta cta={cta} />}
       </div>
 
-      {/* The doors row: Focus and Intel side by side as compact pills sharing
-          the band the + button floats in (right padding reserves the FAB's
-          native footprint, divided by the zoom). Doors, not vitals — no
-          counts, ever; Intel's status dot is the one sanctioned exception.
-          Living inside the reclaimed band means the canon above keeps every
-          row, so the old under-840px hiding gate is gone: the doors are
-          always there. */}
+      {/* The doors panel: Focus, Market signals and Intel as three equal peers
+          sharing the band the + button floats in (right padding reserves the
+          FAB's native footprint, divided by the zoom). Compact — the word
+          alone — is what lets three fit the narrow band. Solid, never
+          translucent (see HomeDoor). Doors, not vitals: no counts, ever;
+          Intel's status dot is the one sanctioned exception. */}
       <div className="mt-auto flex shrink-0 items-center gap-2 pt-2 pr-[68px]">
-        <FocusDoor onNavigate={onNavigate} variant="pill" />
-        <IntelDoor onOpen={() => onNavigate?.('os', { sub: 'intel' })} alert={intelAlert} />
+        <FocusDoor onNavigate={onNavigate} compact />
+        <SignalsDoor compact />
+        <IntelDoor onOpen={() => onNavigate?.('os', { sub: 'intel' })} alert={intelAlert} compact />
       </div>
     </div>
   )

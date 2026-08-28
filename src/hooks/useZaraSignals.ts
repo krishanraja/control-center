@@ -66,10 +66,20 @@ export function useZaraSignals() {
     notify()
   }
 
+  // Same optimistic-only contract as markActioned: the durable 'declined' write
+  // rides POST /api/triage/reject server-side (anon UPDATEs on this table are
+  // silent no-ops under RLS), and this keeps the session's list honest until
+  // the next fetch reflects it.
+  const markDeclined = (id: string) => {
+    cache = cache.map(s => (s.id === id ? { ...s, status: 'declined' } : s))
+    notify()
+  }
+
   return {
     signals: cache,
     loading: !loaded,
     refresh: () => fetchAll(),
     markActioned,
+    markDeclined,
   }
 }

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../_auth.js'
 import { runNetworkSearch } from '../_networkSearch.js'
 import type { QueryPlan } from '../_networkQuery.js'
+import { isRetiredVenture } from '../_venturePositioning.js'
 
 // POST /api/network/recommend
 //   { venture, intent?, countries?, filter_mode?, limit? }
@@ -23,8 +24,9 @@ export const config = { maxDuration: 60 }
 const VENTURE_THESIS: Record<string, string> = {
   mindmaker:
     'A senior operator or executive at a company that is not an AI vendor, accountable for building real AI capability in their organisation, facing the gap between tool rollout and actual capability.',
-  adfixus:
-    'A publisher, media owner or platform person who owns identity, addressability, first-party data or consent, and feels the loss of third-party cookies commercially.',
+  // AdFixus (retired July 2026) is deliberately absent — recommending people to
+  // contact for a venture Krish no longer runs is exactly the propagation this
+  // removes. The venture_required guard below rejects a request for it.
   signal_noise:
     'An operator with a specific, hard-won go-to-market or AI story worth an hour of podcast conversation, who can speak concretely rather than in abstractions.',
   builder_economy:
@@ -46,6 +48,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const body = (req.body || {}) as Record<string, unknown>
   const venture = typeof body.venture === 'string' ? body.venture : ''
+  if (isRetiredVenture(venture)) {
+    return res.status(400).json({ ok: false, error: 'venture_retired', allowed: Object.keys(VENTURE_THESIS) })
+  }
   if (!VENTURE_THESIS[venture]) {
     return res.status(400).json({ ok: false, error: 'venture_required', allowed: Object.keys(VENTURE_THESIS) })
   }
