@@ -22,6 +22,19 @@ import { createHash, timingSafeEqual } from 'node:crypto'
 // through these routes. Closing the contacts exposure is a separate change.
 
 const COOKIE = 'cc_access'
+const exportWindows = new Map<string, { openedAt: number; count: number }>()
+
+export function consumeExportRateLimit(identity: string, now = Date.now(), limit = 60, windowMs = 60_000): number {
+  const key = createHash('sha256').update(identity).digest('hex')
+  const current = exportWindows.get(key)
+  if (!current || now - current.openedAt >= windowMs) {
+    exportWindows.set(key, { openedAt: now, count: 1 })
+    return 0
+  }
+  current.count += 1
+  if (current.count <= limit) return 0
+  return Math.max(1, Math.ceil((windowMs - (now - current.openedAt)) / 1000))
+}
 
 function parseCookies(header: string | undefined): Record<string, string> {
   const out: Record<string, string> = {}
@@ -45,6 +58,37 @@ function safeEqual(a: string, b: string): boolean {
   // to Uint8Array<ArrayBuffer> while Buffer carries ArrayBufferLike, so the
   // assignment is rejected on a type that is structurally identical.
   return timingSafeEqual(ba as unknown as Uint8Array, bb as unknown as Uint8Array)
+}
+
+/** Fail-closed bearer guard for machine clients that must not inherit the
+ * dashboard cookie's deliberate fail-open behaviour. It emits no CORS origin:
+ * these exports are for server/CLI callers, never arbitrary browser pages. */
+export function guardBearerExport(
+  req: VercelRequest,
+  res: VercelResponse,
+  envName: string,
+  methods = ['GET'],
+): boolean {
+  res.setHeader('Cache-Control', 'no-store')
+  res.setHeader('Vary', 'Authorization')
+  res.setHeader('Allow', methods.join(', '))
+  if (!methods.includes(req.method || '')) {
+    res.status(405).json({ ok: false, error: 'method_not_allowed' })
+    return true
+  }
+  const secret = process.env[envName] || ''
+  const authorization = req.headers.authorization || ''
+  if (!secret || !safeEqual(authorization, `Bearer ${secret}`)) {
+    res.status(401).json({ ok: false, error: 'unauthorized' })
+    return true
+  }
+  const retryAfter = consumeExportRateLimit(secret)
+  if (retryAfter > 0) {
+    res.setHeader('Retry-After', String(retryAfter))
+    res.status(429).json({ ok: false, error: 'rate_limited' })
+    return true
+  }
+  return false
 }
 
 /** True when the caller presents the cookie the edge gate issues.
