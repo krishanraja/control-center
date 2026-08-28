@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const candidates = await collectSeedCandidates(supabase, { windowDays, limit })
     return res.status(200).json(buildVideoStudioFeed(candidates))
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'video studio export failed'
-    return res.status(500).json({ ok: false, error: message })
+    console.error('video studio export failed', error)
+    return res.status(500).json({ ok: false, error: 'video studio export failed' })
   }
 }
