@@ -23,7 +23,7 @@ export interface VideoStudioRadarFeed {
   provider: 'control_center'
   provider_version: string
   generated_at: string
-  source_age_seconds: number
+  source_age: number
   candidates: VideoStudioRadarCandidate[]
 }
 
@@ -40,10 +40,12 @@ export function sanitizeInternalPattern(value: string): string {
   return compact(value
     .replace(/^(won|lost)\s+.+?\s+(?:—|-)\s+/i, '$1 because ')
     .replace(/https?:\/\/\S+|www\.\S+/gi, '[link removed]')
+    .replace(/[“"][^”"]+[”"]/g, '[quote removed]')
     .replace(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi, '[email removed]')
     .replace(/(?:£|\$|€)\s?\d[\d,.]*(?:\s?(?:k|m|bn))?/gi, '[value removed]')
     .replace(/\b\d{2,}(?:[,.]\d+)?%?\b/g, '[number removed]')
-    .replace(/\b[A-Z][A-Za-z&.'-]+(?:\s+[A-Z][A-Za-z&.'-]+)+(?:\s+(?:Ltd|Limited|Inc|LLC|PLC))?\b/g, '[name removed]'))
+    .replace(/\b[A-Z][A-Za-z&.'-]+(?:\s+[A-Z][A-Za-z&.'-]+)+(?:\s+(?:Ltd|Limited|Inc|LLC|PLC))?\b/g, '[name removed]')
+    .replace(/\b[A-Z][A-Za-z&.'-]{2,}\b/g, '[name removed]'))
 }
 
 function titleFor(kind: SeedCandidate['kind'], summary: string): string {
@@ -81,7 +83,7 @@ export function buildVideoStudioFeed(candidates: SeedCandidate[], now = new Date
     provider: 'control_center',
     provider_version: process.env.VERCEL_GIT_COMMIT_SHA || 'development',
     generated_at: now.toISOString(),
-    source_age_seconds: newest === undefined ? 0 : Math.max(0, Math.round((now.getTime() - newest) / 1000)),
+    source_age: newest === undefined ? 0 : Math.max(0, Math.round((now.getTime() - newest) / 1000)),
     candidates: mapped,
   }
 }
