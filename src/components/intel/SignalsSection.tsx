@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { format } from 'date-fns'
-import { ExternalLink, Target } from '@/lib/icons'
+import { ExternalLink, Target, X } from '@/lib/icons'
+import { triageReject } from '../../lib/triageActions'
 import { Eyebrow } from '../shared/Eyebrow'
 import { SegmentedNav } from '../shared/SegmentedNav'
 import { Skeleton } from '../shared/Skeleton'
@@ -27,7 +28,7 @@ export function SignalsSection({ onOpen }: {
   onOpen: (signal: ExternalSignal) => void
 }) {
   const { intel, loading: intelLoading } = useHomeIntelligence()
-  const { signals: zara, loading: zaraLoading, markActioned } = useZaraSignals()
+  const { signals: zara, loading: zaraLoading, markActioned, markDeclined } = useZaraSignals()
   const { ventures } = useVentureRegistry()
   const reading = useWork('intel.signals')
   const [venture, setVenture] = useState<string>('all')
@@ -54,9 +55,12 @@ export function SignalsSection({ onOpen }: {
     ...ventureIds.map(id => ({ id, label: ventureLabel(id) })),
   ]
 
+  // Declined signals leave the feed. The durable write is server-side; the
+  // optimistic markDeclined flips status so the row vanishes on the tap.
+  const live = zara.filter(s => s.status !== 'declined')
   const filtered = venture === 'all'
-    ? zara
-    : zara.filter(s => (s.venture || '').toLowerCase() === venture)
+    ? live
+    : live.filter(s => (s.venture || '').toLowerCase() === venture)
 
   // Honest dormancy: the newest row's age, not a spinner over a dead feed.
   const newestAt = zara[0]?.surfaced_at ? new Date(zara[0].surfaced_at) : null
@@ -148,7 +152,7 @@ export function SignalsSection({ onOpen }: {
         ) : (
           <>
             {filtered.slice(0, ZARA_VISIBLE).map(s => (
-              <ZaraRow key={s.id} signal={s} onActioned={markActioned} />
+              <ZaraRow key={s.id} signal={s} onActioned={markActioned} onDeclined={markDeclined} />
             ))}
             {filtered.length > ZARA_VISIBLE && (
               <p className="px-2 py-1.5 text-micro text-white/30">
@@ -169,9 +173,10 @@ function scoreTone(score: number | null): string {
   return 'text-white/40'
 }
 
-function ZaraRow({ signal: s, onActioned }: {
+function ZaraRow({ signal: s, onActioned, onDeclined }: {
   signal: ZaraSignal
   onActioned: (id: string) => void
+  onDeclined: (id: string) => void
 }) {
   const detailBits = [
     s.company_name,
@@ -208,7 +213,8 @@ function ZaraRow({ signal: s, onActioned }: {
             </a>
           )}
           {s.status !== 'actioned' && (
-            <span className="ml-auto shrink-0">
+            <span className="ml-auto flex shrink-0 items-center gap-3">
+              <DeclineButton signal={s} onDeclined={onDeclined} />
               <PromoteButton signal={s} onActioned={onActioned} />
             </span>
           )}
@@ -269,6 +275,47 @@ function PromoteButton({ signal, onActioned }: {
     >
       {busy ? <Working size={11} /> : <Target size={11} aria-hidden />}
       Promote
+    </button>
+  )
+}
+
+/**
+ * Decline a market signal. The counterpart to Promote: it moves the signal to
+ * its terminal 'declined' state and writes a feedback_queue vote -1, the same
+ * learning path every swipe deck uses (Vera's correction loop), so a declined
+ * pattern surfaces less next sweep. The status write must go server-side —
+ * zara_signals is anon-SELECT-only under RLS — which triageReject already does.
+ */
+function DeclineButton({ signal, onDeclined }: {
+  signal: ZaraSignal
+  onDeclined: (id: string) => void
+}) {
+  const { toast } = useToast()
+  const [busy, setBusy] = useState(false)
+
+  const decline = async () => {
+    if (busy) return
+    setBusy(true)
+    // Optimistic: the row leaves the feed at once. A failed write only means it
+    // returns on the next sweep, so a lost decline is self-correcting, never a
+    // stuck row.
+    onDeclined(signal.id)
+    const ok = await triageReject('zara_signals', signal.id, 'zara', 'not_relevant')
+    if (!ok) toast('Could not save that decline — it may come back on the next sweep.', 'error')
+    setBusy(false)
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={decline}
+      disabled={busy}
+      title="Decline this signal"
+      aria-label="Decline this signal"
+      className="inline-flex items-center gap-1 text-label font-medium text-white/40 transition-colors hover:text-white/70 disabled:opacity-40"
+    >
+      {busy ? <Working size={11} /> : <X size={11} aria-hidden />}
+      Decline
     </button>
   )
 }

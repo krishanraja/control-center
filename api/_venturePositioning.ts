@@ -48,6 +48,21 @@ export const VENTURE_POSITIONING: Record<string, VenturePositioning> = {
   },
 }
 
+// Ventures Krish no longer runs. This is the API-layer source of truth for
+// retirement: a slug here must never be offered for NEW work (a network search
+// ranked by it, a recommendation fetched for it, an outreach draft that pitches
+// it). It deliberately does NOT stop a retired slug from RESOLVING — historical
+// contacts tagged before a retirement still render their "(retired)" pill via
+// the VENTURE_LABEL-style maps. AdFixus and Meliora were retired July 2026, MYMU
+// alongside them. Add a slug here to retire it everywhere the guard is applied.
+export const RETIRED_VENTURES = new Set<string>(['adfixus', 'meliora', 'mymu'])
+
+/** True when a venture slug (or its alias) belongs to a venture Krish has retired. */
+export function isRetiredVenture(slug?: string | null): boolean {
+  const s = canonicalVenture(slug)
+  return s != null && RETIRED_VENTURES.has(s)
+}
+
 // Slug drift, resolved rather than renamed. The contact venture pickers send
 // `fractionl_pulse`; this map, `contacts.primary_venture` (19 rows) and
 // `contacts.fit_scores` (414 rows) all say `fractionl`, and NO row anywhere uses

@@ -4,18 +4,19 @@ import { test, expect, type Page, type Route } from '@playwright/test'
  * External market intelligence off Home — the head-space split (Krish's
  * mock-gate calls, 2026-08-25/26): internal business intelligence lives on
  * OS → Intel; the external feed lives behind a pure door, and NO market
- * content ever renders on Home itself. Pins four things:
+ * content ever renders on Home itself. Pins:
  *
- * 1. When Marcus's digest is fresh and carries a high/critical signal, Home
- *    shows the Market signals door — doorway language only (a tile, a word,
- *    a chevron; no signal text, no counts). A quiet digest renders nothing —
- *    the conditional-presence contract (same as the critical alert banner).
+ * 1. The Market signals door is a permanent peer in the bottom doors panel
+ *    (Focus · Market signals · Intel) — doorway language only (a word; no
+ *    signal text, no counts). A quiet feed keeps the door and its own empty
+ *    state inside; a hot feed earns a status dot, never a count.
  * 2. The door opens the signals drawer with the full ranked digest; a drawer
  *    row opens the acting sheet (why it matters + task or bet), never a
  *    navigation.
- * 3. Home's face carries no signal content: the hot signal's text appears
- *    only inside the drawer.
- * 4. The Intel door is the internal path: it lands on OS → Intel directly.
+ * 3. Home's face carries no signal content: the signal text appears only
+ *    inside the drawer, quiet feed or hot.
+ * 4. A market signal can be declined from the drawer, and it leaves the feed.
+ * 5. The Intel door is the internal path: it lands on OS → Intel directly.
  *
  * Same mocking pattern as focus-purpose.spec.ts: catch-alls first (Playwright
  * matches in reverse registration order), then the specific routes.
@@ -49,11 +50,27 @@ const INTEL_ROW = {
   generated_at: new Date().toISOString(),
 }
 
-// Same digest with nothing hot: the cards row must not spend Home's space.
+// Same digest with nothing hot: the door stays, its hot dot does not.
 const QUIET_ROW = {
   ...INTEL_ROW,
   external_signals: INTEL_ROW.external_signals.filter(s => s.urgency !== 'high'),
 }
+
+// One raw market signal from Zara's feed, declinable in the drawer.
+const ZARA_SIGNALS = [
+  {
+    id: 'z1',
+    signal_type: 'buyer-signal',
+    venture: 'mindmaker',
+    company_name: 'Wells Fargo',
+    description: 'A named C-suite AI leadership move at a major legacy bank.',
+    source_url: null,
+    signal_score: 5,
+    status: 'received',
+    surfaced_at: new Date().toISOString(),
+    summary: null,
+  },
+]
 
 const calmMorning = {
   id: 'm1', kind: 'morning', energy: 4, anxiety: 1, mode: 'green',
@@ -120,15 +137,38 @@ test.describe('external market intelligence off Home', () => {
     await ctx.close()
   })
 
-  test('a quiet digest spends no Home glass at all', async ({ browser }) => {
+  test('a quiet feed keeps the door but never leaks signal text onto Home', async ({ browser }) => {
     const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
     const page = await ctx.newPage()
     await page.clock.setFixedTime(AFTERNOON)
     await mock(page, QUIET_ROW)
     await page.goto('/#/home')
 
+    // The door is a permanent peer now, present even when nothing is hot.
     await expect(page.getByTestId('vitals-focus')).toBeVisible()
-    await expect(page.getByTestId('signals-door')).toHaveCount(0)
+    await expect(page.getByTestId('signals-door')).toBeVisible()
+    // Home's face still carries no signal content — the drawer owns it.
+    await expect(page.getByText('A mid-market bank published its model-risk playbook', { exact: false })).toHaveCount(0)
+    await ctx.close()
+  })
+
+  test('a market signal can be declined, and it leaves the feed', async ({ browser }) => {
+    const ctx = await browser.newContext({ timezoneId: 'America/New_York' })
+    const page = await ctx.newPage()
+    await page.clock.setFixedTime(AFTERNOON)
+    await mock(page)
+    // Registered after mock()'s catch-alls, so it wins for zara_signals reads.
+    await page.route('**/rest/v1/zara_signals*', (r: Route) => r.fulfill({ json: ZARA_SIGNALS }))
+    await page.goto('/#/home')
+
+    await page.getByTestId('signals-door').click()
+    const row = page.getByText('A named C-suite AI leadership move', { exact: false })
+    await expect(row).toBeVisible()
+
+    // Decline writes through /api/triage/reject (the **/api/** catch-all in
+    // mock() answers { ok: true }); the row leaves the feed optimistically.
+    await page.getByRole('button', { name: 'Decline this signal' }).click()
+    await expect(row).toHaveCount(0)
     await ctx.close()
   })
 
@@ -146,8 +186,8 @@ test.describe('external market intelligence off Home', () => {
   })
 
   test('the signals door and the doors row survive the shortest supported phone', async ({ browser }) => {
-    // The pills live in the + button's reclaimed band and the signals door is
-    // a single compact pill above the canon — both must be present at 360x800.
+    // All three doors (Focus · Market signals · Intel) share the + button's
+    // reclaimed band as compact peers — all must be present at 360x800.
     const ctx = await browser.newContext({
       timezoneId: 'America/New_York',
       viewport: { width: 360, height: 800 },

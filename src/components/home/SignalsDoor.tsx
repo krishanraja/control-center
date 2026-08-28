@@ -1,50 +1,46 @@
 import React, { useMemo, useState } from 'react'
-import { ChevronRight, Radar } from '@/lib/icons'
-import { IconTile } from '../shared/IconTile'
+import { Activity } from '@/lib/icons'
+import { HomeDoor } from './HomeDoor'
 import { rankSignals } from '../intel/SignalSheet'
 import { SignalsDrawer } from './SignalsDrawer'
 import { useHomeIntelligence } from '../../hooks/useHomeIntelligence'
 import { useHaptics } from '../../hooks/useHaptics'
 
-const FRESH_MS = 7 * 24 * 60 * 60 * 1000
-
 /**
  * The door into the external head space — and nothing but a door. Market
  * intelligence never renders on Home itself (Krish's call: internal and
  * external must not share a surface), so this is doorway language only: a
- * tile, a word, a chevron, no signal text, no counts. It appears only when
- * Marcus's digest is fresh and carries a high or critical signal — its
- * arrival IS the message, the same conditional-presence contract as the
- * critical alert banner — and it opens the signals drawer, where the whole
- * condensed feed lives. A quiet week renders nothing at all.
+ * word, a tile, and it opens the signals drawer where the whole condensed
+ * feed lives.
+ *
+ * A permanent peer in the normalised doors panel (see HomeDoor), beside Intel.
+ * It used to appear only when Marcus's digest was fresh and hot, but a panel
+ * that gains and loses a button is the opposite of normalised — so the door is
+ * always here, and a quiet feed shows its own honest empty state inside the
+ * drawer. A hot signal earns the one sanctioned mark: an amber status dot,
+ * never a count.
  */
-export function SignalsDoor() {
+export function SignalsDoor({ compact = false }: { compact?: boolean } = {}) {
   const h = useHaptics()
   const { intel } = useHomeIntelligence()
   const [open, setOpen] = useState(false)
 
   const ranked = useMemo(() => rankSignals(intel.external_signals), [intel.external_signals])
-
-  const fresh = intel.generated_at != null
-    && Date.now() - Date.parse(intel.generated_at) < FRESH_MS
   const hot = ranked.some(s => s.urgency === 'critical' || s.urgency === 'high')
-
-  if (!fresh || !hot) return null
 
   return (
     <>
-      <button
-        type="button"
-        data-testid="signals-door"
-        aria-haspopup="dialog"
+      <HomeDoor
+        icon={Activity}
+        label={compact ? 'Signals' : 'Market signals'}
+        testId="signals-door"
+        compact={compact}
+        ariaHasPopup="dialog"
+        dot={hot ? 'amber' : null}
+        dotTestId="signals-door-dot"
+        dotLabel="a hot market signal is waiting"
         onClick={() => { h.select(); setOpen(true) }}
-        className="group flex shrink-0 items-center gap-2 self-start rounded-full border border-white/[0.08] bg-white/[0.03] py-1.5 pl-1.5 pr-3 text-left transition-colors hover:bg-white/[0.05] active:scale-[0.98]"
-      >
-        <IconTile icon={Radar} size="sm" />
-        <span className="text-ui font-semibold leading-none text-white/90">Market signals</span>
-        <ChevronRight size={14} className="text-white/30 transition-colors group-hover:text-white/60" aria-hidden />
-      </button>
-
+      />
       <SignalsDrawer open={open} onClose={() => setOpen(false)} />
     </>
   )
