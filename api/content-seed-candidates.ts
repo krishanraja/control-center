@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from './_supabase.js'
 import { collectSeedCandidates, DEFAULT_WINDOW_DAYS } from './_seedSources.js'
+import { guardSensitiveRead } from './_auth.js'
 
 // GET — content-grade seed artifacts for the Content tab's seed rail.
 //
@@ -19,13 +20,7 @@ const clampInt = (raw: unknown, min: number, max: number, fallback: number): num
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-  res.setHeader('Cache-Control', 'no-store')
-
-  if (req.method === 'OPTIONS') return res.status(200).end()
-  if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Method not allowed' })
+  if (guardSensitiveRead(req, res, ['GET'])) return
 
   const windowDays = clampInt(req.query.days, 1, 90, DEFAULT_WINDOW_DAYS)
   const limit = clampInt(req.query.limit, 1, 24, 8)
@@ -38,8 +33,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       generated_at: new Date().toISOString(),
       candidates,
     })
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'seed collection failed'
-    return res.status(500).json({ ok: false, error: message })
+  } catch (error) {
+    console.error('content seed collection failed', error)
+    return res.status(500).json({ ok: false, error: 'seed_collection_failed' })
   }
 }
