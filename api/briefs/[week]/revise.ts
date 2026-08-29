@@ -45,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const [voice, standingNotes] = await Promise.all([loadVoiceBlock(), loadStandingNotes()])
   const system = [
-    'You edit the Mindmaker Live weekly brief. You write as Krish, for business leaders.',
+    'You edit the Publication weekly brief. You write as Krish, for business leaders.',
     voice ? `VOICE:\n${voice}` : '',
     VOICE_GUARDRAILS,
     standingNotesPrompt(standingNotes),

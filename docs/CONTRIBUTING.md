@@ -199,7 +199,7 @@ apply:
 - **No corporate filler.** "Game-changer", "leverage", "unlock",
   "delve into", "in today's…", "let's dive in" — all banned.
 - **Specificity over abstraction.** Empty states use exact names where
-  possible. "No Mindmaker leads yet" beats "No leads."
+  possible. "No Mindmake leads yet" beats "No leads."
 
 Read the `krish-voice` SKILL.md on the VPS workspace for the full
 list. The standards apply to any user-facing string: empty states,
@@ -376,7 +376,7 @@ the Realtime WebSocket.
 ## Getting help
 
 - Check existing documentation in `docs/`.
-- Read the canonical OS architecture: `MINDMAKER_OS_ARCHITECTURE.md` on
+- Read the canonical OS architecture: `MINDMAKE_OS_ARCHITECTURE.md` on
   the VPS workspace root.
 - Search closed issues / PRs.
 - For bugs, file a GitHub issue.

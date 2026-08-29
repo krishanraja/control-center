@@ -31,7 +31,7 @@ import { mondayOf } from '../_growth.js'
  * skip, it never fails the run.
  */
 
-const PRODUCTS = ['ctrl', 'circle', 'pulse', 'full-time', 'mindmaker'] as const
+const PRODUCTS = ['ctrl', 'circle', 'pulse', 'full-time', 'mindmake'] as const
 type ProductSlug = (typeof PRODUCTS)[number]
 
 // customers.product is an enum with its own historical naming.
@@ -40,7 +40,7 @@ const CUSTOMER_PRODUCTS: Record<ProductSlug, string[]> = {
   circle: ['fractionl_circle'],
   pulse: ['fractionl_pulse'],
   'full-time': ['full_time'],
-  mindmaker: ['mindmaker', 'makeyourmindup', 'mindmaker_live'],
+  mindmake: ['mindmake', 'makeyourmindup', 'publication'],
 }
 
 // Products that emit into the attribution warehouse do so under an `app` name.
@@ -52,7 +52,7 @@ const APP_CANDIDATES: Record<ProductSlug, string[]> = {
   circle: ['circle'],
   pulse: ['pulse'],
   'full-time': ['full-time', 'fulltime', 'full_time'],
-  mindmaker: ['mindmaker'],
+  mindmake: ['mindmake'],
 }
 
 const GEO_WINDOW_DAYS = 30
@@ -338,7 +338,7 @@ const CLEAN = (s: unknown, max: number) =>
 
 async function writeReview(e: Evidence): Promise<{ findings: Record<string, string>; kill_list: string[]; double_down: string[] }> {
   const system = [
-    "You are the growth council in Krish Raja's Mindmaker OS. You write one blunt, quantitative weekly review per product. Krish reads it and rules on it.",
+    "You are the growth council in Krish Raja's mind/make OS. You write one blunt, quantitative weekly review per product. Krish reads it and rules on it.",
     'ABSOLUTE RULE: every number you write must appear in the evidence JSON you are given. You may not estimate, extrapolate, round for effect, or infer traffic that is not measured.',
     'ABSOLUTE RULE: the evidence carries an `unknowns` array. Each entry there MUST be reflected in your findings, stated as unknown. Never convert an unknown into a zero. "No emitter wired" is not "no traffic".',
     'Tone: blunt, specific, structural. Name the constraint, not the mood. No hedging, no encouragement, no summary of the summary.',

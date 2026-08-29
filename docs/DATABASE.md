@@ -3,7 +3,7 @@
 > **Scope.** The Supabase tables and views Control Center actually reads
 > and writes. The wider OS uses ~60 tables — only the ones surfaced by
 > Control Center are documented in detail here. For the canonical
-> full-fleet schema, see `MINDMAKER_OS_ARCHITECTURE.md` §3 on the VPS
+> full-fleet schema, see `MINDMAKE_OS_ARCHITECTURE.md` §3 on the VPS
 > workspace root.
 
 ## Overview
@@ -46,11 +46,11 @@ slug-as-key rule.
 
 ### `ventures` / `venture_registry`
 
-- **`ventures`** — 8 rows: 6 active (`mindmaker`, `fractionl`,
+- **`ventures`** — 8 rows: 6 active (`mindmake`, `fractionl`,
   `builder-economy`, `signal-noise`, `personal-brand`, `ops`) and 2
   archived (`adfixus`, `onalert`). Filter on `status = 'active'`;
   archived rows are kept so historical attribution still resolves.
-- **`venture_registry`** — 3-row table (`mindmaker`, `signal_noise`,
+- **`venture_registry`** — 3-row table (`mindmake`, `signal_noise`,
   the active rows) that drives multi-tag leads and per-venture lanes
   on the Leads tab.
 
@@ -137,8 +137,8 @@ Sales pipeline. Multi-tag, per-venture ICP scoring.
 | `id` | uuid | Primary key |
 | `assignee_agent` | text | FK → `agents.id` |
 | `primary_venture` | text | FK → `venture_registry.slug` — drives the lane on the Leads tab |
-| `tags` | text[] | Multi-venture tags (e.g. `['mindmaker_buyer','signal_noise_guest']`) |
-| `icp_scores` | jsonb | Per-venture ICP scores `{ mindmaker: 87, signal_noise: 62 }` |
+| `tags` | text[] | Multi-venture tags (e.g. `['mindmake_buyer','signal_noise_guest']`) |
+| `icp_scores` | jsonb | Per-venture ICP scores `{ mindmake: 87, signal_noise: 62 }` |
 | `icp_score` | int | Legacy single-value column; reads should prefer `icp_scores` |
 | `fit_score` | int | 0-100 LLM-rated fit |
 | `attainability_score` | int | 0-100 LLM-rated reach difficulty |
@@ -204,8 +204,8 @@ Guest Confirmed Cascade.
 | `confidence` | numeric | 0-1, hard contract `>= 0.5` for insert |
 | `quality_score` | text | `green` / `amber` / `red` |
 | `body` | text | Long-form draft (sanitized on save: no em dashes). Edited in the Composer; written via the API, never the anon client (RLS blocks anon writes) |
-| `lane` | text | `mindmaker_live`, the only content venture since the 2026-08-11 refocus, with the format in `lane_slot` (`paid` / `built`). Legacy rows may still hold `techonomic`, `mymu`, `makeyourmindup`, `mindmaker`, `signal_noise`, `builder_economy` or `builder_economy_ig`; all map forward via `normalizeLane` and read as Mindmaker |
-| `lane_slot` | text | Mindmaker: `roundup` / `field_learning`; null elsewhere |
+| `lane` | text | `publication`, the only content venture since the 2026-08-11 refocus, with the format in `lane_slot` (`paid` / `built`). Legacy rows may still hold `techonomic`, `mymu`, `makeyourmindup`, `mindmake`, `signal_noise`, `builder_economy` or `builder_economy_ig`; all map forward via `normalizeLane` and read as Mindmake |
+| `lane_slot` | text | Mindmake: `roundup` / `field_learning`; null elsewhere |
 | `state` | text | `seeded` → `researching` → `drafting` → `review` → `approved` → `published` / `dropped` |
 | `cadence_due_at` | timestamptz | Next-due for the lane/slot; drives mobile "urgent" + the All-view sort |
 | `meta` | jsonb | Engine + Composer state (see below) |
@@ -230,7 +230,7 @@ Customer Acquisition Sweeper (nightly).
 |---|---|---|
 | `id` | uuid | Primary key |
 | `customer_kind` | enum | `paid`, `free_signup`, `trial`, `waitlist`, `churned` |
-| `customer_product` | enum | `mindmaker`, `mm_ctrl`, `fractionl_circle`, `fractionl_pulse`, `onalert`, `gutted`, `merciless` |
+| `customer_product` | enum | `mindmake`, `mm_ctrl`, `fractionl_circle`, `fractionl_pulse`, `onalert`, `gutted`, `merciless` |
 | `email` | text | (lowercased; dedupe key) |
 | `name` | text | |
 | `mrr_usd` | numeric | Per-customer MRR contribution |
@@ -590,7 +590,7 @@ anon-readable (`contacts_anon_select ... USING (true)`), and `why_them` and
 |---|---|
 | Judgment | `who`, `why_them`, `hook`, `risk` |
 | Routing | `roles[]`, `surface_when[]`, `best_channel`, `reachable_via[]` |
-| Venture | `venture_scores` (jsonb, 0-100 per venture), `primary_venture`, `mindmaker_buyer_family` |
+| Venture | `venture_scores` (jsonb, 0-100 per venture), `primary_venture`, `mindmake_buyer_family` |
 | Evidence tier | `network_tier`, `tier_weight`, `priority`, `fit`, `warmth` |
 | Provenance | `confidence`, `intel_method`, `evidence[]`, `source_count`, `source_list[]` |
 | Firmographic | `seniority`, `country`, `industry` |

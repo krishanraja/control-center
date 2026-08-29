@@ -1,6 +1,6 @@
 # PR 4: visibility_targets + Nova Sweeper + Guests tab + Sheet importer
 
-Part of the Mindmaker OS rebuild (see `OS-PROGRESS.md` in workspace memory).
+Part of the mind/make OS rebuild (see `OS-PROGRESS.md` in workspace memory).
 
 ## What ships
 

@@ -7,7 +7,7 @@ Paste-and-run. If something doesn't work as documented, fix the runbook first, t
 - **Live URL:** https://controlcenter.krishraja.com
 - **Access code:** `gosell` (edge gate, Vercel env `ACCESS_CODE`, SHA-256 cookie `cc_access`, 30-day MAX_AGE).
 - **Local dev:** `cd C:\Users\krish\control-center; npm run dev` → http://localhost:5173 (no gate).
-- **Supabase project (Mindmaker OS SSOT):** `gojpffsrxybbpbdzzrvs`. Anon key in `src/lib/supabase.ts` (build-time `VITE_SUPABASE_ANON_KEY`).
+- **Supabase project (mind/make OS SSOT):** `gojpffsrxybbpbdzzrvs`. Anon key in `src/lib/supabase.ts` (build-time `VITE_SUPABASE_ANON_KEY`).
 
 ## Test viewports
 

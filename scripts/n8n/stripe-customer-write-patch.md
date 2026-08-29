@@ -3,7 +3,7 @@
 **Target workflows (5 active):**
 - `Stripe | Merciless | Revenue Alert`         (id `TAAeeXv4KwGYG2eU`)
 - `Stripe | OnAlert | Revenue Alert`           (id `XUiLRadMc0vvoM83`)
-- `Stripe | Mindmaker OS | Payment Alert`      (id `eB5Si7OAIFO8QZ8J`) — product slug for the central table: ignore (this is the agency-side payments alert, not a product). Skip this one unless Mindmaker becomes a product.
+- `Stripe | mind/make OS | Payment Alert`      (id `eB5Si7OAIFO8QZ8J`) — product slug for the central table: ignore (this is the agency-side payments alert, not a product). Skip this one unless Mindmake becomes a product.
 - `Stripe | Gutted | Revenue Alert`            (id `yYku4wWh60Nps84u`)
 - `Stripe | Fractionl | Revenue Alert`         (id `zjgOgd3puahqBwql`)
 

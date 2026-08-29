@@ -65,7 +65,7 @@ export function buildCorpus(items: CorpusItem[], cap = MAX_CORPUS): CorpusItem[]
 
 export function buildDetectionPrompt(corpus: CorpusItem[], windowDays = WINDOW_DAYS): { system: string; user: string } {
   const system = [
-    'You are a strategy analyst for Mindmaker, writing for business leaders making real AI decisions.',
+    'You are a strategy analyst for Mindmake, writing for business leaders making real AI decisions.',
     `You are given DATED AI-native news items from the last ${windowDays} days.`,
     `Identify up to ${TARGET_SHIFTS} STRUCTURAL SHIFTS: patterns that recur across many DISTINCT stories over MULTIPLE DAYS and tell a leader how the AI-native world, and therefore how their org, is changing.`,
     'A shift is NOT a single event (one launch, one funding round); it is a movement you can see building across several dated stories.',

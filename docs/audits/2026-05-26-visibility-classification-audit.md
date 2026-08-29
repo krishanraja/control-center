@@ -205,7 +205,7 @@ Polls visibility_targets every 60s. Excludes `dropped` and `done` by default. Ty
 - Delete (not skip) all current `builder_economy` guests permanently per user instruction ("get rid of all the current Builder Economy guest ideas permanently from Supabase as they are all rubbish")
 - Manually trigger Nell Guest Scout once to populate a fresh batch using the new classifier
 - Verify the new batch matches the editorial bar
-- Update `docs/MINDMAKER_OS_ARCHITECTURE.md` §3, §4.2, §8.2, §8.3, §20 changelog
+- Update `docs/MINDMAKE_OS_ARCHITECTURE.md` §3, §4.2, §8.2, §8.3, §20 changelog
 
 ---
 

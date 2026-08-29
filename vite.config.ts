@@ -16,6 +16,10 @@ const sha = buildSha()
 const ts = new Date().toISOString()
 
 export default defineConfig({
+  server: {
+    host: true,
+    allowedHosts: ['.vercel.run'],
+  },
   plugins: [
     react(),
     {

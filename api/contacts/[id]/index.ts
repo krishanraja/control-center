@@ -14,7 +14,7 @@ import { canonicalVenture } from '../../_venturePositioning.js'
 // ventures on 2026-08-11: still accepted, no longer offered.
 const KNOWN_VENTURES = new Set([
   // live
-  'mindmaker', 'mindmaker_live', 'mm_ctrl', 'fractionl_circle', 'fractionl_pulse', 'full_time', 'investor',
+  'mindmake', 'publication', 'mm_ctrl', 'fractionl_circle', 'fractionl_pulse', 'full_time', 'investor',
   // retired, accepted so historical rows can still PATCH
   'meliora', 'adfixus', 'signal_noise', 'builder_economy', 'mymu', 'legibility',
 ])

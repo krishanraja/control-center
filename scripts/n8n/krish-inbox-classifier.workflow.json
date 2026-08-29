@@ -1,5 +1,5 @@
 {
-  "name": "Krish | Mindmaker OS | Inbox Classifier",
+  "name": "Krish | mind/make OS | Inbox Classifier",
   "active": true,
   "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
   "nodes": [

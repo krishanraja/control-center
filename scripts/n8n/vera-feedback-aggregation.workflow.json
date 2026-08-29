@@ -1,5 +1,5 @@
 {
-  "name": "Vera | Mindmaker OS | Feedback Aggregation",
+  "name": "Vera | mind/make OS | Feedback Aggregation",
   "nodes": [
     {
       "id": "Schedule",
@@ -96,7 +96,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 4000, \"temperature\": 0.2, \"system\": \"You are Vera, the Mindmaker OS reflection layer. You read clusters of negative feedback that landed on a specific agent's outputs and propose ONE concrete brief edit that would prevent the same mistake. Return ONLY JSON, no prose, no code fences. Shape: { \\\"clusters\\\": [ { \\\"cluster_key\\\":string, \\\"agent_id\\\":string, \\\"source_table\\\":string, \\\"reason_code\\\":string, \\\"feedback_ids\\\":[string], \\\"correction_instruction\\\":string, \\\"proposed_brief_edit\\\":string, \\\"confidence\\\":\\\"low\\\"|\\\"medium\\\"|\\\"high\\\" } ] }. correction_instruction is a one-line summary of the change. proposed_brief_edit is the exact prose to insert into the agent's brief, phrased as a positive rule (e.g., 'When extracting why_relevant, ground claims in specific signals from the source document; do not invent generic motivations.'). Skip clusters where feedback is inconsistent or noisy. No em dashes. Use commas, colons, parentheses, or line breaks.\", \"messages\": [{\"role\": \"user\", \"content\": \"Aggregated negative-feedback clusters from the last week:\\n{{ JSON.stringify($('Cluster').first().json.clusters) }}\\n\\nPropose brief edits per the system prompt.\"}]}",
+        "jsonBody": "{\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 4000, \"temperature\": 0.2, \"system\": \"You are Vera, the mind/make OS reflection layer. You read clusters of negative feedback that landed on a specific agent's outputs and propose ONE concrete brief edit that would prevent the same mistake. Return ONLY JSON, no prose, no code fences. Shape: { \\\"clusters\\\": [ { \\\"cluster_key\\\":string, \\\"agent_id\\\":string, \\\"source_table\\\":string, \\\"reason_code\\\":string, \\\"feedback_ids\\\":[string], \\\"correction_instruction\\\":string, \\\"proposed_brief_edit\\\":string, \\\"confidence\\\":\\\"low\\\"|\\\"medium\\\"|\\\"high\\\" } ] }. correction_instruction is a one-line summary of the change. proposed_brief_edit is the exact prose to insert into the agent's brief, phrased as a positive rule (e.g., 'When extracting why_relevant, ground claims in specific signals from the source document; do not invent generic motivations.'). Skip clusters where feedback is inconsistent or noisy. No em dashes. Use commas, colons, parentheses, or line breaks.\", \"messages\": [{\"role\": \"user\", \"content\": \"Aggregated negative-feedback clusters from the last week:\\n{{ JSON.stringify($('Cluster').first().json.clusters) }}\\n\\nPropose brief edits per the system prompt.\"}]}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {

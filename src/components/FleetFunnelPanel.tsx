@@ -9,7 +9,7 @@ import { Boxes, RefreshCw, ChevronRight } from 'lucide-react'
  *
  * Revenue is sensitive, so this reads ONLY through the service-role
  * `/api/fleet-funnel` route — never the anon Supabase client. See
- * docs/MINDMAKER_OS_ARCHITECTURE.md section 11.4.
+ * docs/MINDMAKE_OS_ARCHITECTURE.md section 11.4.
  */
 
 interface AppRow {

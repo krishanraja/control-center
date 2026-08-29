@@ -15,7 +15,7 @@
 //   npx tsx scripts/apollo/burn.ts --test 50 --commit     # the 50-lead gate
 //   npx tsx scripts/apollo/burn.ts --commit --max-credits 1500
 //   npx tsx scripts/apollo/burn.ts --enrich-existing --commit --max-credits 200
-//   npx tsx scripts/apollo/burn.ts --lanes mindmaker,fractional_network --commit
+//   npx tsx scripts/apollo/burn.ts --lanes mindmake,fractional_network --commit
 //
 // Default is --dry. Always run --dry first and read the estimate.
 
@@ -34,7 +34,7 @@ const sb = createClient(SUPA_URL, SUPA_KEY)
 const GEO = ['United States', 'United Kingdom', 'Australia']
 
 // NAICS prefixes for software / IT-services / AI vendors. Excluded from the
-// BUYER lanes (mindmaker, mm_ctrl) so we stop recruiting the supply side.
+// BUYER lanes (mindmake, mm_ctrl) so we stop recruiting the supply side.
 const VENDOR_NAICS = ['5415', '5112', '5182']
 // Government (92) + nonprofit/civic (813) — excluded from ecosystem_partner.
 const GOVT_NONPROFIT_NAICS = ['92', '813']
@@ -52,7 +52,7 @@ const LANE_FILTERS: Record<string, ApolloSearchFilters> = {
   // AI-adoption buyers: senior operators + dedicated AI/transformation roles
   // INSIDE non-vendor operating companies (the only genuine buyer the v1 pull
   // found was exactly this: an in-house Head of AI Transformation).
-  mindmaker: {
+  mindmake: {
     person_titles: ['CEO', 'COO', 'President', 'Chief Digital Officer', 'Chief Transformation Officer', 'Chief Information Officer', 'Head of AI', 'Head of Digital Transformation', 'Head of Innovation', 'VP Operations'],
     person_seniorities: ['owner', 'founder', 'c_suite', 'vp', 'head'],
     organization_num_employees_ranges: ['51,200', '201,500', '501,1000', '1001,5000'],
@@ -207,7 +207,7 @@ async function run() {
     revealed += revealedCount
     for (let k = 0; k < enriched.length; k++) {
       const e = enriched[k]
-      const lane = chunk[k]?.lane || 'mindmaker'
+      const lane = chunk[k]?.lane || 'mindmake'
       const eKey = emailNorm(e.email); const lKey = liNorm(e.linkedin_url)
       if ((eKey && emails.has(eKey)) || (lKey && lis.has(lKey))) continue   // re-check post-reveal
       // builder_economy can't be judged from Apollo alone (no audience/novelty

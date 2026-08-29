@@ -23,7 +23,7 @@
 // corpus prose implies, in a form the prompt can lean on hard.
 
 // ── Ventures ────────────────────────────────────────────────────────────────
-// Mindmaker is one lane with two shapes, so it is two ventures here: the Live
+// Mindmake is one lane with two shapes, so it is two ventures here: the Live
 // roundup/perspective/resource surface and the LinkedIn field-learning post.
 //
 // 'investigation' is the MYMU: Teardown shape: the long-form teardown that
@@ -36,15 +36,15 @@ export type VentureKey =
   | 'investigation'
   | 'signal_noise'
   | 'makeyourmindup'
-  | 'mindmaker_field'
+  | 'mindmake_field'
   | 'builder_economy'
   | 'dynamic'
 
 /** lane (+slot) -> venture rubric key. Mirrors laneToFactoryChannel / save-draft. */
 export function laneToVenture(lane?: string | null, slot?: string | null): VentureKey {
   if (lane === 'signal_noise') return 'signal_noise'
-  if (lane === 'mindmaker') {
-    if (slot === 'field_learning') return 'mindmaker_field'
+  if (lane === 'mindmake') {
+    if (slot === 'field_learning') return 'mindmake_field'
     // MYMU: Teardown is the investigation register, so it takes the hard rubric.
     if (slot === 'investigation') return 'investigation'
     return 'makeyourmindup'
@@ -53,7 +53,7 @@ export function laneToVenture(lane?: string | null, slot?: string | null): Ventu
   // Legacy stored values, mapped rather than rejected. Rows laned to the retired
   // Techonomic brand keep the investigation rubric they were written against.
   if (lane === 'techonomic') return 'investigation'
-  if (lane === 'mindmaker_live' || lane === 'makeyourmindup') return 'makeyourmindup'
+  if (lane === 'publication' || lane === 'makeyourmindup') return 'makeyourmindup'
   return 'dynamic'
 }
 
@@ -193,9 +193,9 @@ const RUBRICS: Record<VentureKey, VentureRubric> = {
     unverifiedClaim: 'flag',
   },
 
-  mindmaker_field: {
-    key: 'mindmaker_field',
-    label: 'Mindmaker (LinkedIn field-learning)',
+  mindmake_field: {
+    key: 'mindmake_field',
+    label: 'Mindmake (LinkedIn field-learning)',
     corpusChannel: 'linkedin',
     mandate: 'A short field-learning post: one thing learned from inside the work, told in the builder-in-the-room voice (Gear B). 150 to 250 words.',
     leadWith: 'A scroll-stopping claim or scene. No context-setting, no warm-up.',

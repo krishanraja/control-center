@@ -9,7 +9,7 @@ import type { ContactRow } from '../hooks/useRealtimeContacts'
 // tagged before then still render a name instead of a blank chip; they are absent
 // from every venture picker, so nothing new can be filed against them.
 export const VENTURE_LABEL: Record<string, string> = {
-  mindmaker: 'Mindmaker', mindmaker_live: 'Mindmaker Live', mm_ctrl: 'CTRL',
+  mindmake: 'Mindmake', publication: 'Publication', mm_ctrl: 'CTRL',
   full_time: 'Full Time', investor: 'Investor',
   meliora: 'Meliora (retired)', adfixus: 'AdFixus (retired)',
   // Retired as ventures 2026-08-11. Signal & Noise still exists as a

@@ -17,11 +17,11 @@ Backup of pre-edit Sweeper state: `/root/.openclaw/workspace/backups/nova-visibi
 
 ## A2: Guest pitch_draft enrichment workflow (Phase 6B)
 
-New workflow: `GuWi9nxNHpbFEfyV` (Nell | Mindmaker OS | Guest Pitch Draft). Webhook + cron (every 12h).
+New workflow: `GuWi9nxNHpbFEfyV` (Nell | mind/make OS | Guest Pitch Draft). Webhook + cron (every 12h).
 
 Flow: `Webhook` (single-id) OR `Every 12h` then `Fetch Batch` then `Explode Guests` then `Has Min Signal` filter then `Wait 5s` (rate-limit polite) then `Sonnet Pitch` then `Parse Pitch` then `Patch Guest` then `Audit Pitch` then `Respond` (webhook only).
 
-The Sonnet 4.6 prompt encodes Krish voice rules: no em/en dashes, 80 to 150 words, opens with a specific signal from notes or scout context (not "I came across your work"), names the venture by name with a concrete differentiator, mentions exactly one of Builder's Lab, Signal & Noise, or Mindmaker, asks a single ended question, sign-off "Krish".
+The Sonnet 4.6 prompt encodes Krish voice rules: no em/en dashes, 80 to 150 words, opens with a specific signal from notes or scout context (not "I came across your work"), names the venture by name with a concrete differentiator, mentions exactly one of Builder's Lab, Signal & Noise, or Mindmake, asks a single ended question, sign-off "Krish".
 
 Output writes to `guests`:
 - `pitch_draft`: the 80 to 150 word pitch.

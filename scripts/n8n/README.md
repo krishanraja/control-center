@@ -1,6 +1,6 @@
 # N8N workflows — git is the source of truth
 
-Every workflow that runs Mindmaker OS lives here as a JSON file. The N8N
+Every workflow that runs mind/make OS lives here as a JSON file. The N8N
 Cloud editor is a runtime, not a source. If git and cloud disagree, git wins.
 
 ## Layout

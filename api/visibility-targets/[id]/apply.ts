@@ -39,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     status: 'todo',
     owner: 'nova',
     agent: 'nova',
-    venture: 'mindmaker',
+    venture: 'mindmake',
     workstream: 'visibility',
     link_primary: target.source_url || null,
     origin: 'user',

@@ -1,14 +1,14 @@
 {
   "version": "v2",
   "updated": "2026-06-20",
-  "purpose": "Shareable ICP for the Mindmaker OS fleet. Source/score/route/draft against these lanes. Human doc: docs/ICP.md. Executable: api/_icpScore.ts.",
+  "purpose": "Shareable ICP for the mind/make OS fleet. Source/score/route/draft against these lanes. Human doc: docs/ICP.md. Executable: api/_icpScore.ts.",
   "insert_gate": 70,
   "tiers": { "A": 80, "B": 60, "C": 40 },
   "global_guards": {
     "unreachable_cap": 55,
     "unreachable_rule": "no email AND no linkedin -> cap every lane at 55",
     "ai_vendor_cap": 25,
-    "ai_vendor_rule": "employer sells AI/software (name has standalone 'AI' token, or industry software/IT/AI) -> cap mindmaker_buyer and mm_ctrl_buyer <= 25"
+    "ai_vendor_rule": "employer sells AI/software (name has standalone 'AI' token, or industry software/IT/AI) -> cap mindmake_buyer and mm_ctrl_buyer <= 25"
   },
   "sourcing_notes": [
     "Use mixed_people/api_search (mixed_people/search is deprecated for API callers).",
@@ -19,8 +19,8 @@
   ],
   "lanes": [
     {
-      "tag": "mindmaker_buyer",
-      "primary_venture": "mindmaker",
+      "tag": "mindmake_buyer",
+      "primary_venture": "mindmake",
       "serves": "O-2 consulting revenue",
       "who": "Senior operators / dedicated AI/transformation leaders inside non-tech operating companies adopting AI",
       "who_not": "Anyone whose employer sells AI or software (supply side)",
@@ -35,7 +35,7 @@
     },
     {
       "tag": "fractional_network",
-      "primary_venture": "mindmaker",
+      "primary_venture": "mindmake",
       "serves": "Referral + co-delivery + buyers",
       "who": "Fractional execs / independent advisors who deliver AI work; boutique AI consultancies",
       "who_not": "Generic fractional CMO/COO with no AI signal",
@@ -82,7 +82,7 @@
     },
     {
       "tag": "mm_ctrl_buyer",
-      "primary_venture": "mindmaker",
+      "primary_venture": "mindmake",
       "serves": "CTRL decision-clarity product",
       "who": "Leaders at NON-AI operating companies in decision-heavy traditional industries (manufacturing, construction, healthcare, logistics, distribution, multi-site retail)",
       "who_not": "Leaders at AI/software companies (they build their own tooling)",
@@ -98,7 +98,7 @@
     },
     {
       "tag": "ecosystem_partner",
-      "primary_venture": "mindmaker",
+      "primary_venture": "mindmake",
       "serves": "Channel / referrals",
       "who": "Startup accelerators, VC platform leads, operator communities who channel many buyers or guests",
       "who_not": "Government procurement and nonprofit/civic accelerators",

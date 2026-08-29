@@ -23,7 +23,7 @@
         "nodeCredentialType": "httpHeaderAuth",
         "options": { "response": { "response": { "neverError": true } } }
       },
-      "credentials": { "httpHeaderAuth": { "id": "fVDCMOkPByL0V1F5", "name": "Stripe mindmaker_llc restricted (reconciliation)" } },
+      "credentials": { "httpHeaderAuth": { "id": "fVDCMOkPByL0V1F5", "name": "Stripe mindmake_llc restricted (reconciliation)" } },
       "onError": "continueRegularOutput"
     },
     {
@@ -50,7 +50,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const resp = $('Past due subs').first().json;\nconst subs = Array.isArray(resp && resp.data) ? resp.data : [];\nconst recent = new Set($('Recent dunning').all().map(i => i.json).map(r => String(r.email || '').toLowerCase()).filter(Boolean));\nconst out = [];\nfor (const s of subs) {\n  const email = s.customer && s.customer.email;\n  if (!email || recent.has(email.toLowerCase())) continue;\n  const scid = (s.customer && s.customer.id) || null;\n  out.push({ json: {\n    email,\n    scid,\n    subject: \"Your CTRL payment didn't go through\",\n    body: \"Hi,\\n\\nWe tried to renew your CTRL subscription and the payment didn't go through, usually an expired or replaced card.\\n\\nUpdate your card to keep your access: https://ctrl.themindmaker.ai\\n\\nIf you meant to cancel, no action needed; it lapses on its own.\\n\\n---\\nCTRL by Mindmaker.\",\n  } });\n}\nreturn out;"
+        "jsCode": "const resp = $('Past due subs').first().json;\nconst subs = Array.isArray(resp && resp.data) ? resp.data : [];\nconst recent = new Set($('Recent dunning').all().map(i => i.json).map(r => String(r.email || '').toLowerCase()).filter(Boolean));\nconst out = [];\nfor (const s of subs) {\n  const email = s.customer && s.customer.email;\n  if (!email || recent.has(email.toLowerCase())) continue;\n  const scid = (s.customer && s.customer.id) || null;\n  out.push({ json: {\n    email,\n    scid,\n    subject: \"Your CTRL payment didn't go through\",\n    body: \"Hi,\\n\\nWe tried to renew your CTRL subscription and the payment didn't go through, usually an expired or replaced card.\\n\\nUpdate your card to keep your access: https://ctrl.mindmake.co\\n\\nIf you meant to cancel, no action needed; it lapses on its own.\\n\\n---\\nCTRL by Mindmake.\",\n  } });\n}\nreturn out;"
       },
       "executeOnce": true,
       "notes": "5-day cooldown per email via retention_events. Transactional recovery, so it auto-sends (saves/win-backs stay human-approved in Retention Watch)."
@@ -76,7 +76,7 @@
       },
       "credentials": { "httpHeaderAuth": { "name": "Resend API" } },
       "onError": "continueRegularOutput",
-      "notes": "Needs a reusable 'Resend API' httpHeaderAuth credential (Authorization: Bearer <mindmaker resend key>). Create it, bind here, then activate the workflow. The live CTRL nurture currently sends via an inline key; this uses the credential store instead."
+      "notes": "Needs a reusable 'Resend API' httpHeaderAuth credential (Authorization: Bearer <mindmake resend key>). Create it, bind here, then activate the workflow. The live CTRL nurture currently sends via an inline key; this uses the credential store instead."
     },
     {
       "name": "Log retention_events",

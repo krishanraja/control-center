@@ -6,7 +6,7 @@ rather than waiting on the daily cron.
 
 ## Pre-requisites
 
-1. `scripts/migrations/2026-05-22-customers.sql` applied in Mindmaker OS.
+1. `scripts/migrations/2026-05-22-customers.sql` applied in mind/make OS.
 2. `scripts/n8n/maya-customer-acquisition-sweeper.workflow.json` imported
    into N8N.
 3. Five new N8N credentials of type `httpHeaderAuth`, each with header

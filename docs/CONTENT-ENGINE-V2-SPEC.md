@@ -1,6 +1,6 @@
 # Content Engine v2 — Weekly Brief + Shifts Register
 
-> Canonical build spec, locked with Krish 2026-07-10 after a three-repo audit (control-center, mm-ctrl, mindmaker) and a two-round interview. Mockups (approved): https://claude.ai/code/artifact/be24ea89-644c-4eaf-9d09-651869aacf18
+> Canonical build spec, locked with Krish 2026-07-10 after a three-repo audit (control-center, mm-ctrl, mindmake) and a two-round interview. Mockups (approved): https://claude.ai/code/artifact/be24ea89-644c-4eaf-9d09-651869aacf18
 >
 > Supersedes the one-item-at-a-time pipeline described in `CONTENT_TAB_SPEC.md` for news-driven content. The Composer, factory push, voice guardrails, and cadence machinery carry forward.
 
@@ -18,7 +18,7 @@ Everything else purges itself. The old pile becomes an ambient, read-only Feed.
 | # | Rule |
 |---|---|
 | R1 | Reader of the brief = business leaders (Krish's audience), not Krish-internal. |
-| R2 | Destinations: the Mindmaker Live newsletter + LinkedIn (per-week selection; social cutdowns optional). *(Amended 2026-08-06: the Techonomic essay destination is retired. Techonomic is folded into Mindmaker LIVE, and its long-form register survives as the "Full essay" format, not a separate channel.)* |
+| R2 | Destinations: the Mindmake's publication newsletter + LinkedIn (per-week selection; social cutdowns optional). *(Amended 2026-08-06: the Techonomic essay destination is retired. Techonomic is folded into Mindmake LIVE, and its long-form register survives as the "Full essay" format, not a separate channel.)* |
 | R3 | One news item never becomes one piece. The pipeline synthesises; the one-at-a-time stream becomes a Feed with zero obligations. |
 | R4 | Decision load: 5-10/week, four types only: brief review, shift ruling (accept/merge/retire), graduation, purge preview (optional). |
 | R5 | Architecture: shared pool, OS-owned brain. Read mm-ctrl `live_headlines_cache` (project `bkyuxvschuwngtcdhsyg`, READ-ONLY); all v2 state lives in the OS DB. Never write to the product DB. |
@@ -78,7 +78,7 @@ Four rooms replace mode-switched triage (desktop `DesktopContent.tsx` + mobile `
 
 ## 6. Backfill + migration (one-shot scripts, `scripts/`)
 
-- `scripts/backfill-shifts.ts` — for each month Jul 2025 - Jun 2026: research-agent reconstruction of that month's AI-for-business record (Perplexity/Exa/Brave, mindmaker EXCLUDE/INCLUDE relevance lists), normalized to dated story stubs, then the SAME gate + register-match run month by month in order, `provenance='reconstructed'`. Momentum history accrues so trajectories are real. Expect 8-15 durable shifts.
+- `scripts/backfill-shifts.ts` — for each month Jul 2025 - Jun 2026: research-agent reconstruction of that month's AI-for-business record (Perplexity/Exa/Brave, mindmake EXCLUDE/INCLUDE relevance lists), normalized to dated story stubs, then the SAME gate + register-match run month by month in order, `provenance='reconstructed'`. Momentum history accrues so trajectories are real. Expect 8-15 durable shifts.
 - `scripts/migrate-content-pile.ts` — cluster the ~228 active cards; shift-matching clusters append evidence (`lived`); evergreen-horizon survivors (3+ citations or Krish-protected) -> graduation decisions; everything else purged. Dropped/absorbed history (288 rows) deleted per R10.
 
 ## 7. Ship order

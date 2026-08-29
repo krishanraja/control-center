@@ -52,9 +52,9 @@ for (const [name, block] of choiceBlocks) {
   }
 }
 
-// ── 3. Mindmaker Live is a venture, never an adapt target ──────────────────
-if (/value:\s*'mindmaker_live'/.test(adaptBlock)) {
-  bad("'mindmaker_live' is offered as an adapt target; it is a venture with two formats, not one register")
+// ── 3. Publication is a venture, never an adapt target ──────────────────
+if (/value:\s*'publication'/.test(adaptBlock)) {
+  bad("'publication' is offered as an adapt target; it is a venture with two formats, not one register")
 }
 
 // ── 4. the LIVE fan-out must be format-level too ───────────────────────────
@@ -68,7 +68,7 @@ const fanChannels = [...fanBlock.matchAll(/channel:\s*'([^']+)'/g)].map(m => m[1
 if (!fanChannels.length) bad('no FACTORY_FANOUT channels parsed')
 for (const c of fanChannels) {
   if (!corpusKeys.has(c)) bad(`FACTORY_FANOUT channel '${c}' is not a CHANNEL_HEADING key`)
-  if (c === 'mindmaker_live') bad('FACTORY_FANOUT offers the Mindmaker Live venture as one destination; it has two formats')
+  if (c === 'publication') bad('FACTORY_FANOUT offers the Publication venture as one destination; it has two formats')
   if (RETIRED.includes(c)) bad(`FACTORY_FANOUT still offers the retired '${c}'`)
 }
 
@@ -86,7 +86,7 @@ for (const key of ['paid', 'built']) {
 // ── 6. the two format patterns must not both match one heading ─────────────
 // Simulates the real matcher against the headings the live corpus carries.
 const HEADINGS = [
-  '0. Mindmaker Live house register (applies to EVERY Mindmaker Live format)',
+  '0. Publication house register (applies to EVERY Publication format)',
   '1. Paid (the investigation)',
   '2. Built (builder conversations)',
   '3. Signal & Noise (distribution channel, co-hosted with Rio Longacre and Brett House)',
@@ -95,7 +95,7 @@ const HEADINGS = [
   'The Five Standards (every channel, no exceptions)',
   'Channel Router (which instrument is this?)',
 ]
-const LIVE_KEYS = ['paid', 'built', 'mindmaker_live', 'signal_noise', 'maven'] as const
+const LIVE_KEYS = ['paid', 'built', 'publication', 'signal_noise', 'maven'] as const
 const patternFor = (k: string) => {
   const m = new RegExp(`^ {2}${k}:\\s*/(.*)/([a-z]*),`, 'm').exec(ct)
   return m ? new RegExp(m[1], m[2]) : null

@@ -62,7 +62,7 @@ const RUNGS: Array<{ id: Horizon; label: string; noun: string; blurb: string }> 
 // 2026-08-11: mymu, signal_noise and builder_economy are retired as ventures,
 // Circle is back because the OS manages it, and Plinth (which had been renamed
 // Legibility) is retired.
-const VENTURES = ['mindmaker', 'mindmaker_live', 'mm_ctrl', 'full_time', 'fractionl_circle', 'fractionl_pulse', 'investor']
+const VENTURES = ['mindmake', 'publication', 'mm_ctrl', 'full_time', 'fractionl_circle', 'fractionl_pulse', 'investor']
 
 function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48)

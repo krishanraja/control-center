@@ -12,7 +12,7 @@ Approve line by line. Nothing here is urgent.
 
 You chose "fully retire", including the feed and back catalogue.
 
-Done already: `thebuildereconomy.com` links removed from themindmaker.ai (PR #137),
+Done already: `thebuildereconomy.com` links removed from mindmake.co (PR #137),
 the `/builder-economy` route and the `vercel.json` 301 now point at
 `live.themindmaker.ai`, the venture is `active=false`, and no cron or workflow
 produces for it.
@@ -43,7 +43,7 @@ Rio Longacre and Brett House have not been told anything, because you said you
 would raise it yourself. Nothing is queued that would surprise them.
 
 When you do speak to them, the only thing that actually changes is where the
-material originates: episodes now carry Mindmaker Live's Paid and Built work
+material originates: episodes now carry Mindmake's publication's Paid and Built work
 rather than being commissioned as their own show.
 
 ---
@@ -51,16 +51,16 @@ rather than being commissioned as their own show.
 ## 3. Substack — mostly already correct, one decision
 
 `live.themindmaker.ai` already 301s to `mindmakerlive.substack.com`, and the
-publication is already Mindmaker LIVE, so the naming needs nothing.
+publication is already Mindmake LIVE, so the naming needs nothing.
 
 - [ ] `tech0nomic.substack.com` still exists with real subscribers. It is labelled
       *(retired)* everywhere it surfaces in the OS and is still importable as a
-      provenance tag. The migration of those subscribers into Mindmaker Live is
+      provenance tag. The migration of those subscribers into Mindmake's publication is
       yours and has been outstanding since 2026-08-06.
 - [ ] The publication description and About page should name the two formats
       (Paid and Built). I have not touched them.
 
-Reminder from the repo guide, worth keeping true in public copy: Mindmaker Live
+Reminder from the repo guide, worth keeping true in public copy: Mindmake's publication
 carries paid tiers, so it is never described as free, and links should always use
 the branded domain rather than the raw Substack URL.
 
@@ -68,7 +68,7 @@ the branded domain rather than the raw Substack URL.
 
 ## 4. Social accounts — the OS now expects these, the accounts are not renamed
 
-`growth_social_accounts` moved five rows from `mymu` to `mindmaker_live`:
+`growth_social_accounts` moved five rows from `mymu` to `publication`:
 
 | Platform | Status in the OS |
 |---|---|
@@ -81,9 +81,9 @@ the branded domain rather than the raw Substack URL.
 - [ ] The two live accounts carry bios written for the old structure. Rewriting a
       public bio is an outward change, so I left them.
 - [ ] The three planned accounts do not exist yet. If you create them, create them
-      as Mindmaker Live, not MYMU.
+      as Mindmake's publication, not MYMU.
 
-Note the YouTube channel slug is still `makeyourmindup` (renamed from Mindmaker
+Note the YouTube channel slug is still `makeyourmindup` (renamed from Mindmake
 LIVE on 2026-08-06). That slug is now the CTRL product name, so the channel and
 the app share a name for a thing they no longer share. Worth renaming back, but a
 channel rename affects existing links, so it is your call.

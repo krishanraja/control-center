@@ -35,7 +35,7 @@ function person(i: number, over: Record<string, unknown> = {}) {
     seniority: 'founder_cxo',
     country: 'Australia',
     industry: 'Financial services',
-    venture_scores: { mindmaker: 80 },
+    venture_scores: { mindmake: 80 },
     thin_evidence: false,
     match_score: 90 - i,
     query_relevance: 0.7,
@@ -62,7 +62,7 @@ async function mockNetworkApis(page: Page, onSearch?: (body: any) => void) {
     r.fulfill({
       json: {
         ok: true,
-        restated: 'People to sell Mindmaker to.',
+        restated: 'People to sell Mindmake to.',
         weak: false,
         degraded: [],
         results: [person(7, { full_name: 'Recommended Person' })],
@@ -76,7 +76,7 @@ async function mockNetworkApis(page: Page, onSearch?: (body: any) => void) {
 }
 
 // Selection goes through data-testid throughout. Both the filter bar and the
-// recommender render a chip reading "Mindmaker", and "Clear search" contains
+// recommender render a chip reading "Mindmake", and "Clear search" contains
 // "Search", so accessible-name matching is ambiguous on this surface by
 // construction, not by accident.
 const input = (page: Page) => page.getByTestId('network-search-input')
@@ -154,7 +154,7 @@ test('a recommendation can be cleared back to the venture picker', async ({ page
   await mockNetworkApis(page)
   await openNetwork(page)
 
-  await page.getByTestId('network-recommend-venture-mindmaker').click()
+  await page.getByTestId('network-recommend-venture-mindmake').click()
   await page.getByTestId('network-recommend-go').click()
   await expect(page.getByText('Recommended Person')).toBeVisible()
 

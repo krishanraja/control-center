@@ -6,7 +6,7 @@ import type { QueryPlan } from '../_networkQuery.js'
 // POST /api/network/recommend
 //   { venture, intent?, limit? }
 //
-// "Who should I talk to for Mindmaker this week."
+// "Who should I talk to for Mindmake this week."
 //
 // Same scorer as /search, different entry: instead of a parsed question, the
 // venture drives the multiplier and the intent becomes a role constraint. There
@@ -21,7 +21,7 @@ export const config = { maxDuration: 60 }
 // the stored venture_scores. Kept here rather than in the database because it is
 // positioning, and positioning is edited far more often than schema.
 const VENTURE_THESIS: Record<string, string> = {
-  mindmaker:
+  mindmake:
     'A senior operator or executive at a company that is not an AI vendor, accountable for building real AI capability in their organisation, facing the gap between tool rollout and actual capability.',
   adfixus:
     'A publisher, media owner or platform person who owns identity, addressability, first-party data or consent, and feels the loss of third-party cookies commercially.',

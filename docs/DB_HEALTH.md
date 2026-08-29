@@ -1,6 +1,6 @@
 # Database Health & Security Remediation
 
-> Snapshot of the Supabase project `gojpffsrxybbpbdzzrvs` (Mindmaker OS) taken
+> Snapshot of the Supabase project `gojpffsrxybbpbdzzrvs` (mind/make OS) taken
 > 2026-07-01, plus the security remediation applied that day. Read alongside
 > [`DATABASE.md`](./DATABASE.md).
 

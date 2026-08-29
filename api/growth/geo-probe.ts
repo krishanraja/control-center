@@ -13,7 +13,7 @@ import { supabase } from '../_supabase.js'
  *
  * What it does: takes every live `channel='geo'` touchpoint off the growth map,
  * turns its icp_trigger into the literal questions a buyer would type, asks each
- * one through Perplexity, and records honestly whether any Mindmaker property
+ * one through Perplexity, and records honestly whether any Mindmake property
  * came back in the answer or its citations. Every row is linked to the
  * touchpoint that produced it, so the Growth tab can say which map entry is
  * winning and which is invisible.
@@ -28,13 +28,13 @@ import { supabase } from '../_supabase.js'
  * which is the actual finding, not an error.
  */
 
-// Every Mindmaker property. A hit on any of these in the answer text or the
+// Every Mindmake property. A hit on any of these in the answer text or the
 // citation list is a citation for us.
 const OUR_DOMAINS = [
   'circle.fractionl.ai',
   'pulse.fractionl.ai',
-  'ctrl.themindmaker.ai',
-  'themindmaker.ai',
+  'ctrl.mindmake.co',
+  'mindmake.co',
   'fractionl.ai',
   'mindmakerlive.substack.com',
 ]

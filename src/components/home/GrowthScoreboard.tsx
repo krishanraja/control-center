@@ -37,9 +37,9 @@ const LINES: LineDef[] = [
   { id: 'network', label: 'Network reach 30d', accent: 'text-violet-300', bar: 'bg-violet-400/70' },
 ]
 
-const SOURCE_CHIPS: Array<{ key: 'substack_mindmakerlive_total' | 'substack_tech0nomic_total' | 'maven_students'; label: string }> = [
-  { key: 'substack_mindmakerlive_total', label: 'MM Live' },
-  // Retired 2026-08-06, folded into Mindmaker LIVE. The chip stays so the
+const SOURCE_CHIPS: Array<{ key: 'substack_publication_total' | 'substack_tech0nomic_total' | 'maven_students'; label: string }> = [
+  { key: 'substack_publication_total', label: 'MM Live' },
+  // Retired 2026-08-06, folded into Mindmake LIVE. The chip stays so the
   // subscribers it still holds are not silently missing from the total.
   { key: 'substack_tech0nomic_total', label: 'Techonomic (retired)' },
   { key: 'maven_students', label: 'Maven' },
@@ -104,7 +104,7 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
 
   const lines = useMemo(() => {
     const contentKeys: GrowthSeries[] = [
-      series.substack_mindmakerlive_total,
+      series.substack_publication_total,
       series.substack_tech0nomic_total,
       series.maven_students,
     ]
@@ -141,7 +141,7 @@ export function GrowthScoreboard({ variant = 'desktop' }: GrowthScoreboardProps)
   // The stall detector fires per metric_key; a line-level chip opens the
   // first open stall among its constituent keys.
   const LINE_KEYS: Record<LineDef['id'], string[]> = {
-    content: ['substack_mindmakerlive_total', 'substack_tech0nomic_total', 'maven_students'],
+    content: ['substack_publication_total', 'substack_tech0nomic_total', 'maven_students'],
     apps: ['app_paid_subs', 'app_mrr_usd'],
     network: ['guests_confirmed_30d', 'visibility_accepted_30d'],
   }

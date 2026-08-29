@@ -18,10 +18,10 @@ export interface VenturePositioning {
 }
 
 export const VENTURE_POSITIONING: Record<string, VenturePositioning> = {
-  mindmaker: {
-    label: 'Mindmaker',
+  mindmake: {
+    label: 'Mindmake',
     offer:
-      'A Mindmaker AI consulting sprint (a Strategy Day) that takes their leadership team from AI noise to a shipped, in-production system in a matter of weeks.',
+      'A Mindmake AI consulting sprint (a Strategy Day) that takes their leadership team from AI noise to a shipped, in-production system in a matter of weeks.',
   },
   // AdFixus and Meliora were retired in July 2026 and are deliberately absent.
   // ventureOffer() returning null for them is what stops an outreach draft from
@@ -44,7 +44,7 @@ export const VENTURE_POSITIONING: Record<string, VenturePositioning> = {
   investor: {
     label: 'Investor',
     offer:
-      'An investor conversation about the Mindmaker portfolio and where they might want to lean in.',
+      'An investor conversation about the Mindmake portfolio and where they might want to lean in.',
   },
 }
 

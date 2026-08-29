@@ -48,8 +48,8 @@ const MOOD_CHIPS_BY_BUCKET: Record<StateBucket, string[]> = {
 // venture_registry active ventures; kept short because this is a phone screen
 // at 7am, not a picker.
 const VENTURE_CHOICES: Array<{ slug: string; label: string }> = [
-  { slug: 'mindmaker', label: 'Mindmaker' },
-  { slug: 'mindmaker_live', label: 'Live' },
+  { slug: 'mindmake', label: 'Mindmake' },
+  { slug: 'publication', label: 'Live' },
   { slug: 'mm_ctrl', label: 'CTRL' },
   { slug: 'full_time', label: 'Full Time' },
   { slug: 'fractionl_circle', label: 'Circle' },

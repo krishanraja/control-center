@@ -98,7 +98,7 @@ Stable ids in use:
 | `network-recommend-venture-<slug>` / `-intent-<id>` / `network-recommend-go` | the recommend path |
 
 The Network ids are not optional politeness. The filter bar and the recommender
-both render a chip reading "Mindmaker", and the clear button's accessible name
+both render a chip reading "Mindmake", and the clear button's accessible name
 ("Clear search") contains the submit button's ("Search"), so every plausible
 role-and-name selector on this surface is ambiguous by construction.
 

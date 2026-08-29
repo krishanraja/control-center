@@ -4,7 +4,7 @@
 >
 > If two principles conflict, the lower-numbered one wins. When in doubt, P-1 wins everything.
 >
-> **Authorship:** drafted 2026-06-17 from the live-test session + the Mindmaker OS skill. Any change requires a Krish ack in `STATE.md`.
+> **Authorship:** drafted 2026-06-17 from the live-test session + the mind/make OS skill. Any change requires a Krish ack in `STATE.md`.
 
 ---
 

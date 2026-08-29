@@ -17,8 +17,8 @@
  * is a retired venture being offered as a choice for NEW work.
  */
 export const VENTURE_OPTIONS: Array<{ slug: string; label: string }> = [
-  { slug: 'mindmaker', label: 'Mindmaker' },
-  { slug: 'mindmaker_live', label: 'Mindmaker Live' },
+  { slug: 'mindmake', label: 'Mindmake' },
+  { slug: 'publication', label: 'Publication' },
   { slug: 'mm_ctrl', label: 'CTRL' },
   { slug: 'fractionl_circle', label: 'Fractionl Circle' },
   { slug: 'fractionl_pulse', label: 'Fractionl Pulse' },

@@ -1,4 +1,4 @@
-# Mindmaker OS — Workspace Staleness Audit
+# mind/make OS — Workspace Staleness Audit
 
 - **Date:** 2026-05-25
 - **Stream:** 2 (VPS workspace audit)
@@ -22,7 +22,7 @@ All five database-level checks passed:
 
 `home_intelligence.top_three` still shows Disney as the revenue card. **Expected** — Stream 1 could not force-trigger the Marcus Daily Brief workflow because it uses the legacy `n8n-nodes-base.cron` trigger which the n8n public REST API and MCP `execute_workflow` tool both reject. The next scheduled 06:30 UTC tick (2026-05-26) will refresh `top_three`. Stream 1 verified directly that `marcus_daily_pull()` returns zero Disney mentions, so the data path is proven Disney-free.
 
-**Also noted:** the VPS-canonical `MINDMAKER_OS_ARCHITECTURE.md` is still the pre-closure-architecture version (84154 bytes, modified 2026-05-25 13:21 UTC). The repo mirror was updated at commit `fe2d04b` (16:33 UTC) but Krish has not yet synced VPS ← repo. This is on Krish per §21 of the architecture doc.
+**Also noted:** the VPS-canonical `MINDMAKE_OS_ARCHITECTURE.md` is still the pre-closure-architecture version (84154 bytes, modified 2026-05-25 13:21 UTC). The repo mirror was updated at commit `fe2d04b` (16:33 UTC) but Krish has not yet synced VPS ← repo. This is on Krish per §21 of the architecture doc.
 
 ## 1. Memory files (Layer 8) — LOW-MEDIUM risk (one concept)
 
@@ -131,7 +131,7 @@ AGENTS_REFERENCE.md    9736 bytes
 HEARTBEAT.md           5014 bytes, 52 lines
 IDENTITY.md             230 bytes
 MEMORY.md              5666 bytes, 67 lines
-MINDMAKER_OS_ARCHITECTURE.md  84154 bytes, 1252 lines  (still the pre-closure version on VPS)
+MINDMAKE_OS_ARCHITECTURE.md  84154 bytes, 1252 lines  (still the pre-closure version on VPS)
 ORG.md                11205 bytes, 185 lines
 SOUL.md                9120 bytes, 215 lines
 TOOLS.md              25955 bytes, 460 lines
@@ -141,14 +141,14 @@ USER_REFERENCE.md      4129 bytes
 
 ### Closed-concept refs in core configs
 
-- **disney:** 1 hit in `MINDMAKER_OS_ARCHITECTURE.md` line 1207 — the PR #67 changelog entry mentioning the Disney "Unnamed" fix. **Not** a stale closure ref; it is audit history. Will be replaced when Krish syncs the updated arch doc from `fe2d04b`.
-- **apollo:** 7 files (AGENTS.md, HEARTBEAT.md, MINDMAKER_OS_ARCHITECTURE.md, ORG.md, SOUL.md, TOOLS.md, USER_REFERENCE.md). **All disambiguated to Apollo.io infrastructure** — `Apollo / lead sourcing / ICP filtering`, `Apollo.io: NEW KEY VERIFIED`, `Nell Apollo Contact Enrichment`, `Apollo.io API. Rate limits are per-minute not per-day`, etc. Zero references to the Felix Apollo campaign.
+- **disney:** 1 hit in `MINDMAKE_OS_ARCHITECTURE.md` line 1207 — the PR #67 changelog entry mentioning the Disney "Unnamed" fix. **Not** a stale closure ref; it is audit history. Will be replaced when Krish syncs the updated arch doc from `fe2d04b`.
+- **apollo:** 7 files (AGENTS.md, HEARTBEAT.md, MINDMAKE_OS_ARCHITECTURE.md, ORG.md, SOUL.md, TOOLS.md, USER_REFERENCE.md). **All disambiguated to Apollo.io infrastructure** — `Apollo / lead sourcing / ICP filtering`, `Apollo.io: NEW KEY VERIFIED`, `Nell Apollo Contact Enrichment`, `Apollo.io API. Rate limits are per-minute not per-day`, etc. Zero references to the Felix Apollo campaign.
 - **vertex:** 2 files (TOOLS.md, USER_REFERENCE.md). **All disambiguated to Google Vertex AI** — `Different from Vertex AI (which uses service accounts)`, `Google Cloud / Vertex AI`, `Cloud Run, Vertex AI, heavier workloads`. Zero references to the Vertex Inc lead.
 - **marketbridge, alma media:** 0 hits anywhere.
 
 ### Closure primitives in core configs
 
-- `concept_id`, `concept_decisions`, `status_change_log`, `close_concept`, `reopen_concept`: **all 0**. Expected — the VPS-canonical `MINDMAKER_OS_ARCHITECTURE.md` is the pre-closure version. After Krish syncs the repo update (commit `fe2d04b`), these terms will appear.
+- `concept_id`, `concept_decisions`, `status_change_log`, `close_concept`, `reopen_concept`: **all 0**. Expected — the VPS-canonical `MINDMAKE_OS_ARCHITECTURE.md` is the pre-closure version. After Krish syncs the repo update (commit `fe2d04b`), these terms will appear.
 
 **Risk:** LOW. Once the architecture-doc sync happens, the only Disney mention in core configs (the changelog reference) will be replaced/superseded by the updated Day-1 changelog entries.
 
@@ -228,7 +228,7 @@ If any single concept-vs-layer count is over ~20, that is a signal the correspon
 - Warm-report rotation: `handoff-queue.json` at 207KB is suspect. Snapshot it, archive everything older than 14 days, start fresh. This is independent of closure architecture; just hygiene. **Not** a Day 2 priority.
 - `render-plan.py` (Day 3): when reading `agent_plans`, JOIN against `concept_decisions` and exclude rows whose concept_id has `decision='closed'` with `superseded_at IS NULL`.
 - Agent brief audit: zero stale closed-concept refs in any brief (after disambiguation). When closure intent translation goes live (Day 2), only Agatha's brief needs to gain the closure-intent translation protocol from §7.7 of the architecture doc; the other 13 briefs are unaffected.
-- Architecture doc sync: the VPS-canonical `MINDMAKER_OS_ARCHITECTURE.md` is the **pre-Day-1 version** (84KB, modified 2026-05-25 13:21 UTC). The repo mirror was updated to the post-Day-1 version at commit `fe2d04b` (2026-05-25 16:33 UTC). Krish needs to sync VPS ← repo so the on-VPS canonical reflects the closure architecture.
+- Architecture doc sync: the VPS-canonical `MINDMAKE_OS_ARCHITECTURE.md` is the **pre-Day-1 version** (84KB, modified 2026-05-25 13:21 UTC). The repo mirror was updated to the post-Day-1 version at commit `fe2d04b` (2026-05-25 16:33 UTC). Krish needs to sync VPS ← repo so the on-VPS canonical reflects the closure architecture.
 
 ## 11. Open questions for Krish
 
@@ -253,6 +253,6 @@ No other workspace files were modified.
 ## Appendix B: Companion documents
 
 - Stream 1 completion report: `docs/audits/2026-05-25-closure-day1-stream1-complete.md` in `krishanraja/control-center` (commit `2328326`)
-- Architecture doc update: `docs/MINDMAKER_OS_ARCHITECTURE.md` in same repo (commit `fe2d04b`) — integrates the closure architecture across all 21 sections of the OS reference
+- Architecture doc update: `docs/MINDMAKE_OS_ARCHITECTURE.md` in same repo (commit `fe2d04b`) — integrates the closure architecture across all 21 sections of the OS reference
 
 End of report.

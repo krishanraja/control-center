@@ -14,8 +14,8 @@ const ASSIGNEE_OPTIONS = ['felix', 'maya', 'nell', 'krish'] as const
 // Friendly labels for unified-audience capture sources (audience_sources[]).
 const AUDIENCE_SOURCE_LABELS: Record<string, string> = {
   ctrl: 'CTRL',
-  mindmaker_site: 'Site',
-  mindmaker_live: 'Mindmaker Live',
+  mindmake_site: 'Site',
+  publication: 'Publication',
   builder_economy: 'Builder Economy (retired)',
 }
 function audienceSourceLabel(s: string): string {

@@ -1,6 +1,6 @@
 # PR 6: self-healing four-tier silent failure system
 
-Part of the Mindmaker OS rebuild (see `OS-PROGRESS.md` in workspace memory).
+Part of the mind/make OS rebuild (see `OS-PROGRESS.md` in workspace memory).
 
 ## What ships
 

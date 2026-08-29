@@ -1,6 +1,6 @@
 # PR 7: living agent_plans + unified Decisions Waiting view
 
-Part of the Mindmaker OS rebuild (see `OS-PROGRESS.md` in workspace memory).
+Part of the mind/make OS rebuild (see `OS-PROGRESS.md` in workspace memory).
 
 ## What ships
 

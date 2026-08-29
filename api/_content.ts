@@ -117,25 +117,25 @@ export async function loadCorpus(): Promise<string> {
  *  signal_noise and builder_economy existed as both a venture and a lane. */
 export function laneToCorpusChannel(lane?: string | null, slot?: string | null): string | null {
   // THE LIVE MODEL. One media venture, two formats carried in `slot`.
-  if (lane === 'mindmaker_live') {
+  if (lane === 'publication') {
     if (slot === 'paid' || slot === 'teardown' || slot === 'investigation') return 'paid'
     if (slot === 'built') return 'built'
-    return 'mindmaker_live'   // the house register
+    return 'publication'   // the house register
   }
   // ── Legacy stored values, mapped never rejected ───────────────────────────
-  // 'mindmaker' was the content lane before the venture split; 'mymu' and
+  // 'mindmake' was the content lane before the venture split; 'mymu' and
   // 'makeyourmindup' were the content brand before it became the CTRL lead
   // magnet; 'techonomic' was the retired investigative brand; signal_noise and
   // builder_economy were ventures until 2026-08-11.
   if (lane === 'mymu' || lane === 'makeyourmindup') {
     if (slot === 'teardown' || slot === 'investigation' || slot === 'paid') return 'paid'
     if (slot === 'built') return 'built'
-    return 'mindmaker_live'
+    return 'publication'
   }
-  if (lane === 'mindmaker') {
+  if (lane === 'mindmake') {
     if (slot === 'field_learning') return 'linkedin'
     if (slot === 'investigation' || slot === 'teardown') return 'paid'
-    return 'mindmaker_live'
+    return 'publication'
   }
   if (lane === 'techonomic') return 'paid'
   if (lane === 'builder_economy' || lane === 'builder_economy_ig') return 'built'
@@ -150,7 +150,7 @@ const CHANNEL_HEADING: Record<string, RegExp> = {
   // corpus (the heading TEXT, with the # markers already stripped) and the
   // FIRST match wins, so a heading must match exactly one key. The live corpus
   // headings are deliberately disjoint:
-  //   ## 0. Mindmaker Live house register   ## 1. Paid   ## 2. Built
+  //   ## 0. Publication house register   ## 1. Paid   ## 2. Built
   //   ## 3. Signal & Noise   ## 4. Maven
   //
   // THE TRAP, which has now bitten three times. A format name is also an
@@ -162,11 +162,11 @@ const CHANNEL_HEADING: Record<string, RegExp> = {
   // text, past an optional section numeral. Never relax that anchor, and never
   // give a format an alternation that can match mid-heading.
   //
-  // The house register is matched on the exact phrase "Mindmaker Live house
-  // register" so a bare "Mindmaker Live" elsewhere cannot claim it.
+  // The house register is matched on the exact phrase "Publication house
+  // register" so a bare "Publication" elsewhere cannot claim it.
   paid: /^#*\s*\d*\.?\s*Paid\b/i,
   built: /^#*\s*\d*\.?\s*Built\b/i,
-  mindmaker_live: /Mindmaker Live house register/i,
+  publication: /Publication house register/i,
   signal_noise: /Signal\s*&?\s*Noise/i,
   maven: /Maven/i,
   // Social cutdowns (LinkedIn, Instagram) ride the Built register, so they
@@ -176,8 +176,8 @@ const CHANNEL_HEADING: Record<string, RegExp> = {
   // Kept ONLY so a corpus copy that has not been resynced, or an old stored
   // row, still resolves to something sane. Never offer these as a choice.
   investigation: /^#*\s*\d*\.?\s*Paid\b|Techonomic|Investigation|Teardown/i,
-  makeyourmindup: /Mindmaker Live house register|MYMU house register/i,
-  mymu_weekly: /Mindmaker Live house register|Make\s*Your\s*Mind\s*Up\s*\(the weekly\)/i,
+  makeyourmindup: /Publication house register|MYMU house register/i,
+  mymu_weekly: /Publication house register|Make\s*Your\s*Mind\s*Up\s*\(the weekly\)/i,
   builder_economy: /^#*\s*\d*\.?\s*Built\b|Builder Economy/i,
 }
 

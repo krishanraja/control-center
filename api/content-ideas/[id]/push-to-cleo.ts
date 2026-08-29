@@ -6,7 +6,7 @@ import { loadConfig, pathId, preamble } from '../../_content.js'
 //   body: { target_channel: FactoryChannel, source_text?: string }
 //
 // Final-polish handoff (Phase 7). Fires the live Omnichannel Content Factory
-// webhook (Cleo | Mindmaker OS | Omnichannel Content Factory, path
+// webhook (Cleo | mind/make OS | Omnichannel Content Factory, path
 // /webhook/content-factory) which assembles a channel-specific draft, writes a
 // Google Doc into the channel's Drive folder, and pings Krish on Telegram.
 //
@@ -26,7 +26,7 @@ const RETIRED_CHANNELS: Record<string, string> = {
   techonomic: 'paid',
   makeyourmindup: 'paid',
   mymu: 'paid',
-  mindmaker_live: 'paid',
+  publication: 'paid',
   mymu_weekly: 'paid',
   investigation: 'paid',
   builder_economy: 'built',

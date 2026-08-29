@@ -3,7 +3,7 @@
 This directory is the **canonical, version-controlled source** for the cross-app
 attribution warehouse that all six builder products (Circle, Pulse, CTRL, Gutted,
 Merciless, OnAlert) emit into. It lives on the OS Supabase project
-`gojpffsrxybbpbdzzrvs`. See `docs/MINDMAKER_OS_ARCHITECTURE.md` section 11.4 for
+`gojpffsrxybbpbdzzrvs`. See `docs/MINDMAKE_OS_ARCHITECTURE.md` section 11.4 for
 the full contract.
 
 **Ownership boundary:** the OS repo (this directory) is the *sole migrator* of the

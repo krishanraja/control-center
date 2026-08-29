@@ -337,7 +337,7 @@ export const ITERATE_CHIPS: AxisOption[] = [
 export interface LaneDef {
   /** lane key as stored on content_ideas.lane and in system_config */
   lane: string
-  /** optional slot for lanes that have one (mindmaker) */
+  /** optional slot for lanes that have one (mindmake) */
   slot?: string
   label: string
   gear: 'A' | 'B'
@@ -356,7 +356,7 @@ export interface LaneDef {
 // venture again.
 //
 // REFOCUS 2026-08-11. All content now publishes under ONE media venture,
-// Mindmaker Live, the content arm of the Mindmaker advisory, at
+// Publication, the content arm of the Mindmake advisory, at
 // live.themindmaker.ai. It has exactly two signature formats:
 //   PAID   the investigation, folding in Techonomic's investigative register
 //   BUILT  builder conversations, folding in the Builder Economy thesis
@@ -366,13 +366,13 @@ export interface LaneDef {
 //     so it is absent from this file by design.
 //   - Builder Economy. Fully retired, feed and all.
 //   - Signal & Noise. Demoted from venture to distribution CHANNEL: it is a
-//     co-hosted feed that carries Mindmaker Live material. Nothing is
+//     co-hosted feed that carries Publication material. Nothing is
 //     commissioned "for" it, which is why it now sits in MEDIA_CHANNELS.
 
 /** Media ventures: the ones that produce content. Mirrors venture_registry
  *  where kind='media'. Product ventures (mm_ctrl, fractionl_circle,
  *  fractionl_pulse, full_time) also publish, but through this one. */
-export type MediaVenture = 'mindmaker_live'
+export type MediaVenture = 'publication'
 
 export interface VentureFormat {
   venture: MediaVenture
@@ -387,12 +387,12 @@ export interface VentureFormat {
 /** Mirrors the `venture_formats` table. The composer picks one of these AFTER
  *  the venture and BEFORE the channels. */
 export const VENTURE_FORMATS: VentureFormat[] = [
-  { venture: 'mindmaker_live', slot: 'paid', label: 'Paid', hero: true, gear: 'A', corpusKey: 'paid' },
-  { venture: 'mindmaker_live', slot: 'built', label: 'Built', gear: 'B', corpusKey: 'built' },
+  { venture: 'publication', slot: 'paid', label: 'Paid', hero: true, gear: 'A', corpusKey: 'paid' },
+  { venture: 'publication', slot: 'built', label: 'Built', gear: 'B', corpusKey: 'built' },
 ]
 
 export const MEDIA_VENTURES: { value: MediaVenture; label: string }[] = [
-  { value: 'mindmaker_live', label: 'Mindmaker Live' },
+  { value: 'publication', label: 'Publication' },
 ]
 
 export function formatsForVenture(v?: string | null): VentureFormat[] {
@@ -420,8 +420,8 @@ export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: bo
 
 /** Default distribution per format, so the composer pre-ticks the sane set. */
 export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
-  'mindmaker_live:paid': ['substack', 'linkedin'],
-  'mindmaker_live:built': ['substack', 'instagram', 'tiktok', 'youtube', 'signal_noise'],
+  'publication:paid': ['substack', 'linkedin'],
+  'publication:built': ['substack', 'instagram', 'tiktok', 'youtube', 'signal_noise'],
 }
 
 // The factory channel is what the Omnichannel Content Factory polishes INTO.
@@ -451,8 +451,8 @@ export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
 // which is why 'builder_economy_ig' is gone: Instagram was a channel wearing a
 // venture's clothes, and it now lives in MEDIA_CHANNELS where it belongs.
 export const LANES: LaneDef[] = [
-  { lane: 'mindmaker_live', slot: 'paid', label: 'Paid', gear: 'A', factoryChannel: 'paid' },
-  { lane: 'mindmaker_live', slot: 'built', label: 'Built', gear: 'B', factoryChannel: 'built' },
+  { lane: 'publication', slot: 'paid', label: 'Paid', gear: 'A', factoryChannel: 'paid' },
+  { lane: 'publication', slot: 'built', label: 'Built', gear: 'B', factoryChannel: 'built' },
 ]
 
 // ── Adapt-to-lane (composer Refine) ──────────────────────────────────────
@@ -479,7 +479,7 @@ export const LANE_ADAPTS: LaneAdapt[] = [
     label: 'Signal & Noise',
     hint: 'Adapt this for the Signal & Noise audience. Exec-to-exec authority (Gear A), ~300-500 words, separate the durable signal from the noise, name what most people get wrong ("Not X, Y"), commercially grounded, hard verdict ending.',
   },
-  // Mindmaker Live is a venture, never an adapt target. Adapting to the
+  // Publication is a venture, never an adapt target. Adapting to the
   // venture was meaningless: it has two formats with two different registers,
   // and offering the venture as one option is what made the composer feel
   // stale. Adapt to a FORMAT.
@@ -498,16 +498,16 @@ export const LANE_ADAPTS: LaneAdapt[] = [
 // Lane values that no longer exist but may still be stored on old rows. Every
 // one maps FORWARD onto a live format so a historical row keeps a home on the
 // board; none is ever rejected, and none is offered as a choice for new work.
-// Note 'mindmaker_live' is deliberately ABSENT: it is the live venture now, so
+// Note 'publication' is deliberately ABSENT: it is the live venture now, so
 // it resolves through LANES above rather than through this table.
 const LEGACY_LANE_CHANNEL: Record<string, FactoryChannel> = {
-  // Retired 2026-08-06 into MYMU, then 2026-08-11 into Mindmaker Live: Paid.
+  // Retired 2026-08-06 into MYMU, then 2026-08-11 into Publication: Paid.
   techonomic: 'paid',
   // The MYMU venture and its channel slug. MYMU is a product surface now.
   makeyourmindup: 'paid',
   mymu: 'paid',
-  // 'mindmaker' was the content lane before the venture split.
-  mindmaker: 'paid',
+  // 'mindmake' was the content lane before the venture split.
+  mindmake: 'paid',
   // Instagram was buried inside this venture value; it is a channel now, and
   // the Builder Economy thesis lives on as the Built format.
   builder_economy_ig: 'built',

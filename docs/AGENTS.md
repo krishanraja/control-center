@@ -11,7 +11,7 @@
 > [`ARCHITECTURE.md`](./ARCHITECTURE.md). UI surfaces consuming agent data
 > are specified in [`PRODUCT.md`](./PRODUCT.md). The canonical fleet
 > description (agent purpose, KPIs, cron cadence) lives in
-> `MINDMAKER_OS_ARCHITECTURE.md` §2 on the VPS workspace root.
+> `MINDMAKE_OS_ARCHITECTURE.md` §2 on the VPS workspace root.
 
 ---
 
@@ -137,7 +137,7 @@ fallback list must agree.**
 > table grows or shrinks, update both in the same commit.
 
 **Personal-life agents** (Lozatron, Aria, Finno, Devi) live only in
-OpenClaw config on the VPS, outside the Mindmaker business. They are not
+OpenClaw config on the VPS, outside the Mindmake business. They are not
 in the `agents` table and never appear in Control Center.
 
 ---

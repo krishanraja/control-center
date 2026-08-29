@@ -33,23 +33,23 @@ export type IdeaState =
  *  work (Krish 2026-08-06). Not destinations. Where a piece goes is a channel
  *  (MediaChannel), and the theme layer is still pillars. */
 export type ContentLane =
-  | 'mindmaker_live'
+  | 'publication'
 
 /**
  * Lane values that can still be sitting on a stored row, none of which is
- * offered as a new choice; all normalize to 'mindmaker_live' for display
+ * offered as a new choice; all normalize to 'publication' for display
  * (contentLanes.normalizeLane).
  *
  * The trail, because it is genuinely confusing: Techonomic retired 2026-08-06
- * and folded into MYMU. Its rows were re-laned to 'mindmaker_live', which was
+ * and folded into MYMU. Its rows were re-laned to 'publication', which was
  * then renamed to the channel slug 'makeyourmindup' the same day. On
- * 2026-08-11 the whole content arm became Mindmaker Live, so 'mindmaker_live'
+ * 2026-08-11 the whole content arm became Publication, so 'publication'
  * is the CANONICAL value again, and 'makeyourmindup' is now a product surface
  * (the lead magnet into CTRL) rather than a content brand.
  */
 export type StoredContentLane =
   | ContentLane
-  | 'mindmaker' | 'builder_economy_ig'   // pre venture/channel split
+  | 'mindmake' | 'builder_economy_ig'   // pre venture/channel split
   | 'makeyourmindup' | 'mymu' | 'techonomic'
   | 'signal_noise' | 'builder_economy'   // retired 2026-08-11
 
@@ -63,7 +63,7 @@ export type TransformedOutputs = Partial<Record<
   | 'substack'
   | 'twitter'
   | 'cohort_prompt'
-  | 'mindmaker_block'
+  | 'mindmake_block'
   | 'expand',
   {
     body: string
@@ -96,10 +96,10 @@ export interface ContentIdeaRow {
   quality_score?: 'green' | 'amber' | 'red' | null
   pillar_id?: string | null
   related_idea_ids?: string[] | null
-  /** Brand lane this piece is committed to (signal_noise | mindmaker | builder_economy_ig),
+  /** Brand lane this piece is committed to (signal_noise | mindmake | builder_economy_ig),
    *  or a legacy stored value from before the Techonomic retirement. */
   lane?: StoredContentLane | null
-  /** Sub-cadence within a lane. Mindmaker: 'roundup' | 'field_learning'. Null elsewhere. */
+  /** Sub-cadence within a lane. Mindmake: 'roundup' | 'field_learning'. Null elsewhere. */
   lane_slot?: string | null
   /** Parent idea this row was transformed from (Transform §5.5). Null for parents. */
   parent_idea_id?: string | null

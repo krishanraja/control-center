@@ -1,5 +1,5 @@
 {
-  "name": "Krish | Mindmaker OS | Inbox Return Detector",
+  "name": "Krish | mind/make OS | Inbox Return Detector",
   "active": true,
   "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
   "nodes": [

@@ -128,7 +128,7 @@ export const VERDICT_LABEL: Record<ShiftVerdict, string> = {
 // SynthesisModal did not change what he was looking at: v2 is the live system
 // and v1 does not render while VITE_CONTENT_V2_ENABLED is on.
 //
-// Mindmaker Live is a VENTURE with two formats and two registers, so offering
+// Publication is a VENTURE with two formats and two registers, so offering
 // it as one destination would be the same mistake as offering "Builder Economy
 // IG", a channel wearing a venture's name. Fan out to FORMATS (paid, built)
 // plus real distribution channels, never to the venture.

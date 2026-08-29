@@ -1,6 +1,6 @@
 # N8N patch — surface Podchaser results in the Visibility lane
 
-**Target workflow:** `Nova | Mindmaker OS | Closed-Loop PR Engine`
+**Target workflow:** `Nova | mind/make OS | Closed-Loop PR Engine`
 (id `hCbvRXoGWaqG1Znx`)
 
 **Prerequisite migration:** `scripts/migrations/2026-05-21-podchaser-podcasts.sql`

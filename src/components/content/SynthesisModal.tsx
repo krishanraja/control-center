@@ -4,18 +4,18 @@ import { useToast } from '../shared/Toast'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
 
 // Venture + format, mirroring venture_formats. There is ONE content venture,
-// Mindmaker Live, with two formats. Synthesis targets a FORMAT, never the
+// Publication, with two formats. Synthesis targets a FORMAT, never the
 // venture, because the two carry different registers.
 interface LaneChoice {
-  lane: 'mindmaker_live'
+  lane: 'publication'
   slot?: string | null
   label: string
   description: string
 }
 
 const LANES: LaneChoice[] = [
-  { lane: 'mindmaker_live', slot: 'paid', label: 'Paid', description: 'The investigation. Follow the money: take one load-bearing claim apart against dated evidence, and end where the record runs out.' },
-  { lane: 'mindmaker_live', slot: 'built', label: 'Built', description: 'Someone who actually built something, and why they really built it. Warm, Gear B.' },
+  { lane: 'publication', slot: 'paid', label: 'Paid', description: 'The investigation. Follow the money: take one load-bearing claim apart against dated evidence, and end where the record runs out.' },
+  { lane: 'publication', slot: 'built', label: 'Built', description: 'Someone who actually built something, and why they really built it. Warm, Gear B.' },
 ]
 
 interface Props {

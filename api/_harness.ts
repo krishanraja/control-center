@@ -217,7 +217,7 @@ export async function fetchPage(url: string, budget: RunBudget): Promise<Fetched
       signal: ctrl.signal,
       headers: {
         Range: `bytes=0-${FETCH_BYTES}`,
-        'User-Agent': 'Mozilla/5.0 (compatible; MindmakerVerifier/1.0; +https://mindmakerlive.substack.com)',
+        'User-Agent': 'Mozilla/5.0 (compatible; MindmakeVerifier/1.0; +https://mindmakerlive.substack.com)',
         Accept: 'text/html,application/xhtml+xml',
       },
     })

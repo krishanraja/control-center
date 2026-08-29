@@ -30,11 +30,11 @@ import { callClaude, robustJson, loadVoiceBlock, VOICE_GUARDRAILS } from '../_co
  */
 
 // substack_tech0nomic_total is deliberately NOT watched. The publication was
-// retired on 2026-08-06 and folded into Mindmaker LIVE, so it is flat by design
+// retired on 2026-08-06 and folded into Mindmake LIVE, so it is flat by design
 // and stall-detecting it would draft growth moves for a channel nobody publishes
 // to. Its label stays below so historical episodes still render.
 const WATCHED_KEYS = [
-  'substack_mindmakerlive_total',
+  'substack_publication_total',
   'maven_students',
   'app_paid_subs',
   'app_mrr_usd',
@@ -43,7 +43,7 @@ const WATCHED_KEYS = [
 ] as const
 
 const KEY_LABEL: Record<string, string> = {
-  substack_mindmakerlive_total: 'Mindmaker Live Substack subscribers',
+  substack_publication_total: 'Publication Substack subscribers',
   substack_tech0nomic_total: 'Techonomic Substack subscribers (retired)',
   maven_students: 'Maven students',
   app_paid_subs: 'paid app subscribers',
@@ -54,7 +54,7 @@ const KEY_LABEL: Record<string, string> = {
 
 // Which engine a key belongs to decides who executes an adopted move.
 const KEY_CHANNEL: Record<string, { channel: string; agent: string }> = {
-  substack_mindmakerlive_total: { channel: 'content', agent: 'cleo' },
+  substack_publication_total: { channel: 'content', agent: 'cleo' },
   substack_tech0nomic_total: { channel: 'content', agent: 'cleo' },
   maven_students: { channel: 'content', agent: 'cleo' },
   app_paid_subs: { channel: 'app', agent: 'maya' },
@@ -106,8 +106,8 @@ async function draftMoves(metricKey: string, baseline: number, latest: number, w
   try { voice = await loadVoiceBlock() } catch { /* optional */ }
 
   const system = [
-    'You are Marcus, the COO-synthesis agent in Krish Raja\'s Mindmaker OS.',
-    `A growth line has stalled and your job is to hand Krish exactly 3 concrete moves he can approve in one tap. He runs: Mindmaker (AI advisory + Maven courses under the profile maven.com/mindmaker), two Substacks (mindmakerlive, tech0nomic), a small portfolio of B2B apps, and two podcasts (The Builder Economy, Signal & Noise).`,
+    'You are Marcus, the COO-synthesis agent in Krish Raja\'s mind/make OS.',
+    `A growth line has stalled and your job is to hand Krish exactly 3 concrete moves he can approve in one tap. He runs Mindmake, an AI and commercial strategy advisory practice at mindmake.co with two doors, build your AI brain and build your AI GTM, both leading to one privately priced thirty day paid proof. CTRL is the self serve product and is never sold as an advisory engagement. The publication runs exactly two channels, The Money of AI and Built with AI, hosted on Substack. Signal & Noise is a podcast used for distribution and guest acquisition. Full Time, Pulse and Circle are build experiments acquiring test customers, never products for sale. There is no cold email. The only two sales motions are warm intros and published thinking. Cold contact is legitimate only for booking podcast guests. Optimise for pitch meetings booked, podcast guests confirmed, and content published, in that order.`,
     'Each move must be a specific, executable play (a named cross-post pitch, a specific piece to publish, a specific outreach), never generic advice like "post more consistently".',
     voice ? `Krish voice rules:\n${voice.slice(0, 2000)}` : '',
     VOICE_GUARDRAILS,

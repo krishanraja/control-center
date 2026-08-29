@@ -1,6 +1,6 @@
 # N8N patch — extend lead extraction prompt with `attainability_score`, `icp_score`, `assignee_agent`
 
-**Target workflow:** `Nell | Mindmaker OS | Lead Document Ingest`
+**Target workflow:** `Nell | mind/make OS | Lead Document Ingest`
 (id `fUlQUlyZp1DRRwWT`)
 
 ## Why
@@ -25,7 +25,7 @@ following to the system prompt and the expected output schema:
 +- attainability_score (0-10): how reachable they actually are (warm intro
 +  available, public email, active on LinkedIn = high; cold outreach to a
 +  CEO = low)
-+- icp_score (0-10): how cleanly the person matches the Mindmaker ICP —
++- icp_score (0-10): how cleanly the person matches the Mindmake ICP —
 +  senior leader at a media / advertising / commerce org with budget
  - tier (A | B | C): pipeline priority bucket
  - why_relevant: one sentence on why Krish should care

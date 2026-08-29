@@ -5,12 +5,12 @@ import type { ContentIdeaRow, ContentLane } from '../hooks/useRealtimeContentIde
 // (how often Krish has committed to publish) and a voice gear (krish-voice).
 // Pillars remain the orthogonal *theme* layer.
 //
-// REFOCUS 2026-08-11. There is now ONE content venture, Mindmaker Live, the
-// content arm of the Mindmaker advisory. Techonomic's investigative register
+// REFOCUS 2026-08-11. There is now ONE content venture, Publication, the
+// content arm of the Mindmake advisory. Techonomic's investigative register
 // ships as the Paid format and the Builder Economy thesis ships as Built.
 // MYMU is no longer a content brand at all: "Make Your Mind Up" is the lead
 // magnet and URL into the CTRL app. Signal & Noise is a distribution channel.
-// Every retired value still reads as Mindmaker Live via normalizeLane, so
+// Every retired value still reads as Publication via normalizeLane, so
 // nothing disappears from the board.
 
 export interface LaneDef {
@@ -34,8 +34,8 @@ export interface LaneDef {
 // same list as two ventures.
 export const LANES: LaneDef[] = [
   {
-    slug: 'mindmaker_live',
-    label: 'Mindmaker Live',
+    slug: 'publication',
+    label: 'Publication',
     short: 'Live',
     accent: 'text-violet-300',
     activeBg: 'bg-violet-500/20 border-violet-400/50 text-violet-100',
@@ -53,20 +53,20 @@ export const LANE_BY_SLUG: Record<ContentLane, LaneDef> = Object.fromEntries(
  * Stored lane value -> the lane it displays under. Legacy values map instead of
  * throwing, so a historical row always keeps a home on the board. Anything
  * unrecognised returns null so callers can treat it as unlaned rather than
- * crash. Every content venture the OS has ever had now folds into Mindmaker
+ * crash. Every content venture the OS has ever had now folds into Mindmake
  * Live, which is the only one left.
  */
 const LEGACY_LANE_ALIAS: Record<string, ContentLane> = {
-  techonomic: 'mindmaker_live',
-  makeyourmindup: 'mindmaker_live',
-  mymu: 'mindmaker_live',
-  mindmaker: 'mindmaker_live',
+  techonomic: 'publication',
+  makeyourmindup: 'publication',
+  mymu: 'publication',
+  mindmake: 'publication',
   // Instagram was a channel wearing a venture's clothes.
-  builder_economy_ig: 'mindmaker_live',
+  builder_economy_ig: 'publication',
   // Retired 2026-08-11. Builder Economy is gone entirely; Signal & Noise is a
   // distribution channel now, so a row commissioned "for" it is a Live piece.
-  builder_economy: 'mindmaker_live',
-  signal_noise: 'mindmaker_live',
+  builder_economy: 'publication',
+  signal_noise: 'publication',
 }
 
 export function normalizeLane(lane?: string | null): ContentLane | null {

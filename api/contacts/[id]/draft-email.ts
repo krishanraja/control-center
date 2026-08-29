@@ -35,7 +35,7 @@ const TONE_GUIDE: Record<string, string> = {
 // historical contact cannot read as an active pitch. ventureOffer() also returns
 // null for them, so there is no offer line to anchor on.
 const VENTURE_LABEL: Record<string, string> = {
-  mindmaker: 'Mindmaker', mindmaker_live: 'Mindmaker Live', mm_ctrl: 'CTRL',
+  mindmake: 'Mindmake', publication: 'Publication', mm_ctrl: 'CTRL',
   fractionl_circle: 'Fractionl Circle', fractionl_pulse: 'Fractionl Pulse',
   full_time: 'Full Time', investor: 'Investor',
   meliora: 'Meliora (retired)', adfixus: 'AdFixus (retired)',

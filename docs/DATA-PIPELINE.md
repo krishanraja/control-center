@@ -9,11 +9,11 @@
 > [`PRODUCT.md`](./PRODUCT.md). Schema details live in
 > [`DATABASE.md`](./DATABASE.md). Agent roster + slug-as-key rules live in
 > [`AGENTS.md`](./AGENTS.md). Broader-OS cron topology lives in
-> `MINDMAKER_OS_ARCHITECTURE.md` §8 on the VPS workspace root.
+> `MINDMAKE_OS_ARCHITECTURE.md` §8 on the VPS workspace root.
 
 ## Event-Driven Architecture
 
-Control Center is the dashboard slice of Mindmaker OS. Data flows through
+Control Center is the dashboard slice of mind/make OS. Data flows through
 this loop:
 
 ```
@@ -216,8 +216,8 @@ authoritative; see [`AGENTS.md`](./AGENTS.md) for the full taxonomy.
 {
   "event_type": "deep_enrich_lead",
   "lead_id": "uuid",
-  "primary_venture": "mindmaker",
-  "tags": ["mindmaker_buyer"],
+  "primary_venture": "mindmake",
+  "tags": ["mindmake_buyer"],
   "assignee_agent": "felix"
 }
 ```

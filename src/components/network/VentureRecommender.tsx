@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Sparkles, ArrowRight } from 'lucide-react'
 import { VENTURES } from './NetworkFilters'
 
-// "Who should I talk to for Mindmaker" — the push mode, next to the pull mode.
+// "Who should I talk to for Mindmake" — the push mode, next to the pull mode.
 //
 // Same scorer as search. The venture drives the multiplier and the intent
 // becomes a soft role constraint, so someone with no role recorded but a 90

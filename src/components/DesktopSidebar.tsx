@@ -83,7 +83,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
         <img src="/icon-192.png" alt="" className="w-7 h-7 rounded-md object-cover flex-shrink-0 ring-1 ring-white/10" />
         {expanded && (
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[13px] font-semibold text-white/85 truncate">Mindmaker OS</span>
+            <span className="text-[13px] font-semibold text-white/85 truncate">mind/make OS</span>
             <span className={`w-2 h-2 rounded-full ${dotColor}`} title={dotTitle} />
           </div>
         )}

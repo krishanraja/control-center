@@ -202,9 +202,9 @@ Inline action surface (`InlineActions`):
 
 ### Behaviour rules
 - **`primary_venture` drives the lane, `tags[]` drives ICP / outreach
-  scoring.** A media exec who is both a Mindmaker buyer and a Signal & Noise
-  podcast guest is one row with `tags=['mindmaker_buyer','signal_noise_guest']`
-  and `primary_venture='mindmaker'`.
+  scoring.** A media exec who is both a Mindmake buyer and a Signal & Noise
+  podcast guest is one row with `tags=['mindmake_buyer','signal_noise_guest']`
+  and `primary_venture='mindmake'`.
 - **ICP chips render the per-venture score from `icp_scores` jsonb**, not
   the legacy single-value `icp_score` column.
 - Leads with `assignee_agent` outside Felix's remit are visible to Felix
@@ -325,7 +325,7 @@ Inline action surface (`InlineActions`):
 - Distribution channels (whitelist: `linkedin`, `newsletter`,
   `signal-noise-pod`, `builder-economy-pod`, `x`) are shown as chips.
   `techonomic` is a legacy value on older rows only; the brand was retired
-  2026-08-06 and folded into Mindmaker LIVE.
+  2026-08-06 and folded into Mindmake LIVE.
 
 ---
 
