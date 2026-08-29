@@ -41,13 +41,13 @@ const p1 = sanitizePlan({
   restated: 'CMOs at banks',
   semantic_query: 'a chief marketing officer at a regulated bank',
   keywords: 'chief marketing bank',
-  venture: 'mindmaker',
+  venture: 'mindmake',
   constraints: [
     { field: 'title', values: ['chief marketing'], weight: 1 },
     { field: 'seniority', values: ['founder_cxo'], weight: 0.8 },
   ],
 }, 'raw')
-t('a valid plan survives intact', p1.constraints.length === 2 && p1.venture === 'mindmaker')
+t('a valid plan survives intact', p1.constraints.length === 2 && p1.venture === 'mindmake')
 
 const p2 = sanitizePlan({
   constraints: [

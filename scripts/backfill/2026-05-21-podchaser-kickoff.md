@@ -1,6 +1,6 @@
 # Kick-off — first batch of Podchaser podcasts (2026-05-21)
 
-**One-time job.** Forces a P1 (Monday) run of `Nova | Mindmaker OS |
+**One-time job.** Forces a P1 (Monday) run of `Nova | mind/make OS |
 Closed-Loop PR Engine` so the first wave of podcasts lands in
 `podchaser_podcasts` within minutes of merge, instead of waiting until
 next Monday's natural cron.
@@ -30,7 +30,7 @@ The PR Engine's `Day Router` dispatches on weekday. To force a P1 run on
 a non-Monday, edit the router parameter or just call the workflow with a
 synthetic input. Simplest:
 
-1. Open `Nova | Mindmaker OS | Closed-Loop PR Engine` in N8N.
+1. Open `Nova | mind/make OS | Closed-Loop PR Engine` in N8N.
 2. Open the `Day Router` (n8n-nodes-base.code) node.
 3. Temporarily replace the body with `return [{ json: { pipeline: 'P1' } }];`
 4. Save. Click `Execute Workflow`.

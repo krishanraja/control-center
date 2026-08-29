@@ -10,7 +10,7 @@ export const PIPELINE_WORKSTREAMS = ['beta_cohort', 'podcast_booking', 'advisory
 const GROUP_BADGE: Record<string, string> = {
   'CTRL Beta': 'bg-blue-500/10 border-blue-500/30 text-blue-400',
   'Media':     'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-  'Mindmaker': 'bg-rose-500/10 border-rose-500/30 text-rose-400',
+  'Mindmake': 'bg-rose-500/10 border-rose-500/30 text-rose-400',
   'Audience':  'bg-amber-500/10 border-amber-500/30 text-amber-400',
 }
 

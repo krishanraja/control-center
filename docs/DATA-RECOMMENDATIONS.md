@@ -24,7 +24,7 @@ conversions still fall into `attribution_channel='unknown'` more often
 than they should.
 
 **Recommendation:** Add a lightweight UTM ingestion path on the marketing
-sites (Mindmaker, Mindmaker Live) and an `/api/*`
+sites (Mindmake, Mindmake's publication) and an `/api/*`
 endpoint that lands UTM events into a `marketing_touches` table. Match
 during the Stripe webhook step.
 
@@ -138,7 +138,7 @@ auto-timer, not a manual log).
 
 ### 4.3 External integrations not yet wired into the dashboard
 
-The Mindmaker OS has the following sources but Control Center surfaces
+The mind/make OS has the following sources but Control Center surfaces
 only a subset:
 
 | Source | Already in OS? | In Control Center? | Gap |

@@ -12,8 +12,8 @@ export type CustomerProduct =
   | 'mm_ctrl'
   | 'legibility'
   | 'full_time'
-  | 'mindmaker'
-  | 'mindmaker_live'
+  | 'mindmake'
+  | 'publication'
   | 'tech0nomic'
 
 export interface CustomerRow {
@@ -60,7 +60,7 @@ export interface ProductBucket {
   recent: CustomerRow[]
 }
 
-// mindmaker / mindmaker_live / tech0nomic joined the customer_product enum with
+// mindmake / publication / tech0nomic joined the customer_product enum with
 // the unified audience pipeline (2026-06-03 migration). Leaving them out of this
 // list silently dropped every paid Substack subscriber from totals.paid and
 // totals.mrrUsd (MrrTicker, GlanceHeader, Subscriptions header) while
@@ -69,7 +69,7 @@ const ALL_PRODUCTS: CustomerProduct[] = [
   'gutted', 'onalert', 'merciless',
   'fractionl_circle', 'fractionl_pulse', 'mm_ctrl',
   'legibility', 'full_time',
-  'mindmaker', 'mindmaker_live', 'tech0nomic',
+  'mindmake', 'publication', 'tech0nomic',
 ]
 
 /**
@@ -154,7 +154,7 @@ export function useCustomers() {
 }
 
 // Gutted/On Alert/Merciless were retired from the OS control plane 2026-07-06
-// (see MINDMAKER_OS_ARCHITECTURE.md §21) but historical `customers` rows for
+// (see MINDMAKE_OS_ARCHITECTURE.md §21) but historical `customers` rows for
 // them are preserved, not deleted — labels/accents/tones stay defined so those
 // rows keep rendering their real product name instead of crashing or falling
 // back to the raw enum string.
@@ -167,9 +167,9 @@ export const PRODUCT_LABEL: Record<CustomerProduct, string> = {
   mm_ctrl: 'mm-ctrl',
   legibility: 'Legibility',
   full_time: 'Full Time',
-  mindmaker: 'Mindmaker',
-  mindmaker_live: 'Mindmaker Live',
-  // Retired as a brand 2026-08-06 and folded into Mindmaker LIVE. The enum value
+  mindmake: 'Mindmake',
+  publication: 'Publication',
+  // Retired as a brand 2026-08-06 and folded into Mindmake LIVE. The enum value
   // stays (Postgres enums cannot drop values) and existing rows keep rendering.
   tech0nomic: 'Techonomic (retired)',
 }
@@ -183,8 +183,8 @@ export const PRODUCT_ACCENT: Record<CustomerProduct, string> = {
   mm_ctrl: 'bg-emerald-400',
   legibility: 'bg-blue-400',
   full_time: 'bg-orange-400',
-  mindmaker: 'bg-teal-400',
-  mindmaker_live: 'bg-cyan-400',
+  mindmake: 'bg-teal-400',
+  publication: 'bg-cyan-400',
   tech0nomic: 'bg-indigo-400',
 }
 
@@ -202,8 +202,8 @@ export const PRODUCT_CHIP_TONE: Record<CustomerProduct, string> = {
   mm_ctrl: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
   legibility: 'text-blue-300 bg-blue-500/10 border-blue-500/20',
   full_time: 'text-orange-300 bg-orange-500/10 border-orange-500/20',
-  mindmaker: 'text-teal-300 bg-teal-500/10 border-teal-500/20',
-  mindmaker_live: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
+  mindmake: 'text-teal-300 bg-teal-500/10 border-teal-500/20',
+  publication: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
   tech0nomic: 'text-indigo-300 bg-indigo-500/10 border-indigo-500/20',
 }
 

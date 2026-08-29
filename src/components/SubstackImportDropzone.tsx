@@ -19,7 +19,7 @@ interface PendingFile {
 // 2026-08-06 but its subscriber list is real and still needs folding into the
 // audience. It is a provenance tag on an import, not a live destination.
 const PUBLICATIONS = [
-  { source: 'mindmaker_live', label: 'Mindmaker Live' },
+  { source: 'publication', label: 'Publication' },
   { source: 'tech0nomic', label: 'Techonomic (retired)' },
 ] as const
 
@@ -37,7 +37,7 @@ export function SubstackImportDropzone({ onImported }: Props) {
   const h = useHaptics()
   const [hover, setHover] = useState(false)
   const [files, setFiles] = useState<PendingFile[]>([])
-  const [source, setSource] = useState<typeof PUBLICATIONS[number]['source']>('mindmaker_live')
+  const [source, setSource] = useState<typeof PUBLICATIONS[number]['source']>('publication')
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const send = useCallback(async (fileName: string, csv: string) => {

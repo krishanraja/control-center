@@ -1,5 +1,5 @@
 {
-  "name": "Cleo | Mindmaker OS | Content Idea Capture",
+  "name": "Cleo | mind/make OS | Content Idea Capture",
   "active": false,
   "nodes": [
     {
@@ -105,7 +105,7 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [1460, 400],
-      "credentials": { "supabaseApi": { "id": "supabase-os", "name": "Supabase (Mindmaker OS)" } }
+      "credentials": { "supabaseApi": { "id": "supabase-os", "name": "Supabase (mind/make OS)" } }
     },
     {
       "parameters": {

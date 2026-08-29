@@ -15,7 +15,7 @@ import { supabase } from '../_supabase.js'
  *
  * acquisition_sends carries rendered email bodies + lead PII, so this data is
  * served ONLY through this service-role route — never the anon client. See
- * docs/MINDMAKER_OS_ARCHITECTURE.md sections 4.3 and 11.5.
+ * docs/MINDMAKE_OS_ARCHITECTURE.md sections 4.3 and 11.5.
  */
 
 interface TouchCell {
@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const laneFilter = typeof req.query.lane === 'string' ? req.query.lane : null
 
     // Lane roster comes from config, not venture kind — full_time is
-    // kind='career' and mindmaker is kind='product', so kind can't select.
+    // kind='career' and mindmake is kind='product', so kind can't select.
     const { data: laneCfg } = await supabase
       .from('system_config')
       .select('value')

@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase'
  */
 
 export const GROWTH_KEYS = [
-  'substack_mindmakerlive_total',
+  'substack_publication_total',
   'substack_tech0nomic_total',
   'maven_students',
   'app_paid_subs',

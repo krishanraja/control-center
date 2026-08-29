@@ -20,7 +20,7 @@ import { SYNTHESIS_MODEL } from '../_models.js'
 // (pricing, margin, who pays, build vs buy, competitive position), never model
 // capability for its own sake.
 //
-// Voice is krish-voice + the Mindmaker Live house mandate. The argument order
+// Voice is krish-voice + the Publication house mandate. The argument order
 // is the Signal & Noise rule: steelman the consensus and credit what it gets
 // right BEFORE challenging it, so the piece never wins against a strawman. The
 // investigation traces a mechanism (the Techonomic register, which ships as the
@@ -175,10 +175,10 @@ export async function runAssemble(force = false) {
     loadVoiceBlock(), loadCorpus(), loadRegisterSummary(), loadKrishWeek(weekStart), loadStandingNotes(),
     goalsSpine('choosing what the brief argues this week'),
   ])
-  const channelMandate = corpusForChannel(corpus, 'mindmaker_live', 3000)
+  const channelMandate = corpusForChannel(corpus, 'publication', 3000)
 
   const system = [
-    'You write the Mindmaker Live weekly brief for business leaders making real AI decisions. You write as Krish.',
+    'You write the Publication weekly brief for business leaders making real AI decisions. You write as Krish.',
     voice ? `VOICE:\n${voice}` : '',
     channelMandate ? `CHANNEL MANDATE:\n${channelMandate}` : '',
     standingNotesPrompt(standingNotes),

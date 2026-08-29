@@ -15,7 +15,7 @@ import type { ConsentTier, ContactRow } from '../hooks/useRealtimeContacts'
 // slug → display name + colour tone (border/bg/text triple, matching the
 // existing pill vocabulary in LeadSourcePill).
 const VENTURE_META: Record<string, { label: string; tone: string }> = {
-  mindmaker:       { label: 'Mindmaker',       tone: 'text-violet-300 bg-violet-500/10 border-violet-500/20' },
+  mindmake:       { label: 'Mindmake',       tone: 'text-violet-300 bg-violet-500/10 border-violet-500/20' },
   // Retired July 2026; kept so historical contacts still render a named pill.
   meliora:         { label: 'Meliora (retired)', tone: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' },
   adfixus:         { label: 'AdFixus (retired)', tone: 'text-sky-300 bg-sky-500/10 border-sky-500/20' },

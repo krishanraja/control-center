@@ -1,14 +1,14 @@
 # PR 5: leads multi-tag + venture-aware ICP
 
-Part of the Mindmaker OS rebuild (see `OS-PROGRESS.md` in workspace memory).
+Part of the mind/make OS rebuild (see `OS-PROGRESS.md` in workspace memory).
 
 ## What ships
 
 ### Schema (`scripts/migrations/2026-05-22-pr5-leads-multitag-venture.sql`)
-- New table `venture_registry`: canonical list of ventures one lead can map to. Each row carries `slug` (PK), `display_name`, `kind` (product, podcast, ...), `icp_description`, `scoring_criteria` (jsonb of weights + tier thresholds), `active`, `sort_order`. Seeded with `mindmaker` (product), `signal_noise` (podcast), `builder_economy` (podcast).
+- New table `venture_registry`: canonical list of ventures one lead can map to. Each row carries `slug` (PK), `display_name`, `kind` (product, podcast, ...), `icp_description`, `scoring_criteria` (jsonb of weights + tier thresholds), `active`, `sort_order`. Seeded with `mindmake` (product), `signal_noise` (podcast), `builder_economy` (podcast).
 - `leads` gets three new columns: `tags text[]` (default `{}`), `icp_scores jsonb` (default `{}`, shape `{<venture_slug>: <int 0-100>}`), `primary_venture text` (FK to `venture_registry.slug`, nullable, `ON DELETE SET NULL`).
 - FK constraint `leads_primary_venture_fk` and three new indexes: btree on `(primary_venture, status)`, GIN on `tags`, GIN on `icp_scores`.
-- Backfill: every existing lead (4 rows) gets `primary_venture='mindmaker'`, gets `mindmaker_buyer` appended to `tags`, and the prior `icp_score` is copied into `icp_scores->>'mindmaker'`. Old `icp_score` column is preserved as legacy for one PR cycle, dropped in PR 8.
+- Backfill: every existing lead (4 rows) gets `primary_venture='mindmake'`, gets `mindmake_buyer` appended to `tags`, and the prior `icp_score` is copied into `icp_scores->>'mindmake'`. Old `icp_score` column is preserved as legacy for one PR cycle, dropped in PR 8.
 - Idempotent: every statement uses `IF NOT EXISTS` / `ON CONFLICT DO NOTHING`. Safe to re-run.
 
 ### n8n workflows
@@ -25,13 +25,13 @@ Part of the Mindmaker OS rebuild (see `OS-PROGRESS.md` in workspace memory).
 
 ## Why this matters
 
-The old leads pipeline assumed one ICP per lead and one lane per lead. That is wrong for the Mindmaker fleet: a single Maven cohort grad can be a Mindmaker buyer (Felix's lane) AND a Signal & Noise podcast guest candidate (Nell's lane). Forcing a single assignment loses the cross-venture surface. PR 5 makes lead-to-venture a many-to-many relation: `primary_venture` resolves "who owns the next action", `tags` carry secondary venture surfacing, and `icp_scores` shows per-venture fit so a lead can be promoted into multiple workflows.
+The old leads pipeline assumed one ICP per lead and one lane per lead. That is wrong for the Mindmake fleet: a single Maven cohort grad can be a Mindmake buyer (Felix's lane) AND a Signal & Noise podcast guest candidate (Nell's lane). Forcing a single assignment loses the cross-venture surface. PR 5 makes lead-to-venture a many-to-many relation: `primary_venture` resolves "who owns the next action", `tags` carry secondary venture surfacing, and `icp_scores` shows per-venture fit so a lead can be promoted into multiple workflows.
 
 The Vera Feedback Aggregation workflow is the second half of the feedback loop opened in PR 3: thumbs-down on a lead card writes a `feedback_queue` row, Vera clusters those weekly and proposes corrections that feed into `agents.brief_content`. PR 6 (self-healing) will gate the auto-apply path; for now, corrections land in `proposed` state for human approval via the Org tab's brief editor.
 
 ## Acceptance tests (run post-merge against preview)
 
-1. Drop a lead CSV that contains both Mindmaker-buyer and S&N-guest candidates. The workflow inserts each lead once, with `primary_venture` set, `tags` containing every venture the lead qualified for, and `icp_scores` populated per venture.
+1. Drop a lead CSV that contains both Mindmake-buyer and S&N-guest candidates. The workflow inserts each lead once, with `primary_venture` set, `tags` containing every venture the lead qualified for, and `icp_scores` populated per venture.
 2. The Leads tab on desktop renders one lane per active venture from `venture_registry`. Each lane shows lead count, expands/collapses, and renders LeadCards with chips for venture + per-venture ICP scores.
 3. The Leads tab on mobile groups leads into venture-titled FeedCards. The hero card stays.
 4. Thumbs-down on a lead card writes a `feedback_queue` row with `source_table='leads'`, `agent_id=<assignee>`, and the chosen `reason_code`.

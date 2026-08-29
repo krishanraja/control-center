@@ -18,7 +18,7 @@ import { UTILITY_MODEL } from '../_models.js'
 // Body:
 //   {
 //     source_idea_ids: string[],           // 2..25 cards to fold into one narrative
-//     target_lane: 'mindmaker_live',
+//     target_lane: 'publication',
 //     lane_slot?: string,                  // the format: 'paid' or 'built'
 //     angle_hint?: string,                 // optional: Krish's steer for the take
 //   }
@@ -49,19 +49,19 @@ import { UTILITY_MODEL } from '../_models.js'
 // ContentComposer, eyeball the citations, and accept. The Five Standards
 // autoscore trigger fires on body insert.
 
-// There is one content venture now, Mindmaker Live, with two formats carried in
+// There is one content venture now, Publication, with two formats carried in
 // `lane_slot` (paid, built). Every retired lane maps forward rather than 400ing,
 // so a stale client or an old saved cluster still synthesizes.
 const RETIRED_LANES: Record<string, string> = {
-  techonomic: 'mindmaker_live',
-  makeyourmindup: 'mindmaker_live',
-  mymu: 'mindmaker_live',
-  mindmaker: 'mindmaker_live',
-  signal_noise: 'mindmaker_live',
-  builder_economy: 'mindmaker_live',
-  builder_economy_ig: 'mindmaker_live',
+  techonomic: 'publication',
+  makeyourmindup: 'publication',
+  mymu: 'publication',
+  mindmake: 'publication',
+  signal_noise: 'publication',
+  builder_economy: 'publication',
+  builder_economy_ig: 'publication',
 }
-const VALID_LANES = new Set(['mindmaker_live'])
+const VALID_LANES = new Set(['publication'])
 const MIN_SOURCES = 2
 const MAX_SOURCES = 25
 

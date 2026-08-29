@@ -114,4 +114,4 @@ decisions_waiting view (Triage queue):
 - Scripts: `scripts/backfill-visibility-stubs.ts`, `scripts/triage-existing-guests.ts`
 - UI: `src/components/VisibilityTargetCard.tsx`, `src/hooks/useVisibilityTargets.ts`
 - API: `api/visibility-targets/[id]/enrich-deep.ts`
-- Changelog: `docs/MINDMAKER_OS_ARCHITECTURE.md` §20 (2026-05-26 entry)
+- Changelog: `docs/MINDMAKE_OS_ARCHITECTURE.md` §20 (2026-05-26 entry)

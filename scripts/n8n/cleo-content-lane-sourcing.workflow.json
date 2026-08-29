@@ -1,5 +1,5 @@
 {
-  "name": "Cleo | Mindmaker OS | Content Lane Sourcing",
+  "name": "Cleo | mind/make OS | Content Lane Sourcing",
   "nodes": [
     {
       "name": "Daily 13:00 UTC",
@@ -289,7 +289,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "function rows(nm){const out=[];for(const it of $(nm).all()){const j=it.json;if(Array.isArray(j))out.push(...j);else if(j&&j.data&&Array.isArray(j.data))out.push(...j.data);else if(j&&(j.key||j.id||j.lane))out.push(j);}return out;}\nconst cadence=rows('Get Cadence');const recent=rows('Get Recent Drafts');\nconst DAY=86400000,now=Date.now();\nfunction hasRecent(lane,slot,iv){const c=now-(iv||7)*DAY*0.8;return recent.some(r=>r.lane===lane&&(slot?r.lane_slot===slot:true)&&r.state!=='published'&&r.state!=='dropped'&&r.created_at&&new Date(r.created_at).getTime()>=c);}\nlet due=0;for(const cc of cadence){if(!['overdue','due_soon','no_data'].includes(cc.status))continue;if(hasRecent(cc.lane,cc.slot,cc.interval_days))continue;due++;}\nreturn [{json:{workflow_id:'rRAyEUs7NsY06hFy',workflow_name:'Cleo | Mindmaker OS | Content Lane Sourcing',agent_id:'cleo',run_at:new Date().toISOString(),outcome:'success',outcome_count:due,status:'success',metadata:{lanes_due:due}}}];"
+        "jsCode": "function rows(nm){const out=[];for(const it of $(nm).all()){const j=it.json;if(Array.isArray(j))out.push(...j);else if(j&&j.data&&Array.isArray(j.data))out.push(...j.data);else if(j&&(j.key||j.id||j.lane))out.push(j);}return out;}\nconst cadence=rows('Get Cadence');const recent=rows('Get Recent Drafts');\nconst DAY=86400000,now=Date.now();\nfunction hasRecent(lane,slot,iv){const c=now-(iv||7)*DAY*0.8;return recent.some(r=>r.lane===lane&&(slot?r.lane_slot===slot:true)&&r.state!=='published'&&r.state!=='dropped'&&r.created_at&&new Date(r.created_at).getTime()>=c);}\nlet due=0;for(const cc of cadence){if(!['overdue','due_soon','no_data'].includes(cc.status))continue;if(hasRecent(cc.lane,cc.slot,cc.interval_days))continue;due++;}\nreturn [{json:{workflow_id:'rRAyEUs7NsY06hFy',workflow_name:'Cleo | mind/make OS | Content Lane Sourcing',agent_id:'cleo',run_at:new Date().toISOString(),outcome:'success',outcome_count:due,status:'success',metadata:{lanes_due:due}}}];"
       },
       "id": "3348bb2b-9be8-4211-b53a-866973d77753"
     },

@@ -1,5 +1,5 @@
 // ingest-attribution: the single front door for attribution events from all six
-// Mindmaker apps. Deployed on the OS warehouse project (gojpffsrxybbpbdzzrvs).
+// Mindmake apps. Deployed on the OS warehouse project (gojpffsrxybbpbdzzrvs).
 //
 // Guarded by the x-attribution-secret header (the ONLY warehouse credential the
 // six apps ever hold). Validates the event against the canonical contract and

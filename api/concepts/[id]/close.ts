@@ -3,7 +3,7 @@ import { supabase } from '../../_supabase.js'
 
 // POST /api/concepts/:id/close
 // Thin wrapper over the close_concept(p_concept_id, p_reason, p_decided_by) RPC
-// (see MINDMAKER_OS_ARCHITECTURE §4.8 / §4.10). Records a durable
+// (see MINDMAKE_OS_ARCHITECTURE §4.8 / §4.10). Records a durable
 // concept_decisions row and cascades terminal status across every tagged row
 // (tasks → superseded, leads → closed_lost), emitting status_change_log +
 // audit_log entries. Idempotent: re-closing a concept is safe.

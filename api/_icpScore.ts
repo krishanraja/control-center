@@ -15,22 +15,22 @@ import { SYNTHESIS_MODEL } from './_models.js'
 export interface Lane {
   key: string
   tag: string
-  primaryVenture: 'mindmaker' | 'signal_noise' | 'builder_economy'
+  primaryVenture: 'mindmake' | 'signal_noise' | 'builder_economy'
   dims: Record<string, number>
 }
 
 export const LANES: Lane[] = [
-  { key: 'mindmaker', tag: 'mindmaker_buyer', primaryVenture: 'mindmaker',
+  { key: 'mindmake', tag: 'mindmake_buyer', primaryVenture: 'mindmake',
     dims: { role_fit: 0.30, intent_signals: 0.25, ai_fluency_gap: 0.20, budget_signal: 0.15, audience_overlap: 0.10 } },
-  { key: 'fractional_network', tag: 'fractional_network', primaryVenture: 'mindmaker',
+  { key: 'fractional_network', tag: 'fractional_network', primaryVenture: 'mindmake',
     dims: { role_fit: 0.30, referral_reach: 0.25, ai_delivery_fit: 0.20, independence_signal: 0.15, audience_overlap: 0.10 } },
   { key: 'signal_noise', tag: 'signal_noise_guest', primaryVenture: 'signal_noise',
     dims: { narrative_strength: 0.35, novelty: 0.25, audience_pull: 0.20, availability_signal: 0.10, krish_curiosity: 0.10 } },
   { key: 'builder_economy', tag: 'builder_economy_guest', primaryVenture: 'builder_economy',
     dims: { leverage_score: 0.35, ship_cadence: 0.25, infra_thesis: 0.20, audience_pull: 0.10, krish_curiosity: 0.10 } },
-  { key: 'mm_ctrl_buyer', tag: 'mm_ctrl_buyer', primaryVenture: 'mindmaker',
+  { key: 'mm_ctrl_buyer', tag: 'mm_ctrl_buyer', primaryVenture: 'mindmake',
     dims: { decision_load: 0.30, seniority_fit: 0.25, ai_curiosity: 0.20, budget_signal: 0.15, reachability: 0.10 } },
-  { key: 'ecosystem_partner', tag: 'ecosystem_partner', primaryVenture: 'mindmaker',
+  { key: 'ecosystem_partner', tag: 'ecosystem_partner', primaryVenture: 'mindmake',
     dims: { channel_leverage: 0.35, audience_overlap: 0.25, collaboration_fit: 0.20, reachability: 0.10, krish_curiosity: 0.10 } },
 ]
 
@@ -49,7 +49,7 @@ export interface IcpScoreResult {
   best_score: number
   tier: 'A' | 'B' | 'C'
   icp_score: number
-  primary_venture: 'mindmaker' | 'signal_noise' | 'builder_economy'
+  primary_venture: 'mindmake' | 'signal_noise' | 'builder_economy'
   tags: string[]
   why_relevant: string
   /** Action verb + object: the one move to make on this person now. Empty when
@@ -79,11 +79,11 @@ function recordContext(p: ApolloEnriched): string {
 function buildScoringPrompt(p: ApolloEnriched, webContext?: string): { system: string; user: string } {
   const laneSpec = LANES.map(l => `- ${l.key}: dimensions [${Object.keys(l.dims).join(', ')}]`).join('\n')
   const system = [
-    'You are an ICP analyst for Krish Raja\'s Mindmaker portfolio (AI consulting, builder products, and two podcasts).',
+    'You are an ICP analyst for Krish Raja\'s Mindmake portfolio (AI consulting, builder products, and two podcasts).',
     'Score one prospect against every lane. For EACH lane, score EACH listed dimension 0-100 strictly from the record below.',
     'Be conservative: if a signal is absent from the record, that dimension is LOW (10-30), never invented. High scores (80+) require explicit evidence.',
-    'CRITICAL for the BUYER lanes (mindmaker, mm_ctrl_buyer): the prospect must be a BUYER, not a seller. If their employer is itself an AI/software vendor (company name contains "AI", or industry is software / IT services / artificial intelligence), they are the supply side — score mindmaker and mm_ctrl_buyer 25 or below.',
-    'Lanes: mindmaker = AI-ADOPTION buyers: senior operators or dedicated AI/transformation leaders INSIDE non-vendor operating companies who need help adopting AI. fractional_network = fractional execs / independent advisors who actually DELIVER AI work (referral + co-delivery + buyers); a generic fractional CMO with no AI signal scores low. signal_noise = podcast GUESTS who are credible AI-in-media voices. builder_economy = podcast GUESTS doing something that was IMPOSSIBLE BEFORE AI (a tiny team shipping what used to take many, a net-new AI-native product, novel craft) with real audience/traction; a junior AI engineer at a dev shop scores low. mm_ctrl_buyer = leaders at NON-AI operating companies (manufacturing, healthcare, logistics, professional services, retail) with high decision load who would buy an external decision-clarity product; leaders at AI/software companies score low (they build their own). ecosystem_partner = startup accelerators / VC platforms / communities (NOT government or nonprofit programs) who can channel many buyers or guests.',
+    'CRITICAL for the BUYER lanes (mindmake, mm_ctrl_buyer): the prospect must be a BUYER, not a seller. If their employer is itself an AI/software vendor (company name contains "AI", or industry is software / IT services / artificial intelligence), they are the supply side — score mindmake and mm_ctrl_buyer 25 or below.',
+    'Lanes: mindmake = AI-ADOPTION buyers: senior operators or dedicated AI/transformation leaders INSIDE non-vendor operating companies who need help adopting AI. fractional_network = fractional execs / independent advisors who actually DELIVER AI work (referral + co-delivery + buyers); a generic fractional CMO with no AI signal scores low. signal_noise = podcast GUESTS who are credible AI-in-media voices. builder_economy = podcast GUESTS doing something that was IMPOSSIBLE BEFORE AI (a tiny team shipping what used to take many, a net-new AI-native product, novel craft) with real audience/traction; a junior AI engineer at a dev shop scores low. mm_ctrl_buyer = leaders at NON-AI operating companies (manufacturing, healthcare, logistics, professional services, retail) with high decision load who would buy an external decision-clarity product; leaders at AI/software companies score low (they build their own). ecosystem_partner = startup accelerators / VC platforms / communities (NOT government or nonprofit programs) who can channel many buyers or guests.',
     'Return ONLY strict JSON, no prose, no code fences.',
   ].join(' ')
   const user = [
@@ -146,7 +146,7 @@ export async function scoreProspect(p: ApolloEnriched, opts: { webContext?: stri
     }
     let laneScore = Math.round(sum)
     if (!reachable) laneScore = Math.min(laneScore, UNREACHABLE_CAP)
-    if (vendor && (lane.key === 'mindmaker' || lane.key === 'mm_ctrl_buyer')) laneScore = Math.min(laneScore, 25)
+    if (vendor && (lane.key === 'mindmake' || lane.key === 'mm_ctrl_buyer')) laneScore = Math.min(laneScore, 25)
     icp_scores[lane.key] = laneScore
     dimension_breakdown[lane.key] = brk
   }

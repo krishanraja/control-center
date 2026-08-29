@@ -40,7 +40,7 @@ export const CONSTRAINT_FIELDS = [
   // people with a known country and roughly 4,600.
   'seniority', 'geo', 'country', 'industry', 'company', 'title',
   'roles', 'surface_when', 'reachable_via', 'best_channel',
-  'network_tier', 'confidence', 'primary_venture', 'mindmaker_buyer_family',
+  'network_tier', 'confidence', 'primary_venture', 'mindmake_buyer_family',
 ] as const
 
 // The live portfolio only. AdFixus (retired July 2026) is deliberately absent:
@@ -48,7 +48,7 @@ export const CONSTRAINT_FIELDS = [
 // venture:'adfixus', and re-rank the whole network by a venture Krish no longer
 // runs. Retirement is centralised in _venturePositioning.RETIRED_VENTURES;
 // sanitizePlan also guards against a stale/model-emitted retired slug below.
-const VENTURES = ['mindmaker', 'signal_noise', 'builder_economy'] as const
+const VENTURES = ['mindmake', 'signal_noise', 'builder_economy'] as const
 const ROLES = ['buyer', 'partner', 'introducer', 'guest', 'operator_peer', 'investor', 'hire'] as const
 const SENIORITY = ['founder_cxo', 'vp_director', 'manager_senior', 'ic_unknown'] as const
 const TIERS = ['1_reciprocated', '2_core_network', '3_known_network', '4_owned_network', '5_cold_lead'] as const
@@ -77,7 +77,7 @@ const SYSTEM = `You translate a question about Krish Raja's professional network
 His network is 10,670 resolved people. Each carries: a one-line "who", a "why_them" judgment, a conversational "hook", a risk note, roles, per-venture fit scores, seniority, country, industry, company, title, and a relationship tier.
 
 His ventures:
-- mindmaker — AI advisory, education and products. Buyers are senior operators at non-vendor companies who must build AI capability.
+- mindmake — AI advisory, education and products. Buyers are senior operators at non-vendor companies who must build AI capability.
 - signal_noise — a B2B/AI go-to-market podcast. Needs guests with a real operator story.
 - builder_economy — building in the age of AI. Community, cohort and audience.
 

@@ -10,7 +10,7 @@ Setup: in-IDE browser, https://controlcenter.krishraja.com, access code `gosell`
 
 ### State machine / data honesty
 
-- **OBS-001 [P0] [P-1, P-8]** — 11 cards sit in `review` state with empty bodies. Visible on mobile as 11 cards in the "AWAITING YOU" tier, each saying "no draft yet · Open →". Verified on the card `ed8cf84c-6fe2-459e-8d86-834969923a38` (header reads `MINDMAKER · REVIEW · 0 words · saved`). The promotion to `review` fires without checking `length(body)`. This is the user's stated #1 complaint about auto-classification.
+- **OBS-001 [P0] [P-1, P-8]** — 11 cards sit in `review` state with empty bodies. Visible on mobile as 11 cards in the "AWAITING YOU" tier, each saying "no draft yet · Open →". Verified on the card `ed8cf84c-6fe2-459e-8d86-834969923a38` (header reads `MINDMAKE · REVIEW · 0 words · saved`). The promotion to `review` fires without checking `length(body)`. This is the user's stated #1 complaint about auto-classification.
 - **OBS-002 [P0] [P-1]** — The mobile "READY FOR YOU" tier is filled with those empty `review` cards. The promise of the tier is "things ready for your sign-off"; the data is "things mis-classified into review". The tier is lying.
 - **OBS-013 [P1] [P-1, P-3]** — Desktop Composer header shows a `voice ok` pill on a 0-word document. Voice-ok of a void is meaningless. The pill should be hidden until there is something to be ok about.
 - **OBS-008 [P1] [P-14]** — Em dashes ship through to many existing bodies. Some cards carry the `⚠ em dash` chip; many with em dashes do not. `sanitizeVoice()` lands on new writes only; rest data is dirty. The inconsistency is worse than uniform dirtiness because Krish trusts the absence of a warning.

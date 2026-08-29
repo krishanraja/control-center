@@ -46,7 +46,7 @@ mandate. Stored as `agents.brief_content`. Rendered to
 **Blocker** — A task with `status='blocked'` whose progress depends on
 an external action. Blockers age and are surfaced on Home / Today.
 
-**Built** — One of the two Mindmaker Live formats: conversations with
+**Built** — One of the two Mindmake's publication formats: conversations with
 people who have actually built something with AI, dug past what they
 built to why they really built it. Carries the builder economy thesis.
 Corpus key `built`. It replaced the Builder Economy podcast brand, which
@@ -70,7 +70,7 @@ N8N workflows directly. Has `expected_runs_per_day = null`. A coordinator
 with no `workflow_runs` is expected, not broken.
 
 **Control Center** — This product. The CEO-facing dashboard for
-Mindmaker OS. Previously known as "org-os-dashboard" (name banned).
+mind/make OS. Previously known as "org-os-dashboard" (name banned).
 
 **Corrections** — Rows in the `corrections` table. Patterns Vera
 extracts from `feedback_queue` (≥3 matches, confidence > 0.8) or from
@@ -237,9 +237,9 @@ what the agent is allowed and required to do.
 (Mon/Wed/Fri + Sunday deep) and writes the daily brief, Friday retro,
 and Monday pre-mortem.
 
-**Mindmaker OS** — The broader autonomous-organisation platform Control
+**mind/make OS** — The broader autonomous-organisation platform Control
 Center is the dashboard for. Canonical architecture lives in
-`MINDMAKER_OS_ARCHITECTURE.md` on the VPS workspace root.
+`MINDMAKE_OS_ARCHITECTURE.md` on the VPS workspace root.
 
 **Meter (usage meter)** — `meter_daily`, one row per provider × unit ×
 day × sub-dimension, answering which unit of the OS spent the money where
@@ -432,16 +432,16 @@ cannot be checked. Excluded from the worst-component overall rollup.
 ## V
 
 **Venture** — A business project. The legacy `ventures` table holds 9
-rows, 3 active (`mindmaker`, `mindmaker-live`, `fractionl`) and 6
+rows, 3 active (`mindmake`, `mindmake-live`, `fractionl`) and 6
 archived. Read `status` rather than assuming every row is live. Meliora,
 Gutted and Merciless were retired in July 2026 and have no rows.
 Techonomic retired 2026-08-06; Builder Economy, Signal & Noise and MYMU
 stopped being ventures on 2026-08-11 (see **Venture Registry**).
 
 **Venture Registry** — The canonical `venture_registry` table: 12 rows,
-7 active (`mindmaker`, `mindmaker_live`, `mm_ctrl`, `fractionl_circle`,
+7 active (`mindmake`, `publication`, `mm_ctrl`, `fractionl_circle`,
 `fractionl_pulse`, `full_time`, `investor`) and 5 inactive (`mymu`
-having been renamed to `mindmaker_live`, plus `builder_economy`,
+having been renamed to `publication`, plus `builder_economy`,
 `signal_noise`, `legibility`, `adfixus`, `meliora`). It drives multi-tag
 leads and per-venture lanes. Inactive rows are kept, never deleted, so
 historical contacts and leads still resolve their pill; what they must

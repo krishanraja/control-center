@@ -405,7 +405,7 @@ async function main() {
       surface_when: jsonArray(r.surface_when),
       venture_scores: jsonObject(r.venture_scores),
       primary_venture: r.primary_venture && r.primary_venture !== 'none' ? r.primary_venture : null,
-      mindmaker_buyer_family: r.mindmaker_buyer_family && r.mindmaker_buyer_family !== 'none' ? r.mindmaker_buyer_family : null,
+      mindmake_buyer_family: r.mindmake_buyer_family && r.mindmake_buyer_family !== 'none' ? r.mindmake_buyer_family : null,
       network_tier: tier,
       tier_weight: int(r.tier_weight) ?? 0,
       priority: num(r.priority),

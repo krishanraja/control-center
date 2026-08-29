@@ -84,7 +84,7 @@ rule exists because:
 1. Manual deploys drift from `main` — the deployed code stops matching
    what's in git, which makes rollback ambiguous.
 2. Manual deploys skip the CI gate.
-3. The OS architecture (`MINDMAKER_OS_ARCHITECTURE.md` §4) treats the
+3. The OS architecture (`MINDMAKE_OS_ARCHITECTURE.md` §4) treats the
    commit on `main` as the deploy receipt.
 
 If a deploy is wedged and pushing a fresh commit doesn't work, talk to

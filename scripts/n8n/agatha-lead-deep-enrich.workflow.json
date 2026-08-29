@@ -68,7 +68,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: 'You re-score a Mindmaker sales lead given fresh public context. Return ONLY a JSON object with keys: fit_score (int 0-10), icp_score (int 0-10), attainability_score (int 0-10), why_relevant (string, 1 sentence), primary_tension (string, 1 sentence), next_step (string, action verb + object). Buyer profile: senior leaders at mid/large media + advertising + commerce orgs.', messages: [{ role: 'user', content: 'Lead: ' + JSON.stringify($('Fetch Lead').item.json) + '\\n\\nBrave results:\\n' + JSON.stringify(($json.web?.results || []).slice(0,3)) }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: 'You re-score a Mindmake sales lead given fresh public context. Return ONLY a JSON object with keys: fit_score (int 0-10), icp_score (int 0-10), attainability_score (int 0-10), why_relevant (string, 1 sentence), primary_tension (string, 1 sentence), next_step (string, action verb + object). Buyer profile: senior leaders at mid/large media + advertising + commerce orgs.', messages: [{ role: 'user', content: 'Lead: ' + JSON.stringify($('Fetch Lead').item.json) + '\\n\\nBrave results:\\n' + JSON.stringify(($json.web?.results || []).slice(0,3)) }] }) }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth"
       },

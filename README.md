@@ -1,8 +1,8 @@
 # Control Center
 
-The single pane of glass for **Mindmaker OS**, the fleet of AI agents that
-runs Krish Raja's business portfolio (Mindmaker, Fractionl, mm-ctrl, plus
-the content venture Mindmaker Live, whose two formats are Paid and Built).
+The single pane of glass for **mind/make OS**, the fleet of AI agents that
+runs Krish Raja's business portfolio (Mindmake, Fractionl, mm-ctrl, plus
+the content venture Mindmake's publication, whose two formats are Paid and Built).
 AdFixus and OnAlert are archived; Meliora, Gutted and Merciless were
 retired in July 2026.
 
@@ -21,7 +21,7 @@ webhook).
 
 The repo does *not* contain the agents themselves. Agents are 14 Supabase
 rows (`agents.brief_content`) plus ~76 N8N workflows; they live in the
-broader Mindmaker OS, hosted on a VPS and N8N Cloud. The Control Center is
+broader mind/make OS, hosted on a VPS and N8N Cloud. The Control Center is
 the dashboard slice. See [§Place in the broader OS](#place-in-the-broader-os).
 
 ### Sibling application: COMPOUND
@@ -170,10 +170,10 @@ vercel.json                 Vite framework, SPA rewrites, /api/* routing
 
 ## Place in the broader OS
 
-The repo is one of three things you read together to understand Mindmaker
+The repo is one of three things you read together to understand Mindmake
 OS:
 
-1. **`MINDMAKER_OS_ARCHITECTURE.md`** (workspace root on the VPS, not in
+1. **`MINDMAKE_OS_ARCHITECTURE.md`** (workspace root on the VPS, not in
    this repo) — the canonical end-to-end architecture: agent fleet,
    Supabase schema (~60 tables), data flows, self-healing tiers, cron
    topology, portfolio context. Read this if you want to understand the OS.
@@ -184,7 +184,7 @@ OS:
    `~/.openclaw/skills/agent-{id}/SKILL.md` on the VPS) — what each agent
    is and what it does. Edit these in the DB, not the rendered files.
 
-If anything in this repo's docs contradicts `MINDMAKER_OS_ARCHITECTURE.md`,
+If anything in this repo's docs contradicts `MINDMAKE_OS_ARCHITECTURE.md`,
 **the OS architecture doc wins** and this repo's doc is stale. File an
 issue.
 
@@ -206,4 +206,4 @@ issue.
 
 ## License
 
-Proprietary. Krish Raja / Mindmaker.
+Proprietary. Krish Raja / Mindmake.

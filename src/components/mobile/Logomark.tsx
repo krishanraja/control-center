@@ -1,7 +1,7 @@
 import React from 'react'
 
 /**
- * The Mindmaker mark — the two-monument logo: a tall, full-width roof over a
+ * The Mindmake mark — the two-monument logo: a tall, full-width roof over a
  * square base on the right, and a shorter roof set to the right of a square base
  * on the left, all carrying the brand's diagonal grey→pink gradient. This is the
  * REAL icon (see /favicon.png · /icon-192.png · /icon-512.png), reproduced 1:1
@@ -23,7 +23,7 @@ export function Logomark({ size = 36 }: { size?: number }) {
       className="inline-flex items-center justify-center rounded-[26%] bg-[#0d0a12] ring-1 ring-white/[0.12] shadow-[0_1px_3px_rgba(0,0,0,0.35)]"
       style={{ width: size, height: size }}
       role="img"
-      aria-label="Mindmaker"
+      aria-label="Mindmake"
     >
       <svg width={w} height={h} viewBox="0 0 540 466" fill="none" aria-hidden>
         <defs>

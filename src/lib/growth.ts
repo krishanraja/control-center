@@ -8,7 +8,7 @@
  * will reject.
  */
 
-export type ProductSlug = 'ctrl' | 'circle' | 'pulse' | 'full-time' | 'mindmaker'
+export type ProductSlug = 'ctrl' | 'circle' | 'pulse' | 'full-time' | 'mindmake'
 export type Channel =
   | 'seo' | 'geo' | 'social_organic' | 'social_paid' | 'substack'
   | 'partner' | 'community' | 'product' | 'podcast' | 'maven'
@@ -85,14 +85,14 @@ export interface SocialAccountRow {
   notes: string | null
 }
 
-export const PRODUCTS: ProductSlug[] = ['ctrl', 'circle', 'pulse', 'full-time', 'mindmaker']
+export const PRODUCTS: ProductSlug[] = ['ctrl', 'circle', 'pulse', 'full-time', 'mindmake']
 
 export const PRODUCT_LABEL: Record<ProductSlug, string> = {
   ctrl: 'mm-ctrl',
   circle: 'Fractionl Circle',
   pulse: 'Fractionl Pulse',
   'full-time': 'Full Time',
-  mindmaker: 'Mindmaker',
+  mindmake: 'Mindmake',
 }
 
 // Hue family matches the Subscriptions tab so one product wears one colour
@@ -102,7 +102,7 @@ export const PRODUCT_TONE: Record<ProductSlug, string> = {
   circle: 'text-violet-300 bg-violet-500/10 border-violet-500/20',
   pulse: 'text-sky-300 bg-sky-500/10 border-sky-500/20',
   'full-time': 'text-orange-300 bg-orange-500/10 border-orange-500/20',
-  mindmaker: 'text-amber-300 bg-amber-500/10 border-amber-500/20',
+  mindmake: 'text-amber-300 bg-amber-500/10 border-amber-500/20',
 }
 
 export const CHANNELS: Channel[] = [

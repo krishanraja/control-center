@@ -2,7 +2,7 @@
 
 **Where this lives:** `agents.brief_content` for `agent_id = 'marcus'` in Supabase
 (rendered to `/root/.openclaw/skills/agent-marcus/SKILL.md` by `render-identity.py`).
-The N8N workflow that writes `home_intelligence` is `Marcus | Mindmaker OS | Synthesis + Home Intelligence`.
+The N8N workflow that writes `home_intelligence` is `Marcus | mind/make OS | Synthesis + Home Intelligence`.
 
 **Why this patch exists:** Marcus's "Top blockers" synthesis was collapsing empty
 system-health rows into action items. The Control Center Today tab was

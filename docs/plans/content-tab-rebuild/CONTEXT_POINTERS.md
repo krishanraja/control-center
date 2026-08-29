@@ -99,7 +99,7 @@ Plus terminal: `dropped`, `absorbed` (folded into a synthesized narrative). Buri
 
 | Workflow | ID | Trigger | What it does |
 |---|---|---|---|
-| `Cleo \| Mindmaker OS \| Omnichannel Content Factory` | `AnhkJrJBvmohfqjJ` | Webhook `/webhook/content-factory` | Save Draft fires this. Assembles channel-specific draft, writes Google Doc, pings @krish_approvals_bot. **Do not touch in this rebuild.** |
+| `Cleo \| mind/make OS \| Omnichannel Content Factory` | `AnhkJrJBvmohfqjJ` | Webhook `/webhook/content-factory` | Save Draft fires this. Assembles channel-specific draft, writes Google Doc, pings @krish_approvals_bot. **Do not touch in this rebuild.** |
 | `Cleo \| Capture Idea Webhook` | (see n8n) | Webhook | The Capture (`⌘I`) ingest path. |
 | `Cleo \| Newsletter Sweep` | (see n8n) | Schedule | Periodic ingest. |
 | `Cleo \| Content Idea Capture` | (see n8n) | Schedule | Sonnet 4.6 classification of inbound captures. |
@@ -126,4 +126,4 @@ Plus terminal: `dropped`, `absorbed` (folded into a synthesized narrative). Buri
 |---|---|
 | `krish-voice` (`~/.openclaw/skills/krish-voice/SKILL.md`) | Voice rules V-001..V-007. Mandatory read before any outbound copy edit. |
 | `content-corpus` (`~/.openclaw/skills/content-corpus/SKILL.md`) | Per-format mandate (Paid / Built, plus the Signal & Noise channel and the Maven free-lessons surface, including the long-form investigation format) + Five Standards. The Techonomic playbook is retired (2026-08-06); the VPS copy still carries the old heading. |
-| `mindmaker-os` (this repo's `docs/MINDMAKER_OS_ARCHITECTURE.md`) | §5.7 is the Content Engine spec; §5.6 is the Focus System. |
+| `mindmake-os` (this repo's `docs/MINDMAKE_OS_ARCHITECTURE.md`) | §5.7 is the Content Engine spec; §5.6 is the Focus System. |

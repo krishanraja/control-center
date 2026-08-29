@@ -1,7 +1,7 @@
 # Apollo Credit Burn-Down (interim, non-n8n)
 
 > **HISTORICAL (2026-07-10):** advisory sales were retired 2026-07-10 and REOPENED 2026-08-05 under a new thesis; the
-> `mindmaker_buyer` lane and this Apollo burn-down are no longer live. Kept for
+> `mindmake_buyer` lane and this Apollo burn-down are no longer live. Kept for
 > the record.
 
 Why this exists: there's a standing Apollo balance (~1642 credits) and the n8n
@@ -66,14 +66,14 @@ burn. The 50 exist to prove the rubric before the budget is committed.
 | Date | Mode | Lanes | Revealed (credits) | Inserted (>=70) | Notes |
 |---|---|---|---|---|---|
 | 2026-06-20 | test v1 | all 6 | 45 | 17 | First gate run. Exposed the 8 calibration failures (vendor-keyword trap, mm_ctrl wrong audience, builder no-audience-signal, match-by-id, no *_norm cols). |
-| 2026-06-20 | validation v2 | mindmaker, mm_ctrl, builder | 37 | 20 | Corrected filters. mindmaker 11/15 (real in-house transformation buyers), mm_ctrl 8/12 (construction/mfg/logistics ops leaders), builder 1/7 (needs a web/audience pass). |
-| 2026-06-20 | scale | mindmaker, mm_ctrl | ~480 | 125 | Big run on the two validated revenue lanes. 480 scored, 431 verified emails, 125 cleared >=70. All are Heads of AI/Digital Transformation, CDOs, CIOs, and ops Presidents/COOs at non-vendor operating companies (Masimo, Swiss Re, Volkswagen FS, Bloomsbury, Lufkin, Alta Equipment, ...). |
+| 2026-06-20 | validation v2 | mindmake, mm_ctrl, builder | 37 | 20 | Corrected filters. mindmake 11/15 (real in-house transformation buyers), mm_ctrl 8/12 (construction/mfg/logistics ops leaders), builder 1/7 (needs a web/audience pass). |
+| 2026-06-20 | scale | mindmake, mm_ctrl | ~480 | 125 | Big run on the two validated revenue lanes. 480 scored, 431 verified emails, 125 cleared >=70. All are Heads of AI/Digital Transformation, CDOs, CIOs, and ops Presidents/COOs at non-vendor operating companies (Masimo, Swiss Re, Volkswagen FS, Bloomsbury, Lufkin, Alta Equipment, ...). |
 
-**Running total:** 562 credits spent this session (2205/2500 consumed), **295 left** (resets 2026-06-25). **162 Apollo leads** in the Leads tab (mm_ctrl-tagged 140, mindmaker-tagged 135; multi-tag overlap).
+**Running total:** 562 credits spent this session (2205/2500 consumed), **295 left** (resets 2026-06-25). **162 Apollo leads** in the Leads tab (mm_ctrl-tagged 140, mindmake-tagged 135; multi-tag overlap).
 
-**Observed at scale:** `mm_ctrl_buyer` almost never *wins* best-lane vs `mindmaker_buyer` (its `ai_curiosity` dimension drags traditional-industry leaders down), so those prospects carry both tags but `primary_venture=mindmaker`. The fix (swap `ai_curiosity` -> `ops_complexity`) is logged below.
+**Observed at scale:** `mm_ctrl_buyer` almost never *wins* best-lane vs `mindmake_buyer` (its `ai_curiosity` dimension drags traditional-industry leaders down), so those prospects carry both tags but `primary_venture=mindmake`. The fix (swap `ai_curiosity` -> `ops_complexity`) is logged below.
 
 **Open calibration items for the next pass:**
 - `builder_economy` needs a web/social enrichment pass (Exa/Perplexity) for audience + novelty — Apollo alone can't tell a landmark guest from a generic AI founder.
 - `mm_ctrl_buyer` dimension `ai_curiosity` (0.20) penalizes exactly the traditional-industry leaders CTRL is for; consider swapping it for an `ops_complexity` signal.
-- `mindmaker_buyer` enterprise CIO/CDO profile is adjacent to Meliora/AdFixus more than the SMB/founder core Mindmaker ICP; may warrant a sub-lane split.
+- `mindmake_buyer` enterprise CIO/CDO profile is adjacent to Meliora/AdFixus more than the SMB/founder core Mindmake ICP; may warrant a sub-lane split.

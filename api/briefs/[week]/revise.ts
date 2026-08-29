@@ -76,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const system = [
     humour
       ? buildHumourSystem({ register: b.value as string, voice, channelCorpus: '', materialsBlock: '' })
-      : 'You edit the Mindmaker Live weekly brief. You write as Krish, for business leaders.',
+      : 'You edit the the publication weekly brief. You write as Krish, for business leaders.',
     humour ? '' : (voice ? `VOICE:\n${voice}` : ''),
     humour ? '' : VOICE_GUARDRAILS,
     standingNotesPrompt(standingNotes),

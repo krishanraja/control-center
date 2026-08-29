@@ -44,7 +44,7 @@ export function ContactImportDropzone({ onIngested }: Props) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   // Provenance form state — required before any import is allowed.
-  const [originVenture, setOriginVenture] = useState<string>('mindmaker')
+  const [originVenture, setOriginVenture] = useState<string>('mindmake')
   const [originCampaign, setOriginCampaign] = useState<string>('')
   const [consentTier, setConsentTier] = useState<ConsentTier>('permissioned')
 

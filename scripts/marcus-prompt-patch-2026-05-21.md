@@ -2,7 +2,7 @@
 
 **Target:** the brief_content for the `marcus` row in `agents`
 (populates the Marcus synthesis prompt loaded by the N8N workflow
-`Marcus | Mindmaker OS | Synthesis + Home Intelligence`, id `TI1ozQbPtI69qlgO`).
+`Marcus | mind/make OS | Synthesis + Home Intelligence`, id `TI1ozQbPtI69qlgO`).
 
 ## Why
 
@@ -77,7 +77,7 @@ include the following keys in addition to the existing `signal`, `source`,
   "event_id": "5b3c8a9d-aaaa-4321-bbbb-1234567890ab",
   "urgency": "high",
   "days_until": 11,
-  "relevance": "Mindmaker sells AI literacy to senior leaders. This stage puts Krish in front of the exact buyer profile.",
+  "relevance": "Mindmake sells AI literacy to senior leaders. This stage puts Krish in front of the exact buyer profile.",
   "recommended_action": "Agatha unblocks Nova on this proposal today."
 }
 ```

@@ -39,7 +39,7 @@ const RETIRED_CHANNELS: Record<string, string> = {
   techonomic: 'paid',
   makeyourmindup: 'paid',
   mymu: 'paid',
-  mindmaker_live: 'paid',
+  publication: 'paid',
   mymu_weekly: 'paid',
   investigation: 'paid',
   builder_economy: 'built',
@@ -73,10 +73,10 @@ interface FinalPassShip {
 // caught them on the way out.
 function laneToChannel(lane?: string | null, slot?: string | null): string {
   // The live model: one venture, two formats carried in the slot.
-  if (lane === 'mindmaker_live') return slot === 'built' ? 'built' : 'paid'
+  if (lane === 'publication') return slot === 'built' ? 'built' : 'paid'
   if (lane === 'signal_noise') return 'signal_noise'
   // Legacy stored lanes, mapped forward and never rejected.
-  if (lane === 'mindmaker') return slot === 'field_learning' ? 'linkedin' : 'paid'
+  if (lane === 'mindmake') return slot === 'field_learning' ? 'linkedin' : 'paid'
   if (lane === 'builder_economy_ig' || lane === 'builder_economy') return 'built'
   if (lane === 'techonomic' || lane === 'makeyourmindup' || lane === 'mymu') return 'paid'
   return 'dynamic'

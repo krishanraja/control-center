@@ -77,9 +77,9 @@ await supabase
 await supabase
   .from('leads')
   .select('*')
-  .eq('primary_venture', 'mindmaker')
+  .eq('primary_venture', 'mindmake')
   .is('promoted_task_id', null)
-  .order('icp_scores->mindmaker', { ascending: false })
+  .order('icp_scores->mindmake', { ascending: false })
 
 // Schedule follow-up
 await supabase

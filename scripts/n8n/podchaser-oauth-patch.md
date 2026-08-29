@@ -1,6 +1,6 @@
 # N8N patch — Podchaser OAuth token grant
 
-**Target workflow:** `Nova | Mindmaker OS | Closed-Loop PR Engine`
+**Target workflow:** `Nova | mind/make OS | Closed-Loop PR Engine`
 (id `hCbvRXoGWaqG1Znx`)
 
 ## Why

@@ -11,7 +11,7 @@ Patched by `scripts/migrations/2026-05-21-home-intelligence-customer-signals.sql
 
 ## Gap 2: workflow nodes didn't pass `customer_signals` through
 
-Marcus's N8N workflow `TI1ozQbPtI69qlgO` (`Marcus | Mindmaker OS | Synthesis
+Marcus's N8N workflow `TI1ozQbPtI69qlgO` (`Marcus | mind/make OS | Synthesis
 + Home Intelligence`) had three nodes that needed updates so the LLM-emitted
 field actually persisted:
 

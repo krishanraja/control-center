@@ -4,7 +4,7 @@ import { researchBrief } from '../../_enrich.js'
 
 // POST /api/contacts/:id/enrich
 // One-click, opt-in deep research for a single Relationship Engine contact.
-// Default path queues the contact for the "Mindmaker OS | RE Dossier Engine"
+// Default path queues the contact for the "mind/make OS | RE Dossier Engine"
 // workflow (5-pass dossier). With { mode: 'direct' } it instead builds a research
 // brief directly (Perplexity + Claude) and writes a minimal, dossier-compatible
 // shape so outreach drafting still has grounding when n8n is unavailable.

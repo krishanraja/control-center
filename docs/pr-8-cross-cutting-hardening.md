@@ -1,6 +1,6 @@
 # PR 8: cross-cutting hardening + agent brief edits + deprecated drops
 
-Part of the Mindmaker OS rebuild (see `OS-PROGRESS.md` in workspace memory). This is the last sequenced PR.
+Part of the mind/make OS rebuild (see `OS-PROGRESS.md` in workspace memory). This is the last sequenced PR.
 
 ## What ships
 

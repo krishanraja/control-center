@@ -42,7 +42,7 @@ catch it:
 
 The promise: **same silent failure does not survive a week.** Control
 Center surfaces the output but does not run these — they live in the OS
-infrastructure (see `MINDMAKER_OS_ARCHITECTURE.md` §7.7).
+infrastructure (see `MINDMAKE_OS_ARCHITECTURE.md` §7.7).
 
 ---
 

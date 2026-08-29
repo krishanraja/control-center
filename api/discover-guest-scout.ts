@@ -91,7 +91,7 @@ async function loadBriefs(): Promise<FormatBrief[]> {
   const { data } = await supabase
     .from('venture_formats')
     .select('slug,label,mandate,active')
-    .eq('venture_slug', 'mindmaker_live')
+    .eq('venture_slug', 'publication')
     .eq('active', true)
 
   const byslug = new Map<string, { label: string; mandate: string }>()
@@ -178,7 +178,7 @@ interface Draft { why_fit: string; angles: string[]; pitch: string; format?: str
 
 function scoutSystem(brief: FormatBrief): string {
   return (
-    `You help Krish Raja scout guests for Mindmaker Live's ${brief.label} format. ` +
+    `You help Krish Raja scout guests for the publication's ${brief.label} format. ` +
     `THE MANDATE FOR THIS FORMAT: ${brief.mandate} ` +
     'Krish runs a meandering, unscripted conversation: he opens broad, reflects back, and reframes the ' +
     "guest's story into a portable idea. He is warm, curious, lightly cynical about AI hype, " +
@@ -398,7 +398,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           email: c.email,
           format: resolvedFormat,
           // podcast_target is the retired show axis. Everything now publishes
-          // under Mindmaker Live, so 'either' is the only honest value and
+          // under the publication, so 'either' is the only honest value and
           // `format` carries the real distinction.
           podcast_target: 'either',
           target_type: 'podcast_guest',

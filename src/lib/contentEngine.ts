@@ -299,7 +299,7 @@ export const TONE_PRESETS: AxisOption[] = [
 
 export const LENGTH_PRESETS: AxisOption[] = [
   { value: 'short', label: 'Short (LinkedIn)', hint: 'Cut to 150-250 words. Scroll-stopping claim or scene first. No hook-line-gap-explanation pattern.' },
-  { value: 'mid', label: 'Mid (Built)', hint: 'Tighten to ~400-700 words. Teaching voice, every paragraph advances the argument, each item carries a so-what.' },
+  { value: 'mid', label: 'Mid (Built with AI)', hint: 'Tighten to ~400-700 words. Teaching voice, every paragraph advances the argument, each item carries a so-what.' },
   { value: 'long', label: 'Full essay', hint: 'Expand to a 600-1000 word investigative essay. Slower structural open that earns the depth, take the claim apart and check each part against dated evidence, hold one genuine counterpoint, say where the knowable ends, end on a hard verdict. No summary ending.' },
 ]
 
@@ -350,7 +350,7 @@ export const ITERATE_CHIPS: AxisOption[] = [
 export interface LaneDef {
   /** lane key as stored on content_ideas.lane and in system_config */
   lane: string
-  /** optional slot for lanes that have one (mindmaker) */
+  /** optional slot for lanes that have one (mindmake) */
   slot?: string
   label: string
   gear: 'A' | 'B'
@@ -369,7 +369,7 @@ export interface LaneDef {
 // venture again.
 //
 // REFOCUS 2026-08-11. All content now publishes under ONE media venture,
-// Mindmaker Live, the content arm of the Mindmaker advisory, at
+// the publication, the content arm of the Mindmake advisory, at
 // live.themindmaker.ai. It has exactly two signature formats:
 //   PAID   the investigation, folding in Techonomic's investigative register
 //   BUILT  builder conversations, folding in the Builder Economy thesis
@@ -379,13 +379,13 @@ export interface LaneDef {
 //     so it is absent from this file by design.
 //   - Builder Economy. Fully retired, feed and all.
 //   - Signal & Noise. Demoted from venture to distribution CHANNEL: it is a
-//     co-hosted feed that carries Mindmaker Live material. Nothing is
+//     co-hosted feed that carries the publication material. Nothing is
 //     commissioned "for" it, which is why it now sits in MEDIA_CHANNELS.
 
 /** Media ventures: the ones that produce content. Mirrors venture_registry
  *  where kind='media'. Product ventures (mm_ctrl, fractionl_circle,
  *  fractionl_pulse, full_time) also publish, but through this one. */
-export type MediaVenture = 'mindmaker_live'
+export type MediaVenture = 'publication'
 
 export interface VentureFormat {
   venture: MediaVenture
@@ -400,12 +400,12 @@ export interface VentureFormat {
 /** Mirrors the `venture_formats` table. The composer picks one of these AFTER
  *  the venture and BEFORE the channels. */
 export const VENTURE_FORMATS: VentureFormat[] = [
-  { venture: 'mindmaker_live', slot: 'paid', label: 'Paid', hero: true, gear: 'A', corpusKey: 'paid' },
-  { venture: 'mindmaker_live', slot: 'built', label: 'Built', gear: 'B', corpusKey: 'built' },
+  { venture: 'publication', slot: 'money_of_ai', label: 'The Money of AI', hero: true, gear: 'A', corpusKey: 'money_of_ai' },
+  { venture: 'publication', slot: 'built_with_ai', label: 'Built with AI', gear: 'B', corpusKey: 'built_with_ai' },
 ]
 
 export const MEDIA_VENTURES: { value: MediaVenture; label: string }[] = [
-  { value: 'mindmaker_live', label: 'Mindmaker Live' },
+  { value: 'publication', label: 'the publication' },
 ]
 
 export function formatsForVenture(v?: string | null): VentureFormat[] {
@@ -436,8 +436,8 @@ export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: bo
 
 /** Default distribution per format, so the composer pre-ticks the sane set. */
 export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
-  'mindmaker_live:paid': ['substack', 'linkedin'],
-  'mindmaker_live:built': ['substack', 'instagram', 'youtube', 'signal_noise'],
+  'publication:money_of_ai': ['substack', 'linkedin'],
+  'publication:built_with_ai': ['substack', 'instagram', 'youtube', 'signal_noise'],
 }
 
 // The factory channel is what the Omnichannel Content Factory polishes INTO.
@@ -456,8 +456,8 @@ export type FactoryChannel =
   | 'vertical_video' | 'dynamic'
 
 export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
-  { value: 'paid', label: 'Paid' },
-  { value: 'built', label: 'Built' },
+  { value: 'paid', label: 'The Money of AI' },
+  { value: 'built', label: 'Built with AI' },
   { value: 'linkedin', label: 'LinkedIn' },
   { value: 'signal_noise', label: 'Signal & Noise' },
   { value: 'vertical_video', label: 'Vertical Video' },
@@ -467,8 +467,8 @@ export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
 // which is why 'builder_economy_ig' is gone: Instagram was a channel wearing a
 // venture's clothes, and it now lives in MEDIA_CHANNELS where it belongs.
 export const LANES: LaneDef[] = [
-  { lane: 'mindmaker_live', slot: 'paid', label: 'Paid', gear: 'A', factoryChannel: 'paid' },
-  { lane: 'mindmaker_live', slot: 'built', label: 'Built', gear: 'B', factoryChannel: 'built' },
+  { lane: 'publication', slot: 'money_of_ai', label: 'The Money of AI', gear: 'A', factoryChannel: 'paid' },
+  { lane: 'publication', slot: 'built_with_ai', label: 'Built with AI', gear: 'B', factoryChannel: 'built' },
 ]
 
 // ── Adapt-to-lane (composer Refine) ──────────────────────────────────────
@@ -494,18 +494,18 @@ export interface LaneAdapt { value: string; label: string; hint: string }
 
 /** What the piece IS. Changes the argument's register and its evidence bar. */
 export const FORMAT_ADAPTS: LaneAdapt[] = [
-  // Mindmaker Live is a venture, never an adapt target. Adapting to the
+  // the publication is a venture, never an adapt target. Adapting to the
   // venture was meaningless: it has two formats with two different registers,
   // and offering the venture as one option is what made the composer feel
   // stale. Adapt to a FORMAT.
   {
-    value: 'paid',
-    label: 'Paid',
+    value: 'money_of_ai',
+    label: 'The Money of AI',
     hint: 'Adapt this into a Paid piece, the investigative register that came over from Techonomic. Follow the money: who pays, who collects, and what the shift does to pricing, unit economics, positioning and human labour. Take one load-bearing claim apart and check each part against dated evidence. Attribute every number to the party that produced it. Hold one genuine counterpoint. Say plainly where the knowable record ends rather than papering over it, and end on the terminal question the evidence actually leaves open. No summary ending, no vendor framing. The register is dry and sarcastic; the evidence handling is not. The joke is never the finding.',
   },
   {
-    value: 'built',
-    label: 'Built',
+    value: 'built_with_ai',
+    label: 'Built with AI',
     hint: 'Adapt this into a Built piece. A conversation with someone who actually built something in the AI era, dug past what they built to why they really built it. Gear B, generous and human, 400-800 words. This is the format where the house sarcasm dials down: aim any irony at the industry around the builder, never at the builder. The guest must finish the piece looking more human, not more foolish.',
   },
 ]
@@ -542,7 +542,7 @@ export const CHANNEL_ADAPTS: LaneAdapt[] = [
   {
     value: 'podcast',
     label: 'Podcast',
-    hint: 'Adapt this into a podcast script for the Mindmaker Live feed, 800-1500 words for a solo read. Spoken register with no picture doing any work: everything the eye would have carried has to be said, so describe the number and then say what it means. No sentence that depends on punctuation the ear cannot hear, so parentheses, semicolons and nested clauses become separate sentences. Repeat names and numbers once, because a listener cannot scroll back. Drop in mid-thought on the sharpest thing in the piece, no "welcome back". Mark the beats.',
+    hint: 'Adapt this into a podcast script for the the publication feed, 800-1500 words for a solo read. Spoken register with no picture doing any work: everything the eye would have carried has to be said, so describe the number and then say what it means. No sentence that depends on punctuation the ear cannot hear, so parentheses, semicolons and nested clauses become separate sentences. Repeat names and numbers once, because a listener cannot scroll back. Drop in mid-thought on the sharpest thing in the piece, no "welcome back". Mark the beats.',
   },
   {
     value: 'signal_noise',
@@ -660,16 +660,17 @@ export const LANE_ADAPTS: LaneAdapt[] = [...FORMAT_ADAPTS, ...CHANNEL_ADAPTS]
 // Lane values that no longer exist but may still be stored on old rows. Every
 // one maps FORWARD onto a live format so a historical row keeps a home on the
 // board; none is ever rejected, and none is offered as a choice for new work.
-// Note 'mindmaker_live' is deliberately ABSENT: it is the live venture now, so
+// Note 'publication' is deliberately ABSENT: it is the live venture now, so
 // it resolves through LANES above rather than through this table.
 const LEGACY_LANE_CHANNEL: Record<string, FactoryChannel> = {
-  // Retired 2026-08-06 into MYMU, then 2026-08-11 into Mindmaker Live: Paid.
+  // Retired 2026-08-06 into MYMU, then 2026-08-11 into the publication: Paid.
   techonomic: 'paid',
   // The MYMU venture and its channel slug. MYMU is a product surface now.
   makeyourmindup: 'paid',
   mymu: 'paid',
-  // 'mindmaker' was the content lane before the venture split.
+  // 'mindmake' was the content lane before the venture split.
   mindmaker: 'paid',
+  mindmake: 'paid',
   // Instagram was buried inside this venture value; it is a channel now, and
   // the Builder Economy thesis lives on as the Built format.
   builder_economy_ig: 'built',

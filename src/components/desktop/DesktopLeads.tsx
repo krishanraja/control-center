@@ -23,7 +23,7 @@ import { BoardSkeleton } from '../shared/Skeleton'
  * Leads tab — venture-grouped lanes.
  *
  * Each lead carries primary_venture + tags + per-venture icp_scores. The
- * primary lane grouping is by venture (Mindmaker, Signal & Noise, Builder
+ * primary lane grouping is by venture (Mindmake, Signal & Noise, Builder
  * Economy, ...) with an "Other" bucket for leads that did not clear any
  * venture's warm threshold yet. Source-type counts remain as a secondary
  * summary in the left rail so the import provenance is still legible.
@@ -259,7 +259,7 @@ const SOURCE_META: Record<LeadSourceType, { title: string; description: string }
   apollo: { title: 'Apollo / outbound', description: 'Enriched contacts from Apollo + Instantly sequences.' },
   nell_candidate: { title: 'Nell candidates', description: 'Auto-surfaced contacts from Nell\'s daily scout.' },
   signal_inbox: { title: 'Signal Inbox', description: 'Drive Signal Inbox folder, processed by Layer 1.' },
-  audience: { title: 'Audience', description: 'Inbound signups from CTRL, the site, and Mindmaker Live on Substack.' },
+  audience: { title: 'Audience', description: 'Inbound signups from CTRL, the site, and Publication on Substack.' },
   manual: { title: 'Manual', description: 'Anything you added by hand.' },
 }
 

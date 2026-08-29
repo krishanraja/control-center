@@ -1,7 +1,7 @@
 # Marcus prompt patch — customer signals + overdue lead follow-ups (2026-05-22)
 
-**Target:** `agents.brief_content` for the `marcus` row in Mindmaker OS.
-The N8N workflow `Marcus | Mindmaker OS | Synthesis + Home Intelligence`
+**Target:** `agents.brief_content` for the `marcus` row in mind/make OS.
+The N8N workflow `Marcus | mind/make OS | Synthesis + Home Intelligence`
 (id `TI1ozQbPtI69qlgO`) loads this prompt when synthesising.
 
 ## Why

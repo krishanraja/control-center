@@ -5,15 +5,15 @@ import { supabase } from '../_supabase.js'
 //
 // The Control Center Substack dropzone POSTs a raw CSV export here. We hand it
 // to the OS `audience_import_proxy` RPC, which (via the http extension and a
-// Vault-held gate secret) forwards the CSV to the Mindmaker AI app-DB
+// Vault-held gate secret) forwards the CSV to the Mindmake AI app-DB
 // `import-audience-csv` edge function, then immediately syncs. Free subscribers
 // become leads, paid subscribers become Subscriptions (never both). No secret
 // is held in the Control Center.
 //
-// Input:  { csv: string, source?: 'mindmaker_live' | 'tech0nomic' }
+// Input:  { csv: string, source?: 'publication' | 'tech0nomic' }
 // Output: { ok: true, import: {...}, sync: {...} }
 
-const ALLOWED_SOURCES = new Set(['mindmaker_live', 'tech0nomic'])
+const ALLOWED_SOURCES = new Set(['publication', 'tech0nomic'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!body.csv || !body.csv.trim()) {
     return res.status(400).json({ ok: false, error: 'csv is required' })
   }
-  const source = body.source || 'mindmaker_live'
+  const source = body.source || 'publication'
   if (!ALLOWED_SOURCES.has(source)) {
     return res.status(400).json({ ok: false, error: `source must be one of ${[...ALLOWED_SOURCES].join(', ')}` })
   }
@@ -52,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // anchors the scoreboard trend line and the stall detector.
   const total = (paid + free) > 0 ? paid + free : processed
   if (total > 0) {
-    const metric_key = source === 'tech0nomic' ? 'substack_tech0nomic_total' : 'substack_mindmakerlive_total'
+    const metric_key = source === 'tech0nomic' ? 'substack_tech0nomic_total' : 'substack_publication_total'
     const { error: gmErr } = await supabase.from('growth_metrics').upsert(
       {
         metric_key,

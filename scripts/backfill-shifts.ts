@@ -2,7 +2,7 @@
 //
 // Month by month, IN ORDER (so momentum histories accrue like lived weeks):
 //   1. Perplexity sonar-pro reconstructs that month's AI-for-business record as
-//      dated story stubs (the mindmaker relevance lens: business decisions, not
+//      dated story stubs (the mindmake relevance lens: business decisions, not
 //      hype or geopolitics).
 //   2. The SAME deterministic gate as live detection verifies each proposed
 //      shift (>=3 distinct days, >=3 distinct sources, >=3 real citations).

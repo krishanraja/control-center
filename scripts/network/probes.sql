@@ -79,10 +79,10 @@ SELECT round(t1.a,1) tier1_avg, round(t5.a,1) tier5_avg,
        CASE WHEN t1.a > t5.a THEN 'PASS' ELSE 'FAIL' END AS verdict
 FROM t1, t5;
 
-\echo '=== P7 · recommend mode: Mindmaker buyers (must NOT all saturate at 100) ==='
+\echo '=== P7 · recommend mode: Mindmake buyers (must NOT all saturate at 100) ==='
 SELECT round(match_score,1) score, full_name, left(coalesce(title,''),26) title,
-       (venture_scores->>'mindmaker') mm, network_tier
-FROM network_search(NULL, NULL, 'mindmaker',
+       (venture_scores->>'mindmake') mm, network_tier
+FROM network_search(NULL, NULL, 'mindmake',
   '[{"field":"roles","values":["buyer"],"weight":1.0}]'::jsonb, NULL,NULL,NULL, 5);
 
 \echo '=== P7b · ASSERTION: recommend results must be distinctly ranked ==='
@@ -92,7 +92,7 @@ FROM network_search(NULL, NULL, 'mindmaker',
 SELECT count(*) FILTER (WHERE match_score >= 99.9) AS at_ceiling,
        count(DISTINCT match_score) AS distinct_scores, count(*) AS rows,
        CASE WHEN count(*) FILTER (WHERE match_score >= 99.9) <= 1 THEN 'PASS' ELSE 'FAIL' END AS verdict
-FROM network_search(NULL, NULL, 'mindmaker',
+FROM network_search(NULL, NULL, 'mindmake',
   '[{"field":"roles","values":["buyer"],"weight":1.0}]'::jsonb, NULL,NULL,NULL, 10);
 
 

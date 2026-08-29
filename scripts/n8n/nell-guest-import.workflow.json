@@ -1,5 +1,5 @@
 {
-  "name": "Nell | Mindmaker OS | Guest Sheet Bulk Import",
+  "name": "Nell | mind/make OS | Guest Sheet Bulk Import",
   "nodes": [
     {
       "id": "Webhook",

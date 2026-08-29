@@ -1,9 +1,9 @@
 # Control Center Documentation
 
-> The dashboard slice of [Mindmaker OS](#what-mindmaker-os-is), the
+> The dashboard slice of [mind/make OS](#what-mindmake-os-is), the
 > autonomous-organisation operating system Krish Raja runs his portfolio on.
 > This index covers the slice. The full OS architecture lives in
-> `MINDMAKER_OS_ARCHITECTURE.md` on the VPS workspace root — when this
+> `MINDMAKE_OS_ARCHITECTURE.md` on the VPS workspace root — when this
 > repo's docs and that file disagree, that file wins.
 
 ## Index
@@ -38,7 +38,7 @@ The `pr-*.md` files (e.g. `pr-7-living-plans-decisions-view.md`) and the
 2026-05 OS rebuild (PRs #49 — #60). Treat them as a changelog supplement,
 not authoritative architecture.
 
-## What Mindmaker OS is
+## What mind/make OS is
 
 A fleet of AI agents running Krish's business portfolio so he spends his
 hours on decisions, not admin. Two physical layers:
@@ -183,4 +183,4 @@ model around each secret.
 
 ## License
 
-Proprietary. Krish Raja / Mindmaker.
+Proprietary. Krish Raja / Mindmake.

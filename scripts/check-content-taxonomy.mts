@@ -24,7 +24,16 @@ let fail = 0
 const bad = (m: string) => { console.log('FAIL: ' + m); fail++ }
 
 // ── 1. every adapt value is a real corpus key ──────────────────────────────
-const adaptBlock = ce.split('export const LANE_ADAPTS')[1]?.split('\n]')[0] ?? ''
+// LANE_ADAPTS became `[...FORMAT_ADAPTS, ...CHANNEL_ADAPTS]` in a refactor, and
+// this check's old string-split silently stopped parsing anything, so the whole
+// adapt-value guard was passing vacuously on main. Parse the source arrays, and
+// FAIL LOUD if either disappears again rather than degrading to an empty list.
+const blockOf = (name: string) => ce.split(`const ${name}: LaneAdapt[] = [`)[1]?.split('\n]')[0] ?? ''
+const formatBlock = blockOf('FORMAT_ADAPTS')
+const channelBlock = blockOf('CHANNEL_ADAPTS')
+if (!formatBlock) bad('could not parse FORMAT_ADAPTS')
+if (!channelBlock) bad('could not parse CHANNEL_ADAPTS')
+const adaptBlock = `${formatBlock}\n${channelBlock}`
 const adaptValues = [...adaptBlock.matchAll(/value:\s*'([^']+)'/g)].map(m => m[1])
 const corpusKeys = new Set([...ct.matchAll(/^ {2}([a-z_]+):\s*\//gm)].map(m => m[1]))
 if (!adaptValues.length) bad('no LANE_ADAPTS values parsed')
@@ -40,7 +49,8 @@ const RETIRED = [
   'mymu_weekly', 'investigation', 'builder_economy',
 ]
 const choiceBlocks = [
-  ['LANE_ADAPTS', adaptBlock],
+  ['FORMAT_ADAPTS', formatBlock],
+  ['CHANNEL_ADAPTS', channelBlock],
   ['VENTURE_FORMATS', ce.split('export const VENTURE_FORMATS')[1]?.split('\n]')[0] ?? ''],
   ['MEDIA_VENTURES', ce.split('export const MEDIA_VENTURES')[1]?.split('\n]')[0] ?? ''],
   ['LANES', ce.split('export const LANES')[1]?.split('\n]')[0] ?? ''],
@@ -52,9 +62,9 @@ for (const [name, block] of choiceBlocks) {
   }
 }
 
-// ── 3. Mindmaker Live is a venture, never an adapt target ──────────────────
-if (/value:\s*'mindmaker_live'/.test(adaptBlock)) {
-  bad("'mindmaker_live' is offered as an adapt target; it is a venture with two formats, not one register")
+// ── 3. Publication is a venture, never an adapt target ──────────────────
+if (/value:\s*'publication'/.test(adaptBlock)) {
+  bad("'publication' is offered as an adapt target; it is a venture with two formats, not one register")
 }
 
 // ── 4. the LIVE fan-out must be format-level too ───────────────────────────
@@ -68,14 +78,14 @@ const fanChannels = [...fanBlock.matchAll(/channel:\s*'([^']+)'/g)].map(m => m[1
 if (!fanChannels.length) bad('no FACTORY_FANOUT channels parsed')
 for (const c of fanChannels) {
   if (!corpusKeys.has(c)) bad(`FACTORY_FANOUT channel '${c}' is not a CHANNEL_HEADING key`)
-  if (c === 'mindmaker_live') bad('FACTORY_FANOUT offers the Mindmaker Live venture as one destination; it has two formats')
+  if (c === 'publication') bad('FACTORY_FANOUT offers the Publication venture as one destination; it has two formats')
   if (RETIRED.includes(c)) bad(`FACTORY_FANOUT still offers the retired '${c}'`)
 }
 
 // ── 5. format patterns must be ANCHORED (trap 3 above) ─────────────────────
 // Checked structurally rather than by eyeballing: a format key whose pattern
 // can match mid-heading is the exact bug that has recurred.
-for (const key of ['paid', 'built']) {
+for (const key of ['money_of_ai', 'built_with_ai', 'paid', 'built']) {
   const m = new RegExp(`^ {2}${key}:\\s*(/.*/)[a-z]*,`, 'm').exec(ct)
   if (!m) { bad(`no CHANNEL_HEADING pattern found for the '${key}' format`); continue }
   const src = m[1]
@@ -86,16 +96,19 @@ for (const key of ['paid', 'built']) {
 // ── 6. the two format patterns must not both match one heading ─────────────
 // Simulates the real matcher against the headings the live corpus carries.
 const HEADINGS = [
-  '0. Mindmaker Live house register (applies to EVERY Mindmaker Live format)',
-  '1. Paid (the investigation)',
-  '2. Built (builder conversations)',
+  '0. Publication house register (applies to EVERY channel of the publication)',
+  '1. The Money of AI (the investigation)',
+  '2. Built with AI (builder conversations)',
   '3. Signal & Noise (distribution channel, co-hosted with Rio Longacre and Brett House)',
   '4. Maven (free lessons only)',
   'How a piece gets built (the pipeline, per channel)',
   'The Five Standards (every channel, no exceptions)',
   'Channel Router (which instrument is this?)',
 ]
-const LIVE_KEYS = ['paid', 'built', 'mindmaker_live', 'signal_noise', 'maven'] as const
+// CANON 2026-08-28: the publication runs exactly two channels. 'paid' and
+// 'built' remain as LEGACY aliases resolving to the same two playbooks, so they
+// are deliberately not live keys and are exempt from the disjointness check.
+const LIVE_KEYS = ['money_of_ai', 'built_with_ai', 'publication', 'signal_noise', 'maven'] as const
 const patternFor = (k: string) => {
   const m = new RegExp(`^ {2}${k}:\\s*/(.*)/([a-z]*),`, 'm').exec(ct)
   return m ? new RegExp(m[1], m[2]) : null

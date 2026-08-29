@@ -27,7 +27,7 @@
 ### Pipeline (`/leads`) — `DesktopLeads` / `MobileLeads`
 - Has a next-action strip ("27 to decide · Open next") but **"Open next" opens the triage deck, not a real action.** Krish wants the hero to *do the thing* (draft email / enrich) in one tap.
 - **Button wall:** each card shows Enrich · Skip · Mark contacted · Promote · Reassign · Follow-up · Draft email · mailto · 👍 · 👎 · Drop (~10 co-equal). P-3/P-5/P-22 violation.
-- **Test data live:** `test-1781008408512` + ctrl signups in the Mindmaker lane; "By source: Audience 26".
+- **Test data live:** `test-1781008408512` + ctrl signups in the Mindmake lane; "By source: Audience 26".
 - Outcome lens: optimize for **contacted fast** — lead with the cheapest path to a real outreach (Draft email when there's an email; Enrich when not).
 
 ### Network (`/relationships`) — `DesktopLeadsRE` / `MobileLeadsRE`

@@ -23,9 +23,9 @@
 // corpus prose implies, in a form the prompt can lean on hard.
 
 // ── Ventures ────────────────────────────────────────────────────────────────
-// Mindmaker Live is one venture carrying two formats in `slot`: 'built' (how a
+// the publication is one venture carrying two formats in `slot`: 'built' (how a
 // thing was actually built) and 'paid' (how it actually makes money). The house
-// register, 'mindmaker_live', grades anything that is neither. The LinkedIn
+// register, 'publication', grades anything that is neither. The LinkedIn
 // field-learning post is its own shape.
 //
 // Until 2026-08-12 this file had no rubric for either format and still graded
@@ -43,8 +43,8 @@ export type VentureKey =
   | 'signal_noise'
   | 'built'
   | 'paid'
-  | 'mindmaker_live'
-  | 'mindmaker_field'
+  | 'publication'
+  | 'mindmake_field'
   | 'builder_economy'
   | 'dynamic'
 
@@ -58,19 +58,19 @@ export type VentureKey =
 export function laneToVenture(lane?: string | null, slot?: string | null): VentureKey {
   if (lane === 'signal_noise') return 'signal_noise'
   // THE LIVE MODEL.
-  if (lane === 'mindmaker_live') {
+  if (lane === 'publication') {
     if (slot === 'teardown' || slot === 'investigation') return 'investigation'
     if (slot === 'paid') return 'paid'
     if (slot === 'built') return 'built'
-    if (slot === 'field_learning') return 'mindmaker_field'
-    return 'mindmaker_live'
+    if (slot === 'field_learning') return 'mindmake_field'
+    return 'publication'
   }
-  if (lane === 'mindmaker') {
-    if (slot === 'field_learning') return 'mindmaker_field'
+  if (lane === 'mindmake') {
+    if (slot === 'field_learning') return 'mindmake_field'
     if (slot === 'investigation' || slot === 'teardown') return 'investigation'
     if (slot === 'paid') return 'paid'
     if (slot === 'built') return 'built'
-    return 'mindmaker_live'
+    return 'publication'
   }
   // Legacy stored values, mapped rather than rejected. Rows laned to the retired
   // Techonomic brand keep the investigation rubric they were written against.
@@ -80,7 +80,7 @@ export function laneToVenture(lane?: string | null, slot?: string | null): Ventu
     if (slot === 'teardown' || slot === 'investigation') return 'investigation'
     if (slot === 'paid') return 'paid'
     if (slot === 'built') return 'built'
-    return 'mindmaker_live'
+    return 'publication'
   }
   return 'dynamic'
 }
@@ -247,10 +247,10 @@ const RUBRICS: Record<VentureKey, VentureRubric> = {
     unverifiedClaim: 'block',
   },
 
-  mindmaker_live: {
-    key: 'mindmaker_live',
-    label: 'Mindmaker Live (house register)',
-    corpusChannel: 'mindmaker_live',
+  publication: {
+    key: 'publication',
+    label: 'the publication (house register)',
+    corpusChannel: 'publication',
     mandate: 'The house register: what a leader must be across right now, and what it means. Used when the draft is neither a Built teardown nor a Paid economic case.',
     leadWith: 'The thing that happened and why it matters today. No warm-up.',
     instantFail: [],
@@ -267,9 +267,9 @@ const RUBRICS: Record<VentureKey, VentureRubric> = {
     unverifiedClaim: 'flag',
   },
 
-  mindmaker_field: {
-    key: 'mindmaker_field',
-    label: 'Mindmaker (LinkedIn field-learning)',
+  mindmake_field: {
+    key: 'mindmake_field',
+    label: 'Mindmake (LinkedIn field-learning)',
     corpusChannel: 'linkedin',
     mandate: 'A short field-learning post: one thing learned from inside the work, told in the builder-in-the-room voice (Gear B). 150 to 250 words.',
     leadWith: 'A scroll-stopping claim or scene. No context-setting, no warm-up.',

@@ -1,5 +1,5 @@
 {
-  "name": "Nova | Mindmaker OS | Visibility Sweeper",
+  "name": "Nova | mind/make OS | Visibility Sweeper",
   "description": null,
   "nodes": [
     {
@@ -57,7 +57,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"model\": \"sonar-pro\", \"messages\": [{\"role\": \"system\", \"content\": \"You are a precise research assistant. Always cite urls.\"}, {\"role\": \"user\", \"content\": \"You are a research assistant for Krish Raja, founder of Mindmaker (an AI orchestration company) and host of two podcasts (Signal & Noise, Built). Find 15 specific upcoming visibility opportunities in the next 120 days. Mix of: (a) Conference CFPs open or closing soon (b) Conferences worth attending (c) Podcasts seeking guests. Relevant themes: AI in advertising and marketing, programmatic CTV/streaming, identity and privacy in advertising, telco AI, founder storytelling, brand strategy in the AI era, ad-tech consolidation, applied AI for non-technical buyers. For each item, return: name, official url, cfp url (if separate), type (cfp or conference or podcast), deadline date (ISO if any), event start date (ISO if known), audience description, approximate audience size, why this is relevant to Krish, suggested talk title or pitch angle. Skip anything without a verifiable official url. Skip events that already happened. Format as a numbered list with structured fields, not prose.\"}], \"temperature\": 0.2, \"max_tokens\": 4000}"
+        "jsonBody": "{\"model\": \"sonar-pro\", \"messages\": [{\"role\": \"system\", \"content\": \"You are a precise research assistant. Always cite urls.\"}, {\"role\": \"user\", \"content\": \"You are a research assistant for Krish Raja, founder of Mindmake (an AI orchestration company) and host of two podcasts (Signal & Noise, Built). Find 15 specific upcoming visibility opportunities in the next 120 days. Mix of: (a) Conference CFPs open or closing soon (b) Conferences worth attending (c) Podcasts seeking guests. Relevant themes: AI in advertising and marketing, programmatic CTV/streaming, identity and privacy in advertising, telco AI, founder storytelling, brand strategy in the AI era, ad-tech consolidation, applied AI for non-technical buyers. For each item, return: name, official url, cfp url (if separate), type (cfp or conference or podcast), deadline date (ISO if any), event start date (ISO if known), audience description, approximate audience size, why this is relevant to Krish, suggested talk title or pitch angle. Skip anything without a verifiable official url. Skip events that already happened. Format as a numbered list with structured fields, not prose.\"}], \"temperature\": 0.2, \"max_tokens\": 4000}"
       },
       "credentials": {
         "perplexityApi": {

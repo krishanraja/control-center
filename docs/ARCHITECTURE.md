@@ -6,20 +6,20 @@
 > schema details live in [`DATABASE.md`](./DATABASE.md).
 >
 > **OS-wide architecture lives elsewhere.** For the canonical description of
-> the entire Mindmaker OS — agent fleet, cron topology, Supabase taxonomy,
+> the entire mind/make OS — agent fleet, cron topology, Supabase taxonomy,
 > N8N workflow inventory, four-tier self-healing, data flows end-to-end,
-> aspirational targets — read [`MINDMAKER_OS_ARCHITECTURE.md`](./MINDMAKER_OS_ARCHITECTURE.md)
-> (mirror of the VPS canonical at `/root/.openclaw/workspace/MINDMAKER_OS_ARCHITECTURE.md`
+> aspirational targets — read [`MINDMAKE_OS_ARCHITECTURE.md`](./MINDMAKE_OS_ARCHITECTURE.md)
+> (mirror of the VPS canonical at `/root/.openclaw/workspace/MINDMAKE_OS_ARCHITECTURE.md`
 > and the "Infrastructure" Google Drive folder). That doc is the source of
 > truth all AI tools align to; this doc is its repo-scoped subset.
 >
 > **Update protocol.** This document describes the Control Center *as it
 > exists today*. If you are tempted to describe the OS as a whole, edit
-> `MINDMAKER_OS_ARCHITECTURE.md` instead and link out from here.
+> `MINDMAKE_OS_ARCHITECTURE.md` instead and link out from here.
 
 ## 1. The OS in one paragraph
 
-Mindmaker OS is a fleet of AI agents (~14 production roles, ~76 N8N
+mind/make OS is a fleet of AI agents (~14 production roles, ~76 N8N
 workflows, 7 Claude Code agents) that runs Krish Raja's business
 portfolio. **Supabase is the single source of truth** — every piece of
 state, agent identity, sprint plan, task, lead, guest, customer, bet,
@@ -53,7 +53,7 @@ The repo does **not** own:
 - The N8N runtime (lives at `krishraja10101.app.n8n.cloud`).
 - The OpenClaw runtime on the VPS (lives at `/root/.openclaw/`).
 - The canonical OS architecture doc (lives at
-  `/root/.openclaw/workspace/MINDMAKER_OS_ARCHITECTURE.md`).
+  `/root/.openclaw/workspace/MINDMAKE_OS_ARCHITECTURE.md`).
 - Standards (`standards_registry` in Supabase, rendered nightly to
   `hot/standards-digest.md`).
 
@@ -289,7 +289,7 @@ PUB-005.
 
 The Control Center itself runs none of these — they are part of the OS
 infrastructure. The dashboard consumes their outputs. See
-`MINDMAKER_OS_ARCHITECTURE.md` §8 for the full cron topology.
+`MINDMAKE_OS_ARCHITECTURE.md` §8 for the full cron topology.
 
 ## 7. Non-obvious invariants
 
@@ -329,4 +329,4 @@ The following must hold; violations are bugs.
 
 For OS-wide failure modes (drift between SKILL.md and `brief_content`,
 standards drift, cron-job time skew on the VPS), see
-`MINDMAKER_OS_ARCHITECTURE.md` §12.
+`MINDMAKE_OS_ARCHITECTURE.md` §12.

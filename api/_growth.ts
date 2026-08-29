@@ -5,7 +5,7 @@
 // Supabase, so a bad value comes back as a readable 400 instead of a raw
 // Postgres constraint error.
 
-export const PRODUCT_SLUGS = new Set(['ctrl', 'circle', 'pulse', 'full-time', 'mindmaker'])
+export const PRODUCT_SLUGS = new Set(['ctrl', 'circle', 'pulse', 'full-time', 'mindmake'])
 
 export const TOUCHPOINT_CHANNELS = new Set([
   'seo', 'geo', 'social_organic', 'social_paid', 'substack',

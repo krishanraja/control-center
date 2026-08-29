@@ -14,7 +14,7 @@ import { supabase } from '../_supabase.js'
  *                                         writes source:'manual' for today.
  *
  * Keys written (one row per metric_key per day, upsert on conflict):
- *   substack_mindmakerlive_total, substack_tech0nomic_total, maven_students,
+ *   substack_publication_total, substack_tech0nomic_total, maven_students,
  *   app_paid_subs, app_mrr_usd, guests_confirmed_30d, visibility_accepted_30d.
  *
  * A failed or unparseable external fetch writes NOTHING for that key (never a
@@ -24,14 +24,14 @@ import { supabase } from '../_supabase.js'
  */
 
 const SUBSTACKS: Array<{ key: string; pub: string }> = [
-  { key: 'substack_mindmakerlive_total', pub: 'mindmakerlive' },
+  { key: 'substack_publication_total', pub: 'mindmakerlive' },
   { key: 'substack_tech0nomic_total', pub: 'tech0nomic' },
 ]
 const MAVEN_KEY = 'maven_students'
 const MAVEN_URL = 'https://maven.com/mindmaker'
 
 const MANUAL_KEYS = new Set([
-  'substack_mindmakerlive_total', 'substack_tech0nomic_total', 'maven_students',
+  'substack_publication_total', 'substack_tech0nomic_total', 'maven_students',
 ])
 
 type KeyResult = { ok: boolean; value?: number; error?: string; method?: string }

@@ -322,10 +322,10 @@ export function buildSkillMd(skill: SkillData, clientName: string): string {
     `name: ${skill.name}`,
     'description: >',
     yamlDesc,
-    'license: Proprietary. Built by Mindmaker (themindmaker.ai).',
+    'license: Proprietary. Built by Mindmake (mindmake.co).',
     'compatibility: Designed for Claude Code, Claude.ai, and compatible agent platforms.',
     'metadata:',
-    '  author: mindmaker',
+    '  author: mindmake',
     '  version: "1.0"',
     `  client: ${slugify(clientName)}`,
     `  archetype: ${skill.archetype}`,
@@ -373,7 +373,7 @@ work actually changes.
 [ ] No new tools, formats, or audiences have entered this workflow
 [ ] You ran the 3 test prompts in 01-test-prompts.txt and the output passed
 
-If any item fails, regenerate the skill from a fresh transcript via Mindmaker
+If any item fails, regenerate the skill from a fresh transcript via Mindmake
 Control Center > Flows > Skill Forge.
 `
 
@@ -720,14 +720,14 @@ export function emailHtml(input: {
   return `<!doctype html>
 <html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;max-width:640px;margin:0 auto;padding:24px">
 <h2 style="margin:0 0 4px">Your custom AI skills, ${escapeHtml(input.client_name)}.</h2>
-<p style="color:#6b7280;margin:0 0 20px">Built from your workflow by Mindmaker.</p>
+<p style="color:#6b7280;margin:0 0 20px">Built from your workflow by Mindmake.</p>
 ${skillBlocks}
 ${driveLink}
 <h3 style="margin-top:24px">Install</h3>
 <p style="color:#374151;font-size:13px"><strong>Claude.ai</strong>: Settings &rarr; Capabilities &rarr; Skills &rarr; Upload skill, then select the ZIP.</p>
 <p style="color:#374151;font-size:13px"><strong>Claude Code</strong>: <code>unzip your-skill.zip -d ~/.claude/skills/</code></p>
 <p style="color:#374151;font-size:13px"><strong>Cursor</strong>: unzip into your project's <code>.claude/skills/</code> folder.</p>
-<p style="color:#9ca3af;font-size:12px;margin-top:24px">Mindmaker · themindmaker.ai</p>
+<p style="color:#9ca3af;font-size:12px;margin-top:24px">Mindmake · mindmake.co</p>
 </body></html>`
 }
 

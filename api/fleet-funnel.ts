@@ -8,7 +8,7 @@ import { supabase } from './_supabase.js'
  * Gutted, Merciless, OnAlert). Reads the OS warehouse views (service-role only)
  * and returns acquisition + revenue + emit-health rolled up per app, plus the
  * top campaigns by attributed purchases. Powers the Fleet Funnel panel on the
- * Intel tab. See docs/MINDMAKER_OS_ARCHITECTURE.md section 11.4.
+ * Intel tab. See docs/MINDMAKE_OS_ARCHITECTURE.md section 11.4.
  */
 
 // The app list comes from venture_registry, not a literal. The literal here
