@@ -22,10 +22,14 @@ import { join } from 'node:path'
 let fail = 0
 const bad = (m: string) => { console.log('FAIL: ' + m); fail++ }
 
+// Paths are normalised to forward slashes. join() emits '\' on Windows, so the
+// EVERGREEN_WRITER comparison below never matched there and the check failed
+// locally while passing in Linux CI. Local runs are how a bad push gets caught
+// before it reaches CI, so the check has to be honest on both.
 function walk(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(dir)) {
     if (e === 'node_modules' || e.startsWith('.')) continue
-    const p = join(dir, e)
+    const p = join(dir, e).replace(/\\/g, '/')
     if (statSync(p).isDirectory()) walk(p, out)
     else if (p.endsWith('.ts') || p.endsWith('.tsx')) out.push(p)
   }

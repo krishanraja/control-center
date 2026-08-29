@@ -97,7 +97,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 4000, \"temperature\": 0.3, \"system\": \"You convert research notes into structured visibility_targets rows. Return ONLY a JSON array, no prose, no code fences. Each element: {title, type, event_url, cfp_url, deadline_at, event_start_at, audience, audience_size, why_relevant, suggested_talk_title, relevance_score, quality_score, recommended_next_step}. type must be one of: cfp, conference, podcast, newsletter, guest_appearance. Dates must be ISO 8601 or null. audience_size integer or null. relevance_score 0-100. quality_score: green if highly relevant + open + meaningful audience, amber if relevant but uncertain timing or fit, red if marginal. Skip any item without an event_url. Skip any item where deadline or event has already passed (today is 2026-05-22). If the research mentions an item but the url is unverifiable, omit it. Do not invent details. If a field is unknown, set it to null. No em dashes anywhere in the output. Use commas, colons, or parentheses instead.\", \"messages\": [{\"role\": \"user\", \"content\": \"Research notes from Perplexity:\\n\\n{{ $json.perplexity_text }}\\n\\nConvert to a JSON array of visibility_targets rows per the system prompt.\"}]}",
+        "jsonBody": "={\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 4000, \"temperature\": 0.3, \"system\": \"You convert research notes into structured visibility_targets rows. Return ONLY a JSON array, no prose, no code fences. Each element: {title, type, event_url, cfp_url, deadline_at, event_start_at, audience, audience_size, why_relevant, suggested_talk_title, relevance_score, quality_score, recommended_next_step}. type must be one of: cfp, conference, podcast, newsletter, guest_appearance. Dates must be ISO 8601 or null. audience_size integer or null. relevance_score 0-100. quality_score: green if highly relevant + open + meaningful audience, amber if relevant but uncertain timing or fit, red if marginal. Skip any item without an event_url. Skip any item where deadline or event has already passed (today is 2026-05-22). If the research mentions an item but the url is unverifiable, omit it. Do not invent details. If a field is unknown, set it to null. No em dashes anywhere in the output. Use commas, colons, or parentheses instead.\", \"messages\": [{\"role\": \"user\", \"content\": \"Research notes from Perplexity:\\n\\n{{ $json.perplexity_text }}\\n\\nConvert to a JSON array of visibility_targets rows per the system prompt.\"}]}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -288,7 +288,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"event_type\": \"nova_visibility_sweep_insert\", \"actor\": \"nova\", \"target\": \"={{ $json[0].id }}\", \"details\": \"={{ JSON.stringify({ title: $json[0].title, type: $json[0].type, event_url: $json[0].event_url }) }}\"}",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'nova_visibility_sweep_insert', actor: 'nova', target: $json[0].id, details: JSON.stringify({ title: $json[0].title, type: $json[0].type, event_url: $json[0].event_url }) }) }}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -332,7 +332,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"event_type\": \"nova_visibility_sweep_skip\", \"actor\": \"nova\", \"target\": \"visibility_targets\", \"details\": \"={{ JSON.stringify({ rejection_reason: $json.rejection_reason, raw_text: ($json.raw_text || '').slice(0, 500) }) }}\"}",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'nova_visibility_sweep_skip', actor: 'nova', target: 'visibility_targets', details: JSON.stringify({ rejection_reason: $json.rejection_reason, raw_text: ($json.raw_text || '').slice(0, 500) }) }) }}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
