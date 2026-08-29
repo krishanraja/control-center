@@ -59,7 +59,7 @@
       "position": [1160, 200],
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot8761660894:AAGynEklqqJ1YqwkmrSCXYJi8fgBHKmfhXk/sendMessage",
+        "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
         "sendBody": true, "specifyBody": "json",
         "jsonBody": "={{ $json.telegram_text ? JSON.stringify({ chat_id: '6773796504', text: $json.telegram_text }) : '{}' }}",
         "options": { "timeout": 15000 }
