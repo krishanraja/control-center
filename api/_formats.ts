@@ -21,8 +21,11 @@
 // nothing here deletes a format for scoring badly.
 // ---------------------------------------------------------------------------
 
-/** Not to be confused with The Teardown advisory engagement in
- *  docs/MINDMAKER_OS_ARCHITECTURE.md. Same words, unrelated thing. */
+/** RENAMED 2026-08-29. This was 'The Teardown'. Canon retires that word as a
+ *  format name outright, because The Teardown was a Mindmake offer and reusing
+ *  it revives a name the canon retires. The four stored rows in
+ *  content_slate_rulings were migrated to 'The Artifact' in the same pass, so
+ *  the slate history is intact. 'The Teardown' is accepted on read only. */
 export const FORMATS = [
   'Follow the Money',
   'The Receipt',
@@ -32,7 +35,7 @@ export const FORMATS = [
   "Nobody's Taken This",
   'The Threshold',
   'The Word For It',
-  'The Teardown',
+  'The Artifact',
 ] as const
 
 export type Format = typeof FORMATS[number]
@@ -113,15 +116,25 @@ export const FORMAT_SPEC: Record<Format, FormatSpec> = {
     // closest to what the brief calls the taxonomy being the product.
     slate: { lead: 0, yes: 3, maybe: 0, no: 0 },
   },
-  'The Teardown': {
+  'The Artifact': {
     covers: 'a system taken apart in public, including his own',
     outlet: 'Substack',
     slate: { lead: 0, yes: 2, maybe: 2, no: 0 },
   },
 }
 
+/** Legacy format values that may still arrive from an old row or payload.
+ *  Mapped forward, never rejected. */
+const LEGACY_FORMATS: Record<string, Format> = { 'The Teardown': 'The Artifact' }
+
+export const normalizeFormat = (v: unknown): Format | null => {
+  if (typeof v !== 'string') return null
+  if ((FORMATS as readonly string[]).includes(v)) return v as Format
+  return LEGACY_FORMATS[v] ?? null
+}
+
 export const isFormat = (v: unknown): v is Format =>
-  typeof v === 'string' && (FORMATS as readonly string[]).includes(v)
+  typeof v === 'string' && normalizeFormat(v) !== null
 
 export const slateJudged = (r: SlateRecord): number => r.lead + r.yes + r.maybe + r.no
 
