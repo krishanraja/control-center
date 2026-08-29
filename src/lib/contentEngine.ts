@@ -387,8 +387,8 @@ export interface VentureFormat {
 /** Mirrors the `venture_formats` table. The composer picks one of these AFTER
  *  the venture and BEFORE the channels. */
 export const VENTURE_FORMATS: VentureFormat[] = [
-  { venture: 'publication', slot: 'paid', label: 'Paid', hero: true, gear: 'A', corpusKey: 'paid' },
-  { venture: 'publication', slot: 'built', label: 'Built', gear: 'B', corpusKey: 'built' },
+  { venture: 'publication', slot: 'money_of_ai', label: 'The Money of AI', hero: true, gear: 'A', corpusKey: 'money_of_ai' },
+  { venture: 'publication', slot: 'built_with_ai', label: 'Built with AI', gear: 'B', corpusKey: 'built_with_ai' },
 ]
 
 export const MEDIA_VENTURES: { value: MediaVenture; label: string }[] = [
@@ -420,8 +420,8 @@ export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: bo
 
 /** Default distribution per format, so the composer pre-ticks the sane set. */
 export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
-  'publication:paid': ['substack', 'linkedin'],
-  'publication:built': ['substack', 'instagram', 'tiktok', 'youtube', 'signal_noise'],
+  'publication:money_of_ai': ['substack', 'linkedin'],
+  'publication:built_with_ai': ['substack', 'instagram', 'tiktok', 'youtube', 'signal_noise'],
 }
 
 // The factory channel is what the Omnichannel Content Factory polishes INTO.
@@ -431,6 +431,12 @@ export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
 // in n8n cloud, which switches on `target_channel`. They are renamed here and
 // in the factory together; changing one side alone silently drops a piece into
 // the factory's fallback branch.
+// REBRAND 2026-08-29: the two channels became The Money of AI and Built with
+// AI. Only the LABELS moved. The wire values stay 'paid' and 'built' precisely
+// because renaming them would need a simultaneous n8n factory deploy, and the
+// wire value is invisible to a reader. `slot` in venture_formats and
+// content_ideas DID move to money_of_ai / built_with_ai; LANES maps between
+// the two namespaces, which is what that table is for.
 // This namespace deliberately mixes the two FORMATS (paid, built) with real
 // distribution surfaces (linkedin, signal_noise, vertical_video), because the
 // factory produces a draft styled FOR a destination. That is not the same list
@@ -440,8 +446,8 @@ export type FactoryChannel =
   | 'vertical_video' | 'dynamic'
 
 export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
-  { value: 'paid', label: 'Paid' },
-  { value: 'built', label: 'Built' },
+  { value: 'paid', label: 'The Money of AI' },
+  { value: 'built', label: 'Built with AI' },
   { value: 'linkedin', label: 'LinkedIn' },
   { value: 'signal_noise', label: 'Signal & Noise' },
   { value: 'vertical_video', label: 'Vertical Video' },
@@ -451,8 +457,8 @@ export const FACTORY_CHANNELS: { value: FactoryChannel; label: string }[] = [
 // which is why 'builder_economy_ig' is gone: Instagram was a channel wearing a
 // venture's clothes, and it now lives in MEDIA_CHANNELS where it belongs.
 export const LANES: LaneDef[] = [
-  { lane: 'publication', slot: 'paid', label: 'Paid', gear: 'A', factoryChannel: 'paid' },
-  { lane: 'publication', slot: 'built', label: 'Built', gear: 'B', factoryChannel: 'built' },
+  { lane: 'publication', slot: 'money_of_ai', label: 'The Money of AI', gear: 'A', factoryChannel: 'paid' },
+  { lane: 'publication', slot: 'built_with_ai', label: 'Built with AI', gear: 'B', factoryChannel: 'built' },
 ]
 
 // ── Adapt-to-lane (composer Refine) ──────────────────────────────────────
@@ -484,14 +490,14 @@ export const LANE_ADAPTS: LaneAdapt[] = [
   // and offering the venture as one option is what made the composer feel
   // stale. Adapt to a FORMAT.
   {
-    value: 'paid',
-    label: 'Paid',
-    hint: 'Adapt this into a Paid piece, the investigative register that came over from Techonomic. Follow the money: who pays, who collects, and what the shift does to pricing, unit economics, positioning and human labour. Take one load-bearing claim apart and check each part against dated evidence. Attribute every number to the party that produced it. Hold one genuine counterpoint. Say plainly where the knowable record ends rather than papering over it, and end on the terminal question the evidence actually leaves open. No summary ending, no vendor framing. The register is dry and sarcastic; the evidence handling is not. The joke is never the finding.',
+    value: 'money_of_ai',
+    label: 'The Money of AI',
+    hint: 'Adapt this into a The Money of AI piece, the investigative register that came over from Techonomic. Follow the money: who pays, who collects, and what the shift does to pricing, unit economics, positioning and human labour. Take one load-bearing claim apart and check each part against dated evidence. Attribute every number to the party that produced it. Hold one genuine counterpoint. Say plainly where the knowable record ends rather than papering over it, and end on the terminal question the evidence actually leaves open. No summary ending, no vendor framing. The register is dry and sarcastic; the evidence handling is not. The joke is never the finding.',
   },
   {
-    value: 'built',
-    label: 'Built',
-    hint: 'Adapt this into a Built piece. A conversation with someone who actually built something in the AI era, dug past what they built to why they really built it. Gear B, generous and human, 400-800 words. This is the format where the house sarcasm dials down: aim any irony at the industry around the builder, never at the builder. The guest must finish the piece looking more human, not more foolish.',
+    value: 'built_with_ai',
+    label: 'Built with AI',
+    hint: 'Adapt this into a Built with AI piece. A conversation with someone who actually built something in the AI era, dug past what they built to why they really built it. Gear B, generous and human, 400-800 words. This is the format where the house sarcasm dials down: aim any irony at the industry around the builder, never at the builder. The guest must finish the piece looking more human, not more foolish.',
   },
 ]
 
@@ -506,7 +512,9 @@ const LEGACY_LANE_CHANNEL: Record<string, FactoryChannel> = {
   // The MYMU venture and its channel slug. MYMU is a product surface now.
   makeyourmindup: 'paid',
   mymu: 'paid',
-  // 'mindmake' was the content lane before the venture split.
+  // 'mindmaker' was the content lane before the venture split; 'mindmake' is
+  // the post-rebrand spelling. Both stay resolvable.
+  mindmaker: 'paid',
   mindmake: 'paid',
   // Instagram was buried inside this venture value; it is a channel now, and
   // the Builder Economy thesis lives on as the Built format.

@@ -116,29 +116,33 @@ export async function loadCorpus(): Promise<string> {
  *  does it go". Before this, `lane` fused venture and channel, which is why
  *  signal_noise and builder_economy existed as both a venture and a lane. */
 export function laneToCorpusChannel(lane?: string | null, slot?: string | null): string | null {
-  // THE LIVE MODEL. One media venture, two formats carried in `slot`.
-  if (lane === 'publication') {
-    if (slot === 'paid' || slot === 'teardown' || slot === 'investigation') return 'paid'
-    if (slot === 'built') return 'built'
+  // THE LIVE MODEL (canon, 2026-08-28). One publication, exactly two channels:
+  // The Money of AI and Built with AI. There is no third. Legacy slot values
+  // ('paid', 'built', 'teardown', 'investigation') map forward, never rejected.
+  const MONEY = new Set(['money_of_ai', 'paid', 'teardown', 'investigation'])
+  const BUILT = new Set(['built_with_ai', 'built'])
+  if (lane === 'publication' || lane === 'mindmaker_live') {
+    if (slot && MONEY.has(slot)) return 'money_of_ai'
+    if (slot && BUILT.has(slot)) return 'built_with_ai'
     return 'publication'   // the house register
   }
   // ── Legacy stored values, mapped never rejected ───────────────────────────
-  // 'mindmake' was the content lane before the venture split; 'mymu' and
+  // 'mindmaker' was the content lane before the venture split; 'mymu' and
   // 'makeyourmindup' were the content brand before it became the CTRL lead
   // magnet; 'techonomic' was the retired investigative brand; signal_noise and
   // builder_economy were ventures until 2026-08-11.
   if (lane === 'mymu' || lane === 'makeyourmindup') {
-    if (slot === 'teardown' || slot === 'investigation' || slot === 'paid') return 'paid'
-    if (slot === 'built') return 'built'
+    if (slot && MONEY.has(slot)) return 'money_of_ai'
+    if (slot && BUILT.has(slot)) return 'built_with_ai'
     return 'publication'
   }
-  if (lane === 'mindmake') {
+  if (lane === 'mindmaker' || lane === 'mindmake') {
     if (slot === 'field_learning') return 'linkedin'
-    if (slot === 'investigation' || slot === 'teardown') return 'paid'
+    if (slot && MONEY.has(slot)) return 'money_of_ai'
     return 'publication'
   }
-  if (lane === 'techonomic') return 'paid'
-  if (lane === 'builder_economy' || lane === 'builder_economy_ig') return 'built'
+  if (lane === 'techonomic') return 'money_of_ai'
+  if (lane === 'builder_economy' || lane === 'builder_economy_ig') return 'built_with_ai'
   // Still a real corpus playbook, just a channel rather than a venture now.
   if (lane === 'signal_noise') return 'signal_noise'
   return null
@@ -150,20 +154,26 @@ const CHANNEL_HEADING: Record<string, RegExp> = {
   // corpus (the heading TEXT, with the # markers already stripped) and the
   // FIRST match wins, so a heading must match exactly one key. The live corpus
   // headings are deliberately disjoint:
-  //   ## 0. Publication house register   ## 1. Paid   ## 2. Built
-  //   ## 3. Signal & Noise   ## 4. Maven
+  //   ## 0. Publication house register   ## 1. The Money of AI
+  //   ## 2. Built with AI   ## 3. Signal & Noise   ## 4. Maven
   //
   // THE TRAP, which has now bitten three times. A format name is also an
   // ordinary English word, so an UNANCHORED pattern captures the wrong section:
   //   - "Built" appears inside "How a piece gets built (the pipeline)", which
   //     is a real heading in this corpus and sits ABOVE the playbooks.
   //   - "Paid" appears in prose about the publication's paid tiers.
-  // Both format patterns are therefore anchored to the START of the heading
+  // Both channel patterns are therefore anchored to the START of the heading
   // text, past an optional section numeral. Never relax that anchor, and never
-  // give a format an alternation that can match mid-heading.
+  // give a channel an alternation that can match mid-heading.
   //
   // The house register is matched on the exact phrase "Publication house
   // register" so a bare "Publication" elsewhere cannot claim it.
+  //
+  // CANON 2026-08-28: the publication runs exactly two channels, The Money of
+  // AI and Built with AI. 'paid' and 'built' are the legacy keys for the same
+  // two and stay resolvable against both the old and the new headings.
+  money_of_ai: /^#*\s*\d*\.?\s*(The\s+)?Money\s+of\s+AI\b/i,
+  built_with_ai: /^#*\s*\d*\.?\s*Built\s+with\s+AI\b/i,
   paid: /^#*\s*\d*\.?\s*Paid\b/i,
   built: /^#*\s*\d*\.?\s*Built\b/i,
   publication: /Publication house register/i,

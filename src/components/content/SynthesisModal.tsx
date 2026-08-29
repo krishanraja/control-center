@@ -14,8 +14,8 @@ interface LaneChoice {
 }
 
 const LANES: LaneChoice[] = [
-  { lane: 'publication', slot: 'paid', label: 'Paid', description: 'The investigation. Follow the money: take one load-bearing claim apart against dated evidence, and end where the record runs out.' },
-  { lane: 'publication', slot: 'built', label: 'Built', description: 'Someone who actually built something, and why they really built it. Warm, Gear B.' },
+  { lane: 'publication', slot: 'money_of_ai', label: 'The Money of AI', description: 'Who pays for this, where does value move, and what mechanism changes when the shift lands. Take one load-bearing claim apart against dated evidence, and end where the record runs out. The event is never the story.' },
+  { lane: 'publication', slot: 'built_with_ai', label: 'Built with AI', description: 'Someone who actually built something, dug past what they built to why they really built it. The third turn of the why is the piece. Warm, Gear B.' },
 ]
 
 interface Props {
