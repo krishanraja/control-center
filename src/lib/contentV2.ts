@@ -136,8 +136,10 @@ export const VERDICT_LABEL: Record<ShiftVerdict, string> = {
 // collapsed one-line fan-out summary on a phone. It exists so that summary can
 // name every selected format instead of ellipsing after the first.
 export const FACTORY_FANOUT: Array<{ channel: string; label: string; short: string; defaultOn: boolean }> = [
-  { channel: 'paid', label: 'Paid', short: 'Paid', defaultOn: true },
-  { channel: 'built', label: 'Built', short: 'Built', defaultOn: false },
+  // channel values are the n8n Omnichannel Content Factory wire contract and
+  // stay stable; only the labels moved to the canon channel names (2026-08-29).
+  { channel: 'paid', label: 'The Money of AI', short: 'Money of AI', defaultOn: true },
+  { channel: 'built', label: 'Built with AI', short: 'Built with AI', defaultOn: false },
   { channel: 'linkedin', label: 'LinkedIn post', short: 'LinkedIn', defaultOn: true },
   { channel: 'signal_noise', label: 'Signal & Noise', short: 'Signal & Noise', defaultOn: false },
 ]

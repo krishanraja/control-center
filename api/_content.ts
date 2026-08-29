@@ -174,7 +174,11 @@ const CHANNEL_HEADING: Record<string, RegExp> = {
   // two and stay resolvable against both the old and the new headings.
   money_of_ai: /^#*\s*\d*\.?\s*(The\s+)?Money\s+of\s+AI\b/i,
   built_with_ai: /^#*\s*\d*\.?\s*Built\s+with\s+AI\b/i,
-  paid: /^#*\s*\d*\.?\s*Paid\b/i,
+  // Legacy aliases for the same two channels. They resolve against the CURRENT
+  // headings, not the retired ones, so a stored 'paid'/'built' row still gets
+  // its real playbook instead of the whole-corpus fallback. Single anchored
+  // patterns, no alternation, per the collision rule above.
+  paid: /^#*\s*\d*\.?\s*(The\s+)?Money\s+of\s+AI\b/i,
   built: /^#*\s*\d*\.?\s*Built\b/i,
   publication: /Publication house register/i,
   signal_noise: /Signal\s*&?\s*Noise/i,

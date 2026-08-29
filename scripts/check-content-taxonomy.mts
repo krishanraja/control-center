@@ -75,7 +75,7 @@ for (const c of fanChannels) {
 // ── 5. format patterns must be ANCHORED (trap 3 above) ─────────────────────
 // Checked structurally rather than by eyeballing: a format key whose pattern
 // can match mid-heading is the exact bug that has recurred.
-for (const key of ['paid', 'built']) {
+for (const key of ['money_of_ai', 'built_with_ai', 'paid', 'built']) {
   const m = new RegExp(`^ {2}${key}:\\s*(/.*/)[a-z]*,`, 'm').exec(ct)
   if (!m) { bad(`no CHANNEL_HEADING pattern found for the '${key}' format`); continue }
   const src = m[1]
@@ -86,16 +86,19 @@ for (const key of ['paid', 'built']) {
 // ── 6. the two format patterns must not both match one heading ─────────────
 // Simulates the real matcher against the headings the live corpus carries.
 const HEADINGS = [
-  '0. Publication house register (applies to EVERY Publication format)',
-  '1. Paid (the investigation)',
-  '2. Built (builder conversations)',
+  '0. Publication house register (applies to EVERY channel of the publication)',
+  '1. The Money of AI (the investigation)',
+  '2. Built with AI (builder conversations)',
   '3. Signal & Noise (distribution channel, co-hosted with Rio Longacre and Brett House)',
   '4. Maven (free lessons only)',
   'How a piece gets built (the pipeline, per channel)',
   'The Five Standards (every channel, no exceptions)',
   'Channel Router (which instrument is this?)',
 ]
-const LIVE_KEYS = ['paid', 'built', 'publication', 'signal_noise', 'maven'] as const
+// CANON 2026-08-28: the publication runs exactly two channels. 'paid' and
+// 'built' remain as LEGACY aliases resolving to the same two playbooks, so they
+// are deliberately not live keys and are exempt from the disjointness check.
+const LIVE_KEYS = ['money_of_ai', 'built_with_ai', 'publication', 'signal_noise', 'maven'] as const
 const patternFor = (k: string) => {
   const m = new RegExp(`^ {2}${k}:\\s*/(.*)/([a-z]*),`, 'm').exec(ct)
   return m ? new RegExp(m[1], m[2]) : null
