@@ -26,6 +26,10 @@
 export const PLACEHOLDERS = {
   '{{SUPABASE_SERVICE_ROLE_KEY}}': 'SUPABASE_SERVICE_ROLE_KEY',
   '{{SUPABASE_ANON_KEY}}': 'SUPABASE_ANON_KEY',
+  // Added 2026-08-29: a live Telegram bot token was hardcoded in 8 workflow
+  // snapshots and check-no-secrets had no rule for it. Cloud had drifted to a
+  // DIFFERENT bot token, so a --apply would also have swapped the bot.
+  '{{TELEGRAM_BOT_TOKEN}}': 'TELEGRAM_BOT_TOKEN',
 }
 
 function walk(value, fn) {

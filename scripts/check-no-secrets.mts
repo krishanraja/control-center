@@ -19,7 +19,7 @@
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, extname } from 'node:path'
+import { join, extname, sep } from 'node:path'
 
 const ROOT = process.cwd()
 
@@ -69,6 +69,20 @@ const RULES: Rule[] = [
     re: /-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----/g,
     why: 'a private key block. Move it to the environment.',
   },
+  {
+    // Added 2026-08-29. A live Telegram bot token sat in EIGHT workflow
+    // snapshots and every rule above missed it, because a bot token looks
+    // like nothing else here: digits, a colon, then base64ish. It reached the
+    // repo because the n8n cloud editor writes the token straight into the
+    // sendMessage URL, and export keeps it.
+    name: 'telegram-bot-token',
+    // Deliberately NO \b before the digits. The token appears as
+    // `.../bot8761660894:AAGy...`, and `t` and `8` are both word characters,
+    // so a leading \b never matches there. The first version of this rule had
+    // one and silently caught nothing.
+    re: /\d{8,12}:AA[A-Za-z0-9_-]{30,}/g,
+    why: 'a Telegram bot token (it appears inside the api.telegram.org/bot<TOKEN>/ URL). Use {{TELEGRAM_BOT_TOKEN}} and inject at sync time — see scripts/n8n/secrets.mjs.',
+  },
 ]
 
 // Binary and lockfile noise: nothing here is hand-edited, and a lockfile hash
@@ -84,7 +98,10 @@ const findings: string[] = []
 function scan(dir: string): void {
   for (const entry of readdirSync(dir)) {
     const abs = join(dir, entry)
-    const rel = abs.slice(ROOT.length + 1)
+    // Normalised to forward slashes. join() emits a backslash separator on
+    // Windows, so the SELF comparison below silently never matched there.
+    // Same class of bug as the one fixed in check-content-expiry.
+    const rel = abs.slice(ROOT.length + 1).split(sep).join('/')
     let st
     try { st = statSync(abs) } catch { continue }
 
