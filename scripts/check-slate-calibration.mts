@@ -70,13 +70,20 @@ type Ruling = {
   purpose: string; headline: string; thesis: string; tier: string; verdict: string
 }
 
+// Formats renamed AFTER the seed was written. The seed migration is the
+// historical record of the forty verdicts Krish actually returned, so it is
+// never edited; the rename is applied on read instead, exactly as
+// 2026-08-29-artifact-format-rename.sql applied it to the rows. Keep this in
+// step with LEGACY_FORMATS in api/_formats.ts.
+const SEED_FORMAT_RENAMES: Record<string, string> = { 'The Teardown': 'The Artifact' }
+
 const rulings: Ruling[] = []
 for (const line of rulingSql.split('\n')) {
   const t = line.trim()
   if (!/^\('[MB]\d\d',/.test(t)) continue
   const f = fields(t)
   if (f.length !== 10) { bad(`ruling row has ${f.length} fields, expected 10: ${t.slice(0, 40)}`); continue }
-  rulings.push({ id: f[0], arc: f[1], channel: f[2], format: f[3], outlet: f[4],
+  rulings.push({ id: f[0], arc: f[1], channel: f[2], format: SEED_FORMAT_RENAMES[f[3]] ?? f[3], outlet: f[4],
     purpose: f[5], headline: f[6], thesis: f[7], tier: f[8], verdict: f[9] })
 }
 
