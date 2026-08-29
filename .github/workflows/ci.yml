@@ -89,6 +89,9 @@ jobs:
       # Also holds folder coverage, and stops a format being deleted for
       # converting badly rather than marked and kept.
       - run: npx tsx scripts/check-slate-calibration.mts
+
+      - name: n8n sync drift guard still blocks destructive pushes
+        run: npx tsx scripts/check-n8n-sync-guard.mts
       # The one that would have caught the whole thing. Steps 1 to 7 each passed
       # their own guard while none of it ran: scoreArc, surface and lintCard were
       # called by nothing, every live arc had lens null, and the Content tab was

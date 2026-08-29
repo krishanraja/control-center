@@ -13,10 +13,19 @@
       "name": "Daily 6AM UTC",
       "type": "n8n-nodes-base.cron",
       "typeVersion": 1,
-      "position": [240, 200],
+      "position": [
+        240,
+        200
+      ],
       "parameters": {
         "triggerTimes": {
-          "item": [{ "mode": "everyDay", "hour": 6, "minute": 0 }]
+          "item": [
+            {
+              "mode": "everyDay",
+              "hour": 6,
+              "minute": 0
+            }
+          ]
         }
       }
     },
@@ -24,49 +33,71 @@
       "name": "Manual Trigger (backfill)",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [240, 360],
+      "position": [
+        240,
+        360
+      ],
       "parameters": {}
     },
     {
       "name": "Fetch Stale Conferences",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [520, 280],
+      "position": [
+        520,
+        280
+      ],
       "parameters": {
         "method": "GET",
-        "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/nova_target_conferences?active=eq.true&or=(audience_size.is.null,last_scraped_at.is.null,last_scraped_at.lt.{{ encodeURIComponent(new Date(Date.now()-30*86400000).toISOString()) }})&select=id,name,url,speaker_page_url",
+        "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/nova_target_conferences?active=eq.true&or=(audience_size.is.null,last_scraped_at.is.null,last_scraped_at.lt.{{ encodeURIComponent(new Date(Date.now()-30*86400000).toISOString()) }})&select=id,name,url,speaker_page_url",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "supabaseApi": { "name": "Supabase account 2" }
+        "supabaseApi": {
+          "name": "Supabase account 2"
+        }
       }
     },
     {
       "name": "Split Rows",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [780, 280],
-      "parameters": { "batchSize": 1 }
+      "position": [
+        780,
+        280
+      ],
+      "parameters": {
+        "batchSize": 1
+      }
     },
     {
       "name": "Brave Search",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1040, 280],
+      "position": [
+        1040,
+        280
+      ],
       "parameters": {
         "method": "GET",
         "url": "=https://api.search.brave.com/res/v1/web/search?q={{ encodeURIComponent($json.name + ' 2026 speakers CFP audience size deadline') }}&count=3",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Accept", "value": "application/json" }
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
           ]
         },
         "authentication": "predefinedCredentialType",
@@ -78,15 +109,24 @@
       "name": "Sonnet Extract",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1300, 280],
+      "position": [
+        1300,
+        280
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -96,7 +136,9 @@
         "nodeCredentialType": "httpHeaderAuth"
       },
       "credentials": {
-        "httpHeaderAuth": { "name": "Anthropic Header" }
+        "httpHeaderAuth": {
+          "name": "Anthropic Header"
+        }
       },
       "notes": "Anthropic credential header: x-api-key = <your Anthropic key>."
     },
@@ -104,7 +146,10 @@
       "name": "Parse Sonnet JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1560, 280],
+      "position": [
+        1560,
+        280
+      ],
       "parameters": {
         "language": "javaScript",
         "jsCode": "// Extract the JSON payload from Sonnet's text block. Sonnet is asked\n// for a single JSON object — strip any leading/trailing prose just in\n// case the model wraps it.\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const blocks = item.json.content || [];\n  const text = blocks.map(b => b.text || '').join('\\n').trim();\n  let parsed = null;\n  try {\n    const start = text.indexOf('{');\n    const end   = text.lastIndexOf('}');\n    if (start >= 0 && end > start) {\n      parsed = JSON.parse(text.slice(start, end + 1));\n    }\n  } catch (e) {\n    parsed = null;\n  }\n  const src = $('Split Rows').item.json;\n  out.push({ json: {\n    id: src.id,\n    ...((parsed && typeof parsed === 'object') ? parsed : {}),\n  }});\n}\nreturn out;"
@@ -114,15 +159,24 @@
       "name": "Supabase: Upsert Enrichment",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1820, 280],
+      "position": [
+        1820,
+        280
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "=https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/nova_target_conferences?id=eq.{{ $json.id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Prefer", "value": "return=minimal" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -132,34 +186,100 @@
         "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "supabaseApi": { "name": "Supabase account 2" }
+        "supabaseApi": {
+          "name": "Supabase account 2"
+        }
       }
     }
   ],
   "connections": {
     "Daily 6AM UTC": {
-      "main": [[{ "node": "Fetch Stale Conferences", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Fetch Stale Conferences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Manual Trigger (backfill)": {
-      "main": [[{ "node": "Fetch Stale Conferences", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Fetch Stale Conferences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Fetch Stale Conferences": {
-      "main": [[{ "node": "Split Rows", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Split Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Split Rows": {
-      "main": [[{ "node": "Brave Search", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Brave Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Brave Search": {
-      "main": [[{ "node": "Sonnet Extract", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Sonnet Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Sonnet Extract": {
-      "main": [[{ "node": "Parse Sonnet JSON", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Parse Sonnet JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse Sonnet JSON": {
-      "main": [[{ "node": "Supabase: Upsert Enrichment", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Supabase: Upsert Enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase: Upsert Enrichment": {
-      "main": [[{ "node": "Split Rows", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Split Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   }
 }

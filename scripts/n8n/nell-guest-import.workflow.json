@@ -224,7 +224,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"event_type\": \"nell_guest_sheet_import\", \"actor\": \"nell\", \"target\": \"={{ $json[0].id }}\", \"details\": \"={{ JSON.stringify({ name: $json[0].name, podcast_target: $json[0].podcast_target, source: 'sheet_import' }) }}\"}",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'nell_guest_sheet_import', actor: 'nell', target: $json[0].id, details: JSON.stringify({ name: $json[0].name, podcast_target: $json[0].podcast_target, source: 'sheet_import' }) }) }}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
