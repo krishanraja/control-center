@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Sun, AlertOctagon, CheckCircle2, ChevronDown } from 'lucide-react'
+import { Sun, AlertOctagon, CheckCircle2, ChevronDown } from '@/lib/icons'
 import { useHomeIntelligence } from '../hooks/useHomeIntelligence'
 
 interface Props {
@@ -57,7 +57,7 @@ export function DailyBriefBanner({ blocking = false, variant = 'desktop', retroO
       >
         <header className="flex items-center gap-2 mb-3 min-w-0">
           <AlertOctagon size={14} className="text-amber-300 flex-shrink-0" />
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-amber-300 truncate">
+          <h2 className="text-micro font-bold uppercase tracking-[0.14em] text-amber-300 truncate">
             Friday retro — acknowledge to dismiss
           </h2>
         </header>
@@ -66,7 +66,7 @@ export function DailyBriefBanner({ blocking = false, variant = 'desktop', retroO
           type="button"
           onClick={onAck}
           disabled={acking}
-          className="mt-3 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-amber-500/25 border border-amber-500/40 text-amber-100 hover:bg-amber-500/35 disabled:opacity-40 min-h-[44px] sm:min-h-0"
+          className="mt-3 px-3 py-1.5 rounded-md text-label font-semibold bg-amber-500/25 border border-amber-500/40 text-amber-100 hover:bg-amber-500/35 disabled:opacity-40 min-h-[44px] sm:min-h-0"
         >
           <CheckCircle2 size={12} className="inline mr-1" />
           {acking ? 'Saving…' : 'Acknowledged — dismiss'}
@@ -90,42 +90,58 @@ export function DailyBriefBanner({ blocking = false, variant = 'desktop', retroO
         >
           <header className="flex items-center gap-2 mb-3 min-w-0">
             <Sun size={14} className="text-violet-300 flex-shrink-0" />
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.16em] text-violet-300 truncate">
+            <h2 className="text-micro font-bold uppercase tracking-[0.14em] text-violet-300 truncate">
               Today's brief from Marcus
             </h2>
+            {/* A failed brief used to render as a normal one. It is the first
+                thing read each morning and the most trusted, so it is the last
+                place a silent fallback belongs. FocusCalibrator has always
+                tagged its fallback picks this way; the brief never did. */}
+            {brief.degraded && (
+              <span
+                className="flex-shrink-0 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-micro font-semibold uppercase tracking-[0.14em] text-amber-200"
+                title={brief.reasoning || 'The brief did not parse; this is raw model output.'}
+              >
+                fallback
+              </span>
+            )}
             {briefAt && (
-              <span className="text-[10px] text-white/35 ml-auto tabular-nums flex-shrink-0">
+              <span className="text-micro text-white/35 ml-auto tabular-nums flex-shrink-0">
                 {humanAgo(briefAt)}
               </span>
             )}
           </header>
 
+          {brief.degraded && brief.reasoning && (
+            <p className="mb-2 text-label leading-snug text-amber-200/80">{brief.reasoning}</p>
+          )}
+
           {delta !== 0 && (
-            <p className={`text-[14px] font-semibold mb-2 ${deltaColor}`}>
+            <p className={`text-ui font-semibold mb-2 ${deltaColor}`}>
               Yesterday: {delta > 0 ? '+' : ''}${Math.round(delta).toLocaleString()} MRR
             </p>
           )}
 
           {brief.one_bet && (
-            <p className="text-[13px] text-white/85 leading-snug mb-1.5 break-words">
+            <p className="text-body text-white/85 leading-snug mb-1.5 break-words">
               <span className="text-violet-300/80 font-semibold">Today's bet · </span>
               {brief.one_bet}
             </p>
           )}
           {brief.one_customer && (
-            <p className="text-[13px] text-white/85 leading-snug mb-1.5 break-words">
+            <p className="text-body text-white/85 leading-snug mb-1.5 break-words">
               <span className="text-emerald-300/80 font-semibold">Talk to · </span>
               {brief.one_customer}
             </p>
           )}
           {brief.one_anti_action && (
-            <p className="text-[13px] text-white/85 leading-snug break-words">
+            <p className="text-body text-white/85 leading-snug break-words">
               <span className="text-red-300/80 font-semibold">Don't · </span>
               {brief.one_anti_action}
             </p>
           )}
           {brief.body && !brief.one_bet && (
-            <p className="text-[13px] text-white/75 leading-snug whitespace-pre-wrap break-words">
+            <p className="text-body text-white/75 leading-snug whitespace-pre-wrap break-words">
               {brief.body}
             </p>
           )}
@@ -143,17 +159,17 @@ export function DailyBriefBanner({ blocking = false, variant = 'desktop', retroO
             className="w-full flex items-center gap-2 px-4 sm:px-5 py-3 hover:bg-amber-500/[0.06] transition-colors min-h-[44px]"
           >
             <AlertOctagon size={13} className="text-amber-300 flex-shrink-0" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-amber-300 truncate">
+            <span className="text-micro font-bold uppercase tracking-[0.14em] text-amber-300 truncate">
               Friday retro
             </span>
             {retroAt && (
-              <span className="text-[10px] text-white/35 tabular-nums flex-shrink-0 ml-1">
+              <span className="text-micro text-white/35 tabular-nums flex-shrink-0 ml-1">
                 {humanAgo(retroAt)}
               </span>
             )}
             <span className="ml-auto flex items-center gap-2 flex-shrink-0">
               {!retroAcked && (
-                <span className="text-[10px] uppercase tracking-[0.12em] font-semibold text-amber-200/80 hidden sm:inline">
+                <span className="text-micro uppercase tracking-[0.14em] font-semibold text-amber-200/80 hidden sm:inline">
                   New
                 </span>
               )}
@@ -172,7 +188,7 @@ export function DailyBriefBanner({ blocking = false, variant = 'desktop', retroO
                   type="button"
                   onClick={onAck}
                   disabled={acking}
-                  className="mt-3 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-100 hover:bg-amber-500/25 disabled:opacity-40 min-h-[44px] sm:min-h-0"
+                  className="mt-3 px-3 py-1.5 rounded-md text-label font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-100 hover:bg-amber-500/25 disabled:opacity-40 min-h-[44px] sm:min-h-0"
                 >
                   <CheckCircle2 size={12} className="inline mr-1" />
                   {acking ? 'Saving…' : 'Mark read'}
@@ -191,10 +207,10 @@ function RetroBody({ retro }: { retro: NonNullable<ReturnType<typeof useHomeInte
     <div className="space-y-3 min-w-0">
       {retro.what_worked && retro.what_worked.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase tracking-[0.14em] text-emerald-300/80 font-semibold mb-1">
+          <p className="text-micro uppercase tracking-[0.14em] text-emerald-300/80 font-semibold mb-1">
             Worked
           </p>
-          <ul className="text-[13px] text-white/85 space-y-0.5 whitespace-normal break-words">
+          <ul className="text-body text-white/85 space-y-0.5 whitespace-normal break-words">
             {retro.what_worked.slice(0, 4).map((w, i) => (
               <li key={i} className="break-words">· {w}</li>
             ))}
@@ -203,10 +219,10 @@ function RetroBody({ retro }: { retro: NonNullable<ReturnType<typeof useHomeInte
       )}
       {retro.what_flopped && retro.what_flopped.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase tracking-[0.14em] text-red-300/80 font-semibold mb-1">
+          <p className="text-micro uppercase tracking-[0.14em] text-red-300/80 font-semibold mb-1">
             Flopped
           </p>
-          <ul className="text-[13px] text-white/85 space-y-0.5 whitespace-normal break-words">
+          <ul className="text-body text-white/85 space-y-0.5 whitespace-normal break-words">
             {retro.what_flopped.slice(0, 4).map((w, i) => (
               <li key={i} className="break-words">· {w}</li>
             ))}
@@ -214,7 +230,7 @@ function RetroBody({ retro }: { retro: NonNullable<ReturnType<typeof useHomeInte
         </div>
       )}
       {retro.next_focus && (
-        <p className="text-[13px] text-amber-100 font-medium leading-snug break-words line-clamp-3">
+        <p className="text-body text-amber-100 font-medium leading-snug break-words line-clamp-3">
           → Next week: {retro.next_focus}
         </p>
       )}

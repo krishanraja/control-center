@@ -21,12 +21,17 @@
 | [`API.md`](./API.md) | Supabase queries and realtime subscription patterns |
 | [`OBSERVABILITY.md`](./OBSERVABILITY.md) | Health model, alerts, SLIs, logging |
 | [`SECURITY.md`](./SECURITY.md) | Threat model, secrets inventory, auth, rotation |
+| [`PILOT-LAYER.md`](./PILOT-LAYER.md) | The operator layer: morning gate, red mode, ship ledger, worry compiler, and its non-negotiables |
+| [`FOCUS-PURPOSE.md`](./FOCUS-PURPOSE.md) | The Focus & Purpose home: the operator's theory on tap (daily ask, traps, scripts, decision rules) and its non-negotiables |
+| [`focus-purpose/`](./focus-purpose/) | The committed corpus behind it: the operating manual and the purpose workbook distillation |
 | [`GLOSSARY.md`](./GLOSSARY.md) | Canonical definitions for product / data terms |
 | [`DECISIONS/`](./DECISIONS/) | Architecture decision records (numbered, immutable) |
 | [`DEPLOYMENT.md`](./DEPLOYMENT.md) | Vercel deployment + env setup |
 | [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Dev workflow + code standards |
 | [`DATA-RECOMMENDATIONS.md`](./DATA-RECOMMENDATIONS.md) | Forward-looking data pipeline improvements |
 | [`TESTING.md`](./TESTING.md) | What is tested, how to run it, and the selector rule that keeps it green |
+| [`plans/compound/STATE.md`](./plans/compound/STATE.md) | Current production truth for the private COMPOUND sibling application |
+| [`plans/compound/RELEASE_GATE.md`](./plans/compound/RELEASE_GATE.md) | Completed release evidence and genuinely open operational gates for COMPOUND |
 
 The `pr-*.md` files (e.g. `pr-7-living-plans-decisions-view.md`) and the
 `visibility-followups-2026-05.md` file are rolling change notes from the
@@ -83,26 +88,24 @@ patterns, it does not belong.
 
 ## Tabs (current shape)
 
-Eleven primary tabs, routed by `App.tsx` via a hash-based router.
+Six destinations plus a drawer, routed by `App.tsx` via a hash-based router.
+The registry is `src/lib/tabs.ts`; the simplified IA is committed
+(2026-08-20), and legacy hashes (`#leads`, `#guests`, `#today`, `#bets`,
+`#acquisition`, ...) alias into these destinations, so old bookmarks keep
+working.
 
 | Tab | Hash | Purpose | Primary tables |
 |---|---|---|---|
-| Home | `#home` | DecisionsWaitingPanel, CriticalAlertBanner, MrrTicker, Marcus headline, StreakPills, KillListModal | `decisions_waiting`, `home_intelligence`, `silent_failures`, `customers`, `bets` |
-| Today | `#today` | Active / blocked / waiting tasks with inline actions | `tasks` |
-| Leads | `#leads` | Per-venture lanes of enriched leads, one per active venture | `leads`, `venture_registry` |
-| Customers | `#customers` | MrrTicker, CustomerSourcesPanel, CustomerCouncilCard, ExpansionRadar, per-product feeds | `customers`, `customer_contacts` |
-| Guests | `#guests` | Podcast guests + visibility targets; bulk import, pitch drafts, status lanes | `guests`, `visibility_targets` |
-| Content | `#content` | Cleo's content-ideas backlog with idea capture | `content_ideas` |
-| Bets | `#bets` | Live bets with time-box bars, place-bet flow, 90-day hit-rate | `bets` |
-| Org | `#org` | Agent grid by pod with inline brief editor | `agents` |
-| Intel | `#exec` | Marcus headline + AskMarcus chat + Zara signals + deep research | `zara_signals`, `marcus_synthesis`, `home_intelligence`, `customers`, `leads`, `bets` |
-| Flows | `#workflows` | N8N workflow health, recent runs, pending proposals | `workflow_runs`, `workflow_proposals` |
-| Systems | `#systems` | Infrastructure health, credential health, silent failures by tier | `system_health`, `credential_health`, `silent_failures` |
+| Home | `#home` | The canon, one screen, no scrolling: OS goals → this week's ≤3 objectives → today's 3, one vitals line (MRR · ships · waiting), ONE contextual CTA, the Focus and Intel doors (Intel opens the daily drawer) | `goals`, `daily_focus`, `ships`, `decisions_waiting`, `silent_failures`, `home_intelligence` |
+| Content | `#content` | Content Engine v2: Built / Paid / Library rooms + the mobile Queue decision deck; the brief editor | `content_ideas`, `weekly_briefs`, `shifts`, `content_decisions` |
+| People | `#people` | Every human pipeline: Pipeline / **Network** (default lane) / Visibility | `leads`, `contacts`, `contact_intelligence`, `guests`, `visibility_targets` |
+| Growth | `#growth` | The weekly growth loop: Map, Work, Signals, Council, Governance ([`GROWTH_TAB_RUNBOOK.md`](./GROWTH_TAB_RUNBOOK.md)) | growth + governance tables per the runbook |
+| OS | `#os` | Queue (the ruling deck) + Org / Intel / Flows / Systems subtabs | `tasks`, `agents`, `workflow_runs`, `system_health`, `zara_signals` |
+| Focus | `#focus` | The operator's hub: daily ask, steadying moves, scripts, decision rules ([`FOCUS-PURPOSE.md`](./FOCUS-PURPOSE.md)) | `pilot_asks` |
+| Subscriptions | `#customers` (drawer) | Watch-only revenue: MRR, sources, council, expansion radar | `customers`, `customer_contacts` |
 
-The `Intel` tab is rendered by `DesktopExec.tsx` (and `MobileIntel.tsx`)
-and is routed under the `exec` tab id for historical reasons — that is
-intentional and not a typo. See [`AGENTS.md`](./AGENTS.md) for why the
-naming inconsistency was kept.
+Intel still routes under the `exec` id inside OS for historical reasons —
+intentional, not a typo (see [`AGENTS.md`](./AGENTS.md)).
 
 ## Getting started
 
@@ -122,7 +125,8 @@ need the serverless endpoints locally.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  Control Center UI (React + TypeScript + Tailwind)             │
-│  • 11 tabs (Home / Today / Leads / Customers / Guests / ...)   │
+│  • 6 destinations (Home / Content / People / Growth / OS /     │
+│    Focus) + Subscriptions in the drawer                        │
 │  • Realtime via @supabase/supabase-js postgres_changes         │
 │  • Mutations: anon write OR /api/* (service role) when needed  │
 └──────────────────────────────┬──────────────────────────────────┘

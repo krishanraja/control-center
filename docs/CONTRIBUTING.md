@@ -383,12 +383,36 @@ the Realtime WebSocket.
 
 ## Primitives (non-optional)
 
+One system per job — extend it, never fork it. The full index lives in the
+root [`AGENTS.md`](../AGENTS.md) ("The house systems") and
+[`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md); the ones you will hit first:
+
+- **Text sizes** are the role tokens (`text-micro` … `text-hero`); uppercase
+  section labels are `shared/Eyebrow`. `scripts/check-type-tokens.mts` fails
+  a new `text-[Npx]` or off-recipe tracking in CI.
+- **Icons** import from `@/lib/icons` (never `lucide-react` directly);
+  circled icons are `shared/IconTile`. `scripts/check-icons.mts` fails
+  direct imports, stray stroke widths and emoji stand-ins in CI.
 - **Overlays** go through `shared/Modal`, `SlideOver` or `BottomSheet`. A bare
   `fixed inset-0` has no dialog role, focus trap, scroll lock or focus
-  restoration. 14 surfaces had that problem; the only `fixed inset-0` left is
-  on two things that are genuinely not modals (a menu and a click-away scrim).
+  restoration; 14 surfaces had that problem. The survivors are deliberate
+  scrims/takeovers plus a few named legacy dialogs (see COMPONENTS.md) —
+  migrate them when touched, never copy them.
+- **Editing text on a phone** is `shared/FocusedEditor` (sheet, voice, one
+  full-width Save above the keyboard, danger behind "…"). Desktop edits
+  inline.
+- **Small-set choices are chips, never a native `<select>`:** `OptionChips` /
+  `ServesPicker` / `VentureChips` (`components/goals/GoalPickers.tsx`), or
+  `shared/ChipOverflow` past one line. Chips never wrap or centre.
+- **Creating on a phone** goes through the + button (`CreateSheet` + the
+  `src/lib/quickCreate.ts` bus) — never a new inline create button on a
+  narrow viewport.
 - **Tab switchers** go through `shared/SegmentedNav`, and always pass
   `testIdPrefix` so the e2e suite has something stable to select.
 - **Accent foregrounds use shade 200, never 300.** Only 50/100/200 map to the
   `--ac-*` channels that flip between themes; 300 and up are fixed hexes tuned
   for the dark surface and wash out on paper.
+- **Copy is plain English** a 12-year-old can follow — no stacked fragments,
+  no insider metaphors, no em dashes; loading strings only in
+  `src/lib/loadingVoice.ts`. Product nouns (shifts, ventures, ships,
+  Built/Paid, MRR) stay.

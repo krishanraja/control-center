@@ -1,11 +1,11 @@
-// Section-level diff for brief revisions (BriefEditor's "keep just part").
+// Section-level diff for brief revisions (BriefComposer's "keep just part").
 //
 // A magic edit or a Cleo instruction returns a whole rewritten draft. Replacing
 // the entire body wholesale is all-or-nothing: you can't take the sharper
 // ending but keep the headlines you already liked. This splits both drafts on
 // their markdown headings, shows what actually changed per section, and lets
 // each change be kept or dropped independently. The brief's structure is stable
-// (Title / Headlines / What this actually means / Perspectives / Sources), so
+// (Title / Headlines / What this actually means / Position / Sources), so
 // heading keys line the two drafts up cleanly.
 
 export type SectionStatus = 'same' | 'changed' | 'added' | 'removed'

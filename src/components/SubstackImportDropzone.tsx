@@ -1,7 +1,8 @@
 import React, { useCallback, useRef, useState } from 'react'
-import { Mail, FileText, Loader2, CheckCircle2 } from 'lucide-react'
+import { Mail, FileText, CheckCircle2 } from '@/lib/icons'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
+import { Working } from './shared/Working'
 
 interface Props {
   onImported?: (summary: { processed: number; paid: number; free: number }) => void
@@ -78,8 +79,8 @@ export function SubstackImportDropzone({ onImported }: Props) {
           ${hover ? 'border-teal-500/40 bg-teal-500/[0.04]' : 'border-white/10 bg-white/[0.015] hover:border-white/20'}`}
       >
         <Mail size={20} className="mx-auto text-teal-300/70" />
-        <p className="text-[12px] text-white/75 mt-2 font-medium">Drop a Substack subscriber export</p>
-        <p className="text-[11px] text-white/45 mt-0.5">
+        <p className="text-label text-white/75 mt-2 font-medium">Drop a Substack subscriber export</p>
+        <p className="text-micro text-white/45 mt-0.5">
           Subscribers → ⋯ → Export. Free become leads, paid become Subscriptions.
         </p>
         <div className="flex items-center justify-center gap-1 mt-2" role="radiogroup" aria-label="Publication">
@@ -90,7 +91,7 @@ export function SubstackImportDropzone({ onImported }: Props) {
               role="radio"
               aria-checked={source === p.source}
               onClick={(e) => { e.stopPropagation(); setSource(p.source) }}
-              className={`px-2 py-0.5 rounded-md text-[10px] font-medium border transition-colors
+              className={`px-2 py-0.5 rounded-md text-micro font-medium border transition-colors
                 ${source === p.source
                   ? 'border-teal-500/40 bg-teal-500/15 text-teal-200'
                   : 'border-white/10 text-white/45 hover:text-white/70'}`}
@@ -103,7 +104,7 @@ export function SubstackImportDropzone({ onImported }: Props) {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-1 rounded-md text-[11px] font-medium border border-teal-500/30 text-teal-200 hover:bg-teal-500/15 transition-colors"
+            className="px-3 py-1 rounded-md text-micro font-medium border border-teal-500/30 text-teal-200 hover:bg-teal-500/15 transition-colors"
           >
             Pick CSV
           </button>
@@ -120,10 +121,10 @@ export function SubstackImportDropzone({ onImported }: Props) {
       {files.length > 0 && (
         <ul className="space-y-1">
           {files.slice(-4).map(f => (
-            <li key={f.id} className="flex items-center gap-2 rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-[11px]">
+            <li key={f.id} className="flex items-center gap-2 rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-micro">
               <FileText size={11} className="text-white/40 flex-shrink-0" />
               <span className="flex-1 min-w-0 truncate text-white/75">{f.name}</span>
-              {f.state === 'sending' && <span className="flex items-center gap-1 text-white/55"><Loader2 size={11} className="animate-spin" />Importing…</span>}
+              {f.state === 'sending' && <span className="flex items-center gap-1 text-white/55"><Working size={11} />Importing…</span>}
               {f.state === 'done' && <span className="flex items-center gap-1 text-emerald-300"><CheckCircle2 size={11} />{f.message || 'Done'}</span>}
               {f.state === 'error' && <span className="text-rose-300" title={f.message}>Failed</span>}
             </li>

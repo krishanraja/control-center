@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from 'react'
 import { ErrorBoundary } from '../ErrorBoundary'
 import { isUiV2 } from '../../lib/uiV2'
-import { BoardSkeleton, MobileTabSkeleton } from '../shared/Skeleton'
+import { BoardSkeleton, MobileTabSkeleton, DeferredFallback } from '../shared/Skeleton'
 import { SegmentedNav } from '../shared/SegmentedNav'
 
 // People: the one tab for every human pipeline. Pipeline (leads), Network
@@ -34,13 +34,18 @@ interface Props {
   onNavigate: (tab: string, params?: Record<string, string>) => void
 }
 
-/** Infer the lane from deep-link params when none is set explicitly. */
+/**
+ * Infer the lane from deep-link params when none is set explicitly.
+ * Network is the default: the 10k-contact network is what the tab is opened
+ * for day to day; Pipeline and Visibility are the lanes you go to on purpose
+ * (and their deep links still land directly).
+ */
 function inferLane(params: Record<string, string>): PeopleLane {
   const lane = params.lane as PeopleLane | undefined
   if (lane === 'pipeline' || lane === 'network' || lane === 'visibility') return lane
   if (params.guest || params.target) return 'visibility'
   if (params.lead) return 'pipeline'
-  return 'pipeline'
+  return 'network'
 }
 
 export function PeopleTab({ narrow, params, onNavigate }: Props) {
@@ -67,41 +72,61 @@ export function PeopleTab({ narrow, params, onNavigate }: Props) {
       onChange={setLane}
       label="People lanes"
       variant={narrow ? 'segmented' : 'bordered'}
-      className={narrow ? 'mb-3' : 'mb-4'}
+      className={narrow ? 'mb-3 shrink-0' : 'mb-4'}
       testIdPrefix="people-lane"
     />
   )
 
-  const fallback = narrow
-    ? <div className="px-5 pt-7 pb-5"><MobileTabSkeleton /></div>
-    : <BoardSkeleton lanes={3} cardsPerLane={3} />
+  const fallback = (
+    <DeferredFallback>
+      {narrow
+        ? <div className="px-5 pt-7 pb-5"><MobileTabSkeleton /></div>
+        : <BoardSkeleton lanes={3} cardsPerLane={3} />}
+    </DeferredFallback>
+  )
+
+  const body = (
+    <Suspense fallback={fallback}>
+      {lane === 'pipeline' && (
+        <ErrorBoundary label="Pipeline">
+          {narrow
+            ? <MobileLeads leadId={params.lead || null} onClearDetail={clearDetail} onNavigate={onNavigate} />
+            : <DesktopLeads leadId={params.lead || null} onClearDetail={clearDetail} onNavigate={onNavigate} />}
+        </ErrorBoundary>
+      )}
+      {lane === 'network' && (
+        <ErrorBoundary label="Network">
+          {isUiV2()
+            ? <NetworkTab narrow={narrow} />
+            : narrow ? <MobileLeadsRE onNavigate={onNavigate} /> : <DesktopLeadsRE onNavigate={onNavigate} />}
+        </ErrorBoundary>
+      )}
+      {lane === 'visibility' && (
+        <ErrorBoundary label="Visibility">
+          {narrow
+            ? <MobileGuests guestId={params.guest || null} targetId={params.target || null} onClearDetail={clearDetail} onNavigate={onNavigate} />
+            : <DesktopGuests guestId={params.guest || null} targetId={params.target || null} onClearDetail={clearDetail} onNavigate={onNavigate} />}
+        </ErrorBoundary>
+      )}
+    </Suspense>
+  )
+
+  // Narrow: same column contract as OsTab — the lane switcher and the lane's
+  // MobileShell share one viewport-height column so the shell fits under the
+  // switcher instead of overflowing the zoom root's clip box.
+  if (narrow) {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        {switcher}
+        <div className="flex-1 min-h-0">{body}</div>
+      </div>
+    )
+  }
 
   return (
     <>
       {switcher}
-      <Suspense fallback={fallback}>
-        {lane === 'pipeline' && (
-          <ErrorBoundary label="Pipeline">
-            {narrow
-              ? <MobileLeads leadId={params.lead || null} onClearDetail={clearDetail} onNavigate={onNavigate} />
-              : <DesktopLeads leadId={params.lead || null} onClearDetail={clearDetail} onNavigate={onNavigate} />}
-          </ErrorBoundary>
-        )}
-        {lane === 'network' && (
-          <ErrorBoundary label="Network">
-            {isUiV2()
-              ? <NetworkTab narrow={narrow} />
-              : narrow ? <MobileLeadsRE onNavigate={onNavigate} /> : <DesktopLeadsRE onNavigate={onNavigate} />}
-          </ErrorBoundary>
-        )}
-        {lane === 'visibility' && (
-          <ErrorBoundary label="Visibility">
-            {narrow
-              ? <MobileGuests guestId={params.guest || null} targetId={params.target || null} onClearDetail={clearDetail} onNavigate={onNavigate} />
-              : <DesktopGuests guestId={params.guest || null} targetId={params.target || null} onClearDetail={clearDetail} onNavigate={onNavigate} />}
-          </ErrorBoundary>
-        )}
-      </Suspense>
+      {body}
     </>
   )
 }

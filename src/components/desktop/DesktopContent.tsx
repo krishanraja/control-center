@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { FileText, ExternalLink, Calendar as CalendarIcon, List, Plus, Loader2, Layers, GitMerge, CheckSquare, Square, Sparkles, AlertTriangle } from 'lucide-react'
+import { FileText, ExternalLink, Calendar as CalendarIcon, ChevronLeft, ChevronRight, List, Plus, Layers, GitMerge, CheckSquare, Square, Sparkles, AlertTriangle } from '@/lib/icons'
 import { formatDistanceToNow } from 'date-fns'
 import { useRealtimeContentIdeas, type ContentIdeaRow, type IdeaState } from '../../hooks/useRealtimeContentIdeas'
 import { useToast } from '../shared/Toast'
@@ -20,6 +20,8 @@ import { SwipeCockpit } from '../shared/SwipeCockpit'
 import { buildContentTriageConfig } from '../../lib/triageConfig'
 import { SynthesisModal } from '../content/SynthesisModal'
 import { BoardSkeleton } from '../shared/Skeleton'
+import { Working } from '../shared/Working'
+import { useWork } from '../../lib/loadingVoice'
 
 // Past this many cards a lane stops stacking and offers the triage deck instead —
 // the guard that makes it structurally impossible to mount 200 cards again.
@@ -32,10 +34,10 @@ const STATE_ORDER: IdeaState[] = ['seeded', 'researching', 'drafting', 'review',
 const STATE_META: Record<IdeaState, { title: string; description: string; tone: string }> = {
   seeded:      { title: 'Seeded',      description: 'Raw idea captured, needs research.',         tone: 'text-white/60' },
   researching: { title: 'Researching', description: 'Cleo or Vera digging for shape.',            tone: 'text-blue-300' },
-  drafting:    { title: 'Drafting',    description: 'Active write. Sits with the assignee.',     tone: 'text-violet-300' },
-  review:      { title: 'Review',      description: 'Ready for Krish read. Awaiting approval.',   tone: 'text-amber-300' },
-  approved:    { title: 'Approved',    description: 'Cleared to ship. Awaiting distribution.',    tone: 'text-emerald-300' },
-  published:   { title: 'Published',   description: 'Live. Watch for signal.',                    tone: 'text-emerald-400/80' },
+  drafting:    { title: 'Drafting',    description: 'Being written now by its owner.',     tone: 'text-violet-300' },
+  review:      { title: 'Review',      description: 'Ready for you to read and approve.',   tone: 'text-amber-300' },
+  approved:    { title: 'Approved',    description: 'Approved, waiting to go out.',    tone: 'text-emerald-300' },
+  published:   { title: 'Published',   description: 'Live. Now watch how it performs.',                    tone: 'text-emerald-400/80' },
   dropped:     { title: 'Dropped',     description: 'Killed before publish.',                     tone: 'text-white/30' },
   absorbed:    { title: 'Absorbed',    description: 'Folded into a synthesized narrative.',       tone: 'text-violet-300/60' },
 }
@@ -130,18 +132,18 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
             <FileText size={20} className="text-violet-300" />
             Content
           </h1>
-          <p className="text-[13px] text-white/55 mt-1">
+          <p className="text-body text-white/55 mt-1">
             Paid and Built, lifted to the newsletter, LinkedIn and the Signal &amp; Noise feed. From idea to live, in one lane.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-white/55 tabular-nums" title="In flight: seeded + researching + drafting + review + approved (excludes dropped/published/buried)">
+          <span className="text-micro text-white/55 tabular-nums" title="In flight: seeded + researching + drafting + review + approved (excludes dropped/published/buried)">
             {loading ? '…' : `${activeCount} in flight${reviewCount > 0 ? ` · ${reviewCount} to approve` : ''}`}
           </span>
           <button
             type="button"
             onClick={() => { setSelectMode(s => !s); if (selectMode) setSelectedIds(new Set()) }}
-            className={`inline-flex items-center gap-1.5 text-[12px] font-medium rounded-lg px-3 py-1.5 transition-colors border ${
+            className={`inline-flex items-center gap-1.5 text-label font-medium rounded-lg px-3 py-1.5 transition-colors border ${
               selectMode
                 ? 'text-violet-100 border-violet-400/50 bg-violet-500/20'
                 : 'text-white/60 border-white/[0.08] hover:text-white/85 hover:bg-white/[0.04]'
@@ -155,7 +157,7 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
             <button
               type="button"
               onClick={triage.forceTriage}
-              className="inline-flex items-center gap-1.5 text-[12px] font-medium text-violet-100 border border-violet-400/40 bg-violet-500/15 hover:bg-violet-500/25 rounded-lg px-3 py-1.5 transition-colors"
+              className="inline-flex items-center gap-1.5 text-label font-medium text-violet-100 border border-violet-400/40 bg-violet-500/15 hover:bg-violet-500/25 rounded-lg px-3 py-1.5 transition-colors"
             >
               <Layers size={13} /> Triage deck
             </button>
@@ -215,7 +217,7 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
           <button
             type="button"
             onClick={() => setView('lanes')}
-            className={`px-3 py-1.5 text-[12px] rounded-md transition-colors inline-flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-label rounded-md transition-colors inline-flex items-center gap-1.5 ${
               view === 'lanes' ? 'bg-violet-500/20 border border-violet-400/40 text-violet-100' : 'border border-transparent text-white/60 hover:text-white/85'
             }`}
           >
@@ -224,7 +226,7 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
           <button
             type="button"
             onClick={() => setView('calendar')}
-            className={`px-3 py-1.5 text-[12px] rounded-md transition-colors inline-flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-label rounded-md transition-colors inline-flex items-center gap-1.5 ${
               view === 'calendar' ? 'bg-violet-500/20 border border-violet-400/40 text-violet-100' : 'border border-transparent text-white/60 hover:text-white/85'
             }`}
           >
@@ -249,14 +251,14 @@ export function DesktopContent({ ideaId, onClearIdea }: Props = {}) {
         <div className="grid grid-cols-1 lg:[grid-template-columns:1fr_2fr] gap-5">
           <aside className="space-y-4">
             <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
+              <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
                 By state
               </h2>
               <ul className="space-y-1">
                 {STATE_ORDER.map(s => {
                   const count = (byState[s] || []).length
                   return (
-                    <li key={s} className="flex items-center justify-between gap-2 py-1 text-[12px]">
+                    <li key={s} className="flex items-center justify-between gap-2 py-1 text-label">
                       <span className="text-white/75 truncate">{STATE_META[s].title}</span>
                       <span className={`tabular-nums ${count > 0 ? 'text-white/85' : 'text-white/25'}`}>{count}</span>
                     </li>
@@ -437,32 +439,32 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
         <button
           type="button"
           onClick={() => stepMonth(-1)}
-          className="px-2 py-1 rounded-md text-[12px] text-white/60 hover:text-white/90 hover:bg-white/[0.06] transition-colors"
+          className="px-2 py-1 rounded-md text-label text-white/60 hover:text-white/90 hover:bg-white/[0.06] transition-colors"
           aria-label="Previous month"
         >
-          ‹
+          <ChevronLeft size={14} />
         </button>
-        <h2 className="text-[14px] font-semibold text-white tabular-nums">{monthLabel}</h2>
+        <h2 className="text-ui font-semibold text-white tabular-nums">{monthLabel}</h2>
         <button
           type="button"
           onClick={() => stepMonth(1)}
-          className="px-2 py-1 rounded-md text-[12px] text-white/60 hover:text-white/90 hover:bg-white/[0.06] transition-colors"
+          className="px-2 py-1 rounded-md text-label text-white/60 hover:text-white/90 hover:bg-white/[0.06] transition-colors"
           aria-label="Next month"
         >
-          ›
+          <ChevronRight size={14} />
         </button>
         <button
           type="button"
           onClick={() => setCursor(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })}
-          className="ml-2 px-2 py-1 rounded-md text-[11px] text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+          className="ml-2 px-2 py-1 rounded-md text-micro text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
         >
           Today
         </button>
-        <span className="ml-auto text-[11px] text-white/45 tabular-nums">{monthIdeas.length} scheduled this month</span>
+        <span className="ml-auto text-micro text-white/45 tabular-nums">{monthIdeas.length} scheduled this month</span>
       </header>
 
       {monthIdeas.length === 0 && (
-        <div className="mb-3 rounded-md border border-dashed border-white/[0.10] bg-white/[0.01] px-3 py-2.5 text-[11px] text-white/55">
+        <div className="mb-3 rounded-md border border-dashed border-white/[0.10] bg-white/[0.01] px-3 py-2.5 text-micro text-white/55">
           Nothing scheduled in {monthLabel}.{' '}
           {unscheduled > 0
             ? `Click any day to drop one of your ${unscheduled} in-flight idea${unscheduled === 1 ? '' : 's'} onto the calendar.`
@@ -472,7 +474,7 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
 
       <div className="grid grid-cols-7 gap-1 mb-1">
         {dayHeaders.map(h => (
-          <div key={h} className="text-[10px] uppercase tracking-[0.12em] text-white/35 text-center py-1">{h}</div>
+          <div key={h} className="text-micro uppercase tracking-[0.14em] text-white/35 text-center py-1">{h}</div>
         ))}
       </div>
 
@@ -493,7 +495,7 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
                   : 'border-white/[0.03] bg-transparent opacity-40'
               }`}
             >
-              <div className={`flex items-center justify-between text-[10px] tabular-nums mb-1 ${isToday ? 'text-violet-200 font-semibold' : 'text-white/45'}`}>
+              <div className={`flex items-center justify-between text-micro tabular-nums mb-1 ${isToday ? 'text-violet-200 font-semibold' : 'text-white/45'}`}>
                 <span>{c.date.getDate()}</span>
                 {c.inMonth && <Plus size={11} className="opacity-0 group-hover:opacity-60 text-white/70" />}
               </div>
@@ -505,7 +507,7 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
                     target={i.published_url || i.draft_link ? '_blank' : undefined}
                     rel="noreferrer noopener"
                     onClick={e => e.stopPropagation()}
-                    className={`block text-[10px] leading-tight truncate px-1 py-0.5 rounded ${
+                    className={`block text-micro leading-tight truncate px-1 py-0.5 rounded ${
                       i.state === 'published'
                         ? 'bg-emerald-500/15 text-emerald-200'
                         : i.state === 'approved'
@@ -520,7 +522,7 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
                   </a>
                 ))}
                 {c.ideas.length > 3 && (
-                  <div className="text-[9px] text-white/45 px-1">+{c.ideas.length - 3}</div>
+                  <div className="text-micro text-white/45 px-1">+{c.ideas.length - 3}</div>
                 )}
               </div>
             </div>
@@ -528,7 +530,7 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
         })}
       </div>
 
-      <div className="flex items-center gap-3 mt-3 text-[10px] text-white/45">
+      <div className="flex items-center gap-3 mt-3 text-micro text-white/45">
         <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-amber-500/40" /> Review</span>
         <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-violet-500/40" /> Approved</span>
         <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500/40" /> Published</span>
@@ -541,10 +543,10 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
           <button aria-label="Cancel" onClick={() => setPickerDay(null)} className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
           <div className="relative w-full max-w-md max-h-[80vh] bg-base border border-white/[0.10] rounded-2xl shadow-2xl shadow-black/60 flex flex-col">
             <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
-              <h3 className="text-[14px] font-semibold text-white">
+              <h3 className="text-ui font-semibold text-white">
                 Schedule for {pickerDay.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
               </h3>
-              <p className="text-[11px] text-white/45 mt-0.5">
+              <p className="text-micro text-white/45 mt-0.5">
                 {unscheduledIdeas.length} unscheduled idea{unscheduledIdeas.length === 1 ? '' : 's'}
               </p>
               {unscheduledIdeas.length > 8 && (
@@ -554,15 +556,15 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
                   value={pickerQuery}
                   onChange={e => setPickerQuery(e.target.value)}
                   placeholder="Filter ideas…"
-                  className="mt-2.5 w-full bg-white/[0.04] border border-white/[0.08] rounded-md px-2.5 py-1.5 text-[12px] text-white placeholder:text-white/30 focus:outline-none focus:border-violet-400/40"
+                  className="mt-2.5 w-full bg-white/[0.04] border border-white/[0.08] rounded-md px-2.5 py-1.5 text-label text-white placeholder:text-white/30 focus:outline-none focus:border-violet-400/40"
                 />
               )}
             </div>
             <div className="flex-1 overflow-y-auto px-2 py-2">
               {unscheduledIdeas.length === 0 ? (
-                <p className="text-[12px] text-white/45 px-3 py-8 text-center">Everything in flight already has a date.</p>
+                <p className="text-label text-white/45 px-3 py-8 text-center">Everything in flight already has a date.</p>
               ) : pickerMatches.length === 0 ? (
-                <p className="text-[12px] text-white/45 px-3 py-8 text-center">No ideas match “{pickerQuery}”.</p>
+                <p className="text-label text-white/45 px-3 py-8 text-center">No ideas match “{pickerQuery}”.</p>
               ) : (
                 pickerMatches.map(i => (
                   <button
@@ -572,15 +574,15 @@ function ContentCalendar({ ideas }: { ideas: ContentIdeaRow[] }) {
                     onClick={() => schedule(i.id, pickerDay)}
                     className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/[0.05] disabled:opacity-50 flex items-center gap-2.5 transition-colors"
                   >
-                    <span className="text-[12px] text-white/85 truncate flex-1">{i.idea}</span>
-                    <span className="text-[9px] uppercase tracking-[0.1em] text-white/40 flex-shrink-0">{i.state}</span>
-                    {scheduling === i.id && <Loader2 size={12} className="animate-spin text-violet-300 flex-shrink-0" />}
+                    <span className="text-label text-white/85 truncate flex-1">{i.idea}</span>
+                    <span className="text-micro uppercase tracking-[0.14em] text-white/40 flex-shrink-0">{i.state}</span>
+                    {scheduling === i.id && <Working size={12} className="text-accent" />}
                   </button>
                 ))
               )}
             </div>
             <div className="px-5 py-3 border-t border-white/[0.06] flex justify-end">
-              <button type="button" onClick={() => setPickerDay(null)} className="text-[12px] text-white/55 hover:text-white/85 px-3 py-1.5">
+              <button type="button" onClick={() => setPickerDay(null)} className="text-label text-white/55 hover:text-white/85 px-3 py-1.5">
                 Cancel
               </button>
             </div>
@@ -609,7 +611,7 @@ function ContentStateLane({
   if (ideas.length === 0) {
     return (
       <section className="rounded-xl border border-white/[0.04] bg-white/[0.008] p-3">
-        <h3 className={`text-[11px] uppercase tracking-[0.14em] ${meta.tone}`}>
+        <h3 className={`text-micro uppercase tracking-[0.14em] ${meta.tone}`}>
           {meta.title} <span className="text-white/25 tabular-nums">0</span>
         </h3>
       </section>
@@ -622,10 +624,10 @@ function ContentStateLane({
   return (
     <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-3">
       <header className="flex items-baseline justify-between mb-2">
-        <h3 className={`text-[11px] uppercase tracking-[0.14em] ${meta.tone}`}>
+        <h3 className={`text-micro uppercase tracking-[0.14em] ${meta.tone}`}>
           {meta.title} <span className="text-white/55 tabular-nums">{ideas.length}</span>
         </h3>
-        <span className="text-[10px] text-white/35">{meta.description}</span>
+        <span className="text-micro text-white/35">{meta.description}</span>
       </header>
       <ul className="space-y-2.5">
         {shown.map(i => (
@@ -643,7 +645,7 @@ function ContentStateLane({
         <button
           type="button"
           onClick={onOverflow}
-          className="mt-2.5 w-full text-[12px] text-violet-200 border border-violet-400/30 bg-violet-500/10 hover:bg-violet-500/20 rounded-lg px-3 py-2 transition-colors"
+          className="mt-2.5 w-full text-label text-violet-200 border border-violet-400/30 bg-violet-500/10 hover:bg-violet-500/20 rounded-lg px-3 py-2 transition-colors"
         >
           +{overflow} more — clear in triage deck
         </button>
@@ -656,20 +658,20 @@ function ContentIdeaRowDisplay({ idea, muted }: { idea: ContentIdeaRow; muted?: 
   return (
     <div className={`py-2 px-3 rounded-md flex items-start gap-3 ${muted ? 'opacity-50' : ''}`}>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] text-white/90 leading-snug">{idea.idea}</p>
+        <p className="text-body text-white/90 leading-snug">{idea.idea}</p>
         {idea.thesis && (
-          <p className="text-[11px] text-white/55 leading-snug mt-1 line-clamp-2">{idea.thesis}</p>
+          <p className="text-micro text-white/55 leading-snug mt-1 line-clamp-2">{idea.thesis}</p>
         )}
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
           {idea.assigned_to && (
-            <span className="text-[10px] uppercase tracking-wider text-violet-300/80">{idea.assigned_to}</span>
+            <span className="text-micro uppercase tracking-wider text-violet-300/80">{idea.assigned_to}</span>
           )}
           {(idea.distribution || []).map(d => (
-            <span key={d} className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.04] text-white/55 border border-white/[0.06]">
+            <span key={d} className="text-micro px-1.5 py-0.5 rounded bg-white/[0.04] text-white/55 border border-white/[0.06]">
               {d}
             </span>
           ))}
-          <span className="text-[10px] text-white/30 ml-auto tabular-nums">
+          <span className="text-micro text-white/30 ml-auto tabular-nums">
             {idea.updated_at && formatDistanceToNow(new Date(idea.updated_at), { addSuffix: true })}
           </span>
         </div>
@@ -679,7 +681,7 @@ function ContentIdeaRowDisplay({ idea, muted }: { idea: ContentIdeaRow; muted?: 
           href={idea.published_url || idea.draft_link!}
           target="_blank"
           rel="noreferrer noopener"
-          className="text-[11px] text-violet-300 hover:text-violet-200 flex items-center gap-1 flex-shrink-0 mt-1"
+          className="text-micro text-violet-300 hover:text-violet-200 flex items-center gap-1 flex-shrink-0 mt-1"
         >
           {idea.published_url ? 'Live' : 'Draft'} <ExternalLink size={10} />
         </a>
@@ -731,6 +733,7 @@ interface SweepReport {
 }
 
 function SweepTriageButton() {
+  const sweepWork = useWork('triage.sweep')
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [report, setReport] = useState<SweepReport | null>(null)
@@ -774,7 +777,7 @@ function SweepTriageButton() {
       <button
         type="button"
         onClick={onOpen}
-        className="inline-flex items-center gap-1.5 text-[12px] font-medium text-white/60 border border-white/[0.08] hover:text-white/85 hover:bg-white/[0.04] rounded-lg px-3 py-1.5 transition-colors"
+        className="inline-flex items-center gap-1.5 text-label font-medium text-white/60 border border-white/[0.08] hover:text-white/85 hover:bg-white/[0.04] rounded-lg px-3 py-1.5 transition-colors"
         title="Auto-clear off-vertical and too-technical cards, then trim to 30"
       >
         <Sparkles size={13} /> Sweep
@@ -784,21 +787,21 @@ function SweepTriageButton() {
           <button aria-label="Cancel" onClick={() => setOpen(false)} className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
           <div className="relative w-full max-w-2xl max-h-[85vh] bg-base border border-white/[0.10] rounded-2xl shadow-2xl shadow-black/60 flex flex-col">
             <div className="px-5 pt-4 pb-3 border-b border-white/[0.06]">
-              <h3 className="text-[14px] font-semibold text-white flex items-center gap-2">
+              <h3 className="text-ui font-semibold text-white flex items-center gap-2">
                 <Sparkles size={14} className="text-violet-300" /> Sweep triage to &lt;30
               </h3>
-              <p className="text-[11px] text-white/45 mt-0.5">
+              <p className="text-micro text-white/45 mt-0.5">
                 Drops off-vertical and too-technical cards, then trims the lowest-scoring rest. Every drop teaches Vera (your hand-captured cards are never touched).
               </p>
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-4">
               {loading && !report && (
-                <div className="flex items-center gap-2 text-[12px] text-white/55">
-                  <Loader2 size={12} className="animate-spin" /> Classifying cards…
+                <div className="flex items-center gap-2 text-label text-white/55">
+                  <Working size={12} /> {sweepWork.label}…
                 </div>
               )}
               {error && (
-                <div className="flex items-start gap-2 text-[12px] text-red-300 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
+                <div className="flex items-start gap-2 text-label text-red-300 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
                   <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" />
                   <span>{error}</span>
                 </div>
@@ -811,20 +814,20 @@ function SweepTriageButton() {
                     <Stat label="Too technical" value={report.relevance.too_technical} tone="violet" />
                     <Stat label="Volume trim" value={report.trim} tone="amber" />
                   </div>
-                  <div className="flex items-baseline gap-3 text-[12px]">
+                  <div className="flex items-baseline gap-3 text-label">
                     <span className="text-white/55">Will drop</span>
-                    <span className="text-white tabular-nums text-[18px] font-semibold">{report.total_dropped}</span>
+                    <span className="text-white tabular-nums text-title font-semibold">{report.total_dropped}</span>
                     <span className="text-white/55">→ deck at</span>
                     <span className="text-white tabular-nums">{report.remaining}</span>
                     <span className="text-white/45">/ {report.target}</span>
                     {report.protected > 0 && (
-                      <span className="ml-auto text-[10.5px] text-white/40">
+                      <span className="ml-auto text-micro text-white/40">
                         {report.protected} protected (in progress / your captures)
                       </span>
                     )}
                   </div>
                   {Object.keys(report.relevance.by_vertical).length > 0 && (
-                    <div className="text-[11px] text-white/55">
+                    <div className="text-micro text-white/55">
                       <span className="text-white/35">By vertical: </span>
                       {Object.entries(report.relevance.by_vertical)
                         .sort((a, b) => b[1] - a[1])
@@ -834,20 +837,20 @@ function SweepTriageButton() {
                   )}
                   {report.sample.length > 0 && (
                     <div>
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-white/35 mb-2">
+                      <p className="text-micro uppercase tracking-[0.14em] text-white/35 mb-2">
                         Sample (first {report.sample.length} of {report.total_dropped})
                       </p>
                       <ul className="space-y-1 max-h-[34vh] overflow-y-auto pr-1">
                         {report.sample.map(s => (
-                          <li key={s.id} className="text-[12px] flex items-start gap-2 py-1 border-b border-white/[0.04]">
-                            <span className={`text-[9.5px] uppercase tracking-[0.08em] font-medium flex-shrink-0 mt-1 ${
+                          <li key={s.id} className="text-label flex items-start gap-2 py-1 border-b border-white/[0.04]">
+                            <span className={`text-micro uppercase tracking-[0.14em] font-medium flex-shrink-0 mt-1 ${
                               s.sweep === 'relevance' ? 'text-violet-300/85' : 'text-amber-300/85'
                             }`}>
                               {s.reason_code.replace(/^[a-z]+_/, '')}
                             </span>
                             <div className="min-w-0 flex-1">
                               <p className="text-white/85 truncate">{s.title}</p>
-                              <p className="text-[10.5px] text-white/40 truncate">{s.rationale}</p>
+                              <p className="text-micro text-white/40 truncate">{s.rationale}</p>
                             </div>
                           </li>
                         ))}
@@ -855,12 +858,12 @@ function SweepTriageButton() {
                     </div>
                   )}
                   {report.total_dropped === 0 && (
-                    <p className="text-[12px] text-white/55 py-4 text-center">
+                    <p className="text-label text-white/55 py-4 text-center">
                       Nothing to drop. The deck is already clean.
                     </p>
                   )}
                   {applied && report.committed && (
-                    <div className="text-[12px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-md px-3 py-2">
+                    <div className="text-label text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-md px-3 py-2">
                       Done. Dropped {report.total_dropped} cards and wrote {report.feedback_inserted} feedback votes. Vera will cluster these on Sunday.
                     </div>
                   )}
@@ -871,7 +874,7 @@ function SweepTriageButton() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="text-[12px] text-white/55 hover:text-white/85 px-3 py-1.5"
+                className="text-label text-white/55 hover:text-white/85 px-3 py-1.5"
               >
                 {applied ? 'Close' : 'Cancel'}
               </button>
@@ -880,9 +883,9 @@ function SweepTriageButton() {
                   type="button"
                   onClick={onApply}
                   disabled={loading}
-                  className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md border border-violet-500/40 bg-violet-500/20 text-violet-100 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center gap-1.5 text-label font-medium px-3 py-1.5 rounded-md border border-violet-500/40 bg-violet-500/20 text-violet-100 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
-                  {loading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                  {loading ? <Working size={12} /> : <Sparkles size={12} />}
                   Apply · drop {report.total_dropped}
                 </button>
               )}
@@ -902,8 +905,8 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: 'vi
     : 'text-white/85'
   return (
     <div className="rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-2">
-      <p className="text-[9.5px] uppercase tracking-[0.12em] text-white/40">{label}</p>
-      <p className={`text-[18px] font-semibold tabular-nums mt-0.5 ${valueColor}`}>{value}</p>
+      <p className="text-micro uppercase tracking-[0.14em] text-white/40">{label}</p>
+      <p className={`text-title font-semibold tabular-nums mt-0.5 ${valueColor}`}>{value}</p>
     </div>
   )
 }
@@ -938,18 +941,18 @@ function MultiSelectBar({
     <div className="sticky top-0 z-20 mb-3 -mx-6 px-6 py-3 bg-base/95 backdrop-blur border-b border-violet-400/20">
       <div className="flex items-center gap-3 mb-2">
         <GitMerge size={13} className="text-violet-300" />
-        <p className="text-[12px] font-medium text-white">
+        <p className="text-label font-medium text-white">
           Select cards to fold into one narrative
           {selectedCount > 0 && <span className="ml-2 text-violet-200 tabular-nums">· {selectedCount} chosen</span>}
         </p>
-        <p className="text-[10.5px] text-white/40 hidden md:block">
+        <p className="text-micro text-white/40 hidden md:block">
           Tip: cards with the violet <span className="text-violet-300">+N</span> badge are already auto-clustered.
         </p>
         <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="text-[12px] px-2.5 py-1 rounded text-white/60 hover:text-white/85 hover:bg-white/[0.04]"
+            className="text-label px-2.5 py-1 rounded text-white/60 hover:text-white/85 hover:bg-white/[0.04]"
           >
             Cancel
           </button>
@@ -957,7 +960,7 @@ function MultiSelectBar({
             type="button"
             onClick={onSynthesize}
             disabled={selectedCount < 2}
-            className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-md border border-violet-500/40 bg-violet-500/20 text-violet-100 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-1.5 text-label font-medium px-3 py-1.5 rounded-md border border-violet-500/40 bg-violet-500/20 text-violet-100 hover:bg-violet-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Synthesize {selectedCount} → 1
           </button>
@@ -982,8 +985,8 @@ function MultiSelectBar({
                 ? <CheckSquare size={12} className="text-violet-300 flex-shrink-0 mt-0.5" />
                 : <Square size={12} className="text-white/40 flex-shrink-0 mt-0.5" />}
               <div className="min-w-0 flex-1">
-                <p className={`text-[11.5px] truncate ${checked ? 'text-white' : 'text-white/75'}`}>{i.idea}</p>
-                <p className="text-[10px] text-white/40 truncate">
+                <p className={`text-label truncate ${checked ? 'text-white' : 'text-white/75'}`}>{i.idea}</p>
+                <p className="text-micro text-white/40 truncate">
                   {[i.state, i.lane ? i.lane.replace(/_/g, ' ') : null].filter(Boolean).join(' · ')}
                   {related >= 2 && <span className="ml-1.5 text-violet-300/90">+{related}</span>}
                 </p>
@@ -992,7 +995,7 @@ function MultiSelectBar({
           )
         })}
         {sorted.length > 60 && (
-          <div className="flex-shrink-0 flex items-center px-3 text-[11px] text-white/35">
+          <div className="flex-shrink-0 flex items-center px-3 text-micro text-white/35">
             …{sorted.length - 60} more (filter by lane to narrow)
           </div>
         )}

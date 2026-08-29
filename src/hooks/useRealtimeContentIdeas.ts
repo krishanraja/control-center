@@ -54,13 +54,30 @@ export type StoredContentLane =
   | 'signal_noise' | 'builder_economy'   // retired 2026-08-11
 
 /**
- * Container for Cleo's derivative outputs keyed by target format. Cleo's
- * transform webhook (`POST /webhook/cleo/transform`) writes the long-form
- * variants here so the editor can flip between them without losing the seed.
+ * Channel cuts of one piece, keyed by media channel.
+ *
+ * This is where a piece's per-CHANNEL derivatives live. Formats (Paid, Built)
+ * are different pieces and get their own child rows via /transform; a channel
+ * cut is the same argument in a different shape, so it belongs on the row.
+ *
+ * Written by POST /api/content-ideas/:id/channel-cut, which merges rather than
+ * replaces so one piece can hold a Substack cut and a LinkedIn cut at once.
+ * Until 2026-08-13 nothing wrote this column at all: channel adapts went
+ * through /revise and overwrote the working draft, so only the most recent cut
+ * survived and it destroyed its own source.
  */
 export type TransformedOutputs = Partial<Record<
-  | 'linkedin'
+  // Live channels. Mirrors MEDIA_CHANNELS in src/lib/contentEngine.ts, minus
+  // TikTok, which has no register in the corpus yet.
   | 'substack'
+  | 'linkedin'
+  | 'youtube'
+  | 'instagram'
+  | 'podcast'
+  | 'signal_noise'
+  // Legacy keys, still readable on old rows. Never written now: the
+  // channel-cut endpoint maps them forward. 'expand' is the one that exists in
+  // production, from a retired n8n flow.
   | 'twitter'
   | 'cohort_prompt'
   | 'mindmake_block'
@@ -70,6 +87,7 @@ export type TransformedOutputs = Partial<Record<
     generated_at: string
     model?: string | null
     notes?: string | null
+    visual_suggestion?: string | null
   }
 >>
 

@@ -49,46 +49,25 @@ const ALLOWED_TABLES = new Set([
   'content_decisions',
 ])
 
-// Canonical reason codes for the three Marcus feedback altitudes plus the
-// preexisting callers. Documentation, not strict enforcement: the field
-// stays open so unknown codes still write through (Vera handles them as
-// 'other'), but typos and divergence are surfaced via a 1-line warn log
-// in the response payload. Adding a code here is how you canonize it.
+// Canonical reason codes. MIRROR of src/lib/servedSurfaces.ts -- that file is
+// the source of truth and `npx tsx scripts/check-served-surfaces.mts` fails the
+// build when the two drift.
+//
+// This list used to be hand-maintained alongside two other copies, and it had
+// fallen 18 codes behind: every rejection of a task, bet, customer, opportunity
+// or correction wrote through as an unknown code and Vera clustered it as
+// 'other'. Codes are append-only -- 389 feedback rows reference the existing
+// ones, and renaming a code orphans its history.
 const REASON_OPTIONS = new Set([
-  // Marcus three altitudes (Objective Layer, Phase 3).
-  'marcus_priority_override',          // daily: wrong task to elevate today.
-  'marcus_milestone_override',         // milestone: right work, wrong week-sized chunk.
-  'marcus_objective_nomination_rejected', // objective: whole objective is wrong shape.
-  'marcus_objective_amended',          // objective: right objective, Krish reshaped its title.
-  'marcus_objective_releveled',        // objective: mis-leveled — promoted a parent / demoted to a milestone.
-  'marcus_weekly_slate_override',      // weekly: the slate missed this move (Krish wrote his own) or he dismissed one.
-  // Preexisting codes already in use across the app.
-  'marcus_suggestion_unsuitable',
-  'triage_promote',
-  // Mobile swipe-triage decks (2026-06): right-swipe advance on Content emits +1,
-  // left-swipe drop emits −1 with a per-surface reason chip. Most reject codes ride
-  // /api/triage/reject (which doesn't validate), but they're canonized here too so
-  // Vera clusters every feedback_queue row by a known code regardless of endpoint.
-  'content_advanced',
-  'content_too_generic',
-  'content_not_my_voice',
-  'content_old_news',
-  'content_wrong_venture',
-  'content_too_negative',
-  'content_too_technical',
-  // Off-vertical: card is about a muted vertical (finance/tax/law/crypto/
-  // healthcare/climate/real-estate/geopolitics) on its own terms, no AI angle.
-  // Emitted by the auto relevance sweep + ingest gate (api/_relevance.ts).
-  'content_off_vertical',
-  'content_already_covered',
-  'content_too_promotional',
-  'content_thin',
-  // Content Engine v2 weekly queue (2026-08). Assembled output gets refused on
-  // subject and angle, which the draft-quality codes above could not express.
-  'content_wrong_topic',
-  'content_wrong_angle',
-  'content_bad_timing',
-  'content_other',
+  // tasks
+  'task_not_a_priority',
+  'task_wrong_framing',
+  'task_outdated_context',
+  'task_already_done',
+  'task_not_mine',
+  'task_too_small',
+  'task_other',
+  // leads
   'lead_wrong_seniority',
   'lead_wrong_company_size',
   'lead_no_budget_signal',
@@ -96,7 +75,32 @@ const REASON_OPTIONS = new Set([
   'lead_wrong_venture_tag',
   'lead_too_technical',
   'lead_off_vertical',
+  'lead_no_warm_path',
   'lead_other',
+  // contacts
+  'contact_already_engaged',
+  'contact_not_a_fit',
+  'contact_wrong_venture',
+  'contact_no_budget_signal',
+  'contact_bad_timing',
+  'contact_too_technical',
+  'contact_off_vertical',
+  'contact_wrong_seniority',
+  'contact_cold',
+  'contact_other',
+  // guests
+  'guest_wrong_show',
+  'guest_too_inside_baseball',
+  'guest_not_a_builder',
+  'guest_too_high_profile',
+  'guest_too_technical',
+  'guest_off_vertical',
+  'guest_wrong_profile',
+  'guest_recently_appeared',
+  'guest_low_reach',
+  'guest_no_hook',
+  'guest_other',
+  // visibility_targets
   'visibility_wrong_audience',
   'visibility_bad_timing',
   'visibility_already_pitched',
@@ -108,30 +112,87 @@ const REASON_OPTIONS = new Set([
   'visibility_too_technical',
   'visibility_off_vertical',
   'visibility_other',
-  'guest_wrong_show',
-  'guest_too_inside_baseball',
-  'guest_not_a_builder',
-  'guest_recently_appeared',
-  'guest_too_high_profile',
-  'guest_too_technical',
-  'guest_wrong_profile',
-  'guest_low_reach',
-  'guest_no_hook',
-  'guest_off_vertical',
-  'guest_other',
-  // Relationship Engine contact reasons (Leads tab thumbs-down).
-  'contact_already_engaged',
-  'contact_not_a_fit',
-  'contact_wrong_venture',
-  'contact_no_budget_signal',
-  'contact_bad_timing',
-  'contact_too_technical',
-  'contact_off_vertical',
-  'contact_wrong_seniority',
-  'contact_cold',
-  'contact_other',
-  // Daily spine close (Phase 1): end-of-day reflection + tomorrow seed.
-  'daily_reflection',
+  // nova_target_conferences
+  'visibility_wrong_audience',
+  'visibility_bad_timing',
+  'visibility_already_pitched',
+  'visibility_too_low_tier',
+  'visibility_wrong_location',
+  'visibility_pay_to_play',
+  'visibility_off_vertical',
+  'visibility_other',
+  // content_ideas
+  'content_thin',
+  'content_too_generic',
+  'content_not_my_voice',
+  'content_old_news',
+  'content_already_covered',
+  'content_too_negative',
+  'content_too_technical',
+  'content_too_promotional',
+  'content_off_vertical',
+  'content_wrong_venture',
+  'content_other',
+  // content_decisions
+  'content_wrong_topic',
+  'content_wrong_angle',
+  'content_already_covered',
+  'content_old_news',
+  'content_too_generic',
+  'content_not_my_voice',
+  'content_bad_timing',
+  'content_other',
+  // goals
+  'marcus_objective_nomination_rejected',
+  'marcus_objective_amended',
+  'marcus_objective_releveled',
+  'goal_bad_timing',
+  'goal_not_measurable',
+  'goal_other',
+  // milestones
+  'marcus_milestone_override',
+  'milestone_bad_timing',
+  'milestone_too_big',
+  'milestone_not_mine',
+  'milestone_other',
+  // weekly_slate
+  'marcus_weekly_slate_override',
+  'weekly_wrong_altitude',
+  'weekly_already_moving',
+  'weekly_other',
+  // home_intelligence
+  'marcus_priority_override',
+  'marcus_suggestion_unsuitable',
+  'priority_bad_timing',
+  'priority_already_done',
+  'priority_other',
+  // customers
+  'customer_wrong_segment',
+  'customer_missing_context',
+  'customer_stale_signal',
+  'customer_other',
+  // bets
+  'bet_not_falsifiable',
+  'bet_wrong_hypothesis',
+  'bet_wrong_size',
+  'bet_bad_timing',
+  'bet_other',
+  // opportunities
+  'opp_no_revenue_path',
+  'opp_wrong_ICP',
+  'opp_too_low_signal',
+  'opp_bad_timing',
+  'opp_other',
+  // corrections
+  'correction_no_action',
+  'correction_wrong_pattern',
+  'correction_too_broad',
+  'correction_already_fixed',
+  'correction_other',
+  // Operational, not surface reject-reasons.
+  'triage_promote', // right-swipe promote on a triage deck (vote=1)
+  'content_advanced', // right-swipe advance on the Content deck (vote=1)
+  'daily_reflection', // end-of-day reflection + tomorrow seed
 ])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -205,9 +266,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     suppressed = !supErr
   }
 
+  // The receipt. Vera's clusterer groups unconsumed -1 rows by
+  // (agent, source_table, reason_code) and fires at >= 3, or >= 2 once the row
+  // carries any code at all ('other' is its stand-in for a missing one). Krish
+  // asked to see that his feedback compounds; the honest way to show it is the
+  // real distance to the real threshold, read back from the real table.
+  //
+  // Best-effort: the count is a nicety and must never fail the write it
+  // describes.
+  let pattern: { count: number; threshold: number; remaining: number } | null = null
+  if (body.vote === -1) {
+    const threshold = body.reason_code ? 2 : 3
+    const q = supabase
+      .from('feedback_queue')
+      .select('id', { count: 'exact', head: true })
+      .eq('source_table', body.source_table)
+      .lt('vote', 0)
+      .neq('status', 'consumed')
+    const scoped = body.reason_code
+      ? q.eq('reason_code', body.reason_code)
+      : q.is('reason_code', null)
+    const { count, error: cErr } = body.agent_id
+      ? await scoped.eq('agent_id', body.agent_id)
+      : await scoped
+    if (!cErr && typeof count === 'number') {
+      pattern = { count, threshold, remaining: Math.max(0, threshold - count) }
+    }
+  }
+
   return res.json({
     ok: true,
     feedback: data,
+    ...(pattern ? { pattern } : {}),
     ...(suppressed ? { suppressed: true } : {}),
     ...(unknownReasonCode
       ? { warning: `reason_code '${unknownReasonCode}' is not in REASON_OPTIONS; Vera will cluster it as 'other'. Add to REASON_OPTIONS to canonize.` }

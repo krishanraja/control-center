@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef } from 'react'
-import { X, Check, ChevronRight, Maximize2, CheckCircle2 } from 'lucide-react'
+import { X, Check, ChevronRight, Maximize2, CheckCircle2 } from '@/lib/icons'
 import { useCardDeck, type Dir } from '../../hooks/useCardDeck'
 import { SwipeCard } from './SwipeCard'
 import { ReasonChipBar } from './ReasonChipBar'
+import { WhyBadge } from './WhyBadge'
 import { DeckProgressStrip } from './DeckProgressStrip'
 
 export interface ReasonChip { code: string; label: string }
@@ -38,6 +39,9 @@ interface Props<T> {
   /** Left-swipe reason buffer (from useSwipeTriage). When set, the chip bar shows. */
   pending: { item: T } | null
   reasonChips?: (t: T) => ReasonChip[]
+  /** Where this card came from, so the top card can answer "why am I seeing
+   *  this?" without every deck re-implementing the badge. */
+  why?: (t: T) => { table: string; row: Record<string, any> } | null
   onChooseReason: (code?: string) => void
   onCancelPending: () => void
 
@@ -77,7 +81,7 @@ export function SwipeDeck<T>({
   deck, getId, renderBody, ariaLabel,
   onAccept, onReject, onOpen,
   leftLabel = 'Skip', rightLabel = 'Keep', rightIntent, middleAction,
-  pending, reasonChips, onChooseReason, onCancelPending,
+  pending, reasonChips, onChooseReason, onCancelPending, why,
   remaining, triagedCount, onExit, exitLabel, onUndo, canUndo,
   title = 'Clear the pile', narrow, paused,
 }: Props<T>) {
@@ -168,6 +172,11 @@ export function SwipeDeck<T>({
                 ariaLabel={ariaLabel ? ariaLabel(item) : undefined}
                 onClick={isTop && onOpen ? () => onOpen(item) : undefined}
               >
+                {isTop && why?.(item) ? (
+                  <div className="absolute right-3 top-3 z-10">
+                    <WhyBadge {...why(item)!} />
+                  </div>
+                ) : null}
                 {renderBody(item, depth)}
               </SwipeCard>
             )
@@ -175,14 +184,14 @@ export function SwipeDeck<T>({
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
             <CheckCircle2 size={28} className="text-emerald-400/80 mb-3" />
-            <p className="text-[15px] text-white/85 font-medium">Pile cleared.</p>
-            <p className="text-[12px] text-white/45 mt-1 max-w-xs">
+            <p className="text-ui text-white/85 font-medium">Pile cleared.</p>
+            <p className="text-label text-white/45 mt-1 max-w-xs">
               {triagedCount > 0 ? `You triaged ${triagedCount} this round. ` : ''}
               {'Nothing left to swipe.'}
             </p>
             {onExit && (
               <button type="button" onClick={onExit}
-                className="mt-4 text-[12px] font-semibold text-violet-200 border border-violet-400/40 bg-violet-500/15 hover:bg-violet-500/25 rounded-lg px-4 py-2">
+                className="mt-4 text-label font-semibold text-violet-200 border border-violet-400/40 bg-violet-500/15 hover:bg-violet-500/25 rounded-lg px-4 py-2">
                 Back to list
               </button>
             )}
@@ -238,7 +247,7 @@ export function SwipeDeck<T>({
                 <RightIcon size={24} />
               </button>
             </div>
-            <p className="text-center text-[11px] text-white/35 mt-2.5 flex-shrink-0">
+            <p className="text-center text-micro text-white/35 mt-2.5 flex-shrink-0">
               {narrow
                 ? <>Swipe left to {topLeft.toLowerCase()} · right to {topRight.toLowerCase()}{onOpen ? ' · tap to open' : ''}</>
                 : <>← {topLeft.toLowerCase()} · → {topRight.toLowerCase()}{onOpen ? ' · ↑ open' : ''}{canUndo ? ' · U undo' : ''}</>}

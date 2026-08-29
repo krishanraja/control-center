@@ -1,10 +1,11 @@
 import { z } from "zod";
+import demoSnapshot from "virtual:compound-demo-snapshot";
 import type { Snapshot } from "../types";
 
 /**
- * `latest.json` is validated on arrival. A field the pipeline could not fill
- * arrives as null and the section that needs it says so, rather than the app
- * inventing a number or falling back to a stale copy baked into the bundle.
+ * Snapshot data is validated at the boundary. A field the pipeline could not
+ * fill arrives as null and the section that needs it says so, rather than the
+ * app inventing a number.
  */
 
 const num = z.number().nullable().catch(null);
@@ -178,8 +179,7 @@ export function degradedFeeds(snapshot: Snapshot): string[] {
     .map(([feed, state]) => `${feed}: ${state}`);
 }
 
-export async function loadSnapshot(signal?: AbortSignal): Promise<Snapshot> {
-  const response = await fetch("/latest.json", { cache: "no-store", signal });
-  if (!response.ok) throw new Error("There is no COMPOUND data file to read yet.");
-  return parseSnapshot(await response.json() as unknown);
+export function loadDemoSnapshot(): Snapshot {
+  if (demoSnapshot == null) throw new Error("Demo data is available only when VITE_COMPOUND_DEMO_MODE=true.");
+  return parseSnapshot(demoSnapshot as unknown);
 }

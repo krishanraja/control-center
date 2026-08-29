@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader,
+  HeaderSubtitleSkeleton, HeroCard, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase } from '../../lib/supabase'
@@ -7,6 +8,7 @@ import { usePendingCorrections, type PendingCorrection } from '../../hooks/usePe
 import { NextOrgHero } from '../org/NextOrgHero'
 import { SkillProposalsPanel } from '../shared/SkillProposalsPanel'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
+import { useElapsed } from '../../hooks/useAsyncAction'
 
 interface Agent {
   id: string
@@ -109,6 +111,7 @@ export function MobileOrg() {
   }
 
   const triggeringName = Object.entries(triggering).find(([, s]) => s === 'loading')?.[0] || null
+  const triggerElapsed = useElapsed(triggeringName !== null)
 
   const triggerAgent = async (name: string) => {
     h.heavy()
@@ -137,11 +140,18 @@ export function MobileOrg() {
       header={
         <TabHeader
           title="Organisation"
-          subtitle={loading ? 'Loading…' : `${agents.length} agents · ${runs.length} runs in last batch`}
+          subtitle={loading ? <HeaderSubtitleSkeleton w={196} /> : `${agents.length} agents · ${runs.length} runs in last batch`}
         />
       }
     >
-      {triggeringName && <ProcessingOverlay label={`Triggering ${triggeringName}`} sub="Starting the agent run" />}
+      {triggeringName && (
+        <ProcessingOverlay
+          label={`Triggering ${triggeringName}`}
+          sub="Handing the run to n8n. It continues without you."
+          elapsedMs={triggerElapsed}
+          expectedMs={12_000}
+        />
+      )}
       <NextOrgHero
         corrections={pendingCorrections.data}
         agentCount={agents.length}
@@ -184,9 +194,9 @@ export function MobileOrg() {
                   detail={a.role || 'No role set'}
                   trailing={
                     failed > 0 ? (
-                      <span className="text-[14px] font-semibold text-red-300">{failed} err</span>
+                      <span className="text-ui font-semibold text-red-300">{failed} err</span>
                     ) : h2?.lastRunAt ? (
-                      <span className="text-[14px] text-white/35 tabular-nums">{humanAgo(h2.lastRunAt)}</span>
+                      <span className="text-ui text-white/35 tabular-nums">{humanAgo(h2.lastRunAt)}</span>
                     ) : null
                   }
                   onClick={() => { h.select(); setOpenId(a.id) }}

@@ -64,7 +64,21 @@ New tables (RLS: anon SELECT, service_role ALL — house pattern; all writes via
 
 Model tiering per MT-003: Sonnet for detect/assemble/essay; Haiku for why-lines and classification. Grounding: `content_voice_block`, `content_corpus`, Five Standards advisory scoring carries over.
 
-## 5. UI (flag `VITE_CONTENT_V2_ENABLED`, default off until verified)
+## 5. UI (flag `VITE_CONTENT_V2_ENABLED` — ON in prod since 2026-08)
+
+> **Current shape (2026-08-21).** The shipped rooms are **Built / Paid /
+> Library** (`ContentV2Tab`, test ids `content-room-<id>`), with the brief
+> queue folded into the deck rather than a "This Week" room. On mobile the
+> tab leads with a **Queue** view — the finite decision deck
+> (`MobileDecisionDeck`) — and the three rooms sit beside it as segments;
+> the research entry point is desktop-only chrome, and creation runs
+> through the app-wide + create sheet. Shifts in cross-cutting categories
+> (governance, security, org) carry no lane by design and appear in both
+> Built and Paid — since 2026-08-22 under a labelled "Also here" section,
+> after the room's own shifts, so the repetition reads as a choice; the
+> weekly detector also heals missing lanes on re-detection. The section
+> below is the original spec, kept for the intent and the details that
+> still hold (composer, feed semantics, purge).
 
 Four rooms replace mode-switched triage (desktop `DesktopContent.tsx` + mobile `MobileContent.tsx`):
 

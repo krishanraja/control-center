@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { callClaude, preamble, robustJson } from '../_content.js'
 import { fetchServerCandidates, FRESH_DAYS, type ServerCandidate } from '../_publishCandidates.js'
 import { fetchOutreachCandidates, type OutreachCandidate } from '../_outreachCandidates.js'
+import { JUDGE_MODEL } from '../_models.js'
 
 /**
  * POST /api/pilot/resolve-ask
@@ -43,9 +44,10 @@ async function judge(system: string, user: string): Promise<Judgment | null> {
   let raw: string
   try {
     raw = await callClaude({
+      agent: 'pilot-resolve-ask',
       system,
       user,
-      model: 'claude-haiku-4-5-20251001',
+      model: JUDGE_MODEL,
       maxTokens: 300,
       temperature: 0.2,
     })

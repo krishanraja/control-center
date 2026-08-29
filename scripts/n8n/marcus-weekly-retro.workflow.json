@@ -1,73 +1,117 @@
 {
   "name": "Marcus | Friday Retro 17:00",
   "active": false,
-  "settings": { "executionOrder": "v1", "saveExecutionProgress": true, "saveManualExecutions": true },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
   "nodes": [
     {
       "name": "Friday 17:00",
       "type": "n8n-nodes-base.cron",
       "typeVersion": 1,
-      "position": [240, 280],
+      "position": [
+        240,
+        280
+      ],
       "parameters": {
-        "triggerTimes": { "item": [{ "mode": "everyWeek", "weekday": 5, "hour": 17, "minute": 0 }] }
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyWeek",
+              "weekday": 5,
+              "hour": 17,
+              "minute": 0
+            }
+          ]
+        }
       }
     },
     {
       "name": "Pull week data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [500, 280],
+      "position": [
+        500,
+        280
+      ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "const SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1';\nconst hdr = { apikey: $credentials.supabaseApi.apiKey, Authorization: `Bearer ${$credentials.supabaseApi.apiKey}` };\nconst weekAgo = new Date(Date.now() - 7*86400000).toISOString();\nconst [decidedBets, customers, completed, contacts] = await Promise.all([\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/bets?status=in.(won,lost)&decided_at=gte.${weekAgo}&select=hypothesis,kind,status,learning,actual_mrr_impact_usd`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/customers?select=kind,mrr_usd,became_paid_at,churned_at,product`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/tasks?status=eq.done&completed_at=gte.${weekAgo}&select=title,agent,workstream`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/customer_contacts?contacted_at=gte.${weekAgo}&select=summary,reason`, headers: hdr, json: true }),\n]);\nconst paidAdded = customers.filter(c => c.kind === 'paid' && c.became_paid_at >= weekAgo);\nconst churned   = customers.filter(c => c.kind === 'churned' && c.churned_at >= weekAgo);\nconst mrrDelta  = paidAdded.reduce((s,c)=>s+(Number(c.mrr_usd)||0),0) - churned.reduce((s,c)=>s+(Number(c.mrr_usd)||0),0);\nreturn [{ json: { decidedBets, weekTasksDone: completed.length, contactCount: contacts.length, paidAdded: paidAdded.length, churned: churned.length, mrrDelta, sampleTasks: completed.slice(0,8), sampleContacts: contacts.slice(0,6) } }];"
+        "jsCode": "const SUPA = 'https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1';\n// n8n Code nodes cannot reach $credentials, so this key is inlined in the\n// deployed workflow. The mirror carries a placeholder that sync.mjs resolves\n// at deploy time (scripts/n8n/secrets.mjs) — the value never sits in git.\n// Anon, not service role: every table read below carries an anon SELECT policy.\nconst KEY = '{{SUPABASE_ANON_KEY}}';\nconst hdr = { apikey: KEY, Authorization: `Bearer ${KEY}` };\nconst weekAgo = new Date(Date.now() - 7*86400000).toISOString();\n// learning_events is read here and nowhere else in the system. Two routes\n// write it (objectives, skill-proposal approval) and until now nothing ever\n// read it, so the record of what the OS learned had no consumer. A weekly\n// retro is the one surface where \"what did we learn\" is the actual question.\nconst monthAgo = new Date(Date.now() - 30*86400000).toISOString();\nconst [decidedBets, customers, completed, contacts, learning, stalls] = await Promise.all([\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/bets?status=in.(won,lost)&decided_at=gte.${weekAgo}&select=hypothesis,kind,status,learning,actual_mrr_impact_usd`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/customers?select=kind,mrr_usd,became_paid_at,churned_at,product`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/tasks?status=eq.done&completed_at=gte.${weekAgo}&select=title,agent,workstream`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/customer_contacts?contacted_at=gte.${weekAgo}&select=summary,reason`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/learning_events?created_at=gte.${monthAgo}&select=event_type,classification,pattern_text,recommended_change,status&limit=25`, headers: hdr, json: true }),\n  this.helpers.httpRequest({ method: 'GET', url: `${SUPA}/growth_stalls?status=eq.open&select=metric_key,baseline_value,latest_value,window_days`, headers: hdr, json: true }),\n]);\nconst paidAdded = customers.filter(c => c.kind === 'paid' && c.became_paid_at >= weekAgo);\nconst churned   = customers.filter(c => c.kind === 'churned' && c.churned_at >= weekAgo);\nconst mrrDelta  = paidAdded.reduce((s,c)=>s+(Number(c.mrr_usd)||0),0) - churned.reduce((s,c)=>s+(Number(c.mrr_usd)||0),0);\nreturn [{ json: { decidedBets, weekTasksDone: completed.length, contactCount: contacts.length, paidAdded: paidAdded.length, churned: churned.length, mrrDelta, sampleTasks: completed.slice(0,8), sampleContacts: contacts.slice(0,6), learningEvents: learning, openStalls: stalls } }];"
       }
     },
     {
       "name": "Sonnet retro",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [760, 280],
+      "position": [
+        760,
+        280
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 800, system: 'You are Marcus writing the Friday retro. Be brutal but specific. Output ONLY a JSON object with keys what_worked (string[] — 2-4 things that moved revenue), what_flopped (string[] — 2-4 things that didn\\'t), next_focus (string — the ONE thing to drive next week). Cite numbers. No platitudes.', messages: [{ role: 'user', content: JSON.stringify($json) }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', thinking: { type: 'adaptive' }, max_tokens: 6000, system: 'You are Marcus writing the Friday retro for Krish. You get this week\\'s numbers and the learning events the OS recorded. Be brutal and specific.\\n\\nOutput ONLY a JSON object:\\n{\\\"what_worked\\\":string[], \\\"what_flopped\\\":string[], \\\"next_focus\\\":string}\\n\\nwhat_worked and what_flopped: 2 to 4 each. Every entry is TWO clauses: what happened with its number, then what it means for next week. \\\"Three Maven signups from the LinkedIn thread, so the channel is worth another week before judging it\\\" not \\\"LinkedIn did well\\\". An entry with no number is not an entry. An entry that restates the number without saying what follows from it is a summary, and a summary is a failure.\\n\\nnext_focus: the ONE thing to drive next week, and it must name its first move. Format: the focus, then \\\"Start by:\\\" and a single concrete action doable Monday morning, naming the customer, lead, metric or bet it acts on. If an open stall or a recorded learning event points at the focus, say which.\\n\\nRules: cite real numbers from the data, never invent one. No platitudes, no \\\"continue to\\\", no \\\"keep momentum\\\". If the week was genuinely flat, say so plainly rather than manufacturing a win. No em dashes.', messages: [{ role: 'user', content: JSON.stringify($json) }] }) }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth"
       },
-      "credentials": { "httpHeaderAuth": { "name": "Anthropic Header" } }
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Anthropic Header"
+        }
+      }
     },
     {
       "name": "Parse + write",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1020, 280],
+      "position": [
+        1020,
+        280
+      ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "const blocks = $input.first().json.content || [];\nconst text = blocks.map(b=>b.text||'').join('').trim();\nlet retro = null;\ntry { const a=text.indexOf('{'); const b=text.lastIndexOf('}'); if (a>=0 && b>a) retro = JSON.parse(text.slice(a,b+1)); } catch {}\nreturn [{ json: { retro: retro || { what_worked: [], what_flopped: [], next_focus: text } } }];"
+        "jsCode": "const blocks = $input.first().json.content || [];\nconst text = blocks.map(b=>b.text||'').join('').trim();\nlet retro = null;\ntry { const a=text.indexOf('{'); const b=text.lastIndexOf('}'); if (a>=0 && b>a) retro = JSON.parse(text.slice(a,b+1)); } catch {}\n// Same rule as the daily brief: a retro that failed to parse must not render\n// as a retro. It used to put the raw text into next_focus, so an unparseable\n// week arrived on screen looking like Marcus's considered answer.\nreturn [{ json: { retro: retro || { what_worked: [], what_flopped: [], next_focus: text, degraded: true, reasoning: 'fallback — the retro did not parse, shown raw' } } }];"
       }
     },
     {
       "name": "Write retro",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1280, 280],
+      "position": [
+        1280,
+        280
+      ],
       "parameters": {
         "method": "PATCH",
         "url": "https://gojpffsrxybbpbdzzrvs.supabase.co/rest/v1/home_intelligence?id=eq.current",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Prefer", "value": "return=minimal" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -76,13 +120,57 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi"
       },
-      "credentials": { "supabaseApi": { "name": "Supabase account 2" } }
+      "credentials": {
+        "supabaseApi": {
+          "name": "Supabase account 2"
+        }
+      }
     }
   ],
   "connections": {
-    "Friday 17:00":   { "main": [[{ "node": "Pull week data", "type": "main", "index": 0 }]] },
-    "Pull week data": { "main": [[{ "node": "Sonnet retro",   "type": "main", "index": 0 }]] },
-    "Sonnet retro":   { "main": [[{ "node": "Parse + write",  "type": "main", "index": 0 }]] },
-    "Parse + write":  { "main": [[{ "node": "Write retro",    "type": "main", "index": 0 }]] }
+    "Friday 17:00": {
+      "main": [
+        [
+          {
+            "node": "Pull week data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pull week data": {
+      "main": [
+        [
+          {
+            "node": "Sonnet retro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet retro": {
+      "main": [
+        [
+          {
+            "node": "Parse + write",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse + write": {
+      "main": [
+        [
+          {
+            "node": "Write retro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   }
 }

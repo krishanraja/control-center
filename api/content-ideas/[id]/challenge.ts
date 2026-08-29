@@ -161,7 +161,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   let parsed: any
   try {
-    parsed = robustJson(await callClaude({ system, user, maxTokens: 1800, temperature: 0.5 }))
+    parsed = robustJson(await callClaude({ agent: 'cleo-challenge', system, user, maxTokens: 1800, temperature: 0.5 }))
   } catch (e: any) {
     return res.status(502).json({ ok: false, error: String(e?.message || e) })
   }

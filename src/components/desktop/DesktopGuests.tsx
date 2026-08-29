@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Mic, Megaphone, Calendar, Layers } from 'lucide-react'
+import { Mic, Megaphone, Calendar, Layers } from '@/lib/icons'
 import { isTestRecord } from '../../lib/recordHygiene'
 import { useRealtimeGuests, type GuestRow, type GuestStatus, type GuestPodcastTarget } from '../../hooks/useRealtimeGuests'
 import { useVisibilityTargets, type VisibilityTargetRow, type VisibilityTargetStatus } from '../../hooks/useVisibilityTargets'
@@ -53,8 +53,8 @@ const VIS_STATUSES: VisibilityTargetStatus[] = ['sourced', 'queued', 'applied', 
 const VIS_STATUS_META: Record<VisibilityTargetStatus, { title: string; description: string }> = {
   sourced:  { title: 'Sourced',  description: 'Nova found it. Not yet deep-enriched or triaged.' },
   queued:   { title: 'Queued',   description: 'Enriched, awaiting Krish decision.' },
-  applied:  { title: 'Applied',  description: 'Proposal or pitch submitted. Awaiting reply.' },
-  accepted: { title: 'Accepted', description: 'In. Prep mode.' },
+  applied:  { title: 'Applied',  description: 'Pitch sent, waiting on a reply.' },
+  accepted: { title: 'Accepted', description: 'Confirmed. Time to prep.' },
   rejected: { title: 'Rejected', description: 'No fit this round.' },
   done:     { title: 'Done',     description: 'Delivered.' },
   dropped:  { title: 'Dropped',  description: 'Not pursued.' },
@@ -177,7 +177,7 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
             <Mic size={20} className="text-violet-300" />
             Visibility
           </h1>
-          <p className="text-[13px] text-white/55 mt-1">Gathering inbound guests + outbound targets…</p>
+          <p className="text-body text-white/55 mt-1">Gathering people and events…</p>
         </header>
         <BoardSkeleton lanes={2} cardsPerLane={3} hero={false} />
       </div>
@@ -192,7 +192,7 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
             {lane === 'inbound' ? <Mic size={20} className="text-violet-300" /> : <Megaphone size={20} className="text-violet-300" />}
             Visibility · Triage
           </h1>
-          <span className="text-[13px] text-white/45">
+          <span className="text-body text-white/45">
             — {lane === 'inbound' ? 'right pitches, left skips' : 'right applies, left passes'} with a reason
           </span>
         </header>
@@ -213,8 +213,8 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
             {lane === 'inbound' ? <Mic size={20} className="text-violet-300" /> : <Megaphone size={20} className="text-violet-300" />}
             Visibility
           </h1>
-          <p className="text-[13px] text-white/55 mt-1">
-            Inbound podcast guests and outbound conference / CFP / newsletter appearances, side by side.
+          <p className="text-body text-white/55 mt-1">
+            Guests worth interviewing, and the events worth being at. Side by side.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -225,12 +225,12 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
             <button
               type="button"
               onClick={() => setTriageOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-violet-400/30 bg-violet-500/10 hover:bg-violet-500/20 px-3 py-1.5 text-[12px] font-semibold text-violet-100 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-md border border-violet-400/30 bg-violet-500/10 hover:bg-violet-500/20 px-3 py-1.5 text-label font-semibold text-violet-100 transition-colors"
             >
               <Layers size={14} /> Handle 1-by-1 · {triageConfig.items.length}
             </button>
           )}
-          <span className="text-[11px] text-white/55 tabular-nums">
+          <span className="text-micro text-white/55 tabular-nums">
             {loading ? '…' : `${activeCount} active`}
           </span>
         </div>
@@ -238,10 +238,10 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
 
       <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.015] p-1">
         <LaneTab active={lane === 'inbound'} onClick={() => setLane('inbound')}>
-          Inbound <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{inboundActive}</span>
+          Guests <span className="ml-1.5 text-micro text-white/45 tabular-nums">{inboundActive}</span>
         </LaneTab>
         <LaneTab active={lane === 'outbound'} onClick={() => setLane('outbound')}>
-          Outbound <span className="ml-1.5 text-[10px] text-white/45 tabular-nums">{outboundActive}</span>
+          Events <span className="ml-1.5 text-micro text-white/45 tabular-nums">{outboundActive}</span>
         </LaneTab>
       </div>
 
@@ -257,21 +257,21 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
         <div className="grid grid-cols-1 lg:[grid-template-columns:1fr_2fr] gap-5">
           <aside className="space-y-4">
             <section>
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
+              <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
                 Import
               </h2>
               <GuestImportDropzone />
             </section>
 
             <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
+              <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
                 By show
               </h2>
               <ul className="space-y-1">
                 {(Object.keys(TARGET_META) as GuestPodcastTarget[]).map(t => {
                   const count = (byTarget[t] || []).length
                   return (
-                    <li key={t} className="flex items-center justify-between gap-2 py-1 text-[12px]">
+                    <li key={t} className="flex items-center justify-between gap-2 py-1 text-label">
                       <span className="text-white/75 truncate">{TARGET_META[t].title}</span>
                       <span className={`tabular-nums ${count > 0 ? 'text-white/85' : 'text-white/25'}`}>{count}</span>
                     </li>
@@ -313,20 +313,20 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
         <div className="grid grid-cols-1 lg:[grid-template-columns:1fr_2fr] gap-5">
           <aside className="space-y-4">
             <section>
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
+              <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
                 Import
               </h2>
               <VisibilityImportDropzone />
             </section>
             <section className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
+              <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45 mb-2">
                 By type
               </h2>
               <ul className="space-y-1">
                 {(['cfp', 'conference', 'podcast', 'newsletter', 'guest_appearance', 'other'] as const).map(t => {
                   const count = targets.filter(x => x.type === t).length
                   return (
-                    <li key={t} className="flex items-center justify-between gap-2 py-1 text-[12px]">
+                    <li key={t} className="flex items-center justify-between gap-2 py-1 text-label">
                       <span className="text-white/75 truncate capitalize">{t.replace('_', ' ')}</span>
                       <span className={`tabular-nums ${count > 0 ? 'text-white/85' : 'text-white/25'}`}>{count}</span>
                     </li>
@@ -335,10 +335,10 @@ export function DesktopGuests({ onOpenGuest, onOpenTarget, onNavigate, guestId, 
               </ul>
             </section>
             <section className="rounded-xl border border-violet-500/25 bg-violet-500/[0.05] p-4">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-300/80 mb-2">
+              <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-violet-300/80 mb-2">
                 Enrichment
               </h2>
-              <p className="text-[12px] text-white/75 leading-snug">
+              <p className="text-label text-white/75 leading-snug">
                 Nova fires deep enrichment on each sourced target twice daily. Each row gets strategic value, angle, proposed talk, audience snapshot, CFP requirements, and a prep checklist. Click any card to view the deep detail.
               </p>
             </section>
@@ -382,7 +382,7 @@ function LaneTab({ active, onClick, children }: { active: boolean; onClick: () =
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-1.5 text-[12px] rounded-md transition-colors ${
+      className={`px-3 py-1.5 text-label rounded-md transition-colors ${
         active
           ? 'bg-violet-500/20 border border-violet-400/40 text-violet-100'
           : 'border border-transparent text-white/60 hover:text-white/85'

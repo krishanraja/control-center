@@ -6,7 +6,11 @@ import { CreativeBoard } from './CreativeBoard'
 import { CouncilFeed } from './CouncilFeed'
 import { SignalsPanel } from './SignalsPanel'
 import { GovernancePanel } from './GovernancePanel'
+import { GrowthScoreboard } from './GrowthScoreboard'
+import { isGrowthScoreboardEnabled } from '../../hooks/useGrowthMetrics'
+import { DailyBriefBanner } from '../DailyBriefBanner'
 import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
+import { useQuickCreateListener } from '../../lib/quickCreate'
 
 /**
  * The Growth tab. ONE surface, five sections, in the order of the weekly loop.
@@ -81,19 +85,31 @@ export function GrowthTab({
     }
   }, [g.touchpoints, g.cards, g.reviews, g.probes])
 
+  // The + create sheet's "Add a touchpoint": land on the map with its
+  // composer open, wherever in Growth you were.
+  const [mapCompose, setMapCompose] = useState(0)
+  useQuickCreateListener('touchpoint', () => { setSection('map'); setMapCompose(n => n + 1) })
+
   const overCap = counts.work > BATCH_MAX
   const geoRate = useMemo(() => citationRate(g.probes), [g.probes])
 
   return (
     <div className="flex flex-col gap-3 min-h-0 h-full">
       <div className="flex-shrink-0">
-        <h1 className="text-xl md:text-2xl xl:text-[26px] font-semibold text-white tracking-tight">Growth</h1>
-        <p className="text-xs md:text-[13px] text-white/50 mt-0.5">
+        <h1 className="text-xl md:text-2xl xl:text-heading font-semibold text-white tracking-tight">Growth</h1>
+        {/* One line on a phone, not five numbers demanding attention at once:
+            the section pills below already carry their own counts. The desk,
+            with room and a pointer, keeps the full readout. */}
+        <p className="text-xs md:text-body text-white/50 mt-0.5">
           {g.loading
             ? 'Reading the map...'
-            : `${g.touchpoints.length} touchpoints · ${counts.map} open questions · ${counts.work} in this week's batch · ${counts.council} council calls waiting · ${pct(geoRate)} GEO citation rate`}
+            : variant === 'mobile'
+              ? (counts.map > 0
+                  ? `${counts.map} question${counts.map === 1 ? '' : 's'} to answer when you have a minute.`
+                  : 'Nothing here needs an answer right now.')
+              : `${g.touchpoints.length} touchpoints · ${counts.map} open questions · ${counts.work} in this week's batch · ${counts.council} council calls waiting · ${pct(geoRate)} GEO citation rate`}
         </p>
-        {g.error && <p className="text-[11.5px] text-rose-300 mt-1">Could not read growth data: {g.error}</p>}
+        {g.error && <p className="text-label text-rose-300 mt-1">Could not read growth data: {g.error}</p>}
       </div>
 
       <SegmentedNav<GrowthSectionId>
@@ -101,7 +117,7 @@ export function GrowthTab({
           id: sec.id,
           label: sec.label,
           badge: counts[sec.id] > 0 ? (
-            <span className={`ml-1.5 rounded-full px-1.5 py-0.5 align-middle text-[10.5px] tabular-nums ${
+            <span className={`ml-1.5 rounded-full px-1.5 py-0.5 align-middle text-micro tabular-nums ${
               sec.id === 'work' && overCap ? 'bg-rose-500/25 text-rose-200' : 'bg-white/10'
             }`}>
               {counts[sec.id]}
@@ -121,13 +137,25 @@ export function GrowthTab({
           without depending on any word inside it. */}
       <div data-testid={`growth-panel-${section}`} className="flex-1 min-h-0 overflow-y-auto">
         {section === 'map' ? (
-          <TouchpointMap g={g} variant={variant} />
+          <TouchpointMap g={g} variant={variant} composeSignal={mapCompose} />
         ) : section === 'work' ? (
           <CreativeBoard g={g} variant={variant} />
         ) : section === 'signals' ? (
-          <SignalsPanel g={g} />
+          <div className="space-y-4">
+            {/* Venture health at a glance — relocated from Home in the 2026-08-20
+                recompose; Growth owns venture-level signal. */}
+            {isGrowthScoreboardEnabled() && (
+              <GrowthScoreboard variant={variant === 'mobile' ? 'mobile' : 'desktop'} />
+            )}
+            <SignalsPanel g={g} />
+          </div>
         ) : section === 'council' ? (
-          <CouncilFeed g={g} />
+          <div className="space-y-4">
+            {/* The Friday retro — relocated from Home's ambient fold; the weekly
+                review is where a retro belongs. */}
+            <DailyBriefBanner blocking={false} variant={variant === 'mobile' ? 'mobile' : 'desktop'} retroOnly />
+            <CouncilFeed g={g} />
+          </div>
         ) : (
           <GovernancePanel
             variant={variant}

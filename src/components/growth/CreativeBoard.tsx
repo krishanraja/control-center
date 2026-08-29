@@ -1,5 +1,6 @@
+import { OptionChips } from '../goals/GoalPickers'
 import React, { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Film, Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Film, Plus, X } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import { BTN_GHOST, BTN_PRIMARY, Chip, EmptyNote, Field, INPUT_CLS, ProductChip, SectionHead } from './atoms'
 import {
@@ -8,6 +9,7 @@ import {
   type CreativeCardRow, type ProductSlug, type Stage,
 } from '../../lib/growth'
 import type { GrowthData } from '../../hooks/useGrowth'
+import { BoardSkeleton } from '../shared/Skeleton'
 
 /**
  * B) THE CREATIVE BOARD: the Higgsfield kanban.
@@ -64,7 +66,14 @@ export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop
       ? 'border-emerald-500/25 bg-emerald-500/[0.04]'
       : 'border-white/[0.08] bg-white/[0.02]'
 
-  if (g.loading) return <div className="text-white/40 text-sm py-10 text-center">Loading the board...</div>
+  // The board is lanes of cards, which is exactly what BoardSkeleton restores.
+  if (g.loading) {
+    return (
+      <div className="space-y-4 pb-8">
+        <BoardSkeleton lanes={4} cardsPerLane={2} hero={false} />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4 pb-8 min-h-0 flex flex-col h-full">
@@ -80,9 +89,9 @@ export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop
 
       <div className={`rounded-xl border px-3.5 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 ${capTone}`}>
         <Film size={13} className={over ? 'text-rose-300' : 'text-white/45'} />
-        <span className="text-[12px] font-semibold text-white/85">Batch week of {shortDate(thisWeek)}</span>
-        <span className="text-[12px] tabular-nums text-white/70">{batch.length} of {BATCH_MAX}</span>
-        <span className={`text-[11.5px] ${over ? 'text-rose-300 font-semibold' : 'text-white/45'}`}>
+        <span className="text-label font-semibold text-white/85">Batch week of {shortDate(thisWeek)}</span>
+        <span className="text-label tabular-nums text-white/70">{batch.length} of {BATCH_MAX}</span>
+        <span className={`text-label ${over ? 'text-rose-300 font-semibold' : 'text-white/45'}`}>
           {over
             ? `Over the cap by ${batch.length - BATCH_MAX}. Drop one before you start producing.`
             : under
@@ -121,10 +130,10 @@ export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop
                   className="flex-1 min-w-[180px] rounded-xl border border-white/[0.07] bg-white/[0.015] flex flex-col min-h-0"
                 >
                   <header className="flex items-center gap-2 px-2.5 py-2 border-b border-white/[0.06]">
-                    <span className={`text-[10.5px] font-semibold uppercase tracking-[0.12em] ${STAGE_TONE[stage].split(' ')[0]}`}>
+                    <span className={`text-micro font-semibold uppercase tracking-[0.14em] ${STAGE_TONE[stage].split(' ')[0]}`}>
                       {STAGE_LABEL[stage]}
                     </span>
-                    <span className="text-[10.5px] text-white/35 tabular-nums ml-auto">{inStage.length}</span>
+                    <span className="text-micro text-white/35 tabular-nums ml-auto">{inStage.length}</span>
                   </header>
                   <div className="p-2 space-y-2 overflow-y-auto flex-1 min-h-[120px]">
                     {inStage.map(c => (
@@ -136,7 +145,7 @@ export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop
                         onMove={move}
                       />
                     ))}
-                    {inStage.length === 0 && <p className="text-[10.5px] text-white/25 px-1 py-2">Nothing here.</p>}
+                    {inStage.length === 0 && <p className="text-micro text-white/25 px-1 py-2">Nothing here.</p>}
                   </div>
                 </div>
               )
@@ -146,10 +155,10 @@ export function CreativeBoard({ g, variant }: { g: GrowthData; variant: 'desktop
 
       {showDropped && dropped.length > 0 && (
         <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3">
-          <h3 className="text-[10px] uppercase tracking-[0.13em] text-white/35 font-semibold mb-2">Dropped</h3>
+          <h3 className="text-micro uppercase tracking-[0.14em] text-white/35 font-semibold mb-2">Dropped</h3>
           <div className="space-y-1.5">
             {dropped.map(c => (
-              <div key={c.id} className="flex items-center gap-2 text-[11.5px] text-white/40">
+              <div key={c.id} className="flex items-center gap-2 text-label text-white/40">
                 <ProductChip slug={c.product_slug} />
                 <span className="truncate">{c.title}</span>
                 <button type="button" onClick={() => g.patchCard(c.id, { stage: 'brief' })} className={`${BTN_GHOST} ml-auto`}>
@@ -183,11 +192,11 @@ function BoardCard({ card, thisWeek, onOpen, onMove }: {
     >
       <div className="flex items-center gap-1.5 mb-1">
         <ProductChip slug={card.product_slug} />
-        {otherWeek && <span className="text-[9.5px] text-white/30">{shortDate(card.batch_week)}</span>}
+        {otherWeek && <span className="text-micro text-white/30">{shortDate(card.batch_week)}</span>}
       </div>
-      <p className="text-[12px] font-medium text-white/90 leading-snug">{card.title}</p>
-      {card.magic_sentence && <p className="text-[10.5px] text-white/45 leading-snug mt-1 italic">{card.magic_sentence}</p>}
-      {card.target_account && <p className="text-[10px] text-white/35 mt-1">to {card.target_account}</p>}
+      <p className="text-label font-medium text-white/90 leading-snug">{card.title}</p>
+      {card.magic_sentence && <p className="text-micro text-white/45 leading-snug mt-1 italic">{card.magic_sentence}</p>}
+      {card.target_account && <p className="text-micro text-white/35 mt-1">to {card.target_account}</p>}
       <div className="flex items-center gap-1 mt-1.5">
         {card.script ? <Chip tone="text-violet-300 border-violet-500/25">script</Chip> : null}
         {card.shot_notes ? <Chip tone="text-sky-300 border-sky-500/25">shots</Chip> : null}
@@ -256,17 +265,17 @@ function CardDetail({ g, card, onClose }: { g: GrowthData; card: CreativeCardRow
           <div className="flex items-center gap-2 min-w-0">
             <ProductChip slug={card.product_slug} />
             <Chip tone={STAGE_TONE[card.stage]}>{STAGE_LABEL[card.stage]}</Chip>
-            <span className="text-[10.5px] text-white/35">{shortDate(card.batch_week)}</span>
+            <span className="text-micro text-white/35">{shortDate(card.batch_week)}</span>
           </div>
-          <button type="button" onClick={onClose} className="text-white/50 hover:text-white/85 inline-flex items-center gap-1 text-[12px]">
+          <button type="button" onClick={onClose} className="text-white/50 hover:text-white/85 inline-flex items-center gap-1 text-label">
             <X size={14} /> Close
           </button>
         </div>
 
         <div className="p-4 space-y-3">
-          <h3 className="text-[16px] font-semibold text-white leading-snug">{card.title}</h3>
+          <h3 className="text-lede font-semibold text-white leading-snug">{card.title}</h3>
           {touchpoint && (
-            <p className="text-[11px] text-white/40 leading-snug">
+            <p className="text-micro text-white/40 leading-snug">
               Touchpoint: {touchpoint.icp_trigger}
               {touchpoint.watering_hole ? ` (${touchpoint.watering_hole})` : ''}
             </p>
@@ -278,7 +287,7 @@ function CardDetail({ g, card, onClose }: { g: GrowthData; card: CreativeCardRow
                 key={s}
                 type="button"
                 onClick={() => g.patchCard(card.id, { stage: s })}
-                className={`rounded-lg border px-2.5 py-1 text-[11.5px] font-medium transition-colors ${
+                className={`rounded-lg border px-2.5 py-1 text-label font-medium transition-colors ${
                   card.stage === s ? 'btn-contrast border-white font-semibold' : 'border-white/10 text-white/60 hover:bg-white/[0.06]'
                 }`}
               >
@@ -308,7 +317,7 @@ function CardDetail({ g, card, onClose }: { g: GrowthData; card: CreativeCardRow
               value={draft.script}
               onChange={set('script')}
               rows={10}
-              className={`${INPUT_CLS} font-mono text-[12px] leading-relaxed`}
+              className={`${INPUT_CLS} font-mono text-label leading-relaxed`}
               placeholder="The script you read to camera"
             />
           </Field>
@@ -330,7 +339,7 @@ function CardDetail({ g, card, onClose }: { g: GrowthData; card: CreativeCardRow
 
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={save} disabled={saving} className={BTN_PRIMARY}>
-              {saving ? 'Saving...' : 'Save card'}
+              {saving ? 'Saving…' : 'Save card'}
             </button>
             {card.posted_url && (
               <a href={card.posted_url} target="_blank" rel="noreferrer" className={BTN_GHOST}>Open post</a>
@@ -381,10 +390,12 @@ function AddCard({ g, thisWeek, onDone }: { g: GrowthData; thisWeek: string; onD
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Product">
-          <select value={form.product_slug} onChange={set('product_slug')} className={`${INPUT_CLS} cursor-pointer`}>
-            {PRODUCTS.map(p => <option key={p} value={p}>{PRODUCT_LABEL[p]}</option>)}
-          </select>
+        <Field label="Product" wide>
+          <OptionChips
+            options={PRODUCTS.map(p => ({ value: p, label: PRODUCT_LABEL[p] }))}
+            value={form.product_slug}
+            onChange={v => set('product_slug')({ target: { value: v } } as React.ChangeEvent<HTMLInputElement>)}
+          />
         </Field>
         <Field label="Batch week (Monday)">
           <input type="date" value={form.batch_week} onChange={set('batch_week')} className={INPUT_CLS} />
@@ -408,7 +419,7 @@ function AddCard({ g, thisWeek, onDone }: { g: GrowthData; thisWeek: string; onD
           <textarea value={form.brief} onChange={set('brief')} rows={2} className={INPUT_CLS} />
         </Field>
         <Field label="Script" wide>
-          <textarea value={form.script} onChange={set('script')} rows={4} className={`${INPUT_CLS} font-mono text-[12px]`} />
+          <textarea value={form.script} onChange={set('script')} rows={4} className={`${INPUT_CLS} font-mono text-label`} />
         </Field>
         <Field label="Shot notes" wide>
           <textarea value={form.shot_notes} onChange={set('shot_notes')} rows={2} className={INPUT_CLS} />
@@ -416,7 +427,7 @@ function AddCard({ g, thisWeek, onDone }: { g: GrowthData; thisWeek: string; onD
       </div>
       <div className="flex gap-2 mt-3">
         <button type="button" onClick={submit} disabled={saving} className={BTN_PRIMARY}>
-          {saving ? 'Adding...' : 'Add to board'}
+          {saving ? 'Adding…' : 'Add to board'}
         </button>
         <button type="button" onClick={onDone} className={BTN_GHOST}>Cancel</button>
       </div>

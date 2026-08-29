@@ -412,6 +412,18 @@ export function buildDecisionActions(
             onDone?.()
           },
         })
+        // Opening a brief is not deciding it: the card is only cleared by
+        // approving or binning it inside the composer. Without a terminal
+        // action here, brief_review was the one kind Home could surface but
+        // not clear - which is how a 2026-W28 card was still on this surface
+        // in late August. Every sibling kind already carries one.
+        acts.push({
+          label: 'Not this week',
+          variant: 'secondary',
+          onClick: () => run('Dismiss',
+            () => json(`/api/content-decisions/${row.id}`, { action: 'dismiss' }, 'PATCH'),
+            'Shelved; the brief itself is untouched.', { terminal: true }),
+        })
       } else {
         acts.push({
           label: 'Acknowledged',

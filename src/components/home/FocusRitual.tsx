@@ -1,41 +1,40 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import {
-  Sparkles, Check, Loader2, Target, Clock, ArrowLeft, ArrowRight,
-  CheckCircle2, Inbox, Flame, Plus, X,
-} from 'lucide-react'
+  Sparkles, Check, Target, ArrowLeft, ArrowRight,
+  CheckCircle2, Inbox, Plus, X, RotateCcw,
+} from '@/lib/icons'
 import { useAltitudes, type AltitudeId } from '../../hooks/useAltitudes'
-import { useObjectives, reorderObjectives } from '../../hooks/useObjectives'
-import { useWeeklyFocus } from '../../hooks/useWeeklyFocus'
-import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
+import { useGoalCanon, type CanonGoal } from '../../hooks/useGoalCanon'
+import { useDailyFocus } from '../../hooks/useDailyFocus'
 import { usePilotState } from '../../hooks/usePilot'
-import { useStreaks } from '../../hooks/useStreaks'
 import { useRealtimeDecisionsWaiting } from '../../hooks/useRealtimeDecisionsWaiting'
+import { splitDecisions } from '../../lib/decisionKinds'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { BottomSheet } from '../mobile/BottomSheet'
-import { NominationTray } from '../objectives/NominationTray'
-import { ObjectiveReviewCard } from '../objectives/ObjectiveReviewCard'
-import { ObjectiveProposalReview, type ObjectiveProposal } from '../objectives/ObjectiveProposalReview'
-import { OwnerSplit } from '../objectives/OwnerSplit'
-import type { OwnerSplit as OwnerSplitData, AgentContribution } from '../../hooks/useObjectiveTree'
 import { MicButton } from '../shared/VoiceCapture'
 import { ContextHeader } from '../focus/ContextHeader'
 import { CarryOverPrompt } from '../focus/CarryOverPrompt'
 import { FocusCalibrator } from '../focus/FocusCalibrator'
-import { isFocusRitualEnabled } from '../../lib/homeV2'
 import { useFocusRitualOpen, closeFocusRitual } from '../../lib/focusRitual'
+import { weekOf } from '../../lib/civilDate'
+import {
+  createGoal, patchGoal, acceptProposed, rejectProposed,
+  type GateVerdictWire,
+} from '../../lib/goalsApi'
+import { Working } from '../shared/Working'
+import { ServesPicker, VentureChips } from '../goals/GoalPickers'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
-// The unified Focus Ritual. One guided stepper that walks only the altitudes that
-// are stale, one decision per screen, then closes on a "you're set" summary.
-// Each step hosts the component that already owns that altitude's decision
-// (NominationTray, MilestoneCalibrator, FocusCalibrator), so this is orchestration
-// over reuse. Active-pick throughout: nothing is pre-selected. Mounted once at App
-// level (z-stacks above both shells) and self-gates to tab==='home' + the flag +
-// the open bus. Supersedes WeeklyFocusTakeover when the ritual flag is on.
+// The unified Focus Ritual, two steps since the 2026-08-20 recompose: shape the
+// week (up to 3 weekly objectives, each serving an OS goal), then pick today's
+// 3. One decision per screen, then a "you're set" summary. The old portfolio
+// step died with the venture_objective rung; OS goals are edited inline on the
+// ladder, not in a ritual. Mounted once at App level (z-stacks above both
+// shells) and self-gates to tab==='home' + the open bus.
 
-type StepId = AltitudeId | 'summary'
+type StepId = 'weekly' | 'daily' | 'summary'
 
 export function FocusRitual({
   narrow,
@@ -50,16 +49,14 @@ export function FocusRitual({
   const alt = useAltitudes()
   const h = useHaptics()
 
-  // Build the ordered step list: the pending altitudes (or, if launched from a
-  // specific pill, that altitude first), then the closing summary.
+  // Build the ordered step list: the pending ritual altitudes (or, if launched
+  // at a specific one, that one first), then the closing summary. The OS layer
+  // never enters the ritual (it is edited inline on the ladder), so an 'os'
+  // startAt just opens at the first pending step.
   const stepIds = useMemo<StepId[]>(() => {
-    const pendingIds = alt.pending.map(p => p.id)
-    let ids: AltitudeId[]
-    if (startAt) {
-      ids = [startAt, ...pendingIds.filter(id => id !== startAt)]
-    } else {
-      ids = pendingIds
-    }
+    const pendingIds = alt.pending.map(p => p.id).filter((id): id is 'weekly' | 'daily' => id !== 'os')
+    const startId = startAt === 'weekly' || startAt === 'daily' ? startAt : null
+    const ids = startId ? [startId, ...pendingIds.filter(id => id !== startId)] : pendingIds
     return [...ids, 'summary']
   }, [alt.pending, startAt])
 
@@ -75,8 +72,7 @@ export function FocusRitual({
   }, [stepIds.length])
 
   // Escape dismisses the ritual, mirroring a backdrop click (soft "set later"
-  // snooze). Brings the modal in line with every other dialog in the app
-  // (Capture, IdeaCapture, FocusCalibrator) which all close on Escape.
+  // snooze), in line with every other dialog in the app.
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -90,14 +86,11 @@ export function FocusRitual({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, alt])
 
-  if (tab !== 'home' || !isFocusRitualEnabled() || !open) return null
+  if (tab !== 'home' || !open) return null
 
   const total = stepIds.length
   const current = stepIds[Math.min(stepIdx, total - 1)]
   const isLast = stepIdx >= total - 1
-  // Bounded budget: ~1 minute per remaining decision step (summary excluded), so
-  // the promise stays small and the avoidance reflex never fires.
-  const minsLeft = Math.max(0, (total - 1) - stepIdx)
 
   const goNext = () => {
     h.tap()
@@ -109,18 +102,15 @@ export function FocusRitual({
   const done = () => { h.tap(); closeFocusRitual() }
 
   const body =
-    current === 'portfolio' ? <PortfolioStep />
-    : current === 'weekly'  ? <WeeklyStep onCommitted={goNext} />
-    : current === 'daily'   ? <DailyStep onLocked={goNext} />
+    current === 'weekly'  ? <WeeklyStep />
+    : current === 'daily' ? <DailyStep onLocked={goNext} />
     : <SummaryStep onNavigate={onNavigate} onClose={done} />
 
   const header = (
     <div className="flex items-center gap-2 mb-2">
       <Sparkles size={15} className="text-violet-300 flex-shrink-0" />
-      <h2 className="text-[15px] font-semibold text-white">{STEP_TITLE[current]}</h2>
-      <span className="ml-auto text-[10px] text-white/45 tabular-nums uppercase tracking-[0.12em]">
-        Step {Math.min(stepIdx + 1, total)} of {total}{!isLast && minsLeft > 0 ? ` · ~${minsLeft} min` : ''}
-      </span>
+      <h2 className="text-ui font-semibold text-white">{STEP_TITLE[current]}</h2>
+      <span className="sr-only">Step {Math.min(stepIdx + 1, total)} of {total}</span>
     </div>
   )
 
@@ -138,7 +128,7 @@ export function FocusRitual({
         <button
           type="button"
           onClick={goBack}
-          className="inline-flex items-center gap-1 text-[12px] text-white/55 hover:text-white/85 px-2.5 py-2"
+          className="inline-flex items-center gap-1 text-label text-white/55 hover:text-white/85 px-2.5 py-2"
         >
           <ArrowLeft size={13} /> Back
         </button>
@@ -148,7 +138,7 @@ export function FocusRitual({
           <button
             type="button"
             onClick={setLater}
-            className="text-[11px] text-white/35 hover:text-white/60"
+            className="text-micro text-white/35 hover:text-white/60"
           >
             Set later today
           </button>
@@ -157,7 +147,7 @@ export function FocusRitual({
           <button
             type="button"
             onClick={done}
-            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-4 py-2"
+            className="inline-flex items-center gap-1.5 text-body font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-4 py-2"
           >
             <CheckCircle2 size={13} /> Done
           </button>
@@ -165,9 +155,9 @@ export function FocusRitual({
           <button
             type="button"
             onClick={goNext}
-            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-4 py-2"
+            className="inline-flex items-center gap-1.5 text-body font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-4 py-2"
           >
-            {NEXT_LABEL[current]} <ArrowRight size={13} />
+            Next <ArrowRight size={13} />
           </button>
         )}
       </div>
@@ -180,6 +170,9 @@ export function FocusRitual({
         <div className="h-full flex flex-col">
           <div className="px-4 pt-2">{header}{rail}</div>
           <div className="flex-1 overflow-y-auto px-4 pb-2">{body}</div>
+          {/* Keyboard clearance comes from the sheet primitive itself
+              (ui/dialog's keyboard contract), so the footer stays visible
+              while a field has focus. */}
           <div className="px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] border-t border-white/[0.06] bg-base">{footer}</div>
         </div>
       </BottomSheet>
@@ -199,253 +192,164 @@ export function FocusRitual({
 }
 
 const STEP_TITLE: Record<StepId, string> = {
-  portfolio: 'Your objectives',
-  weekly: "This week's moves",
+  weekly: "This week's objectives",
   daily: 'Your 3 today',
   summary: "You're set",
 }
-const NEXT_LABEL: Record<StepId, string> = {
-  portfolio: 'These are my objectives',
-  weekly: 'Next',
-  daily: 'Next',
-  summary: 'Done',
-}
-
-// ── Portfolio step ───────────────────────────────────────────────────────────
-// Review the objective board at the OBJECTIVE altitude: reorder priority, edit
-// wording / KPI / definition, or narrate a reaction and let Marcus turn it into a
-// confirmable change set that recalibrates the milestones beneath. Accept/reject
-// Marcus's objective nominations inline. Milestone shaping is demoted to a
-// per-card disclosure — it is no longer what this step is about.
-function PortfolioStep() {
-  const { active, active_count, soft_cap, refresh } = useObjectives()
-  const { toast } = useToast()
-  const overCap = active_count > soft_cap
-  const [proposal, setProposal] = useState<{ p: ObjectiveProposal; transcript: string } | null>(null)
-
-  const move = async (idx: number, dir: 'up' | 'down') => {
-    const order = active.map(o => o.id)
-    const swap = dir === 'up' ? idx - 1 : idx + 1
-    if (swap < 0 || swap >= order.length) return
-    const tmp = order[idx]; order[idx] = order[swap]; order[swap] = tmp
-    await reorderObjectives(active, order)
-    refresh()
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-start gap-2">
-        <p className="text-[12px] text-white/55 leading-snug flex-1">
-          Do these objectives — and this order — look right? Reorder, edit, or just talk. Marcus recalibrates the milestones beneath.
-        </p>
-        <MicButton
-          endpoint="/api/objectives/voice"
-          label="Narrate"
-          onJson={(j) => {
-            if (j.proposal) setProposal({ p: j.proposal as ObjectiveProposal, transcript: (j.transcript as string) || '' })
-            else toast('Heard you, but no clear change — edit a card directly.', 'info' as 'success')
-          }}
-          onError={() => toast('Voice unavailable. Edit directly.', 'error')}
-        />
-      </div>
-
-      {proposal && (
-        <ObjectiveProposalReview
-          proposal={proposal.p}
-          transcript={proposal.transcript}
-          objectives={active}
-          onApplied={() => { setProposal(null); refresh() }}
-          onDismiss={() => setProposal(null)}
-        />
-      )}
-
-      <NominationTray />
-
-      <div className="flex items-center justify-between px-1">
-        <p className="text-[10px] uppercase tracking-[0.14em] text-white/45 font-semibold">Active objectives ({active_count})</p>
-        {overCap && <span className="text-[10px] text-amber-300/85 font-semibold">Over soft cap ({soft_cap})</span>}
-      </div>
-
-      {active.length === 0 ? (
-        <p className="text-[12px] text-white/45">No active objectives yet. Accept one of Marcus's proposals above to give the OS a multi-week unlock.</p>
-      ) : (
-        <div className="space-y-2">
-          {active.map((o, i) => (
-            <ObjectiveReviewCard
-              key={o.id}
-              objective={o}
-              isFirst={i === 0}
-              isLast={i === active.length - 1}
-              onMove={(dir) => move(i, dir)}
-              onChanged={refresh}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 // ── Weekly step ──────────────────────────────────────────────────────────────
-// Commit up to 3 of this week's moves. The candidate slate comes from
-// /api/weekly-focus/slate: accomplishment-altitude milestones across ALL active
-// objectives (not just the 2 that happened to be 'accepted'), each laddering up
-// to its objective and showing the OS-vs-you split. Krish can also write/speak
-// his own move — that creates a krish_authored milestone and teaches the slate
-// (marcus_weekly_slate_override). Commit hits /api/weekly-focus/commit, which
-// ladders the committed milestones down into agent-assigned tasks.
-interface SlateItem {
-  milestone_id: string
-  title: string
-  goal_id: string
-  goal_title: string
-  goal_priority: number | null
-  venture: string | null
-  status: string
-  source: string
-  blessed: boolean
-  est_deep_work_hours: number | null
-  owner_split: OwnerSplitData | null
-  auto_executable_pct: number | null
-  contributions: AgentContribution[]
-}
-
-function WeeklyStep({ onCommitted }: { onCommitted: () => void }) {
-  const { active } = useObjectives()
-  const wf = useWeeklyFocus()
+// Shape the week directly against the canon: up to 3 weekly goals, each naming
+// the OS goal it serves (optional venture tag). Last week's set is carried,
+// completed, or dropped right here; Marcus-proposed weekly goals arrive as
+// accept/pass chips (a pass feeds his learning loop). Every action writes
+// immediately through the one goal wire path — there is no separate commit.
+function WeeklyStep() {
+  const { canon, loading, refresh } = useGoalCanon()
   const h = useHaptics()
   const { toast } = useToast()
 
-  const [slate, setSlate] = useState<SlateItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [committing, setCommitting] = useState(false)
-  const [customs, setCustoms] = useState<Array<{ title: string; goal_id: string }>>([])
-  const [customText, setCustomText] = useState('')
-  const [customGoal, setCustomGoal] = useState('')
+  const os = canon?.os ?? []
+  const weekly = canon?.weekly ?? []
+  const proposed = canon?.weeklyProposed ?? []
+  const ventures = canon?.ventures ?? []
+  const currentWeek = weekOf(new Date())
 
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    void (async () => {
-      try {
-        const r = await fetch('/api/weekly-focus/slate')
-        const j = await r.json().catch(() => ({}))
-        if (!cancelled) setSlate(j.ok ? (j.slate || []) : [])
-      } catch {
-        if (!cancelled) setSlate([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
-    return () => { cancelled = true }
-  }, [])
+  const [text, setText] = useState('')
+  const [servesId, setServesId] = useState('')
+  const [venture, setVenture] = useState('')
+  const [gate, setGate] = useState<GateVerdictWire | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
 
-  useEffect(() => { if (!customGoal && active.length > 0) setCustomGoal(active[0].id) }, [active, customGoal])
+  useEffect(() => { if (!servesId && os.length > 0) setServesId(os[0].id) }, [os, servesId])
 
-  const totalPicked = selected.size + customs.length
-  const totalHours = useMemo(
-    () => slate.filter(m => selected.has(m.milestone_id)).reduce((s, m) => s + (m.est_deep_work_hours || 0), 0),
-    [slate, selected],
-  )
-
-  const toggle = (id: string) => {
-    setSelected(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) { next.delete(id); h.tap(); return next }
-      if (totalPicked >= 3) { toast('Three is the week. Drop one to add another.', 'error'); h.error(); return prev }
-      next.add(id); h.tap(); return next
-    })
+  const activeCount = weekly.filter(g => g.status === 'active').length
+  const osTitle = useMemo(() => new Map(os.map(g => [g.id, g.title])), [os])
+  const touchedThisWeek = (g: CanonGoal) => {
+    try { return weekOf(new Date(g.updated_at)) === currentWeek } catch { return false }
   }
 
-  const addCustom = () => {
-    const t = customText.trim()
-    if (!t) return
-    if (totalPicked >= 3) { toast('Three is the week.', 'error'); h.error(); return }
-    if (!customGoal) { toast('Pick which objective it serves.', 'error'); return }
-    setCustoms(c => [...c, { title: t.slice(0, 200), goal_id: customGoal }])
-    setCustomText('')
-    h.tap()
-  }
-
-  const commit = async () => {
-    if (committing) return
-    setCommitting(true)
-    h.tap()
+  const run = async (key: string, fn: () => Promise<void>, okMsg?: string) => {
+    if (busy) return
+    setBusy(key)
     try {
-      // Custom moves become krish_authored milestones first, then commit.
-      const created: Array<{ milestone_id: string; goal_id: string; title: string }> = []
-      for (const c of customs) {
-        const r = await fetch(`/api/objectives/${encodeURIComponent(c.goal_id)}/milestones`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: c.title }),
-        })
-        const j = await r.json().catch(() => ({}))
-        if (j.ok && j.milestone?.id) created.push({ milestone_id: j.milestone.id, goal_id: c.goal_id, title: c.title })
-      }
-      const slatePicks = slate.filter(m => selected.has(m.milestone_id)).map(m => ({ milestone_id: m.milestone_id, goal_id: m.goal_id }))
-      const committed = [...slatePicks, ...created.map(c => ({ milestone_id: c.milestone_id, goal_id: c.goal_id }))].slice(0, 3)
-      const r = await fetch('/api/weekly-focus/commit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ week_of: wf.currentWeekOf, milestones: committed, retro_ack: true, custom_added: created }),
-      })
-      const j = await r.json().catch(() => ({}))
-      if (!j.ok) throw new Error(j.error || `HTTP ${r.status}`)
-      wf.markSetWeek()
+      await fn()
+      refresh()
       h.success()
-      toast('Locked. Marcus is laddering these down into tasks.', 'success')
-      wf.refresh()
-      onCommitted()
+      if (okMsg) toast(okMsg, 'success')
     } catch (e) {
       h.error()
-      toast(`Commit failed: ${(e as Error).message}`, 'error')
+      toast((e as Error).message || 'That did not save.', 'error')
     } finally {
-      setCommitting(false)
+      setBusy(null)
     }
+  }
+
+  const add = (override = false) => {
+    const t = text.trim()
+    if (!t || !servesId) return
+    if (activeCount >= 3) { toast('Three is the week. Complete or drop one first.', 'error'); h.error(); return }
+    void run('add', async () => {
+      const result = await createGoal({ title: t, horizon: 'weekly', parentId: servesId, venture: venture || null, override })
+      if (result.ok === false) { setGate(result.gate); throw new Error('Blocked by the gate below.') }
+      setText(''); setVenture(''); setGate(null)
+    })
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-[12px] text-white/55 leading-snug">
-        Pick up to 3 moves for the week — each ladders up to an objective and shows what the OS will drive vs what needs you. Or write your own.
+      <p className="text-label text-white/55 leading-snug">
+        Pick up to 3 objectives for the week. Each one serves an OS goal, and today's 3 come from them.
       </p>
 
-      <div className="rounded-xl border border-violet-500/15 bg-violet-500/[0.04] p-3 space-y-2">
-        <p className="text-[10px] uppercase tracking-[0.14em] text-violet-200/80 font-semibold">
-          Commit up to 3 · {totalPicked}/3 picked
-        </p>
+      {/* Marcus-proposed weekly goals: take or pass, one tap each. */}
+      {proposed.length > 0 && (
+        <div className="rounded-xl border border-violet-500/15 bg-violet-500/[0.04] p-3 space-y-2">
+          <p className="text-micro uppercase tracking-[0.14em] text-violet-200/80 font-semibold">Marcus proposes</p>
+          <ul className="space-y-1.5">
+            {proposed.map(g => (
+              <li key={g.id} className="flex items-start gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2">
+                <span className="flex-1 min-w-0">
+                  <span className="block text-body text-white/90 leading-snug break-words">{g.title}</span>
+                  {g.parent_id && osTitle.get(g.parent_id) && (
+                    <span className="mt-0.5 inline-flex items-center gap-1 text-micro text-white/45">
+                      <Target size={9} className="opacity-60" />{osTitle.get(g.parent_id)}
+                    </span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  disabled={busy != null}
+                  onClick={() => void run(`take-${g.id}`, () => acceptProposed(g.id), 'Taken for the week.')}
+                  className="min-h-[30px] px-2.5 rounded-md bg-emerald-400/15 border border-emerald-300/30 text-label text-emerald-100 hover:bg-emerald-400/25 disabled:opacity-50"
+                >
+                  Take it
+                </button>
+                <button
+                  type="button"
+                  disabled={busy != null}
+                  onClick={() => void run(`pass-${g.id}`, () => rejectProposed(g.id))}
+                  className="min-h-[30px] px-2 rounded-md text-label text-white/45 hover:text-white/80 disabled:opacity-50"
+                >
+                  Pass
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
+      {/* The week's set. */}
+      <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-3 space-y-2">
+        <p className="text-micro uppercase tracking-[0.14em] text-white/45 font-semibold">
+          This week · {activeCount}/3
+        </p>
         {loading ? (
-          <div className="text-[12px] text-white/45"><Loader2 size={12} className="animate-spin inline mr-2" />Marcus is assembling the slate…</div>
-        ) : slate.length === 0 && customs.length === 0 ? (
-          <p className="text-[12px] text-white/45">No candidate moves yet. Accept milestones in the Objectives step, or write your own below.</p>
+          <div className="text-label text-white/45"><Working size={12} className="inline mr-2" />Loading the canon…</div>
+        ) : weekly.length === 0 ? (
+          <p className="text-label text-white/45">Nothing set yet. Write the first one below.</p>
         ) : (
           <ul className="space-y-1.5">
-            {slate.map(m => {
-              const on = selected.has(m.milestone_id)
+            {weekly.map(g => {
+              const done = g.status === 'done'
+              const carried = !touchedThisWeek(g)
               return (
-                <li key={m.milestone_id}>
+                <li key={g.id} className="flex items-start gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
                   <button
                     type="button"
-                    onClick={() => toggle(m.milestone_id)}
-                    className={`w-full text-left flex items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors ${on ? 'border-violet-400/45 bg-violet-500/[0.08]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20'}`}
+                    aria-label={done ? 'Mark not done' : 'Mark done'}
+                    disabled={busy != null}
+                    onClick={() => void run(`done-${g.id}`, () => patchGoal({ goalId: g.id, status: done ? 'active' : 'done' }))}
+                    className={`mt-[2px] w-4 h-4 shrink-0 rounded-[5px] border ${done ? 'bg-emerald-400/80 border-emerald-300/60' : 'border-white/25 hover:border-white/50'}`}
+                  />
+                  <span className="flex-1 min-w-0">
+                    <span className={`block text-body leading-snug break-words ${done ? 'text-white/40 line-through' : 'text-white/90'}`}>{g.title}</span>
+                    <span className="mt-0.5 flex flex-wrap items-center gap-2 text-micro text-white/45">
+                      {g.parent_id && osTitle.get(g.parent_id) && (
+                        <span className="inline-flex items-center gap-1"><Target size={9} className="opacity-60" />{osTitle.get(g.parent_id)}</span>
+                      )}
+                      {g.venture && <span className="px-1 py-0.5 rounded bg-white/[0.06]">{g.venture}</span>}
+                      {carried && <span className="text-amber-300/70">from last week</span>}
+                    </span>
+                  </span>
+                  {carried && !done && (
+                    <button
+                      type="button"
+                      disabled={busy != null}
+                      title="Carry this into the new week"
+                      onClick={() => void run(`keep-${g.id}`, () => patchGoal({ goalId: g.id, status: 'active' }), 'Carried into this week.')}
+                      className="min-h-[28px] px-2 rounded-md text-micro inline-flex items-center gap-1 text-white/60 hover:text-white/90 border border-white/[0.10]"
+                    >
+                      <RotateCcw size={11} /> Keep
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    aria-label="Drop this objective"
+                    disabled={busy != null}
+                    onClick={() => void run(`drop-${g.id}`, () => patchGoal({ goalId: g.id, status: 'dropped' }))}
+                    className="mt-[2px] text-white/30 hover:text-white/70"
                   >
-                    <span className={`mt-0.5 w-5 h-5 rounded-md border flex-shrink-0 inline-flex items-center justify-center ${on ? 'bg-violet-500/80 border-violet-300/60 text-white' : 'border-white/25 text-transparent'}`}>
-                      <Check size={12} />
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-[13px] text-white/90 leading-snug break-words">{m.title}</span>
-                      <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-white/45">
-                        <span className="inline-flex items-center gap-1"><Target size={9} className="opacity-60" />{m.goal_title}</span>
-                        {typeof m.est_deep_work_hours === 'number' && <span className="inline-flex items-center gap-0.5"><Clock size={9} />{m.est_deep_work_hours}h</span>}
-                        {!m.blessed && <span className="text-amber-300/70">proposed</span>}
-                      </span>
-                      <span className="mt-1 block">
-                        <OwnerSplit ownerSplit={m.owner_split} contributions={m.contributions} autoPct={m.auto_executable_pct} compact />
-                      </span>
-                    </span>
+                    <X size={13} />
                   </button>
                 </li>
               )
@@ -453,69 +357,77 @@ function WeeklyStep({ onCommitted }: { onCommitted: () => void }) {
           </ul>
         )}
 
-        {/* Custom moves Krish has added this turn. */}
-        {customs.length > 0 && (
-          <ul className="space-y-1">
-            {customs.map((c, i) => (
-              <li key={`c-${i}`} className="flex items-center gap-2 rounded-lg border border-emerald-400/25 bg-emerald-500/[0.05] px-3 py-2">
-                <Check size={12} className="text-emerald-300 flex-shrink-0" />
-                <span className="flex-1 min-w-0 text-[12px] text-white/85 break-words">{c.title}</span>
-                <button type="button" onClick={() => setCustoms(list => list.filter((_, j) => j !== i))} className="text-white/40 hover:text-white/70" aria-label="Remove">
-                  <X size={12} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {/* Write / speak your own move. */}
-        <div className="rounded-lg border border-white/[0.06] bg-black/20 p-2 space-y-2">
-          <div className="relative">
-            <textarea
-              value={customText}
-              onChange={e => setCustomText(e.target.value)}
-              placeholder="Write your own move for the week…"
-              rows={2}
-              className="w-full bg-black/30 border border-white/[0.08] rounded px-2.5 py-2 pr-10 text-[12px] text-white placeholder:text-white/30 focus:border-violet-400/40 focus:outline-none resize-none"
-            />
-            <div className="absolute top-1.5 right-1.5">
-              <MicButton
-                endpoint="/api/daily-focus/voice"
-                onJson={(j) => { const t = (j.text as string) || ''; if (t) setCustomText(v => (v ? `${v} ${t}` : t)) }}
-                onError={() => toast('Voice unavailable. Type instead.', 'error')}
+        {/* Write a new one — only while the week has room. */}
+        {activeCount < 3 && (
+          <div className="rounded-lg border border-white/[0.06] bg-black/20 p-2 space-y-2">
+            <div className="relative">
+              <textarea
+                value={text}
+                onChange={e => { setText(e.target.value); if (gate) setGate(null) }}
+                placeholder="Write a weekly objective…"
+                rows={2}
+                className="w-full bg-black/30 border border-white/[0.08] rounded px-2.5 py-2 pr-10 text-label text-white placeholder:text-white/30 focus:border-violet-400/40 focus:outline-none resize-none"
               />
+              <div className="absolute top-1.5 right-1.5">
+                <MicButton
+                  endpoint="/api/daily-focus/voice"
+                  onJson={(j) => { const t = (j.text as string) || ''; if (t) setText(v => (v ? `${v} ${t}` : t)) }}
+                  onError={() => toast('Voice unavailable. Type instead.', 'error')}
+                />
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {active.length > 0 && (
-              <select
-                value={customGoal}
-                onChange={e => setCustomGoal(e.target.value)}
-                className="flex-1 min-w-0 bg-black/30 border border-white/[0.08] rounded px-2 py-1.5 text-[11px] text-white/80 focus:outline-none"
+            <div className="space-y-2.5">
+              <ServesPicker os={os} value={servesId} onChange={setServesId} disabled={busy != null} />
+              <VentureChips ventures={ventures} value={venture} onChange={setVenture} disabled={busy != null} />
+              <button
+                type="button"
+                onClick={() => add()}
+                disabled={!text.trim() || !servesId || busy != null}
+                className="inline-flex items-center gap-1 text-micro font-semibold text-white/70 hover:text-white border border-white/[0.10] hover:border-white/25 rounded px-2.5 py-1.5 disabled:opacity-40"
               >
-                {active.map(o => <option key={o.id} value={o.id}>{o.title}</option>)}
-              </select>
-            )}
-            <button
-              type="button"
-              onClick={addCustom}
-              disabled={!customText.trim() || totalPicked >= 3}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-white/70 hover:text-white border border-white/[0.10] hover:border-white/25 rounded px-2.5 py-1.5 disabled:opacity-40"
-            >
-              <Plus size={11} /> Add move
-            </button>
-          </div>
-        </div>
+                <Plus size={11} /> Add
+              </button>
+            </div>
 
-        <button
-          type="button"
-          onClick={commit}
-          disabled={committing}
-          className="mt-1 w-full inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-violet-50 bg-violet-500/30 hover:bg-violet-500/45 border border-violet-400/40 rounded-lg px-4 py-2 disabled:opacity-50"
-        >
-          {committing ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
-          {committing ? 'Locking…' : totalPicked > 0 ? `Commit ${totalPicked} for the week${totalHours > 0 ? ` · ~${totalHours}h` : ''}` : 'Commit zero — run execution'}
-        </button>
+            {/* The gate held it: the form stays open with the verdict attached. */}
+            {gate && (
+              <div className="rounded-lg border border-amber-400/25 bg-amber-500/[0.07] p-2.5">
+                <p className="text-micro uppercase tracking-[0.14em] font-semibold text-amber-200/85">
+                  {gate.verdict === 'wrong_tier' ? 'Wrong rung' : 'Not saved yet'}
+                </p>
+                {gate.reasoning && <p className="mt-1 text-label text-white/70 leading-snug">{gate.reasoning}</p>}
+                {gate.issues.length > 0 && (
+                  <ul className="mt-1.5 space-y-1">
+                    {gate.issues.map((it, i) => (
+                      <li key={i} className="text-label leading-snug">
+                        <span className="text-amber-200/80 font-medium">{it.dimension}: </span>
+                        <span className="text-white/70">{it.problem}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {gate.suggested_rewrite && (
+                    <button
+                      type="button"
+                      onClick={() => { setText(gate.suggested_rewrite!); setGate(null) }}
+                      className="min-h-[28px] px-2.5 rounded-md bg-white/[0.07] border border-white/15 text-label text-white/85 hover:bg-white/[0.12]"
+                    >
+                      Use the suggested wording
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => add(true)}
+                    className="min-h-[28px] px-2 rounded-md text-label text-white/45 hover:text-white/80 underline underline-offset-2"
+                  >
+                    Save as written
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -533,11 +445,11 @@ function DailyStep({ onLocked }: { onLocked: () => void }) {
     const targets = [today.target_1_text, today.target_2_text, today.target_3_text].filter(Boolean) as string[]
     return (
       <div className="space-y-3">
-        <p className="text-[12px] text-emerald-200/80 leading-snug">Today's 3 are locked. Track them on the board.</p>
+        <p className="text-label text-emerald-200/80 leading-snug">Today's 3 are locked. Track them on the board.</p>
         <ol className="space-y-1.5">
           {targets.map((t, i) => (
-            <li key={i} className="flex items-start gap-2 text-[13px] text-white/85">
-              <span className="text-[12px] text-violet-200 font-bold tabular-nums">{i + 1}.</span>
+            <li key={i} className="flex items-start gap-2 text-body text-white/85">
+              <span className="text-label text-violet-200 font-bold tabular-nums">{i + 1}.</span>
               <span className="break-words">{t}</span>
             </li>
           ))}
@@ -556,34 +468,25 @@ function DailyStep({ onLocked }: { onLocked: () => void }) {
 }
 
 // ── Summary step ─────────────────────────────────────────────────────────────
-// The close: green confirmation across altitudes + what's still waiting on you.
+// The close: green confirmation across the canon + what's still waiting on you.
 function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose: () => void }) {
   const { altitudes } = useAltitudes()
   const { decisions } = useRealtimeDecisionsWaiting()
-  const streaks = useStreaks()
   const h = useHaptics()
-  const waiting = decisions.length
-  // Reinforce the chain at the close: the real 3-for-3 streak (consecutive days
-  // daily_focus shipped). Display-only — the streak is earned on the board, not here.
-  const streak = streaks.three_for_three
+  const waiting = splitDecisions(decisions).decisions.length
 
   return (
     <div className="space-y-4 py-2">
       <div className="flex items-center gap-2">
         <CheckCircle2 size={18} className="text-emerald-400" />
-        <p className="text-[15px] font-semibold text-white">You're set for today.</p>
-        {isFocusEnabled() && !streaks.loading && streak > 0 && (
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/[0.06] px-2 py-0.5 text-[11px] font-semibold text-amber-300 tabular-nums">
-            <Flame size={11} /> {streak}-day 3-for-3
-          </span>
-        )}
+        <p className="text-ui font-semibold text-white">You're set for today.</p>
       </div>
       <ul className="space-y-2">
         {altitudes.map(a => (
           <li key={a.id} className="flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${a.needsAttention ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-            <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-white/55 w-20 flex-shrink-0">{a.label}</span>
-            <span className="text-[12px] text-white/75 truncate">{a.summary}</span>
+            <span className="text-label font-bold uppercase tracking-[0.14em] text-white/55 w-20 flex-shrink-0">{a.label}</span>
+            <span className="text-label text-white/75 truncate">{a.summary}</span>
             {!a.needsAttention && <Check size={13} className="ml-auto text-emerald-400/80 flex-shrink-0" />}
           </li>
         ))}
@@ -591,12 +494,12 @@ function SummaryStep({ onNavigate, onClose }: { onNavigate?: NavigateFn; onClose
       {waiting > 0 && (
         <button
           type="button"
-          onClick={() => { h.tap(); onClose(); onNavigate?.('today') }}
+          onClick={() => { h.tap(); onClose(); onNavigate?.('os', { sub: 'queue' }) }}
           className="w-full inline-flex items-center justify-between gap-2 rounded-xl border border-amber-400/25 bg-amber-500/[0.06] px-4 py-3 text-left active:bg-amber-500/[0.10]"
         >
           <span className="inline-flex items-center gap-2">
             <Inbox size={14} className="text-amber-400" />
-            <span className="text-[13px] text-white/85">{waiting} still waiting on you</span>
+            <span className="text-body text-white/85">{waiting} still waiting on you</span>
           </span>
           <ArrowRight size={14} className="text-amber-300/80" />
         </button>

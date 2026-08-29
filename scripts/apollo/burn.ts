@@ -251,6 +251,7 @@ function buildLeadRow(e: ApolloEnriched, lane: string, r: Awaited<ReturnType<typ
     tags: r.tags,
     primary_venture: r.primary_venture,
     why_relevant: r.why_relevant || null,
+    next_step: r.next_step || null,
     status: 'new',
     raw_extraction: { apollo: e.raw, scoring: { lane, best_lane: r.best_lane, best_score: r.best_score, dimensions: r.dimension_breakdown }, at: new Date().toISOString() },
   }

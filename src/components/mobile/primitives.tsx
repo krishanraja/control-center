@@ -13,13 +13,20 @@ import { usePressable } from '../shared/usePressable'
 // BottomNav is ~108-120px tall including safe area (taller buttons for thumb
 // reach). Exported so the second shell (MobileShell.tsx, with pull-to-refresh)
 // reserves identical space.
-export const BOTTOM_NAV_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+120px)]'
+// The clearance was originally sized up to 152px so the last card also passed
+// the floating pilot dock. The dock is gone (its actions live on the Focus &
+// Purpose tab now); the extra ~30px stays as scroll-tail breathing room, which
+// costs nothing and keeps the final row comfortably clear of the nav.
+export const BOTTOM_NAV_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+152px)]'
 
 /**
- * h-[100dvh] column. Content area is a flex column with gap-5 so fill={true}
- * children actually grow (margin-based space-y-* defeats flex-1). Cards run
- * flush to the viewport edge — section labels and prose carry their own
- * horizontal padding when they need a gutter.
+ * Full-height column: h-full against the nearest definite-height ancestor
+ * (the zoom root directly, or a tab's own flex frame when a switcher row
+ * sits above the shell — claiming a fresh 100dvh here used to push every
+ * OS/People subtab ~60px past the clip box). Content area is a flex column
+ * with gap-5 so fill={true} children actually grow (margin-based space-y-*
+ * defeats flex-1). Cards run flush to the viewport edge — section labels and
+ * prose carry their own horizontal padding when they need a gutter.
  */
 export function MobileShell({
   header,
@@ -29,9 +36,13 @@ export function MobileShell({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col h-[calc(100dvh/var(--z,1))]">
+    <div className="flex flex-col h-full">
       {header && <div className="px-5 pt-7 pb-5 flex-shrink-0">{header}</div>}
+      {/* data-testid: the e2e suite measures scrollHeight against
+          clientHeight here to pin per-tab scroll budgets (the Business
+          Intelligence console must fit two screen-lengths on a phone). */}
       <div
+        data-testid="tab-scroll"
         className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 scrollbar-hide ${BOTTOM_NAV_PAD}`}
       >
         {children}
@@ -41,7 +52,7 @@ export function MobileShell({
 }
 
 import { Logomark } from './Logomark'
-import { MobileTabSkeleton } from '../shared/Skeleton'
+import { MobileTabSkeleton, Skeleton } from '../shared/Skeleton'
 
 /**
  * First-paint loading screen for a mobile tab — the single-focus skeleton inside
@@ -67,11 +78,21 @@ export function TabHeader({
   subtitle,
   leading,
   trailing,
+  wrap = false,
 }: {
   title?: string
-  subtitle?: string
+  /** A node, not a string, so a pending subtitle can be a bar in its own
+   *  footprint. Nine tab headers used to print the literal word "Loading…"
+   *  here and then swap it for a count, which reflows the header on arrival
+   *  and puts the least informative string in the product in its most-read
+   *  slot. Use <HeaderSubtitleSkeleton /> below. */
+  subtitle?: React.ReactNode
   leading?: React.ReactNode
   trailing?: React.ReactNode
+  /** Let a long title break onto a second line (the iOS large-title wrap)
+   *  instead of truncating — "Business Intelligence" does not fit one line
+   *  on a phone. Opt-in so the twelve short titles keep their guarantee. */
+  wrap?: boolean
 }) {
   const resolvedLeading = leading === undefined ? <Logomark size={40} /> : leading
   return (
@@ -79,17 +100,26 @@ export function TabHeader({
       {resolvedLeading && <div className="flex-shrink-0 self-start mt-1">{resolvedLeading}</div>}
       <div className="min-w-0 flex-1">
         {title && (
-          <h1 className="font-bold text-white leading-[1.1] tracking-tight truncate text-[28px]">
+          <h1 className={`font-bold text-white leading-[1.1] tracking-tight text-heading ${wrap ? '' : 'truncate'}`}>
             {title}
           </h1>
         )}
         {subtitle && (
-          <p className="text-[14px] text-white/55 mt-1.5 truncate">{subtitle}</p>
+          <p className="text-ui text-white/55 mt-1.5 truncate">{subtitle}</p>
         )}
       </div>
       {trailing && <div className="flex-shrink-0 ml-3">{trailing}</div>}
     </div>
   )
+}
+
+/**
+ * The subtitle's own placeholder: a bar at the line's height, in a plausible
+ * width for the count that is coming. Sized so the header does not change
+ * height when the real string lands.
+ */
+export function HeaderSubtitleSkeleton({ w = 168 }: { w?: number }) {
+  return <Skeleton h={12} w={w} r={4} className="mt-2 mb-[3px]" />
 }
 
 /** The one thing that needs you — prominent, tappable, impossible to miss. */
@@ -134,25 +164,25 @@ export function HeroCard({
       {eyebrow && (
         <div className="flex items-center gap-2.5 mb-4">
           {dotColor && <span className={`w-2 h-2 rounded-full ${dotColor}`} />}
-          <span className="text-[11px] font-display font-semibold uppercase tracking-[0.2em] text-white/50">
+          <span className="text-micro font-display font-semibold uppercase tracking-[0.14em] text-white/50">
             {eyebrow}
           </span>
         </div>
       )}
-      <p className="text-[23px] font-display font-bold text-white leading-[1.15] tracking-tight">
+      <p className="text-heading font-display font-bold text-white leading-[1.15] tracking-tight">
         {title}
       </p>
       {detail && (
-        <p className="text-[14px] text-white/60 mt-3 leading-[1.45] line-clamp-3">
+        <p className="text-ui text-white/60 mt-3 leading-[1.45] line-clamp-3">
           {detail}
         </p>
       )}
       <div className="flex items-center justify-between mt-5">
         {meta ? (
-          <span className="text-[12px] text-white/45">{meta}</span>
+          <span className="text-label text-white/45">{meta}</span>
         ) : <span />}
         {cta && (
-          <span className="text-[14px] font-semibold rounded-full px-5 py-2.5 btn-contrast">
+          <span className="text-ui font-semibold rounded-full px-5 py-2.5 btn-contrast">
             {cta}
           </span>
         )}
@@ -178,13 +208,13 @@ export function StatPill({
       className="surface flex-1 min-w-0 rounded-2xl px-3 py-5 text-center flex-shrink-0"
       style={{ minHeight: 100 }}
     >
-      <p className={`text-[36px] font-bold leading-none font-mono tabular-nums tracking-tight ${color}`}>
+      <p className={`text-display font-bold leading-none font-mono tabular-nums tracking-tight ${color}`}>
         {value}
       </p>
-      <p className="text-[11px] font-display font-semibold uppercase tracking-[0.1em] text-white/55 mt-2.5 truncate">
+      <p className="text-micro font-display font-semibold uppercase tracking-[0.14em] text-white/55 mt-2.5 truncate">
         {label}
       </p>
-      {sub && <p className="text-[11px] text-white/35 mt-1 truncate">{sub}</p>}
+      {sub && <p className="text-micro text-white/35 mt-1 truncate">{sub}</p>}
     </div>
   )
 }
@@ -208,7 +238,7 @@ export function FeedCard({
       {(title || action) && (
         <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-white/[0.06] flex-shrink-0">
           {title && (
-            <p className="text-[11px] font-display font-bold uppercase tracking-[0.2em] text-white/60">
+            <p className="text-micro font-display font-bold uppercase tracking-[0.14em] text-white/60">
               {title}
             </p>
           )}
@@ -262,11 +292,11 @@ export function FeedRow({
           <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5 ${dotColor}`} />
         )}
         <div className="flex-1 min-w-0">
-          <p className="text-[16px] font-semibold text-white leading-snug line-clamp-2">
+          <p className="text-lede font-semibold text-white leading-snug line-clamp-2">
             {title}
           </p>
           {detail && (
-            <p className="text-[14px] text-white/55 mt-1 leading-[1.45] line-clamp-2">
+            <p className="text-ui text-white/55 mt-1 leading-[1.45] line-clamp-2">
               {detail}
             </p>
           )}
@@ -291,6 +321,6 @@ export function FeedRow({
  */
 export function EmptyState({ label }: { label: string }) {
   return (
-    <div className="px-5 py-16 text-center text-[14px] text-white/40 animate-rise">{label}</div>
+    <div className="px-5 py-16 text-center text-ui text-white/40 animate-rise">{label}</div>
   )
 }

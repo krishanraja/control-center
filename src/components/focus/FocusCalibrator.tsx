@@ -1,14 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
-  Mic, Square, Loader2, Check, X, ChevronDown, Plus, ThumbsDown,
+  Mic, Square, Check, X, ChevronDown, Plus, ThumbsDown,
   TrendingUp, Sparkles as SparkleIcon, AlertTriangle, Target,
-} from 'lucide-react'
+} from '@/lib/icons'
 import { useDailyFocus, isFocusEnabled } from '../../hooks/useDailyFocus'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { usePilotStateContext } from '../../contexts/PilotStateContext'
+import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { rankByIntent } from '../../lib/pilotCapacity'
 import { civilYmd } from '../../lib/civilDate'
+import { Working } from '../shared/Working'
 
 // Picker for today's 3 focuses. Renders only when no daily_focus row
 // exists for today. Krish sees Marcus's 7 leverage picks as compact
@@ -48,6 +50,8 @@ interface Pick {
   text: string
   // Stable id so React keys + sets work even when arrays renumber.
   id: string
+  /** The weekly goal this pick serves (goals.id) — the canon chain. */
+  goalId?: string | null
 }
 
 interface CalibrateBody {
@@ -56,6 +60,7 @@ interface CalibrateBody {
     text: string
     source: PickedSource
     concept_id?: string | null
+    goal_id?: string | null
     replaced_marcus_pick?: Suggestion | null
   }>
 }
@@ -109,6 +114,8 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
   const h = useHaptics()
   const { toast } = useToast()
   const pilot = usePilotStateContext()
+  const { canon } = useGoalCanon()
+  const weeklyGoals = (canon?.weekly ?? []).filter(g => g.status === 'active')
 
   useEffect(() => {
     void (async () => {
@@ -149,10 +156,11 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
   if (loading) return null
   if (today) return null
 
-  // How many targets today asks for. Capacity only ever lowers this. The daily
-  // altitude is never suppressed to zero: one commitment is the floor, and it
-  // is the same floor red mode already runs on.
-  const targetCount = pilot.profile.targets
+  // Today is always exactly 3. The daily_focus schema, the completion RPC and
+  // the calibrate route all hardcode 3 slots; a capacity-varied count is what
+  // shipped the "Pick your 2" lock the 3-only API rejected with an HTTP 400.
+  // Capacity still shapes the day upstream (demand suppression, red mode).
+  const targetCount = 3
 
   // Flatten Marcus's 7 picks (3 primary + up to 4 alternates) into a single
   // ordered list. Stable key per row.
@@ -250,7 +258,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
       setUnsuitable(prev => { const next = new Set(prev); next.add(key); return next })
       setComposingDownFor(null)
       h.success()
-      toast('Marked unsuitable. Marcus will learn.', 'success')
+      toast('Marked as not a fit. Marcus will learn from that.', 'success')
     } catch (e) {
       h.error()
       toast(`Could not capture feedback: ${(e as Error).message}`, 'error')
@@ -300,6 +308,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
               text,
               source: 'marcus_nominated' as PickedSource,
               concept_id: p.suggestion.action_target_id || null,
+              goal_id: p.goalId || null,
             }
           }
           // Krish edited the text after picking — counts as a swap.
@@ -307,10 +316,11 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
             text,
             source: 'krish_swapped' as PickedSource,
             concept_id: p.suggestion.action_target_id || null,
+            goal_id: p.goalId || null,
             replaced_marcus_pick: p.suggestion,
           }
         }
-        return { text, source: 'krish_added' as PickedSource }
+        return { text, source: 'krish_added' as PickedSource, goal_id: p.goalId || null }
       })
       const body: CalibrateBody = { date: ymd(new Date()), targets }
       const r = await fetch('/api/daily-focus/calibrate', {
@@ -322,7 +332,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
       const j = await r.json()
       if (!j.ok) throw new Error(j.error || 'unknown')
       h.success()
-      toast('Locked. Marcus is mapping today.', 'success')
+      toast('Locked in. Marcus is planning today around it.', 'success')
       onLocked?.()
     } catch (e) {
       h.error()
@@ -337,21 +347,48 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
   return (
     <section className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.06] to-transparent p-5">
       <header className="mb-4">
-        <h2 className="text-[16px] font-semibold text-white">What are your 3 today?</h2>
-        <p className="text-[12px] text-white/55 mt-1">
+        <h2 className="text-lede font-semibold text-white">What are your 3 today?</h2>
+        <p className="text-label text-white/55 mt-1">
           Pick from Marcus&rsquo;s leverage picks below, add your own, or mix. Lock {targetCount} and Home recalibrates.
           {carry_over ? ' Yesterday is still open below.' : ''}
         </p>
       </header>
 
+      {/* THE WEEK'S OBJECTIVES as picks: the canon chain OS → week → today,
+          one tap. Adds a pick pre-linked to the weekly goal it serves. */}
+      {weeklyGoals.length > 0 && (
+        <div className="mb-4">
+          <div className="text-micro uppercase tracking-[0.14em] text-white/45 mb-2">From this week's objectives</div>
+          <div className="flex flex-wrap gap-1.5">
+            {weeklyGoals.map(g => {
+              const picked = picks.some(p => p.goalId === g.id)
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  disabled={picked || picks.length >= targetCount}
+                  onClick={() => {
+                    h.tap()
+                    setPicks(prev => prev.length >= targetCount ? prev : [...prev, { kind: 'custom', text: g.title, id: `wk-${g.id}`, goalId: g.id }])
+                  }}
+                  className={`max-w-full truncate rounded-full border px-3 py-1.5 text-label transition-colors ${picked ? 'border-violet-400/45 bg-violet-500/[0.12] text-violet-100' : 'border-white/[0.10] bg-white/[0.03] text-white/75 hover:border-white/25'} disabled:opacity-50`}
+                >
+                  {g.title}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {hasAnyMarcus && (
         <div className="mb-4">
           <div className="flex items-baseline justify-between mb-2">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-white/45">Marcus's leverage picks</div>
-            <div className="text-[10px] text-white/35 tabular-nums">{allPicks.length} suggestions</div>
+            <div className="text-micro uppercase tracking-[0.14em] text-white/45">Marcus's leverage picks</div>
+            <div className="text-micro text-white/35 tabular-nums">{allPicks.length} suggestions</div>
           </div>
           {suggestions.marcus_reasoning && (
-            <p className="text-[11px] text-white/55 italic mb-3 leading-snug">{suggestions.marcus_reasoning}</p>
+            <p className="text-micro text-white/55 italic mb-3 leading-snug">{suggestions.marcus_reasoning}</p>
           )}
           <div className="flex flex-col gap-1.5">
             {allPicks.map(({ s, key, tier }) => (
@@ -377,10 +414,10 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
 
       {/* Today's 3 — dynamic list of what's picked. */}
       <div className="mt-5">
-        <div className="text-[10px] uppercase tracking-[0.16em] text-white/45 mb-2">Today's 3</div>
+        <div className="text-micro uppercase tracking-[0.14em] text-white/45 mb-2">Today's 3</div>
         <div className="flex flex-col gap-2">
           {picks.length === 0 && (
-            <div className="rounded-md border border-dashed border-white/[0.08] px-3 py-3 text-[12px] text-white/40 text-center">
+            <div className="rounded-md border border-dashed border-white/[0.08] px-3 py-3 text-label text-white/40 text-center">
               Pick a leverage card above, or add your own.
             </div>
           )}
@@ -400,16 +437,16 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
             type="button"
             onClick={addCustom}
             disabled={picks.length >= targetCount}
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white/70 hover:text-white border border-white/[0.08] rounded-md px-2.5 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 text-micro font-semibold text-white/70 hover:text-white border border-white/[0.08] rounded-md px-2.5 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Plus size={11} />
             Add your own
           </button>
           {picks.length >= targetCount && (
-            <span className="text-[10px] text-white/45">{targetCount}/{targetCount} · un-pick to swap</span>
+            <span className="text-micro text-white/45">{targetCount}/{targetCount} · un-pick to swap</span>
           )}
           {picks.length < targetCount && (
-            <span className="text-[10px] text-white/45 tabular-nums">{picks.length}/{targetCount}</span>
+            <span className="text-micro text-white/45 tabular-nums">{picks.length}/{targetCount}</span>
           )}
         </div>
       </div>
@@ -419,10 +456,10 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
           type="button"
           onClick={submit}
           disabled={!canLock}
-          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-violet-100 bg-violet-500/25 hover:bg-violet-500/40 border border-violet-400/40 rounded-md px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 text-label font-semibold text-violet-100 bg-violet-500/25 hover:bg-violet-500/40 border border-violet-400/40 rounded-md px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-          {submitting ? 'Locking...' : `Lock today's ${targetCount}`}
+          {submitting ? <Working size={12} /> : <Check size={12} />}
+          {submitting ? 'Locking…' : `Lock today's ${targetCount}`}
         </button>
       </div>
     </section>
@@ -478,7 +515,7 @@ function MarcusPickRow({
           aria-label={
             unsuitable ? 'Marked unsuitable' : picked ? `Un-pick (slot ${slotIndex})` : 'Pick this'
           }
-          className={`flex-shrink-0 w-7 h-7 rounded-full border inline-flex items-center justify-center text-[12px] font-bold tabular-nums transition-colors ${
+          className={`flex-shrink-0 w-7 h-7 rounded-full border inline-flex items-center justify-center text-label font-bold tabular-nums transition-colors ${
             unsuitable
               ? 'border-white/[0.10] text-white/20 cursor-not-allowed'
               : picked
@@ -497,11 +534,11 @@ function MarcusPickRow({
           className="flex-1 min-w-0 text-left disabled:cursor-not-allowed"
         >
           <div className="flex items-center gap-2 min-w-0">
-            <span className={`flex-shrink-0 inline-flex items-center gap-1 rounded ${meta.bg} ${meta.text} text-[9px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5`}>
+            <span className={`flex-shrink-0 inline-flex items-center gap-1 rounded ${meta.bg} ${meta.text} text-micro font-bold uppercase tracking-[0.14em] px-1.5 py-0.5`}>
               <Icon size={9} />
               {meta.label}
             </span>
-            <span className={`text-[12px] font-semibold truncate ${dim ? 'text-white/85' : 'text-white'} ${unsuitable ? 'line-through' : ''}`}>
+            <span className={`text-label font-semibold truncate ${dim ? 'text-white/85' : 'text-white'} ${unsuitable ? 'line-through' : ''}`}>
               {pick.title}
             </span>
           </div>
@@ -509,7 +546,7 @@ function MarcusPickRow({
 
         {/* Leverage pill */}
         {score != null && (
-          <span className={`flex-shrink-0 text-[10px] tabular-nums ${
+          <span className={`flex-shrink-0 text-micro tabular-nums ${
             isFallback ? 'text-amber-300' : score >= 80 ? 'text-emerald-300' : score >= 60 ? 'text-white/55' : 'text-white/35'
           }`}>
             {isFallback ? 'fallback' : `lev ${score}`}
@@ -546,7 +583,7 @@ function MarcusPickRow({
       {/* Weekly linkage: this pick advances a milestone committed this week. */}
       {pick.serves_milestone && !unsuitable && (
         <div className="px-3 pb-2 -mt-0.5">
-          <span className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-violet-200/85 bg-violet-500/15 border border-violet-400/20 rounded px-1.5 py-0.5">
+          <span className="inline-flex items-center gap-1 text-micro font-semibold uppercase tracking-[0.14em] text-violet-200/85 bg-violet-500/15 border border-violet-400/20 rounded px-1.5 py-0.5">
             <Target size={9} /> Serves this week: {pick.serves_milestone.title}
           </span>
         </div>
@@ -554,7 +591,7 @@ function MarcusPickRow({
 
       {/* Unsuitable label — replaces the body when row is marked. */}
       {unsuitable && !composing && (
-        <div className="border-t border-white/[0.06] px-3 py-2 text-[10px] text-rose-200/70 italic">
+        <div className="border-t border-white/[0.06] px-3 py-2 text-micro text-rose-200/70 italic">
           Marked unsuitable — Marcus will learn.
         </div>
       )}
@@ -562,7 +599,7 @@ function MarcusPickRow({
       {/* Reason composer for thumbs-down */}
       {composing && !unsuitable && (
         <div className="border-t border-rose-400/20 px-3 py-2.5 space-y-2 bg-rose-500/[0.04]">
-          <label className="block text-[10px] uppercase tracking-[0.14em] text-rose-200/80">
+          <label className="block text-micro uppercase tracking-[0.14em] text-rose-200/80">
             Why is this unsuitable?
           </label>
           <textarea
@@ -581,14 +618,14 @@ function MarcusPickRow({
             rows={2}
             autoFocus
             placeholder="e.g. wrong category, already shipping, low ROI on this lead profile…"
-            className="w-full bg-black/30 border border-white/[0.10] rounded-md px-2.5 py-1.5 text-[12px] text-white placeholder:text-white/25 focus:border-rose-400/40 focus:outline-none resize-none disabled:opacity-60"
+            className="w-full bg-black/30 border border-white/[0.10] rounded-md px-2.5 py-1.5 text-label text-white placeholder:text-white/25 focus:border-rose-400/40 focus:outline-none resize-none disabled:opacity-60"
           />
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onCancelThumbsDown}
               disabled={submittingDown}
-              className="inline-flex items-center gap-1 text-[11px] text-white/55 hover:text-white/85 px-2 py-1 rounded disabled:opacity-60"
+              className="inline-flex items-center gap-1 text-micro text-white/55 hover:text-white/85 px-2 py-1 rounded disabled:opacity-60"
             >
               <X size={11} />
               Cancel
@@ -597,9 +634,9 @@ function MarcusPickRow({
               type="button"
               onClick={() => onSubmitThumbsDown(reason)}
               disabled={submittingDown || !reason.trim()}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-100 bg-rose-500/25 hover:bg-rose-500/40 border border-rose-400/40 rounded-md px-2.5 py-1 disabled:opacity-50"
+              className="inline-flex items-center gap-1 text-micro font-semibold text-rose-100 bg-rose-500/25 hover:bg-rose-500/40 border border-rose-400/40 rounded-md px-2.5 py-1 disabled:opacity-50"
             >
-              {submittingDown ? <Loader2 size={11} className="animate-spin" /> : <ThumbsDown size={11} />}
+              {submittingDown ? <Working size={11} /> : <ThumbsDown size={11} />}
               {submittingDown ? 'Sending…' : 'Mark unsuitable'}
             </button>
           </div>
@@ -610,8 +647,8 @@ function MarcusPickRow({
           the textarea doesn't compete for attention. */}
       {expanded && !composing && !unsuitable && (pick.why_now || pick.reasoning) && (
         <div className="border-t border-white/[0.06] px-3 py-2.5 space-y-1.5">
-          {pick.why_now && <p className="text-[11px] text-white/65 leading-snug">{pick.why_now}</p>}
-          {pick.reasoning && <p className="text-[10px] text-white/45 italic leading-snug">{pick.reasoning}</p>}
+          {pick.why_now && <p className="text-micro text-white/65 leading-snug">{pick.why_now}</p>}
+          {pick.reasoning && <p className="text-micro text-white/45 italic leading-snug">{pick.reasoning}</p>}
         </div>
       )}
     </div>
@@ -631,7 +668,7 @@ function SelectedSlot({
   // — editing flips the source to krish_swapped on submit.
   return (
     <div className="flex items-start gap-2">
-      <div className="w-6 h-9 flex items-center justify-center text-[12px] text-violet-200 font-bold tabular-nums flex-shrink-0">{n}.</div>
+      <div className="w-6 h-9 flex items-center justify-center text-label text-violet-200 font-bold tabular-nums flex-shrink-0">{n}.</div>
       <div className="flex-1 min-w-0">
         {isCustom ? (
           <CustomTextarea value={pick.text} onChange={onChangeText} />
@@ -640,7 +677,7 @@ function SelectedSlot({
             type="text"
             value={pick.text}
             onChange={(e) => onChangeText(e.target.value)}
-            className="w-full bg-black/30 border border-white/[0.08] rounded-md px-3 py-2 text-[13px] text-white focus:border-violet-400/50 focus:outline-none"
+            className="w-full bg-black/30 border border-white/[0.08] rounded-md px-3 py-2 text-body text-white focus:border-violet-400/50 focus:outline-none"
           />
         )}
       </div>
@@ -716,7 +753,7 @@ function CustomTextarea({ value, onChange }: { value: string; onChange: (v: stri
         onChange={(e) => onChange(e.target.value)}
         placeholder="What would shipping this look like by EOD?"
         rows={2}
-        className="w-full bg-black/30 border border-white/[0.08] rounded-md px-3 py-2 pr-10 text-[13px] text-white placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none resize-none"
+        className="w-full bg-black/30 border border-white/[0.08] rounded-md px-3 py-2 pr-10 text-body text-white placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none resize-none"
       />
       {canRecord && (
         <button
@@ -730,7 +767,7 @@ function CustomTextarea({ value, onChange }: { value: string; onChange: (v: stri
               : 'text-white/45 hover:text-white/85'
           } disabled:opacity-50`}
         >
-          {transcribing ? <Loader2 size={12} className="animate-spin" /> : (recording ? <Square size={11} /> : <Mic size={12} />)}
+          {transcribing ? <Working size={12} /> : (recording ? <Square size={11} /> : <Mic size={12} />)}
         </button>
       )}
     </div>

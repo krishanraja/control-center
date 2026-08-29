@@ -1,5 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { supabase } from '../_supabase.js'
+// '../../_supabase.js': this file is api/leads/[id]/index.ts, two levels
+// down. '../_supabase.js' pointed at api/leads/_supabase.js, which does not
+// exist, so PATCH /api/leads/:id 500ed on every call. Verified in production.
+import { supabase } from '../../_supabase.js'
 
 // PATCH /api/leads/:id — update lead status / next step / why-relevant.
 // Used by the Leads tab when Krish marks a lead contacted, drops it,

@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
-import { isoWeekLabel } from '../_weeks.js'
+import { isoWeekLabel, queueWindowStart } from '../_weeks.js'
 
 // The Monday purge (Content Engine v2, spec §4). Mon 14:00 UTC, after send.
 //
@@ -12,20 +13,17 @@ import { isoWeekLabel } from '../_weeks.js'
 //   2. FEEDS A SHIFT — rows with shift_id are kept (their evidence already
 //                 lives in the dossier; the row keeps the Feed history light).
 //   3. GRADUATES — rows with library_at are kept forever.
-// Also archives last week's brief once it was pushed/sent, and writes the
-// purge stats to audit_log so the deletion is observable after the fact.
+// Also ages out the weekly surfaces so the Content tab stays a week's worth of
+// work rather than a growing pile: every brief past its week is archived
+// (whatever state it reached), and every decision card past its week is swept
+// to 'archived'. Both used to be filtered so narrowly that they never fired -
+// see the notes at each. Purge stats go to audit_log so it is observable.
 //
 //   GET (CRON_SECRET) — Mon 14:00 UTC   ·   POST — manual
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
-  if (req.method === 'GET') {
-    const secret = process.env.CRON_SECRET || ''
-    const auth = req.headers.authorization || ''
-    if (!secret || auth !== `Bearer ${secret}`) return res.status(401).json({ ok: false, error: 'unauthorized' })
-  } else if (req.method !== 'POST') {
-    return res.status(405).json({ ok: false, error: 'GET (cron) or POST only' })
-  }
+  if (guardCronRoute(req, res)) return
 
   try {
     const nowIso = new Date().toISOString()
@@ -59,29 +57,97 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       expired = count ?? 0
     }
 
-    // Archive pushed/sent briefs from previous weeks.
+    // Archive every brief whose week has passed, not just the ones that shipped.
+    //
+    // This used to filter .in('status', ['pushed','sent']), which reads as
+    // "archive what we sent" but behaves as "archive nothing": across the
+    // eight runs to 2026-08-24 the audit rows all say briefs_archived: [], and
+    // no brief in the table has ever had a pushed_at or sent_at. So a brief
+    // that was assembled and then not pushed - which is all seven of them -
+    // stayed 'ready'/'in_review'/'approved' forever, and useContentV2's hero
+    // read (which accepts exactly those statuses) kept serving it.
+    //
+    // A weekly brief is news-shaped: R10 says nothing news-shaped survives its
+    // week. Past its week it is archived whatever state it reached. 'approved'
+    // is included deliberately - 2026-W30 has sat approved-but-never-pushed
+    // since 24 July, and exempting it is what made it immortal. Archiving is
+    // not deletion: the row, its body and its versions all stay readable.
+    //
+    // The boundary is the start of the deck's read window, not the current
+    // week. Archiving at `< week` would bury Friday's brief on Monday and
+    // leave the tab with no brief at all until the next Friday; this way the
+    // brief stays readable until its successor arrives.
     const week = isoWeekLabel()
+    const windowStart = queueWindowStart()
     const { data: archived } = await supabase
       .from('weekly_briefs')
       .update({ status: 'archived', purge_ran_at: nowIso })
-      .neq('week', week)
-      .in('status', ['pushed', 'sent'])
+      .lt('week', windowStart)
+      .in('status', ['ready', 'in_review', 'approved', 'pushed', 'sent'])
       .select('week')
 
-    // Sweep stale pending purge_preview decisions (their moment has passed).
-    await supabase.from('content_decisions')
-      .update({ status: 'done', resolved_at: nowIso, resolution: { action: 'purge_ran' } })
-      .eq('kind', 'purge_preview')
+    // Sweep EVERY stale pending decision, not just purge_preview.
+    //
+    // The old sweep was .eq('kind','purge_preview'), so brief_review,
+    // shift_proposal, shift_fading, graduation and investigation cards had no
+    // ageing path at all - the only thing that ever cleared one was Krish
+    // tapping it. On 2026-08-25 that was 74 pending rows going back to 10 July,
+    // against a spec that calls for 5-10 a week.
+    //
+    // The rule is "sweep only what has already scrolled out of view": the
+    // boundary is the start of the deck's read window, so a card is assembled
+    // Friday, stays reviewable for the rest of that week and all of the next,
+    // and is swept on the Monday after it stops being visible. Nothing is ever
+    // cleared out from under Krish while it is still on screen.
+    //
+    // 'archived', not 'dismissed': nothing was judged here, so nothing should
+    // teach, and nothing should later read as a rejection. 'dismissed' means
+    // Krish ruled on it; this means the week passed and he never saw it. The
+    // rows keep their full payload and their ref, so the archive stays useful
+    // for comparing what the engine produced against what he chose.
+    //
+    // purge_preview keeps the tighter `< week` boundary below: a card that says
+    // "expiring Monday" is misinformation the moment that Monday has passed.
+    const { data: sweptRows } = await supabase.from('content_decisions')
+      .update({
+        status: 'archived',
+        resolved_at: nowIso,
+        resolution: { action: 'expired_unreviewed', at: nowIso, swept_by: 'purge/run' },
+      })
       .eq('status', 'pending')
-      .neq('week', week)
+      .neq('kind', 'purge_preview')
+      .lt('week', windowStart)
+      .select('kind')
+
+    const { data: sweptPreviews } = await supabase.from('content_decisions')
+      .update({ status: 'done', resolved_at: nowIso, resolution: { action: 'purge_ran', at: nowIso } })
+      .eq('status', 'pending')
+      .eq('kind', 'purge_preview')
+      .lt('week', week)
+      .select('kind')
+
+    const swept = [...(sweptRows || []), ...(sweptPreviews || [])].reduce<Record<string, number>>((acc, r: any) => {
+      acc[r.kind] = (acc[r.kind] || 0) + 1
+      return acc
+    }, {})
 
     await supabase.from('audit_log').insert({
       event_type: 'content_purge',
       actor: 'content-engine-v2',
-      details: { week, expired, briefs_archived: (archived || []).map(a => a.week) },
+      details: {
+        week, expired,
+        briefs_archived: (archived || []).map(a => a.week),
+        decisions_swept: (sweptRows || []).length + (sweptPreviews || []).length,
+        swept_by_kind: swept,
+      },
     })
 
-    return res.json({ ok: true, week, expired, briefs_archived: (archived || []).length })
+    return res.json({
+      ok: true, week, expired,
+      briefs_archived: (archived || []).length,
+      decisions_swept: (sweptRows || []).length + (sweptPreviews || []).length,
+      swept_by_kind: swept,
+    })
   } catch (e: any) {
     return res.status(500).json({ ok: false, error: String(e?.message || e) })
   }

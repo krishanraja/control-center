@@ -21,7 +21,7 @@ export const BANNED_ABSTRACT: string[] = [
   'explore', 'research', 'consider', 'decide who', 'vision',
 ]
 
-export const REWRITE_HINT = 'Name the action, the recipient, and what leaves your machine.'
+export const REWRITE_HINT = 'Say what you will do, who it goes to, and what they receive.'
 
 /** Why an entry was rejected, so the UI can say something better than "no". */
 export type RejectionReason = 'empty' | 'banned' | 'no_verb'

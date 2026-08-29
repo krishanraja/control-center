@@ -42,7 +42,9 @@ The window is read **once at mount** and held for the session. A live clock woul
 
 **3. Evening shutdown.** `src/components/pilot/EveningShutdown.tsx`. Three fields, only tomorrow's ONE required. Auto-prompts after 5pm New York on first interaction, once per day, and never twice. This row is what tomorrow's red mode reads.
 
-**4. Ship ledger.** `api/pilot/ships.ts` plus `src/components/pilot/ShipLedgerCard.tsx`, positioned first on both home surfaces. Ships this week, days since last ship, last three, return rate, and one log button.
+> **Entry points moved, 2026-08-20.** The floating pilot dock ("compile a worry | shutdown", pinned over every tab) is gone: persistent chrome on every screen is ambient self-monitoring, the exact thing this layer exists to avoid. Both actions live on the Focus & Purpose tab (`#/focus`, [FOCUS-PURPOSE.md](./FOCUS-PURPOSE.md)), whose constraints extend this document's. `EveningShutdown` still auto-prompts after 5pm; `ShutdownModal` is exported for the Focus tab to mount. The worry compiler's mount stayed inside `PilotGate`'s children, so it remains structurally green-mode-only.
+
+**4. Ship ledger.** `api/pilot/ships.ts`. Since the 2026-08-20 Home recompose the ledger renders as the SHIPS segment of Home's `VitalsLine` (ships this week + the one-tap Log; days since last, return rate and the last three live one tap away in the Log modal). `ShipLedgerCard` remains for red mode. The v1 statement "positioned first on both home surfaces" is superseded — the vitals line is the first content row of Home, so the ledger is still the first fact the operator meets, in a fraction of the height. The non-negotiables carry over verbatim: VitalsLine contains no branch that changes colour, weight, or copy based on how any number looks. Do not add one.
 
 ## Concreteness rules
 

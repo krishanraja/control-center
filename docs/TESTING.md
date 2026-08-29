@@ -7,27 +7,52 @@ What exists, how to run it, and the one rule that keeps it from rotting.
 | Suite | Command | In CI? |
 |---|---|---|
 | Lint | `npm run lint` (`--max-warnings 0`) | yes |
-| Types | `npx tsc --noEmit` | yes |
+| Types | `npx tsc --noEmit` + `npm run typecheck:api` + `npm run typecheck:scripts` | yes |
+| Structural guards | `npx tsx scripts/check-<name>.mts` | yes (seventeen of them) |
 | e2e (Playwright) | `npx playwright test` | **no** |
 | Contract tests | `npx tsx scripts/network/verify-contracts.ts` | no |
 | Scorer probes | `psql "$DATABASE_URL" -f scripts/network/probes.sql` | no |
-| compound units | `npm run test:run` from `compound/` | no |
+| COMPOUND full verification | `npm run verify` from `compound/` | no |
 
-`.github/workflows/ci.yml` runs lint and types only. A lint **warning** blocks
-merge, because `--max-warnings 0`.
+A lint **warning** blocks merge, because `--max-warnings 0`.
+
+The guards in CI: `check-goal-ladder`, `check-goal-gate`,
+`check-type-tokens`, `check-icons`, `check-content-expiry`,
+`check-content-window`, `check-anchor-attribution`, `check-card-lint`,
+`check-content-vocabulary`, `check-arc-scoring`, `check-slate-calibration`,
+`check-content-chain`, `check-served-surfaces`, `check-enrichment-honesty`,
+`check-fleet-classifier`, `check-agent-stamps`, `check-model-prices`. Each
+one statically pins an invariant that already shipped broken once, or that
+drifts silently (one goal editor, the type scale, the icon system, honest
+enrichment, an Anthropic call site whose spend nobody can attribute, a model
+the price table has never heard of, ...) — the current list with rationale
+lives as comments in
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml). More `check-*`
+guards exist outside CI; see the root `AGENTS.md`.
 
 ## e2e
 
-15 specs against the production build via `npm run preview`. All `/api/*`,
-`**/rest/v1/**` and `**/realtime/**` traffic is mocked, so panels settle on
-their honest empty states without a live database and no spec spends an
-embedding or a model call.
+Fourteen spec files (106 tests) against the production build via `npm run
+preview`. All `/api/*`, `**/rest/v1/**` and `**/realtime/**` traffic is
+mocked, so panels settle on their honest empty states without a live
+database and no spec spends an embedding or a model call.
 
 | Spec | Covers | Viewport |
 |---|---|---|
 | `e2e/growth.spec.ts` | the merged Growth tab, its five sections and the governance control plane | 1280x800 |
 | `e2e/network.spec.ts` | the Network search lifecycle: ask, read, clear, ask again | 1280x800, one at 390x844 |
+| `e2e/network-add-person.spec.ts` | add-a-person from a screenshot: scan, confirm, provenance honesty, blocked providers | 1280x800 |
 | `e2e/pilot-gate.spec.ts` | when the morning check-in appears, skipping, and the device clock | per-test `timezoneId` + fixed clock |
+| `e2e/home-noscroll.spec.ts` | Home's structural no-scroll contract | 1440x900 / 1280x800 / 390x844 / 360x800 |
+| `e2e/composer.spec.ts` | the brief editor: canvas, citations toggle, the mobile edits sheet, the edit palette | default + one at 390x844 |
+| `e2e/focus-purpose.spec.ts` | the Focus tab: tools, the daily ask flow | default |
+| `e2e/loading.spec.ts` | the loading ladder's restraint rules | default |
+| `e2e/queue-relocation.spec.ts` | the ruling queue at OS → Queue and the `#today` aliases | default |
+| `e2e/market-signals.spec.ts` | the head-space split: the Market signals door appears only for a fresh hot digest, Home's face carries no signal text, the drawer acts without navigating, the Intel door lands on the console | default + 360x800 |
+| `e2e/intel-zoom.spec.ts` | OS → Intel does not steal focus or overflow the zoom root, **and the whole phone column fits two screen-lengths** | 390x844 + 1280x800 |
+| `e2e/spend-panel.spec.ts` | the money and connections answers on the interrogation, the prepaid-line state (past the $29 included outranks the month-vs-usual line, in the answer AND the token), the ranked service + spender sheet with each provider in the unit it bills in, the sweep trigger, the Home door dot | 390x844 + 1280x800 |
+| `e2e/content-queue-window.spec.ts` | the content queue's ageing window and the archive an aged-out card lands in | default |
+| `e2e/content-rooms.spec.ts` | Built vs Paid: own shifts lead, cross-cutting ones are labelled | default |
 
 `pilot-gate.spec.ts` is the one suite that owns its own context per test, because
 its subject **is** the clock: it pairs `browser.newContext({ timezoneId })` with
@@ -36,13 +61,14 @@ and the wall clock are both pinned. Nothing about that gate is testable without
 controlling those two.
 
 ```bash
-VITE_UI_V2_ENABLED=true \
-VITE_SUPABASE_URL=https://placeholder.supabase.co \
-VITE_SUPABASE_ANON_KEY=placeholder npx vite build
-PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test
+# .env: VITE_SUPABASE_URL=https://placeholder.supabase.co
+#       VITE_SUPABASE_ANON_KEY=placeholder
+#       VITE_UI_V2_ENABLED=true
+VITE_CONTENT_V2_ENABLED=true VITE_UI_V2_ENABLED=true npm run build
+PLAYWRIGHT_CHROMIUM_PATH=<your chromium binary> npx playwright test
 ```
 
-Both build-time vars are load-bearing:
+The build-time vars are load-bearing:
 
 - `VITE_SUPABASE_*` because the app will not boot without them
   (`src/lib/supabase.ts` calls `createClient` at module load). Placeholders are
@@ -52,6 +78,10 @@ Both build-time vars are load-bearing:
   asserting against a surface that is not there. The symptom is every spec in
   that file failing on a missing search field, which reads like an app crash
   and is not one.
+- `VITE_CONTENT_V2_ENABLED=true` for the same reason on the Content surface:
+  `composer.spec.ts` and the `content-room` segments assert the v2 rooms.
+  Pass it on the build command (see the `.env.production.local` trap in the
+  root `AGENTS.md` — a pulled env file can silently override `.env`).
 
 `playwright.config.ts` sets `reuseExistingServer: true`, so a preview server
 you left running serves a **stale `dist`**. Rebuild before you re-run, or kill
@@ -134,9 +164,14 @@ Run it against any database with the two network migrations applied.
 
 ## Known gaps
 
-- **CI runs no tests.** Playwright and the compound vitest suite are local-only.
-- **e2e covers two tabs.** Growth and Network. Nothing tests Home, Content,
-  Pipeline, OS, the command palette or theming.
+- **CI runs no browser tests.** Playwright and the compound vitest suite are
+  local-only; the CI gate is lint + types + the structural guards. Run the
+  e2e suite yourself before merging UI work.
+- **e2e coverage is broad but not total.** Growth, Network (search +
+  add-person), Home's no-scroll contract, the pilot gate, the brief
+  composer, Focus, the loading ladder, and the queue relocation are covered.
+  Nothing tests the People triage boards, Subscriptions, the OS subtab
+  bodies, the command palette or theming.
 - **No mobile project.** `playwright.config.ts` has a single desktop project;
   the one phone-sized spec sets its own viewport with `page.setViewportSize`.
   That still runs outside the `zoom: 1.2` wrapper's real device conditions, so

@@ -1,7 +1,8 @@
 import React from 'react'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink } from '@/lib/icons'
 import { formatDistanceToNow } from 'date-fns'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
+import { WhyBadge } from '../shared/WhyBadge'
 
 const STATE_LABEL: Record<string, string> = {
   seeded: 'Seeded', researching: 'Researching', drafting: 'Drafting',
@@ -97,13 +98,13 @@ export function TriageCard({
         {isTop && (
           <>
             <div
-              className="absolute top-5 left-5 px-3 py-1.5 rounded-lg border-2 border-rose-400/80 text-rose-300 text-[15px] font-bold uppercase tracking-wider rotate-[-12deg] pointer-events-none"
+              className="absolute top-5 left-5 px-3 py-1.5 rounded-lg border-2 border-rose-400/80 text-rose-300 text-ui font-bold uppercase tracking-wider rotate-[-12deg] pointer-events-none"
               style={{ opacity: dropGhost }}
             >
               Drop
             </div>
             <div
-              className="absolute top-5 right-5 px-3 py-1.5 rounded-lg border-2 border-emerald-400/80 text-emerald-300 text-[15px] font-bold uppercase tracking-wider rotate-[12deg] pointer-events-none"
+              className="absolute top-5 right-5 px-3 py-1.5 rounded-lg border-2 border-emerald-400/80 text-emerald-300 text-ui font-bold uppercase tracking-wider rotate-[12deg] pointer-events-none"
               style={{ opacity: rightGhost }}
             >
               {rightIntent === 'open' ? 'Open' : rightLabel}
@@ -116,38 +117,41 @@ export function TriageCard({
         {isTop && (
         <>
         <div className="flex items-center gap-2 flex-wrap mb-3">
-          <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] font-semibold ${STATE_TONE[i.state] || 'bg-white/[0.08] text-white/65'}`}>
+          <span className={`text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] font-semibold ${STATE_TONE[i.state] || 'bg-white/[0.08] text-white/65'}`}>
             {STATE_LABEL[i.state] || i.state}
           </span>
           {i.lane && (
-            <span className="text-[10px] uppercase tracking-[0.1em] text-white/40">{i.lane.replace(/_/g, ' ')}</span>
+            <span className="text-micro uppercase tracking-[0.14em] text-white/40">{i.lane.replace(/_/g, ' ')}</span>
           )}
           {typeof i.brand_fit_score === 'number' && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {i.brand_fit_score}</span>
+            <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55 tabular-nums">Fit {i.brand_fit_score}</span>
           )}
-          {hasDraft && <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200/80">draft</span>}
-          <span className="ml-auto text-[10px] text-white/35 tabular-nums">
-            {i.updated_at && formatDistanceToNow(new Date(i.updated_at), { addSuffix: true })}
+          {hasDraft && <span className="text-micro px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-200/80">draft</span>}
+          <span className="ml-auto flex items-center gap-1.5">
+            <span className="text-micro text-white/35 tabular-nums">
+              {i.updated_at && formatDistanceToNow(new Date(i.updated_at), { addSuffix: true })}
+            </span>
+            <WhyBadge table="content_ideas" row={i} />
           </span>
         </div>
 
-        <p className="text-[19px] font-semibold text-white leading-snug">{i.idea}</p>
+        <p className="text-title font-semibold text-white leading-snug">{i.idea}</p>
 
         <div className="mt-3 overflow-hidden flex-1 min-h-0">
           {why ? (
             <>
-              <p className="text-[13.5px] text-white/75 leading-relaxed">
+              <p className="text-body text-white/75 leading-relaxed">
                 <span className="text-violet-300/80 font-medium">{thesis ? 'Angle: ' : ''}</span>
                 {why.slice(0, 320)}{why.length > 320 ? '…' : ''}
               </p>
               {context && (
-                <p className="text-[12px] text-white/45 leading-relaxed mt-2">
+                <p className="text-label text-white/45 leading-relaxed mt-2">
                   <span className="text-white/35">Draft: </span>{context.slice(0, 200)}{context.length > 200 ? '…' : ''}
                 </p>
               )}
             </>
           ) : (
-            <p className="text-[12px] text-amber-200/70">No draft or thesis yet — raw seed. Swipe right to research it.</p>
+            <p className="text-label text-amber-200/70">No draft or thesis yet — raw seed. Swipe right to research it.</p>
           )}
         </div>
 
@@ -155,13 +159,13 @@ export function TriageCard({
           <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/[0.06] flex-shrink-0">
             {i.draft_link && (
               <a href={i.draft_link} target="_blank" rel="noreferrer noopener" onClick={e => e.stopPropagation()}
-                className="text-[11px] text-violet-300 hover:text-violet-200 inline-flex items-center gap-1">
+                className="text-micro text-violet-300 hover:text-violet-200 inline-flex items-center gap-1">
                 Draft <ExternalLink size={10} />
               </a>
             )}
             {i.source_url && (
               <a href={i.source_url} target="_blank" rel="noreferrer noopener" onClick={e => e.stopPropagation()}
-                className="text-[11px] text-white/45 hover:text-white/70 inline-flex items-center gap-1">
+                className="text-micro text-white/45 hover:text-white/70 inline-flex items-center gap-1">
                 Source <ExternalLink size={10} />
               </a>
             )}

@@ -1,9 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { callClaude, robustJson, sanitizeVoice, loadVoiceBlock, loadCorpus, corpusForChannel } from '../_content.js'
 import { isoWeekLabel, startOfIsoWeek } from '../_weeks.js'
 import { realSource } from '../shifts/detect.js'
 import { loadStandingNotes, standingNotesPrompt } from '../_briefNotes.js'
+import { goalsSpine } from '../_goals.js'
+import { SYNTHESIS_MODEL } from '../_models.js'
 
 // Weekly brief assembly (Content Engine v2, spec §4). Fri 18:00 UTC.
 //
@@ -122,6 +125,9 @@ async function loadRegisterSummary(): Promise<string> {
   const { data } = await supabase
     .from('shifts')
     .select('title, summary, implication, status, momentum')
+    // Merged arcs are kept rather than deleted so a merge is reversible
+    // (api/shifts/[id].ts). Excluded here or a folded arc reappears.
+    .is('superseded_by', null)
     .in('status', ['active', 'fading', 'proposed'])
     .order('momentum', { ascending: false })
     .limit(12)
@@ -140,9 +146,10 @@ async function loadRegisterSummary(): Promise<string> {
 async function loadKrishWeek(weekStart: Date): Promise<string> {
   const bits: string[] = []
   const { data: bets } = await supabase
-    .from('bets').select('title, hypothesis, status, learning')
+    // `bets` has no title column — the label is the hypothesis.
+    .from('bets').select('hypothesis, status, learning')
     .gte('updated_at', weekStart.toISOString()).limit(5)
-  for (const b of bets || []) bits.push(`Bet (${b.status}): ${b.title}. ${b.learning || b.hypothesis || ''}`)
+  for (const b of bets || []) bits.push(`Bet (${b.status}): ${b.hypothesis}${b.learning ? `. ${b.learning}` : ''}`)
   const { data: decisions } = await supabase
     .from('content_decisions').select('kind, payload, resolution')
     .eq('status', 'done').gte('resolved_at', weekStart.toISOString()).limit(5)
@@ -164,8 +171,9 @@ export async function runAssemble(force = false) {
     return { week, items: items.length, skipped: 'fewer than 5 items this week (honest skip)' }
   }
 
-  const [voice, corpus, register, krishWeek, standingNotes] = await Promise.all([
+  const [voice, corpus, register, krishWeek, standingNotes, goals] = await Promise.all([
     loadVoiceBlock(), loadCorpus(), loadRegisterSummary(), loadKrishWeek(weekStart), loadStandingNotes(),
+    goalsSpine('choosing what the brief argues this week'),
   ])
   const channelMandate = corpusForChannel(corpus, 'publication', 3000)
 
@@ -174,6 +182,7 @@ export async function runAssemble(force = false) {
     voice ? `VOICE:\n${voice}` : '',
     channelMandate ? `CHANNEL MANDATE:\n${channelMandate}` : '',
     standingNotesPrompt(standingNotes),
+    goals.prompt,
     BRIEF_SHAPE,
     BRIEF_LENS,
     BRIEF_HONESTY,
@@ -195,8 +204,13 @@ export async function runAssemble(force = false) {
   let shapeError = ''
   for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
     const raw = await callClaude({
-      model: 'claude-sonnet-4-6',
-      maxTokens: 5000,
+      agent: 'briefs-assemble',
+      model: SYNTHESIS_MODEL,
+      // The weekly brief is the longest single piece this system writes and
+      // the most reasoned. Thinking on, with headroom above the 5000 the
+      // ANSWER needs, because adaptive thinking spends the ceiling first.
+      maxTokens: 12000,
+      think: true,
       temperature: 0.4,
       system: attempt === 0 ? system : `${system}\n\nYour last reply was rejected: ${shapeError}. Return the full JSON with every required field.`,
       user,
@@ -337,16 +351,8 @@ export async function runAssemble(force = false) {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
-  let force = false
-  if (req.method === 'GET') {
-    const secret = process.env.CRON_SECRET || ''
-    const auth = req.headers.authorization || ''
-    if (!secret || auth !== `Bearer ${secret}`) return res.status(401).json({ ok: false, error: 'unauthorized' })
-  } else if (req.method === 'POST') {
-    force = Boolean((req.body || {}).force)
-  } else {
-    return res.status(405).json({ ok: false, error: 'GET (cron) or POST only' })
-  }
+  if (guardCronRoute(req, res)) return
+  const force = req.method === 'POST' ? Boolean((req.body || {}).force) : false
   try {
     const result = await runAssemble(force)
     return res.json({ ok: true, ...result })

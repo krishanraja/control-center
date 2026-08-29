@@ -1,11 +1,12 @@
 import React from 'react'
-import { Linkedin, Mail, Flame, UserCircle2 } from 'lucide-react'
+import { Check, Linkedin, Mail, Flame, UserCircle2 } from '@/lib/icons'
 import { humanAge } from '../lib/ageHelpers'
 import { ContactSourcePill, ConsentTierBadge, ventureDisplayName } from './ContactSourcePill'
 import { FeedbackButton } from './shared/FeedbackButton'
 import { useHaptics } from '../hooks/useHaptics'
 import { suggestedMove, type SuggestedMoveTone } from '../lib/contactSignals'
 import type { ContactRow } from '../hooks/useRealtimeContacts'
+import { WhyBadge } from './shared/WhyBadge'
 
 interface Props {
   contact: ContactRow
@@ -45,7 +46,7 @@ export function SuggestedMoveChip({ contact }: { contact: ContactRow }) {
   if (!move) return null
   return (
     <span
-      className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${MOVE_TONE_CHIP[move.tone]}`}
+      className={`text-micro px-1.5 py-0.5 rounded font-medium ${MOVE_TONE_CHIP[move.tone]}`}
       title="Suggested move"
     >
       {move.label}
@@ -66,7 +67,7 @@ function HeatMeter({ score }: { score: number }) {
       <span className="relative h-1.5 w-12 rounded-full bg-white/[0.08] overflow-hidden">
         <span className={`absolute inset-y-0 left-0 ${tone}`} style={{ width: `${pct}%` }} />
       </span>
-      <span className={`text-[10px] tabular-nums font-semibold ${textTone}`}>{score}</span>
+      <span className={`text-micro tabular-nums font-semibold ${textTone}`}>{score}</span>
     </span>
   )
 }
@@ -107,7 +108,7 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
             className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors
               ${selected ? 'bg-violet-500 border-violet-500 text-white' : 'border-white/25 hover:border-white/45 text-transparent'}`}
           >
-            <span className="text-[10px] leading-none">✓</span>
+            <Check size={11} strokeWidth={2.5} aria-hidden />
           </button>
         )}
         <div className="flex-1 min-w-0">
@@ -116,9 +117,9 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
             onClick={() => onOpen?.(c.id)}
             className="text-left w-full"
           >
-            <p className="text-[13px] font-semibold text-white leading-snug truncate">{fullName}</p>
+            <p className="text-body font-semibold text-white leading-snug truncate">{fullName}</p>
             {titleCompany && (
-              <p className="text-[11px] text-white/55 leading-snug truncate">{titleCompany}</p>
+              <p className="text-micro text-white/55 leading-snug truncate">{titleCompany}</p>
             )}
           </button>
         </div>
@@ -144,7 +145,7 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
             <Mail size={11} />
           </a>
         )}
-        <span className="text-[10px] tabular-nums text-white/35 flex-shrink-0 self-center">
+        <span className="text-micro tabular-nums text-white/35 flex-shrink-0 self-center">
           {humanAge(c.updated_at)}
         </span>
       </header>
@@ -154,6 +155,7 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
         <ConsentTierBadge tier={c.consent_tier} />
         <HeatMeter score={heat} />
         <div className="ml-auto" onClick={(e) => e.stopPropagation()}>
+          <WhyBadge table="contacts" row={c} />
           <FeedbackButton sourceTable="contacts" sourceId={c.id} agentId={c.owner_agent} compact />
         </div>
       </div>
@@ -168,24 +170,24 @@ export function ContactCard({ contact: c, selected = false, onToggleSelect, onOp
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
           {move && (
             <span
-              className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${MOVE_TONE_CHIP[move.tone]}`}
+              className={`text-micro px-1.5 py-0.5 rounded font-medium ${MOVE_TONE_CHIP[move.tone]}`}
               title="Suggested move"
             >
               {move.label}
             </span>
           )}
           {c.primary_venture && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 uppercase tracking-[0.1em]">
+            <span className="text-micro px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 uppercase tracking-[0.14em]">
               {ventureDisplayName(c.primary_venture)}
             </span>
           )}
           {playLabel && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/65">
+            <span className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/65">
               {playLabel}
             </span>
           )}
           {c.owner_agent && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-white/45" title="Owner agent">
+            <span className="inline-flex items-center gap-1 text-micro text-white/45" title="Owner agent">
               <UserCircle2 size={10} />
               {c.owner_agent}
             </span>

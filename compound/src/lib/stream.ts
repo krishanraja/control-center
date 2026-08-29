@@ -9,6 +9,9 @@ export interface AskRequest {
   snapshotId: string;
   threadId?: string;
   requestId: string;
+  scope?: "current" | "compare" | "range";
+  from?: string;
+  to?: string;
 }
 
 function parseBlock(block: string): ChatEvent | null {

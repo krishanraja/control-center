@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronLeft, ChevronRight } from '@/lib/icons'
+import { DrawnCheck } from '../shared/DrawnCheck'
 import type { useContentV2 } from '../../hooks/useContentV2'
 import type { ContentDecisionRow } from '../../lib/contentV2'
 import { reasonsFor } from '../../lib/triageReasons'
 import { feedbackVote } from '../../lib/triageActions'
 import { useLikelyReasons } from '../../hooks/useLikelyReasons'
 import { RejectReasonBar } from '../shared/RejectReasonBar'
+import { Skeleton } from '../shared/Skeleton'
+import { useToast } from '../shared/Toast'
 
 // The whole mobile job (mockup set 2, pin 11): the week's finite decision
 // queue, one card at a time, every action in the bottom thumb zone. Finishable
@@ -27,10 +31,10 @@ import { RejectReasonBar } from '../shared/RejectReasonBar'
 
 const KIND_CHIP: Record<string, { label: string; cls: string }> = {
   brief_review: { label: 'Weekly brief', cls: 'bg-sky-400/15 text-sky-300' },
-  shift_proposal: { label: 'New shift proposed', cls: 'bg-emerald-400/15 text-emerald-300' },
-  shift_fading: { label: 'Shift losing momentum', cls: 'bg-amber-400/15 text-amber-300' },
-  graduation: { label: 'Graduation', cls: 'bg-sky-400/15 text-sky-300' },
-  purge_preview: { label: 'Monday purge', cls: 'bg-amber-400/15 text-amber-300' },
+  shift_proposal: { label: 'New shift spotted', cls: 'bg-emerald-400/15 text-emerald-300' },
+  shift_fading: { label: 'Shift going quiet', cls: 'bg-amber-400/15 text-amber-300' },
+  graduation: { label: 'Keep for good?', cls: 'bg-sky-400/15 text-sky-300' },
+  purge_preview: { label: 'Expiring Monday', cls: 'bg-amber-400/15 text-amber-300' },
   investigation: { label: 'Investigation', cls: 'bg-violet-400/15 text-violet-300' },
 }
 
@@ -47,7 +51,7 @@ function Big({ children, tone = 'ghost', onClick, disabled }: {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`w-full rounded-xl py-3.5 text-[13.5px] font-bold disabled:opacity-40 ${cls}`}
+      className={`w-full rounded-xl py-3.5 text-body font-bold disabled:opacity-40 ${cls}`}
     >
       {children}
     </button>
@@ -58,6 +62,7 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   const { decisions, brief, loading } = v2
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(0)
+  const { toast } = useToast()
 
   // Where the browse sits in the queue. Navigation moves it; deciding a card
   // removes the card under it and the position clamps to the survivor.
@@ -134,9 +139,20 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
     else setDragX(0)
   }
 
+  // A failed ruling must not count as a decision. This was a bare try/finally
+  // around a fetch wrapper that throws on any non-OK response, so a 409 or a
+  // 500 still incremented `done` and still moved the deck on - the card came
+  // back on the next refresh with no explanation.
   const act = async (fn: () => Promise<void>) => {
     setBusy(true)
-    try { await fn(); setDone(d => d + 1) } finally { setBusy(false) }
+    try {
+      await fn()
+      setDone(d => d + 1)
+    } catch (e) {
+      toast(`Could not save that: ${(e as Error)?.message || 'try again'}`, 'error')
+    } finally {
+      setBusy(false)
+    }
   }
 
   // Reject flow: tapping "Not for me" swaps the thumb zone for the reason bar,
@@ -175,18 +191,30 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
     })
   }
 
-  if (loading) return <div className="text-white/40 text-sm py-16 text-center">Loading the week...</div>
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full min-h-0 gap-4 animate-rise" aria-busy="true" role="status" aria-label="Loading">
+        <Skeleton h={12} w={132} r={5} />
+        <Skeleton h={22} w="70%" r={6} />
+        <div className="flex-1 min-h-0"><Skeleton h="100%" r={20} /></div>
+        <div className="flex gap-2.5">
+          <Skeleton h={48} r={16} className="flex-1" />
+          <Skeleton h={48} r={16} className="flex-1" />
+        </div>
+      </div>
+    )
+  }
 
   if (!current) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-6 text-center gap-3">
-        <div className="text-3xl">✓</div>
-        <div className="text-white/90 font-bold text-[16px]">The week is decided</div>
-        <p className="text-white/45 text-[13px] max-w-[26ch]">
-          Nothing is waiting on you. New decisions queue for the weekend sitting.
+        <DrawnCheck size={44} stroke="rgb(52 211 153)" />
+        <div className="text-white/90 font-bold text-lede">All decided for this week</div>
+        <p className="text-white/45 text-body max-w-[26ch]">
+          Nothing is waiting on you. New decisions will show up here when they are ready.
         </p>
         {brief && ['approved', 'pushed', 'sent'].includes(brief.status) ? (
-          <p className="text-emerald-300/80 text-[12px]">Brief {brief.status}. See you Friday.</p>
+          <p className="text-emerald-300/80 text-label">Brief {brief.status}. See you Friday.</p>
         ) : null}
       </div>
     )
@@ -206,24 +234,24 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
           ))}
         </div>
         <div className="flex items-center justify-between">
-          <div className="text-[11px] text-white/40 tabular-nums">
-            {pos + 1} of {queue.length} waiting{done ? ` · ${done} decided` : ''} · about {Math.max(1, Math.round(queue.length * 0.7))} min left
+          <div className="text-micro text-white/40 tabular-nums">
+            {pos + 1} of {queue.length} to decide{done ? ` · ${done} done` : ''} · about {Math.max(1, Math.round(queue.length * 0.7))} min
           </div>
           {queue.length > 1 && (
             <div className="flex items-center gap-1">
               <button
                 aria-label="Previous card"
                 onClick={() => go(-1)}
-                className="min-w-[40px] min-h-[32px] rounded-lg text-[15px] text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
+                className="inline-flex min-w-[40px] min-h-[32px] items-center justify-center rounded-lg text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
               >
-                ‹
+                <ChevronLeft size={16} />
               </button>
               <button
                 aria-label="Next card"
                 onClick={() => go(1)}
-                className="min-w-[40px] min-h-[32px] rounded-lg text-[15px] text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
+                className="inline-flex min-w-[40px] min-h-[32px] items-center justify-center rounded-lg text-white/45 hover:text-white/85 hover:bg-white/[0.06]"
               >
-                ›
+                <ChevronRight size={16} />
               </button>
             </div>
           )}
@@ -249,26 +277,26 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
           }}
           className={`rounded-2xl border p-5 select-none cursor-grab active:cursor-grabbing ${d.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}
         >
-          <span className={`inline-block rounded-full px-2.5 py-1 text-[10px] font-semibold ${chip.cls}`}>{chip.label}</span>
-          <h3 className="text-[16.5px] font-bold text-white mt-3 leading-snug">
+          <span className={`inline-block rounded-full px-2.5 py-1 text-micro font-semibold ${chip.cls}`}>{chip.label}</span>
+          <h3 className="text-lede font-bold text-white mt-3 leading-snug">
             {d.kind === 'brief_review' ? (p.title || 'This week’s brief')
               : d.kind === 'investigation' ? `Investigation ready: ${p.anchor_headline || 'this week'}`
               : d.kind === 'purge_preview' ? `${p.expiring ?? 0} time-sensitive items expire Monday`
               : (p.title || '')}
           </h3>
-          <p className="text-[12.5px] text-white/50 mt-2 leading-relaxed">
-            {d.kind === 'brief_review' ? `${p.headlines ?? '?'} headlines, assembled Friday. Review section by section, magic-edit anything soft, then push.`
-              : d.kind === 'shift_proposal' ? `Cleared the recurrence gate: ${p.stories ?? '?'} stories, ${p.day_span ?? '?'} days, ${p.sources ?? '?'} sources.${p.nearest?.title ? ` Nearest existing: ${p.nearest.title}.` : ''}`
-              : d.kind === 'shift_fading' ? `No qualifying evidence since ${p.last_evidence_on || 'a while'}.`
-              : d.kind === 'investigation' ? `${p.citable_evidence ?? 0} citable rows, ${p.distinct_domains ?? 0} domains, ${p.distinct_origins ?? 0} origins. Stopped at rung ${p.terminal_rung ?? '?'}.`
-              : d.kind === 'graduation' ? 'Cited across weeks and still true. Keep it forever with its receipts?'
-              : 'Nothing needs you. Anything that fed a shift or the Library is already safe.'}
+          <p className="text-label text-white/50 mt-2 leading-relaxed">
+            {d.kind === 'brief_review' ? `${p.headlines ?? '?'} headlines, put together on Friday. Read it, fix anything weak with the edit chips, then send it out.`
+              : d.kind === 'shift_proposal' ? `This kept coming up on its own: ${p.stories ?? '?'} stories over ${p.day_span ?? '?'} days from ${p.sources ?? '?'} different sources.${p.nearest?.title ? ` The closest one you already track: ${p.nearest.title}.` : ''}`
+              : d.kind === 'shift_fading' ? `No new evidence since ${p.last_evidence_on || 'a while ago'}.`
+              : d.kind === 'investigation' ? `${p.citable_evidence ?? 0} pieces of evidence you can cite, from ${p.distinct_domains ?? 0} sites and ${p.distinct_origins ?? 0} original sources.`
+              : d.kind === 'graduation' ? 'This has been used for weeks and still holds up. Keep it in the Library for good?'
+              : 'Nothing to do here. Anything worth keeping has already been kept.'}
           </p>
           {d.kind === 'shift_proposal' && p.summary ? (
-            <p className="text-[12px] text-emerald-200/70 mt-2 leading-relaxed">{p.summary}</p>
+            <p className="text-label text-emerald-200/70 mt-2 leading-relaxed">{p.summary}</p>
           ) : null}
           {queue.length > 1 && (
-            <p className="text-[10.5px] text-white/25 mt-3">Swipe to browse. Buttons decide.</p>
+            <p className="text-micro text-white/25 mt-3">Swipe to look through the cards. The buttons make the call.</p>
           )}
         </div>
 
@@ -292,28 +320,28 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
                 Open the brief
               </Big>
               <Big disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'dismiss', 'skipped on mobile'))}>
-                Skip for the desktop sitting
+                Skip until I&rsquo;m at my desk
               </Big>
             </>
           ) : d.kind === 'shift_proposal' ? (
             <>
-              <Big tone="green" disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'accept'))}>Accept shift</Big>
+              <Big tone="green" disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'accept'))}>Track this shift</Big>
               {/* This card's own no already exists, so it carries the reason
                   rather than sitting beside a second, near-identical no. */}
               <Big disabled={busy} onClick={() => setRejecting(true)}>Not a shift</Big>
             </>
           ) : d.kind === 'shift_fading' ? (
             <>
-              <Big tone="primary" disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'retire'))}>Retire with verdict</Big>
+              <Big tone="primary" disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'retire'))}>Close it out</Big>
               <Big disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'keep_watching'))}>Keep watching</Big>
             </>
           ) : d.kind === 'graduation' ? (
             <>
-              <Big tone="green" disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'done'))}>Graduate to Library</Big>
-              <Big disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'dismiss'))}>Let it purge</Big>
+              <Big tone="green" disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'done'))}>Keep it in the Library</Big>
+              <Big disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'dismiss'))}>Let it go</Big>
             </>
           ) : (
-            <Big tone="primary" disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'done'))}>Acknowledged</Big>
+            <Big tone="primary" disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'done'))}>Got it</Big>
           )}
 
           {/* The reject, on the cards that offer something without already
@@ -324,7 +352,7 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
             <button
               onClick={() => setRejecting(true)}
               disabled={busy}
-              className="w-full rounded-xl py-3 text-[13px] font-semibold text-rose-300/85 border border-rose-400/25 bg-rose-500/[0.06] active:scale-[0.98] transition disabled:opacity-40"
+              className="w-full rounded-xl py-3 text-body font-semibold text-rose-300/85 border border-rose-400/25 bg-rose-500/[0.06] active:scale-[0.98] transition disabled:opacity-40"
             >
               Not for me
             </button>

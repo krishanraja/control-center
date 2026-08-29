@@ -21,8 +21,8 @@ export function StatusPill({
 }: Props) {
   const s = statusStyle(status)
   const sizeCls = size === 'sm'
-    ? 'text-[11px] px-2 py-0.5 gap-1.5'
-    : 'text-[13px] px-2.5 py-1 gap-2'
+    ? 'text-micro px-2 py-0.5 gap-1.5'
+    : 'text-body px-2.5 py-1 gap-2'
   return (
     <span className={`inline-flex items-center rounded-full font-semibold ${sizeCls} ${s.bg} ${s.text} ${className}`}>
       {dot && <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />}

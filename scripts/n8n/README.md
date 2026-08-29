@@ -60,8 +60,10 @@ node scripts/n8n/sync.mjs --apply
 2. Lists every workflow in N8N Cloud (paginated).
 3. Matches by `name`.
 4. Diffs the canonical fields: `name`, `nodes`, `connections`, `settings`,
-   `staticData`. (Active state, credentials, version IDs are intentionally
-   ignored — they belong to the runtime.)
+   `staticData`. (Active state and version IDs are ignored — they belong to
+   the runtime. Credentials are **not** ignored: they live inside `nodes`,
+   which is deep-compared, so a file missing a node's `credentials` block
+   reports DRIFT until you put it back.)
 5. Reports each workflow as `OK`, `DRIFT`, `LOCAL` (only in repo), or `CLOUD`
    (only in cloud). Exit code 1 if anything is off.
 
@@ -69,8 +71,10 @@ node scripts/n8n/sync.mjs --apply
 
 1. Reads the same local files.
 2. For every local workflow that exists in cloud → `PUT /workflows/:id` with
-   the canonical fields. Existing credentials, executions, and active state
-   are preserved by N8N.
+   the canonical fields. Executions and active state are preserved by N8N.
+   **Credentials are not.** The PUT replaces the `nodes` array wholesale, so
+   whatever `credentials` each local node carries becomes the binding — and a
+   node with none ends up bound to nothing.
 3. For every local workflow that's *not* in cloud → no-op unless
    `--create-missing` is passed, then `POST /workflows`.
 4. Cloud-only workflows are never touched. Use the cloud UI to delete them,
@@ -80,6 +84,56 @@ Reverse direction (cloud → repo) is intentionally manual: open the workflow
 in the editor, click `…` → `Download`, drop the file into this directory,
 commit. The reason is human review — anything coming back from the editor
 should be eyeballed before it becomes canonical.
+
+## Traps that have caused outages
+
+All four were hit for real on 2026-08-24. Read them before you push a
+workflow file.
+
+**1. A PUT replaces nodes wholesale — it does not merge.**
+Whatever the local file says about a node is what that node becomes, including
+its `credentials` block and its `authentication` parameter. The two are
+separate things and both are required:
+
+```jsonc
+"parameters": {
+  "authentication":    "predefinedCredentialType",  // how the node authenticates
+  "nodeCredentialType": "supabaseApi"               // which credential type
+},
+"credentials": {
+  "supabaseApi": { "id": "…", "name": "…" }         // which actual credential
+}
+```
+
+A file that declares `credentials.httpHeaderAuth` but omits `authentication`
+looks plausible and is silently wrong: syncing it detaches the binding and
+every request fails with `No API key found in request`. This is what happened
+to Vera's Feedback Aggregation. Credential IDs are opaque references — the
+secret values live in n8n — so they belong in the file, and 33 of the 43
+workflow files here already carry them.
+
+**2. An edit can land as a draft the scheduler never runs.**
+n8n Cloud keeps a draft version and an active (published) version. Editing
+through the MCP `update_workflow` tool writes the DRAFT: a manual test run
+executes it and passes, while the cron keeps running the old published
+version. A raw `PUT /workflows/:id` (what `sync.mjs` does) publishes, so this
+only bites the MCP path. Check `versionId` against `activeVersionId` after any
+MCP edit -- if they differ, the fix is not live -- and publish. Vera's
+provenance fix passed a manual run while the Sunday schedule would still have
+executed the broken code.
+
+**3. `typeVersion` is per node type, not global.**
+A code node is `typeVersion: 2`; a set node is `3.4`. Copying a version across
+node types yields `Could not get parameter jsCode` at runtime, not at import,
+so it can sit latent for days behind a branch that never executes. If you
+script a deploy that carries `typeVersion` over from a repo file, carry it
+only when `type` matches on both sides.
+
+**4. `executeOnce: true` truncates a node's input to the first item.**
+It does not mean "run once per execution". On a Code node doing
+`$input.all()`, it silently reduces N items to 1. A ledger-subtraction node
+with this flag set saw 1 of 3 rows and re-processed the other 2 on every run
+for four days.
 
 ## CI hook (recommended, not yet wired)
 

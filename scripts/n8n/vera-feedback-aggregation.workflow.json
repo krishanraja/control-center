@@ -56,12 +56,14 @@
               "value": "created_at.desc"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     },
@@ -76,7 +78,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "\nconst rows = $input.first().json || [];\nif (!Array.isArray(rows) || rows.length === 0) {\n  return [{ json: { clusters: [], total_rows: 0, run_id: 'vera_' + Date.now().toString(36) } }];\n}\n\nconst negative = rows.filter(r => (r.vote != null && r.vote < 0) || r.rejection_reason);\nconst groups = {};\nfor (const r of negative) {\n  const key = [r.agent_id || r.original_agent || 'unknown', r.source_table || 'unknown', r.reason_code || 'other'].join('|');\n  if (!groups[key]) groups[key] = [];\n  groups[key].push(r);\n}\n\nconst clusters = [];\nfor (const [key, items] of Object.entries(groups)) {\n  const [agent_id, source_table, reason_code] = key.split('|');\n  const hasReasonCode = reason_code !== 'other';\n  const meetsThreshold = items.length >= 3\n    || (hasReasonCode && items.length >= 2);\n  if (!meetsThreshold) continue;\n  clusters.push({\n    cluster_key: key,\n    agent_id,\n    source_table,\n    reason_code,\n    feedback_ids: items.map(i => i.id),\n    sample_reason_texts: items.map(i => i.reason_text || i.feedback_text).filter(Boolean).slice(0, 8),\n    sample_source_ids: items.map(i => i.source_id || i.original_item_id).filter(Boolean).slice(0, 8),\n    count: items.length,\n  });\n}\n\nreturn [{ json: { clusters, total_rows: rows.length, negative_rows: negative.length, eligible_clusters: clusters.length, run_id: 'vera_' + Date.now().toString(36) } }];\n"
+        "jsCode": "\n// The Supabase fetch returns 389 rows and n8n delivers them as 389 ITEMS, so\n// $input.first().json is a single feedback row, not the array this assumed.\n// Array.isArray() then failed and the node returned total_rows: 0 on every run\n// since the workflow shipped. The 401 on the Anthropic node hid it: the run died\n// one step later, so nobody saw the clusterer had already given up.\n// Handles both shapes, since a PostgREST call can also arrive as one item whose\n// json IS the array.\nconst all = $input.all().map(i => i.json);\nconst rows = (all.length === 1 && Array.isArray(all[0])) ? all[0] : all;\nif (!Array.isArray(rows) || rows.length === 0) {\n  return [{ json: { clusters: [], total_rows: 0, run_id: 'vera_' + Date.now().toString(36) } }];\n}\n\nconst negative = rows.filter(r => (r.vote != null && r.vote < 0) || r.rejection_reason);\nconst groups = {};\nfor (const r of negative) {\n  const key = [r.agent_id || r.original_agent || 'unknown', r.source_table || 'unknown', r.reason_code || 'other'].join('|');\n  if (!groups[key]) groups[key] = [];\n  groups[key].push(r);\n}\n\n// '_other' is the absence of a reason, not a reason. A brief edit written from\n// \"Krish rejected 59 leads for unspecified reasons\" is invention: the model has\n// nothing to generalise from and will confabulate a pattern to fill the gap.\n// reject_reason_neighbors already excludes these codes for exactly this reason\n// (\"the absence of a reason can never be a prediction\"); the clusterer did not,\n// so the two halves of the loop disagreed about what counts as signal.\n//\n// They are counted, never silently dropped: a large unreasoned pile is itself\n// the finding -- it says the chip list on that surface does not hold what Krish\n// means, which is a taxonomy bug to fix rather than a brief to rewrite.\nconst isUnreasoned = (code) => code === 'other' || /_other$/.test(code);\n\nconst clusters = [];\nconst unreasoned = [];\nfor (const [key, items] of Object.entries(groups)) {\n  const [agent_id, source_table, reason_code] = key.split('|');\n  if (isUnreasoned(reason_code)) {\n    if (items.length >= 2) unreasoned.push({ agent_id, source_table, reason_code, count: items.length });\n    continue;\n  }\n  // Every surviving cluster now carries a real code, so the old two-tier\n  // threshold collapses to one: two matches with a stated reason is a pattern.\n  if (items.length < 2) continue;\n  clusters.push({\n    cluster_key: key,\n    agent_id,\n    source_table,\n    reason_code,\n    feedback_ids: items.map(i => i.id),\n    sample_reason_texts: items.map(i => i.reason_text || i.feedback_text).filter(Boolean).slice(0, 8),\n    sample_source_ids: items.map(i => i.source_id || i.original_item_id).filter(Boolean).slice(0, 8),\n    count: items.length,\n  });\n}\n\nunreasoned.sort((a, b) => b.count - a.count);\n\nreturn [{ json: {\n  clusters,\n  total_rows: rows.length,\n  negative_rows: negative.length,\n  eligible_clusters: clusters.length,\n  unreasoned_clusters: unreasoned.length,\n  unreasoned_rows: unreasoned.reduce((n, u) => n + u.count, 0),\n  unreasoned_top: unreasoned.slice(0, 8),\n  run_id: 'vera_' + Date.now().toString(36),\n} }];\n"
       }
     },
     {
@@ -96,7 +98,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"model\": \"claude-sonnet-4-6\", \"max_tokens\": 4000, \"temperature\": 0.2, \"system\": \"You are Vera, the mind/make OS reflection layer. You read clusters of negative feedback that landed on a specific agent's outputs and propose ONE concrete brief edit that would prevent the same mistake. Return ONLY JSON, no prose, no code fences. Shape: { \\\"clusters\\\": [ { \\\"cluster_key\\\":string, \\\"agent_id\\\":string, \\\"source_table\\\":string, \\\"reason_code\\\":string, \\\"feedback_ids\\\":[string], \\\"correction_instruction\\\":string, \\\"proposed_brief_edit\\\":string, \\\"confidence\\\":\\\"low\\\"|\\\"medium\\\"|\\\"high\\\" } ] }. correction_instruction is a one-line summary of the change. proposed_brief_edit is the exact prose to insert into the agent's brief, phrased as a positive rule (e.g., 'When extracting why_relevant, ground claims in specific signals from the source document; do not invent generic motivations.'). Skip clusters where feedback is inconsistent or noisy. No em dashes. Use commas, colons, parentheses, or line breaks.\", \"messages\": [{\"role\": \"user\", \"content\": \"Aggregated negative-feedback clusters from the last week:\\n{{ JSON.stringify($('Cluster').first().json.clusters) }}\\n\\nPropose brief edits per the system prompt.\"}]}",
+        "jsonBody": "={{ { model: 'claude-sonnet-4-6', max_tokens: 4000, temperature: 0.2, system: \"You are Vera, the mind/make OS reflection layer. You read clusters of negative feedback that landed on a specific agent's outputs and propose ONE concrete brief edit that would prevent the same mistake. Return ONLY JSON, no prose, no code fences. Shape: { \\\"clusters\\\": [ { \\\"cluster_key\\\":string, \\\"correction_instruction\\\":string, \\\"proposed_brief_edit\\\":string, \\\"confidence\\\":\\\"low\\\"|\\\"medium\\\"|\\\"high\\\" } ] }. Echo cluster_key back exactly as given: it is the join key. Do NOT output feedback ids or agent names; provenance is tracked upstream from cluster_key. correction_instruction is a one-line summary of the change. proposed_brief_edit is the exact prose to insert into the agent's brief, phrased as a positive rule (e.g., 'When extracting why_relevant, ground claims in specific signals from the source document; do not invent generic motivations.'). Skip clusters where feedback is inconsistent or noisy. No em dashes. Use commas, colons, parentheses, or line breaks.\", messages: [{ role: 'user', content: 'Aggregated negative-feedback clusters from the last week:\\n' + JSON.stringify((($('Cluster').first().json || {}).clusters || []).map(c => ({ cluster_key: c.cluster_key, agent_id: c.agent_id, source_table: c.source_table, reason_code: c.reason_code, count: c.count, sample_reason_texts: c.sample_reason_texts, sample_source_ids: c.sample_source_ids }))) + '\\n\\nPropose brief edits per the system prompt.' }] } }}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -110,12 +112,14 @@
               "value": "application/json"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "w8sWwz8EfYc1JA7G",
-          "name": "Anthropic Header 2026-05-21"
+        "anthropicApi": {
+          "id": "NqmXYF7Q7sJg5Iog",
+          "name": "Anthropic account"
         }
       }
     },
@@ -130,7 +134,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "\nconst item = $input.first().json;\nlet text = item.content?.[0]?.text || item.text || JSON.stringify(item);\ntext = text.trim();\nif (text.startsWith('```')) {\n  text = text.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\n}\n\nlet parsed;\ntry { parsed = JSON.parse(text); }\ncatch (e) {\n  return [{ json: { ok: false, rejection_reason: 'invalid_json', raw: text.slice(0,2000), error: String(e) }}];\n}\n\nconst validConf = new Set(['low','medium','high']);\nconst clusters = Array.isArray(parsed.clusters) ? parsed.clusters : [];\nconst rows = [];\nfor (const c of clusters) {\n  if (!c || !c.agent_id || !c.proposed_brief_edit) continue;\n  rows.push({\n    agent_id: c.agent_id,\n    correction_type: 'pattern_recall',\n    detection_source: 'vera_feedback_aggregation',\n    pattern_reason_code: c.reason_code || null,\n    consumed_feedback_ids: Array.isArray(c.feedback_ids) ? c.feedback_ids : [],\n    correction_instruction: String(c.correction_instruction || '').slice(0, 2000),\n    proposed_brief_edit: String(c.proposed_brief_edit || '').slice(0, 4000),\n    confidence: validConf.has(c.confidence) ? c.confidence : 'low',\n    approval_state: 'proposed',\n    status: 'open',\n    detected_at: new Date().toISOString(),\n  });\n}\nreturn rows.map(r => ({ json: r }));\n"
+        "jsCode": "\nconst item = $input.first().json;\nlet text = item.content?.[0]?.text || item.text || JSON.stringify(item);\ntext = text.trim();\nif (text.startsWith('```')) {\n  text = text.replace(/^```(?:json)?\\n?/, '').replace(/\\n?```$/, '');\n}\n\nlet parsed;\ntry { parsed = JSON.parse(text); }\ncatch (e) {\n  return [{ json: { ok: false, rejection_reason: 'invalid_json', raw: text.slice(0,2000), error: String(e) }}];\n}\n\n// Provenance comes from the clusterer, never from the model. Asking Sonnet to\n// echo back every feedback UUID got a SAMPLE: 50 ids for clusters that actually\n// covered 191 rows, so 141 rows stayed unconsumed and re-clustered into the same\n// corrections every Sunday. The clusterer already knows exact membership, so join\n// on cluster_key and take ids, agent and reason code from it.\nconst byKey = new Map((($('Cluster').first().json || {}).clusters || []).map(c => [c.cluster_key, c]));\n\n// corrections.confidence is double precision, not text. The model is asked for\n// low|medium|high, so map it. 0.8 is the documented aggregation threshold\n// (DATA-PIPELINE.md), so 'high' must land above it and 'medium' below.\nconst CONF = { low: 0.3, medium: 0.6, high: 0.9 };\nconst validConf = new Set(['low','medium','high']);\nconst clusters = Array.isArray(parsed.clusters) ? parsed.clusters : [];\nconst rows = [];\nconst unmatched = [];\nfor (const c of clusters) {\n  if (!c || !c.proposed_brief_edit) continue;\n  const src = byKey.get(c.cluster_key);\n  // A cluster_key the clusterer never emitted is an invented grouping. Drop it:\n  // a correction with no traceable evidence is worse than no correction.\n  if (!src) { unmatched.push(c.cluster_key || '(none)'); continue; }\n  rows.push({\n    agent_id: src.agent_id,\n    correction_type: 'pattern_recall',\n    detection_source: 'vera_feedback_aggregation',\n    pattern_reason_code: src.reason_code || null,\n    consumed_feedback_ids: src.feedback_ids || [],\n    correction_instruction: String(c.correction_instruction || '').slice(0, 2000),\n    proposed_brief_edit: String(c.proposed_brief_edit || '').slice(0, 4000),\n    confidence: CONF[validConf.has(c.confidence) ? c.confidence : 'low'],\n    approval_state: 'pending',\n    status: 'analyzed',\n    detected_at: new Date().toISOString(),\n  });\n}\nif (unmatched.length) console.log('dropped unmatched cluster_keys: ' + unmatched.join(', '));\nreturn rows.map(r => ({ json: r }));\n"
       }
     },
     {
@@ -164,12 +168,14 @@
               "value": "return=representation"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     },
@@ -184,7 +190,7 @@
       ],
       "parameters": {
         "language": "javaScript",
-        "jsCode": "\n// For each correction just written (Supabase returns inserted rows), mark the\n// feedback rows it consumed. We fan out PATCH requests per feedback id.\nconst inserted = $input.first().json;\nconst rows = Array.isArray(inserted) ? inserted : [inserted];\nconst out = [];\nfor (const r of rows) {\n  if (!r || !r.id || !Array.isArray(r.consumed_feedback_ids)) continue;\n  for (const fid of r.consumed_feedback_ids) {\n    out.push({ json: { correction_id: r.id, feedback_id: fid }});\n  }\n}\nreturn out;\n"
+        "jsCode": "\n// Every correction that was written, not just the first one.\n// This used $input.first().json. Write Corrections runs once per correction, so\n// with 8 corrections inserted this node saw 8 items and fanned out only item[0]:\n// 10 of the 50 claimed feedback ids were ever marked consumed, and the other 40\n// rows stayed unconsumed and re-clustered into duplicate corrections next run.\nconst out = [];\nfor (const item of $input.all()) {\n  const payload = item.json;\n  // return=representation gives an array of inserted rows; tolerate a bare object.\n  const rows = Array.isArray(payload) ? payload : [payload];\n  for (const r of rows) {\n    if (!r || !r.id || !Array.isArray(r.consumed_feedback_ids)) continue;\n    for (const fid of r.consumed_feedback_ids) {\n      out.push({ json: { correction_id: r.id, feedback_id: fid } });\n    }\n  }\n}\nreturn out;\n"
       }
     },
     {
@@ -204,7 +210,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"consumed_by_vera\": true, \"consumed_correction_id\": \"={{ $json.correction_id }}\", \"consumed_at\": \"={{ new Date().toISOString() }}\"}",
+        "jsonBody": "={{ JSON.stringify({ consumed_by_vera: true, consumed_correction_id: $json.correction_id, consumed_at: new Date().toISOString() }) }}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -227,12 +233,14 @@
               "value": "=eq.{{ $json.feedback_id }}"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     },
@@ -253,7 +261,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"event_type\": \"vera_feedback_aggregation\", \"actor\": \"vera\", \"target\": \"feedback_queue\", \"details\": \"={{ JSON.stringify({ run_id: $('Cluster').first().json.run_id, eligible_clusters: $('Cluster').first().json.eligible_clusters, total_rows: $('Cluster').first().json.total_rows }) }}\"}",
+        "jsonBody": "={{ JSON.stringify({ event_type: 'vera_feedback_aggregation', actor: 'vera', target: 'feedback_queue', details: JSON.stringify({ run_id: $('Cluster').first().json.run_id, total_rows: $('Cluster').first().json.total_rows, negative_rows: $('Cluster').first().json.negative_rows, eligible_clusters: $('Cluster').first().json.eligible_clusters, unreasoned_clusters: $('Cluster').first().json.unreasoned_clusters, unreasoned_rows: $('Cluster').first().json.unreasoned_rows, unreasoned_top: $('Cluster').first().json.unreasoned_top }) }) }}",
         "sendHeaders": true,
         "specifyHeaders": "keypair",
         "headerParameters": {
@@ -267,12 +275,14 @@
               "value": "return=minimal"
             }
           ]
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "nd473D3tq83O5PKP",
-          "name": "Supabase Service Role"
+        "supabaseApi": {
+          "id": "mncHyFryG0WxyDM1",
+          "name": "Supabase OS (service_role, verified)"
         }
       }
     }
@@ -363,6 +373,12 @@
   },
   "settings": {
     "executionOrder": "v1",
-    "saveDataErrorExecution": "all"
+    "saveDataErrorExecution": "all",
+    "availableInMCP": true
+  },
+  "_snapshot": {
+    "workflow_id": "FZBDYXXfT1MBrAF6",
+    "exported": "2026-08-24",
+    "note": "FAITHFUL export of live, credential IDs included (they are opaque references; the secret values live in n8n). The previous checked-in copy had drifted badly: it declared httpHeaderAuth with no authentication parameter, while live uses predefinedCredentialType/supabaseApi. Syncing it over live on 2026-08-24 replaced the nodes array wholesale and detached every credential (\"No API key found in request\") until live was restored from a pre-PUT snapshot. n8n does NOT merge credentials on PUT. Do not hand-edit this file: re-export it."
   }
 }

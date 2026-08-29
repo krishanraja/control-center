@@ -24,6 +24,18 @@ rows (`agents.brief_content`) plus ~76 N8N workflows; they live in the
 broader mind/make OS, hosted on a VPS and N8N Cloud. The Control Center is
 the dashboard slice. See [§Place in the broader OS](#place-in-the-broader-os).
 
+### Sibling application: COMPOUND
+
+`compound/` is a separate React + TypeScript + Vite application deployed to
+[`compound.krishraja.com`](https://compound.krishraja.com). It is Krish's
+private, single-user, market-wide investing brief; it is not a Control Center
+feature and does not read Control Center application data. Production reads
+authenticated immutable snapshots from the isolated `compound` Supabase
+schema. There is no public signup, pricing, billing, customer access, or paid
+email tier. Start with [`docs/plans/compound/STATE.md`](docs/plans/compound/STATE.md)
+for current release truth and [`docs/DECISIONS/009-compound-isolated-application-boundary.md`](docs/DECISIONS/009-compound-isolated-application-boundary.md)
+for the boundary contract.
+
 ## What this repo should be
 
 The promise the dashboard exists to keep:
@@ -65,7 +77,7 @@ does not belong.
 | Frontend | React 18 + TypeScript + Vite 4 |
 | Styling | Tailwind CSS 3, "Obsidian Aurora" design system with adaptive light/dark theming (see [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md)) |
 | UI primitives | Owned, vendored from Relume and re-skinned; Radix under the overlays and menus. `src/components/ui/` (see [ADR-010](./docs/DECISIONS/010-vendored-primitive-layer.md)) |
-| Network search | Postgres hybrid scorer over 10,649 enriched people: pgvector semantic + tsvector lexical + weighted soft constraints, with voice (see [`docs/API.md`](./docs/API.md)) |
+| Network search | Postgres hybrid scorer over 10,649 enriched people: pgvector semantic + tsvector lexical + weighted soft constraints, filterable by country (UK / AU / USA), with voice (see [`docs/API.md`](./docs/API.md)) |
 | Fonts | Bricolage Grotesque (display) · Fraunces (serif voice) · Geist + Geist Mono (body/numbers), self-hosted via Fontsource |
 | Icons | Lucide React |
 | Realtime | `@supabase/supabase-js` (`postgres_changes` subscriptions) |

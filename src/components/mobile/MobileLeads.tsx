@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Users, Linkedin, Mail, ExternalLink, X, ThumbsUp, Sparkles, Layers, ChevronRight } from 'lucide-react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+import { Users, Linkedin, Mail, ExternalLink, X, ThumbsUp, Sparkles, Layers, ChevronRight } from '@/lib/icons'
+import { MobileShell as MobileShellPrim, TabHeader,
+  HeaderSubtitleSkeleton, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { MobileShell as MobileStage } from './MobileShell'
 import { DetailSheet } from './DetailSheet'
 import { LeadImportDropzone } from '../LeadImportDropzone'
@@ -165,7 +166,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
       dotColor={fitDot(l.fit_score)}
       title={leadName(l)}
       detail={l.why_relevant || leadSubtitle(l) || undefined}
-      trailing={<span className="text-[14px] text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>}
+      trailing={<span className="text-ui text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>}
       onClick={() => openLeadFromRow(l.id)}
       feedback={{ sourceTable: 'leads', sourceId: l.id, agentId: l.assignee_agent }}
     />
@@ -182,6 +183,7 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
         <div className="flex-1 min-h-0 px-1">
           <SwipeDeck<LeadRow>
             deck={triage.deck}
+            why={l => ({ table: 'leads', row: l })}
             getId={triageConfig.getId}
             renderBody={triageConfig.renderBody}
             ariaLabel={triageConfig.ariaLabel}
@@ -213,11 +215,11 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
       header={
         <TabHeader
           title="Pipeline"
-          subtitle={loading ? 'Loading…' : `${total} active across ${ventureCount} ventures`}
+          subtitle={loading ? <HeaderSubtitleSkeleton w={184} /> : `${total} active across ${ventureCount} ventures`}
           trailing={
             <button
               onClick={() => { h.tap(); setShowImport(s => !s) }}
-              className="px-5 py-3 rounded-full btn-contrast text-[15px] font-semibold active:scale-95 transition-transform"
+              className="px-5 py-3 rounded-full btn-contrast text-ui font-semibold active:scale-95 transition-transform"
             >
               Import
             </button>
@@ -261,8 +263,8 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
         >
           <Layers size={18} className="text-violet-300 flex-shrink-0" />
           <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-violet-100">Swipe to triage · {triageConfig.items.length}</p>
-            <p className="text-[11px] text-white/45">One card at a time — right enriches or promotes, left drops with a reason.</p>
+            <p className="text-body font-semibold text-violet-100">Swipe to triage · {triageConfig.items.length}</p>
+            <p className="text-micro text-white/45">One card at a time — right enriches or promotes, left drops with a reason.</p>
           </div>
           <ChevronRight size={16} className="text-violet-300/70 ml-auto flex-shrink-0" />
         </button>
@@ -308,14 +310,14 @@ export function MobileLeads({ leadId = null, onClearDetail, onNavigate }: Mobile
                   title={leadName(l)}
                   detail={l.why_relevant || leadSubtitle(l) || undefined}
                   trailing={
-                    <span className="text-[14px] text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>
+                    <span className="text-ui text-white/35 tabular-nums">{humanAge(l.updated_at)}</span>
                   }
                   onClick={() => openLeadFromRow(l.id)}
                   feedback={{ sourceTable: "leads", sourceId: l.id, agentId: l.assignee_agent }}
                 />
               ))}
               {rows.length > 8 && (
-                <div className="px-7 py-4 text-[14px] text-white/35 text-center">
+                <div className="px-7 py-4 text-ui text-white/35 text-center">
                   +{rows.length - 8} more
                 </div>
               )}

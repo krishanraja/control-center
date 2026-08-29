@@ -326,6 +326,186 @@ Supabase: stamp guests.cascade_fired_at
 The cascade is idempotent — re-confirming a guest re-fires it (useful
 when a transient failure left tasks missing).
 
+## Inspiration lanes (how fresh intel arrives)
+
+`Cleo | Mindmaker OS | Inspiration Sweep` (`D4W5TF1sP9lE828c`, n8n) is the
+workflow that turns raw material into `content_ideas` rows with
+`source_type='inspiration_sweep'`. It runs twice a day (06:00 ET and 18:00
+UTC) and reads two independent lanes:
+
+| Lane | Source | Ledger | Zero-input alert |
+|---|---|---|---|
+| Gmail newsletters | Gmail label from `system_config.cleo_inspiration_gmail_label`, `newer_than:7d`, 50 listed / 20 new processed per run | `inspiration_messages` (`gmail_message_id`) | `Gmail Zero?` → tier-2 `silent_failures`, `failure_type='no_input'` |
+| Drive folder | Drive folder from `system_config.cleo_inspiration_folder_id`, `modifiedTime` within `cleo_inspiration_drive_lookback_days` | `inspiration_drive_files` (`file_id:modifiedTime`) | `Drive Silent?` → tier-2 `silent_failures`, `failure_type='drive_lane_no_content'` |
+
+Both ledgers exist so a source is read exactly once. The Drive key includes
+`modifiedTime`, so **editing** a file legitimately re-enters it into the sweep
+while an untouched file never does. Drive registration happens *after* the
+file reaches the extractor, so a mid-run failure retries rather than silently
+marking material read.
+
+The Drive lane carries images and PDFs as well as text. Screenshots are the
+common case (LinkedIn posts), so the request has a byte budget:
+`cleo_inspiration_max_image_bytes` (raw bytes, base64 inflates ~1.37x) and
+`cleo_inspiration_max_images_per_run`. Selection is newest-first; anything cut
+is reported as `drive_deferred_over_budget` and left out of the ledger so the
+next pass picks it up.
+
+### Checking a lane is alive
+
+```sql
+select * from inspiration_lane_health;
+```
+
+One row per lane, with `status`:
+
+- `ok` — material arrived and seeds came out of it.
+- `input_starved` — nothing arrived in 7 days. Not a bug: no newsletters
+  landed, or nothing was dropped in the folder.
+- `not_converting` — material arrived and produced **nothing** for a week.
+  This is the one to chase. It is the state the Drive lane sat in, unnoticed,
+  from 2026-06-25 to 2026-08-19, because the workflow wrote no Drive counters
+  at all.
+
+Per-run detail is in the heartbeat metadata:
+
+```sql
+select run_at, metadata from workflow_runs
+where workflow_id = 'D4W5TF1sP9lE828c' order by run_at desc limit 5;
+```
+
+`metadata` carries both lanes: `gmail_listed` / `gmail_new` / `gmail_overflow`
+and `drive_listed` / `drive_new` / `drive_selected` / `drive_content_blocks` /
+`drive_deferred_over_budget`. `drive_new > 0` with `drive_content_blocks = 0`
+means Krish dropped material and none of it reached the model — check Drive
+OAuth scope and the binary download.
+
+Two other lanes feed `content_ideas` without Krish providing anything:
+`/api/feed/ingest` (daily 11:30 UTC, `source_type='pool_headline'`) and
+Cleo's Content Lane Sourcing (`lane_sourcing`). Neither is part of the sweep.
+
+## Runtime truth vs self-reported health
+
+The four tiers below are all written **by the workflows they measure**, and the
+heartbeat is the last node in a run. A workflow that dies partway writes no
+`workflow_runs` row at all, and no row is indistinguishable from "not scheduled
+today". That blind spot hid three broken credentials for three months while
+`credential_health` reported 20/20 healthy.
+
+`api/health/fleet-reconcile.ts` (Vercel cron, every 6h) closes it by asking the
+**n8n executions API** what actually happened, then writing `workflow_health`.
+It runs on Vercel rather than in n8n on purpose: a monitor inside the system it
+monitors cannot report its own death.
+
+```sql
+select * from fleet_failures;              -- what is broken, grouped by cause
+select workflow_name, status, error_rate, last_error_message
+from workflow_health where status <> 'healthy' order by errors_28d desc;
+```
+
+`status` is `healthy | degraded | failing | dead | idle`. **`dead` includes a
+scheduled, active workflow with zero executions in 28 days** — the case no
+self-reported heartbeat can ever produce. `failure_class` groups by cause
+(`credential | quota | logic | network`) so one expired key is one alert, not
+six. Quota is classified before credential deliberately: n8n wraps most non-2xx
+errors in "perhaps check your credentials?" and puts the real cause in
+`error.description`.
+
+If `N8N_API_KEY` is not set the route returns 503 and says fleet health is
+UNKNOWN. It never reports a green fleet it did not look at. (It has been set on
+the Vercel project since 2026-04-07 and is valid; n8n permits several live API
+keys at once, so this one is not the same string as any given out interactively.)
+
+Every cron route goes through `guardCronRoute` in `api/_auth.ts`: `CRON_SECRET`
+on GET, and either that secret or the edge-gate cookie on POST, with a
+constant-time compare and an OPTIONS short-circuit. Use it when you add one.
+
+The POST arm used to be open on twelve of them, `api/purge/run.ts` (hard-deletes
+`content_ideas`) and `api/acquisition/governor.ts` (moves budget) included.
+Five routes carry a second, deliberate inner check on top of the guard: those
+distinguish a cron-authorised caller from a browser one. `api/growth/snapshot.ts`
+is the clearest case, where `action:'log'` is driven by the Scoreboard UI, which
+holds no `CRON_SECRET` and passes on the edge-gate cookie instead. Do not delete
+those inner checks when refactoring.
+
+## Content freshness: expiry vs staleness
+
+Two different clocks, and they catch different things.
+
+| | Monday purge (`api/purge/run.ts`) | Staleness archive (`api/content-ideas/archive-stale.ts`) |
+|---|---|---|
+| Cadence | Mon 14:00 UTC | Daily 10:00 UTC |
+| Clock | `expires_at`, set from the seed's temporal class | `state_changed_at`, moved only by a real state transition |
+| Measures | is the story still current | has Krish actually moved on it |
+| Action | hard delete | `buried_at` + `buried_reason` prefixed `stale:` |
+| Skips | drafting / review / approved / published | shift-linked, library-graduated, published |
+
+Staleness deliberately does **not** use `updated_at`: background re-scoring
+touches rows constantly, so 74-day-old abandoned items reported "touched 8 days
+ago" and nothing looked idle.
+
+**Archived is not forgotten.** `api/shifts/detect.ts` re-admits rows whose
+`buried_reason` starts with `stale:` to the trend corpus. Krish stops seeing an
+idea he never actioned; the trend gate keeps counting it as the real dated
+citation it was. Rows buried for any other reason stay out, and dedupe burials
+especially: their citations already live in the keeper's `meta.recurrences`.
+
+## The feedback loop, end to end
+
+```
+Krish rejects (FeedbackButton)  ->  feedback_queue
+    -> Vera Feedback Aggregation (Sun 06:00), clusters by agent+surface+reason_code
+       threshold: 3 matches, or 2 with an explicit reason_code
+    -> corrections  (status='analyzed', approval_state='pending')
+    -> decisions_waiting kind='correction'
+    -> POST api/corrections/approve  ->  edits agents.brief_content
+    -> next agent session loads the new rule
+```
+
+Every state string above is load-bearing. `decisions_waiting` selects
+corrections on `status='analyzed' AND approval_state='pending'`, and the approve
+endpoint rejects anything whose `approval_state` is not `pending`. A producer
+writing any other vocabulary produces corrections that are invisible and
+unapprovable. Vera wrote `open`/`proposed` from the day it shipped until
+2026-08-19, which is one of three reasons this loop had never closed.
+
+Nothing auto-applies. A correction changes agent behaviour only after Krish
+approves it.
+
+### One vocabulary, and a receipt
+
+The loop above is only as good as the `reason_code` it clusters on, and that
+code used to be declared in three places that disagreed: `api/feedback.ts`
+(the allow-list the server validates against), `src/lib/triageReasons.ts` and
+a third copy inside `FeedbackButton.tsx`. They differed on 26 codes, and 18
+codes the UI could emit were absent from the server list entirely -- so every
+rejection of a task, bet, customer, opportunity or correction arrived with a
+code Vera could not use and was bucketed as `other`.
+
+`src/lib/servedSurfaces.ts` is now the single source. It declares, per served
+table, the reason chips, the default a bare Skip emits, and a `why` resolver
+that reads whatever column already holds the rationale (`leads.why_relevant`,
+`guests.why_fit`, `milestones.marcus_reasoning`, `goals.why_now`,
+`contacts.why_them`, `content_ideas.thesis`, `tasks.evidence`). `ServedTable`
+is a closed union over a `Record`, so a new surface cannot be added without
+declaring both -- the type checker refuses a partial record.
+`scripts/check-served-surfaces.mts` runs in CI and fails the build when the
+API mirror drifts, when a surface cannot explain itself, when a component
+declares a private reason list, or when something can be refused but never
+says why it was served.
+
+`<WhyBadge>` is the one affordance: the score where a surface genuinely ranks,
+a subtle `?` everywhere else, the same popover behind both. A surface with no
+recorded reason renders "No reason recorded" rather than hiding, because
+hiding makes the badge unreadable as a signal and conceals a generator that
+emits suggestions it cannot justify.
+
+`POST /api/feedback` returns a `pattern` block -- the live size of the cluster
+the rejection just joined, and its distance to the threshold Vera actually
+uses (3, or 2 once the row carries any code). The toast spends it: "2 more
+like this and Vera rewrites the brief." The compounding was always real; it
+was never visible.
+
 ## Self-healing pattern (four tiers)
 
 The OS's hardest class of failure is a workflow that "succeeds" (writes

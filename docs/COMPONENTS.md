@@ -14,20 +14,21 @@
 ### `App.tsx`
 
 Root component. Handles:
-- Hash-based routing via `useHashRoute` (`#home`, `#today`, `#leads`, ...).
+- Hash-based routing via `useHashRoute` (`#home`, `#people`, `#content`, ...).
 - Responsive breakpoint detection (`< 900px` → mobile, otherwise desktop).
 - Keyboard shortcuts: Cmd+K (command palette), Esc (close palette).
-- Per-tab `ErrorBoundary` wrapping.
+- Per-tab `ErrorBoundary` wrapping; each tab is its own lazy chunk.
 
-```tsx
-type TabId = 'home' | 'today' | 'leads' | 'customers' | 'guests'
-           | 'content' | 'bets' | 'org' | 'exec' | 'workflows' | 'systems'
-```
-
-The `exec` and `workflows` tab IDs are routing-only — they're labelled
-"Intel" and "Flows" in the UI for historical reasons (see
-[`AGENTS.md`](./AGENTS.md)). Don't rename without a migration plan for
-existing bookmarks.
+Valid tab ids derive from the registry in `src/lib/tabs.ts`
+(`VALID_TAB_IDS`). The six-destination IA is the only one — the legacy
+11-tab array, the `isSimplifiedIA()` flag it hid behind and the App-level
+render branches it fed were deleted on 2026-08-26, all unreachable since
+the flag hardcoded to `true`. The destinations: `home`, `content`,
+`people`, `growth`, `os`, `focus`, plus `customers` (labelled
+Subscriptions) in the drawer. Legacy hashes (`#leads`, `#guests`, `#today`, `#bets`,
+`#acquisition`, ...) resolve through the alias layer in `App.tsx`, so old
+bookmarks and `navigate()` call sites keep working — never remove an alias
+without a migration plan.
 
 ### `DesktopSidebar`
 
@@ -86,22 +87,21 @@ app.
 
 ## Tab roots
 
-Each tab has a `Desktop*` and `Mobile*` root. They share data hooks but
-differ in layout density.
+Destinations either share one root across device classes (passed `narrow` /
+`variant`) or split into `Desktop*` / `Mobile*` roots sharing the data hooks.
 
-| Tab | Desktop root | Mobile root |
-|---|---|---|
-| Home | `DesktopHome` | `MobileHome` |
-| Today | `DesktopToday` | `MobileToday` |
-| Leads | `DesktopLeads` | `MobileLeads` |
-| Customers | `DesktopCustomers` | `MobileCustomers` |
-| Guests | `DesktopGuests` | `MobileGuests` |
-| Content | `DesktopContent` | `MobileContent` |
-| Bets | `DesktopBets` | `MobileBets` |
-| Org | `DesktopOrg` | `MobileOrg` |
-| Intel (exec) | `DesktopExec` | `MobileIntel` |
-| Flows (workflows) | `DesktopFlows` | `MobileFlows` |
-| Systems | `SystemsPanel` (desktop only) | `MobileSystems` |
+| Destination | Root(s) |
+|---|---|
+| Home | `DesktopHome` / `MobileHome` |
+| Content | `content-v2/ContentV2Tab` (both classes; v1 `DesktopContent` / `MobileContent` behind the flag) |
+| People | `people/PeopleTab` → lanes Pipeline (`DesktopLeads` / `MobileLeads`), **Network** (`network/NetworkTab`, both classes — the default lane), Visibility (`DesktopGuests` / `MobileGuests`) |
+| Growth | `growth/GrowthTab` (both classes, five sections) |
+| OS | `os/OsTab` → Queue / Org / Intel / Flows / Systems subtabs (`DesktopOrg`, `intel/BusinessIntelTab` (one tree, both shells), `DesktopFlows`, `SystemsPanel`, ... as subtab bodies) |
+| Focus | `focusPurpose/FocusPurposeTab` (`variant="desktop" \| "mobile"`) |
+| Subscriptions | `DesktopCustomers` / `MobileCustomers` (drawer) |
+
+The old standalone tab roots (`DesktopToday`, `MobileBets`, ...) survive only
+as lane / subtab bodies or aliases behind these seven destinations.
 
 Tab roots should be *layout-only* — pull data from hooks, render presentational components,
 do not own business logic. Hand mutations down via props or read them from
@@ -109,7 +109,15 @@ a context (e.g. `AgentsContext` for agent lookups).
 
 ### Content tab — triage deck + composer
 
-The Content tab is **mode-switched by active backlog size** (`useContentTriage`, hysteresis: enter triage > 30, exit ≤ 25):
+> **Live path: Content Engine v2.** With `VITE_CONTENT_V2_ENABLED` (ON in
+> prod) the tab renders `content-v2/ContentV2Tab` instead: rooms **Built /
+> Paid / Library**, and on mobile a **Queue** view first — the finite
+> decision deck (`MobileDecisionDeck`) — with the rooms as sibling segments
+> (test ids `content-room-<id>`). The v1 surface below still exists behind
+> the flag; see [`CONTENT-ENGINE-V2-SPEC.md`](./CONTENT-ENGINE-V2-SPEC.md)
+> and `MINDMAKER_OS_ARCHITECTURE.md` §5.8 for v2.
+
+The v1 Content tab is **mode-switched by active backlog size** (`useContentTriage`, hysteresis: enter triage > 30, exit ≤ 25):
 
 - **Triage mode (> 30) —** `components/content/TriageDeck.tsx` + `TriageCard.tsx`: a one-card-at-a-time swipe deck over the whole active backlog. **Left = Drop** (undoable), **right = Advance one stage** (`seeded→researching→drafting→review`; `review`/`approved` open the Composer — human gates, never auto-crossed), **tap/↑ = open Composer**. Pointer swipe (`useCardDeck`, deferred capture so vertical scroll isn't hijacked) + on-screen buttons + arrow keys, identical on phone and desktop; only ~3 cards mount at once (the fix for the ~218-card crash). Drop is undoable (toast action + `U` key); commits are optimistic via a session committed-id set, keyed by `idea.id`.
 - **Action mode (≤ 30) —** desktop lanes (`ContentIdeaCardActionable`, **bounded** per state by `LANE_CAP`, overflow → triage); `MobileContent` shows a **Ready for you** tier + a **Drafts** tier + an **upstream count** entry; the all-clear empty state is gated on `activeCount === 0` (no more false "You're clear").
@@ -146,6 +154,8 @@ once per browser session and fan out via context if needed.
 | `useContentTriage` | `content_ideas` (via `useRealtimeContentIdeas`) | Content tab mode + triage deck state (advance/drop/undo) |
 | `useHaptics` | — | Haptic vocabulary (Web Vibration API; no-op on iOS/desktop). `tap`/`select`/`success`/`warning`/`error`/`heavy` + impact family (`impactLight`/`impactMedium`/`impactRigid`/`soft`), `notifySuccess`, and the `press` primitive `usePressable` uses |
 | `useHashRoute` | `window.location.hash` | Router |
+| `useGoalCanon` | `goals` via `GET /api/goals/ladder` | Shared singleton + `goals` realtime; writes go through `src/lib/goalsApi.ts` only |
+| `useKeyboardInset` | `window.visualViewport` | On-screen keyboard height in physical CSS px (0 when closed). Applied automatically by `ui/dialog` to bottom/responsive sheets; raw consumers divide by `var(--z, 1)` |
 
 ### Shape
 
@@ -214,6 +224,87 @@ Action vocabulary (do not invent synonyms):
 
 Every action writes an `audit_log` row via `logKrishAction` (standard:
 action provenance).
+
+### `ChipOverflow`
+
+A chip group that does not grow without bound. The few options that matter
+render inline; the rest go behind a `+N` into a content-height bottom sheet that
+leaves the page visible behind it. Anything SELECTED stays inline regardless of
+rank, because a filter you cannot see is a filter you forget is on.
+
+Use it wherever a set of options outgrows one line on a phone: 72 countries in
+the network filter, seven ventures on a contact. The three alternatives are all
+worse — rendering everything pushes the content below the fold, wrapping to four
+lines does the same more slowly, and truncating hides options with no way back
+to them.
+
+```tsx
+<ChipOverflow
+  items={[{ id: 'GB', label: 'UK', fullLabel: 'United Kingdom', meta: '382' }]}
+  selected={countries} onToggle={toggle}
+  inline={3} title="Countries" testIdPrefix="network-geo"
+  emptyNote="6,392 people have no location on file."
+/>
+```
+
+`single` makes it one-at-a-time (radio rows, sheet closes on pick), `busy`
+disables everything while a write is in flight, `emptyNote` states what the
+options do NOT cover. Deliberately not a `<select>`: a native picker cannot show
+counts, cannot multi-select on iOS without a modal anyway, and opens at the top
+of the screen rather than under the thumb.
+
+### `ContactEditChips`
+
+Every edit you can make to a person, in one component, used by both the network
+person sheet (live) and `LeadSheet` (only rendered when `isUiV2()` is false).
+Venture and status, optimistic, reverting the chip on a failed write.
+
+Adding an editable field here is a line in a list rather than a layout decision
+taken twice. It replaced a native `<select>` carrying seven options at 12px,
+which is why there had only ever been one editable field.
+
+`status: 'do_not_contact'` is the one with teeth — `network_search` hard-filters
+it and `networkScore` drops them — so the UI states the consequence. Nothing
+could set it per person before: `api/contacts/bulk.ts` and the desktop leads
+table were the only routes, which is why all 10,767 contacts are `active`.
+
+### `CreateSheet` — the one + button (2026-08-21)
+
+The single mobile create system: a violet + FAB bottom-right on every tab,
+opening a bottom sheet of the current tab's create actions first, then the
+global captures (task, idea). Tab-owned actions are reached over the
+`src/lib/quickCreate.ts` bus — `requestCreate(kind)` fires the matching
+`useQuickCreateListener(kind, fn)` (kinds: `goal:os`, `goal:weekly`, `ask`,
+`touchpoint`); self-contained flows (research, add a person, the captures)
+mount their modal from the sheet itself. Mounted from `App.tsx` on the same
+`narrow` state as the mobile shell; hidden while a full-screen overlay owns
+the screen. **Never add an inline create button to a narrow viewport** — add
+an action row here plus a listener in the owning component.
+
+### `FocusedEditor` — editing text on a phone (2026-08-22)
+
+`shared/FocusedEditor`: the write-side primitive. A BottomSheet with an
+`Eyebrow` label, `VoiceField` (voice beside the keyboard), one full-width
+Save that rides above the keyboard (the dialog layer applies
+`useKeyboardInset` for it), and an optional destructive action behind "…"
+that arms on the first tap and runs on the second. Mobile only — desktop
+edits inline. `GoalLadder` uses it; every future mobile text edit should.
+
+### `GoalPickers` — chips over dropdowns
+
+`components/goals/GoalPickers.tsx`: `ServesPicker` (the parent OS goal as
+full-width readable rows), `VentureChips`, and the general-purpose
+`OptionChips` — the house replacement for any small-set `<select>` (adopted
+by the ritual, the goal composer, add-person, touchpoints, the council card,
+the creative board). Long dynamic chip labels are `text-left` + `truncate`;
+a chip never wraps or centres. See DESIGN_SYSTEM.md "The write side".
+
+### `IconTile` / `Eyebrow`
+
+The two smallest primitives with the biggest drift history. `IconTile`
+(sm / md / lg, neutral / accent) is THE circled icon; `Eyebrow` is THE
+small-caps section label. Never hand-roll either — `scripts/check-icons.mts`
+and `scripts/check-type-tokens.mts` fail the recognisable fakes in CI.
 
 ### `Toast` / `ToastProvider`
 
@@ -356,6 +447,13 @@ text-emerald-400 /* active */  text-amber-400 /* waiting */
 text-rose-400 /* blocked */    pod-ops/revenue/growth · status-* tokens
 ```
 
+### Iconography
+
+Icons import from `@/lib/icons` (never `lucide-react` directly — CI-guarded): a
+wrapper pinning a constant 1.75px physical stroke and snapping sizes to
+12/14/16/20/24/32. Circled icons use `shared/IconTile` (sm/md/lg,
+neutral/accent). Active nav icons carry `strokeWidth={2.25}`.
+
 ### Typography
 
 ```css
@@ -363,7 +461,7 @@ font-display  /* Bricolage Grotesque — headings, hero titles, big numbers (aut
 font-serif    /* Fraunces — the "partner's voice": OS mission, Marcus brief, AllClear */
 font-sans     /* Geist — body, labels (default) */
 font-mono tabular-nums  /* Geist Mono — live/tabular numbers */
-/* Scale: 11/12/13/14/16/20/28/40/56 · tracking-tight headings · tracking-[0.2em] eyebrows */
+/* Scale: 11/12/13/14/16/20/28/40/56 (role tokens text-micro…text-hero; bracket-literal px sizes retired 2026-08-21, guarded by scripts/check-type-tokens.mts) · tracking-tight headings · eyebrows are the <Eyebrow> primitive at tracking-[0.14em] */
 ```
 
 ### Spacing
@@ -442,10 +540,13 @@ their own scrim, centring and close path. Nine had no dialog role: nothing
 announced them, Tab walked out into the page behind, the body kept scrolling,
 focus was never returned.
 
-Every **modal** now goes through this. Two `fixed inset-0` overlays remain and
-are deliberate, because neither is a modal: `CaptureSpeedDial` is a menu
-(`role="menu"`, `aria-haspopup`, Escape) and `DesktopToday` has a click-away
-scrim behind a popover.
+Every **modal** now goes through this. The `fixed inset-0`s that remain are
+deliberate non-modals (DesktopToday's and CreativeBoard's click-away scrims)
+or full-screen takeovers carrying their own dialog role (the Focus ritual,
+the composer shells), plus a few legacy dialogs that predate the primitive
+(DesktopContent's schedule and sweep, `IdeaCaptureModal`) — migrate those
+when you touch them; never copy them. `CaptureSpeedDial`, the old two-item
++ menu, is gone: `CreateSheet` replaced it (2026-08-21).
 
 ```tsx
 <Modal open={open} onClose={close} title="Flag firing soon" variant="responsive">
@@ -461,7 +562,72 @@ scrim behind a popover.
 | `overlayClassName` | Scrim override, for surfaces that dim with the theme base rather than black |
 
 `SlideOver` (right panel) and `BottomSheet` (draggable sheet) are the other two
-shells. `DetailSheet` composes `BottomSheet`.
+shells. `DetailSheet` composes `BottomSheet`. `SlideOver` takes a `label` for
+its header eyebrow, sits at `z-[70]` (above the native BottomNav, like
+BottomSheet), and — like every vw-derived width in `ui/dialog` — divides by
+`var(--z, 1)` so it caps correctly inside the mobile zoom root.
+
+### `SignalsDoor` / `SignalsDrawer` / `IntelDoor` — the two head spaces off Home (2026-08-26)
+
+Internal and external intelligence never share a surface. `home/IntelDoor.tsx`
+is the INTERNAL path: a pill in Home's doors row (mobile) or the left slot of
+the doors row (desktop; the bottom-right corner belongs to the fixed ⌘I capture
+pill, which intercepts clicks beneath it) that navigates straight to OS → Intel.
+Doors carry no counts — the one sanctioned exception is its status dot.
+
+`home/SignalsDoor.tsx` is the EXTERNAL path, and doorway language only: a
+"Market signals" pill with no signal text and no counts, rendered ONLY when
+Marcus's digest is fresh and carries a high or critical signal (its arrival is
+the message). It opens `home/SignalsDrawer.tsx` on `SlideOver`, which hosts
+`intel/SignalsSection.tsx`: the whole ranked digest plus Zara's feed with
+data-derived venture chips and an honest dormancy line. Rows open
+`intel/SignalSheet.tsx` — one signal presentation, one pair of actions (Create
+task / Add to bets), everywhere. Data via the `useHomeIntelligence` and
+`useZaraSignals` singletons; ranking via `rankSignals` in `intel/SignalSheet.tsx`.
+
+### `intel/BusinessIntelTab` — the five questions (2026-08-26)
+
+The Business Intelligence tab is an interrogation, not a dashboard. Five fixed
+questions in an unchanging order, each answered live in one line with a
+one-word state token, each expanding into its full answer. `intel/questions.tsx`
+owns the answers as five hooks (`useCostingQuestion`, `useIncomeQuestion`,
+`useBrokenQuestion`, `useConvertingQuestion`, `useDecideQuestion`), each
+returning `{ question, token, answer, detail }`; the tab owns only the layout.
+
+Rules the surface enforces:
+
+- **One grammar.** Every section is a question with an answer. Nothing on the
+  tab is a card with its own header and its own data source — that shape was
+  rejected twice as "walls and walls of disconnected things".
+- **Answers are sentences.** The number lives inside the sentence in mono
+  (`<N>`), never as a bare metric. "Nothing." is a real answer.
+- **Marcus is a marked voice.** Serif, italic, always stamped with the day he
+  wrote it. His authored numbers live only in `intel/MarcusReadSheet.tsx`,
+  behind the header dateline — never mixed with the deterministic answers.
+- **Depth is behind taps, never truncation.** The phone accordion opens one
+  question at a time; `e2e/intel-zoom.spec.ts` pins the whole column at two
+  screen-lengths against a full fixture. Desktop is a rail plus a pane.
+- **The sixth question is the open one.** `AskMarcus` is a single input that
+  becomes the conversation once asked.
+
+- **Each provider reads in the unit it bills in.** The costing answer ranks
+  Apify actors in dollars, Anthropic agents in dollars from self-metered
+  tokens, and n8n workflows in EXECUTIONS — n8n Cloud charges per execution and
+  reports no rate, so a made-up per-execution dollar figure would sit in the
+  same column as real money and make the whole ranking a guess (`unitAmount`
+  in `questions.tsx`, `SpenderRow` in `intel/SpendDetailSheet.tsx`).
+- **Gaps are stated, not implied.** `spenders.silent` names any provider the
+  meter has no rows for, because "the collector has not run" and "nothing ran"
+  must never render as the same sentence; the sheet also says out loud that
+  Apify reports the actor but not the calling workflow, and that Anthropic
+  totals cover only calls the OS makes itself.
+- **A crossed prepaid line outranks a calm month.** `worstCycle` /
+  `cycleLine` (`hooks/useSpend.ts`) turn `included_usd` / `overage_trigger_usd`
+  into the costing token (`OVER PREPAID`, `CHARGING`) and the closed answer,
+  so the tab cannot report "steady" while a vendor is invoicing overage.
+
+Adding a question means adding a hook to `questions.tsx` and one entry to the
+tab's array. Do not add a card.
 
 ## `shared/SegmentedNav`: never hand-roll a tab switcher
 
@@ -489,7 +655,7 @@ on visible labels, and a rename took 7 of 9 specs out silently.
 | `NetworkSearchBar` | The one input. Text plus mic. Shows `Heard` then `Understood` then results. Owns the clear affordance. |
 | `NetworkResultRow` | One person: score ring, judgment, hook, risk, tier and thin-evidence badges. |
 | `ScoreBreakdown` | Popover over the score ring. Five bars, one per scoring term. |
-| `NetworkFilters` | Soft by default, with an explicit hard-filter toggle. Collapses on narrow. |
+| `NetworkFilters` | Close matches shown by default; one toggle flips "Matches first" / "Matches only". Collapses on narrow. |
 | `VentureRecommender` | Venture, then intent, then one verb. Not a cross-product. |
 
 Three rules this surface holds and future work should keep:
@@ -517,3 +683,9 @@ Three rules this surface holds and future work should keep:
    abandons a search still in flight rather than letting it repopulate the list
    a second later. That makes the X the escape hatch from a slow query as well
    as the way to start a new one.
+
+4. **The example chips mirror the live thesis.** The four examples in
+   `NetworkSearchBar` are drawn from [`ICP.md`](./ICP.md) (currently: heads
+   of AI / transformation at non-tech companies, mid-market CEOs getting
+   serious about AI). When the ICP moves, update the examples in the same
+   change — stale examples steer every search from the tool's front door.

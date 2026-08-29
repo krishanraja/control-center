@@ -1,11 +1,18 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { callClaude, robustJson } from '../_content.js'
 import { embedBatch, cosine, vectorLiteral } from '../_embeddings.js'
 import { isoWeekLabel } from '../_weeks.js'
 import {
+  buildClassifyPrompt, parseClassification, discardRate, DISCARD_ALARM,
+  type ClassifiableArc, type FolderRef,
+} from '../_classify.js'
+import { SYNTHESIS_MODEL } from '../_models.js'
+import {
   buildCorpus, buildDetectionPrompt, verifyShift, slugifyShift, titleJaccard,
   computeMomentum, WINDOW_DAYS, MATCH_COSINE, MATCH_TITLE_JACCARD, FADING_AFTER_DAYS,
+  laneForShift,
   type CorpusItem, type ProposedShift, type VerifiedShift,
 } from '../_trendGate.js'
 
@@ -27,7 +34,8 @@ const MIN_CORPUS_DAYS = 6
 
 interface ShiftRow {
   id: string; slug: string; title: string; summary: string; status: string
-  provenance: string; embedding: unknown; last_evidence_on: string | null
+  provenance: string; lane: string | null; embedding: unknown
+  last_evidence_on: string | null
   momentum_history: unknown
 }
 
@@ -42,10 +50,13 @@ async function loadCorpus(): Promise<CorpusItem[]> {
   const sinceDay = sinceISO.slice(0, 10)
   const { data, error } = await supabase
     .from('content_ideas')
-    .select('id, idea, thesis, source_snippet, source_url, source_type, source_captured_at, created_at, meta, state')
+    .select('id, idea, thesis, source_snippet, source_url, source_type, source_captured_at, created_at, meta, state, buried_at, buried_reason')
     .in('source_type', ['pool_headline', 'inspiration_sweep', 'zara_signal', 'signal_inbox'])
     .not('state', 'in', '("dropped","absorbed")')
-    .is('buried_at', null)
+    // NOTE: buried rows are filtered in JS below, not here. The query already
+    // spends its one .or() on the date window, and stacking a second one is
+    // ambiguous in PostgREST. The table is small enough that the 1200 cap is
+    // nowhere near binding.
     // source_captured_at is refreshed when a story recurs, so a keeper row
     // older than the window stays in the corpus while its story is still live.
     .or(`created_at.gte.${sinceISO},source_captured_at.gte.${sinceISO}`)
@@ -53,6 +64,14 @@ async function loadCorpus(): Promise<CorpusItem[]> {
   if (error) throw new Error(error.message)
   const out: CorpusItem[] = []
   for (const r of data || []) {
+    // Archived-for-staleness rows STAY in the corpus. Krish stops being shown an
+    // idea he never actioned, but it was still a real dated citation and the
+    // trend gate must keep counting it, otherwise hiding the backlog silently
+    // erases the evidence that a story is building. Everything else buried stays
+    // out, and the dedupe burials especially: their citations were already
+    // folded into their keeper's meta.recurrences and would be double-counted.
+    const buried = (r as any).buried_at
+    if (buried && !String((r as any).buried_reason || '').startsWith('stale:')) continue
     const pool = (r as any).meta?.pool || {}
     // For sweep rows source_captured_at moves on recurrence; created_at is the
     // honest first-citation day. Other sources keep the original semantics.
@@ -147,6 +166,15 @@ async function applyToRegister(v: VerifiedShift, registry: ShiftRow[], vec: numb
     }
     if (match.status === 'fading') patch.status = 'active'
     if (match.provenance === 'reconstructed') patch.provenance = 'mixed'
+    // Heal missing lanes: rows from before the lane column existed (or whose
+    // category has since gained a mapping) pick one up on re-detection. A lane
+    // that is already set is never overwritten, so a hand-classified shift
+    // stays where it was put; cross-cutting categories map to null and are
+    // left alone.
+    if (match.lane == null) {
+      const healedLane = laneForShift(v.category)
+      if (healedLane) patch.lane = healedLane
+    }
     await supabase.from('shifts').update(patch).eq('id', shiftId)
   } else {
     created = true
@@ -157,6 +185,7 @@ async function applyToRegister(v: VerifiedShift, registry: ShiftRow[], vec: numb
       summary: v.summary,
       implication: v.implication,
       category: v.category,
+      lane: laneForShift(v.category),
       status: 'proposed',
       first_seen_on: oldest,
       last_evidence_on: newestEvidence,
@@ -188,6 +217,36 @@ async function applyToRegister(v: VerifiedShift, registry: ShiftRow[], vec: numb
   }))
   await supabase.from('shift_evidence')
     .upsert(evidence, { onConflict: 'shift_id,occurred_on,headline', ignoreDuplicates: true })
+
+  // Beats, alongside the evidence they come from.
+  //
+  // Evidence is the source: a url, a headline, a provenance. A beat is what
+  // changed at this point in the arc, and it is what arc_maturity counts. The
+  // two are separate because the scorer must count ORIGINS rather than stories:
+  // origin_key is the publisher, so the unique index on
+  // (shift_id, occurred_on, origin_key) collapses five outlets carrying one
+  // wire into a single beat. That collapse is the independence rule, and it is
+  // what `momentum` got wrong by counting volume.
+  //
+  // Tier comes from the source registry where the publisher is registered, and
+  // stays null where it is not. A guessed tier would put a number nobody
+  // measured straight into the score.
+  const origins = Array.from(new Set(v.items.map(i => i.source).filter(Boolean))) as string[]
+  const tierByOrigin = new Map<string, string>()
+  if (origins.length) {
+    const { data: known } = await supabase.from('content_sources')
+      .select('name, tier').in('name', origins)
+    for (const k of known || []) tierByOrigin.set(k.name as string, k.tier as string)
+  }
+  const beats = v.items.map(i => ({
+    shift_id: shiftId,
+    occurred_on: i.day,
+    what_changed: i.headline,
+    origin_key: i.source || i.url || i.headline,
+    source_tier: tierByOrigin.get(i.source || '') ?? null,
+  }))
+  await supabase.from('shift_beats')
+    .upsert(beats, { onConflict: 'shift_id,occurred_on,origin_key', ignoreDuplicates: true })
 
   // Link the feed rows so the purge never eats a story that fed a dossier.
   await supabase.from('content_ideas')
@@ -233,7 +292,7 @@ export async function runDetect() {
     return { ...c, id: alias }
   })
   const { system, user } = buildDetectionPrompt(aliased)
-  const raw = await callClaude({ model: 'claude-sonnet-4-6', maxTokens: 2000, temperature: 0.2, system, user })
+  const raw = await callClaude({ agent: 'shifts-detect', model: SYNTHESIS_MODEL, maxTokens: 2000, temperature: 0.2, system, user })
   const parsed = robustJson(raw)
   const proposals: ProposedShift[] = Array.isArray(parsed?.shifts) ? parsed.shifts : []
 
@@ -245,7 +304,10 @@ export async function runDetect() {
 
   const { data: registryData, error: regErr } = await supabase
     .from('shifts')
-    .select('id, slug, title, summary, status, provenance, embedding, last_evidence_on, momentum_history')
+    .select('id, slug, title, summary, status, provenance, lane, embedding, last_evidence_on, momentum_history')
+    // Merged arcs are kept rather than deleted so a merge is reversible
+    // (api/shifts/[id].ts). Excluded here or a folded arc reappears.
+    .is('superseded_by', null)
     .neq('status', 'retired')
   if (regErr) throw new Error(regErr.message)
   const registry = (registryData || []) as ShiftRow[]
@@ -258,6 +320,14 @@ export async function runDetect() {
   for (let i = 0; i < verified.length; i++) {
     results.push(await applyToRegister(verified[i], registry, vecs[i] || null, week))
   }
+
+  // ── classify: give every unclassified arc a lens, and a folder if one fits ──
+  //
+  // Runs on every detection, not only on new arcs, because an arc created
+  // before this step existed has lens null and would otherwise stay invisible
+  // to the scorer forever. Old arcs are cheap to include and the pass is
+  // idempotent: a row that already has a lens is never re-read.
+  const classify = await classifyUnclassified()
 
   // Fading pass: active shifts starved of evidence queue a weekend ruling.
   const fadeFloor = new Date(Date.now() - FADING_AFTER_DAYS * 86_400_000).toISOString().slice(0, 10)
@@ -276,18 +346,93 @@ export async function runDetect() {
     created: results.filter(r => r.created).length,
     accrued: results.filter(r => !r.created).length,
     faded: nowActive.length,
+    classified: classify,
+  }
+}
+
+/** Assigns lens and theme_id to every live arc that has neither.
+ *
+ *  Returns counts rather than throwing on a thin result: a detection run that
+ *  found real shifts must not be rolled back because the classifier had a bad
+ *  minute. A discard rate above DISCARD_ALARM is reported rather than acted on,
+ *  because the fix is the source registry and that is a decision, not a job. */
+export async function classifyUnclassified(limit = 60) {
+  const { data: folderRows } = await supabase
+    .from('content_themes')
+    .select('id, slug, question, channel')
+    .eq('state', 'open')
+  const folders = (folderRows || []) as FolderRef[]
+  if (!folders.length) return { skipped: 'no open folders' }
+
+  const { data: arcRows } = await supabase
+    .from('shifts')
+    .select('id, title, summary, implication')
+    .is('superseded_by', null)
+    .is('lens', null)
+    .neq('status', 'retired')
+    .limit(limit)
+  const arcs = (arcRows || []) as Array<{ id: string; title: string; summary: string | null; implication: string | null }>
+  if (!arcs.length) return { pending: 0 }
+
+  // Recent beats give the classifier what actually happened, not just the arc's
+  // oldest framing of itself.
+  const { data: beatRows } = await supabase
+    .from('shift_beats')
+    .select('shift_id, what_changed, occurred_on')
+    .in('shift_id', arcs.map(a => a.id))
+    .order('occurred_on', { ascending: false })
+    .limit(400)
+  const beatsBy = new Map<string, string[]>()
+  for (const b of beatRows || []) {
+    const list = beatsBy.get(b.shift_id) || []
+    if (list.length < 6) list.push(b.what_changed)
+    beatsBy.set(b.shift_id, list)
+  }
+
+  const payload: ClassifiableArc[] = arcs.map(a => ({
+    id: a.id, title: a.title, summary: a.summary, implication: a.implication,
+    beats: beatsBy.get(a.id) || [],
+  }))
+  const { system, user } = buildClassifyPrompt(payload, folders)
+  const raw = await callClaude({ agent: 'shifts-classify', model: SYNTHESIS_MODEL, maxTokens: 4000, temperature: 0, system, user })
+  const results = parseClassification(robustJson(raw), new Set(folders.map(f => f.slug)))
+  if (!results.length) return { pending: arcs.length, wrote: 0, note: 'classifier returned nothing usable' }
+
+  const bySlug = new Map(folders.map(f => [f.slug, f.id]))
+  const known = new Set(arcs.map(a => a.id))
+  let wrote = 0
+  for (const c of results) {
+    if (!known.has(c.id)) continue
+    // A discarded arc is written as lens null WITH its reason, so "why did this
+    // never surface" is answerable. Silent discards are how the previous engine
+    // produced 54 proposals and zero explanations.
+    const { error } = await supabase.from('shifts').update({
+      lens: c.lens,
+      theme_id: c.lens && c.theme_slug ? bySlug.get(c.theme_slug) ?? null : null,
+      classified_at: new Date().toISOString(),
+      classify_reason: c.reason,
+      plausible_new_theme: c.plausible_new_theme,
+    }).eq('id', c.id)
+    if (!error) wrote++
+  }
+
+  const rate = discardRate(results)
+  return {
+    seen: results.length,
+    wrote,
+    kept: results.filter(r => r.lens).length,
+    discarded: results.filter(r => !r.lens).length,
+    themed: results.filter(r => r.theme_slug).length,
+    discard_rate: Number(rate.toFixed(2)),
+    ...(rate > DISCARD_ALARM
+      ? { alarm: `discard rate ${Math.round(rate * 100)}% is above ${Math.round(DISCARD_ALARM * 100)}%: the corpus is wrong, not the ontology. Change the sources, not the lenses.` }
+      : {}),
   }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
-  if (req.method === 'GET') {
-    const secret = process.env.CRON_SECRET || ''
-    const auth = req.headers.authorization || ''
-    if (!secret || auth !== `Bearer ${secret}`) return res.status(401).json({ ok: false, error: 'unauthorized' })
-  } else if (req.method !== 'POST') {
-    return res.status(405).json({ ok: false, error: 'GET (cron) or POST only' })
-  }
+  if (guardCronRoute(req, res)) return
   try {
     const result = await runDetect()
     return res.json({ ok: true, ...result })

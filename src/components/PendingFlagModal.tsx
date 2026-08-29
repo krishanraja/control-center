@@ -89,7 +89,7 @@ export function PendingFlagModal() {
                 disabled={cancelling[String(f.id)]}
                 className="text-xs px-3 py-1 rounded bg-command-bg/40 border border-command-border hover:bg-command-bg/60 disabled:opacity-50"
               >
-                {cancelling[String(f.id)] ? 'Cancelling...' : 'Cancel'}
+                {cancelling[String(f.id)] ? 'Cancelling…' : 'Cancel'}
               </button>
             </div>
           )

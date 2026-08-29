@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { weekOfLabel } from './_week.js'
 import { supabase } from './_supabase.js'
+import { syncNorthStar } from './_northStar.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -10,105 +11,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'OPTIONS') return res.status(200).end()
 
+  // GET was removed 2026-08-11. It returned ONLY horizon='weekly' rows joined
+  // to tasks, which is a third answer to "what are the goals" beside
+  // /api/goals/ladder and /api/objectives. It had zero callers in src/ and no
+  // checked-in n8n workflow referenced it. GET /api/goals/ladder is the one
+  // read. PATCH below stays: it is the ladder's mutation path.
   if (req.method === 'GET') {
-    const [goalsRes, configRes, tasksRes] = await Promise.all([
-      // This endpoint backs the WEEKLY surface only. `horizon` is the
-      // discriminator (canon §0a.2): without it, select('*') returned every
-      // goal at every altitude and WeeklyGoals rendered venture objectives
-      // as weekly goals, which is why it never felt like one source of truth.
-      supabase.from('goals').select('*').eq('horizon', 'weekly').order('created_at'),
-      supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus']),
-      supabase.from('tasks').select('id, title, status, agent, weekly_goal_id').not('weekly_goal_id', 'is', null)
-    ])
-
-    const config: Record<string, string> = {}
-    for (const c of configRes.data || []) config[c.key] = c.value
-
-    const goals = goalsRes.data || []
-    const allTasks = tasksRes.data || []
-    
-    // Attach tasks and auto-calculate progress
-    for (const g of goals) {
-      const gTasks = allTasks.filter(t => t.weekly_goal_id === g.id)
-      g.tasks = gTasks
-      if (gTasks.length > 0) {
-        const completed = gTasks.filter(t => t.status === 'Complete' || t.status === 'Closed' || t.status === 'Done').length
-        g.calculated_progress = Math.round((completed / gTasks.length) * 100)
-      } else {
-        g.calculated_progress = g.progress || 0 // fallback
-      }
-    }
-
-    return res.json({
-      goals,
-      north_star: config.north_star || '',
-      team_focus: config.team_focus || '',
-      week_of: weekOfLabel(),
-      updated_at: new Date().toISOString()
+    return res.status(410).json({
+      ok: false,
+      error: 'GET /api/goals is retired. Use GET /api/goals/ladder for the whole ladder.',
     })
   }
 
-  
+  // POST was removed 2026-08-20. It could still mint orphan weekly rows
+  // (hardcoded horizon, no gate, no parent requirement) and had zero callers:
+  // the guard even named it a forbidden creator. POST /api/objectives is the
+  // one gated create.
   if (req.method === 'POST') {
-    const body = req.body || {}
-    // goals.id is TEXT per the schema audit — we keep generating a
-    // namespaced id when the caller doesn't supply one, but we accept
-    // an explicit `id` so callers (e.g. seed scripts) can set their own.
-    const generatedId = 'goal-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9)
-    const newGoal: Record<string, any> = {
-      id: typeof body.id === 'string' && body.id.length > 0 ? body.id : generatedId,
-      title: body.title || 'New Goal',
-      current: body.current || '',
-      progress: 0,
-      notes: '',
-      status: 'active',
-      week_of: weekOfLabel(),
-    }
-    // Optional fields — only set when the caller provided them so we
-    // don't overwrite column defaults with nulls.
-    if (body.owner !== undefined) newGoal.owner = body.owner
-    if (body.target !== undefined) newGoal.target = body.target
-    if (body.weekly_goal_id !== undefined) newGoal.weekly_goal_id = body.weekly_goal_id
-
-    // Anything created here IS a weekly goal. Stamping the horizon at the
-    // point of creation is what stops orphans forming: a row with no
-    // horizon belongs to no surface and shows up on all of them.
-    newGoal.horizon = 'weekly'
-    if (body.parent_id !== undefined) newGoal.parent_id = body.parent_id
-
-    const { error } = await supabase.from('goals').insert(newGoal)
-    if (error) return res.status(500).json({ ok: false, error: error.message })
-
-    return res.json({ ok: true, id: newGoal.id })
+    return res.status(410).json({
+      ok: false,
+      error: 'POST /api/goals is retired. Create goals via POST /api/objectives (gated).',
+    })
   }
 
+  // DELETE was removed 2026-08-20. Retiring a goal is a status change
+  // (PATCH status: dropped), never a row deletion: the row carries history
+  // that learning signals and the chronicle hang off.
   if (req.method === 'DELETE') {
-    // Accept goalId from query string OR body so curl/REST clients and
-    // the fetch() caller can both hit this without friction.
-    const q = req.query || {}
-    const b = req.body || {}
-    const goalId =
-      (typeof q.goalId === 'string' && q.goalId) ||
-      (typeof q.id === 'string' && q.id) ||
-      (typeof b.goalId === 'string' && b.goalId) ||
-      (typeof b.id === 'string' && b.id) ||
-      ''
-    if (!goalId) {
-      return res.status(400).json({ ok: false, error: 'goalId is required (query or body)' })
-    }
-    const { error } = await supabase.from('goals').delete().eq('id', goalId)
-    if (error) return res.status(500).json({ ok: false, error: error.message })
-    return res.json({ ok: true, deleted: goalId })
+    return res.status(410).json({
+      ok: false,
+      error: 'DELETE /api/goals is retired. Retire a goal with PATCH { goalId, status: "dropped" }.',
+    })
   }
 
   if (req.method === 'PATCH') {
     const body = req.body || {}
 
+    // team_focus is retired (2026-08-20): the weekly rung of the ladder is the
+    // one answer to "what is this week about". The free-text line beside it was
+    // the last second store.
     if (body.team_focus !== undefined) {
-      await supabase.from('system_config').upsert({ key: 'team_focus', value: body.team_focus, updated_at: new Date().toISOString() })
+      return res.status(400).json({
+        ok: false,
+        error: 'team_focus is retired. The weekly rung of the goal ladder is the weekly focus.',
+      })
     }
+    // north_star is NOT writable here any more. It is a mirror of the ladder's
+    // OS rung (api/_northStar.ts), not a store. It had a write path that no UI
+    // ever called, which is exactly how it came to sit unchanged from April to
+    // August while Home rendered it as the mission.
     if (body.north_star !== undefined) {
-      await supabase.from('system_config').upsert({ key: 'north_star', value: body.north_star, updated_at: new Date().toISOString() })
+      return res.status(400).json({
+        ok: false,
+        error: 'north_star is derived from the OS rung of the goal ladder. Edit the OS goal instead.',
+      })
     }
 
     if (body.goalId) {
@@ -117,15 +73,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // (provenance survives acceptance — see api/objectives/[id]/nominate-accept.ts).
       const { data: existing } = await supabase
         .from('goals')
-        .select('title, current, source, venture, objective_kind')
+        // `current` is read below for the amendment audit record. It was
+        // missing here, so that record wrote current:null even when the goal
+        // had a value — a silent hole in the provenance trail, surfaced by
+        // the type error this select was causing.
+        .select('title, source, venture, objective_kind, horizon, current')
         .eq('id', body.goalId)
         .single()
 
       const updates: any = { updated_at: new Date().toISOString() }
       if (body.title !== undefined) updates.title = body.title
-      if (body.current !== undefined) updates.current = body.current
-      if (body.progress !== undefined) updates.progress = Math.max(0, Math.min(100, Number(body.progress)))
-      if (body.notes !== undefined) updates.notes = body.notes
+      // current / progress / notes retired with the legacy weekly-goal columns
+      // (2026-08-20): done is a STATUS, not a percentage.
       // Retiring a goal is a status change, never a DELETE. Canon Rule A wants
       // decay reversible, and the row carries history the learning signals and
       // the chronicle hang off. Whitelisted so a client cannot invent a status
@@ -146,6 +105,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (error) {
         return res.status(500).json({ ok: false, error: error.message })
       }
+
+      // Editing or retiring an OS goal changes what the mirror should say.
+      if (existing?.horizon === 'os') await syncNorthStar()
 
       // Amendment-as-feedback: reshaping the *title* of a Marcus-nominated goal
       // is an objective-altitude override that should feed his learning loop.
@@ -181,13 +143,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const { data: goals } = await supabase.from('goals').select('*').order('created_at')
-    const { data: configs } = await supabase.from('system_config').select('*').in('key', ['north_star', 'team_focus'])
+    const { data: configs } = await supabase.from('system_config').select('*').in('key', ['north_star'])
     const cfg: Record<string, string> = {}
     for (const c of configs || []) cfg[c.key] = c.value
 
     return res.json({
       ok: true,
-      goals: { goals: goals || [], north_star: cfg.north_star || '', team_focus: cfg.team_focus || '', week_of: weekOfLabel() }
+      goals: { goals: goals || [], north_star: cfg.north_star || '', week_of: weekOfLabel() }
     })
   }
 

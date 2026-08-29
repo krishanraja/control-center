@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
+import { notifyOps } from '../_alert.js'
 import { callClaude, robustJson, VOICE_GUARDRAILS } from '../_content.js'
 import { mondayOf } from '../_growth.js'
 
@@ -309,10 +311,17 @@ function measuredLine(e: Evidence): string {
   ].join(' | ')
 }
 
-/** Deterministic review, used when the writing pass is unavailable. Numbers only, no prose invented. */
+/** Deterministic review, used when the writing pass is unavailable. Numbers only, no prose invented.
+ *
+ *  `degraded` is stored on the row, not just reported in the run outcome. The
+ *  outcome is transient and the row is what CouncilFeed renders, so an
+ *  Anthropic outage used to reach the screen looking exactly like a real
+ *  review that had concluded there was nothing to kill and nothing to double
+ *  down on. Those are opposite facts and they rendered identically. */
 function fallbackReview(e: Evidence) {
   const findings: Record<string, string> = {
     headline: `Evidence-only review: ${measuredLine(e)}`,
+    degraded: 'evidence-only — the writing pass was unavailable, so no kill or double-down calls were made',
     measured: measuredLine(e),
   }
   for (const u of e.unknowns) findings[`unknown_${Object.keys(findings).length}`] = u
@@ -359,7 +368,17 @@ async function writeReview(e: Evidence): Promise<{ findings: Record<string, stri
     'Write the review.',
   ].join('\n\n')
 
-  const raw = await callClaude({ system, user, maxTokens: 1600, temperature: 0.4 })
+  // Thinking on, with a budget that covers it.
+  //
+  // This is the one call in the repo whose whole output is a decision — a
+  // kill list and a double-down list that Krish acts on — so the reasoning is
+  // the product, not overhead. It runs on a cron with nobody waiting.
+  //
+  // The budget is raised because adaptive thinking spends max_tokens BEFORE
+  // writing: at 1600 with thinking on, the reasoning would consume the ceiling
+  // and the review would come back empty, which is exactly how the Friday
+  // retro failed the moment it moved to Sonnet 5.
+  const raw = await callClaude({ agent: 'growth-council', system, user, maxTokens: 6000, temperature: 0.4, think: true })
   const parsed: any = robustJson(raw)
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('council writing returned non-object')
 
@@ -382,23 +401,6 @@ async function writeReview(e: Evidence): Promise<{ findings: Record<string, stri
     (Array.isArray(v) ? v : []).map(x => CLEAN(x, 320)).filter(Boolean).slice(0, cap)
 
   return { findings, kill_list: list(parsed.kill_list, 3), double_down: list(parsed.double_down, 4) }
-}
-
-async function notifyTelegram(text: string): Promise<{ sent: boolean; error?: string }> {
-  const token = process.env.TELEGRAM_APPROVALS_BOT_TOKEN
-  const chatId = process.env.TELEGRAM_APPROVALS_CHAT_ID
-  if (!token || !chatId) return { sent: false, error: 'TELEGRAM_APPROVALS_BOT_TOKEN / TELEGRAM_APPROVALS_CHAT_ID not configured' }
-  try {
-    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
-    })
-    if (!r.ok) return { sent: false, error: `telegram_${r.status}: ${(await r.text().catch(() => '')).slice(0, 160)}` }
-    return { sent: true }
-  } catch (err: any) {
-    return { sent: false, error: String(err?.message || err) }
-  }
 }
 
 async function auditLog(display_message: string, details: unknown) {
@@ -503,7 +505,7 @@ async function runCouncil(dryRun: boolean, weekStartOverride?: string) {
     '',
     'Rule on them: https://controlcenter.krishraja.com (Growth tab, Council feed)',
   ].join('\n')
-  const telegram = await notifyTelegram(summary)
+  const telegram = await notifyOps(summary)
 
   await auditLog(`Growth council: ${written} reviews written for week of ${weekStart}.`, { week_start: weekStart, outcomes, telegram })
 
@@ -515,21 +517,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   res.setHeader('Cache-Control', 'no-store')
-  if (req.method === 'OPTIONS') return res.status(204).end()
+  if (guardCronRoute(req, res)) return
 
   try {
     if (req.method === 'GET') {
-      const secret = process.env.CRON_SECRET || ''
-      const auth = req.headers.authorization || ''
-      // NOTE: x-vercel-cron is NOT stripped by Vercel on inbound external
-      // requests (verified 2026-08-05: a spoofed header returned 200 and ran
-      // the job), so it is not proof of anything. Vercel sends
-      // `Authorization: Bearer $CRON_SECRET` on cron invocations whenever
-      // CRON_SECRET is set, which it is. Bearer-only matches the proven
-      // pattern in api/feed/ingest.ts.
-      if (!secret || auth !== `Bearer ${secret}`) {
-        return res.status(401).json({ ok: false, error: 'unauthorized' })
-      }
       const result = await runCouncil(req.query.dry_run === '1', typeof req.query.week_start === 'string' ? req.query.week_start : undefined)
       return res.json({ ok: true, ...result })
     }

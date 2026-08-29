@@ -2,9 +2,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { guard } from '../_auth.js'
 import { runNetworkSearch } from '../_networkSearch.js'
 import type { QueryPlan } from '../_networkQuery.js'
+import { isRetiredVenture } from '../_venturePositioning.js'
 
 // POST /api/network/recommend
-//   { venture, intent?, limit? }
+//   { venture, intent?, countries?, filter_mode?, limit? }
 //
 // "Who should I talk to for Mindmake this week."
 //
@@ -23,8 +24,9 @@ export const config = { maxDuration: 60 }
 const VENTURE_THESIS: Record<string, string> = {
   mindmake:
     'A senior operator or executive at a company that is not an AI vendor, accountable for building real AI capability in their organisation, facing the gap between tool rollout and actual capability.',
-  adfixus:
-    'A publisher, media owner or platform person who owns identity, addressability, first-party data or consent, and feels the loss of third-party cookies commercially.',
+  // AdFixus (retired July 2026) is deliberately absent — recommending people to
+  // contact for a venture Krish no longer runs is exactly the propagation this
+  // removes. The venture_required guard below rejects a request for it.
   signal_noise:
     'An operator with a specific, hard-won go-to-market or AI story worth an hour of podcast conversation, who can speak concretely rather than in abstractions.',
   builder_economy:
@@ -46,6 +48,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const body = (req.body || {}) as Record<string, unknown>
   const venture = typeof body.venture === 'string' ? body.venture : ''
+  if (isRetiredVenture(venture)) {
+    return res.status(400).json({ ok: false, error: 'venture_retired', allowed: Object.keys(VENTURE_THESIS) })
+  }
   if (!VENTURE_THESIS[venture]) {
     return res.status(400).json({ ok: false, error: 'venture_required', allowed: Object.keys(VENTURE_THESIS) })
   }
@@ -53,8 +58,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const role = INTENT_TO_ROLE[intent] || null
 
   const label = role ? `${role.replace(/_/g, ' ')}s` : 'people'
+  const where = Array.isArray(body.countries) && body.countries.length
+    ? ` in ${body.countries.map(String).join(', ')}`
+    : ''
   const plan: QueryPlan = {
-    restated: `The ${label} in your network most worth contacting for ${venture.replace(/_/g, ' ')} right now.`,
+    restated: `The ${label} in your network${where} most worth contacting for ${venture.replace(/_/g, ' ')} right now.`,
     semantic_query: VENTURE_THESIS[venture],
     keywords: '',
     venture,
@@ -67,6 +75,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const out = await runNetworkSearch({
       plan,
       venture,
+      // "Who should I talk to for Mindmaker in the UK this week" is the same
+      // question with a market attached, so recommend mode takes the same hard
+      // geography filter the search bar does.
+      countries: Array.isArray(body.countries)
+        ? body.countries.map(String).map(x => x.slice(0, 60)).filter(Boolean).slice(0, 20)
+        : null,
+      filterMode: body.filter_mode === 'soft' ? 'soft' : 'hard',
       limit: typeof body.limit === 'number' ? body.limit : 20,
       // No question to explain against, and the reason to talk to someone is
       // already stored in why_them. A rerank here would paraphrase it at the

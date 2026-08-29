@@ -51,6 +51,23 @@ export default {
           'monospace',
         ],
       },
+      // ── Role-named type scale (docs/DESIGN_SYSTEM.md) ────────────────────
+      // The doc's 11/12/13/14/16/20/28/40/56 scale, made real as ADDITIVE
+      // tokens. Deliberately not an override of text-sm/text-base: redefining
+      // Tailwind's defaults would reflow ~180 files at once. New and rebuilt
+      // surfaces adopt these; the bracket-literal sizes retire as surfaces are
+      // touched.
+      fontSize: {
+        micro:   ['11px', { lineHeight: '15px' }],
+        label:   ['12px', { lineHeight: '17px' }],
+        body:    ['13px', { lineHeight: '19px' }],
+        ui:      ['14px', { lineHeight: '20px' }],
+        lede:    ['16px', { lineHeight: '23px' }],
+        title:   ['20px', { lineHeight: '26px' }],
+        heading: ['28px', { lineHeight: '34px' }],
+        display: ['40px', { lineHeight: '44px' }],
+        hero:    ['56px', { lineHeight: '58px' }],
+      },
       colors: {
         // ── Obsidian Aurora foundation ─────────────────────────────────────
         // Channel-format CSS vars (defined in index.css :root) so opacity

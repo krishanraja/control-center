@@ -1,5 +1,5 @@
 import React from 'react'
-import { Mail, ExternalLink, DollarSign } from 'lucide-react'
+import { Mail, ExternalLink, DollarSign } from '@/lib/icons'
 import {
   PRODUCT_LABEL, PRODUCT_ACCENT, KIND_LABEL, KIND_ACCENT,
   type CustomerRow,
@@ -22,23 +22,23 @@ export function CustomerCard({ customer: c }: Props) {
     <article className={`rounded-xl border ${isChurned ? 'border-red-500/25 bg-red-500/[0.04]' : 'border-white/[0.07] bg-white/[0.02]'} p-3 hover:border-white/[0.14] transition-colors`}>
       <header className="flex items-start gap-2 min-w-0">
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-white leading-snug truncate">{name}</p>
+          <p className="text-body font-semibold text-white leading-snug truncate">{name}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="inline-flex items-center gap-1 text-[10px] text-white/55">
+            <span className="inline-flex items-center gap-1 text-micro text-white/55">
               <span className={`w-1.5 h-1.5 rounded-full ${productDot}`} />
               {productLabel}
             </span>
-            <span className="inline-flex items-center gap-1 text-[10px] text-white/55">
+            <span className="inline-flex items-center gap-1 text-micro text-white/55">
               <span className={`w-1.5 h-1.5 rounded-full ${kindDot}`} />
               {kindLabel}
             </span>
             {c.plan && (
-              <span className="text-[10px] text-white/45 truncate">{c.plan}</span>
+              <span className="text-micro text-white/45 truncate">{c.plan}</span>
             )}
           </div>
         </div>
         {typeof c.mrr_usd === 'number' && c.mrr_usd > 0 && (
-          <span className="text-[11px] tabular-nums text-emerald-300 flex-shrink-0">
+          <span className="text-micro tabular-nums text-emerald-300 flex-shrink-0">
             <DollarSign size={9} className="inline" />
             {Math.round(c.mrr_usd).toLocaleString()}/mo
           </span>
@@ -46,7 +46,7 @@ export function CustomerCard({ customer: c }: Props) {
       </header>
 
       {(c.source || when) && (
-        <div className="flex items-center justify-between gap-3 mt-2 text-[10px] text-white/40">
+        <div className="flex items-center justify-between gap-3 mt-2 text-micro text-white/40">
           <span className="truncate">{c.source ? `via ${c.source}` : ''}</span>
           <span className="tabular-nums flex-shrink-0">{when ? humanAgo(when) : ''}</span>
         </div>
@@ -57,7 +57,7 @@ export function CustomerCard({ customer: c }: Props) {
           {c.email && (
             <a
               href={`mailto:${c.email}`}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border border-white/10 text-white/60 hover:bg-white/[0.06]"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-micro font-medium border border-white/10 text-white/60 hover:bg-white/[0.06]"
             >
               <Mail size={10} />
               Email
@@ -68,7 +68,7 @@ export function CustomerCard({ customer: c }: Props) {
               href={`https://dashboard.stripe.com/customers/${c.stripe_customer_id}`}
               target="_blank"
               rel="noreferrer noopener"
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border border-white/10 text-white/60 hover:bg-white/[0.06]"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-micro font-medium border border-white/10 text-white/60 hover:bg-white/[0.06]"
             >
               <ExternalLink size={10} />
               Stripe

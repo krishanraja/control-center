@@ -101,7 +101,13 @@
   --accent: 108 95 165;      /* muted violet, deepened for paper (was #6354E0) */
   --accent-2: 96 88 158;     /* muted indigo                           */
   --accent-3: 70 120 135;    /* muted teal   (was deep cyan #0891B2)    */
-  --fg: 23 21 33;            /* flips every *-white/NN utility to ink   */
+  /* Pure black, NOT --ink. Every muted tier in this app is an opacity of --fg
+     (text-white/45, border-white/10, bg-white/[0.04]), and those ratios were
+     tuned for white-on-obsidian. Inverted onto pale paper the same opacities
+     read washed out: near-black at 45% measures about 4.3:1 here. True black
+     lifts every tier at once, app-wide, with no per-component edits. --ink
+     stays 23 21 33 for the explicit ink utilities. */
+  --fg: 0 0 0;               /* flips every *-white/NN utility to ink   */
 
   /* Muted deep accent-text (light) — legible on pale tinted cards, off-neon. */
   --ac-violet: 104 82 140;   --ac-amber: 132 100 60;   --ac-emerald: 44 108 88;
@@ -418,19 +424,37 @@
 }
 .animate-indeterminate { animation: indeterminate var(--dur-indeterminate) var(--ease-calm) infinite; transform-origin: left center; }
 
+/* The working arc: the small, in-place "this control is busy" mark, and the one
+   replacement for `Loader2 className="animate-spin"`. Stock animate-spin runs a
+   fixed 1s linear full turn, which ignores every dial below, sits outside the
+   reduced-motion block, and reads mechanical next to the orbit language. This
+   rotates on the same --dur-orbit clock as the thinking particle, so a button
+   spinner and a full-screen overlay are visibly the same system at two scales. */
+@keyframes working-arc { to { transform: rotate(360deg); } }
+.animate-working {
+  animation: working-arc calc(var(--dur-orbit) * 0.42) linear infinite;
+  transform-origin: center;
+}
+
 /* Skeletons: content-shaped placeholders with a soft light sweep. A skeleton
-   is a promise of the exact thing about to appear — never a generic spinner. */
+   is a promise of the exact thing about to appear — never a generic spinner.
+
+   Both the fill and the sweep route through --fg, like every other muted tier
+   in this app. They used to be literal rgba(255,255,255,…), which is correct at
+   night and invisible by day: a 4.5% white block on the #F2F1F8 paper is a
+   one-value difference. Every skeleton in the app was a blank gap in light mode,
+   which is the exact "flash of nothing" the skeleton exists to prevent. */
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: rgba(255,255,255,0.045);
+  background: rgb(var(--fg) / 0.05);
 }
 .skeleton::after {
   content: '';
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgb(var(--fg) / 0.07) 50%, transparent 100%);
   animation: skeleton-sweep var(--dur-skeleton) ease-in-out infinite;
 }
 @keyframes skeleton-sweep { 100% { transform: translateX(100%); } }
@@ -527,7 +551,14 @@
   .animate-mark-breathe,
   .animate-indeterminate,
   .animate-row-collapse,
-  .ambient-field {
+  .animate-working,
+  .ambient-field,
+  /* Tailwind's stock spin/pulse were never in this list, so every hand-rolled
+     spinner in the app kept turning for someone who had asked the OS to stop
+     motion. They are being migrated onto .animate-working, but listing them
+     here closes the hole now and keeps it closed for anything added later. */
+  .animate-spin,
+  .animate-pulse {
     animation: none !important;
   }
   /* Reduced motion: a leaving row just disappears, no slide. */
@@ -566,6 +597,13 @@
   --dur-scale: 0.46s;
   --dur-exhale: 0.95s;
   --dur-app-enter: 0.8s;
+  /* Waiting is most of what a depleted day feels like, so the loading dials
+     calm with everything else. A slower sweep and a slower orbit read as
+     patient; the same wait at full speed reads as the app hurrying you. */
+  --dur-skeleton: 2.2s;
+  --dur-indeterminate: 2.1s;
+  --dur-orbit: 3.4s;
+  --dur-breathe: 3.4s;
 
   /* Flatter surfaces, less edge contrast: fewer things competing for the eye. */
   --card-hi-a: 0;
@@ -579,4 +617,109 @@
 
 @media (prefers-reduced-motion: reduce) {
   :root[data-capacity='low'] { --dur-rise: 0s; --dur-scale: 0s; --dur-exhale: 0s; }
+}
+
+/* ── The ⌘I capture pill ───────────────────────────────────────────────────
+   It is mounted at app root and fixed to the bottom-right of every desktop
+   tab, which put it on top of whatever each surface already keeps in that
+   corner (the brief editor's "Push N formats" bar, the last row of every
+   scrolling list). Two rules fix that without every surface knowing it exists.
+
+   1. Behind a modal it is unreachable anyway — Radix marks the body while a
+      modal dialog is open, so retire the pill instead of leaving a dead,
+      washed-out control sitting over the dialog's own actions.
+   2. `--capture-gutter` is the space it occupies. Surfaces that scroll to the
+      bottom-right add it as padding, the way pilot/controls.tsx already
+      reserves room for its dock.
+
+   Two pills now stack in that corner: capture (⌘I, bottom) and ask-this-tab
+   (⌘/, above it). Both retire behind a modal, and the gutter covers the pair
+   — 84px reserved for one pill left the upper one sitting on the last row. */
+:root { --capture-gutter: 132px; }
+
+body[data-scroll-locked] .capture-pill,
+body[data-scroll-locked] .tab-chat-pill { display: none; }
+
+@media (max-width: 899px) {
+  :root { --capture-gutter: 0px; }  /* both pills are desktop-only (min-[900px]) */
+}
+
+/* ── The brief canvas ──────────────────────────────────────────────────────
+   The TipTap document in the weekly-brief editor. It used to carry
+   `prose prose-invert prose-sm`, which styled nothing at all: this build has
+   no @tailwindcss/typography (tailwind.config.js `plugins: []`), so those
+   classes emit no rules. The canvas therefore had no typography of its own and
+   inherited whatever an ancestor happened to set.
+
+   Everything below is expressed in theme tokens, so the document reads on
+   obsidian and on paper without a second, inverted stylesheet. */
+.brief-canvas .ProseMirror {
+  color: rgb(var(--ink));
+  font-size: 14.5px;
+  line-height: 1.72;
+}
+
+.brief-canvas .ProseMirror > * + * { margin-top: 0.9em; }
+
+.brief-canvas .ProseMirror h1,
+.brief-canvas .ProseMirror h2,
+.brief-canvas .ProseMirror h3 {
+  color: rgb(var(--ink));
+  font-weight: 700;
+  line-height: 1.28;
+  margin-top: 1.5em;
+}
+.brief-canvas .ProseMirror h1 { font-size: 22px; }
+.brief-canvas .ProseMirror h2 { font-size: 17px; }
+.brief-canvas .ProseMirror h3 { font-size: 14.5px; }
+.brief-canvas .ProseMirror h1:first-child,
+.brief-canvas .ProseMirror h2:first-child { margin-top: 0; }
+
+.brief-canvas .ProseMirror strong { color: rgb(var(--ink)); font-weight: 700; }
+
+/* Citation-heavy by design, so links are a large share of the visible copy.
+   This was the single worst light-mode offender: a fixed sky-300 (#93b8c4)
+   measures about 1.9:1 on #F2F1F8. */
+.brief-canvas .ProseMirror a {
+  color: rgb(var(--ac-sky));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgb(var(--ac-sky) / 0.4);
+}
+
+.brief-canvas .ProseMirror ul,
+.brief-canvas .ProseMirror ol { padding-left: 1.35em; }
+.brief-canvas .ProseMirror ul { list-style: disc; }
+.brief-canvas .ProseMirror ol { list-style: decimal; }
+.brief-canvas .ProseMirror li { margin-top: 0.35em; }
+.brief-canvas .ProseMirror li::marker { color: rgb(var(--ink-faint)); }
+
+.brief-canvas .ProseMirror blockquote {
+  border-left: 2px solid rgb(var(--fg) / 0.18);
+  padding-left: 0.9em;
+  color: rgb(var(--ink-muted));
+  font-style: italic;
+}
+
+.brief-canvas .ProseMirror code {
+  font-family: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+  background: rgb(var(--fg) / 0.06);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+
+.brief-canvas .ProseMirror hr {
+  border: 0;
+  border-top: 1px solid rgb(var(--fg) / 0.12);
+  margin: 1.6em 0;
+}
+
+/* The empty-document hint, shown via TipTap's Placeholder decoration. */
+.brief-canvas .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: rgb(var(--ink-faint));
+  float: left;
+  height: 0;
+  pointer-events: none;
 }

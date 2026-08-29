@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ThumbsUp, X } from 'lucide-react'
+import { ThumbsUp, X } from '@/lib/icons'
 import { useHaptics } from '../hooks/useHaptics'
 import { useToast } from './shared/Toast'
 
@@ -52,7 +52,7 @@ export function InlineActions({ taskId, onSuccess, compact, agent }: Props) {
     <button
       onClick={(e) => { e.stopPropagation(); onClick() }}
       disabled={busy !== null}
-      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all disabled:opacity-40 ${accent}`}
+      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-micro font-medium border transition-all disabled:opacity-40 ${accent}`}
     >
       <Icon size={11} />
       {!compact && (flash === action ? 'Done' : label)}

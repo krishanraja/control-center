@@ -6,6 +6,43 @@ export function contentV2Enabled(): boolean {
   return String(import.meta.env.VITE_CONTENT_V2_ENABLED) === 'true'
 }
 
+// ---------------------------------------------------------------------------
+// The queue's week window.
+//
+// The spec (§R4/R7) describes a finite weekly deck: assemble Friday, review
+// over the weekend, purge Monday. The read path never enforced it. With no
+// week bound and `order(created_at asc).limit(30)`, the deck became a FIFO of
+// the thirty OLDEST pending cards: on 2026-08-25 that was 74 pending rows, of
+// which the visible thirty ran from 2026-W28 to 2026-W31, so W32/W33/W34 -
+// including the current week's brief - could not be reached at all. The top
+// card had been the same 2026-W28 brief review since 10 July.
+//
+// Two weeks, not one: the Monday purge runs at 14:00 UTC, so a Monday-morning
+// look must still see the weekend's cards. Anything older than that has either
+// been decided or been swept by api/purge/run.ts.
+export const QUEUE_WEEK_SPAN = 2
+
+/** ISO-8601 week label, '2026-W34'. Mirrors api/_weeks.ts (the API tsconfig is
+ *  separate, so the client cannot import it). Zero-padded on purpose: labels
+ *  compare lexicographically, which is what makes the `.gte('week', ...)`
+ *  bound below a plain string comparison in Postgres. */
+export function isoWeekLabel(d = new Date()): string {
+  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+  const day = t.getUTCDay() || 7
+  t.setUTCDate(t.getUTCDate() + 4 - day)
+  const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1))
+  const week = Math.ceil(((t.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7)
+  return `${t.getUTCFullYear()}-W${String(week).padStart(2, '0')}`
+}
+
+/** The oldest week label the queue will show. `span` counts the current week,
+ *  so span=1 is this week only and span=2 adds the one before it. */
+export function earliestQueueWeek(span = QUEUE_WEEK_SPAN, now = new Date()): string {
+  const back = new Date(now)
+  back.setUTCDate(back.getUTCDate() - 7 * Math.max(0, span - 1))
+  return isoWeekLabel(back)
+}
+
 export type ShiftStatus = 'proposed' | 'active' | 'fading' | 'retired' | 'library'
 export type BriefStatus = 'assembling' | 'ready' | 'in_review' | 'approved' | 'pushed' | 'sent' | 'archived'
 export type DecisionKind = 'brief_review' | 'shift_proposal' | 'shift_fading' | 'graduation' | 'purge_preview' | 'investigation'
@@ -25,6 +62,9 @@ export interface ShiftRow {
   summary: string
   implication: string
   category: string
+  /** 'built' | 'paid', or null when the detector has not classified it. Null
+   *  shows in every lane rather than being hidden or forced into one. */
+  lane?: string | null
   status: ShiftStatus
   first_seen_on: string
   last_evidence_on: string | null
@@ -72,6 +112,9 @@ export interface BriefSections {
   meaning_md?: string
   next_year_md?: string
   position_md?: string
+  /** @deprecated The brief's opinion section is `position_md`. This mirror is
+   *  written by the assembler so briefs stored before 2026-08-12 still render;
+   *  read `position_md` and fall back to this, never the other way round. */
   perspectives_md?: string
 }
 
@@ -96,7 +139,10 @@ export interface ContentDecisionRow {
   kind: DecisionKind
   ref: string
   payload: Record<string, unknown>
-  status: 'pending' | 'done' | 'dismissed'
+  /** 'dismissed' is a ruling Krish made; 'archived' is a card that aged out
+   *  unseen. Keeping them apart is what lets a later comparison ask about his
+   *  taste without counting the engine's unreviewed output as rejections. */
+  status: 'pending' | 'done' | 'dismissed' | 'archived'
   resolution: Record<string, unknown> | null
   created_at: string
 }
@@ -123,7 +169,7 @@ export const VERDICT_LABEL: Record<ShiftVerdict, string> = {
   new: 'Newly tracked',
 }
 
-// The LIVE fan-out (ContentV2Tab -> BriefEditor). This is the list Krish
+// The LIVE fan-out (ContentV2Tab -> BriefComposer). This is the list Krish
 // actually sees when pushing content, which is why fixing v1's LANE_ADAPTS and
 // SynthesisModal did not change what he was looking at: v2 is the live system
 // and v1 does not render while VITE_CONTENT_V2_ENABLED is on.
@@ -147,4 +193,32 @@ export const FACTORY_FANOUT: Array<{ channel: string; label: string; short: stri
 export function monthLabel(day: string): string {
   const d = new Date(`${day}T00:00:00Z`)
   return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' })
+}
+
+/** One arc's card for one week, with the scorer's verdict attached.
+ *
+ *  Losers are stored too. A blocked or unsurfaced arc keeps its reason, so
+ *  "why is this not in my queue" is answerable and a quiet week is
+ *  distinguishable from a week the job never ran. */
+export interface ArcCardRow {
+  id: string
+  shift_id: string
+  week: string
+  headline: string | null
+  what_changed: string | null
+  why_now: string | null
+  the_opening: string | null
+  where_this_goes: string | null
+  reader_decision: string | null
+  format: string | null
+  score: number | null
+  components: Array<{ name: string; weight: number; value: number }>
+  blocked: boolean
+  blocks: string[]
+  surfaced: boolean
+  /** True when this card took one of the two slots held for arcs matching no
+   *  tracked question. */
+  reserved_slot: boolean
+  surface_reason: string | null
+  created_at: string
 }

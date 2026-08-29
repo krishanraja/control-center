@@ -28,13 +28,16 @@
  * in the last 48h" state when `workflows.length === 0`.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { supabase } from './_supabase.js'
+// '../_supabase.js', not './'. This file is api/automations/index.ts, so
+// './_supabase.js' resolved to api/automations/_supabase.js, which does not
+// exist — the module failed to load and every request to /api/automations
+// returned FUNCTION_INVOCATION_FAILED. Verified 500 in production.
+import { supabase } from '../_supabase.js'
 
 type RunRow = {
   workflow_id?: string | null
   workflow_name?: string | null
   agent_id?: string | null
-  agent?: string | null
   status?: string | null
   run_at?: string | null
   created_at?: string | null
@@ -54,7 +57,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data, error } = await supabase
     .from('workflow_runs')
-    .select('workflow_id, workflow_name, agent_id, agent, status, run_at, created_at')
+    // No `agent` column: workflow_runs has agent_id only. Naming a column
+    // that does not exist makes PostgREST reject the entire select, so this
+    // returned `column workflow_runs.agent does not exist` on every request.
+    .select('workflow_id, workflow_name, agent_id, status, run_at, created_at')
     .eq('status', 'success')
     .or(`created_at.gte.${since},run_at.gte.${since}`)
 
@@ -84,7 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   >()
 
   for (const r of rows) {
-    const key = r.workflow_id || r.workflow_name || r.agent_id || r.agent || 'unknown'
+    const key = r.workflow_id || r.workflow_name || r.agent_id || 'unknown'
     const ts = r.run_at || r.created_at || null
     const existing = byKey.get(key)
     if (existing) {
@@ -96,7 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       byKey.set(key, {
         workflow_id: r.workflow_id ?? null,
         workflow_name: r.workflow_name ?? null,
-        agent_id: r.agent_id ?? r.agent ?? null,
+        agent_id: r.agent_id ?? null,
         successful_runs: 1,
         last_run_at: ts,
       })

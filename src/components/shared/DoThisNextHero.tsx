@@ -1,6 +1,6 @@
 import React from 'react'
-import { Loader2 } from 'lucide-react'
 import { useReducedMotion } from './motion'
+import { Working } from './Working'
 
 /**
  * DoThisNextHero — the ONE "what do I do next" hero every tab renders through
@@ -83,12 +83,12 @@ export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow }: 
       {/* Keyed on the headline so a new "next" gently rises in instead of swapping. */}
       <div key={headline} className={`min-w-0 flex-1 ${reduced ? '' : 'animate-rise'}`}>
         {!clear && (
-          <p className="text-[10px] font-display uppercase tracking-[0.2em] text-accent/70 mb-1">Do this next</p>
+          <p className="text-micro font-display uppercase tracking-[0.14em] text-accent/70 mb-1">Do this next</p>
         )}
-        <p className={`${narrow ? 'text-[15px]' : 'text-[17px]'} font-display font-semibold text-white leading-[1.15] tracking-tight truncate`}>
+        <p className={`${narrow ? 'text-ui' : 'text-lede'} font-display font-semibold text-white leading-[1.15] tracking-tight truncate`}>
           {headline}
         </p>
-        <p className="text-[12px] text-white/55 leading-snug truncate mt-0.5">{sub}</p>
+        <p className="text-label text-white/55 leading-snug truncate mt-0.5">{sub}</p>
       </div>
       {!clear && actionSlot}
       {!clear && !actionSlot && actionLabel && (
@@ -96,14 +96,14 @@ export function DoThisNextHero({ descriptor, onAct, busy, actionSlot, narrow }: 
           type="button"
           onClick={onAct}
           disabled={busy}
-          className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors disabled:opacity-50 min-h-[44px] text-[13px] border outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${TONE_BTN[tone]}`}
+          className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl px-4 font-semibold transition-colors disabled:opacity-50 min-h-[44px] text-body border outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${TONE_BTN[tone]}`}
         >
-          {busy ? <Loader2 size={14} className="animate-spin" /> : icon}
+          {busy ? <Working size={14} /> : icon}
           {actionLabel}
           {/* Desktop is a keyboard-driven command surface: Tab to the action,
               press Enter. Hidden on touch, where it's a single tap. */}
           {!narrow && (
-            <kbd className="ml-1 hidden md:inline-block rounded-md border border-white/20 bg-white/[0.08] px-1.5 py-0.5 text-[10px] font-mono leading-none text-white/60">
+            <kbd className="ml-1 hidden md:inline-block rounded-md border border-white/20 bg-white/[0.08] px-1.5 py-0.5 text-micro font-mono leading-none text-white/60">
               ⏎
             </kbd>
           )}

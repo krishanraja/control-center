@@ -20,6 +20,18 @@ export const config = {
   maxDuration: 60,
 }
 
+/** `?countries=GB,AU` or a repeated `?countries=GB&countries=AU`. Vercel gives
+ *  either a string or an array depending on how the client wrote it, so both are
+ *  read rather than one being assumed. */
+function countriesFromQuery(raw: string | string[] | undefined): string[] | null {
+  const parts = (Array.isArray(raw) ? raw : [raw || ''])
+    .flatMap(x => String(x).split(','))
+    .map(x => x.trim().slice(0, 60))
+    .filter(Boolean)
+    .slice(0, 20)
+  return parts.length ? parts : null
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   applyGatedHeaders(res)
   if (req.method === 'OPTIONS') return res.status(200).end()
@@ -37,6 +49,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const out = await runNetworkSearch({
       question: transcript,
+      // Filters ride the query string here, not the body: the body is an audio
+      // blob and bodyParser is off. Same values the typed path sends.
+      countries: countriesFromQuery(req.query.countries),
+      filterMode: req.query.filter_mode === 'soft' ? 'soft' : 'hard',
       limit: 20,
       // Same two-phase shape as the typed path: get the ranked list back fast,
       // let the client fetch explanations behind it. Someone who just spoke a

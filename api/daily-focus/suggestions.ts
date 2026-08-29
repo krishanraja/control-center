@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
-import { resolveTz, weekOfIn } from '../_timezone.js'
+
 
 // GET /api/daily-focus/suggestions
 //   Returns { marcus_top_three, marcus_alternates, marcus_reasoning }.
@@ -69,60 +69,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ? row.top_three_reasoning
     : null
 
-  // Advisory weekly linkage (Phase 2): attach serves_milestone to any task card
-  // that advances a milestone Krish committed for the current week. Failures
-  // here never break the daily picker; the chip just does not show.
-  const servesByTask = await buildServesByTask([...marcus_top_three, ...marcus_alternates])
-  const attach = (c: TopThreeCard) => ({
-    ...c,
-    serves_milestone: (c.action_kind === 'task' && c.action_target_id)
-      ? (servesByTask[c.action_target_id] || null)
-      : null,
-  })
-
+  // The old serves_milestone leg died with the milestones/weekly_focus tables
+  // (2026-08-20 recompose). The picker's weekly linkage is now client-side:
+  // the ritual offers active weekly goals as chips and stamps target_N_goal_id.
+  // (The removed helper also carried a latent bug: it was called without its
+  // tz argument, so the week key was computed from undefined.)
   return res.json({
     ok: true,
-    marcus_top_three: marcus_top_three.map(attach),
-    marcus_alternates: marcus_alternates.map(attach),
+    marcus_top_three,
+    marcus_alternates,
     marcus_reasoning,
     generated_at: row?.top_three_at ?? null,
   })
-}
-
-interface ServesMilestone { id: string; title: string; goal_id: string; goal_title: string | null }
-
-
-async function buildServesByTask(cards: TopThreeCard[], tz: string): Promise<Record<string, ServesMilestone>> {
-  const out: Record<string, ServesMilestone> = {}
-  try {
-    const taskIds = Array.from(new Set(
-      cards.filter(c => c.action_kind === 'task' && c.action_target_id).map(c => c.action_target_id as string),
-    ))
-    if (taskIds.length === 0) return out
-    // The operator's civil week, the same one weekly_focus_milestones is keyed
-    // by on the client. This used to be hardcoded to Europe/London.
-    const week = weekOfIn(new Date(), tz)
-    const { data: committed } = await supabase
-      .from('weekly_focus_milestones')
-      .select('milestone_id, goal_id')
-      .eq('week_of', week)
-    const committedMs = (committed || []) as Array<{ milestone_id: string; goal_id: string }>
-    if (committedMs.length === 0) return out
-    const msIds = committedMs.map(c => c.milestone_id)
-    const { data: tasks } = await supabase.from('tasks').select('id, milestone_id').in('id', taskIds)
-    const relevant = (tasks || []).filter(t => t.milestone_id && msIds.includes(t.milestone_id as string))
-    if (relevant.length === 0) return out
-    const { data: ms } = await supabase.from('milestones').select('id, title, goal_id').in('id', msIds)
-    const { data: goals } = await supabase.from('goals').select('id, title').in('id', committedMs.map(c => c.goal_id))
-    const msById = new Map((ms || []).map(m => [m.id as string, m as { id: string; title: string; goal_id: string }]))
-    const goalTitle = new Map((goals || []).map(g => [g.id as string, g.title as string]))
-    for (const t of relevant) {
-      const m = msById.get(t.milestone_id as string)
-      if (!m) continue
-      out[t.id as string] = { id: m.id, title: m.title, goal_id: m.goal_id, goal_title: goalTitle.get(m.goal_id) ?? null }
-    }
-  } catch {
-    return out
-  }
-  return out
 }

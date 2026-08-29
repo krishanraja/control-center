@@ -95,18 +95,153 @@ to agents or waiting for human review.
 
 ### `goals`
 
-Weekly/monthly goals with progress tracking.
+The goal ladder: one table, four rungs, discriminated by `horizon`. The
+objective layer repurposed this table in May 2026
+(`scripts/migrations/2026-05-29-objective-layer-1b-repurpose-goals.sql`);
+this section had still described the pre-May shape, including a `period`
+column and a `team_focus` column that never existed here. `team_focus`
+is a `system_config` key, not a goals column, and `id` is text, not uuid.
+
+`GET /api/goals/ladder` is the one read. `POST /api/objectives` is the one
+create, gated by `api/_goalGate.ts`. Entry is guarded structurally by
+`scripts/check-goal-ladder.mts`.
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | uuid | Primary key |
-| `title` | text | Goal title |
-| `current` | text | Current status description |
-| `progress` | int | Progress percentage (0-100) |
-| `status` | text | `active`, `done`, `paused` |
-| `period` | text | `weekly`, `monthly`, `quarterly` |
-| `team_focus` | text | "This week's focus" string for the OS Mission card |
-| `created_at` | timestamp | |
+| `id` | **text** | Primary key. Namespaced, e.g. `os:licensable`, `obj:venture:slug` |
+| `title` | text | The goal |
+| `horizon` | text | `os` \| `mid_term` \| `weekly` \| `venture_objective`. The rung |
+| `parent_id` | text | What this serves. Required for every rung except `os` |
+| `status` | text | `proposed` \| `active` \| `paused` \| `done` \| `dropped` |
+| `venture` | text | For `venture_objective` |
+| `target` / `current` / `progress` / `notes` | text/int | Legacy weekly-goal fields, still written by the ladder's inline edit |
+| `owner` / `week_of` | text | Legacy, pre-ladder |
+| `objective_kind`, `definition_of_done`, `why_now`, `target_horizon`, `primary_kpi`, `secondary_kpi` | | Objective-layer detail |
+| `priority` | int | Sort order within a rung |
+| `is_auto`, `created_by`, `source` | | Provenance. `source` is `krish_declared` \| `marcus_nominated` \| `agatha_decomposed` |
+| `concept_id` | text | Closure cascade |
+| `gate_verdict` | jsonb | The gate's judgment at save time |
+| `gate_overridden` | boolean | True when saved despite a failing verdict |
+| `activated_at`, `completed_at`, `review_due_at`, `created_at`, `updated_at` | timestamptz | |
+
+`gate_verdict` and `gate_overridden`, the `horizon` NOT NULL constraint,
+and the corrected `goals_health` view ship in
+`supabase/migrations/20260811210000_goals_ladder_integrity.sql`.
+
+### `goals_health`
+
+View over `goals`. Staleness thresholds by rung: weekly 10d,
+venture_objective 30d, mid_term 45d, os 90d. `orphaned` is a non-OS goal
+with no parent. Covers `status IN ('active','proposed')` only; paused,
+done and dropped goals get no row, and `api/goals/ladder.ts` reads a
+missing row as not-stale, which is correct for all three.
+
+### `revenue_events` / `revenue_subscriptions`
+
+Revenue pulled straight from Stripe by `api/revenue/sync.ts`. **Service-role
+only** (anon and authenticated hold no grants); the dashboard reads them
+through `GET /api/revenue`.
+
+They answer different questions and are never summed together:
+
+- **`revenue_events`** — one row per Stripe **balance transaction**, so the
+  fees are settled: `stripe_fee_cents`, `app_fee_cents` (Substack takes 10%),
+  `net_cents`. `kind` is derived, not guessed: refunds are `refund`, an invoice
+  resolving to a subscription is `recurring`, everything else is `one_time`.
+  Idempotent on the transaction id, so a re-sync is a no-op.
+- **`revenue_subscriptions`** — current state of every subscription. This, and
+  only this, produces MRR. `mrr_cents` normalises the price to one month
+  (year ÷ 12, week × 52 ÷ 12).
+
+**Currency.** Stripe settles into the account currency and reports the
+`exchange_rate` it used, so `currency`/`gross_cents` are already settled;
+`presented_currency`/`presented_gross_cents` keep what the customer actually
+paid (A$1,000 rather than US$701.30). `mrr_usd_cents` is **NULL** for non-USD
+plans rather than converted at a guessed rate.
+
+### `service_registry` / `spend_invoices` / `spend_monthly`
+
+The money-OUT twin (2026-08-25, migration `20260825183443_spend_and_connections.sql`).
+**Service-role only**, same access rule and reasoning as the revenue tables;
+the dashboard reads the computed summary through `GET /api/spend`.
+
+- **`service_registry`** — one row per service the OS pays for or
+  authenticates to (56 seeded, reconciled against the n8n credential store
+  and the `api_usage_state` seeds). Metadata columns say WHERE the key lives
+  (`env_key_name` — a NAME, never a value; resolution is deploy env →
+  `app_secrets`), HOW to check it (`check_kind`: `balance` / `ping` /
+  `none`), how loudly to fail (`criticality` — only `critical` rows mirror
+  into `system_health` and can raise the Home banner), and how receipts
+  match it (`vendor_match`). Sweep-state columns (`last_status`, `balance`,
+  `last_checked_at`, …) are written only by
+  `/api/health/connections-sweep`; the seed's `on conflict` never touches
+  them.
+- **`spend_invoices`** — one row per receipt email in the Gmail
+  "Subscriptions" label, written by `/api/spend/ingest`. Idempotent on
+  `gmail_message_id`, so backfills re-run as no-ops. Refunds are
+  `kind='refund'` and net out of every total. `amount_usd`/`amount_aud` are
+  **NULL when no FX rate is known** (flagged `needs_review`) — a missing
+  rate is never treated as 1.0, the `revenue_events` rule. A receipt the
+  parser could not read still lands, `needs_review=true` with a
+  `review_note`: unread money is flagged, never silently dropped.
+- **`spend_monthly`** — `security_invoker` rollup view (month × service,
+  refunds netted) for ad-hoc/warehouse reads; the UI does not read it.
+
+**Why these exist.** `customers.mrr_usd` is written by an n8n expression that
+falls back to the Checkout session grand total, so a one-off advisory invoice
+lands as "per month" revenue. Nothing in the old schema separated recurring
+from one-off. As of 2026-08-11 the live account had collected $842.56 net all
+time, **76.9% of it from a single one-time payment**, against a dashboard that
+read $16,500.
+
+### `meter_daily` / `spend_alerts_sent`
+
+The usage meter (2026-08-27, migration `20260827090000_usage_meter.sql`).
+**Service-role only**, same rule as the spend tables; the browser reads the
+rollup inside `GET /api/spend`.
+
+**Why it exists.** `service_registry` answers *how much a provider cost*.
+Nothing answered *which unit of the OS spent it*. The two columns that
+looked like they did were fiction: `workflow_runs.cost_usd` held $0.00 for
+1,419 runs across twelve agents (one distinct value in thirty days), and
+`api_call_log` held eighteen rows, every one written by the connections
+sweep itself. Neither had ever seen agent traffic.
+
+- **`meter_daily`** — one row per `provider × unit_kind × unit_key × day ×
+  bucket`. `unit_kind` is `actor` (Apify) / `workflow` (n8n) / `agent`
+  (Anthropic); `bucket` is the one sub-dimension worth splitting by per
+  provider — run origin, execution mode, model. `unit_label` caches the
+  resolved human name so steady-state syncs need no provider round trips,
+  and `category` carries Apify's `task_category` from
+  `apify_actor_registry` (NULL = an actor that ran but is in no registry
+  row). `usd` is real money where the vendor prices it and computed from
+  real token counts where the OS meters itself; **n8n rows leave `usd` at
+  0 on purpose** — n8n Cloud bills per execution and reports no rate, so
+  `unit_name` says what `units` counts rather than a made-up dollar figure
+  sitting in the same column as real ones. The mirror rule applies to Apify:
+  `/v2/actor-runs` returns the shortened run object with `usageTotalUsd` but no
+  `usage` breakdown, so Apify rows carry dollars and leave `unit_name` NULL —
+  an unreported unit says nothing, never zero.
+- **Two write paths, not interchangeable.** Provider-derived truth (Apify,
+  n8n) is REPLACED: the collector recomputes a whole UTC day from the
+  vendor's own records and upserts over it, so a re-run or an overlapping
+  window cannot double-count. Self-metered events (Anthropic) are ADDED one
+  call at a time through the `meter_add()` RPC — replacing there would keep
+  only the last call of the day.
+- **`spend_alerts_sent`** — one row per money line already crossed, keyed
+  `<service>:<state>:<cycle-start>` (or `spike:<provider>:<unit>:<week>`).
+  Claimed BEFORE the email is sent, so an hourly cron turns one crossing
+  into one email rather than twenty-four; a claim whose send fails is
+  deleted again so a fixed mailer is not permanently silenced.
+- **`service_registry.included_usd` / `overage_trigger_usd` /
+  `cycle_usd` / `cycle_start` / `cycle_end`** — the prepaid truth. Apify's
+  plan includes $29 and charges early once the extra passes $50. The sweep
+  used to report `maxMonthlyUsageUsd − monthlyUsageUsd`: headroom to the
+  HARD cap, which sat far above the prepaid, so the dot stayed green in the
+  same week Apify emailed to say the prepaid was spent. `balance` is now
+  headroom to the INCLUDED amount and goes negative as overage accrues;
+  `cycle_*` are written by `/api/meter/apify-sync` from the vendor's own
+  billing window, never guessed from the calendar month.
 
 ### `agent_plans`
 
@@ -226,26 +361,34 @@ Guest Confirmed Cascade.
 Cross-product customer ledger. Owned by Stripe webhooks + Maya
 Customer Acquisition Sweeper (nightly).
 
+This section previously described columns that do not exist: `customer_kind`,
+`customer_product`, `name`, `signup_at`, `tenure_days`, and
+`attribution_confidence` as numeric. The real columns are below; the
+authoritative DDL is `scripts/migrations/2026-05-22-customers.sql`.
+
 | Column | Type | Description |
 |---|---|---|
 | `id` | uuid | Primary key |
-| `customer_kind` | enum | `paid`, `free_signup`, `trial`, `waitlist`, `churned` |
-| `customer_product` | enum | `mindmake`, `mm_ctrl`, `fractionl_circle`, `fractionl_pulse`, `onalert`, `gutted`, `merciless` |
-| `email` | text | (lowercased; dedupe key) |
-| `name` | text | |
-| `mrr_usd` | numeric | Per-customer MRR contribution |
-| `stripe_customer_id` | text | (dedupe key) |
+| `kind` | enum `customer_kind` | `paid`, `free_signup`, `trial`, `waitlist`, `churned`. Lifecycle, NOT a revenue type |
+| `product` | enum `customer_product` | Eleven values today; `legibility` replaced `plinth` 2026-08-07 |
+| `email` / `full_name` | text | email lowercased, dedupe key |
+| **`mrr_usd`** | numeric(10,2) | **Not trustworthy as MRR.** Written by an n8n expression that falls back to the Checkout session grand total, so a one-off payment lands as "per month" and an annual charge lands as one month. Use `revenue_events` / `revenue_subscriptions` instead |
+| `plan` | text | Free-text Stripe nickname, not a recurrence indicator |
+| `ltv_usd` | numeric(10,2) | Never written by anything in this repo |
+| `stripe_customer_id` | text | dedupe key |
+| `stripe_subscription_id` | text | Falls back to the session/invoice id on `checkout.session.completed`, so it holds non-subscription ids for one-time purchases |
 | `attribution_lead_id` | uuid | FK → `leads.id` |
 | `attribution_task_id` | text | FK → `tasks.id` |
-| `attribution_channel` | text | `cold_email`, `podcast`, `content`, `referral`, `direct`, `unknown` |
-| `attribution_confidence` | numeric | 0-1 |
-| `signup_at` | timestamp | |
-| `churned_at` | timestamp | |
-| `tenure_days` | int | Computed |
-| `created_at` | timestamp | |
+| `attribution_channel` | text | `utm_source`, else `agent:<assignee>` |
+| `attribution_confidence` | **text** | `exact_email` / `utm` / `fuzzy_name` / `unattributed` / `reconciled` |
+| `signed_up_at` / `became_paid_at` / `churned_at` | timestamptz | Webhook receipt time, not Stripe's timestamp |
+| `source`, `country`, `raw` | text/jsonb | `raw` is the only place the full Stripe event survives |
+| `created_at` / `updated_at` | timestamptz | `updated_at` via trigger |
 
-**Dedupe indexes:** `(customer_product, stripe_customer_id)` and
-`(customer_product, lower(email))`.
+**Dedupe indexes:** `(product, stripe_customer_id)` and `(product, lower(email))`.
+
+**No `stripe_account` column**, so account identity here is inferred from
+`product`. Only the warehouse (`attribution.events`) carries it explicitly.
 
 ### `customer_contacts`
 
@@ -593,7 +736,7 @@ anon-readable (`contacts_anon_select ... USING (true)`), and `why_them` and
 | Venture | `venture_scores` (jsonb, 0-100 per venture), `primary_venture`, `mindmake_buyer_family` |
 | Evidence tier | `network_tier`, `tier_weight`, `priority`, `fit`, `warmth` |
 | Provenance | `confidence`, `intel_method`, `evidence[]`, `source_count`, `source_list[]` |
-| Firmographic | `seniority`, `country`, `industry` |
+| Firmographic | `seniority`, `country`, `geo_code`, `industry` |
 | Hygiene | `is_person`, `name_quality`, `reciprocated_email`, `email_inbound/outbound/last` |
 | Retrieval | `intel_doc`, `intel_tsv` (generated), `embedding vector(1536)` |
 
@@ -607,6 +750,50 @@ one.
 derive from it, so the lexical and semantic tiers can never disagree about what
 was indexed.
 
+`geo_code` is ISO-3166 alpha-2, **resolved rather than stored**: it falls back
+through `country`, then `contacts.location`, then the email ccTLD
+(`network_geo_resolve`). The fallback is the point. `country` alone is populated
+for 3,679 of 10,597 people and for **9 of the 164 in tier 1**, the people who
+have actually replied, so a filter reading `country` directly would hide almost
+everyone Krish knows best the moment he picked a market. Resolution lifts known
+geography to roughly 4,600.
+
+It is denormalised onto this table, not computed per query, because
+`network_search`'s candidate recall paths read `contact_intelligence` alone and
+are capped at 400 rows each; an indexed column lets a country filter push down
+into them instead of being applied to an already-truncated pool. It cannot be a
+`GENERATED` column: the resolution reads `contacts` and `geo_country`, and a
+generated expression must be immutable and single-table.
+
+Kept current by two triggers (`ci_geo_code_trg` on this table's `country`,
+`contacts_geo_code_trg` on `contacts.location` / `email`) rather than only at
+import, so it cannot drift the way an import-time derived column silently does.
+`refresh_network_geo()` re-resolves the whole corpus and returns the number of
+rows changed; run it after an import or after `geo_country` gains an alias.
+
+**Whatever is unknown stays unknown.** `geo_code` is NULL for roughly 6,400
+people and is never guessed at: `.com`, `.io`, `.ai` and `.co` are sold
+worldwide and resolve to nothing. `network_geo_facets()` returns that count
+alongside the per-country totals, and `/api/network/geo` hands it to the UI, so
+a filtered list can say how many people it could not place.
+
+## `geo_country` — the country reference
+
+Anon-readable (a country list carries none of `contact_intelligence`'s privacy
+weight). `code` (ISO-2 PK), `name`, `aliases[]`, `cctld[]`, `featured`.
+
+Aliases are the resolution surface: informal names, demonyms and the major
+cities that turn up in a free-text location field, all lowercase. Two-letter US
+state codes are deliberately **absent** — "CA" is Canada far more often than
+California, and a wrong country is worse than an unknown one. Whole-string ISO
+codes are matched, but only for the whole string, so the UI's `CA` is Canada
+while `San Francisco, CA` resolves through the city alias to the US.
+
+`featured` marks GB, AU and US, matching the geography default already documented
+in [`ICP.md`](./ICP.md) and [`APOLLO_ICP_RUBRIC.md`](./APOLLO_ICP_RUBRIC.md);
+the filter chips and the sourcing rubric should not disagree about which three
+countries matter.
+
 ### Indexes
 
 `hnsw (embedding vector_cosine_ops)` — **HNSW, not ivfflat**. ivfflat needs
@@ -616,8 +803,8 @@ no training step, so creating it before the load is correct rather than merely
 tolerable, which keeps the migration order-independent.
 
 Plus GIN on `intel_tsv`, `roles`, `surface_when`, `venture_scores`, btree on
-`network_tier` / `primary_venture` / `seniority` / `country`, and a partial index
-on the browse default (tiers 1-3, real judgment, actual humans).
+`network_tier` / `primary_venture` / `seniority` / `country` / `geo_code`, and a
+partial index on the browse default (tiers 1-3, real judgment, actual humans).
 
 ## `network_search()` — the scorer
 
@@ -628,6 +815,7 @@ match_score = 100 x venture_multiplier x weighted_mean(
     0.34 semantic       cosine, rescaled onto the measured band [0.30, 0.62]
     0.16 lexical        ts_rank_cd, rescaled in-set, x coverage squared
     0.22 constraint     weighted partial credit, 0.5 when unconstrained
+                        (`geo` matches the RESOLVED geo_code; `country` folds into it)
     0.18 relationship   tier_weight, warmth, reciprocated, log(source_count)
     0.10 actionability  reachable, confidence, intel_method, name_quality
 )
@@ -638,12 +826,37 @@ with no text query is not silently scored out of 0.50.
 
 **Constraints are SOFT.** They contribute weighted partial credit; they never
 filter. The only hard filters are `is_person`, `do_not_contact`, and whatever
-the operator sets explicitly in the UI. This is what makes "always return
-answers" structural rather than a promise the caller has to keep.
+the operator sets explicitly in the UI (`p_tiers`, `p_roles`, `p_min_conf`,
+`p_countries`). This is what makes "always return answers" structural rather
+than a promise the caller has to keep.
 
 Candidate recall is a UNION of orthogonal paths, one of which is
 **query-independent** (the strongest relationships in the network). That is what
 a nonsense query falls back to. The no-vector path stays fully exhaustive.
+
+`p_countries` **pushes down into every recall path** rather than filtering their
+output. Each path is capped at `p_pool` (400) rows, so a UK search that filtered
+afterwards would examine 400 mostly-Australian neighbours and return the handful
+of Britons among them, out of 382. Scoping the paths spends those slots where
+the answer is. A soft `geo` constraint gets its own recall path for the same
+reason: the constraint term cannot promote someone who was never scored.
+
+A soft `geo` constraint has **three** outcomes, not two: 1.0 in the named
+country, **0.5 for an unknown location** (the same neutral this term uses when
+there is no constraint at all), 0.0 for known-to-be-elsewhere. The middle case is
+load-bearing. With two outcomes, a soft "in the UK" returned 200 Britons out of
+200 rows and buried all 151 of the 164 tier-1 contacts whose location was never
+recorded, because scoring them 0 priced "we never collected this" identically to
+"they are definitely in Sydney". That is a hard filter wearing a soft label, and
+it is the exact failure `geo_code` exists to prevent. `p_countries` stays strict:
+that is the operator saying "UK only" out loud, and the UI tells them how many
+people it cannot place. Probe P8 in `scripts/network/probes.sql` guards it.
+
+Both `p_countries` and `geo` constraint values run through
+`network_geo_canon`, so ISO codes, country names and city names are one filter.
+Values that resolve to nothing **degrade rather than empty the result**: an
+unrecognised `p_countries` becomes no filter, and an unrecognised `geo`
+constraint is dropped instead of scoring zero against the whole corpus.
 
 ### Calibration
 

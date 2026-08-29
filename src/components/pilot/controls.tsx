@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Mic, Square } from 'lucide-react'
+import React, { useEffect, useRef } from 'react'
+import { Mic, Square } from '@/lib/icons'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useDictation } from '../../hooks/useDictation'
 
@@ -32,7 +32,7 @@ const VARIANT: Record<string, string> = {
   primary: 'bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] font-medium',
   secondary: 'border border-white/10 text-ink-muted hover:bg-white/[0.05] hover:text-ink',
   quiet: 'text-ink-faint hover:text-ink-muted',
-  chip: 'border text-[14px]',
+  chip: 'border text-ui',
 }
 
 /**
@@ -57,7 +57,7 @@ export function Tap({
       disabled={disabled}
       onPointerDown={() => { if (!disabled) h[feel]() }}
       onClick={() => { if (!disabled) onTap() }}
-      className={`${TAP} px-4 rounded-xl text-[15px] transition-all duration-100 active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100 touch-manipulation select-none ${base} ${className}`}
+      className={`${TAP} px-4 rounded-xl text-ui transition-all duration-100 active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100 touch-manipulation select-none ${base} ${className}`}
     >
       {children}
     </button>
@@ -104,8 +104,8 @@ export function VoiceField({
         onKeyDown={e => {
           if (e.key === 'Enter' && !e.shiftKey && onEnter) { e.preventDefault(); onEnter() }
         }}
-        placeholder={listening ? 'Listening...' : placeholder}
-        className={`w-full px-4 py-3.5 ${supported ? 'pr-[60px]' : ''} rounded-xl bg-white/[0.03] border text-[16px] leading-relaxed text-ink placeholder:text-ink-faint outline-none resize-none transition-colors ${
+        placeholder={listening ? 'Listening…' : placeholder}
+        className={`w-full px-4 py-3.5 ${supported ? 'pr-[60px]' : ''} rounded-xl bg-white/[0.03] border text-lede leading-relaxed text-ink placeholder:text-ink-faint outline-none resize-none transition-colors ${
           listening ? 'border-white/30' : 'border-white/10 focus:border-white/25'
         }`}
       />
@@ -128,65 +128,9 @@ export function VoiceField({
   )
 }
 
-/**
- * Fixed-position affordance that sits ABOVE the mobile bottom nav rather than
- * behind it. BottomNav is fixed bottom-0 z-50 at ~72px plus safe area; v1 put
- * these at bottom-4 z-40, which buried them completely on a phone.
- */
-export function useAboveNavOffset(): string {
-  const [narrow, setNarrow] = useState(
-    typeof window !== 'undefined' && window.innerWidth < 1024,
-  )
-  useEffect(() => {
-    const on = () => setNarrow(window.innerWidth < 1024)
-    window.addEventListener('resize', on)
-    return () => window.removeEventListener('resize', on)
-  }, [])
-  return narrow
-    ? 'bottom-[calc(env(safe-area-inset-bottom,0px)+88px)]'
-    : 'bottom-5'
-}
-
-/**
- * The pilot dock: one piece of chrome holding the operator's two affordances,
- * pinned above the mobile bottom nav.
- *
- * Two loose floating buttons read as content that had escaped its container,
- * and they overlapped the cards behind them. Grouping them into a single
- * bordered, blurred pill makes them read as chrome, which is what they are.
- */
-export function PilotDock({ children }: { children: React.ReactNode }) {
-  const offset = useAboveNavOffset()
-  return (
-    <div className={`fixed ${offset} left-1/2 -translate-x-1/2 z-40 pointer-events-none`}>
-      {/* Fully opaque. A translucent dock let the cards behind it read straight
-          through the labels, which looked like a rendering bug rather than
-          chrome. The shadow lifts it off the content instead. */}
-      <div className="pointer-events-auto flex items-center gap-1 p-1 rounded-2xl bg-base border border-white/[0.14] shadow-xl shadow-black/25 ring-1 ring-black/[0.04]">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-/** A single action inside the dock. */
-export function DockButton({
-  label, onTap, dimmed, title,
-}: { label: string; onTap: () => void; dimmed?: boolean; title?: string }) {
-  const h = useHaptics()
-  return (
-    <button
-      type="button"
-      title={title}
-      onPointerDown={() => h.tap()}
-      onClick={onTap}
-      className={`min-h-[44px] px-4 rounded-xl text-[12.5px] whitespace-nowrap transition-all active:scale-95 touch-manipulation ${
-        dimmed
-          ? 'text-ink-faint/60 hover:text-ink-faint hover:bg-white/[0.05]'
-          : 'text-ink-muted hover:text-ink hover:bg-white/[0.07]'
-      }`}
-    >
-      {label}
-    </button>
-  )
-}
+// The pilot dock used to live here: a floating pill holding "compile a worry"
+// and "shutdown", pinned over every tab. Removed 2026-08-20. Persistent chrome
+// on every screen is exactly the kind of ambient self-monitoring the pilot
+// layer exists to avoid, and both actions now have a real home on the Focus &
+// Purpose tab (src/components/focusPurpose/FocusPurposeTab.tsx). The after-5pm
+// shutdown prompt still fires from EveningShutdown, once a day.

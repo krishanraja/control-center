@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { webResearch } from '../_enrich.js'
 import { callClaude, robustJson, loadVoiceBlock, VOICE_GUARDRAILS } from '../_content.js'
@@ -121,7 +122,7 @@ async function draftMoves(metricKey: string, baseline: number, latest: number, w
     'Draft the 3 moves.',
   ].filter(Boolean).join('\n\n')
 
-  const raw = await callClaude({ system, user, maxTokens: 1200, temperature: 0.6 })
+  const raw = await callClaude({ agent: 'growth-stall-check', system, user, maxTokens: 1200, temperature: 0.6 })
   const parsed = robustJson(raw)
   if (!Array.isArray(parsed)) throw new Error('drafting returned non-array')
   return parsed.slice(0, 3).map((m: any) => ({
@@ -235,21 +236,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   res.setHeader('Cache-Control', 'no-store')
-  if (req.method === 'OPTIONS') return res.status(204).end()
+  if (guardCronRoute(req, res)) return
 
   try {
     if (req.method === 'GET') {
-      const secret = process.env.CRON_SECRET || ''
-      const auth = req.headers.authorization || ''
-      // NOTE: x-vercel-cron is NOT stripped by Vercel on inbound external
-      // requests (verified 2026-08-05: a spoofed header returned 200 and ran
-      // the job), so it is not proof of anything. Vercel sends
-      // `Authorization: Bearer $CRON_SECRET` on cron invocations whenever
-      // CRON_SECRET is set, which it is. Bearer-only matches the proven
-      // pattern in api/feed/ingest.ts.
-      if (!secret || auth !== `Bearer ${secret}`) {
-        return res.status(401).json({ ok: false, error: 'unauthorized' })
-      }
       const result = await runCheck(req.query.dry_run === '1')
       return res.json({ ok: true, ...result })
     }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useCustomers, type CustomerRow, type CustomerProduct } from './useCustomers'
-import { displayMrr } from '../lib/mrrDisplay'
+import { useRevenue } from './useRevenue'
 
 /**
  * Pillar 1 — Money Machine.
@@ -35,12 +35,11 @@ export interface AttributionBucket {
 
 const MS_PER_DAY = 86_400_000
 
-function mrrGoalFromConfig(rows: any[]): number {
-  const row = rows.find(r => r.key === 'mrr_goal_usd')
-  if (!row) return 100_000
-  const n = Number(row.value)
-  return Number.isFinite(n) ? n : 100_000
-}
+// Defaults to 0, meaning "no goal set", so the goal bar hides rather than
+// measuring against a number nobody chose. system_config.mrr_goal_usd held
+// 100000 while the retired north_star string said $20K: two revenue goals, in
+// two stores, contradicting each other on the same screen. Revenue targets
+// belong on the goal ladder now (docs/GOALS-DUPLICATION-AUDIT.md section A).
 
 function startOfDay(d: Date): Date {
   const x = new Date(d)
@@ -82,8 +81,8 @@ export function useRevenueAttribution() {
   const { customers, totals, loading: customersLoading } = useCustomers()
   const [leadsById, setLeadsById]   = useState<Map<string, any>>(new Map())
   const [tasksById, setTasksById]   = useState<Map<string, any>>(new Map())
-  const [mrrGoal,   setMrrGoal]     = useState<number>(100_000)
   const [loading,   setLoading]     = useState(true)
+  const { revenue } = useRevenue()
 
   useEffect(() => {
     let cancelled = false
@@ -100,7 +99,6 @@ export function useRevenueAttribution() {
       for (const t of tasksRes.data || []) tMap.set(t.id, t)
       setLeadsById(lMap)
       setTasksById(tMap)
-      setMrrGoal(mrrGoalFromConfig(cfgRes.data || []))
       setLoading(false)
     }
     load()
@@ -123,12 +121,13 @@ export function useRevenueAttribution() {
     })
   }, [customers, leadsById, tasksById])
 
-  const liveMrr     = displayMrr(totals.mrrUsd)
+  // Committed MRR from Stripe subscriptions, not a sum over customers.mrr_usd.
+  // That column treats a Checkout grand total as monthly revenue, so a single
+  // one-off payment used to read as thousands per month.
+  const liveMrr     = revenue ? revenue.committed_mrr_usd_cents / 100 : 0
   const mrrDelta7d  = useMemo(() => deltaMrr(customers, 7),  [customers])
   const mrrDelta28d = useMemo(() => deltaMrr(customers, 28), [customers])
   const projection  = useMemo(() => project90d(liveMrr, customers), [liveMrr, customers])
-  const gapToGoal   = Math.max(0, mrrGoal - liveMrr)
-  const goalPct     = mrrGoal > 0 ? Math.min(100, (liveMrr / mrrGoal) * 100) : 0
 
   const buckets = useMemo<AttributionBucket[]>(() => {
     const map = new Map<string, AttributionBucket>()
@@ -171,7 +170,7 @@ export function useRevenueAttribution() {
   return {
     customers: attributed,
     liveMrr, mrrDelta7d, mrrDelta28d, projection,
-    mrrGoal, gapToGoal, goalPct,
+    revenue,
     buckets,
     loading: customersLoading || loading,
   }

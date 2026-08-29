@@ -24,7 +24,16 @@ let fail = 0
 const bad = (m: string) => { console.log('FAIL: ' + m); fail++ }
 
 // ── 1. every adapt value is a real corpus key ──────────────────────────────
-const adaptBlock = ce.split('export const LANE_ADAPTS')[1]?.split('\n]')[0] ?? ''
+// LANE_ADAPTS became `[...FORMAT_ADAPTS, ...CHANNEL_ADAPTS]` in a refactor, and
+// this check's old string-split silently stopped parsing anything, so the whole
+// adapt-value guard was passing vacuously on main. Parse the source arrays, and
+// FAIL LOUD if either disappears again rather than degrading to an empty list.
+const blockOf = (name: string) => ce.split(`const ${name}: LaneAdapt[] = [`)[1]?.split('\n]')[0] ?? ''
+const formatBlock = blockOf('FORMAT_ADAPTS')
+const channelBlock = blockOf('CHANNEL_ADAPTS')
+if (!formatBlock) bad('could not parse FORMAT_ADAPTS')
+if (!channelBlock) bad('could not parse CHANNEL_ADAPTS')
+const adaptBlock = `${formatBlock}\n${channelBlock}`
 const adaptValues = [...adaptBlock.matchAll(/value:\s*'([^']+)'/g)].map(m => m[1])
 const corpusKeys = new Set([...ct.matchAll(/^ {2}([a-z_]+):\s*\//gm)].map(m => m[1]))
 if (!adaptValues.length) bad('no LANE_ADAPTS values parsed')
@@ -40,7 +49,8 @@ const RETIRED = [
   'mymu_weekly', 'investigation', 'builder_economy',
 ]
 const choiceBlocks = [
-  ['LANE_ADAPTS', adaptBlock],
+  ['FORMAT_ADAPTS', formatBlock],
+  ['CHANNEL_ADAPTS', channelBlock],
   ['VENTURE_FORMATS', ce.split('export const VENTURE_FORMATS')[1]?.split('\n]')[0] ?? ''],
   ['MEDIA_VENTURES', ce.split('export const MEDIA_VENTURES')[1]?.split('\n]')[0] ?? ''],
   ['LANES', ce.split('export const LANES')[1]?.split('\n]')[0] ?? ''],

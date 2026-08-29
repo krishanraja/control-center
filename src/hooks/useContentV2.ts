@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { ContentDecisionRow, ShiftEvidenceRow, ShiftRow, WeeklyBriefRow } from '../lib/contentV2'
+import type { ArcCardRow, ContentDecisionRow, ShiftEvidenceRow, ShiftRow, WeeklyBriefRow } from '../lib/contentV2'
+import { earliestQueueWeek } from '../lib/contentV2'
 
 // Data layer for the four-room Content tab. Reads go straight to Supabase
 // (anon SELECT per house RLS); every write goes through /api/* (service role).
@@ -20,22 +21,50 @@ export function useContentV2() {
   const [brief, setBrief] = useState<WeeklyBriefRow | null>(null)
   const [decisions, setDecisions] = useState<ContentDecisionRow[]>([])
   const [shifts, setShifts] = useState<ShiftRow[]>([])
+  const [arcCards, setArcCards] = useState<ArcCardRow[]>([])
   const [loading, setLoading] = useState(true)
   const alive = useRef(true)
 
   const refresh = useCallback(async () => {
-    const [briefQ, decQ, shiftQ] = await Promise.all([
+    // Both reads are bounded by the same week window. Without it the queue
+    // showed the thirty oldest pending cards ever written and the brief hero
+    // showed the newest brief that was never archived - which, because the
+    // purge only archived 'pushed'/'sent' and nothing had ever been pushed,
+    // meant a brief from any past week could sit here indefinitely.
+    const since = earliestQueueWeek()
+    const [briefQ, decQ, shiftQ, cardQ] = await Promise.all([
       supabase.from('weekly_briefs').select('*')
         .in('status', ['ready', 'in_review', 'approved', 'pushed', 'sent'])
+        .gte('week', since)
         .order('week', { ascending: false }).limit(1),
+      // Newest first, so if a week ever overruns the cap again (2026-W31 wrote
+      // 40 cards against the spec's 5-10) the truncation drops the oldest
+      // rather than hiding everything recent behind them.
       supabase.from('content_decisions').select('*')
-        .eq('status', 'pending').order('created_at', { ascending: true }).limit(30),
-      supabase.from('shifts').select('*').order('momentum', { ascending: false }).limit(100),
+        .eq('status', 'pending')
+        .gte('week', since)
+        .order('created_at', { ascending: false }).limit(60),
+      // Merged arcs are kept rather than deleted so a merge is reversible
+      // (api/shifts/[id].ts), so every list reader must exclude them or a
+      // folded arc reappears beside the one it was folded into.
+      supabase.from('shifts').select('*')
+        .is('superseded_by', null)
+        .order('momentum', { ascending: false }).limit(100),
+      // The surfaced week, newest first. Blocked and unsurfaced rows come too:
+      // the reason a card did NOT make it is the thing the old queue could
+      // never answer, and it is what turns "nothing this week" from a silent
+      // failure into a statement.
+      supabase.from('arc_cards').select('*')
+        .gte('week', since)
+        .order('surfaced', { ascending: false })
+        .order('score', { ascending: false })
+        .limit(120),
     ])
     if (!alive.current) return
     setBrief(((briefQ.data || [])[0] as WeeklyBriefRow) || null)
     setDecisions((decQ.data as ContentDecisionRow[]) || [])
     setShifts((shiftQ.data as ShiftRow[]) || [])
+    setArcCards((cardQ.data as ArcCardRow[]) || [])
     setLoading(false)
   }, [])
 
@@ -47,6 +76,7 @@ export function useContentV2() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'weekly_briefs' }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'content_decisions' }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'arc_cards' }, refresh)
       .subscribe()
     return () => {
       alive.current = false
@@ -76,7 +106,7 @@ export function useContentV2() {
     refresh()
   }, [refresh])
 
-  return { brief, decisions, shifts, loading, refresh, resolveDecision, rejectDecision, ruleShift }
+  return { brief, decisions, shifts, arcCards, loading, refresh, resolveDecision, rejectDecision, ruleShift }
 }
 
 export function useShiftEvidence(shiftId: string | null) {

@@ -1,9 +1,11 @@
+import { OptionChips } from './goals/GoalPickers'
 import React, { useState } from 'react'
-import { Mic, Calendar, Flame, AlertOctagon, Sparkles, ArrowUpRight } from 'lucide-react'
+import { Mic, Calendar, Flame, AlertOctagon, Sparkles, ArrowUpRight } from '@/lib/icons'
 import { useCustomerContacts, type CouncilEntry } from '../hooks/useCustomerContacts'
 import { PRODUCT_LABEL } from '../hooks/useCustomers'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
+import { Skeleton } from './shared/Skeleton'
 
 const PRIORITY_TONE: Record<CouncilEntry['priority'], { border: string; accent: string; icon: any; label: string }> = {
   churn_exit:            { border: 'border-red-500/40',     accent: 'text-red-300',     icon: AlertOctagon, label: 'Exit interview' },
@@ -54,18 +56,18 @@ export function CustomerCouncilCard() {
 
   if (loading) {
     return (
-      <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden animate-pulse">
+      <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
         <header className="px-4 py-3 border-b border-white/[0.05] flex items-center justify-between">
-          <div>
-            <div className="h-2.5 w-32 bg-white/[0.08] rounded" />
-            <div className="h-2 w-24 bg-white/[0.05] rounded mt-2" />
+          <div className="space-y-2">
+            <Skeleton h={10} w={128} r={4} />
+            <Skeleton h={8} w={96} r={4} />
           </div>
-          <div className="h-2.5 w-10 bg-white/[0.06] rounded" />
+          <Skeleton h={10} w={40} r={4} />
         </header>
         <ul className="divide-y divide-white/[0.04]">
           {[0, 1, 2].map(i => (
             <li key={i} className="px-4 py-3 border-l-2 border-white/10">
-              <div className="h-2 w-20 bg-white/[0.06] rounded" />
+              <Skeleton h={8} w={80} r={4} />
               <div className="h-2.5 w-40 bg-white/[0.08] rounded mt-2" />
               <div className="h-2 w-28 bg-white/[0.05] rounded mt-2" />
             </li>
@@ -79,17 +81,17 @@ export function CustomerCouncilCard() {
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
       <header className="px-4 py-3 border-b border-white/[0.05] flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h3 className="text-[12px] font-semibold text-white flex items-center gap-1.5">
+          <h3 className="text-label font-semibold text-white flex items-center gap-1.5">
             <Mic size={12} className="text-violet-300" />
             Customer Council
           </h3>
-          <p className="text-[10px] text-white/45 mt-0.5">
+          <p className="text-micro text-white/45 mt-0.5">
             {council.length} customers to talk to this week
           </p>
         </div>
         <div className="flex items-center gap-1.5">
           <Flame size={12} className={streakDays > 0 ? 'text-amber-300' : 'text-white/30'} />
-          <span className={`text-[11px] tabular-nums font-semibold ${streakDays > 0 ? 'text-amber-300' : 'text-white/40'}`}>
+          <span className={`text-micro tabular-nums font-semibold ${streakDays > 0 ? 'text-amber-300' : 'text-white/40'}`}>
             {streakDays}d streak
           </span>
         </div>
@@ -97,7 +99,7 @@ export function CustomerCouncilCard() {
 
       {council.length === 0 ? (
         <div className="p-4 text-center">
-          <p className="text-[11px] text-white/45">No urgent contacts. Caught up — for now.</p>
+          <p className="text-micro text-white/45">No urgent contacts. Caught up — for now.</p>
         </div>
       ) : (
         <ul className="divide-y divide-white/[0.04]">
@@ -111,68 +113,65 @@ export function CustomerCouncilCard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <Icon size={11} className={tone.accent} />
-                      <span className={`text-[10px] uppercase tracking-[0.12em] ${tone.accent} font-semibold`}>
+                      <span className={`text-micro uppercase tracking-[0.14em] ${tone.accent} font-semibold`}>
                         {tone.label}
                       </span>
                     </div>
-                    <p className="text-[13px] font-semibold text-white truncate">
+                    <p className="text-body font-semibold text-white truncate">
                       {entry.customer.full_name || entry.customer.email || 'Customer'}
                     </p>
-                    <p className="text-[10px] text-white/45 mt-0.5">
+                    <p className="text-micro text-white/45 mt-0.5">
                       {PRODUCT_LABEL[entry.customer.product]}
                       {entry.customer.mrr_usd ? ` · $${Math.round(entry.customer.mrr_usd)}/mo` : ''}
                     </p>
-                    <p className="text-[11px] text-white/65 mt-1">{entry.reason}</p>
+                    <p className="text-micro text-white/65 mt-1">{entry.reason}</p>
                   </div>
                 </div>
 
                 {isLogging ? (
                   <div className="mt-2.5 space-y-2 rounded-md border border-white/[0.08] bg-white/[0.03] p-2.5">
-                    <div className="grid grid-cols-2 gap-2">
-                      <select
+                    <div className="space-y-2">
+                      <OptionChips
+                        label="How"
+                        options={[
+                          { value: 'email', label: 'Email' }, { value: 'call', label: 'Call' },
+                          { value: 'video', label: 'Video' }, { value: 'message', label: 'Message' },
+                          { value: 'in_person', label: 'In person' },
+                        ]}
                         value={draft.channel}
-                        onChange={e => setDraft(d => ({ ...d, channel: e.target.value }))}
-                        className="bg-white/[0.04] border border-white/[0.08] rounded text-[11px] text-white p-1.5"
-                      >
-                        <option value="email">Email</option>
-                        <option value="call">Call</option>
-                        <option value="video">Video</option>
-                        <option value="message">Message</option>
-                        <option value="in_person">In person</option>
-                      </select>
-                      <select
+                        onChange={v => setDraft(d => ({ ...d, channel: v }))}
+                      />
+                      <OptionChips
+                        label="Why"
+                        options={[
+                          { value: 'welcome', label: 'Welcome' }, { value: 'check_in', label: 'Check-in' },
+                          { value: 'expansion', label: 'Expansion' }, { value: 'save', label: 'Save' },
+                          { value: 'exit_interview', label: 'Exit interview' }, { value: 'other', label: 'Other' },
+                        ]}
                         value={draft.reason}
-                        onChange={e => setDraft(d => ({ ...d, reason: e.target.value }))}
-                        className="bg-white/[0.04] border border-white/[0.08] rounded text-[11px] text-white p-1.5"
-                      >
-                        <option value="welcome">Welcome</option>
-                        <option value="check_in">Check-in</option>
-                        <option value="expansion">Expansion</option>
-                        <option value="save">Save</option>
-                        <option value="exit_interview">Exit interview</option>
-                        <option value="other">Other</option>
-                      </select>
+                        onChange={v => setDraft(d => ({ ...d, reason: v }))}
+                      />
                     </div>
                     <textarea
                       value={draft.summary}
                       onChange={e => setDraft(d => ({ ...d, summary: e.target.value }))}
                       rows={2}
                       placeholder="What was said? (one sentence)"
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-[11px] text-white p-2 placeholder:text-white/30 focus:outline-none focus:border-white/[0.18]"
+                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-micro text-white p-2 placeholder:text-white/30 focus:outline-none focus:border-white/[0.18]"
                     />
                     <input
                       type="text"
                       value={draft.next_step}
                       onChange={e => setDraft(d => ({ ...d, next_step: e.target.value }))}
                       placeholder="Next step (optional)"
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-[11px] text-white p-2 placeholder:text-white/30 focus:outline-none focus:border-white/[0.18]"
+                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded text-micro text-white p-2 placeholder:text-white/30 focus:outline-none focus:border-white/[0.18]"
                     />
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => log(entry.customer.id)}
                         disabled={busy}
-                        className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-violet-500/30 border border-violet-500/40 text-violet-100 hover:bg-violet-500/40 disabled:opacity-40"
+                        className="px-2.5 py-1 rounded-md text-micro font-semibold bg-violet-500/30 border border-violet-500/40 text-violet-100 hover:bg-violet-500/40 disabled:opacity-40"
                       >
                         {busy ? 'Saving…' : 'Log contact'}
                       </button>
@@ -180,7 +179,7 @@ export function CustomerCouncilCard() {
                         type="button"
                         onClick={() => setLogging(null)}
                         disabled={busy}
-                        className="px-2 py-1 rounded-md text-[11px] text-white/55 hover:text-white/80"
+                        className="px-2 py-1 rounded-md text-micro text-white/55 hover:text-white/80"
                       >
                         Cancel
                       </button>
@@ -199,14 +198,14 @@ export function CustomerCouncilCard() {
                           next_step: '',
                         })
                       }}
-                      className="px-2.5 py-1 rounded-md text-[11px] font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15"
+                      className="px-2.5 py-1 rounded-md text-micro font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15"
                     >
                       Log contact
                     </button>
                     {entry.customer.email && (
                       <a
                         href={`mailto:${entry.customer.email}`}
-                        className="px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06]"
+                        className="px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06]"
                       >
                         Email
                       </a>

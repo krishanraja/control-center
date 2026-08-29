@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { Sparkles, X, Loader2, GitMerge } from 'lucide-react'
+import { Sparkles, X, GitMerge } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
 import type { ContentIdeaRow } from '../../hooks/useRealtimeContentIdeas'
+import { Working } from '../shared/Working'
 
 // Venture + format, mirroring venture_formats. There is ONE content venture,
 // Publication, with two formats. Synthesis targets a FORMAT, never the
@@ -93,8 +94,8 @@ export function SynthesisModal({ open, onClose, selected, onSynthesized }: Props
       >
         <header className="flex items-center gap-2 px-5 pt-4 pb-2 border-b border-white/[0.06]">
           <GitMerge size={14} className="text-violet-300" />
-          <h2 className="text-[13px] font-semibold text-white">Synthesize narrative</h2>
-          <span className="text-[10.5px] text-white/40 ml-1">
+          <h2 className="text-body font-semibold text-white">Synthesize narrative</h2>
+          <span className="text-micro text-white/40 ml-1">
             {selected.length} card{selected.length === 1 ? '' : 's'} → one draft
           </span>
           <button
@@ -110,23 +111,23 @@ export function SynthesisModal({ open, onClose, selected, onSynthesized }: Props
         <div className="px-5 py-4 max-h-[70vh] overflow-y-auto">
           {/* Cards going in */}
           <section className="mb-4">
-            <h3 className="text-[10.5px] uppercase tracking-[0.1em] text-white/45 mb-2">Folding in</h3>
+            <h3 className="text-micro uppercase tracking-[0.14em] text-white/45 mb-2">Folding in</h3>
             <div className="space-y-1 max-h-[140px] overflow-y-auto pr-1">
               {selected.slice(0, 14).map((s, i) => (
-                <div key={s.id} className="flex items-start gap-2 text-[12px]">
+                <div key={s.id} className="flex items-start gap-2 text-label">
                   <span className="text-white/35 tabular-nums w-5 flex-shrink-0">[{i + 1}]</span>
                   <span className="text-white/80 truncate">{s.idea}</span>
                 </div>
               ))}
               {selected.length > 14 && (
-                <p className="text-[11px] text-white/40 pl-7">…and {selected.length - 14} more</p>
+                <p className="text-micro text-white/40 pl-7">…and {selected.length - 14} more</p>
               )}
             </div>
           </section>
 
           {/* Lane picker */}
           <section className="mb-4">
-            <h3 className="text-[10.5px] uppercase tracking-[0.1em] text-white/45 mb-2">Target lane</h3>
+            <h3 className="text-micro uppercase tracking-[0.14em] text-white/45 mb-2">Target lane</h3>
             <div className="grid grid-cols-1 gap-1.5">
               {LANES.map((l) => {
                 const active = l.lane === choice.lane && (l.slot || null) === (choice.slot || null)
@@ -141,8 +142,8 @@ export function SynthesisModal({ open, onClose, selected, onSynthesized }: Props
                         : 'border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04]'
                     }`}
                   >
-                    <p className={`text-[12.5px] font-medium ${active ? 'text-white' : 'text-white/80'}`}>{l.label}</p>
-                    <p className="text-[11px] text-white/45 mt-0.5">{l.description}</p>
+                    <p className={`text-label font-medium ${active ? 'text-white' : 'text-white/80'}`}>{l.label}</p>
+                    <p className="text-micro text-white/45 mt-0.5">{l.description}</p>
                   </button>
                 )
               })}
@@ -151,28 +152,28 @@ export function SynthesisModal({ open, onClose, selected, onSynthesized }: Props
 
           {/* Angle hint */}
           <section className="mb-2">
-            <h3 className="text-[10.5px] uppercase tracking-[0.1em] text-white/45 mb-2">Angle hint (optional)</h3>
+            <h3 className="text-micro uppercase tracking-[0.14em] text-white/45 mb-2">Angle hint (optional)</h3>
             <textarea
               value={angleHint}
               onChange={(e) => setAngleHint(e.target.value)}
               rows={2}
               placeholder='e.g. "Frame this around platform lock-in becoming the new moat" or leave blank for Cleo to find the throughline.'
-              className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-[12.5px] text-white placeholder-white/30 focus:outline-none focus:border-violet-500/40 resize-none"
+              className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-label text-white placeholder-white/30 focus:outline-none focus:border-violet-500/40 resize-none"
             />
           </section>
         </div>
 
         <footer className="flex items-center justify-between px-5 py-3 border-t border-white/[0.06]">
-          <p className="text-[11px] text-white/40">
+          <p className="text-micro text-white/40">
             Goes to <span className="text-white/55">drafting</span>; source cards flip to <span className="text-white/55">absorbed</span>.
           </p>
           <button
             type="button"
             onClick={submit}
             disabled={busy || selected.length < 2}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border border-violet-500/30 bg-violet-500/15 text-violet-200 hover:bg-violet-500/25 disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-medium border border-violet-500/30 bg-violet-500/15 text-violet-200 hover:bg-violet-500/25 disabled:opacity-40 transition-colors"
           >
-            {busy ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+            {busy ? <Working size={12} /> : <Sparkles size={12} />}
             Synthesize {selected.length} → 1
           </button>
         </footer>

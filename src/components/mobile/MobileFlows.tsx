@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { MobileShell as MobileShellPrim, TabHeader, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
+import { MobileShell as MobileShellPrim, TabHeader,
+  HeaderSubtitleSkeleton, HeroCard, StatPill, FeedCard, FeedRow, EmptyState, MobileLoadingScreen } from './primitives'
 import { DetailSheet } from './DetailSheet'
 import { useHaptics } from '../../hooks/useHaptics'
 import { supabase, logKrishAction } from '../../lib/supabase'
 import { useToast } from '../shared/Toast'
+import { FleetHealthStrip } from '../flows/FleetHealthStrip'
 
 interface Run {
   id: string
@@ -119,10 +121,12 @@ export function MobileFlows() {
       header={
         <TabHeader
           title="Flows"
-          subtitle={loading ? 'Loading…' : `${grouped.length} workflows · ${proposals.length} proposals waiting`}
+          subtitle={loading ? <HeaderSubtitleSkeleton w={208} /> : `${grouped.length} workflows · ${proposals.length} proposals waiting`}
         />
       }
     >
+      {/* n8n's own view of the fleet, above the self-reported runs. */}
+      <FleetHealthStrip />
       {heroProposal ? (
         <HeroCard
           eyebrow="Proposal · waiting for you"
@@ -184,7 +188,7 @@ export function MobileFlows() {
               title={g.workflow_name}
               detail={g.agent_id ? `Owner: ${g.agent_id}` : undefined}
               trailing={
-                <span className="text-[18px] font-bold tabular-nums text-red-300">
+                <span className="text-title font-bold tabular-nums text-red-300">
                   {g.errorCount}/{g.runCount}
                 </span>
               }
@@ -203,13 +207,13 @@ export function MobileFlows() {
               title={g.workflow_name}
               detail={g.agent_id ? `Owner: ${g.agent_id}` : undefined}
               trailing={
-                <span className="text-[14px] text-white/35 tabular-nums">{humanAgo(g.lastRun)}</span>
+                <span className="text-ui text-white/35 tabular-nums">{humanAgo(g.lastRun)}</span>
               }
               onClick={() => { h.select(); setOpenFlowId(g.workflow_id) }}
             />
           ))}
           {healthy.length > 12 && (
-            <div className="px-7 py-4 text-[14px] text-white/35 text-center">
+            <div className="px-7 py-4 text-ui text-white/35 text-center">
               +{healthy.length - 12} more
             </div>
           )}

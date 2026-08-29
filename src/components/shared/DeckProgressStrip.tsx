@@ -1,4 +1,4 @@
-import { RotateCcw, Layers, LogOut } from 'lucide-react'
+import { RotateCcw, Layers, LogOut } from '@/lib/icons'
 
 interface Props {
   /** Headline, e.g. "Clear the pile" / "Handle 1-by-1". */
@@ -24,19 +24,19 @@ export function DeckProgressStrip({
   return (
     <div className="flex items-center gap-2 pt-1 pb-3 flex-shrink-0">
       <Layers size={14} className="text-violet-300" />
-      <span className="text-[12px] text-white/70 font-medium">{title}</span>
-      <span className="text-[12px] text-white/40 tabular-nums">· {remaining} left{triagedCount > 0 ? ` · ${triagedCount} cleared` : ''}</span>
+      <span className="text-label text-white/70 font-medium">{title}</span>
+      <span className="text-label text-white/40 tabular-nums">· {remaining} left{triagedCount > 0 ? ` · ${triagedCount} cleared` : ''}</span>
       {(canUndo || onExit) && (
         <div className="ml-auto flex items-center gap-1.5">
           {canUndo && onUndo && (
             <button type="button" onClick={onUndo}
-              className="inline-flex items-center gap-1 text-[11px] text-white/55 hover:text-white/90 px-2 py-1 rounded-md hover:bg-white/[0.06]">
+              className="inline-flex items-center gap-1 text-micro text-white/55 hover:text-white/90 px-2 py-1 rounded-md hover:bg-white/[0.06]">
               <RotateCcw size={12} /> Undo
             </button>
           )}
           {onExit && (
             <button type="button" onClick={onExit}
-              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/85 border border-white/20 bg-white/[0.06] hover:bg-white/[0.12] active:scale-95 transition px-3 py-1.5 rounded-lg">
+              className="inline-flex items-center gap-1.5 text-label font-semibold text-white/85 border border-white/20 bg-white/[0.06] hover:bg-white/[0.12] active:scale-95 transition px-3 py-1.5 rounded-lg">
               <LogOut size={13} /> {exitLabel}
             </button>
           )}

@@ -190,7 +190,7 @@ export function useContentTriage() {
       toast('Could not drop — try again.', 'error')
       return
     }
-    toast('Dropped. Vera will learn.', 'success')
+    toast('Dropped. Vera will learn from that.', 'success')
   }, [h, toast])
 
   // Flush any parked drop with the default reason before the next gesture, so at

@@ -42,8 +42,8 @@ export function ContactSourcePill({ contact, size = 'xs' }: Props) {
   const meta = VENTURE_META[slug]
   const tone = meta?.tone || FALLBACK_VENTURE_TONE
   const label = meta?.label || (slug ? slug.replace(/_/g, ' ') : 'Unknown origin')
-  const padding = size === 'sm' ? 'px-1.5 py-0.5 text-[10px]' : 'px-1 py-0.5 text-[9px]'
-  const subSize = size === 'sm' ? 'text-[10px]' : 'text-[9px]'
+  const padding = size === 'sm' ? 'px-1.5 py-0.5 text-micro' : 'px-1 py-0.5 text-micro'
+  const subSize = size === 'sm' ? 'text-micro' : 'text-micro'
 
   return (
     <span className="inline-flex items-center gap-1.5 min-w-0" title="Where this contact came from">
@@ -78,10 +78,10 @@ export function ConsentTierBadge({ tier, size = 'xs' }: TierProps) {
   if (!tier) return null
   const meta = TIER_META[tier]
   if (!meta) return null
-  const padding = size === 'sm' ? 'px-1.5 py-0.5 text-[10px]' : 'px-1 py-0.5 text-[9px]'
+  const padding = size === 'sm' ? 'px-1.5 py-0.5 text-micro' : 'px-1 py-0.5 text-micro'
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded border ${meta.tone} ${padding} font-semibold uppercase tracking-[0.06em] flex-shrink-0`}
+      className={`inline-flex items-center gap-1 rounded border ${meta.tone} ${padding} font-semibold uppercase tracking-[0.14em] flex-shrink-0`}
       title={`Consent tier: ${meta.label}`}
     >
       {meta.label}

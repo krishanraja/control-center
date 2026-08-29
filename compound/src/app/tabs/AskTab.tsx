@@ -1,82 +1,72 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { buildAnswers, findAnswer, type Answer } from "../../lib/answers";
 import type { CompoundConfig } from "../../lib/env";
-import { DEFAULT_HORIZON } from "../../lib/horizon";
-import { loadAskSnapshotId } from "../../lib/askSnapshot";
 import { streamCompoundAnswer } from "../../lib/stream";
-import { getSupabase } from "../../lib/supabase";
-import type { ChatEvidence, Snapshot } from "../../types";
-import { useSplit } from "../DeviceProvider";
-import { ChevronIcon } from "../components/Icons";
-import { RichText } from "../components/RichText";
+import type { ChatEvidence, CompoundDay } from "../../types";
+import { ChevronIcon, HistoryIcon, SourceIcon } from "../components/Icons";
+
+type Scope = "current" | "compare" | "range";
 
 interface Props {
-  snapshot: Snapshot;
+  day: CompoundDay;
   config: CompoundConfig;
   session: Session | null;
-  /** A question handed over by a card's "Ask about this" button. */
   pending: string | null;
   onConsumed: () => void;
 }
 
-export function AskTab({ snapshot, config, session, pending, onConsumed }: Props) {
-  const split = useSplit();
-  const answers = useMemo(() => buildAnswers(snapshot), [snapshot]);
+export function AskTab({ day, config, session, pending, onConsumed }: Props) {
+  const [scope, setScope] = useState<Scope>("current");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState(day.archive.snapshot_date);
   const [input, setInput] = useState("");
   const [question, setQuestion] = useState("");
-  const [offline, setOffline] = useState<Answer | null>(null);
   const [streamed, setStreamed] = useState("");
   const [evidence, setEvidence] = useState<ChatEvidence[]>([]);
-  const [excluded, setExcluded] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [threadId, setThreadId] = useState<string>();
-  const [askId, setAskId] = useState<string | null>(null);
-  const [askIdError, setAskIdError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const live = config.mode === "live" && Boolean(session);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  const suggestions = useMemo(() => {
+    const [lead, second] = day.archive.brief.stories;
+    return [
+      `What would change the call on ${lead.title}?`,
+      `Why does ${second.decisiveMetric.label} matter?`,
+      "What is the strongest market-wide opportunity?",
+    ];
+  }, [day]);
 
-  useEffect(() => {
-    if (!live || !session) return;
-    let mounted = true;
-    void loadAskSnapshotId(getSupabase(config), DEFAULT_HORIZON)
-      .then((id) => {
-        if (!mounted) return;
-        setAskId(id);
-        if (!id) setAskIdError("There are no saved numbers to answer against yet, so live answers are off today.");
-      })
-      .catch((reason: unknown) => {
-        if (mounted) setAskIdError(reason instanceof Error ? reason.message : "Live answers are not available.");
-      });
-    return () => { mounted = false; };
-  }, [config, live, session]);
+  useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(() => { setThreadId(undefined); }, [scope, from, to]);
 
   async function ask(next: string) {
     const trimmed = next.trim();
     if (!trimmed || busy) return;
+    if (scope !== "current" && (!from || !to || from >= to)) {
+      setError("Choose an earlier start date and a later end date.");
+      return;
+    }
     setQuestion(trimmed);
     setInput("");
     setError("");
     setStreamed("");
     setEvidence([]);
-    setExcluded([]);
 
-    const canned = findAnswer(answers, trimmed);
-    if (!live || !session || !askId) {
-      // Offline, or live with nothing to pin an answer to.
-      setOffline(canned ?? null);
-      if (!canned) {
-        setError(live
-          ? (askIdError || "Live answers are not connected, so only the questions below can be answered right now.")
-          : "That one needs you to be signed in. Pick a question below to see how an answer gets built.");
-      }
+    if (!live || !session) {
+      const match = day.archive.brief.stories.find((story) => trimmed.toLowerCase().includes(story.title.toLowerCase().slice(0, 18)))
+        ?? day.archive.brief.stories[0];
+      setStreamed(`${match.verdict} ${match.falsifier}`);
+      setEvidence(match.citations.map((item, index) => ({
+        id: `${match.id}-${index}`,
+        label: item.title,
+        source: item.publisher,
+        checkedAt: item.sourceDate,
+      })));
       return;
     }
 
-    setOffline(null);
     setBusy(true);
     const controller = new AbortController();
     abortRef.current = controller;
@@ -84,14 +74,20 @@ export function AskTab({ snapshot, config, session, pending, onConsumed }: Props
       await streamCompoundAnswer(
         config,
         session,
-        { question: trimmed, horizon: DEFAULT_HORIZON, snapshotId: askId, threadId, requestId: crypto.randomUUID() },
+        {
+          question: trimmed,
+          horizon: day.archive.horizon,
+          snapshotId: day.archive.id,
+          threadId,
+          requestId: crypto.randomUUID(),
+          scope,
+          from: scope === "current" ? undefined : from,
+          to: scope === "current" ? undefined : to,
+        },
         (event) => {
           if (event.event === "meta") setThreadId(event.data.threadId);
           if (event.event === "delta") setStreamed((current) => current + event.data.text);
-          if (event.event === "evidence") {
-            setEvidence(event.data.items);
-            setExcluded(event.data.excluded);
-          }
+          if (event.event === "evidence") setEvidence(event.data.items);
           if (event.event === "error") setError(event.data.message);
         },
         controller.signal,
@@ -108,9 +104,6 @@ export function AskTab({ snapshot, config, session, pending, onConsumed }: Props
     if (!pending) return;
     onConsumed();
     void ask(pending);
-    // The handed-over question is the only trigger. ask() is rebuilt each
-    // render, so listing it here would re-fire the same question.
-
   }, [pending]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -118,99 +111,58 @@ export function AskTab({ snapshot, config, session, pending, onConsumed }: Props
     void ask(input);
   }
 
-  const answered = Boolean(offline || streamed || busy || error);
+  return (
+    <div className="ask-page">
+      <p className="eyebrow">Grounded in the archive</p>
+      <h2 className="big">Ask COMPOUND.</h2>
+      <p className="sub">Start from this brief, compare two dates, or ask across a range.</p>
 
-  const suggestions = (
-    <div className="pills">
-      {answers.map((answer) => (
-        <button key={answer.question} type="button" className="pill" onClick={() => void ask(answer.question)}>
-          {answer.question}
-          <ChevronIcon />
-        </button>
-      ))}
-    </div>
-  );
-
-  const composer = (
-    <form className="composer" onSubmit={submit}>
-      <label htmlFor="ask-input">{question ? "Ask another question" : "Ask your own question"}</label>
-      <div className="composer-row">
-        <input
-          id="ask-input"
-          name="question"
-          autoComplete="off"
-          maxLength={800}
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          placeholder="Type your question here"
-        />
-        <button type="submit" disabled={busy || !input.trim()}>Ask</button>
+      <div className="ask-scope" role="group" aria-label="Answer scope">
+        {(["current", "compare", "range"] as const).map((value) => (
+          <button type="button" className={scope === value ? "on" : ""} aria-pressed={scope === value} key={value} onClick={() => setScope(value)}>
+            {value === "current" ? <SourceIcon /> : <HistoryIcon />}
+            {value === "current" ? "Current" : value === "compare" ? "Compare" : "Range"}
+          </button>
+        ))}
       </div>
-    </form>
-  );
 
-  const answer = answered && (
-    <div className="ans" aria-live="polite">
-      <div className="asked">{question}</div>
-      {busy && !streamed && <p className="mut">Working on it…</p>}
-      {offline?.paragraphs.map((paragraph) => <p key={paragraph}><RichText text={paragraph} /></p>)}
-      {streamed && <p className={busy ? "streaming" : undefined}>{streamed}</p>}
-      {error && <p className="dn">{error}</p>}
-
-      {(offline || evidence.length > 0) && (
-        <div className="used">
-          <div className="ctag">Where this came from</div>
-          {offline?.evidence.map((item) => (
-            <div className="evline" key={item.label}>
-              <span>{item.label}</span>
-              <span className="mono mut">{item.source}</span>
-            </div>
-          ))}
-          {evidence.map((item) => (
-            <div className="evline" key={item.id}>
-              <span>{item.label}</span>
-              <span className="mono mut">{item.source} · checked {item.checkedAt}</span>
-            </div>
-          ))}
+      {scope !== "current" && (
+        <div className="date-range">
+          <label>From<input type="date" value={from} max={to} onChange={(event) => setFrom(event.target.value)} /></label>
+          <label>To<input type="date" value={to} min={from} onChange={(event) => setTo(event.target.value)} /></label>
         </div>
       )}
-      {excluded.map((item) => <p className="excluded" key={item}>{item}</p>)}
-    </div>
-  );
 
-  return (
-    <>
-      <p className="eyebrow">Ask about anything on these screens</p>
-      <h2 className="big">Ask.</h2>
-      <p className="sub">Every answer uses today's numbers and shows you where they came from.</p>
-
-      {/* The answer lands right under whatever you used to ask for it. A
-          desktop types at the top, so the box goes first. A phone taps a
-          suggestion with its thumb, so the suggestions go first and the
-          keyboard stays at the bottom of the screen where it opens. */}
-      {split
-        ? (
-          <>
-            {composer}
-            {answer}
-            <p className="eyebrow" style={{ marginTop: 26 }}>Or start with one of these</p>
-            {suggestions}
-          </>
-        )
-        : (
-          <>
-            {suggestions}
-            {answer}
-            {composer}
-          </>
-        )}
-
-      <div className="footnote">
-        {live && askId
-          ? "Answers read today's saved numbers and name the ones they used."
-          : "The suggested answers are built from the same file the cards read, so the numbers always match."}{" "}
-        COMPOUND explains the numbers. It never buys or sells anything.
+      <div className="prompt-list">
+        {suggestions.map((suggestion) => (
+          <button type="button" key={suggestion} onClick={() => void ask(suggestion)}>
+            <span>{suggestion}</span><ChevronIcon />
+          </button>
+        ))}
       </div>
-    </>
+
+      <form className="composer" onSubmit={submit}>
+        <label htmlFor="ask-input">Ask your own question</label>
+        <div className="composer-row">
+          <input id="ask-input" maxLength={800} value={input} onChange={(event) => setInput(event.target.value)} placeholder="What changed, and why?" />
+          <button type="submit" disabled={busy || !input.trim()}>Ask</button>
+        </div>
+      </form>
+
+      {(question || busy || streamed || error) && (
+        <section className="ans" aria-live="polite">
+          <p className="asked">{question}</p>
+          {busy && !streamed && <p className="mut">Reading the evidence…</p>}
+          {streamed && <p className={busy ? "streaming" : undefined}>{streamed}</p>}
+          {error && <p className="dn">{error}</p>}
+          {evidence.length > 0 && (
+            <div className="used">
+              <p className="detail-label">Evidence</p>
+              {evidence.map((item) => <div className="evline" key={item.id}><span>{item.label}</span><span>{item.source} · {item.checkedAt}</span></div>)}
+            </div>
+          )}
+        </section>
+      )}
+    </div>
   );
 }

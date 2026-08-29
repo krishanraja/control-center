@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight } from '@/lib/icons'
 import { useFocusFiltered } from '../../hooks/useFocusFiltered'
 import { useDailyFocus } from '../../hooks/useDailyFocus'
 import type { FocusMode } from '../../hooks/useFocusMode'
@@ -47,12 +47,12 @@ export function FocusLanes<T extends MinimalRow>({
         return (
           <div key={`lane-${n}`} className="border-t border-white/[0.04] first:border-t-0">
             <div className="flex items-baseline gap-2 pt-2 pb-1.5 px-1">
-              <span className="text-[10px] uppercase tracking-[0.16em] text-violet-300 font-semibold">Lane {n}</span>
-              <span className="text-[11px] text-white/70 truncate">{laneText(n)}</span>
-              <span className="ml-auto text-[10px] text-white/40 tabular-nums">{laneRows.length}</span>
+              <span className="text-micro uppercase tracking-[0.14em] text-violet-300 font-semibold">Lane {n}</span>
+              <span className="text-micro text-white/70 truncate">{laneText(n)}</span>
+              <span className="ml-auto text-micro text-white/40 tabular-nums">{laneRows.length}</span>
             </div>
             {laneRows.length === 0 ? (
-              <p className="text-[11px] text-white/40 py-1.5 px-1">Nothing in lane.</p>
+              <p className="text-micro text-white/40 py-1.5 px-1">Nothing in lane.</p>
             ) : (
               <div className="flex flex-col gap-1.5">
                 {laneRows.map(r => <React.Fragment key={keyOf(r)}>{renderItem(r)}</React.Fragment>)}
@@ -66,7 +66,7 @@ export function FocusLanes<T extends MinimalRow>({
           <button
             type="button"
             onClick={() => setMutedOpen(v => !v)}
-            className="w-full flex items-center gap-2 py-2 px-1 text-[11px] text-white/45 hover:text-white/75"
+            className="w-full flex items-center gap-2 py-2 px-1 text-micro text-white/45 hover:text-white/75"
           >
             {mutedOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
             <span>{mutedLabel}</span>
@@ -87,14 +87,14 @@ export function FocusLanes<T extends MinimalRow>({
 // calibrated daily_focus exists (otherwise there is nothing to focus).
 export function FocusModeToggle({ mode, onChange }: { mode: FocusMode; onChange: (m: FocusMode) => void }) {
   return (
-    <div className="inline-flex items-center rounded-md border border-white/[0.10] overflow-hidden text-[10px] font-semibold">
+    <div className="inline-flex items-center rounded-md border border-white/[0.10] overflow-hidden text-micro font-semibold">
       {(['focus', 'all'] as FocusMode[]).map(m => (
         <button
           key={m}
           type="button"
           onClick={() => onChange(m)}
           aria-pressed={mode === m}
-          className={`px-2.5 py-1 uppercase tracking-[0.12em] transition-colors ${
+          className={`px-2.5 py-1 uppercase tracking-[0.14em] transition-colors ${
             mode === m ? 'bg-violet-500/30 text-violet-100' : 'text-white/45 hover:text-white/75'
           }`}
         >

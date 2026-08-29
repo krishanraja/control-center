@@ -1,4 +1,4 @@
-import { readFile, readdir } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -30,6 +30,12 @@ async function walk(directory) {
 }
 
 const failures = [];
+try {
+  await access(join(root, "public", "latest.json"));
+  failures.push("public/latest.json exposes the private snapshot without authentication");
+} catch {
+  // Expected: demo data is bundled from src/demo and live data uses private APIs.
+}
 for (const file of (await Promise.all(sourceRoots.map(walk))).flat()) {
   const content = await readFile(file, "utf8");
   for (const [, specifier] of content.matchAll(relativeImport)) {

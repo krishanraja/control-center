@@ -1,5 +1,5 @@
 import React from 'react'
-import { X } from 'lucide-react'
+import { X } from '@/lib/icons'
 import { Dialog, DialogContent, DialogSrTitle, DialogClose } from '@/components/ui/dialog'
 
 interface Props {
@@ -7,6 +7,8 @@ interface Props {
   onClose: () => void
   children: React.ReactNode
   ariaLabel?: string
+  /** Eyebrow text in the sticky header. Defaults to the panel's classic "Detail". */
+  label?: string
 }
 
 // Right-side overlay panel for detail views. Unlike an inline detail section,
@@ -19,20 +21,25 @@ interface Props {
 // page underneath as still available; no scroll lock; and focus was never
 // returned to whatever opened it. Radix supplies all four. The visual shape,
 // the props and the call sites are unchanged.
-export function SlideOver({ open, onClose, children, ariaLabel = 'Detail' }: Props) {
+//
+// z-[70]: BottomNav is fixed z-50 at native scale outside the zoom root, so a
+// z-50 panel on a phone slides in UNDER the tab bar. BottomSheet made the same
+// jump for the same reason.
+export function SlideOver({ open, onClose, children, ariaLabel = 'Detail', label = 'Detail' }: Props) {
   return (
     <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent
         position="right"
         showClose={false}
-        overlayClassName="bg-black/40"
+        className="z-[70]"
+        overlayClassName="z-[70] bg-black/40"
         aria-label={ariaLabel}
       >
         <DialogSrTitle>{ariaLabel}</DialogSrTitle>
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.06] bg-base/95 px-4 py-2.5 backdrop-blur">
-          <span className="text-[11px] uppercase tracking-[0.16em] text-violet-300/85">Detail</span>
+          <span className="text-micro uppercase tracking-[0.14em] text-violet-300/85">{label}</span>
           <DialogClose
-            className="inline-flex items-center gap-1 text-[12px] text-white/50 transition-colors hover:text-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 rounded"
+            className="inline-flex items-center gap-1 text-label text-white/50 transition-colors hover:text-white/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 rounded"
             aria-label="Close detail"
           >
             <X size={14} /> Close

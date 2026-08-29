@@ -1,5 +1,5 @@
 import React from 'react'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight } from '@/lib/icons'
 import { PIPELINE_ACCENT, PIPELINE_LABEL, type PipelineKey, type Stage } from '../../lib/pipelines'
 
 interface Props {
@@ -31,16 +31,16 @@ export function PipelineLane({ pipeline, total, stages, stageCounts, onOpenAll, 
       <header className="flex items-center justify-between px-4 pt-3 pb-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className={`w-1.5 h-1.5 rounded-full ${accent.dot} flex-shrink-0`} aria-hidden />
-          <h3 className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${accent.text}`}>
+          <h3 className={`text-micro font-semibold uppercase tracking-[0.14em] ${accent.text}`}>
             {PIPELINE_LABEL[pipeline]}
           </h3>
-          <span className="text-[11px] text-white/55 tabular-nums font-semibold">{total}</span>
+          <span className="text-micro text-white/55 tabular-nums font-semibold">{total}</span>
         </div>
         {onOpenAll && total > 0 && (
           <button
             type="button"
             onClick={onOpenAll}
-            className="flex items-center gap-1 text-[10px] text-white/45 hover:text-white/80 transition-colors"
+            className="flex items-center gap-1 text-micro text-white/45 hover:text-white/80 transition-colors"
           >
             Open all
             <ArrowUpRight size={10} />
@@ -59,8 +59,8 @@ export function PipelineLane({ pipeline, total, stages, stageCounts, onOpenAll, 
               className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-white/[0.06] ${muted ? 'opacity-40' : ''}`}
               title={`${s.label}: ${n}`}
             >
-              <span className="text-[9px] uppercase tracking-[0.12em] text-white/45">{s.label}</span>
-              <span className="text-[10px] text-white tabular-nums font-semibold">{n}</span>
+              <span className="text-micro uppercase tracking-[0.14em] text-white/45">{s.label}</span>
+              <span className="text-micro text-white tabular-nums font-semibold">{n}</span>
             </div>
           )
         })}
@@ -69,7 +69,7 @@ export function PipelineLane({ pipeline, total, stages, stageCounts, onOpenAll, 
       <div className="px-2 pb-2 flex-1 min-h-0">
         {isEmpty ? (
           <div className="px-2 py-6 text-center">
-            <p className="text-[12px] text-white/40">{empty}</p>
+            <p className="text-label text-white/40">{empty}</p>
           </div>
         ) : (
           children

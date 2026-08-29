@@ -2,12 +2,13 @@ import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { shortDate } from "../../lib/format";
 import { SECTION_ORDER, SECTION_SHORT } from "../../lib/words";
 import type { TabKey } from "../../types";
-import { ChevronIcon, GearIcon, TabIcon } from "../components/Icons";
+import { CalendarIcon, ChevronIcon, GearIcon, TabIcon } from "../components/Icons";
 
 interface Props {
   tab: TabKey;
   onTab: (tab: TabKey) => void;
   onSettings: () => void;
+  onHistory: () => void;
   /** The day these numbers are from. Freshness belongs in the frame. */
   generated: string;
   demo: boolean;
@@ -28,7 +29,7 @@ interface Props {
  * out is a full width Back target at the top and every section is still one
  * tap away at the bottom.
  */
-export function PhoneFrame({ tab, onTab, onSettings, generated, demo, sheet, onCloseSheet, closeRef, children }: Props) {
+export function PhoneFrame({ tab, onTab, onSettings, onHistory, generated, demo, sheet, onCloseSheet, closeRef, children }: Props) {
   const contentRef = useRef<HTMLDivElement>(null);
 
   // A sheet covers the content, so the content behind it stops being part of
@@ -44,9 +45,12 @@ export function PhoneFrame({ tab, onTab, onSettings, generated, demo, sheet, onC
   return (
     <div className="app">
       <div className="appbar">
-        <span className="brand">COMPOUND</span>
+        <span className="brand-wrap"><span className="brand">COMPOUND</span>{demo && <span className="sample-chip">Sample</span>}</span>
         <span className="barend">
-          <span className="stamp">{demo ? "Sample data" : shortDate(generated)}</span>
+          <button type="button" className="datebtn" onClick={onHistory} aria-label={`Open history for ${shortDate(generated)}`}>
+            <CalendarIcon />
+            <span>{shortDate(generated)}</span>
+          </button>
           <button type="button" className="iconbtn" aria-label="Settings" onClick={onSettings}>
             <GearIcon />
           </button>

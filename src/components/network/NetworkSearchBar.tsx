@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
-import { Search, Mic, Square, Loader2, CornerDownLeft, X } from 'lucide-react'
+import { Search, Mic, Square, CornerDownLeft, X } from '@/lib/icons'
 import { Input } from '@/components/ui/input'
 import { browserCanRecord } from '../shared/VoiceCapture'
+import { Working } from '../shared/Working'
 
 // The one input. Type it or say it.
 //
@@ -11,11 +12,18 @@ import { browserCanRecord } from '../shared/VoiceCapture'
 // page's search state, so the blob is handed up and the page owns the request.
 // browserCanRecord is shared, since the capability check is the same everywhere.
 
+// Grounded in the live ICP (docs/ICP.md v2, advisory reopened 2026-08-05):
+// AI and transformation leaders inside non-tech operating companies, the
+// fractional network, and guests who have actually shipped. The old examples
+// (publisher identity, adtech CMOs) were the retired thesis and dated the
+// whole surface.
 const EXAMPLES = [
-  'Who should I talk to about identity at a publisher',
-  'CMOs at banks who care about AI governance',
-  'Someone who can introduce me to a media agency CEO',
-  'Podcast guests who have actually shipped an AI product',
+  'Heads of AI or transformation at non-tech companies',
+  'CEOs of mid-market firms getting serious about AI',
+  // Geography reads out of the sentence as well as off the chips, so at least
+  // one example has to demonstrate it or nobody discovers the typed form.
+  'Who do I know in the UK who could intro me to a mid-market CEO',
+  'Podcast guests in Australia who shipped an AI product',
 ]
 
 export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated, transcript, hasResults }: {
@@ -91,7 +99,7 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
             data-testid="network-search-input"
             icon={<Search size={14} />}
             disabled={recording}
-            className={`min-h-[44px] text-[14px] ${dirty ? 'pr-10' : ''}`}
+            className={`min-h-[44px] text-ui ${dirty ? 'pr-10' : ''}`}
           />
           {dirty && !recording && (
             <button
@@ -127,22 +135,22 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
           data-testid="network-search-submit"
           className="aurora-btn inline-flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-form transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 disabled:opacity-40"
         >
-          {loading ? <Loader2 size={15} className="animate-spin" /> : <CornerDownLeft size={15} />}
+          {loading ? <Working size={15} /> : <CornerDownLeft size={15} />}
         </button>
       </div>
 
-      {micError && <p className="mt-2 text-[12px] text-amber-300/80">{micError}</p>}
-      {recording && <p className="mt-2 text-[12px] text-white/50">Listening. Press stop when you are done.</p>}
+      {micError && <p className="mt-2 text-label text-amber-300/80">{micError}</p>}
+      {recording && <p className="mt-2 text-label text-white/50">Listening. Press stop when you are done.</p>}
 
       {/* Heard, then understood, then results. In that order, so a mis-hearing
           is caught by reading one line rather than by distrusting twenty rows. */}
       {transcript && (
-        <p className="mt-2.5 text-[12px] text-white/45">
+        <p className="mt-2.5 text-label text-white/45">
           <span className="text-white/30">Heard</span> {transcript}
         </p>
       )}
       {restated && (
-        <p className="mt-1.5 text-[12.5px] text-white/70">
+        <p className="mt-1.5 text-label text-white/70">
           <span className="text-white/30">Understood</span> {restated}
         </p>
       )}
@@ -154,7 +162,7 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
               key={x}
               type="button"
               onClick={() => { setQ(x); onSearch(x) }}
-              className="rounded-full border border-white/10 px-2.5 py-1 text-[11.5px] text-white/45 transition-colors hover:border-white/20 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+              className="max-w-full truncate rounded-full border border-white/10 px-2.5 py-1 text-left text-label text-white/45 transition-colors hover:border-white/20 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
             >
               {x}
             </button>

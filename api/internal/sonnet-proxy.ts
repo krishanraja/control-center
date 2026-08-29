@@ -1,4 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { PROXY_ALLOWED_MODELS } from '../_models.js'
+import * as meter from '../_meter.js'
 
 // Internal-only Anthropic proxy. n8n workflows that can't share the
 // Anthropic credential (workflow-level credential scoping in n8n Cloud)
@@ -12,11 +14,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 //
 // Not exposed in UI navigation; do NOT use from the browser.
 
-const ALLOWED_MODELS = new Set([
-  'claude-opus-4-7',
-  'claude-sonnet-4-6',
-  'claude-haiku-4-5-20251001',
-])
+// Deliberately wider than the model constants: a checked-in workflow keeps
+// sending its old ID until that workflow is redeployed, so a proxy that only
+// accepted the current tier would 400 the fleet in the window between the
+// Vercel deploy and the n8n one. Old IDs come out of PROXY_ALLOWED_MODELS once
+// no live workflow sends them.
+const ALLOWED_MODELS = new Set<string>([...PROXY_ALLOWED_MODELS, 'claude-opus-4-7'])
 const MAX_TOKENS_CEILING = 8000
 
 interface AnthropicBody {
@@ -67,6 +70,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify(body),
     })
     const text = await r.text()
+    // The X-Internal-Caller the proxy already demands is the agent stamp: this
+    // is the one route by which n8n Anthropic spend becomes attributable at
+    // all, so it meters here rather than nowhere.
+    try {
+      const j = JSON.parse(text) as { usage?: { input_tokens?: number; output_tokens?: number } }
+      await meter.anthropicCall({
+        agent: caller,
+        model: body.model,
+        inputTokens: Number(j?.usage?.input_tokens) || 0,
+        outputTokens: Number(j?.usage?.output_tokens) || 0,
+        failed: !r.ok,
+      })
+    } catch { /* an unparseable body is Anthropic's problem, not the meter's */ }
     res.status(r.status).setHeader('Content-Type', 'application/json').send(text)
   } catch (e) {
     res.status(502).json({ ok: false, error: 'upstream_error', detail: (e as Error).message })

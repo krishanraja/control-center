@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Mic, CheckCircle2, Megaphone, Clock, Send } from 'lucide-react'
+import { Mic, CheckCircle2, Megaphone, Clock, Send } from '@/lib/icons'
 import type { GuestRow } from '../../hooks/useRealtimeGuests'
 import type { VisibilityTargetRow } from '../../hooks/useVisibilityTargets'
 import { DoThisNextHero, type HeroDescriptor } from '../shared/DoThisNextHero'

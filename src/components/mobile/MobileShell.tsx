@@ -77,7 +77,7 @@ export function MobileShell({ header, children, onRefresh, scroll = 'auto', foot
   }, [onRefresh, pullDist, refreshing])
 
   return (
-    <main className="flex flex-col h-[calc(100dvh/var(--z,1))] relative">
+    <main className="flex flex-col h-full relative">
       {header && <div className="px-5 pt-7 pb-5 flex-shrink-0">{header}</div>}
 
       {/* Pull-to-refresh indicator */}

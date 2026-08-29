@@ -37,9 +37,19 @@
          did: #fbfaf7 here against #f2f1f8 there, two different off-whites on
          every light-mode load. */
       html[data-theme='light'], html[data-theme='light'] body { background: #f2f1f8; }
-      html[data-theme='light'] #brand-splash { background: radial-gradient(120% 90% at 50% 38%, #ffffff 0%, #f4f2ed 62%); }
+      /* The gradient must LAND on --bg-base, because the splash now fades
+         directly into the app rather than onto a blank screen: any disagreement
+         between the two grounds is a visible colour shift at the handoff. This
+         ended on #f4f2ed, a warm cream, against the app's #f2f1f8 lavender.
+         Same class of bug as the body background above, which the comment there
+         records being fixed; the splash's own gradient was missed. */
+      html[data-theme='light'] #brand-splash { background: radial-gradient(120% 90% at 50% 38%, #ffffff 0%, #f2f1f8 62%); }
       html[data-theme='light'] #brand-splash .ring { border-color: rgba(20,18,40,0.08); }
-      html[data-theme='light'] #brand-splash .particle { background: #6354e0; box-shadow: 0 0 14px 3px rgba(99,84,224,0.5); }
+      /* #6354e0 was the light accent before it was muted for paper. The splash
+         cannot read a CSS variable from the stylesheet (it paints first, which
+         is the whole point of it), so the value is duplicated here and has to be
+         kept in step with --accent by hand. */
+      html[data-theme='light'] #brand-splash .particle { background: #6c5fa5; box-shadow: 0 0 14px 3px rgba(108,95,165,0.45); }
       html[data-theme='light'] #brand-splash img { box-shadow: 0 10px 40px rgba(20,18,40,0.16); }
       /* Calm & Anticipatory app entry: the mark breathes while a single particle
          orbits it — the system getting ready *for* you — then the whole splash
@@ -80,8 +90,11 @@
         height: 7px;
         margin-left: -3.5px;
         border-radius: 9999px;
-        background: #a99bff;
-        box-shadow: 0 0 14px 3px rgba(139,124,246,0.75), 0 0 22px 6px rgba(34,211,238,0.25);
+        /* Kept in step with --accent / --accent-3 in src/index.css, which were
+           both muted (violet #8B7CF6 -> #8C80C8, cyan #22D3EE -> #76A2B2). The
+           splash was still emitting the old neon pair. */
+        background: #8c80c8;
+        box-shadow: 0 0 14px 3px rgba(140,128,200,0.7), 0 0 22px 6px rgba(118,162,178,0.22);
       }
       #brand-splash img {
         position: absolute;
@@ -119,23 +132,42 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Hide splash once React has mounted into #root (or after a hard timeout).
+      // Hide the splash once the app has actually painted something to look at.
+      //
+      // This used to key off `#root.childElementCount > 0`, which is true the
+      // instant React commits ANY node. ToastProvider renders a toast container
+      // div outside the routed tree, so that condition went true while PilotGate
+      // was still awaiting /api/pilot/checkin and rendering nothing. The splash
+      // therefore exhaled into a blank screen on every cold load, and content
+      // popped in afterwards with no transition. The single most-seen loading
+      // moment in the product was a void.
+      //
+      // So the app now declares readiness explicitly: PilotGate stamps
+      // data-app-ready on <html> once it has resolved, which is the same moment
+      // the gate or the dashboard first paints. Splash to content becomes one
+      // continuous handoff with no blank frame in between.
       (function () {
         var splash = document.getElementById('brand-splash');
-        var root = document.getElementById('root');
-        if (!splash || !root) return;
+        var el = document.documentElement;
+        if (!splash) return;
+        var done = false;
         var hide = function () {
+          if (done) return;
+          done = true;
           splash.classList.add('fade');
           setTimeout(function () { splash.remove(); }, 400);
         };
+        if (el.hasAttribute('data-app-ready')) return hide();
         var observer = new MutationObserver(function () {
-          if (root.childElementCount > 0) {
+          if (el.hasAttribute('data-app-ready')) {
             observer.disconnect();
             hide();
           }
         });
-        observer.observe(root, { childList: true });
-        // Safety net so a render error never leaves the splash on screen.
+        observer.observe(el, { attributes: true, attributeFilter: ['data-app-ready'] });
+        // Safety net so a render error, or an unreachable pilot service, never
+        // leaves the splash on screen. Unchanged: this is the backstop that
+        // makes holding the splash safe in the first place.
         setTimeout(function () { observer.disconnect(); hide(); }, 6000);
       })();
     </script>

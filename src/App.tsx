@@ -9,19 +9,17 @@ import { AgentsProvider } from './contexts/AgentsContext'
 import { PendingFlagModal } from './components/PendingFlagModal'
 import { QuickCaptureIdea } from './components/QuickCaptureIdea'
 import { IdeaCaptureModal, isInboxEnabled } from './components/inbox/IdeaCaptureModal'
-import { CaptureSpeedDial } from './components/CaptureSpeedDial'
-import { WeeklyFocusTakeover } from './components/objectives/WeeklyFocusTakeover'
+import { CreateSheet } from './components/CreateSheet'
+import { TabChatHost } from './components/TabChat'
 import { FocusRitual } from './components/home/FocusRitual'
 import { PilotGate } from './components/pilot/PilotGate'
 import { EveningShutdown } from './components/pilot/EveningShutdown'
-import { isFocusRitualEnabled } from './lib/homeV2'
-import { isSimplifiedIA } from './lib/iaV3'
 import { VALID_TAB_IDS } from './lib/tabs'
 import { useHashRoute } from './hooks/useHashRoute'
 import { contentV2Enabled } from './lib/contentV2'
+import { isTypingTarget } from './lib/hotkeys'
 import { BOTTOM_NAV_PAD } from './components/mobile/primitives'
-import { MobileTabSkeleton, BoardSkeleton } from './components/shared/Skeleton'
-import { isUiV2 } from './lib/uiV2'
+import { MobileTabSkeleton, BoardSkeleton, SkeletonDetail, DeferredFallback } from './components/shared/Skeleton'
 
 /**
  * Route surfaces are code-split: each tab is its own chunk, fetched on demand,
@@ -34,34 +32,16 @@ import { isUiV2 } from './lib/uiV2'
  * because it's always on screen or latency-sensitive (⌘K must open instantly).
  */
 const DesktopHome = lazy(() => import('./components/desktop/DesktopHome').then(m => ({ default: m.DesktopHome })))
-const DesktopToday = lazy(() => import('./components/desktop/DesktopToday').then(m => ({ default: m.DesktopToday })))
-const DesktopLeads = lazy(() => import('./components/desktop/DesktopLeads').then(m => ({ default: m.DesktopLeads })))
-const NetworkTabV2 = lazy(() => import('./components/network/NetworkTab').then(m => ({ default: m.NetworkTab })))
-const DesktopLeadsRE = lazy(() => import('./components/desktop/DesktopLeadsRE').then(m => ({ default: m.DesktopLeadsRE })))
-const DesktopOrg = lazy(() => import('./components/desktop/DesktopOrg').then(m => ({ default: m.DesktopOrg })))
-const DesktopExec = lazy(() => import('./components/desktop/DesktopExec').then(m => ({ default: m.DesktopExec })))
-const DesktopFlows = lazy(() => import('./components/desktop/DesktopFlows').then(m => ({ default: m.DesktopFlows })))
 const DesktopCustomers = lazy(() => import('./components/desktop/DesktopCustomers').then(m => ({ default: m.DesktopCustomers })))
-const DesktopGuests = lazy(() => import('./components/desktop/DesktopGuests').then(m => ({ default: m.DesktopGuests })))
 const DesktopContent = lazy(() => import('./components/desktop/DesktopContent').then(m => ({ default: m.DesktopContent })))
-const SystemsPanel = lazy(() => import('./components/SystemsPanel').then(m => ({ default: m.SystemsPanel })))
 const MobileHome = lazy(() => import('./components/mobile/MobileHome').then(m => ({ default: m.MobileHome })))
-const MobileToday = lazy(() => import('./components/mobile/MobileToday').then(m => ({ default: m.MobileToday })))
-const MobileLeads = lazy(() => import('./components/mobile/MobileLeads').then(m => ({ default: m.MobileLeads })))
-const MobileLeadsRE = lazy(() => import('./components/mobile/MobileLeadsRE').then(m => ({ default: m.MobileLeadsRE })))
-const MobileIntel = lazy(() => import('./components/mobile/MobileIntel').then(m => ({ default: m.MobileIntel })))
-const MobileOrg = lazy(() => import('./components/mobile/MobileOrg').then(m => ({ default: m.MobileOrg })))
-const MobileFlows = lazy(() => import('./components/mobile/MobileFlows').then(m => ({ default: m.MobileFlows })))
-const MobileSystems = lazy(() => import('./components/mobile/MobileSystems').then(m => ({ default: m.MobileSystems })))
 const MobileCustomers = lazy(() => import('./components/mobile/MobileCustomers').then(m => ({ default: m.MobileCustomers })))
-const MobileGuests = lazy(() => import('./components/mobile/MobileGuests').then(m => ({ default: m.MobileGuests })))
 const MobileContent = lazy(() => import('./components/mobile/MobileContent').then(m => ({ default: m.MobileContent })))
 const ContentComposer = lazy(() => import('./components/content/ContentComposer').then(m => ({ default: m.ContentComposer })))
 // Content Engine v2 (docs/CONTENT-ENGINE-V2-SPEC.md): the four-room Content tab
 // + the weekly-brief editor. Both flag-gated; the legacy triage surfaces render
 // untouched when VITE_CONTENT_V2_ENABLED is off.
 const ContentV2Tab = lazy(() => import('./components/content-v2/ContentV2Tab').then(m => ({ default: m.ContentV2Tab })))
-const BriefEditor = lazy(() => import('./components/content-v2/BriefEditor').then(m => ({ default: m.BriefEditor })))
 // Growth: ONE tab, five sections in the order of the weekly loop. Map (the ICP
 // touchpoint map, growth_touchpoints), Work (the Higgsfield creative board,
 // growth_creative_queue), Signals (GEO probes over growth_geo_probes plus the
@@ -74,11 +54,15 @@ const GrowthTab = lazy(() => import('./components/growth/GrowthTab').then(m => (
 // Visibility lanes; OS = Org + Intel + Flows + Systems subtabs.
 const PeopleTab = lazy(() => import('./components/people/PeopleTab').then(m => ({ default: m.PeopleTab })))
 const OsTab = lazy(() => import('./components/os/OsTab').then(m => ({ default: m.OsTab })))
+// Focus & Purpose: the operator's own hub (docs/FOCUS-PURPOSE.md). Reached
+// from the morning check-in, the anxious-day auto-route (?steady=1), the
+// Focus doorway row on Home, and the drawer.
+const FocusPurposeTab = lazy(() => import('./components/focusPurpose/FocusPurposeTab').then(m => ({ default: m.FocusPurposeTab })))
 
 // Tab validity derives from the registry (src/lib/tabs.ts VALID_TAB_IDS) so the
 // old hand-maintained duplicate list can never drift from the sidebar again.
 
-// Legacy-hash aliases under the simplified IA. Render-time only (the hash is
+// Legacy-hash aliases. Render-time only (the hash is
 // never rewritten), so bookmarks, navigate('leads') call sites, and deep-link
 // params all keep working: `#/org?correction=x` resolves to the OS tab with
 // { sub: 'org', correction: 'x' }. Route params win over alias-injected ones.
@@ -96,15 +80,17 @@ const IA_ALIASES: Record<string, { tab: string; params?: Record<string, string> 
 /** Calm chunk-load fallback for a mobile route (single-focus, one column). */
 function MobileRouteFallback() {
   return (
-    <div className="px-5 pt-7 pb-5 h-[calc(100dvh/var(--z,1))]">
-      <MobileTabSkeleton />
-    </div>
+    <DeferredFallback>
+      <div className="px-5 pt-7 pb-5 h-[calc(100dvh/var(--z,1))]">
+        <MobileTabSkeleton />
+      </div>
+    </DeferredFallback>
   )
 }
 
 /** Calm chunk-load fallback for a desktop route (structural breadth). */
 function DesktopRouteFallback() {
-  return <BoardSkeleton lanes={3} cardsPerLane={3} />
+  return <DeferredFallback><BoardSkeleton lanes={3} cardsPerLane={3} /></DeferredFallback>
 }
 
 /**
@@ -142,7 +128,11 @@ export default function App() {
   // because that is where the per-lane controls those links pointed at now live.
   const cameFromAcquisition = routeTab === 'acquisition'
   const rawTab = cameFromAcquisition ? 'growth' : routeTab
-  const alias = isSimplifiedIA() ? IA_ALIASES[rawTab] : undefined
+  // A legacy #/today RULING deep link (?task= / ?decision=) lands on the queue,
+  // which now lives at OS → Queue; a bare #/today is still Home. Params merge
+  // below, so the task/decision ref reaches the deck intact.
+  const todayRuling = rawTab === 'today' && Boolean(route.params.task || route.params.decision)
+  const alias = todayRuling ? { tab: 'os', params: { sub: 'queue' } } : IA_ALIASES[rawTab]
   const resolvedTab = alias?.tab ?? rawTab
   const tab = VALID_TAB_IDS.has(resolvedTab) ? resolvedTab : 'home'
   const params = alias?.params ? { ...alias.params, ...route.params } : route.params
@@ -162,10 +152,15 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // ⌘K and ⌘J are editor bindings too (link, and whatever the surface binds).
+      // Without this the brief canvas lost both to the palette and the inbox.
+      const typing = isTypingTarget(e)
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        if (typing) return
         e.preventDefault()
         setPaletteOpen(o => !o)
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j' && isInboxEnabled()) {
+        if (typing) return
         e.preventDefault()
         setInboxOpen(o => !o)
       } else if (e.key === 'Escape') {
@@ -199,8 +194,13 @@ export default function App() {
       <AgentsProvider>
         {/* PILOT LAYER: today's check-in gates the whole shell. On a red day the
             gate renders one action instead of this tree until something ships.
-            It fails open, so an unreachable pilot route never locks the app. */}
-        <PilotGate onIntent={(intent) => navigate(intent.tab)}>
+            It fails open, so an unreachable pilot route never locks the app.
+            An anxious reading (anxiety >= 4, the low-focus state) opens the day
+            on Focus & Purpose with the steadying moves already unfolded. */}
+        <PilotGate
+          onIntent={(intent) => navigate(intent.tab)}
+          onAnxious={() => navigate('focus', { steady: '1' })}
+        >
         <div className="h-[100dvh] overflow-hidden text-ink flex flex-row">
           <AmbientField />
           {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
@@ -223,38 +223,47 @@ export default function App() {
                 style={{ zoom: 1.2, width: 'calc(100vw / 1.2)', height: 'calc(100dvh / 1.2)', '--z': '1.2' } as React.CSSProperties}
               >
                 <Suspense fallback={<MobileRouteFallback />}>
-                  {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome onNavigate={navigate} deepTask={params.task || null} deepDecision={params.decision || null} /></ErrorBoundary>}
-                  {tab === 'today'     && <ErrorBoundary label="Today"><MobileToday lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
-                  {tab === 'leads'     && <ErrorBoundary label="Leads"><MobileLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
-                  {tab === 'relationships' && <ErrorBoundary label="Network">{isUiV2() ? <NetworkTabV2 narrow /> : <MobileLeadsRE onNavigate={navigate} />}</ErrorBoundary>}
+                  {tab === 'home'      && <ErrorBoundary label="Home"><MobileHome onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'customers' && <ErrorBoundary label="Customers"><MobileCustomers /></ErrorBoundary>}
                   {tab === 'growth'    && <ErrorBoundary label="Growth"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><GrowthTab variant="mobile" initialSection={growthEntrySection} lane={route.params.lane || null} onNavigate={navigate} /></div></ErrorBoundary>}
-                  {tab === 'guests'    && <ErrorBoundary label="Visibility"><MobileGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
                   {tab === 'content'   && (contentV2Enabled()
                     // Reserve BottomNav clearance (like every MobileShell tab) so
                     // the deck's thumb-zone actions and the room scroll tails are
                     // never hidden behind the fixed nav bar.
                     ? <ErrorBoundary label="Content"><div className={`px-5 pt-7 h-full flex flex-col overflow-hidden ${BOTTOM_NAV_PAD}`}><ContentV2Tab variant="mobile" /></div></ErrorBoundary>
                     : <ErrorBoundary label="Content"><MobileContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>)}
-                  {tab === 'exec'      && <ErrorBoundary label="Intel"><MobileIntel /></ErrorBoundary>}
-                  {tab === 'org'       && <ErrorBoundary label="Org"><MobileOrg /></ErrorBoundary>}
-                  {tab === 'workflows' && <ErrorBoundary label="Flows"><MobileFlows /></ErrorBoundary>}
-                  {tab === 'systems'   && <ErrorBoundary label="Systems"><MobileSystems /></ErrorBoundary>}
                   {tab === 'people'    && <PeopleTab narrow params={params} onNavigate={navigate} />}
                   {tab === 'os'        && <OsTab narrow params={params} onNavigate={navigate} />}
+                  {/* Focus is designed to fit one screen with the tools collapsed;
+                      the scroll container is graceful degradation for very short
+                      viewports, not the layout. The tab runs short of a screen on
+                      most phones, so the top keeps normal breathing room and the
+                      purpose line is never clamped. */}
+                  {tab === 'focus'     && <ErrorBoundary label="Focus"><div className="px-5 pt-6 [@media(max-height:860px)]:pt-4 h-full overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+120px)]"><FocusPurposeTab variant="mobile" steadyEntry={params.steady === '1'} /></div></ErrorBoundary>}
                 </Suspense>
               </div>
             ) : tab === 'content' ? (
-              <Suspense fallback={<div className="p-6"><BoardSkeleton lanes={3} cardsPerLane={3} /></div>}>
+              <Suspense fallback={<DeferredFallback><div className="p-6"><BoardSkeleton lanes={3} cardsPerLane={3} /></div></DeferredFallback>}>
                 {contentV2Enabled()
-                  ? <ErrorBoundary label="Content"><div className="h-full overflow-hidden px-6 py-6 flex flex-col"><ContentV2Tab variant="desktop" /></div></ErrorBoundary>
+                  ? <ErrorBoundary label="Content"><div className="h-full overflow-hidden px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))] flex flex-col"><ContentV2Tab variant="desktop" /></div></ErrorBoundary>
                   : <ErrorBoundary label="Content"><DesktopContent ideaId={route.params.idea || null} onClearIdea={() => navigate('content')} /></ErrorBoundary>}
+              </Suspense>
+            ) : tab === 'home' ? (
+              // Home owns its own height: the canon must fit the viewport with
+              // no page scroll (the product contract this recompose exists to
+              // honor), so the shell must not wrap it in a scroll container.
+              <Suspense fallback={<DeferredFallback><div className="p-6"><BoardSkeleton lanes={3} cardsPerLane={2} /></div></DeferredFallback>}>
+                <ErrorBoundary label="Home">
+                  <div className="h-full overflow-hidden px-6 py-6 flex flex-col">
+                    <DesktopHome onNavigate={navigate} />
+                  </div>
+                </ErrorBoundary>
               </Suspense>
             ) : tab === 'growth' ? (
               // Growth owns its own height like Content: the creative board
               // scrolls sideways and each section scrolls inside itself, so the
               // shell must not wrap it in a second scroll container.
-              <Suspense fallback={<div className="p-6"><BoardSkeleton lanes={4} cardsPerLane={3} /></div>}>
+              <Suspense fallback={<DeferredFallback><div className="p-6"><BoardSkeleton lanes={4} cardsPerLane={3} /></div></DeferredFallback>}>
                 <ErrorBoundary label="Growth">
                   <div className="h-full overflow-hidden px-6 py-6 flex flex-col">
                     <GrowthTab
@@ -267,20 +276,12 @@ export default function App() {
                 </ErrorBoundary>
               </Suspense>
             ) : (
-              <div className="h-full overflow-y-auto px-6 py-6">
+              <div className="h-full overflow-y-auto px-6 pt-6 pb-[calc(1.5rem+var(--capture-gutter))]">
                 <Suspense fallback={<DesktopRouteFallback />}>
-                  {tab === 'home'      && <ErrorBoundary label="Home"><DesktopHome onNavigate={navigate} deepTask={params.task || null} deepDecision={params.decision || null} /></ErrorBoundary>}
-                  {tab === 'today'     && <ErrorBoundary label="Today"><DesktopToday selectedTaskId={route.params.task || null} onSelectTask={(id) => navigate('today', id ? { task: id } : {})} lane={route.params.lane || null} onClearLane={() => navigate('today')} decision={route.params.decision || null} onNavigate={navigate} onClearDecision={() => navigate('today')} /></ErrorBoundary>}
-                  {tab === 'leads'     && <ErrorBoundary label="Leads"><DesktopLeads leadId={route.params.lead || null} onClearDetail={() => navigate('leads')} onNavigate={navigate} /></ErrorBoundary>}
-                  {tab === 'relationships' && <ErrorBoundary label="Network">{isUiV2() ? <NetworkTabV2 /> : <DesktopLeadsRE onNavigate={navigate} />}</ErrorBoundary>}
                   {tab === 'customers' && <ErrorBoundary label="Customers"><DesktopCustomers /></ErrorBoundary>}
-                  {tab === 'guests'    && <ErrorBoundary label="Visibility"><DesktopGuests guestId={route.params.guest || null} targetId={route.params.target || null} onClearDetail={() => navigate('guests')} onNavigate={navigate} /></ErrorBoundary>}
-                  {tab === 'org'       && <ErrorBoundary label="Org"><DesktopOrg /></ErrorBoundary>}
-                  {tab === 'exec'      && <ErrorBoundary label="Intel"><DesktopExec /></ErrorBoundary>}
-                  {tab === 'workflows' && <ErrorBoundary label="Flows"><DesktopFlows /></ErrorBoundary>}
-                  {tab === 'systems'   && <ErrorBoundary label="Systems"><SystemsPanel /></ErrorBoundary>}
                   {tab === 'people'    && <PeopleTab narrow={false} params={params} onNavigate={navigate} />}
                   {tab === 'os'        && <OsTab narrow={false} params={params} onNavigate={navigate} />}
+                  {tab === 'focus'     && <ErrorBoundary label="Focus"><FocusPurposeTab variant="desktop" steadyEntry={params.steady === '1'} /></ErrorBoundary>}
                 </Suspense>
               </div>
             )}
@@ -295,29 +296,25 @@ export default function App() {
               idea is deep-linked on the Content tab. Esc / back clears the param. */}
           {/* Full-screen weekly-brief editor (Content Engine v2) — same overlay
               contract as the composer; Esc / back clears the param. */}
-          {contentV2Enabled() && tab === 'content' && route.params.brief && (
-            <div style={narrow ? ({ zoom: 1.2, ['--z']: '1.2' } as React.CSSProperties) : undefined}>
-              <ErrorBoundary label="Brief">
-                <Suspense fallback={null}>
-                  <BriefEditor
-                    week={route.params.brief}
-                    narrow={narrow}
-                    onClose={() => navigate('content')}
-                  />
-                </Suspense>
-              </ErrorBoundary>
-            </div>
-          )}
-          {tab === 'content' && route.params.idea && (
-            // Match the tabs' 1.2× mobile scale: the composer is an App-root
-            // full-screen surface, so without this wrapper it renders at native
-            // size — noticeably smaller than every tab. Same zoom+--z contract as
-            // mobile-zoom-root; the composer's fixed containers size off --z.
+          {/* The composer. One full-screen surface, opening either a piece
+              (?idea=) or a weekly brief (?brief=), which is what
+              CONTENT-ENGINE-V2-SPEC.md:75 specified. It used to be two
+              separate overlays mounted side by side here, and the brief one
+              had four edit chips to the composer's twenty-six.
+              Match the tabs' 1.2× mobile scale: this is an App-root
+              full-screen surface, so without the wrapper it renders at native
+              size, noticeably smaller than every tab. Same zoom+--z contract
+              as mobile-zoom-root; the composer's fixed containers size off --z. */}
+          {tab === 'content' && (route.params.idea || (contentV2Enabled() && route.params.brief)) && (
             <div style={narrow ? ({ zoom: 1.2, ['--z']: '1.2' } as React.CSSProperties) : undefined}>
               <ErrorBoundary label="Composer">
-                <Suspense fallback={null}>
+                {/* A deep-linked full-screen takeover fetching its own chunk
+                    used to show nothing at all until it was ready, so
+                    following a link looked like the click had failed. */}
+                <Suspense fallback={<DeferredFallback><SkeletonDetail full /></DeferredFallback>}>
                   <ContentComposer
-                    ideaId={route.params.idea}
+                    ideaId={route.params.idea || undefined}
+                    week={contentV2Enabled() ? (route.params.brief || undefined) : undefined}
                     narrow={narrow}
                     onClose={() => navigate('content')}
                   />
@@ -329,20 +326,24 @@ export default function App() {
           <PendingFlagModal />
           <QuickCaptureIdea />
           <IdeaCaptureModal open={inboxOpen} onClose={() => setInboxOpen(false)} />
-          <CaptureSpeedDial />
-          {/* Focus Ritual (unified): one guided stepper across portfolio / week /
-              today, mounted once so it z-stacks above both shells. It subsumes the
-              standalone WeeklyFocusTakeover, so the two are mutually exclusive. */}
-          {isFocusRitualEnabled() ? (
-            <FocusRitual narrow={narrow} tab={tab} onNavigate={navigate} />
-          ) : (
-            <WeeklyFocusTakeover narrow={narrow} tab={tab} />
-          )}
-          {/* Evening shutdown: the small header button plus the after-5pm prompt.
-              Tomorrow's ONE is chosen here, which is what red mode reads. */}
-          {/* Pilot dock: shutdown + worry compiler, one piece of chrome above
-              the bottom nav. Green mode only, because red mode returns before
-              these children ever render. */}
+          {/* The one mobile create control: tab-aware + button (CreateSheet).
+              Keyed on the same `narrow` state as the shell (the old md:hidden
+              gate left 768-900px with no capture control at all) and hidden
+              while a full-screen overlay owns the screen, where it used to
+              paint over the composer's own footer controls. */}
+          {narrow && !fullScreenOverlayOpen && <CreateSheet tab={tab} />}
+          {/* Talk to the tab you are on. Mounted once here rather than per
+              tab, because the panel is identical everywhere and only its
+              grounding scope changes — and because the mobile + sheet fires a
+              bare 'talk' that needs a listener which knows the active tab. */}
+          <TabChatHost tab={tab} narrow={narrow} params={route.params} suppressed={fullScreenOverlayOpen} />
+          {/* Focus Ritual (unified): one guided stepper across week / today,
+              mounted once so it z-stacks above both shells. */}
+          <FocusRitual narrow={narrow} tab={tab} onNavigate={navigate} />
+          {/* Evening shutdown: only the once-a-day after-5pm prompt now.
+              Tomorrow's ONE is chosen here, which is what red mode reads. The
+              floating dock it used to render is gone; shutdown and the worry
+              compiler live on the Focus & Purpose tab. */}
           <EveningShutdown />
         </div>
         </PilotGate>

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { MessageSquare } from 'lucide-react'
+import { MessageSquare } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
+import { SkeletonList } from '../shared/Skeleton'
+import { useDeferredPending } from '../shared/useDeferredPending'
 
 /**
  * Reply Inbox — inbound replies to nurture sends. A reply always halts the
@@ -33,6 +35,8 @@ export function ReplyInbox({ lane, onChanged }: { lane: string; onChanged?: () =
   const { toast } = useToast()
   const [rows, setRows] = useState<ReplyRow[]>([])
   const [loaded, setLoaded] = useState(false)
+  // Reserve the rows immediately, shimmer only once the wait has earned it.
+  const waiting = useDeferredPending(!loaded)
   const [busy, setBusy] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -81,16 +85,16 @@ export function ReplyInbox({ lane, onChanged }: { lane: string; onChanged?: () =
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <MessageSquare size={13} className="text-emerald-400" />
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
           Reply inbox
         </h2>
-        <span className="ml-auto text-[10px] text-white/30 tabular-nums">{open.length} open</span>
+        <span className="ml-auto text-micro text-white/30 tabular-nums">{open.length} open</span>
       </header>
 
       {!loaded ? (
-        <div className="px-4 py-5 text-center text-[12px] text-white/35">Loading…</div>
+        <SkeletonList rows={3} card={false} quiet={!waiting} />
       ) : open.length === 0 ? (
-        <div className="px-4 py-5 text-center text-[12px] text-white/35">
+        <div className="px-4 py-5 text-center text-label text-white/35">
           No open replies. Replies pause the sender's sequence automatically.
         </div>
       ) : (
@@ -98,23 +102,23 @@ export function ReplyInbox({ lane, onChanged }: { lane: string; onChanged?: () =
           {open.slice(0, 6).map(r => (
             <div key={r.id} className="px-4 py-2.5">
               <div className="flex items-center gap-2">
-                <span className="text-[12px] font-medium text-white truncate">{r.from_email || '(unknown)'}</span>
-                <span className={`text-[10px] uppercase tracking-wide flex-shrink-0 ${CLASS_TONE[r.classification] || 'text-white/40'}`}>
+                <span className="text-label font-medium text-white truncate">{r.from_email || '(unknown)'}</span>
+                <span className={`text-micro uppercase tracking-wide flex-shrink-0 ${CLASS_TONE[r.classification] || 'text-white/40'}`}>
                   {r.classification.replace(/_/g, ' ')}
                 </span>
-                <span className="ml-auto text-[10px] text-white/25 flex-shrink-0">
+                <span className="ml-auto text-micro text-white/25 flex-shrink-0">
                   {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
                 </span>
               </div>
               {(r.subject || r.body) && (
-                <p className="text-[11px] text-white/45 truncate mt-0.5">{r.subject || r.body}</p>
+                <p className="text-micro text-white/45 truncate mt-0.5">{r.subject || r.body}</p>
               )}
               <div className="flex gap-2 mt-1.5">
                 <button
                   type="button"
                   disabled={busy === r.id}
                   onClick={() => act(r.id, 'draft_reply')}
-                  className="rounded-lg bg-emerald-500/15 border border-emerald-400/30 px-2.5 py-1 text-[10.5px] font-medium text-emerald-300 hover:bg-emerald-500/25 transition-colors disabled:opacity-40"
+                  className="rounded-lg bg-emerald-500/15 border border-emerald-400/30 px-2.5 py-1 text-micro font-medium text-emerald-300 hover:bg-emerald-500/25 transition-colors disabled:opacity-40"
                 >
                   Draft product reply
                 </button>
@@ -122,7 +126,7 @@ export function ReplyInbox({ lane, onChanged }: { lane: string; onChanged?: () =
                   type="button"
                   disabled={busy === r.id}
                   onClick={() => act(r.id, 'close')}
-                  className="rounded-lg border border-white/[0.1] px-2.5 py-1 text-[10.5px] font-medium text-white/50 hover:text-white/80 transition-colors disabled:opacity-40"
+                  className="rounded-lg border border-white/[0.1] px-2.5 py-1 text-micro font-medium text-white/50 hover:text-white/80 transition-colors disabled:opacity-40"
                 >
                   Close
                 </button>

@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react'
-import { Wand2, Loader2, AlertCircle } from 'lucide-react'
+import { Wand2, AlertCircle } from '@/lib/icons'
 import { supabase } from '../../lib/supabase'
 import { useToast } from '../shared/Toast'
 import { SkillReviewModal } from './SkillReviewModal'
 import { SkillDeliveryHistory } from './SkillDeliveryHistory'
 import { ProcessingOverlay } from '../shared/ProcessingOverlay'
 import type { SkillData, QualityGateResult, TriageResult, SkillDelivery } from './types'
+import { Working } from '../shared/Working'
+import { useWork } from '../../lib/loadingVoice'
+import { useElapsed } from '../../hooks/useAsyncAction'
 
 const API = import.meta.env.VITE_API_URL ?? ''
 
@@ -19,6 +22,8 @@ export function SkillForge() {
   const [additionalContext, setAdditionalContext] = useState('')
   const [showAdditional, setShowAdditional] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const draftWork = useWork('skills.draft')
+  const draftElapsed = useElapsed(generating)
   const [error, setError] = useState<string | null>(null)
 
   const [reviewOpen, setReviewOpen] = useState(false)
@@ -171,52 +176,59 @@ export function SkillForge() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-      {generating && !reviewOpen && <ProcessingOverlay label="Drafting skills" sub="Cleo is building them from the transcript" />}
+      {generating && !reviewOpen && (
+        <ProcessingOverlay
+          label={draftWork.label}
+          sub={draftWork.sub}
+          elapsedMs={draftElapsed}
+          expectedMs={draftWork.expectedMs}
+        />
+      )}
       {/* Left: input form (60%) */}
       <div className="lg:col-span-3 space-y-3">
         <header>
-          <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
+          <h2 className="text-ui font-semibold text-white flex items-center gap-2">
             <Wand2 size={14} className="text-violet-400" />
             Skill Forge
           </h2>
-          <p className="text-[12px] text-white/45 mt-0.5">
+          <p className="text-label text-white/45 mt-0.5">
             Paste a client transcript. Ship a custom Agent Skill in minutes.
           </p>
         </header>
 
         <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-4 space-y-3">
           <label className="block">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">Transcript</span>
+            <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">Transcript</span>
             <textarea
               value={transcript}
               onChange={e => setTranscript(e.target.value)}
               placeholder={PLACEHOLDER_TRANSCRIPT}
               rows={8}
-              className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-[12.5px] text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40 resize-y"
+              className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40 resize-y"
             />
-            <span className="text-[10px] text-white/30 mt-1 block">
+            <span className="text-micro text-white/30 mt-1 block">
               {transcript.length} chars · need 20+
             </span>
           </label>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">Client name</span>
+              <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">Client name</span>
               <input
                 value={clientName}
                 onChange={e => setClientName(e.target.value)}
                 placeholder="e.g. Acme Co"
-                className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-[12.5px] text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40"
+                className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40"
               />
             </label>
             <label className="block">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">Client email</span>
+              <span className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">Client email</span>
               <input
                 value={clientEmail}
                 onChange={e => setClientEmail(e.target.value)}
                 placeholder="ceo@acme.com"
                 type="email"
-                className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-[12.5px] text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40"
+                className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40"
               />
             </label>
           </div>
@@ -224,7 +236,7 @@ export function SkillForge() {
           <button
             type="button"
             onClick={() => setShowAdditional(s => !s)}
-            className="text-[11px] text-white/45 hover:text-white/70 transition-colors"
+            className="text-micro text-white/45 hover:text-white/70 transition-colors"
           >
             {showAdditional ? '− Hide additional context' : '+ Add additional context (optional)'}
           </button>
@@ -234,19 +246,19 @@ export function SkillForge() {
               onChange={e => setAdditionalContext(e.target.value)}
               rows={4}
               placeholder="Extra notes, internal docs, examples…"
-              className="w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-[12.5px] text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40 resize-y"
+              className="w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40 resize-y"
             />
           )}
 
           {error && (
-            <div className="flex items-start gap-2 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300">
+            <div className="flex items-start gap-2 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-label text-rose-300">
               <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {triage && !triage.passed && (
-            <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-[12px] text-amber-200/85">
+            <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-label text-amber-200/85">
               <strong className="font-semibold text-amber-200">Triage: not a skill.</strong>
               <span className="ml-1.5">Better as a <code className="text-white/85">{humanizeRoute(triage.result)}</code>.</span>
               {triage.reasoning && <p className="mt-1 text-amber-200/65">{triage.reasoning}</p>}
@@ -257,15 +269,15 @@ export function SkillForge() {
             <button
               onClick={handleGenerate}
               disabled={!canGenerate}
-              className="inline-flex items-center gap-2 px-4 h-9 rounded-lg bg-violet-500 hover:bg-violet-400 text-[#fff] text-[12.5px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-4 h-9 rounded-lg bg-violet-500 hover:bg-violet-400 text-[#fff] text-label font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {generating ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />}
+              {generating ? <Working size={13} /> : <Wand2 size={13} />}
               {generating ? 'Drafting…' : 'Draft Skills'}
             </button>
             {(transcript || clientName) && !generating && (
               <button
                 onClick={resetForm}
-                className="text-[11.5px] text-white/40 hover:text-white/70 transition-colors px-2"
+                className="text-label text-white/40 hover:text-white/70 transition-colors px-2"
               >
                 Clear
               </button>

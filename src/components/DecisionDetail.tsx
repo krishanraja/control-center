@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { ExternalLink, X } from 'lucide-react'
+import { ExternalLink, X } from '@/lib/icons'
 import { supabase } from '../lib/supabase'
 import { useRealtimeDecisionsWaiting, type DecisionRow } from '../hooks/useRealtimeDecisionsWaiting'
 import { VisibilityTargetDetail } from './VisibilityTargetDetail'
@@ -134,7 +134,7 @@ export function DecisionDetail({ decision, onClose, actionsEnabled = false, onNa
   return (
     <section className="h-full flex flex-col">
       <header className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-violet-300/80">{resolved.kind}</span>
+        <span className="text-micro uppercase tracking-[0.14em] text-violet-300/80">{resolved.kind}</span>
         {onClose && (
           <button
             type="button"
@@ -155,7 +155,7 @@ export function DecisionDetail({ decision, onClose, actionsEnabled = false, onNa
           </div>
         )}
         {!resolved.loading && !resolved.row && (
-          <div className="p-6 text-[13px] text-white/55">
+          <div className="p-6 text-body text-white/55">
             Could not resolve {resolved.kind} {resolved.id}. It may have been archived.
           </div>
         )}
@@ -192,17 +192,17 @@ function GenericDecisionBody({ kind, row }: { kind: DecisionKind; row: Record<st
   return (
     <div className="p-5 space-y-4">
       <div>
-        <h2 className="text-[18px] text-white font-semibold leading-tight">{title}</h2>
+        <h2 className="text-title text-white font-semibold leading-tight">{title}</h2>
         {row.status && (
-          <p className="text-[11px] uppercase tracking-[0.14em] text-white/45 mt-1.5">{row.status}</p>
+          <p className="text-micro uppercase tracking-[0.14em] text-white/45 mt-1.5">{row.status}</p>
         )}
       </div>
 
       {description && (
-        <p className="text-[13px] text-white/80 leading-relaxed whitespace-pre-wrap">{description}</p>
+        <p className="text-body text-white/80 leading-relaxed whitespace-pre-wrap">{description}</p>
       )}
 
-      <dl className="grid grid-cols-2 gap-3 text-[12px]">
+      <dl className="grid grid-cols-2 gap-3 text-label">
         {row.agent && <Field label="Agent" value={row.agent} />}
         {row.assigned_to && <Field label="Owner" value={row.assigned_to} />}
         {row.priority && <Field label="Priority" value={row.priority} />}
@@ -215,7 +215,7 @@ function GenericDecisionBody({ kind, row }: { kind: DecisionKind; row: Record<st
           href={externalUrl}
           target="_blank"
           rel="noreferrer noopener"
-          className="inline-flex items-center gap-1.5 text-[12px] text-violet-300 hover:text-violet-200"
+          className="inline-flex items-center gap-1.5 text-label text-violet-300 hover:text-violet-200"
         >
           Open external <ExternalLink size={11} />
         </a>
@@ -227,7 +227,7 @@ function GenericDecisionBody({ kind, row }: { kind: DecisionKind; row: Record<st
 function Field({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
   return (
     <div className={wide ? 'col-span-2' : ''}>
-      <dt className="text-[10px] uppercase tracking-wider text-white/35">{label}</dt>
+      <dt className="text-micro uppercase tracking-wider text-white/35">{label}</dt>
       <dd className="text-white/85 mt-0.5">{value}</dd>
     </div>
   )

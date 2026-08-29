@@ -7,6 +7,7 @@
 
 import { callClaude } from './_content.js'
 import type { ApolloEnriched } from './_apollo.js'
+import { SYNTHESIS_MODEL } from './_models.js'
 
 // Lane definitions. `key` is the icp_scores jsonb key (registry slug where one
 // exists, else the tag). `primaryVenture` is the FK we set when this is the best
@@ -51,6 +52,9 @@ export interface IcpScoreResult {
   primary_venture: 'mindmake' | 'signal_noise' | 'builder_economy'
   tags: string[]
   why_relevant: string
+  /** Action verb + object: the one move to make on this person now. Empty when
+   *  the judge returned nothing usable. */
+  next_step: string
   dimension_breakdown: Record<string, Record<string, number>>
   insert: boolean
 }
@@ -93,8 +97,15 @@ function buildScoringPrompt(p: ApolloEnriched, webContext?: string): { system: s
     'Return JSON of exactly this shape:',
     '{',
     '  "scores": { "<lane>": { "<dimension>": <0-100>, ... }, ... },',
-    '  "why_relevant": "<one concrete sentence grounded in the record, naming the strongest lane>"',
+    '  "why_relevant": "<one concrete sentence grounded in the record, naming the strongest lane>",',
+    '  "next_step": "<action verb + object: the one move to make on this person now>"',
     '}',
+    '',
+    // The n8n deep-enrich workflow has emitted next_step for the same entity
+    // for months, and leads.next_step already renders on the card. This scorer
+    // wrote the row without it, so whether a lead arrived with a move attached
+    // depended on which path scored it.
+    'next_step must be a concrete first move, not a category: "send the Maven cohort link referencing their AI-governance post" not "reach out". If the record does not support a specific move, say what to find out first.',
   ].join('\n')
   return { system, user }
 }
@@ -111,10 +122,11 @@ function parseJson(text: string): any {
  *  insert decision, and everything needed to write a leads row. */
 export async function scoreProspect(p: ApolloEnriched, opts: { webContext?: string } = {}): Promise<IcpScoreResult> {
   const { system, user } = buildScoringPrompt(p, opts.webContext)
-  const raw = await callClaude({ system, user, model: 'claude-sonnet-4-6', maxTokens: 900, temperature: 0.2 })
+  const raw = await callClaude({ agent: 'icp-score', system, user, model: SYNTHESIS_MODEL, maxTokens: 900, temperature: 0.2 })
   const parsed = parseJson(raw)
   const modelScores: Record<string, Record<string, number>> = parsed?.scores || {}
   const why = String(parsed?.why_relevant || '').trim()
+  const nextStep = String(parsed?.next_step || '').trim()
 
   const reachable = !!(p.email || p.linkedin_url)
   // Deterministic guard (calibration v2): an AI/software-vendor employer is the
@@ -157,6 +169,7 @@ export async function scoreProspect(p: ApolloEnriched, opts: { webContext?: stri
     primary_venture: best.primaryVenture,
     tags,
     why_relevant: why,
+    next_step: nextStep,
     dimension_breakdown,
     insert: best_score >= INSERT_THRESHOLD,
   }

@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Sparkles, X, Loader2 } from 'lucide-react'
+import { Sparkles, X } from '@/lib/icons'
 import { useToast } from './shared/Toast'
 import { useHaptics } from '../hooks/useHaptics'
 import { Modal } from './shared/Modal'
+import { Working } from './shared/Working'
+import { MicButton } from './shared/VoiceCapture'
+import { isTypingTarget } from '../lib/hotkeys'
 
 /**
  * Content-idea capture modal. Pure presentation — owner passes open + onClose.
@@ -73,8 +76,8 @@ export function ContentIdeaModal({ open, onClose }: { open: boolean; onClose: ()
     >
         <header className="flex items-center gap-2 px-5 pt-4 pb-2">
           <Sparkles size={14} className="text-rose-300" />
-          <h2 className="text-[13px] font-semibold text-white">Capture content idea</h2>
-          <span className="text-[10px] text-white/40 ml-1">Cleo will enrich + dedupe</span>
+          <h2 className="text-body font-semibold text-white">Capture content idea</h2>
+          <span className="text-micro text-white/40 ml-1">Cleo will enrich + dedupe</span>
           <button
             type="button"
             onClick={onClose}
@@ -101,22 +104,39 @@ export function ContentIdeaModal({ open, onClose }: { open: boolean; onClose: ()
             }}
             rows={4}
             placeholder='e.g. "Why senior media leaders are abandoning Substack: platform lock-in is the new creator-economy story"'
-            className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-[13px] text-white placeholder-white/30 focus:outline-none focus:border-rose-500/40 resize-none"
+            className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-body text-white placeholder-white/30 focus:outline-none focus:border-rose-500/40 resize-none"
           />
 
           <div className="flex items-center justify-between mt-3">
-            <p className="text-[11px] text-white/40">
+            <p className="text-micro text-white/40">
               Enter to capture · Esc to close
             </p>
+            {/* Speaking an idea is the phone-shaped way to capture one, and the
+                mobile speed dial offered a mic on Task but not on Idea, which
+                is exactly backwards. Appends rather than replaces, matching
+                inbox/IdeaCaptureModal, so a second thought adds to the first
+                instead of wiping it. MicButton renders nothing where the
+                browser cannot record, so desktop loses nothing either. */}
+            <div className="flex items-center gap-2">
+              <MicButton
+                endpoint="/api/content-ideas/voice"
+                disabled={busy}
+                onJson={j => {
+                  const said = typeof j.text === 'string' ? j.text.trim() : ''
+                  if (said) setText(cur => (cur ? `${cur} ${said}` : said))
+                }}
+                onError={() => toast('Could not transcribe that. Type it instead.', 'error')}
+              />
             <button
               type="button"
               onClick={submit}
               disabled={busy || !text.trim()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border border-rose-500/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-medium border border-rose-500/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 disabled:opacity-40 transition-colors"
             >
-              {busy ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              {busy ? <Working size={12} /> : <Sparkles size={12} />}
               Capture
             </button>
+            </div>
           </div>
         </div>
     </Modal>
@@ -127,7 +147,7 @@ export function ContentIdeaModal({ open, onClose }: { open: boolean; onClose: ()
  * ⌘+I — capture a content idea from anywhere in the Control Center.
  *
  * Desktop-only floating pill + the ⌘I global hotkey. Mobile uses
- * CaptureSpeedDial instead.
+ * the CreateSheet + button instead.
  */
 export function QuickCaptureIdea() {
   const [open, setOpen] = useState(false)
@@ -136,8 +156,10 @@ export function QuickCaptureIdea() {
     const onKey = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase()
       if ((e.metaKey || e.ctrlKey) && k === 'i') {
-        const target = e.target as HTMLElement | null
-        if (target && target.tagName === 'INPUT') return
+        // ⌘I is italic inside any editor. Never steal it from a typing surface:
+        // TipTap's canvas is a contenteditable, and this handler toggles, so a
+        // second press used to close the modal and discard what was typed.
+        if (isTypingTarget(e)) return
         e.preventDefault()
         setOpen(o => !o)
       }
@@ -148,16 +170,16 @@ export function QuickCaptureIdea() {
 
   return (
     <>
-      {/* Floating pill — desktop-only (min-[900px]). Mobile uses CaptureSpeedDial. */}
+      {/* Floating pill — desktop-only (min-[900px]). Mobile uses the CreateSheet + button. */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden min-[900px]:flex fixed right-5 bottom-5 z-30 items-center gap-2 px-3 py-2 rounded-full border border-rose-500/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 shadow-lg backdrop-blur transition-colors"
+        className="capture-pill hidden min-[900px]:flex fixed right-5 bottom-5 z-30 items-center gap-2 px-3 py-2 rounded-full border border-rose-500/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 shadow-lg backdrop-blur transition-colors"
         title="Capture content idea (⌘+I)"
       >
         <Sparkles size={14} />
-        <span className="text-[12px] font-medium">Capture idea</span>
-        <kbd className="text-[10px] font-mono border border-rose-300/30 rounded px-1 py-0.5 bg-rose-500/10">
+        <span className="text-label font-medium">Capture idea</span>
+        <kbd className="text-micro font-mono border border-rose-300/30 rounded px-1 py-0.5 bg-rose-500/10">
           ⌘I
         </kbd>
       </button>

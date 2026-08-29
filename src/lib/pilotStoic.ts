@@ -46,7 +46,7 @@ const LIBRARY: Record<StateBucket, StoicLine[]> = {
     {
       quote: 'You have power over your mind, not outside events. Realise this, and you will find strength.',
       source: 'Marcus Aurelius',
-      so: 'Nothing outside you needs deciding today. One thing leaves the machine.',
+      so: 'Nothing outside you needs deciding today. One thing goes out the door.',
     },
     {
       quote: 'Man is not worried by real problems so much as by his imagined anxieties about real problems.',

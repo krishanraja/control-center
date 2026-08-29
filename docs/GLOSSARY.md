@@ -185,12 +185,15 @@ reach Krish).
 
 ## I
 
-**Intel (tab)** — User-facing name for the strategic-metrics tab.
-Implemented as `DesktopExec.tsx` and routed under the `exec` tab id.
-Hosts the AskMarcus chat surface.
+**Intel (tab)** — The OS subtab whose page title is **Business
+Intelligence**; the short `intel` sub id and the "Intel" door label stay.
+Implemented as `intel/BusinessIntelTab.tsx` (one tree, both shells) and
+also routed under the legacy `exec` tab id. See **Five Questions**.
 
-**Intelligence feed** — The chronological stream of `audit_log` rows
-shown on the Intel tab. Same source as Live Activity, different framing.
+**Five Questions** — The governing shape of Business Intelligence since
+2026-08-26: what is it costing, what is coming in, what is broken, is
+anything converting, what should I decide. Fixed order, one live
+one-line answer each, expanding in place. The sixth is AskMarcus.
 
 ---
 
@@ -200,8 +203,9 @@ shown on the Intel tab. Same source as Live Activity, different framing.
 credential health, workflow health, API quirks (kept in
 `system_config.known_quirks`).
 
-**KPI strip** — The metric tile row near the top of Home / Intel. Sourced
-from `home_intelligence.metrics`. Collapses entirely when empty.
+**KPI strip** — Retired 2026-08-26. `home_intelligence.metrics` are
+Marcus's own authored targets, so they now render as **his scoreboard**
+inside `intel/MarcusReadSheet.tsx`, never beside deterministic numbers.
 
 **Krish** — The CEO. The only intended user of Control Center. Audit-log
 actor for every manual action (`actor='krish'`).
@@ -236,6 +240,14 @@ and Monday pre-mortem.
 **mind/make OS** — The broader autonomous-organisation platform Control
 Center is the dashboard for. Canonical architecture lives in
 `MINDMAKE_OS_ARCHITECTURE.md` on the VPS workspace root.
+
+**Meter (usage meter)** — `meter_daily`, one row per provider × unit ×
+day × sub-dimension, answering which unit of the OS spent the money where
+receipts only answer how much a provider cost. Apify in dollars per
+actor, n8n in executions per workflow, Anthropic in dollars per agent
+from self-metered token counts. Provider-derived days are REPLACED so a
+re-sync cannot double-count; self-metered calls are ADDED. Surfaces in
+`/api/spend` as `spenders`. See **Prepaid line**, **Self-metering**.
 
 **Mission** — The one-paragraph north star of an agent's brief.
 
@@ -281,6 +293,15 @@ Control Center events to the right agent workflow.
 Executive, Operations, Growth. Render order is fixed top-to-bottom on
 the Org tab.
 
+**Prepaid line** — The usage a plan price already covers
+(`service_registry.included_usd`; Apify's is $29), and the point past it
+where the vendor charges early rather than invoicing later
+(`overage_trigger_usd`; Apify's is $50). Before 2026-08-27 the tracker
+reported headroom to the vendor's HARD cap instead, which is why it read
+"Apify: $130.53, ok" in the week Apify emailed to say the prepaid was
+spent. Crossing it is a state (`OVER PREPAID` / `CHARGING`), not a
+number, and it emails.
+
 **Priority** — Task urgency tier. Recognised values: `critical`,
 `urgent`, `high`, `medium`, `normal`, `low`. Drives the Needs You
 ranking on Home.
@@ -321,6 +342,16 @@ writes (for the OS).
 ---
 
 ## S
+
+**Self-metering** — Recording an API's cost from the OS's own side of the
+call, because the vendor will not report it. Anthropic's usage and cost
+reports are Admin-key endpoints and an individual account cannot hold an
+Admin key, so every call in the OS logs the token counts on its own
+response, prices them from `api/_prices.ts`, and stamps the calling
+agent. The invoice stays the truth for TOTAL spend; the meter answers
+which agent spent it. Calls made outside these helpers — an n8n node with
+its own Anthropic credential — are invisible to it, and the console says
+so rather than implying full coverage.
 
 **Signal & Noise** — The podcast brand for AI in media. Slug
 `signal_noise` in `venture_registry`. Co-founded with Rio Longacre +

@@ -16,3 +16,125 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
+      # The api/ tree was never type-checked by CI: `tsc --noEmit` reads the root
+      # tsconfig, which only includes src/. tsconfig.api.json existed but was
+      # documented as "NOT a CI gate yet" because of a standing error baseline.
+      # That baseline hid two routes importing _supabase.js at the wrong depth,
+      # both of which returned HTTP 500 on every request in production for as
+      # long as they had existed. Baseline is now zero; keep it there.
+      - run: npm run typecheck:api
+      # scripts/ runs under tsx, so it gets its own config rather than being held
+      # to the api tree's NodeNext resolution (which flagged 23 non-bugs).
+      - run: npm run typecheck:scripts
+      - run: npx tsx scripts/check-video-studio-export.mts
+      - run: npx tsx scripts/check-content-seed-security.mts
+      # Structural invariants. These guard shapes the type checker cannot see:
+      # that one component owns goal entry AND goal display, and that the SMART
+      # rubric stays calibrated per rung. Both encode bugs that already shipped
+      # once, so they run on every push rather than by hand.
+      - run: npx tsx scripts/check-goal-ladder.mts
+      - run: npx tsx scripts/check-goal-gate.mts
+      # The 2026-08-21 sweep put every text size in src/ on the role scale and
+      # every uppercase label on the one eyebrow recipe. A single re-introduced
+      # text-[13px] is invisible in review; this keeps the scale swept.
+      - run: npx tsx scripts/check-type-tokens.mts
+      # Same date, same shape, for icons: every glyph ships through the
+      # src/lib/icons wrapper (constant 1.75px stroke, snapped sizes), and
+      # this keeps direct lucide imports, stray stroke weights, and emoji
+      # stand-ins from creeping back.
+      - run: npx tsx scripts/check-icons.mts
+      # Same reason: 274 of 323 content ideas were unpurgeable because eleven
+      # insert paths could each forget an expiry. The invariant now lives in a
+      # column default, and this checks the default, the reserved meaning of
+      # NULL, and the purge that depends on both.
+      - run: npx tsx scripts/check-content-expiry.mts
+      # And once more for the other half of the same tab: the decision queue
+      # had no week bound at all, so it served the thirty oldest pending cards
+      # ever written and the same 10 July brief review sat at slot 1 for six
+      # weeks. The window is now defined once per side (the browser cannot
+      # import from api/), and this checks the two agree, that the read stays
+      # bounded, and that the purge still ages every card kind.
+      - run: npx tsx scripts/check-content-window.mts
+      # And for the layer that cannot be caught downstream: G6 blocks any draft
+      # that does not carry the terminal statement VERBATIM, so a wrong name in
+      # it ships under Krish's name. G1 credited every number on a vendor domain
+      # to the domain owner, and published Stuut's 81.7% as Andreessen Horowitz's
+      # number. This checks a name is printed only where the sentence gives one.
+      - run: npx tsx scripts/check-anchor-attribution.mts
+      # C3 of the content rewrite. The acceptance criterion is "100 percent of
+      # surfaced cards pass lint, anything below 100 is a bug", which is only
+      # worth anything if the lint itself is trustworthy. This runs it against
+      # the engine's own 2026-W28..W33 output: all 17 so-whats must be rejected,
+      # and a card written to the brief must still pass.
+      - run: npx tsx scripts/check-card-lint.mts
+      # Step 2 of the rewrite. The six lenses are declared twice by necessity:
+      # the CHECK constraint is what rejects a bad write, the union is what
+      # stops the code producing one. Drift between them fails inside a cron in
+      # production rather than here. Also holds the two rules an edit is most
+      # likely to quietly undo: no catch-all lens, and none of the nine retired
+      # areas creeping back in.
+      - run: npx tsx scripts/check-content-vocabulary.mts
+      # Steps 4, 5 and 6. Three rules here are the kind an edit undoes as a
+      # convenience and nobody notices until the queue is wrong again: a single
+      # event must be BLOCKED rather than scored low, independence must be
+      # counted by origin rather than story volume, and the two reserved slots
+      # must stay empty rather than backfill with the familiar. Also checks that
+      # every reader excludes merged arcs, now that a merge keeps the row.
+      - run: npx tsx scripts/check-arc-scoring.mts
+      # Step 7. Krish ranked forty generated ideas lead/yes/maybe/no. The set is
+      # useful and it is also the most concentrated statement of interest in the
+      # system, so the assertion that matters most here is a negative one: the
+      # scorer must not be able to see it. A proposer ranking by what he already
+      # approved still returns seven cards a week, so nothing would look broken.
+      # Also holds folder coverage, and stops a format being deleted for
+      # converting badly rather than marked and kept.
+      - run: npx tsx scripts/check-slate-calibration.mts
+      # The one that would have caught the whole thing. Steps 1 to 7 each passed
+      # their own guard while none of it ran: scoreArc, surface and lintCard were
+      # called by nothing, every live arc had lens null, and the Content tab was
+      # still served by the old decisions path. Every guard was green because each
+      # checked a component against its own contract and nothing checked that the
+      # components were joined up. This walks the chain link by link.
+      - run: npx tsx scripts/check-content-chain.mts
+      # Same reason again: the reject-reason taxonomy lived in three files that
+      # disagreed on 26 codes, and 18 codes the UI could emit were missing from
+      # the server's allow-list, so a whole class of rejection reached the
+      # learning loop with no usable reason on it. This checks the one
+      # vocabulary, the one surface set, and that anything you can refuse can
+      # also tell you why it was served.
+      - run: npx tsx scripts/check-served-surfaces.mts
+      # And again, for the enrichment path: every provider helper in _enrich.ts
+      # returns '' on failure, so a run where PDL was out of credits still wrote
+      # enrichment_status='enriched' and — carrying a dossier — became
+      # permanently ineligible for retry. "Do not mark a record enriched when a
+      # provider was blocked" is a control-flow property, not a type, so it is
+      # checked here.
+      - run: npx tsx scripts/check-enrichment-honesty.mts
+      # The fleet observer is the one health signal not self-reported by the
+      # thing it measures, so its two classifiers decide what anyone believes
+      # about a failure. Both are ordering sensitive and both shipped wrong
+      # once: a blown plan quota read as a broken credential (n8n wraps nearly
+      # every non-2xx in "perhaps check your credentials?"), and a scheduled
+      # workflow that never ran read as idle rather than dead.
+      - run: npx tsx scripts/check-fleet-classifier.mts
+      # Ten workflow mirrors carried the live Supabase service-role key in
+      # plaintext for months. That key bypasses RLS on every table, including
+      # contact_intelligence, which is service-role-only precisely because it
+      # holds private judgments about named people. The n8n editor exports
+      # credentials inline, so the next export re-adds them unless something
+      # fails the build. scripts/n8n/secrets.mjs is the supported path.
+      - run: npx tsx scripts/check-no-secrets.mts
+      # The usage meter answers "which agent is spending my money" from a stamp
+      # passed at each Anthropic call site. A site that forgets it still meters,
+      # as "unattributed" — honest, and useless. The failure is silent and
+      # arrives by drift: four new callClaude sites landed on main while the
+      # meter was being built on a branch, and nothing said so.
+      - run: npx tsx scripts/check-agent-stamps.mts
+      # api/_prices.ts prices an unknown model at ZERO on purpose, because a
+      # guessed rate is worse than a visible gap. That default is right and a
+      # terrible thing to discover in production: the meter keeps reporting
+      # numbers, they are just all zero for the model nobody added. It nearly
+      # happened — a model sweep moved the fleet onto Claude 5 in the same week
+      # the meter was built, and every synthesis call would have metered real
+      # tokens against $0.00.
+      - run: npx tsx scripts/check-model-prices.mts

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Search, ArrowUp, ArrowDown } from 'lucide-react'
+import { Search, ArrowUp, ArrowDown } from '@/lib/icons'
 import { supabase } from '../../lib/supabase'
+import { SkeletonList } from '../shared/Skeleton'
+import { useDeferredPending } from '../shared/useDeferredPending'
 
 /**
  * SEO rank: where the product ranks on Google for its ICP keywords, and the
@@ -72,6 +74,8 @@ const VISIBLE_ROWS = 8
 export function SeoRankPanel({ lane }: { lane?: string | null }) {
   const [rows, setRows] = useState<RankRow[]>([])
   const [loaded, setLoaded] = useState(false)
+  // Reserve the rows immediately, shimmer only once the wait has earned it.
+  const waiting = useDeferredPending(!loaded)
 
   useEffect(() => {
     let cancelled = false
@@ -102,11 +106,11 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
     <section className="rounded-xl border border-white/[0.07] bg-white/[0.015] overflow-hidden">
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <Search size={13} className="text-cyan-400" />
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
           SEO rank
         </h2>
         {rows.length > 0 && (
-          <span className="ml-auto text-[10px] tabular-nums">
+          <span className="ml-auto text-micro tabular-nums">
             <span className={ranking > 0 ? 'text-emerald-300' : 'text-white/35'}>{ranking}</span>
             <span className="text-white/25"> / {rows.length} ranking</span>
           </span>
@@ -114,9 +118,9 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
       </header>
 
       {!loaded ? (
-        <div className="px-4 py-5 text-center text-[12px] text-white/35">Loading…</div>
+        <SkeletonList rows={4} card={false} quiet={!waiting} />
       ) : rows.length === 0 ? (
-        <div className="px-4 py-5 text-center text-[12px] text-white/35">
+        <div className="px-4 py-5 text-center text-label text-white/35">
           No rank sweep results yet — Maya's weekly SEO rank sweep lands owned
           Google positions and keyword volume here.
         </div>
@@ -132,8 +136,8 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
               <div key={r.id} className="px-4 py-2.5">
                 <div className="flex items-center gap-2">
                   <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${pos != null ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                  <span className="text-[12px] text-white/80 truncate">{r.query}</span>
-                  <span className="ml-auto flex-shrink-0 text-[11px] tabular-nums">
+                  <span className="text-label text-white/80 truncate">{r.query}</span>
+                  <span className="ml-auto flex-shrink-0 text-micro tabular-nums">
                     {pos != null ? (
                       <span className="text-emerald-300 inline-flex items-center gap-0.5">
                         #{pos}
@@ -146,7 +150,7 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
                     )}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-white/30">
+                <div className="flex items-center gap-2 mt-0.5 text-micro text-white/30">
                   <span className="text-white/40">{laneLabel(r.product)}</span>
                   <span>{fmtVolume(r.search_volume)}</span>
                   <span className="ml-auto text-white/25">priority {r.priority ?? 0}</span>
@@ -155,7 +159,7 @@ export function SeoRankPanel({ lane }: { lane?: string | null }) {
             )
           })}
           {rows.length > VISIBLE_ROWS && (
-            <p className="px-4 py-2 text-[10px] text-white/25">
+            <p className="px-4 py-2 text-micro text-white/25">
               {rows.length - VISIBLE_ROWS} more keywords in the sweep, below these on priority.
             </p>
           )}

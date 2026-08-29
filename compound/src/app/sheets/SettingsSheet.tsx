@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import type { Snapshot } from "../../types";
 import { buildGroups, type IndustryEntry } from "../../lib/industryGroups";
 import { Segmented } from "../components/Segmented";
 import { ChevronIcon } from "../components/Icons";
@@ -7,7 +6,7 @@ import { ChevronIcon } from "../components/Icons";
 type View = "all" | "active" | "hidden";
 
 interface Props {
-  snapshot: Snapshot;
+  entries: IndustryEntry[];
   excluded: string[];
   saveError: string;
   onToggle: (industry: string) => void;
@@ -21,22 +20,11 @@ const VIEW_NOTE: Record<View, string> = {
   hidden: "Industries COMPOUND is leaving out.",
 };
 
-export function SettingsSheet({ snapshot, excluded, saveError, onToggle, onBulk }: Props) {
+export function SettingsSheet({ entries, excluded, saveError, onToggle, onBulk }: Props) {
   const [filter, setFilter] = useState("");
   const [view, setView] = useState<View>("all");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const hidden = new Set(excluded);
-
-  const entries = useMemo<IndustryEntry[]>(() => {
-    const names = new Set<string>([
-      ...snapshot.industries.map((row) => row.industry),
-      ...snapshot.agreement.map((row) => row.industry),
-      ...snapshot.companies.map((row) => row.industry),
-    ]);
-    const counts = new Map<string, number>();
-    for (const row of snapshot.agreement) counts.set(row.industry, (counts.get(row.industry) ?? 0) + 1);
-    return [...names].map((industry) => ({ industry, names: counts.get(industry) ?? 0 }));
-  }, [snapshot]);
 
   const groups = useMemo(() => buildGroups(entries), [entries]);
   const withCompanies = entries.filter((entry) => entry.names > 0).length;
@@ -96,8 +84,8 @@ export function SettingsSheet({ snapshot, excluded, saveError, onToggle, onBulk 
 
   return (
     <div className="page settings-page">
-      <h2 className="big nomargin">Choose what COMPOUND shows</h2>
-      <p className="sub">Hide a sector or industry once. It stays out of Stocks, Trends and Ask.</p>
+      <h2 className="big nomargin">Choose what you explore</h2>
+      <p className="sub">Hidden industries leave Markets and Ask. A materially significant Brief story still appears.</p>
 
       <div className="settingsbar">
         <input
@@ -184,7 +172,7 @@ export function SettingsSheet({ snapshot, excluded, saveError, onToggle, onBulk 
                   type="button"
                   role="checkbox"
                   aria-checked={partial ? "mixed" : allVisible}
-                  aria-label={allVisible ? `Hide all ${group.group} industries` : `Show all ${group.group} industries`}
+                  aria-label={`Show ${group.group} industries`}
                   className="groupcontrol"
                   onClick={() => onBulk(memberNames, allVisible)}
                 >

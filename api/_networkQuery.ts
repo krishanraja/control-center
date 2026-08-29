@@ -1,4 +1,6 @@
 import { callClaude, robustJson } from './_content.js'
+import { JUDGE_MODEL } from './_models.js'
+import { isRetiredVenture } from './_venturePositioning.js'
 
 // Turns a sentence Krish typed or spoke into a query plan the scorer can run.
 //
@@ -21,19 +23,32 @@ import { callClaude, robustJson } from './_content.js'
 // Sonnet makes. That costs less than it sounds, because the venture multiplier
 // is penalty-only [0.65, 1.0], so a missed venture means no demotion rather than
 // a missed boost. Constraints are soft either way.
-const MODEL = 'claude-haiku-4-5-20251001'
+const MODEL = JUDGE_MODEL
 
 // Fields the planner may constrain on. This is an allow-list, not documentation:
 // anything outside it is dropped before the plan reaches Postgres, so a
 // hallucinated column degrades the score instead of the request. network_search
 // also ignores unknown fields, which makes this belt and braces on purpose.
 export const CONSTRAINT_FIELDS = [
-  'seniority', 'country', 'industry', 'company', 'title',
+  // 'geo' is where geography goes. 'country' is kept as an accepted alias
+  // because it is the older name and a model that has seen either will emit
+  // either; network_search normalises both to 'geo' and canonicalises the
+  // values, so "GB", "United Kingdom", "Britain" and "London" all land on the
+  // same country. Values are matched against the RESOLVED geo_code, which is
+  // wider than the country column: it falls back to the contact's location and
+  // then to the email ccTLD, and that fallback is the difference between 3,679
+  // people with a known country and roughly 4,600.
+  'seniority', 'geo', 'country', 'industry', 'company', 'title',
   'roles', 'surface_when', 'reachable_via', 'best_channel',
   'network_tier', 'confidence', 'primary_venture', 'mindmake_buyer_family',
 ] as const
 
-const VENTURES = ['mindmake', 'adfixus', 'signal_noise', 'builder_economy'] as const
+// The live portfolio only. AdFixus (retired July 2026) is deliberately absent:
+// listing it here let the planner classify AdFixus-flavoured queries, emit
+// venture:'adfixus', and re-rank the whole network by a venture Krish no longer
+// runs. Retirement is centralised in _venturePositioning.RETIRED_VENTURES;
+// sanitizePlan also guards against a stale/model-emitted retired slug below.
+const VENTURES = ['mindmake', 'signal_noise', 'builder_economy'] as const
 const ROLES = ['buyer', 'partner', 'introducer', 'guest', 'operator_peer', 'investor', 'hire'] as const
 const SENIORITY = ['founder_cxo', 'vp_director', 'manager_senior', 'ic_unknown'] as const
 const TIERS = ['1_reciprocated', '2_core_network', '3_known_network', '4_owned_network', '5_cold_lead'] as const
@@ -63,7 +78,6 @@ His network is 10,670 resolved people. Each carries: a one-line "who", a "why_th
 
 His ventures:
 - mindmake — AI advisory, education and products. Buyers are senior operators at non-vendor companies who must build AI capability.
-- adfixus — identity infrastructure for publishers and media owners. Buyers are publisher-side identity, data and addressability people.
 - signal_noise — a B2B/AI go-to-market podcast. Needs guests with a real operator story.
 - builder_economy — building in the age of AI. Community, cohort and audience.
 
@@ -82,6 +96,7 @@ Rules:
 - "keywords" is a space-separated list of concrete literal terms worth matching exactly: company names, surnames, product names, industry words. Omit generic words like "people", "find", "someone". Empty string if there are none.
 - "constraints" are SOFT. They are weighted boosts, never filters, so include one whenever the question implies it even if you are unsure — a wrong constraint costs a little ranking, a missing one costs the right answer. Weight 1.0 for something stated outright, 0.5-0.7 for something implied.
 - Allowed "field" values, and nothing else: ${JSON.stringify(CONSTRAINT_FIELDS)}
+- Geography goes in a "geo" constraint. Emit the ISO-3166 alpha-2 country code where you know it: GB for the UK, Britain, England, Scotland or a British city; AU for Australia or an Australian city; US for the USA, America or an American city. Otherwise emit the plain English country name. A city is fine as a value ("London"), it resolves to its country. Add a geo constraint whenever a place is named. His three markets are the United States, the United Kingdom and Australia, so those are the ones that come up; do not invent a location he did not mention.
 - Controlled vocabularies. roles: ${JSON.stringify(ROLES)}. seniority: ${JSON.stringify(SENIORITY)}. network_tier: ${JSON.stringify(TIERS)}. confidence: ["high","medium","low"]. best_channel: ["email","linkedin_dm","instagram_dm","phone"].
 - "industry", "company" and "title" match on substring, so prefer a short distinctive fragment: "media agency", not "independent media agency group".
 - Set "venture" only when the question is actually about one of his ventures. It re-ranks everyone, so a wrong guess is expensive.
@@ -116,7 +131,11 @@ export function sanitizePlan(raw: unknown, fallbackQuery: string): QueryPlan {
         .slice(0, 8)
     : []
 
-  const venture = typeof o.venture === 'string' && (VENTURES as readonly string[]).includes(o.venture)
+  // A retired venture is dropped even if the model emits it, so a stored angle
+  // or a stale prompt can never resurrect one into the ranker.
+  const venture = typeof o.venture === 'string'
+    && (VENTURES as readonly string[]).includes(o.venture)
+    && !isRetiredVenture(o.venture)
     ? o.venture
     : null
 
@@ -154,6 +173,7 @@ export async function planQuery(question: string): Promise<{ plan: QueryPlan; pl
 
   try {
     const text = await callClaude({
+      agent: 'network-query',
       model: MODEL,
       system: SYSTEM,
       user: q,

@@ -299,7 +299,7 @@ export const TONE_PRESETS: AxisOption[] = [
 
 export const LENGTH_PRESETS: AxisOption[] = [
   { value: 'short', label: 'Short (LinkedIn)', hint: 'Cut to 150-250 words. Scroll-stopping claim or scene first. No hook-line-gap-explanation pattern.' },
-  { value: 'mid', label: 'Mid (Built)', hint: 'Tighten to ~400-700 words. Teaching voice, every paragraph advances the argument, each item carries a so-what.' },
+  { value: 'mid', label: 'Mid (Built with AI)', hint: 'Tighten to ~400-700 words. Teaching voice, every paragraph advances the argument, each item carries a so-what.' },
   { value: 'long', label: 'Full essay', hint: 'Expand to a 600-1000 word investigative essay. Slower structural open that earns the depth, take the claim apart and check each part against dated evidence, hold one genuine counterpoint, say where the knowable ends, end on a hard verdict. No summary ending.' },
 ]
 
@@ -315,6 +315,19 @@ export const HUMOR_PRESETS: AxisOption[] = [
   { value: 'satirical', label: 'Satirical', hint: 'Deadpan satirical-column voice, like a satirical periodical. Report an absurd premise with total straight-faced seriousness. The humour lives in the framing and the restraint, never in a wink to the reader.' },
   { value: 'deadpan', label: 'Deadpan', hint: 'Dry and deadpan. Underplay everything, let the absurdity sit unremarked, no exclamation marks, no signposting the joke. Flat on top, sharp underneath.' },
   { value: 'periodic', label: 'Periodic', hint: 'Use periodic sentences: withhold the payoff until the final clause so each line lands on timing. Build, hold, then deliver the turn at the end.' },
+]
+
+// Analogy presets. The house already has a rule about analogies that nothing
+// in the editor could act on: api/_ladder.ts:131 — "An analogy with no stated
+// breaking point is a flourish, not evidence" — and the YouTube register asks
+// for one carried the whole way, including through the part where it breaks.
+// These make that a one-click move rather than something to type out each time.
+// Sent as 'feedback' like ITERATE_CHIPS; the steer rides on `hint`.
+export const ANALOGY_PRESETS: AxisOption[] = [
+  { value: 'analogy-add', label: 'Add an analogy', hint: 'Introduce ONE analogy that makes the central mechanism easier to hold, and carry it through the whole piece rather than dropping it after the first mention. It must map to the actual mechanism, not just the mood. Say plainly where it stops working before the reader notices; an analogy with no stated breaking point is a flourish, not evidence. Do not add a second analogy.' },
+  { value: 'analogy-carry', label: 'Carry it further', hint: 'An analogy is already here. Extend it through the sections that currently drop it, so the same frame does the explaining all the way down. Do not introduce a competing analogy, and do not stretch it past the point where it still maps to the mechanism.' },
+  { value: 'analogy-break', label: 'Break it honestly', hint: 'Find the analogy in this piece and say out loud where it stops working, in the place a sharp reader would first push back. Name the specific way the mapping fails and what the real mechanism does instead. This should strengthen the argument, not hedge it.' },
+  { value: 'analogy-cut', label: 'Cut the analogy', hint: 'The analogy here is doing less work than the plain statement would. Remove it and say the thing directly, keeping every fact and the argument intact. Do not replace it with a different figure of speech.' },
 ]
 
 export const ZOOM_DEFAULT_HINT =
@@ -356,7 +369,7 @@ export interface LaneDef {
 // venture again.
 //
 // REFOCUS 2026-08-11. All content now publishes under ONE media venture,
-// Publication, the content arm of the Mindmake advisory, at
+// the publication, the content arm of the Mindmake advisory, at
 // live.themindmaker.ai. It has exactly two signature formats:
 //   PAID   the investigation, folding in Techonomic's investigative register
 //   BUILT  builder conversations, folding in the Builder Economy thesis
@@ -366,7 +379,7 @@ export interface LaneDef {
 //     so it is absent from this file by design.
 //   - Builder Economy. Fully retired, feed and all.
 //   - Signal & Noise. Demoted from venture to distribution CHANNEL: it is a
-//     co-hosted feed that carries Publication material. Nothing is
+//     co-hosted feed that carries the publication material. Nothing is
 //     commissioned "for" it, which is why it now sits in MEDIA_CHANNELS.
 
 /** Media ventures: the ones that produce content. Mirrors venture_registry
@@ -392,7 +405,7 @@ export const VENTURE_FORMATS: VentureFormat[] = [
 ]
 
 export const MEDIA_VENTURES: { value: MediaVenture; label: string }[] = [
-  { value: 'publication', label: 'Publication' },
+  { value: 'publication', label: 'the publication' },
 ]
 
 export function formatsForVenture(v?: string | null): VentureFormat[] {
@@ -408,7 +421,10 @@ export type MediaChannel =
 export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: boolean }[] = [
   { value: 'substack', label: 'Substack', shortForm: false },
   { value: 'instagram', label: 'Instagram', shortForm: true },
-  { value: 'tiktok', label: 'TikTok', shortForm: true },
+  // TikTok is deliberately absent from the SELECTABLE list while it has no
+  // register in the corpus: a channel you can tick but never cut for is a
+  // checkbox that does nothing. It stays in MediaChannel above so stored rows
+  // still type-check, and media_channels.active is false to match.
   { value: 'youtube', label: 'YouTube', shortForm: false },
   { value: 'linkedin', label: 'LinkedIn', shortForm: true },
   { value: 'podcast', label: 'Podcast', shortForm: false },
@@ -421,7 +437,7 @@ export const MEDIA_CHANNELS: { value: MediaChannel; label: string; shortForm: bo
 /** Default distribution per format, so the composer pre-ticks the sane set. */
 export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
   'publication:money_of_ai': ['substack', 'linkedin'],
-  'publication:built_with_ai': ['substack', 'instagram', 'tiktok', 'youtube', 'signal_noise'],
+  'publication:built_with_ai': ['substack', 'instagram', 'youtube', 'signal_noise'],
 }
 
 // The factory channel is what the Omnichannel Content Factory polishes INTO.
@@ -431,12 +447,6 @@ export const DEFAULT_CHANNELS: Record<string, MediaChannel[]> = {
 // in n8n cloud, which switches on `target_channel`. They are renamed here and
 // in the factory together; changing one side alone silently drops a piece into
 // the factory's fallback branch.
-// REBRAND 2026-08-29: the two channels became The Money of AI and Built with
-// AI. Only the LABELS moved. The wire values stay 'paid' and 'built' precisely
-// because renaming them would need a simultaneous n8n factory deploy, and the
-// wire value is invisible to a reader. `slot` in venture_formats and
-// content_ideas DID move to money_of_ai / built_with_ai; LANES maps between
-// the two namespaces, which is what that table is for.
 // This namespace deliberately mixes the two FORMATS (paid, built) with real
 // distribution surfaces (linkedin, signal_noise, vertical_video), because the
 // factory produces a draft styled FOR a destination. That is not the same list
@@ -474,32 +484,178 @@ export interface LaneAdapt { value: string; label: string; hint: string }
 // api/content-ideas/[id]/revise.ts (corpusForChannel(corpus, adaptMatch[1])).
 // It MUST be a key in CHANNEL_HEADING in api/_content.ts, or the adapt
 // silently loses its channel corpus and degrades to a generic rewrite.
-export const LANE_ADAPTS: LaneAdapt[] = [
-  {
-    value: 'linkedin',
-    label: 'LinkedIn',
-    hint: 'Adapt this for LinkedIn. Compress to 150-250 words. Open on a scroll-stopping claim or scene, no context-setting. Builder-in-the-room voice (Gear B), one sharp angle, end on a hard verdict. No hashtags, no "thoughts?" closer.',
-  },
-  {
-    value: 'signal_noise',
-    label: 'Signal & Noise',
-    hint: 'Adapt this for the Signal & Noise audience. Exec-to-exec authority (Gear A), ~300-500 words, separate the durable signal from the noise, name what most people get wrong ("Not X, Y"), commercially grounded, hard verdict ending.',
-  },
-  // Publication is a venture, never an adapt target. Adapting to the
+// TWO LISTS, NOT ONE (2026-08-13). These used to be a single flat array that
+// mixed formats (Paid, Built) with channels (LinkedIn, Signal & Noise), which
+// is exactly the fusion the venture/format/channel split above exists to stop.
+// Picking "Paid" and picking "LinkedIn" answer different questions: the first
+// changes what the piece IS, the second changes what shape it takes on the way
+// out. Offering them in one row invited picking one and believing you had
+// answered both.
+
+/** What the piece IS. Changes the argument's register and its evidence bar. */
+export const FORMAT_ADAPTS: LaneAdapt[] = [
+  // the publication is a venture, never an adapt target. Adapting to the
   // venture was meaningless: it has two formats with two different registers,
   // and offering the venture as one option is what made the composer feel
   // stale. Adapt to a FORMAT.
   {
     value: 'money_of_ai',
     label: 'The Money of AI',
-    hint: 'Adapt this into a The Money of AI piece, the investigative register that came over from Techonomic. Follow the money: who pays, who collects, and what the shift does to pricing, unit economics, positioning and human labour. Take one load-bearing claim apart and check each part against dated evidence. Attribute every number to the party that produced it. Hold one genuine counterpoint. Say plainly where the knowable record ends rather than papering over it, and end on the terminal question the evidence actually leaves open. No summary ending, no vendor framing. The register is dry and sarcastic; the evidence handling is not. The joke is never the finding.',
+    hint: 'Adapt this into a Paid piece, the investigative register that came over from Techonomic. Follow the money: who pays, who collects, and what the shift does to pricing, unit economics, positioning and human labour. Take one load-bearing claim apart and check each part against dated evidence. Attribute every number to the party that produced it. Hold one genuine counterpoint. Say plainly where the knowable record ends rather than papering over it, and end on the terminal question the evidence actually leaves open. No summary ending, no vendor framing. The register is dry and sarcastic; the evidence handling is not. The joke is never the finding.',
   },
   {
     value: 'built_with_ai',
     label: 'Built with AI',
-    hint: 'Adapt this into a Built with AI piece. A conversation with someone who actually built something in the AI era, dug past what they built to why they really built it. Gear B, generous and human, 400-800 words. This is the format where the house sarcasm dials down: aim any irony at the industry around the builder, never at the builder. The guest must finish the piece looking more human, not more foolish.',
+    hint: 'Adapt this into a Built piece. A conversation with someone who actually built something in the AI era, dug past what they built to why they really built it. Gear B, generous and human, 400-800 words. This is the format where the house sarcasm dials down: aim any irony at the industry around the builder, never at the builder. The guest must finish the piece looking more human, not more foolish.',
   },
 ]
+
+/** Where the piece GOES. Changes length, register and scaffolding, never the
+ *  argument. Each of these has its own playbook section in the corpus (## 5
+ *  Substack through ## 9 Podcast, plus ## 3 Signal & Noise) and its own key in
+ *  CHANNEL_HEADING, so the server-side corpusForChannel lookup returns a real
+ *  register instead of falling through to the generic one-paragraph synopsis.
+ *  Before 2026-08-13 only LinkedIn and Signal & Noise existed here, and
+ *  LinkedIn's corpus key pointed at the Built playbook, so it had no register
+ *  of its own either. */
+export const CHANNEL_ADAPTS: LaneAdapt[] = [
+  {
+    value: 'substack',
+    label: 'Substack',
+    hint: 'Adapt this for Substack, the long-form home. Expand to 1200-2500 words: this reader already chose to give it fifteen minutes, so attention is not the constraint and the evidence gets room. Sub-headings that are claims, not labels. Take the load-bearing claim apart and check each part separately, with dates and named parties. Hold one genuine counterpoint properly rather than knocking it down. Say plainly what is still unknown. End on a verdict, not a summary. Never pad: if there is not more evidence, there is not more piece.',
+  },
+  {
+    value: 'linkedin',
+    label: 'LinkedIn',
+    hint: 'Adapt this for LinkedIn. Compress to 150-250 words, one idea instead of four. Open mid-argument so the reader feels they walked into a conversation already happening, no context-setting. Short paragraphs, one or two sentences each, white space doing structural work. Cut context first and keep specifics: a named company, a number and a date survive. Builder-in-the-room voice (Gear B), end on a hard verdict. No hashtags, no "thoughts?" closer, no "here is what I learned" preamble, no hook-line-gap pattern. If it will not fit, narrow the claim, never vague it.',
+  },
+  {
+    value: 'youtube',
+    label: 'YouTube script',
+    hint: "Turn this into a YouTube script in Krish's spoken first person, 700-1300 words, roughly five to nine minutes. Genuinely spoken, not an essay read aloud: contractions, asides, sentences a person can say in one breath. Plain words even where the idea is not, and expand every acronym once. Pick ONE analogy and carry it the whole way, including through the part where it breaks, and say out loud where it stops working. Dry humour that makes the next idea easier to hold, aimed at the industry, the hype or Krish himself, never at the viewer for not knowing. Open in ten seconds on the surprising claim, no \"hey guys\", no \"in today's video\". Mark the beats. It has to pass a read-aloud test.",
+  },
+  {
+    value: 'instagram',
+    label: 'Instagram',
+    hint: 'Adapt this into an Instagram post about one genuinely surprising or genuinely encouraging shift in AI, shown through what it does to a real business. A hook line, four to eight short beats each readable in about a second, then a close. Propose a visual: the number, the before and after, or the object in the story. The honesty constraint is load-bearing: it rests on something specific and checkable, a named company, a real number, a dated change. Inspiring without a fact is a poster. Not a tip list, not definitions, not a prediction: the shift has already happened, which is what makes it worth showing. Open on the surprising fact itself with no framing in front of it.',
+  },
+  {
+    value: 'podcast',
+    label: 'Podcast',
+    hint: 'Adapt this into a podcast script for the the publication feed, 800-1500 words for a solo read. Spoken register with no picture doing any work: everything the eye would have carried has to be said, so describe the number and then say what it means. No sentence that depends on punctuation the ear cannot hear, so parentheses, semicolons and nested clauses become separate sentences. Repeat names and numbers once, because a listener cannot scroll back. Drop in mid-thought on the sharpest thing in the piece, no "welcome back". Mark the beats.',
+  },
+  {
+    value: 'signal_noise',
+    label: 'Signal & Noise',
+    hint: 'Adapt this for the Signal & Noise audience. Exec-to-exec authority (Gear A), ~300-500 words, separate the durable signal from the noise, name what most people get wrong ("Not X, Y"), commercially grounded, hard verdict ending. The adversarial register belongs to the room, not the research: the finding still comes from the source format\'s evidence bar. Devil\'s-advocate the idea, never sneer at the people who hold it.',
+  },
+]
+
+/** Legacy flat list, formats first. Kept so existing call sites keep compiling;
+ *  new UI should render FORMAT_ADAPTS and CHANNEL_ADAPTS as separate groups. */
+// ── Video scripts ────────────────────────────────────────────────────────
+// Six lengths, 15 seconds to 20 minutes. The engine could already produce one
+// video artifact (CHANNEL_ADAPTS.youtube: a single 700-1300 word spoken cut),
+// which is one of these and not the others: a 15 second hook and a 20 minute
+// investigation are different shapes, not one shape scaled.
+//
+// The picker lives here; the per-length STRUCTURE and the prompt live in
+// api/_video.ts, because the server owns what gets asked of the model.
+// scripts/check-video-formats.mts keeps the two lists in step.
+export interface VideoFormatOption { id: string; label: string; seconds: number; words: number }
+
+export const VIDEO_FORMATS: VideoFormatOption[] = [
+  { id: '15s', label: '15 second hook', seconds: 15, words: 40 },
+  { id: '30s', label: '30 seconds', seconds: 30, words: 80 },
+  { id: '60s', label: '60 second reel', seconds: 60, words: 160 },
+  { id: '3min', label: '3 minutes', seconds: 180, words: 450 },
+  { id: '10min', label: '10 minutes', seconds: 600, words: 1500 },
+  { id: '20min', label: '20 minutes', seconds: 1200, words: 3000 },
+]
+
+// ── One palette, both surfaces ───────────────────────────────────────────
+// The 26 one-click edits above were rendered only by ContentComposer, so the
+// weekly-brief editor shipped with four hardcoded chips and no way to reach
+// the rest. Two components picking their own subsets is how that happened, so
+// the grouping lives here now and both mount the same thing.
+//
+// `mode` is the revise mode the surface sends. 'humor' routes to the dedicated
+// examples-driven prompt in api/_humor.ts (and a stronger model); everything
+// else rides on `hint`.
+export interface EditItem { label: string; mode: string; value: string; hint?: string }
+export interface EditGroup { label: string; accent: string; items: EditItem[] }
+
+export function editGroups(o?: {
+  /** Current channel, so a piece is never offered "adapt to what you already are". */
+  currentChannel?: string | null
+  /** Format adapts turn a piece INTO a Paid/Built piece. Meaningless for the
+   *  weekly brief, which is the master that gets fanned out to both. */
+  includeFormatAdapts?: boolean
+  /** Channel cuts save against a piece's transformed_outputs, which a brief
+   *  does not have. */
+  includeChannelCuts?: boolean
+  /** Video scripts. Both surfaces can produce them, so this defaults on. */
+  includeVideo?: boolean
+  /** Deep research. Runs against a content piece, which a brief is not. */
+  includeDeepen?: boolean
+}): EditGroup[] {
+  const groups: EditGroup[] = [
+    { label: 'Tone', accent: 'border-rose-500/30 text-rose-200', items: TONE_PRESETS.map(x => ({ label: x.label, mode: 'tone', value: x.value, hint: x.hint })) },
+    { label: 'Humor', accent: 'border-fuchsia-500/30 text-fuchsia-200', items: HUMOR_PRESETS.map(x => ({ label: x.label, mode: 'humor', value: x.value, hint: x.hint })) },
+    { label: 'Length', accent: 'border-sky-500/30 text-sky-200', items: LENGTH_PRESETS.map(x => ({ label: x.label, mode: 'length', value: x.value, hint: x.hint })) },
+    { label: 'Sharpen', accent: 'border-amber-500/30 text-amber-200', items: [
+      ...ITERATE_CHIPS.map(x => ({ label: x.label, mode: 'feedback', value: x.value, hint: x.hint })),
+      { label: 'Sharpest angle', mode: 'zoom', value: 'contrarian-angle', hint: ZOOM_DEFAULT_HINT },
+    ] },
+    { label: 'Analogy', accent: 'border-emerald-500/30 text-emerald-200', items: ANALOGY_PRESETS.map(x => ({ label: x.label, mode: 'feedback', value: x.value, hint: x.hint })) },
+  ]
+  if (o?.includeFormatAdapts !== false) {
+    groups.push({
+      label: 'Change the format',
+      accent: 'border-violet-500/30 text-violet-200',
+      items: FORMAT_ADAPTS.filter(l => l.value !== o?.currentChannel).map(x => ({ label: x.label, mode: 'feedback', value: `adapt-${x.value}`, hint: x.hint })),
+    })
+  }
+  if (o?.includeDeepen !== false) {
+    // mode 'deepen' saves research against the piece rather than rewriting it.
+    // Choosing a format used to change only how a piece was WRITTEN; this is
+    // the format actually going and doing its own investigation first.
+    groups.push({
+      label: 'Deep research',
+      accent: 'border-cyan-500/30 text-cyan-200',
+      items: [
+        { label: 'Paid: follow the money', mode: 'deepen', value: 'paid', hint: 'Investigate how the money moves and how it has SHIFTED: who pays, who collects, what the price was against what it is now, the effect on margin, how buying behaviour changed, and where the economics do not hold. Ends in a like-for-like comparison of at least two named approaches on the same axes.' },
+        { label: 'Built: find who shipped it', mode: 'deepen', value: 'built', hint: 'Find people who actually built this. What they shipped, the stack, the cost, the time, what broke, and what it replaced. Ends in a like-for-like comparison of at least three real implementations on the same axes.' },
+      ],
+    })
+  }
+  if (o?.includeVideo !== false) {
+    // mode 'video' is not a revise mode either: it routes to the video-script
+    // path, which saves the script rather than previewing it over the draft.
+    groups.push({
+      label: 'Video script',
+      accent: 'border-orange-500/30 text-orange-200',
+      items: VIDEO_FORMATS.map(f => ({
+        label: f.label,
+        mode: 'video',
+        value: f.id,
+        hint: `Cut this into a spoken ${f.label} script, about ${f.words} words, with beats and shot notes.`,
+      })),
+    })
+  }
+  if (o?.includeChannelCuts !== false) {
+    // mode 'channel' is not a revise mode: it routes to the channel-cut path,
+    // which SAVES the cut against the piece instead of previewing it.
+    groups.push({
+      label: 'Cut for a channel',
+      accent: 'border-teal-500/30 text-teal-200',
+      items: CHANNEL_ADAPTS.map(x => ({ label: x.label, mode: 'channel', value: x.value, hint: x.hint })),
+    })
+  }
+  return groups
+}
+
+export const LANE_ADAPTS: LaneAdapt[] = [...FORMAT_ADAPTS, ...CHANNEL_ADAPTS]
 
 // Lane values that no longer exist but may still be stored on old rows. Every
 // one maps FORWARD onto a live format so a historical row keeps a home on the
@@ -507,13 +663,12 @@ export const LANE_ADAPTS: LaneAdapt[] = [
 // Note 'publication' is deliberately ABSENT: it is the live venture now, so
 // it resolves through LANES above rather than through this table.
 const LEGACY_LANE_CHANNEL: Record<string, FactoryChannel> = {
-  // Retired 2026-08-06 into MYMU, then 2026-08-11 into Publication: Paid.
+  // Retired 2026-08-06 into MYMU, then 2026-08-11 into the publication: Paid.
   techonomic: 'paid',
   // The MYMU venture and its channel slug. MYMU is a product surface now.
   makeyourmindup: 'paid',
   mymu: 'paid',
-  // 'mindmaker' was the content lane before the venture split; 'mindmake' is
-  // the post-rebrand spelling. Both stay resolvable.
+  // 'mindmake' was the content lane before the venture split.
   mindmaker: 'paid',
   mindmake: 'paid',
   // Instagram was buried inside this venture value; it is a channel now, and

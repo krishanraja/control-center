@@ -1,12 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from './_supabase.js'
 
-async function fetchN8N(base: string, key: string, path: string) {
+interface N8NList { data?: any[] }
+
+async function fetchN8N(base: string, key: string, path: string): Promise<N8NList> {
   const res = await fetch(`${base}${path}`, {
     headers: { 'X-N8N-API-KEY': key }
   })
   if (!res.ok) throw new Error(`N8N ${path}: ${res.status}`)
-  return res.json()
+  return res.json() as Promise<N8NList>
 }
 
 async function loadWorkflowNames(): Promise<Record<string, string>> {

@@ -1,13 +1,15 @@
 import React, { useState } from 'react'
 import {
   ExternalLink, Calendar, Users, MapPin, DollarSign, Globe2, Sparkles, Mic, Newspaper, Megaphone,
-  Check, X, Loader2, Wand2,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+  Check, X, Wand2,
+} from '@/lib/icons'
+import type { LucideIcon } from '@/lib/icons'
 import { FeedbackButton } from './shared/FeedbackButton'
 import { EnrichSheet, type EnrichTarget } from './EnrichSheet'
 import { useToast } from './shared/Toast'
 import type { VisibilityTargetRow, VisibilityTargetType } from '../hooks/useVisibilityTargets'
+import { Working } from './shared/Working'
+import { WhyBadge } from './shared/WhyBadge'
 
 interface Props {
   target: VisibilityTargetRow
@@ -72,7 +74,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
         body: JSON.stringify({ status: next }),
       })
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
-      toast(next === 'applied' ? 'Marked applied — track the reply.' : 'Passed. Vera will learn.', 'success')
+      toast(next === 'applied' ? 'Marked applied — track the reply.' : 'Passed. Vera will learn from that.', 'success')
     } catch (err: any) {
       toast(`Could not update: ${err?.message || 'try again'}`, 'error')
     } finally {
@@ -133,31 +135,31 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
     >
       <header className="flex items-start gap-2 min-w-0">
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold text-white leading-snug">{t.title}</p>
+          <p className="text-ui font-semibold text-white leading-snug">{t.title}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200">
+            <span className="inline-flex items-center gap-1 text-micro px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200">
               <TypeIcon size={10} />
               {meta.label}
             </span>
             {t.format && (
-              <span className="inline-flex items-center gap-1 text-[10px] text-white/55">
+              <span className="inline-flex items-center gap-1 text-micro text-white/55">
                 <Globe2 size={10} />
                 {formatLabel[t.format] || t.format}
               </span>
             )}
             {t.location && (
-              <span className="inline-flex items-center gap-1 text-[10px] text-white/55">
+              <span className="inline-flex items-center gap-1 text-micro text-white/55">
                 <MapPin size={10} />
                 {t.location}
               </span>
             )}
             {typeof t.relevance_score === 'number' && t.relevance_score > 0 && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 tabular-nums">
+              <span className="text-micro px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 tabular-nums">
                 Fit {t.relevance_score}
               </span>
             )}
             {t.quality_score && (
-              <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase tracking-[0.1em] ${
+              <span className={`text-micro px-1.5 py-0.5 rounded uppercase tracking-[0.14em] ${
                 t.quality_score === 'green' ? 'bg-emerald-500/10 text-emerald-300' :
                 t.quality_score === 'amber' ? 'bg-amber-500/10 text-amber-300' :
                 'bg-rose-500/10 text-rose-300'
@@ -168,7 +170,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
           </div>
         </div>
         {deadlineLabel && (
-          <span className={`text-[10px] tabular-nums px-2 py-0.5 rounded-full border ${deadlineTone} flex-shrink-0`}>
+          <span className={`text-micro tabular-nums px-2 py-0.5 rounded-full border ${deadlineTone} flex-shrink-0`}>
             {deadlineLabel}
           </span>
         )}
@@ -177,11 +179,11 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
       <div className="grid grid-cols-2 gap-2 mt-3">
         {(t.audience_size || t.audience) && (
           <div>
-            <p className="text-[10px] uppercase tracking-[0.12em] text-white/35 mb-0.5">
+            <p className="text-micro uppercase tracking-[0.14em] text-white/35 mb-0.5">
               <Users size={9} className="inline mr-1" />
               Audience
             </p>
-            <p className="text-[11px] text-white/75 leading-snug">
+            <p className="text-micro text-white/75 leading-snug">
               {t.audience_size != null && (
                 <span className="font-semibold tabular-nums">{t.audience_size.toLocaleString()}+ </span>
               )}
@@ -191,11 +193,11 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
         )}
         {(t.ticket_price_usd != null || t.event_start_at) && (
           <div>
-            <p className="text-[10px] uppercase tracking-[0.12em] text-white/35 mb-0.5">
+            <p className="text-micro uppercase tracking-[0.14em] text-white/35 mb-0.5">
               <Calendar size={9} className="inline mr-1" />
               When
             </p>
-            <p className="text-[11px] text-white/75 leading-snug">
+            <p className="text-micro text-white/75 leading-snug">
               {t.event_start_at
                 ? new Date(t.event_start_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
                 : '·'}
@@ -210,7 +212,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
       </div>
 
       {t.why_relevant && (
-        <p className="text-[12px] text-white/75 leading-snug mt-3">
+        <p className="text-label text-white/75 leading-snug mt-3">
           <Sparkles size={10} className="inline mr-1 text-violet-300" />
           <span className="text-white/40">Why: </span>
           {t.why_relevant}
@@ -218,14 +220,14 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
       )}
 
       {t.suggested_talk_title && (
-        <p className="text-[12px] text-white/85 leading-snug mt-2">
+        <p className="text-label text-white/85 leading-snug mt-2">
           <span className="text-white/40">Pitch: </span>
           <span className="italic">{t.suggested_talk_title}</span>
         </p>
       )}
 
       {t.recommended_next_step && (
-        <p className="text-[12px] text-violet-200/85 mt-2 leading-snug">
+        <p className="text-label text-violet-200/85 mt-2 leading-snug">
           → {t.recommended_next_step}
         </p>
       )}
@@ -237,10 +239,10 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
               type="button"
               onClick={openEnrich}
               disabled={busy !== null}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-violet-500/90 text-white hover:bg-violet-400 disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-semibold bg-violet-500/90 text-white hover:bg-violet-400 disabled:opacity-40 transition-colors"
               title="Research this — Nova deep enrich (n8n) or direct (web + Cleo)"
             >
-              {busy === 'enrich' ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+              {busy === 'enrich' ? <Working size={12} /> : <Wand2 size={12} />}
               Enrich
             </button>
           ) : (
@@ -248,10 +250,10 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
               type="button"
               onClick={(e) => decide(e, 'applied')}
               disabled={busy !== null}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-amber-500/90 text-black hover:bg-amber-400 disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-semibold bg-amber-500/90 text-black hover:bg-amber-400 disabled:opacity-40 transition-colors"
               title="Mark applied — moves to Applied lane"
             >
-              {busy === 'apply' ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              {busy === 'apply' ? <Working size={12} /> : <Check size={12} />}
               Apply
             </button>
           )}
@@ -259,13 +261,13 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
             type="button"
             onClick={(e) => decide(e, 'dropped')}
             disabled={busy !== null}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
             title="Pass — Vera learns from the drop"
           >
-            {busy === 'pass' ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+            {busy === 'pass' ? <Working size={12} /> : <X size={12} />}
             Pass
           </button>
-          <span className="text-[10px] text-white/45 ml-auto">
+          <span className="text-micro text-white/45 ml-auto">
             {stub ? 'Enrich first to see context.' : 'Nova enriched it — your call.'}
           </span>
         </div>
@@ -278,7 +280,7 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 transition-colors"
           >
             <ExternalLink size={11} />
             {primaryCtaLabel}
@@ -290,13 +292,14 @@ export function VisibilityTargetCard({ target: t, onOpen }: Props) {
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
           >
             <ExternalLink size={11} />
             Event page
           </a>
         )}
         <div className="ml-auto" onClick={(e) => e.stopPropagation()}>
+          <WhyBadge table="visibility_targets" row={t} />
           <FeedbackButton
             sourceTable="visibility_targets"
             sourceId={t.id}

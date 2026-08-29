@@ -41,12 +41,12 @@ export function FeedRoom({ ideas }: { ideas: ContentIdeaRow[] }) {
           value={q}
           onChange={e => setQ(e.target.value)}
           placeholder="Search what the engine read this week..."
-          className="flex-1 rounded-lg bg-white/[0.04] border border-white/[0.08] px-3.5 py-2 text-[13px] text-white/85 placeholder:text-white/30 outline-none focus:border-white/25"
+          className="flex-1 rounded-lg bg-white/[0.04] border border-white/[0.08] px-3.5 py-2 text-body text-white/85 placeholder:text-white/30 outline-none focus:border-white/25"
         />
-        <span className="text-[11px] text-white/35 tabular-nums flex-shrink-0">{feed.length} items</span>
+        <span className="text-micro text-white/35 tabular-nums flex-shrink-0">{feed.length} items</span>
       </div>
-      <p className="text-[11.5px] text-white/30 mb-4">
-        Nothing here needs you. Time-sensitive items purge Monday; anything that fed a shift is already kept in its dossier.
+      <p className="text-label text-white/30 mb-4">
+        Nothing to do here. Time-limited items clear out on Monday, and anything tied to a shift is already saved with it.
         Rescue moves an item to the Library instead.
       </p>
       <div className="flex flex-col gap-1.5">
@@ -56,25 +56,25 @@ export function FeedRoom({ ideas }: { ideas: ContentIdeaRow[] }) {
           return (
             <div key={i.id} className="flex items-center gap-3 rounded-lg border border-white/[0.05] bg-white/[0.01] px-3.5 py-2.5">
               <div className="flex-1 min-w-0">
-                <div className="text-[13px] text-white/80 leading-snug">
+                <div className="text-body text-white/80 leading-snug">
                   {i.source_url ? (
                     <a href={i.source_url} target="_blank" rel="noreferrer" className="hover:text-white">{i.idea}</a>
                   ) : i.idea}
                 </div>
-                <div className="text-[10.5px] text-white/30 mt-0.5">
+                <div className="text-micro text-white/30 mt-0.5">
                   {(i.meta as Record<string, any> | null)?.pool?.source || (i.meta as Record<string, any> | null)?.source_label || i.source_type}
                   {' · '}{new Date(i.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                 </div>
               </div>
               {kept ? (
-                <span className="flex-shrink-0 rounded-full bg-emerald-400/12 text-emerald-300 px-2 py-0.5 text-[10px] font-semibold">
+                <span className="flex-shrink-0 rounded-full bg-emerald-400/12 text-emerald-300 px-2 py-0.5 text-micro font-semibold">
                   {f.shift_id ? 'feeds a shift' : 'kept'}
                 </span>
               ) : (
                 <button
                   onClick={() => rescue(i.id)}
                   disabled={busy === i.id}
-                  className="flex-shrink-0 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white/60 px-2.5 py-1 text-[11px] font-semibold disabled:opacity-40"
+                  className="flex-shrink-0 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white/60 px-2.5 py-1 text-micro font-semibold disabled:opacity-40"
                 >
                   Rescue
                 </button>

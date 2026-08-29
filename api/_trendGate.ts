@@ -28,6 +28,28 @@ export const SHIFT_CATEGORIES = [
 ] as const
 export type ShiftCategory = typeof SHIFT_CATEGORIES[number]
 
+// Which format a shift belongs to (Krish, 2026-08-06: venture / format /
+// channel). Built asks how a thing was actually built; Paid asks how it
+// actually makes money. The category the gate already assigns answers that,
+// so the lane is derived rather than being a second judgement to get wrong.
+//
+// Anything genuinely ambiguous returns null. A null lane shows in BOTH lanes
+// in the Content tab, which is honest: the detector has not decided, and
+// forcing a lane would invent a judgement nobody made.
+const LANE_BY_CATEGORY: Partial<Record<ShiftCategory, 'built' | 'paid'>> = {
+  tools: 'built',
+  orchestration: 'built',
+  model: 'built',
+  economics: 'paid',
+  product: 'paid',
+  proof: 'paid',
+  // governance, security and org cut across both and stay unlaned on purpose.
+}
+
+export function laneForShift(category: ShiftCategory): 'built' | 'paid' | null {
+  return LANE_BY_CATEGORY[category] ?? null
+}
+
 export interface CorpusItem {
   id: string
   day: string        // 'YYYY-MM-DD'

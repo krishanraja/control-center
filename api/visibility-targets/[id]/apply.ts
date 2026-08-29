@@ -20,7 +20,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data: target, error: getErr } = await supabase
     .from('visibility_targets')
-    .select('id, name, source_url')
+    // `title`, not `name`: visibility_targets has no name column, so this
+    // select errored and every apply returned 404 target-not-found.
+    .select('id, title, source_url')
     .eq('id', id)
     .single()
   if (getErr || !target) return res.status(404).json({ ok: false, error: 'target not found' })
@@ -34,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (updErr) return res.status(500).json({ ok: false, error: updErr.message })
 
   await supabase.from('tasks').insert({
-    title: `Follow up on visibility application: ${target.name}`,
+    title: `Follow up on visibility application: ${target.title}`,
     description: `Krish marked this target as applied on ${now}. Track response.`,
     status: 'todo',
     owner: 'nova',
@@ -50,8 +52,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     actor: 'krish',
     event_type: 'visibility_target_applied',
     target: `visibility_target:${id}`,
-    details: JSON.stringify({ target_id: id, name: target.name, applied_at: now }),
-    display_message: `Marked visibility target applied: ${target.name}`,
+    details: JSON.stringify({ target_id: id, title: target.title, applied_at: now }),
+    display_message: `Marked visibility target applied: ${target.title}`,
   })
 
   return res.status(200).json({ ok: true, target_id: id, applied_at: now })

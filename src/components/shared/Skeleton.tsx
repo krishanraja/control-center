@@ -1,5 +1,6 @@
 import React from 'react'
 import { staggerDelay, useReducedMotion } from './motion'
+import { useDeferredPending } from './useDeferredPending'
 
 /**
  * Skeletons — a promise of the exact thing about to appear, never a spinner.
@@ -16,28 +17,41 @@ import { staggerDelay, useReducedMotion } from './motion'
 
 type Dim = string | number
 
-/** A single shimmering block. Uses the global `.skeleton` sweep. */
+/**
+ * A single shimmering block. Uses the global `.skeleton` sweep.
+ *
+ * `quiet` holds the same box with no fill and no sweep. That distinction
+ * matters wherever a placeholder is reserving space rather than announcing a
+ * wait: the space has to exist from the first frame or the content below it
+ * gets shoved when data lands, but the shimmer must not appear until the wait
+ * has actually earned it, or a 60ms cache hit flashes a placeholder. Reserve
+ * immediately, shimmer on the deferred flag:
+ *
+ *   const waiting = useDeferredPending(loading)
+ *   <Skeleton quiet={!waiting} h={62} />
+ */
 export function Skeleton({
   w = '100%',
   h = 14,
   r = 8,
+  quiet = false,
   className = '',
-}: { w?: Dim; h?: Dim; r?: number; className?: string }) {
+}: { w?: Dim; h?: Dim; r?: number; quiet?: boolean; className?: string }) {
   return (
     <div
       aria-hidden
-      className={`skeleton ${className}`}
+      className={`${quiet ? '' : 'skeleton'} ${className}`}
       style={{ width: w, height: h, borderRadius: r }}
     />
   )
 }
 
 /** A few staggered text lines — the last one short, like real prose. */
-export function SkeletonText({ lines = 2 }: { lines?: number }) {
+export function SkeletonText({ lines = 2, quiet = false }: { lines?: number; quiet?: boolean }) {
   return (
     <div className="space-y-2">
       {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton key={i} h={11} w={i === lines - 1 ? '55%' : '100%'} r={6} />
+        <Skeleton key={i} quiet={quiet} h={11} w={i === lines - 1 ? '55%' : '100%'} r={6} />
       ))}
     </div>
   )
@@ -49,13 +63,13 @@ function LoadingAnnounce({ label = 'Loading' }: { label?: string }) {
 }
 
 /** A single feed-row placeholder — matches FeedRow's anatomy (dot + 2 lines). */
-export function SkeletonRow() {
+export function SkeletonRow({ quiet = false }: { quiet?: boolean } = {}) {
   return (
     <div className="flex items-start gap-3 px-5 py-4" style={{ minHeight: 76 }}>
-      <Skeleton w={10} h={10} r={5} className="mt-1.5 flex-shrink-0" />
+      <Skeleton quiet={quiet} w={10} h={10} r={5} className="mt-1.5 flex-shrink-0" />
       <div className="flex-1 min-w-0 space-y-2">
-        <Skeleton h={14} w="78%" r={6} />
-        <Skeleton h={11} w="48%" r={6} />
+        <Skeleton quiet={quiet} h={14} w="78%" r={6} />
+        <Skeleton quiet={quiet} h={11} w="48%" r={6} />
       </div>
     </div>
   )
@@ -68,14 +82,14 @@ export function SkeletonRow() {
  * shared `animate-rise`. `card` matches spaced card lists (GuestCard/ContentCard);
  * the default matches divided feed rows.
  */
-export function SkeletonList({ rows = 3, card = true }: { rows?: number; card?: boolean }) {
+export function SkeletonList({ rows = 3, card = true, quiet = false }: { rows?: number; card?: boolean; quiet?: boolean }) {
   if (card) {
     return (
       <div className="space-y-2 animate-rise" aria-busy="true" role="status" aria-label="Loading">
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-2.5">
-            <Skeleton h={14} w="72%" r={6} />
-            <SkeletonText lines={2} />
+          <div key={i} className={`rounded-2xl border p-4 space-y-2.5 ${quiet ? 'border-transparent' : 'border-white/[0.06] bg-white/[0.02]'}`}>
+            <Skeleton quiet={quiet} h={14} w="72%" r={6} />
+            <SkeletonText quiet={quiet} lines={2} />
           </div>
         ))}
       </div>
@@ -83,7 +97,7 @@ export function SkeletonList({ rows = 3, card = true }: { rows?: number; card?: 
   }
   return (
     <div className="divide-y divide-white/[0.06] animate-rise" aria-busy="true" role="status" aria-label="Loading">
-      {Array.from({ length: rows }).map((_, i) => <SkeletonRow key={i} />)}
+      {Array.from({ length: rows }).map((_, i) => <SkeletonRow key={i} quiet={quiet} />)}
     </div>
   )
 }
@@ -155,6 +169,110 @@ export function BoardSkeleton({
           <SkeletonLane key={i} index={i} cards={cardsPerLane} />
         ))}
       </div>
+    </div>
+  )
+}
+
+/**
+ * A chunk-load fallback that does not flash.
+ *
+ * Route surfaces are code-split, so every tab switch suspends. On a cold load
+ * that fetch is worth a placeholder. On a warm cache it resolves in about 50ms,
+ * and painting a whole board skeleton for three frames on every tab switch is
+ * the single most-seen flicker in the product: it reads as the app stuttering,
+ * not as the app loading.
+ *
+ * The gate belongs HERE rather than at the call site because a Suspense
+ * fallback cannot own a hook in its parent, and because the wait it needs to
+ * measure starts when the fallback itself mounts, which is exactly when this
+ * component mounts.
+ *
+ *   <Suspense fallback={<DeferredFallback><BoardSkeleton /></DeferredFallback>}>
+ */
+export function DeferredFallback({ children }: { children: React.ReactNode }) {
+  return useDeferredPending(true) ? <>{children}</> : null
+}
+
+/**
+ * A detail surface arriving: a sheet, a right pane, or a full-screen editor.
+ *
+ * These were the app's remaining silent gaps. The composer and the brief editor
+ * are full-screen takeovers reached by deep link behind `fallback={null}`, so
+ * they arrived out of a blank screen; the composer then showed a bare unlabelled
+ * spinner on top of that. A detail surface has a very recognisable anatomy —
+ * a title, a couple of meta lines, a body, an action row — so restoring that
+ * shape means the real thing settles into place instead of replacing a void.
+ */
+export function SkeletonDetail({ full = false }: { full?: boolean }) {
+  return (
+    <div
+      // `full` sizes off --z, not inset-0. The mobile shell renders inside a
+      // `zoom: 1.2` wrapper and publishes --z, and a fixed element there does
+      // not resolve inset-0 against the zoomed box. Every other full-screen
+      // surface in this app divides by --z for the same reason.
+      className={`animate-rise space-y-5 ${full ? 'fixed top-0 left-0 w-[calc(100vw/var(--z,1))] h-[calc(100dvh/var(--z,1))] z-[90] bg-base px-6 py-8 overflow-hidden' : 'p-6'}`}
+      aria-busy="true"
+    >
+      <LoadingAnnounce />
+      <div className="space-y-2.5">
+        <Skeleton h={12} w={90} r={5} />
+        <Skeleton h={24} w="62%" r={8} />
+      </div>
+      <div className="flex gap-2">
+        <Skeleton h={22} w={78} r={11} />
+        <Skeleton h={22} w={64} r={11} />
+        <Skeleton h={22} w={92} r={11} />
+      </div>
+      <div className="space-y-3 pt-1">
+        <SkeletonText lines={3} />
+        <SkeletonText lines={4} />
+        <SkeletonText lines={2} />
+      </div>
+      <div className="flex gap-2.5 pt-2">
+        <Skeleton h={40} w={132} r={14} />
+        <Skeleton h={40} w={104} r={14} />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Home, arriving as one page.
+ *
+ * Home is the landing route and had no loading gate at all. It composes about
+ * fifteen independently-loading children, six of which returned null while they
+ * waited, so the page assembled itself in public: a banner appeared, then the
+ * spine pushed everything down, then the ladder pushed it down again. Every
+ * cold load was a sequence of small shoves.
+ *
+ * So the whole page gets one placeholder in its real proportions, and the
+ * children stop being individually responsible for the first paint.
+ */
+export function HomeSkeleton({ narrow = false }: { narrow?: boolean }) {
+  // The recomposed Home in its real proportions: one vitals line, then the
+  // three layers of the canon (OS titles / week rows / today slots) and the
+  // one CTA bar. No cards, no inbox — those left the page.
+  const layer = (rows: number, rowH: number, labelW: number, key: string) => (
+    <div key={key}>
+      <Skeleton h={11} w={labelW} r={3} className="mb-3" />
+      <div className="flex flex-col gap-2.5">
+        {Array.from({ length: rows }).map((_, i) => (
+          <Skeleton key={i} h={rowH} w={`${80 - i * 8}%`} r={5} />
+        ))}
+      </div>
+    </div>
+  )
+  return (
+    <div className={`flex flex-col ${narrow ? 'gap-5' : 'gap-6'} animate-rise ${narrow ? '' : 'max-w-[880px] mx-auto w-full'}`} aria-busy="true">
+      <LoadingAnnounce />
+      {/* the vitals line */}
+      <Skeleton h={22} w={narrow ? '92%' : 420} r={6} />
+      {/* OS / week / today in their real shapes */}
+      {layer(3, narrow ? 18 : 24, 30, 'os')}
+      {layer(3, 15, 72, 'week')}
+      {layer(3, 15, 52, 'today')}
+      {/* the one CTA */}
+      <Skeleton h={44} r={12} />
     </div>
   )
 }

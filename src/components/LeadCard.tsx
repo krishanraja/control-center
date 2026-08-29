@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ExternalLink, ThumbsUp, X, Linkedin, Mail, ArrowUpRight, Calendar, UserCog, Sparkles, MoreHorizontal } from 'lucide-react'
+import { ExternalLink, ThumbsUp, X, Linkedin, Mail, ArrowUpRight, Calendar, UserCog, Sparkles, MoreHorizontal } from '@/lib/icons'
 import { humanAge } from '../lib/ageHelpers'
 import { LeadSourcePill } from './LeadSourcePill'
 import { useToast } from './shared/Toast'
@@ -8,6 +8,8 @@ import { FeedbackButton } from './shared/FeedbackButton'
 import { OutreachDraftSheet, type DraftTarget } from './OutreachDraftSheet'
 import { EnrichSheet, type EnrichTarget } from './EnrichSheet'
 import type { LeadRow, LeadStatus } from '../hooks/useRealtimeLeads'
+import { WhyBadge } from './shared/WhyBadge'
+import { reasonsFor, type ReasonChip } from '../lib/servedSurfaces'
 
 const ASSIGNEE_OPTIONS = ['felix', 'maya', 'nell', 'krish'] as const
 
@@ -27,13 +29,9 @@ function audienceSourceLabel(s: string): string {
 // legible. Update if the upstream pricing changes.
 const ENRICH_COST_LABEL = '~$0.50'
 
-const SKIP_REASONS: ReadonlyArray<{ code: string; label: string }> = [
-  { code: 'lead_wrong_seniority', label: 'Wrong seniority' },
-  { code: 'lead_wrong_company_size', label: 'Wrong company size' },
-  { code: 'lead_no_budget_signal', label: 'No real budget signal' },
-  { code: 'lead_already_contacted', label: 'Already contacted' },
-  { code: 'lead_other', label: 'Other' },
-]
+// The skip reasons are the lead surface's reasons. They were a private copy
+// here, four codes short of the registry's set.
+const SKIP_REASONS: ReadonlyArray<ReasonChip> = reasonsFor('leads')
 
 function plusDaysIso(days: number): string {
   const d = new Date()
@@ -271,9 +269,9 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             onClick={() => onOpen?.(l.id)}
             className="text-left w-full"
           >
-            <p className="text-[13px] font-semibold text-white leading-snug truncate">{fullName}</p>
+            <p className="text-body font-semibold text-white leading-snug truncate">{fullName}</p>
             {subtitle && (
-              <p className="text-[11px] text-white/55 leading-snug truncate">{subtitle}</p>
+              <p className="text-micro text-white/55 leading-snug truncate">{subtitle}</p>
             )}
           </button>
         </div>
@@ -289,7 +287,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             <Linkedin size={11} />
           </a>
         )}
-        <span className="text-[10px] tabular-nums text-white/35 flex-shrink-0">
+        <span className="text-micro tabular-nums text-white/35 flex-shrink-0">
           {humanAge(l.updated_at)}
         </span>
       </header>
@@ -299,7 +297,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
         <LeadSourcePill source={l.source_type} href={l.source_url || null} />
         {l.status === 'churned' && (
           <span
-            className="text-[9px] px-1.5 py-0.5 rounded border border-rose-500/30 bg-rose-500/10 text-rose-300 uppercase tracking-[0.1em] font-semibold"
+            className="text-micro px-1.5 py-0.5 rounded border border-rose-500/30 bg-rose-500/10 text-rose-300 uppercase tracking-[0.14em] font-semibold"
             title={l.churned_at ? `Churned ${humanAge(l.churned_at)}` : 'Churned customer — re-engagement target'}
           >
             Churned
@@ -307,19 +305,19 @@ export function LeadCard({ lead: l, onOpen }: Props) {
         )}
         {/* Which capture sources this person came from (collapsed by email). */}
         {(l.audience_sources || []).map(s => (
-          <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-teal-500/10 text-teal-200 border border-teal-500/20">
+          <span key={s} className="text-micro px-1.5 py-0.5 rounded bg-teal-500/10 text-teal-200 border border-teal-500/20">
             {audienceSourceLabel(s)}
           </span>
         ))}
         {l.source_document_name && (
-          <span className="text-[10px] text-white/45 truncate max-w-[160px]" title={l.source_document_name}>
+          <span className="text-micro text-white/45 truncate max-w-[160px]" title={l.source_document_name}>
             {l.source_document_name}
           </span>
         )}
       </div>
 
       {l.why_relevant && (
-        <p className="text-[11px] text-white/65 leading-snug mt-2 line-clamp-3">
+        <p className="text-micro text-white/65 leading-snug mt-2 line-clamp-3">
           <span className="text-white/35">Why: </span>
           {l.why_relevant}
         </p>
@@ -329,7 +327,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
       {(l.primary_venture || (l.tags && l.tags.length > 0)) && (
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
           {l.primary_venture && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 uppercase tracking-[0.1em]">
+            <span className="text-micro px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-200 uppercase tracking-[0.14em]">
               {l.primary_venture.replace(/_/g, ' ')}
             </span>
           )}
@@ -337,7 +335,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             .filter(t => t !== `${l.primary_venture}_buyer` && t !== `${l.primary_venture}_guest`)
             .slice(0, 4)
             .map(t => (
-              <span key={t} className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55">
+              <span key={t} className="text-micro px-1.5 py-0.5 rounded bg-white/[0.06] text-white/55">
                 {t.replace(/_/g, ' ')}
               </span>
             ))}
@@ -348,7 +346,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
       {(l.fit_score != null || l.icp_score != null || (l.icp_scores && Object.keys(l.icp_scores).length > 0) || l.tier) && (
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
           {typeof l.fit_score === 'number' && (
-            <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300 tabular-nums">
+            <span className="text-micro px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300 tabular-nums">
               Fit {l.fit_score}
             </span>
           )}
@@ -360,19 +358,19 @@ export function LeadCard({ lead: l, onOpen }: Props) {
                 .map(([slug, score]) => (
                   <span
                     key={slug}
-                    className="text-[9px] px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300 tabular-nums"
+                    className="text-micro px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300 tabular-nums"
                     title={`${slug} ICP score`}
                   >
                     {slug.split('_').map(s => s[0]?.toUpperCase()).join('') || slug.slice(0, 2).toUpperCase()} {Number(score)}
                   </span>
                 ))
             : typeof l.icp_score === 'number' && l.icp_score > 0 && (
-                <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300 tabular-nums">
+                <span className="text-micro px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-300 tabular-nums">
                   ICP {l.icp_score}
                 </span>
               )}
           {l.tier && (
-            <span className="text-[9px] px-1 py-0.5 rounded bg-white/[0.06] text-white/55 uppercase tracking-[0.1em]">
+            <span className="text-micro px-1 py-0.5 rounded bg-white/[0.06] text-white/55 uppercase tracking-[0.14em]">
               {l.tier}
             </span>
           )}
@@ -380,13 +378,13 @@ export function LeadCard({ lead: l, onOpen }: Props) {
       )}
 
       {l.next_step && (
-        <p className="text-[11px] text-violet-200/80 mt-2 leading-snug">
+        <p className="text-micro text-violet-200/80 mt-2 leading-snug">
           → {l.next_step}
         </p>
       )}
 
       {l.follow_up_at && (
-        <p className={`text-[11px] mt-2 leading-snug ${overdueFollowUp(l.follow_up_at) ? 'text-rose-300' : 'text-white/45'}`}>
+        <p className={`text-micro mt-2 leading-snug ${overdueFollowUp(l.follow_up_at) ? 'text-rose-300' : 'text-white/45'}`}>
           <Calendar size={10} className="inline mr-1" />
           {overdueFollowUp(l.follow_up_at)
             ? `Follow-up overdue (${humanAge(l.follow_up_at)})`
@@ -395,13 +393,13 @@ export function LeadCard({ lead: l, onOpen }: Props) {
       )}
 
       {l.promoted_task_id && (
-        <p className="text-[11px] text-emerald-300/80 mt-1.5">
+        <p className="text-micro text-emerald-300/80 mt-1.5">
           <ArrowUpRight size={10} className="inline mr-1" />
           Promoted to opportunity
         </p>
       )}
       {l.deep_enriched_at && (
-        <p className="text-[10px] text-white/35 mt-1">
+        <p className="text-micro text-white/35 mt-1">
           <Sparkles size={9} className="inline mr-1" />
           Deep-enriched {humanAge(l.deep_enriched_at)}
         </p>
@@ -416,19 +414,19 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             type="button"
             onClick={(e) => { e.stopPropagation(); openEnrich() }}
             disabled={busy !== null}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-emerald-500/90 text-black hover:bg-emerald-400 disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-semibold bg-emerald-500/90 text-black hover:bg-emerald-400 disabled:opacity-40 transition-colors"
             title="Research this lead — n8n deep enrich or direct (Apollo + web)"
           >
             <Sparkles size={12} />
             {busy === 'deep_enrich' ? 'Enriching…' : 'Enrich'}
-            <span className="text-[10px] font-normal opacity-70 tabular-nums">{ENRICH_COST_LABEL}</span>
+            <span className="text-micro font-normal opacity-70 tabular-nums">{ENRICH_COST_LABEL}</span>
           </button>
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               onClick={() => { h.select(); setSkipOpen(o => !o) }}
               disabled={busy !== null}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
               title="Skip this lead — Vera learns from the reason"
             >
               <X size={12} />
@@ -436,7 +434,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             </button>
             {skipOpen && (
               <div className="absolute z-30 mt-1 left-0 rounded-md border border-white/10 bg-base shadow-2xl p-1 flex flex-col min-w-[180px]">
-                <span className="px-2 pt-1 pb-0.5 text-[9px] uppercase tracking-[0.14em] text-white/40">
+                <span className="px-2 pt-1 pb-0.5 text-micro uppercase tracking-[0.14em] text-white/40">
                   Why skip?
                 </span>
                 {SKIP_REASONS.map(r => (
@@ -444,7 +442,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
                     key={r.code}
                     type="button"
                     onClick={() => skipLead(r.code)}
-                    className="text-left px-2 py-1 rounded text-[11px] text-white/75 hover:bg-white/[0.06]"
+                    className="text-left px-2 py-1 rounded text-micro text-white/75 hover:bg-white/[0.06]"
                   >
                     {r.label}
                   </button>
@@ -452,7 +450,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
               </div>
             )}
           </div>
-          <span className="text-[10px] text-white/45 ml-auto">
+          <span className="text-micro text-white/45 ml-auto">
             Decide once per lead — credits are only spent on Enrich.
           </span>
         </div>
@@ -469,7 +467,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
               type="button"
               onClick={(e) => { e.stopPropagation(); primaryAction.onClick() }}
               disabled={busy !== null}
-              className={`flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-semibold border disabled:opacity-40 transition-colors min-h-[34px] ${primaryAction.cls}`}
+              className={`flex items-center gap-1 px-3 py-1 rounded-md text-micro font-semibold border disabled:opacity-40 transition-colors min-h-[34px] ${primaryAction.cls}`}
             >
               {primaryAction.icon}
               {primaryAction.label}
@@ -478,12 +476,13 @@ export function LeadCard({ lead: l, onOpen }: Props) {
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setMoreOpen(o => !o) }}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/60 hover:bg-white/[0.06] transition-colors min-h-[34px]"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/60 hover:bg-white/[0.06] transition-colors min-h-[34px]"
             aria-expanded={moreOpen}
           >
             <MoreHorizontal size={13} /> More
           </button>
           <div className="flex items-center gap-1 ml-auto" onClick={(e) => e.stopPropagation()}>
+            <WhyBadge table="leads" row={l} />
             <FeedbackButton sourceTable="leads" sourceId={l.id} agentId={l.assignee_agent || 'felix'} compact />
             <button
               type="button"
@@ -507,7 +506,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             type="button"
             onClick={(e) => { e.stopPropagation(); setStatus('contacted') }}
             disabled={busy !== null}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 disabled:opacity-40 transition-colors"
           >
             <ThumbsUp size={11} />
             Mark contacted
@@ -518,7 +517,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             type="button"
             onClick={(e) => { e.stopPropagation(); promote() }}
             disabled={busy !== null}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-40 transition-colors"
           >
             <ArrowUpRight size={11} />
             {busy === 'promote' ? 'Promoting…' : 'Promote'}
@@ -529,7 +528,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             type="button"
             onClick={() => { h.select(); setReassignOpen(o => !o) }}
             disabled={busy !== null}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
           >
             <UserCog size={11} />
             {l.assignee_agent ? `Reassign · ${l.assignee_agent}` : 'Assign'}
@@ -541,7 +540,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
                   key={a}
                   type="button"
                   onClick={() => reassign(a)}
-                  className="text-left px-2 py-1 rounded text-[11px] text-white/75 hover:bg-white/[0.06]"
+                  className="text-left px-2 py-1 rounded text-micro text-white/75 hover:bg-white/[0.06]"
                 >
                   {a}
                 </button>
@@ -554,7 +553,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             type="button"
             onClick={() => { h.select(); setFollowUpOpen(o => !o) }}
             disabled={busy !== null}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
           >
             <Calendar size={11} />
             Follow-up
@@ -566,7 +565,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
                   key={d}
                   type="button"
                   onClick={() => scheduleFollowUp(d)}
-                  className="text-left px-2 py-1 rounded text-[11px] text-white/75 hover:bg-white/[0.06] tabular-nums"
+                  className="text-left px-2 py-1 rounded text-micro text-white/75 hover:bg-white/[0.06] tabular-nums"
                 >
                   {d}d
                 </button>
@@ -579,7 +578,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             type="button"
             onClick={(e) => { e.stopPropagation(); openEnrich() }}
             disabled={busy !== null}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-amber-500/30 text-amber-200 hover:bg-amber-500/15 disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-amber-500/30 text-amber-200 hover:bg-amber-500/15 disabled:opacity-40 transition-colors"
             title="Research this lead — n8n deep enrich or direct (Apollo + web)"
           >
             <Sparkles size={11} />
@@ -592,7 +591,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
           >
             <Linkedin size={11} />
             LinkedIn
@@ -604,7 +603,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
               type="button"
               onClick={(e) => { e.stopPropagation(); openDraft() }}
               disabled={busy !== null}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/15 disabled:opacity-40 transition-colors"
               title="Draft an email via Cleo — pick the angle, lands in your Gmail Drafts"
             >
               <Mail size={11} />
@@ -613,7 +612,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             <a
               href={`mailto:${l.email}`}
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
               title="Open mailto in default client"
             >
               <ExternalLink size={11} />
@@ -627,7 +626,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-medium border border-white/10 text-white/70 hover:bg-white/[0.06] transition-colors"
           >
             <ExternalLink size={11} />
             Source
@@ -639,6 +638,7 @@ export function LeadCard({ lead: l, onOpen }: Props) {
       {/* Candidates get a quiet feedback + drop (their primary is Enrich/Skip above). */}
       {isCandidate && (
         <div className="flex items-center gap-1 mt-2 ml-auto w-fit" onClick={(e) => e.stopPropagation()}>
+          <WhyBadge table="leads" row={l} />
           <FeedbackButton sourceTable="leads" sourceId={l.id} agentId={l.assignee_agent || 'felix'} compact />
           <button
             type="button"

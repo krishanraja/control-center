@@ -56,7 +56,7 @@ export function LogShipForm({ onLogged, onCancel, initialDescription = '', submi
             type="button"
             onPointerDown={() => h.select()}
             onClick={() => setChannel(c)}
-            className={`min-h-[48px] px-4 rounded-xl text-[14px] border transition-all duration-100 active:scale-95 touch-manipulation ${
+            className={`min-h-[48px] px-4 rounded-xl text-ui border transition-all duration-100 active:scale-95 touch-manipulation ${
               channel === c
                 ? 'bg-white/[0.10] border-white/25 text-ink'
                 : 'bg-white/[0.03] border-white/10 text-ink-muted hover:bg-white/[0.06]'
@@ -71,18 +71,18 @@ export function LogShipForm({ onLogged, onCancel, initialDescription = '', submi
         value={description}
         onChange={setDescription}
         onEnter={() => { if (canSubmit) submit() }}
-        placeholder="What left your machine, and to whom"
+        placeholder="What did you send out, and who got it?"
         rows={2}
       />
 
-      {error && <p className="text-[12px] text-ink-muted">{error}</p>}
+      {error && <p className="text-label text-ink-muted">{error}</p>}
 
       <div className="flex items-center gap-2">
         <Tap onTap={submit} disabled={!canSubmit} feel="success" className="flex items-center justify-center">
           {saving ? 'Saving' : submitLabel}
         </Tap>
         {onCancel && (
-          <Tap variant="quiet" className="!min-h-[48px] text-[13px] flex items-center" onTap={() => { h.tap(); onCancel() }}>
+          <Tap variant="quiet" className="!min-h-[48px] text-body flex items-center" onTap={() => { h.tap(); onCancel() }}>
             Cancel
           </Tap>
         )}

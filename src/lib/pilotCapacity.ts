@@ -16,42 +16,24 @@ export type Capacity = 'low' | 'steady' | 'high'
 
 export interface CapacityProfile {
   level: Capacity
-  /** How many daily targets the operator is asked to commit to. */
-  targets: number
-  /** Whether the ambient fold opens by default. */
-  foldOpen: boolean
   /**
-   * Whether the OS is allowed to demand a decision at the portfolio and weekly
-   * altitudes today. The daily altitude always stays available, because one
-   * commitment is the floor, not a demand.
+   * Whether the OS is allowed to demand a decision at the weekly altitude
+   * today. The daily altitude always stays available, because one commitment
+   * is the floor, not a demand.
+   *
+   * Note there is deliberately NO `targets` field any more. Today is always
+   * exactly 3 slots — the daily_focus schema, the completion RPC, and the
+   * calibrate route all hardcode 3, and a capacity-varied count is what shipped
+   * the "Pick your 2" lock that the 3-only API rejected with a 400. Capacity
+   * reduces what the screen DEMANDS, never the shape of the day's commitment.
    */
   allowsHigherAltitudeDemand: boolean
-  /** The ambient fold's summary line, tuned to the state without moralising. */
-  foldSummary: string
 }
 
 const PROFILES: Record<Capacity, CapacityProfile> = {
-  low: {
-    level: 'low',
-    targets: 1,
-    foldOpen: false,
-    allowsHigherAltitudeDemand: false,
-    foldSummary: 'the ambient room · closed today, nothing in here matters yet',
-  },
-  steady: {
-    level: 'steady',
-    targets: 2,
-    foldOpen: false,
-    allowsHigherAltitudeDemand: true,
-    foldSummary: 'the ambient room · nothing below asks anything of you',
-  },
-  high: {
-    level: 'high',
-    targets: 3,
-    foldOpen: false,
-    allowsHigherAltitudeDemand: true,
-    foldSummary: 'the ambient room · nothing below asks anything of you',
-  },
+  low:    { level: 'low',    allowsHigherAltitudeDemand: false },
+  steady: { level: 'steady', allowsHigherAltitudeDemand: true },
+  high:   { level: 'high',   allowsHigherAltitudeDemand: true },
 }
 
 /**
@@ -96,6 +78,9 @@ export const INTENT_KINDS: Record<string, string[]> = {
   growth:   ['growth'],
   build:    ['product', 'risk'],
   clear:    ['risk'],
+  // An ask day favours the same nominations as chasing money and growth:
+  // requests are how both start.
+  ask:      ['revenue', 'growth'],
 }
 
 interface Rankable {

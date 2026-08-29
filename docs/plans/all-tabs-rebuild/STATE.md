@@ -15,7 +15,8 @@ Extends `docs/plans/content-tab-rebuild/` to the other tabs. Outcomes per tab ar
 | **Visibility**: unified "Do this next" across inbound guests + outbound stages | DONE (adeeea8) | `NextVisibilityHero` spans both; replaced the two NextActionStrips. |
 | **Subscriptions**: hide test data in `useCustomers` aggregates (read-only) | DONE (ff53f06) | test rows dropped at fetch → honest MRR/counts/recent. Kept read-only per Krish. |
 | **Secondary tabs migrate to `DoThisNextHero`** | DONE | Today / Intel (Desktop+Mobile) / Org (Desktop+Mobile) / Subscriptions (Desktop+Mobile) all render through the shared hero. `NextActionStrip` deleted. Per-tab heroes: `today/NextTaskHero`, `intel/NextIntelDesktopHero` (+ Mobile), `org/NextOrgHero`, `customers/SubscriptionsWatchHero`. Intel desktop "Promote to bet" now actually promotes (was a P-3 violation — only scrolled + outlined). Subscriptions stays read-only watch (calm hero with no forced action when no expansion play). Build green (`tsc --noEmit` + `vite build`). |
-| Home / Flows | NOT STARTED | Home already uses the new Focus Ritual spine (AltitudeSpine + BoardDaily + DecisionsInbox) — intentionally not a single hero, no NextActionStrip to remove. Flows has no next-action hero today — needs Krish's outcome lock before building. |
+| Home | DONE 2026-08-20 | Recomposed as the canon: OS goals → this week's objectives → today's 3, one no-scroll screen, one contextual CTA. The ruling queue moved whole to OS → Queue; the ambient fold retired. ADR 012. |
+| Flows | NOT STARTED | Flows has no next-action hero today — needs Krish's outcome lock before building. |
 
 ### Priority-4 complete (2026-06-17)
 All four prioritised tabs now share the one `DoThisNextHero` (consistent grammar/tones/actions), have test/demo data filtered from live views, and lead with a real one-tap next action tuned to Krish's stated outcome:

@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { guardCronRoute } from '../_auth.js'
 import { supabase } from '../_supabase.js'
 import { fetchPoolDays, poolConfigured } from '../_pool.js'
 import { purgeBoundary } from '../_weeks.js'
@@ -20,13 +21,7 @@ const LOOKBACK_DAYS = 2
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')
-  if (req.method === 'GET') {
-    const secret = process.env.CRON_SECRET || ''
-    const auth = req.headers.authorization || ''
-    if (!secret || auth !== `Bearer ${secret}`) return res.status(401).json({ ok: false, error: 'unauthorized' })
-  } else if (req.method !== 'POST') {
-    return res.status(405).json({ ok: false, error: 'GET (cron) or POST only' })
-  }
+  if (guardCronRoute(req, res)) return
 
   if (!poolConfigured()) {
     return res.status(200).json({ ok: true, skipped: 'pool not configured (CTRL_SUPABASE_URL / CTRL_SUPABASE_SERVICE_KEY unset)' })

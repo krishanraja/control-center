@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { MoreHorizontal, type LucideIcon } from 'lucide-react'
+import { MoreHorizontal, type LucideIcon } from '@/lib/icons'
 import { useHaptics } from '../hooks/useHaptics'
 import { ThemeToggle } from './shared/ThemeToggle'
 import { TimezoneToggle } from './shared/TimezoneToggle'
@@ -51,8 +51,8 @@ export function BottomNav({ active, onChange }: Props) {
               aria-label="More"
               className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[72px] sm:min-h-[76px] text-white/55"
             >
-              <MoreHorizontal className="w-7 h-7" strokeWidth={1.8} />
-              <span className="text-[12px] font-medium leading-none tracking-tight">More</span>
+              <MoreHorizontal size={24} />
+              <span className="text-label font-medium leading-none tracking-tight">More</span>
             </button>
           )}
         </div>
@@ -88,11 +88,12 @@ function NavButton({ tab, active, ultraNarrow: _ultraNarrow, onClick }: { tab: T
           <span aria-hidden className="absolute inset-0 rounded-full bg-violet-500/30 blur-md scale-[1.7]" />
         )}
         <Icon
-          className={`relative w-7 h-7 transition-colors ${active ? 'text-violet-200' : ''}`}
-          strokeWidth={active ? 2.3 : 1.8}
+          size={24}
+          className={`relative transition-colors ${active ? 'text-violet-200' : ''}`}
+          strokeWidth={active ? 2.25 : undefined}
         />
       </div>
-      <span className={`w-full text-center text-[12px] font-medium leading-none tracking-tight truncate transition-colors ${active ? 'text-violet-200' : ''}`}>
+      <span className={`w-full text-center text-label font-medium leading-none tracking-tight truncate transition-colors ${active ? 'text-violet-200' : ''}`}>
         {label}
       </span>
       {active && (
@@ -128,7 +129,7 @@ function MobileMoreDrawer({
           <div className="w-10 h-1 bg-white/20 rounded-full" />
         </div>
         <div className="px-4 pb-3 flex items-center gap-3">
-          <span className="text-[11px] font-display font-semibold uppercase tracking-[0.18em] text-white/40 flex-shrink-0">Appearance</span>
+          <span className="text-micro font-display font-semibold uppercase tracking-[0.14em] text-white/40 flex-shrink-0">Appearance</span>
           <div className="flex-1 min-w-0"><ThemeToggle expanded /></div>
           <div className="flex-1 min-w-0"><TimezoneToggle expanded /></div>
         </div>
@@ -143,8 +144,8 @@ function MobileMoreDrawer({
                   : 'border-white/[0.06] text-white/70 hover:bg-white/[0.04]'
               }`}
             >
-              <Icon className="w-7 h-7" strokeWidth={1.8} />
-              <span className="text-[13px] font-medium">{label}</span>
+              <Icon size={24} />
+              <span className="text-body font-medium">{label}</span>
             </button>
           ))}
         </div>

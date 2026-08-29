@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { MoreHorizontal, type LucideIcon } from 'lucide-react'
+import { MoreHorizontal, type LucideIcon } from '@/lib/icons'
 import { supabase } from '../lib/supabase'
 import { DESKTOP_PRIMARY_TABS, DESKTOP_DRAWER_TABS } from '../lib/tabs'
-import { isSimplifiedIA } from '../lib/iaV3'
-import { displayMrr, formatMrr } from '../lib/mrrDisplay'
+import { formatMrr } from '../lib/mrrDisplay'
+import { useRevenue } from '../hooks/useRevenue'
 import { usePressable } from './shared/usePressable'
 import { ThemeToggle } from './shared/ThemeToggle'
 import { TimezoneToggle } from './shared/TimezoneToggle'
@@ -19,26 +19,25 @@ export function DesktopSidebar({ active, onChange }: Props) {
   const [badge, setBadge] = useState<'green' | 'amber' | 'red' | 'unknown'>('unknown')
   const [badgeStatus, setBadgeStatus] = useState<string>('unknown')
   const [alertCount, setAlertCount] = useState(0)
-  const [mrr, setMrr] = useState<string | null>(null)
   const [unhealthyCount, setUnhealthyCount] = useState(0)
+  // The sidebar used to run its OWN sum over customers.mrr_usd: any non-churned
+  // row of any kind, no test-row filter, no limit. One of five incompatible
+  // definitions. It reads the shared figure now.
+  const { revenue } = useRevenue()
+  const mrr = revenue && revenue.committed_mrr_usd_cents > 0
+    ? `${formatMrr(revenue.committed_mrr_usd_cents / 100)}/mo`
+    : null
 
   useEffect(() => {
     const loadSys = async () => {
-      const [healthRes, custRes] = await Promise.all([
-        supabase.from('system_health').select('status'),
-        supabase.from('customers').select('mrr_usd,churned_at'),
-      ])
+      const healthRes = await supabase.from('system_health').select('status')
       const health = (healthRes.data as Array<{ status?: string }> | null) || []
       setUnhealthyCount(health.filter(r => r.status === 'critical' || r.status === 'warning').length)
-      const customers = (custRes.data as Array<{ mrr_usd?: number | null; churned_at?: string | null }> | null) || []
-      const active = displayMrr(customers.filter(c => !c.churned_at).reduce((sum, c) => sum + (Number(c.mrr_usd) || 0), 0))
-      setMrr(active > 0 ? `${formatMrr(active)}/mo` : null)
     }
     loadSys()
     const ch = supabase
       .channel('sidebar-health')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'system_health' }, loadSys)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, loadSys)
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [])
@@ -83,7 +82,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
         <img src="/icon-192.png" alt="" className="w-7 h-7 rounded-md object-cover flex-shrink-0 ring-1 ring-white/10" />
         {expanded && (
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[13px] font-semibold text-white/85 truncate">mind/make OS</span>
+            <span className="text-body font-semibold text-white/85 truncate">mind/make OS</span>
             <span className={`w-2 h-2 rounded-full ${dotColor}`} title={dotTitle} />
           </div>
         )}
@@ -99,7 +98,7 @@ export function DesktopSidebar({ active, onChange }: Props) {
             active={active === id}
             onClick={() => onChange(id)}
             expanded={expanded}
-            showHealthBadge={(isSimplifiedIA() ? id === 'os' : id === 'systems') && unhealthyCount > 0}
+            showHealthBadge={id === 'os' && unhealthyCount > 0}
             unhealthyCount={unhealthyCount}
             badge={badge}
           />
@@ -111,14 +110,14 @@ export function DesktopSidebar({ active, onChange }: Props) {
               type="button"
               onClick={() => setDrawerOpen(o => !o)}
               aria-label="More tabs"
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all border ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-body font-medium transition-all border ${
                 drawerOpen
                   ? 'bg-white/[0.04] text-white/80 border-white/10'
                   : 'text-white/60 hover:text-white/80 hover:bg-white/[0.04] border-transparent'
               }`}
               title={!expanded ? 'More' : undefined}
             >
-              <MoreHorizontal className="w-4 h-4 flex-shrink-0" strokeWidth={1.8} />
+              <MoreHorizontal size={16} className="flex-shrink-0" />
               {expanded && <span className="truncate flex-1">More</span>}
             </button>
 
@@ -148,18 +147,18 @@ export function DesktopSidebar({ active, onChange }: Props) {
         {expanded ? (
           <>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.14em] text-white/40 font-semibold">MRR</p>
+              <p className="text-micro uppercase tracking-[0.14em] text-white/40 font-semibold">MRR</p>
               {mrr ? (
-                <p className="text-[15px] font-mono font-semibold text-emerald-400 tabular-nums mt-0.5">{mrr}</p>
+                <p className="text-ui font-mono font-semibold text-emerald-400 tabular-nums mt-0.5">{mrr}</p>
               ) : (
-                <p className="text-[12px] text-white/30 mt-1 leading-snug">Not reported yet</p>
+                <p className="text-label text-white/30 mt-1 leading-snug">Not reported yet</p>
               )}
             </div>
             <ThemeToggle expanded />
             <TimezoneToggle expanded />
             <div className="pt-2 border-t border-white/[0.05] flex items-center justify-between">
-              <span className="text-[10px] uppercase tracking-[0.14em] text-white/30 font-medium">Command</span>
-              <kbd className="text-[10px] font-mono text-white/60 border border-white/10 rounded px-1.5 py-0.5 bg-white/[0.03]">⌘K</kbd>
+              <span className="text-micro uppercase tracking-[0.14em] text-white/30 font-medium">Command</span>
+              <kbd className="text-micro font-mono text-white/60 border border-white/10 rounded px-1.5 py-0.5 bg-white/[0.03]">⌘K</kbd>
             </div>
           </>
         ) : (
@@ -195,7 +194,7 @@ function SidebarButton({ id, label, Icon, active, onClick, expanded, showHealthB
     <button
       onClick={bind.onClick}
       onPointerDown={bind.onPointerDown}
-      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all relative
+      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-body font-medium transition-all relative
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50
         ${active
           ? 'bg-violet-500/15 text-white border border-violet-500/25'
@@ -203,7 +202,7 @@ function SidebarButton({ id, label, Icon, active, onClick, expanded, showHealthB
       title={!expanded ? (showHealthBadge ? `${label} (${unhealthyCount} issues)` : label) : undefined}
     >
       <div className="relative">
-        <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={active ? 2.2 : 1.8} />
+        <Icon size={16} className="flex-shrink-0" strokeWidth={active ? 2.25 : undefined} />
         {showHealthBadge && (
           <span
             className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${badge === 'red' ? 'bg-rose-500' : 'bg-amber-400'} animate-pulse`}
@@ -213,7 +212,7 @@ function SidebarButton({ id, label, Icon, active, onClick, expanded, showHealthB
       </div>
       {expanded && <span className="truncate flex-1">{label}</span>}
       {expanded && showHealthBadge && (
-        <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono ${badge === 'red' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
+        <span className={`text-micro px-1.5 py-0.5 rounded font-mono ${badge === 'red' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
           {unhealthyCount}
         </span>
       )}

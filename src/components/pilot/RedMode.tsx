@@ -15,8 +15,12 @@ import { Tap } from './controls'
 interface Props {
   /** The most recent evening check-in, which carries today's ONE. */
   lastEvening: PilotCheckin | null
-  /** Called after a ship is logged or the escape hatch is used. */
-  onUnlock: () => void
+  /**
+   * Called after a ship is logged or the escape hatch is used. `navigated`
+   * is true when this unlock already carried its own destination (the in-app
+   * draft), so the gate must not route the day anywhere else on top of it.
+   */
+  onUnlock: (navigated?: boolean) => void
 }
 
 type Phase = 'ask' | 'task' | 'marking' | 'done'
@@ -62,20 +66,20 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
 
         {phase === 'ask' && (
           <div className="flex flex-col gap-6">
-            <h1 className="font-display text-[21px] leading-snug">
-              What is the one 15-minute action that leaves your machine today?
+            <h1 className="font-display text-title leading-snug">
+              What is the one 15-minute thing you can finish and send out today?
             </h1>
             <OneActionPicker onCommit={commitOne} saving={saving} />
-            {error && <p className="text-[13px] text-ink-muted">{error}</p>}
+            {error && <p className="text-body text-ink-muted">{error}</p>}
           </div>
         )}
 
         {phase === 'task' && (
           <div className="flex flex-col gap-7">
             <div className="flex flex-col gap-3">
-              <span className="text-[12px] uppercase tracking-[0.14em] text-ink-faint">Today</span>
-              <p className="font-display text-[24px] leading-snug">{one}</p>
-              <p className="text-[13px] text-ink-faint leading-relaxed">
+              <span className="text-label uppercase tracking-[0.14em] text-ink-faint">Today</span>
+              <p className="font-display text-heading leading-snug">{one}</p>
+              <p className="text-body text-ink-faint leading-relaxed">
                 Fifteen minutes. Done when it leaves your machine.
               </p>
             </div>
@@ -92,7 +96,7 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
                   onTap={async () => {
                     await logOverride()
                     window.location.hash = oneUrl
-                    onUnlock()
+                    onUnlock(true)
                   }}
                 >
                   Open the draft
@@ -103,7 +107,7 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
                   target="_blank"
                   rel="noreferrer"
                   onPointerDown={() => h.impactMedium()}
-                  className="w-full min-h-[52px] flex items-center justify-center rounded-xl text-[16px] font-medium text-center bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] active:scale-[0.98] transition-all touch-manipulation"
+                  className="w-full min-h-[52px] flex items-center justify-center rounded-xl text-lede font-medium text-center bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] active:scale-[0.98] transition-all touch-manipulation"
                 >
                   Open it
                 </a>
@@ -123,7 +127,7 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
                 vague ONE was a dead end with nothing but Mark done. */}
             <Tap
               variant="quiet"
-              className="!min-h-[44px] text-[13px] w-full justify-center flex items-center"
+              className="!min-h-[44px] text-body w-full justify-center flex items-center"
               onTap={() => { h.tap(); setOne(''); setOneUrl(''); setPhase('ask') }}
             >
               Pick a different action
@@ -134,8 +138,8 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
         {phase === 'marking' && (
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
-              <span className="text-[12px] uppercase tracking-[0.14em] text-ink-faint">Log it</span>
-              <p className="text-[13px] text-ink-muted leading-relaxed">Where did it go, and what was it.</p>
+              <span className="text-label uppercase tracking-[0.14em] text-ink-faint">Log it</span>
+              <p className="text-body text-ink-muted leading-relaxed">What was it, and who got it?</p>
             </div>
             <LogShipForm
               initialDescription={one}
@@ -149,9 +153,9 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
         {phase === 'done' && (
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
-              <p className="font-display text-[22px] leading-snug">That left your machine.</p>
-              <p className="text-[13px] text-ink-faint leading-relaxed">
-                It is in the ledger. Nothing else is required today.
+              <p className="font-display text-title leading-snug">That one went out.</p>
+              <p className="text-body text-ink-faint leading-relaxed">
+                It is logged. Nothing else is needed from you today.
               </p>
             </div>
             <Tap className="w-full justify-center flex items-center" onTap={() => { h.notifySuccess(); onUnlock() }}>
@@ -165,7 +169,7 @@ export function RedMode({ lastEvening, onUnlock }: Props) {
         <button
           type="button"
           onClick={override}
-          className="mt-12 min-h-[44px] px-4 text-[11px] text-ink-faint/60 hover:text-ink-faint transition-colors touch-manipulation"
+          className="mt-12 min-h-[44px] px-4 text-micro text-ink-faint/60 hover:text-ink-faint transition-colors touch-manipulation"
         >
           override to full dashboard
         </button>

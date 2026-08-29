@@ -1,9 +1,11 @@
 # COMPOUND live-question brief
 
+> Historical design record from 2026-08-06. Its approval and pending-action lines describe that design phase, not the current release. Ask is implemented and the current scoped behavior and release state live in `STATE.md`.
+
 - Revision: CQ-001
 - Date: 2026-08-06
 - Materiality: new material surface
-- Approval state: awaiting Krish's first reaction
+- Historical approval state: awaiting Krish's first reaction at the time this brief was written
 
 ## State of use
 

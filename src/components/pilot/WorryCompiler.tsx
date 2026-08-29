@@ -8,13 +8,19 @@ import {
 import { getZone } from '../../lib/civilDate'
 import { LogShipForm } from './LogShipForm'
 import { useHaptics } from '../../hooks/useHaptics'
-import { Tap, VoiceField, DockButton } from './controls'
+import { Tap, VoiceField } from './controls'
 import { Modal } from '../shared/Modal'
 
 // Capture and close. One textarea in, one terminal state out, then the modal
 // shuts. Nothing here ever lists past worries: the only rows this component
 // renders are the five open tests when a save is capped, and that list exists
 // solely so closing one is a single tap away.
+//
+// Opened from the Focus & Purpose tab (its "compile a worry" action and the
+// spiralling / relitigating counter-moves). It used to hang off a floating
+// dock over every tab; that chrome is gone. Still green mode only, and still
+// structurally so: every mount lives inside PilotGate's children, and red mode
+// returns before children ever render.
 
 const API = import.meta.env.VITE_API_URL ?? ''
 const tzq = () => `?tz=${encodeURIComponent(getZone())}`
@@ -24,24 +30,6 @@ type Phase = 'capture' | 'confirm' | 'capped' | 'shipping' | 'done'
 interface Props {
   open: boolean
   onClose: () => void
-}
-
-/**
- * The compiler's entry point, mounted beside the shutdown button.
- *
- * Green mode only, and structurally so: this renders inside PilotGate's
- * children, and red mode returns before children ever render. The button
- * therefore cannot appear on a red day. That is enforced by where it is
- * mounted, not by a conditional someone could later flip.
- */
-export function WorryCompilerButton() {
-  const [open, setOpen] = useState(false)
-  return (
-    <>
-      <DockButton label="compile a worry" title="Compile a worry" onTap={() => setOpen(true)} />
-      <WorryCompiler open={open} onClose={() => setOpen(false)} />
-    </>
-  )
 }
 
 export function WorryCompiler({ open, onClose }: Props) {
@@ -140,8 +128,8 @@ export function WorryCompiler({ open, onClose }: Props) {
         {phase === 'capture' && (
           <>
             <div>
-              <h2 className="font-display text-[19px] leading-tight">Compile a worry</h2>
-              <p className="text-[12px] text-ink-faint mt-1">It comes out as one thing you can finish.</p>
+              <h2 className="font-display text-title leading-tight">Compile a worry</h2>
+              <p className="text-label text-ink-faint mt-1">It comes out as one thing you can finish.</p>
             </div>
             <VoiceField
               value={rawText}
@@ -149,12 +137,12 @@ export function WorryCompiler({ open, onClose }: Props) {
               rows={5}
               placeholder="Dump it. 60 seconds, any language."
             />
-            {error && <p className="text-[12px] text-ink-muted leading-relaxed">{error}</p>}
+            {error && <p className="text-label text-ink-muted leading-relaxed">{error}</p>}
             <div className="flex items-center gap-2">
               <Tap onTap={compile} disabled={busy || !rawText.trim()} feel="impactMedium" className="flex items-center justify-center">
                 {busy ? 'Compiling' : 'Compile'}
               </Tap>
-              <Tap variant="quiet" className="!min-h-[48px] text-[13px] flex items-center" onTap={() => { h.tap(); shut() }}>
+              <Tap variant="quiet" className="!min-h-[48px] text-body flex items-center" onTap={() => { h.tap(); shut() }}>
                 Cancel
               </Tap>
             </div>
@@ -174,14 +162,14 @@ export function WorryCompiler({ open, onClose }: Props) {
               if (await save({ action_disposition: 'done_now' })) setPhase('shipping')
             }}
             onTomorrow={async () => {
-              if (await save({ action_disposition: 'tomorrow_one' })) finish('That is tomorrow. Nothing to hold tonight.')
+              if (await save({ action_disposition: 'tomorrow_one' })) finish("That belongs to tomorrow. There is nothing to carry tonight.")
             }}
             onRelitigation={async (note: string) => {
               const saved = await save({ outcome_note: note || 'no new evidence' })
               if (saved) {
                 finish(note
-                  ? 'Logged. Reopen it deliberately in tomorrow’s shutdown if it still matters.'
-                  : 'Closed. The decision stands.')
+                  ? 'Logged. If it still matters tomorrow, you can reopen it at shutdown.'
+                  : 'Closed. The decision stays as it was.')
               }
             }}
             onWeather={async () => { if (await save()) finish('Labelled. It expires in seven days on its own.') }}
@@ -192,21 +180,21 @@ export function WorryCompiler({ open, onClose }: Props) {
         {phase === 'capped' && (
           <>
             <div>
-              <h2 className="font-display text-[19px] leading-tight">Five tests are open.</h2>
-              <p className="text-[13px] text-ink-muted mt-1.5 leading-relaxed">Close one to open another.</p>
+              <h2 className="font-display text-title leading-tight">Five tests are open.</h2>
+              <p className="text-body text-ink-muted mt-1.5 leading-relaxed">Close one to open another.</p>
             </div>
             <div className="flex flex-col gap-3">
               {openTests.map(t => (
                 <div key={t.id} className="rounded-xl bg-white/[0.03] border border-white/[0.08] p-3.5 flex flex-col gap-2.5">
-                  <p className="text-[13px] leading-relaxed text-ink">{t.prediction}</p>
-                  <span className="text-[11px] text-ink-faint">Due {formatDue(t.test_due_date)}</span>
+                  <p className="text-body leading-relaxed text-ink">{t.prediction}</p>
+                  <span className="text-micro text-ink-faint">Due {formatDue(t.test_due_date)}</span>
                   <div className="flex gap-1.5">
                     {(['confirmed', 'disconfirmed', 'partial'] as TestOutcome[]).map(o => (
                       <button
                         key={o} type="button"
                         onPointerDown={() => h.select()}
                         onClick={() => closeTest(t.id, o)}
-                        className="min-h-[44px] px-3.5 rounded-xl text-[13px] bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.10] hover:text-ink transition-all active:scale-95 touch-manipulation"
+                        className="min-h-[44px] px-3.5 rounded-xl text-body bg-white/[0.05] border border-white/10 text-ink-muted hover:bg-white/[0.10] hover:text-ink transition-all active:scale-95 touch-manipulation"
                       >
                         {o === 'confirmed' ? 'Came true' : o === 'disconfirmed' ? 'Did not' : 'Partly'}
                       </button>
@@ -219,7 +207,7 @@ export function WorryCompiler({ open, onClose }: Props) {
               <Tap onTap={() => save().then(r => { if (r) finish('Test open.') })} disabled={busy || openTests.length >= 5} className="flex items-center justify-center">
                 Save the new test
               </Tap>
-              <Tap variant="quiet" className="!min-h-[48px] text-[13px] flex items-center" onTap={() => { h.tap(); shut() }}>
+              <Tap variant="quiet" className="!min-h-[48px] text-body flex items-center" onTap={() => { h.tap(); shut() }}>
                 Leave it
               </Tap>
             </div>
@@ -229,13 +217,13 @@ export function WorryCompiler({ open, onClose }: Props) {
         {phase === 'shipping' && (
           <>
             <div>
-              <h2 className="font-display text-[19px] leading-tight">Log what left.</h2>
-              <p className="text-[12px] text-ink-faint mt-1">Same ledger as everything else.</p>
+              <h2 className="font-display text-title leading-tight">Log what left.</h2>
+              <p className="text-label text-ink-faint mt-1">Same ledger as everything else.</p>
             </div>
             <LogShipForm
               initialDescription={compilation?.action_text || ''}
               submitLabel="It shipped"
-              onLogged={() => finish('In the ledger. Done.')}
+              onLogged={() => finish('Saved to your log. Done.')}
               onCancel={() => finish('Saved. Log it when it lands.')}
             />
           </>
@@ -243,7 +231,7 @@ export function WorryCompiler({ open, onClose }: Props) {
 
         {phase === 'done' && (
           <>
-            <p className="font-display text-[19px] leading-snug">{closingMessage}</p>
+            <p className="font-display text-title leading-snug">{closingMessage}</p>
             <Tap className="self-start flex items-center justify-center" onTap={() => { h.tap(); shut() }}>
               Close
             </Tap>
@@ -268,12 +256,12 @@ interface ConfirmProps {
   onCancel: () => void
 }
 
-const FIELD = 'w-full px-4 py-3 min-h-[48px] rounded-xl bg-white/[0.03] border border-white/10 text-[16px] leading-relaxed text-ink outline-none focus:border-white/25'
-const PRIMARY = 'min-h-[48px] px-4 rounded-xl text-[15px] font-medium bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] disabled:opacity-40 active:scale-[0.97] transition-all touch-manipulation'
-const SECONDARY = 'min-h-[48px] px-4 rounded-xl text-[15px] border border-white/10 text-ink-muted hover:bg-white/[0.05] hover:text-ink disabled:opacity-40 active:scale-[0.97] transition-all touch-manipulation'
+const FIELD = 'w-full px-4 py-3 min-h-[48px] rounded-xl bg-white/[0.03] border border-white/10 text-lede leading-relaxed text-ink outline-none focus:border-white/25'
+const PRIMARY = 'min-h-[48px] px-4 rounded-xl text-ui font-medium bg-white/[0.10] border border-white/20 text-ink hover:bg-white/[0.14] disabled:opacity-40 active:scale-[0.97] transition-all touch-manipulation'
+const SECONDARY = 'min-h-[48px] px-4 rounded-xl text-ui border border-white/10 text-ink-muted hover:bg-white/[0.05] hover:text-ink disabled:opacity-40 active:scale-[0.97] transition-all touch-manipulation'
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <span className="text-[11px] uppercase tracking-[0.12em] text-ink-faint">{children}</span>
+  return <span className="text-micro uppercase tracking-[0.14em] text-ink-faint">{children}</span>
 }
 
 function ConfirmCard(p: ConfirmProps) {
@@ -283,7 +271,7 @@ function ConfirmCard(p: ConfirmProps) {
     <>
       <div className="flex flex-col gap-1">
         <Label>{c.state}</Label>
-        <p className="text-[12px] text-ink-faint leading-relaxed">{c.reasoning}</p>
+        <p className="text-label text-ink-faint leading-relaxed">{c.reasoning}</p>
       </div>
 
       {c.state === 'test' && (
@@ -304,10 +292,10 @@ function ConfirmCard(p: ConfirmProps) {
             <Label>Due</Label>
             <input type="date" value={c.test_due_date || ''} onChange={e => p.onEdit({ test_due_date: e.target.value })} className={FIELD} />
           </div>
-          {p.error && <p className="text-[12px] text-ink-muted">{p.error}</p>}
+          {p.error && <p className="text-label text-ink-muted">{p.error}</p>}
           <div className="flex items-center gap-2">
             <button type="button" onClick={p.onSaveTest} disabled={p.busy} className={PRIMARY}>Save test</button>
-            <button type="button" onClick={p.onCancel} className="min-h-[48px] px-3 text-[13px] text-ink-faint hover:text-ink-muted transition-colors touch-manipulation">Cancel</button>
+            <button type="button" onClick={p.onCancel} className="min-h-[48px] px-3 text-body text-ink-faint hover:text-ink-muted transition-colors touch-manipulation">Cancel</button>
           </div>
         </div>
       )}
@@ -318,7 +306,7 @@ function ConfirmCard(p: ConfirmProps) {
             <Label>The action</Label>
             <textarea value={c.action_text || ''} rows={2} onChange={e => p.onEdit({ action_text: e.target.value })} className={`${FIELD} resize-none`} />
           </div>
-          {p.error && <p className="text-[12px] text-ink-muted">{p.error}</p>}
+          {p.error && <p className="text-label text-ink-muted">{p.error}</p>}
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={p.onDoNow} disabled={p.busy} className={PRIMARY}>Do it now</button>
             <button type="button" onClick={p.onTomorrow} disabled={p.busy} className={SECONDARY}>Make it tomorrow&rsquo;s ONE</button>
@@ -330,7 +318,7 @@ function ConfirmCard(p: ConfirmProps) {
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <Label>The decision</Label>
-            <p className="text-[13px] leading-relaxed text-ink">{c.original_decision}</p>
+            <p className="text-body leading-relaxed text-ink">{c.original_decision}</p>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>{c.evidence_question || 'What new evidence has arrived since this was decided?'}</Label>
@@ -341,7 +329,7 @@ function ConfirmCard(p: ConfirmProps) {
               className={`${FIELD} resize-none placeholder:text-ink-faint`}
             />
           </div>
-          {p.error && <p className="text-[12px] text-ink-muted">{p.error}</p>}
+          {p.error && <p className="text-label text-ink-muted">{p.error}</p>}
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => p.onRelitigation(p.evidence.trim())} disabled={p.busy} className={PRIMARY}>
               {p.evidence.trim() ? 'Log the evidence' : 'Close it'}
@@ -355,11 +343,11 @@ function ConfirmCard(p: ConfirmProps) {
 
       {c.state === 'weather' && (
         <div className="flex flex-col gap-3">
-          <p className="text-[15px] leading-relaxed text-ink">{c.label}</p>
-          {p.error && <p className="text-[12px] text-ink-muted">{p.error}</p>}
+          <p className="text-ui leading-relaxed text-ink">{c.label}</p>
+          {p.error && <p className="text-label text-ink-muted">{p.error}</p>}
           <div className="flex items-center gap-2">
             <button type="button" onClick={p.onWeather} disabled={p.busy} className={PRIMARY}>Label it and let it sit</button>
-            <button type="button" onClick={p.onCancel} className="px-3 py-2.5 text-[13px] text-ink-faint hover:text-ink-muted transition-colors">Cancel</button>
+            <button type="button" onClick={p.onCancel} className="px-3 py-2.5 text-body text-ink-faint hover:text-ink-muted transition-colors">Cancel</button>
           </div>
         </div>
       )}
