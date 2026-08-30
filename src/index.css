@@ -52,6 +52,20 @@
      it flips to dark ink, so text/borders/tints read correctly on paper with
      zero per-file edits. */
   --fg: 255 255 255;
+  /* Legacy `command-*` surfaces, now channels so they flip with the theme.
+     Same values the config carried as fixed hex until 2026-08-30. */
+  --cmd-bg: 8 7 13;          /* #08070D page ground                     */
+  --cmd-surface: 20 19 27;   /* #14131B raised control                  */
+  --cmd-card: 28 27 36;      /* #1C1B24 hover/pressed, lifts on dark    */
+  --cmd-border: 42 40 51;    /* #2A2833 hairline                        */
+  --cmd-text: 236 234 245;   /* #ECEAF5                                 */
+  /* The `*-300` accent tier. Pastels tuned for obsidian: they measure 9-11:1
+     here and 1.6-2.0:1 on the light paper, so as TEXT (467 of their 489 uses)
+     they vanish in daylight. Dark keeps the exact hex it always had. */
+  --s300-violet: 178 169 214;  --s300-amber: 220 192 138;
+  --s300-emerald: 143 195 168; --s300-rose: 211 163 163;
+  --s300-red: 211 163 163;     --s300-sky: 147 184 196;
+  --s300-cyan: 147 184 196;
 
   /* Elevated-surface recipe (glass-card / .surface). Per-theme so a card is a
      lit white-overlay at night and a raised near-white panel by day. */
@@ -122,7 +136,45 @@
   --card-hi-a: 0;            /* no top-light on paper                    */
   --card-shadow: 0 1px 2px 0 rgba(24,20,60,0.05), 0 10px 26px -10px rgba(24,20,60,0.16), 0 3px 8px -3px rgba(24,20,60,0.10);
   --ambient-opacity: 0.30;   /* aurora present but restrained in daylight (was 0.9) */
+
+  /* Daylight face of the `command-*` surfaces. A door pill is a raised control,
+     so it takes the same crisp white as a card and separates from the lavender
+     paper by its border and shadow rather than by tint. Hover DARKENS here,
+     where on obsidian it lightens: both read as "this moved toward you". */
+  --cmd-bg: 242 241 248;     /* the paper ground, matches --bg-base      */
+  --cmd-surface: 255 255 255;/* raised control, matches --card-bg        */
+  --cmd-card: 237 236 246;   /* hover/pressed, a step off white          */
+  --cmd-border: 214 212 228; /* hairline that survives on white          */
+  --cmd-text: 23 21 33;      /* near-black ink, matches --ink            */
+  /* Daylight `*-300`: the deep accent-text shades, so the tier is legible on
+     paper (4.8-5.9:1). This mirrors what the config already does for the
+     fuchsia/purple/teal/orange/blue/green/pink families, whose 300 has always
+     resolved to --ac-*; these seven kept a fixed hex only because they are also
+     used for fills and dots on dark. */
+  --s300-violet: 104 82 140;   --s300-amber: 132 100 60;
+  --s300-emerald: 44 108 88;   --s300-rose: 158 72 88;
+  --s300-red: 158 72 88;       --s300-sky: 52 104 128;
+  --s300-cyan: 56 108 124;
 }
+
+/* Muted-tier parity on paper.
+   The faint tiers are opacities of --fg, and the same opacity does NOT buy the
+   same legibility on both grounds: white at 25% over obsidian measures 2.11:1,
+   while black at 25% over the lavender paper measures 1.82:1. The tier looks
+   deliberate at night and vanishes by day. Making --fg pure black (above) lifted
+   every tier at once and got /30 and up over the line; /25 is the one that still
+   lands under it, so it is lifted here to the opacity that reproduces exactly
+   the contrast its dark counterpart already has (2.12:1).
+
+   Scoped to the light theme, so the approved dark surface is untouched, and done
+   here rather than across 45 files for the same reason --fg is a channel: one
+   lever, no per-component edits. e2e/theme-contrast.spec.ts holds the floor.
+
+   Not lifted: text-white/20 (6 uses) measures 1.74:1 on obsidian and 1.60:1 on
+   paper, so it is faint in BOTH themes rather than a light-mode defect. Every
+   one of those is an icon, a middot separator, or a disabled label. */
+:root[data-theme='light'] .text-white\/25 { color: rgb(var(--fg) / 0.31); }
+:root[data-theme='light'] .placeholder\:text-white\/25::placeholder { color: rgb(var(--fg) / 0.31); }
 
 /* Ambient OFF — the clean, flat adaptive light/dark with no Living Canvas. */
 :root[data-ambient='off'] .ambient-field,

@@ -93,14 +93,22 @@ export default {
         },
 
         // ── Legacy semantic tokens (refined hue, same names) ───────────────
-        // Kept as hex so every existing `/NN` opacity usage across ~179 files
-        // keeps working untouched; only the underlying colour warms up.
+        // Channel-format, like `white`/`base`/`ink` above, so `/NN` opacity
+        // modifiers keep working AND the surfaces flip with the theme.
+        //
+        // These were fixed hex until 2026-08-30, which made every
+        // `bg-command-surface` a permanently dark panel. Paired with the
+        // adaptive `text-white/90` that sits on them, light mode rendered dark
+        // ink on a dark surface: the Home door pills (Focus / Signals / Intel)
+        // and the critical alert banner were both unreadable in daylight.
+        // The semantic colours below (success/warning/error/info) stay fixed:
+        // they are meaning, not surface, and read on either ground.
         command: {
-          bg: '#08070d',
-          surface: '#14131b',
-          card: '#1c1b24',
-          border: '#2a2833',
-          text: '#eceaf5',
+          bg: 'rgb(var(--cmd-bg) / <alpha-value>)',
+          surface: 'rgb(var(--cmd-surface) / <alpha-value>)',
+          card: 'rgb(var(--cmd-card) / <alpha-value>)',
+          border: 'rgb(var(--cmd-border) / <alpha-value>)',
+          text: 'rgb(var(--cmd-text) / <alpha-value>)',
           success: '#4d9e78',
           warning: '#b98f4a',
           error:   '#bd6f6f',
@@ -131,7 +139,7 @@ export default {
           100: 'rgb(var(--ac-violet) / <alpha-value>)',
           200: 'rgb(var(--ac-violet) / <alpha-value>)',
           // Muted lavender ramp — the brand accent, off-neon.
-          300: '#b2a9d6',
+          300: 'rgb(var(--s300-violet) / <alpha-value>)',
           400: '#998fc4',
           500: '#8578b0',
           600: '#6f6299',
@@ -144,12 +152,12 @@ export default {
         // accent labels on tinted cards stay readable. 300+ keep Tailwind defaults.
         // 50–200 are theme-adaptive accent TEXT (--ac-*); 300–600 are muted, off-neon
         // ramps so raw `*-400` fills/dots/borders stop using Tailwind's neon defaults.
-        amber:   { 50: 'rgb(var(--ac-amber) / <alpha-value>)',   100: 'rgb(var(--ac-amber) / <alpha-value>)',   200: 'rgb(var(--ac-amber) / <alpha-value>)',   300: '#dcc08a', 400: '#cba35c', 500: '#b98f4a', 600: '#a07a3d' },
-        emerald: { 50: 'rgb(var(--ac-emerald) / <alpha-value>)', 100: 'rgb(var(--ac-emerald) / <alpha-value>)', 200: 'rgb(var(--ac-emerald) / <alpha-value>)', 300: '#8fc3a8', 400: '#6cab8b', 500: '#5b9578', 600: '#4d7f66' },
-        rose:    { 50: 'rgb(var(--ac-rose) / <alpha-value>)',    100: 'rgb(var(--ac-rose) / <alpha-value>)',    200: 'rgb(var(--ac-rose) / <alpha-value>)',    300: '#d3a3a3', 400: '#c98585', 500: '#b96c6c', 600: '#a15a5a' },
-        red:     { 300: '#d3a3a3', 400: '#c98585', 500: '#bd6f6f', 600: '#a75c5c' },
-        sky:     { 50: 'rgb(var(--ac-sky) / <alpha-value>)',     100: 'rgb(var(--ac-sky) / <alpha-value>)',     200: 'rgb(var(--ac-sky) / <alpha-value>)',     300: '#93b8c4', 400: '#6ba6b5', 500: '#5a93a2', 600: '#4c7d8a' },
-        cyan:    { 50: 'rgb(var(--ac-cyan) / <alpha-value>)',    100: 'rgb(var(--ac-cyan) / <alpha-value>)',    200: 'rgb(var(--ac-cyan) / <alpha-value>)',    300: '#93b8c4', 400: '#6ba6b5', 500: '#5a93a2', 600: '#4c7d8a' },
+        amber:   { 50: 'rgb(var(--ac-amber) / <alpha-value>)',   100: 'rgb(var(--ac-amber) / <alpha-value>)',   200: 'rgb(var(--ac-amber) / <alpha-value>)',   300: 'rgb(var(--s300-amber) / <alpha-value>)', 400: '#cba35c', 500: '#b98f4a', 600: '#a07a3d' },
+        emerald: { 50: 'rgb(var(--ac-emerald) / <alpha-value>)', 100: 'rgb(var(--ac-emerald) / <alpha-value>)', 200: 'rgb(var(--ac-emerald) / <alpha-value>)', 300: 'rgb(var(--s300-emerald) / <alpha-value>)', 400: '#6cab8b', 500: '#5b9578', 600: '#4d7f66' },
+        rose:    { 50: 'rgb(var(--ac-rose) / <alpha-value>)',    100: 'rgb(var(--ac-rose) / <alpha-value>)',    200: 'rgb(var(--ac-rose) / <alpha-value>)',    300: 'rgb(var(--s300-rose) / <alpha-value>)', 400: '#c98585', 500: '#b96c6c', 600: '#a15a5a' },
+        red:     { 300: 'rgb(var(--s300-red) / <alpha-value>)', 400: '#c98585', 500: '#bd6f6f', 600: '#a75c5c' },
+        sky:     { 50: 'rgb(var(--ac-sky) / <alpha-value>)',     100: 'rgb(var(--ac-sky) / <alpha-value>)',     200: 'rgb(var(--ac-sky) / <alpha-value>)',     300: 'rgb(var(--s300-sky) / <alpha-value>)', 400: '#6ba6b5', 500: '#5a93a2', 600: '#4c7d8a' },
+        cyan:    { 50: 'rgb(var(--ac-cyan) / <alpha-value>)',    100: 'rgb(var(--ac-cyan) / <alpha-value>)',    200: 'rgb(var(--ac-cyan) / <alpha-value>)',    300: 'rgb(var(--s300-cyan) / <alpha-value>)', 400: '#6ba6b5', 500: '#5a93a2', 600: '#4c7d8a' },
         indigo:  { 50: 'rgb(var(--ac-indigo) / <alpha-value>)',  100: 'rgb(var(--ac-indigo) / <alpha-value>)',  200: 'rgb(var(--ac-indigo) / <alpha-value>)' },
         // Secondary accent hues used only as text (fuchsia HUMOR chips, blue LENGTH,
         // etc.) — text-only, so 100/200/300 all flip light↔deep by theme.

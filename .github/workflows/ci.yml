@@ -120,6 +120,13 @@ jobs:
       # every non-2xx in "perhaps check your credentials?"), and a scheduled
       # workflow that never ran read as idle rather than dead.
       - run: npx tsx scripts/check-fleet-classifier.mts
+      # Light/dark. A fixed hex paired with an adaptive token is invisible in
+      # one of the two themes, and each half looks fine in review: the Home door
+      # pills and the critical alert banner shipped dark-on-dark in daylight,
+      # and the whole *-300 accent tier measured 1.6-2.0:1 on paper. This checks
+      # the property rather than the mechanism, so deliberate fixed mid-tones
+      # pass and only genuinely one-sided colours fail.
+      - run: npx tsx scripts/check-theme-tokens.mts
       # Ten workflow mirrors carried the live Supabase service-role key in
       # plaintext for months. That key bypasses RLS on every table, including
       # contact_intelligence, which is service-role-only precisely because it

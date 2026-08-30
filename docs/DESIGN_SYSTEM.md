@@ -62,9 +62,12 @@ Two independent, persisted switches applied as attributes on `<html>`:
 ### The keystone convention — `--fg`
 
 Tailwind's `white` is remapped to `rgb(var(--fg) / <alpha-value>)`. `--fg` is
-`255 255 255` in dark and `24 22 32` (ink) in light. **This single lever makes
-the thousands of existing `text-white/60`, `bg-white/[0.05]`, `border-white/10`
-utilities theme-adaptive with no per-file edits.**
+`255 255 255` in dark and **`0 0 0` (pure black, NOT `--ink`)** in light.
+**This single lever makes the thousands of existing `text-white/60`,
+`bg-white/[0.05]`, `border-white/10` utilities theme-adaptive with no per-file
+edits.** Pure black is deliberate: every muted tier is an opacity of `--fg`, and
+those ratios were tuned for white-on-obsidian. Inverted onto pale paper the same
+opacity reads washed out, so true black lifts every tier at once.
 
 **Contributor rules that follow from this:**
 - `text-white/NN`, `bg-white/NN`, `border-white/NN` are theme-adaptive — use
@@ -75,6 +78,22 @@ utilities theme-adaptive with no per-file edits.**
   ink-on-paper by day)? Use `.btn-contrast`, not `bg-white text-black`.
 - A solid opaque surface that should follow the theme? Use `bg-base` / `bg-sunk`
   (never a hardcoded `bg-[#0f0f12]`).
+- **A fixed hex under adaptive text is the bug that keeps shipping.** Each half
+  looks fine on its own, so review does not catch it: the surface is picked for
+  one theme, the text flips with the other, and they converge. `command.surface`
+  was `#14131b` under `text-white/90`, and the Home door pills (Focus / Signals /
+  Intel) plus the critical alert banner rendered dark-on-dark in daylight
+  (2026-08-30). The whole `*-300` accent tier had the same shape: 9-11:1 on
+  obsidian, 1.6-2.0:1 on paper, and 467 of its 489 uses are text.
+- **Colour used as TEXT must be legible on both grounds** — obsidian `#08070D`
+  and paper `#F2F1F8`. Either give it a channel (dark keeps its hex, light takes
+  the deep `--ac-*` value, as `--s300-*` does) or do not use it as text. A fixed
+  mid-tone that clears both is fine and several are deliberate: the `command`
+  semantics and the `*-400` fill tier.
+- Two guards hold this. `scripts/check-theme-tokens.mts` (CI) checks the cause
+  without a browser; `e2e/theme-contrast.spec.ts` measures the real composited
+  contrast across six routes in both themes, and fails a page that never left its
+  splash rather than passing it silently.
 
 ---
 
