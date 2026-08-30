@@ -317,6 +317,11 @@
             "node": "Anthropic: Propose Brief Edits",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -350,11 +355,6 @@
             "node": "Fan out feedback ids",
             "type": "main",
             "index": 0
-          },
-          {
-            "node": "Audit Log",
-            "type": "main",
-            "index": 0
           }
         ]
       ]
@@ -378,7 +378,7 @@
   },
   "_snapshot": {
     "workflow_id": "FZBDYXXfT1MBrAF6",
-    "exported": "2026-08-24",
+    "exported": "2026-08-30",
     "note": "FAITHFUL export of live, credential IDs included (they are opaque references; the secret values live in n8n). The previous checked-in copy had drifted badly: it declared httpHeaderAuth with no authentication parameter, while live uses predefinedCredentialType/supabaseApi. Syncing it over live on 2026-08-24 replaced the nodes array wholesale and detached every credential (\"No API key found in request\") until live was restored from a pre-PUT snapshot. n8n does NOT merge credentials on PUT. Do not hand-edit this file: re-export it."
   }
 }
