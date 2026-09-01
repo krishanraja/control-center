@@ -19,13 +19,16 @@ const DesktopGuests = lazy(() => import('../desktop/DesktopGuests').then(m => ({
 const MobileLeads = lazy(() => import('../mobile/MobileLeads').then(m => ({ default: m.MobileLeads })))
 const MobileLeadsRE = lazy(() => import('../mobile/MobileLeadsRE').then(m => ({ default: m.MobileLeadsRE })))
 const MobileGuests = lazy(() => import('../mobile/MobileGuests').then(m => ({ default: m.MobileGuests })))
+const DesktopBridges = lazy(() => import('../desktop/DesktopBridges').then(m => ({ default: m.DesktopBridges })))
+const MobileBridges = lazy(() => import('../mobile/MobileBridges').then(m => ({ default: m.MobileBridges })))
 
-export type PeopleLane = 'pipeline' | 'network' | 'visibility'
+export type PeopleLane = 'pipeline' | 'network' | 'visibility' | 'bridges'
 
 const LANES: Array<{ id: PeopleLane; label: string }> = [
   { id: 'pipeline', label: 'Pipeline' },
   { id: 'network', label: 'Network' },
   { id: 'visibility', label: 'Visibility' },
+  { id: 'bridges', label: 'Bridges' },
 ]
 
 interface Props {
@@ -42,9 +45,10 @@ interface Props {
  */
 function inferLane(params: Record<string, string>): PeopleLane {
   const lane = params.lane as PeopleLane | undefined
-  if (lane === 'pipeline' || lane === 'network' || lane === 'visibility') return lane
+  if (lane === 'pipeline' || lane === 'network' || lane === 'visibility' || lane === 'bridges') return lane
   if (params.guest || params.target) return 'visibility'
   if (params.lead) return 'pipeline'
+  if (params.bridge) return 'bridges'
   return 'network'
 }
 
@@ -106,6 +110,11 @@ export function PeopleTab({ narrow, params, onNavigate }: Props) {
           {narrow
             ? <MobileGuests guestId={params.guest || null} targetId={params.target || null} onClearDetail={clearDetail} onNavigate={onNavigate} />
             : <DesktopGuests guestId={params.guest || null} targetId={params.target || null} onClearDetail={clearDetail} onNavigate={onNavigate} />}
+        </ErrorBoundary>
+      )}
+      {lane === 'bridges' && (
+        <ErrorBoundary label="Bridges">
+          {narrow ? <MobileBridges /> : <DesktopBridges />}
         </ErrorBoundary>
       )}
     </Suspense>
