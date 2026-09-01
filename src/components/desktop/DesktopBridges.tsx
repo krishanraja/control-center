@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { HeartHandshake } from '@/lib/icons'
 import { BoardSkeleton } from '../shared/Skeleton'
 import { BridgeCard } from '../BridgeCard'
+import { HunterStatus } from '../HunterStatus'
 import { useBridges } from '../../hooks/useBridges'
 
 // The warm-intro lane: the five best paths into live target roles, drafted
@@ -48,6 +49,8 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
           The five warmest paths into roles you are tracking. You send everything yourself.
         </p>
       </header>
+
+      <HunterStatus />
 
       {top.length === 0 ? (
         <p className="text-body text-white/45">
