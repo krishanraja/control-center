@@ -2113,6 +2113,19 @@ docs/audits/                                                 # Closure architect
 
 ## 20. Recent architectural changes - rolling changelog
 
+### 2026-09-02: favorite creators become a scraped, gated inspiration lane (the creator scout)
+
+**The ask (Krish).** The LinkedIn writers he rates (Andreas Horn and Alex Lieberman first) should feed the content engine's proactive suggestions. His calls: auto-scrape weekly AND keep the manual Drive-screenshot lane; deliver as pushed idea cards, not rail candidates; manage the list in the database with no UI yet.
+
+**What shipped.**
+- **`content_creators`** (migration `20260902090000`): the nine hardcoded `curatedVoices` from `api/_judgmentLens.ts` promoted to a registry (slug, name, verified `linkedin_slug`, `why` = the move to emulate, active, per-creator scrape state), plus Andreas Horn (`andreashorn1`, verified live). Alex Lieberman's slug verified as `alex-lieberman`. The constant stays as seed and no-database fallback; `loadCuratedVoices` in the new `api/_creators.ts` reads the table first and the lens radar now goes through it.
+- **`api/discover-creator-posts.ts`**, Vercel cron Tue 08:00 UTC (zero n8n budget): scrapes up to 5 creators x 5 posts via the shared `_apify.ts` client (`linkedin_profile_posts` category, fallback `harvestapi/linkedin-profile-posts` whose `targetUrls` input schema was verified 2026-09-02; new additive `maxTotalChargeUsd` cap, 0.25 USD per creator run), gates each post (real URL per CLO-005/006, 30d freshness, `isOnDirection` at 0.2, URL dedup), then one Sonnet call (`api/_creatorMoves.ts`) extracts the transferable MOVE (hook, structure, named concept, proof pattern, CTA) and Krish's differentiated take. A paraphrase of the source post is a rejection by rule.
+- **Push with hard caps**, a deliberate departure from the radar's candidates-only doctrine: max 3 inserts per run, open-card governor (skips the whole run at 6 undecided `creator_move` cards), brand-fit floor (`creator_move_min_brand_fit`, falling back to `cleo_inspiration_min_brand_fit`), the `_beat.ts` G0 gate on `money_of_ai` rows, tiered `checkDuplicate`, and a partial unique index on live `source_url` (`content_ideas_creator_move_url_live_uq`). New `source_type='creator_move'` added to the CHECK, `ALLOWED_SOURCE`, `IdeaSourceType` and `LeadSourcePill`.
+- **Attribution is finally visible:** `ContentIdeaCardActionable` renders a `via <poster>` chip from `meta.poster_name`, which also surfaces the poster on the inspiration-sweep screenshot seeds that were already carrying the field invisibly.
+- **`api/content-creators.ts`**: thin GET/POST/PATCH CRUD (retire-not-delete) so a later Voices panel or the Telegram inbox router can add a creator without a schema change.
+
+**Deliberately not done:** the sweep-prompt creators block (a `Load Creators` node + `creatorsBlock` in the n8n Inspiration Sweep) is spec-only until Krish gives an explicit go, because it touches the published daily workflow. Live-data follow-ups on merge: apply the migration, insert the `apify_actor_registry` row for `linkedin_profile_posts`, optionally set `creator_move_min_brand_fit`.
+
 ### 2026-08-29: rebranded to Mindmake, and the OS to mind/make OS
 
 **The ruling (Krish).** The advisory rebranded to **Mindmake**. `github.com/krishanraja/mindmake`, `project-documentation/00_NORTH_STAR.md` and `01_CANON.md`, is **absolute canon for anything about the business**. The separate portfolio and earning-path workbook is context about Krish as a person and is explicitly **not** the go-to-market: its PE and VC commercial-diagnostic route, its pricing and its growth-share structure must never appear in ICP scoring, agent briefs, outreach or lead routing.

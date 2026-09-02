@@ -352,6 +352,31 @@ Guest Confirmed Cascade.
 
 **RLS:** anon `SELECT` only; `service_role` ALL. All writes go through `/api/*` (service role) — the Composer's draft autosave, materials, chat, and save-draft all PATCH/POST server-side for this reason.
 
+### `content_creators`
+
+The curated-creator registry behind "favorite creators as content inspiration"
+(2026-09-02). Promotes the hardcoded `curatedVoices` array in
+`api/_judgmentLens.ts` to data; the constant stays as the migration seed and
+the no-database fallback (`api/_creators.ts:loadCuratedVoices`). Read by the
+weekly creator scout (`api/discover-creator-posts.ts`, which writes
+`content_ideas` rows with `source_type='creator_move'`), the lens radar, and
+the `/api/content-creators` CRUD route. No UI in v1 by design.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | uuid | Primary key |
+| `slug` | text | Stable unique key, e.g. `andreas-horn` |
+| `name` | text | Display name |
+| `linkedin_slug` | text | Verified `/in/` slug; NULL = not scrapeable yet (the Exa radar still covers the person by name) |
+| `linkedin_url` | text | Full profile URL |
+| `why` | text | What Krish rates: the transferable move to emulate, fed verbatim into the move-extraction prompt |
+| `lens_id` | text | Default `judgment-economy` |
+| `active` | boolean | Retire with `active=false`; rows are never deleted |
+| `last_scraped_at` / `last_post_url` / `last_post_at` / `posts_seen` | | Per-creator scrape state, updated even on empty runs |
+| `notes` | text | |
+
+**RLS:** anon `SELECT`, `service_role` ALL (house pattern).
+
 ---
 
 ## Revenue tables (PR #43, #44, #45)

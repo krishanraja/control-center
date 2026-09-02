@@ -37,6 +37,10 @@
       "schedule": "0 10 * * 1"
     },
     {
+      "path": "/api/discover-creator-posts",
+      "schedule": "0 8 * * 2"
+    },
+    {
       "path": "/api/feed/ingest",
       "schedule": "30 11 * * *"
     },
