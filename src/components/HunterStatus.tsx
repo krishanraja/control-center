@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Clock, ExternalLink } from '@/lib/icons'
+import { AlertTriangle, CheckCircle2, Clock, ExternalLink, Search, FileText } from '@/lib/icons'
 import { Eyebrow } from './shared/Eyebrow'
+import { Working } from './shared/Working'
+import { useToast } from './shared/Toast'
 
 // Is hunter alive, and what is waiting on Krish. Verdicts are given in the
 // Pipeline sheet (canon 9.13 makes it the approval surface), so the waiting
@@ -25,6 +27,21 @@ interface HunterStatusPayload {
   nextFireUtc: string
 }
 
+interface Command {
+  id: number
+  command: 'source' | 'packages'
+  state: 'queued' | 'running' | 'done' | 'failed'
+  requested_at: string
+  result: string | null
+  error: string | null
+}
+
+// Hunter runs inside a scheduled cloud session, so a button cannot execute it
+// directly. It queues the command and a Routine on the hour runs it. Saying so
+// is the point: the button this replaces wrote a note and looked like a
+// trigger.
+const RUNS_WITHIN = 'runs within the hour'
+
 function ago(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
   if (mins < 60) return `${mins}m ago`
@@ -42,6 +59,15 @@ function until(iso: string): string {
 
 export function HunterStatus() {
   const [s, setS] = useState<HunterStatusPayload | null>(null)
+  const [commands, setCommands] = useState<Command[]>([])
+  const [busy, setBusy] = useState<string | null>(null)
+  const { toast } = useToast()
+
+  const loadCommands = () =>
+    fetch('/api/hunter/run')
+      .then(r => r.json())
+      .then(j => { if (j?.ok) setCommands(j.commands as Command[]) })
+      .catch(() => { /* the strip is useful without the queue */ })
 
   useEffect(() => {
     let live = true
@@ -49,8 +75,33 @@ export function HunterStatus() {
       .then(r => r.json())
       .then(j => { if (live && j?.ok) setS(j as HunterStatusPayload) })
       .catch(() => { /* the lane is useful without the strip */ })
-    return () => { live = false }
+    loadCommands()
+    const poll = setInterval(loadCommands, 60_000)
+    return () => { live = false; clearInterval(poll) }
   }, [])
+
+  const queue = async (command: 'source' | 'packages') => {
+    setBusy(command)
+    try {
+      const r = await fetch('/api/hunter/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command }),
+      })
+      const j = await r.json()
+      toast(j?.ok
+        ? j.queued ? `Queued. It ${RUNS_WITHIN}.` : 'Already queued, waiting to run.'
+        : `Could not queue: ${j?.error || 'unknown error'}`)
+      await loadCommands()
+    } catch {
+      toast('Could not reach hunter. Nothing was queued.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const inFlight = commands.find(c => c.state === 'queued' || c.state === 'running')
+  const lastDone = commands.find(c => c.state === 'done' || c.state === 'failed')
 
   if (!s) return null
   const failing = !!s.alert || s.lastRun?.status === 'error'
@@ -107,6 +158,36 @@ export function HunterStatus() {
             <span className="text-label tabular-nums">{s.packagesBuilt} packages built to date</span>
           </span>
         )}
+      </div>
+
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.06] flex-wrap">
+        <button
+          onClick={() => queue('source')}
+          disabled={busy === 'source'}
+          className="flex items-center gap-1.5 min-h-[32px] px-3 rounded-lg border border-white/[0.12] text-white/75 hover:bg-white/[0.04] disabled:opacity-50 text-label font-medium transition-colors"
+        >
+          {busy === 'source' ? <Working size={12} /> : <Search size={12} />}
+          Find roles
+        </button>
+        <button
+          onClick={() => queue('packages')}
+          disabled={busy === 'packages'}
+          className="flex items-center gap-1.5 min-h-[32px] px-3 rounded-lg border border-white/[0.12] text-white/75 hover:bg-white/[0.04] disabled:opacity-50 text-label font-medium transition-colors"
+        >
+          {busy === 'packages' ? <Working size={12} /> : <FileText size={12} />}
+          Build approved packages
+        </button>
+        <span className="text-micro text-white/40">
+          {inFlight
+            ? inFlight.state === 'running'
+              ? `${inFlight.command} running now`
+              : `${inFlight.command} queued, ${RUNS_WITHIN}`
+            : lastDone
+              ? lastDone.state === 'failed'
+                ? `last ${lastDone.command} failed: ${(lastDone.error || '').slice(0, 60)}`
+                : `last ${lastDone.command}: ${lastDone.result || 'done'}`
+              : `queues a run, ${RUNS_WITHIN}`}
+        </span>
       </div>
     </section>
   )
