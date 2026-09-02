@@ -158,32 +158,37 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
         )}
       </div>
 
-      <div className="flex items-center gap-2 mt-3 flex-wrap">
+      {/* Two up on a phone, one row on wider screens. flex-wrap put "Send to
+          my inbox" alone on a line, then two, then one, which reads as an
+          accident rather than a layout. */}
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:flex-wrap">
         <button
           type="button"
           onClick={mailToSelf}
           disabled={busy !== null || !draft.trim()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 disabled:opacity-40 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 disabled:opacity-40 transition-colors"
           title="Creates a Gmail draft addressed to you. Nothing is sent to anyone."
         >
           {busy === 'mail' ? <Working size={12} /> : <Inbox size={12} />}
-          Send to my inbox
+          <span className="sm:hidden">To my inbox</span>
+          <span className="hidden sm:inline">Send to my inbox</span>
         </button>
         <button
           type="button"
           onClick={() => setState('reached_out', 'reached', 'Marked reached out. Track the reply.')}
           disabled={busy !== null}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-semibold bg-amber-500/90 text-black hover:bg-amber-400 disabled:opacity-40 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-semibold bg-amber-500/90 text-black hover:bg-amber-400 disabled:opacity-40 transition-colors"
           title="You contacted them yourself, outside this app"
         >
           {busy === 'reached' ? <Working size={12} /> : <Check size={12} />}
-          Mark reached out
+          <span className="sm:hidden">Reached out</span>
+          <span className="hidden sm:inline">Mark reached out</span>
         </button>
         <button
           type="button"
           onClick={() => setState('snoozed', 'snooze', 'Snoozed. It leaves the top five for now.')}
           disabled={busy !== null}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
         >
           {busy === 'snooze' ? <Working size={12} /> : <Clock size={12} />}
           Snooze
@@ -192,7 +197,7 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
           type="button"
           onClick={() => setState('not_a_path', 'drop', 'Noted. It will not come back.')}
           disabled={busy !== null}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-white/15 text-white/75 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
         >
           {busy === 'drop' ? <Working size={12} /> : <X size={12} />}
           Not a path

@@ -115,7 +115,7 @@ export function HunterStatus() {
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <Eyebrow>Hunter</Eyebrow>
-        <span className="text-micro text-white/40">Next run {until(s.nextFireUtc)}</span>
+        <span className="col-span-2 text-micro text-white/40 sm:col-auto">Next run {until(s.nextFireUtc)}</span>
       </div>
 
       <div className="flex items-center gap-1.5 mt-1.5">
@@ -160,11 +160,13 @@ export function HunterStatus() {
         )}
       </div>
 
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.06] flex-wrap">
+      {/* The caption used to sit in the same flex row and force the two
+          buttons onto separate lines on a phone. It belongs under them. */}
+      <div className="mt-3 pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-2 sm:flex sm:items-center">
         <button
           onClick={() => queue('source')}
           disabled={busy === 'source'}
-          className="flex items-center gap-1.5 min-h-[32px] px-3 rounded-lg border border-white/[0.12] text-white/75 hover:bg-white/[0.04] disabled:opacity-50 text-label font-medium transition-colors"
+          className="flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg border border-white/[0.12] text-white/75 hover:bg-white/[0.04] disabled:opacity-50 text-label font-medium transition-colors"
         >
           {busy === 'source' ? <Working size={12} /> : <Search size={12} />}
           Find roles
@@ -172,7 +174,7 @@ export function HunterStatus() {
         <button
           onClick={() => queue('packages')}
           disabled={busy === 'packages'}
-          className="flex items-center gap-1.5 min-h-[32px] px-3 rounded-lg border border-white/[0.12] text-white/75 hover:bg-white/[0.04] disabled:opacity-50 text-label font-medium transition-colors"
+          className="flex items-center justify-center gap-1.5 min-h-[36px] px-3 rounded-lg border border-white/[0.12] text-white/75 hover:bg-white/[0.04] disabled:opacity-50 text-label font-medium transition-colors"
         >
           {busy === 'packages' ? <Working size={12} /> : <FileText size={12} />}
           Build approved packages
