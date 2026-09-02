@@ -106,6 +106,12 @@ jobs:
       # vocabulary, the one surface set, and that anything you can refuse can
       # also tell you why it was served.
       - run: npx tsx scripts/check-served-surfaces.mts
+      # The bridges surface drafts and never sends. "Send to my inbox" makes a
+      # Gmail draft addressed to Krish, with the contact's address quoted in the
+      # body rather than filled into the To line, so a mis-click in Gmail cannot
+      # reach the other person. That rests on what the code can reach, not on
+      # anyone remembering the rule, so a send client appearing there fails here.
+      - run: npx tsx scripts/check-bridges-never-send.mts
       # And again, for the enrichment path: every provider helper in _enrich.ts
       # returns '' on failure, so a run where PDL was out of credits still wrote
       # enrichment_status='enriched' and — carrying a dossier — became

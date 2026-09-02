@@ -25,30 +25,35 @@ export function BridgesBody({ narrow }: { narrow: boolean }) {
 
   if (loading && bridges.length === 0) {
     return (
-      <div className="space-y-5">
-        <header>
-          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
-            <HeartHandshake size={20} className="text-violet-300" />
-            Bridges
-          </h1>
-          <p className="text-body text-white/55 mt-1">Finding the warm paths in…</p>
-        </header>
+      <div className={narrow ? 'space-y-4 px-5' : 'space-y-5'}>
+        {!narrow && (
+          <header>
+            <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+              <HeartHandshake size={20} className="text-violet-300" />
+              Bridges
+            </h1>
+            <p className="text-body text-white/55 mt-1">Finding the warm paths in…</p>
+          </header>
+        )}
         <BoardSkeleton lanes={1} cardsPerLane={3} hero={false} />
       </div>
     )
   }
 
   return (
-    <div className={narrow ? 'space-y-4 p-1' : 'space-y-5'}>
-      <header>
-        <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
-          <HeartHandshake size={20} className="text-violet-300" />
-          Bridges
-        </h1>
-        <p className="text-body text-white/55 mt-1">
-          The five warmest paths into roles you are tracking. You send everything yourself.
-        </p>
-      </header>
+    <div className={narrow ? 'space-y-4 px-5' : 'space-y-5'}>
+      {/* On narrow the MobileShell owns the title, like every other lane. */}
+      {!narrow && (
+        <header>
+          <h1 className="text-2xl font-semibold text-white tracking-tight flex items-center gap-2">
+            <HeartHandshake size={20} className="text-violet-300" />
+            Bridges
+          </h1>
+          <p className="text-body text-white/55 mt-1">
+            The five warmest paths into roles you are tracking. You send everything yourself.
+          </p>
+        </header>
+      )}
 
       <HunterStatus />
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  Check, Clock, ExternalLink, HeartHandshake, History, Megaphone, Compass, Save, X,
+  Check, Clock, ExternalLink, HeartHandshake, History, Inbox, Megaphone, Compass, Save, X,
 } from '@/lib/icons'
 import type { LucideIcon } from '@/lib/icons'
 import { useToast } from './shared/Toast'
@@ -9,8 +9,12 @@ import { patchBridge } from '../hooks/useBridges'
 import type { BridgeRow, BridgeState, BridgeTier } from '../hooks/useBridges'
 
 // One warm path into one target role. The card carries its own evidence and
-// an editable ask. Krish sends everything himself: there is no send button
-// here and there never will be one.
+// an editable ask.
+//
+// "Send to my inbox" puts the draft in Krish's own Gmail drafts, addressed to
+// him, with the contact's address quoted in the body rather than filled into
+// the To line. He decides who receives it and types the address himself. There
+// is no send button here and there never will be one.
 
 const TIER_META: Record<BridgeTier, { label: string; Icon: LucideIcon; chip: string }> = {
   current_employee: { label: 'Works there now', Icon: HeartHandshake, chip: 'bg-emerald-500/10 text-emerald-300' },
@@ -26,7 +30,7 @@ interface Props {
 
 export function BridgeCard({ bridge: b, onChanged }: Props) {
   const { toast } = useToast()
-  const [busy, setBusy] = useState<null | 'reached' | 'snooze' | 'drop' | 'draft'>(null)
+  const [busy, setBusy] = useState<null | 'reached' | 'snooze' | 'drop' | 'draft' | 'mail'>(null)
   const [draft, setDraft] = useState(b.draft_ask)
   const meta = TIER_META[b.path_tier] || TIER_META.peer_transition
   const TierIcon = meta.Icon
@@ -41,6 +45,27 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
     : b.path_tier === 'peer_transition'
       ? 'Someone who made the same move. The draft below says who to look for.'
       : ''
+
+  const mailToSelf = async () => {
+    setBusy('mail')
+    try {
+      // Save an edited draft first, so what lands in the inbox is what is on
+      // screen rather than what was stored before the edit.
+      if (draft !== b.draft_ask) await patchBridge(b.bridge_id, { draft_ask: draft })
+      const r = await fetch(`/api/bridges/${b.bridge_id}/draft`, { method: 'POST' })
+      const j = await r.json().catch(() => ({}))
+      if (j?.ok) {
+        toast('In your Gmail drafts, addressed to you. Nothing was sent.')
+        onChanged()
+      } else {
+        toast(j?.error || 'Could not create the draft.')
+      }
+    } catch {
+      toast('Could not reach the server. No draft was created.')
+    } finally {
+      setBusy(null)
+    }
+  }
 
   const setState = async (next: BridgeState, key: 'reached' | 'snooze' | 'drop', done: string) => {
     if (busy) return
@@ -133,7 +158,17 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
         )}
       </div>
 
-      <div className="flex items-center gap-2 mt-3">
+      <div className="flex items-center gap-2 mt-3 flex-wrap">
+        <button
+          type="button"
+          onClick={mailToSelf}
+          disabled={busy !== null || !draft.trim()}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-label font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 disabled:opacity-40 transition-colors"
+          title="Creates a Gmail draft addressed to you. Nothing is sent to anyone."
+        >
+          {busy === 'mail' ? <Working size={12} /> : <Inbox size={12} />}
+          Send to my inbox
+        </button>
         <button
           type="button"
           onClick={() => setState('reached_out', 'reached', 'Marked reached out. Track the reply.')}

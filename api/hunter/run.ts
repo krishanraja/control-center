@@ -15,7 +15,8 @@ export const config = { maxDuration: 30 }
 const COMMANDS = new Set(['source', 'packages'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (!guard(req, res, ['POST', 'GET'])) return
+  // guard returns true when it has already answered the request.
+  if (guard(req, res, ['POST', 'GET'])) return
 
   if (req.method === 'GET') {
     const { data, error } = await supabase
