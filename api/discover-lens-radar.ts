@@ -6,6 +6,7 @@ import {
   lensFitScore,
   isOnDirection,
 } from './_judgmentLens.js'
+import { loadCuratedVoices } from './_creators.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // discover-lens-radar — the cadenced "judgment economy" content radar.
@@ -25,10 +26,11 @@ import {
 //
 // Sources this version uses: Exa neural search over the lens theme queries +
 // per-voice author search (the open-web writing of the curated sharp voices).
-// PLANNED enrichment: pull the curated voices' LinkedIn posts via the validated
-// Apify actors (harvestapi/linkedin-profile-posts, apimaestro/linkedin-post-
-// detail) once the actor input schema is confirmed live; it would plug in here
-// behind the same gate + fingerprint + upsert, so it can never flood.
+// The voices now come from the content_creators table (loadCuratedVoices,
+// falling back to the hardcoded constant), and the LinkedIn-posts enrichment
+// this header once planned shipped as its own route: discover-creator-posts.ts
+// scrapes the scrapeable creators weekly via the shared Apify client and
+// pushes hard-capped, gated creator_move suggestions into content_ideas.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MAX_PER_QUERY = 6
@@ -144,7 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 2) Voices radar — the curated sharp voices' recent open-web writing.
-    const voices = JUDGMENT_ECONOMY_LENS.curatedVoices.slice(0, MAX_VOICES)
+    const voices = (await loadCuratedVoices()).slice(0, MAX_VOICES)
     for (const v of voices) {
       const results = await exaSearch(`${v.name} AI judgment OR moat OR taste OR expertise`, MAX_PER_VOICE)
       for (const r of results) {

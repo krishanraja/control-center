@@ -36,7 +36,10 @@ export interface JudgmentLens {
   evidencePatterns: string[]
   /** Bare domains worth lifting in reputation (a quality signal, not a filter). */
   curatedSources: string[]
-  /** Sharp operators in this direction - seed the content radar AND the guest scout. */
+  /** Sharp operators in this direction - seed the content radar AND the guest scout.
+   *  Since 2026-09-02 the content_creators table is canonical (read through
+   *  api/_creators.ts loadCuratedVoices); this array is the migration seed and
+   *  the no-database fallback. Add new creators to the table, not here. */
   curatedVoices: CuratedVoice[]
   /** The kind of operator worth booking - the guest-scout archetype. */
   guestArchetype: string

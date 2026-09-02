@@ -47,6 +47,7 @@ const ALLOWED_SOURCE = new Set([
   'crm_opportunity',
   'lens_radar',
   'manual',
+  'creator_move',
 ])
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
