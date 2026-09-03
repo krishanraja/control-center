@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  Check, Clock, ExternalLink, HeartHandshake, History, Inbox, Megaphone, Compass, Save, X,
+  Check, Clock, ExternalLink, HeartHandshake, History, Inbox, Megaphone, Compass, Newspaper, Save, X,
 } from '@/lib/icons'
 import type { LucideIcon } from '@/lib/icons'
 import { useToast } from './shared/Toast'
@@ -18,6 +18,7 @@ import type { BridgeRow, BridgeState, BridgeTier } from '../hooks/useBridges'
 
 const TIER_META: Record<BridgeTier, { label: string; Icon: LucideIcon; chip: string }> = {
   current_employee: { label: 'Works there now', Icon: HeartHandshake, chip: 'bg-emerald-500/10 text-emerald-300' },
+  newsletter_move: { label: 'Just joined, per a16z newsletter', Icon: Newspaper, chip: 'bg-sky-500/10 text-sky-300' },
   ex_employee: { label: 'Worked there', Icon: History, chip: 'bg-violet-500/15 text-violet-200' },
   headhunter: { label: 'Headhunter path', Icon: Megaphone, chip: 'bg-amber-500/10 text-amber-300' },
   peer_transition: { label: 'Outside network', Icon: Compass, chip: 'bg-white/[0.08] text-white/60' },
@@ -40,6 +41,9 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
     : b.path_tier === 'headhunter'
       ? 'Retained search partner'
       : 'Person to find'
+  const newsletterPost = typeof b.contact?.strength_evidence?.newsletter_post === 'string'
+    ? (b.contact.strength_evidence.newsletter_post as string)
+    : null
   const personLine = b.contact
     ? [b.contact.current_title, b.contact.current_company].filter(Boolean).join(', ')
     : b.path_tier === 'peer_transition'
@@ -99,8 +103,31 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
     <article className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] p-3.5 hover:border-violet-500/35 transition-colors">
       <div className="flex items-start justify-between gap-x-3 gap-y-1.5 flex-wrap">
         <div className="min-w-0 basis-40 grow">
-          <h3 className="text-ui font-semibold text-white">{person}</h3>
+          <h3 className="text-ui font-semibold text-white">
+            {b.contact?.linkedin_url ? (
+              <a
+                href={b.contact.linkedin_url}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-violet-200 transition-colors"
+                title="LinkedIn profile"
+              >
+                {person}
+              </a>
+            ) : person}
+          </h3>
           {personLine && <p className="text-label text-white/55 mt-0.5">{personLine}</p>}
+          {newsletterPost && (
+            <a
+              href={newsletterPost}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-label text-sky-300 hover:text-sky-200 mt-0.5"
+            >
+              <Newspaper size={11} />
+              the newsletter post
+            </a>
+          )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <span className={`inline-flex items-center gap-1 text-micro px-1.5 py-0.5 rounded ${meta.chip}`}>

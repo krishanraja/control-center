@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 export type BridgeState = 'proposed' | 'reached_out' | 'snoozed' | 'not_a_path'
 
-export type BridgeTier = 'current_employee' | 'ex_employee' | 'headhunter' | 'peer_transition'
+export type BridgeTier = 'current_employee' | 'newsletter_move' | 'ex_employee' | 'headhunter' | 'peer_transition'
 
 export interface BridgeContact {
   contact_key: string
@@ -14,6 +14,8 @@ export interface BridgeContact {
   current_title: string | null
   current_company: string | null
   strength_score: number
+  linkedin_url?: string | null
+  strength_evidence?: Record<string, unknown> | null
 }
 
 export interface BridgeRole {

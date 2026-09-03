@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       contactKeys.length
         ? supabase
           .from('network_contacts')
-          .select('contact_key, full_name, current_title, current_company, strength_score')
+          .select('contact_key, full_name, current_title, current_company, strength_score, linkedin_url, strength_evidence')
           .in('contact_key', contactKeys)
         : Promise.resolve({ data: [], error: null }),
       jobIds.length
