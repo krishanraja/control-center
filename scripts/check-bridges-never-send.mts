@@ -2,9 +2,9 @@
  * The bridges surface may draft, never send.
  *
  * Krish's standing rule for hunter is that the system drafts and he sends. The
- * "Send to my inbox" button creates a Gmail draft addressed to him, with the
- * contact's address quoted in the body rather than filled into the To line, so
- * a mis-click in Gmail cannot reach the other person.
+ * "Draft in Gmail" button creates a Gmail draft in his own drafts folder,
+ * written to the contact and addressed to them (his ruling, 2026-09-03).
+ * Nothing leaves until he presses send in Gmail himself.
  *
  * That property should not rest on anyone remembering it. This check fails the
  * build if anything under the bridges surface gains a way to send: sendGmail,

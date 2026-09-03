@@ -74,12 +74,14 @@ export async function googleAccessToken(scopes: string[]): Promise<string | null
 export async function createGmailDraft(input: { to: string; subject: string; body: string }): Promise<{ id: string; url: string } | null> {
   const token = await googleAccessToken(['https://www.googleapis.com/auth/gmail.compose'])
   if (!token) return null
+  // A draft may have no recipient yet (no address on record); Gmail accepts a
+  // draft without a To header and shows the field empty for the sender to fill.
   const headers = [
-    `To: ${input.to}`,
+    input.to ? `To: ${input.to}` : '',
     `Subject: ${input.subject || ''}`,
     'Content-Type: text/plain; charset=UTF-8',
     'MIME-Version: 1.0',
-  ].join('\r\n')
+  ].filter(Boolean).join('\r\n')
   const raw = b64url(`${headers}\r\n\r\n${input.body || ''}`)
   try {
     const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {

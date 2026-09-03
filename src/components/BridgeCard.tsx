@@ -11,10 +11,10 @@ import type { BridgeRow, BridgeState, BridgeTier } from '../hooks/useBridges'
 // One warm path into one target role. The card carries its own evidence and
 // an editable ask.
 //
-// "Send to my inbox" puts the draft in Krish's own Gmail drafts, addressed to
-// him, with the contact's address quoted in the body rather than filled into
-// the To line. He decides who receives it and types the address himself. There
-// is no send button here and there never will be one.
+// "Draft in Gmail" puts the draft in Krish's own Gmail drafts, written to the
+// contact and addressed to them when an email is on record (his ruling,
+// 2026-09-03). It is a draft: nothing leaves until he presses send in Gmail.
+// There is no send button here and there never will be one.
 
 const TIER_META: Record<BridgeTier, { label: string; Icon: LucideIcon; chip: string }> = {
   current_employee: { label: 'Works there now', Icon: HeartHandshake, chip: 'bg-emerald-500/10 text-emerald-300' },
@@ -59,7 +59,10 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
       const r = await fetch(`/api/bridges/${b.bridge_id}/draft`, { method: 'POST' })
       const j = await r.json().catch(() => ({}))
       if (j?.ok) {
-        toast('In your Gmail drafts, addressed to you. Nothing was sent.')
+        const who = j.name || person
+        toast(j.to
+          ? `In your Gmail drafts, addressed to ${who} (${j.to}). Nothing was sent.`
+          : `In your Gmail drafts, To left blank: no email on record for ${who}. Nothing was sent.`)
         onChanged()
       } else {
         toast(j?.error || 'Could not create the draft.')
@@ -194,11 +197,11 @@ export function BridgeCard({ bridge: b, onChanged }: Props) {
           onClick={mailToSelf}
           disabled={busy !== null || !draft.trim()}
           className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-label font-medium border border-violet-500/30 text-violet-200 hover:bg-violet-500/10 disabled:opacity-40 transition-colors"
-          title="Creates a Gmail draft addressed to you. Nothing is sent to anyone."
+          title="Creates a Gmail draft to this person in your drafts folder. Nothing is sent until you press send in Gmail."
         >
           {busy === 'mail' ? <Working size={12} /> : <Inbox size={12} />}
-          <span className="sm:hidden">To my inbox</span>
-          <span className="hidden sm:inline">Send to my inbox</span>
+          <span className="sm:hidden">Gmail draft</span>
+          <span className="hidden sm:inline">Draft in Gmail</span>
         </button>
         <button
           type="button"
