@@ -30,10 +30,10 @@ function observation(partial: Partial<Observation> & Pick<Observation, "metric" 
 Deno.test("ledger rows map the eight sheet columns and skip everything else", async () => {
   assert(mapLedgerRow(SHEET_HEADER, 1) === null, "the header row is not a ledger row");
   assert(mapLedgerRow(["", "", "SUMMARY", "", "112001.51"], 2) === null, "summary cells are not rows");
-  const cost = mapLedgerRow(["2025-03-08", "Mortgage", "Monthly transfer", "ANZ", "3079.49", "Cost", "Confirmed", "CBA alert"], 3);
-  assert(cost?.category === "loan_repayment" && cost.direction === "out" && cost.amount === 3079.49, "cost row maps");
-  const income = mapLedgerRow(["2025-11-14", "Rental income", "Rent, statement 25", "Ray White", "1,250", "Income", "Confirmed", "Statement"], 4);
-  assert(income?.category === "rent_received" && income.direction === "in" && income.amount === 1250, "income row maps with a thousands separator");
+  const cost = mapLedgerRow(["2025-03-08", "Mortgage", "Monthly transfer", "Bank", "3034.12", "Cost", "Confirmed", "Bank alert"], 3);
+  assert(cost?.category === "loan_repayment" && cost.direction === "out" && cost.amount === 3034.12, "cost row maps");
+  const income = mapLedgerRow(["2025-11-14", "Rental income", "Rent, statement 25", "Letting agent", "1,220", "Income", "Confirmed", "Statement"], 4);
+  assert(income?.category === "rent_received" && income.direction === "in" && income.amount === 1220, "income row maps with a thousands separator");
   const gap = mapLedgerRow(["2025-01-31", "Water", "GAP: first bill missing", "Urban Utilities", "", "Gap", "Missing", "Tracker"], 5);
   assert(gap?.direction === "gap" && gap.amount === null, "gap rows keep no amount");
   const blankCost = mapLedgerRow(["2025-01-31", "Water", "no amount", "Urban Utilities", "", "Cost", "Confirmed", ""], 6);
@@ -107,7 +107,7 @@ Deno.test("Domain aggregates asking rents and sold prices without keeping raw li
   assert(rent.find((row) => row.metric === "rent_listing_count")?.value === 5, "listing count counts every listing");
   assert(rent.find((row) => row.metric === "asking_rent_median")?.value === 600, "median of the priced listings");
   const sold = soldObservations([
-    { id: 9, soldData: { soldPrice: 707500, soldDate: "2025-09-04" }, propertyDetails: { carspaces: 2, displayableAddress: "6/195 Gladstone Rd" } },
+    { id: 9, soldData: { soldPrice: 700000, soldDate: "2025-09-04" }, propertyDetails: { carspaces: 2, displayableAddress: "6/100 Sample St" } },
     { id: 10, soldData: { soldPrice: 650000, soldDate: "2026-02-10" } },
     { id: 11, soldData: { soldPrice: 690000, soldDate: "2026-05-01" } },
     { id: 12, priceDetails: { displayPrice: "Undisclosed" } },
@@ -119,24 +119,24 @@ Deno.test("Domain aggregates asking rents and sold prices without keeping raw li
 
 Deno.test("value estimate blends the building sale with the postcode pool and shows its working", () => {
   const observations: Observation[] = [
-    observation({ metric: "sale_price", value: 707500, periodEnd: "2025-09-04", areaKind: "building", areaCode: "gladstone-9", detail: { cars: 2, address: "6/195" } }),
-    observation({ metric: "sale_price", value: 571000, periodEnd: "2025-09-10", areaKind: "building", areaCode: "gladstone-9", bedrooms: 1 }),
+    observation({ metric: "sale_price", value: 700000, periodEnd: "2025-09-04", areaKind: "building", areaCode: "demo-unit", detail: { cars: 2, address: "6/100 Sample St" } }),
+    observation({ metric: "sale_price", value: 560000, periodEnd: "2025-09-10", areaKind: "building", areaCode: "demo-unit", bedrooms: 1 }),
     ...[640000, 655000, 660000, 672000, 690000, 700000, 715000, 730000].map((value, index) =>
       observation({ metric: "sale_price", value, periodEnd: `2026-0${(index % 8) + 1}-15`, detail: { ref: `s${index}` } })),
   ];
-  const result = estimateValue({ postcode: "4101", bedrooms: 2, carSpaces: 1, purchasePrice: 605000, settledOn: "2024-11-14", buildingKey: "gladstone-9" }, observations, "2026-10-08");
-  const anchor = 707500 - 30000;
+  const result = estimateValue({ postcode: "4101", bedrooms: 2, carSpaces: 1, purchasePrice: 600000, settledOn: "2024-11-14", buildingKey: "demo-unit" }, observations, "2026-10-08");
+  const anchor = 700000 - 30000;
   const poolMedian = (672000 + 690000) / 2;
   const expectedMid = Math.round((0.6 * anchor + 0.4 * poolMedian) / 500) * 500;
   assert(result.mid === expectedMid, `mid blends anchor and pool: ${result.mid} vs ${expectedMid}`);
   assert(result.low < result.mid && result.high > result.mid, "band brackets the mid");
-  assert(result.low >= 571000, "floor holds at the smaller unit's sale");
+  assert(result.low >= 560000, "floor holds at the smaller unit's sale");
   assert(result.confidence === "medium", "anchor older than 12 months with a pool of 8 is medium");
-  const fresh = estimateValue({ postcode: "4101", bedrooms: 2, carSpaces: 1, purchasePrice: 605000, settledOn: "2024-11-14", buildingKey: "gladstone-9" }, observations, "2026-09-04");
+  const fresh = estimateValue({ postcode: "4101", bedrooms: 2, carSpaces: 1, purchasePrice: 600000, settledOn: "2024-11-14", buildingKey: "demo-unit" }, observations, "2026-09-04");
   assert(fresh.confidence === "high", "anchor within 12 months with a pool of 8 is high");
   assert(Array.isArray(result.inputs.assumptions) && (result.inputs.assumptions as string[]).some((line) => line.includes("price index")), "missing index is stated");
-  const bare = estimateValue({ postcode: "4101", bedrooms: 2, carSpaces: 1, purchasePrice: 605000, settledOn: "2024-11-14", buildingKey: "x" }, [], "2026-09-08");
-  assert(bare.mid === 605000 && bare.confidence === "low", "no evidence falls back to the purchase price");
+  const bare = estimateValue({ postcode: "4101", bedrooms: 2, carSpaces: 1, purchasePrice: 600000, settledOn: "2024-11-14", buildingKey: "x" }, [], "2026-09-08");
+  assert(bare.mid === 600000 && bare.confidence === "low", "no evidence falls back to the purchase price");
 });
 
 Deno.test("suburb ranking uses percentile ranks, names missing inputs and orders deterministically", () => {
@@ -171,13 +171,13 @@ Deno.test("rent band prefers the latest postcode medians for the bedroom count",
 });
 
 Deno.test("import parsers validate shape and the Google assertion has the expected claims", () => {
-  const rate = parseRateRow({ effective_from: "2024-12-13", rate_pct: "6.56", source: "settlement", note: "" }, "u", "l");
-  assert(rate.rate_pct === 6.56 && rate.note === null, "rate row parses");
+  const rate = parseRateRow({ effective_from: "2024-12-13", rate_pct: "6.5", source: "settlement", note: "" }, "u", "l");
+  assert(rate.rate_pct === 6.5 && rate.note === null, "rate row parses");
   let threw = false;
-  try { parseRateRow({ effective_from: "13/12/2024", rate_pct: "6.56", source: "settlement" }, "u", "l"); } catch { threw = true; }
+  try { parseRateRow({ effective_from: "13/12/2024", rate_pct: "6.5", source: "settlement" }, "u", "l"); } catch { threw = true; }
   assert(threw, "non ISO dates are rejected");
-  const sale = parseObservationRow({ source: "manual", area_kind: "building", area_code: "gladstone-9", dwelling_type: "unit", bedrooms: "2", metric: "sale_price", period_start: "2025-09-04", period_end: "2025-09-04", value: "707500", unit: "AUD", source_url: "https://example.test", detail_cars: "2", detail_address: "6/195 Gladstone Rd" });
-  assert(sale.detail?.cars === 2 && sale.detail?.address === "6/195 Gladstone Rd", "detail_ columns become the detail object");
+  const sale = parseObservationRow({ source: "manual", area_kind: "building", area_code: "demo-unit", dwelling_type: "unit", bedrooms: "2", metric: "sale_price", period_start: "2025-09-04", period_end: "2025-09-04", value: "700000", unit: "AUD", source_url: "https://example.test", detail_cars: "2", detail_address: "6/100 Sample St" });
+  assert(sale.detail?.cars === 2 && sale.detail?.address === "6/100 Sample St", "detail_ columns become the detail object");
   const claims = assertionClaims({ email: "sa@example.iam.gserviceaccount.com", privateKey: "" }, ["scope-a"], 1_000);
   assert(claims.iss === "sa@example.iam.gserviceaccount.com" && claims.exp === 4_600 && claims.aud === "https://oauth2.googleapis.com/token", "JWT claims");
 });

@@ -79,7 +79,7 @@ for (const match of propertyMigration.matchAll(memberWriteGrant)) {
 }
 if (!propertyMigration.includes("unique (user_id, external_ref)")) failures.push("ledger mirror is not idempotent on external_ref");
 if (!propertyMigration.includes("unique (loan_id, effective_from)")) failures.push("loan rate history has no natural key");
-if (/\b(?:605000|484000|3079\.49)\b/.test(propertyMigration)) failures.push("property migration seeds personal figures; use the import CLI");
+if (/\binsert\s+into\s+compound\.propert/i.test(propertyMigration)) failures.push("property migration inserts rows; personal facts enter via the import CLI");
 if (/account_number|account_ref/i.test(propertyMigration)) failures.push("property migration stores a loan account number");
 if (!propertyMigration.includes("revoke all on function compound.read_secret(text) from public, anon, authenticated;")) failures.push("vault reader is exposed to browser roles");
 if (!propertyApi.includes("../../src/server/snapshotApi.js")) failures.push("property API does not reuse the member-token snapshot helpers");
