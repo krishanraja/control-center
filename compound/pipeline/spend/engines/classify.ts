@@ -74,12 +74,36 @@ export function needleMatches(haystack: string, needle: string): boolean {
   return false;
 }
 
-/** Port of the Control Center matcher: vendor, item and mailbox against the registry needles. */
+const DOMAIN_TAIL = /\.(?:com|io|ai|dev|org|net|so|co|app|sh)$/;
+
+/**
+ * Registry needles were written for email senders ("apify.com",
+ * "payments-noreply@google.com"), so each one is also tried without its
+ * domain tail, and the registry key and display name count as needles too.
+ * The sheet's Merchant column says "Apify", never "apify.com".
+ */
+export function registryNeedles(row: RegistryRow): string[] {
+  const needles = new Set<string>();
+  for (const needle of row.vendor_match ?? []) {
+    const clean = needle.trim().toLowerCase();
+    if (!clean) continue;
+    needles.add(clean);
+    const bare = clean.includes("@") ? "" : clean.replace(DOMAIN_TAIL, "");
+    if (bare && bare !== clean && bare.length >= 3) needles.add(bare);
+  }
+  const keyWords = row.key.toLowerCase().replace(/-/g, " ");
+  if (keyWords.length >= 3) needles.add(keyWords);
+  const nameWords = row.display_name.toLowerCase().replace(/\(.*?\)/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+  if (nameWords.length >= 3) needles.add(nameWords);
+  return [...needles];
+}
+
+/** Port of the Control Center matcher over merchant, item, subject and mailbox, with the widened needles. */
 export function matchRegistry(registry: RegistryRow[], item: Classifiable): RegistryRow | null {
-  const hay = `${item.merchant} ${item.item ?? ""} ${item.account_email ?? ""}`.toLowerCase();
+  const hay = `${item.merchant} ${item.item ?? ""} ${item.subject ?? ""} ${item.account_email ?? ""}`.toLowerCase().replace(/[^a-z0-9@.]+/g, " ");
   for (const row of registry) {
     if (row.active === false) continue;
-    for (const needle of row.vendor_match ?? []) {
+    for (const needle of registryNeedles(row)) {
       if (needleMatches(hay, needle)) return row;
     }
   }
