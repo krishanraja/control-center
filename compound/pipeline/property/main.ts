@@ -49,8 +49,10 @@ export async function runProperty(options: RunOptions): Promise<void> {
   const subject = properties[0];
 
   const run = options.dryRun ? undefined : await beginPropertyRun({ runOn: options.runOn, mode: options.mode, attempt: options.attempt });
-  if (run && ["complete", "partial", "skipped"].includes(run.status)) {
-    console.log(`Property run ${options.runOn} already finished; skipping`);
+  // A scheduled retry stops once the day is complete. A partial day is worth
+  // another go, and a manual dispatch always runs.
+  if (run && run.status === "complete" && options.mode === "scheduled") {
+    console.log(`Property run ${options.runOn} already complete; skipping`);
     return;
   }
 
