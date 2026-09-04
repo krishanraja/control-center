@@ -52,8 +52,10 @@ export async function rest<T>(
     const body = await response.text();
     throw new Error(`Supabase ${response.status}: ${body.slice(0, 500)}`);
   }
-  if (response.status === 204) return undefined as T;
-  return await response.json() as T;
+  // `Prefer: return=minimal` answers 201 or 204 with no body; only parse when there is one.
+  const text = await response.text();
+  if (response.status === 204 || text.trim() === "") return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 export async function listMembers(): Promise<MemberRow[]> {
