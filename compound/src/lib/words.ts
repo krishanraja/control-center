@@ -46,6 +46,7 @@ export const SECTION_SHORT: Record<TabKey, string> = {
   markets: "Markets",
   portfolio: "Portfolio",
   property: "Property",
+  spend: "Spend",
   ask: "Ask",
 };
 
@@ -54,6 +55,7 @@ export const SECTION_LONG: Record<TabKey, string> = {
   markets: "Markets",
   portfolio: "Portfolio",
   property: "Property",
+  spend: "Spend",
   ask: "Ask COMPOUND",
 };
 
@@ -63,10 +65,11 @@ export const SECTION_BLURB: Record<TabKey, string> = {
   markets: "Opportunities and the full market",
   portfolio: "Exposure, concentration and capacity",
   property: "What the unit is worth, its rent, its costs, and where to buy next",
+  spend: "What went out, where it went, and what is normal",
   ask: "Answers across today or history",
 };
 
-export const SECTION_ORDER: TabKey[] = ["brief", "markets", "portfolio", "property", "ask"];
+export const SECTION_ORDER: TabKey[] = ["brief", "markets", "portfolio", "property", "spend", "ask"];
 
 /** Property words. Written so nobody has to look up a lending term. */
 export const PROPERTY_EXPLAIN = {
@@ -76,6 +79,13 @@ export const PROPERTY_EXPLAIN = {
   rentReturn: "a year of rent as a share of the price",
   loanPaydown: "the part of each repayment that reduces the loan rather than paying interest",
   netOutOfPocket: "everything paid out so far, minus all the rent that came in",
+} as const;
+
+/** Spend words. The two rules the tab lives by, in plain sentences. */
+export const SPEND_EXPLAIN = {
+  normalMonth: "the average of the last three full months",
+  billsAreTheMoney: "Totals come from bills and receipts only.",
+  meterIsTheBreakdown: "The meter shows where the operating-system money went. It is a breakdown, never added to a total.",
 } as const;
 
 /** The four groups an industry can land in. Direction first, price second. */

@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,6 +17,8 @@ const loginProxy = await readFile(join(compoundRoot, "api", "compound-login.js")
 const config = await readFile(join(repositoryRoot, "supabase", "config.toml"), "utf8");
 const propertyMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260904100000_compound_property.sql"), "utf8");
 const propertyApi = await readFile(join(compoundRoot, "api", "property", "latest.js"), "utf8");
+const spendMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260905090000_compound_spend.sql"), "utf8");
+const spendApi = await readFile(join(compoundRoot, "api", "spend", "latest.js"), "utf8");
 
 const failures = [];
 for (const table of ["members", "holdings", "daily_snapshots", "chat_threads", "chat_messages"]) {
@@ -84,6 +86,33 @@ if (/account_number|account_ref/i.test(propertyMigration)) failures.push("proper
 if (!propertyMigration.includes("revoke all on function compound.read_secret(text) from public, anon, authenticated;")) failures.push("vault reader is exposed to browser roles");
 if (!propertyApi.includes("../../src/server/snapshotApi.js")) failures.push("property API does not reuse the member-token snapshot helpers");
 if (/SERVICE_ROLE|service_role/.test(propertyApi)) failures.push("property API contains a privileged database path");
+
+const spendTables = ["spend_items", "spend_merchants", "spend_merchant_overrides", "spend_meter_daily", "spend_fx_rates", "spend_runs"];
+for (const table of spendTables) {
+  if (!spendMigration.includes(`alter table compound.${table} enable row level security;`)) failures.push(`${table} does not enable RLS`);
+  if (!spendMigration.includes(`alter table compound.${table} force row level security;`)) failures.push(`${table} does not force RLS`);
+}
+if (!spendMigration.includes("notify pgrst, 'reload schema'")) failures.push("spend tables are not reflected in the Data API cache");
+// Only the member's own override table takes member writes; everything else is pipeline-written.
+for (const match of spendMigration.matchAll(memberWriteGrant)) {
+  for (const table of spendTables.filter((name) => name !== "spend_merchant_overrides")) {
+    if (match[1].includes(`compound.${table}`)) failures.push(`${table} grants member writes; only the pipeline may write it`);
+  }
+}
+if (!spendMigration.includes("unique (user_id, source, source_ref)")) failures.push("spend items are not idempotent on source and source_ref");
+if (/\binsert\s+into\s+compound\.spend/i.test(spendMigration)) failures.push("spend migration inserts rows; the pipeline mirrors the registry");
+if (/@gmail\.com|@krishraja|@themindmaker/i.test(spendMigration)) failures.push("spend migration carries a personal mailbox");
+if (!spendApi.includes("../../src/server/snapshotApi.js")) failures.push("spend API does not reuse the member-token snapshot helpers");
+if (/SERVICE_ROLE|service_role/.test(spendApi)) failures.push("spend API contains a privileged database path");
+// Control Center tables live in `public`. Only the Deno pipeline may read them; no browser or Vercel path may name that profile.
+for (const dir of ["api", "src"]) {
+  const entries = await readdir(join(compoundRoot, dir), { recursive: true, withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isFile() || !/\.(?:[cm]?js|tsx?)$/.test(entry.name)) continue;
+    const text = await readFile(join(entry.parentPath ?? entry.path, entry.name), "utf8");
+    if (/(?:Accept|Content)-Profile["']?\s*[:=]\s*["']public["']/.test(text)) failures.push(`${dir}/${entry.name} reads the public schema; only the pipeline may`);
+  }
+}
 
 if (failures.length) {
   console.error(failures.join("\n"));

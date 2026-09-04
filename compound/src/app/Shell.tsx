@@ -19,6 +19,7 @@ import { BriefTab } from "./tabs/BriefTab";
 import { MarketsTab } from "./tabs/MarketsTab";
 import { PortfolioTab } from "./tabs/PortfolioTab";
 import { PropertyTab } from "./tabs/PropertyTab";
+import { SpendTab } from "./tabs/SpendTab";
 
 type Sheet =
   | { kind: "settings" }
@@ -185,6 +186,7 @@ export function Shell({ day, config, session, tab, onTab }: Props) {
     }
     if (tab === "portfolio") return <PortfolioTab day={day} />;
     if (tab === "property") return <PropertyTab config={config} session={session} onAsk={askAbout} />;
+    if (tab === "spend") return <SpendTab config={config} session={session} onAsk={askAbout} />;
     return (
       <AskTab
         day={day}

@@ -7,7 +7,7 @@ import { getSupabase } from "./lib/supabase";
 import { SignInPage } from "./pages/SignInPage";
 import type { CompoundDay, TabKey } from "./types";
 
-const TAB_KEYS: TabKey[] = ["brief", "markets", "portfolio", "property", "ask"];
+const TAB_KEYS: TabKey[] = ["brief", "markets", "portfolio", "property", "spend", "ask"];
 
 /** The tab lives in the URL so a shared link and the back button both work. */
 function tabFromLocation(): TabKey {

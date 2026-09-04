@@ -96,10 +96,11 @@ export async function readSheetRows(
   spreadsheetId: string,
   gid: number,
   signal?: AbortSignal,
+  columns = "A:H",
 ): Promise<string[][]> {
   const token = await accessToken(account, [SHEETS_SCOPE], signal);
   const tab = await resolveSheetTitle(token, spreadsheetId, gid, signal);
-  const range = encodeURIComponent(`'${tab.replace(/'/g, "''")}'!A:H`);
+  const range = encodeURIComponent(`'${tab.replace(/'/g, "''")}'!${columns}`);
   // FORMATTED_VALUE keeps dates as the sheet shows them (YYYY-MM-DD), not serial numbers.
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?majorDimension=ROWS&valueRenderOption=FORMATTED_VALUE`;
   const response = await fetch(url, { signal, headers: { Authorization: `Bearer ${token}` } });
