@@ -82,7 +82,7 @@ function PropertyBody({ day, onAsk }: { day: PropertyDay; onAsk: (question: stri
 
   const rent = currentRent(day.rents, asOf);
   const rentWeekly = rent ? weeklyRent(rent) : null;
-  const band = rentBand(day.observations, day.property.postcode, day.property.bedrooms);
+  const band = rentBand(day.observations, { suburb: day.property.suburb, postcode: day.property.postcode }, day.property.bedrooms);
   const gap = rentWeekly != null ? rentGap(rentWeekly, band) : null;
   const review = nextReview(day.rents, asOf);
   const rentReturn = rentWeekly != null ? grossRentReturn(rentWeekly, day.property.purchasePriceAud) : null;
@@ -182,7 +182,7 @@ function PropertyBody({ day, onAsk }: { day: PropertyDay; onAsk: (question: stri
         head={reviewAdvice(gap)}
         next={review.earliestIncreaseOn ? `Next allowed increase ${longDate(review.earliestIncreaseOn)}. Written notice by ${longDate(review.noticeBy ?? review.earliestIncreaseOn)}.` : "No rent history recorded yet."}
         source={[
-          band.areaMedian != null ? `Area median from ${band.areaMedianSource === "rta" ? "RTA bonds" : band.areaMedianSource ?? "market data"}, quarter to ${band.areaMedianPeriod ? longDate(band.areaMedianPeriod) : "n/a"}.` : "No area median yet.",
+          band.areaMedian != null ? `Area median for ${band.areaMedianScope ?? "the area"} from ${band.areaMedianSource === "rta" ? "RTA bonds" : band.areaMedianSource ?? "market data"}, quarter to ${band.areaMedianPeriod ? longDate(band.areaMedianPeriod) : "n/a"}.` : "No area median yet.",
           band.askingMedian != null ? `Asking rents from ${band.askingCount ?? 0} current two bed listings, ${band.askingPeriod ? longDate(band.askingPeriod) : ""}.` : "No current asking rents yet.",
         ].join(" ")}
         ask="What rent should I charge for my unit and when can I change it?"

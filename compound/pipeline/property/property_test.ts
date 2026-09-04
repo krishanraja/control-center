@@ -7,7 +7,7 @@ import { parseObservationRow, parseRateRow } from "./import.ts";
 import { rentObservations, soldObservations, weeklyAskingRent } from "./providers/domain.ts";
 import { externalRef, mapLedgerRow, mapLedgerRows, SHEET_HEADER } from "./providers/ledgerSheet.ts";
 import { isoFromRbaDate, parseCashRate } from "./providers/rba.ts";
-import { findWorkbookUrl, normaliseRtaRows, quarterEnd } from "./providers/rta.ts";
+import { findWorkbookUrl, normaliseRtaRows, parseDwelling, quarterEnd } from "./providers/rta.ts";
 import type { Observation } from "./types.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -70,26 +70,51 @@ Deno.test("RBA cash rate parser reads the F1 layout", () => {
   assert(isoFromRbaDate("04-Sep-2026") === "2026-09-04", "RBA dates convert");
 });
 
-Deno.test("RTA workbook parser discovers the header and keeps only target postcodes", () => {
-  const sheet = XLSX.utils.aoa_to_sheet([
-    ["Residential Tenancies Authority", "", "", ""],
-    ["Median weekly rents, new bonds lodged", "", "", ""],
-    ["Postcode", "Dwelling type", "Bedrooms", "Quarter", "Median rent", "Number of bonds"],
-    ["4101", "Flat/Unit", "2", "Jun 2026", "600", "84"],
-    ["4101", "Flat/Unit", "1", "Jun 2026", "480", "60"],
-    ["4000", "Flat/Unit", "2", "Jun 2026", "650", "200"],
-    ["4102", "House", "3", "Jun 2026", "800", "12"],
+Deno.test("RTA workbook parser reads the wide quarterly layout for postcodes and suburbs", () => {
+  const pc = XLSX.utils.aoa_to_sheet([
+    ["Contents"],
+    ["Median rents, by Postcode"],
+    ["Median value of weekly rent paid for new tenancies commencing in each quarter"],
+    [""],
+    ["", "Postcode", "Dwelling"],
+    ["", "", "", "Mar", "Jun", "Sep", "Dec", "Mar", "Jun"],
+    ["", "", "", 2025, 2025, 2025, 2025, 2026, 2026],
+    [""],
+    ["", 4101, "Flat 1", 610, 620, 630, 640, 660, 660],
+    ["", 4101, "Flat 2", 800, 795, 820, 825, 850, 850],
+    ["", 4101, "House 3", 880, 800, 760, 795, 850, 950],
+    ["", 4101, "Other", 5, 5, 5, 5, 5, 5],
+    ["", 4101, "All dwellings", 700, 700, 720, 720, 740, 740],
+    ["", 4000, "Flat 2", 700, 700, 700, 700, 700, 700],
+  ]);
+  const sub = XLSX.utils.aoa_to_sheet([
+    ["Contents"],
+    ["Median rents, by Suburb"],
+    [""],
+    [""],
+    ["", "Suburb", "Dwelling"],
+    ["", "", "", "Mar", "Jun"],
+    ["", "", "", 2026, 2026],
+    [""],
+    ["", "Highgate Hill", "Flat 2", 625, 600],
+    ["", "Highgate Hill", "Flat 3", "", 1150],
+    ["", "Toowong", "Flat 2", 640, 650],
   ]);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, sheet, "Postcode");
+  XLSX.utils.book_append_sheet(workbook, pc, "1 pc-rents");
+  XLSX.utils.book_append_sheet(workbook, sub, "4 sub-rents");
   const bytes = XLSX.write(workbook, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
   const read = XLSX.read(new Uint8Array(bytes), { type: "array" });
   const sheets = read.SheetNames.map((name) => ({ name, rows: XLSX.utils.sheet_to_json<unknown[]>(read.Sheets[name], { header: 1, raw: true, defval: "" }) }));
-  const rows = normaliseRtaRows(sheets, new Set(["4101", "4102"]), "2026-06-30", "https://example.test/rta.xlsx");
-  assert(rows.length === 3, "three target rows");
-  const twoBed = rows.find((row) => row.areaCode === "4101" && row.bedrooms === 2);
-  assert(twoBed?.value === 600 && twoBed.dwellingType === "unit" && twoBed.periodEnd === "2026-06-30", "2 bed unit row parsed");
-  assert(twoBed.detail?.sampleSize === 84, "bond count kept");
+  const rows = normaliseRtaRows(sheets, { postcodes: new Set(["4101"]), suburbs: new Set(["highgate hill"]) }, "https://example.test/rta.xlsx");
+  const twoBed = rows.filter((row) => row.areaKind === "postcode" && row.areaCode === "4101" && row.bedrooms === 2);
+  assert(twoBed.length === 6 && twoBed.at(-1)?.value === 850 && twoBed.at(-1)?.periodEnd === "2026-06-30", "postcode 2 bed flats across six quarters");
+  assert(rows.every((row) => row.dwellingType === "unit" || row.dwellingType === "all"), "houses and other rows are dropped");
+  assert(!rows.some((row) => row.areaCode === "4000" || row.areaCode === "Toowong"), "only wanted areas are kept");
+  const suburb = rows.filter((row) => row.areaKind === "suburb" && row.areaCode === "Highgate Hill" && row.bedrooms === 2);
+  assert(suburb.length === 2 && suburb.at(-1)?.value === 600, "suburb rows carry the suburb name");
+  assert(rows.filter((row) => row.areaCode === "Highgate Hill" && row.bedrooms === 3).length === 1, "blank cells are skipped");
+  assert(parseDwelling("All dwellings")?.dwellingType === "all" && parseDwelling("Townhouse 3")?.bedrooms === 3 && parseDwelling("Other") === null, "dwelling labels parse");
   assert(quarterEnd("March 2026 quarter") === "2026-03-31" && quarterEnd("Q3 2025") === "2025-09-30", "quarter labels resolve");
   assert(findWorkbookUrl('<a href="/sites/default/files/2026-07/rta-bond-statistics.xlsx">Download</a>') === "https://www.rta.qld.gov.au/sites/default/files/2026-07/rta-bond-statistics.xlsx", "relative links resolve");
 });
