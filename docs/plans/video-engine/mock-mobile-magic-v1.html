@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Video Engine mobile magic review</title>
+  <style>
+    @font-face {
+      font-family: Geist;
+      src: url('../../../node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2') format('woff2');
+      font-weight: 100 900;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: Bricolage;
+      src: url('../../../node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2') format('woff2');
+      font-weight: 200 800;
+      font-display: swap;
+    }
+    :root {
+      color-scheme: dark;
+      --base: #08070d;
+      --sunk: #060509;
+      --surface: #1a1726;
+      --surface-2: #211d2e;
+      --ink: #f4f1f7;
+      --muted: #aaa4b7;
+      --quiet: #777181;
+      --violet: #8c80c8;
+      --violet-hi: #c3bae9;
+      --teal: #76a2b2;
+      --mint: #a7d9c0;
+      --amber: #decaa2;
+      --hairline: rgba(255,255,255,.105);
+      --soft-line: rgba(255,255,255,.065);
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      background: #020204;
+      color: var(--ink);
+      font-family: Geist, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: grid;
+      place-items: center;
+    }
+    button { font: inherit; color: inherit; }
+    .phone {
+      position: relative;
+      width: min(390px, 100vw);
+      height: min(844px, 100vh);
+      overflow: hidden;
+      background:
+        radial-gradient(420px 270px at 92% -3%, rgba(140,128,200,.20), transparent 68%),
+        radial-gradient(330px 270px at -15% 58%, rgba(118,162,178,.10), transparent 66%),
+        var(--base);
+      isolation: isolate;
+    }
+    .phone::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.035);
+    }
+    .topbar {
+      position: absolute;
+      z-index: 12;
+      inset: 0 0 auto;
+      height: 66px;
+      padding: 13px 15px 10px;
+      display: grid;
+      grid-template-columns: 42px 1fr auto;
+      align-items: center;
+      background: linear-gradient(180deg, rgba(6,5,9,.94), rgba(6,5,9,.58) 72%, transparent);
+    }
+    .back {
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 14px;
+      background: rgba(255,255,255,.055);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.075);
+      display: grid;
+      place-items: center;
+    }
+    .back svg { width: 19px; height: 19px; stroke-width: 1.8; }
+    .headcopy { min-width: 0; padding-left: 10px; }
+    .eyebrow {
+      font-family: Bricolage, Geist, sans-serif;
+      font-weight: 650;
+      font-size: 9px;
+      line-height: 1;
+      letter-spacing: .15em;
+      color: rgba(244,241,247,.56);
+    }
+    .series {
+      margin-top: 4px;
+      font-family: Bricolage, Geist, sans-serif;
+      font-weight: 610;
+      letter-spacing: -.015em;
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .runner {
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(19,22,24,.72);
+      border: 1px solid rgba(167,217,192,.13);
+      color: #c9dacf;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .runner-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 0 4px rgba(167,217,192,.08), 0 0 14px rgba(167,217,192,.26);
+    }
+    .runner[data-state="waiting"] .runner-dot,
+    .runner[data-state="drive_offline"] .runner-dot {
+      background: var(--amber);
+      box-shadow: 0 0 0 4px rgba(222,202,162,.08);
+    }
+    .runner[data-state="computer_off"] .runner-dot {
+      background: #837d89;
+      box-shadow: 0 0 0 4px rgba(131,125,137,.08);
+    }
+    .stage {
+      position: absolute;
+      z-index: 1;
+      inset: 54px 10px auto;
+      height: 676px;
+      overflow: hidden;
+      border-radius: 25px;
+      background:
+        linear-gradient(180deg, rgba(5,4,7,.08), rgba(5,4,7,.03) 48%, rgba(5,4,7,.77) 94%),
+        radial-gradient(100% 55% at 64% 16%, rgba(199,178,151,.20), transparent 55%),
+        linear-gradient(118deg, #142623 0%, #223330 38%, #4b4037 63%, #171419 100%);
+      box-shadow:
+        0 28px 70px -30px rgba(0,0,0,.94),
+        inset 0 1px 0 rgba(255,255,255,.14),
+        inset 0 0 0 1px rgba(255,255,255,.075);
+    }
+    .room-light {
+      position: absolute;
+      width: 190px;
+      height: 320px;
+      right: -32px;
+      top: 18px;
+      transform: rotate(5deg);
+      background: linear-gradient(145deg, rgba(242,210,170,.28), rgba(199,160,130,.03) 66%);
+      clip-path: polygon(35% 0, 100% 0, 100% 100%, 0 100%);
+      filter: blur(1px);
+    }
+    .wall-line {
+      position: absolute;
+      left: 30px;
+      top: 142px;
+      width: 286px;
+      height: 1px;
+      background: rgba(255,255,255,.06);
+      transform: rotate(-4deg);
+    }
+    .portrait {
+      position: absolute;
+      left: 39%;
+      top: 96px;
+      width: 235px;
+      height: 446px;
+      transform: translateX(-50%);
+      filter: drop-shadow(0 24px 30px rgba(0,0,0,.42));
+    }
+    .shoulders {
+      position: absolute;
+      left: 2px;
+      bottom: -26px;
+      width: 231px;
+      height: 228px;
+      border-radius: 49% 49% 18% 18% / 37% 37% 12% 12%;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.02), rgba(255,255,255,.07) 45%, transparent 63%),
+        linear-gradient(145deg, #171b1a, #0b0e0d 72%);
+      box-shadow: inset 12px 0 34px rgba(121,151,137,.10);
+    }
+    .neck {
+      position: absolute;
+      top: 198px;
+      left: 87px;
+      width: 63px;
+      height: 86px;
+      border-radius: 22px 22px 31px 31px;
+      background: linear-gradient(92deg, #8b644f, #b17f61 54%, #795343);
+    }
+    .head {
+      position: absolute;
+      top: 30px;
+      left: 55px;
+      width: 128px;
+      height: 191px;
+      border-radius: 46% 46% 43% 43% / 34% 34% 55% 55%;
+      background:
+        radial-gradient(circle at 65% 48%, rgba(255,255,255,.10) 0 2px, transparent 3px),
+        radial-gradient(circle at 35% 48%, rgba(255,255,255,.10) 0 2px, transparent 3px),
+        linear-gradient(100deg, #795340, #a97658 55%, #754936);
+      box-shadow: inset 17px 0 24px rgba(30,20,18,.24), inset -12px 0 17px rgba(230,166,120,.08);
+    }
+    .hair {
+      position: absolute;
+      top: 15px;
+      left: 48px;
+      width: 140px;
+      height: 80px;
+      border-radius: 55% 58% 34% 31% / 57% 65% 38% 45%;
+      background: linear-gradient(140deg, #171513, #28201c 65%, #110f0e);
+      transform: rotate(-4deg);
+    }
+    .brand-lockup {
+      position: absolute;
+      left: 15px;
+      top: 28px;
+      width: 94px;
+      min-height: 96px;
+      padding: 12px 10px 10px;
+      border-radius: 12px;
+      display: grid;
+      align-content: center;
+      gap: 7px;
+      background: rgba(5,5,6,.90);
+      border: 1px solid rgba(255,255,255,.13);
+      box-shadow: 0 12px 30px rgba(0,0,0,.34);
+    }
+    .brand-lockup img {
+      display: block;
+      max-width: 100%;
+      max-height: 31px;
+      margin: auto;
+      object-fit: contain;
+    }
+    .brand-lockup img:first-child {
+      width: 74px;
+    }
+    .brand-lockup img:last-child {
+      width: 76px;
+      height: 40px;
+    }
+    .brand-rule { height: 1px; background: rgba(255,255,255,.13); }
+    .proof {
+      position: absolute;
+      right: 14px;
+      top: 116px;
+      width: 142px;
+      padding: 11px 11px 10px;
+      border-radius: 15px;
+      background: rgba(248,245,238,.96);
+      color: #16131b;
+      box-shadow: 0 18px 40px rgba(0,0,0,.33);
+      transform: rotate(1.2deg);
+    }
+    .proof::after {
+      content: "MOVED EARLIER";
+      position: absolute;
+      right: 8px;
+      top: -9px;
+      height: 18px;
+      padding: 0 7px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: #d9c59d;
+      color: #302716;
+      font: 700 7px/1 Bricolage, sans-serif;
+      letter-spacing: .09em;
+    }
+    .proof-kicker {
+      font: 720 7px/1 Bricolage, sans-serif;
+      letter-spacing: .12em;
+      color: #746f77;
+    }
+    .proof-title {
+      margin-top: 6px;
+      font-family: Bricolage, sans-serif;
+      font-size: 12px;
+      line-height: 1.1;
+      font-weight: 720;
+      letter-spacing: -.018em;
+    }
+    .mini-chart {
+      position: relative;
+      margin-top: 10px;
+      height: 27px;
+      border-left: 1px solid #c7c1c9;
+      border-bottom: 1px solid #c7c1c9;
+    }
+    .mini-chart svg { position: absolute; inset: 1px 2px 2px 2px; }
+    .proof-source {
+      margin-top: 7px;
+      color: #6f6874;
+      font-size: 8px;
+      font-weight: 680;
+    }
+    .caption {
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      bottom: 300px;
+      width: 312px;
+      transform: translateX(-50%);
+      text-align: center;
+      font-family: Bricolage, Geist, sans-serif;
+      font-size: 25px;
+      line-height: 1.02;
+      letter-spacing: -.035em;
+      font-weight: 720;
+      text-wrap: balance;
+      text-shadow: 0 2px 15px rgba(0,0,0,.8), 0 1px 2px rgba(0,0,0,.95);
+    }
+    .caption span {
+      display: inline;
+      padding: 0 .09em;
+      border-radius: .18em;
+      background: linear-gradient(180deg, transparent 44%, rgba(222,202,162,.92) 45% 92%, transparent 93%);
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,.75);
+    }
+    .compare {
+      position: absolute;
+      z-index: 7;
+      left: 50%;
+      bottom: 205px;
+      transform: translateX(-50%);
+      height: 54px;
+      padding: 4px;
+      display: grid;
+      grid-template-columns: 72px 72px;
+      gap: 2px;
+      border-radius: 999px;
+      background: rgba(5,4,7,.77);
+      border: 1px solid rgba(255,255,255,.11);
+      box-shadow: 0 12px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.07);
+      backdrop-filter: blur(18px);
+    }
+    .compare button {
+      min-height: 44px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: rgba(244,241,247,.76);
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .compare button.active {
+      background: rgba(255,255,255,.11);
+      color: white;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.10);
+    }
+    .sound {
+      position: absolute;
+      z-index: 6;
+      right: 18px;
+      top: 322px;
+      bottom: auto;
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(5,4,7,.63);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+      backdrop-filter: blur(12px);
+    }
+    .sound svg { width: 16px; height: 16px; }
+    .sheet {
+      position: absolute;
+      z-index: 10;
+      inset: auto 0 0;
+      min-height: 316px;
+      padding: 10px 16px 17px;
+      border-radius: 27px 27px 0 0;
+      background:
+        radial-gradient(260px 150px at 86% -12%, rgba(140,128,200,.14), transparent 72%),
+        linear-gradient(180deg, rgba(27,24,37,.975), rgba(14,12,20,.995));
+      border-top: 1px solid rgba(255,255,255,.13);
+      box-shadow: 0 -24px 60px rgba(0,0,0,.47), inset 0 1px 0 rgba(255,255,255,.045);
+      backdrop-filter: blur(28px);
+    }
+    .grabber {
+      width: 38px;
+      height: 4px;
+      margin: 0 auto 13px;
+      border-radius: 99px;
+      background: rgba(255,255,255,.18);
+    }
+    .sheet-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .ready {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-family: Bricolage, sans-serif;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      color: #c8c0df;
+    }
+    .spark {
+      width: 19px;
+      height: 19px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      background: rgba(140,128,200,.15);
+      color: var(--violet-hi);
+      box-shadow: inset 0 0 0 1px rgba(195,186,233,.10);
+    }
+    h1 {
+      margin: 12px 0 5px;
+      font-family: Bricolage, Geist, sans-serif;
+      font-size: 23px;
+      line-height: 1.03;
+      letter-spacing: -.035em;
+      font-weight: 640;
+    }
+    .direction {
+      margin: 0;
+      color: #bbb5c4;
+      font-size: 12.5px;
+      line-height: 1.35;
+      letter-spacing: -.005em;
+    }
+    .direction strong { color: #ece8f1; font-weight: 610; }
+    .receipt {
+      margin-top: 13px;
+      height: 46px;
+      padding: 0 11px;
+      border-radius: 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,.035);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.065);
+    }
+    .changes {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      color: #d1ccd7;
+      font-size: 10px;
+      font-weight: 560;
+      white-space: nowrap;
+    }
+    .changes span { display: flex; align-items: center; gap: 5px; }
+    .changes i {
+      display: block;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--amber);
+    }
+    .checks {
+      min-width: 72px;
+      min-height: 44px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 5px;
+      color: var(--mint);
+      font-size: 9px;
+      font-weight: 650;
+    }
+    .checks svg { width: 14px; height: 14px; }
+    .actions {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 9px;
+    }
+    .action {
+      height: 51px;
+      border: 0;
+      border-radius: 16px;
+      font-size: 13px;
+      font-weight: 680;
+      letter-spacing: -.01em;
+    }
+    .keep {
+      background: rgba(255,255,255,.045);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.075);
+      color: #c6c0cc;
+    }
+    .use {
+      background: linear-gradient(135deg, #8174bd, #746cac 48%, #678e9d 130%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 12px 30px -13px rgba(140,128,200,.78);
+      color: white;
+    }
+    .use:disabled {
+      background: rgba(255,255,255,.055);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
+      color: #77717f;
+    }
+    .action:active, .back:active, .sound:active, .direct-row:active { transform: scale(.975); }
+    .direct-row {
+      margin-top: 10px;
+      width: 100%;
+      height: 44px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 9px;
+      color: #9f99aa;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .mic {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: rgba(140,128,200,.10);
+      box-shadow: inset 0 0 0 1px rgba(195,186,233,.08);
+      color: #c3bae9;
+    }
+    .mic svg { width: 14px; height: 14px; }
+    .before-mode .proof { opacity: 0; transform: translateY(5px) scale(.96); }
+    .before-mode .caption { bottom: 290px; font-size: 23px; opacity: .84; }
+    .before-mode .caption span { background: transparent; }
+    .before-mode .portrait { transform: translateX(-50%) scale(.94); transform-origin: 50% 44%; }
+    .stage * { transition: opacity 180ms ease, transform 220ms cubic-bezier(.2,.8,.2,1), bottom 220ms ease, font-size 220ms ease; }
+    .change-cue {
+      position: absolute;
+      z-index: 7;
+      left: 50%;
+      bottom: 258px;
+      transform: translateX(-50%);
+      height: 21px;
+      padding: 0 9px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      background: rgba(5,4,7,.68);
+      border: 1px solid rgba(222,202,162,.16);
+      color: #ead9b8;
+      font-size: 8px;
+      font-weight: 720;
+      letter-spacing: .09em;
+      backdrop-filter: blur(12px);
+    }
+    .change-cue i {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 10px rgba(222,202,162,.35);
+    }
+    .gate-panel {
+      position: absolute;
+      z-index: 15;
+      right: 16px;
+      bottom: 205px;
+      width: 210px;
+      padding: 11px 12px;
+      border-radius: 15px;
+      background: rgba(11,10,16,.98);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 18px 42px rgba(0,0,0,.52);
+    }
+    .gate-panel[hidden] { display: none; }
+    .gate-panel strong {
+      display: block;
+      margin-bottom: 8px;
+      font: 680 11px/1 Bricolage, sans-serif;
+    }
+    .gate-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 10px;
+      color: #c8dccc;
+      font-size: 9px;
+    }
+    .gate-list span::before { content: "✓"; margin-right: 5px; color: var(--mint); }
+    @media (max-height: 830px) {
+      .caption { bottom: 330px; }
+      .before-mode .caption { bottom: 320px; }
+      .change-cue { bottom: 307px; }
+      .compare { bottom: 250px; }
+      .sound { display: none; }
+    }
+    @media (max-height: 760px) {
+      .phone { transform-origin: top center; }
+      .sheet { min-height: 268px; }
+      .caption { bottom: 415px; width: 280px; font-size: 20px; }
+      .before-mode .caption { bottom: 406px; font-size: 19px; }
+      .change-cue { bottom: 394px; }
+      .compare { bottom: 330px; }
+      .proof { top: 98px; transform: scale(.88); transform-origin: top right; }
+      .brand-lockup { transform: scale(.84); transform-origin: top left; }
+      .portrait { transform: translateX(-50%) scale(.82); transform-origin: 50% 16%; }
+      .direct-row { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="phone" aria-label="Video Engine magic edit review">
+    <header class="topbar">
+      <button class="back" type="button" aria-label="Back to Content">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="headcopy">
+        <div class="eyebrow">VIDEO ENGINE</div>
+        <div class="series">The Money of AI</div>
+      </div>
+      <div class="runner" id="runner" aria-label="Runner heartbeat verified now"><span class="runner-dot"></span><span id="runner-copy">Runner ready</span></div>
+    </header>
+
+    <section class="stage" id="stage" aria-label="Candidate video preview">
+      <div class="room-light"></div>
+      <div class="wall-line"></div>
+      <div class="portrait" aria-hidden="true">
+        <div class="shoulders"></div>
+        <div class="neck"></div>
+        <div class="head"></div>
+        <div class="hair"></div>
+      </div>
+
+      <div class="brand-lockup" aria-label="Mindmake and The Money of AI wordmarks">
+        <img src="https://raw.githubusercontent.com/krishanraja/mindmake/d3905dfe8da6fc4bf7178d872fdad777ead715cc/src/assets/mindmake-wordmark.png" alt="mindmake">
+        <div class="brand-rule"></div>
+        <img src="https://raw.githubusercontent.com/krishanraja/mindmake/d3905dfe8da6fc4bf7178d872fdad777ead715cc/src/assets/moneyofai-logo-wordmark.png" alt="The Money of AI">
+      </div>
+
+      <article class="proof" aria-label="Supporting evidence overlay">
+        <div class="proof-kicker">VERIFIED SOURCE</div>
+        <div class="proof-title">The proof now arrives before the explanation.</div>
+        <div class="mini-chart" aria-hidden="true">
+          <svg viewBox="0 0 100 25" preserveAspectRatio="none"><path d="M2 21 C18 20, 20 15, 34 16 S52 11, 63 12 S78 5, 98 3" fill="none" stroke="#7869a9" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </div>
+        <div class="proof-source">Primary source</div>
+      </article>
+
+      <div class="caption">The expensive part is the <span>delay</span> before anyone trusts it.</div>
+
+      <div class="change-cue"><i></i>PROOF MOVED 6S EARLIER</div>
+
+      <div class="compare" role="group" aria-label="Compare versions">
+        <button type="button" id="before" aria-pressed="false">Before</button>
+        <button type="button" class="active" id="after" aria-pressed="true">After</button>
+      </div>
+
+      <button class="sound" id="sound" type="button" aria-label="Mute preview" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18 6a8.5 8.5 0 0 1 0 12"/></svg>
+      </button>
+    </section>
+
+    <section class="sheet" aria-label="Magic edit decision">
+      <div class="grabber"></div>
+      <div class="sheet-meta">
+        <div class="ready"><span class="spark">✦</span> MAGIC EDIT READY</div>
+      </div>
+      <h1>Proof lands sooner</h1>
+      <p class="direction"><strong>You asked:</strong> “Make the evidence arrive before the explanation.”</p>
+      <div class="receipt">
+        <div class="changes" aria-label="Changes made"><span><i></i>0:12–0:18</span><span><i></i>proof earlier</span></div>
+        <button class="checks" id="checks" type="button" aria-expanded="false" aria-controls="gate-panel" aria-label="Truth passed, rights passed, confidentiality passed, transcript fidelity passed, and naming passed">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>5 checks
+        </button>
+      </div>
+      <div class="gate-panel" id="gate-panel" hidden>
+        <strong>Blocking checks passed</strong>
+        <div class="gate-list"><span>Truth</span><span>Rights</span><span>Confidentiality</span><span>Transcript fidelity</span><span>Naming</span></div>
+      </div>
+      <div class="actions">
+        <button class="action keep" type="button">Keep current</button>
+        <button class="action use" id="use-version" type="button">Use this version</button>
+      </div>
+      <button class="direct-row" type="button"><span class="mic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg></span>Direct another change</button>
+    </section>
+  </main>
+  <script>
+    const stage = document.getElementById('stage');
+    const before = document.getElementById('before');
+    const after = document.getElementById('after');
+    const sound = document.getElementById('sound');
+    const checks = document.getElementById('checks');
+    const gatePanel = document.getElementById('gate-panel');
+    const useVersion = document.getElementById('use-version');
+    const runner = document.getElementById('runner');
+    const runnerCopy = document.getElementById('runner-copy');
+    function showBefore() {
+      stage.classList.add('before-mode');
+      before.classList.add('active');
+      after.classList.remove('active');
+      before.setAttribute('aria-pressed', 'true');
+      after.setAttribute('aria-pressed', 'false');
+    }
+    function showAfter() {
+      stage.classList.remove('before-mode');
+      after.classList.add('active');
+      before.classList.remove('active');
+      after.setAttribute('aria-pressed', 'true');
+      before.setAttribute('aria-pressed', 'false');
+    }
+    before.addEventListener('click', showBefore);
+    after.addEventListener('click', showAfter);
+    stage.addEventListener('pointerdown', event => {
+      if (event.target.closest('button')) return;
+      showBefore();
+    });
+    stage.addEventListener('pointerup', showAfter);
+    stage.addEventListener('pointercancel', showAfter);
+    sound.addEventListener('click', () => {
+      const muted = sound.getAttribute('aria-pressed') === 'true';
+      sound.setAttribute('aria-pressed', String(!muted));
+      sound.setAttribute('aria-label', muted ? 'Mute preview' : 'Unmute preview');
+      sound.style.opacity = muted ? '1' : '.62';
+    });
+    checks.addEventListener('click', () => {
+      const open = checks.getAttribute('aria-expanded') === 'true';
+      checks.setAttribute('aria-expanded', String(!open));
+      gatePanel.hidden = open;
+    });
+    document.addEventListener('click', event => {
+      if (gatePanel.hidden || gatePanel.contains(event.target) || checks.contains(event.target)) return;
+      gatePanel.hidden = true;
+      checks.setAttribute('aria-expanded', 'false');
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape' || gatePanel.hidden) return;
+      gatePanel.hidden = true;
+      checks.setAttribute('aria-expanded', 'false');
+      checks.focus();
+    });
+    const runnerState = new URLSearchParams(location.search).get('runner') || 'ready';
+    const runnerStates = {
+      ready: ['Runner ready', 'Runner heartbeat verified now'],
+      waiting: ['Waiting safely', 'Command queued safely for the runner'],
+      computer_off: ['Computer offline', 'Computer is offline and the command remains safely queued'],
+      drive_offline: ['Drive offline', 'Google Drive is unavailable and the command remains safely queued']
+    };
+    const [runnerText, runnerLabel] = runnerStates[runnerState] || runnerStates.ready;
+    runnerCopy.textContent = runnerText;
+    runner.setAttribute('aria-label', runnerLabel);
+    runner.dataset.state = runnerState;
+    if (new URLSearchParams(location.search).get('gates') === 'blocked') {
+      checks.textContent = 'Rights blocked';
+      checks.setAttribute('aria-label', 'Rights blocked. Truth, confidentiality, transcript fidelity, and naming passed. Replace or remove the unapproved asset to continue.');
+      checks.style.color = 'var(--amber)';
+      useVersion.disabled = true;
+      gatePanel.innerHTML = '<strong>Rights check blocked</strong><div class="gate-list"><span>Truth</span><span>Confidentiality</span><span>Transcript fidelity</span><span>Naming</span></div><p style="margin:9px 0 0;color:#decaa2;font-size:9px;line-height:1.35">Replace or remove the unapproved asset to continue.</p>';
+    }
+  </script>
+</body>
+</html>
