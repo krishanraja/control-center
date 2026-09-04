@@ -1066,7 +1066,7 @@ export function VideoEngineReviewer({ reviewId, onClose }: { reviewId: string; o
                         rows={2}
                         autoFocus
                         placeholder="Write the precise learning to keep"
-                        className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 text-[16px] leading-relaxed text-white/85 outline-none placeholder:text-white/28 focus:border-violet-300/35 focus:ring-2 focus:ring-violet-300/15"
+                        className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 text-lede leading-relaxed text-white/85 outline-none placeholder:text-white/28 focus:border-violet-300/35 focus:ring-2 focus:ring-violet-300/15"
                       />
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         <Pressable variant="secondary" onPress={() => setCorrectingLearning(false)} disabled={busyAction}>Cancel</Pressable>
