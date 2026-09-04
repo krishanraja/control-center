@@ -627,19 +627,19 @@ begin
   end if;
   return query
     select s.id, s.command_id, s.object_key,
-      pg_catalog.coalesce(r.preview_expires_at, s.slot_expires_at) as retention_after
+      coalesce(r.preview_expires_at, s.slot_expires_at) as retention_after
     from public.video_studio_preview_upload_slots s
     left join lateral (
       select pg_catalog.max(review_row.preview_expires_at) as preview_expires_at
       from public.video_studio_review_requests review_row
       where review_row.preview_source_command_id = s.command_id
     ) r on true
-    where pg_catalog.coalesce(r.preview_expires_at, s.slot_expires_at) <= p_cutoff
+    where coalesce(r.preview_expires_at, s.slot_expires_at) <= p_cutoff
       and not exists (
         select 1 from public.video_studio_preview_retention_events e
         where e.slot_id = s.id
       )
-    order by pg_catalog.coalesce(r.preview_expires_at, s.slot_expires_at), s.id
+    order by coalesce(r.preview_expires_at, s.slot_expires_at), s.id
     limit p_limit;
 end;
 $$;
@@ -665,7 +665,7 @@ begin
   where id = p_slot_id
   for update;
   if not found then raise exception 'invalid_retention_request' using errcode = 'P0001'; end if;
-  select pg_catalog.coalesce(r.preview_expires_at, v_slot.slot_expires_at)
+  select coalesce(r.preview_expires_at, v_slot.slot_expires_at)
     into v_retention_after
   from (select 1) as singleton
   left join lateral (
@@ -1390,7 +1390,7 @@ begin
     or v_command.status not in ('failed', 'attention')
     or (
       v_command.status = 'attention'
-      and pg_catalog.coalesce(v_command.safe_code, '') not in ('attempts_exhausted', 'command_expired')
+      and coalesce(v_command.safe_code, '') not in ('attempts_exhausted', 'command_expired')
     )
     or v_command.review_id is null then
     raise exception 'recovery_not_available' using errcode = 'P0001';
@@ -1448,7 +1448,7 @@ begin
     raise exception 'stale_parent' using errcode = 'P0001';
   end if;
 
-  v_root_command_id := pg_catalog.coalesce(v_source_review.recovery_root_command_id, p_command_id);
+  v_root_command_id := coalesce(v_source_review.recovery_root_command_id, p_command_id);
   v_generation := v_source_review.recovery_generation + 1;
   if v_generation > 3 then raise exception 'recovery_limit_reached' using errcode = 'P0001'; end if;
 
@@ -2155,21 +2155,21 @@ begin
       v_command.job_id, v_command.id,
       case when v_effective_receipt_status = 'succeeded' then v_command.id else null end,
       v_command.platform, 'treatment', 'pending', v_route_state,
-      pg_catalog.left(pg_catalog.coalesce(p_result_refs ->> 'safe_title', 'Magic edit ready'), 200),
-      pg_catalog.left(pg_catalog.coalesce(p_result_refs ->> 'safe_summary', 'Review the proposed editorial direction.'), 600),
+      pg_catalog.left(coalesce(p_result_refs ->> 'safe_title', 'Magic edit ready'), 200),
+      pg_catalog.left(coalesce(p_result_refs ->> 'safe_summary', 'Review the proposed editorial direction.'), 600),
       v_command.expected_parent_revision_hash, v_command.expected_parent_artifact_hash,
       p_result_revision_hash, p_result_artifact_hash,
       case when v_effective_receipt_status = 'succeeded' then p_result_refs ->> 'candidate_hash' else null end,
       v_command.semantic_target_map_hash,
       pg_catalog.jsonb_set(
-        pg_catalog.coalesce(p_result_refs -> 'review_payload', '{}'::jsonb),
+        coalesce(p_result_refs -> 'review_payload', '{}'::jsonb),
         '{blocking_gates}', p_hard_gates, true
       ),
-      pg_catalog.coalesce(p_hard_gates -> 'truth' ->> 'status', 'pending'),
-      pg_catalog.coalesce(p_hard_gates -> 'rights' ->> 'status', 'pending'),
-      pg_catalog.coalesce(p_hard_gates -> 'confidentiality' ->> 'status', 'pending'),
-      pg_catalog.coalesce(p_hard_gates -> 'transcript_fidelity' ->> 'status', 'pending'),
-      pg_catalog.coalesce(p_hard_gates -> 'naming' ->> 'status', 'pending'),
+      coalesce(p_hard_gates -> 'truth' ->> 'status', 'pending'),
+      coalesce(p_hard_gates -> 'rights' ->> 'status', 'pending'),
+      coalesce(p_hard_gates -> 'confidentiality' ->> 'status', 'pending'),
+      coalesce(p_hard_gates -> 'transcript_fidelity' ->> 'status', 'pending'),
+      coalesce(p_hard_gates -> 'naming' ->> 'status', 'pending'),
       v_effective_receipt_status = 'succeeded',
       p_result_refs ->> 'before_preview_object_key',
       p_result_refs ->> 'after_preview_object_key',
@@ -2290,7 +2290,7 @@ begin
       and video_studio_job_platform_states.platform = v_command.platform;
   end if;
 
-  return query select v_status, false, pg_catalog.coalesce(v_review_id, v_command.review_id), v_all_gates_passed;
+  return query select v_status, false, coalesce(v_review_id, v_command.review_id), v_all_gates_passed;
 end;
 $$;
 
