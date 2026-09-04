@@ -16,6 +16,18 @@
 
 MarketAux, Brave, and NewsAPI are not implemented collector evidence.
 
+## Property providers (weekly, `compound/pipeline/property/`)
+
+| Feed | Evidence | Cost | Cadence | Limitation |
+|---|---|---|---|---|
+| Ledger sheet (Google service account, tab by gid) | Every cost and rent row, mirrored read-only into `property_ledger` | free | weekly | Header must match the eight ledger columns or the sync stops |
+| RBA F1 | Cash rate target, month end | free | weekly | Context only; the loan's own rate is a manual fact |
+| RTA Queensland median rents | Median weekly rent by postcode, dwelling type, bedrooms, quarterly | free | quarterly | Workbook link moves each quarter; site may reset connections, run goes partial and keeps last quarter |
+| Domain Developer API | Asking rents (25th, median, 75th), listing counts, sold prices and median sold for two bed units per postcode | free tier | weekly | Requires the Agencies and Listings and Properties and Locations packages on the project; aggregates only are stored; "Powered by Domain" shown |
+| Manual observations | Building sales and any hand-entered market fact | free | as entered | Owner supplies source URL and date |
+
+Paid fallbacks not approved: PropRadar Hobby (A$49 a month) or an Apify realestate.com.au actor, both pluggable as another observation source.
+
 ## Production proof
 
 - Workflow `31533242283` published two immutable captured rows for 2026-08-11 on attempt one.

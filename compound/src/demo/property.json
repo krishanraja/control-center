@@ -1,0 +1,3594 @@
+{
+  "generatedAt": "2026-09-01T20:30:00.000Z",
+  "property": {
+    "id": "demo-property",
+    "slug": "demo-unit",
+    "label": "Demo two bed unit",
+    "address": "Unit 9, 100 Sample Street",
+    "suburb": "Highgate Hill",
+    "state": "QLD",
+    "postcode": "4101",
+    "dwellingType": "unit",
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "carSpaces": 1,
+    "floorNote": "Top floor",
+    "purchasePriceAud": 600000,
+    "contractOn": "2024-10-24",
+    "settledOn": "2024-11-14"
+  },
+  "loan": {
+    "id": "demo-loan",
+    "lender": "Demo Bank",
+    "product": "Standard variable, investment",
+    "purpose": "investment",
+    "principalAud": 480000,
+    "termMonths": 360,
+    "repaymentType": "principal_and_interest",
+    "firstRepaymentOn": "2024-12-13",
+    "repaymentAud": 3034.12,
+    "offsetBalanceAud": 0
+  },
+  "rates": [
+    {
+      "effectiveFrom": "2024-12-13",
+      "ratePct": 6.5,
+      "source": "settlement",
+      "note": null
+    }
+  ],
+  "rents": [
+    {
+      "effectiveFrom": "2025-02-14",
+      "amountAud": 540,
+      "period": "week",
+      "managementFeePct": 8.1,
+      "leaseEndsOn": null,
+      "kind": "initial",
+      "note": null
+    },
+    {
+      "effectiveFrom": "2025-10-31",
+      "amountAud": 1220,
+      "period": "fortnight",
+      "managementFeePct": 8.1,
+      "leaseEndsOn": "2026-10-30",
+      "kind": "increase",
+      "note": null
+    }
+  ],
+  "valuations": [
+    {
+      "estimatedOn": "2024-11-14",
+      "method": "purchase_price",
+      "lowAud": null,
+      "midAud": 600000,
+      "highAud": null,
+      "confidence": "high",
+      "inputs": {
+        "method": "purchase price at settlement"
+      },
+      "engineVersion": "compound-property/1.0.0"
+    },
+    {
+      "estimatedOn": "2025-06-30",
+      "method": "hedonic_lite_v1",
+      "lowAud": 580000,
+      "midAud": 612000,
+      "highAud": 644000,
+      "confidence": "low",
+      "inputs": {
+        "method": "blend of building sale and postcode pool",
+        "anchor": {
+          "price": 700000,
+          "soldOn": "2025-09-04",
+          "cars": 2,
+          "address": "Unit 6, same block",
+          "carAdjustmentAud": -30000,
+          "adjusted": 670000,
+          "ageMonths": 12
+        },
+        "pool": {
+          "scope": "4101",
+          "count": 7,
+          "median": 690000,
+          "interquartileRange": 60000,
+          "since": "2025-09-01"
+        },
+        "priceGrowthPct": 7.5,
+        "constants": {
+          "CAR_SPACE_AUD": 30000,
+          "TOP_FLOOR_AUD": 0,
+          "ANCHOR_WEIGHT": 0.6,
+          "MIN_BAND": 0.05
+        },
+        "bandShare": 0.047,
+        "assumptions": [
+          "No value was added for the top floor position; the evidence does not price it."
+        ]
+      },
+      "engineVersion": "compound-property/1.0.0"
+    },
+    {
+      "estimatedOn": "2025-09-30",
+      "method": "hedonic_lite_v1",
+      "lowAud": 596000,
+      "midAud": 628000,
+      "highAud": 660000,
+      "confidence": "low",
+      "inputs": {
+        "method": "blend of building sale and postcode pool",
+        "anchor": {
+          "price": 700000,
+          "soldOn": "2025-09-04",
+          "cars": 2,
+          "address": "Unit 6, same block",
+          "carAdjustmentAud": -30000,
+          "adjusted": 670000,
+          "ageMonths": 12
+        },
+        "pool": {
+          "scope": "4101",
+          "count": 7,
+          "median": 690000,
+          "interquartileRange": 60000,
+          "since": "2025-09-01"
+        },
+        "priceGrowthPct": 7.5,
+        "constants": {
+          "CAR_SPACE_AUD": 30000,
+          "TOP_FLOOR_AUD": 0,
+          "ANCHOR_WEIGHT": 0.6,
+          "MIN_BAND": 0.05
+        },
+        "bandShare": 0.047,
+        "assumptions": [
+          "No value was added for the top floor position; the evidence does not price it."
+        ]
+      },
+      "engineVersion": "compound-property/1.0.0"
+    },
+    {
+      "estimatedOn": "2025-12-31",
+      "method": "hedonic_lite_v1",
+      "lowAud": 613000,
+      "midAud": 645000,
+      "highAud": 677000,
+      "confidence": "low",
+      "inputs": {
+        "method": "blend of building sale and postcode pool",
+        "anchor": {
+          "price": 700000,
+          "soldOn": "2025-09-04",
+          "cars": 2,
+          "address": "Unit 6, same block",
+          "carAdjustmentAud": -30000,
+          "adjusted": 670000,
+          "ageMonths": 12
+        },
+        "pool": {
+          "scope": "4101",
+          "count": 7,
+          "median": 690000,
+          "interquartileRange": 60000,
+          "since": "2025-09-01"
+        },
+        "priceGrowthPct": 7.5,
+        "constants": {
+          "CAR_SPACE_AUD": 30000,
+          "TOP_FLOOR_AUD": 0,
+          "ANCHOR_WEIGHT": 0.6,
+          "MIN_BAND": 0.05
+        },
+        "bandShare": 0.047,
+        "assumptions": [
+          "No value was added for the top floor position; the evidence does not price it."
+        ]
+      },
+      "engineVersion": "compound-property/1.0.0"
+    },
+    {
+      "estimatedOn": "2026-03-31",
+      "method": "hedonic_lite_v1",
+      "lowAud": 632000,
+      "midAud": 664000,
+      "highAud": 696000,
+      "confidence": "medium",
+      "inputs": {
+        "method": "blend of building sale and postcode pool",
+        "anchor": {
+          "price": 700000,
+          "soldOn": "2025-09-04",
+          "cars": 2,
+          "address": "Unit 6, same block",
+          "carAdjustmentAud": -30000,
+          "adjusted": 670000,
+          "ageMonths": 12
+        },
+        "pool": {
+          "scope": "4101",
+          "count": 7,
+          "median": 690000,
+          "interquartileRange": 60000,
+          "since": "2025-09-01"
+        },
+        "priceGrowthPct": 7.5,
+        "constants": {
+          "CAR_SPACE_AUD": 30000,
+          "TOP_FLOOR_AUD": 0,
+          "ANCHOR_WEIGHT": 0.6,
+          "MIN_BAND": 0.05
+        },
+        "bandShare": 0.047,
+        "assumptions": [
+          "No value was added for the top floor position; the evidence does not price it."
+        ]
+      },
+      "engineVersion": "compound-property/1.0.0"
+    },
+    {
+      "estimatedOn": "2026-06-30",
+      "method": "hedonic_lite_v1",
+      "lowAud": 640000,
+      "midAud": 672000,
+      "highAud": 704000,
+      "confidence": "medium",
+      "inputs": {
+        "method": "blend of building sale and postcode pool",
+        "anchor": {
+          "price": 700000,
+          "soldOn": "2025-09-04",
+          "cars": 2,
+          "address": "Unit 6, same block",
+          "carAdjustmentAud": -30000,
+          "adjusted": 670000,
+          "ageMonths": 12
+        },
+        "pool": {
+          "scope": "4101",
+          "count": 7,
+          "median": 690000,
+          "interquartileRange": 60000,
+          "since": "2025-09-01"
+        },
+        "priceGrowthPct": 7.5,
+        "constants": {
+          "CAR_SPACE_AUD": 30000,
+          "TOP_FLOOR_AUD": 0,
+          "ANCHOR_WEIGHT": 0.6,
+          "MIN_BAND": 0.05
+        },
+        "bandShare": 0.047,
+        "assumptions": [
+          "No value was added for the top floor position; the evidence does not price it."
+        ]
+      },
+      "engineVersion": "compound-property/1.0.0"
+    },
+    {
+      "estimatedOn": "2026-09-01",
+      "method": "hedonic_lite_v1",
+      "lowAud": 649000,
+      "midAud": 681000,
+      "highAud": 713000,
+      "confidence": "medium",
+      "inputs": {
+        "method": "blend of building sale and postcode pool",
+        "anchor": {
+          "price": 700000,
+          "soldOn": "2025-09-04",
+          "cars": 2,
+          "address": "Unit 6, same block",
+          "carAdjustmentAud": -30000,
+          "adjusted": 670000,
+          "ageMonths": 12
+        },
+        "pool": {
+          "scope": "4101",
+          "count": 7,
+          "median": 690000,
+          "interquartileRange": 60000,
+          "since": "2025-09-01"
+        },
+        "priceGrowthPct": 7.5,
+        "constants": {
+          "CAR_SPACE_AUD": 30000,
+          "TOP_FLOOR_AUD": 0,
+          "ANCHOR_WEIGHT": 0.6,
+          "MIN_BAND": 0.05
+        },
+        "bandShare": 0.047,
+        "assumptions": [
+          "No value was added for the top floor position; the evidence does not price it."
+        ]
+      },
+      "engineVersion": "compound-property/1.0.0"
+    }
+  ],
+  "ledger": [
+    {
+      "occurredOn": "2024-10-20",
+      "sheetCategory": "Purchase & setup",
+      "category": "purchase_cost",
+      "direction": "out",
+      "amountAud": 14800,
+      "description": "Buyer's agent fee",
+      "payee": "Buyer's agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2024-12-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-01-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-01-20",
+      "sheetCategory": "Legal",
+      "category": "legal",
+      "direction": "out",
+      "amountAud": 890,
+      "description": "Conveyancing",
+      "payee": "Lawyers",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-01-31",
+      "sheetCategory": "Council rates",
+      "category": "council_rates",
+      "direction": "out",
+      "amountAud": 560,
+      "description": "Quarterly rates, estimate",
+      "payee": "City council",
+      "confidence": "From tracker only",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-02-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-02-14",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-02-14",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-02-21",
+      "sheetCategory": "Body corporate",
+      "category": "body_corporate",
+      "direction": "out",
+      "amountAud": 1080,
+      "description": "Quarterly levy",
+      "payee": "Body corporate",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-02-28",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-02-28",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-03-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-03-14",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-03-14",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-03-28",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-03-28",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-04-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-04-11",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-04-11",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-04-25",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-04-25",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-04-30",
+      "sheetCategory": "Council rates",
+      "category": "council_rates",
+      "direction": "out",
+      "amountAud": 560,
+      "description": "Quarterly rates, estimate",
+      "payee": "City council",
+      "confidence": "From tracker only",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-05-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-05-09",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-05-09",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-05-23",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-05-23",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-05-23",
+      "sheetCategory": "Body corporate",
+      "category": "body_corporate",
+      "direction": "out",
+      "amountAud": 1080,
+      "description": "Quarterly levy",
+      "payee": "Body corporate",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-05-23",
+      "sheetCategory": "Water",
+      "category": "water",
+      "direction": "out",
+      "amountAud": 350,
+      "description": "Water and sewerage",
+      "payee": "Water utility",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-06-06",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-06-06",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-06-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-06-20",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-06-20",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-07-04",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-07-04",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-07-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-07-18",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-07-18",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-07-31",
+      "sheetCategory": "Council rates",
+      "category": "council_rates",
+      "direction": "out",
+      "amountAud": 560,
+      "description": "Quarterly rates, estimate",
+      "payee": "City council",
+      "confidence": "From tracker only",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-08-01",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-08-01",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-08-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-08-15",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-08-15",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-08-15",
+      "sheetCategory": "Repairs",
+      "category": "repairs",
+      "direction": "out",
+      "amountAud": 760,
+      "description": "Electrical repair",
+      "payee": "Electrician",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-08-21",
+      "sheetCategory": "Water",
+      "category": "water",
+      "direction": "out",
+      "amountAud": 362,
+      "description": "Water and sewerage",
+      "payee": "Water utility",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-08-25",
+      "sheetCategory": "Body corporate",
+      "category": "body_corporate",
+      "direction": "out",
+      "amountAud": 1320,
+      "description": "Quarterly levy",
+      "payee": "Body corporate",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-08-29",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-08-29",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-09-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-09-12",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-09-12",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-09-26",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-09-26",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-10-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-10-10",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-10-10",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-10-24",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1080,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-10-24",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 87.48,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-10-31",
+      "sheetCategory": "Council rates",
+      "category": "council_rates",
+      "direction": "out",
+      "amountAud": 560,
+      "description": "Quarterly rates, estimate",
+      "payee": "City council",
+      "confidence": "From tracker only",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-11-07",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-11-07",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-11-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-11-13",
+      "sheetCategory": "Insurance",
+      "category": "insurance",
+      "direction": "out",
+      "amountAud": 700,
+      "description": "Landlord insurance renewal",
+      "payee": "Insurer",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-11-21",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-11-21",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-11-24",
+      "sheetCategory": "Body corporate",
+      "category": "body_corporate",
+      "direction": "out",
+      "amountAud": 2000,
+      "description": "Quarterly levy",
+      "payee": "Body corporate",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-11-24",
+      "sheetCategory": "Water",
+      "category": "water",
+      "direction": "out",
+      "amountAud": 374,
+      "description": "Water and sewerage",
+      "payee": "Water utility",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-12-05",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-12-05",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-12-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-12-19",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2025-12-19",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-01-02",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-01-02",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-01-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-01-16",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-01-16",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-01-30",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-01-30",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-02-05",
+      "sheetCategory": "Council rates",
+      "category": "council_rates",
+      "direction": "out",
+      "amountAud": 549,
+      "description": "Quarterly rates",
+      "payee": "City council",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-02-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-02-13",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-02-13",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-02-20",
+      "sheetCategory": "Body corporate",
+      "category": "body_corporate",
+      "direction": "out",
+      "amountAud": 1500,
+      "description": "Quarterly levy",
+      "payee": "Body corporate",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-02-23",
+      "sheetCategory": "Water",
+      "category": "water",
+      "direction": "out",
+      "amountAud": 386,
+      "description": "Water and sewerage",
+      "payee": "Water utility",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-02-27",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-02-27",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-03-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-03-13",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-03-13",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-03-27",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-03-27",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-04-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-04-10",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-04-10",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-04-24",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-04-24",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-05-07",
+      "sheetCategory": "Council rates",
+      "category": "council_rates",
+      "direction": "out",
+      "amountAud": 579,
+      "description": "Quarterly rates",
+      "payee": "City council",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-05-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-05-08",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-05-08",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-05-22",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-05-22",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-05-25",
+      "sheetCategory": "Body corporate",
+      "category": "body_corporate",
+      "direction": "out",
+      "amountAud": 1450,
+      "description": "Quarterly levy",
+      "payee": "Body corporate",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-05-25",
+      "sheetCategory": "Body corporate",
+      "category": "body_corporate",
+      "direction": "gap",
+      "amountAud": null,
+      "description": "GAP: no levy email found for this quarter",
+      "payee": "Body corporate",
+      "confidence": "Missing",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-05-27",
+      "sheetCategory": "Water",
+      "category": "water",
+      "direction": "out",
+      "amountAud": 398,
+      "description": "Water and sewerage",
+      "payee": "Water utility",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-06-05",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-06-05",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-06-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-06-19",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-06-19",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-07-03",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-07-03",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-07-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-07-17",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-07-17",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-07-31",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-07-31",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-08-05",
+      "sheetCategory": "Council rates",
+      "category": "council_rates",
+      "direction": "out",
+      "amountAud": 609,
+      "description": "Quarterly rates",
+      "payee": "City council",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-08-08",
+      "sheetCategory": "Mortgage",
+      "category": "loan_repayment",
+      "direction": "out",
+      "amountAud": 3034.12,
+      "description": "Monthly repayment",
+      "payee": "Bank",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-08-14",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-08-14",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-08-20",
+      "sheetCategory": "Water",
+      "category": "water",
+      "direction": "out",
+      "amountAud": 410,
+      "description": "Water and sewerage",
+      "payee": "Water utility",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-08-25",
+      "sheetCategory": "Body corporate",
+      "category": "body_corporate",
+      "direction": "out",
+      "amountAud": 2900,
+      "description": "Quarterly levy",
+      "payee": "Body corporate",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-08-28",
+      "sheetCategory": "Rental income",
+      "category": "rent_received",
+      "direction": "in",
+      "amountAud": 1220,
+      "description": "Rent collected, fortnightly statement",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    },
+    {
+      "occurredOn": "2026-08-28",
+      "sheetCategory": "Agent",
+      "category": "management_fee",
+      "direction": "out",
+      "amountAud": 98.82,
+      "description": "Agent fees",
+      "payee": "Letting agent",
+      "confidence": "Confirmed",
+      "sourceNote": "Demo statement",
+      "syncedAt": "2026-09-01T20:30:00.000Z"
+    }
+  ],
+  "observations": [
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2024-10-01",
+      "periodEnd": "2024-12-31",
+      "value": 575,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2024-12-31",
+      "detail": {
+        "sampleSize": 40
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-01-01",
+      "periodEnd": "2025-03-31",
+      "value": 582,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-03-31",
+      "detail": {
+        "sampleSize": 41
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-04-01",
+      "periodEnd": "2025-06-30",
+      "value": 589,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-06-30",
+      "detail": {
+        "sampleSize": 42
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-09-30",
+      "value": 596,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-09-30",
+      "detail": {
+        "sampleSize": 43
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-10-01",
+      "periodEnd": "2025-12-31",
+      "value": 603,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-12-31",
+      "detail": {
+        "sampleSize": 44
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-01-01",
+      "periodEnd": "2026-03-31",
+      "value": 610,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-03-31",
+      "detail": {
+        "sampleSize": 45
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-06-30",
+      "value": 616,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-06-30",
+      "detail": {
+        "sampleSize": 46
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4102",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2024-10-01",
+      "periodEnd": "2024-12-31",
+      "value": 560,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2024-12-31",
+      "detail": {
+        "sampleSize": 40
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4102",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-01-01",
+      "periodEnd": "2025-03-31",
+      "value": 567,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-03-31",
+      "detail": {
+        "sampleSize": 41
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4102",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-04-01",
+      "periodEnd": "2025-06-30",
+      "value": 573,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-06-30",
+      "detail": {
+        "sampleSize": 42
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4102",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-09-30",
+      "value": 580,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-09-30",
+      "detail": {
+        "sampleSize": 43
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4102",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-10-01",
+      "periodEnd": "2025-12-31",
+      "value": 587,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-12-31",
+      "detail": {
+        "sampleSize": 44
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4102",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-01-01",
+      "periodEnd": "2026-03-31",
+      "value": 594,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-03-31",
+      "detail": {
+        "sampleSize": 45
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4102",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-06-30",
+      "value": 600,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-06-30",
+      "detail": {
+        "sampleSize": 46
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4103",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2024-10-01",
+      "periodEnd": "2024-12-31",
+      "value": 520,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2024-12-31",
+      "detail": {
+        "sampleSize": 40
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4103",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-01-01",
+      "periodEnd": "2025-03-31",
+      "value": 526,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-03-31",
+      "detail": {
+        "sampleSize": 41
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4103",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-04-01",
+      "periodEnd": "2025-06-30",
+      "value": 532,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-06-30",
+      "detail": {
+        "sampleSize": 42
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4103",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-09-30",
+      "value": 539,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-09-30",
+      "detail": {
+        "sampleSize": 43
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4103",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-10-01",
+      "periodEnd": "2025-12-31",
+      "value": 545,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-12-31",
+      "detail": {
+        "sampleSize": 44
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4103",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-01-01",
+      "periodEnd": "2026-03-31",
+      "value": 551,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-03-31",
+      "detail": {
+        "sampleSize": 45
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4103",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-06-30",
+      "value": 557,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-06-30",
+      "detail": {
+        "sampleSize": 46
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4104",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2024-10-01",
+      "periodEnd": "2024-12-31",
+      "value": 530,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2024-12-31",
+      "detail": {
+        "sampleSize": 40
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4104",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-01-01",
+      "periodEnd": "2025-03-31",
+      "value": 536,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-03-31",
+      "detail": {
+        "sampleSize": 41
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4104",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-04-01",
+      "periodEnd": "2025-06-30",
+      "value": 543,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-06-30",
+      "detail": {
+        "sampleSize": 42
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4104",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-09-30",
+      "value": 549,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-09-30",
+      "detail": {
+        "sampleSize": 43
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4104",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-10-01",
+      "periodEnd": "2025-12-31",
+      "value": 555,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-12-31",
+      "detail": {
+        "sampleSize": 44
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4104",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-01-01",
+      "periodEnd": "2026-03-31",
+      "value": 562,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-03-31",
+      "detail": {
+        "sampleSize": 45
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4104",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-06-30",
+      "value": 568,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-06-30",
+      "detail": {
+        "sampleSize": 46
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4105",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2024-10-01",
+      "periodEnd": "2024-12-31",
+      "value": 500,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2024-12-31",
+      "detail": {
+        "sampleSize": 40
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4105",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-01-01",
+      "periodEnd": "2025-03-31",
+      "value": 506,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-03-31",
+      "detail": {
+        "sampleSize": 41
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4105",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-04-01",
+      "periodEnd": "2025-06-30",
+      "value": 512,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-06-30",
+      "detail": {
+        "sampleSize": 42
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4105",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-09-30",
+      "value": 518,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-09-30",
+      "detail": {
+        "sampleSize": 43
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4105",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-10-01",
+      "periodEnd": "2025-12-31",
+      "value": 524,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-12-31",
+      "detail": {
+        "sampleSize": 44
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4105",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-01-01",
+      "periodEnd": "2026-03-31",
+      "value": 530,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-03-31",
+      "detail": {
+        "sampleSize": 45
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4105",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-06-30",
+      "value": 536,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-06-30",
+      "detail": {
+        "sampleSize": 46
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4169",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2024-10-01",
+      "periodEnd": "2024-12-31",
+      "value": 640,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2024-12-31",
+      "detail": {
+        "sampleSize": 40
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4169",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-01-01",
+      "periodEnd": "2025-03-31",
+      "value": 648,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-03-31",
+      "detail": {
+        "sampleSize": 41
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4169",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-04-01",
+      "periodEnd": "2025-06-30",
+      "value": 655,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-06-30",
+      "detail": {
+        "sampleSize": 42
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4169",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-09-30",
+      "value": 663,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-09-30",
+      "detail": {
+        "sampleSize": 43
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4169",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-10-01",
+      "periodEnd": "2025-12-31",
+      "value": 671,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-12-31",
+      "detail": {
+        "sampleSize": 44
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4169",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-01-01",
+      "periodEnd": "2026-03-31",
+      "value": 678,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-03-31",
+      "detail": {
+        "sampleSize": 45
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4169",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-06-30",
+      "value": 686,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-06-30",
+      "detail": {
+        "sampleSize": 46
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4120",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2024-10-01",
+      "periodEnd": "2024-12-31",
+      "value": 505,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2024-12-31",
+      "detail": {
+        "sampleSize": 40
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4120",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-01-01",
+      "periodEnd": "2025-03-31",
+      "value": 511,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-03-31",
+      "detail": {
+        "sampleSize": 41
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4120",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-04-01",
+      "periodEnd": "2025-06-30",
+      "value": 517,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-06-30",
+      "detail": {
+        "sampleSize": 42
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4120",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-09-30",
+      "value": 523,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-09-30",
+      "detail": {
+        "sampleSize": 43
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4120",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-10-01",
+      "periodEnd": "2025-12-31",
+      "value": 529,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-12-31",
+      "detail": {
+        "sampleSize": 44
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4120",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-01-01",
+      "periodEnd": "2026-03-31",
+      "value": 535,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-03-31",
+      "detail": {
+        "sampleSize": 45
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4120",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-06-30",
+      "value": 541,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-06-30",
+      "detail": {
+        "sampleSize": 46
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4121",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2024-10-01",
+      "periodEnd": "2024-12-31",
+      "value": 495,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2024-12-31",
+      "detail": {
+        "sampleSize": 40
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4121",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-01-01",
+      "periodEnd": "2025-03-31",
+      "value": 501,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-03-31",
+      "detail": {
+        "sampleSize": 41
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4121",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-04-01",
+      "periodEnd": "2025-06-30",
+      "value": 507,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-06-30",
+      "detail": {
+        "sampleSize": 42
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4121",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-09-30",
+      "value": 513,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-09-30",
+      "detail": {
+        "sampleSize": 43
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4121",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2025-10-01",
+      "periodEnd": "2025-12-31",
+      "value": 519,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2025-12-31",
+      "detail": {
+        "sampleSize": 44
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4121",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-01-01",
+      "periodEnd": "2026-03-31",
+      "value": 525,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-03-31",
+      "detail": {
+        "sampleSize": 45
+      }
+    },
+    {
+      "source": "rta",
+      "areaKind": "postcode",
+      "areaCode": "4121",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_weekly_rent",
+      "periodStart": "2026-04-01",
+      "periodEnd": "2026-06-30",
+      "value": 531,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.rta.qld.gov.au/",
+      "sourceDate": "2026-06-30",
+      "detail": {
+        "sampleSize": 46
+      }
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2024-09-01",
+      "periodEnd": "2025-09-01",
+      "value": 641700,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2025-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2025-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 690000,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "sale_listing_count",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 14,
+      "unit": "listings",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4102",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2024-09-01",
+      "periodEnd": "2025-09-01",
+      "value": 595200,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2025-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4102",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2025-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 640000,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4102",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "sale_listing_count",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 8,
+      "unit": "listings",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4103",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2024-09-01",
+      "periodEnd": "2025-09-01",
+      "value": 520800,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2025-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4103",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2025-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 560000,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4103",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "sale_listing_count",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 9,
+      "unit": "listings",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4104",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2024-09-01",
+      "periodEnd": "2025-09-01",
+      "value": 548700,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2025-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4104",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2025-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 590000,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4104",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "sale_listing_count",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 10,
+      "unit": "listings",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4105",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2024-09-01",
+      "periodEnd": "2025-09-01",
+      "value": 483600,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2025-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4105",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2025-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 520000,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4105",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "sale_listing_count",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 11,
+      "unit": "listings",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4169",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2024-09-01",
+      "periodEnd": "2025-09-01",
+      "value": 706800,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2025-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4169",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2025-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 760000,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4169",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "sale_listing_count",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 12,
+      "unit": "listings",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4120",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2024-09-01",
+      "periodEnd": "2025-09-01",
+      "value": 502200,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2025-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4120",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2025-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 540000,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4120",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "sale_listing_count",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 12,
+      "unit": "listings",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4121",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2024-09-01",
+      "periodEnd": "2025-09-01",
+      "value": 492900,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2025-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4121",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "median_sold_price",
+      "periodStart": "2025-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 530000,
+      "unit": "AUD",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4121",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "sale_listing_count",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 13,
+      "unit": "listings",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "asking_rent_p25",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 580,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {
+        "sample": 14
+      }
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "asking_rent_median",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 630,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {
+        "sample": 14
+      }
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "asking_rent_p75",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 675,
+      "unit": "AUD/week",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {
+        "sample": 14
+      }
+    },
+    {
+      "source": "domain",
+      "areaKind": "postcode",
+      "areaCode": "4101",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "rent_listing_count",
+      "periodStart": "2026-09-01",
+      "periodEnd": "2026-09-01",
+      "value": 14,
+      "unit": "listings",
+      "sourceUrl": "https://www.domain.com.au/",
+      "sourceDate": "2026-09-01",
+      "detail": {}
+    },
+    {
+      "source": "manual",
+      "areaKind": "building",
+      "areaCode": "demo-unit",
+      "dwellingType": "unit",
+      "bedrooms": 2,
+      "metric": "sale_price",
+      "periodStart": "2025-09-04",
+      "periodEnd": "2025-09-04",
+      "value": 700000,
+      "unit": "AUD",
+      "sourceUrl": "https://example.test/sale",
+      "sourceDate": "2025-09-04",
+      "detail": {
+        "ref": "demo-6",
+        "address": "Unit 6, same block",
+        "cars": 2
+      }
+    },
+    {
+      "source": "rba",
+      "areaKind": "national",
+      "areaCode": "AU",
+      "dwellingType": null,
+      "bedrooms": null,
+      "metric": "cash_rate_pct",
+      "periodStart": "2024-11-01",
+      "periodEnd": "2024-11-29",
+      "value": 4.35,
+      "unit": "%",
+      "sourceUrl": "https://www.rba.gov.au/",
+      "sourceDate": "2024-11-29",
+      "detail": {}
+    },
+    {
+      "source": "rba",
+      "areaKind": "national",
+      "areaCode": "AU",
+      "dwellingType": null,
+      "bedrooms": null,
+      "metric": "cash_rate_pct",
+      "periodStart": "2026-08-01",
+      "periodEnd": "2026-08-31",
+      "value": 3.6,
+      "unit": "%",
+      "sourceUrl": "https://www.rba.gov.au/",
+      "sourceDate": "2026-08-31",
+      "detail": {}
+    }
+  ],
+  "rankings": [
+    {
+      "runOn": "2026-09-01",
+      "suburb": "Moorooka",
+      "postcode": "4105",
+      "score": 84.8,
+      "rank": 1,
+      "grossYieldPct": 5.35,
+      "rentGrowthPct": 9,
+      "priceGrowthPct": 7.5,
+      "listingCount": 11,
+      "medianSoldPriceAud": 520000,
+      "medianWeeklyRentAud": 535,
+      "missing": [],
+      "inputs": {
+        "weights": {
+          "grossYield": 0.35,
+          "rentGrowth": 0.25,
+          "priceGrowth": 0.25,
+          "supply": 0.15
+        }
+      }
+    },
+    {
+      "runOn": "2026-09-01",
+      "suburb": "Annerley",
+      "postcode": "4103",
+      "score": 83.3,
+      "rank": 2,
+      "grossYieldPct": 5.16,
+      "rentGrowthPct": 9,
+      "priceGrowthPct": 6.5,
+      "listingCount": 9,
+      "medianSoldPriceAud": 560000,
+      "medianWeeklyRentAud": 556,
+      "missing": [],
+      "inputs": {
+        "weights": {
+          "grossYield": 0.35,
+          "rentGrowth": 0.25,
+          "priceGrowth": 0.25,
+          "supply": 0.15
+        }
+      }
+    },
+    {
+      "runOn": "2026-09-01",
+      "suburb": "Dutton Park",
+      "postcode": "4102",
+      "score": 82,
+      "rank": 3,
+      "grossYieldPct": 4.87,
+      "rentGrowthPct": 8,
+      "priceGrowthPct": 7.5,
+      "listingCount": 8,
+      "medianSoldPriceAud": 640000,
+      "medianWeeklyRentAud": 599,
+      "missing": [],
+      "inputs": {
+        "weights": {
+          "grossYield": 0.35,
+          "rentGrowth": 0.25,
+          "priceGrowth": 0.25,
+          "supply": 0.15
+        }
+      }
+    },
+    {
+      "runOn": "2026-09-01",
+      "suburb": "Holland Park",
+      "postcode": "4121",
+      "score": 77.6,
+      "rank": 4,
+      "grossYieldPct": 5.2,
+      "rentGrowthPct": 7,
+      "priceGrowthPct": 7.5,
+      "listingCount": 13,
+      "medianSoldPriceAud": 530000,
+      "medianWeeklyRentAud": 530,
+      "missing": [],
+      "inputs": {
+        "weights": {
+          "grossYield": 0.35,
+          "rentGrowth": 0.25,
+          "priceGrowth": 0.25,
+          "supply": 0.15
+        }
+      }
+    },
+    {
+      "runOn": "2026-09-01",
+      "suburb": "Fairfield",
+      "postcode": "4103",
+      "score": 77.3,
+      "rank": 5,
+      "grossYieldPct": 5.16,
+      "rentGrowthPct": 7,
+      "priceGrowthPct": 5.5,
+      "listingCount": 9,
+      "medianSoldPriceAud": 560000,
+      "medianWeeklyRentAud": 556,
+      "missing": [],
+      "inputs": {
+        "weights": {
+          "grossYield": 0.35,
+          "rentGrowth": 0.25,
+          "priceGrowth": 0.25,
+          "supply": 0.15
+        }
+      }
+    },
+    {
+      "runOn": "2026-09-01",
+      "suburb": "Greenslopes",
+      "postcode": "4120",
+      "score": 76.6,
+      "rank": 6,
+      "grossYieldPct": 5.2,
+      "rentGrowthPct": 9,
+      "priceGrowthPct": 4.5,
+      "listingCount": 12,
+      "medianSoldPriceAud": 540000,
+      "medianWeeklyRentAud": 540,
+      "missing": [],
+      "inputs": {
+        "weights": {
+          "grossYield": 0.35,
+          "rentGrowth": 0.25,
+          "priceGrowth": 0.25,
+          "supply": 0.15
+        }
+      }
+    },
+    {
+      "runOn": "2026-09-01",
+      "suburb": "Yeronga",
+      "postcode": "4104",
+      "score": 75,
+      "rank": 7,
+      "grossYieldPct": 5,
+      "rentGrowthPct": 8,
+      "priceGrowthPct": 4.5,
+      "listingCount": 10,
+      "medianSoldPriceAud": 590000,
+      "medianWeeklyRentAud": 567,
+      "missing": [],
+      "inputs": {
+        "weights": {
+          "grossYield": 0.35,
+          "rentGrowth": 0.25,
+          "priceGrowth": 0.25,
+          "supply": 0.15
+        }
+      }
+    },
+    {
+      "runOn": "2026-09-01",
+      "suburb": "Woolloongabba",
+      "postcode": "4102",
+      "score": 74,
+      "rank": 8,
+      "grossYieldPct": 4.87,
+      "rentGrowthPct": 7,
+      "priceGrowthPct": 4.5,
+      "listingCount": 8,
+      "medianSoldPriceAud": 640000,
+      "medianWeeklyRentAud": 599,
+      "missing": [],
+      "inputs": {
+        "weights": {
+          "grossYield": 0.35,
+          "rentGrowth": 0.25,
+          "priceGrowth": 0.25,
+          "supply": 0.15
+        }
+      }
+    },
+    {
+      "runOn": "2026-09-01",
+      "suburb": "Kangaroo Point",
+      "postcode": "4169",
+      "score": 72.5,
+      "rank": 9,
+      "grossYieldPct": 4.69,
+      "rentGrowthPct": 7,
+      "priceGrowthPct": 6.5,
+      "listingCount": 12,
+      "medianSoldPriceAud": 760000,
+      "medianWeeklyRentAud": 685,
+      "missing": [],
+      "inputs": {
+        "weights": {
+          "grossYield": 0.35,
+          "rentGrowth": 0.25,
+          "priceGrowth": 0.25,
+          "supply": 0.15
+        }
+      }
+    },
+    {
+      "runOn": "2026-09-01",
+      "suburb": "East Brisbane",
+      "postcode": "4169",
+      "score": 72.5,
+      "rank": 10,
+      "grossYieldPct": 4.69,
+      "rentGrowthPct": 8,
+      "priceGrowthPct": 5.5,
+      "listingCount": 12,
+      "medianSoldPriceAud": 760000,
+      "medianWeeklyRentAud": 685,
+      "missing": [],
+      "inputs": {
+        "weights": {
+          "grossYield": 0.35,
+          "rentGrowth": 0.25,
+          "priceGrowth": 0.25,
+          "supply": 0.15
+        }
+      }
+    },
+    {
+      "runOn": "2026-09-01",
+      "suburb": "Highgate Hill",
+      "postcode": "4101",
+      "score": 72,
+      "rank": 11,
+      "grossYieldPct": 4.63,
+      "rentGrowthPct": 7,
+      "priceGrowthPct": 7.5,
+      "listingCount": 14,
+      "medianSoldPriceAud": 690000,
+      "medianWeeklyRentAud": 615,
+      "missing": [],
+      "inputs": {
+        "weights": {
+          "grossYield": 0.35,
+          "rentGrowth": 0.25,
+          "priceGrowth": 0.25,
+          "supply": 0.15
+        }
+      }
+    },
+    {
+      "runOn": "2026-09-01",
+      "suburb": "West End",
+      "postcode": "4101",
+      "score": 72,
+      "rank": 12,
+      "grossYieldPct": 4.63,
+      "rentGrowthPct": 8,
+      "priceGrowthPct": 6.5,
+      "listingCount": 14,
+      "medianSoldPriceAud": 690000,
+      "medianWeeklyRentAud": 615,
+      "missing": [],
+      "inputs": {
+        "weights": {
+          "grossYield": 0.35,
+          "rentGrowth": 0.25,
+          "priceGrowth": 0.25,
+          "supply": 0.15
+        }
+      }
+    },
+    {
+      "runOn": "2026-09-01",
+      "suburb": "South Brisbane",
+      "postcode": "4101",
+      "score": 72,
+      "rank": 13,
+      "grossYieldPct": 4.63,
+      "rentGrowthPct": 9,
+      "priceGrowthPct": 5.5,
+      "listingCount": 14,
+      "medianSoldPriceAud": 690000,
+      "medianWeeklyRentAud": 615,
+      "missing": [],
+      "inputs": {
+        "weights": {
+          "grossYield": 0.35,
+          "rentGrowth": 0.25,
+          "priceGrowth": 0.25,
+          "supply": 0.15
+        }
+      }
+    }
+  ],
+  "cashRate": {
+    "value": 3.6,
+    "periodEnd": "2026-08-31"
+  },
+  "lastRun": {
+    "runOn": "2026-09-01",
+    "status": "complete",
+    "finishedAt": "2026-09-01T20:31:00.000Z",
+    "coverage": [
+      {
+        "provider": "RBA",
+        "status": "available",
+        "sourceDate": "2026-08-31"
+      },
+      {
+        "provider": "RTA",
+        "status": "available",
+        "sourceDate": "2026-06-30"
+      },
+      {
+        "provider": "Domain",
+        "status": "available",
+        "sourceDate": "2026-09-01"
+      },
+      {
+        "provider": "Ledger sheet",
+        "status": "available",
+        "sourceDate": "2026-09-01"
+      }
+    ]
+  }
+}

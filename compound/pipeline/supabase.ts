@@ -30,7 +30,7 @@ function config(): SupabaseConfig {
   return { url: url.replace(/\/$/, ""), serviceRoleKey };
 }
 
-async function rest<T>(
+export async function rest<T>(
   path: string,
   init: RequestInit = {},
   profile = "compound",

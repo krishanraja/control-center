@@ -54,3 +54,12 @@ Append-only project decisions. Architecture-wide decisions also receive a reposi
 - Decision: do not provision or pay for Resend while COMPOUND is internal only. The scheduled workflow does not receive Resend variables; GitHub's failed-workflow notification is the active alert.
 - Existing code: the Resend adapter remains an inert future integration point and returns without sending when runtime variables are absent.
 - Revisit trigger: externalization or repeated operational misses make a product-branded alert worth a separately approved paid plan.
+
+## C-007: Property surface on free public feeds, personal facts by owner import
+
+- Date: 2026-09-04
+- Status: locked by Krish
+- Decision: COMPOUND gains a fifth destination, Property, for one owned unit. Market evidence comes only from free feeds (RTA bond medians, Domain Developer API free tier, RBA cash rate). Personal facts (purchase, loan, rate history, rent history, building sales) are entered by the owner through the service-role import CLI or SQL, never by a migration or a committed fixture. The cost ledger Google Sheet remains the editing surface; the pipeline mirrors one tab, identified by gid, read-only.
+- Reason: the tab must show what the unit is worth, what rent to charge, what it costs and where to buy next without a paid data plan, and without putting private figures into the repository.
+- Consequence: every estimate stores its method, inputs, constants and confidence so the tab can show the working. Runtime secrets for the weekly job live in Supabase Vault behind a service-role-only reader so the GitHub environment needs nothing new. A paid provider (PropRadar, Apify) may be added later as another observation source without changing the schema.
+- Revisit trigger: the free Domain tier stops returning suburb statistics or sold listings, or a second property makes the single-subject assumptions in the ranking and rent band wrong.

@@ -15,6 +15,8 @@ const edgeFunction = await readFile(join(repositoryRoot, "supabase", "functions"
 const loginFunction = await readFile(join(repositoryRoot, "supabase", "functions", "compound-login", "index.ts"), "utf8");
 const loginProxy = await readFile(join(compoundRoot, "api", "compound-login.js"), "utf8");
 const config = await readFile(join(repositoryRoot, "supabase", "config.toml"), "utf8");
+const propertyMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260904100000_compound_property.sql"), "utf8");
+const propertyApi = await readFile(join(compoundRoot, "api", "property", "latest.js"), "utf8");
 
 const failures = [];
 for (const table of ["members", "holdings", "daily_snapshots", "chat_threads", "chat_messages"]) {
@@ -58,6 +60,30 @@ for (const table of ["snapshot_runs", "snapshot_backfill_checkpoints", "snapshot
 if (!archiveMigration.includes("prevent_published_snapshot_mutation")) failures.push("published snapshots are not immutable");
 if (!archiveMigration.includes("origin in ('captured', 'reconstructed')")) failures.push("starter snapshots are not excluded from published uniqueness");
 if (!archiveMigration.includes("request_scope jsonb")) failures.push("historical Ask requests do not preserve their scope");
+
+const propertyTables = [
+  "properties", "property_loans", "property_loan_rates", "property_rents", "property_ledger",
+  "property_market_observations", "property_valuations", "property_suburb_rankings", "property_runs",
+];
+for (const table of propertyTables) {
+  if (!propertyMigration.includes(`alter table compound.${table} enable row level security;`)) failures.push(`${table} does not enable RLS`);
+  if (!propertyMigration.includes(`alter table compound.${table} force row level security;`)) failures.push(`${table} does not force RLS`);
+}
+if (!propertyMigration.includes("notify pgrst, 'reload schema'")) failures.push("property tables are not reflected in the Data API cache");
+// The ledger mirror, market facts, estimates, rankings and run log are written only by the pipeline.
+const memberWriteGrant = /grant\s+[^;]*\b(?:insert|update|delete)\b[^;]*\bon\b([^;]*)\bto authenticated;/gis;
+for (const match of propertyMigration.matchAll(memberWriteGrant)) {
+  for (const table of ["property_ledger", "property_market_observations", "property_valuations", "property_suburb_rankings", "property_runs"]) {
+    if (match[1].includes(`compound.${table}`)) failures.push(`${table} grants member writes; only the pipeline may write it`);
+  }
+}
+if (!propertyMigration.includes("unique (user_id, external_ref)")) failures.push("ledger mirror is not idempotent on external_ref");
+if (!propertyMigration.includes("unique (loan_id, effective_from)")) failures.push("loan rate history has no natural key");
+if (/\b(?:605000|484000|3079\.49)\b/.test(propertyMigration)) failures.push("property migration seeds personal figures; use the import CLI");
+if (/account_number|account_ref/i.test(propertyMigration)) failures.push("property migration stores a loan account number");
+if (!propertyMigration.includes("revoke all on function compound.read_secret(text) from public, anon, authenticated;")) failures.push("vault reader is exposed to browser roles");
+if (!propertyApi.includes("../../src/server/snapshotApi.js")) failures.push("property API does not reuse the member-token snapshot helpers");
+if (/SERVICE_ROLE|service_role/.test(propertyApi)) failures.push("property API contains a privileged database path");
 
 if (failures.length) {
   console.error(failures.join("\n"));

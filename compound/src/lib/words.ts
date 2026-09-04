@@ -45,6 +45,7 @@ export const SECTION_SHORT: Record<TabKey, string> = {
   brief: "Brief",
   markets: "Markets",
   portfolio: "Portfolio",
+  property: "Property",
   ask: "Ask",
 };
 
@@ -52,6 +53,7 @@ export const SECTION_LONG: Record<TabKey, string> = {
   brief: "Today in markets",
   markets: "Markets",
   portfolio: "Portfolio",
+  property: "Property",
   ask: "Ask COMPOUND",
 };
 
@@ -60,10 +62,21 @@ export const SECTION_BLURB: Record<TabKey, string> = {
   brief: "The three signals that matter",
   markets: "Opportunities and the full market",
   portfolio: "Exposure, concentration and capacity",
+  property: "What the unit is worth, its rent, its costs, and where to buy next",
   ask: "Answers across today or history",
 };
 
-export const SECTION_ORDER: TabKey[] = ["brief", "markets", "portfolio", "ask"];
+export const SECTION_ORDER: TabKey[] = ["brief", "markets", "portfolio", "property", "ask"];
+
+/** Property words. Written so nobody has to look up a lending term. */
+export const PROPERTY_EXPLAIN = {
+  worthNow: "our best estimate of what the unit would sell for today, with a low and high",
+  ownOutright: "what is left after the loan is paid off today",
+  loanShare: "the loan as a share of what the place is worth",
+  rentReturn: "a year of rent as a share of the price",
+  loanPaydown: "the part of each repayment that reduces the loan rather than paying interest",
+  netOutOfPocket: "everything paid out so far, minus all the rent that came in",
+} as const;
 
 /** The four groups an industry can land in. Direction first, price second. */
 export const GROUP_NAME: Record<Quadrant, string> = {

@@ -27,10 +27,10 @@ afterEach(() => {
 });
 
 describe("calm brief", () => {
-  it("offers four destinations and keeps the Brief market-wide", () => {
+  it("offers five destinations and keeps the Brief market-wide", () => {
     const { onTab } = renderShell();
     const nav = screen.getByRole("navigation", { name: "Sections" });
-    for (const name of ["Brief", "Markets", "Portfolio", "Ask"]) {
+    for (const name of ["Brief", "Markets", "Portfolio", "Property", "Ask"]) {
       expect(within(nav).getByRole("button", { name })).toBeInTheDocument();
     }
     expect(within(nav).getByRole("button", { name: "Brief" })).toHaveAttribute("aria-current", "page");
@@ -142,10 +142,14 @@ describe("device systems", () => {
     expect(screen.getAllByRole("heading", { name: "Markets are calm, but money is still expensive." })).toHaveLength(2);
   });
 
-  it("maps number keys to the four destinations only on split", () => {
+  it("maps number keys to the five destinations only on split", () => {
     asSplit();
     const { onTab } = renderShell();
     fireEvent.keyDown(window, { key: "3" });
     expect(onTab).toHaveBeenCalledWith("portfolio");
+    fireEvent.keyDown(window, { key: "4" });
+    expect(onTab).toHaveBeenCalledWith("property");
+    fireEvent.keyDown(window, { key: "5" });
+    expect(onTab).toHaveBeenCalledWith("ask");
   });
 });

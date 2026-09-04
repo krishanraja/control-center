@@ -1,14 +1,20 @@
 {
   "tasks": {
-    "check": "deno check main.ts backfill.ts schedule_guard.ts",
-    "test": "deno test --allow-env intelligence_test.ts schedule_test.ts operations_test.ts supabase_test.ts providers/provider_contract_test.ts",
+    "check": "deno check main.ts backfill.ts schedule_guard.ts property/main.ts property/import.ts",
+    "test": "deno test --allow-env intelligence_test.ts schedule_test.ts operations_test.ts supabase_test.ts providers/provider_contract_test.ts property/property_test.ts",
     "run": "deno run --allow-env --allow-net main.ts",
     "backfill": "deno run --allow-env --allow-net backfill.ts",
-    "guard": "deno run --allow-env --allow-write schedule_guard.ts"
+    "guard": "deno run --allow-env --allow-write schedule_guard.ts",
+    "property": "deno run --allow-env --allow-net property/main.ts",
+    "property:import": "deno run --allow-env --allow-net --allow-read property/import.ts"
   },
   "fmt": {
     "lineWidth": 110,
     "indentWidth": 2,
     "singleQuote": false
+  },
+  "imports": {
+    "xlsx": "npm:xlsx@0.18.5",
+    "@std/csv": "jsr:@std/csv@^1"
   }
 }

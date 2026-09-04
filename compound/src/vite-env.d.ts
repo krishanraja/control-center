@@ -5,6 +5,11 @@ declare module "virtual:compound-demo-snapshot" {
   export default snapshot;
 }
 
+declare module "virtual:compound-demo-property" {
+  const property: unknown | null;
+  export default property;
+}
+
 interface ImportMetaEnv {
   readonly VITE_COMPOUND_DEMO_MODE?: string;
   readonly VITE_SUPABASE_URL?: string;
