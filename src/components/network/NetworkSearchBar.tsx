@@ -162,7 +162,7 @@ export function NetworkSearchBar({ onSearch, onVoice, onClear, loading, restated
               key={x}
               type="button"
               onClick={() => { setQ(x); onSearch(x) }}
-              className="max-w-full truncate rounded-full border border-white/10 px-2.5 py-1 text-left text-label text-white/45 transition-colors hover:border-white/20 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+              className="max-w-full truncate rounded-full border border-white/10 px-2.5 py-1 text-left text-label text-white/60 transition-colors hover:border-white/20 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
             >
               {x}
             </button>

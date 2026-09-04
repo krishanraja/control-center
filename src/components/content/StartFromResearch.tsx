@@ -258,7 +258,7 @@ export function StartFromResearch({ open, onClose }: { open: boolean; onClose: (
                     onChange={e => setPastes(list => list.map((x, j) => j === i ? { ...x, content: e.target.value } : x))}
                     rows={3}
                     placeholder="Paste the text"
-                    className="w-full resize-none rounded border border-white/[0.07] bg-black/20 px-2 py-1.5 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/30"
+                    className="w-full resize-none rounded border border-white/[0.07] bg-sunk px-2 py-1.5 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/30"
                   />
                 </div>
               ))}

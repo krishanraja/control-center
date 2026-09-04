@@ -10,7 +10,7 @@ import type { LucideIcon, LucideProps } from 'lucide-react'
 //
 // 1. CONSTANT PHYSICAL STROKE. `absoluteStrokeWidth` with a 1.75px default,
 //    so a 12px glyph and a 24px glyph carry the same stroke weight — the
-//    match for Geist's line weight and the DrawnCheck mark. Without it,
+//    match for Archivo's line weight and the DrawnCheck mark. Without it,
 //    lucide scales stroke with size: small icons render chunky, large ones
 //    heavy, which is precisely the assembled-from-parts look. A call site
 //    passing `strokeWidth` still wins, and it is absolute too (the nav's

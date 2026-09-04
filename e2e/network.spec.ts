@@ -378,7 +378,7 @@ test('the person sheet can change venture and status, and says what do-not-conta
   const patches: any[] = []
   await mockNetworkApis(page)
   await page.route('**/api/network/person/**', r =>
-    r.fulfill({ json: { ok: true, contact: { primary_venture: 'mindmaker', status: 'active' }, intelligence: {} } }))
+    r.fulfill({ json: { ok: true, contact: { primary_venture: 'mindmake', status: 'active' }, intelligence: {} } }))
   await page.route('**/api/contacts/**', r => {
     patches.push({ method: r.request().method(), body: r.request().postDataJSON() })
     return r.fulfill({ json: { ok: true, contact: {} } })
@@ -390,7 +390,7 @@ test('the person sheet can change venture and status, and says what do-not-conta
 
   // Venture is a chip row, not a native select: the value on file reads at a
   // glance and changing it is one tap rather than an OS picker.
-  await expect(page.getByTestId('contact-venture-chip-mindmaker')).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByTestId('contact-venture-chip-mindmake')).toHaveAttribute('aria-pressed', 'true')
   await page.getByTestId('contact-venture-chip-mm_ctrl').click()
   await expect.poll(() => patches.length).toBe(1)
   expect(patches[0]).toEqual({ method: 'PATCH', body: { primary_venture: 'mm_ctrl' } })
@@ -406,7 +406,7 @@ test('the person sheet can change venture and status, and says what do-not-conta
 test('a failed edit reverts the chip rather than leaving it lit', async ({ page }) => {
   await mockNetworkApis(page)
   await page.route('**/api/network/person/**', r =>
-    r.fulfill({ json: { ok: true, contact: { primary_venture: 'mindmaker', status: 'active' }, intelligence: {} } }))
+    r.fulfill({ json: { ok: true, contact: { primary_venture: 'mindmake', status: 'active' }, intelligence: {} } }))
   await page.route('**/api/contacts/**', r =>
     r.fulfill({ status: 500, json: { ok: false, error: 'nope' } }))
 

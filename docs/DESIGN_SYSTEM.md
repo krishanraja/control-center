@@ -1,9 +1,9 @@
-# Design System — "Obsidian Aurora"
+# Design System: Mindmake Instrument Room
 
 > **Scope.** The visual + interaction language of Control Center: themes,
 > tokens, typography, material, motion, haptics, and the shared primitives every
 > surface renders through. The contract that keeps the app feeling like one
-> product across 11 tabs and two device classes.
+> product across seven destinations and two device classes.
 >
 > **Not in this document.** Per-tab product behaviour lives in
 > [`PRODUCT.md`](./PRODUCT.md); component-by-component patterns in
@@ -14,13 +14,13 @@
 
 ## Philosophy
 
-Obsidian Aurora evolves the original "Calm & Anticipatory" motion language into
-a full, adaptive identity. The soul is a **command cockpit** — deep, quiet,
-premium — that is **alive with a restrained sense of presence** and adapts to
-day or night. Every choice is still measured against the product's north star:
+The Control Center and Video Engine share one Mindmake identity. The soul is a
+deep, quiet **instrument room**: evidence is foregrounded, controls feel tactile,
+and the interface adapts between ink and warm paper without becoming a generic
+dashboard. Every choice is measured against the product's north star:
 *does it reduce time-to-decision, or just look nice?*
 
-Three ideas run through everything:
+Five ideas run through everything:
 
 1. **One product, two device intents.** Mobile is triage / one-handed / push
    forward; desktop is deep work / keyboard. The same tokens and primitives
@@ -37,6 +37,10 @@ Three ideas run through everything:
    per-capability index for coding agents lives in the root
    [`AGENTS.md`](../AGENTS.md) ("The house systems"); the rationale in
    [ADR-013](./DECISIONS/013-one-system-per-job.md).
+5. **One accent language.** Mint means the answer or active path. Amber means
+   something moved or needs attention. Red is reserved for destructive or
+   genuinely failed states. Compatibility names such as `violet-*` and
+   `.aurora-*` may remain in code, but they resolve to Mindmake mint.
 
 ---
 
@@ -50,7 +54,7 @@ Two independent, persisted switches applied as attributes on `<html>`:
 | Ambient (experimental) | on \| off | `data-ambient="off"` | `src/lib/theme.ts` |
 
 - **`system`** live-follows the OS colour scheme; **light/dark** force it.
-- **Ambient off** disables the experimental "Living Canvas" layer (aurora field
+- **Ambient off** disables the experimental presence layer (moving light
   + grain + mood), leaving a clean, flat adaptive light/dark.
 - Reachable three ways: the **desktop sidebar footer**, the **mobile "More"
   drawer → Appearance row**, and **⌘K → Appearance**. All go through
@@ -62,16 +66,16 @@ Two independent, persisted switches applied as attributes on `<html>`:
 ### The keystone convention — `--fg`
 
 Tailwind's `white` is remapped to `rgb(var(--fg) / <alpha-value>)`. `--fg` is
-`255 255 255` in dark and **`0 0 0` (pure black, NOT `--ink`)** in light.
+Mindmake off-white in dark and the compatibility black channel on paper.
 **This single lever makes the thousands of existing `text-white/60`,
 `bg-white/[0.05]`, `border-white/10` utilities theme-adaptive with no per-file
-edits.** Pure black is deliberate: every muted tier is an opacity of `--fg`, and
-those ratios were tuned for white-on-obsidian. Inverted onto pale paper the same
-opacity reads washed out, so true black lifts every tier at once.
+edits.** Every muted tier is an opacity of `--fg`, and both channel values are
+tested against their actual ground.
 
 **Contributor rules that follow from this:**
-- `text-white/NN`, `bg-white/NN`, `border-white/NN` are theme-adaptive — use
-  them freely for foreground text, tints, and hairlines.
+- `bg-white/NN` and `border-white/NN` are theme-adaptive tints and hairlines.
+  `text-white/NN` is supported compatibility syntax, but new actionable copy
+  uses `text-strong`, `text-muted` or `text-faint` so hierarchy is explicit.
 - Need text that stays **pure white on a coloured fill** (e.g. on an accent
   button)? Use `text-[#fff]`, not `text-white`.
 - Need a high-emphasis **inverted** button (white-on-dark by night,
@@ -85,8 +89,8 @@ opacity reads washed out, so true black lifts every tier at once.
   Intel) plus the critical alert banner rendered dark-on-dark in daylight
   (2026-08-30). The whole `*-300` accent tier had the same shape: 9-11:1 on
   obsidian, 1.6-2.0:1 on paper, and 467 of its 489 uses are text.
-- **Colour used as TEXT must be legible on both grounds** — obsidian `#08070D`
-  and paper `#F2F1F8`. Either give it a channel (dark keeps its hex, light takes
+- **Colour used as TEXT must be legible on both grounds** — ink `#0A100D`
+  and paper `#F2F1EA`. Either give it a channel (dark keeps its hex, light takes
   the deep `--ac-*` value, as `--s300-*` does) or do not use it as text. A fixed
   mid-tone that clears both is fine and several are deliberate: the `command`
   semantics and the `*-400` fill tier.
@@ -106,33 +110,36 @@ and `:root[data-theme='light']` (day), mapped into semantic Tailwind names in
 ### Colour
 | Token | Dark | Light | Tailwind |
 |---|---|---|---|
-| `--bg-base` | `#08070D` obsidian | `#F2F1F8` lavender paper | `bg-base` |
-| `--bg-sunk` | `#060509` | `#E9E8F2` | `bg-sunk` |
-| `--ink` / muted / faint | `#ECEAF5` / `#A7A3B8` / `#6E6A80` | `#171521` / `#585466` / `#8A8598` | `text-ink` / `text-ink-muted` / `text-ink-faint` |
-| `--fg` (white remap) | `255 255 255` | `0 0 0` | `*-white/NN` |
-| `--accent` / `-2` / `-3` (aurora) | muted violet → indigo → teal | deepened for paper | `text-accent`, `.aurora-*` |
+| `--bg-base` | `#0A100D` Mindmake ink | `#F2F1EA` warm paper | `bg-base` |
+| `--bg-sunk` | `#070C0A` | `#E8E6DC` | `bg-sunk` |
+| `--ink` / muted / faint | `#E6EDE8` / `#B0C0B7` / `#788C82` | `#131C17` / `#4A554E` / `#7C857A` | `text-ink` / `text-ink-muted` / `text-ink-faint` |
+| `--fg` (white remap) | `230 237 232` | `0 0 0` | `*-white/NN` |
+| `--accent` / `-2` | mint `#7FE3B4` / depth `#3E8E68` | paper mint `#2F6F51` | `text-accent`, `.aurora-*` |
+| `--accent-3` | amber `#E0A44A` | paper amber `#9A5A1C` | `text-accent-3` |
 
-> Light `--fg` is pure black, **not** `--ink`. Every muted tier in this app is
-> an opacity of `--fg`, and those ratios were tuned for white-on-obsidian;
-> inverted onto pale paper the same opacities read washed out. True black lifts
-> every tier at once. `index.css` is the source of truth for all of these.
+> `--fg` is the compatibility channel behind the many existing
+> `text-white/NN` utilities. It uses Mindmake off-white at night and true black
+> on paper, because low-opacity ink needs the extra luminance distance to stay
+> visible. Explicit text still uses the warmer `--ink` family.
 
-- **Brand accent cascade:** Tailwind's `violet` ramp is redefined to the aurora
-  anchor, so existing `violet-300/400/500` usages are the brand colour.
-- **Semantics preserved:** `pod` (ops cyan / revenue emerald / growth violet)
-  and `status` (needsYou amber / blocked rose / active emerald / waiting slate /
-  done gray) keep their meaning — never re-purpose these hues.
-- **Money ink:** the MRR number wears `.money-text` (emerald→cyan clip).
+- **Brand accent cascade:** Tailwind's `violet` ramp is a compatibility alias
+  for Mindmake mint, so existing `violet-300/400/500` usages inherit the new system.
+- **Semantics preserved:** `pod` and `status` keep their operational meaning,
+  with colour used sparingly and red reserved for genuine danger.
+- **Money ink:** the MRR number wears `.money-text`, a mint-only treatment.
 
 ### Material & elevation
-- `.glass-card` / `.surface` / `.surface-2` are built from per-theme card tokens
+- `.glass-card` is retained as a compatibility name. It, `.surface` and
+  `.surface-2` are built from per-theme card tokens
   (`--card-bg`, `--card-bg-a`, `--card-border-a`, `--card-hi-a`, `--card-shadow`):
-  a lit white-overlay by night, a raised near-white panel by day.
+  a solid raised instrument surface by night and a raised paper panel by day.
 - Elevation ladder `shadow-e1/e2/e3`; radii stay generous (2xl/3xl).
 
 ### Motion
 - Easings: `--ease-calm` (base), `--ease-out-soft`, `--ease-spring` (tactile
   overshoot). Gestures/keyframes documented inline in `index.css`.
+- Reduced motion suppresses animation, transition duration, active scale and
+  smooth scrolling. State changes still land immediately in their final state.
 
 ---
 
@@ -140,10 +147,10 @@ and `:root[data-theme='light']` (day), mapped into semantic Tailwind names in
 
 | Role | Family | Tailwind |
 |---|---|---|
-| Headlines, hero titles, section eyebrows, big numbers | **Bricolage Grotesque Variable** | `font-display` (auto on `h1–h6`) |
-| The "partner's voice" — morning check-in, AllClear (never on Home since the 2026-08-20 recompose) | **Fraunces Variable** (serif) | `font-serif` |
-| Body, labels, controls | **Geist Variable** | `font-sans` (default) |
-| Live tabular numbers / tickers | **Geist Mono Variable** | `font-mono tabular-nums` |
+| Headings, navigation, cards, labels and controls | **Archivo Variable** | `font-display` / `font-sans` |
+| The claim or earned payoff only | **Newsreader Variable** | `font-serif` |
+| Long-form explanation where a reading face helps | **Source Serif 4 Variable** | `font-body` |
+| Numbers, sources, timestamps and instrument labels | **IBM Plex Mono** | `font-mono tabular-nums` |
 
 Fonts are self-hosted via Fontsource (imported in `src/main.tsx`) — no external
 fetch. Role scale: 11/12/13/14/16/20/28/40/56 — **real tokens since the
@@ -163,14 +170,14 @@ One source, one weight, one rhythm — the icon counterpart of the type sweep.
 - **Every icon ships through `src/lib/icons.tsx`** — lucide glyphs wrapped
   once with `absoluteStrokeWidth` and the house stroke (`ICON_STROKE = 1.75`),
   so a 12px glyph and a 24px glyph carry the same physical line weight,
-  matched to Geist and the DrawnCheck mark. Direct `lucide-react` imports are
+  matched to Archivo and the DrawnCheck mark. Direct `lucide-react` imports are
   a CI failure (`scripts/check-icons.mts`).
 - **Sizes snap to the icon scale** 12 / 14 / 16 / 20 / 24 / 32 inside the
   wrapper (larger passes through), so call sites can stay approximate while
   the render lands on one rhythm.
 - **Active chrome steps up in weight, not just colour:** the bottom nav and
   sidebar pass `strokeWidth={2.25}` on the active tab (still absolute), on
-  top of the existing violet halo. Those two files, the FAB's 2.25, and the
+  top of the existing mint indicator. Those two files, the FAB's 2.25, and the
   sub-12px filled-checkbox Check marks (2.5) are the only sanctioned inline
   stroke widths.
 - **The circled icon is one primitive:** `<IconTile>`
@@ -179,8 +186,25 @@ One source, one weight, one rhythm — the icon counterpart of the type sweep.
 - **No text glyphs as chrome.** 🎙 💭 ‹ › and their relatives render
   differently on every platform and read as assembled; the guard fails them.
   The one sanctioned character mark is the middle dot as a separator.
-- **Identity marks are not icons:** `Logomark`, `AgentAvatar`, `DrawnCheck`
-  and the hand-drawn sparklines stay bespoke.
+- **Identity marks are not icons:** `MindmakeIdentity`, `AgentAvatar`,
+  `DrawnCheck` and the hand-drawn sparklines stay bespoke.
+
+## Responsive identity
+
+- Only the hash-pinned official Mindmake mark, Mindmake wordmark and two series
+  wordmarks may render. Recreated geometry and text substitutes are forbidden.
+- Compact identity keeps at least 24 CSS pixels of visible mark inside a
+  container of at least 36 pixels. Open mobile headers use at least 118 pixels
+  of wordmark width; desktop uses at least 140 pixels.
+- The Money of AI and Built With AI need dedicated horizontal space. At a 375
+  pixel preview their actual letter-bearing region, excluding transparent file
+  padding, must be at least 16 CSS pixels high. They are never stacked and
+  shrunk inside a square.
+- In a video, the series identity receives a short opening, ending or safe-beat
+  cue, then yields to the compact Mindmake anchor. Face, evidence and captions
+  outrank persistent branding.
+- PWA, Apple, favicon and social derivatives are generated by
+  `scripts/generate-mindmake-icons.mts` and hash-checked in CI.
 
 **The eyebrow is one primitive.** `<Eyebrow>` (`components/shared/Eyebrow.tsx`)
 is THE small-caps section label: `font-display text-micro font-semibold
@@ -220,7 +244,7 @@ each:
 
 ## Create — the one + button
 
-On a phone there is ONE way to make something new: the violet + button,
+On a phone there is ONE way to make something new: the mint + button,
 bottom-right on every tab (`components/CreateSheet.tsx`). It opens a bottom
 sheet listing the current tab's create actions first, then the two global
 captures (task, idea). Actions owned by a tab's own components are reached
@@ -253,9 +277,11 @@ Every string the product renders:
 
 ## Presence — ambient field, mood, haptics
 
-- **AmbientField** (`components/shared/AmbientField.tsx`) paints a fixed aurora
+- **AmbientField** (`components/shared/AmbientField.tsx`) paints fixed moving light
   field + fine grain *behind* content (grain also kills gradient banding). Both
   disappear when ambient is off and go static under reduced-motion.
+- Low-capacity mode reduces ambient opacity below the normal setting. It never
+  intensifies colour or motion while claiming to calm the interface.
 - **Mood** reacts to real OS state without new realtime channels: components
   register via `useMoodSource(id, mood, priority)` — `CriticalAlertBanner` cools
   the field to *tense* (priority 10), a growing MRR warms it (priority 3),
@@ -269,7 +295,7 @@ Every string the product renders:
 
 ## Shared primitives (change here, cascade everywhere)
 
-`components/shared/`: `Pressable` (aurora primary via `.aurora-btn`),
+`components/shared/`: `Pressable` (mint primary via the compatibility class `.aurora-btn`),
 `DoThisNextHero`, `AllClear` (serif), `StatusPill`, `PodChip`, `SwipeCard` /
 `SwipeDeck` / `SwipeCockpit`, `Skeleton`, `Toast`, `Modal`, `SlideOver`,
 `Eyebrow`, `IconTile`, `FocusedEditor`, `ChipOverflow`, `SegmentedNav`,
@@ -399,7 +425,7 @@ safety net in `index.html` is what makes holding the splash safe.
 
 ## The primitive layer (`src/components/ui/`)
 
-Vendored from Relume, re-skinned to Obsidian Aurora, and owned here. Relume's
+Vendored from Relume, re-skinned to Mindmake Instrument Room, and owned here. Relume's
 Tailwind preset, icon set and animation library are deliberately NOT installed:
 the preset ships a rival token system, and this config remaps `white` to the
 `--fg` channel, which is what makes the thousands of existing `text-white/NN`

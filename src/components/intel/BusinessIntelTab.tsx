@@ -78,7 +78,7 @@ export function BusinessIntelTab({ narrow }: { narrow: boolean }) {
         onClick={() => { h.select(); setBriefOpen(true) }}
         className="group mt-1 flex items-center gap-1 text-left"
       >
-        <span className="font-mono text-micro font-semibold tracking-[0.14em] text-white/40 transition-colors group-hover:text-white/70">
+        <span className="font-mono text-micro font-semibold tracking-[0.14em] text-white/60 transition-colors group-hover:text-white/80">
           {dateline}
         </span>
         <ChevronRight size={11} className="text-white/30 transition-colors group-hover:text-white/60" aria-hidden />

@@ -46,12 +46,17 @@ const PUBLIC_STATIC = new Set([
   '/manifest.webmanifest',
   '/favicon.ico',
   '/favicon.png',
+  '/favicon-16.png',
   '/favicon-32.png',
+  '/favicon-48.png',
   '/favicon-180.png',
   '/apple-touch-icon.png',
   '/icon-192.png',
   '/icon-512.png',
   '/icon-maskable-512.png',
+  '/mindmake-mark.svg',
+  '/mindmake-wordmark.svg',
+  '/mindmake-og.png',
 ])
 
 async function sha256Hex(input: string): Promise<string> {
@@ -71,43 +76,57 @@ function unlockPage(showError: boolean): Response {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="robots" content="noindex" />
+<meta property="og:title" content="Mindmake · Control Center" />
+<meta property="og:description" content="Decisions without admin. An AI operations command centre." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://control-center-mindmaker.vercel.app/" />
+<meta property="og:image" content="https://control-center-mindmaker.vercel.app/mindmake-og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Mindmake" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://control-center-mindmaker.vercel.app/mindmake-og.png" />
 <title>Mindmake · Control Center</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body {
-    background: #0a0a0b; color: #fafafa;
+    background: #0a100d; color: #e6ede8;
     font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     display: flex; align-items: center; justify-content: center; padding: 24px;
   }
-  .card { width: 100%; max-width: 340px; text-align: center; }
-  .logo {
-    width: 56px; height: 56px; border-radius: 14px; margin: 0 auto 20px;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 22px; color: #fff;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+  .card {
+    width: 100%; max-width: 360px; text-align: center; padding: 30px;
+    background: #111a16; border: 1px solid #22322b; border-radius: 24px;
+    box-shadow: 0 28px 80px -40px rgba(0,0,0,.9), inset 0 1px rgba(230,237,232,.04);
   }
-  h1 { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
-  .sub { color: #8a8a90; font-size: 13px; margin: 0 0 24px; }
+  .logo {
+    display: block; width: 58px; height: 52px; object-fit: contain; margin: 0 auto 22px;
+    filter: drop-shadow(0 10px 22px rgba(0,0,0,.45));
+  }
+  h1 { font-size: 20px; letter-spacing: -.02em; font-weight: 700; margin: 0 0 6px; }
+  .sub { color: #b0c0b7; font-size: 13px; margin: 0 0 24px; }
   input {
     width: 100%; padding: 12px 14px; border-radius: 10px;
-    background: #161618; border: 1px solid #2a2a2e; color: #fafafa;
+    background: #0a100d; border: 1px solid #30463d; color: #e6ede8;
     font-size: 16px; outline: none; text-align: center;
   }
-  input:focus { border-color: #6366f1; }
+  input:focus-visible { border-color: #7fe3b4; box-shadow: 0 0 0 3px rgba(127,227,180,.14); }
   button {
     width: 100%; margin-top: 12px; padding: 12px 14px; border: 0; border-radius: 10px;
-    background: #6366f1; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+    background: #7fe3b4; color: #0a100d; font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: transform 120ms ease, filter 120ms ease;
   }
-  button:hover { background: #5457e5; }
-  .err { color: #f87171; font-size: 13px; margin: 14px 0 0; }
+  button:hover { filter: brightness(1.04); }
+  button:active { transform: translateY(1px) scale(.99); }
+  button:focus-visible { outline: 2px solid #7fe3b4; outline-offset: 3px; }
+  .err { color: #e0a44a; font-size: 13px; margin: 14px 0 0; }
 </style>
 </head>
 <body>
   <form class="card" method="POST" action="${UNLOCK_PATH}">
-    <div class="logo">M</div>
+    <img class="logo" src="/mindmake-mark.svg" alt="Mindmake" />
     <h1>Control Center</h1>
     <p class="sub">Enter your access code to continue.</p>
     <input name="code" type="password" autocomplete="current-password"

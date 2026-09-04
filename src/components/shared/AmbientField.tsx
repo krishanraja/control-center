@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 
 /**
- * AmbientField — the Obsidian Aurora "presence" layer.
+ * AmbientField — Mindmake's instrument-room presence layer.
  *
  * Two fixed, pointer-inert layers painted *behind* all content:
  *   • the aurora field — a slow, blurred aurora that reads as the system
@@ -26,11 +26,12 @@ export function AmbientField() {
 
 export type Mood = 'calm' | 'warm' | 'tense'
 
-// Channel triples (space-separated RGB) matching the index.css :root defaults.
+// Mint means answer; amber means something moved or needs attention. The field
+// changes temperature without introducing a competing third accent system.
 const MOOD: Record<Mood, [string, string, string]> = {
-  calm:  ['139 124 246', '99 102 241', '34 211 238'],  // violet · indigo · cyan — steady state
-  warm:  ['52 211 153', '139 124 246', '250 204 21'],  // emerald · violet · gold — the money is up
-  tense: ['251 113 133', '99 102 241', '139 124 246'], // rose · indigo · violet — something's on fire
+  calm:  ['127 227 180', '62 142 104', '47 111 81'],
+  warm:  ['127 227 180', '224 164 74', '62 142 104'],
+  tense: ['224 164 74', '154 90 28', '62 142 104'],
 }
 
 /** Shift the ambient mood app-wide. Cheap: sets three CSS vars on <html>. */

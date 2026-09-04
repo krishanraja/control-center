@@ -73,7 +73,7 @@ export function CriticalAlertBanner() {
     >
       <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-status-blocked" aria-hidden />
       <AlertTriangle size={16} className="flex-shrink-0 text-status-blocked" aria-hidden />
-      <span className="flex-shrink-0 text-micro font-semibold uppercase tracking-[0.14em] text-status-blocked">
+      <span className="flex-shrink-0 text-micro font-semibold uppercase tracking-[0.14em] text-rose-300">
         Critical
       </span>
       <span className="min-w-0 flex-1 truncate text-body text-white/90">{line}</span>

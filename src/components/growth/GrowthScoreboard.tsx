@@ -298,7 +298,7 @@ function LogCountsSheet({ onClose }: { onClose: () => void }) {
             inputMode="numeric"
             value={values[c.key] ?? ''}
             onChange={e => setValues(v => ({ ...v, [c.key]: e.target.value }))}
-            className="w-28 bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-right tabular-nums text-white/85 focus:outline-none focus:border-white/25"
+            className="w-28 bg-sunk border border-white/10 rounded-lg px-2 py-1 text-right tabular-nums text-white/85 focus:outline-none focus:border-white/25"
             placeholder="count"
           />
         </label>

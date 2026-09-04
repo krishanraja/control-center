@@ -8,7 +8,7 @@ import { IntelDoor } from '../home/IntelDoor'
 import { SignalsDoor } from '../home/SignalsDoor'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DueTestsCard } from '../pilot/DueTestsCard'
-import { Logomark } from './Logomark'
+import { MindmakeIdentity } from '../shared/MindmakeIdentity'
 import { useAltitudes } from '../../hooks/useAltitudes'
 import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { useSpend, spendAlert } from '../../hooks/useSpend'
@@ -43,7 +43,7 @@ export function MobileHome({ onNavigate }: {
   if (firstPaint) {
     return (
       <div className={frame}>
-        <div className="shrink-0 mb-4"><Logomark size={30} /></div>
+        <div className="shrink-0 mb-4"><MindmakeIdentity size={36} testId="mobile-home-identity" /></div>
         <HomeSkeleton narrow />
       </div>
     )
@@ -55,7 +55,7 @@ export function MobileHome({ onNavigate }: {
     <div className={frame}>
       {/* Compact header: identity + the vitals line share one band. */}
       <div className="shrink-0 flex items-start gap-3 mb-2">
-        <div className="pt-[2px]"><Logomark size={26} /></div>
+        <div className="pt-[2px]"><MindmakeIdentity size={36} testId="mobile-home-identity" /></div>
         <div className="flex-1 min-w-0"><VitalsLine onNavigate={onNavigate} compact /></div>
       </div>
 

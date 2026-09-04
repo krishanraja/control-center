@@ -40,7 +40,7 @@ export const TOKEN_TONE: Record<QuestionTone, string> = {
   ok: 'text-emerald-300',
   warn: 'text-amber-300',
   bad: 'text-rose-300',
-  quiet: 'text-white/35',
+  quiet: 'text-white/60',
 }
 
 const usd = (n: number): string => `$${Math.round(n).toLocaleString('en-US')}`

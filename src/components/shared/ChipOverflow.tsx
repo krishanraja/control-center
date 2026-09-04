@@ -94,7 +94,7 @@ export function ChipOverflow({
           onClick={() => { setQ(''); setOpen(true) }}
           data-testid={`${testIdPrefix}-more`}
           aria-label={`${title}: ${hidden.length} more`}
-          className="min-h-[30px] rounded-full border border-dashed border-white/15 px-2.5 text-label font-semibold text-white/45 transition-colors hover:border-white/30 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
+          className="min-h-[30px] rounded-full border border-dashed border-white/15 px-2.5 text-label font-semibold text-white/60 transition-colors hover:border-white/30 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50"
         >
           +{hidden.length}
         </button>
@@ -199,7 +199,7 @@ export function Chip({ on, onClick, children, testId, disabled, tone = 'accent' 
       aria-pressed={on}
       data-testid={testId}
       className={`min-h-[30px] rounded-full border px-2.5 text-label font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 disabled:opacity-50 ${
-        on ? onClass : 'border-white/10 text-white/50 hover:border-white/20 hover:text-white/80'}`}
+        on ? onClass : 'border-white/10 text-white/60 hover:border-white/20 hover:text-white/80'}`}
     >
       {children}
     </button>

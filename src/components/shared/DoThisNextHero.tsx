@@ -9,7 +9,7 @@ import { Working } from './Working'
  * identical everywhere so the whole app feels like one product.
  *
  * Calm & Anticipatory: while there's something to do, this is the one focal
- * surface — it breathes with a slow violet halo so the eye lands on it without a
+ * surface — it breathes with a slow mint halo so the eye lands on it without a
  * single hard cue, and the rest of the screen stays still. When the next thing
  * changes, the new instruction rises in rather than snapping. When you're clear,
  * the bar exhales into a quiet, settled state.

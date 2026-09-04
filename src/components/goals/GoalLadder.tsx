@@ -279,7 +279,7 @@ export function GoalLadder({ variant = 'desktop' }: {
               type="button"
               onClick={() => openAdd('os')}
               aria-label="Add an OS goal"
-              className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-micro font-semibold text-white/35 hover:text-violet-200 transition-colors"
+              className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-micro font-semibold text-ink-muted hover:text-violet-200 transition-colors"
             >
               <Plus size={10} /> Add
             </button>
@@ -350,7 +350,7 @@ export function GoalLadder({ variant = 'desktop' }: {
               type="button"
               onClick={() => openAdd('weekly')}
               aria-label="Add a weekly objective"
-              className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-micro font-semibold text-white/35 hover:text-violet-200 transition-colors"
+              className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-micro font-semibold text-ink-muted hover:text-violet-200 transition-colors"
             >
               <Plus size={10} /> Add
             </button>
