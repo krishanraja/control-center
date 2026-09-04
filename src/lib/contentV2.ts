@@ -2,6 +2,8 @@
 // Flag-gated: the four-room Content tab replaces triage only when
 // VITE_CONTENT_V2_ENABLED is true at build time.
 
+import { publicSeriesLabel } from './publicSeries'
+
 export function contentV2Enabled(): boolean {
   return String(import.meta.env.VITE_CONTENT_V2_ENABLED) === 'true'
 }
@@ -184,8 +186,8 @@ export const VERDICT_LABEL: Record<ShiftVerdict, string> = {
 export const FACTORY_FANOUT: Array<{ channel: string; label: string; short: string; defaultOn: boolean }> = [
   // channel values are the n8n Omnichannel Content Factory wire contract and
   // stay stable; only the labels moved to the canon channel names (2026-08-29).
-  { channel: 'paid', label: 'The Money of AI', short: 'Money of AI', defaultOn: true },
-  { channel: 'built', label: 'Built with AI', short: 'Built with AI', defaultOn: false },
+  { channel: 'paid', label: publicSeriesLabel('paid'), short: publicSeriesLabel('paid'), defaultOn: true },
+  { channel: 'built', label: publicSeriesLabel('built'), short: publicSeriesLabel('built'), defaultOn: false },
   { channel: 'linkedin', label: 'LinkedIn post', short: 'LinkedIn', defaultOn: true },
   { channel: 'signal_noise', label: 'Signal & Noise', short: 'Signal & Noise', defaultOn: false },
 ]

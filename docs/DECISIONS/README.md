@@ -21,13 +21,15 @@
 | [004](./004-agent-id-rename.md) | Renaming `workflow_runs.agent` → `agent_id` and `started_at` → `run_at` | Accepted |
 | [005](./005-pipeline-first-home.md) | Pipeline-first Home | Accepted |
 | [006](./006-leads-and-ideas-inbox.md) | Leads tab + Content Ideas inbox | Accepted |
-| [007](./007-obsidian-aurora-design-system.md) | Obsidian Aurora design system + adaptive light/dark theming | Accepted |
+| [007](./007-obsidian-aurora-design-system.md) | Obsidian Aurora design system + adaptive light/dark theming | Superseded by ADR-015 |
 | [008](./008-security-hardening-and-auth-rls-scope.md) | DB security hardening now; auth + RLS deferred, scoped | Accepted |
 | [009](./009-compound-isolated-application-boundary.md) | COMPOUND isolated application boundary | Accepted |
 | [010](./010-vendored-primitive-layer.md) | Vendor Relume's primitives, reject its design system | Accepted |
 | [011](./011-contact-intelligence-sibling-table.md) | Network judgment layer is a sibling table, not columns on `contacts` | Accepted |
 | [012](./012-one-goal-canon-home-recompose.md) | One goal canon; Home recomposed around it | Accepted |
 | [013](./013-one-system-per-job.md) | One system per job: the phone-first recomposition locked as canon | Accepted |
+| [014](./014-video-engine-control-and-media-authority.md) | Video Engine control plane and media authority | Accepted |
+| [015](./015-mindmake-instrument-room.md) | Mindmake Instrument Room across Control Center and Video Engine | Accepted |
 
 ---
 

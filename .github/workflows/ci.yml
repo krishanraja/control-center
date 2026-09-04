@@ -27,6 +27,11 @@ jobs:
       # to the api tree's NodeNext resolution (which flagged 23 non-bugs).
       - run: npm run typecheck:scripts
       - run: npx tsx scripts/check-video-studio-export.mts
+      # Video Engine commands cross an authenticated cloud-to-runner boundary.
+      # Keep fail-closed auth, exact lineage, recovery and media-separation
+      # invariants executable on every change rather than relying on review.
+      - run: npx tsx scripts/check-video-studio-control-plane.mts
+      - run: npx tsx scripts/check-video-studio-command-security.mts
       - run: npx tsx scripts/check-content-seed-security.mts
       # Structural invariants. These guard shapes the type checker cannot see:
       # that one component owns goal entry AND goal display, and that the SMART
@@ -133,6 +138,11 @@ jobs:
       # the property rather than the mechanism, so deliberate fixed mid-tones
       # pass and only genuinely one-sided colours fail.
       - run: npx tsx scripts/check-theme-tokens.mts
+      # Control Center and the Video Engine share the Mindmake instrument-room
+      # identity. Hold the exact official mark, four type roles, palette anchors
+      # and shared chrome so a local purple/fake-logo fork cannot creep back in.
+      - run: npx tsx scripts/check-mindmake-design.mts
+      - run: npx tsx scripts/check-mindmake-gate.mts
       # Ten workflow mirrors carried the live Supabase service-role key in
       # plaintext for months. That key bypasses RLS on every table, including
       # contact_intelligence, which is service-role-only precisely because it

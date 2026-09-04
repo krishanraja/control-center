@@ -1,6 +1,12 @@
 import React from 'react'
 import { FeedbackButton, type FeedbackSurface } from '../shared/FeedbackButton'
+import { MindmakeIdentity } from '../shared/MindmakeIdentity'
 import { usePressable } from '../shared/usePressable'
+import { MobileShell } from './MobileShell'
+
+// Compatibility export while call sites converge. There is one implementation,
+// in MobileShell.tsx, including scroll mode, footer, refresh and safe-area rules.
+export { MobileShell, BOTTOM_NAV_PAD } from './MobileShell'
 
 /**
  * Mobile-native primitives — thumb-scale, fills the viewport.
@@ -10,48 +16,6 @@ import { usePressable } from '../shared/usePressable'
  * All tap targets stay ≥ 48dp.
  */
 
-// BottomNav is ~108-120px tall including safe area (taller buttons for thumb
-// reach). Exported so the second shell (MobileShell.tsx, with pull-to-refresh)
-// reserves identical space.
-// The clearance was originally sized up to 152px so the last card also passed
-// the floating pilot dock. The dock is gone (its actions live on the Focus &
-// Purpose tab now); the extra ~30px stays as scroll-tail breathing room, which
-// costs nothing and keeps the final row comfortably clear of the nav.
-export const BOTTOM_NAV_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+152px)]'
-
-/**
- * Full-height column: h-full against the nearest definite-height ancestor
- * (the zoom root directly, or a tab's own flex frame when a switcher row
- * sits above the shell — claiming a fresh 100dvh here used to push every
- * OS/People subtab ~60px past the clip box). Content area is a flex column
- * with gap-5 so fill={true} children actually grow (margin-based space-y-*
- * defeats flex-1). Cards run flush to the viewport edge — section labels and
- * prose carry their own horizontal padding when they need a gutter.
- */
-export function MobileShell({
-  header,
-  children,
-}: {
-  header?: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <div className="flex flex-col h-full">
-      {header && <div className="px-5 pt-7 pb-5 flex-shrink-0">{header}</div>}
-      {/* data-testid: the e2e suite measures scrollHeight against
-          clientHeight here to pin per-tab scroll budgets (the Business
-          Intelligence console must fit two screen-lengths on a phone). */}
-      <div
-        data-testid="tab-scroll"
-        className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 scrollbar-hide ${BOTTOM_NAV_PAD}`}
-      >
-        {children}
-      </div>
-    </div>
-  )
-}
-
-import { Logomark } from './Logomark'
 import { MobileTabSkeleton, Skeleton } from '../shared/Skeleton'
 
 /**
@@ -94,7 +58,7 @@ export function TabHeader({
    *  on a phone. Opt-in so the twelve short titles keep their guarantee. */
   wrap?: boolean
 }) {
-  const resolvedLeading = leading === undefined ? <Logomark size={40} /> : leading
+  const resolvedLeading = leading === undefined ? <MindmakeIdentity size={40} /> : leading
   return (
     <div className="flex items-end justify-between gap-3">
       {resolvedLeading && <div className="flex-shrink-0 self-start mt-1">{resolvedLeading}</div>}
@@ -147,7 +111,7 @@ export function HeroCard({
   // calm, theme-adaptive CTA (btn-contrast) for every accent. Keeps Aurora's
   // serif display type + soft elevation.
   const accentBar: Record<string, string> = {
-    violet:  'bg-pod-growth',
+    violet:  'bg-violet-400',
     amber:   'bg-status-needsYou',
     emerald: 'bg-status-active',
     red:     'bg-status-blocked',
@@ -173,7 +137,7 @@ export function HeroCard({
         {title}
       </p>
       {detail && (
-        <p className="text-ui text-white/60 mt-3 leading-[1.45] line-clamp-3">
+        <p className="font-body text-ui text-white/60 mt-3 leading-[1.45] line-clamp-3">
           {detail}
         </p>
       )}
@@ -296,7 +260,7 @@ export function FeedRow({
             {title}
           </p>
           {detail && (
-            <p className="text-ui text-white/55 mt-1 leading-[1.45] line-clamp-2">
+            <p className="font-body text-ui text-white/55 mt-1 leading-[1.45] line-clamp-2">
               {detail}
             </p>
           )}

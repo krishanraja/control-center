@@ -39,8 +39,8 @@ const bad = (m: string) => { console.log('FAIL: ' + m); fail++ }
 const CONFIG = readFileSync('tailwind.config.js', 'utf8')
 
 // The two page grounds a fixed colour has to survive, from the :root blocks.
-const OBSIDIAN: RGB = [8, 7, 13]      // --bg-base, dark
-const PAPER: RGB = [242, 241, 248]    // --bg-base, light
+const OBSIDIAN: RGB = [10, 16, 13]    // --bg-base, dark
+const PAPER: RGB = [242, 241, 234]    // --bg-base, light
 const FLOOR = 2.0                     // matches e2e/theme-contrast.spec.ts
 
 type RGB = [number, number, number]

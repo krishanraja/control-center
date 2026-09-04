@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react'
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ToastProvider } from './components/shared/Toast'
 import { AmbientField } from './components/shared/AmbientField'
@@ -17,9 +17,11 @@ import { EveningShutdown } from './components/pilot/EveningShutdown'
 import { VALID_TAB_IDS } from './lib/tabs'
 import { useHashRoute } from './hooks/useHashRoute'
 import { contentV2Enabled } from './lib/contentV2'
+import { videoEngineEnabled } from './lib/videoStudio'
 import { isTypingTarget } from './lib/hotkeys'
 import { BOTTOM_NAV_PAD } from './components/mobile/primitives'
 import { MobileTabSkeleton, BoardSkeleton, SkeletonDetail, DeferredFallback } from './components/shared/Skeleton'
+import { useReducedMotion } from './components/shared/motion'
 
 /**
  * Route surfaces are code-split: each tab is its own chunk, fetched on demand,
@@ -38,6 +40,7 @@ const MobileHome = lazy(() => import('./components/mobile/MobileHome').then(m =>
 const MobileCustomers = lazy(() => import('./components/mobile/MobileCustomers').then(m => ({ default: m.MobileCustomers })))
 const MobileContent = lazy(() => import('./components/mobile/MobileContent').then(m => ({ default: m.MobileContent })))
 const ContentComposer = lazy(() => import('./components/content/ContentComposer').then(m => ({ default: m.ContentComposer })))
+const VideoEngineReviewer = lazy(() => import('./components/video-studio/VideoEngineReviewer').then(m => ({ default: m.VideoEngineReviewer })))
 // Content Engine v2 (docs/CONTENT-ENGINE-V2-SPEC.md): the four-room Content tab
 // + the weekly-brief editor. Both flag-gated; the legacy triage surfaces render
 // untouched when VITE_CONTENT_V2_ENABLED is off.
@@ -139,7 +142,25 @@ export default function App() {
   const [narrow, setNarrow] = useState(detectIsMobile)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [inboxOpen, setInboxOpen] = useState(false)
+  const videoEngineOn = videoEngineEnabled()
+  const videoReviewOpen = tab === 'content' && videoEngineOn && Boolean(route.params.video)
+  const mainRef = useRef<HTMLElement>(null)
+  const reducedMotion = useReducedMotion()
 
+  useEffect(() => {
+    if (tab === 'content' && route.params.video && !videoEngineOn) navigate('content')
+  }, [navigate, route.params.video, tab, videoEngineOn])
+
+  // The reviewer is a true modal surface. Keep the mounted Content queue in
+  // place for focus restoration, but remove it from pointer, keyboard and
+  // accessibility navigation while the exact review owns the viewport.
+  useEffect(() => {
+    const main = mainRef.current
+    if (!main) return
+    if (videoReviewOpen) main.setAttribute('inert', '')
+    else main.removeAttribute('inert')
+    return () => main.removeAttribute('inert')
+  }, [videoReviewOpen])
   useEffect(() => {
     const onResize = () => setNarrow(detectIsMobile())
     window.addEventListener('resize', onResize)
@@ -175,14 +196,14 @@ export default function App() {
   const handleTab = (id: string) => {
     const normalised = id === 'execution' ? 'exec' : id
     navigate(normalised)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
   }
 
   // A deep-linked brief editor or content composer takes over the whole screen
   // (mirrors the render conditions below). While one is open we suppress the
   // BottomNav so it can't overlap the overlay's own bars on mobile.
   const fullScreenOverlayOpen = tab === 'content'
-    && Boolean(route.params.idea || (contentV2Enabled() && route.params.brief))
+    && Boolean(videoReviewOpen || route.params.idea || (contentV2Enabled() && route.params.brief))
 
   // Which Growth section a deep link opens on. Undefined means "leave it where
   // the user left it", so clicking a lane chip (which writes ?lane=) never
@@ -203,12 +224,12 @@ export default function App() {
         >
         <div className="h-[100dvh] overflow-hidden text-ink flex flex-row">
           <AmbientField />
-          {!narrow && <DesktopSidebar active={tab} onChange={handleTab} />}
+          {!narrow && !videoReviewOpen && <DesktopSidebar active={tab} onChange={handleTab} />}
           {/* No-scroll app shell: the window never scrolls. main is a fixed,
               non-scrolling region; each tab owns its inner scroll — mobile via its
               h-[100dvh] MobileShell, desktop via a contained-scroll wrapper (or the
               Content tab's AppFrame). Chrome (sidebar / bottom nav) stays put. */}
-          <main className="flex-1 min-w-0 overflow-hidden">
+          <main ref={mainRef} aria-hidden={videoReviewOpen || undefined} className="flex-1 min-w-0 overflow-hidden">
             {narrow ? (
               // Mobile zoom: render the whole mobile experience 20% larger than
               // design size. `zoom` scales px + rem uniformly (this codebase uses
@@ -305,7 +326,7 @@ export default function App() {
               full-screen surface, so without the wrapper it renders at native
               size, noticeably smaller than every tab. Same zoom+--z contract
               as mobile-zoom-root; the composer's fixed containers size off --z. */}
-          {tab === 'content' && (route.params.idea || (contentV2Enabled() && route.params.brief)) && (
+          {tab === 'content' && !route.params.video && (route.params.idea || (contentV2Enabled() && route.params.brief)) && (
             <div style={narrow ? ({ zoom: 1.2, ['--z']: '1.2' } as React.CSSProperties) : undefined}>
               <ErrorBoundary label="Composer">
                 {/* A deep-linked full-screen takeover fetching its own chunk
@@ -318,6 +339,18 @@ export default function App() {
                     narrow={narrow}
                     onClose={() => navigate('content')}
                   />
+                </Suspense>
+              </ErrorBoundary>
+            </div>
+          )}
+          {/* A Video Engine review is a full-screen, single-decision surface.
+              It takes priority over stale composer params and uses the same
+              live mobile zoom contract as every other App-root takeover. */}
+          {tab === 'content' && videoEngineOn && route.params.video && (
+            <div style={narrow ? ({ zoom: 1.2, ['--z']: '1.2' } as React.CSSProperties) : undefined}>
+              <ErrorBoundary label="Video Engine">
+                <Suspense fallback={<DeferredFallback><SkeletonDetail full /></DeferredFallback>}>
+                  <VideoEngineReviewer reviewId={route.params.video} onClose={() => navigate('content')} />
                 </Suspense>
               </ErrorBoundary>
             </div>

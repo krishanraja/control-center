@@ -618,7 +618,7 @@ function MarcusPickRow({
             rows={2}
             autoFocus
             placeholder="e.g. wrong category, already shipping, low ROI on this lead profile…"
-            className="w-full bg-black/30 border border-white/[0.10] rounded-md px-2.5 py-1.5 text-label text-white placeholder:text-white/25 focus:border-rose-400/40 focus:outline-none resize-none disabled:opacity-60"
+            className="w-full bg-sunk border border-white/[0.10] rounded-md px-2.5 py-1.5 text-label text-white placeholder:text-white/25 focus:border-rose-400/40 focus:outline-none resize-none disabled:opacity-60"
           />
           <div className="flex items-center justify-end gap-2">
             <button
@@ -677,7 +677,7 @@ function SelectedSlot({
             type="text"
             value={pick.text}
             onChange={(e) => onChangeText(e.target.value)}
-            className="w-full bg-black/30 border border-white/[0.08] rounded-md px-3 py-2 text-body text-white focus:border-violet-400/50 focus:outline-none"
+            className="w-full bg-sunk border border-white/[0.08] rounded-md px-3 py-2 text-body text-white focus:border-violet-400/50 focus:outline-none"
           />
         )}
       </div>
@@ -753,7 +753,7 @@ function CustomTextarea({ value, onChange }: { value: string; onChange: (v: stri
         onChange={(e) => onChange(e.target.value)}
         placeholder="What would shipping this look like by EOD?"
         rows={2}
-        className="w-full bg-black/30 border border-white/[0.08] rounded-md px-3 py-2 pr-10 text-body text-white placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none resize-none"
+        className="w-full bg-sunk border border-white/[0.08] rounded-md px-3 py-2 pr-10 text-body text-white placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none resize-none"
       />
       {canRecord && (
         <button

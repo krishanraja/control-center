@@ -395,7 +395,7 @@ function Problem({ title, detail, alert, alertSent, children }: {
           <p className="text-label font-semibold text-rose-100">{title}</p>
           {detail && <p className="mt-0.5 text-label leading-relaxed text-rose-100/75">{detail}</p>}
           {alert && (
-            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-md border border-rose-400/20 bg-black/20 px-2 py-1.5 text-micro leading-relaxed text-rose-100/80">
+            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-md border border-rose-400/20 bg-sunk px-2 py-1.5 text-micro leading-relaxed text-rose-100/80">
               {alert}
             </pre>
           )}

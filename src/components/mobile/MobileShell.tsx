@@ -1,7 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react'
-import { BOTTOM_NAV_PAD } from './primitives'
 import { useReducedMotion } from '../shared/motion'
 import { useHaptics } from '../../hooks/useHaptics'
+
+// The navigation instrument occupies roughly 82px including its safe-area
+// inset. The global create control sits just above it and reaches to about
+// 148px, so 152px is the shared scroll-tail clearance for both controls.
+export const BOTTOM_NAV_PAD = 'pb-[calc(env(safe-area-inset-bottom,0px)+152px)]'
 
 interface Props {
   header?: React.ReactNode
@@ -93,7 +97,7 @@ export function MobileShell({ header, children, onRefresh, scroll = 'auto', foot
           <div
             className="w-6 h-6 rounded-full border-2 border-white/20 border-t-white/80"
             style={{
-              animation: refreshing ? 'spin 0.8s linear infinite' : 'none',
+              animation: refreshing && !reduced ? 'spin 0.8s linear infinite' : 'none',
               transform: refreshing ? 'none' : `rotate(${pullDist * 4}deg)`,
             }}
           />
@@ -110,10 +114,11 @@ export function MobileShell({ header, children, onRefresh, scroll = 'auto', foot
       ) : (
         <section
           ref={ref}
+          data-testid="tab-scroll"
           className={`flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 scrollbar-hide ${BOTTOM_NAV_PAD}`}
           style={{
             transform: pullDist > 0 ? `translateY(${pullDist}px)` : undefined,
-            transition: startY.current == null ? 'transform 180ms ease' : 'none',
+            transition: reduced || startY.current != null ? 'none' : 'transform 180ms ease',
           }}
         >
           {children}

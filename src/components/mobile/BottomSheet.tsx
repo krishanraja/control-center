@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react'
 import { Dialog, DialogContent, DialogSrTitle } from '@/components/ui/dialog'
 import { useHaptics } from '../../hooks/useHaptics'
+import { useReducedMotion } from '../shared/motion'
 
 interface Props {
   open: boolean
@@ -34,6 +35,7 @@ export function BottomSheet({ open, onClose, children, fullHeight = true, ariaLa
   const [dragY, setDragY] = useState(0)
   const startY = useRef<number | null>(null)
   const h = useHaptics()
+  const reducedMotion = useReducedMotion()
 
   const onTouchStart = (e: React.TouchEvent) => { startY.current = e.touches[0].clientY }
   const onTouchMove = (e: React.TouchEvent) => {
@@ -58,7 +60,9 @@ export function BottomSheet({ open, onClose, children, fullHeight = true, ariaLa
         className={`z-[70] flex flex-col ${fullHeight ? 'h-[calc(92vh/var(--z,1))]' : ''}`}
         style={{
           transform: `translate(-50%, ${dragY}px)`,
-          transition: startY.current == null ? 'transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
+          transition: reducedMotion || startY.current != null
+            ? 'none'
+            : 'transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)',
         }}
       >
         <DialogSrTitle>{ariaLabel || 'Detail'}</DialogSrTitle>

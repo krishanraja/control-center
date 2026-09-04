@@ -14,19 +14,20 @@
   /* Tactile overshoot — press, commit, sheet settle. */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* ── Obsidian Aurora — the single source of colour truth ─────────────────
+  /* ── Mindmake instrument room — the single source of colour truth ───────
      Space-separated RGB channels so Tailwind can apply opacity
      (rgb(var(--accent) / <alpha>)) and a light theme is one override away. */
-  --bg-base: 8 7 13;        /* #08070D warm obsidian, faint indigo   */
-  --bg-sunk: 6 5 9;         /* #060509 deeper wells                   */
-  --ink: 236 234 245;       /* #ECEAF5 off-white, never harsh         */
-  --ink-muted: 167 163 184; /* #A7A3B8                                */
-  --ink-faint: 110 106 128; /* #6E6A80                                */
-  /* Muted for restraint — a considered instrument, not neon. Hue kept, chroma
-     pulled down; the aurora field + accents read as calm, never candy. */
-  --accent: 140 128 200;    /* muted violet — brand anchor (was #8B7CF6) */
-  --accent-2: 112 112 168;  /* muted indigo  (was #6366F1)              */
-  --accent-3: 118 162 178;  /* muted teal    (was neon cyan #22D3EE)    */
+  --bg-base: 10 16 13;      /* #0A100D Mindmake ink                  */
+  --bg-sunk: 7 12 10;       /* deeper instrument wells              */
+  --ink: 230 237 232;       /* #E6EDE8 text on ink                   */
+  --ink-muted: 176 192 183; /* #B0C0B7                                */
+  --ink-faint: 120 140 130; /* #788C82                                */
+  --accent: 127 227 180;    /* #7FE3B4 mint means answer              */
+  --accent-2: 62 142 104;   /* #3E8E68 mint depth                     */
+  --accent-3: 224 164 74;   /* #E0A44A amber means changed/attention  */
+  --action-bg: 127 227 180; /* bright surface form in both themes     */
+  --action-bg-hi: 164 232 205;
+  --action-fg: 10 16 13;
 
   /* On-tint accent text — the SECOND keystone. The light accent shades
      (text-violet-200, text-amber-200, text-emerald-100, …) are used ONLY as
@@ -34,14 +35,14 @@
      to these vars makes them light-on-dark by night and deep-on-tint by day, so
      accent text stays readable in both themes with zero per-file edits. */
   /* Muted on-tint accent text (dark). Lower chroma, hue preserved. */
-  --ac-violet: 205 200 228;  --ac-amber: 222 206 168;  --ac-emerald: 176 210 192;
+  --ac-violet: 180 240 210;  --ac-amber: 235 202 150;  --ac-emerald: 176 221 196;
   --ac-rose: 224 196 200;    --ac-sky: 190 210 224;    --ac-cyan: 182 210 216;
   --ac-indigo: 196 202 228;  --ac-fuchsia: 224 202 230; --ac-purple: 214 202 228;
   --ac-teal: 172 214 206;    --ac-orange: 224 206 180;  --ac-blue: 190 206 226;
   --ac-green: 186 216 196;   --ac-pink: 226 200 216;
 
   /* Ambient "thought-partner" field — hue drifts with OS mood. Defaults to
-     the calm violet; Home overrides via document.documentElement mood vars. */
+     Mindmake mint; Home overrides via document.documentElement mood vars. */
   --mood-1: var(--accent);
   --mood-2: var(--accent-2);
   --mood-3: var(--accent-3);
@@ -51,18 +52,19 @@
      rgb(var(--fg) / <alpha>): in dark it's white overlays as before; in light
      it flips to dark ink, so text/borders/tints read correctly on paper with
      zero per-file edits. */
-  --fg: 255 255 255;
+  --fg: 230 237 232;
   /* Legacy `command-*` surfaces, now channels so they flip with the theme.
      Same values the config carried as fixed hex until 2026-08-30. */
-  --cmd-bg: 8 7 13;          /* #08070D page ground                     */
-  --cmd-surface: 20 19 27;   /* #14131B raised control                  */
-  --cmd-card: 28 27 36;      /* #1C1B24 hover/pressed, lifts on dark    */
-  --cmd-border: 42 40 51;    /* #2A2833 hairline                        */
-  --cmd-text: 236 234 245;   /* #ECEAF5                                 */
-  /* The `*-300` accent tier. Pastels tuned for obsidian: they measure 9-11:1
+  --cmd-bg: 10 16 13;        /* #0A100D page ground                     */
+  --cmd-surface: 17 26 22;   /* #111A16 raised control                  */
+  --cmd-card: 24 36 31;      /* #18241F hover/pressed                   */
+  --cmd-border: 34 50 43;    /* #22322B hairline                        */
+  --cmd-text: 230 237 232;   /* #E6EDE8                                 */
+  /* The `*-300` accent tier. Pastels tuned for Mindmake ink: they measure 9-11:1
      here and 1.6-2.0:1 on the light paper, so as TEXT (467 of their 489 uses)
      they vanish in daylight. Dark keeps the exact hex it always had. */
-  --s300-violet: 178 169 214;  --s300-amber: 220 192 138;
+  --s300-violet: 151 235 196;  --s400-violet: 127 227 180;
+  --s300-amber: 224 180 105;
   --s300-emerald: 143 195 168; --s300-rose: 211 163 163;
   --s300-red: 211 163 163;     --s300-sky: 147 184 196;
   --s300-cyan: 147 184 196;
@@ -77,12 +79,12 @@
      obsidian, near-opaque, so a card reads as material sitting above the page.
      The gradient sheen and lit top edge below still do the "catching light"
      work, which is what the translucency was reaching for and failing at. */
-  --card-bg: 26 23 38;         /* #1A1726 raised surface, not a tint  */
-  --card-bg-a: 0.94;           /* near-opaque so cards actually separate */
-  --card-border-a: 0.08;       /* hairline alpha (over --fg)          */
-  --card-hi-a: 0.06;           /* inner top-light highlight alpha      */
+  --card-bg: 17 26 22;         /* #111A16 raised instrument surface    */
+  --card-bg-a: 0.98;           /* solid enough for evidence and copy   */
+  --card-border-a: 0.10;       /* Mindmake hairline                    */
+  --card-hi-a: 0.035;          /* restrained top-light                */
   --card-shadow: 0 1px 2px 0 rgba(0,0,0,0.35), 0 12px 40px -20px rgba(0,0,0,0.65);
-  --ambient-opacity: 0.20;     /* aurora dialled to a whisper (was 0.55) */
+  --ambient-opacity: 0.16;     /* moving light, never a coloured fog  */
 
   /* Motion timings — the single dial for the whole "calm" feel. Slower reads as
      more serene; faster as more responsive. Every animation below references
@@ -104,56 +106,58 @@
    for contrast, and elevated white panels with soft shadows. Only the tokens
    change — every surface inherits daylight for free. */
 :root[data-theme='light'] {
-  /* A faintly cool lavender paper (not stark white) so pure-white cards read as
-     raised, and the aurora wash is visible on it — the daylight face of the
-     obsidian, tied to the same violet→cyan accent. */
-  --bg-base: 242 241 248;    /* #F2F1F8 lavender paper                 */
-  --bg-sunk: 233 232 242;    /* #E9E8F2 recessed wells                 */
-  --ink: 23 21 33;           /* #171521 near-black ink                 */
-  --ink-muted: 88 84 102;    /* #585466                                */
-  --ink-faint: 138 133 152;  /* #8A8598                                */
-  --accent: 108 95 165;      /* muted violet, deepened for paper (was #6354E0) */
-  --accent-2: 96 88 158;     /* muted indigo                           */
-  --accent-3: 70 120 135;    /* muted teal   (was deep cyan #0891B2)    */
+  /* Warm paper is the daylight face of the same instrument room. */
+  --bg-base: 242 241 234;    /* #F2F1EA Mindmake paper                 */
+  --bg-sunk: 232 230 220;    /* recessed paper well                    */
+  --ink: 19 28 23;           /* #131C17 paper ink                      */
+  --ink-muted: 74 85 78;     /* #4A554E                                */
+  --ink-faint: 92 104 97;    /* #5C6861, >=4.8:1 on raised paper       */
+  --accent: 47 111 81;       /* #2F6F51 mint on paper                  */
+  --accent-2: 62 142 104;    /* #3E8E68                                */
+  --accent-3: 154 90 28;     /* #9A5A1C amber on paper                 */
+  --action-bg: 127 227 180;
+  --action-bg-hi: 164 232 205;
+  --action-fg: 10 16 13;
   /* Pure black, NOT --ink. Every muted tier in this app is an opacity of --fg
      (text-white/45, border-white/10, bg-white/[0.04]), and those ratios were
      tuned for white-on-obsidian. Inverted onto pale paper the same opacities
      read washed out: near-black at 45% measures about 4.3:1 here. True black
      lifts every tier at once, app-wide, with no per-component edits. --ink
-     stays 23 21 33 for the explicit ink utilities. */
-  --fg: 0 0 0;               /* flips every *-white/NN utility to ink   */
+     stays 19 28 23 for the explicit ink utilities. */
+  --fg: 0 0 0;                /* compatibility opacity channel; see below */
 
   /* Muted deep accent-text (light) — legible on pale tinted cards, off-neon. */
-  --ac-violet: 104 82 140;   --ac-amber: 132 100 60;   --ac-emerald: 44 108 88;
-  --ac-rose: 158 72 88;      --ac-sky: 52 104 128;     --ac-cyan: 56 108 124;
+  --ac-violet: 47 111 81;    --ac-amber: 154 90 28;    --ac-emerald: 44 108 88;
+  --ac-rose: 150 60 78;      --ac-sky: 52 104 128;     --ac-cyan: 56 108 124;
   --ac-indigo: 78 72 148;    --ac-fuchsia: 140 60 138; --ac-purple: 112 66 150;
   --ac-teal: 40 108 102;     --ac-orange: 158 82 46;   --ac-blue: 56 84 150;
   --ac-green: 52 112 76;     --ac-pink: 158 60 96;
 
-  --card-bg: 255 255 255;    /* raised panels are crisp white...        */
+  --card-bg: 251 250 245;    /* #FBFAF5 raised paper panels             */
   --card-bg-a: 1;            /* ...and fully opaque, so they separate    */
   --card-border-a: 0.16;     /* more visible hairline on paper           */
   --card-hi-a: 0;            /* no top-light on paper                    */
-  --card-shadow: 0 1px 2px 0 rgba(24,20,60,0.05), 0 10px 26px -10px rgba(24,20,60,0.16), 0 3px 8px -3px rgba(24,20,60,0.10);
-  --ambient-opacity: 0.30;   /* aurora present but restrained in daylight (was 0.9) */
+  --card-shadow: 0 1px 2px 0 rgba(10,16,13,0.05), 0 10px 26px -10px rgba(10,16,13,0.16), 0 3px 8px -3px rgba(10,16,13,0.10);
+  --ambient-opacity: 0.16;
 
   /* Daylight face of the `command-*` surfaces. A door pill is a raised control,
-     so it takes the same crisp white as a card and separates from the lavender
+     so it takes the same warm white as a card and separates from the paper
      paper by its border and shadow rather than by tint. Hover DARKENS here,
      where on obsidian it lightens: both read as "this moved toward you". */
-  --cmd-bg: 242 241 248;     /* the paper ground, matches --bg-base      */
-  --cmd-surface: 255 255 255;/* raised control, matches --card-bg        */
-  --cmd-card: 237 236 246;   /* hover/pressed, a step off white          */
-  --cmd-border: 214 212 228; /* hairline that survives on white          */
-  --cmd-text: 23 21 33;      /* near-black ink, matches --ink            */
+  --cmd-bg: 242 241 234;     /* paper ground                            */
+  --cmd-surface: 251 250 245;/* raised control                          */
+  --cmd-card: 232 230 220;   /* hover/pressed                           */
+  --cmd-border: 222 220 208; /* #DEDCD0 paper hairline                  */
+  --cmd-text: 19 28 23;      /* paper ink                               */
   /* Daylight `*-300`: the deep accent-text shades, so the tier is legible on
      paper (4.8-5.9:1). This mirrors what the config already does for the
      fuchsia/purple/teal/orange/blue/green/pink families, whose 300 has always
      resolved to --ac-*; these seven kept a fixed hex only because they are also
      used for fills and dots on dark. */
-  --s300-violet: 104 82 140;   --s300-amber: 132 100 60;
-  --s300-emerald: 44 108 88;   --s300-rose: 158 72 88;
-  --s300-red: 158 72 88;       --s300-sky: 52 104 128;
+  --s300-violet: 47 111 81;    --s400-violet: 47 111 81;
+  --s300-amber: 154 90 28;
+  --s300-emerald: 44 108 88;   --s300-rose: 150 60 78;
+  --s300-red: 150 60 78;       --s300-sky: 52 104 128;
   --s300-cyan: 56 108 124;
 }
 
@@ -207,20 +211,23 @@
     @apply font-sans antialiased text-ink;
     background: rgb(var(--bg-base));
     overflow-x: hidden;
-    /* Geist reads cleaner with a hair of negative tracking and proper
-       optical kerning — gives the UI a refined, modern feel. */
-    letter-spacing: -0.011em;
+    letter-spacing: -0.006em;
     text-rendering: optimizeLegibility;
     /* Prevent pull-to-refresh interfering with swipe gestures */
     overscroll-behavior-y: contain;
   }
 
-  /* Headings speak in the display face (Bricolage Grotesque) — the new voice
-     of the product. Tight tracking; a touch of optical size at large sizes. */
+  /* Headings and controls share Archivo's structural voice. */
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
     letter-spacing: -0.02em;
-    font-variation-settings: 'opsz' 32;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-family: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
   }
 
   /* Numerals (tickers, metrics, counts) sit on a fixed grid so they don't
@@ -274,10 +281,18 @@
 }
 
 @layer components {
-  /* Obsidian Aurora glass — a layered, lit surface, not a flat tint. A gentle
-     top-down sheen + a hairline lit top edge (inset highlight) + soft ambient
-     depth read as a real material catching light. Cascades to every consumer of
-     .glass-card across the app, so the whole product gains material at once. */
+  /* Semantic foreground roles. Actionable copy never relies on an arbitrary
+     opacity; these three channels are verified on both ink and paper. */
+  .text-strong { color: rgb(var(--ink)); }
+  .text-muted { color: rgb(var(--ink-muted)); }
+  .text-faint { color: rgb(var(--ink-faint)); }
+  .font-body {
+    letter-spacing: 0;
+    font-variation-settings: 'opsz' 18;
+  }
+
+  /* Solid Mindmake instrument surfaces. Copy and proof never sit on foggy
+     glass; the hairline and tiny top-light establish the layer. */
   .glass-card {
     border-radius: 1rem;
     background:
@@ -285,8 +300,6 @@
       rgb(var(--card-bg) / var(--card-bg-a));
     border: 1px solid rgb(var(--fg) / var(--card-border-a));
     box-shadow: inset 0 1px 0 0 rgb(255 255 255 / var(--card-hi-a)), var(--card-shadow);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
   }
 
   /* Raw surface primitives for new components (same material, no radius lock). */
@@ -305,10 +318,9 @@
     box-shadow: inset 0 1px 0 0 rgb(255 255 255 / var(--card-hi-a)), var(--card-shadow);
   }
 
-  /* Aurora ink — the signature gradient text, for the one hero number/word that
-     should feel alive (MRR headline, "all clear"). Used sparingly. */
+  /* Mint answer ink. Kept inside one hue so amber retains its change meaning. */
   .aurora-text {
-    background: linear-gradient(115deg, rgb(var(--accent)) 0%, rgb(var(--accent-2)) 42%, rgb(var(--accent-3)) 100%);
+    background: linear-gradient(115deg, rgb(var(--accent)) 0%, rgb(var(--accent-2)) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -323,28 +335,32 @@
   /* Contrast button — the "inverted" high-emphasis CTA. White-on-obsidian at
      night, ink-on-paper by day. Replaces `bg-white text-black`, which would
      invert to invisible in daylight. */
-  .btn-contrast { background: rgb(var(--fg)); color: rgb(var(--bg-base)); }
+  .btn-contrast {
+    background: rgb(var(--action-bg));
+    color: rgb(var(--action-fg));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.24), 0 10px 30px -18px rgba(127,227,180,.62);
+  }
   .btn-contrast:active { filter: brightness(0.94); }
 
-  /* Money ink — the single number that matters wears an emerald→cyan sheen. */
+  /* Money ink uses the same answer colour as the rest of Mindmake. */
   .money-text {
-    background: linear-gradient(120deg, #6ee7b7 0%, #34d399 42%, #22d3ee 100%);
+    background: linear-gradient(120deg, #a4e8cd 0%, #7fe3b4 44%, #4faf85 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
-  /* Aurora primary action — a lit gradient with a soft accent glow. */
+  /* Primary action: mint means this is the answer. */
   .aurora-btn {
-    background: linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent-2)));
-    color: #fff;
-    box-shadow: 0 1px 0 0 rgba(255,255,255,0.18) inset, 0 8px 24px -8px rgba(139,124,246,0.55);
+    background: linear-gradient(135deg, rgb(var(--action-bg-hi)), rgb(var(--action-bg)));
+    color: rgb(var(--action-fg));
+    box-shadow: 0 1px 0 0 rgba(255,255,255,0.18) inset, 0 8px 24px -8px rgba(127,227,180,0.42);
   }
   .aurora-btn:active { filter: brightness(1.08); }
 
   /* A hairline gradient border (the "lit edge" for focal cards). */
   .aurora-ring {
-    box-shadow: 0 0 0 1px rgba(139,124,246,0.35), 0 0 0 4px rgba(139,124,246,0.08);
+    box-shadow: 0 0 0 1px rgba(127,227,180,0.38), 0 0 0 4px rgba(127,227,180,0.08);
   }
 
   .mobile-section {
@@ -493,7 +509,7 @@
 
    Both the fill and the sweep route through --fg, like every other muted tier
    in this app. They used to be literal rgba(255,255,255,…), which is correct at
-   night and invisible by day: a 4.5% white block on the #F2F1F8 paper is a
+   night and invisible by day: a 4.5% white block on the old paper was a
    one-value difference. Every skeleton in the app was a blank gap in light mode,
    which is the exact "flash of nothing" the skeleton exists to prevent. */
 .skeleton {
@@ -538,7 +554,7 @@
 .stagger-5 { animation-delay: 0.28s; }
 
 /* ───────────────────────────────────────────────────────────────────────────
-   Obsidian Aurora — presence & material
+   Mindmake Instrument Room — presence & material
 
    Two always-on layers that give the product a body:
    • the ambient field  — a slow aurora that reads as the system "with you",
@@ -589,6 +605,18 @@
 .press-spring:active { transform: scale(0.955); }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
+  }
+  button:active,
+  [role='button']:active,
+  .press-spring:active {
+    transform: none !important;
+  }
   #root,
   .animate-neon-pulse,
   .animate-neon-pulse-violet,
@@ -659,7 +687,7 @@
 
   /* Flatter surfaces, less edge contrast: fewer things competing for the eye. */
   --card-hi-a: 0;
-  --ambient-opacity: 0.35;
+  --ambient-opacity: 0.07;
 }
 
 /* Give the day more room to breathe without any component changing its markup. */
@@ -731,7 +759,7 @@ body[data-scroll-locked] .tab-chat-pill { display: none; }
 
 /* Citation-heavy by design, so links are a large share of the visible copy.
    This was the single worst light-mode offender: a fixed sky-300 (#93b8c4)
-   measures about 1.9:1 on #F2F1F8. */
+   measured about 1.9:1 on the old paper. */
 .brief-canvas .ProseMirror a {
   color: rgb(var(--ac-sky));
   text-decoration: underline;
@@ -754,7 +782,7 @@ body[data-scroll-locked] .tab-chat-pill { display: none; }
 }
 
 .brief-canvas .ProseMirror code {
-  font-family: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.88em;
   background: rgb(var(--fg) / 0.06);
   border-radius: 4px;

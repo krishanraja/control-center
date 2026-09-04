@@ -6,6 +6,8 @@ import { SurfacedCards } from './SurfacedCards'
 import { FeedRoom } from './FeedRoom'
 import { laneOf, type RoomId } from './ContentV2Tab'
 import { Eyebrow } from '../shared/Eyebrow'
+import { SeriesIdentity } from '../shared/MindmakeIdentity'
+import { publicSeriesIdentity } from '../../lib/publicSeries'
 
 // One format, everything about it in one column.
 //
@@ -14,13 +16,11 @@ import { Eyebrow } from '../shared/Eyebrow'
 // a thesis: Built asks how AI decisions actually get made, Paid asks how AI
 // actually gets monetized, and a signal that does not move either is noise.
 
-const COPY: Record<Exclude<RoomId, 'library'>, { title: string; question: string }> = {
+const COPY: Record<Exclude<RoomId, 'library'>, { question: string }> = {
   built: {
-    title: 'Built',
     question: 'Stories about how things actually get built, including the parts that broke.',
   },
   paid: {
-    title: 'Paid',
     question: 'Stories about how things actually make money: who pays, and for what.',
   },
 }
@@ -34,6 +34,7 @@ export function LaneRoom({
   variant: 'desktop' | 'mobile'
 }) {
   const copy = COPY[lane]
+  const series = publicSeriesIdentity(lane)
 
   const { mine, unclassified } = useMemo(() => {
     const live = ideas.filter(i => !i.library_at)
@@ -46,7 +47,9 @@ export function LaneRoom({
   return (
     <div className="flex flex-col gap-5 max-w-3xl">
       <header>
-        <h2 className="text-ui font-semibold text-white/90">{copy.title}</h2>
+        <h2>
+          <SeriesIdentity series={lane} />
+        </h2>
         <p className="text-label text-white/50 mt-0.5">{copy.question}</p>
       </header>
 
@@ -56,7 +59,7 @@ export function LaneRoom({
       <SurfacedCards cards={v2.arcCards} shifts={v2.shifts} lane={lane} />
 
       <section>
-        <h3 className="mb-2"><Eyebrow>Shifts in {copy.title.toLowerCase()}</Eyebrow></h3>
+        <h3 className="mb-2"><Eyebrow>Shifts for {series.label}</Eyebrow></h3>
         <ShiftsRoom v2={v2} variant={variant} lane={lane} />
       </section>
 
@@ -81,7 +84,7 @@ export function LaneRoom({
             </span>
           </h3>
           <p className="text-label text-white/45 mb-2">
-            Collected while the sorter was down. These belong in Built or Paid,
+            Collected while the sorter was down. These belong in {publicSeriesIdentity('built').label} or {publicSeriesIdentity('paid').label},
             they just have not been sorted yet.
           </p>
           <FeedRoom ideas={unclassified} />

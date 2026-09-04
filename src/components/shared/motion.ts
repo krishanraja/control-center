@@ -16,7 +16,9 @@ const isBrowser = typeof window !== 'undefined'
 
 /** True when the user has asked the OS to reduce motion. Live-updates. */
 export function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false)
+  const [reduced, setReduced] = useState(
+    () => isBrowser && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches),
+  )
   useEffect(() => {
     if (!isBrowser || !window.matchMedia) return
     const m = window.matchMedia('(prefers-reduced-motion: reduce)')

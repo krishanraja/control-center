@@ -29,6 +29,7 @@ import { test, expect, type Page, type Route } from '@playwright/test'
  */
 
 const FLOOR = 2.0
+const ACTION_FLOOR = 4.5
 
 const OS_GOALS = [
   { id: 'os:leaders', title: '200+ leaders served by end of 2026' },
@@ -126,8 +127,8 @@ type Measured = { offenders: Offender[]; inspected: number }
  * ancestors and compositing translucent layers until an opaque one is reached,
  * because almost every surface here is an alpha over the page ground.
  */
-async function measure(page: Page): Promise<Measured> {
-  return page.evaluate((floor: number) => {
+async function measure(page: Page, floor = FLOOR, interactiveOnly = false): Promise<Measured> {
+  return page.evaluate(({ floor, interactiveOnly }) => {
     const parse = (c: string): [number, number, number, number] | null => {
       const m = c.match(/rgba?\(([^)]+)\)/)
       if (!m) return null
@@ -183,6 +184,15 @@ async function measure(page: Page): Promise<Measured> {
         .join(' ')
         .trim()
       if (!own) continue
+      const interactive = el.closest('button, a, input, textarea, [role="button"], [role="tab"]')
+      if (interactiveOnly) {
+        if (!interactive) continue
+        // Decorative glyphs and unavailable controls do not communicate an
+        // actionable choice. Counting them hid the useful signal in a list of
+        // chevrons and intentionally disabled labels.
+        if (el.closest('[aria-hidden="true"]')) continue
+        if (interactive.matches(':disabled, [aria-disabled="true"], [inert]')) continue
+      }
       const r = el.getBoundingClientRect()
       if (r.width < 8 || r.height < 6) continue
       if (hidden(el)) continue
@@ -206,7 +216,7 @@ async function measure(page: Page): Promise<Measured> {
       }
     }
     return { offenders: out.sort((a, b) => a.ratio - b.ratio), inspected }
-  }, FLOOR)
+  }, { floor, interactiveOnly })
 }
 
 /**
@@ -258,6 +268,15 @@ for (const theme of ['light', 'dark'] as const) {
           .map(o => `  ${o.ratio}:1  <${o.tag}> "${o.text}"\n      fg=${o.fg} on bg=${o.bg}\n      class="${o.cls}"`)
           .join('\n')
         expect(offenders, `Text below ${FLOOR}:1 in ${theme} on ${route.name} (${size}):\n${report}`).toEqual([])
+
+        const interactive = await measure(page, ACTION_FLOOR, true)
+        const interactiveReport = interactive.offenders
+          .map(o => `  ${o.ratio}:1  <${o.tag}> "${o.text}"\n      fg=${o.fg} on bg=${o.bg}\n      class="${o.cls}"`)
+          .join('\n')
+        expect(
+          interactive.offenders,
+          `Actionable text below ${ACTION_FLOOR}:1 in ${theme} on ${route.name} (${size}):\n${interactiveReport}`,
+        ).toEqual([])
       })
     }
   }
