@@ -1,4 +1,13 @@
+import { webcrypto } from 'node:crypto'
 import middleware from '../middleware'
+
+// Vercel's Edge runtime provides Web Crypto, while the Node 18 runtime used by
+// CI does not expose it globally. Install Node's standards-compatible Web
+// Crypto only for this direct middleware harness so the gate is exercised in
+// both environments without changing production middleware behaviour.
+if (!globalThis.crypto) {
+  Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true })
+}
 
 const previous = process.env.ACCESS_CODE
 process.env.ACCESS_CODE = 'test-only-access-code'
