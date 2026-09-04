@@ -6,12 +6,17 @@ import { loadEnv } from "vite";
 
 const demoModule = "virtual:compound-demo-snapshot";
 const resolvedDemoModule = `\0${demoModule}`;
+const demoPropertyModule = "virtual:compound-demo-property";
+const resolvedDemoPropertyModule = `\0${demoPropertyModule}`;
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const includeDemo = (process.env.VITE_COMPOUND_DEMO_MODE ?? env.VITE_COMPOUND_DEMO_MODE) === "true";
   const demo = includeDemo
     ? JSON.parse(readFileSync(fileURLToPath(new URL("./src/demo/latest.json", import.meta.url)), "utf8")) as unknown
+    : null;
+  const demoProperty = includeDemo
+    ? JSON.parse(readFileSync(fileURLToPath(new URL("./src/demo/property.json", import.meta.url)), "utf8")) as unknown
     : null;
 
   return {
@@ -24,10 +29,14 @@ export default defineConfig(({ mode }) => {
       {
         name: "compound-demo-snapshot",
         resolveId(id) {
-          return id === demoModule ? resolvedDemoModule : null;
+          if (id === demoModule) return resolvedDemoModule;
+          if (id === demoPropertyModule) return resolvedDemoPropertyModule;
+          return null;
         },
         load(id) {
-          return id === resolvedDemoModule ? `export default ${JSON.stringify(demo)};` : null;
+          if (id === resolvedDemoModule) return `export default ${JSON.stringify(demo)};`;
+          if (id === resolvedDemoPropertyModule) return `export default ${JSON.stringify(demoProperty)};`;
+          return null;
         },
       },
     ],

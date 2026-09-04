@@ -752,3 +752,26 @@
   .split .lead-story h1 { font-size: 44px; }
   .split .lead-metric strong { font-size: 72px; }
 }
+
+/* ---- Property: one owned unit, separate from markets ---- */
+.split .property-page .tiles { margin-top: 26px; }
+.split .trend { display: block; width: 100%; max-width: 1100px; height: 210px; margin-top: 16px; overflow: visible; }
+.split .trend-label { fill: var(--ink2); font-family: var(--mono); font-size: 7px; }
+.split .trend-tick { fill: var(--mut); font-family: var(--mono); font-size: 6.5px; }
+.split .trend-empty { margin: 14px 0 0; color: var(--mut); font-size: 13px; }
+.split .property-page .c { max-width: 1100px; margin-top: 16px; }
+.split .property-page .mig { max-width: 760px; }
+.split .ranktable-wrap { max-width: 1100px; margin-top: 14px; overflow-x: auto; }
+.split .ranktable { width: 100%; border-collapse: collapse; }
+.split .ranktable th { padding: 10px 12px; border-bottom: 1px solid var(--line2); color: var(--mut); font-family: var(--mono); font-size: 9.5px; font-weight: 700; letter-spacing: .09em; text-align: left; text-transform: uppercase; }
+.split .ranktable td { padding: 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: middle; }
+.split .ranktable td.num { text-align: right; }
+.split .ranktable th:not(:nth-child(2)):not(:nth-child(3)) { text-align: right; }
+.split .rank-name { padding: 0; border: 0; background: none; color: var(--ink); font-size: 14px; font-weight: 560; text-align: left; }
+.split .rank-name:hover { color: var(--sig); }
+.split .rank-name small { margin-left: 6px; color: var(--mut); font-family: var(--mono); font-size: 10.5px; font-weight: 400; }
+.split .ranktable .rank-bar { display: inline-block; position: relative; width: 120px; height: 10px; margin-right: 10px; overflow: hidden; border-radius: 5px; background: var(--surf3); vertical-align: middle; }
+.split .ranktable .rank-bar span { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--s3); }
+.split .rank-detail td { padding: 0 12px 14px 12px; background: var(--surf); }
+.split .rank-working p { max-width: 80ch; margin: 10px 0 0; color: var(--ink2); font-size: 13px; line-height: 1.55; }
+.split .property-sources { max-width: 1100px; margin-top: 30px; }

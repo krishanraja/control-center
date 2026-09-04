@@ -2,7 +2,7 @@
 
 > Current source of truth for COMPOUND delivery and production state. Update this file with every phase transition. Historical briefs and QA records under this directory are explicitly labelled and are not current status.
 
-- Last updated: 2026-08-11 EDT
+- Last updated: 2026-09-04 AEST
 - Product: private, single-user market intelligence for Krish
 - Commercial state: internal only; no pricing, paid tier, signup, customer access, or external launch
 - Production URL: `https://compound.krishraja.com`
@@ -43,12 +43,22 @@
 
 - COMPOUND is market-wide and global with a US-led cross-asset universe. Holdings never influence story selection or ranking.
 - Today in markets has exactly three positions: one lead story and two compact briefs. Quiet days say `Nothing needs action` and show two stable checkpoints.
-- The four destinations are Today in markets, Markets, Portfolio, and Ask. Old URLs keep compatibility redirects.
+- The five destinations are Today in markets, Markets, Portfolio, Property, and Ask. Old URLs keep compatibility redirects.
+- Property is one owned unit, separate from market ranking. The value estimate, rent band and suburb ranking are computed by the weekly property pipeline and stored with their inputs and confidence; loan maths runs in the browser from manual facts. The cost ledger Google Sheet is the editing surface and `compound.property_ledger` is a read-only mirror of it.
 - `stack` and `split` are separate component systems over one data layer.
 - The 123-industry explorer uses the exhaustive 11-sector taxonomy. Hiding an industry declutters exploration but cannot suppress a materially significant Brief story.
 - Captured wording, evidence, citations, falsifier, coverage, schema version, engine version, and publication time are immutable historical evidence.
 - Live reads use authenticated APIs. Demo mode bundles `src/demo/latest.json` only when `VITE_COMPOUND_DEMO_MODE=true`; production has no public fixture route or private fixture chunk.
 - COMPOUND never executes a trade and does not import Control Center application data.
+
+## Property pipeline contract
+
+- Schedule: `.github/workflows/compound-property.yml`, 06:30 Brisbane every Tuesday, plus `workflow_dispatch`. Two attempts ten minutes apart.
+- Entry: `compound/pipeline/property/main.ts`. Providers: RBA cash rate (free), RTA median rents workbook (free, link discovered each run or `RTA_MEDIAN_RENTS_URL`), Domain Developer API (free key, `DOMAIN_API_KEY`), the ledger sheet by gid (Google service account). A failed or unconfigured provider marks the run `partial` and the tab names what is missing.
+- Secrets: `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from the GitHub environment. Every other secret is read from the environment first and then from Supabase Vault through `compound.read_secret` (service role only). Vault holds `domain_api_key`, `property_google_service_account_email`, `property_google_service_account_private_key`, `property_ledger_sheet_id`, `property_ledger_sheet_gid`.
+- Personal facts (property, loan, rates, rents, building sales) enter through `deno task property:import` or direct SQL by the owner. Migrations and fixtures never carry them; `compound/scripts/check-supabase.mjs` fails if they do.
+- Value estimate method `hedonic_lite_v1`: same-building sale adjusted for car spaces, blended with the postcode pool of two bed unit sales, band from the pool's middle range, floor at the smaller unit's sale. Constants and assumptions are stored in `property_valuations.inputs`.
+- Suburb score: percentile ranks of rent return (0.35), rent growth (0.25), price growth (0.25) and supply (0.15) across the inner-south target set; missing inputs score the middle and are named on the row.
 
 ## Daily pipeline contract
 

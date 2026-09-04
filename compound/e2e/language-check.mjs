@@ -106,7 +106,7 @@ const collected = [];
 const failures = [];
 
 try {
-  for (const [tab, label] of [["now", "Today"], ["shifts", "Big trends"], ["stocks", "Stocks"], ["mine", "My money"], ["ask", "Ask a question"]]) {
+  for (const [tab, label] of [["now", "Today"], ["shifts", "Big trends"], ["stocks", "Stocks"], ["mine", "My money"], ["property", "Property"], ["ask", "Ask a question"]]) {
     await page.goto(`${baseUrl}/?tab=${tab}`, { waitUntil: "networkidle" });
     await page.getByRole("navigation", { name: "Sections" }).waitFor();
     await revealAll(page);

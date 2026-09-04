@@ -599,7 +599,7 @@
 .stack .sample-chip { padding: calc(3 * var(--px)) calc(6 * var(--px)); border: calc(1 * var(--px)) solid var(--line2); border-radius: calc(4 * var(--px)); color: var(--faint); font-family: var(--mono); font-size: calc(8 * var(--px)); letter-spacing: .08em; text-transform: uppercase; }
 .stack .datebtn { display: inline-flex; align-items: center; gap: calc(6 * var(--px)); min-height: var(--tap); padding: 0 calc(4 * var(--px)); border: 0; background: none; color: var(--ink2); font-family: var(--mono); font-size: calc(10.5 * var(--px)); font-weight: 650; letter-spacing: .05em; text-transform: uppercase; }
 .stack .datebtn svg { width: calc(15 * var(--px)); height: calc(15 * var(--px)); color: var(--mut); }
-.stack .botnav { grid-template-columns: repeat(4, 1fr); padding-top: calc(7 * var(--px)); background: rgb(8 11 13 / 96%); }
+.stack .botnav { grid-template-columns: repeat(5, 1fr); padding-top: calc(7 * var(--px)); background: rgb(8 11 13 / 96%); }
 .stack .botnav button { min-height: calc(58 * var(--px)); }
 .stack .botnav button.on { color: var(--paper, #f3f0e8); }
 .stack .botnav button.on .puck { background: transparent; }
@@ -760,3 +760,26 @@
   .stack .lead-story h1 { font-size: calc(28 * var(--px)); }
   .stack .lead-metric strong { font-size: calc(50 * var(--px)); }
 }
+
+/* ---- Property: one owned unit, separate from markets ---- */
+.stack .property-page { padding-top: calc(22 * var(--px)); }
+.stack .property-page .tiles { margin-top: calc(22 * var(--px)); }
+.stack .trend { display: block; width: 100%; height: calc(150 * var(--px)); margin-top: calc(14 * var(--px)); overflow: visible; }
+.stack .trend-label { fill: var(--ink2); font-family: var(--mono); font-size: 9px; }
+.stack .trend-tick { fill: var(--mut); font-family: var(--mono); font-size: 8px; }
+.stack .trend-empty { margin: calc(14 * var(--px)) 0 0; color: var(--mut); font-size: calc(13 * var(--px)); }
+.stack .property-page .c { margin-top: calc(14 * var(--px)); }
+.stack .rank-list { margin-top: calc(12 * var(--px)); border-top: calc(1 * var(--px)) solid var(--line2); }
+.stack .rank-row { border-bottom: calc(1 * var(--px)) solid var(--line); }
+.stack .rank-head { display: grid; grid-template-columns: calc(26 * var(--px)) minmax(0, 1fr) auto; gap: calc(10 * var(--px)); align-items: center; width: 100%; min-height: calc(72 * var(--px)); padding: calc(12 * var(--px)) 0; border: 0; background: none; color: var(--ink); text-align: left; }
+.stack .rank-pos { color: var(--mut); font-size: calc(12 * var(--px)); }
+.stack .rank-copy { min-width: 0; }
+.stack .rank-copy strong { display: block; font-size: calc(15.5 * var(--px)); }
+.stack .rank-copy strong small { margin-left: calc(4 * var(--px)); color: var(--mut); font-family: var(--mono); font-size: calc(10 * var(--px)); font-weight: 400; }
+.stack .rank-copy > small { display: block; margin-top: calc(6 * var(--px)); color: var(--mut); font-size: calc(11 * var(--px)); line-height: 1.4; }
+.stack .rank-bar { display: block; position: relative; height: calc(6 * var(--px)); margin-top: calc(7 * var(--px)); overflow: hidden; border-radius: calc(3 * var(--px)); background: var(--surf3); }
+.stack .rank-bar span { position: absolute; inset: 0 auto 0 0; border-radius: calc(3 * var(--px)); background: var(--s3); }
+.stack .rank-score { font-size: calc(17 * var(--px)); font-weight: 640; }
+.stack .rank-working { padding: 0 0 calc(14 * var(--px)) calc(36 * var(--px)); }
+.stack .rank-working p { margin: 0 0 calc(8 * var(--px)); color: var(--ink2); font-size: calc(13 * var(--px)); line-height: 1.5; }
+.stack .property-sources { margin-top: calc(26 * var(--px)); }

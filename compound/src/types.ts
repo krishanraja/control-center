@@ -190,7 +190,7 @@ export interface Snapshot {
   placed: Placed[];
 }
 
-export type TabKey = "brief" | "markets" | "portfolio" | "ask";
+export type TabKey = "brief" | "markets" | "portfolio" | "property" | "ask";
 
 export type StoryDomain = "equities" | "rates" | "credit" | "currencies" | "commodities" | "crypto" | "macro";
 export type StoryClassification = "opportunity" | "risk" | "regime";
