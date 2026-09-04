@@ -809,6 +809,12 @@ for (const table of tables) {
 }
 assert.doesNotMatch(migration, /grant all/i)
 assert.doesNotMatch(migration, /\bstorage\./i)
+assert.doesNotMatch(
+  migration,
+  /pg_catalog\.(?:extract|substring|trim|position|overlay)\s*\(/i,
+  'PostgreSQL special-form syntax cannot be schema-qualified as a normal function call',
+)
+assert.match(migration, /extract\(epoch from pg_catalog\.now\(\)\)/)
 assert.match(migration, /set search_path = ''/)
 assert.match(migration, /interval '30 days'/)
 assert.match(migration, /expires_at > pg_catalog\.now\(\)/)

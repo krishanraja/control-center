@@ -583,7 +583,7 @@ begin
   end if;
 
   v_window_start := pg_catalog.to_timestamp(
-    pg_catalog.floor(pg_catalog.extract(epoch from pg_catalog.now()) / p_window_seconds) * p_window_seconds
+    pg_catalog.floor(extract(epoch from pg_catalog.now()) / p_window_seconds) * p_window_seconds
   );
 
   -- Keep every identity/scope bounded without a privileged cron dependency.
@@ -601,7 +601,7 @@ begin
   allowed := v_count <= p_limit;
   retry_after_seconds := case when allowed then 0 else greatest(
     1,
-    pg_catalog.ceil(p_window_seconds - pg_catalog.extract(epoch from (pg_catalog.now() - v_window_start)))::integer
+    pg_catalog.ceil(p_window_seconds - extract(epoch from (pg_catalog.now() - v_window_start)))::integer
   ) end;
   return next;
 end;
