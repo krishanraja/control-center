@@ -133,7 +133,7 @@ export interface SpendContext {
 }
 
 /** Fields the classifier and pricer need; everything else rides along. */
-export type Classifiable = Pick<SpendItemInput, "source" | "merchant" | "item" | "account_email"> & { service_key?: string | null };
+export type Classifiable = Pick<SpendItemInput, "source" | "merchant" | "item" | "account_email"> & { service_key?: string | null; subject?: string | null };
 
 export function toNumber(value: number | string | null | undefined): number | null {
   if (value == null) return null;

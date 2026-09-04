@@ -44,7 +44,8 @@ export interface RunOptions {
 export function classifyAndPrice(items: SpendItemInput[], registry: RegistryRow[], overrides: OverrideRow[], rates: FxRate[]): SpendItemInput[] {
   const table = buildFxTable(rates);
   for (const item of items) {
-    const decided = classify({ ...item, service_key: item.registry_key }, registry, overrides);
+    const subject = typeof item.detail.subject === "string" ? item.detail.subject : null;
+    const decided = classify({ ...item, service_key: item.registry_key, subject }, registry, overrides);
     item.merchant_key = decided.merchant_key;
     item.registry_key = decided.registry_key;
     item.scope = decided.scope;

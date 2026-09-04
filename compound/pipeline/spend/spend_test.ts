@@ -127,6 +127,24 @@ Deno.test("registry needles match whole words only", () => {
   assert(matchRegistry(registry, { source: "bills_sheet", merchant: "Claude by Anthropic", item: null, account_email: null })?.key === "anthropic", "registry hit by needle");
 });
 
+Deno.test("domain needles match the bare merchant name, the key and the display name", () => {
+  const domainRegistry: RegistryRow[] = [
+    { ...registry[0], key: "apify", display_name: "Apify", vendor_match: ["apify.com"] },
+    { ...registry[0], key: "hetzner", display_name: "Hetzner (OpenClaw VPS)", vendor_match: ["hetzner.com"] },
+    { ...registry[0], key: "google-workspace", display_name: "Google Workspace", vendor_match: ["payments-noreply@google.com", "Google Workspace"] },
+    { ...registry[0], key: "xai", display_name: "Grok (xAI)", vendor_match: ["x.ai"] },
+    { ...registry[0], key: "fmp", display_name: "Financial Modeling Prep", vendor_match: ["Financial Modeling Prep", "financialmodelingprep"] },
+  ];
+  const hit = (merchant: string, item: string | null = null) => matchRegistry(domainRegistry, { source: "bills_sheet", merchant, item, account_email: null })?.key ?? null;
+  assert(hit("Apify") === "apify", "bare merchant matches the domain needle");
+  assert(hit("Hetzner Online GmbH") === "hetzner", "display name word matches");
+  assert(hit("Google") === null && hit("Google", "Google Workspace Business Starter") === "google-workspace", "Workspace only when named");
+  assert(hit("Grok") === "xai" || hit("xAI") === "xai", "short domain needle is not widened but the name still matches");
+  assert(hit("X Corp") === null, "a one-letter base never matches");
+  assert(hit("Financial Modeling Prep") === "fmp", "multi-word display name");
+  assert(hit("Coles") === null, "unrelated merchant");
+});
+
 Deno.test("classification precedence: override, alias, registry, default", () => {
   const overrides = [{ merchant_key: "hetzner", scope: "os" as const, display_name: null }];
   const hetzner = classify({ source: "bills_sheet", merchant: "Hetzner Online GmbH", item: null, account_email: null }, registry, overrides);
