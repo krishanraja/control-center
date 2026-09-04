@@ -184,6 +184,15 @@ Deno.test("suburb ranking uses percentile ranks, names missing inputs and orders
   const a = ranking.find((row) => row.suburb === "A")!;
   assert(a.grossYieldPct != null && Math.abs(a.grossYieldPct - (600 * 52 / 700000) * 100) < 0.01, "gross rent return computed");
   assert(rankSuburbs(rows, targets, 2).map((row) => row.suburb).join() === ranking.map((row) => row.suburb).join(), "deterministic order");
+  const withSuburb = rankSuburbs([
+    ...rows,
+    observation({ metric: "median_weekly_rent", value: 600, periodEnd: "2026-06-30", areaKind: "suburb", areaCode: "A", unit: "AUD/week" }),
+    observation({ metric: "median_weekly_rent", value: 590, periodEnd: "2025-06-30", areaKind: "suburb", areaCode: "A", unit: "AUD/week" }),
+    observation({ metric: "median_weekly_rent", value: 580, periodEnd: "2026-06-30", areaCode: "4101", bedrooms: null, unit: "AUD/week" }),
+  ], targets, 2);
+  const suburbA = withSuburb.find((row) => row.suburb === "A")!;
+  assert(suburbA.medianWeeklyRentAud === 600, "suburb rows beat postcode rows and all-bedroom rows on the same date");
+  assert(suburbA.rentGrowthPct != null && Math.abs(suburbA.rentGrowthPct - 1.7) < 0.1, "growth compares within the same tier");
 });
 
 Deno.test("rent band prefers the latest postcode medians for the bedroom count", () => {
