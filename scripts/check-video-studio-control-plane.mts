@@ -786,6 +786,8 @@ assert.equal(activeJobProjection({ ...jobRow, active_parent_revision_hash: SHA_D
 
 const migrationUrl = new URL('../supabase/migrations/20260904084240_video_studio_control_plane.sql', import.meta.url)
 const migration = await readFile(migrationUrl, 'utf8')
+const leastPrivilegeMigrationUrl = new URL('../supabase/migrations/20260905001000_video_studio_least_privilege.sql', import.meta.url)
+const leastPrivilegeMigration = await readFile(leastPrivilegeMigrationUrl, 'utf8')
 const migrationNames = (await readdir(new URL('../supabase/migrations/', import.meta.url)))
   .filter((name) => name.includes('video_studio_control_plane'))
 assert.deepEqual(migrationNames, ['20260904084240_video_studio_control_plane.sql'])
@@ -806,7 +808,22 @@ for (const table of tables) {
   assert.match(migration, new RegExp(`revoke all on public\\.${table} from public, anon, authenticated;`), `${table} revoke`)
   assert.match(migration, new RegExp(`grant [^;]+ on public\\.${table} to service_role;`), `${table} grant`)
   assert.match(migration, new RegExp(`create policy [^\\n]+ on public\\.${table}`), `${table} policy`)
+  const revoke = `revoke all on public.${table} from service_role;`
+  const grant = new RegExp(`grant [^;]+ on public\\.${table} to service_role;`)
+  assert.match(leastPrivilegeMigration, new RegExp(revoke.replaceAll('.', '\\.') ), `${table} service-role ACL reset`)
+  assert.match(leastPrivilegeMigration, grant, `${table} narrow service-role grant`)
+  assert.ok(leastPrivilegeMigration.indexOf(revoke) < leastPrivilegeMigration.search(grant), `${table} ACL reset must precede its narrow grant`)
 }
+for (const internalFunction of [
+  'video_studio_touch_updated_at\\(\\)',
+  'video_studio_reject_append_only_mutation\\(\\)',
+  'video_studio_protect_command_core\\(\\)',
+  'video_studio_protect_review_core\\(\\)',
+]) {
+  assert.match(leastPrivilegeMigration, new RegExp(`revoke execute on function public\\.${internalFunction} from service_role;`))
+  assert.doesNotMatch(leastPrivilegeMigration, new RegExp(`grant execute on function public\\.${internalFunction} to service_role;`))
+}
+assert.doesNotMatch(leastPrivilegeMigration, /grant all/i)
 assert.doesNotMatch(migration, /grant all/i)
 assert.doesNotMatch(migration, /\bstorage\./i)
 assert.doesNotMatch(
