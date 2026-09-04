@@ -36,18 +36,23 @@ function yearEarlier(rows: Observation[], reference: Observation): Observation |
   return earlier.at(-1);
 }
 
+/**
+ * Rows for one target. Suburb-level rows beat postcode-level rows and a matching
+ * bedroom count beats "all bedrooms", so only the best tier that exists for the
+ * target is used. Without this a postcode row dated the same day as a suburb
+ * row could win a tie and describe a different market.
+ */
 function forArea(observations: Observation[], target: Target, metric: string, bedrooms: number): Observation[] {
-  return observations.filter((row) =>
+  const candidates = observations.filter((row) =>
     row.metric === metric
     && ((row.areaKind === "suburb" && row.areaCode.toLowerCase() === target.suburb.toLowerCase())
       || (row.areaKind === "postcode" && row.areaCode === target.postcode))
     && (row.bedrooms === bedrooms || row.bedrooms == null)
     && (row.dwellingType == null || row.dwellingType === "unit" || row.dwellingType === "all")
-  ).sort((a, b) => {
-    // Prefer suburb-level and bedroom-specific rows when both exist.
-    const score = (row: Observation) => (row.areaKind === "suburb" ? 2 : 0) + (row.bedrooms === bedrooms ? 1 : 0);
-    return score(b) - score(a);
-  });
+  );
+  const tier = (row: Observation) => (row.areaKind === "suburb" ? 2 : 0) + (row.bedrooms === bedrooms ? 1 : 0);
+  const best = Math.max(-1, ...candidates.map(tier));
+  return candidates.filter((row) => tier(row) === best);
 }
 
 function percentileRanks(values: Array<number | null>, higherIsBetter: boolean): number[] {
