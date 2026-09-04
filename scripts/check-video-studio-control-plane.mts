@@ -809,6 +809,12 @@ for (const table of tables) {
 }
 assert.doesNotMatch(migration, /grant all/i)
 assert.doesNotMatch(migration, /\bstorage\./i)
+assert.doesNotMatch(
+  migration,
+  /pg_catalog\.(?:coalesce|extract|greatest|least|nullif|overlay|position|substring|trim)\s*\(/i,
+  'PostgreSQL special-form syntax cannot be schema-qualified as a normal function call',
+)
+assert.match(migration, /extract\(epoch from pg_catalog\.now\(\)\)/)
 assert.match(migration, /set search_path = ''/)
 assert.match(migration, /interval '30 days'/)
 assert.match(migration, /expires_at > pg_catalog\.now\(\)/)
@@ -890,7 +896,7 @@ assert.match(migration, /create index video_studio_rate_limits_expiry_idx[\s\S]+
 assert.match(migration, /create or replace function public\.video_studio_preview_retention_candidates/)
 assert.match(migration, /p_cutoff > pg_catalog\.now\(\) - interval '7 days'/)
 assert.match(migration, /not exists \([\s\S]+video_studio_preview_retention_events/)
-assert.match(migration, /pg_catalog\.coalesce\(r\.preview_expires_at, s\.slot_expires_at\)/)
+assert.match(migration, /coalesce\(r\.preview_expires_at, s\.slot_expires_at\)/)
 assert.match(migration, /slot_id\s+uuid primary key references public\.video_studio_preview_upload_slots/)
 assert.match(migration, /create or replace function public\.video_studio_record_preview_retention/)
 assert.match(migration, /video_studio_preview_retention_events_append_only/)
