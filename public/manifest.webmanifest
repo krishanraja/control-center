@@ -1,14 +1,15 @@
 {
   "name": "Mindmake",
   "short_name": "Mindmake",
-  "description": "Decisions, not admin — autonomous operations command center.",
+  "description": "Decisions without admin. An AI operations command centre.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0a0a0b",
-  "theme_color": "#0a0a0b",
+  "background_color": "#0a100d",
+  "theme_color": "#0a100d",
   "icons": [
+    { "src": "/mindmake-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }

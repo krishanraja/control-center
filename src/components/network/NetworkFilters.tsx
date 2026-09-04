@@ -218,7 +218,7 @@ export function NetworkFilters({ value, onChange, collapsible }: {
           className={`flex min-h-[30px] shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-label font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
             nonGeoActive > 0 || value.hard
               ? 'border-violet-400/40 bg-violet-500/15 text-violet-100'
-              : 'border-white/10 text-white/50'}`}
+              : 'border-white/10 text-white/60'}`}
         >
           <SlidersHorizontal size={12} aria-hidden />
           <span>Filters</span>

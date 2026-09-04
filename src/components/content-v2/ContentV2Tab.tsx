@@ -10,6 +10,7 @@ import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
 import { StartFromResearch } from '../content/StartFromResearch'
 import { useVideoStudioReviews } from '../../hooks/useVideoStudioReviews'
 import { videoEngineEnabled } from '../../lib/videoStudio'
+import { publicSeriesLabel } from '../../lib/publicSeries'
 
 // The Content tab, organised around what Mindmaker Live actually publishes.
 //
@@ -35,8 +36,8 @@ export type RoomId = 'built' | 'paid' | 'library'
 type ViewId = 'queue' | RoomId
 
 const ROOMS: Array<{ id: RoomId; label: string }> = [
-  { id: 'built', label: 'Built' },
-  { id: 'paid', label: 'Paid' },
+  { id: 'built', label: publicSeriesLabel('built') },
+  { id: 'paid', label: publicSeriesLabel('paid') },
   { id: 'library', label: 'Library' },
 ]
 

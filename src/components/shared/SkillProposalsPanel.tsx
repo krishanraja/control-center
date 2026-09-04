@@ -78,7 +78,7 @@ export function SkillProposalsPanel() {
                 </span>
               </div>
               {p.skill_body && (
-                <pre className="text-micro text-white/70 leading-relaxed whitespace-pre-wrap bg-black/30 border border-white/[0.06] rounded p-2 max-h-40 overflow-auto font-mono">
+                <pre className="text-micro text-white/70 leading-relaxed whitespace-pre-wrap bg-sunk border border-white/[0.06] rounded p-2 max-h-40 overflow-auto font-mono">
                   {p.skill_body}
                 </pre>
               )}

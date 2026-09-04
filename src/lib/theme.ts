@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 /**
- * Theme + ambient control for the Obsidian Aurora system.
+ * Theme + ambient control for the Mindmake Instrument Room system.
  *
  * Two independent, persisted switches, applied as attributes on <html>:
  *   • theme mode — 'system' | 'light' | 'dark'. `system` follows the OS and

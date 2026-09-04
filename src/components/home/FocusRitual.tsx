@@ -359,14 +359,14 @@ function WeeklyStep() {
 
         {/* Write a new one — only while the week has room. */}
         {activeCount < 3 && (
-          <div className="rounded-lg border border-white/[0.06] bg-black/20 p-2 space-y-2">
+          <div className="rounded-lg border border-white/[0.06] bg-sunk p-2 space-y-2">
             <div className="relative">
               <textarea
                 value={text}
                 onChange={e => { setText(e.target.value); if (gate) setGate(null) }}
                 placeholder="Write a weekly objective…"
                 rows={2}
-                className="w-full bg-black/30 border border-white/[0.08] rounded px-2.5 py-2 pr-10 text-label text-white placeholder:text-white/30 focus:border-violet-400/40 focus:outline-none resize-none"
+                className="w-full bg-sunk border border-white/[0.08] rounded px-2.5 py-2 pr-10 text-label text-white placeholder:text-white/30 focus:border-violet-400/40 focus:outline-none resize-none"
               />
               <div className="absolute top-1.5 right-1.5">
                 <MicButton

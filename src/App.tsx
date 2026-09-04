@@ -21,6 +21,7 @@ import { videoEngineEnabled } from './lib/videoStudio'
 import { isTypingTarget } from './lib/hotkeys'
 import { BOTTOM_NAV_PAD } from './components/mobile/primitives'
 import { MobileTabSkeleton, BoardSkeleton, SkeletonDetail, DeferredFallback } from './components/shared/Skeleton'
+import { useReducedMotion } from './components/shared/motion'
 
 /**
  * Route surfaces are code-split: each tab is its own chunk, fetched on demand,
@@ -144,6 +145,7 @@ export default function App() {
   const videoEngineOn = videoEngineEnabled()
   const videoReviewOpen = tab === 'content' && videoEngineOn && Boolean(route.params.video)
   const mainRef = useRef<HTMLElement>(null)
+  const reducedMotion = useReducedMotion()
 
   useEffect(() => {
     if (tab === 'content' && route.params.video && !videoEngineOn) navigate('content')
@@ -159,7 +161,6 @@ export default function App() {
     else main.removeAttribute('inert')
     return () => main.removeAttribute('inert')
   }, [videoReviewOpen])
-
   useEffect(() => {
     const onResize = () => setNarrow(detectIsMobile())
     window.addEventListener('resize', onResize)
@@ -195,7 +196,7 @@ export default function App() {
   const handleTab = (id: string) => {
     const normalised = id === 'execution' ? 'exec' : id
     navigate(normalised)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
   }
 
   // A deep-linked brief editor or content composer takes over the whole screen

@@ -17,7 +17,7 @@ export function Eyebrow({
   tone?: 'default' | 'accent'
   className?: string
 }) {
-  const color = tone === 'accent' ? 'text-violet-200/80' : 'text-white/45'
+  const color = tone === 'accent' ? 'text-violet-200' : 'text-ink-muted'
   return (
     <span className={`font-display text-micro font-semibold uppercase tracking-[0.14em] ${color} ${className}`}>
       {children}

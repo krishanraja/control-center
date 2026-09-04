@@ -1,5 +1,6 @@
 import React from 'react'
 import { X } from '@/lib/icons'
+import { MindmakeIdentity } from './MindmakeIdentity'
 import { useDeviceClass, useReducedMotion } from './motion'
 import { SHOW_ELAPSED_AFTER_MS } from '../../hooks/useAsyncAction'
 
@@ -89,12 +90,9 @@ function ThinkingOrbit({ size }: { size: number }) {
         </>
       )}
       <div className="absolute inset-0 flex items-center justify-center">
-        <img
-          src="/icon-192.png"
-          alt=""
-          className="rounded-2xl ring-1 ring-white/10 shadow-e2 animate-mark-breathe"
-          style={{ width: mark, height: mark }}
-        />
+        <div className="animate-mark-breathe motion-reduce:animate-none">
+          <MindmakeIdentity size={mark} />
+        </div>
       </div>
     </div>
   )

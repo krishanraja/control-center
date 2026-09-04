@@ -1,6 +1,6 @@
 # ADR-007: Obsidian Aurora design system + adaptive light/dark theming
 
-- Status: Accepted
+- Status: Superseded by ADR-015
 - Date: 2026-07-01
 - Deciders: Krish
 

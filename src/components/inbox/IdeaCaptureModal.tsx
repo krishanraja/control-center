@@ -137,7 +137,7 @@ export function IdeaCaptureModal({ open, onClose, source = 'control_center' }: P
             onKeyDown={onKeyDown}
             placeholder="Anything on your mind. Sonnet will figure out where it belongs and which agent owns it."
             rows={4}
-            className="w-full bg-black/30 border border-white/[0.08] rounded-md px-3 py-2 text-ui text-white placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none resize-y"
+            className="w-full bg-sunk border border-white/[0.08] rounded-md px-3 py-2 text-ui text-white placeholder:text-white/30 focus:border-violet-400/50 focus:outline-none resize-y"
           />
           <div className="mt-3 flex items-center gap-2">
             {canRecord && (

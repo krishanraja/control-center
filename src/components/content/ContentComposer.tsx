@@ -1725,14 +1725,14 @@ function CleoChat({ idea, draft, onUseAsDraft, mobile }: { idea: ContentIdeaRow;
           <GrowTextarea
             value={input} onChange={setInput} maxPx={132}
             placeholder="Message Cleo…"
-            className="flex-1 rounded-2xl bg-black/40 border border-white/10 px-4 py-2.5 text-lede text-white/90 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40 resize-none"
+            className="flex-1 rounded-2xl bg-sunk border border-white/10 px-4 py-2.5 text-lede text-white/90 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40 resize-none"
           />
         ) : (
           <textarea
             value={input} onChange={e => setInput(e.target.value)} rows={2}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) } }}
             placeholder="Ask Cleo…  (Enter to send, Shift+Enter for a new line)"
-            className="flex-1 rounded-lg bg-black/40 border border-white/10 px-2.5 py-2 text-label text-white/90 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40 resize-none"
+            className="flex-1 rounded-lg bg-sunk border border-white/10 px-2.5 py-2 text-label text-white/90 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40 resize-none"
           />
         )}
         <button type="button" onClick={() => send(input)} disabled={busy || !input.trim()}
@@ -1889,7 +1889,7 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
       </button>
 
       {preview != null ? (
-        <div className="rounded-lg border border-violet-500/30 bg-black/30 p-2.5 space-y-2">
+        <div className="rounded-lg border border-violet-500/30 bg-sunk p-2.5 space-y-2">
           <div className="text-micro uppercase tracking-wide text-violet-200/70 flex items-center gap-1"><Sparkles size={10} /> Revised preview</div>
           <p className="text-label text-white/85 leading-relaxed whitespace-pre-wrap max-h-[40vh] overflow-y-auto">{preview}</p>
           <div className="flex items-center gap-1.5">
@@ -1927,7 +1927,7 @@ function RefinePanel({ idea, draft, onApplyDraft, selection, onClearSelection }:
           value={feedback} onChange={e => setFeedback(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && feedback.trim()) { revise('feedback', 'custom', undefined, feedback.trim()); setFeedback('') } }}
           placeholder="Tell Cleo exactly what to change…"
-          className="flex-1 rounded-md bg-black/40 border border-white/10 px-2 py-1.5 text-micro text-white/90 focus:outline-none focus:border-violet-500/40"
+          className="flex-1 rounded-md bg-sunk border border-white/10 px-2 py-1.5 text-micro text-white/90 focus:outline-none focus:border-violet-500/40"
         />
         <button type="button" disabled={busy !== null || !feedback.trim()}
           onClick={() => { revise('feedback', 'custom', undefined, feedback.trim()); setFeedback('') }}
@@ -2002,14 +2002,14 @@ function MaterialsPanel({ idea }: { idea: ContentIdeaRow }) {
 
       <div className="space-y-1.5">
         <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title (optional)"
-          className="w-full rounded-md bg-black/40 border border-white/10 px-2 py-1.5 text-micro text-white/90 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40" />
+          className="w-full rounded-md bg-sunk border border-white/10 px-2 py-1.5 text-micro text-white/90 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40" />
         {mode === 'paste' ? (
           <textarea value={content} onChange={e => setContent(e.target.value)} rows={6}
             placeholder="Paste your research / corpus markdown here…"
-            className="w-full rounded-md bg-black/40 border border-white/10 px-2 py-1.5 text-micro text-white/90 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40 resize-none" />
+            className="w-full rounded-md bg-sunk border border-white/10 px-2 py-1.5 text-micro text-white/90 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40 resize-none" />
         ) : (
           <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://…"
-            className="w-full rounded-md bg-black/40 border border-white/10 px-2 py-1.5 text-micro text-white/90 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40" />
+            className="w-full rounded-md bg-sunk border border-white/10 px-2 py-1.5 text-micro text-white/90 placeholder:text-white/30 focus:outline-none focus:border-violet-500/40" />
         )}
         <button type="button" onClick={add} disabled={busy}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-micro font-medium bg-violet-500/30 text-white hover:bg-violet-500/40 disabled:opacity-40 min-h-[32px]">
@@ -2179,7 +2179,7 @@ function ResearchPanel({ idea }: { idea: ContentIdeaRow }) {
       <div className="flex items-center gap-1.5 pt-1 border-t border-white/[0.06]">
         <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') dive(q) }}
           placeholder="Dig into a specific area…"
-          className="flex-1 rounded-md bg-black/40 border border-white/10 px-2 py-1.5 text-micro text-white/90 placeholder:text-white/30 focus:outline-none focus:border-emerald-500/40" />
+          className="flex-1 rounded-md bg-sunk border border-white/10 px-2 py-1.5 text-micro text-white/90 placeholder:text-white/30 focus:outline-none focus:border-emerald-500/40" />
         <button type="button" onClick={() => dive(q)} disabled={!!runningQ || !q.trim()}
           className="flex items-center justify-center w-8 h-8 rounded-md bg-emerald-500/25 text-white hover:bg-emerald-500/35 disabled:opacity-40 flex-shrink-0">
           {runningQ === q.trim() && q.trim() ? <Working size={12} /> : <Search size={12} />}
@@ -2220,7 +2220,7 @@ function StandardsPanel({ idea, draft }: { idea: ContentIdeaRow; draft: string }
         {busy ? <Working size={11} /> : <Gauge size={11} />} Score the five standards
       </button>
       {standards && (
-        <div className="rounded-md border border-white/[0.06] bg-black/30 p-2 space-y-1.5">
+        <div className="rounded-md border border-white/[0.06] bg-sunk p-2 space-y-1.5">
           <div className="flex flex-wrap gap-1.5">
             {FIVE_STANDARDS.map(st => {
               const v = standards.scores?.[st.key] ?? 0

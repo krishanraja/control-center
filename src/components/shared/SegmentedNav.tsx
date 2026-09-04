@@ -44,26 +44,26 @@ interface Props<T extends string> {
 const TRAY: Record<NonNullable<Props<string>['variant']>, string> = {
   pill: 'flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1 flex-shrink-0',
   bordered: 'flex gap-1',
-  segmented: 'flex gap-1 rounded-xl border border-white/10 bg-base/80 p-1 backdrop-blur',
+  segmented: 'flex gap-1 rounded-xl border border-white/10 bg-command-surface p-1 shadow-e1',
 }
 
 const TAB: Record<NonNullable<Props<string>['variant']>, { base: string; on: string; off: string }> = {
   pill: {
-    base: 'px-3.5 py-1.5 rounded-full text-body whitespace-nowrap border transition-colors',
-    on: 'btn-contrast border-white font-semibold',
-    off: 'border-white/10 text-white/65 hover:bg-white/[0.06]',
+    base: 'min-h-[40px] px-3.5 py-1.5 rounded-full text-body whitespace-nowrap border transition-colors',
+    on: 'btn-contrast border-violet-400 font-semibold shadow-[0_6px_18px_-12px_rgba(127,227,180,.65)]',
+    off: 'border-white/10 text-muted hover:text-strong hover:bg-white/[0.06]',
   },
   bordered: {
-    base: 'px-3 py-1.5 rounded-lg text-label font-semibold border transition-colors',
-    on: 'border-white/20 bg-white/[0.08] text-white',
-    off: 'border-white/[0.06] text-white/45 hover:text-white/75 hover:border-white/15',
+    base: 'min-h-[40px] px-3 py-1.5 rounded-lg text-label font-semibold border transition-colors',
+    on: 'border-violet-400/35 bg-violet-500/10 text-strong shadow-[inset_0_-2px_0_#7fe3b4]',
+    off: 'border-white/[0.06] text-muted hover:text-strong hover:border-white/15',
   },
   segmented: {
     // flex-1 so segments split the width evenly and each is a real tap target
     // rather than a 10px pill.
-    base: 'flex-1 min-h-[38px] rounded-lg text-label font-semibold transition-colors',
-    on: 'bg-white/15 text-white',
-    off: 'text-white/55 hover:text-white/80',
+    base: 'flex-1 min-h-[40px] rounded-lg text-label font-semibold transition-colors',
+    on: 'bg-violet-500/[0.12] text-strong shadow-[inset_0_-2px_0_#7fe3b4]',
+    off: 'text-muted hover:text-strong',
   },
 }
 
