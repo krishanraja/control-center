@@ -11,7 +11,7 @@ export async function beginPropertyRun(options: {
   mode: "scheduled" | "manual" | "import";
   attempt: number;
 }): Promise<RunRow> {
-  const rows = await rest<RunRow[]>("property_runs", {
+  const rows = await rest<RunRow[]>("property_runs?on_conflict=run_on,mode,attempt", {
     method: "POST",
     headers: { Prefer: "return=representation,resolution=ignore-duplicates" },
     body: JSON.stringify({ run_on: options.runOn, mode: options.mode, attempt: options.attempt, status: "running" }),
@@ -86,48 +86,58 @@ function observationRow(observation: Observation) {
   };
 }
 
-const OBSERVATION_CONFLICT = "on_conflict=source,area_kind,area_code,dwelling_type,bedrooms,metric,period_start,period_end";
+function naturalKey(row: {
+  source: string; area_kind: string; area_code: string; dwelling_type: string | null; bedrooms: number | null;
+  metric: string; period_start: string; period_end: string; detail?: Record<string, unknown> | null;
+}): string {
+  return [
+    row.source, row.area_kind, row.area_code, row.dwelling_type ?? "-", row.bedrooms ?? -1,
+    row.metric, row.period_start, row.period_end, String(row.detail?.ref ?? "-"),
+  ].join("|");
+}
 
+/**
+ * The natural key is an expression index (coalesce on nullable columns), which
+ * PostgREST upserts cannot target, so existing rows for the touched sources are
+ * read once, new rows are inserted in batches and changed values are patched.
+ */
 export async function upsertObservations(observations: Observation[]): Promise<number> {
   if (observations.length === 0) return 0;
-  // The natural key is an expression index (coalesce on nullable columns), which
-  // PostgREST cannot target directly, so rows are written one by one with a
-  // read-before-write. Volumes are small (tens of rows a week).
+  const sources = [...new Set(observations.map((row) => row.source))];
+  const existing = await rest<Array<ObservationRow & { id: string }>>(
+    `property_market_observations?select=id,source,area_kind,area_code,dwelling_type,bedrooms,metric,period_start,period_end,value,detail&source=in.(${sources.join(",")})&limit=20000`,
+  );
+  const byKey = new Map(existing.map((row) => [naturalKey({ ...row, bedrooms: row.bedrooms == null ? null : Number(row.bedrooms) }), row]));
+  const inserts: Array<ReturnType<typeof observationRow>> = [];
   let written = 0;
+  const seen = new Set<string>();
   for (const observation of observations) {
-    const params = new URLSearchParams({
-      select: "id",
-      source: `eq.${observation.source}`,
-      area_kind: `eq.${observation.areaKind}`,
-      area_code: `eq.${observation.areaCode}`,
-      metric: `eq.${observation.metric}`,
-      period_start: `eq.${observation.periodStart}`,
-      period_end: `eq.${observation.periodEnd}`,
-      dwelling_type: observation.dwellingType == null ? "is.null" : `eq.${observation.dwellingType}`,
-      bedrooms: observation.bedrooms == null ? "is.null" : `eq.${observation.bedrooms}`,
-    });
-    const ref = observation.detail?.ref;
-    if (ref != null) params.set("detail->>ref", `eq.${String(ref)}`);
-    const existing = await rest<Array<{ id: string }>>(`property_market_observations?${params.toString()}&limit=1`);
-    if (existing[0]?.id) {
-      await rest(`property_market_observations?id=eq.${existing[0].id}`, {
+    const row = observationRow(observation);
+    const key = naturalKey(row);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const current = byKey.get(key);
+    if (!current) {
+      inserts.push(row);
+      written += 1;
+    } else if (Number(current.value) !== observation.value) {
+      await rest(`property_market_observations?id=eq.${current.id}`, {
         method: "PATCH",
         headers: { Prefer: "return=minimal" },
-        body: JSON.stringify(observationRow(observation)),
+        body: JSON.stringify(row),
       });
-    } else {
-      await rest("property_market_observations", {
-        method: "POST",
-        headers: { Prefer: "return=minimal" },
-        body: JSON.stringify(observationRow(observation)),
-      });
+      written += 1;
     }
-    written += 1;
+  }
+  for (let index = 0; index < inserts.length; index += 200) {
+    await rest("property_market_observations", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify(inserts.slice(index, index + 200)),
+    });
   }
   return written;
 }
-
-export { OBSERVATION_CONFLICT };
 
 export interface ObservationRow {
   source: string;

@@ -76,13 +76,24 @@ describe("rent guidance", () => {
   it("reads the gap against the area and words the advice", () => {
     const band = rentBand([
       { source: "rta", areaKind: "postcode", areaCode: "4101", dwellingType: "unit", bedrooms: 2, metric: "median_weekly_rent", periodStart: "2026-04-01", periodEnd: "2026-06-30", value: 580, unit: "AUD/week", sourceUrl: null, sourceDate: null, detail: {} },
-    ], "4101", 2);
+    ], { suburb: "Highgate Hill", postcode: "4101" }, 2);
     const gap = rentGap(610, band);
     expect(gap?.gapWeekly).toBe(-30);
     expect(reviewAdvice(gap)).toMatch(/above the area figure/);
     expect(reviewAdvice(rentGap(560, band))).toMatch(/a little under/);
     expect(reviewAdvice(rentGap(500, band))).toMatch(/under the area figure by about A\$80/);
     expect(reviewAdvice(null)).toMatch(/No market rent figure/);
+  });
+
+  it("prefers the suburb median over the postcode median", () => {
+    const rows = [
+      { source: "rta", areaKind: "postcode", areaCode: "4101", dwellingType: "unit", bedrooms: 2, metric: "median_weekly_rent", periodStart: "2026-04-01", periodEnd: "2026-06-30", value: 850, unit: "AUD/week", sourceUrl: null, sourceDate: null, detail: {} },
+      { source: "rta", areaKind: "suburb", areaCode: "Highgate Hill", dwellingType: "unit", bedrooms: 2, metric: "median_weekly_rent", periodStart: "2026-04-01", periodEnd: "2026-06-30", value: 600, unit: "AUD/week", sourceUrl: null, sourceDate: null, detail: {} },
+    ];
+    const band = rentBand(rows, { suburb: "Highgate Hill", postcode: "4101" }, 2);
+    expect(band.areaMedian).toBe(600);
+    expect(band.areaMedianScope).toBe("Highgate Hill");
+    expect(rentBand(rows, { suburb: "West End", postcode: "4101" }, 2).areaMedian).toBe(850);
   });
 
   it("dates the next allowed increase twelve months on with two months notice", () => {
@@ -115,7 +126,7 @@ describe("ledger summary", () => {
   });
 
   it("degrades a missing optional band to nulls rather than throwing", () => {
-    const band = rentBand([], "4101", 2);
+    const band = rentBand([], { suburb: "Highgate Hill", postcode: "4101" }, 2);
     expect(band.areaMedian).toBeNull();
     expect(rentGap(610, band)).toBeNull();
   });

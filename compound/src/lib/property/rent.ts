@@ -21,6 +21,8 @@ export interface RentBand {
   areaMedian: number | null;
   areaMedianPeriod: string | null;
   areaMedianSource: string | null;
+  /** Which area the median describes, e.g. "Highgate Hill" or "postcode 4101". */
+  areaMedianScope: string | null;
   askingP25: number | null;
   askingMedian: number | null;
   askingP75: number | null;
@@ -28,25 +30,31 @@ export interface RentBand {
   askingPeriod: string | null;
 }
 
-function latestFor(observations: ObservationRecord[], metric: string, postcode: string, bedrooms: number): ObservationRecord | undefined {
+function pick(observations: ObservationRecord[], metric: string, areaKind: string, areaCode: string, bedrooms: number): ObservationRecord | undefined {
   return observations
-    .filter((row) => row.metric === metric && row.areaKind === "postcode" && row.areaCode === postcode
+    .filter((row) => row.metric === metric && row.areaKind === areaKind && row.areaCode.toLowerCase() === areaCode.toLowerCase()
       && (row.bedrooms === bedrooms || row.bedrooms == null)
       && (row.dwellingType == null || row.dwellingType === "unit" || row.dwellingType === "all"))
     .sort((a, b) => a.periodEnd.localeCompare(b.periodEnd) || ((a.bedrooms === bedrooms ? 1 : 0) - (b.bedrooms === bedrooms ? 1 : 0)))
     .at(-1);
 }
 
-export function rentBand(observations: ObservationRecord[], postcode: string, bedrooms: number): RentBand {
-  const median = latestFor(observations, "median_weekly_rent", postcode, bedrooms);
-  const p25 = latestFor(observations, "asking_rent_p25", postcode, bedrooms);
-  const p50 = latestFor(observations, "asking_rent_median", postcode, bedrooms);
-  const p75 = latestFor(observations, "asking_rent_p75", postcode, bedrooms);
-  const count = latestFor(observations, "rent_listing_count", postcode, bedrooms);
+/** Suburb-level figures win over postcode-level ones: a postcode can span very different buildings. */
+function latestFor(observations: ObservationRecord[], metric: string, area: { suburb: string; postcode: string }, bedrooms: number): ObservationRecord | undefined {
+  return pick(observations, metric, "suburb", area.suburb, bedrooms) ?? pick(observations, metric, "postcode", area.postcode, bedrooms);
+}
+
+export function rentBand(observations: ObservationRecord[], area: { suburb: string; postcode: string }, bedrooms: number): RentBand {
+  const median = latestFor(observations, "median_weekly_rent", area, bedrooms);
+  const p25 = latestFor(observations, "asking_rent_p25", area, bedrooms);
+  const p50 = latestFor(observations, "asking_rent_median", area, bedrooms);
+  const p75 = latestFor(observations, "asking_rent_p75", area, bedrooms);
+  const count = latestFor(observations, "rent_listing_count", area, bedrooms);
   return {
     areaMedian: median?.value ?? null,
     areaMedianPeriod: median?.periodEnd ?? null,
     areaMedianSource: median?.source ?? null,
+    areaMedianScope: median ? (median.areaKind === "suburb" ? median.areaCode : `postcode ${median.areaCode}`) : null,
     askingP25: p25?.value ?? null,
     askingMedian: p50?.value ?? null,
     askingP75: p75?.value ?? null,
