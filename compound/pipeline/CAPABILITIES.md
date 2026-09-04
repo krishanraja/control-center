@@ -28,6 +28,17 @@ MarketAux, Brave, and NewsAPI are not implemented collector evidence.
 
 Paid fallbacks not approved: PropRadar Hobby (A$49 a month) or an Apify realestate.com.au actor, both pluggable as another observation source.
 
+## Spend providers (daily, `compound/pipeline/spend/`)
+
+| Provider | What it gives | Cost | Access | Failure mode |
+|---|---|---|---|---|
+| RBA F11.1 | Daily A$1 = USD, EUR, GBP rates back to 2023 | Free, no key | Public CSV | Run partial; unpriced rows counted, not guessed |
+| Bills sheet | Every bill and receipt the Gmail skill wrote, tab by gid, range A:N | Free | Google service account, Viewer | Header drift stops the sync; run partial |
+| Control Center invoices | `public.spend_invoices`, one label, daily | Free | Service role, GET only via `readPublic` | Run partial; sheet rows still count |
+| Control Center meter | `public.meter_daily`, trailing 90 days | Free | Service role, GET only | Operating system section says the meter is silent |
+| Control Center registry | `public.service_registry` vendor needles and cycle budgets | Free | Service role, GET only | Scope falls back to aliases and overrides |
+| Property ledger | `compound.property_ledger` rows with direction out | Free | Same schema | Property scope empty until the property run has synced |
+
 ## Production proof
 
 - Workflow `31533242283` published two immutable captured rows for 2026-08-11 on attempt one.

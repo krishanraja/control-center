@@ -13,6 +13,9 @@
     },
     "api/property/*.js": {
       "maxDuration": 30
+    },
+    "api/spend/*.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [

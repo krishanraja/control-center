@@ -8,6 +8,8 @@ const demoModule = "virtual:compound-demo-snapshot";
 const resolvedDemoModule = `\0${demoModule}`;
 const demoPropertyModule = "virtual:compound-demo-property";
 const resolvedDemoPropertyModule = `\0${demoPropertyModule}`;
+const demoSpendModule = "virtual:compound-demo-spend";
+const resolvedDemoSpendModule = `\0${demoSpendModule}`;
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -17,6 +19,9 @@ export default defineConfig(({ mode }) => {
     : null;
   const demoProperty = includeDemo
     ? JSON.parse(readFileSync(fileURLToPath(new URL("./src/demo/property.json", import.meta.url)), "utf8")) as unknown
+    : null;
+  const demoSpend = includeDemo
+    ? JSON.parse(readFileSync(fileURLToPath(new URL("./src/demo/spend.json", import.meta.url)), "utf8")) as unknown
     : null;
 
   return {
@@ -31,11 +36,13 @@ export default defineConfig(({ mode }) => {
         resolveId(id) {
           if (id === demoModule) return resolvedDemoModule;
           if (id === demoPropertyModule) return resolvedDemoPropertyModule;
+          if (id === demoSpendModule) return resolvedDemoSpendModule;
           return null;
         },
         load(id) {
           if (id === resolvedDemoModule) return `export default ${JSON.stringify(demo)};`;
           if (id === resolvedDemoPropertyModule) return `export default ${JSON.stringify(demoProperty)};`;
+          if (id === resolvedDemoSpendModule) return `export default ${JSON.stringify(demoSpend)};`;
           return null;
         },
       },

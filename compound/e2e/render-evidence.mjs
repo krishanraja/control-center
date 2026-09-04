@@ -15,7 +15,7 @@ const CASES = [
   { name: "phone-390", width: 390, height: 844, touch: true },
   { name: "desktop-1440", width: 1440, height: 1000, touch: false },
 ];
-const TABS = ["brief", "markets", "portfolio", "property", "ask"];
+const TABS = ["brief", "markets", "portfolio", "property", "spend", "ask"];
 
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || process.env.CHROMIUM_PATH || undefined });
 try {

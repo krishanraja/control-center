@@ -43,13 +43,14 @@
 
 - COMPOUND is market-wide and global with a US-led cross-asset universe. Holdings never influence story selection or ranking.
 - Today in markets has exactly three positions: one lead story and two compact briefs. Quiet days say `Nothing needs action` and show two stable checkpoints.
-- The five destinations are Today in markets, Markets, Portfolio, Property, and Ask. Old URLs keep compatibility redirects.
+- The six destinations are Today in markets, Markets, Portfolio, Property, Spend, and Ask. Old URLs keep compatibility redirects.
 - Property is one owned unit, separate from market ranking. The value estimate, rent band and suburb ranking are computed by the weekly property pipeline and stored with their inputs and confidence; loan maths runs in the browser from manual facts. The cost ledger Google Sheet is the editing surface and `compound.property_ledger` is a read-only mirror of it.
+- Spend is every outgoing from every source, itemised and priced in US dollars. Bills and receipts are the money; the Control Center usage meter is a breakdown shown inside the Operating system section and never added to a total. The bills sheet is canonical over inbox receipts; the property ledger mirror supplies property outgoings.
 - `stack` and `split` are separate component systems over one data layer.
 - The 123-industry explorer uses the exhaustive 11-sector taxonomy. Hiding an industry declutters exploration but cannot suppress a materially significant Brief story.
 - Captured wording, evidence, citations, falsifier, coverage, schema version, engine version, and publication time are immutable historical evidence.
 - Live reads use authenticated APIs. Demo mode bundles `src/demo/latest.json` only when `VITE_COMPOUND_DEMO_MODE=true`; production has no public fixture route or private fixture chunk.
-- COMPOUND never executes a trade and does not import Control Center application data.
+- COMPOUND never executes a trade and does not import Control Center application code. The spend pipeline reads three Control Center tables read-only (C-008); no browser or Vercel path does.
 
 ## Property pipeline contract
 
@@ -59,6 +60,15 @@
 - Personal facts (property, loan, rates, rents, building sales) enter through `deno task property:import` or direct SQL by the owner. Migrations and fixtures never carry them; `compound/scripts/check-supabase.mjs` fails if they do.
 - Value estimate method `hedonic_lite_v1`: same-building sale adjusted for car spaces, blended with the postcode pool of two bed unit sales, band from the pool's middle range, floor at the smaller unit's sale. Constants and assumptions are stored in `property_valuations.inputs`.
 - Suburb score: percentile ranks of rent return (0.35), rent growth (0.25), price growth (0.25) and supply (0.15) across the inner-south target set; missing inputs score the middle and are named on the row.
+
+## Spend pipeline contract
+
+- Schedule: `.github/workflows/compound-spend.yml`, 06:45 Brisbane every day, plus `workflow_dispatch` with an optional `dry_run` input that prints counts and dedupe pairs without writing. Two attempts ten minutes apart. The bills sheet refreshes on the 9th; the next morning's run picks it up.
+- Entry: `compound/pipeline/spend/main.ts`. Providers: RBA F11.1 exchange rates (free), the bills sheet by gid (Google service account, range A:N, header row found under the title row), Control Center invoices, meter (trailing 90 days) and registry through the GET-only `readPublic`, and `compound.property_ledger` rows where money went out. A failed or unconfigured provider marks the run `partial`; a source that failed to read does not hide its rows.
+- Secrets: `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from the GitHub environment. Vault holds `spend_bills_sheet_gid`; the sheet id falls back to `property_ledger_sheet_id` and the Google account to the `property_google_service_account_*` names. Nothing new in the GitHub environment.
+- Dedupe: exact Gmail id, then same merchant, currency and amount within three days (supersedes and flags `matched_by_amount` while `FUZZY_SUPERSEDES` is on), then same merchant within two percent and ten days (flag only, both count). Identical sheet rows both persist, flagged `sheet_duplicate`. Rows a source no longer returns are set `hidden`, never deleted.
+- Pricing: USD rows as is; AUD, EUR and GBP through the RBA rate on or before the date, up to ten days back; otherwise `unpriced` and left out of every total. Control Center rows keep their own USD figure.
+- Scope: `property_ledger` rows are property; an override in `compound.spend_merchant_overrides` wins; then a static alias list (Google Play and YouTube personal, Google Workspace by mailbox domain, n8n via Paddle); then the registry's `vendor_match` needles on whole words; else personal. `compound.spend_merchants` is rebuilt each run from the registry plus discovered merchants.
 
 ## Daily pipeline contract
 

@@ -90,7 +90,7 @@
 .stack .botnav {
   display: grid;
   flex: none;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   padding: calc(6 * var(--px)) calc(4 * var(--px)) env(safe-area-inset-bottom);
   border-top: calc(1 * var(--px)) solid var(--line);
   background: var(--surf);
@@ -100,8 +100,10 @@
   flex-direction: column;
   align-items: center;
   gap: calc(3 * var(--px));
+  min-width: 0;
   min-height: calc(54 * var(--px));
-  padding: calc(5 * var(--px)) calc(2 * var(--px)) calc(7 * var(--px));
+  padding: calc(5 * var(--px)) 0 calc(7 * var(--px));
+  overflow: hidden;
   border: 0;
   background: none;
   color: var(--mut);
@@ -112,7 +114,8 @@
 .stack .botnav button .puck {
   display: grid;
   place-items: center;
-  width: calc(54 * var(--px));
+  width: 100%;
+  max-width: calc(50 * var(--px));
   height: calc(28 * var(--px));
   border-radius: calc(14 * var(--px));
   transition: background .16s;
@@ -577,8 +580,8 @@
 
 @media (max-width: 359px) {
   .stack { --gut: calc(13 * var(--px)); --t-title: calc(24 * var(--px)); }
-  .stack .botnav button { font-size: calc(9.5 * var(--px)); }
-  .stack .botnav button .puck { width: calc(46 * var(--px)); }
+  .stack .botnav button { font-size: calc(9 * var(--px)); }
+  .stack .botnav button .puck { max-width: calc(44 * var(--px)); }
 }
 
 /* Cited context appears on the face, then opens into full source detail. */
@@ -599,7 +602,7 @@
 .stack .sample-chip { padding: calc(3 * var(--px)) calc(6 * var(--px)); border: calc(1 * var(--px)) solid var(--line2); border-radius: calc(4 * var(--px)); color: var(--faint); font-family: var(--mono); font-size: calc(8 * var(--px)); letter-spacing: .08em; text-transform: uppercase; }
 .stack .datebtn { display: inline-flex; align-items: center; gap: calc(6 * var(--px)); min-height: var(--tap); padding: 0 calc(4 * var(--px)); border: 0; background: none; color: var(--ink2); font-family: var(--mono); font-size: calc(10.5 * var(--px)); font-weight: 650; letter-spacing: .05em; text-transform: uppercase; }
 .stack .datebtn svg { width: calc(15 * var(--px)); height: calc(15 * var(--px)); color: var(--mut); }
-.stack .botnav { grid-template-columns: repeat(5, 1fr); padding-top: calc(7 * var(--px)); background: rgb(8 11 13 / 96%); }
+.stack .botnav { grid-template-columns: repeat(6, 1fr); padding-top: calc(7 * var(--px)); background: rgb(8 11 13 / 96%); }
 .stack .botnav button { min-height: calc(58 * var(--px)); }
 .stack .botnav button.on { color: var(--paper, #f3f0e8); }
 .stack .botnav button.on .puck { background: transparent; }
@@ -783,3 +786,34 @@
 .stack .rank-working { padding: 0 0 calc(14 * var(--px)) calc(36 * var(--px)); }
 .stack .rank-working p { margin: 0 0 calc(8 * var(--px)); color: var(--ink2); font-size: calc(13 * var(--px)); line-height: 1.5; }
 .stack .property-sources { margin-top: calc(26 * var(--px)); }
+
+/* ---- Spend: every dollar out, itemised ---- */
+.stack .spend-page { padding-top: calc(22 * var(--px)); }
+.stack .spend-page .tiles { margin-top: calc(22 * var(--px)); }
+.stack .spend-page .c { margin-top: calc(14 * var(--px)); }
+.stack .spend-page .tiles .tile { min-width: 0; }
+.stack .spend-meter, .stack .spend-list, .stack .spend-subs { margin: calc(12 * var(--px)) 0 0; padding: 0; list-style: none; border-top: calc(1 * var(--px)) solid var(--line2); }
+.stack .spend-meter-row, .stack .spend-row, .stack .spend-sub { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: calc(12 * var(--px)); align-items: start; padding: calc(12 * var(--px)) 0; border-bottom: calc(1 * var(--px)) solid var(--line); }
+.stack .spend-meter-copy, .stack .spend-row-copy { min-width: 0; }
+.stack .spend-meter-copy strong, .stack .spend-row-copy strong { display: block; overflow: hidden; font-size: calc(15 * var(--px)); text-overflow: ellipsis; white-space: nowrap; }
+.stack .spend-meter-copy small, .stack .spend-row-copy small { display: block; margin-top: calc(4 * var(--px)); color: var(--mut); font-size: calc(11.5 * var(--px)); line-height: 1.4; }
+.stack .spend-row-copy .spend-row-meta { font-family: var(--mono); font-size: calc(10 * var(--px)); }
+.stack .spend-meter-copy .rank-bar { margin-top: calc(8 * var(--px)); }
+.stack .spend-meter-num, .stack .spend-row-num { text-align: right; white-space: nowrap; }
+.stack .spend-meter-num strong, .stack .spend-row-num strong { display: block; font-family: var(--mono); font-size: calc(15 * var(--px)); font-weight: 640; }
+.stack .spend-meter-num small, .stack .spend-row-num small { display: block; margin-top: calc(4 * var(--px)); color: var(--mut); font-family: var(--mono); font-size: calc(10.5 * var(--px)); }
+.stack .spend-row-num strong small { display: inline; margin: 0; font-weight: 400; }
+.stack .spend-row-num.up strong { color: var(--up); }
+.stack .spend-superseded { opacity: .55; }
+.stack .spend-cycle, .stack .spend-check { margin-top: calc(12 * var(--px)); }
+.stack .spend-check b, .stack .spend-cycle b { color: var(--ink); }
+.stack .spend-filters { display: grid; gap: calc(10 * var(--px)); margin-top: calc(12 * var(--px)); }
+.stack .spend-search { width: 100%; min-height: calc(40 * var(--px)); padding: 0 calc(12 * var(--px)); border: calc(1 * var(--px)) solid var(--line2); border-radius: calc(10 * var(--px)); background: var(--surf); color: var(--ink); font-size: calc(14 * var(--px)); }
+.stack .spend-search:focus { outline: calc(2 * var(--px)) solid var(--sig); outline-offset: calc(1 * var(--px)); }
+.stack .spend-copies { display: flex; gap: calc(8 * var(--px)); align-items: center; color: var(--mut); font-size: calc(12.5 * var(--px)); }
+.stack .spend-copies input { width: calc(16 * var(--px)); height: calc(16 * var(--px)); accent-color: var(--sig); }
+.stack .spend-month { margin-top: calc(18 * var(--px)); }
+.stack .spend-month-head { display: flex; justify-content: space-between; align-items: baseline; gap: calc(12 * var(--px)); }
+.stack .spend-month-head h4 { margin: 0; font-size: calc(13 * var(--px)); font-weight: 640; letter-spacing: .02em; text-transform: uppercase; color: var(--ink2); }
+.stack .spend-month-head span { color: var(--mut); font-family: var(--mono); font-size: calc(12 * var(--px)); }
+.stack .spend-sources { margin-top: calc(26 * var(--px)); }
