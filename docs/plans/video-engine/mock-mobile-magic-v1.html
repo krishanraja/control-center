@@ -226,32 +226,32 @@
       position: absolute;
       left: 15px;
       top: 28px;
-      width: 94px;
-      min-height: 96px;
-      padding: 12px 10px 10px;
+      width: max-content;
+      max-width: calc(100% - 30px);
+      min-height: 36px;
+      padding: 7px 3px;
       border-radius: 12px;
-      display: grid;
-      align-content: center;
-      gap: 7px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
       background: rgba(5,5,6,.90);
       border: 1px solid rgba(255,255,255,.13);
       box-shadow: 0 12px 30px rgba(0,0,0,.34);
     }
-    .brand-lockup img {
+    .brand-lockup .mindmake-wordmark {
       display: block;
-      max-width: 100%;
-      max-height: 31px;
-      margin: auto;
+      width: 60px;
+      height: auto;
       object-fit: contain;
     }
-    .brand-lockup img:first-child {
-      width: 74px;
+    .brand-lockup .series-wordmark {
+      display: block;
+      width: 224.25px;
+      height: 17.25px;
+      flex: 0 0 auto;
+      overflow: hidden;
     }
-    .brand-lockup img:last-child {
-      width: 76px;
-      height: 40px;
-    }
-    .brand-rule { height: 1px; background: rgba(255,255,255,.13); }
+    .brand-rule { width: 1px; height: 20px; flex: 0 0 auto; background: rgba(255,255,255,.13); }
     .proof {
       position: absolute;
       right: 14px;
@@ -616,7 +616,7 @@
       .change-cue { bottom: 394px; }
       .compare { bottom: 330px; }
       .proof { top: 98px; transform: scale(.88); transform-origin: top right; }
-      .brand-lockup { transform: scale(.84); transform-origin: top left; }
+      .brand-lockup { top: 22px; }
       .portrait { transform: translateX(-50%) scale(.82); transform-origin: 50% 16%; }
       .direct-row { display: none; }
     }
@@ -648,10 +648,12 @@
         <div class="hair"></div>
       </div>
 
-      <div class="brand-lockup" aria-label="Mindmake and The Money of AI wordmarks">
-        <img src="https://raw.githubusercontent.com/krishanraja/mindmake/d3905dfe8da6fc4bf7178d872fdad777ead715cc/src/assets/mindmake-wordmark.png" alt="mindmake">
+      <div class="brand-lockup" aria-label="The Money of AI by Mindmake">
+        <img class="mindmake-wordmark" src="https://raw.githubusercontent.com/krishanraja/mindmake/54ea43b9771d3b263718a4d40cecc68167b7a718/src/assets/mindmake-wordmark.svg" alt="mindmake">
         <div class="brand-rule"></div>
-        <img src="https://raw.githubusercontent.com/krishanraja/mindmake/d3905dfe8da6fc4bf7178d872fdad777ead715cc/src/assets/moneyofai-logo-wordmark.png" alt="The Money of AI">
+        <svg class="series-wordmark" data-min-letter-height="16" data-source-letter-box="254 438 689 53" viewBox="254 438 689 53" preserveAspectRatio="xMidYMid meet" role="img" aria-label="The Money of AI">
+          <image href="https://raw.githubusercontent.com/krishanraja/mindmake/54ea43b9771d3b263718a4d40cecc68167b7a718/src/assets/moneyofai-logo-wordmark.png" x="0" y="0" width="1200" height="630"></image>
+        </svg>
       </div>
 
       <article class="proof" aria-label="Supporting evidence overlay">

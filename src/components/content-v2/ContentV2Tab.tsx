@@ -8,6 +8,8 @@ import { ObligationStrip } from './ObligationStrip'
 import { MobileDecisionDeck } from './MobileDecisionDeck'
 import { SegmentedNav, type Segment } from '../shared/SegmentedNav'
 import { StartFromResearch } from '../content/StartFromResearch'
+import { useVideoStudioReviews } from '../../hooks/useVideoStudioReviews'
+import { videoEngineEnabled } from '../../lib/videoStudio'
 
 // The Content tab, organised around what Mindmaker Live actually publishes.
 //
@@ -43,6 +45,7 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
   const [room, setRoom] = useState<ViewId>(mobile ? 'queue' : 'built')
   const [starting, setStarting] = useState(false)
   const v2 = useContentV2()
+  const videoQueue = useVideoStudioReviews(mobile && videoEngineEnabled())
   const { ideas } = useRealtimeContentIdeas()
 
   const counts = useMemo(() => {
@@ -66,8 +69,8 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
       ? [{
           id: 'queue' as ViewId,
           label: 'Queue',
-          badge: v2.decisions.length ? (
-            <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 align-middle text-micro tabular-nums">{v2.decisions.length}</span>
+            badge: v2.decisions.length + videoQueue.reviews.length ? (
+              <span className="ml-1.5 rounded-full bg-white/10 px-1.5 py-0.5 align-middle text-micro tabular-nums">{v2.decisions.length + videoQueue.reviews.length}</span>
           ) : undefined,
         }]
       : []),
@@ -117,7 +120,12 @@ export function ContentV2Tab({ variant }: { variant: 'desktop' | 'mobile' }) {
 
       {mobile && room === 'queue' ? (
         <div className="flex-1 min-h-0 flex flex-col">
-          <MobileDecisionDeck v2={v2} />
+          <MobileDecisionDeck
+            v2={v2}
+            videoReviews={videoQueue.reviews}
+            videoLoading={videoQueue.loading}
+            videoQueueError={Boolean(videoQueue.error)}
+          />
         </div>
       ) : (
         <div className="flex-1 min-h-0 overflow-y-auto">

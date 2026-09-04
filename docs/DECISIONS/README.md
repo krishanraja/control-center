@@ -28,6 +28,7 @@
 | [011](./011-contact-intelligence-sibling-table.md) | Network judgment layer is a sibling table, not columns on `contacts` | Accepted |
 | [012](./012-one-goal-canon-home-recompose.md) | One goal canon; Home recomposed around it | Accepted |
 | [013](./013-one-system-per-job.md) | One system per job: the phone-first recomposition locked as canon | Accepted |
+| [014](./014-video-engine-control-and-media-authority.md) | Video Engine control plane and media authority | Accepted |
 
 ---
 

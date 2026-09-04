@@ -2,20 +2,33 @@
 
 ## Delivery state
 
-- Status: awaiting Krish visual approval
+- Status: approved visual contract, review-branch implementation complete; release verification in progress
 - Canonical state route: `docs/plans/video-engine/STATE.md`
 - First approval artifact: `docs/plans/video-engine/mock-mobile-magic-v1.html`
 - Control Center base: `f25daafcbb2fda06416be0973ea40444d520d893`
 - Video Studio base: `595609c7309df5e57c9d05781ee763340ccd1c97`
-- Mindmake design base: `d3905dfe8da6fc4bf7178d872fdad777ead715cc`
+- Mindmake design base: `54ea43b9771d3b263718a4d40cecc68167b7a718`
 
-No production UI, database, runner, or deployment change is authorised by this design branch.
+The approved visual contract is locked at design commit `988dba0defe2d3b16d657af3956be8deb3408a61`. The approved mock has SHA-256 `0098E19D50E5B3AF23DF2CA6D02BF54BDDB7A836237756A0C5AA64FAFFBE03C9`.
 
-The rendered first surface has passed independent visual and interaction audits at 390 by 844 and 375 by 667. The next gate is Krish's unanchored reaction to the surface itself.
+After that approval, Krish explicitly reported that The Money of AI wordmark was too small to read and asked for a solution across all use cases. The original approved revision remains preserved at its commit and hash. The current review branch replaces the tiny double stack with a responsive official-artwork identity system and must receive visual re-review before release. The policy measures the complete letter-bearing pixels in the official Money and Built assets, not their padded image canvases. At 375px and 390px, both marks must remain fully contained, preserve at least 16 CSS px of high-contrast lettering, and retain at least 97% of their rendered letter-box width. Compact or dense layouts must move, delay, or allocate a larger identity beat rather than shrink the lettering below that floor. The horizontal official-artwork rail is the compact Control Center projection; the produced video retains the approved stacked identity beat whenever the collision-safe frame has room for it. The revised, not-yet-reapproved mock has SHA-256 `B429EA2F677BE12CDD4E1002FBB21A24DA25FB9E736E7F7B3C07EB5C88728D05`.
+
+Krish approved the rendered first surface on 2026-09-04 with the exact unanchored reaction `i like`. It had already passed independent visual and interaction audits at 390 by 844, 360 by 800, and 375 by 667. This approval authorises implementation of the locked interaction surface on review branches. It does not authorise a production database migration, credential rotation, merge, or deployment.
+
+## Locked approval record
+
+- Approved artifact: `docs/plans/video-engine/mock-mobile-magic-v1.html`
+- Artifact revision: `988dba0defe2d3b16d657af3956be8deb3408a61`
+- Artifact SHA-256: `0098E19D50E5B3AF23DF2CA6D02BF54BDDB7A836237756A0C5AA64FAFFBE03C9`
+- Approval date: 2026-09-04
+- Exact reaction: `i like`
+- Carry forward: video-first composition, directorial input, one real child candidate at a time, face-safe proof choreography, accessible Before and After comparison, one binary review decision, and immutable version lineage underneath.
+- Preserve: voice, tap, typing, exact-parent binding, five blocking gates, return to parent, honest offline states, runner independence, and complete Compound exclusion.
+- Do not infer: approval to deploy, merge, apply migrations, rotate credentials, post publicly, or widen the first vertical slice.
 
 ## Product truth
 
-The Video Engine is a governed short-form production system. Google Drive starts intake, Control Center directs and reviews work, and a Windows runner performs media work. Codex is an optional editorial collaborator, not a runtime dependency.
+The Video Engine is a governed short-form production system. In the implemented first slice, an authorised operator explicitly projects a local job to Control Center, Control Center directs and reviews work, and a Windows runner performs media work. Google Drive discovery remains a later intake adapter. Codex is an optional editorial collaborator, not a runtime dependency.
 
 The system optimises for honest qualified growth. It may challenge a weak idea, block unsafe work, and request a rerecord when the material is not strong enough.
 
@@ -74,7 +87,9 @@ A 390 by 844 mobile candidate review after one magic direction. The visible expe
 
 ## Runtime contract
 
-The Windows runner will be installed as a background task or service with restart-on-failure behaviour. It watches and periodically reconciles the agreed Google Drive inbox, waits for file stability, hashes and deduplicates media, groups camera split files, and claims cloud commands with leases and idempotency keys.
+The implemented Windows runner projects explicitly selected local jobs, claims cloud commands with leases and idempotency keys, writes signed local receipts, and recovers interrupted work from durable journals and locks. It can be installed as a background task with restart-on-failure behaviour only at the release gate.
+
+It does **not** yet discover or watch a Google Drive inbox, wait for Drive file stability, deduplicate newly discovered media, or group camera split files. Those are later intake capabilities and must not be implied by the current UI or deployment documentation.
 
 When the computer is off or Drive is unavailable, cloud decisions remain safe and visible as waiting. Local media processing resumes only when the machine and Drive are available. The interface must never imply otherwise.
 
@@ -86,9 +101,20 @@ An unrelated legacy approval route contains an exposed credential-like value and
 
 ## Approval sequence
 
-1. Krish reviews the rendered mobile surface without design rationale.
+1. Krish reviewed and approved the rendered mobile surface without design rationale.
 2. The accepted artifact revision and interaction choices are locked here.
-3. Security boundaries and shared contracts are implemented first.
-4. The runner and one end-to-end vertical slice are implemented.
-5. Mobile and desktop surfaces are implemented one material surface at a time.
+3. Security boundaries and shared contracts are being implemented first.
+4. The runner and one end-to-end vertical slice follow on review branches.
+5. Later material surfaces remain paused until the mobile slice is implemented and verified.
 6. Production activation, credential rotation, deployment, and merge remain separate explicit gates.
+
+## Current handoff
+
+- Outcome: the secure mobile reviewer, command plane, signed recovery bridge, private preview contract, and independent runner are implemented on review branches.
+- Phase: independent audit, cross-repository verification, and Control Center-wide visual alignment.
+- Current truth: the integration exists in code only. No production migration, private bucket, environment, deployment, background-task installation, Drive watcher, retention schedule, or proactive heartbeat has been activated.
+- Locked: the approval record, interaction contract, blocking gates, runtime independence, and non-goals above.
+- Authority: GitHub `main` remains canonical; implementation is reviewable branch work only.
+- Risks: live database and Storage behaviour remain unverified; installation and credential configuration remain release-gated; the revised responsive wordmark needs visual re-review.
+- Verification: contract, auth, idempotency, recovery, visual, short-viewport, accessibility, and exclusion tests are required before a release proposal.
+- Next action: finish independent audits, verify the exact first slice against clean commits, and present a no-apply release checklist to Krish.
