@@ -91,7 +91,9 @@ to agents or waiting for human review.
 | `venture_id` | text | Associated venture |
 | `lever_score` | int | 0-10 anti-busywork rating (PR #47) |
 | `est_hours_to_revenue` | numeric | Estimated path to revenue impact (PR #47) |
-| `source` | text | Origin tag (`manual`, `cron`, `agent`, etc.) |
+| `job` | text | Which of the five jobs of the OS this serves: `fill_room`, `keep_honest`, `run_room`, `feed_demand`, `keep_edge`. Nullable (ADR-016) |
+
+(There is no `source` column on `tasks`; an earlier version of this table listed one.)
 
 ### `goals`
 
@@ -113,7 +115,8 @@ create, gated by `api/_goalGate.ts`. Entry is guarded structurally by
 | `horizon` | text | `os` \| `mid_term` \| `weekly` \| `venture_objective`. The rung |
 | `parent_id` | text | What this serves. Required for every rung except `os` |
 | `status` | text | `proposed` \| `active` \| `paused` \| `done` \| `dropped` |
-| `venture` | text | For `venture_objective` |
+| `venture` | text | Optional venture tag on a weekly goal |
+| `job` | text | Which of the five jobs of the OS this serves (ADR-016). Nullable, CHECK over the five ids |
 | `target` / `current` / `progress` / `notes` | text/int | Legacy weekly-goal fields, still written by the ladder's inline edit |
 | `owner` / `week_of` | text | Legacy, pre-ladder |
 | `objective_kind`, `definition_of_done`, `why_now`, `target_horizon`, `primary_kpi`, `secondary_kpi` | | Objective-layer detail |
@@ -581,6 +584,46 @@ The learning loop.
   new `standards_registry` rules.
 
 ---
+
+## One swing tables (ADR-016, 2026-09-06)
+
+### `room_targets`
+
+The Room list: job 1 of the five. One row per named leader who fits the face.
+Service role only (RLS enabled and forced, no anon policy), reached through
+`/api/room/*` behind the cookie gate. Migration
+`20260906110000_room_targets.sql`.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | uuid | Primary key |
+| `contact_id` | uuid | FK → `contacts.id`, unique, cascade |
+| `why_face` | text | Why this person fits the face |
+| `trigger_signal` / `trigger_source_url` / `trigger_found_at` | text / text / timestamptz | The cited live signal. Never a signal without a URL |
+| `draft_subject` / `draft_body` / `draft_url` / `drafted_at` | | The approach, and the Gmail draft when Google is configured |
+| `state` | text | `listed` → `drafted` → `sent` → `replied` → `call_booked` → `call_taken` → `room_booked` → `room_paid`; `not_now` is the side exit |
+| `listed_at`, `sent_at`, `replied_at`, `call_booked_at`, `call_taken_at`, `room_booked_at`, `room_paid_at`, `not_now_at` | timestamptz | One stamp per step; the scorecard reads them |
+| `cash_gbp` | numeric | Invoiced value of the room. Required at `room_paid` |
+| `sourced_by` | text | `krish` or `os` |
+
+Marking a target `sent` writes a `ships` row, channel `approach`, dedup key
+`room:<id>`.
+
+### `scorecard_weeks` / `build_activity_weeks`
+
+Job 2. `scorecard_weeks` is keyed by `week_ending` (Fridays from 2026-09-11 to
+2026-11-27) and carries the six derived columns (`approaches_sent`,
+`calls_taken`, `paid_rooms`, `cash_invoiced_gbp`, `pieces_published`,
+`unasked_hours`), six nullable `override_*` twins, `plan_sent`,
+`variance_note`, `frozen_at`. The Friday cron freezes a week; the live week is
+derived on read by `api/_scorecard.ts`. `build_activity_weeks` holds the
+Saturday GitHub commit count per week (`commits`, `hours_estimate`,
+`hours_per_commit`, `repos`, `author`, `synced_at`) that feeds the Rule 6
+tripwire. Both service role only. Migration `20260906120000_scorecard.sql`.
+
+### `daily_focus.target_N_job`
+
+Which job each of today's three picks serves. Nullable, same CHECK as `goals.job`.
 
 ## The `decisions_waiting` view (PR #55)
 
