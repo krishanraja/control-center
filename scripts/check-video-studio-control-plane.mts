@@ -1415,7 +1415,7 @@ assert.match(completeSource, /receipt_hash: receipt\.receipt_hash/)
 assert.match(completeSource, /command_status: row\.command_status/)
 assert.match(
   completeSource,
-  /'command_in_flight', 'stale_event_count', 'recovery_exists'/,
+  /'command_in_flight', 'stale_parent', 'stale_event_count', 'recovery_exists'/,
   'a competing recovery is a typed receipt conflict that the runner can quarantine',
 )
 const previewMissingCheck = completeSource.indexOf("stored === 'missing'")

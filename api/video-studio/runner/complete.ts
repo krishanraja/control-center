@@ -98,7 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'invalid_preview_refs', 'invalid_editorial_route', 'invalid_lineage',
       'source_review_conflict', 'invalid_receipt', 'invalid_recovery_receipt',
       'invalid_review_binding_transition', 'cross_platform_magic_lineage',
-      'command_in_flight', 'stale_event_count', 'recovery_exists',
+      'command_in_flight', 'stale_parent', 'stale_event_count', 'recovery_exists',
     ].includes(code)
       ? 409
       : code === 'command_not_found' ? 404 : 503
