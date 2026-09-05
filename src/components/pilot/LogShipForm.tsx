@@ -20,6 +20,7 @@ const CHANNEL_LABEL: Record<ShipChannel, string> = {
   publish: 'Publish',
   invoice: 'Invoice',
   ask: 'Ask',
+  approach: 'Approach',
   campaign: 'Campaign',
   other: 'Other',
 }

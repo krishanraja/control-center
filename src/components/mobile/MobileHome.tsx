@@ -8,6 +8,7 @@ import { IntelDoor } from '../home/IntelDoor'
 import { SignalsDoor } from '../home/SignalsDoor'
 import { CriticalAlertBanner } from '../CriticalAlertBanner'
 import { DueTestsCard } from '../pilot/DueTestsCard'
+import { RoomStrip } from '../home/RoomStrip'
 import { MindmakeIdentity } from '../shared/MindmakeIdentity'
 import { useAltitudes } from '../../hooks/useAltitudes'
 import { useGoalCanon } from '../../hooks/useGoalCanon'
@@ -62,6 +63,7 @@ export function MobileHome({ onNavigate }: {
       <div className="shrink-0 flex flex-col gap-2.5">
         <CriticalAlertBanner />
         <DueTestsCard variant="mobile" />
+        <RoomStrip onNavigate={onNavigate} />
       </div>
 
       {/* overflow-hidden so an over-tall day (a firing critical alert on a

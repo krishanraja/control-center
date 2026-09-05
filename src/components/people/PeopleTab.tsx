@@ -1,14 +1,20 @@
 import React, { lazy, Suspense } from 'react'
 import { ErrorBoundary } from '../ErrorBoundary'
 import { isUiV2 } from '../../lib/uiV2'
+import { isBridgesLane } from '../../lib/bridgesLane'
 import { BoardSkeleton, MobileTabSkeleton, DeferredFallback } from '../shared/Skeleton'
 import { SegmentedNav } from '../shared/SegmentedNav'
 
 // People: the one tab for every human pipeline. Pipeline (leads), Network
-// (contacts), and Visibility (guests + targets) share the same UI grammar
-// (triage board + swipe deck) over different tables, so they render here as
-// lanes behind one nav entry instead of three. The lane components are the
-// existing tab components, untouched; each stays its own lazy chunk.
+// (contacts), Visibility (guests + targets) and the Room (the 25 leaders who
+// fit the face, job 1 of the one swing) render here as lanes behind one nav
+// entry. The lane components are the existing tab components, untouched;
+// each stays its own lazy chunk.
+//
+// Bridges (hunter's warm paths into open roles) is parked under the ikigai v4
+// and only appears when VITE_BRIDGES_LANE_ENABLED is on (src/lib/bridgesLane.ts).
+// Its deep links (`lane=bridges`, `?bridge=`) still resolve either way, so a
+// saved link never lands on the wrong lane.
 
 const DesktopLeads = lazy(() => import('../desktop/DesktopLeads').then(m => ({ default: m.DesktopLeads })))
 const DesktopLeadsRE = lazy(() => import('../desktop/DesktopLeadsRE').then(m => ({ default: m.DesktopLeadsRE })))
@@ -21,14 +27,17 @@ const MobileLeadsRE = lazy(() => import('../mobile/MobileLeadsRE').then(m => ({ 
 const MobileGuests = lazy(() => import('../mobile/MobileGuests').then(m => ({ default: m.MobileGuests })))
 const DesktopBridges = lazy(() => import('../desktop/DesktopBridges').then(m => ({ default: m.DesktopBridges })))
 const MobileBridges = lazy(() => import('../mobile/MobileBridges').then(m => ({ default: m.MobileBridges })))
+const DesktopRoom = lazy(() => import('../desktop/DesktopRoom').then(m => ({ default: m.DesktopRoom })))
+const MobileRoom = lazy(() => import('../mobile/MobileRoom').then(m => ({ default: m.MobileRoom })))
 
-export type PeopleLane = 'pipeline' | 'network' | 'visibility' | 'bridges'
+export type PeopleLane = 'pipeline' | 'network' | 'visibility' | 'room' | 'bridges'
 
 const LANES: Array<{ id: PeopleLane; label: string }> = [
   { id: 'pipeline', label: 'Pipeline' },
   { id: 'network', label: 'Network' },
   { id: 'visibility', label: 'Visibility' },
-  { id: 'bridges', label: 'Bridges' },
+  { id: 'room', label: 'Room' },
+  ...(isBridgesLane() ? [{ id: 'bridges' as const, label: 'Bridges' }] : []),
 ]
 
 interface Props {
@@ -45,9 +54,10 @@ interface Props {
  */
 function inferLane(params: Record<string, string>): PeopleLane {
   const lane = params.lane as PeopleLane | undefined
-  if (lane === 'pipeline' || lane === 'network' || lane === 'visibility' || lane === 'bridges') return lane
+  if (lane === 'pipeline' || lane === 'network' || lane === 'visibility' || lane === 'room' || lane === 'bridges') return lane
   if (params.guest || params.target) return 'visibility'
   if (params.lead) return 'pipeline'
+  if (params.room) return 'room'
   if (params.bridge) return 'bridges'
   return 'network'
 }
@@ -110,6 +120,11 @@ export function PeopleTab({ narrow, params, onNavigate }: Props) {
           {narrow
             ? <MobileGuests guestId={params.guest || null} targetId={params.target || null} onClearDetail={clearDetail} onNavigate={onNavigate} />
             : <DesktopGuests guestId={params.guest || null} targetId={params.target || null} onClearDetail={clearDetail} onNavigate={onNavigate} />}
+        </ErrorBoundary>
+      )}
+      {lane === 'room' && (
+        <ErrorBoundary label="Room">
+          {narrow ? <MobileRoom /> : <DesktopRoom />}
         </ErrorBoundary>
       )}
       {lane === 'bridges' && (
