@@ -164,6 +164,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const status = [
       'stale_parent', 'idempotency_conflict', 'review_not_pending', 'review_expired',
       'review_binding_pending', 'review_in_progress', 'hard_gate_blocked', 'invalid_decision_payload',
+      'cross_platform_magic_lineage', 'command_in_flight',
     ].includes(code)
       ? 409
       : code === 'review_not_found' || code === 'job_not_found' ? 404 : 503

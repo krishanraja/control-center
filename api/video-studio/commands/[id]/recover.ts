@@ -178,7 +178,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const status = code === 'command_not_found'
       ? 404
       : ['stale_parent', 'idempotency_conflict', 'recovery_not_available', 'recovery_exists',
-          'recovery_conflict', 'recovery_limit_reached', 'recovery_preview_expired'].includes(code)
+          'recovery_conflict', 'recovery_limit_reached', 'recovery_preview_expired',
+          'cross_platform_magic_lineage', 'command_in_flight'].includes(code)
         ? 409
         : code === 'invalid_recovery_request' ? 400 : 503
     return sendVideoStudioError(res, status, code)

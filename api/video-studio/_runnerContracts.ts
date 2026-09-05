@@ -534,12 +534,28 @@ export interface RunnerProjectRequestV1 {
   projection_hash: string
   projection: {
     job: UnknownRecord
+    expected_platform_state?: UnknownRecord | null
     platform_state: UnknownRecord
     review: UnknownRecord
   }
 }
 
 export function parseRunnerProjectRequest(value: unknown): RunnerProjectRequestV1 | null {
+  const hasExpectedState = isRecord(value)
+    && isRecord(value.projection)
+    && Object.prototype.hasOwnProperty.call(value.projection, 'expected_platform_state')
+  const hasSourceEventCount = isRecord(value)
+    && isRecord(value.projection)
+    && isRecord(value.projection.job)
+    && Object.prototype.hasOwnProperty.call(value.projection.job, 'source_event_count')
+  const hasSourceEventChainHash = isRecord(value)
+    && isRecord(value.projection)
+    && isRecord(value.projection.job)
+    && Object.prototype.hasOwnProperty.call(value.projection.job, 'source_event_chain_hash')
+  const hasSourceRevisionHash = isRecord(value)
+    && isRecord(value.projection)
+    && isRecord(value.projection.job)
+    && Object.prototype.hasOwnProperty.call(value.projection.job, 'source_revision_hash')
   if (!isRecord(value) || !exactKeys(value, [
     'schema_version', 'runner_id', 'software_commit', 'idempotency_key',
     'projection_hash', 'projection',
@@ -551,16 +567,25 @@ export function parseRunnerProjectRequest(value: unknown): RunnerProjectRequestV
     || !UUID_RE.test(String(value.idempotency_key || ''))
     || !isSha256(value.projection_hash)
     || !isRecord(value.projection)
-    || !exactKeys(value.projection, ['job', 'platform_state', 'review'])
+    || !exactKeys(value.projection, [
+      'job', 'platform_state', 'review',
+      ...(hasExpectedState ? ['expected_platform_state'] : []),
+    ])
     || !isRecord(value.projection.job)
     || !isRecord(value.projection.platform_state)
     || !isRecord(value.projection.review)
+    || hasSourceEventCount !== hasSourceEventChainHash
+    || hasSourceEventCount !== hasSourceRevisionHash
+    || (hasExpectedState && !hasSourceEventCount)
   ) return null
 
   const job = value.projection.job
   if (!exactKeys(job, [
     'job_id', 'series', 'mode', 'target_platforms', 'stage', 'status',
     'safe_title', 'safe_summary',
+    ...(hasSourceEventCount ? ['source_event_count'] : []),
+    ...(hasSourceEventChainHash ? ['source_event_chain_hash'] : []),
+    ...(hasSourceRevisionHash ? ['source_revision_hash'] : []),
   ])) return null
   const safeJobTitle = safeRedactedText(job.safe_title, 200, 1)
   const safeJobSummary = safeRedactedText(job.safe_summary, 600, 1)
@@ -575,9 +600,63 @@ export function parseRunnerProjectRequest(value: unknown): RunnerProjectRequestV
     || job.target_platforms.some((item) => !VIDEO_PLATFORMS.includes(item as typeof VIDEO_PLATFORMS[number]))
     || !PROJECT_STAGES.includes(job.stage as typeof PROJECT_STAGES[number])
     || !PROJECT_STATUSES.includes(job.status as typeof PROJECT_STATUSES[number])
+    || (hasSourceEventCount && (
+      !Number.isSafeInteger(job.source_event_count)
+      || Number(job.source_event_count) < 1
+    ))
+    || (hasSourceEventChainHash && !isSha256(job.source_event_chain_hash))
+    || (hasSourceRevisionHash && !isSha256(job.source_revision_hash))
     || !safeJobTitle
     || !safeJobSummary
   ) return null
+
+  let expectedPlatformState: UnknownRecord | null | undefined
+  if (hasExpectedState) {
+    const expected = value.projection.expected_platform_state
+    if (expected === null) {
+      expectedPlatformState = null
+    } else {
+      if (!isRecord(expected) || !exactKeys(expected, [
+        'platform', 'active_revision_hash', 'active_artifact_hash', 'active_candidate_hash',
+        'parent_revision_hash', 'parent_artifact_hash', 'parent_candidate_hash',
+        'semantic_target_map_hash', 'editorial_state', 'route_state',
+      ])) return null
+      if (
+        expected.platform !== value.projection.platform_state.platform
+        || !VIDEO_PLATFORMS.includes(expected.platform as typeof VIDEO_PLATFORMS[number])
+        || !isSha256(expected.active_revision_hash)
+        || !isSha256(expected.active_artifact_hash)
+        || (expected.active_candidate_hash !== null && !isSha256(expected.active_candidate_hash))
+        || !isSha256(expected.semantic_target_map_hash)
+        || !PROJECT_EDITORIAL_STATES.includes(expected.editorial_state as typeof PROJECT_EDITORIAL_STATES[number])
+        || !['standard', 'requires_editorial_route'].includes(String(expected.route_state || ''))
+        || (expected.parent_revision_hash === null) !== (expected.parent_artifact_hash === null)
+        || (expected.parent_revision_hash !== null && !isSha256(expected.parent_revision_hash))
+        || (expected.parent_artifact_hash !== null && !isSha256(expected.parent_artifact_hash))
+        || (expected.parent_candidate_hash !== null && !isSha256(expected.parent_candidate_hash))
+        || (expected.parent_candidate_hash !== null && expected.parent_revision_hash === null)
+        || (
+          expected.active_candidate_hash === null
+            ? expected.parent_revision_hash !== null
+              || expected.parent_artifact_hash !== null
+              || expected.parent_candidate_hash !== null
+            : expected.parent_revision_hash === null || expected.parent_artifact_hash === null
+        )
+      ) return null
+      expectedPlatformState = {
+        platform: expected.platform,
+        active_revision_hash: expected.active_revision_hash,
+        active_artifact_hash: expected.active_artifact_hash,
+        active_candidate_hash: expected.active_candidate_hash,
+        parent_revision_hash: expected.parent_revision_hash,
+        parent_artifact_hash: expected.parent_artifact_hash,
+        parent_candidate_hash: expected.parent_candidate_hash,
+        semantic_target_map_hash: expected.semantic_target_map_hash,
+        editorial_state: expected.editorial_state,
+        route_state: expected.route_state,
+      }
+    }
+  }
 
   const state = value.projection.platform_state
   if (!exactKeys(state, [
@@ -595,6 +674,7 @@ export function parseRunnerProjectRequest(value: unknown): RunnerProjectRequestV
     || !isSha256(state.semantic_target_map_hash)
     || !PROJECT_EDITORIAL_STATES.includes(state.editorial_state as typeof PROJECT_EDITORIAL_STATES[number])
     || !['standard', 'requires_editorial_route'].includes(String(state.route_state || ''))
+    || (hasSourceRevisionHash && job.source_revision_hash !== state.active_revision_hash)
   ) return null
   if (
     (state.parent_revision_hash === null) !== (state.parent_artifact_hash === null)
@@ -602,6 +682,13 @@ export function parseRunnerProjectRequest(value: unknown): RunnerProjectRequestV
     || (state.parent_artifact_hash !== null && !isSha256(state.parent_artifact_hash))
     || (state.parent_candidate_hash !== null && !isSha256(state.parent_candidate_hash))
     || (state.parent_candidate_hash !== null && state.parent_revision_hash === null)
+    || (
+      state.active_candidate_hash === null
+        ? state.parent_revision_hash !== null
+          || state.parent_artifact_hash !== null
+          || state.parent_candidate_hash !== null
+        : state.parent_revision_hash === null || state.parent_artifact_hash === null
+    )
   ) return null
 
   const review = value.projection.review
@@ -648,7 +735,11 @@ export function parseRunnerProjectRequest(value: unknown): RunnerProjectRequestV
         status: job.status,
         safe_title: safeJobTitle,
         safe_summary: safeJobSummary,
+        ...(hasSourceEventCount ? { source_event_count: Number(job.source_event_count) } : {}),
+        ...(hasSourceEventChainHash ? { source_event_chain_hash: job.source_event_chain_hash } : {}),
+        ...(hasSourceRevisionHash ? { source_revision_hash: job.source_revision_hash } : {}),
       },
+      ...(hasExpectedState ? { expected_platform_state: expectedPlatformState ?? null } : {}),
       platform_state: {
         platform: state.platform,
         active_revision_hash: state.active_revision_hash,
@@ -687,6 +778,7 @@ function safeResultRefs(value: unknown, commandId: string): UnknownRecord | null
     'before_preview_object_key', 'before_preview_hash', 'before_preview_md5', 'before_preview_byte_size',
     'after_preview_object_key', 'after_preview_hash', 'after_preview_md5', 'after_preview_byte_size',
     'comparison_alignment', 'comparison_start_ms', 'comparison_end_ms',
+    'result_source_event_count', 'result_source_event_chain_hash', 'result_source_revision_hash',
   ]
   if (Object.keys(value).some((key) => !allowedKeys.includes(key))) return null
   const refs: UnknownRecord = {}
@@ -708,6 +800,27 @@ function safeResultRefs(value: unknown, commandId: string): UnknownRecord | null
     if (!isSha256(value.semantic_target_map_hash)) return null
     refs.semantic_target_map_hash = value.semantic_target_map_hash
   }
+  if (value.result_source_event_count !== undefined) {
+    if (
+      !Number.isSafeInteger(value.result_source_event_count)
+      || Number(value.result_source_event_count) < 1
+    ) return null
+    refs.result_source_event_count = Number(value.result_source_event_count)
+  }
+  if (value.result_source_event_chain_hash !== undefined) {
+    if (!isSha256(value.result_source_event_chain_hash)) return null
+    refs.result_source_event_chain_hash = value.result_source_event_chain_hash
+  }
+  if (value.result_source_revision_hash !== undefined) {
+    if (!isSha256(value.result_source_revision_hash)) return null
+    refs.result_source_revision_hash = value.result_source_revision_hash
+  }
+  if (
+    (refs.result_source_event_count === undefined)
+    !== (refs.result_source_event_chain_hash === undefined)
+    || (refs.result_source_event_count === undefined)
+      !== (refs.result_source_revision_hash === undefined)
+  ) return null
   if (value.review_payload !== undefined) {
     const reviewPayload = parseReviewPayload(value.review_payload)
     if (!reviewPayload) return null
@@ -926,6 +1039,11 @@ export function parseRunnerCompleteRequest(value: unknown): RunnerCompleteReques
     ? undefined
     : safeResultRefs(receipt.result_refs, String(receipt.command_id))
   if (receipt.result_refs !== undefined && !refs) return null
+  const hasResultSourceCursor = refs?.result_source_event_count !== undefined
+  if (
+    (receipt.status === 'failed' && hasResultSourceCursor)
+    || (receipt.status !== 'failed' && !hasResultSourceCursor)
+  ) return null
   const hardGates = parseHardGates(receipt.hard_gates)
   if (!hardGates) return null
   if (refs?.review_payload) {
