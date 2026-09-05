@@ -61,6 +61,13 @@ export function CriticalAlertBanner() {
         : 'Fleet silent, no workflow has ever reported a run')
     : (() => {
         const top = alerts[0]
+        // The Rule 6 tripwire (api/scorecard/friday.ts) is not a workflow that
+        // is down; it is a week with build hours nobody asked for. Its detail
+        // already reads as a sentence, so the banner says that and not
+        // "Rule 6 tripwire is down", which would be untrue.
+        if (top.failure_type === 'unasked_hours' && top.detail) {
+          return `${top.workflow_name || 'Rule 6 tripwire'}: ${top.detail}`
+        }
         return `${top.workflow_name || top.workflow_id} is down (${humanAge(top.detected_at)})`
       })()
 
