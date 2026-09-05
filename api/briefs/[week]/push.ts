@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../../_supabase.js'
 import { preamble, sanitizeVoice } from '../../_content.js'
+import { recordShip } from '../../_ships.js'
 
 // POST /api/briefs/:week/push   body: { channels: string[] }
 //
@@ -137,6 +138,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const patch: Record<string, unknown> = { formats }
   if (succeeded.length) { patch.status = 'pushed'; patch.pushed_at = nowIso }
   await supabase.from('weekly_briefs').update(patch).eq('id', brief.id)
+
+  // A pushed brief is a published piece on the scorecard (ADR-016). Same dedup
+  // key as the send in [week].ts, so the week counts once however it left.
+  if (succeeded.length) {
+    await recordShip({ channel: 'publish', description: `Weekly brief ${week}: ${String(brief.title || '').slice(0, 120)}`, dedup_key: `brief:${week}` })
+  }
 
   return res.status(succeeded.length ? 200 : 502).json({
     ok: succeeded.length > 0,

@@ -62,12 +62,15 @@ In practice that means:
 - **Krish corrects, the OS adapts.** Rejections flow through
   `feedback_queue` → `corrections` → agent brief edits. Same mistake should
   not survive four occurrences.
-- **Under 2 hours a day on ops.** That is the north-star metric the
-  dashboard is optimised against. Every UI choice should be evaluated by
-  whether it reduces Krish's time-to-decision, or whether it just looks
-  good.
+- **The engine under one swing.** Since 6 September 2026 (ADR-016) the OS
+  has one mission and five jobs, in priority order: fill the room, keep
+  him honest, run the room, feed the demand engine, keep the edge. The
+  first two are built; the rest are gated on a paid room. The scorecard on
+  Home (approaches sent, calls, paid rooms, cash, pieces, hours building
+  unasked) is what the dashboard is optimised against, and a green run with
+  nothing sent is a failure. See `docs/plans/one-swing/CHARTER.md`.
 
-If a change to this repo cannot be defended against one of those goals, it
+If a change to this repo cannot name which of the five jobs it serves, it
 does not belong.
 
 ## Tech stack

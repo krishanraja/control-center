@@ -6,6 +6,7 @@ import { embed, vectorLiteral } from './_embeddings.js'
 import { canonicalUrl, titleNorm, contentHash } from './_text.js'
 import { classifyRelevance, relevanceReasonCode } from './_relevance.js'
 import { SYNTHESIS_MODEL } from './_models.js'
+import { recordShip } from './_ships.js'
 
 // Content ideas inbox endpoint.
 //
@@ -357,6 +358,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .single()
 
     if (error) return res.status(500).json({ ok: false, error: error.message })
+
+    // A published piece left the machine toward readers: it is a ship on the
+    // scorecard (ADR-016). Dedup on the idea id so a second flip to published
+    // never double counts. Best effort: the publish already succeeded.
+    if (updates.state === 'published') {
+      await recordShip({
+        channel: 'publish',
+        description: `Published: ${String((data as { idea?: string } | null)?.idea || id).slice(0, 120)}`,
+        dedup_key: `idea:${id}`,
+      })
+    }
     return res.json({ ok: true, idea: data })
   }
 

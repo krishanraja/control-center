@@ -130,7 +130,7 @@ fallback list must agree.**
 | `nell` | Nell | Outbound + Podcast Guest Booking |
 | `nova` | Nova | Visibility & Speaking |
 | `zara` | Zara | Signal Intelligence & Market Research |
-| `hunter` | Hunter | Job Sourcing & Application Specialist. RETIRED 2026-07-10 (`active = false`, Job Sweep unpublished). NOTE 2026-08-05: the original reason no longer holds; re-arming is Krish's call alone |
+| `hunter` | Hunter | Job Sourcing, Packages and Warm Intros. Re-armed in August 2026 (`active = true`, the Bridges lane). PARKED 2026-09-06 under the ikigai v4 (ADR-016): the job search is parked, the Bridges lane is hidden behind `VITE_BRIDGES_LANE_ENABLED` and reachable by deep link only, tables untouched. Setting `active = false` is Krish's call |
 
 > **Source of truth.** The Supabase `agents` table is authoritative. The
 > roster above must match `api/agents/[name].ts:available_agents`. If the

@@ -115,6 +115,22 @@
     {
       "path": "/api/meter/n8n-sync",
       "schedule": "35 */6 * * *"
+    },
+    {
+      "path": "/api/room/monday",
+      "schedule": "0 10 * * 1"
+    },
+    {
+      "path": "/api/scorecard/monday",
+      "schedule": "30 10 * * 1"
+    },
+    {
+      "path": "/api/scorecard/github-sync",
+      "schedule": "0 4 * * 6"
+    },
+    {
+      "path": "/api/scorecard/friday",
+      "schedule": "30 4 * * 6"
     }
   ],
   "functions": {
@@ -129,6 +145,24 @@
     },
     "api/meter/n8n-sync.ts": {
       "maxDuration": 120
+    },
+    "api/room/monday.ts": {
+      "maxDuration": 300
+    },
+    "api/scorecard/github-sync.ts": {
+      "maxDuration": 120
+    },
+    "api/scorecard/monday.ts": {
+      "maxDuration": 60
+    },
+    "api/scorecard/friday.ts": {
+      "maxDuration": 60
+    },
+    "api/room/[id]/draft.ts": {
+      "maxDuration": 60
+    },
+    "api/room/seed.ts": {
+      "maxDuration": 60
     }
   }
 }

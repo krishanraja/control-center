@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { sanitizeVoice, preamble } from '../_content.js'
 import { attachRejectSignal } from '../_rejectSignal.js'
+import { recordShip } from '../_ships.js'
 
 // GET/PATCH /api/briefs/:week  (Content Engine v2, spec §4)
 //
@@ -121,6 +122,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { error: upErr } = await supabase.from('weekly_briefs').update(patch).eq('id', brief.id)
   if (upErr) return res.status(500).json({ ok: false, error: upErr.message })
+
+  // A sent brief left the machine toward readers: it is a published piece on
+  // the scorecard (ADR-016). One dedup key per week, shared with push.ts, so a
+  // push followed by a send counts once.
+  if (patch.status === 'sent') {
+    await recordShip({ channel: 'publish', description: `Weekly brief ${week}: ${String(brief.title || '').slice(0, 120)}`, dedup_key: `brief:${week}` })
+  }
 
   // Approving the brief resolves its decision card.
   if (patch.status === 'approved') {

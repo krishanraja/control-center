@@ -7,6 +7,7 @@ import { realSource } from '../shifts/detect.js'
 import { loadStandingNotes, standingNotesPrompt } from '../_briefNotes.js'
 import { goalsSpine } from '../_goals.js'
 import { SYNTHESIS_MODEL } from '../_models.js'
+import { faceBlock } from '../_mission.js'
 
 // Weekly brief assembly (Content Engine v2, spec §4). Fri 18:00 UTC.
 //
@@ -61,6 +62,16 @@ function clip(input: string, max: number): string {
 // The weekly is an argument, and these three blocks are what make it one. Kept
 // as named constants because `revise.ts` has to sharpen the same piece, and a
 // preset that does not know the shape flattens it back into a roundup.
+
+// One swing (ADR-016): the piece exists to fill the room. It is written for
+// the face, names what is coming for that leader in the next two quarters,
+// and cites a source for every claim about the world. A claim without a
+// source is cut, not softened.
+const BRIEF_FACE = [
+  'WHO IT IS FOR (one swing): write this for the face named above, not for a general audience.',
+  'The piece must say, in plain words, what is coming for that leader and their business in the next two quarters, and what to do first.',
+  'Every claim about the world carries a source from the stories supplied. A claim without a source is cut. Do not soften it into a hedge; remove it.',
+].join('\n')
 
 const BRIEF_SHAPE = [
   'SHAPE. This is an investigative opinion piece about how AI is actually changing business creation. It is NOT a roundup with a comment attached. The week\'s stories are CLUES, and the piece uses them to prosecute exactly one belief. Write it in this order:',
@@ -183,6 +194,8 @@ export async function runAssemble(force = false) {
     channelMandate ? `CHANNEL MANDATE:\n${channelMandate}` : '',
     standingNotesPrompt(standingNotes),
     goals.prompt,
+    faceBlock(),
+    BRIEF_FACE,
     BRIEF_SHAPE,
     BRIEF_LENS,
     BRIEF_HONESTY,

@@ -49,10 +49,14 @@ when in conflict.
 
 ## Tab: Home
 
-### Purpose (recomposed 2026-08-20)
-> *Lock me in on what matters: the OS goals, this week's objectives, and
-> today's 3 — the whole thing on one screen, no scrolling, on any device.
+### Purpose (recomposed 2026-08-20, repointed 2026-09-06)
+> *Lock me in on what matters: the mission, this week's objectives, and
+> today's 3, the whole thing on one screen, no scrolling, on any device.
 > Everything else lives elsewhere.*
+
+Since ADR-016 the OS rung is one row, the mission line, and every weekly
+objective and daily pick carries a job tag (which of the five jobs of the
+OS it serves). The vitals line is the twelve week scorecard.
 
 Home is the canon, not a dashboard. The bigger picture, not the tiny tasks:
 the ruling queue lives on **OS → Queue**, venture health on **Growth →
@@ -61,14 +65,24 @@ Signals**, the Friday retro on **Growth → Council**, bets on **OS → Intel**.
 ### The whole screen (there is no fold)
 1. **CriticalAlertBanner** - `silent_failures` tier 3. Hidden when nothing
    is critical; pre-empts everything else visually when present.
-2. **VitalsLine** - one quiet strip: MRR (mono) · ships this week with the
-   one-tap **Log** (ship-ledger facts live in the modal) · decisions
-   **Waiting** count linking to OS → Queue. Neutral rendering, always
-   (pilot rule: no conditional colour/copy on any number).
+2. **VitalsLine, now the scorecard line** (2026-09-06, ADR-016) - one quiet
+   strip: Sent n/25 · Calls n/5 · Paid n/1 · Published n/12 · Unasked nh
+   (totals to date over the day-90 targets; compact on a phone: Sent, Paid,
+   Unasked) · the one-tap **Log** (ship-ledger facts live in the modal) ·
+   decisions **Waiting** count linking to OS → Queue. Any scorecard cell
+   opens the twelve week `ScorecardPanel` in a SlideOver: weeks, targets,
+   totals, the stop rule (5 Oct) and day 90 (5 Dec). Neutral rendering,
+   always (pilot rule: no conditional colour/copy on any number). MRR left
+   this line; it stays on Growth and Subscriptions.
 3. **DueTestsCard** - renders nothing unless a worry-test is due.
-4. **GoalLadder** - the top two layers of the canon: **OS** (display-type
-   goal titles, inline edit, quiet stale markers) and **THIS WEEK** (≤3
-   single-line objectives, done toggles, serves-chip, optional venture tag).
+3a. **RoomStrip** (2026-09-06) - one line, present only when drafted
+   approaches are waiting: "n drafted approaches waiting to send", tapping
+   opens People → Room. Absent otherwise, so a quiet week costs the canon
+   nothing.
+4. **GoalLadder** - the top two layers of the canon: **OS** (the single
+   mission line since ADR-016, inline edit, quiet stale markers) and **THIS
+   WEEK** (≤3 single-line objectives, done toggles, serves-chip, job chip,
+   optional venture tag).
    Still the ONE goal editor; writes travel `src/lib/goalsApi.ts`.
 5. **TodayList** - the third layer: exactly 3 slots from `daily_focus`,
    done toggles, weekly-goal chip when linked. Three quiet empty slots when
@@ -205,15 +219,62 @@ Inline action surface (`InlineActions`):
 
 ### Purpose
 > *Every human pipeline behind one nav entry: Pipeline (deal leads), Network
-> (the 10k-contact pool), Visibility (podcast guests + PR targets).*
+> (the 10k-contact pool), Visibility (podcast guests + PR targets), Room (the
+> 25 leaders who fit the face).*
 
-The three lanes are the former standalone tabs, rendered by
-`people/PeopleTab` behind one `SegmentedNav` (test ids `people-lane-<id>`);
-the per-lane specs below still hold. **Network is the default lane**
-(2026-08-22): the network is what the tab is opened for day to day, so
-`#people` with no params lands there, while `?lane=`, `?lead=` and
-`?guest=` / `?target=` deep links land on their own lane. On mobile the +
-create sheet carries the tab's create action (Add a person).
+The lanes are rendered by `people/PeopleTab` behind one `SegmentedNav` (test
+ids `people-lane-<id>`); the per-lane specs below still hold. **Network is
+the default lane** (2026-08-22): the network is what the tab is opened for
+day to day, so `#people` with no params lands there, while `?lane=`, `?lead=`,
+`?guest=` / `?target=` and `?room=` deep links land on their own lane. On
+mobile the + create sheet carries the tab's create action (Add a person).
+
+**Bridges is parked** (2026-09-06, ADR-016): the hunter warm-intro lane for
+the job search renders only when `VITE_BRIDGES_LANE_ENABLED=true`; the deep
+link `?lane=bridges` still resolves. Tables and the hunter agent are untouched.
+
+---
+
+## Lane: People → Room (2026-09-06, job 1 of the one swing)
+
+### Purpose
+> *The 25 (then 100) named leaders who fit the face. The OS drafts the
+> approach from a live signal, in Krish's voice. Krish sends. Nothing sends
+> itself.*
+
+### Layout
+- Header "The Room", a counts line by state (listed, drafted, sent, replied,
+  call booked, call taken, room booked, paid), and **Find five more**, which
+  proposes candidates from network tiers 1 and 2 (founder, C-suite, VP at
+  media, adtech, publishing and data businesses) as Accept / Skip chips.
+  Nothing is added without a tap.
+- One `RoomCard` per target: name (LinkedIn), title at company, why they fit
+  the face, then **Why now** with the cited trigger and its source link, or
+  the literal *No live trigger found*. When drafted: the subject, the
+  editable body, and **Open in Gmail** when the draft landed there.
+- One primary action per state: Draft it → I sent it → They replied → Call
+  booked → Call taken → Room booked → Paid (a GBP amount in a Modal). Every
+  state has a quiet *Not now*.
+
+### Inputs
+`room_targets` (service role only, through `/api/room`), `contacts` for the
+person, `network_search` for proposals, `webResearch` for the trigger,
+`deliverEmailDraft` (direct mode) for the draft and the Gmail draft.
+
+### Writes
+- `PATCH /api/room/:id` state transitions, each stamped. **sent** writes a
+  `ships` row, channel `approach`, dedup `room:<id>`; that is what the
+  scorecard's Sent column counts.
+- `POST /api/room/:id/draft` finds the trigger and drafts. Never sends.
+- Monday 06:00 operator time, `/api/room/monday` drafts the five listed
+  targets with the freshest trigger and tells Telegram.
+
+### Behaviour rules
+- Cited or silent: a draft without a source URL says "No live trigger found"
+  on its face and opens on the relationship. The OS never invents news.
+- Approval wall: no route under `/api/room` can send. The Gmail draft is the
+  hand-off.
+- The list is 25 until the 25 are worked (gate G4), then 100.
 
 ---
 
