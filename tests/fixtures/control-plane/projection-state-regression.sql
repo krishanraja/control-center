@@ -117,6 +117,15 @@ as $$
     || pg_catalog.md5('fixture:' || p_idempotency_key::text || ':' || p_salt);
 $$;
 
+create function pg_temp.video_studio_test_receipt_hash(p_command_id uuid)
+returns text
+language sql
+immutable
+as $$
+  select pg_catalog.md5('receipt:' || p_command_id::text)
+    || pg_catalog.md5('fixture:' || p_command_id::text);
+$$;
+
 create function pg_temp.video_studio_expect_projection_error(
   p_idempotency_key uuid,
   p_projection_hash text,
@@ -1155,7 +1164,8 @@ begin
   from public.video_studio_complete_command(
     '33000000-0000-4000-8000-000000000001'::uuid,
     'job-completion', repeat('a', 64), repeat('b', 64), repeat('2', 64),
-    repeat('3', 64), repeat('4', 64), 'succeeded',
+    pg_temp.video_studio_test_receipt_hash('33000000-0000-4000-8000-000000000001'::uuid),
+    repeat('4', 64), 'succeeded',
     repeat('8', 64), repeat('4', 64),
     pg_catalog.jsonb_build_object(
       'semantic_target_map_hash', repeat('9', 64),
@@ -1188,7 +1198,8 @@ begin
   from public.video_studio_complete_command(
     '33000000-0000-4000-8000-000000000001'::uuid,
     'job-completion', repeat('a', 64), repeat('b', 64), repeat('2', 64),
-    repeat('3', 64), repeat('4', 64), 'succeeded',
+    pg_temp.video_studio_test_receipt_hash('33000000-0000-4000-8000-000000000001'::uuid),
+    repeat('4', 64), 'succeeded',
     repeat('8', 64), repeat('4', 64),
     pg_catalog.jsonb_build_object(
       'semantic_target_map_hash', repeat('9', 64),
@@ -1223,7 +1234,8 @@ begin
     perform * from public.video_studio_complete_command(
       '33000000-0000-4000-8000-000000000002'::uuid,
       'job-completion', repeat('a', 64), repeat('b', 64), repeat('6', 64),
-      repeat('7', 64), repeat('8', 64), 'succeeded',
+      pg_temp.video_studio_test_receipt_hash('33000000-0000-4000-8000-000000000002'::uuid),
+      repeat('8', 64), 'succeeded',
       repeat('b', 64), repeat('c', 64),
       pg_catalog.jsonb_build_object(
         'semantic_target_map_hash', repeat('d', 64),
@@ -1275,7 +1287,8 @@ begin
     perform * from public.video_studio_complete_command(
       '33000000-0000-4000-8000-000000000003'::uuid,
       'job-completion', repeat('a', 64), repeat('b', 64), repeat('8', 64),
-      repeat('9', 64), repeat('a', 64), 'succeeded',
+      pg_temp.video_studio_test_receipt_hash('33000000-0000-4000-8000-000000000003'::uuid),
+      repeat('a', 64), 'succeeded',
       repeat('b', 64), repeat('4', 64),
       pg_catalog.jsonb_build_object(
         'semantic_target_map_hash', repeat('c', 64),
@@ -1316,7 +1329,8 @@ begin
     perform * from public.video_studio_complete_command(
       '33000000-0000-4000-8000-000000000004'::uuid,
       'job-completion', repeat('a', 64), repeat('b', 64), repeat('a', 64),
-      repeat('b', 64), repeat('c', 64), 'succeeded',
+      pg_temp.video_studio_test_receipt_hash('33000000-0000-4000-8000-000000000004'::uuid),
+      repeat('c', 64), 'succeeded',
       repeat('d', 64), repeat('4', 64),
       pg_catalog.jsonb_build_object(
         'semantic_target_map_hash', repeat('e', 64),
@@ -1395,7 +1409,8 @@ begin
     perform * from public.video_studio_complete_command(
       '37000000-0000-4000-8000-000000000001'::uuid,
       'job-late-completion', repeat('a', 64), repeat('b', 64), repeat('4', 64),
-      repeat('8', 64), repeat('9', 64), 'succeeded',
+      pg_temp.video_studio_test_receipt_hash('37000000-0000-4000-8000-000000000001'::uuid),
+      repeat('9', 64), 'succeeded',
       repeat('7', 64), repeat('1', 64), v_refs, v_gates, false, null,
       v_started_at, v_finished_at
     );
@@ -1431,7 +1446,8 @@ begin
     perform * from public.video_studio_complete_command(
       '37000000-0000-4000-8000-000000000001'::uuid,
       'job-late-completion', repeat('f', 64), repeat('b', 64), repeat('4', 64),
-      repeat('8', 64), repeat('9', 64), 'succeeded',
+      pg_temp.video_studio_test_receipt_hash('37000000-0000-4000-8000-000000000001'::uuid),
+      repeat('9', 64), 'succeeded',
       repeat('7', 64), repeat('1', 64), v_refs, v_gates, false, null,
       v_started_at, v_finished_at
     );
@@ -1446,7 +1462,8 @@ begin
     perform * from public.video_studio_complete_command(
       '37000000-0000-4000-8000-000000000001'::uuid,
       'job-late-completion', repeat('a', 64), repeat('b', 64), repeat('f', 64),
-      repeat('8', 64), repeat('9', 64), 'succeeded',
+      pg_temp.video_studio_test_receipt_hash('37000000-0000-4000-8000-000000000001'::uuid),
+      repeat('9', 64), 'succeeded',
       repeat('7', 64), repeat('1', 64), v_refs, v_gates, false, null,
       v_started_at, v_finished_at
     );
@@ -1461,7 +1478,8 @@ begin
     perform * from public.video_studio_complete_command(
       '37000000-0000-4000-8000-000000000001'::uuid,
       'job-late-completion', repeat('a', 64), repeat('b', 64), repeat('4', 64),
-      repeat('8', 64), repeat('9', 64), 'succeeded',
+      pg_temp.video_studio_test_receipt_hash('37000000-0000-4000-8000-000000000001'::uuid),
+      repeat('9', 64), 'succeeded',
       repeat('7', 64), repeat('1', 64), v_refs, v_gates, false, null,
       v_terminal_at, v_terminal_at + interval '1 second'
     );
@@ -1475,7 +1493,8 @@ begin
   from public.video_studio_complete_command(
     '37000000-0000-4000-8000-000000000001'::uuid,
     'job-late-completion', repeat('a', 64), repeat('b', 64), repeat('4', 64),
-    repeat('8', 64), repeat('9', 64), 'succeeded',
+    pg_temp.video_studio_test_receipt_hash('37000000-0000-4000-8000-000000000001'::uuid),
+    repeat('9', 64), 'succeeded',
     repeat('7', 64), repeat('1', 64), v_refs, v_gates, false, null,
     v_started_at, v_finished_at
   );
@@ -1484,7 +1503,8 @@ begin
   from public.video_studio_complete_command(
     '37000000-0000-4000-8000-000000000001'::uuid,
     'job-late-completion', repeat('a', 64), repeat('b', 64), repeat('4', 64),
-    repeat('8', 64), repeat('9', 64), 'succeeded',
+    pg_temp.video_studio_test_receipt_hash('37000000-0000-4000-8000-000000000001'::uuid),
+    repeat('9', 64), 'succeeded',
     repeat('7', 64), repeat('1', 64), v_refs, v_gates, false, null,
     v_started_at, v_finished_at
   );
@@ -1547,7 +1567,8 @@ begin
     perform * from public.video_studio_complete_command(
       '37000000-0000-4000-8000-000000000002'::uuid,
       'job-late-blocked', repeat('a', 64), repeat('b', 64), repeat('4', 64),
-      repeat('a', 64), repeat('b', 64), 'succeeded',
+      pg_temp.video_studio_test_receipt_hash('37000000-0000-4000-8000-000000000002'::uuid),
+      repeat('b', 64), 'succeeded',
       repeat('7', 64), repeat('1', 64), v_refs, v_gates, false, null,
       v_started_at, v_finished_at
     );
@@ -1663,7 +1684,8 @@ begin
     perform * from public.video_studio_complete_command(
       '37000000-0000-4000-8000-000000000002'::uuid,
       'job-late-blocked', repeat('a', 64), repeat('b', 64), repeat('4', 64),
-      repeat('a', 64), repeat('b', 64), 'succeeded',
+      pg_temp.video_studio_test_receipt_hash('37000000-0000-4000-8000-000000000002'::uuid),
+      repeat('b', 64), 'succeeded',
       repeat('7', 64), repeat('1', 64), v_refs, v_gates, false, null,
       v_started_at, v_finished_at
     );
@@ -1687,7 +1709,8 @@ begin
   from public.video_studio_complete_command(
     '37000000-0000-4000-8000-000000000002'::uuid,
     'job-late-blocked', repeat('a', 64), repeat('b', 64), repeat('4', 64),
-    repeat('a', 64), repeat('b', 64), 'succeeded',
+    pg_temp.video_studio_test_receipt_hash('37000000-0000-4000-8000-000000000002'::uuid),
+    repeat('b', 64), 'succeeded',
     repeat('7', 64), repeat('1', 64), v_refs, v_gates, false, null,
     v_started_at, v_finished_at
   );
@@ -1772,7 +1795,8 @@ begin
   perform * from public.video_studio_complete_command(
     '34000000-0000-4000-8000-000000000001'::uuid,
     'job-cross-platform-catchup', repeat('a', 64), repeat('b', 64), repeat('2', 64),
-    repeat('3', 64), repeat('4', 64), 'succeeded',
+    pg_temp.video_studio_test_receipt_hash('34000000-0000-4000-8000-000000000001'::uuid),
+    repeat('4', 64), 'succeeded',
     repeat('3', 64), repeat('1', 64),
     pg_catalog.jsonb_build_object(
       'semantic_target_map_hash', repeat('5', 64),
@@ -1998,7 +2022,8 @@ begin
     perform * from public.video_studio_complete_command(
       '35000000-0000-4000-8000-000000000001'::uuid,
       'job-prepare-cursor', repeat('a', 64), repeat('b', 64), repeat('2', 64),
-      repeat('7', 64), repeat('8', 64), 'succeeded',
+      pg_temp.video_studio_test_receipt_hash('35000000-0000-4000-8000-000000000001'::uuid),
+      repeat('8', 64), 'succeeded',
       repeat('c', 64), repeat('d', 64),
       v_result_refs || pg_catalog.jsonb_build_object(
         'result_source_event_count', 1,
@@ -2035,7 +2060,8 @@ begin
     perform * from public.video_studio_complete_command(
       '35000000-0000-4000-8000-000000000001'::uuid,
       'job-prepare-cursor', repeat('a', 64), repeat('b', 64), repeat('2', 64),
-      repeat('5', 64), repeat('6', 64), 'succeeded',
+      pg_temp.video_studio_test_receipt_hash('35000000-0000-4000-8000-000000000001'::uuid),
+      repeat('6', 64), 'succeeded',
       repeat('c', 64), repeat('d', 64),
       v_result_refs || pg_catalog.jsonb_build_object(
         'result_source_revision_hash', repeat('e', 64)
@@ -2063,7 +2089,8 @@ begin
     perform * from public.video_studio_complete_command(
       '35000000-0000-4000-8000-000000000001'::uuid,
       'job-prepare-cursor', repeat('a', 64), repeat('b', 64), repeat('2', 64),
-      repeat('9', 64), repeat('a', 64), 'succeeded',
+      pg_temp.video_studio_test_receipt_hash('35000000-0000-4000-8000-000000000001'::uuid),
+      repeat('a', 64), 'succeeded',
       repeat('c', 64), repeat('d', 64),
       v_result_refs || pg_catalog.jsonb_build_object(
         'before_preview_md5', repeat('f', 32)
@@ -2089,7 +2116,8 @@ begin
   perform * from public.video_studio_complete_command(
     '35000000-0000-4000-8000-000000000001'::uuid,
     'job-prepare-cursor', repeat('a', 64), repeat('b', 64), repeat('2', 64),
-    repeat('5', 64), repeat('6', 64), 'succeeded',
+    pg_temp.video_studio_test_receipt_hash('35000000-0000-4000-8000-000000000001'::uuid),
+    repeat('6', 64), 'succeeded',
     repeat('c', 64), repeat('d', 64),
     v_result_refs,
     v_gates, false, null,
@@ -2249,7 +2277,8 @@ begin
   perform * from public.video_studio_complete_command(
     '36000000-0000-4000-8000-000000000002'::uuid,
     'job-recovery-cursor', repeat('a', 64), repeat('b', 64), repeat('6', 64),
-    repeat('8', 64), repeat('9', 64), 'succeeded',
+    pg_temp.video_studio_test_receipt_hash('36000000-0000-4000-8000-000000000002'::uuid),
+    repeat('9', 64), 'succeeded',
     repeat('0', 64), repeat('1', 64),
     pg_catalog.jsonb_build_object(
       'comparison_alignment', 'unavailable',
