@@ -91,7 +91,7 @@ $$;
 select * from public.video_studio_project_review(
   repeat('a', 64), 'unknown',
   '40000000-0000-4000-8000-000000000001'::uuid,
-  repeat('1', 64),
+  pg_catalog.md5('concurrent-command-youtube') || pg_catalog.md5('projection:youtube'),
   video_studio_concurrency_test.projection(
     'job-concurrent-command', 'youtube_shorts', repeat('c', 64), repeat('d', 64),
     '41000000-0000-4000-8000-000000000001'::uuid
@@ -101,7 +101,7 @@ select * from public.video_studio_project_review(
 select * from public.video_studio_project_review(
   repeat('a', 64), 'unknown',
   '40000000-0000-4000-8000-000000000002'::uuid,
-  repeat('2', 64),
+  pg_catalog.md5('concurrent-command-linkedin') || pg_catalog.md5('projection:linkedin'),
   video_studio_concurrency_test.projection(
     'job-concurrent-command', 'linkedin', repeat('6', 64), repeat('7', 64),
     '41000000-0000-4000-8000-000000000002'::uuid

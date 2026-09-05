@@ -105,6 +105,18 @@ as $$
   );
 $$;
 
+create function pg_temp.video_studio_test_projection_hash(
+  p_idempotency_key uuid,
+  p_salt text default ''
+)
+returns text
+language sql
+immutable
+as $$
+  select pg_catalog.md5('projection:' || p_idempotency_key::text || ':' || p_salt)
+    || pg_catalog.md5('fixture:' || p_idempotency_key::text || ':' || p_salt);
+$$;
+
 create function pg_temp.video_studio_expect_projection_error(
   p_idempotency_key uuid,
   p_projection_hash text,
@@ -119,7 +131,7 @@ begin
   begin
     perform * from public.video_studio_project_review(
       repeat('a', 64), 'unknown', p_idempotency_key,
-      p_projection_hash, p_projection
+      pg_temp.video_studio_test_projection_hash(p_idempotency_key, p_projection_hash), p_projection
     );
   exception when sqlstate 'P0001' then
     if sqlerrm is distinct from p_expected_error then raise; end if;
@@ -246,7 +258,8 @@ begin
   from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '20000000-0000-4000-8000-000000000001'::uuid,
-    repeat('1', 64), v_projection
+    pg_temp.video_studio_test_projection_hash('20000000-0000-4000-8000-000000000001'::uuid),
+    v_projection
   );
   if v_duplicate then raise exception 'first projection cannot be duplicate'; end if;
   perform pg_temp.video_studio_assert_state(
@@ -265,7 +278,8 @@ begin
   from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '20000000-0000-4000-8000-000000000001'::uuid,
-    repeat('1', 64), v_projection
+    pg_temp.video_studio_test_projection_hash('20000000-0000-4000-8000-000000000001'::uuid),
+    v_projection
   );
   if not v_duplicate then raise exception 'exact retry must return duplicate'; end if;
 
@@ -315,7 +329,8 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '20000000-0000-4000-8000-000000000004'::uuid,
-    repeat('4', 64), v_projection
+    pg_temp.video_studio_test_projection_hash('20000000-0000-4000-8000-000000000004'::uuid),
+    v_projection
   );
   select safe_title, safe_summary into v_job_title, v_job_summary
   from public.video_studio_jobs where job_id = 'job-projection-chain';
@@ -345,7 +360,8 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '20000000-0000-4000-8000-000000000005'::uuid,
-    repeat('5', 64), v_projection
+    pg_temp.video_studio_test_projection_hash('20000000-0000-4000-8000-000000000005'::uuid),
+    v_projection
   );
   v_current_youtube := v_desired;
   if (select source_event_count from public.video_studio_jobs where job_id = 'job-projection-chain') <> 2
@@ -374,7 +390,8 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '20000000-0000-4000-8000-000000000006'::uuid,
-    repeat('6', 64), v_projection
+    pg_temp.video_studio_test_projection_hash('20000000-0000-4000-8000-000000000006'::uuid),
+    v_projection
   );
   v_current_linkedin := v_desired;
   if (select safe_title from public.video_studio_jobs where job_id = 'job-projection-chain')
@@ -431,7 +448,8 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '20000000-0000-4000-8000-000000000011'::uuid,
-    repeat('b', 64), v_projection
+    pg_temp.video_studio_test_projection_hash('20000000-0000-4000-8000-000000000011'::uuid),
+    v_projection
   );
   v_last_projection := v_projection;
   select pg_catalog.count(*) into v_count
@@ -462,7 +480,8 @@ begin
   from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '20000000-0000-4000-8000-000000000011'::uuid,
-    repeat('b', 64), v_last_projection
+    pg_temp.video_studio_test_projection_hash('20000000-0000-4000-8000-000000000011'::uuid),
+    v_last_projection
   );
   if not v_duplicate then raise exception 'exact retry did not bypass in-flight fence'; end if;
   perform pg_temp.video_studio_expect_projection_error(
@@ -518,7 +537,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '20000000-0000-4000-8000-000000000013'::uuid,
-    repeat('d', 64),
+    pg_temp.video_studio_test_projection_hash('20000000-0000-4000-8000-000000000013'::uuid),
     pg_temp.video_studio_test_projection(
       'job-projection-chain', array['youtube_shorts', 'linkedin']::text[],
       v_current_youtube, v_current_youtube,
@@ -586,7 +605,8 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '21000000-0000-4000-8000-000000000001'::uuid,
-    repeat('1', 64), v_projection
+    pg_temp.video_studio_test_projection_hash('21000000-0000-4000-8000-000000000001'::uuid),
+    v_projection
   );
   if (select source_event_count from public.video_studio_jobs where job_id = 'job-adoption') <> 7
     or (select source_event_chain_hash from public.video_studio_jobs where job_id = 'job-adoption')
@@ -660,7 +680,8 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '21000000-0000-4000-8000-000000000006'::uuid,
-    repeat('6', 64), v_projection
+    pg_temp.video_studio_test_projection_hash('21000000-0000-4000-8000-000000000006'::uuid),
+    v_projection
   );
   select pg_catalog.count(*) into v_count
   from public.video_studio_job_platform_states
@@ -706,7 +727,8 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '21000000-0000-4000-8000-000000000008'::uuid,
-    repeat('8', 64), v_projection
+    pg_temp.video_studio_test_projection_hash('21000000-0000-4000-8000-000000000008'::uuid),
+    v_projection
   );
   if not exists (
     select 1 from public.video_studio_job_platform_states
@@ -774,7 +796,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '22000000-0000-4000-8000-000000000001'::uuid,
-    repeat('1', 64),
+    pg_temp.video_studio_test_projection_hash('22000000-0000-4000-8000-000000000001'::uuid),
     pg_temp.video_studio_test_projection(
       'job-lineage', array['youtube_shorts', 'linkedin']::text[],
       null, v_root,
@@ -789,7 +811,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '22000000-0000-4000-8000-000000000002'::uuid,
-    repeat('2', 64),
+    pg_temp.video_studio_test_projection_hash('22000000-0000-4000-8000-000000000002'::uuid),
     pg_temp.video_studio_test_projection(
       'job-lineage', array['youtube_shorts', 'linkedin']::text[],
       null, v_linkedin,
@@ -979,7 +1001,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '22000000-0000-4000-8000-000000000004'::uuid,
-    repeat('4', 64),
+    pg_temp.video_studio_test_projection_hash('22000000-0000-4000-8000-000000000004'::uuid),
     pg_temp.video_studio_test_projection(
       'job-active-projection', array['youtube_shorts']::text[],
       null, v_root,
@@ -1007,7 +1029,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '22000000-0000-4000-8000-000000000005'::uuid,
-    repeat('5', 64),
+    pg_temp.video_studio_test_projection_hash('22000000-0000-4000-8000-000000000005'::uuid),
     pg_temp.video_studio_test_projection(
       'job-active-projection', array['youtube_shorts']::text[],
       v_active, v_projected,
@@ -1075,7 +1097,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '23000000-0000-4000-8000-000000000001'::uuid,
-    repeat('1', 64),
+    pg_temp.video_studio_test_projection_hash('23000000-0000-4000-8000-000000000001'::uuid),
     pg_temp.video_studio_test_projection(
       'job-completion', array['youtube_shorts']::text[],
       null, v_root,
@@ -1103,7 +1125,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '23000000-0000-4000-8000-000000000002'::uuid,
-    repeat('2', 64),
+    pg_temp.video_studio_test_projection_hash('23000000-0000-4000-8000-000000000002'::uuid),
     pg_temp.video_studio_test_projection(
       'job-completion', array['youtube_shorts']::text[],
       v_active, v_projected,
@@ -1339,7 +1361,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '27000000-0000-4000-8000-000000000001'::uuid,
-    repeat('1', 64),
+    pg_temp.video_studio_test_projection_hash('27000000-0000-4000-8000-000000000001'::uuid),
     pg_temp.video_studio_test_projection(
       'job-late-completion', array['youtube_shorts']::text[], null, v_root,
       '17000000-0000-4000-8000-000000000001'::uuid,
@@ -1481,7 +1503,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '27000000-0000-4000-8000-000000000002'::uuid,
-    repeat('2', 64),
+    pg_temp.video_studio_test_projection_hash('27000000-0000-4000-8000-000000000002'::uuid),
     pg_temp.video_studio_test_projection(
       'job-late-blocked', array['youtube_shorts']::text[], null, v_root,
       '17000000-0000-4000-8000-000000000002'::uuid,
@@ -1699,7 +1721,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '24000000-0000-4000-8000-000000000001'::uuid,
-    repeat('1', 64),
+    pg_temp.video_studio_test_projection_hash('24000000-0000-4000-8000-000000000001'::uuid),
     pg_temp.video_studio_test_projection(
       'job-cross-platform-catchup', array['youtube_shorts', 'linkedin']::text[],
       null, v_youtube,
@@ -1710,7 +1732,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '24000000-0000-4000-8000-000000000002'::uuid,
-    repeat('2', 64),
+    pg_temp.video_studio_test_projection_hash('24000000-0000-4000-8000-000000000002'::uuid),
     pg_temp.video_studio_test_projection(
       'job-cross-platform-catchup', array['youtube_shorts', 'linkedin']::text[],
       null, v_linkedin,
@@ -1774,7 +1796,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '24000000-0000-4000-8000-000000000003'::uuid,
-    repeat('3', 64),
+    pg_temp.video_studio_test_projection_hash('24000000-0000-4000-8000-000000000003'::uuid),
     pg_temp.video_studio_test_projection(
       'job-cross-platform-catchup', array['youtube_shorts', 'linkedin']::text[],
       v_linkedin, v_linkedin_caught_up,
@@ -1822,7 +1844,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '25000000-0000-4000-8000-000000000001'::uuid,
-    repeat('1', 64),
+    pg_temp.video_studio_test_projection_hash('25000000-0000-4000-8000-000000000001'::uuid),
     pg_temp.video_studio_test_projection(
       'job-prepare-cursor', array['youtube_shorts']::text[],
       null, v_root,
@@ -2032,7 +2054,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '26000000-0000-4000-8000-000000000001'::uuid,
-    repeat('1', 64),
+    pg_temp.video_studio_test_projection_hash('26000000-0000-4000-8000-000000000001'::uuid),
     pg_temp.video_studio_test_projection(
       'job-recovery-cursor', array['youtube_shorts']::text[],
       null, v_root,
@@ -2187,7 +2209,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '29000000-0000-4000-8000-000000000001'::uuid,
-    repeat('1', 64),
+    pg_temp.video_studio_test_projection_hash('29000000-0000-4000-8000-000000000001'::uuid),
     pg_temp.video_studio_test_projection(
       'job-never-claimed-recovery', array['youtube_shorts']::text[], null, v_root,
       '19000000-0000-4000-8000-000000000001'::uuid,
@@ -2343,7 +2365,7 @@ begin
   perform * from public.video_studio_project_review(
     repeat('a', 64), 'unknown',
     '28000000-0000-4000-8000-000000000001'::uuid,
-    repeat('1', 64),
+    pg_temp.video_studio_test_projection_hash('28000000-0000-4000-8000-000000000001'::uuid),
     pg_temp.video_studio_test_projection(
       'job-runner-affinity', array['youtube_shorts']::text[], null, v_root,
       '18000000-0000-4000-8000-000000000001'::uuid,
