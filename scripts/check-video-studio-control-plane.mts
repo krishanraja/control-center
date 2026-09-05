@@ -479,6 +479,9 @@ const successfulRefs = {
   comparison_alignment: 'exact',
   comparison_start_ms: 0,
   comparison_end_ms: 5_000,
+  result_source_event_count: 12,
+  result_source_event_chain_hash: SHA_C,
+  result_source_revision_hash: SHA_A,
 }
 const receiptBase = {
   schema_version: 1,
@@ -520,13 +523,40 @@ assert.ok(parseRunnerCompleteRequest({
     ...receiptBase,
     result_revision_hash: SHA_E,
     result_artifact_hash: SHA_B,
-    result_refs: { semantic_target_map_hash: SHA_D, comparison_alignment: 'unavailable' },
+    result_refs: {
+      semantic_target_map_hash: SHA_D,
+      comparison_alignment: 'unavailable',
+      result_source_event_count: 13,
+      result_source_event_chain_hash: SHA_C,
+      result_source_revision_hash: SHA_E,
+    },
   },
 }), 'decision receipts may return the rebound semantic target map')
 assert.equal(parseRunnerCompleteRequest({
   ...completeRequest,
   receipt: { ...receiptBase, result_refs: { ...successfulRefs, after_preview_object_key: undefined } },
 }), null)
+assert.equal(parseRunnerCompleteRequest({
+  ...completeRequest,
+  receipt: {
+    ...receiptBase,
+    result_refs: { ...successfulRefs, result_source_event_count: 0 },
+  },
+}), null, 'a result event count must refer to a real append-only event')
+assert.equal(parseRunnerCompleteRequest({
+  ...completeRequest,
+  receipt: {
+    ...receiptBase,
+    result_refs: { ...successfulRefs, result_source_event_chain_hash: undefined },
+  },
+}), null, 'result event count and chain hash are inseparable')
+assert.equal(parseRunnerCompleteRequest({
+  ...completeRequest,
+  receipt: {
+    ...receiptBase,
+    result_refs: { ...successfulRefs, result_source_revision_hash: undefined },
+  },
+}), null, 'result event cursor and source revision are inseparable')
 assert.equal(parseRunnerCompleteRequest({
   ...completeRequest,
   receipt: {
@@ -566,6 +596,9 @@ const editorialReceipt = {
     review_id: REVIEW_ID,
     review_payload: editorialReviewPayload,
     comparison_alignment: 'unavailable',
+    result_source_event_count: 14,
+    result_source_event_chain_hash: SHA_D,
+    result_source_revision_hash: SHA_A,
   },
   hard_gates: pendingGates,
   safe_code: 'requires_editorial_route',
@@ -575,6 +608,35 @@ assert.equal(parseRunnerCompleteRequest({
   ...completeRequest,
   receipt: { ...editorialReceipt, result_refs: { ...editorialReceipt.result_refs, candidate_hash: SHA_D } },
 }), null)
+assert.equal(parseRunnerCompleteRequest({
+  ...completeRequest,
+  receipt: {
+    ...receiptBase,
+    status: 'failed',
+    result_revision_hash: null,
+    result_artifact_hash: null,
+    result_refs: {
+      comparison_alignment: 'unavailable',
+      result_source_event_count: 15,
+      result_source_event_chain_hash: SHA_E,
+      result_source_revision_hash: SHA_A,
+    },
+    hard_gates: pendingGates,
+    safe_code: 'render_failed',
+  },
+}), null, 'failed receipts cannot claim a source cursor')
+assert.ok(parseRunnerCompleteRequest({
+  ...completeRequest,
+  receipt: {
+    ...receiptBase,
+    status: 'failed',
+    result_revision_hash: null,
+    result_artifact_hash: null,
+    result_refs: { comparison_alignment: 'unavailable' },
+    hard_gates: pendingGates,
+    safe_code: 'render_failed',
+  },
+}), 'failed receipts remain valid only without a claimed source cursor')
 assert.equal(parseRunnerCompleteRequest({
   ...completeRequest,
   receipt: { ...editorialReceipt, hard_gates: passedGates },
@@ -596,7 +658,11 @@ const projectedRequest = {
       status: 'active',
       safe_title: 'A safe title',
       safe_summary: 'A safe summary.',
+      source_event_count: 1,
+      source_event_chain_hash: SHA_A,
+      source_revision_hash: SHA_A,
     },
+    expected_platform_state: null,
     platform_state: {
       platform: 'youtube_shorts',
       active_revision_hash: SHA_A,
@@ -626,7 +692,49 @@ const projectedRequest = {
     },
   },
 }
-assert.ok(parseRunnerProjectRequest(projectedRequest))
+const parsedInitialProjection = parseRunnerProjectRequest(projectedRequest)
+assert.ok(parsedInitialProjection)
+assert.equal(parsedInitialProjection.projection.expected_platform_state, null)
+
+const legacyProjectedRequest = structuredClone(projectedRequest) as Record<string, any>
+delete legacyProjectedRequest.projection.expected_platform_state
+delete legacyProjectedRequest.projection.job.source_event_count
+delete legacyProjectedRequest.projection.job.source_event_chain_hash
+delete legacyProjectedRequest.projection.job.source_revision_hash
+const parsedLegacyProjection = parseRunnerProjectRequest(legacyProjectedRequest)
+assert.ok(parsedLegacyProjection, 'legacy projection omission remains valid during the additive rollout')
+assert.equal(
+  Object.prototype.hasOwnProperty.call(parsedLegacyProjection.projection, 'expected_platform_state'),
+  false,
+  'normalization preserves omission so the legacy projection hash stays stable',
+)
+
+const expectedPlatformState = {
+  ...projectedRequest.projection.platform_state,
+  active_candidate_hash: SHA_D,
+  parent_revision_hash: SHA_B,
+  parent_artifact_hash: SHA_C,
+  parent_candidate_hash: null,
+  editorial_state: 'needs_final_review',
+}
+const expectedStateProjection = {
+  ...projectedRequest,
+  projection: {
+    ...projectedRequest.projection,
+    expected_platform_state: expectedPlatformState,
+    platform_state: expectedPlatformState,
+    review: {
+      ...projectedRequest.projection.review,
+      parent_revision_hash: expectedPlatformState.active_revision_hash,
+      parent_artifact_hash: expectedPlatformState.active_artifact_hash,
+    },
+  },
+}
+assert.deepEqual(
+  parseRunnerProjectRequest(expectedStateProjection)?.projection.expected_platform_state,
+  expectedPlatformState,
+  'an exact acknowledged platform state survives normalization and remains in the projection hash',
+)
 for (const gate of ['story', 'treatment', 'final', 'learning']) {
   assert.ok(parseRunnerProjectRequest({
     ...projectedRequest,
@@ -654,7 +762,7 @@ assert.equal(parseRunnerProjectRequest({
     platform_state: { ...projectedRequest.projection.platform_state, parent_candidate_hash: SHA_D },
   },
 }), null)
-assert.ok(parseRunnerProjectRequest({
+assert.equal(parseRunnerProjectRequest({
   ...projectedRequest,
   projection: {
     ...projectedRequest.projection,
@@ -665,7 +773,89 @@ assert.ok(parseRunnerProjectRequest({
       parent_candidate_hash: null,
     },
   },
-}))
+}), null, 'a root state cannot carry undo parents')
+for (const invalidExpectedState of [
+  {},
+  { ...expectedPlatformState, raw_transcript: 'forbidden' },
+  { ...expectedPlatformState, platform: 'linkedin' },
+  { ...expectedPlatformState, active_revision_hash: 'not-a-hash' },
+  { ...expectedPlatformState, editorial_state: 'unknown' },
+  {
+    ...expectedPlatformState,
+    parent_revision_hash: null,
+    parent_artifact_hash: null,
+    parent_candidate_hash: SHA_D,
+  },
+  { ...expectedPlatformState, parent_artifact_hash: null },
+  {
+    ...expectedPlatformState,
+    active_candidate_hash: null,
+  },
+]) {
+  assert.equal(parseRunnerProjectRequest({
+    ...expectedStateProjection,
+    projection: {
+      ...expectedStateProjection.projection,
+      expected_platform_state: invalidExpectedState,
+    },
+  }), null, 'malformed, cross-platform, or private expected state fails closed')
+}
+assert.equal(parseRunnerProjectRequest({
+  ...projectedRequest,
+  projection: {
+    ...projectedRequest.projection,
+    job: { ...projectedRequest.projection.job, source_event_count: 0 },
+  },
+}), null, 'source_event_count starts at the real job_created event')
+assert.equal(parseRunnerProjectRequest({
+  ...projectedRequest,
+  projection: {
+    ...projectedRequest.projection,
+    job: { ...projectedRequest.projection.job, source_event_count: undefined },
+  },
+}), null, 'the acknowledged state and source event count are one protocol unit')
+assert.equal(parseRunnerProjectRequest({
+  ...projectedRequest,
+  projection: {
+    ...projectedRequest.projection,
+    job: { ...projectedRequest.projection.job, source_event_chain_hash: undefined },
+  },
+}), null, 'the acknowledged state and source event chain hash are one protocol unit')
+assert.equal(parseRunnerProjectRequest({
+  ...projectedRequest,
+  projection: {
+    ...projectedRequest.projection,
+    job: { ...projectedRequest.projection.job, source_revision_hash: undefined },
+  },
+}), null, 'the acknowledged state and source revision are one protocol unit')
+assert.equal(parseRunnerProjectRequest({
+  ...projectedRequest,
+  projection: {
+    ...projectedRequest.projection,
+    job: { ...projectedRequest.projection.job, source_revision_hash: SHA_B },
+  },
+}), null, 'the projected job source revision must equal the desired platform revision')
+assert.equal(parseRunnerProjectRequest({
+  ...legacyProjectedRequest,
+  projection: {
+    ...legacyProjectedRequest.projection,
+    job: { ...legacyProjectedRequest.projection.job, source_event_count: 1 },
+  },
+}), null, 'a source event count cannot be detached from its chain and source revision')
+
+const adoptionProjectedRequest = structuredClone(projectedRequest) as Record<string, any>
+delete adoptionProjectedRequest.projection.expected_platform_state
+assert.ok(
+  parseRunnerProjectRequest(adoptionProjectedRequest),
+  'the rollout adoption request may carry a complete source cursor while omitting expected state',
+)
+assert.equal(parseRunnerProjectRequest({
+  ...adoptionProjectedRequest,
+  projection: {
+    ...adoptionProjectedRequest.projection,
+    job: { ...adoptionProjectedRequest.projection.job, source_event_chain_hash: undefined },
+  },
+}), null, 'rollout adoption still requires the complete source cursor')
 
 const reviewRow = {
   id: REVIEW_ID,
@@ -809,9 +999,16 @@ const leastPrivilegeMigrationUrl = new URL('../supabase/migrations/2026090500100
 const leastPrivilegeMigration = await readFile(leastPrivilegeMigrationUrl, 'utf8')
 const heartbeatLeaseMigrationUrl = new URL('../supabase/migrations/20260905100000_video_studio_heartbeat_lease.sql', import.meta.url)
 const heartbeatLeaseMigration = await readFile(heartbeatLeaseMigrationUrl, 'utf8')
+const expectedStateMigrationName = '20260905110000_video_studio_expected_platform_state.sql'
+const expectedStateMigrationUrl = new URL(`../supabase/migrations/${expectedStateMigrationName}`, import.meta.url)
+const expectedStateMigration = await readFile(expectedStateMigrationUrl, 'utf8')
 const migrationNames = (await readdir(new URL('../supabase/migrations/', import.meta.url)))
   .filter((name) => name.includes('video_studio_control_plane'))
 assert.deepEqual(migrationNames, ['20260904084240_video_studio_control_plane.sql'])
+assert.ok(
+  expectedStateMigrationName > '20260905100000_video_studio_heartbeat_lease.sql',
+  'the additive migration must sort after every applied Video Studio migration on main',
+)
 const createdIndexNames = [...migration.matchAll(/^create(?: unique)? index\s+([^\s]+).*$/gmi)]
   .map((match) => match[1])
 assert.equal(new Set(createdIndexNames).size, createdIndexNames.length, 'migration index names must be unique')
@@ -857,6 +1054,158 @@ assert.match(heartbeatLeaseMigration, /set search_path = ''/)
 assert.match(heartbeatLeaseMigration, /revoke execute on function public\.video_studio_record_heartbeat[^;]+from public, anon, authenticated;/)
 assert.match(heartbeatLeaseMigration, /grant execute on function public\.video_studio_record_heartbeat[^;]+to service_role;/)
 assert.doesNotMatch(heartbeatLeaseMigration, /grant all/i)
+assert.match(expectedStateMigration, /create table public\.video_studio_magic_candidate_lineage/)
+assert.match(expectedStateMigration, /alter table public\.video_studio_magic_candidate_lineage enable row level security;/)
+assert.match(
+  expectedStateMigration,
+  /revoke all on public\.video_studio_magic_candidate_lineage from public, anon, authenticated, service_role;/,
+)
+assert.doesNotMatch(expectedStateMigration, /grant (?:select|insert|update|delete)[^;]*video_studio_magic_candidate_lineage/i)
+assert.match(expectedStateMigration, /create policy video_studio_magic_candidate_lineage_service_all/)
+assert.match(expectedStateMigration, /security definer[\s\S]+set search_path = ''/)
+assert.match(
+  expectedStateMigration,
+  /revoke execute on function public\.video_studio_preserve_magic_candidate_lineage\(\) from public, anon, authenticated, service_role;/,
+)
+assert.match(
+  expectedStateMigration,
+  /where active_candidate_hash is not null[\s\S]+active_parent_revision_hash is not null[\s\S]+active_parent_artifact_hash is not null/,
+  'upgrade preserves the current known candidate edge without inventing older ancestry',
+)
+assert.match(expectedStateMigration, /v_has_expected_state boolean := p_projection \? 'expected_platform_state'/)
+for (const field of [
+  'platform', 'active_revision_hash', 'active_artifact_hash', 'active_candidate_hash',
+  'parent_revision_hash', 'parent_artifact_hash', 'parent_candidate_hash',
+  'semantic_target_map_hash', 'editorial_state', 'route_state',
+]) {
+  assert.match(
+    expectedStateMigration,
+    new RegExp(`v_expected_state_payload ->> '${field}'`),
+    `projection CAS binds expected ${field}`,
+  )
+}
+assert.match(expectedStateMigration, /add column source_event_count bigint/)
+assert.match(expectedStateMigration, /add column source_event_chain_hash text/)
+assert.match(expectedStateMigration, /add column source_revision_hash text/)
+assert.match(expectedStateMigration, /add column source_cursor_adopted_at timestamptz/)
+assert.match(expectedStateMigration, /video_studio_platform_candidate_parent_shape/)
+assert.match(expectedStateMigration, /create unique index video_studio_one_active_magic_lineage_per_job_idx/)
+assert.match(expectedStateMigration, /create unique index video_studio_one_inflight_runner_command_per_job_idx/)
+assert.match(
+  expectedStateMigration,
+  /or \(v_has_expected_state and not v_has_source_event_count\)/,
+  'an acknowledged state is inseparable from the authenticated source cursor',
+)
+assert.match(
+  expectedStateMigration,
+  /if v_has_source_event_count and not v_has_expected_state then[\s\S]+v_state\.source_cursor_adopted_at is not null/,
+  'the additive rollout admits an omitted expected state only as one-time per-platform cursor adoption',
+)
+assert.match(
+  expectedStateMigration,
+  /if \(v_has_expected_state and pg_catalog\.jsonb_typeof\(v_expected_state_payload\) <> 'null'\)[\s\S]+or \(v_has_source_event_count and not v_has_expected_state\)/,
+  'a new job cannot masquerade as rollout adoption',
+)
+assert.match(
+  expectedStateMigration,
+  /where c\.job_id = v_job_id and c\.status in \('queued', 'leased'\)[\s\S]+raise exception 'command_in_flight'/,
+  'every non-idempotent projection is fenced while a local mutation is in flight',
+)
+assert.match(
+  expectedStateMigration,
+  /other_state\.platform <> v_platform[\s\S]+raise exception 'cross_platform_magic_lineage'/,
+  'the global treatment artifact permits only one active platform lineage',
+)
+assert.match(
+  expectedStateMigration,
+  /v_job_payload ->> 'source_revision_hash'[\s\S]+is distinct from \(v_state_payload ->> 'active_revision_hash'\)/,
+  'the job source revision and desired platform revision are one atomic projection',
+)
+assert.match(
+  expectedStateMigration,
+  /v_source_event_count = v_job\.source_event_count[\s\S]+v_job\.source_revision_hash is distinct from[\s\S]+v_job\.source_event_chain_hash is distinct from/,
+  'equal source counts require the exact chain and semantic source revision',
+)
+assert.match(
+  expectedStateMigration,
+  /v_source_event_count > v_job\.source_event_count[\s\S]+source_revision_hash = v_job_payload ->> 'source_revision_hash'[\s\S]+source_event_count = v_source_event_count[\s\S]+source_event_chain_hash = v_job_payload ->> 'source_event_chain_hash'/,
+  'higher source cursors advance count, chain, and revision atomically',
+)
+assert.match(
+  expectedStateMigration,
+  /v_state\.active_candidate_hash is distinct from \(v_state_payload ->> 'active_candidate_hash'\)[\s\S]+v_state\.active_parent_revision_hash is distinct from/,
+  'projection cannot rewrite the active candidate or its undo lineage',
+)
+assert.match(
+  expectedStateMigration,
+  /old\.active_candidate_hash is not null[\s\S]+new\.active_artifact_hash is distinct from old\.active_artifact_hash[\s\S]+raise exception 'invalid_lineage'/,
+  'active candidate artifact drift is rejected outside recognized activation or return transitions',
+)
+assert.match(
+  expectedStateMigration,
+  /and new\.active_candidate_hash is not null then[\s\S]+if not found then[\s\S]+raise exception 'invalid_lineage'/,
+  'a nested return cannot truncate ancestry when its immutable lineage row is absent',
+)
+assert.match(
+  expectedStateMigration,
+  /set status = 'superseded'[\s\S]+older_review\.status = 'pending'[\s\S]+older_review\.source_command_id is null/,
+  'new projections supersede only older actionable projection reviews',
+)
+assert.match(
+  expectedStateMigration,
+  /p_result_refs ->> 'result_source_revision_hash'[\s\S]+is distinct from p_result_revision_hash/,
+  'non-prepare completion cannot split the platform and global source revisions',
+)
+assert.match(
+  expectedStateMigration,
+  /v_command_kind = 'magic_edit_prepare'[\s\S]+p_result_refs ->> 'result_source_revision_hash'[\s\S]+is distinct from v_job\.source_revision_hash/,
+  'prepare may return a candidate hash but cannot move the semantic source revision',
+)
+assert.match(
+  expectedStateMigration,
+  /or v_event_count <= v_job\.source_event_count then[\s\S]+raise exception 'stale_event_count'/,
+  'every successful command receipt proves at least one new authenticated local event',
+)
+assert.match(
+  expectedStateMigration,
+  /video_studio\.preview_slot_refresh_command_id[\s\S]+update public\.video_studio_preview_upload_slots as slot[\s\S]+v_refreshed_slots <> 2[\s\S]+raise exception 'preview_slot_missing'/,
+  'completion refreshes only the two exact API-verified preview slots before acknowledgement',
+)
+assert.match(
+  expectedStateMigration,
+  /create trigger video_studio_magic_candidate_lineage_append_only[\s\S]+execute function public\.video_studio_reject_append_only_mutation\(\)/,
+  'candidate ancestry remains append-only even for privileged direct writes',
+)
+assert.match(
+  expectedStateMigration,
+  /video_studio_command_recoveries[\s\S]+where idempotency_key = p_idempotency_key[\s\S]+video_studio_recover_failed_review_without_job_lock[\s\S]+return;/,
+  'a committed recovery remains idempotent when its runner heartbeat later goes offline',
+)
+assert.match(
+  expectedStateMigration,
+  /last_lease_owner_hash is not null[\s\S]+runner_id_hash = v_source_command\.last_lease_owner_hash[\s\S]+elsif v_source_command\.status = 'attention'[\s\S]+safe_code = 'command_expired'[\s\S]+attempt_count = 0[\s\S]+v_healthy_runner_count <> 1/,
+  'recovery uses the retained runner, with a unique healthy-runner bootstrap only for never-claimed expiry',
+)
+assert.match(
+  expectedStateMigration,
+  /revoke all on public\.video_studio_magic_candidate_lineage from public, anon, authenticated, service_role/,
+)
+for (const table of [
+  'video_studio_jobs', 'video_studio_job_platform_states', 'video_studio_review_requests',
+  'video_studio_commands', 'video_studio_review_events', 'video_studio_command_receipts',
+]) {
+  assert.match(
+    expectedStateMigration,
+    new RegExp(`revoke insert, update, delete on public\\.${table} from service_role;`),
+    `${table} writes remain reachable only through the constrained security-definer RPCs`,
+  )
+}
+assert.match(
+  expectedStateMigration,
+  /comment on function public\.video_studio_project_review[\s\S]+Desired parent fields remain magic-edit undo lineage only\./,
+)
+assert.doesNotMatch(expectedStateMigration, /grant all/i)
+assert.doesNotMatch(expectedStateMigration, /\bstorage\./i)
 assert.doesNotMatch(migration, /grant all/i)
 assert.doesNotMatch(migration, /\bstorage\./i)
 assert.doesNotMatch(
@@ -1054,6 +1403,20 @@ const completeSource = await readFile(new URL('../api/video-studio/runner/comple
 assert.match(completeSource, /command_id: receipt\.command_id/)
 assert.match(completeSource, /receipt_hash: receipt\.receipt_hash/)
 assert.match(completeSource, /command_status: row\.command_status/)
+assert.match(
+  completeSource,
+  /'command_in_flight', 'stale_event_count', 'recovery_exists'/,
+  'a competing recovery is a typed receipt conflict that the runner can quarantine',
+)
+const previewMissingCheck = completeSource.indexOf("stored === 'missing'")
+const previewMismatchCheck = completeSource.indexOf("stored === 'mismatch'")
+const completeRpc = completeSource.indexOf(".rpc('video_studio_complete_command'")
+assert.ok(
+  previewMissingCheck > 0
+    && previewMismatchCheck > previewMissingCheck
+    && completeRpc > previewMismatchCheck,
+  'missing or mutated preview objects are rejected before any slot refresh RPC',
+)
 const dataSource = await readFile(new URL('../api/video-studio/_data.ts', import.meta.url), 'utf8')
 assert.match(dataSource, /prepare_command: RecordValue \| null/)
 assert.match(dataSource, /\.eq\('command_kind', 'magic_edit_prepare'\)/)

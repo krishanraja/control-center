@@ -444,6 +444,9 @@ export function safeErrorCode(error: unknown): string {
   for (const code of [
     'stale_parent',
     'invalid_lineage',
+    'cross_platform_magic_lineage',
+    'command_in_flight',
+    'stale_event_count',
     'idempotency_conflict',
     'review_in_progress',
     'review_not_pending',

@@ -125,6 +125,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const status = [
       'stale_parent', 'invalid_lineage', 'idempotency_conflict',
       'source_review_conflict', 'invalid_command_shape',
+      'cross_platform_magic_lineage', 'command_in_flight',
     ].includes(code) ? 409
       : code === 'job_not_found' ? 404
         : 503

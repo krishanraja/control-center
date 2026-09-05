@@ -28,7 +28,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   })
   if (error) {
     const code = safeErrorCode(error)
-    const status = ['idempotency_conflict', 'projection_conflict'].includes(code) ? 409 : 503
+    const status = [
+      'idempotency_conflict', 'projection_conflict', 'command_in_flight',
+      'cross_platform_magic_lineage',
+    ].includes(code) ? 409 : 503
     return sendVideoStudioError(res, status, code)
   }
   const row = Array.isArray(data) ? data[0] : data
