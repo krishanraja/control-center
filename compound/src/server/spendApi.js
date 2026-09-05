@@ -169,6 +169,11 @@ export function composeSpendDay(rows, options = {}) {
   }
   const run = rows.run ?? null;
   const limited = items.length >= (options.itemCap ?? 3000);
+  const cashRow = rows.cash ?? null;
+  const cashAmount = cashRow ? number(cashRow.amount_usd) : null;
+  const cash = cashRow && typeof cashRow.as_of === "string" && cashAmount != null
+    ? { asOf: cashRow.as_of, amountUsd: cashAmount }
+    : null;
   return {
     generatedAt,
     items,
@@ -195,6 +200,7 @@ export function composeSpendDay(rows, options = {}) {
         limitation: limited ? "Only the most recent 3,000 items are shown." : null,
       }
       : null,
+    cash,
   };
 }
 
@@ -213,5 +219,7 @@ export function spendQueries({ asOf, months = 12, meterDays = 29, fxDays = 10 } 
     meter: `spend_meter_daily?select=provider,unit_kind,unit_key,day,bucket,unit_label,category,usd,runs,failed,units,unit_name&day=gte.${meterSince}&limit=10000`,
     fx: `spend_fx_rates?select=rate_on,currency,per_aud&rate_on=gte.${fxSince}&order=rate_on.desc&limit=60`,
     run: `spend_runs?select=run_on,status,finished_at,provider_results&status=in.(complete,partial)&order=run_on.desc,started_at.desc&limit=1`,
+    // The member's own cash on hand, latest date first. RLS scopes it to the caller.
+    cash: `cash_balances?select=as_of,amount_usd&order=as_of.desc&limit=1`,
   };
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { latestBalance, loadLatestBalance, saveBalance, type CashBalance } from "../lib/cash";
 import { useDevice } from "../lib/device";
 import type { CompoundConfig } from "../lib/env";
 import { buildGroups, KNOWN_FMP_INDUSTRIES, type IndustryEntry } from "../lib/industryGroups";
@@ -44,6 +45,8 @@ export function Shell({ day, config, session, tab, onTab }: Props) {
   const [pendingAsk, setPendingAsk] = useState<string | null>(null);
   const [excluded, setExcluded] = useState<string[]>(() => readLocalExclusions(userId));
   const [saveError, setSaveError] = useState("");
+  const [cash, setCash] = useState<CashBalance | null>(null);
+  const [cashError, setCashError] = useState("");
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
@@ -79,6 +82,17 @@ export function Shell({ day, config, session, tab, onTab }: Props) {
       })
       .catch((reason: unknown) => {
         if (mounted) setSaveError(reason instanceof Error ? reason.message : "Your saved settings could not be read.");
+      });
+    return () => { mounted = false; };
+  }, [config, userId]);
+
+  useEffect(() => {
+    if (config.mode !== "live" || !userId) return;
+    let mounted = true;
+    void loadLatestBalance(getSupabase(config), userId)
+      .then((saved) => { if (mounted) setCash(saved); })
+      .catch((reason: unknown) => {
+        if (mounted) setCashError(reason instanceof Error ? reason.message : "Your cash balance could not be read.");
       });
     return () => { mounted = false; };
   }, [config, userId]);
@@ -127,6 +141,23 @@ export function Shell({ day, config, session, tab, onTab }: Props) {
     }
   }
 
+  /** Writes the balance with the member's own session, then keeps it locally so the Spend tab updates at once. */
+  async function saveCash(balance: CashBalance): Promise<boolean> {
+    setCashError("");
+    if (config.mode !== "live" || !userId) {
+      setCashError("Sign in to save cash on hand.");
+      return false;
+    }
+    try {
+      await saveBalance(getSupabase(config), userId, balance);
+      setCash((current) => latestBalance(current, balance));
+      return true;
+    } catch (reason: unknown) {
+      setCashError(reason instanceof Error ? reason.message : "That balance was not saved to your account.");
+      return false;
+    }
+  }
+
   function askAbout(question: string) {
     setSheet(null);
     setPendingAsk(question);
@@ -153,6 +184,10 @@ export function Shell({ day, config, session, tab, onTab }: Props) {
           onBulk={(industries, hide) => persist(hide
             ? [...new Set([...excluded, ...industries])]
             : excluded.filter((entry) => !industries.includes(entry)))}
+          cash={cash}
+          cashError={cashError}
+          demo={config.mode === "demo"}
+          onSaveCash={saveCash}
         />
       );
     }
@@ -186,7 +221,7 @@ export function Shell({ day, config, session, tab, onTab }: Props) {
     }
     if (tab === "portfolio") return <PortfolioTab day={day} />;
     if (tab === "property") return <PropertyTab config={config} session={session} onAsk={askAbout} />;
-    if (tab === "spend") return <SpendTab config={config} session={session} onAsk={askAbout} />;
+    if (tab === "spend") return <SpendTab config={config} session={session} onAsk={askAbout} cash={cash} />;
     return (
       <AskTab
         day={day}

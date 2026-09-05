@@ -817,3 +817,26 @@
 .stack .spend-month-head h4 { margin: 0; font-size: calc(13 * var(--px)); font-weight: 640; letter-spacing: .02em; text-transform: uppercase; color: var(--ink2); }
 .stack .spend-month-head span { color: var(--mut); font-family: var(--mono); font-size: calc(12 * var(--px)); }
 .stack .spend-sources { margin-top: calc(26 * var(--px)); }
+/* The one honest money line sits above everything else on the tab. */
+.stack .spend-runway { margin: 0 0 calc(16 * var(--px)); padding: calc(12 * var(--px)) calc(14 * var(--px)); border: calc(1 * var(--px)) solid var(--line); border-left: calc(3 * var(--px)) solid var(--sig); border-radius: var(--r-control); background: var(--surf); color: var(--ink); font-size: calc(15 * var(--px)); font-weight: 560; line-height: 1.45; }
+.stack .spend-runway.empty { border-left-color: var(--line2); color: var(--mut); font-weight: 400; }
+
+/* ---- Cash on hand, inside Settings ---- */
+.stack .cashform { margin-top: calc(28 * var(--px)); }
+.stack .cashform .sechead { position: static; margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
+.stack .cashfields { display: grid; gap: calc(10 * var(--px)); margin-top: calc(12 * var(--px)); }
+.stack .cashfield { display: grid; gap: calc(6 * var(--px)); }
+.stack .cashfield .tn { color: var(--ink2); font-size: calc(13 * var(--px)); }
+.stack .cashfield input {
+  min-height: var(--tap);
+  padding: 0 calc(14 * var(--px));
+  border: calc(1 * var(--px)) solid var(--line2);
+  border-radius: var(--r-control);
+  background: var(--surf);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: calc(16 * var(--px));
+}
+.stack .cashfield input:disabled { color: var(--mut); background: var(--surf2); }
+.stack .cashsave { justify-content: center; }
+.stack .cashsave:disabled { color: var(--mut); }

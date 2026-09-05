@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { latestBalance, type CashBalance } from "../../lib/cash";
 import type { CompoundConfig } from "../../lib/env";
 import { longDate } from "../../lib/format";
 import { monthLabel, usd2, usdRound } from "../../lib/spend/format";
 import { useSpendDay } from "../../lib/spend/load";
+import { RUNWAY_EMPTY, runwayFacts, runwaySentence } from "../../lib/spend/runway";
 import type { SpendDay, SpendItem, SpendScope } from "../../lib/spend/schema";
 import {
   countable,
@@ -29,6 +31,8 @@ interface Props {
   config: CompoundConfig;
   session: Session | null;
   onAsk: (question: string) => void;
+  /** A balance saved in this session, so the line updates without a refetch. */
+  cash?: CashBalance | null;
 }
 
 const SCOPE_WORD: Record<SpendScope, string> = { personal: "Personal", os: "Operating system", property: "Property" };
@@ -36,7 +40,7 @@ const SCOPE_SHORT: Record<SpendScope, string> = { personal: "Personal", os: "Op.
 
 type Filter = "all" | SpendScope;
 
-export function SpendTab({ config, session, onAsk }: Props) {
+export function SpendTab({ config, session, onAsk, cash = null }: Props) {
   const load = useSpendDay(config, session);
   if (load.state === "loading") {
     return <div className="portfolio-empty spend-page"><p className="eyebrow">Spend</p><h2>Adding up what went out…</h2></div>;
@@ -51,7 +55,7 @@ export function SpendTab({ config, session, onAsk }: Props) {
       </div>
     );
   }
-  return <SpendBody day={load.day} onAsk={onAsk} />;
+  return <SpendBody day={load.day} savedCash={cash} onAsk={onAsk} />;
 }
 
 function headlineFor(current: number, normal: number | null, month: string): { head: string; tone: "up" | "down" | "mixed" } {
@@ -64,8 +68,11 @@ function headlineFor(current: number, normal: number | null, month: string): { h
   return { head: `${pace} About normal.`, tone: "mixed" };
 }
 
-function SpendBody({ day, onAsk }: { day: SpendDay; onAsk: (question: string) => void }) {
+function SpendBody({ day, savedCash, onAsk }: { day: SpendDay; savedCash: CashBalance | null; onAsk: (question: string) => void }) {
   const asOf = day.generatedAt.slice(0, 10);
+  // The API carries the latest saved row; a balance saved this session wins if it is newer.
+  const cash = latestBalance(day.cash, savedCash);
+  const runway = useMemo(() => cash ? runwaySentence(runwayFacts(day.items, asOf, cash)) : RUNWAY_EMPTY, [day.items, asOf, cash]);
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -115,6 +122,7 @@ function SpendBody({ day, onAsk }: { day: SpendDay; onAsk: (question: string) =>
 
   return (
     <div className="portfolio-page spend-page">
+      <p className={cash ? "sub spend-runway" : "sub spend-runway empty"} data-testid="spend-runway">{runway}</p>
       <p className="eyebrow">Money going out</p>
       <h2 className="big">{headline.head}</h2>
       <p className="sub">

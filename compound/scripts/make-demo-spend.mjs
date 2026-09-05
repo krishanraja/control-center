@@ -130,6 +130,8 @@ const day = {
     dedupe: { exact: 0, tier1: 1, tier2: 1 },
     limitation: null,
   },
+  // A round made-up balance so the runway line shows in demo mode.
+  cash: { asOf: "2026-09-03", amountUsd: 42000 },
 };
 
 const target = fileURLToPath(new URL("../src/demo/spend.json", import.meta.url));

@@ -51,5 +51,15 @@ describe("spend API composition", () => {
     expect(queries.meterSince).toBe("2026-08-06");
     expect(queries.items).toContain("hidden=is.false");
     for (const key of ["items", "merchants", "overrides", "meter", "fx", "run"]) expect(queries[key].startsWith("spend_")).toBe(true);
+    expect(queries.cash).toBe("cash_balances?select=as_of,amount_usd&order=as_of.desc&limit=1");
+  });
+
+  it("surfaces the latest cash balance, or null before one is entered", () => {
+    const base = { items: [], merchants: [], overrides: [], meter: [], fx: [], run: null };
+    expect(composeSpendDay({ ...base, cash: { as_of: "2026-09-03", amount_usd: "42000" } }, { now: "2026-09-04T21:00:00.000Z" }).cash)
+      .toEqual({ asOf: "2026-09-03", amountUsd: 42000 });
+    expect(composeSpendDay({ ...base, cash: null }, { now: "2026-09-04T21:00:00.000Z" }).cash).toBeNull();
+    expect(composeSpendDay(base, { now: "2026-09-04T21:00:00.000Z" }).cash).toBeNull();
+    expect(composeSpendDay({ ...base, cash: { as_of: "2026-09-03", amount_usd: "not a number" } }, { now: "2026-09-04T21:00:00.000Z" }).cash).toBeNull();
   });
 });

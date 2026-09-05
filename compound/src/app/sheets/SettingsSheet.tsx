@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
+import type { CashBalance } from "../../lib/cash";
 import { buildGroups, type IndustryEntry } from "../../lib/industryGroups";
+import { usdRound } from "../../lib/spend/format";
+import { dayMonth } from "../../lib/spend/runway";
+import { SPEND_EXPLAIN } from "../../lib/words";
 import { Segmented } from "../components/Segmented";
 import { ChevronIcon } from "../components/Icons";
 
@@ -12,6 +16,13 @@ interface Props {
   onToggle: (industry: string) => void;
   /** Hide or show a whole list at once. The list is whatever is on screen. */
   onBulk: (industries: string[], hidden: boolean) => void;
+  /** The latest cash on hand the member has saved, or null before the first one. */
+  cash: CashBalance | null;
+  cashError: string;
+  /** Sample data cannot be written to an account, so the cash form is read-only. */
+  demo: boolean;
+  /** Resolves true when the row was written. Errors arrive through cashError. */
+  onSaveCash: (balance: CashBalance) => Promise<boolean>;
 }
 
 const VIEW_NOTE: Record<View, string> = {
@@ -20,7 +31,83 @@ const VIEW_NOTE: Record<View, string> = {
   hidden: "Industries COMPOUND is leaving out.",
 };
 
-export function SettingsSheet({ entries, excluded, saveError, onToggle, onBulk }: Props) {
+export const DEMO_CASH_NOTE = "Sample data. Cash on hand can be saved once COMPOUND is connected to your account.";
+
+/** Today in the member's own calendar, not UTC, so a late evening entry keeps its date. */
+export function todayIso(now = new Date()): string {
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function CashForm({ cash, cashError, demo, onSaveCash }: Pick<Props, "cash" | "cashError" | "demo" | "onSaveCash">) {
+  const [amount, setAmount] = useState("");
+  const [asOf, setAsOf] = useState(() => todayIso());
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const parsed = Number(amount.replace(/[,\s]/g, ""));
+  const amountOk = amount.trim() !== "" && Number.isFinite(parsed) && parsed >= 0;
+  const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(asOf);
+  const canSave = !demo && !busy && amountOk && dateOk;
+
+  async function save() {
+    if (!canSave) return;
+    setBusy(true);
+    setSaved(false);
+    const ok = await onSaveCash({ asOf, amountUsd: Math.round(parsed * 100) / 100 });
+    setBusy(false);
+    if (ok) {
+      setSaved(true);
+      setAmount("");
+    }
+  }
+
+  return (
+    <section className="cashform" aria-labelledby="cash-head">
+      <div className="sechead"><h3 id="cash-head">Cash on hand</h3></div>
+      <p className="sub">
+        What is in the bank today, in US dollars. The Spend tab uses it to say how many months it would last. Runway is {SPEND_EXPLAIN.runway}. Burn is {SPEND_EXPLAIN.burn}.
+      </p>
+      {cash && <p className="sub note">Last entered {usdRound(cash.amountUsd)} as of {dayMonth(cash.asOf)}.</p>}
+      <form
+        className="cashfields"
+        onSubmit={(event) => { event.preventDefault(); void save(); }}
+      >
+        <label className="cashfield">
+          <span className="tn">Amount in US dollars</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="1"
+            placeholder="0"
+            value={amount}
+            disabled={demo || busy}
+            onChange={(event) => { setAmount(event.target.value); setSaved(false); }}
+          />
+        </label>
+        <label className="cashfield">
+          <span className="tn">As of</span>
+          <input
+            type="date"
+            value={asOf}
+            max={todayIso()}
+            disabled={demo || busy}
+            onChange={(event) => { setAsOf(event.target.value); setSaved(false); }}
+          />
+        </label>
+        <button type="submit" className="pill cashsave" disabled={!canSave}>
+          {busy ? "Saving…" : "Save cash on hand"}
+        </button>
+      </form>
+      {demo && <p className="sub note">{DEMO_CASH_NOTE}</p>}
+      {saved && !cashError && <p className="sub note" role="status">Saved. The Spend tab now uses this figure.</p>}
+      {cashError && <p className="dn small" role="alert">{cashError}</p>}
+    </section>
+  );
+}
+
+export function SettingsSheet({ entries, excluded, saveError, onToggle, onBulk, cash, cashError, demo, onSaveCash }: Props) {
   const [filter, setFilter] = useState("");
   const [view, setView] = useState<View>("all");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
@@ -191,6 +278,8 @@ export function SettingsSheet({ entries, excluded, saveError, onToggle, onBulk }
           Show all industries
         </button>
       )}
+
+      <CashForm cash={cash} cashError={cashError} demo={demo} onSaveCash={onSaveCash} />
     </div>
   );
 }

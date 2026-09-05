@@ -106,6 +106,17 @@ describe("Markets, Portfolio and Ask", () => {
     expect(screen.getByRole("checkbox", { name: "Show Technology industries" })).toHaveAttribute("aria-checked", "mixed");
   });
 
+  it("offers cash on hand in Settings but keeps it read-only on sample data", () => {
+    renderShell("spend");
+    expect(screen.getByTestId("spend-runway")).toHaveTextContent(/^Cash on hand \$42,000 as of 3 September\./);
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(screen.getByRole("heading", { name: "Cash on hand" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Amount in US dollars")).toBeDisabled();
+    expect(screen.getByLabelText("As of")).toHaveAttribute("type", "date");
+    expect(screen.getByRole("button", { name: "Save cash on hand" })).toBeDisabled();
+    expect(screen.getByText(/Sample data\. Cash on hand can be saved once COMPOUND is connected/)).toBeInTheDocument();
+  });
+
   it("makes portfolio analysis visibly separate from Brief ranking", () => {
     renderShell("portfolio");
     expect(screen.getByRole("heading", { name: "Exposure before performance." })).toBeInTheDocument();

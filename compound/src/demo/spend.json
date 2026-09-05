@@ -3831,5 +3831,9 @@
       "tier2": 1
     },
     "limitation": null
+  },
+  "cash": {
+    "asOf": "2026-09-03",
+    "amountUsd": 42000
   }
 }

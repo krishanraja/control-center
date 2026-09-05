@@ -805,3 +805,27 @@
 .split .spendtable td.up { color: var(--up); }
 .split .spendtable tr.spend-superseded td { opacity: .55; }
 .split .spend-sources { max-width: 1100px; margin-top: 30px; }
+/* The one honest money line sits above everything else on the tab. */
+.split .spend-runway { max-width: 80ch; margin: 0 0 18px; padding: 12px 16px; border: 1px solid var(--line); border-left: 3px solid var(--sig); border-radius: var(--r-card); background: var(--surf); color: var(--ink); font-size: 15px; font-weight: 560; line-height: 1.5; }
+.split .spend-runway.empty { border-left-color: var(--line2); color: var(--mut); font-weight: 400; }
+
+/* ---- Cash on hand, inside Settings ---- */
+.split .cashform { margin-top: 30px; }
+.split .cashfields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: end; max-width: 760px; margin-top: 12px; }
+@media (max-width: 1199px) { .split .cashfields { grid-template-columns: minmax(0, 1fr); } }
+.split .cashfield { display: grid; gap: 6px; min-width: 0; }
+.split .cashfield .tn { color: var(--ink2); font-size: 12.5px; }
+.split .cashfield input {
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 0 13px;
+  border: 1px solid var(--line2);
+  border-radius: var(--r-control);
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 14px;
+}
+.split .cashfield input:disabled { color: var(--mut); background: var(--surf2); }
+.split .cashsave { justify-content: center; }
+.split .cashsave:disabled { color: var(--mut); cursor: default; }

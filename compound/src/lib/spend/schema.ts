@@ -124,6 +124,8 @@ export const spendDaySchema = z.object({
     dedupe: z.object({ exact: z.number(), tier1: z.number(), tier2: z.number() }).nullable().optional(),
     limitation: z.string().nullable().optional(),
   }).nullable(),
+  /** The member's latest cash on hand, typed in through Settings. Null until one is entered. */
+  cash: z.object({ asOf: isoDate, amountUsd: z.number() }).nullable(),
 });
 
 export type SpendDay = z.infer<typeof spendDaySchema>;
@@ -134,6 +136,7 @@ export type MerchantRecord = z.infer<typeof merchantSchema>;
 export type MeterUnit = z.infer<typeof meterUnitSchema>;
 export type MeterDay = z.infer<typeof meterDaySchema>;
 export type CycleRecord = z.infer<typeof cycleSchema>;
+export type SpendCash = NonNullable<SpendDay["cash"]>;
 
 export function parseSpendDay(input: unknown): SpendDay {
   const result = spendDaySchema.safeParse(input);

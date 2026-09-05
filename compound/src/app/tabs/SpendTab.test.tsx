@@ -1,8 +1,43 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import demo from "../../demo/spend.json";
+import { RUNWAY_EMPTY, runwayFacts, runwaySentence } from "../../lib/spend/runway";
+import { parseSpendDay } from "../../lib/spend/schema";
 import { SpendTab } from "./SpendTab";
 
 afterEach(cleanup);
+
+const LIVE = { mode: "live", supabaseUrl: "https://x.supabase.co", supabasePublishableKey: "k" } as const;
+
+describe("Spend tab runway", () => {
+  it("puts the one honest money line above the headline in demo mode", () => {
+    render(<SpendTab config={{ mode: "demo" }} session={null} onAsk={() => {}} />);
+    const day = parseSpendDay(demo);
+    const expected = runwaySentence(runwayFacts(day.items, day.generatedAt.slice(0, 10), day.cash!));
+    const line = screen.getByTestId("spend-runway");
+    expect(line).toHaveTextContent(expected);
+    expect(line).toHaveTextContent(/^Cash on hand \$42,000 as of 3 September\. About \$[\d,]+ goes out a month\. That is about \d+(?:\.\d)? months\.$/);
+    expect(line).not.toHaveClass("empty");
+    expect(line.compareDocumentPosition(screen.getByRole("heading", { name: /out so far in September 2026/ })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("points at Settings when no balance has been entered", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify({ ...demo, cash: null }), { status: 200 }))));
+    render(<SpendTab config={LIVE} session={{ access_token: "t" } as never} onAsk={() => {}} />);
+    const line = await screen.findByTestId("spend-runway");
+    expect(line).toHaveTextContent(RUNWAY_EMPTY);
+    expect(line).toHaveClass("empty");
+    vi.unstubAllGlobals();
+  });
+
+  it("uses a balance saved this session when it is newer than the one the API carried", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify(demo), { status: 200 }))));
+    render(<SpendTab config={LIVE} session={{ access_token: "t" } as never} onAsk={() => {}} cash={{ asOf: "2026-09-04", amountUsd: 60000 }} />);
+    const line = await screen.findByTestId("spend-runway");
+    expect(line).toHaveTextContent(/^Cash on hand \$60,000 as of 4 September\./);
+    vi.unstubAllGlobals();
+  });
+});
 
 describe("Spend tab", () => {
   it("renders the demo month with three scopes, a chart, the meter check and the itemised list", () => {

@@ -86,6 +86,8 @@ export const SPEND_EXPLAIN = {
   normalMonth: "the average of the last three full months",
   billsAreTheMoney: "Totals come from bills and receipts only.",
   meterIsTheBreakdown: "The meter shows where the operating-system money went. It is a breakdown, never added to a total.",
+  runway: "how many months the cash would last if spending stayed the same",
+  burn: "what goes out in a normal month, worked out from the last three",
 } as const;
 
 /** The four groups an industry can land in. Direction first, price second. */

@@ -19,6 +19,8 @@ const propertyMigration = await readFile(join(repositoryRoot, "supabase", "migra
 const propertyApi = await readFile(join(compoundRoot, "api", "property", "latest.js"), "utf8");
 const spendMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260905090000_compound_spend.sql"), "utf8");
 const spendApi = await readFile(join(compoundRoot, "api", "spend", "latest.js"), "utf8");
+const spendServer = await readFile(join(compoundRoot, "src", "server", "spendApi.js"), "utf8");
+const cashMigration = await readFile(join(repositoryRoot, "supabase", "migrations", "20260906130000_compound_cash_balances.sql"), "utf8");
 
 const failures = [];
 for (const table of ["members", "holdings", "daily_snapshots", "chat_threads", "chat_messages"]) {
@@ -104,6 +106,26 @@ if (/\binsert\s+into\s+compound\.spend/i.test(spendMigration)) failures.push("sp
 if (/@gmail\.com|@krishraja|@themindmaker/i.test(spendMigration)) failures.push("spend migration carries a personal mailbox");
 if (!spendApi.includes("../../src/server/snapshotApi.js")) failures.push("spend API does not reuse the member-token snapshot helpers");
 if (/SERVICE_ROLE|service_role/.test(spendApi)) failures.push("spend API contains a privileged database path");
+
+// Cash on hand: the member's own figure, typed in through Settings. Same posture as view settings.
+if (!cashMigration.includes("alter table compound.cash_balances enable row level security;")) failures.push("cash_balances does not enable RLS");
+if (!cashMigration.includes("alter table compound.cash_balances force row level security;")) failures.push("cash_balances does not force RLS");
+if (!cashMigration.includes("revoke all on compound.cash_balances from public, anon;")) failures.push("cash_balances is not denied to anonymous callers");
+if (!cashMigration.includes("grant select, insert, update on compound.cash_balances to authenticated;")) failures.push("cash_balances member grants are not exactly select, insert, update");
+if (/grant\s+[^;]*\bdelete\b[^;]*\bon\b[^;]*compound\.cash_balances[^;]*\bto authenticated;/is.test(cashMigration)) failures.push("cash_balances grants member deletes");
+for (const policy of ["cash_balances_read_self", "cash_balances_insert_self", "cash_balances_update_self"]) {
+  if (!cashMigration.includes(`create policy ${policy}`)) failures.push(`cash_balances is missing the ${policy} policy`);
+}
+if (!cashMigration.includes("references compound.members(user_id) on delete cascade")) failures.push("cash_balances rows are not tied to a member");
+if (!cashMigration.includes("unique (user_id, as_of)")) failures.push("cash_balances is not one row per member per date");
+if (!cashMigration.includes("check (amount_usd >= 0)")) failures.push("cash_balances allows a negative balance");
+if (!cashMigration.includes("notify pgrst, 'reload schema'")) failures.push("cash_balances is not reflected in the Data API cache");
+if (/\binsert\s+into\s+compound\.cash/i.test(cashMigration)) failures.push("cash migration inserts rows; balances are typed in by the member");
+if (/@gmail\.com|@krishraja|@themindmaker/i.test(cashMigration)) failures.push("cash migration carries a personal mailbox");
+if (/\$\s?\d|\b\d{4,}(?:\.\d+)?\b/.test(cashMigration)) failures.push("cash migration carries a dollar figure; balances are typed in by the member");
+if (!spendServer.includes("cash_balances?select=as_of,amount_usd&order=as_of.desc&limit=1")) failures.push("spend API does not read the latest cash balance with the member token");
+if (!spendApi.includes("queries.cash")) failures.push("spend route does not surface the cash balance");
+if (/SERVICE_ROLE|service_role/.test(spendServer)) failures.push("spend composition contains a privileged database path");
 // Control Center tables live in `public`. Only the Deno pipeline may read them; no browser or Vercel path may name that profile.
 for (const dir of ["api", "src"]) {
   const entries = await readdir(join(compoundRoot, dir), { recursive: true, withFileTypes: true });
