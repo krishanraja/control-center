@@ -1555,7 +1555,19 @@ begin
     if sqlerrm <> 'command_in_flight' then raise; end if;
     v_failed := true;
   end;
-  if not v_failed then raise exception 'newer command did not fence late completion'; end if;
+  if not v_failed
+    or (select status from public.video_studio_commands
+        where id = '37000000-0000-4000-8000-000000000003'::uuid) <> 'queued'
+    or (select attempt_count from public.video_studio_commands
+        where id = '37000000-0000-4000-8000-000000000003'::uuid) <> 0
+    or (select lease_owner_hash from public.video_studio_commands
+        where id = '37000000-0000-4000-8000-000000000003'::uuid) is not null
+    or exists (
+      select 1 from public.video_studio_command_receipts
+      where command_id = '37000000-0000-4000-8000-000000000002'::uuid
+    ) then
+    raise exception 'newer command did not fence late completion before claim';
+  end if;
   update public.video_studio_commands set status = 'cancelled'
   where id = '37000000-0000-4000-8000-000000000003'::uuid;
 
