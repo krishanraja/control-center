@@ -1835,6 +1835,8 @@ declare
   v_before_key text;
   v_after_key text;
   v_result_refs jsonb;
+  v_slot_duplicate boolean;
+  v_slot_expires_at timestamptz;
   v_failed boolean := false;
 begin
   v_root := pg_temp.video_studio_test_state(
@@ -1909,6 +1911,69 @@ begin
     'result_source_event_chain_hash', repeat('3', 64),
     'result_source_revision_hash', repeat('0', 64)
   );
+  select duplicate, slot_expires_at into v_slot_duplicate, v_slot_expires_at
+  from public.video_studio_reserve_preview_upload(
+    '35000000-0000-4000-8000-000000000001'::uuid,
+    repeat('a', 64), repeat('b', 64), repeat('2', 64), 'before',
+    repeat('3', 64), repeat('1', 32), 1024, 'video/mp4'
+  );
+  if not v_slot_duplicate or v_slot_expires_at <= pg_catalog.now() then
+    raise exception 'fresh same-runner lease did not renew exact expired preview slot';
+  end if;
+  begin
+    perform * from public.video_studio_reserve_preview_upload(
+      '35000000-0000-4000-8000-000000000001'::uuid,
+      repeat('a', 64), repeat('b', 64), repeat('2', 64), 'after',
+      repeat('4', 64), repeat('f', 32), 2048, 'video/mp4'
+    );
+  exception when sqlstate 'P0001' then
+    if sqlerrm <> 'preview_slot_conflict' then raise; end if;
+    v_failed := true;
+  end;
+  if not v_failed
+    or exists (
+      select 1 from public.video_studio_preview_upload_slots
+      where command_id = '35000000-0000-4000-8000-000000000001'::uuid
+        and side = 'after' and slot_expires_at > pg_catalog.now()
+    ) then
+    raise exception 'mismatched preview slot was renewed';
+  end if;
+  v_failed := false;
+  begin
+    insert into public.video_studio_command_receipts (
+      command_id, job_id, runner_id_hash, command_hash, receipt_hash,
+      receipt_signature, receipt_status, result_refs, hard_gates,
+      retryable, safe_code, started_at, finished_at
+    ) values (
+      '35000000-0000-4000-8000-000000000001'::uuid,
+      'job-prepare-cursor', repeat('a', 64), repeat('2', 64),
+      md5('slot-renewal-receipt') || md5('slot-renewal-receipt-proof'),
+      md5('slot-renewal-signature') || md5('slot-renewal-signature-proof'),
+      'failed', '{}'::jsonb, v_gates, false, 'render_failed',
+      pg_catalog.now() - interval '1 minute', pg_catalog.now()
+    );
+    perform * from public.video_studio_reserve_preview_upload(
+      '35000000-0000-4000-8000-000000000001'::uuid,
+      repeat('a', 64), repeat('b', 64), repeat('2', 64), 'after',
+      repeat('4', 64), repeat('2', 32), 2048, 'video/mp4'
+    );
+  exception when sqlstate 'P0001' then
+    if sqlerrm <> 'preview_slot_conflict' then raise; end if;
+    v_failed := true;
+  end;
+  if not v_failed
+    or exists (
+      select 1 from public.video_studio_command_receipts
+      where command_id = '35000000-0000-4000-8000-000000000001'::uuid
+    )
+    or exists (
+      select 1 from public.video_studio_preview_upload_slots
+      where command_id = '35000000-0000-4000-8000-000000000001'::uuid
+        and side = 'after' and slot_expires_at > pg_catalog.now()
+    ) then
+    raise exception 'preview slot was renewed after a receipt had already won';
+  end if;
+  v_failed := false;
   perform pg_temp.video_studio_expect_sql_error(
     $sql$
       update public.video_studio_preview_upload_slots
@@ -1943,10 +2008,13 @@ begin
       select 1 from public.video_studio_review_requests
       where id = '15000000-0000-4000-8000-000000000002'::uuid
     )
+    or (select slot_expires_at from public.video_studio_preview_upload_slots
+        where command_id = '35000000-0000-4000-8000-000000000001'::uuid
+          and side = 'before') is distinct from v_slot_expires_at
     or exists (
       select 1 from public.video_studio_preview_upload_slots
       where command_id = '35000000-0000-4000-8000-000000000001'::uuid
-        and slot_expires_at > pg_catalog.now()
+        and side = 'after' and slot_expires_at > pg_catalog.now()
     ) then
     raise exception 'prepare completed without a new authenticated local event';
   end if;
@@ -1996,10 +2064,13 @@ begin
     v_failed := true;
   end;
   if not v_failed
+    or (select slot_expires_at from public.video_studio_preview_upload_slots
+        where command_id = '35000000-0000-4000-8000-000000000001'::uuid
+          and side = 'before') is distinct from v_slot_expires_at
     or exists (
       select 1 from public.video_studio_preview_upload_slots
       where command_id = '35000000-0000-4000-8000-000000000001'::uuid
-        and slot_expires_at > pg_catalog.now()
+        and side = 'after' and slot_expires_at > pg_catalog.now()
     ) then
     raise exception 'mismatched expired preview slot was refreshed';
   end if;

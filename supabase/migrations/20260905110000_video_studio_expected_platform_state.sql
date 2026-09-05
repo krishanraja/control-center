@@ -1011,6 +1011,83 @@ begin
 end;
 $$;
 
+alter function public.video_studio_reserve_preview_upload(
+  uuid, text, text, text, text, text, text, integer, text
+) rename to video_studio_reserve_preview_upload_without_expired_refresh;
+
+revoke execute on function public.video_studio_reserve_preview_upload_without_expired_refresh(
+  uuid, text, text, text, text, text, text, integer, text
+) from public, anon, authenticated, service_role;
+
+create or replace function public.video_studio_reserve_preview_upload(
+  p_command_id uuid,
+  p_runner_id_hash text,
+  p_lease_token_hash text,
+  p_command_hash text,
+  p_side text,
+  p_content_sha256 text,
+  p_content_md5 text,
+  p_byte_size integer,
+  p_content_type text
+) returns table (object_key text, duplicate boolean, slot_expires_at timestamptz)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_object_key text;
+  v_duplicate boolean;
+  v_slot_expires_at timestamptz;
+  v_refreshed_slots integer := 0;
+begin
+  select result.object_key, result.duplicate, result.slot_expires_at
+  into v_object_key, v_duplicate, v_slot_expires_at
+  from public.video_studio_reserve_preview_upload_without_expired_refresh(
+    p_command_id,
+    p_runner_id_hash,
+    p_lease_token_hash,
+    p_command_hash,
+    p_side,
+    p_content_sha256,
+    p_content_md5,
+    p_byte_size,
+    p_content_type
+  ) as result;
+
+  if v_duplicate and v_slot_expires_at <= pg_catalog.now() then
+    if exists (
+      select 1
+      from public.video_studio_command_receipts
+      where command_id = p_command_id
+    ) then
+      raise exception 'preview_slot_conflict' using errcode = 'P0001';
+    end if;
+    perform pg_catalog.set_config(
+      'video_studio.preview_slot_refresh_command_id', p_command_id::text, true
+    );
+    update public.video_studio_preview_upload_slots as slot
+    set slot_expires_at = pg_catalog.now() + interval '2 hours'
+    where slot.command_id = p_command_id
+      and slot.runner_id_hash = p_runner_id_hash
+      and slot.side = p_side
+      and slot.object_key = v_object_key
+      and slot.content_sha256 = p_content_sha256
+      and slot.content_md5 = p_content_md5
+      and slot.byte_size = p_byte_size
+      and slot.content_type = p_content_type
+      and slot.slot_expires_at is not distinct from v_slot_expires_at
+    returning slot.slot_expires_at into v_slot_expires_at;
+    get diagnostics v_refreshed_slots = row_count;
+    perform pg_catalog.set_config('video_studio.preview_slot_refresh_command_id', '', true);
+    if v_refreshed_slots <> 1 then
+      raise exception 'preview_slot_conflict' using errcode = 'P0001';
+    end if;
+  end if;
+
+  return query select v_object_key, v_duplicate, v_slot_expires_at;
+end;
+$$;
+
 alter function public.video_studio_complete_command(
   uuid, text, text, text, text, text, text, text, text, text,
   jsonb, jsonb, boolean, text, timestamptz, timestamptz
@@ -1581,9 +1658,10 @@ begin
     return;
   end if;
 
-  select * into v_source_command
-  from public.video_studio_commands
-  where id = p_command_id and job_id = p_job_id
+  select source_command.* into v_source_command
+  from public.video_studio_commands as source_command
+  where source_command.id = p_command_id
+    and source_command.job_id = p_job_id
   for update;
   if not found then raise exception 'command_not_found' using errcode = 'P0001'; end if;
   if v_source_command.last_lease_owner_hash is not null then
@@ -1652,6 +1730,12 @@ revoke execute on function public.video_studio_complete_command(
   uuid, text, text, text, text, text, text, text, text, text,
   jsonb, jsonb, boolean, text, timestamptz, timestamptz
 ) from public, anon, authenticated;
+revoke execute on function public.video_studio_reserve_preview_upload(
+  uuid, text, text, text, text, text, text, integer, text
+) from public, anon, authenticated;
+grant execute on function public.video_studio_reserve_preview_upload(
+  uuid, text, text, text, text, text, text, integer, text
+) to service_role;
 grant execute on function public.video_studio_complete_command(
   uuid, text, text, text, text, text, text, text, text, text,
   jsonb, jsonb, boolean, text, timestamptz, timestamptz

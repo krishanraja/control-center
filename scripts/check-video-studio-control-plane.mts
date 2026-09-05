@@ -1173,6 +1173,11 @@ assert.match(
 )
 assert.match(
   expectedStateMigration,
+  /video_studio_reserve_preview_upload_without_expired_refresh[\s\S]+v_duplicate and v_slot_expires_at <= pg_catalog\.now\(\)[\s\S]+video_studio_command_receipts[\s\S]+slot\.content_sha256 = p_content_sha256[\s\S]+slot\.content_md5 = p_content_md5[\s\S]+slot\.byte_size = p_byte_size[\s\S]+v_refreshed_slots <> 1/,
+  'a fresh exact lease can renew an immutable expired slot only when no receipt has won',
+)
+assert.match(
+  expectedStateMigration,
   /create trigger video_studio_magic_candidate_lineage_append_only[\s\S]+execute function public\.video_studio_reject_append_only_mutation\(\)/,
   'candidate ancestry remains append-only even for privileged direct writes',
 )
@@ -1399,6 +1404,11 @@ assert.match(ownedSources[3], /Number\(sizeLimit\) !== VIDEO_STUDIO_PREVIEW_MAX_
 assert.match(ownedSources[10], /expires_at: leaseExpiresAt/)
 assert.match(ownedSources[11], /lease_expires_at: leaseExpiresAt/)
 assert.match(ownedSources[12], /slot_expires_at: slotExpiresAt/)
+assert.match(
+  ownedSources[12],
+  /stored === 'mismatch'[\s\S]+stored === 'missing'[\s\S]+createSignedUploadUrl\(expectedObjectKey, \{ upsert: false \}\)/,
+  'a renewed exact slot may re-upload a missing proxy but never overwrite a mismatched object',
+)
 const completeSource = await readFile(new URL('../api/video-studio/runner/complete.ts', import.meta.url), 'utf8')
 assert.match(completeSource, /command_id: receipt\.command_id/)
 assert.match(completeSource, /receipt_hash: receipt\.receipt_hash/)
