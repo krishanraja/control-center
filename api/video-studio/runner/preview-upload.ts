@@ -14,6 +14,7 @@ import {
   verifyStoredPreview,
 } from '../_previewStorage.js'
 import {
+  normalizeDatabaseTimestamp,
   parseRunnerPreviewUploadRequest,
   videoStudioPreviewObjectKey,
 } from '../_runnerContracts.js'
@@ -52,14 +53,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return sendVideoStudioError(res, status, code)
   }
   const row = Array.isArray(data) ? data[0] : data
+  const slotExpiresAt = normalizeDatabaseTimestamp(row?.slot_expires_at)
   if (
     !row
     || row.object_key !== expectedObjectKey
     || typeof row.duplicate !== 'boolean'
-    || typeof row.slot_expires_at !== 'string'
-    || !Number.isFinite(Date.parse(row.slot_expires_at))
+    || !slotExpiresAt
   ) return sendVideoStudioError(res, 503, 'preview_slot_store_unavailable')
-  if (Date.parse(row.slot_expires_at) <= Date.now()) {
+  if (Date.parse(slotExpiresAt) <= Date.now()) {
     return sendVideoStudioError(res, 409, 'preview_slot_expired')
   }
 
@@ -87,7 +88,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     signedUploadUrl = signed.data.signedUrl
     uploadExpiresAt = new Date(Math.min(
       Date.now() + SIGNED_UPLOAD_TTL_SECONDS * 1000,
-      Date.parse(row.slot_expires_at),
+      Date.parse(slotExpiresAt),
     )).toISOString()
   }
 
@@ -104,7 +105,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       byte_size: body.byte_size,
       content_type: body.content_type,
       object_key: expectedObjectKey,
-      slot_expires_at: row.slot_expires_at,
+      slot_expires_at: slotExpiresAt,
       upload: {
         method: 'PUT',
         url: signedUploadUrl,
