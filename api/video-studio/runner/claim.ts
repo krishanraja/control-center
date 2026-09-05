@@ -6,6 +6,7 @@ import { VIDEO_STUDIO_CONTROL_SCHEMA_VERSION, sendVideoStudioError } from '../_c
 import { enforceVideoStudioRateLimit, stablePayloadHash } from '../_data.js'
 import {
   parseRunnerClaimRequest,
+  normalizeDatabaseTimestamp,
   projectClaimedCommand,
   runnerCommandHashInputV1,
   type RunnerCommandHashInputV1,
@@ -37,7 +38,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   }
   const command = projectClaimedCommand(raw)
-  if (!command || stablePayloadHash(command.payload) !== command.payload_hash) {
+  const leaseExpiresAt = normalizeDatabaseTimestamp(raw.lease_expires_at)
+  if (!command || !leaseExpiresAt || stablePayloadHash(command.payload) !== command.payload_hash) {
     return sendVideoStudioError(res, 503, 'malformed_command_projection')
   }
   const expectedCommandHash = stablePayloadHash(
@@ -52,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     command,
     lease: {
       token: leaseToken,
-      expires_at: raw.lease_expires_at,
+      expires_at: leaseExpiresAt,
     },
   })
 }

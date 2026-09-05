@@ -38,6 +38,15 @@ function validDate(value: unknown): value is string {
     && Number.isFinite(Date.parse(value))
 }
 
+export function normalizeDatabaseTimestamp(value: unknown): string | null {
+  if (
+    typeof value !== 'string'
+    || !/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}(?::?\d{2})?)$/.test(value)
+  ) return null
+  const timestamp = Date.parse(value)
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null
+}
+
 function identifier(value: unknown): value is string {
   return typeof value === 'string' && /^[a-z0-9][a-z0-9_-]{1,95}$/i.test(value)
 }
@@ -348,8 +357,11 @@ export function projectClaimedCommand(value: unknown): UnknownRecord | null {
   if (!identifier(value.job_id) || !VIDEO_PLATFORMS.includes(value.platform as typeof VIDEO_PLATFORMS[number])) return null
   if (!isSha256(value.expected_parent_revision_hash) || !isSha256(value.expected_parent_artifact_hash)) return null
   if (!isSha256(value.payload_hash) || !isSha256(value.command_hash) || !isRecord(value.payload)) return null
-  if (!validDate(value.issued_at) || !validDate(value.expires_at) || !validDate(value.lease_expires_at)) return null
-  if (Date.parse(value.expires_at) <= Date.parse(value.issued_at)) return null
+  const issuedAt = normalizeDatabaseTimestamp(value.issued_at)
+  const expiresAt = normalizeDatabaseTimestamp(value.expires_at)
+  const leaseExpiresAt = normalizeDatabaseTimestamp(value.lease_expires_at)
+  if (!issuedAt || !expiresAt || !leaseExpiresAt) return null
+  if (Date.parse(expiresAt) <= Date.parse(issuedAt)) return null
   const candidateHash = value.candidate_hash === null ? null : isSha256(value.candidate_hash) ? value.candidate_hash : undefined
   const semanticTargetMapHash = value.semantic_target_map_hash === null
     ? null
@@ -425,8 +437,8 @@ export function projectClaimedCommand(value: unknown): UnknownRecord | null {
     idempotency_key: String(value.idempotency_key).toLowerCase(),
     payload_hash: value.payload_hash,
     command_hash: value.command_hash,
-    issued_at: value.issued_at,
-    expires_at: value.expires_at,
+    issued_at: issuedAt,
+    expires_at: expiresAt,
     payload,
   }
 }

@@ -14,6 +14,7 @@ import {
   parseRunnerPreviewRetentionRequest,
   parseRunnerPreviewUploadRequest,
   parseRunnerProjectRequest,
+  normalizeDatabaseTimestamp,
   projectClaimedCommand,
   runnerCommandHashInputV1,
 } from '../api/video-studio/_runnerContracts.js'
@@ -238,6 +239,24 @@ assert.equal(
 assert.equal(fixture.command_hash, expectedCommandHash)
 assert.deepEqual(
   projectClaimedCommand({ ...fixture, lease_expires_at: '2026-09-04T10:02:00.000Z' }),
+  fixture,
+)
+assert.equal(
+  normalizeDatabaseTimestamp('2026-09-04 10:02:00.123456+00'),
+  '2026-09-04T10:02:00.123Z',
+)
+assert.equal(
+  normalizeDatabaseTimestamp('2026-09-04T11:02:00.123456+01:00'),
+  '2026-09-04T10:02:00.123Z',
+)
+assert.equal(normalizeDatabaseTimestamp('2026-09-04T10:02:00'), null)
+assert.deepEqual(
+  projectClaimedCommand({
+    ...fixture,
+    issued_at: '2026-09-04 10:00:00+00',
+    expires_at: '2026-09-04T13:00:00+01:00',
+    lease_expires_at: '2026-09-04T10:02:00+00:00',
+  }),
   fixture,
 )
 assert.equal(projectClaimedCommand({
@@ -991,6 +1010,8 @@ const ownedApiFiles = [
   '../api/video-studio/commands/[id]/recover.ts',
   '../api/video-studio/reviews/[id]/decision.ts',
   '../api/video-studio/runner/complete.ts',
+  '../api/video-studio/runner/claim.ts',
+  '../api/video-studio/runner/heartbeat.ts',
   '../api/video-studio/runner/preview-upload.ts',
   '../api/video-studio/runner/preview-retention.ts',
   '../api/video-studio/runner/project.ts',
@@ -1012,6 +1033,9 @@ assert.match(ownedSources[5], /p_source_review_id:/)
 assert.match(ownedSources[6], /result_review_id: resultReviewId/)
 assert.match(ownedSources[6], /sourceContext\?\.recovery\.recovery_review_id !== boundReviewId/)
 assert.match(ownedSources[3], /Number\(sizeLimit\) !== VIDEO_STUDIO_PREVIEW_MAX_BYTES/)
+assert.match(ownedSources[10], /expires_at: leaseExpiresAt/)
+assert.match(ownedSources[11], /lease_expires_at: leaseExpiresAt/)
+assert.match(ownedSources[12], /slot_expires_at: slotExpiresAt/)
 const completeSource = await readFile(new URL('../api/video-studio/runner/complete.ts', import.meta.url), 'utf8')
 assert.match(completeSource, /command_id: receipt\.command_id/)
 assert.match(completeSource, /receipt_hash: receipt\.receipt_hash/)

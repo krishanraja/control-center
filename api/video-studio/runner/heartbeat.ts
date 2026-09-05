@@ -4,7 +4,7 @@ import { guardVideoStudioRunner, videoStudioRunnerIdentity } from '../../_videoS
 import { supabase } from '../../_supabase.js'
 import { VIDEO_STUDIO_CONTROL_SCHEMA_VERSION, sendVideoStudioError } from '../_contracts.js'
 import { enforceVideoStudioRateLimit } from '../_data.js'
-import { parseRunnerHeartbeatRequest } from '../_runnerContracts.js'
+import { normalizeDatabaseTimestamp, parseRunnerHeartbeatRequest } from '../_runnerContracts.js'
 
 const HEARTBEAT_LEASE_SECONDS = 120
 
@@ -33,11 +33,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (error) return sendVideoStudioError(res, 503, 'heartbeat_store_unavailable')
   const row = Array.isArray(data) ? data[0] : data
   if (!row || row.accepted !== true) return sendVideoStudioError(res, 409, 'lease_conflict')
+  const leaseExpiresAt = row.lease_expires_at
+    ? normalizeDatabaseTimestamp(row.lease_expires_at)
+    : null
+  if (row.lease_expires_at && !leaseExpiresAt) {
+    return sendVideoStudioError(res, 503, 'heartbeat_store_unavailable')
+  }
   return res.status(200).json({
     ok: true,
     schema_version: VIDEO_STUDIO_CONTROL_SCHEMA_VERSION,
     accepted: true,
-    ...(row.lease_expires_at ? { lease_expires_at: row.lease_expires_at } : {}),
+    ...(leaseExpiresAt ? { lease_expires_at: leaseExpiresAt } : {}),
     server_time: new Date().toISOString(),
   })
 }
