@@ -30,6 +30,7 @@
 | [013](./013-one-system-per-job.md) | One system per job: the phone-first recomposition locked as canon | Accepted |
 | [014](./014-video-engine-control-and-media-authority.md) | Video Engine control plane and media authority | Accepted |
 | [015](./015-mindmake-instrument-room.md) | Mindmake Instrument Room across Control Center and Video Engine | Accepted |
+| [016](./016-ikigai-v4-one-swing.md) | Ikigai v4 canon: the Control Center is the engine under one swing | Accepted |
 
 ---
 

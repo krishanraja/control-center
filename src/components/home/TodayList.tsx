@@ -5,6 +5,7 @@ import { useGoalCanon } from '../../hooks/useGoalCanon'
 import { useHaptics } from '../../hooks/useHaptics'
 import { useToast } from '../shared/Toast'
 import { Eyebrow } from '../shared/Eyebrow'
+import { jobLabel } from '../../content/jobs'
 import { Working } from '../shared/Working'
 
 // TODAY — the third layer of the canon. Exactly 3 slots from daily_focus:
@@ -26,9 +27,9 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
 
   const targets = today
     ? ([
-        { n: 1 as const, text: today.target_1_text, done: !!today.target_1_completed_at, goalId: today.target_1_goal_id ?? null },
-        { n: 2 as const, text: today.target_2_text, done: !!today.target_2_completed_at, goalId: today.target_2_goal_id ?? null },
-        { n: 3 as const, text: today.target_3_text, done: !!today.target_3_completed_at, goalId: today.target_3_goal_id ?? null },
+        { n: 1 as const, text: today.target_1_text, done: !!today.target_1_completed_at, goalId: today.target_1_goal_id ?? null, job: today.target_1_job ?? null },
+        { n: 2 as const, text: today.target_2_text, done: !!today.target_2_completed_at, goalId: today.target_2_goal_id ?? null, job: today.target_2_job ?? null },
+        { n: 3 as const, text: today.target_3_text, done: !!today.target_3_completed_at, goalId: today.target_3_goal_id ?? null, job: today.target_3_job ?? null },
       ])
     : null
   const doneCount = targets ? targets.filter(t => t.done).length : 0
@@ -89,10 +90,15 @@ export function TodayList({ compact = false }: { compact?: boolean } = {}) {
                 <p className={`text-body leading-snug break-words ${compact ? 'line-clamp-1' : 'line-clamp-2'} ${t.done ? 'text-white/40 line-through' : 'text-white/90'}`}>
                   {t.text || '—'}
                 </p>
-                {!compact && t.goalId && weeklyTitle.get(t.goalId) && (
-                  <p className="text-micro text-white/40 leading-snug mt-0.5 inline-flex items-center gap-1 min-w-0">
-                    <Target size={9} className="flex-shrink-0 opacity-60" />
-                    <span className="truncate">{weeklyTitle.get(t.goalId)}</span>
+                {!compact && (t.job || (t.goalId && weeklyTitle.get(t.goalId))) && (
+                  <p className="text-micro text-white/40 leading-snug mt-0.5 inline-flex items-center gap-1.5 min-w-0">
+                    {t.job && <span className="shrink-0 px-1 py-0.5 rounded bg-white/[0.06]">{jobLabel(t.job)}</span>}
+                    {t.goalId && weeklyTitle.get(t.goalId) && (
+                      <span className="inline-flex items-center gap-1 min-w-0">
+                        <Target size={9} className="flex-shrink-0 opacity-60" />
+                        <span className="truncate">{weeklyTitle.get(t.goalId)}</span>
+                      </span>
+                    )}
                   </p>
                 )}
               </div>

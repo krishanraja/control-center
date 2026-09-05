@@ -23,7 +23,8 @@ import {
   type GateVerdictWire,
 } from '../../lib/goalsApi'
 import { Working } from '../shared/Working'
-import { ServesPicker, VentureChips } from '../goals/GoalPickers'
+import { OptionChips, ServesPicker, VentureChips } from '../goals/GoalPickers'
+import { JOB_OPTIONS, jobLabel } from '../../content/jobs'
 
 type NavigateFn = (tab: string, params?: Record<string, string>) => void
 
@@ -217,6 +218,7 @@ function WeeklyStep() {
   const [text, setText] = useState('')
   const [servesId, setServesId] = useState('')
   const [venture, setVenture] = useState('')
+  const [job, setJob] = useState('')
   const [gate, setGate] = useState<GateVerdictWire | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
 
@@ -249,9 +251,9 @@ function WeeklyStep() {
     if (!t || !servesId) return
     if (activeCount >= 3) { toast('Three is the week. Complete or drop one first.', 'error'); h.error(); return }
     void run('add', async () => {
-      const result = await createGoal({ title: t, horizon: 'weekly', parentId: servesId, venture: venture || null, override })
+      const result = await createGoal({ title: t, horizon: 'weekly', parentId: servesId, venture: venture || null, job: job || null, override })
       if (result.ok === false) { setGate(result.gate); throw new Error('Blocked by the gate below.') }
-      setText(''); setVenture(''); setGate(null)
+      setText(''); setVenture(''); setJob(''); setGate(null)
     })
   }
 
@@ -327,6 +329,7 @@ function WeeklyStep() {
                       {g.parent_id && osTitle.get(g.parent_id) && (
                         <span className="inline-flex items-center gap-1"><Target size={9} className="opacity-60" />{osTitle.get(g.parent_id)}</span>
                       )}
+                      {g.job && <span className="px-1 py-0.5 rounded bg-white/[0.06]">{jobLabel(g.job)}</span>}
                       {g.venture && <span className="px-1 py-0.5 rounded bg-white/[0.06]">{g.venture}</span>}
                       {carried && <span className="text-amber-300/70">from last week</span>}
                     </span>
@@ -378,6 +381,7 @@ function WeeklyStep() {
             </div>
             <div className="space-y-2.5">
               <ServesPicker os={os} value={servesId} onChange={setServesId} disabled={busy != null} />
+              <OptionChips label="Which job of the OS does this serve?" options={JOB_OPTIONS} value={job} onChange={setJob} disabled={busy != null} />
               <VentureChips ventures={ventures} value={venture} onChange={setVenture} disabled={busy != null} />
               <button
                 type="button"

@@ -18,6 +18,8 @@ export interface CanonGoal {
   horizon: CanonHorizon
   parent_id: string | null
   venture: string | null
+  /** Which of the five jobs of the OS this serves (src/content/jobs.ts). */
+  job: string | null
   status: string
   priority: number | null
   is_stale: boolean

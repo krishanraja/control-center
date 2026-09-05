@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
 import { resolveTz, ymdIn } from '../_timezone.js'
+import { recordShip } from '../_ships.js'
 
 /**
  * /api/pilot/asks
@@ -119,15 +120,8 @@ async function post(req: VercelRequest, res: VercelResponse) {
   // server-side with a dedup key so marking twice can never double count, and
   // so the ledger needs no second form for it.
   if (markSent) {
-    const { error } = await supabase.from('ships').upsert({
-      occurred_at: new Date().toISOString(),
-      source: 'manual' as const,
-      channel: 'ask',
-      description: askText,
-      external_ref: null,
-      dedup_key: `ask:${saved.id}`,
-    }, { onConflict: 'dedup_key' })
-    if (error) return res.status(500).json({ ok: false, error: error.message })
+    const ship = await recordShip({ channel: 'ask', description: askText, dedup_key: `ask:${saved.id}` })
+    if (!ship.ok) return res.status(500).json({ ok: false, error: ship.error })
   }
 
   return res.status(existing.data ? 200 : 201).json({ ok: true, ask: saved })

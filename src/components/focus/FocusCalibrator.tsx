@@ -31,9 +31,14 @@ interface Suggestion {
   // Weekly linkage (Phase 2): set when this pick's task advances a milestone
   // Krish committed for the current week. Populated by /api/daily-focus/suggestions.
   serves_milestone?: { id: string; title: string; goal_id: string; goal_title: string | null } | null
+  /** OS picks only: the weekly goal and the job this action serves. */
+  goal_id?: string | null
+  job?: string | null
 }
 
 interface SuggestionsPayload {
+  /** Derived from this week's objectives by the OS: one concrete action each, tagged with a job. */
+  os_picks: Suggestion[]
   marcus_top_three: Suggestion[]
   marcus_alternates: Suggestion[]
   marcus_reasoning: string | null
@@ -52,6 +57,8 @@ interface Pick {
   id: string
   /** The weekly goal this pick serves (goals.id) — the canon chain. */
   goalId?: string | null
+  /** Which of the five jobs of the OS this pick serves. */
+  job?: string | null
 }
 
 interface CalibrateBody {
@@ -61,6 +68,7 @@ interface CalibrateBody {
     source: PickedSource
     concept_id?: string | null
     goal_id?: string | null
+    job?: string | null
     replaced_marcus_pick?: Suggestion | null
   }>
 }
@@ -69,6 +77,12 @@ const KIND_META: Record<string, { label: string; bg: string; text: string; Icon:
   revenue: { label: 'Revenue', bg: 'bg-emerald-500/20', text: 'text-emerald-200', Icon: TrendingUp },
   growth:  { label: 'Growth',  bg: 'bg-violet-500/20',  text: 'text-violet-200',  Icon: SparkleIcon },
   risk:    { label: 'Risk',    bg: 'bg-amber-500/20',   text: 'text-amber-200',   Icon: AlertTriangle },
+  // The five jobs of the OS, for the picks derived from this week's objectives.
+  fill_room:   { label: 'Fill the room',   bg: 'bg-emerald-500/20', text: 'text-emerald-200', Icon: TrendingUp },
+  keep_honest: { label: 'Keep me honest',  bg: 'bg-amber-500/20',   text: 'text-amber-200',   Icon: AlertTriangle },
+  run_room:    { label: 'Run the room',    bg: 'bg-violet-500/20',  text: 'text-violet-200',  Icon: SparkleIcon },
+  feed_demand: { label: 'Feed the demand engine', bg: 'bg-violet-500/20', text: 'text-violet-200', Icon: SparkleIcon },
+  keep_edge:   { label: 'Keep the edge',   bg: 'bg-white/10',       text: 'text-white/70',    Icon: SparkleIcon },
 }
 
 function ymd(d: Date): string {
@@ -99,7 +113,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
 } = {}) {
   const { today, carry_over, loading } = useDailyFocus()
   const [suggestions, setSuggestions] = useState<SuggestionsPayload>({
-    marcus_top_three: [], marcus_alternates: [], marcus_reasoning: null,
+    os_picks: [], marcus_top_three: [], marcus_alternates: [], marcus_reasoning: null,
   })
   const [picks, setPicks] = useState<Pick[]>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -124,6 +138,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
         if (r.ok) {
           const j = await r.json()
           if (j.ok) setSuggestions({
+            os_picks: j.os_picks || [],
             marcus_top_three: j.marcus_top_three || [],
             marcus_alternates: j.marcus_alternates || [],
             marcus_reasoning: typeof j.marcus_reasoning === 'string' ? j.marcus_reasoning : null,
@@ -171,6 +186,9 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
   const allPicks: Array<{ s: Suggestion; key: string; tier: 'primary' | 'alternate'; kind?: string; leverage_score?: number | null }> =
     rankByIntent(
       [
+        // The OS's own picks come first: they are derived from the objectives
+        // Krish set, so they outrank an inferred leverage card by construction.
+        ...suggestions.os_picks.map((s, i) => ({ s, key: suggestionKey(s, 200 + i), tier: 'primary' as const, kind: s.kind, leverage_score: s.leverage_score })),
         ...suggestions.marcus_top_three.map((s, i) => ({ s, key: suggestionKey(s, i),       tier: 'primary' as const,   kind: s.kind, leverage_score: s.leverage_score })),
         ...suggestions.marcus_alternates.map((s, i) => ({ s, key: suggestionKey(s, 100 + i), tier: 'alternate' as const, kind: s.kind, leverage_score: s.leverage_score })),
       ],
@@ -203,7 +221,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
         return prev
       }
       h.tap()
-      return [...prev, { kind: 'marcus', suggestion: s, text: s.title, id: key }]
+      return [...prev, { kind: 'marcus', suggestion: s, text: s.title, id: key, goalId: s.goal_id || null, job: s.job || null }]
     })
   }
 
@@ -309,6 +327,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
               source: 'marcus_nominated' as PickedSource,
               concept_id: p.suggestion.action_target_id || null,
               goal_id: p.goalId || null,
+              job: p.job || null,
             }
           }
           // Krish edited the text after picking — counts as a swap.
@@ -317,10 +336,11 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
             source: 'krish_swapped' as PickedSource,
             concept_id: p.suggestion.action_target_id || null,
             goal_id: p.goalId || null,
+            job: p.job || null,
             replaced_marcus_pick: p.suggestion,
           }
         }
-        return { text, source: 'krish_added' as PickedSource, goal_id: p.goalId || null }
+        return { text, source: 'krish_added' as PickedSource, goal_id: p.goalId || null, job: p.job || null }
       })
       const body: CalibrateBody = { date: ymd(new Date()), targets }
       const r = await fetch('/api/daily-focus/calibrate', {
@@ -349,7 +369,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
       <header className="mb-4">
         <h2 className="text-lede font-semibold text-white">What are your 3 today?</h2>
         <p className="text-label text-white/55 mt-1">
-          Pick from Marcus&rsquo;s leverage picks below, add your own, or mix. Lock {targetCount} and Home recalibrates.
+          The OS turns this week's objectives into today's moves. Pick from those, from Marcus&rsquo;s leverage picks, or add your own. Lock {targetCount} and Home recalibrates.
           {carry_over ? ' Yesterday is still open below.' : ''}
         </p>
       </header>
@@ -369,7 +389,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
                   disabled={picked || picks.length >= targetCount}
                   onClick={() => {
                     h.tap()
-                    setPicks(prev => prev.length >= targetCount ? prev : [...prev, { kind: 'custom', text: g.title, id: `wk-${g.id}`, goalId: g.id }])
+                    setPicks(prev => prev.length >= targetCount ? prev : [...prev, { kind: 'custom', text: g.title, id: `wk-${g.id}`, goalId: g.id, job: g.job || null }])
                   }}
                   className={`max-w-full truncate rounded-full border px-3 py-1.5 text-label transition-colors ${picked ? 'border-violet-400/45 bg-violet-500/[0.12] text-violet-100' : 'border-white/[0.10] bg-white/[0.03] text-white/75 hover:border-white/25'} disabled:opacity-50`}
                 >
@@ -384,7 +404,7 @@ export function FocusCalibrator({ onLocked, pilotOne }: {
       {hasAnyMarcus && (
         <div className="mb-4">
           <div className="flex items-baseline justify-between mb-2">
-            <div className="text-micro uppercase tracking-[0.14em] text-white/45">Marcus's leverage picks</div>
+            <div className="text-micro uppercase tracking-[0.14em] text-white/45">{suggestions.os_picks.length > 0 ? 'From your objectives, then Marcus' : "Marcus's leverage picks"}</div>
             <div className="text-micro text-white/35 tabular-nums">{allPicks.length} suggestions</div>
           </div>
           {suggestions.marcus_reasoning && (

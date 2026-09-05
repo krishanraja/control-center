@@ -6,9 +6,9 @@
 // PROVENANCE. Every entry distils one of two committed sources:
 //   docs/focus-purpose/OPERATING-MANUAL.md   the evidence-graded communication
 //                                            and commercial operating manual
-//   docs/focus-purpose/PURPOSE-WORKBOOK.md   the ranked ikigai answers, the
-//                                            decision rules, and the wealth
-//                                            route synthesis
+//   docs/focus-purpose/PURPOSE-WORKBOOK.md   the ranked ikigai answers (v4, 5 Sep
+//                                            2026), the mission, the decision
+//                                            rules v2 and the stop rule
 // Edit those documents first, then reflect the change here. This file is the
 // on-tap slice; the documents are the corpus.
 //
@@ -44,34 +44,43 @@ export interface PurposeLine {
 }
 
 /**
- * Drawn from the workbook: the ranked answers, the four contradictions, the
- * wealth route synthesis. These are his own conclusions, surfaced back one at a
- * time. Never more than one on screen.
+ * Drawn from the workbook v4: the locked purpose and mission, the face, what
+ * v4 changed, and the stop rule, plus two lines the operating manual still
+ * owns. These are his own conclusions, surfaced back one at a time. Never
+ * more than one on screen.
  */
 export const PURPOSE_LINES: PurposeLine[] = [
   {
-    line: 'The engagement is the collection mechanism. The collection is the asset. The audience is distribution for both.',
-    source: 'Scoring workbook, the shape that survived',
+    line: 'I see what is coming before it is obvious and make it legible to people while it still counts.',
+    source: 'Master Ikigai v4, purpose, locked 5 September 2026',
   },
   {
-    line: 'Own a collection nobody else can assemble. Audience, equity and acquisition are delivery mechanisms, not the asset.',
-    source: 'Wealth routes synthesis',
+    line: 'Build the company that gives leaders their edge back before what is coming takes it, and sell it at scale with my name on it.',
+    source: 'Master Ikigai v4, the mission for the decade',
   },
   {
-    line: 'Foresight is the edge people already come to you for. The ask is the part that needs practice.',
-    source: 'Ikigai batch one, B1 to B5',
+    line: 'The face: a senior leader who will not admit to anyone that they are not ready for what is happening.',
+    source: 'Master Ikigai v4, R12.5, his words',
   },
   {
-    line: 'You want ownership that runs without you. Fee-only work never gets there.',
-    source: 'Decision rule 5',
+    line: 'Building is the love and the fire. Building alone and in private is the failure mode.',
+    source: 'Master Ikigai v4, what v4 changed, R11.1 and R1.3',
   },
   {
-    line: 'Teaching at scale is repetition. Either a system carries the repetition or the plan dies by month four.',
-    source: 'Contradiction 1',
+    line: 'The room is the door. Cash inside ninety days, sold to people you already know, the face already named.',
+    source: 'Master Ikigai v4, double down',
   },
   {
-    line: 'The nearest risk is the one you rank least painful. Watch the runway before the vision.',
-    source: 'Contradiction 4',
+    line: 'Publish to fill the room. Do not mistake publishing for the swing.',
+    source: 'Master Ikigai v4, what v4 changed, R5.6',
+  },
+  {
+    line: 'Money is the thing keeping you up at night and the first thing to solve. Rule 3 is load bearing.',
+    source: 'Master Ikigai v4, R1.4 and R1.6',
+  },
+  {
+    line: 'Fewer than two of twenty five take a call, or no paid room by 5 October: that is the stop rule, and it means the network advantage is not real for this offer.',
+    source: 'Master Ikigai v4, the twelve month commitment',
   },
   {
     line: 'A no means this request did not obtain agreement under these conditions. It does not establish your value.',
@@ -290,42 +299,47 @@ export interface DecisionRule {
   verdict: string
 }
 
-/** The seven rules from the workbook, derived from his own ranked answers. */
+/** The eight rules v2 from the Master Ikigai v4, derived from his own ranked answers. */
 export const DECISION_RULES: DecisionRule[] = [
   {
-    id: 'repetition',
-    chip: 'Needs me to say the same thing twice',
-    verdict: 'Repeating yourself is your biggest drain. Either a system carries the repetition or this dies by month four.',
+    id: 'pushed',
+    chip: 'The learner is pushed, not pulled',
+    verdict: 'The drain was never repetition. It is teaching people who do not want to learn. Anything for people being pushed rather than pulled is wrong.',
   },
   {
     id: 'cold',
     chip: 'Needs cold outbound',
-    verdict: 'Cold outbound will not happen and never has. Warm intros and published thinking are the only motions that sustain.',
+    verdict: 'Cold outbound will not happen and never has. Warm intros, the room, and published thinking are the only motions that sustain.',
   },
   {
     id: 'slow_pay',
     chip: 'Pays after 90 days',
-    verdict: 'With the current runway, anything that pays past one quarter can be the parallel asset. It cannot be the plan.',
+    verdict: 'If it does not pay inside ninety days it cannot be the main thing. Load bearing, not tolerated: money is the thing keeping you up at night.',
   },
   {
     id: 'alone',
     chip: 'I would be alone in it',
-    verdict: 'Working alone ranked dead last, below leading a large team. Solo ventures stall. Put people in it or expect it to.',
+    verdict: 'If you are alone in it, expect it to stall. A partner who owns or polices the selling is a precondition, not a nice to have.',
   },
   {
     id: 'no_ownership',
     chip: 'Income only, no ownership',
-    verdict: 'Fee-only work is a job with extra steps. The proudest outcome is owning something that runs without you.',
+    verdict: 'Fee-only work is a job with extra steps. The proof at ten years is what the company is worth, sold or held.',
   },
   {
-    id: 'no_authority',
-    chip: 'Builds no public authority',
-    verdict: 'Becoming a genuine public voice is the regret you named first. Work that hides you wastes it.',
+    id: 'private',
+    chip: 'Built in private',
+    verdict: 'If it is built in private, it is hiding. Every build is announced, shown, or sold before it is finished. Repos nobody asked for are the year that went missing.',
   },
   {
-    id: 'maintenance',
-    chip: 'Heavy to maintain',
-    verdict: 'Maintenance is your second biggest drain. It is a cost, never a feature.',
+    id: 'no_edge',
+    chip: 'Does not put a leader\'s edge back',
+    verdict: 'If it does not put a leader\'s edge back, it is off mission. Generic AI implementation and tooling for its own sake stay off the calendar.',
+  },
+  {
+    id: 'protected',
+    chip: 'Touches music or football',
+    verdict: 'Music and football are protected. They enter the work only after the company runs without you.',
   },
 ]
 

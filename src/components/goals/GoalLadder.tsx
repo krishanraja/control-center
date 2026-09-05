@@ -6,7 +6,8 @@ import { useQuickCreateListener } from '../../lib/quickCreate'
 import { createGoal, patchGoal, type GateVerdictWire } from '../../lib/goalsApi'
 import { Eyebrow } from '../shared/Eyebrow'
 import { FocusedEditor } from '../shared/FocusedEditor'
-import { ServesPicker, VentureChips } from './GoalPickers'
+import { OptionChips, ServesPicker, VentureChips } from './GoalPickers'
+import { JOB_OPTIONS, jobLabel } from '../../content/jobs'
 import { Skeleton } from '../shared/Skeleton'
 import { Working } from '../shared/Working'
 
@@ -39,6 +40,7 @@ export function GoalLadder({ variant = 'desktop' }: {
   const [title, setTitle] = useState('')
   const [parentId, setParentId] = useState('')
   const [venture, setVenture] = useState('')
+  const [job, setJob] = useState('')
   const [gate, setGate] = useState<GateVerdict | null>(null)
 
   // ── inline edit (title + retire only; the legacy % / notes fields retired) ─
@@ -58,7 +60,7 @@ export function GoalLadder({ variant = 'desktop' }: {
   const openAdd = (hz: Horizon) => {
     h.select()
     setEditing(null)
-    setAdding(hz); setTitle(''); setVenture(''); setGate(null)
+    setAdding(hz); setTitle(''); setVenture(''); setJob(''); setGate(null)
     setParentId(hz === 'weekly' && os.length >= 1 ? os[0].id : '')
   }
 
@@ -79,6 +81,7 @@ export function GoalLadder({ variant = 'desktop' }: {
         horizon: hz,
         parentId: needsParent(hz) ? parentId : null,
         venture: hz === 'weekly' ? (venture || null) : null,
+        job: hz === 'weekly' ? (job || null) : null,
         override: opts.override === true,
       })
       // A held gate is not a failure: the form stays open with the verdict
@@ -89,7 +92,7 @@ export function GoalLadder({ variant = 'desktop' }: {
         return
       }
       h.success()
-      setAdding(null); setTitle(''); setParentId(''); setVenture(''); setGate(null)
+      setAdding(null); setTitle(''); setParentId(''); setVenture(''); setJob(''); setGate(null)
       refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save')
@@ -192,6 +195,7 @@ export function GoalLadder({ variant = 'desktop' }: {
       {adding !== 'os' && (
         <div className="mt-2.5 space-y-2.5">
           <ServesPicker os={os} value={parentId} onChange={setParentId} disabled={saving} />
+          <OptionChips label="Which job of the OS does this serve?" options={JOB_OPTIONS} value={job} onChange={setJob} disabled={saving} />
           <VentureChips ventures={ventures} value={venture} onChange={setVenture} disabled={saving} />
         </div>
       )}
@@ -394,6 +398,7 @@ export function GoalLadder({ variant = 'desktop' }: {
                         <span className={`text-body leading-snug truncate ${done ? 'text-white/40 line-through' : 'text-white/90'}`}>
                           {g.title}
                         </span>
+                        {g.job && <span className="shrink-0 text-micro px-1 py-0.5 rounded bg-white/[0.06] text-white/40">{jobLabel(g.job)}</span>}
                         {g.venture && <span className="shrink-0 text-micro px-1 py-0.5 rounded bg-white/[0.06] text-white/40">{g.venture}</span>}
                         {staleChip(g)}
                       </span>

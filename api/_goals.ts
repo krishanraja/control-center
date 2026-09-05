@@ -14,6 +14,8 @@
  * is running on an old instruction rather than treating it as fresh.
  */
 
+import { missionBlock, jobLabel, type Job } from './_mission.js'
+
 export type Horizon = 'os' | 'weekly'
 
 export interface SpineGoal {
@@ -22,6 +24,8 @@ export interface SpineGoal {
   horizon: Horizon
   parent_id: string | null
   venture: string | null
+  /** Which of the five jobs of the OS this serves (api/_mission.ts). */
+  job: Job | null
   is_stale: boolean
   days_since_touch: number | null
 }
@@ -63,7 +67,7 @@ export async function loadActiveGoals(): Promise<GoalSpine> {
   const [goalsRes, healthRes, focusRes] = await Promise.all([
     supabase
       .from('goals')
-      .select('id, title, horizon, parent_id, venture')
+      .select('id, title, horizon, parent_id, venture, job')
       .eq('status', 'active')
       .order('priority', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true }),
@@ -84,6 +88,7 @@ export async function loadActiveGoals(): Promise<GoalSpine> {
       horizon: g.horizon as Horizon,
       parent_id: (g.parent_id as string | null) ?? null,
       venture: (g.venture as string | null) ?? null,
+      job: (g.job as Job | null) ?? null,
       is_stale: h?.is_stale ?? false,
       days_since_touch: h?.days_since_touch ?? null,
     }
@@ -129,13 +134,19 @@ export async function loadActiveGoals(): Promise<GoalSpine> {
 export function goalsPrompt(spine: GoalSpine, context: string): string {
   if (spine.empty) {
     return [
+      missionBlock(),
+      '',
       `CURRENT GOALS: none are set.`,
       `Do not invent goals or infer them from recent activity. If ${context} depends`,
       `on knowing what the system is for, say that no goal is set and stop there.`,
     ].join('\n')
   }
 
-  const lines: string[] = ['CURRENT GOALS (the canon Krish set. Everything below serves what is above it):']
+  const lines: string[] = [
+    missionBlock(),
+    '',
+    'CURRENT GOALS (the canon Krish set. Everything below serves what is above it):',
+  ]
 
   for (const hz of ORDER) {
     const rows = spine.by_horizon[hz]
@@ -143,6 +154,7 @@ export function goalsPrompt(spine: GoalSpine, context: string): string {
     lines.push(`${LABEL[hz]}:`)
     for (const g of rows) {
       const bits: string[] = []
+      if (g.job) bits.push(`job: ${jobLabel(g.job).toLowerCase()}`)
       if (g.venture) bits.push(g.venture)
       if (g.is_stale) bits.push(`STALE, untouched ${g.days_since_touch ?? '?'}d`)
       lines.push(`- ${g.title}${bits.length ? ` (${bits.join(', ')})` : ''}`)
@@ -158,9 +170,9 @@ export function goalsPrompt(spine: GoalSpine, context: string): string {
 
   lines.push(
     '',
-    `When ${context}, prefer what serves a goal above and say which one. Name it`,
-    'when work serves nothing on this ladder, rather than quietly inventing a',
-    'reason it fits.',
+    `When ${context}, prefer what serves a goal above and say which one, and name`,
+    'which of the five jobs it serves. Refuse work that serves none of the five',
+    'jobs and say so plainly, rather than quietly inventing a reason it fits.',
   )
   if (spine.stale_count > 0) {
     lines.push(

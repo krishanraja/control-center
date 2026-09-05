@@ -328,7 +328,7 @@ function SpeakBody() {
   )
 }
 
-// ── Test an idea: the seven rules, before it eats a week ─────────────────────
+// ── Test an idea: the eight rules v2, before it eats a week ─────────────────────
 
 function IdeaBody() {
   const h = useHaptics()
