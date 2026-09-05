@@ -989,23 +989,23 @@ declare
     'video_studio.preview_slot_refresh_command_id', true
   ), '');
 begin
-  if tg_table_name = 'video_studio_preview_upload_slots'
-    and tg_op = 'UPDATE'
-    and old.command_id::text = v_refresh_command_id
-    and new.id is not distinct from old.id
-    and new.command_id is not distinct from old.command_id
-    and new.job_id is not distinct from old.job_id
-    and new.runner_id_hash is not distinct from old.runner_id_hash
-    and new.side is not distinct from old.side
-    and new.content_sha256 is not distinct from old.content_sha256
-    and new.content_md5 is not distinct from old.content_md5
-    and new.object_key is not distinct from old.object_key
-    and new.byte_size is not distinct from old.byte_size
-    and new.content_type is not distinct from old.content_type
-    and new.created_at is not distinct from old.created_at
-    and new.slot_expires_at >= old.slot_expires_at
-    and new.slot_expires_at > pg_catalog.now() then
-    return new;
+  if tg_table_name = 'video_studio_preview_upload_slots' and tg_op = 'UPDATE' then
+    if old.command_id::text = v_refresh_command_id
+      and new.id is not distinct from old.id
+      and new.command_id is not distinct from old.command_id
+      and new.job_id is not distinct from old.job_id
+      and new.runner_id_hash is not distinct from old.runner_id_hash
+      and new.side is not distinct from old.side
+      and new.content_sha256 is not distinct from old.content_sha256
+      and new.content_md5 is not distinct from old.content_md5
+      and new.object_key is not distinct from old.object_key
+      and new.byte_size is not distinct from old.byte_size
+      and new.content_type is not distinct from old.content_type
+      and new.created_at is not distinct from old.created_at
+      and new.slot_expires_at >= old.slot_expires_at
+      and new.slot_expires_at > pg_catalog.now() then
+      return new;
+    end if;
   end if;
   raise exception 'append_only_violation' using errcode = 'P0001';
 end;
