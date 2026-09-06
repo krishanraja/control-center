@@ -20,22 +20,26 @@ import { googleConfigured, sendGmail, createGmailDraft } from './_google.js'
 // None of them is allowed to fail the request that raised the alert.
 
 export async function notifyOps(text: string): Promise<{ sent: boolean; error?: string }> {
-  const token = process.env.TELEGRAM_APPROVALS_BOT_TOKEN
-  const chatId = process.env.TELEGRAM_APPROVALS_CHAT_ID
-  if (!token || !chatId) {
-    return { sent: false, error: 'TELEGRAM_APPROVALS_BOT_TOKEN / TELEGRAM_APPROVALS_CHAT_ID not configured' }
-  }
+  // PULL-ONLY (2026-09-06). The OS never initiates contact: Krish goes to
+  // Control Center, Control Center does not go to Krish. This used to POST to
+  // api.telegram.org via TELEGRAM_APPROVALS_BOT_TOKEN, which made every caller
+  // below a potential phone buzz. It is now a durable record only.
+  //
+  // Kept as a function rather than deleted because four callers depend on it
+  // (growth/council-run, health/connections-sweep, spend/ingest x2) and a
+  // single choke point means a future caller cannot reintroduce a ping by
+  // accident. `sent` is honestly false: nothing was delivered anywhere.
   try {
-    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+    // Columns verified live 2026-09-06: id and created_at default, event_type
+    // and actor are NOT NULL, the free-text column is `details` (not `detail`).
+    await supabase.from('audit_log').insert({
+      event_type: 'ops_alert',
+      actor: 'control-center',
+      details: text.slice(0, 4000),
+      display_message: text.split(String.fromCharCode(10))[0].slice(0, 200),
     })
-    if (!r.ok) return { sent: false, error: `telegram_${r.status}: ${(await r.text().catch(() => '')).slice(0, 160)}` }
-    return { sent: true }
-  } catch (err: unknown) {
-    return { sent: false, error: String((err as Error)?.message || err) }
-  }
+  } catch { /* the record is best-effort; it must never fail the request */ }
+  return { sent: false, error: 'pull-only: ops alerts are recorded, never pushed' }
 }
 
 /**
