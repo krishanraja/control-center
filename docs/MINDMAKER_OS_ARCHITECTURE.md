@@ -14,9 +14,9 @@
 >
 > 1. **VPS, source of truth:** `/root/.openclaw/workspace/MINDMAKE_OS_ARCHITECTURE.md`
 > 2. **control-center GitHub repo:** `docs/MINDMAKE_OS_ARCHITECTURE.md`. The VPS clone at `/root/Projects/control-center/docs/...` is the same surface; the sync script writes that path directly, so it can be current while GitHub is behind. **Push, or GitHub silently lags.**
-> 3. **VPS Claude skill:** `/root/.claude/skills/mindmake-os/SKILL.md` - frontmatter + this exact body.
-> 4. **VPS Cursor skill:** `/root/.cursor/skills-cursor/mindmake-os/SKILL.md` - frontmatter + this exact body.
-> 5. **VPS OpenClaw skill:** `/root/.openclaw/skills/mindmake-os/SKILL.md` - the copy skill-aware agents on the VPS load.
+> 3. **VPS Claude skill:** `/root/.claude/skills/mindmaker-os/SKILL.md` - frontmatter + this exact body.
+> 4. **VPS Cursor skill:** `/root/.cursor/skills-cursor/mindmaker-os/SKILL.md` - frontmatter + this exact body.
+> 5. **VPS OpenClaw skill:** `/root/.openclaw/skills/mindmaker-os/SKILL.md` - the copy skill-aware agents on the VPS load.
 > 6. **Google Drive:** `MINDMAKE_OS_ARCHITECTURE.md` in the `Infrastructure` folder, file id `1F0srFZSS-Nvg2RlUG84zVSvuiN9o8zDc`. **This is now SCRIPTED, not manual.** `scripts/sync-to-drive.py` writes it in place by id. Older text here said Krish updates it by hand and that it lags; that has not been true since the script existed, and it no longer lags.
 >
 > **The two skills on Krish's WINDOWS machine are deliberately NOT copies of this document, and must never be given the body.** `~/.claude/skills/mindmake-os/SKILL.md` and `~/.cursor/skills/mindmake-os/SKILL.md` (note: `skills`, not `skills-cursor`, which is the VPS spelling) are both an 11 KB **thin truth-router** that names this document as the authority and embeds no architecture body at all. That is a deliberate design: a router carries no claims that can go stale, so it needs no sync. Overwriting either with the 322 KB body destroys that and creates two more surfaces to keep in step. They are not surfaces 3 and 4; those are on the VPS.
@@ -25,7 +25,9 @@
 >
 > **A seventh surface exists and has no automated sync: Claude *browser* skills.** After an update Krish copies the skill body there by hand. It is not counted in the six because nothing can verify it. If it is no longer used, delete it rather than leaving an unverifiable copy.
 >
-> **Last reconciled against live state.** **2026-08-12 (second pass): the fleet is aligned to the live model.** Ten n8n fields carried `{{ }}` without n8n's leading `=` expression marker, so they transmitted template text verbatim. Two hard-errored (`Nell | Guest Confirmed Cascade` sending `eq.{{ $json.guest_id }}` as a literal PostgREST filter); **five failed silently, which is worse** — model calls in Vera, Nova and Nell whose prompts reached the model containing literal `{{ $json.x }}`, producing plausible answers about nothing and never appearing in any failure count. Seven fixed; two live in an archived workflow n8n refuses to update; one (`Maya | Churn`) was fixed earlier the same day. **Warning for the next sweep: a naive search for `{{` without a leading `=` is ~50% false positives**, because n8n JSON bodies legitimately carry the marker on inner values (`"={{ $json.x }}"`) rather than on the outer field. Also removed: Plinth's live revenue paths (`Fetch Stripe Plinth` in the nightly reconciliation, `Webhook plinth` / `Process plinth` in Revenue Intake), verified safe first because Plinth has **zero customers**. Four stale comments asserting Plinth is a live product were annotated. **Content tab restructured** to Built / Paid / Library — see §5.8.
+> **Last reconciled against live state.** **2026-09-06: the OS was made PULL-ONLY and four silent failures were fixed - see section 0b, which supersedes anything below it about notifying Krish.** Telegram push was removed across all six layers that could reach him (57 n8n workflows, the openclaw cron registry, 12 agent templates, Control Center's own API, the VPS root crontab, plus two unreachable archived workflows). The alerts were never stale workflows: n8n ran 2,355 executions in fourteen days and nearly all succeeded, over commercial data frozen since June. Three workflows were retired, six retired-brand workflows archived, and Guest Scout's pitch chain, Agatha's State of Union and Kai's credential-health writer were repaired. **Known constraint: git and n8n cloud are NOT in parity (43 vs 123 workflows, 154 drift items); do not run sync.sh --apply.**
+>
+> *Prior:* **2026-08-12 (second pass): the fleet is aligned to the live model.** Ten n8n fields carried `{{ }}` without n8n's leading `=` expression marker, so they transmitted template text verbatim. Two hard-errored (`Nell | Guest Confirmed Cascade` sending `eq.{{ $json.guest_id }}` as a literal PostgREST filter); **five failed silently, which is worse** — model calls in Vera, Nova and Nell whose prompts reached the model containing literal `{{ $json.x }}`, producing plausible answers about nothing and never appearing in any failure count. Seven fixed; two live in an archived workflow n8n refuses to update; one (`Maya | Churn`) was fixed earlier the same day. **Warning for the next sweep: a naive search for `{{` without a leading `=` is ~50% false positives**, because n8n JSON bodies legitimately carry the marker on inner values (`"={{ $json.x }}"`) rather than on the outer field. Also removed: Plinth's live revenue paths (`Fetch Stripe Plinth` in the nightly reconciliation, `Webhook plinth` / `Process plinth` in Revenue Intake), verified safe first because Plinth has **zero customers**. Four stale comments asserting Plinth is a live product were annotated. **Content tab restructured** to Built / Paid / Library — see §5.8.
 >
 > *Same day, first pass:* **2026-08-12: the fleet was dark for sixteen days and the OS could not see it.** Reconciled directly against the live n8n instance via the public API. The fleet was **10 active of 121 workflows**, not the ~85 this doc claimed; it is now **98 active**. The cause was NOT the execution governor tripping (see §3.4.1) but a heartbeat contract break, and the reason it went unnoticed for sixteen days is that the workflow which WRITES failures was the one failing. Fleet-health signals derived from `workflow_runs` were therefore reporting silence as health. Cadence was retuned before reactivation: four pollers on 15/30-minute intervals projected **12,780 execs/mo against the 10,000 cap**, which would have tripped the governor for real; now ~5,580. Also corrected: the Merciless / OnAlert / Gutted Stripe alerts documented as deactivated on 2026-07-06 were found **active** and have been switched off again, and an archived duplicate (`ZZ ARCHIVED Agatha | Visibility Deep Enrich`) was holding the webhook path its canonical Nova counterpart needed.**
 >
@@ -132,6 +134,164 @@ Three layers, never two. `lane` used to fuse "what am I working on" with "where 
 ### 4. Tooling note
 
 Headless Chrome (`--dump-dom`) is the browser tier for JS-rendered pages. **Skyvern is deliberately not used for scheduled scraping**: it is a metered AI agent (~530 credits/task historically) and paying an agent to read a DOM on a daily cron is the wrong tool.
+
+
+---
+
+## 0b. CANON as of 2026-09-06 - the OS is PULL-ONLY
+
+> **This section supersedes every conflicting statement later in the document,
+> including section 0a where they disagree.** Anything below that describes the
+> OS pushing a notification to Krish is now historical.
+
+### The rule
+
+**The OS never initiates contact. Krish goes to Control Center; Control Center
+does not go to Krish.** There is no Telegram alerting, no push, no "ping Krish
+when X". A finding goes into a table or an agent-report file, and a human reads
+it when they choose to.
+
+This replaces a model in which any agent, workflow, cron or API route could
+reach Krish's phone. That model failed in a specific and instructive way, so the
+reasoning is recorded here rather than just the rule.
+
+### Why: the alerts were accurate about a business that had stopped existing
+
+The alerts felt random because they were computed live, every day, from a
+**June snapshot**. n8n was never stale: 2,355 executions in fourteen days,
+nearly all succeeding. The machinery was healthy; the data underneath had
+frozen. Verified 2026-09-06:
+
+| Table | Rows | Newest |
+|---|---|---|
+| `leads` | 274 | created 22 June, and only **2 have ever been emailed** (last 9 June) |
+| `opportunities` | 2,413 | 2 June |
+| `customers` | 22 | of which **2 are active paying**, $12.98 MRR, both CTRL |
+| `workflow_runs` | 10,362 | today |
+
+162 of the 274 leads were Apollo cold scrapes, which the no-cold-email doctrine
+forbids contacting. Most "customers" were free signups for `onalert` and
+`gutted`, both retired. **A green heartbeat over dead data is worse than an
+outage, because it buys confidence it has not earned.**
+
+### The six layers that could reach Krish
+
+Silencing had never stuck before because the push paths were not in one place.
+All six are now closed:
+
+1. **openclaw cron delivery** - 3 `announce` jobs, 7 `failureAlert` routes, and
+   the Arlo Sentinel bound to a Telegram session target.
+2. **openclaw agent templates** - 12 files under `workspace/active/templates/`
+   instructed agents to message Krish directly. Rewritten to write
+   agent-reports.
+3. **n8n workflow nodes** - **57 workflows** carried an enabled Telegram node.
+   Only three chat ids existed across all of them, all Krish's own.
+4. **Control Center's own API** - `notifyOps()` in `api/_alert.ts` POSTed to
+   `api.telegram.org`, and four routes called it. It now records to `audit_log`
+   and returns `sent: false` honestly. It is kept as a function rather than
+   deleted precisely so there is exactly one choke point a future caller cannot
+   route around.
+5. **The VPS root crontab** - a scheduler entirely separate from openclaw's
+   cron registry, with seven scripts sending directly. Their senders now append
+   to `/var/log/os-pull-only-alerts.log`.
+6. **Archived n8n workflows** - two still hold enabled Telegram nodes but
+   cannot execute; archived workflows reject updates via the API.
+
+**Deliberately still able to send, because they are for other people:** the two
+`maa` reminder jobs (group `Mother-Daily`) and Lauren's `loz` briefings. Those
+run on their own bot accounts. Silencing the OS never meant silencing these.
+
+### Delivery routing is per-account and must be explicit
+
+The `maa` reminders had been failing with "Message failed" while the agent
+reported success in its own summary, on at least two occasions. Cause: neither
+job named an `accountId`, so the message tool fell back to a bot that is not a
+member of the target group, and Telegram answered `chat not found`. Only the
+`maa` bot is in `Mother-Daily`; every other configured bot returns 400 for that
+chat id.
+
+**Rule: any cron whose payload sends a message MUST name `channel`, `accountId`
+and `target` explicitly, and must not claim delivery unless the tool confirmed
+it.** The `loz` jobs already did this correctly and are the pattern to copy.
+
+### Four silent failures found underneath, all of the same family
+
+Each ran green for months while doing nothing. They are recorded because the
+*shape* recurs, not because the individual bugs matter.
+
+1. **A PostgREST upsert whose conflict target cannot be inferred.** Kai's
+   `Write Credential Health` had `Prefer: resolution=merge-duplicates` but no
+   `on_conflict` query parameter, and the unique constraint was not the primary
+   key. Every write returned a duplicate-key error for **fifteen weeks** while
+   `onError: continueRegularOutput` swallowed it. `credential_health` therefore
+   sat on "all healthy, last verified 19 May" while Apollo returned 401.
+   Two more of the same class were found in control-center by validating every
+   `onConflict` in the API against the live database with zero-row probes:
+   `system_health(component)` failed because its unique index was **partial**,
+   and `shift_beats` failed because its index was an **expression** index. A
+   partial or expression index cannot be inferred from a plain column list, and
+   supabase-js cannot express the predicate. `system_health` is what Control
+   Center's SystemsPanel reads, so both of its writers had been failing.
+
+2. **A refactor leaving a downstream node reading a dead field.** Guest Scout's
+   insert moved inside a code node that then hardcoded `insert_body: '[]'` as a
+   no-op for the legacy HTTP node. A downstream filter still rebuilt its working
+   list from `insert_body`, so the pitch chain always received zero. **36
+   qualified podcast guests sat at status `scouted` with none pitched since
+   27 May**, against an OS whose second priority is booking guests.
+
+3. **A pipeline wired THROUGH its notification node.** Guest Scout's pitch chain
+   ran `Build Digest -> Telegram -> Split Candidates`. Disabling Telegram
+   severed the last mile. **When silencing a push node, always check what is
+   wired downstream of it.**
+
+4. **A watermark written on failure, destroying its own queue.**
+   `pull_audience_contacts` stamped `synced_to_os_at` on every row it touched,
+   landed or not, while its fetch filters on that column being null. On
+   12 August it consumed all 107 app-DB contacts and produced zero leads, and
+   those contacts could never be retried. Fixed in migration
+   `audience_sync_only_stamp_on_success`; it now stamps only real outcomes and
+   returns `retained_for_retry`.
+
+**The tell, in all four cases: a non-zero "scanned" count beside a zero
+"written" count.** Never trust a heartbeat that does not assert that the
+destination actually moved.
+
+### Also repaired in the same pass
+
+- `Agatha | State of Union Weekly` had failed three weeks running. Two stacked
+  causes: a Google Drive per-minute quota error, and then a target Drive folder
+  id that no longer resolves at all. Google nodes were given retry with backoff
+  and the upload was repointed at the `Agatha` folder
+  (`1JIdyXTnf0zvSUQPg_8oK5F-rI82sQVeV`). Verified producing a real Doc.
+- `Agatha | Weekly Plan Refresh` had failed three weeks running on an
+  unauthorised Telegram node. Disabling that node under the pull-only rule
+  fixed the workflow as a side effect.
+
+### Standing constraint: git and n8n cloud are NOT in parity
+
+`scripts/n8n/` holds **43** workflow snapshots. n8n Cloud has **123**
+workflows, and `audit.mjs` reports **154 drift items**. The README's claim that
+git is the source of truth is currently false in the direction that matters:
+git is not a superset of cloud. **Do not run `sync.sh --apply`** until parity is
+rebuilt; it would overwrite live definitions with stale or missing ones. Every
+n8n change described in this section was therefore made against cloud via the
+REST API.
+
+### Open, and owned by Krish
+
+- **107 audience contacts are wrongly stamped** in the CTRL product DB and need
+  `synced_to_os_at` cleared to replay into `leads`. The OS connection there is
+  read-only by design, which is correct and was not worked around.
+- **Kai marks credentials healthy without live-testing them**, so the table is
+  fresh but still not truthful. It checks that a credential exists, not that it
+  works.
+- **The Apollo key is dead** (401), and **the Full Time `sk_live_` Stripe key is
+  expired**, which is why `System | Stripe Reconciliation | Nightly` fails every
+  night. Revenue truth is stale until it is rotated.
+- **Secrets exposed in a session transcript on 2026-09-06 need rotating:** four
+  Telegram bot tokens, a bot token embedded in a Kai node URL, and a
+  `service_role` key hardcoded in the Guest Scout `Prep Supabase Insert` node.
 
 
 ## 1. Outcomes - what the OS is for
@@ -2672,7 +2832,7 @@ Edit this file when the architecture *genuinely* changes: new agent, new pillar,
 2. **VPS (what agents read on session wake).** `/root/.openclaw/workspace/MINDMAKE_OS_ARCHITECTURE.md`. Per-agent workspaces (`workspace-cleo`, `workspace-ops`, ...) symlink to this canonical copy.
 3. **`mindmake-os` skill, Claude Code.** `C:\Users\krish\.claude\skills\mindmake-os\SKILL.md` (YAML frontmatter + this body).
 4. **`mindmake-os` skill, Cursor.** `C:\Users\krish\.cursor\skills-cursor\mindmake-os\SKILL.md` (same body as #3).
-5. **`mindmake-os` skill on the VPS.** `/root/.openclaw/skills/mindmake-os/SKILL.md` (rendered/synced copy that skill-aware agents on the VPS load).
+5. **`mindmake-os` skill on the VPS.** `/root/.openclaw/skills/mindmaker-os/SKILL.md` (rendered/synced copy that skill-aware agents on the VPS load).
 6. **Google Drive (human-readable mirror).** Infrastructure folder, file id `1F0srFZSS-Nvg2RlUG84zVSvuiN9o8zDc`. Updated **in place by id** by the VPS script `/root/.openclaw/workspace/scripts/sync-to-drive.py` (gog CLI), verified working 2026-07-07; run it after the surface-1-to-5 sync. (The Drive MCP remains create-only, so never try to update this file through MCP; manual drag-drop is only the fallback if the script's gog auth breaks.)
 
 The document BODY (everything below the YAML frontmatter) must be byte-identical across locations 1 through 5. Location 6 (Drive) lags until Krish manually replaces it. The repo is for PR and review; the VPS is what agents actually read on wake; the two skill copies are what Claude Code and Cursor load; Drive is what humans share.
