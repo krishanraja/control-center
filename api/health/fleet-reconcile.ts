@@ -185,7 +185,11 @@ async function reconcile(apiKey: string) {
       notes: `${r.last_error_node ?? 'unknown node'}: ${r.last_error_message ?? ''}`.slice(0, 500),
       next_action: 'Rebind the credential on this node in n8n, then re-run.',
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'credential_name' })
+    // The only unique constraint is credential_health_unique_name_type over
+    // (credential_name, credential_type). Naming just credential_name made
+    // Postgres reject every upsert, which is part of why this table sat
+    // frozen on "all healthy" since May. Verified live 2026-09-06.
+    }, { onConflict: 'credential_name,credential_type' })
   }
 
   // One silent_failures row per broken workflow per day. Re-running the cron
