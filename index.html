@@ -15,42 +15,48 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="/mindmake-mark.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#08070d" />
+    <meta name="theme-color" content="#0a100d" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Mindmaker" />
+    <meta name="apple-mobile-web-app-title" content="Mindmake" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta property="og:image" content="/icon-512.png" />
+    <meta property="og:title" content="Mindmake · Control Center" />
+    <meta property="og:description" content="Decisions without admin. An AI operations command centre." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://control-center-mindmaker.vercel.app/" />
+    <meta property="og:image" content="https://control-center-mindmaker.vercel.app/mindmake-og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Mindmake" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://control-center-mindmaker.vercel.app/mindmake-og.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Mindmaker</title>
-    <meta name="description" content="Decisions, not admin — autonomous operations command center." />
+    <title>Mindmake</title>
+    <meta name="description" content="Decisions without admin. An AI operations command centre." />
     <style>
-      html, body { background: #08070d; }
+      html, body { background: #0a100d; }
       /* Must match --bg-base in src/index.css exactly. This block paints
          before hydration so the page never flashes; when it disagrees with the
          stylesheet it produces the very flash it exists to prevent, which it
-         did: #fbfaf7 here against #f2f1f8 there, two different off-whites on
+         did: two different off-whites across the inline and app styles on
          every light-mode load. */
-      html[data-theme='light'], html[data-theme='light'] body { background: #f2f1f8; }
+      html[data-theme='light'], html[data-theme='light'] body { background: #f2f1ea; }
       /* The gradient must LAND on --bg-base, because the splash now fades
          directly into the app rather than onto a blank screen: any disagreement
          between the two grounds is a visible colour shift at the handoff. This
-         ended on #f4f2ed, a warm cream, against the app's #f2f1f8 lavender.
+         once ended on a different cream from the app ground.
          Same class of bug as the body background above, which the comment there
          records being fixed; the splash's own gradient was missed. */
-      html[data-theme='light'] #brand-splash { background: radial-gradient(120% 90% at 50% 38%, #ffffff 0%, #f2f1f8 62%); }
+      html[data-theme='light'] #brand-splash { background: radial-gradient(120% 90% at 50% 38%, #fbfaf5 0%, #f2f1ea 62%); }
       html[data-theme='light'] #brand-splash .ring { border-color: rgba(20,18,40,0.08); }
-      /* #6354e0 was the light accent before it was muted for paper. The splash
-         cannot read a CSS variable from the stylesheet (it paints first, which
-         is the whole point of it), so the value is duplicated here and has to be
-         kept in step with --accent by hand. */
-      html[data-theme='light'] #brand-splash .particle { background: #6c5fa5; box-shadow: 0 0 14px 3px rgba(108,95,165,0.45); }
-      html[data-theme='light'] #brand-splash img { box-shadow: 0 10px 40px rgba(20,18,40,0.16); }
+      /* The splash paints before the stylesheet, so the paper-theme Mindmake
+         mint is duplicated here and kept in step with --accent by hand. */
+      html[data-theme='light'] #brand-splash .particle { background: #2f6f51; box-shadow: 0 0 14px 3px rgba(47,111,81,0.28); }
+      html[data-theme='light'] #brand-splash img { filter: drop-shadow(0 10px 22px rgba(10,16,13,0.14)); }
       /* Calm & Anticipatory app entry: the mark breathes while a single particle
          orbits it — the system getting ready *for* you — then the whole splash
          exhales (scales up a touch as it fades) to hand off seamlessly to the
@@ -58,7 +64,7 @@
       #brand-splash {
         position: fixed;
         inset: 0;
-        background: radial-gradient(120% 90% at 50% 38%, #16121f 0%, #08070d 62%);
+        background: radial-gradient(120% 90% at 50% 38%, #18241f 0%, #0a100d 62%);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -90,20 +96,17 @@
         height: 7px;
         margin-left: -3.5px;
         border-radius: 9999px;
-        /* Kept in step with --accent / --accent-3 in src/index.css, which were
-           both muted (violet #8B7CF6 -> #8C80C8, cyan #22D3EE -> #76A2B2). The
-           splash was still emitting the old neon pair. */
-        background: #8c80c8;
-        box-shadow: 0 0 14px 3px rgba(140,128,200,0.7), 0 0 22px 6px rgba(118,162,178,0.22);
+        background: #7fe3b4;
+        box-shadow: 0 0 14px 3px rgba(127,227,180,0.42), 0 0 22px 6px rgba(62,142,104,0.18);
       }
       #brand-splash img {
         position: absolute;
         inset: 0;
         margin: auto;
-        width: 76px;
-        height: 76px;
-        border-radius: 20px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+        width: 72px;
+        height: 64px;
+        object-fit: contain;
+        filter: drop-shadow(0 10px 22px rgba(0,0,0,0.45));
         animation: brand-breathe 2.6s ease-in-out infinite;
       }
       @keyframes brand-orbit {
@@ -126,7 +129,7 @@
       <div class="orbit">
         <div class="ring"></div>
         <div class="carrier"><span class="particle"></span></div>
-        <img src="/icon-192.png" alt="Mindmaker" />
+        <img src="/mindmake-mark.svg" alt="Mindmake" />
       </div>
     </div>
     <div id="root"></div>

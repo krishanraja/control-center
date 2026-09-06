@@ -385,6 +385,7 @@ All `api/*` functions auto-deploy on push to `main`.
 | `/api/approvals/*` | Per-resource approval flows |
 | `/api/automations` | Workflow automation status |
 | `/api/bets/*` | Bet placement + close |
+| `/api/content-creators` | Curated-creator registry CRUD (`content_creators`): GET roster, POST add (name + why, LinkedIn URL optional), PATCH edits; retire via `active=false`, never delete |
 | `/api/content-ideas` | Cleo idea backlog read + write (`PATCH` incl. `body`, sanitized) |
 | `/api/content-ideas/:id/materials` | GET/POST/DELETE the piece's research corpus (`meta.materials[]`) |
 | `/api/content-ideas/:id/chat` | Cleo writing-partner chat (multi-turn, grounded in draft + materials) |
@@ -393,6 +394,7 @@ All `api/*` functions auto-deploy on push to `main`.
 | `/api/corrections/*` | Correction-loop endpoints |
 | `/api/customer-contacts/*` | Customer conversation log |
 | `/api/data` | Aggregated dashboard payload |
+| `/api/discover-creator-posts` | The creator scout. Cron (`0 8 * * 2`) + POST backstop, `guardCronRoute`. Scrapes each scrapeable curated creator's recent LinkedIn posts (shared Apify client, `linkedin_profile_posts` category, per-creator `maxTotalChargeUsd` cap), extracts the transferable move per post on Sonnet, and pushes at most 3 gated `creator_move` rows per run into `content_ideas` (brand-fit + beat + novelty gates, open-card governor at 6, live-URL unique index). `?dry=1` runs the full pipeline with no writes; `?creators=N&posts=N` clamp a cheap first run |
 | `/api/feedback` | Routes rejections into `feedback_queue` |
 | `/api/goals` | PATCH only (`team_focus` + goal mutations). GET was retired 2026-08-11 and now 410s; use `/api/goals/ladder` |
 | `/api/revenue` | The two revenue figures: cash collected and committed MRR. Reads the service-role revenue tables |

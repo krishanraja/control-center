@@ -64,6 +64,40 @@ async function mockHome(page: Page, state: 'empty' | 'full') {
       : { this_week: 0, days_since_last: null, return_rate: null, last_ten: [] },
   } }))
 
+  // The scorecard line. Populated in the full state with the widest plausible
+  // digits so the band is measured with real numbers, empty (all zero) on a
+  // cold start.
+  const full = state === 'full'
+  const week = (w: string, v: number[] | null) => ({
+    week_ending: w, frozen_at: v ? new Date().toISOString() : null, plan_sent: v ? 5 : null, variance_note: null,
+    approaches_sent: v ? v[0] : null, calls_taken: v ? v[1] : null, paid_rooms: v ? v[2] : null,
+    cash_invoiced_gbp: v ? v[3] : null, pieces_published: v ? v[4] : null, unasked_hours: v ? v[5] : null,
+    unasked_measured: Boolean(v),
+    override_approaches_sent: null, override_calls_taken: null, override_paid_rooms: null,
+    override_cash_invoiced_gbp: null, override_pieces_published: null, override_unasked_hours: null,
+  })
+  const targets = { approaches_sent: 25, calls_taken: 5, paid_rooms: 1, cash_invoiced_gbp: 15000, pieces_published: 12, unasked_hours: 0 }
+  const totals = full
+    ? { approaches_sent: 13, calls_taken: 2, paid_rooms: 1, cash_invoiced_gbp: 15000, pieces_published: 4, unasked_hours: 12.5 }
+    : { approaches_sent: 0, calls_taken: 0, paid_rooms: 0, cash_invoiced_gbp: 0, pieces_published: 0, unasked_hours: 0 }
+  await page.route('**/api/scorecard*', (r: Route) => r.fulfill({ json: {
+    ok: true,
+    week_ending: '2026-09-25',
+    current: { week_ending: '2026-09-25', approaches_sent: full ? 3 : 0, calls_taken: 0, paid_rooms: 0, cash_invoiced_gbp: 0, pieces_published: 1, unasked_hours: full ? 12.5 : 0, unasked_measured: full, commits: full ? 25 : 0 },
+    weeks: [
+      week('2026-09-11', full ? [5, 1, 0, 0, 1, 0] : [0, 0, 0, 0, 0, 0]),
+      week('2026-09-18', full ? [5, 1, 1, 15000, 2, 0] : [0, 0, 0, 0, 0, 0]),
+      week('2026-09-25', full ? [3, 0, 0, 0, 1, 12.5] : [0, 0, 0, 0, 0, 0]),
+      ...['2026-10-02', '2026-10-09', '2026-10-16', '2026-10-23', '2026-10-30', '2026-11-06', '2026-11-13', '2026-11-20', '2026-11-27'].map(w => week(w, null)),
+    ],
+    targets,
+    totals,
+    gap: { approaches_sent: 25 - totals.approaches_sent, calls_taken: 5 - totals.calls_taken, paid_rooms: 1 - totals.paid_rooms, cash_invoiced_gbp: 15000 - totals.cash_invoiced_gbp, pieces_published: 12 - totals.pieces_published, unasked_hours: totals.unasked_hours },
+    stop_rule: { on: '2026-10-05', reads: 'Fewer than 2 of 25 took a call, or no paid room. The network advantage is not real for this offer.' },
+    day_90: '2026-12-05',
+    unasked_measured: full,
+  } }))
+
   const os = OS_GOALS.map(g => goalRow(g.id, g.title, 'os', null))
   const weekly = state === 'full' ? WEEKLY.map(g => goalRow(g.id, g.title, 'weekly', g.parent)) : []
   await page.route('**/api/goals/ladder*', (r: Route) => r.fulfill({ json: {

@@ -51,7 +51,7 @@ export function MobileFlows() {
   const reload = async () => {
     const [r, p] = await Promise.all([
       supabase.from('workflow_runs').select('*').order('run_at', { ascending: false }).limit(80),
-      supabase.from('workflow_proposals').select('*').eq('status', 'pending').order('created_at', { ascending: false }),
+      supabase.from('workflow_proposals').select('*').in('status', ['proposed', 'pending']).order('created_at', { ascending: false }),
     ])
     const normalized = ((r.data as any[]) || []).map(row => ({
       ...row,

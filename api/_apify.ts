@@ -77,6 +77,10 @@ export interface RunActorOpts {
   /** Apify-side timeout in seconds. Keep well under the function's maxDuration. */
   timeoutSec?: number
   maxItems?: number
+  /** Hard per-run spend ceiling in USD, forwarded as maxTotalChargeUsd. The
+   *  platform aborts the run when the charge reaches it, so a pay-per-event
+   *  actor cannot bill past the cap even if maxItems is mis-set. */
+  maxTotalChargeUsd?: number
   /** At most this many actors are tried before giving up. */
   maxAttempts?: number
   /** Recorded on the ledger row so spend can be attributed. */
@@ -108,6 +112,7 @@ export async function runActor(opts: RunActorOpts): Promise<ApifyRunResult> {
     const actor = slug.replace('/', '~')
     const params = new URLSearchParams({ token, timeout: String(timeoutSec) })
     if (opts.maxItems) params.set('maxItems', String(opts.maxItems))
+    if (opts.maxTotalChargeUsd) params.set('maxTotalChargeUsd', String(opts.maxTotalChargeUsd))
 
     // An AbortController on top of Apify's own timeout: `timeout` bounds the
     // actor run, not the HTTP response, so a stalled connection can still eat

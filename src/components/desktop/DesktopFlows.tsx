@@ -55,9 +55,12 @@ export function DesktopFlows() {
   const [runs, setRuns] = useState<Run[]>([])
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [loading, setLoading] = useState(true)
+  // A proposal's evidence is the reason to read it, so four clamped
+  // lines hid exactly the part that decides the answer.
+  const [expanded, setExpanded] = useState<string | null>(null)
 
   const loadProposals = async () => {
-    const { data } = await supabase.from('workflow_proposals').select('*').eq('status', 'pending').order('created_at', { ascending: false })
+    const { data } = await supabase.from('workflow_proposals').select('*').in('status', ['proposed', 'pending']).order('created_at', { ascending: false })
     setProposals((data as any) || [])
   }
 
@@ -65,7 +68,7 @@ export function DesktopFlows() {
     const load = async () => {
       const [r, p] = await Promise.all([
         supabase.from('workflow_runs').select('*').order('run_at', { ascending: false }).limit(50),
-        supabase.from('workflow_proposals').select('*').eq('status', 'pending').order('created_at', { ascending: false }),
+        supabase.from('workflow_proposals').select('*').in('status', ['proposed', 'pending']).order('created_at', { ascending: false }),
       ])
       // Legacy rows may carry the owner on `agent` instead of `agent_id`.
       // Backfill in the client so workflow→agent attribution is not lost.
@@ -214,7 +217,7 @@ export function DesktopFlows() {
 
         {proposals.length === 0 ? (
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] p-10 md:p-12 text-center">
-            <p className="text-sm md:text-body text-white/50 font-medium">No pending proposals.</p>
+            <p className="text-sm md:text-body text-white/50 font-medium">Nothing waiting on you.</p>
             <p className="text-xs md:text-label text-white/30 mt-1">Agents will surface improvement suggestions here.</p>
           </div>
         ) : (
@@ -223,13 +226,34 @@ export function DesktopFlows() {
               <article key={p.id} className="rounded-xl border border-violet-500/25 bg-gradient-to-br from-violet-500/[0.06] via-violet-500/[0.02] to-transparent p-4 md:p-5 space-y-3">
                 <header>
                   <p className="text-sm md:text-ui font-semibold text-white leading-snug">{p.title}</p>
-                  {p.proposal_type && (
-                    <span className="inline-block mt-1.5 text-micro text-violet-300 bg-violet-500/15 border border-violet-500/25 rounded-full px-2 py-0.5 font-medium">
-                      {humanize(p.proposal_type)}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                    {p.agent_id && (
+                      <span className="inline-block text-micro text-white/60 bg-white/[0.06] border border-white/[0.08] rounded-full px-2 py-0.5 font-medium">
+                        {p.agent_id}
+                      </span>
+                    )}
+                    {p.proposal_type && (
+                      <span className="inline-block text-micro text-violet-300 bg-violet-500/15 border border-violet-500/25 rounded-full px-2 py-0.5 font-medium">
+                        {humanize(p.proposal_type)}
+                      </span>
+                    )}
+                  </div>
                 </header>
-                {p.description && <p className="text-xs md:text-label text-white/55 leading-relaxed line-clamp-4">{p.description}</p>}
+                {p.description && (
+                  <div>
+                    <p className={`text-xs md:text-label text-white/55 leading-relaxed whitespace-pre-line ${expanded === p.id ? '' : 'line-clamp-4'}`}>
+                      {p.description}
+                    </p>
+                    {p.description.length > 240 && (
+                      <button
+                        onClick={() => setExpanded(expanded === p.id ? null : p.id)}
+                        className="mt-1 text-micro text-violet-300 hover:text-violet-200 transition-colors"
+                      >
+                        {expanded === p.id ? 'Show less' : 'Read all of it'}
+                      </button>
+                    )}
+                  </div>
+                )}
                 {(typeof p.estimated_savings_monthly === 'number' || typeof p.estimated_cost_monthly === 'number') && (
                   <div className="flex items-center gap-3 text-micro md:text-label tabular-nums pt-1">
                     {typeof p.estimated_savings_monthly === 'number' && (

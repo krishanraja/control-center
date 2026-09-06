@@ -16,6 +16,29 @@
 
 MarketAux, Brave, and NewsAPI are not implemented collector evidence.
 
+## Property providers (weekly, `compound/pipeline/property/`)
+
+| Feed | Evidence | Cost | Cadence | Limitation |
+|---|---|---|---|---|
+| Ledger sheet (Google service account, tab by gid) | Every cost and rent row, mirrored read-only into `property_ledger` | free | weekly | Header must match the eight ledger columns or the sync stops |
+| RBA F1 | Cash rate target, month end | free | weekly | Context only; the loan's own rate is a manual fact |
+| RTA Queensland median rents | Median weekly rent by postcode, dwelling type, bedrooms, quarterly | free | quarterly | Workbook link moves each quarter; site may reset connections, run goes partial and keeps last quarter |
+| Domain Developer API | Asking rents (25th, median, 75th), listing counts, sold prices and median sold for two bed units per postcode | free tier | weekly | Requires the Agencies and Listings and Properties and Locations packages on the project; aggregates only are stored; "Powered by Domain" shown |
+| Manual observations | Building sales and any hand-entered market fact | free | as entered | Owner supplies source URL and date |
+
+Paid fallbacks not approved: PropRadar Hobby (A$49 a month) or an Apify realestate.com.au actor, both pluggable as another observation source.
+
+## Spend providers (daily, `compound/pipeline/spend/`)
+
+| Provider | What it gives | Cost | Access | Failure mode |
+|---|---|---|---|---|
+| RBA F11.1 | Daily A$1 = USD, EUR, GBP rates back to 2023 | Free, no key | Public CSV | Run partial; unpriced rows counted, not guessed |
+| Bills sheet | Every bill and receipt the Gmail skill wrote, tab by gid, range A:N | Free | Google service account, Viewer | Header drift stops the sync; run partial |
+| Control Center invoices | `public.spend_invoices`, one label, daily | Free | Service role, GET only via `readPublic` | Run partial; sheet rows still count |
+| Control Center meter | `public.meter_daily`, trailing 90 days | Free | Service role, GET only | Operating system section says the meter is silent |
+| Control Center registry | `public.service_registry` vendor needles and cycle budgets | Free | Service role, GET only | Scope falls back to aliases and overrides |
+| Property ledger | `compound.property_ledger` rows with direction out | Free | Same schema | Property scope empty until the property run has synced |
+
 ## Production proof
 
 - Workflow `31533242283` published two immutable captured rows for 2026-08-11 on attempt one.

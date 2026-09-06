@@ -1,5 +1,80 @@
 # Purpose Workbook: who Krish is, and what he actually wants
 
+**Version 4, 5 September 2026.** Distilled from `Krish_Master_Ikigai_2026_v4`
+(Google Sheet: Master Ikigai, Mindmake Positioning, CTRL Evolution, Control
+Center Evolution, and appendices A to D holding all 138 ranked answers). Built
+from batch one (8 Aug), batch two (11 Aug) and rounds 1 to 12 (5 Sep). Where v4
+and the v3 material below disagree, v4 wins, because it was answered after
+seeing everything before it.
+
+The app-facing slice lives in `src/content/focusTheory.ts` (the purpose lines,
+the decision rules v2). Edit here first, then reflect there. The API-facing
+slice lives in `api/_mission.ts` (the mission, the face, the door, the five
+jobs). The two must say the same thing.
+
+---
+
+## 0. The ikigai (v4)
+
+| Element | Statement | Status |
+|---|---|---|
+| Purpose | I see what is coming before it is obvious and make it legible to people while it still counts. | Locked 5 Sep 2026 |
+| Mission (the decade) | Build the company that gives leaders their edge back before what is coming takes it, and sell it at scale with my name on it. | Working. Passes when said to someone respected without hedging (R12.6). |
+| The face | A senior leader who will not admit to anyone that they are not ready for what is happening. | Locked |
+| The word | Edge. What the person keeps. | Locked |
+| The form | A builder who builds in public, with a partner, and sells what he built. The body of work is the demand engine, the fund is the endgame, neither is the mission. | Locked |
+| The enemy | Fear and noise that stop capable people acting on what is already happening. | Locked |
+| The binding | A partner or co-founder who owns the selling or polices it weekly, plus an autonomous engine underneath, with enough evolution that he does not get bored. | Open. No partner exists yet. |
+| The proof at ten years | What the company is worth, sold or held. Second: leaders who acted earlier because of him and will say so. | Locked |
+| Protected, not in the work | Music and football. | Locked |
+
+## 0.1 What v4 changed in the profile
+
+| Old reading (v3) | New reading (v4) | Consequence |
+|---|---|---|
+| If it needs him to say the same thing twice, it is wrong | The drain is teaching people who do not want to learn. Repetition to a hungry room was his best day. | Keynotes, cohorts and repeat rooms are back. Products for people being pushed stay off. |
+| Running out of money is the least painful failure | Money is the thing keeping him up at night and the first thing to solve. | Rule 3 (pay inside 90 days) is load bearing. |
+| Builder identity | Building is his love and his fire. Building alone and in private is the failure mode. | Build only in public and only what a paid room asked for. |
+| Displaced workers as the five year problem | Sequenced, not merged. Operators and leaders pay now; the displaced are what the decade is for. | Track 2 parked. Benevolence is funded by the seat. |
+| Public voice as the number one regret | Publishing is the demand engine and the weakest binding. | Publish to fill the room. Do not mistake publishing for the swing. |
+| Portfolio of ventures | One swing with ten things inside it. | Every task on the calendar sits under the one company. |
+
+## 0.2 Decision rules v2. Anything proposed gets tested against these first
+
+1. If the learner is being pushed rather than pulled, it is wrong.
+2. If it needs cold outbound, it will not happen. Warm intros, the room, and published thinking only.
+3. If it does not pay inside 90 days, it cannot be the main thing. Load bearing.
+4. If he is alone in it, expect it to stall. A partner who owns or polices selling is a precondition.
+5. If it only produces income and never ownership, it is a job with extra steps.
+6. If it is built in private, it is hiding. Every build is announced, shown, or sold before it is finished.
+7. If it does not put a leader's edge back, it is off mission.
+8. Music and football are protected. They enter the work only after it runs without him.
+
+## 0.3 The twelve month commitment and the stop rule
+
+- Hold the mission from 7 Sep 2026 to 6 Sep 2027 as the only swing. Rerun R12.1 cold on 12 Sep 2026; formal reviews at 90 days (5 Dec 2026) and 12 months.
+- Stop rule, read on 5 Oct 2026: fewer than 2 of 25 leaders take a call, or no paid room. That means the network advantage is not real for this offer.
+- Say it before you sell it: purpose and mission said out loud, unhedged, to one person he respects.
+- Find the binding by 31 Oct 2026. No partner by then: hire the accountability rather than continue solo.
+
+## 0.4 Ninety day plan and scorecard
+
+Room first, company second, raise third. Twelve week scorecard, weeks ending Fridays from 11 Sep to 27 Nov 2026: approaches sent, calls taken, paid rooms, cash invoiced (GBP), pieces published, hours building unasked. Targets by day 90: 25, 5, 1, 15000, 12, 0. Hours building unasked is the Rule 6 tripwire; its target is zero.
+
+## 0.5 Kill, park, double down
+
+- Kill: Track 2 (the displaced worker media property); the fund as a route.
+- Park: the job search; the OS as a product.
+- Double down: the room (the confidential diagnostic for a leader at a fork); keynotes and the podcast as the demand engine; CTRL redefined as what the leader keeps after the room.
+
+## 0.6 What the Control Center is for under v4
+
+The engine under one swing. Five jobs in priority order: fill the room, keep him honest, run the room, feed the demand engine, keep the edge. Gates: G1 jobs 1 and 2 now; G2 job 3 when the first room is booked; G3 job 5 when two leaders ask to keep it; G4 any new agent only when a paying leader asks in writing. The full reconciliation is `docs/plans/one-swing/CHARTER.md` and `docs/DECISIONS/016-ikigai-v4-one-swing.md`.
+
+---
+
+# Version 3 material (6 to 11 August 2026), kept as history
+
 Distilled from `Krish scoring workbook 2026 v3 (mindmaker and ikigai).xlsx`
 (prepared 6–11 August 2026, companion to KRISH-PORTFOLIO-DECISION-2026.md).
 This document is the committed, durable form of that workbook's ikigai and

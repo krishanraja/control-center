@@ -17,20 +17,29 @@ export interface Lane {
   tag: string
   primaryVenture: 'mindmake' | 'signal_noise' | 'builder_economy'
   dims: Record<string, number>
+  /** Parked under the one swing (2026-09-06): still scored for the record,
+   *  never the best lane, never earns a tag. docs/DECISIONS/016. */
+  parked?: boolean
 }
 
 export const LANES: Lane[] = [
+  // The face (Master Ikigai v4, 5 Sep 2026): a senior leader who will not
+  // admit to anyone that they are not ready for what is happening, at a PE or
+  // VC backed media, adtech or data business Krish already knows. This lane
+  // is the door this quarter; every other buyer lane is context.
+  { key: 'room_face', tag: 'room_face', primaryVenture: 'mindmake',
+    dims: { seniority_fit: 0.30, sector_fit: 0.25, backed_by_pe_vc: 0.15, warm_path: 0.20, exposure_to_what_is_coming: 0.10 } },
   { key: 'mindmake', tag: 'mindmake_buyer', primaryVenture: 'mindmake',
     dims: { role_fit: 0.30, intent_signals: 0.25, ai_fluency_gap: 0.20, budget_signal: 0.15, audience_overlap: 0.10 } },
-  { key: 'fractional_network', tag: 'fractional_network', primaryVenture: 'mindmake',
+  { key: 'fractional_network', tag: 'fractional_network', primaryVenture: 'mindmake', parked: true,
     dims: { role_fit: 0.30, referral_reach: 0.25, ai_delivery_fit: 0.20, independence_signal: 0.15, audience_overlap: 0.10 } },
   { key: 'signal_noise', tag: 'signal_noise_guest', primaryVenture: 'signal_noise',
     dims: { narrative_strength: 0.35, novelty: 0.25, audience_pull: 0.20, availability_signal: 0.10, krish_curiosity: 0.10 } },
   { key: 'builder_economy', tag: 'builder_economy_guest', primaryVenture: 'builder_economy',
     dims: { leverage_score: 0.35, ship_cadence: 0.25, infra_thesis: 0.20, audience_pull: 0.10, krish_curiosity: 0.10 } },
-  { key: 'mm_ctrl_buyer', tag: 'mm_ctrl_buyer', primaryVenture: 'mindmake',
+  { key: 'mm_ctrl_buyer', tag: 'mm_ctrl_buyer', primaryVenture: 'mindmake', parked: true,
     dims: { decision_load: 0.30, seniority_fit: 0.25, ai_curiosity: 0.20, budget_signal: 0.15, reachability: 0.10 } },
-  { key: 'ecosystem_partner', tag: 'ecosystem_partner', primaryVenture: 'mindmake',
+  { key: 'ecosystem_partner', tag: 'ecosystem_partner', primaryVenture: 'mindmake', parked: true,
     dims: { channel_leverage: 0.35, audience_overlap: 0.25, collaboration_fit: 0.20, reachability: 0.10, krish_curiosity: 0.10 } },
 ]
 
@@ -83,6 +92,7 @@ function buildScoringPrompt(p: ApolloEnriched, webContext?: string): { system: s
     'Score one prospect against every lane. For EACH lane, score EACH listed dimension 0-100 strictly from the record below.',
     'Be conservative: if a signal is absent from the record, that dimension is LOW (10-30), never invented. High scores (80+) require explicit evidence.',
     'CRITICAL for the BUYER lanes (mindmake, mm_ctrl_buyer): the prospect must be a BUYER, not a seller. If their employer is itself an AI/software vendor (company name contains "AI", or industry is software / IT services / artificial intelligence), they are the supply side — score mindmake and mm_ctrl_buyer 25 or below.',
+    'Lane room_face = THE FACE: a senior leader (CEO, founder, MD, CCO, CRO, GM or equivalent) at a PE or VC backed media, adtech, publishing or data business, who is quietly behind on what is coming and cannot say so inside their organisation. seniority_fit = how senior and how much they decide where the money goes; sector_fit = media, adtech, publishing, data, martech; backed_by_pe_vc = evidence the company has outside investors; warm_path = prior contact with Krish or a shared employer, client or city; exposure_to_what_is_coming = their business model is the kind AI is already changing (advertising, content, data licensing). A vendor selling AI tools scores low on this lane too.',
     'Lanes: mindmake = AI-ADOPTION buyers: senior operators or dedicated AI/transformation leaders INSIDE non-vendor operating companies who need help adopting AI. fractional_network = fractional execs / independent advisors who actually DELIVER AI work (referral + co-delivery + buyers); a generic fractional CMO with no AI signal scores low. signal_noise = podcast GUESTS who are credible AI-in-media voices. builder_economy = podcast GUESTS doing something that was IMPOSSIBLE BEFORE AI (a tiny team shipping what used to take many, a net-new AI-native product, novel craft) with real audience/traction; a junior AI engineer at a dev shop scores low. mm_ctrl_buyer = leaders at NON-AI operating companies (manufacturing, healthcare, logistics, professional services, retail) with high decision load who would buy an external decision-clarity product; leaders at AI/software companies score low (they build their own). ecosystem_partner = startup accelerators / VC platforms / communities (NOT government or nonprofit programs) who can channel many buyers or guests.',
     'Return ONLY strict JSON, no prose, no code fences.',
   ].join(' ')
@@ -151,11 +161,13 @@ export async function scoreProspect(p: ApolloEnriched, opts: { webContext?: stri
     dimension_breakdown[lane.key] = brk
   }
 
-  // Best lane + tags (every lane clearing tier-C earns its tag).
-  let best = LANES[0]
-  for (const lane of LANES) if (icp_scores[lane.key] > icp_scores[best.key]) best = lane
+  // Best lane + tags (every live lane clearing tier-C earns its tag). Parked
+  // lanes keep their score in the breakdown but never decide the tier.
+  const live = LANES.filter(l => !l.parked)
+  let best = live[0]
+  for (const lane of live) if (icp_scores[lane.key] > icp_scores[best.key]) best = lane
   const best_score = icp_scores[best.key]
-  const tags = LANES.filter(l => icp_scores[l.key] >= TIER_C).map(l => l.tag)
+  const tags = live.filter(l => icp_scores[l.key] >= TIER_C).map(l => l.tag)
   if (!tags.includes(best.tag)) tags.unshift(best.tag)
 
   const tier: 'A' | 'B' | 'C' = best_score >= TIER_A ? 'A' : best_score >= TIER_B ? 'B' : 'C'

@@ -15,6 +15,9 @@ export type IdeaSourceType =
   | 'synthesis'
   /** Cleo | Content Lane Sourcing drafts (was mislabeled inspiration_sweep until 2026-07-27). */
   | 'lane_sourcing'
+  /** A transferable move scraped from a curated creator's LinkedIn post, with
+   *  Krish's differentiated take (api/discover-creator-posts.ts). */
+  | 'creator_move'
 
 export type IdeaState =
   | 'seeded'
@@ -130,6 +133,21 @@ export interface ContentIdeaRow {
     adjacent_stories?: Array<{ title: string; url: string; published_date_iso?: string; why_relevant?: string }> | null
     evidence_present?: string[] | null
     source_label?: string | null
+    // Creator attribution: written by the creator scout for creator_move rows
+    // and by the inspiration sweep for LinkedIn-screenshot seeds.
+    poster_name?: string | null
+    poster_handle?: string | null
+    creator_slug?: string | null
+    /** The transferable move extracted from the source post (creator scout). */
+    move?: {
+      hook_type?: string | null
+      structure?: string | null
+      named_concept?: string | null
+      proof_pattern?: string | null
+      cta_type?: string | null
+    } | null
+    krish_angle?: string | null
+    why_it_works?: string | null
     connected_threads?: Array<{ type: 'content_idea' | 'zara_signal' | 'inspiration_doc'; id?: string; name?: string; title?: string }> | null
     falsifiable_test?: string | null
     named_entities?: string[] | null
@@ -139,7 +157,7 @@ export interface ContentIdeaRow {
     sources?: string[] | null
     deep_dives?: Array<{ query: string; findings: string; citations?: string[]; at: string }> | null
     visual_suggestion?: string | null
-    generated_by?: 'transform' | null
+    generated_by?: 'transform' | 'creator_scout' | null
     // Content Engine layer (revise / challenge / score / push-to-cleo).
     revisions?: Array<{ mode: string; value?: string | null; instruction?: string | null; at: string; chars?: number }> | null
     challenges?: Array<{

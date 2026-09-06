@@ -204,7 +204,7 @@ export function SkillForge() {
               onChange={e => setTranscript(e.target.value)}
               placeholder={PLACEHOLDER_TRANSCRIPT}
               rows={8}
-              className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40 resize-y"
+              className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40 resize-y"
             />
             <span className="text-micro text-white/30 mt-1 block">
               {transcript.length} chars · need 20+
@@ -218,7 +218,7 @@ export function SkillForge() {
                 value={clientName}
                 onChange={e => setClientName(e.target.value)}
                 placeholder="e.g. Acme Co"
-                className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40"
+                className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40"
               />
             </label>
             <label className="block">
@@ -228,7 +228,7 @@ export function SkillForge() {
                 onChange={e => setClientEmail(e.target.value)}
                 placeholder="ceo@acme.com"
                 type="email"
-                className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40"
+                className="mt-1.5 w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40"
               />
             </label>
           </div>
@@ -246,7 +246,7 @@ export function SkillForge() {
               onChange={e => setAdditionalContext(e.target.value)}
               rows={4}
               placeholder="Extra notes, internal docs, examples…"
-              className="w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40 resize-y"
+              className="w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-white/85 placeholder-white/25 focus:outline-none focus:border-violet-500/40 resize-y"
             />
           )}
 

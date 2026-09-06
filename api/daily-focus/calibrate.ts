@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { supabase } from '../_supabase.js'
+import { isJob } from '../_mission.js'
 
 // POST /api/daily-focus/calibrate
 //   Body: { date, targets: [{ text, source, replaced_marcus_pick? }] }
@@ -21,6 +22,8 @@ interface InputTarget {
   concept_id?: string | null
   /** Optional canon link: the weekly goal this pick serves (goals.id). */
   goal_id?: string | null
+  /** Which of the five jobs of the OS this pick serves (api/_mission.ts). */
+  job?: string | null
   replaced_marcus_pick?: Record<string, unknown> | null
 }
 
@@ -54,6 +57,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!['marcus_nominated', 'krish_swapped', 'krish_added'].includes(t.source)) {
       return res.status(400).json({ ok: false, error: `targets[${i}].source invalid` })
     }
+    if (t.job != null && !isJob(t.job)) {
+      return res.status(400).json({ ok: false, error: `targets[${i}].job invalid` })
+    }
   }
 
   const row: Record<string, unknown> = {
@@ -71,6 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // column lands with the home-canon migration; a bad id resolves to null
     // via the FK's ON DELETE rather than failing the lock.
     row[`target_${n}_goal_id`] = t.goal_id || null
+    row[`target_${n}_job`] = t.job || null
     row[`target_${n}_replaced_marcus_pick`] = t.replaced_marcus_pick || null
   })
 

@@ -58,7 +58,7 @@ export function DeskFrame({ tab, onTab, onSettings, onHistory, generated, demo, 
             <span aria-hidden="true"><span className="navname">Settings</span></span>
             <span className="key" aria-hidden="true" />
           </button>
-        <p className="railnote">Press 1 to 4 to move between sections.</p>
+        <p className="railnote">Press 1 to {SECTION_ORDER.length} to move between sections.</p>
         </div>
       </nav>
 

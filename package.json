@@ -6,16 +6,17 @@
   "scripts": {
     "dev": "vite",
     "build": "npx vite build",
+    "brand:icons": "tsx scripts/generate-mindmake-icons.mts",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "typecheck:api": "tsc --noEmit -p tsconfig.api.json",
     "preview": "vite preview",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json"
   },
   "dependencies": {
-    "@fontsource-variable/bricolage-grotesque": "^5.2.10",
-    "@fontsource-variable/fraunces": "^5.2.9",
-    "@fontsource-variable/geist": "^5.2.9",
-    "@fontsource-variable/geist-mono": "^5.2.8",
+    "@fontsource-variable/archivo": "^5.2.8",
+    "@fontsource-variable/newsreader": "^5.2.8",
+    "@fontsource-variable/source-serif-4": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.24",
     "@radix-ui/react-popover": "^1.1.15",

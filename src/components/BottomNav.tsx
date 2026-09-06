@@ -5,6 +5,7 @@ import { ThemeToggle } from './shared/ThemeToggle'
 import { TimezoneToggle } from './shared/TimezoneToggle'
 import { MOBILE_PRIMARY_TABS, MOBILE_DRAWER_TABS, type TabDef } from '../lib/tabs'
 import { Dialog, DialogContent, DialogSrTitle } from '@/components/ui/dialog'
+import { useReducedMotion } from './shared/motion'
 
 interface Props {
   active: string
@@ -30,18 +31,19 @@ export function BottomNav({ active, onChange }: Props) {
   const h = useHaptics()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const ultraNarrow = useNarrowViewport(360)
+  const reducedMotion = useReducedMotion()
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50">
-        <div className="absolute inset-0 bg-base/80 backdrop-blur-2xl border-t border-white/[0.06]" />
-        <div className="relative flex items-stretch pb-safe px-1">
+      <nav aria-label="Primary" className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-[max(10px,env(safe-area-inset-bottom))] pointer-events-none">
+        <div className="relative flex items-stretch overflow-hidden rounded-2xl border border-white/[0.10] bg-command-surface shadow-e3 pointer-events-auto">
           {MOBILE_PRIMARY_TABS.map(tab => (
             <NavButton
               key={tab.id}
               tab={tab}
               active={active === tab.id}
               ultraNarrow={ultraNarrow}
+              reducedMotion={reducedMotion}
               onClick={() => { h.select(); onChange(tab.id) }}
             />
           ))}
@@ -49,7 +51,7 @@ export function BottomNav({ active, onChange }: Props) {
             <button
               onClick={() => { h.select(); setDrawerOpen(true) }}
               aria-label="More"
-              className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[72px] sm:min-h-[76px] text-white/55"
+              className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 min-h-[68px] sm:min-h-[72px] text-muted ${reducedMotion ? '' : 'transition-all duration-200 active:scale-95'}`}
             >
               <MoreHorizontal size={24} />
               <span className="text-label font-medium leading-none tracking-tight">More</span>
@@ -69,7 +71,7 @@ export function BottomNav({ active, onChange }: Props) {
   )
 }
 
-function NavButton({ tab, active, ultraNarrow: _ultraNarrow, onClick }: { tab: TabDef; active: boolean; ultraNarrow?: boolean; onClick: () => void }) {
+function NavButton({ tab, active, ultraNarrow: _ultraNarrow, reducedMotion, onClick }: { tab: TabDef; active: boolean; ultraNarrow?: boolean; reducedMotion: boolean; onClick: () => void }) {
   const Icon: LucideIcon = tab.mobileIcon
   // Always prefer mobileShortLabel when set: at the 5-tab + More layout, even
   // a 390px iPhone truncates "Subscriptions" to "Subscripti...". The short
@@ -79,25 +81,26 @@ function NavButton({ tab, active, ultraNarrow: _ultraNarrow, onClick }: { tab: T
     <button
       onClick={onClick}
       aria-label={tab.label}
-      className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 transition-all duration-200 active:scale-95 min-h-[72px] sm:min-h-[76px] ${
-        active ? 'text-white' : 'text-white/55'
-      }`}
+      aria-current={active ? 'page' : undefined}
+      className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-0.5 pt-2 pb-1.5 min-h-[68px] sm:min-h-[72px] ${
+        reducedMotion ? '' : 'transition-all duration-200 active:scale-95'
+      } ${active ? 'text-accent' : 'text-muted'}`}
     >
-      <div className={`relative transition-transform duration-200 ${active ? 'scale-110' : 'scale-100'}`}>
+      <div className={`relative ${reducedMotion ? '' : `transition-transform duration-200 ${active ? 'scale-110' : 'scale-100'}`}`}>
         {active && (
-          <span aria-hidden className="absolute inset-0 rounded-full bg-violet-500/30 blur-md scale-[1.7]" />
+          <span aria-hidden className="absolute -inset-2 rounded-lg border border-violet-400/15 bg-violet-500/[0.12]" />
         )}
         <Icon
           size={24}
-          className={`relative transition-colors ${active ? 'text-violet-200' : ''}`}
+          className={`relative ${reducedMotion ? '' : 'transition-colors'} ${active ? 'text-accent' : ''}`}
           strokeWidth={active ? 2.25 : undefined}
         />
       </div>
-      <span className={`w-full text-center text-label font-medium leading-none tracking-tight truncate transition-colors ${active ? 'text-violet-200' : ''}`}>
+      <span className={`w-full text-center text-label font-medium leading-none tracking-tight truncate ${reducedMotion ? '' : 'transition-colors'} ${active ? 'text-accent' : ''}`}>
         {label}
       </span>
       {active && (
-        <span aria-hidden className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[2px] bg-gradient-to-r from-transparent via-violet-400 to-transparent rounded-full" />
+        <span aria-hidden className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[2px] bg-violet-400 rounded-full shadow-[0_0_14px_rgba(127,227,180,.34)]" />
       )}
     </button>
   )

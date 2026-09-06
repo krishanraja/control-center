@@ -58,7 +58,7 @@ export function useRulingPrompts() {
               onChange={e => setNote(e.target.value)}
               rows={4}
               placeholder="What should the agent change?"
-              className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-body text-white/85 focus:outline-none focus:border-white/25 resize-none"
+              className="w-full bg-sunk border border-white/10 rounded-xl px-3 py-2 text-body text-white/85 focus:outline-none focus:border-white/25 resize-none"
             />
             <div className="flex justify-end gap-2">
               <button onClick={() => settle(null)} className="px-3 py-1.5 rounded-lg text-label border border-white/10 text-white/55 hover:text-white/80">Cancel</button>

@@ -6,7 +6,7 @@ export type CheckinKind = 'morning' | 'evening'
 export type ShipSource = 'manual' | 'webhook'
 
 /** The fixed channel list. A ship left the machine through exactly one of these. */
-export const SHIP_CHANNELS = ['email', 'publish', 'invoice', 'ask', 'campaign', 'other'] as const
+export const SHIP_CHANNELS = ['email', 'publish', 'invoice', 'ask', 'approach', 'campaign', 'other'] as const
 export type ShipChannel = (typeof SHIP_CHANNELS)[number]
 
 export interface PilotCheckin {

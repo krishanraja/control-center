@@ -12,7 +12,7 @@
 |---|---|
 | [`PRODUCT.md`](./PRODUCT.md) | Per-tab product spec: what each surface is for, what it reads/writes, behaviour rules, SLAs |
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Control Center's engineering contract: data flows, Vercel quirks, SSOT rules |
-| [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | "Obsidian Aurora" — themes, tokens, typography, material, motion, haptics, shared primitives |
+| [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | Mindmake Instrument Room: identity, themes, type roles, material, motion, haptics and shared primitives |
 | [`AGENTS.md`](./AGENTS.md) | Agent roster, slug-as-key rule, taxonomy, lifecycle, manual trigger flow |
 | [`DATABASE.md`](./DATABASE.md) | Supabase tables, relationships, RLS posture |
 | [`DB_HEALTH.md`](./DB_HEALTH.md) | DB health snapshot, security remediation applied, migration-ledger notes |

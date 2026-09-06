@@ -56,7 +56,7 @@ export function AllClear({ title, sub, nextHint, tone = 'emerald' }: Props) {
           </div>
         </div>
         <p className="text-title font-serif text-white/92 tracking-tight">{title}</p>
-        {sub && <p className="text-body text-white/45 mt-2 max-w-[18rem] leading-relaxed">{sub}</p>}
+        {sub && <p className="font-body text-body text-muted mt-2 max-w-[18rem] leading-relaxed">{sub}</p>}
       </div>
     )
   }
@@ -72,7 +72,7 @@ export function AllClear({ title, sub, nextHint, tone = 'emerald' }: Props) {
         </div>
       </div>
       <p className="text-title font-serif text-white/92 tracking-tight">{title}</p>
-      {sub && <p className="text-label text-white/45 mt-1.5 max-w-[22rem] leading-relaxed">{sub}</p>}
+      {sub && <p className="font-body text-label text-muted mt-1.5 max-w-[22rem] leading-relaxed">{sub}</p>}
       {nextHint && (
         <button
           type="button"

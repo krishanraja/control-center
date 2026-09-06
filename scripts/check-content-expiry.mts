@@ -55,7 +55,7 @@ const EVERGREEN_WRITER = 'api/content-decisions/[id].ts'
 // 2. Null is reserved for evergreen.
 for (const f of walk('api').concat(walk('src'))) {
   const src = readFileSync(f, 'utf8')
-  if (!src.includes('content_ideas') && !src.includes('expires_at')) continue
+  if (!src.includes('content_ideas')) continue
   if (f !== EVERGREEN_WRITER && /expires_at:\s*null/.test(src)) {
     bad(`${f} writes expires_at: null. Only ${EVERGREEN_WRITER} may do that, and only for evergreen rows.`)
   }

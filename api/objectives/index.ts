@@ -3,6 +3,7 @@ import { supabase } from '../_supabase.js'
 import { syncNorthStar } from '../_northStar.js'
 import { gateGoal, type Horizon } from '../_goalGate.js'
 import { logGoalChange } from '../_goals.js'
+import { isJob } from '../_mission.js'
 
 // Objective Layer, Phase 4.
 // GET  /api/objectives           list active objectives (plus optional nominations)
@@ -32,6 +33,8 @@ interface CreateBody {
   override?: boolean
   /** Required for every horizon except 'os': what this goal serves. */
   parent_id?: string | null
+  /** Which of the five jobs of the OS this serves (api/_mission.ts). */
+  job?: string | null
 }
 
 const ALLOWED_HORIZON = new Set(['os', 'weekly'])
@@ -69,6 +72,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (body.status && !ALLOWED_STATUS.has(body.status)) {
       return res.status(400).json({ ok: false, error: 'invalid status' })
     }
+    if (body.job != null && !isJob(body.job)) {
+      return res.status(400).json({ ok: false, error: `unknown job '${body.job}'` })
+    }
     const row: Record<string, unknown> = {
       id: body.id.trim(),
       title: body.title.trim(),
@@ -90,6 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // how rows end up belonging to no surface.
       horizon: body.horizon,
       parent_id: body.parent_id || null,
+      job: body.job || null,
     }
     if (!ALLOWED_HORIZON.has(body.horizon as string)) {
       return res.status(400).json({ ok: false, error: "horizon required: 'os' or 'weekly'" })

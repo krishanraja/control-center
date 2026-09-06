@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from '@/lib/icons'
 import { DrawnCheck } from '../shared/DrawnCheck'
 import type { useContentV2 } from '../../hooks/useContentV2'
@@ -9,6 +9,15 @@ import { useLikelyReasons } from '../../hooks/useLikelyReasons'
 import { RejectReasonBar } from '../shared/RejectReasonBar'
 import { Skeleton } from '../shared/Skeleton'
 import { useToast } from '../shared/Toast'
+import { useReducedMotion } from '../shared/motion'
+import {
+  VIDEO_GATE_LABEL,
+  VIDEO_SERIES_LABEL,
+  rememberVideoStudioReturnFocus,
+  videoStudioListItemIsWellFormed,
+  type VideoStudioReviewListItem,
+} from '../../lib/videoStudio'
+import { VideoBrandLockup } from '../video-studio/VideoBrandLockup'
 
 // The whole mobile job (mockup set 2, pin 11): the week's finite decision
 // queue, one card at a time, every action in the bottom thumb zone. Finishable
@@ -58,11 +67,26 @@ function Big({ children, tone = 'ghost', onClick, disabled }: {
   )
 }
 
-export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2> }) {
+type DeckItem =
+  | { type: 'content'; id: string; decision: ContentDecisionRow }
+  | { type: 'video'; id: string; review: VideoStudioReviewListItem }
+
+export function MobileDecisionDeck({
+  v2,
+  videoReviews = [],
+  videoLoading = false,
+  videoQueueError = false,
+}: {
+  v2: ReturnType<typeof useContentV2>
+  videoReviews?: VideoStudioReviewListItem[]
+  videoLoading?: boolean
+  videoQueueError?: boolean
+}) {
   const { decisions, brief, loading } = v2
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(0)
   const { toast } = useToast()
+  const reducedMotion = useReducedMotion()
 
   // Where the browse sits in the queue. Navigation moves it; deciding a card
   // removes the card under it and the position clamps to the survivor.
@@ -76,12 +100,46 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   const [swapping, setSwapping] = useState(false)
   const exiting = useRef(false)
   const dragStart = useRef<number | null>(null)
+  const dragDistance = useRef(0)
+  const hasBrowsed = useRef(false)
 
   // Brief first (the anchor decision), then shifts, then the rest.
-  const queue = useMemo(() => {
+  const queue = useMemo<DeckItem[]>(() => {
     const order: Record<string, number> = { brief_review: 0, investigation: 1, shift_proposal: 2, shift_fading: 3, graduation: 4, purge_preview: 5 }
-    return [...decisions].sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9))
-  }, [decisions])
+    const videos = [...videoReviews]
+      .sort((a, b) => {
+        const aTime = typeof a?.created_at === 'string' ? a.created_at : ''
+        const bTime = typeof b?.created_at === 'string' ? b.created_at : ''
+        return bTime.localeCompare(aTime)
+      })
+      .map((review, index): DeckItem => ({
+        type: 'video',
+        id: `video:${typeof review?.id === 'string' ? review.id : `malformed-${index}`}`,
+        review,
+      }))
+    const content = [...decisions]
+      .sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9))
+      .map(decision => ({ type: 'content' as const, id: `content:${decision.id}`, decision }))
+    const anchors = content.filter(item => item.decision.kind === 'brief_review')
+    const remaining = content.filter(item => item.decision.kind !== 'brief_review')
+    return [...anchors, ...videos, ...remaining]
+  }, [decisions, videoReviews])
+
+  // A secure video fetch can settle independently of Content. Once Krish has
+  // browsed, keep the exact card under his thumb as either source refreshes.
+  // Before that first interaction, keep position zero authoritative so a
+  // weekly brief that arrives after a fast video response still becomes the
+  // required anchor rather than leaving the video artificially in front.
+  const previousQueue = useRef<DeckItem[]>([])
+  useLayoutEffect(() => {
+    const previous = previousQueue.current
+    const previousId = previous.length ? previous[Math.min(pos, previous.length - 1)]?.id : null
+    if (hasBrowsed.current && previousId) {
+      const nextPosition = queue.findIndex(item => item.id === previousId)
+      if (nextPosition >= 0 && nextPosition !== pos) setPos(nextPosition)
+    }
+    previousQueue.current = queue
+  }, [pos, queue])
 
   // Keep the position on a real card when the queue shrinks or reloads.
   useEffect(() => {
@@ -101,6 +159,12 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   const go = (dir: 1 | -1) => {
     if (queue.length < 2) { setDragX(0); return }
     if (exiting.current) return
+    hasBrowsed.current = true
+    if (reducedMotion) {
+      setPos(p => (p + dir + queue.length) % queue.length)
+      setDragX(0)
+      return
+    }
     exiting.current = true
     const w = typeof window === 'undefined' ? 400 : window.innerWidth
     // 1. finish the throw, off-screen and clear of the edge
@@ -123,20 +187,23 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   const onPointerDown = (e: React.PointerEvent) => {
     ;(e.target as Element).setPointerCapture?.(e.pointerId)
     dragStart.current = e.clientX
+    dragDistance.current = 0
     setDragging(true)
   }
   const onPointerMove = (e: React.PointerEvent) => {
     if (dragStart.current === null) return
-    setDragX(e.clientX - dragStart.current)
+    dragDistance.current = e.clientX - dragStart.current
+    if (!reducedMotion) setDragX(dragDistance.current)
   }
   const endDrag = () => {
     if (dragStart.current === null) return
     dragStart.current = null
     setDragging(false)
     // Swipe left brings the next card, swipe right brings the previous one.
-    if (dragX <= -SWIPE_COMMIT_PX) go(1)
-    else if (dragX >= SWIPE_COMMIT_PX) go(-1)
+    if (dragDistance.current <= -SWIPE_COMMIT_PX) go(1)
+    else if (dragDistance.current >= SWIPE_COMMIT_PX) go(-1)
     else setDragX(0)
+    dragDistance.current = 0
   }
 
   // A failed ruling must not count as a decision. This was a bare try/finally
@@ -169,15 +236,15 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
   // and a vector search, and the one place that latency must not land is
   // between deciding to bin something and being asked why.
   const likely = useLikelyReasons(
-    current && current.kind !== 'purge_preview' ? current.id : null)
+    current?.type === 'content' && current.decision.kind !== 'purge_preview' ? current.decision.id : null)
 
   // A shift ruling lives on its own endpoint (which resolves its own card), so
   // there the ruling and the lesson are two calls. Everything else rejects in
   // one. The vote is best-effort in both: the card is already gone, and telling
   // Krish his tap failed because a learning write missed would be a lie.
   const submitReject = async (reasonCode?: string, reasonText?: string) => {
-    if (!current) return
-    const d = current
+    if (current?.type !== 'content') return
+    const d = current.decision
     setRejecting(false)
     await act(async () => {
       if (d.kind === 'shift_proposal' || d.kind === 'shift_fading') {
@@ -205,13 +272,27 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
     )
   }
 
+  if (!current && videoLoading) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center px-6 text-center" aria-busy="true" role="status">
+        <Skeleton h={3} w={92} r={2} />
+        <p className="mt-4 text-body font-semibold text-white/75">Checking Video Engine reviews</p>
+        <p className="mt-1 max-w-[28ch] text-label leading-relaxed text-white/42">Content is clear. The private review queue is still loading.</p>
+      </div>
+    )
+  }
+
   if (!current) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-6 text-center gap-3">
-        <DrawnCheck size={44} stroke="rgb(52 211 153)" />
-        <div className="text-white/90 font-bold text-lede">All decided for this week</div>
+        {videoQueueError ? null : <DrawnCheck size={44} stroke="rgb(52 211 153)" />}
+        <div className="text-white/90 font-bold text-lede">
+          {videoQueueError ? 'Video reviews could not be checked' : 'All decided for this week'}
+        </div>
         <p className="text-white/45 text-body max-w-[26ch]">
-          Nothing is waiting on you. New decisions will show up here when they are ready.
+          {videoQueueError
+            ? 'Your Content decisions are clear. Refresh before assuming the Video Engine queue is clear.'
+            : 'Nothing is waiting on you. New decisions will show up here when they are ready.'}
         </p>
         {brief && ['approved', 'pushed', 'sent'].includes(brief.status) ? (
           <p className="text-emerald-300/80 text-label">Brief {brief.status}. See you Friday.</p>
@@ -220,9 +301,19 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
     )
   }
 
-  const d = current as ContentDecisionRow
-  const p = d.payload as Record<string, any>
-  const chip = KIND_CHIP[d.kind] || { label: d.kind, cls: 'bg-white/[0.06] text-white/55' }
+  const d = current.type === 'content' ? current.decision : null
+  const video = current.type === 'video' ? current.review : null
+  const videoMalformed = video ? !videoStudioListItemIsWellFormed(video) : false
+  const videoNeedsSyncAttention = Boolean(video && !videoMalformed && video.status !== 'pending')
+  const p = (d?.payload || {}) as Record<string, any>
+  const chip = video
+    ? {
+        label: videoMalformed ? 'Review needs repair' : videoNeedsSyncAttention ? 'Local sync attention' : VIDEO_GATE_LABEL[video.gate],
+        cls: videoMalformed || video.route_state === 'requires_editorial_route' || videoNeedsSyncAttention
+          ? 'bg-amber-400/15 text-amber-200'
+          : 'bg-violet-400/15 text-violet-200',
+      }
+    : KIND_CHIP[d!.kind] || { label: d!.kind, cls: 'bg-white/[0.06] text-white/55' }
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -235,7 +326,7 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
         </div>
         <div className="flex items-center justify-between">
           <div className="text-micro text-white/40 tabular-nums">
-            {pos + 1} of {queue.length} to decide{done ? ` · ${done} done` : ''} · about {Math.max(1, Math.round(queue.length * 0.7))} min
+            {pos + 1} of {queue.length} {videoNeedsSyncAttention ? 'to resolve' : 'to decide'}{done ? ` · ${done} done` : ''} · about {Math.max(1, Math.round(queue.length * 0.7))} min
           </div>
           {queue.length > 1 && (
             <div className="flex items-center gap-1">
@@ -256,43 +347,67 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
             </div>
           )}
         </div>
+        {videoQueueError && (
+          <p className="mt-1 text-micro text-amber-200/70" role="status">Video reviews are unavailable. Content decisions still work.</p>
+        )}
       </div>
 
       {/* the one card: swipe left / right to browse, wrapping at the ends */}
       <div className="flex-1 min-h-0 flex flex-col">
         <div
+          data-testid="mobile-decision-card"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
           style={{
             touchAction: 'pan-y',
-            transform: `translateX(${dragX}px) rotate(${dragX / 60}deg)`,
+            transform: reducedMotion ? 'none' : `translateX(${dragX}px) rotate(${dragX / 60}deg)`,
             // Opacity must NOT race the travel: fading while it flies is what
             // makes a throw read as a disappear. It stays legible on the way out.
             opacity: swapping ? 0 : 1 - Math.min(0.25, Math.abs(dragX) / 900),
-            transition: dragging || swapping
+            transition: reducedMotion
+              ? 'none'
+              : dragging || swapping
               ? 'none'
               : 'transform 200ms cubic-bezier(0.32,0,0.67,0), opacity 140ms ease-out',
           }}
-          className={`rounded-2xl border p-5 select-none cursor-grab active:cursor-grabbing ${d.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}
+          className={`rounded-2xl border p-5 select-none cursor-grab active:cursor-grabbing ${video ? 'border-violet-400/25 bg-violet-400/[0.05]' : d!.kind === 'shift_proposal' ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : d!.kind === 'brief_review' ? 'border-sky-400/25 bg-sky-400/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'}`}
         >
+          {video && !videoMalformed ? (
+            <VideoBrandLockup series={video.series} placement="card" className="-ml-7 mb-3" />
+          ) : null}
           <span className={`inline-block rounded-full px-2.5 py-1 text-micro font-semibold ${chip.cls}`}>{chip.label}</span>
           <h3 className="text-lede font-bold text-white mt-3 leading-snug">
-            {d.kind === 'brief_review' ? (p.title || 'This week’s brief')
-              : d.kind === 'investigation' ? `Investigation ready: ${p.anchor_headline || 'this week'}`
-              : d.kind === 'purge_preview' ? `${p.expiring ?? 0} time-sensitive items expire Monday`
+            {video ? (videoMalformed ? 'Video review needs repair' : video.safe_title)
+              : d!.kind === 'brief_review' ? (p.title || 'This week’s brief')
+              : d!.kind === 'investigation' ? `Investigation ready: ${p.anchor_headline || 'this week'}`
+              : d!.kind === 'purge_preview' ? `${p.expiring ?? 0} time-sensitive items expire Monday`
               : (p.title || '')}
           </h3>
           <p className="text-label text-white/50 mt-2 leading-relaxed">
-            {d.kind === 'brief_review' ? `${p.headlines ?? '?'} headlines, put together on Friday. Read it, fix anything weak with the edit chips, then send it out.`
-              : d.kind === 'shift_proposal' ? `This kept coming up on its own: ${p.stories ?? '?'} stories over ${p.day_span ?? '?'} days from ${p.sources ?? '?'} different sources.${p.nearest?.title ? ` The closest one you already track: ${p.nearest.title}.` : ''}`
-              : d.kind === 'shift_fading' ? `No new evidence since ${p.last_evidence_on || 'a while ago'}.`
-              : d.kind === 'investigation' ? `${p.citable_evidence ?? 0} pieces of evidence you can cite, from ${p.distinct_domains ?? 0} sites and ${p.distinct_origins ?? 0} original sources.`
-              : d.kind === 'graduation' ? 'This has been used for weeks and still holds up. Keep it in the Library for good?'
+            {video ? (videoMalformed
+                ? 'This review projection is incomplete. Open it to see what must be repaired before any decision.'
+                : videoNeedsSyncAttention
+                  ? `Your ${video.status === 'approved' ? 'accepted candidate' : 'keep-current decision'} is saved, but its local production-ledger sync needs attention. Open it to see the exact command state.`
+                : video.route_state === 'requires_editorial_route'
+                ? 'The engine stopped before inventing an answer. This needs your editorial judgement.'
+                : video.safe_summary)
+              : d!.kind === 'brief_review' ? `${p.headlines ?? '?'} headlines, put together on Friday. Read it, fix anything weak with the edit chips, then send it out.`
+              : d!.kind === 'shift_proposal' ? `This kept coming up on its own: ${p.stories ?? '?'} stories over ${p.day_span ?? '?'} days from ${p.sources ?? '?'} different sources.${p.nearest?.title ? ` The closest one you already track: ${p.nearest.title}.` : ''}`
+              : d!.kind === 'shift_fading' ? `No new evidence since ${p.last_evidence_on || 'a while ago'}.`
+              : d!.kind === 'investigation' ? `${p.citable_evidence ?? 0} pieces of evidence you can cite, from ${p.distinct_domains ?? 0} sites and ${p.distinct_origins ?? 0} original sources.`
+              : d!.kind === 'graduation' ? 'This has been used for weeks and still holds up. Keep it in the Library for good?'
               : 'Nothing to do here. Anything worth keeping has already been kept.'}
           </p>
-          {d.kind === 'shift_proposal' && p.summary ? (
+          {video ? (
+            <p className="text-micro text-violet-200/65 mt-3">
+              {videoMalformed
+                ? 'Decision blocked'
+                : `${VIDEO_SERIES_LABEL[video.series]} · ${videoNeedsSyncAttention ? 'Local sync attention' : video.preview_state === 'available' ? 'Preview ready' : video.preview_state}`}
+            </p>
+          ) : null}
+          {d?.kind === 'shift_proposal' && p.summary ? (
             <p className="text-label text-emerald-200/70 mt-2 leading-relaxed">{p.summary}</p>
           ) : null}
           {queue.length > 1 && (
@@ -314,7 +429,14 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
             />
           ) : (
           <>
-          {d.kind === 'brief_review' ? (
+          {video ? (
+            <Big tone="primary" disabled={busy || videoMalformed} onClick={() => {
+              rememberVideoStudioReturnFocus(document.activeElement)
+              window.location.hash = `#/content?video=${video.id}`
+            }}>
+              {videoMalformed ? 'Review blocked' : videoNeedsSyncAttention ? 'Open sync issue' : 'Open review'}
+            </Big>
+          ) : d!.kind === 'brief_review' ? (
             <>
               <Big tone="primary" disabled={busy} onClick={() => { window.location.hash = `#/content?brief=${d.week}` }}>
                 Open the brief
@@ -323,19 +445,19 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
                 Skip until I&rsquo;m at my desk
               </Big>
             </>
-          ) : d.kind === 'shift_proposal' ? (
+          ) : d!.kind === 'shift_proposal' ? (
             <>
               <Big tone="green" disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'accept'))}>Track this shift</Big>
               {/* This card's own no already exists, so it carries the reason
                   rather than sitting beside a second, near-identical no. */}
               <Big disabled={busy} onClick={() => setRejecting(true)}>Not a shift</Big>
             </>
-          ) : d.kind === 'shift_fading' ? (
+          ) : d!.kind === 'shift_fading' ? (
             <>
               <Big tone="primary" disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'retire'))}>Close it out</Big>
               <Big disabled={busy} onClick={() => act(() => v2.ruleShift(d.ref, 'keep_watching'))}>Keep watching</Big>
             </>
-          ) : d.kind === 'graduation' ? (
+          ) : d!.kind === 'graduation' ? (
             <>
               <Big tone="green" disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'done'))}>Keep it in the Library</Big>
               <Big disabled={busy} onClick={() => act(() => v2.resolveDecision(d.id, 'dismiss'))}>Let it go</Big>
@@ -348,7 +470,7 @@ export function MobileDecisionDeck({ v2 }: { v2: ReturnType<typeof useContentV2>
               having a no. purge_preview is a notice rather than an offer.
               shift_fading's two verdicts already cover the ground, and
               shift_proposal carries the reason on its own "Not a shift". */}
-          {!['purge_preview', 'shift_fading', 'shift_proposal'].includes(d.kind) ? (
+          {!video && !['purge_preview', 'shift_fading', 'shift_proposal'].includes(d!.kind) ? (
             <button
               onClick={() => setRejecting(true)}
               disabled={busy}

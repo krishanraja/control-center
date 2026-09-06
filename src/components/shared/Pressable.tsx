@@ -40,10 +40,10 @@ interface PressableProps extends UsePressableOpts {
 // with the theme, so it washed out on the light background. ui/button's danger
 // is rose-200 and flips correctly.
 const CHECK_STROKE: Record<Variant, string> = {
-  primary: '#ffffff',
-  secondary: '#a99bff',
-  danger: '#fca5a5',
-  ghost: '#a99bff',
+  primary: 'rgb(var(--action-fg))',
+  secondary: 'rgb(var(--accent))',
+  danger: 'rgb(var(--ac-rose))',
+  ghost: 'rgb(var(--accent))',
 }
 
 export function Pressable({

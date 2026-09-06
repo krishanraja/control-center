@@ -67,3 +67,23 @@ export interface TaskFeedback {
   timestamp: Date
   submittedBy: "krish" | "agatha"
 }
+
+/** Row of `content_creators`: the curated-creator registry feeding the
+ *  creator scout (api/discover-creator-posts.ts) and the lens radar. */
+export interface ContentCreator {
+  id: string
+  slug: string
+  name: string
+  linkedin_slug: string | null
+  linkedin_url: string | null
+  why: string
+  lens_id: string
+  active: boolean
+  last_scraped_at: string | null
+  last_post_url: string | null
+  last_post_at: string | null
+  posts_seen: number
+  notes: string | null
+  created_at: string
+  updated_at: string
+}

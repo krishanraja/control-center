@@ -157,7 +157,7 @@ export function VisibilityImportDropzone({ onIngested }: Props = {}) {
             onChange={e => setPasteText(e.target.value)}
             rows={5}
             placeholder={`SXSW\tconference\thttps://sxsw.com\nWeb Summit\tconference\thttps://websummit.com`}
-            className="w-full bg-black/30 border border-white/[0.08] rounded-md p-2 text-label text-white/85 font-mono resize-y focus:border-violet-400/50 outline-none"
+            className="w-full bg-sunk border border-white/[0.08] rounded-md p-2 text-label text-white/85 font-mono resize-y focus:border-violet-400/50 outline-none"
           />
           <div className="flex items-center gap-2">
             <button

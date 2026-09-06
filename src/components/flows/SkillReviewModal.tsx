@@ -195,7 +195,7 @@ export function SkillReviewModal({
                 <input
                   value={active.name}
                   onChange={e => updateActive({ name: e.target.value })}
-                  className="w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-1.5 text-label text-white/85 font-mono focus:outline-none focus:border-violet-500/40"
+                  className="w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-1.5 text-label text-white/85 font-mono focus:outline-none focus:border-violet-500/40"
                 />
               </div>
 
@@ -205,7 +205,7 @@ export function SkillReviewModal({
                   value={active.description}
                   onChange={e => updateActive({ description: e.target.value })}
                   rows={4}
-                  className="w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-label text-white/85 focus:outline-none focus:border-violet-500/40 resize-y"
+                  className="w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-white/85 focus:outline-none focus:border-violet-500/40 resize-y"
                 />
                 <span className="text-micro text-white/30 mt-0.5 block">{active.description.length}/1024</span>
               </div>
@@ -216,7 +216,7 @@ export function SkillReviewModal({
                   value={active.body}
                   onChange={e => updateActive({ body: e.target.value })}
                   rows={18}
-                  className="w-full rounded-lg border border-white/[0.08] bg-black/30 px-3 py-2 text-label text-white/85 font-mono leading-relaxed focus:outline-none focus:border-violet-500/40 resize-y"
+                  className="w-full rounded-lg border border-white/[0.08] bg-sunk px-3 py-2 text-label text-white/85 font-mono leading-relaxed focus:outline-none focus:border-violet-500/40 resize-y"
                 />
               </div>
 
@@ -242,7 +242,7 @@ export function SkillReviewModal({
                         updateActive({ test_prompts: next })
                       }}
                       rows={2}
-                      className="w-full rounded-lg border border-white/[0.06] bg-black/30 px-3 py-2 text-label text-white/80 focus:outline-none focus:border-violet-500/40 resize-y"
+                      className="w-full rounded-lg border border-white/[0.06] bg-sunk px-3 py-2 text-label text-white/80 focus:outline-none focus:border-violet-500/40 resize-y"
                     />
                   ))}
                 </div>
@@ -264,7 +264,7 @@ export function SkillReviewModal({
                           updateActive({ references: next })
                         }}
                         rows={6}
-                        className="w-full rounded-lg border border-white/[0.06] bg-black/30 px-3 py-2 text-label text-white/75 font-mono focus:outline-none focus:border-violet-500/40 resize-y"
+                        className="w-full rounded-lg border border-white/[0.06] bg-sunk px-3 py-2 text-label text-white/75 font-mono focus:outline-none focus:border-violet-500/40 resize-y"
                       />
                     </div>
                   ))}

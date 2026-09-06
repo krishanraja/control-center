@@ -1,5 +1,14 @@
 # mind/make OS — Ideal Customer Profile (shareable)
 
+> **6 September 2026, ADR-016.** The first lane is now `room_face`: the face from
+> the Master Ikigai v4. A senior leader (CEO, founder, MD, CCO, CRO, GM) at a PE or
+> VC backed media, adtech, publishing or data business Krish already knows, quietly
+> behind on what is coming and unable to say so inside their organisation.
+> Dimensions and weights: seniority_fit 0.30, sector_fit 0.25, backed_by_pe_vc 0.15,
+> warm_path 0.20, exposure_to_what_is_coming 0.10. `fractional_network`,
+> `mm_ctrl_buyer` and `ecosystem_partner` are parked: scored for the record, never
+> the best lane, never a tag. Executable copy: `api/_icpScore.ts`.
+
 > **HISTORICAL (2026-07-10):** advisory sales were retired 2026-07-10 and REOPENED 2026-08-05 under a new thesis; the
 > `mindmake_buyer` lane and the Apollo burn-down are no longer live. Kept for the
 > record. The guest/content lanes (`signal_noise_guest`, `built_guest`)

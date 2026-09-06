@@ -38,6 +38,8 @@ export async function createGoal(input: {
   horizon: GoalHorizon
   parentId?: string | null
   venture?: string | null
+  /** Which of the five jobs of the OS this serves (src/content/jobs.ts). */
+  job?: string | null
   override?: boolean
 }): Promise<CreateGoalResult> {
   const title = input.title.trim()
@@ -50,6 +52,7 @@ export async function createGoal(input: {
       horizon: input.horizon,
       parent_id: input.parentId || null,
       venture: input.venture || null,
+      job: input.job || null,
       status: 'active',
       override: input.override === true,
     }),

@@ -140,7 +140,7 @@ function PipelineCard({ task, onDismiss }: { task: TaskRow; onDismiss: () => voi
             {expanded ? 'Hide Draft' : 'View Draft'}
           </button>
           {expanded && (
-            <div className="mt-1.5 rounded-lg border border-white/[0.08] bg-black/30 p-2.5 space-y-2">
+            <div className="mt-1.5 rounded-lg border border-white/[0.08] bg-sunk p-2.5 space-y-2">
               <pre className="text-micro text-white/75 font-mono whitespace-pre-wrap break-words leading-relaxed max-h-72 overflow-y-auto">
 {task.evidence}
               </pre>

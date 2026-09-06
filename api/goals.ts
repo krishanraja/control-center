@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { weekOfLabel } from './_week.js'
 import { supabase } from './_supabase.js'
 import { syncNorthStar } from './_northStar.js'
+import { isJob } from './_mission.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -83,6 +84,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const updates: any = { updated_at: new Date().toISOString() }
       if (body.title !== undefined) updates.title = body.title
+      // Which of the five jobs of the OS this serves (api/_mission.ts). Null
+      // clears it; anything outside the five is refused rather than stored.
+      if (body.job !== undefined) {
+        if (body.job !== null && !isJob(body.job)) {
+          return res.status(400).json({ ok: false, error: `unknown job '${body.job}'` })
+        }
+        updates.job = body.job
+      }
       // current / progress / notes retired with the legacy weekly-goal columns
       // (2026-08-20): done is a STATUS, not a percentage.
       // Retiring a goal is a status change, never a DELETE. Canon Rule A wants

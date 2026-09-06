@@ -30,3 +30,8 @@ COMPOUND is a standalone package under `compound/`, deployed as its own Vercel p
 - Completed: automated import and Supabase-schema boundary checks run through `compound/npm run verify`.
 - Completed: COMPOUND deploys from the `compound/` Vercel root as a separate project.
 - Completed: anonymous denial, approved-member access, and service-role pipeline access have been verified. Additional members remain intentionally unsupported.
+
+## Amendment (2026-09-05, see COMPOUND C-008)
+
+The import ban is unchanged and still enforced by `compound/scripts/check-boundaries.mjs`. One data exception exists: the COMPOUND spend pipeline (Deno, service role, GitHub Actions) reads `public.spend_invoices`, `public.meter_daily` and `public.service_registry` through a GET-only helper and writes nothing back. No Vercel function or browser path may name the `public` profile; `compound/scripts/check-supabase.mjs` fails the build if one does.
+

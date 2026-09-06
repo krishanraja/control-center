@@ -270,7 +270,7 @@ table were the only routes, which is why all 10,767 contacts are `active`.
 
 ### `CreateSheet` — the one + button (2026-08-21)
 
-The single mobile create system: a violet + FAB bottom-right on every tab,
+The single mobile create system: a mint + FAB bottom-right on every tab,
 opening a bottom sheet of the current tab's create actions first, then the
 global captures (task, idea). Tab-owned actions are reached over the
 `src/lib/quickCreate.ts` bus — `requestCreate(kind)` fires the matching
@@ -392,8 +392,8 @@ call the `useHaptics` methods directly.
 
 ### `AmbientField` (2026-07-01)
 
-The Obsidian Aurora "presence" layer — a fixed aurora field + fine grain painted
-behind all content. Mounted once at the App root. Hue reacts to OS state via
+The Mindmake presence layer: restrained mint and amber light plus fine grain
+behind all content. Mounted once at the App root. Tone reacts to OS state via
 `useMoodSource(id, mood, priority)` (no new realtime channels); goes static under
 reduced-motion and disappears when ambient is toggled off. See
 [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md).
@@ -428,17 +428,19 @@ Each pipeline tab uses lane components to group rows.
 ### Colours (adaptive tokens)
 
 ```css
-/* Surfaces — follow the theme (obsidian by night, paper by day) */
+/* Surfaces follow the theme (ink by night, paper by day) */
 bg-base / bg-sunk       /* App / recessed background */
 .glass-card / .surface  /* Lit card material (per-theme) */
 
-/* Foreground — `white` is remapped to --fg, so these adapt automatically */
-text-white              /* Primary text (ink on paper by day) */
-text-white/70 · /45 · /25   /* Secondary · tertiary · muted */
+/* Foreground roles. Use these for copy a person must act on. */
+text-strong             /* Primary text */
+text-muted              /* Supporting copy */
+text-faint              /* Decorative or genuinely non-essential metadata */
+text-white/70 · /45 · /25   /* Compatibility only; `white` maps to --fg */
 border-white/[0.08]     /* Default hairline */
 text-[#fff]             /* Pure white ON a coloured fill (does NOT adapt) */
 
-/* Accent — aurora (violet ramp = brand anchor) */
+/* Accent: mint is the answer; amber is change or attention. */
 text-accent · .aurora-btn · .aurora-text   /* focus / primary / hero number */
 text-violet-400         /* brand accent (mapped to the aurora anchor) */
 
@@ -457,10 +459,11 @@ neutral/accent). Active nav icons carry `strokeWidth={2.25}`.
 ### Typography
 
 ```css
-font-display  /* Bricolage Grotesque — headings, hero titles, big numbers (auto on h1-h6) */
-font-serif    /* Fraunces — the "partner's voice": OS mission, Marcus brief, AllClear */
-font-sans     /* Geist — body, labels (default) */
-font-mono tabular-nums  /* Geist Mono — live/tabular numbers */
+font-display  /* Archivo: headings, navigation, cards and controls */
+font-serif    /* Newsreader: the claim or earned payoff only */
+font-body     /* Source Serif 4: long-form explanation */
+font-sans     /* Archivo: default UI copy */
+font-mono tabular-nums  /* IBM Plex Mono: numbers, sources and timestamps */
 /* Scale: 11/12/13/14/16/20/28/40/56 (role tokens text-micro…text-hero; bracket-literal px sizes retired 2026-08-21, guarded by scripts/check-type-tokens.mts) · tracking-tight headings · eyebrows are the <Eyebrow> primitive at tracking-[0.14em] */
 ```
 
@@ -503,7 +506,7 @@ px-3 py-4     /* Mobile content padding */
 
 ## The primitive layer (`src/components/ui/`)
 
-Vendored from Relume, re-skinned to Obsidian Aurora, owned here. See
+Vendored from Relume, re-skinned to Mindmake Instrument Room, owned here. See
 [ADR-010](./DECISIONS/010-vendored-primitive-layer.md) for why the Relume
 Tailwind preset, icon set and animation library are deliberately absent.
 

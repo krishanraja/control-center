@@ -75,6 +75,9 @@ export function ContentIdeaCardActionable({ idea: i, onClose }: Props) {
         {pillar && (
           <span className={`px-1.5 py-0.5 rounded border ${pTone.bg} ${pTone.text} ${pTone.border} uppercase tracking-[0.14em]`} title={pillar.description}>{pillar.name}</span>
         )}
+        {typeof meta.poster_name === 'string' && meta.poster_name && (
+          <span className="px-1.5 py-0.5 rounded bg-white/[0.06] text-white/65" title={meta.poster_handle ? `linkedin.com/in/${meta.poster_handle}` : 'Post author'}>via {meta.poster_name}</span>
+        )}
         {isSynthesis && (
           <span className="px-1.5 py-0.5 rounded border border-violet-400/40 bg-violet-500/15 text-violet-100 uppercase tracking-[0.14em] font-semibold">Synthesis</span>
         )}

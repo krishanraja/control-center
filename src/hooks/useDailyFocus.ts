@@ -36,6 +36,10 @@ export interface DailyFocusRow {
   target_1_goal_id?: string | null
   target_2_goal_id?: string | null
   target_3_goal_id?: string | null
+  /** Which of the five jobs of the OS each pick serves (src/content/jobs.ts). */
+  target_1_job?: string | null
+  target_2_job?: string | null
+  target_3_job?: string | null
   status: 'pending' | 'calibrated' | 'complete' | 'carried_over'
   calibrated_at: string | null
   completed_at: string | null

@@ -4,6 +4,7 @@ import { contentV2Api, useShiftEvidence, type useContentV2 } from '../../hooks/u
 import { monthLabel, shiftVerdict, VERDICT_LABEL, type ShiftRow } from '../../lib/contentV2'
 import { SkeletonText, SkeletonList } from '../shared/Skeleton'
 import { BottomSheet } from '../mobile/BottomSheet'
+import { publicSeriesLabel } from '../../lib/publicSeries'
 
 // The long-term memory with receipts (mockup set 1, mock 3). A shift is one
 // durable object whose evidence and momentum accrue week over week; the
@@ -224,14 +225,14 @@ export function ShiftsRoom({ v2, variant, lane }: {
       {own.length > 0 && grid(own)}
       {lane && !own.length && (
         <p className="text-label text-white/45 max-w-xl" data-testid="shifts-own-empty">
-          No shifts belong only to {lane === 'built' ? 'Built' : 'Paid'} yet.
+          No shifts belong only to {publicSeriesLabel(lane)} yet.
         </p>
       )}
       {crossCutting.length > 0 && (
         <div className={own.length || !lane ? 'mt-5' : 'mt-3'}>
           {lane && (
             <p className="mb-2 text-label text-white/45" data-testid="shifts-cross-cutting">
-              Also here: shifts that touch both Built and Paid.
+              Also here: shifts that touch both {publicSeriesLabel('built')} and {publicSeriesLabel('paid')}.
             </p>
           )}
           {grid(crossCutting)}

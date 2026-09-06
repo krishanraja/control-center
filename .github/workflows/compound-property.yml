@@ -1,0 +1,58 @@
+name: COMPOUND property weekly
+
+on:
+  schedule:
+    # 06:30 Brisbane (AEST, no daylight saving) every Tuesday.
+    - cron: "30 20 * * 1"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Run date (YYYY-MM-DD); blank uses today"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compound-property
+  cancel-in-progress: false
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    environment: Production – compound
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Attempt 1
+        id: attempt1
+        continue-on-error: true
+        working-directory: compound/pipeline
+        env: &property_env
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Optional. When absent the pipeline reads the same names from Supabase Vault.
+          DOMAIN_API_KEY: ${{ secrets.DOMAIN_API_KEY }}
+          PROPERTY_GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.PROPERTY_GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          PROPERTY_GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.PROPERTY_GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY }}
+          PROPERTY_LEDGER_SHEET_ID: ${{ secrets.PROPERTY_LEDGER_SHEET_ID }}
+          PROPERTY_LEDGER_SHEET_GID: ${{ secrets.PROPERTY_LEDGER_SHEET_GID }}
+          RTA_MEDIAN_RENTS_URL: ${{ secrets.RTA_MEDIAN_RENTS_URL }}
+        run: deno task property --mode ${{ github.event_name == 'schedule' && 'scheduled' || 'manual' }} --attempt 1 ${{ inputs.date && format('--date {0}', inputs.date) || '' }}
+      - name: Wait before attempt 2
+        if: steps.attempt1.outcome == 'failure'
+        run: sleep 600
+      - name: Attempt 2
+        id: attempt2
+        if: steps.attempt1.outcome == 'failure'
+        continue-on-error: true
+        working-directory: compound/pipeline
+        env: *property_env
+        run: deno task property --mode ${{ github.event_name == 'schedule' && 'scheduled' || 'manual' }} --attempt 2 ${{ inputs.date && format('--date {0}', inputs.date) || '' }}
+      - name: Preserve GitHub failure notification
+        if: steps.attempt2.outcome == 'failure'
+        run: exit 1

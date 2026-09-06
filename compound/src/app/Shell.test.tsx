@@ -27,10 +27,10 @@ afterEach(() => {
 });
 
 describe("calm brief", () => {
-  it("offers four destinations and keeps the Brief market-wide", () => {
+  it("offers six destinations and keeps the Brief market-wide", () => {
     const { onTab } = renderShell();
     const nav = screen.getByRole("navigation", { name: "Sections" });
-    for (const name of ["Brief", "Markets", "Portfolio", "Ask"]) {
+    for (const name of ["Brief", "Markets", "Portfolio", "Property", "Spend", "Ask"]) {
       expect(within(nav).getByRole("button", { name })).toBeInTheDocument();
     }
     expect(within(nav).getByRole("button", { name: "Brief" })).toHaveAttribute("aria-current", "page");
@@ -106,6 +106,17 @@ describe("Markets, Portfolio and Ask", () => {
     expect(screen.getByRole("checkbox", { name: "Show Technology industries" })).toHaveAttribute("aria-checked", "mixed");
   });
 
+  it("offers cash on hand in Settings but keeps it read-only on sample data", () => {
+    renderShell("spend");
+    expect(screen.getByTestId("spend-runway")).toHaveTextContent(/^Cash on hand \$42,000 as of 3 September\./);
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(screen.getByRole("heading", { name: "Cash on hand" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Amount in US dollars")).toBeDisabled();
+    expect(screen.getByLabelText("As of")).toHaveAttribute("type", "date");
+    expect(screen.getByRole("button", { name: "Save cash on hand" })).toBeDisabled();
+    expect(screen.getByText(/Sample data\. Cash on hand can be saved once COMPOUND is connected/)).toBeInTheDocument();
+  });
+
   it("makes portfolio analysis visibly separate from Brief ranking", () => {
     renderShell("portfolio");
     expect(screen.getByRole("heading", { name: "Exposure before performance." })).toBeInTheDocument();
@@ -142,10 +153,16 @@ describe("device systems", () => {
     expect(screen.getAllByRole("heading", { name: "Markets are calm, but money is still expensive." })).toHaveLength(2);
   });
 
-  it("maps number keys to the four destinations only on split", () => {
+  it("maps number keys to the six destinations only on split", () => {
     asSplit();
     const { onTab } = renderShell();
     fireEvent.keyDown(window, { key: "3" });
     expect(onTab).toHaveBeenCalledWith("portfolio");
+    fireEvent.keyDown(window, { key: "4" });
+    expect(onTab).toHaveBeenCalledWith("property");
+    fireEvent.keyDown(window, { key: "5" });
+    expect(onTab).toHaveBeenCalledWith("spend");
+    fireEvent.keyDown(window, { key: "6" });
+    expect(onTab).toHaveBeenCalledWith("ask");
   });
 });

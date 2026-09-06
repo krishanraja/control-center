@@ -12,7 +12,7 @@ import type { LucideIcon } from '@/lib/icons'
  * stroke weight is already uniform; this fixes the frame around it.
  *
  * Sizes hold a constant glyph-to-tile ratio; tones stay within the two
- * sanctioned families (quiet neutral, brand violet). Identity marks
+ * sanctioned families (quiet neutral, brand mint). Identity marks
  * (Logomark, AgentAvatar) are not icons and do not use this.
  */
 

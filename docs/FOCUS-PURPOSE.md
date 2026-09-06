@@ -22,7 +22,7 @@ chat's context.
 | Layer | File | Role |
 |---|---|---|
 | Corpus | `docs/focus-purpose/OPERATING-MANUAL.md` | The evidence-graded manual: diagnosis, 43-framework library, conflicts, conversation OS, script bank, exposure ladder, 30-day programme, coaching prompt |
-| Corpus | `docs/focus-purpose/PURPOSE-WORKBOOK.md` | The ikigai distillation: four contradictions, hard constraints, seven decision rules, what he wants, wealth-route synthesis |
+| Corpus | `docs/focus-purpose/PURPOSE-WORKBOOK.md` | The ikigai distillation, v4 on top: the mission, the face, decision rules v2, the stop rule; v3 kept as history |
 | On-tap slice | `src/content/focusTheory.ts` | The typed, curated subset the product renders: traps, situations, rules, purpose lines, prediction chips, self-rejection markers. Static on purpose, like `pilotStoic.ts`: instant, offline, cannot drift silently |
 | Surface | `src/components/focusPurpose/` | The Focus & Purpose tab (`#/focus`) and the Home entry card |
 | Data | `public.pilot_asks` + `api/pilot/asks.ts` | The daily ask: one row per civil day, prediction before outcome |
@@ -84,7 +84,7 @@ the anxious-day route, and Home's doorway row, not ambient nav presence.
   compiler, two to the ask.
 - **Before you speak:** ten script cards from the manual's situation bank:
   sequence, what not to say, stop-talking point.
-- **Test an idea:** the workbook's seven decision rules as failure chips,
+- **Test an idea:** the workbook's eight decision rules (v2) as failure chips,
   verdict under the chips, nothing saved.
 - **Footer:** "compile a worry" and "shutdown", the two actions that used to
   float over every tab.

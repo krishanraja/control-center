@@ -36,7 +36,7 @@ function Chip({ on, onClick, testId, children }: {
       data-testid={testId}
       className={`min-h-[30px] rounded-full border px-2.5 text-label transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
         on ? 'border-violet-400/40 bg-violet-500/15 text-violet-100'
-           : 'border-white/10 text-white/50 hover:border-white/20 hover:text-white/80'}`}
+           : 'border-white/10 text-white/60 hover:border-white/20 hover:text-white/80'}`}
     >
       {children}
     </button>

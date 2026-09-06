@@ -41,7 +41,10 @@ export function AgentAvatar({
       {initialsOf(displayName)}
       {statusDot && (
         <span
-          className={`absolute -bottom-0.5 -right-0.5 rounded-full ring-2 ring-[#0a0a0b] ${sz.dot} ${statusDot}`}
+          // ring-base, not a fixed near-black: the ring's job is to punch a gap
+          // between the dot and the ground behind it, so it has to BE the
+          // ground. Hardcoded #0a0a0b drew a black halo on the light theme.
+          className={`absolute -bottom-0.5 -right-0.5 rounded-full ring-2 ring-base ${sz.dot} ${statusDot}`}
         />
       )}
     </span>

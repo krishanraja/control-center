@@ -63,7 +63,7 @@ export function TimezoneToggle({ expanded = true }: { expanded?: boolean }) {
     >
       <Globe size={16} className="shrink-0" />
       <span className="text-label truncate">{label}</span>
-      <span className={`ml-auto text-micro shrink-0 ${auto ? 'text-white/25' : 'text-violet-200/60'}`}>{hint}</span>
+      <span className={`ml-auto text-micro shrink-0 ${auto ? 'text-ink-muted' : 'text-violet-200'}`}>{hint}</span>
     </button>
   )
 }

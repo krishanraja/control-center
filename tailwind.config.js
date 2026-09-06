@@ -7,28 +7,23 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // Display — the new voice of the product. A characterful variable
-        // grotesque for headlines, hero titles, and section eyebrows. Applied to
-        // h1–h6 globally in index.css; falls back to Geist so nothing breaks if
-        // the font is slow to arrive.
+        // Mindmake structure. Archivo owns headings, navigation and controls.
         display: [
-          'Bricolage Grotesque Variable',
-          'Geist Variable',
+          'Archivo Variable',
           'ui-sans-serif',
           'system-ui',
           'sans-serif',
         ],
-        // Serif — reserved for the "partner's voice": Marcus's brief, the OS
-        // mission, the earned "all clear" moment. Warmth, not chrome.
+        // Newsreader is reserved for the claim or earned payoff.
         serif: [
-          'Fraunces Variable',
+          'Newsreader Variable',
           'ui-serif',
           'Georgia',
           'Cambria',
           'serif',
         ],
         sans: [
-          'Geist Variable',
+          'Archivo Variable',
           'ui-sans-serif',
           'system-ui',
           '-apple-system',
@@ -40,7 +35,7 @@ export default {
           'sans-serif',
         ],
         mono: [
-          'Geist Mono Variable',
+          'IBM Plex Mono',
           'ui-monospace',
           'SFMono-Regular',
           'Menlo',
@@ -49,6 +44,14 @@ export default {
           'Liberation Mono',
           'Courier New',
           'monospace',
+        ],
+        // Long-form explanations can opt into Mindmake's reading face without
+        // turning dense controls into editorial copy.
+        body: [
+          'Source Serif 4 Variable',
+          'ui-serif',
+          'Georgia',
+          'serif',
         ],
       },
       // ── Role-named type scale (docs/DESIGN_SYSTEM.md) ────────────────────
@@ -68,8 +71,17 @@ export default {
         display: ['40px', { lineHeight: '44px' }],
         hero:    ['56px', { lineHeight: '58px' }],
       },
+      // Existing surfaces intentionally use 8%, 12% and 92% alpha stops. They
+      // are not in Tailwind's stock opacity scale; without these entries the
+      // classes compile to nothing and the UI silently loses borders, tints or
+      // text contrast. Keep uncommon one-off values in bracket syntax.
+      opacity: {
+        8: '0.08',
+        12: '0.12',
+        92: '0.92',
+      },
       colors: {
-        // ── Obsidian Aurora foundation ─────────────────────────────────────
+        // ── Mindmake instrument-room foundation ───────────────────────────
         // Channel-format CSS vars (defined in index.css :root) so opacity
         // modifiers work (text-ink/70, bg-accent/15) AND a future light theme
         // is a single :root[data-theme] block away.
@@ -93,14 +105,22 @@ export default {
         },
 
         // ── Legacy semantic tokens (refined hue, same names) ───────────────
-        // Kept as hex so every existing `/NN` opacity usage across ~179 files
-        // keeps working untouched; only the underlying colour warms up.
+        // Channel-format, like `white`/`base`/`ink` above, so `/NN` opacity
+        // modifiers keep working AND the surfaces flip with the theme.
+        //
+        // These were fixed hex until 2026-08-30, which made every
+        // `bg-command-surface` a permanently dark panel. Paired with the
+        // adaptive `text-white/90` that sits on them, light mode rendered dark
+        // ink on a dark surface: the Home door pills (Focus / Signals / Intel)
+        // and the critical alert banner were both unreadable in daylight.
+        // The semantic colours below (success/warning/error/info) stay fixed:
+        // they are meaning, not surface, and read on either ground.
         command: {
-          bg: '#08070d',
-          surface: '#14131b',
-          card: '#1c1b24',
-          border: '#2a2833',
-          text: '#eceaf5',
+          bg: 'rgb(var(--cmd-bg) / <alpha-value>)',
+          surface: 'rgb(var(--cmd-surface) / <alpha-value>)',
+          card: 'rgb(var(--cmd-card) / <alpha-value>)',
+          border: 'rgb(var(--cmd-border) / <alpha-value>)',
+          text: 'rgb(var(--cmd-text) / <alpha-value>)',
           success: '#4d9e78',
           warning: '#b98f4a',
           error:   '#bd6f6f',
@@ -121,8 +141,8 @@ export default {
         },
 
         // ── Brand accent cascade ───────────────────────────────────────────
-        // Redefine the `violet` ramp to the aurora anchor so the existing
-        // violet-300/400/500 usages everywhere shift to the new brand accent
+        // Redefine the legacy `violet` ramp to Mindmake mint so existing
+        // violet-300/400/500 usages everywhere shift to the new answer accent
         // at once, cohesively, with zero per-file edits.
         // Brand accent ramp — 300–950 are the aurora fills/dots (fixed hex);
         // 50/100/200 are theme-adaptive accent TEXT (see --ac-* in index.css).
@@ -130,26 +150,26 @@ export default {
           50:  'rgb(var(--ac-violet) / <alpha-value>)',
           100: 'rgb(var(--ac-violet) / <alpha-value>)',
           200: 'rgb(var(--ac-violet) / <alpha-value>)',
-          // Muted lavender ramp — the brand accent, off-neon.
-          300: '#b2a9d6',
-          400: '#998fc4',
-          500: '#8578b0',
-          600: '#6f6299',
-          700: '#5b5080',
-          800: '#484063',
-          900: '#39334f',
-          950: '#242036',
+          // Mindmake mint ramp. The name remains as a compatibility alias only.
+          300: 'rgb(var(--s300-violet) / <alpha-value>)',
+          400: 'rgb(var(--s400-violet) / <alpha-value>)',
+          500: '#63cf9e',
+          600: '#4faf85',
+          700: '#3e8e68',
+          800: '#2f6f51',
+          900: '#204c39',
+          950: '#12291f',
         },
         // Semantic accent text shades — 50/100/200 flip light↔deep by theme so
         // accent labels on tinted cards stay readable. 300+ keep Tailwind defaults.
         // 50–200 are theme-adaptive accent TEXT (--ac-*); 300–600 are muted, off-neon
         // ramps so raw `*-400` fills/dots/borders stop using Tailwind's neon defaults.
-        amber:   { 50: 'rgb(var(--ac-amber) / <alpha-value>)',   100: 'rgb(var(--ac-amber) / <alpha-value>)',   200: 'rgb(var(--ac-amber) / <alpha-value>)',   300: '#dcc08a', 400: '#cba35c', 500: '#b98f4a', 600: '#a07a3d' },
-        emerald: { 50: 'rgb(var(--ac-emerald) / <alpha-value>)', 100: 'rgb(var(--ac-emerald) / <alpha-value>)', 200: 'rgb(var(--ac-emerald) / <alpha-value>)', 300: '#8fc3a8', 400: '#6cab8b', 500: '#5b9578', 600: '#4d7f66' },
-        rose:    { 50: 'rgb(var(--ac-rose) / <alpha-value>)',    100: 'rgb(var(--ac-rose) / <alpha-value>)',    200: 'rgb(var(--ac-rose) / <alpha-value>)',    300: '#d3a3a3', 400: '#c98585', 500: '#b96c6c', 600: '#a15a5a' },
-        red:     { 300: '#d3a3a3', 400: '#c98585', 500: '#bd6f6f', 600: '#a75c5c' },
-        sky:     { 50: 'rgb(var(--ac-sky) / <alpha-value>)',     100: 'rgb(var(--ac-sky) / <alpha-value>)',     200: 'rgb(var(--ac-sky) / <alpha-value>)',     300: '#93b8c4', 400: '#6ba6b5', 500: '#5a93a2', 600: '#4c7d8a' },
-        cyan:    { 50: 'rgb(var(--ac-cyan) / <alpha-value>)',    100: 'rgb(var(--ac-cyan) / <alpha-value>)',    200: 'rgb(var(--ac-cyan) / <alpha-value>)',    300: '#93b8c4', 400: '#6ba6b5', 500: '#5a93a2', 600: '#4c7d8a' },
+        amber:   { 50: 'rgb(var(--ac-amber) / <alpha-value>)',   100: 'rgb(var(--ac-amber) / <alpha-value>)',   200: 'rgb(var(--ac-amber) / <alpha-value>)',   300: 'rgb(var(--s300-amber) / <alpha-value>)', 400: '#cba35c', 500: '#b98f4a', 600: '#a07a3d' },
+        emerald: { 50: 'rgb(var(--ac-emerald) / <alpha-value>)', 100: 'rgb(var(--ac-emerald) / <alpha-value>)', 200: 'rgb(var(--ac-emerald) / <alpha-value>)', 300: 'rgb(var(--s300-emerald) / <alpha-value>)', 400: '#6cab8b', 500: '#5b9578', 600: '#4d7f66' },
+        rose:    { 50: 'rgb(var(--ac-rose) / <alpha-value>)',    100: 'rgb(var(--ac-rose) / <alpha-value>)',    200: 'rgb(var(--ac-rose) / <alpha-value>)',    300: 'rgb(var(--s300-rose) / <alpha-value>)', 400: '#c98585', 500: '#b96c6c', 600: '#a15a5a' },
+        red:     { 300: 'rgb(var(--s300-red) / <alpha-value>)', 400: '#c98585', 500: '#bd6f6f', 600: '#a75c5c' },
+        sky:     { 50: 'rgb(var(--ac-sky) / <alpha-value>)',     100: 'rgb(var(--ac-sky) / <alpha-value>)',     200: 'rgb(var(--ac-sky) / <alpha-value>)',     300: 'rgb(var(--s300-sky) / <alpha-value>)', 400: '#6ba6b5', 500: '#5a93a2', 600: '#4c7d8a' },
+        cyan:    { 50: 'rgb(var(--ac-cyan) / <alpha-value>)',    100: 'rgb(var(--ac-cyan) / <alpha-value>)',    200: 'rgb(var(--ac-cyan) / <alpha-value>)',    300: 'rgb(var(--s300-cyan) / <alpha-value>)', 400: '#6ba6b5', 500: '#5a93a2', 600: '#4c7d8a' },
         indigo:  { 50: 'rgb(var(--ac-indigo) / <alpha-value>)',  100: 'rgb(var(--ac-indigo) / <alpha-value>)',  200: 'rgb(var(--ac-indigo) / <alpha-value>)' },
         // Secondary accent hues used only as text (fuchsia HUMOR chips, blue LENGTH,
         // etc.) — text-only, so 100/200/300 all flip light↔deep by theme.
@@ -179,9 +199,9 @@ export default {
       // Calm & Anticipatory — depth tokens, now Obsidian Aurora. Glass reads as
       // layered, lit surfaces; the focus halo is the aurora accent.
       boxShadow: {
-        glass:    '0 1px 0 0 rgba(255,255,255,0.05) inset, 0 8px 30px -12px rgba(0,0,0,0.7)',
-        'glass-lg': '0 1px 0 0 rgba(255,255,255,0.06) inset, 0 24px 70px -24px rgba(0,0,0,0.82)',
-        halo:     '0 0 0 1px rgba(139,124,246,0.22), 0 14px 60px -16px rgba(139,124,246,0.34), 0 8px 40px -20px rgba(34,211,238,0.18)',
+        glass:    '0 1px 0 0 rgba(230,237,232,0.04) inset, 0 8px 30px -12px rgba(0,0,0,0.7)',
+        'glass-lg': '0 1px 0 0 rgba(230,237,232,0.05) inset, 0 24px 70px -24px rgba(0,0,0,0.82)',
+        halo:     '0 0 0 1px rgba(127,227,180,0.24), 0 14px 60px -16px rgba(79,175,133,0.32)',
         // Elevation ladder — warm-black ambient + a lit top edge.
         e1: '0 1px 2px 0 rgba(0,0,0,0.40), 0 8px 24px -12px rgba(0,0,0,0.70), inset 0 1px 0 0 rgba(255,255,255,0.05)',
         e2: '0 2px 4px 0 rgba(0,0,0,0.45), 0 16px 48px -16px rgba(0,0,0,0.75), inset 0 1px 0 0 rgba(255,255,255,0.06)',

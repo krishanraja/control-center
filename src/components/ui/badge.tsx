@@ -19,9 +19,9 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: 'border border-white/10 bg-white/[0.05] text-white/70',
-        solid: 'border border-white/15 bg-white/[0.10] text-white',
-        outline: 'border border-white/15 bg-transparent text-white/70',
+        default: 'border border-white/10 bg-white/[0.05] text-muted',
+        solid: 'border border-white/15 bg-white/[0.10] text-strong',
+        outline: 'border border-white/15 bg-transparent text-muted',
         accent: 'border border-violet-400/30 bg-violet-500/15 text-violet-100',
         success: 'border border-emerald-400/25 bg-emerald-500/12 text-emerald-200',
         warning: 'border border-amber-400/25 bg-amber-500/12 text-amber-200',

@@ -1,0 +1,63 @@
+name: COMPOUND spend daily
+
+on:
+  schedule:
+    # 06:45 Brisbane (AEST, no daylight saving) every day. The bills sheet
+    # refreshes on the 9th; the next morning's run picks it up.
+    - cron: "45 20 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Run date (YYYY-MM-DD); blank uses today"
+        required: false
+        type: string
+      dry_run:
+        description: "Read every source and print counts and dedupe pairs without writing"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compound-spend
+  cancel-in-progress: false
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    environment: Production – compound
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Attempt 1
+        id: attempt1
+        continue-on-error: true
+        working-directory: compound/pipeline
+        env: &spend_env
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Optional. When absent the pipeline reads the same names from Supabase Vault.
+          PROPERTY_GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.PROPERTY_GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          PROPERTY_GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.PROPERTY_GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY }}
+          PROPERTY_LEDGER_SHEET_ID: ${{ secrets.PROPERTY_LEDGER_SHEET_ID }}
+          SPEND_BILLS_SHEET_ID: ${{ secrets.SPEND_BILLS_SHEET_ID }}
+          SPEND_BILLS_SHEET_GID: ${{ secrets.SPEND_BILLS_SHEET_GID }}
+        run: deno task spend --mode ${{ github.event_name == 'schedule' && 'scheduled' || 'manual' }} --attempt 1 ${{ inputs.date && format('--date {0}', inputs.date) || '' }} ${{ inputs.dry_run && '--dry-run' || '' }}
+      - name: Wait before attempt 2
+        if: steps.attempt1.outcome == 'failure' && !inputs.dry_run
+        run: sleep 600
+      - name: Attempt 2
+        id: attempt2
+        if: steps.attempt1.outcome == 'failure' && !inputs.dry_run
+        continue-on-error: true
+        working-directory: compound/pipeline
+        env: *spend_env
+        run: deno task spend --mode ${{ github.event_name == 'schedule' && 'scheduled' || 'manual' }} --attempt 2 ${{ inputs.date && format('--date {0}', inputs.date) || '' }}
+      - name: Preserve GitHub failure notification
+        if: steps.attempt2.outcome == 'failure' || (inputs.dry_run && steps.attempt1.outcome == 'failure')
+        run: exit 1

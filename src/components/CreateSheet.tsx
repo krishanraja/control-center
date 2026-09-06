@@ -13,11 +13,12 @@ import { requestCreate } from '../lib/quickCreate'
 import { useHaptics } from '../hooks/useHaptics'
 import { IconTile } from './shared/IconTile'
 import { TABS } from '../lib/tabs'
+import { useReducedMotion } from './shared/motion'
 
 /**
  * The one create system on a phone.
  *
- * One purple + button, bottom right on every tab, opening one sheet: the
+ * One mint + button, bottom right on every tab, opening one sheet: the
  * current tab's create actions first, then the two captures that work from
  * anywhere. It replaces the two-item capture speed dial AND the per-tab
  * inline buttons ("Start from research", "Add from screenshot", the goal
@@ -49,6 +50,7 @@ export function CreateSheet({ tab }: { tab: string }) {
   const h = useHaptics()
   const [open, setOpen] = useState(false)
   const [modal, setModal] = useState<ModalId | null>(null)
+  const reducedMotion = useReducedMotion()
 
   const go = (fn: () => void) => () => {
     h.select()
@@ -120,7 +122,7 @@ export function CreateSheet({ tab }: { tab: string }) {
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => { h.select(); setOpen(true) }}
-        className="fixed right-4 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full border border-violet-300/40 bg-violet-500/90 text-[#fff] shadow-2xl transition-colors hover:bg-violet-500"
+        className={`btn-contrast fixed right-4 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full border border-violet-300/40 shadow-2xl ${reducedMotion ? '' : 'transition-transform transition-colors active:scale-95'}`}
         style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 92px)' }}
       >
         <Plus size={24} strokeWidth={2.25} />

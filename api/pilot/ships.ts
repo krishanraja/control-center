@@ -40,7 +40,7 @@ import { resolveTz, ymdIn, dayStartUtcIn, weekOfIn } from '../_timezone.js'
  */
 
 /** The fixed channel list. Mirrors SHIP_CHANNELS in src/types/pilot.ts. */
-const MANUAL_CHANNELS = new Set(['email', 'publish', 'invoice', 'ask', 'campaign', 'other'])
+const MANUAL_CHANNELS = new Set(['email', 'publish', 'invoice', 'ask', 'approach', 'campaign', 'other'])
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const TRAILING_DAYS = 60

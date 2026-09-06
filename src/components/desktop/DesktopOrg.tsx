@@ -648,7 +648,7 @@ function IdentityPlanEditor({ form, onChange, saving, error }: { form: EditForm;
           rows={14}
           disabled={saving}
           placeholder="Identity / brief_content…"
-          className="w-full bg-black/30 border border-white/10 rounded p-2 text-label text-white/85 leading-relaxed font-mono resize-y focus:outline-none focus:border-violet-500/60 disabled:opacity-50"
+          className="w-full bg-sunk border border-white/10 rounded p-2 text-label text-white/85 leading-relaxed font-mono resize-y focus:outline-none focus:border-violet-500/60 disabled:opacity-50"
         />
       </div>
 
@@ -781,7 +781,7 @@ function PendingCorrectionsPanel({
                 </span>
               </div>
               {c.proposed_brief_edit && (
-                <pre className="text-micro text-white/70 leading-relaxed whitespace-pre-wrap bg-black/30 border border-white/[0.06] rounded p-2 max-h-40 overflow-auto font-mono">
+                <pre className="text-micro text-white/70 leading-relaxed whitespace-pre-wrap bg-sunk border border-white/[0.06] rounded p-2 max-h-40 overflow-auto font-mono">
                   {c.proposed_brief_edit}
                 </pre>
               )}
@@ -953,7 +953,7 @@ function CollapsibleBrief({ content, agentId }: { content: string, agentId: stri
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={Math.min(30, Math.max(10, draft.split('\n').length + 2))}
-            className="w-full bg-black/30 border border-white/10 rounded p-2 text-micro text-white/80 leading-relaxed font-mono resize-y focus:outline-none focus:border-violet-500/60"
+            className="w-full bg-sunk border border-white/10 rounded p-2 text-micro text-white/80 leading-relaxed font-mono resize-y focus:outline-none focus:border-violet-500/60"
             disabled={saving}
             placeholder="Edit the agent's Identity (brief_content). This becomes SKILL.md after save + sync."
           />

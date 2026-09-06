@@ -163,6 +163,12 @@ Strongest situations:
 
 Write for ambition as much as for pressure.
 
+> **Superseded 6 September 2026 by [ADR-016](./DECISIONS/016-ikigai-v4-one-swing.md).**
+> The ikigai v4 makes the room (a three week private diagnostic, fixed fee) the door
+> and the face (a senior leader at a PE or VC backed media, adtech or data business
+> Krish already knows, who will not admit they are not ready) the ICP. The paragraph
+> below is kept as the record of the August position. No cold contact is unchanged.
+
 **The north-star workbook is context about Krish as a person, not the go-to-market.**
 Decided 29 August 2026. Its PE and VC commercial-diagnostic route, its pricing and its
 growth-share structure are **not** the Mindmake offer and must not appear in ICP

@@ -12,6 +12,12 @@ export function TabIcon({ tab }: { tab: TabKey }) {
   if (tab === "portfolio") {
     return <svg {...shared}><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5V12l7.3 4.3" /><path d="M12 12 6.2 18.2" /></svg>;
   }
+  if (tab === "property") {
+    return <svg {...shared}><path d="M4 11.5 12 5l8 6.5" /><path d="M6 10.5V19h12v-8.5" /><path d="M10 19v-5h4v5" /></svg>;
+  }
+  if (tab === "spend") {
+    return <svg {...shared}><path d="M6.5 3.5h11v17l-2.2-1.5-2.2 1.5-2.2-1.5-2.2 1.5-2.2-1.5z" /><path d="M9.5 8.5h5M9.5 12h5M9.5 15.5h3" /></svg>;
+  }
   return <svg {...shared}><path d="M4 5.5h16v11H9l-5 4z" /><path d="M8 10.5h8M8 13.5h5" /></svg>;
 }
 

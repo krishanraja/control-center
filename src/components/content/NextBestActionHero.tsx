@@ -154,7 +154,7 @@ export function NextBestActionHero({ ideas, narrow }: Props) {
             if (e.key === 'Escape') { setPubOpen(false); setPubUrl('') }
           }}
           placeholder="Live URL (optional)"
-          className="w-40 rounded-lg bg-black/40 border border-white/12 px-2.5 py-2 text-label text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-400/40"
+          className="w-40 rounded-lg bg-sunk border border-white/12 px-2.5 py-2 text-label text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-400/40"
         />
         <button
           type="button" disabled={busy}

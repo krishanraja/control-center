@@ -8,8 +8,9 @@ rewired into this… basically no scrolling at all on any device")
 
 ## Decision
 
-1. **The canon is three layers, and Home is the canon.** OS goals (the
-   existing three `horizon='os'` rows) → this week's objectives (≤3
+1. **The canon is three layers, and Home is the canon.** OS goals (since
+   ADR-016, 2026-09-06: the single mission `horizon='os'` row; originally the
+   three rows of the time) → this week's objectives (≤3
    `horizon='weekly'` rows, each `parent_id` → an OS goal, optional
    `venture` tag) → today's 3 (`daily_focus`, always exactly 3). Home
    renders exactly: critical alerts (when firing) + one vitals line
