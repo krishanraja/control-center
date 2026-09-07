@@ -261,6 +261,20 @@ each:
    moves into the sheet and remains whole. Do not abbreviate it with an
    ellipsis or clip it inside a chip.
 
+## Read first, rows second
+
+Locked 2026-09-08, after the Growth tab's signal and review sections read as
+walls on a phone (Krish: "It's just data. It's not insight."). Any surface
+that shows evidence, a list of probes, findings, rows from a workflow, opens
+on ONE sentence that says what the evidence means, computed or written, and
+folds the rows under a disclosure ("Show the N questions", "Why: the
+evidence"). Where the machine already wrote a headline (the council's
+`findings.headline`), the surface leads with it; it never buries it as one
+key: value row among the findings. Every suggested action carries a way to
+act on it in place, through an existing write path (a Today slot, a card),
+never a new one. The desk may open the rows by default; the phone opens on
+the sentence.
+
 ## Create — the one + button
 
 On a phone there is ONE way to make something new: the mint + button,

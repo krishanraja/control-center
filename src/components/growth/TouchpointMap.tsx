@@ -2,7 +2,10 @@ import { OptionChips } from '../goals/GoalPickers'
 import React, { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, HelpCircle, Plus } from '@/lib/icons'
 import { useToast } from '../shared/Toast'
-import { BTN_GHOST, BTN_PRIMARY, Chip, EmptyNote, Field, INPUT_CLS, ProductChip, SectionHead, SELECT_CLS } from './atoms'
+import { BTN_GHOST, BTN_PRIMARY, Chip, EmptyNote, INPUT_CLS, ProductChip, SectionHead, SELECT_CLS } from './atoms'
+import { Ask, ComposerShell, LINE_CLS, More, PARA_CLS, ScoreChips } from './Composer'
+import { VoiceField } from '../pilot/controls'
+import { failureMessage } from '../../lib/apiFetch'
 import {
   CHANNELS, CHANNEL_LABEL, COVERAGES, COVERAGE_LABEL, COVERAGE_TONE,
   PRODUCTS, PRODUCT_LABEL,
@@ -91,11 +94,11 @@ export function TouchpointMap({ g, variant, composeSignal = 0 }: { g: GrowthData
       <SectionHead
         title="Where your buyers already are"
         sub={variant === 'desktop' ? 'Every place the ICP already is, per product. Coverage and cost efficiency save the moment you change them.' : undefined}
-        action={variant === 'desktop' ? (
+        action={
           <button type="button" onClick={() => setAdding(a => !a)} className={BTN_PRIMARY}>
-            <Plus size={13} className="inline -mt-0.5 mr-1" />{adding ? 'Close' : 'Add touchpoint'}
+            <Plus size={13} className="inline -mt-0.5 mr-1" />{adding && variant === 'desktop' ? 'Close' : 'Add a place'}
           </button>
-        ) : undefined}
+        }
       />
 
       {variant === 'desktop' && (
@@ -121,7 +124,7 @@ export function TouchpointMap({ g, variant, composeSignal = 0 }: { g: GrowthData
       </div>
       )}
 
-      {adding && <AddTouchpoint g={g} onDone={() => setAdding(false)} />}
+      <AddTouchpoint g={g} variant={variant} open={adding} onDone={() => setAdding(false)} />
 
       {openQuestions.length > 0 && (
         <div className="rounded-xl border border-amber-500/25 bg-amber-500/[0.05] p-3.5">
@@ -361,7 +364,7 @@ function Row({ t, variant, onSave, onAnswer }: {
   )
 }
 
-function AddTouchpoint({ g, onDone }: { g: GrowthData; onDone: () => void }) {
+function AddTouchpoint({ g, variant, open, onDone }: { g: GrowthData; variant: 'desktop' | 'mobile'; open: boolean; onDone: () => void }) {
   const { toast } = useToast()
   const [form, setForm] = useState({
     product_slug: 'circle' as ProductSlug,
@@ -375,78 +378,89 @@ function AddTouchpoint({ g, onDone }: { g: GrowthData; onDone: () => void }) {
     assumption_flag: '',
   })
   const [saving, setSaving] = useState(false)
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+  const set = <K extends keyof typeof form>(k: K) => (v: (typeof form)[K]) => setForm(f => ({ ...f, [k]: v }))
+  const onText = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
   const submit = async () => {
-    if (!form.icp_trigger.trim()) { toast('The trigger is the row. Write one.', 'error'); return }
+    if (!form.icp_trigger.trim()) { toast('Write what they are asking. That is the row.', 'error'); return }
     setSaving(true)
     try {
       await g.addTouchpoint({
         ...form,
         cost_efficiency_score: form.cost_efficiency_score === '' ? null : Number(form.cost_efficiency_score),
       })
-      toast('Touchpoint added to the map.', 'success')
+      toast('On the map.', 'success')
       onDone()
     } catch (e) {
-      toast(`Could not add: ${String(e)}`, 'error')
+      toast(failureMessage(e, 'Could not add it.'), 'error')
     } finally {
       setSaving(false)
     }
   }
 
+  // The one required field leads: what a buyer is already asking, in their
+  // words. Product and channel are chips. Everything else waits under More.
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Product" wide>
+    <ComposerShell
+      variant={variant}
+      open={open}
+      onClose={onDone}
+      label="Add a place"
+      primaryLabel="Add to the map"
+      onPrimary={submit}
+      busy={saving}
+      canSubmit={Boolean(form.icp_trigger.trim())}
+    >
+      <Ask label="What are they already asking?" hint="In their words. The question or moment that sends them looking.">
+        <VoiceField value={form.icp_trigger} onChange={set('icp_trigger')} rows={2} placeholder="How do I get my first fractional client?" autoFocus={variant === 'desktop'} />
+      </Ask>
+      <Ask label="Which product is this for?">
+        <OptionChips
+          options={PRODUCTS.map(p => ({ value: p, label: PRODUCT_LABEL[p] }))}
+          value={form.product_slug}
+          onChange={v => set('product_slug')(v as ProductSlug)}
+        />
+      </Ask>
+      <Ask label="Where do they go with it?" hint="The kind of place. Search, an AI answer, a feed, a newsletter, a community.">
+        <OptionChips
+          options={CHANNELS.map(c => ({ value: c, label: CHANNEL_LABEL[c] }))}
+          value={form.channel}
+          onChange={v => set('channel')(v as Channel)}
+        />
+      </Ask>
+      <Ask label="Where exactly?" hint="The search, the subreddit, the newsletter, the event. Optional.">
+        <input value={form.watering_hole} onChange={onText('watering_hole')} className={LINE_CLS} placeholder="r/fractionalexecs, the Fractional Jobs newsletter" />
+      </Ask>
+
+      <More label="Score, coverage, owner, rationale">
+        <Ask label="How cheap is it to reach them here?" hint="10 is nearly free, 1 is expensive.">
+          <ScoreChips value={form.cost_efficiency_score} onChange={set('cost_efficiency_score')} />
+        </Ask>
+        <Ask label="Are we there yet?">
           <OptionChips
-            options={PRODUCTS.map(p => ({ value: p, label: PRODUCT_LABEL[p] }))}
-            value={form.product_slug}
-            onChange={v => set('product_slug')({ target: { value: v } } as React.ChangeEvent<HTMLInputElement>)}
-          />
-        </Field>
-        <Field label="Channel" wide>
-          <OptionChips
-            options={CHANNELS.map(c => ({ value: c, label: CHANNEL_LABEL[c] }))}
-            value={form.channel}
-            onChange={v => set('channel')({ target: { value: v } } as React.ChangeEvent<HTMLInputElement>)}
-          />
-        </Field>
-        <Field label="ICP trigger" wide>
-          <input value={form.icp_trigger} onChange={set('icp_trigger')} className={INPUT_CLS} placeholder="What they are already asking, in their words" />
-        </Field>
-        <Field label="Where they gather" wide>
-          <input value={form.watering_hole} onChange={set('watering_hole')} className={INPUT_CLS} placeholder="Where exactly: the search, the subreddit, the newsletter, the event" />
-        </Field>
-        <Field label="How cheap to reach them (1 to 10)">
-          <select value={form.cost_efficiency_score} onChange={set('cost_efficiency_score')} className={`${INPUT_CLS} cursor-pointer`}>
-            <option value="">Not scored yet</option>
-            {SCORE_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </Field>
-        <Field label="Coverage" wide>
-          <OptionChips
-            options={COVERAGES.map(c => ({ value: c, label: COVERAGE_LABEL[c] }))}
+            options={COVERAGES.filter(c => c !== 'retired').map(c => ({ value: c, label: COVERAGE_LABEL[c] }))}
             value={form.coverage_status}
-            onChange={v => set('coverage_status')({ target: { value: v } } as React.ChangeEvent<HTMLInputElement>)}
+            onChange={v => set('coverage_status')(v as Coverage)}
           />
-        </Field>
-        <Field label="Owner agent">
-          <input value={form.owner_agent} onChange={set('owner_agent')} className={INPUT_CLS} placeholder="cleo, maya, nell, krish" />
-        </Field>
-        <Field label="Open question (optional)">
-          <input value={form.assumption_flag} onChange={set('assumption_flag')} className={INPUT_CLS} placeholder="What we are still guessing about this" />
-        </Field>
-        <Field label="Rationale" wide>
-          <textarea value={form.rationale} onChange={set('rationale')} rows={2} className={INPUT_CLS} placeholder="Why this place is worth your time" />
-        </Field>
-      </div>
-      <div className="flex gap-2 mt-3">
-        <button type="button" onClick={submit} disabled={saving} className={BTN_PRIMARY}>
-          {saving ? 'Adding…' : 'Add touchpoint'}
-        </button>
-        <button type="button" onClick={onDone} className={BTN_GHOST}>Cancel</button>
-      </div>
-    </div>
+        </Ask>
+        <Ask label="Who owns it?">
+          <OptionChips
+            options={[{ value: '', label: 'Nobody yet' }, ...OWNERS.map(o => ({ value: o, label: o }))]}
+            value={form.owner_agent}
+            onChange={set('owner_agent')}
+          />
+        </Ask>
+        <Ask label="What are we still guessing about?" hint="Becomes an open question on the map. Optional.">
+          <input value={form.assumption_flag} onChange={onText('assumption_flag')} className={LINE_CLS} placeholder="Do they actually read the newsletter?" />
+        </Ask>
+        <Ask label="Why is this place worth your time?">
+          <textarea value={form.rationale} onChange={onText('rationale')} rows={2} className={PARA_CLS} placeholder="Optional" />
+        </Ask>
+      </More>
+    </ComposerShell>
   )
 }
+
+/** The agents that can own a touchpoint, as chips. Free text was a guess box. */
+const OWNERS = ['krish', 'cleo', 'maya', 'nell', 'zara']

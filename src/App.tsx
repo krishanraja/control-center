@@ -205,7 +205,9 @@ export default function App() {
   // Which Growth section a deep link opens on. Undefined means "leave it where
   // the user left it", so clicking a lane chip (which writes ?lane=) never
   // yanks the section out from under them.
-  const growthEntrySection = cameFromAcquisition || route.params.lane ? 'governance' : undefined
+  const GROWTH_SECTIONS = ['map', 'work', 'signals', 'council', 'governance'] as const
+  const askedSection = GROWTH_SECTIONS.find(s => s === route.params.section)
+  const growthEntrySection = askedSection || (cameFromAcquisition || route.params.lane ? 'governance' : undefined)
 
   return (
     <ToastProvider>

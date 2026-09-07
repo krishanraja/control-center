@@ -4,6 +4,13 @@ The Growth tab (`#/acquisition`) is the command deck for autonomous customer
 acquisition. This runbook covers the one manual setup step, the orchestration
 levers, and the standing rules.
 
+> **Surface note (2026-09-08).** The tab's sections read insight first: each
+> evidence section opens on one sentence with the rows folded, the weekly
+> review leads with the council's headline and lets a move become today's
+> work or a clip, and Spend limits shows Intel's whole-OS spend beside the
+> lane figures with a line saying what each counts. The autonomy rungs are
+> said in words on the card. See `docs/PRODUCT.md`, Tab: Growth.
+
 ## Standing rules (locked 2026-07-16)
 
 1. **No personal brand in public — ever.** Every outbound surface is

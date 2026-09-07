@@ -228,10 +228,8 @@ test('signals merges the GEO citation rate with the SEO rank sweep', async ({ pa
     }))
   await openSection(page, 'signals')
   // GEO leads the section and stays honest when no probe has run.
-  // Heading, not free text: "GEO probes" also appears inside the empty-state
-  // sentence below it, so a bare text match is a strict-mode violation.
-  await expect(page.getByRole('heading', { name: 'GEO probes' })).toBeVisible()
-  await expect(page.getByText(/No GEO probes have been run yet/)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Do AI answers mention you?' })).toBeVisible()
+  await expect(page.getByText(/Nobody has asked the engines yet/)).toBeVisible()
   // The SEO sweep sits under it, cross-product, each row labelled with its lane.
   await expect(page.getByText('SEO rank')).toBeVisible()
   await expect(page.getByText('AI news aggregator')).toBeVisible()
@@ -244,10 +242,82 @@ test('signals merges the GEO citation rate with the SEO rank sweep', async ({ pa
 test('integrations panel groups tools by status and shows gated reasons', async ({ page }) => {
   await mockGrowthApis(page)
   await openSection(page, 'governance')
-  await expect(page.getByText('Integrations')).toBeVisible()
+  await expect(page.getByText('Connected tools')).toBeVisible()
   // Org-shared wired tool shows on the lane
   await expect(page.getByText('PostHog')).toBeVisible()
-  // Gated tool shows its unlock reason (mm_ctrl is the selected lane)
+  // Gated tool shows its unlock reason (mm_ctrl is the selected lane), in full,
+  // on its own line under the name: never truncated beside it.
   await expect(page.getByText('Affonso')).toBeVisible()
-  await expect(page.getByText('unlock at $100 MRR/lane')).toBeVisible()
+  await expect(page.getByText('Locked: unlock at $100 MRR/lane')).toBeVisible()
+})
+
+const REVIEW = {
+  id: 'rv1', week_start: '2026-08-31', product_slug: 'ctrl', krish_decision: null, decided_at: null,
+  created_at: '2026-09-06T17:00:00Z',
+  findings: {
+    headline: 'Landed traffic flatlined at 15 a week for two straight weeks, and four specced channels sit unshipped.',
+    traffic: 'Landed events: 380, 45, 15, 15 across the last four weeks.',
+    geo: '0 of 8 GEO citations, but the probe ran while the crawlers were blocked.',
+    measured: 'landed 15 this week | signups 0 | GEO 0/8 cited',
+  },
+  kill_list: [],
+  double_down: ['Rerun the 8-probe GEO citation test now.', 'Ship SEO Wave 1 plus the weekly Decision Teardown series.'],
+}
+
+/**
+ * The review leads with the sentence and the moves, and each move can become
+ * today's work or a clip without leaving the card. The evidence stays folded
+ * until asked for: the first version rendered the headline as one "key:
+ * value" row among eight and read as a wall on a phone.
+ */
+test('weekly review leads with the headline and puts a move on today', async ({ page }) => {
+  await mockGrowthApis(page)
+  await page.route('**/rest/v1/growth_council_reviews*', r => r.fulfill({ json: [REVIEW] }))
+  const slotWrites: any[] = []
+  await page.route('**/api/daily-focus/slot', r => { slotWrites.push(r.request().postDataJSON()); return r.fulfill({ json: { ok: true } }) })
+  await page.route('**/api/daily-focus/today*', r => r.fulfill({ json: { ok: true, today: null, carry_over: null } }))
+  await openSection(page, 'council')
+  await expect(page.getByText(/Landed traffic flatlined/)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Do next' })).toBeVisible()
+  // Evidence is folded: the traffic finding is not on screen until opened.
+  await expect(page.getByText(/Landed events: 380/)).toHaveCount(0)
+  await page.getByRole('button', { name: /the evidence/ }).click()
+  await expect(page.getByText(/Landed events: 380/)).toBeVisible()
+  // A move becomes today's work through the one Today write path.
+  await page.getByRole('button', { name: 'Put on today' }).first().click()
+  await expect.poll(() => slotWrites.length).toBe(1)
+  expect(slotWrites[0].slot).toBe(1)
+  expect(slotWrites[0].text).toBe('Rerun the 8-probe GEO citation test now.')
+})
+
+/**
+ * Adding a place on a phone opens a sheet with one question and chips, not
+ * the desktop grid inline. The Add action rides the sheet's footer, so it is
+ * on screen without scrolling the tab.
+ */
+test('on a phone, adding a place opens a sheet with the action on screen', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  const page = await ctx.newPage()
+  await mockGrowthApis(page)
+  await page.route('**/api/pilot/timezone', r => r.fulfill({ json: { ok: true, timezone: 'America/New_York' } }))
+  await page.route('**/api/pilot/checkin*', r => r.fulfill({ json: {
+    ok: true, evening_done_today: true, last_evening: null, yesterday: null, timezone: 'America/New_York',
+    today: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date()),
+    morning: { id: 'm1', kind: 'morning', energy: 4, anxiety: 1, mode: 'green', one_word: 'sharp', intent: null, venture: null, override_at: null, skipped: false },
+  } }))
+  await page.goto('/#/growth')
+  await expect(page.getByTestId('growth-panel-map')).toBeVisible()
+  // The tab says what it is for, in words, before any control.
+  await expect(page.getByText(/Find buyers where they already are/)).toBeVisible()
+  await page.getByRole('button', { name: 'Add a place' }).click()
+  const sheet = page.getByRole('dialog', { name: 'Add a place' })
+  await expect(sheet).toBeVisible()
+  await expect(sheet.getByText('What are they already asking?')).toBeVisible()
+  // No native select anywhere in the sheet; the score and coverage are chips under More.
+  await expect(sheet.locator('select')).toHaveCount(0)
+  // The whole action button inside the viewport once the slide-up settles,
+  // without scrolling anything: the footer is pinned, the middle scrolls.
+  const add = sheet.getByRole('button', { name: 'Add to the map' })
+  await expect(add).toBeInViewport({ ratio: 1 })
+  await ctx.close()
 })

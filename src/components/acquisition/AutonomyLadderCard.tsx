@@ -4,16 +4,21 @@ import { Check, ShieldCheck, X } from '@/lib/icons'
 import type { AcquisitionLane } from '../../hooks/useAcquisition'
 import { laneAction, type LaneCriteria, type LaneDetail } from '../../hooks/useLaneDetail'
 import { useToast } from '../shared/Toast'
-import { AUTONOMY_CHIP, AUTONOMY_LABEL } from './laneMeta'
+import { AUTONOMY_CHIP, AUTONOMY_EXPLAIN, AUTONOMY_LABEL } from './laneMeta'
 
 const LEVELS = ['L1', 'L2', 'L3'] as const
 
 /**
- * Autonomy Ladder cockpit — where this lane sits on L1 (every send approved)
- * → L2 (1-in-10 sampled) → L3 (exception only). Demotion is always one tap;
- * promotion runs the mechanical gates server-side and, when refused, renders
- * the exact unmet-criteria checklist the 422 carries. The profit gate
- * (contribution margin > 0) can never be overridden — not even with force.
+ * How much this lane's agents may do alone: L1 (you approve every send), L2
+ * (they send, you check 1 in 10), L3 (they send, you only see exceptions).
+ * Demotion is always one tap; promotion runs the mechanical gates server-side
+ * and, when refused, renders the exact unmet-criteria checklist the 422
+ * carries. The profit gate (contribution margin > 0) can never be overridden,
+ * not even with force.
+ *
+ * The card says what the rungs mean in words (2026-09-08). "Autonomy ladder"
+ * with three letter-number badges explained nothing to the one person who
+ * reads it.
  */
 export function AutonomyLadderCard({
   lane,
@@ -64,7 +69,7 @@ export function AutonomyLadderCard({
       <header className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.06]">
         <ShieldCheck size={13} className="text-emerald-400" />
         <h2 className="text-micro font-semibold uppercase tracking-[0.14em] text-white/45">
-          Autonomy ladder
+          How much they may do alone
         </h2>
         <span className={`ml-auto rounded-full border px-2 py-0.5 text-micro font-semibold ${AUTONOMY_CHIP[current]}`}>
           {current}
@@ -72,7 +77,9 @@ export function AutonomyLadderCard({
       </header>
 
       <div className="px-4 py-3">
-        <div className="flex items-center gap-1.5">
+        <p className="text-body text-white/85 leading-snug">{AUTONOMY_LABEL[current]}.</p>
+        <p className="text-label text-white/45 leading-snug mt-0.5">{AUTONOMY_EXPLAIN[current]}</p>
+        <div className="flex items-center gap-1.5 mt-3">
           {LEVELS.map((lvl, i) => {
             const isCurrent = lvl === current
             const reached = LEVELS.indexOf(current) >= i
@@ -90,8 +97,14 @@ export function AutonomyLadderCard({
             )
           })}
         </div>
-        <p className="mt-2 text-micro text-white/40">{AUTONOMY_LABEL[current]}</p>
-        <div className="mt-0.5 flex items-baseline gap-3 text-micro text-white/25 tabular-nums">
+        <ul className="mt-2 flex flex-col gap-0.5">
+          {LEVELS.map(lvl => (
+            <li key={lvl} className={`text-micro leading-snug ${lvl === current ? 'text-white/70' : 'text-white/35'}`}>
+              <span className="font-semibold tabular-nums mr-1.5">{lvl}</span>{AUTONOMY_LABEL[lvl]}
+            </li>
+          ))}
+        </ul>
+        <div className="mt-2 flex items-baseline gap-3 flex-wrap text-micro text-white/25 tabular-nums">
           {detail?.stats && (
             <>
               <span>{detail.stats.approved_30d} approved / {detail.stats.rejected_30d} rejected · 30d</span>
@@ -119,7 +132,7 @@ export function AutonomyLadderCard({
             <button
               type="button"
               disabled={busy || current === 'L1'}
-              onClick={() => act({ action: 'demote', reason: 'krish manual demotion' }, `Demoted to ${current === 'L3' ? 'L2' : 'L1'} — every send sampled again.`)}
+              onClick={() => act({ action: 'demote', reason: 'krish manual demotion' }, `Demoted to ${current === 'L3' ? 'L2' : 'L1'}. More of their sends come past you again.`)}
               className="rounded-lg border border-amber-400/25 px-2.5 py-1 text-micro font-medium text-amber-300/80 hover:text-amber-300 transition-colors disabled:opacity-40"
             >
               Demote
@@ -137,6 +150,12 @@ export function AutonomyLadderCard({
           </div>
         )}
 
+        {detail && (
+          <p className="mt-2 text-micro text-white/35 leading-snug">
+            Promote moves up one rung. It only goes through when the product is making money and the agents have a record of approved sends. The money gate cannot be forced.
+          </p>
+        )}
+
         {criteria && (
           <ul className="mt-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 space-y-1">
             {criteria.map(c => (
@@ -146,7 +165,7 @@ export function AutonomyLadderCard({
                   : <X size={11} className={`flex-shrink-0 ${c.overridable ? 'text-amber-300' : 'text-rose-300'}`} />}
                 <span className={c.met ? 'text-white/55' : 'text-white/80'}>{c.label}</span>
                 <span className="ml-auto text-white/30 tabular-nums">
-                  {c.actual == null ? '—' : String(c.actual)}
+                  {c.actual == null ? 'none' : String(c.actual)}
                 </span>
                 {!c.met && !c.overridable && (
                   <span className="text-micro uppercase tracking-wide text-rose-300/80">hard gate</span>
@@ -162,7 +181,7 @@ export function AutonomyLadderCard({
           {history.slice(0, 4).map((h: any, i) => (
             <div key={i} className="px-4 py-2 text-micro flex items-center gap-2">
               <span className="text-white/60 font-medium">
-                {h.from && h.to ? `${h.from} → ${h.to}` : h.to || '—'}
+                {h.from && h.to ? `${h.from} to ${h.to}` : h.to || 'changed'}
               </span>
               {h.override && <span className="text-micro uppercase tracking-wide text-amber-300/80">override</span>}
               {h.reason && <span className="text-white/35 truncate">{String(h.reason)}</span>}
