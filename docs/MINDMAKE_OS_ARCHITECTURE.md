@@ -319,7 +319,7 @@ the CLOUD workflows; moving them to n8n credentials is the actual fix.
 
 ## 0c. CANON as of 2026-09-07 - one surface, kept current by the engine
 
-**Ruling (Krish).** The VPS and Google Drive copies of this document are deleted for good: too fragile to keep up to date, and nothing read them. GitHub `main` is the only surface. The engine keeps it current: the Content Engine's build signals (`docs/CONTENT-ENGINE-BUILD-SIGNALS.md`) feed a Sunday cron that writes the week's entry at the top of section 20 and stamps the header. The three "Weekly Documentation Refresh" Routines (Fractionl Circle, Mindmaker, MM-Ctrl, all Sunday 08:00 UTC, created 2026-05-14 via the HTTP API) are superseded by it and are to be deleted from the Routines list; an agent cannot delete a Routine created that way, so that step is Krish's.
+**Ruling (Krish).** The VPS and Google Drive copies of this document are deleted for good: too fragile to keep up to date, and nothing read them. GitHub `main` is the only surface. The engine keeps it current: the Content Engine's build signals (`docs/CONTENT-ENGINE-BUILD-SIGNALS.md`) feed a Sunday cron that writes the week's entry at the top of section 20 and stamps the header. The three "Weekly Documentation Refresh" Routines (Fractionl Circle, Mindmaker, MM-Ctrl, all Sunday 08:00 UTC, created 2026-05-14 via the HTTP API) were superseded by it and **were deleted by Krish on 2026-09-07**.
 
 **What this retires on the VPS** (the exact steps, for whoever is on the box; also filed as a task for Agatha):
 
@@ -331,6 +331,7 @@ for d in /root/.claude/skills/mindmaker-os /root/.claude/skills/mindmake-os /roo
 done
 mv /root/.openclaw/workspace/scripts/sync-architecture-surfaces.py /root/.openclaw/workspace/scripts/_retired/
 # in sync-to-drive.py remove the MINDMAKE_OS_ARCHITECTURE entry (the Drive file is trashed; the write would 404 every six hours)
+# DONE 2026-09-07: the google_drive_sync reference row (1ef31f86-2209-4596-b34a-298ff0ea7a15) is also deleted, so nothing references the file
 # in os-autonomous-diagnostics.py and regen-arch-section-4.py point the doc path at /root/Projects/control-center/docs/MINDMAKE_OS_ARCHITECTURE.md, or retire the check
 grep -rn "MINDMAKER_OS_ARCHITECTURE\|sync-architecture-surfaces" /root/.openclaw /root/.claude /root/.cursor --include=*.py --include=*.sh --include=*.md -l
 ```
